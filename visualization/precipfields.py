@@ -5,7 +5,7 @@ import matplotlib.colors as colors
 
 import numpy as np
 
-def field(R, geodata=None, units='mmhr', colorscale='MeteoSwiss', title=None, 
+def plot_field(R, geodata=None, units='mmhr', colorscale='MeteoSwiss', title=None, 
                       colorbar=True):
     """Function to plot a precipitation field witha a colorbar. 
     
