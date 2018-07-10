@@ -1,4 +1,24 @@
-"""Methods for generating perturbations of two-dimensional motion fields."""
+"""Methods for generating perturbations of two-dimensional motion fields.
+
+The methods in this module implement the following interface for initialization:
+
+  inizialize_xxx(V, optional arguments)
+  
+where V (2,m,n) is the motion field.
+The output of each initialization method is a dictionary containing the perturbator 
+that can be supplied to generate_xxx.
+  
+The methods in this module implement the following interface for the generation
+of a motion perturbation field:
+
+  generate_xxx(perturbator, t)   
+
+where perturbator is a dictionary returned by an initialize_xxx method.
+The output of each generator method is an array of shape (2,m,n) containing the 
+x- and y-components of the motion vector perturbations, where m and n are 
+determined from the perturbator.
+
+"""
 
 import numpy as np
 from scipy import linalg

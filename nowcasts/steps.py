@@ -246,13 +246,13 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             
             # Advect the recomposed precipitation field to obtain the forecast 
             # for time step t.
-            R_f_,D_ = extrap_method(R_r, V_, 1, D_prev=D[j], return_displacement=True)
+            R_f_,D_ = extrap_method(R_r, V_, 1, dict(D_prev=D[j], return_displacement=True))
             D[j] = D_
             R_f_ = R_f_[0]
             
             #if use_precip_mask:
                 # Advect the precipitation mask and apply it to the output.
-                #MASK_p_ = extrap_method(MASK_p, V, 1, D_prev=D[j])[0]
+                #MASK_p_ = extrap_method(MASK_p, V, 1, dict(D_prev=D[j]))[0]
                 #R_f_[MASK_p_ < 0.5] = R_min
             
             R_f[j].append(R_f_)

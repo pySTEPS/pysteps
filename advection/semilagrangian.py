@@ -1,10 +1,10 @@
-"""Implementation of the semi-Lagrangian method of Germann et al (2002)
+"""Implementation of the semi-Lagrangian method of Germann et al (2002).
 """
 
 import numpy as np
 import scipy.ndimage.interpolation as ip
 
-def extrapolate(R, V, num_timesteps, outval = np.nan, **kwargs):
+def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
     """Apply semi-Lagrangian extrapolation to a two-dimensional precipitation 
     field.
     
@@ -13,7 +13,7 @@ def extrapolate(R, V, num_timesteps, outval = np.nan, **kwargs):
     R : array-like
         Array of shape (m,n) containing the input precipitation field.
     V : array-like
-        Array of shape (m,n,2) containing the x- and y-components of the m*n 
+        Array of shape (2,m,n) containing the x- and y-components of the m*n 
         advection field.
     num_timesteps : int
         Number of time steps to extrapolate.
@@ -24,9 +24,9 @@ def extrapolate(R, V, num_timesteps, outval = np.nan, **kwargs):
         Default : np.nan
 
     Optional kwargs:
-    ----------
+    ---------------
     D_prev : array-like
-        Optional initial displacement vector field of shape (m,n,2) for the 
+        Optional initial displacement vector field of shape (2,m,n) for the 
         extrapolation.
         Default : None
     n_iter : int
@@ -102,7 +102,7 @@ def extrapolate(R, V, num_timesteps, outval = np.nan, **kwargs):
                               prefilter=False)
         R_e.append(np.reshape(IW, R.shape))
     
-    if return_displacement == False:
+    if not return_displacement:
         return np.stack(R_e)
     else:
         return np.stack(R_e), D

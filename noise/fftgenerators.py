@@ -1,4 +1,31 @@
-"""Methods for noise generators based on FFT filtering of white noise."""
+"""Methods for noise generators based on FFT filtering of white noise.
+
+The methods in this module implement the following interface for filter 
+initialization depending on their parametric or nonparametric nature:
+
+  inizialize_param_2d_xxx_filter(X, optional arguments, keyword arguments)
+  
+  or
+  
+  inizialize_nonparam_2d_xxx_filter(X, optional arguments, keyword arguments)
+  
+where X (m, n) is the target field and the optional keyword arguments are included 
+in a dictionary. 
+The output of each initialization method is a two-dimensional array containing 
+the filter F of shape (m, n).
+  
+The methods in this module implement the following interface for the generation
+of correlated noise:
+
+  generate_noise_2d_xxx_filter(F, seed=None, keyword arguments)   
+
+where F (m, n) is the input field and the optional argument seed can be used to 
+set the seed of the random generator. Additional keyword arguments are included 
+in a dictionary.
+The output of each generator method is a two-dimensional array containing 
+the field of correlated noise cN of shape (m, n).
+
+"""
 
 import numpy as np
 
@@ -19,8 +46,8 @@ def initialize_param_2d_fft_filter(X, **kwargs):
       Two-dimensional square array containing the input field. All values are 
       required to be finite.
       
-    Optional kwargs:
-    ----------
+    Optional kwargs
+    ---------------
     win_type : string
        Optional tapering function to be applied to X.
        Default : flat-hanning
@@ -104,8 +131,8 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
       Two-dimensional array containing the input field. All values are required 
       to be finite.
       
-    Optional kwargs:
-    ----------
+    Optional kwargs
+    ---------------
     win_type : string
        Optional tapering function to be applied to X.
        Default : flat-hanning
@@ -197,8 +224,8 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
         Two-dimensional array containing the input field. All values are required 
         to be finite.
 
-    Optional kwargs:
-    ----------
+    Optional kwargs
+    ---------------
     win_size : int or two-element tuple of ints
         Size-length of the window to compute the SSFT.
         Default : (128, 128)
@@ -291,8 +318,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     gridres : float
         Grid resolution in km.
         
-    Optional kwargs:
-    ----------
+    Optional kwargs
+    ---------------
     max_level : int 
         Localization parameter. 0: global noise, >0: increasing degree of localization.
         Default : 3
@@ -402,8 +429,8 @@ def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
     seed : int
         Value to set a seed for the generator. None will not set the seed.
         
-    Optional kwargs:
-    ----------
+    Optional kwargs
+    ---------------
     overlap : float 
         Percentage overlap [0-1] between successive windows.
         Default : 0.2
@@ -486,6 +513,7 @@ def build_2D_tapering_function(win_size, win_type='flat-hanning'):
         Size of the tapering window as two-element tuple of integers.
     win_type : str
         Name of the tapering window type (hanning, flat-hanning)
+        
     Returns
     -------
     w2d : array-like
