@@ -73,7 +73,7 @@ def dense_lucaskanade(R, **kwargs):
     min_distance_ST     = kwargs.get('min_distance_ST', 5)
     block_size_ST       = kwargs.get('block_size_ST', 15)
     winsize_LK          = kwargs.get('winsize_LK5', (50, 50))
-    nr_levels_LK        = kwargs.get('nr_levels_LK', 10)
+    nr_levels_LK        = kwargs.get('nr_levels_LK', 2)
     kernel_bandwidth    = kwargs.get('kernel_bandwidth', None)
     max_speed           = kwargs.get('max_speed', 10)
     nr_IQR_outlier      = kwargs.get('nr_IQR_outlier', 3)
@@ -225,7 +225,7 @@ def LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
 
     # LK parameters
     lk_params = dict( winSize=winsize_LK, maxLevel=nr_levels_LK,
-                     criteria=(cv2.TERM_CRITERIA_EPS|cv2.TERM_CRITERIA_COUNT,10,0.03))
+                     criteria=(cv2.TERM_CRITERIA_EPS|cv2.TERM_CRITERIA_COUNT, 10, 0))
 
     # Lucas-Kande
     p1, st, err = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **lk_params)
