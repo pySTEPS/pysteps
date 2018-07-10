@@ -19,9 +19,9 @@ of correlated noise:
 
   generate_noise_2d_xxx_filter(F, seed=None, keyword arguments)   
 
-where F (m, n) is the input field and the optional argument seed can be used to 
-set the seed of the random generator. Additional keyword arguments are included 
-in a dictionary.
+where F (m, n) is a filter returned from an initialization method, and seed 
+can set the seed of the random generator. Additional keyword arguments are included 
+as a dictionary.
 The output of each generator method is a two-dimensional array containing 
 the field of correlated noise cN of shape (m, n).
 
