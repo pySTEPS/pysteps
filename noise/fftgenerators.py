@@ -9,8 +9,7 @@ try:
 except ImportError:
     from numpy import fft
 
-def initialize_param_2d_fft_filter(X, tapering_function='flat-hanning',
-                                   model='power law', weighted=True):
+def initialize_param_2d_fft_filter(X, **kwargs):
     """Takes a 2d input field and produces a fourier filter by using the Fast 
     Fourier Transform (FFT).
     
@@ -19,14 +18,19 @@ def initialize_param_2d_fft_filter(X, tapering_function='flat-hanning',
     X : array-like
       Two-dimensional square array containing the input field. All values are 
       required to be finite.
-    tapering_function : string
+      
+    Optional kwargs:
+    ----------
+    win_type : string
        Optional tapering function to be applied to X.
-       (hanning, flat-hanning)
+       Default : flat-hanning
     model : string
         The parametric model to be used to fit the power spectrum of X.
+        Default : power-law
     weighted : bool
         Whether or not to apply the sqrt(power) as weight in the polyfit() function.
-    
+        Default : True
+        
     Returns
     -------
     F : array-like
@@ -41,17 +45,22 @@ def initialize_param_2d_fft_filter(X, tapering_function='flat-hanning',
     if X.shape[0] != X.shape[1]:
         raise ValueError("a square array expected, but the shape of X is (%d,%d)" % \
                          (X.shape[0], X.shape[1]))
-    
+       
+    # defaults
+    win_type = kwargs.get('win_type', 'flat-hanning')
+    model    = kwargs.get('model', 'power-law')
+    weighted = kwargs.get('weighted', True)
+        
     L = X.shape[0]
     
     X = X.copy()
-    if tapering_function is not None:
+    if win_type is not None:
         X -= X.min()
-        tapering = build_2D_tapering_function((L, L), tapering_function)
+        tapering = build_2D_tapering_function((L, L), win_type)
     else:
         tapering = np.ones_like(X)
     
-    if model.lower() == 'power law':
+    if model.lower() == 'power-law':
        
         # compute radially averaged PSD
         psd = _rapsd(X*tapering)
@@ -85,7 +94,7 @@ def initialize_param_2d_fft_filter(X, tapering_function='flat-hanning',
 
     return F
  
-def initialize_nonparam_2d_fft_filter(X, tapering_function='flat-hanning', donorm=False):
+def initialize_nonparam_2d_fft_filter(X, **kwargs):
     """Takes a 2d input field and produces a fourier filter by using the Fast 
     Fourier Transform (FFT).
     
@@ -94,9 +103,15 @@ def initialize_nonparam_2d_fft_filter(X, tapering_function='flat-hanning', donor
     X : array-like
       Two-dimensional array containing the input field. All values are required 
       to be finite.
-    tapering_function : string
+      
+    Optional kwargs:
+    ----------
+    win_type : string
        Optional tapering function to be applied to X.
-       (hanning, flat-hanning)
+       Default : flat-hanning
+    donorm : bool
+       Option to normalize the real and imaginary parts.
+       Default : False
     
     Returns
     -------
@@ -109,10 +124,14 @@ def initialize_nonparam_2d_fft_filter(X, tapering_function='flat-hanning', donor
     if np.any(~np.isfinite(X)):
       raise ValueError("X contains non-finite values")
       
+    # defaults
+    win_type = kwargs.get('win_type', 'flat-hanning')
+    donorm   = kwargs.get('donorm', False)
+      
     X = X.copy()
-    if tapering_function is not None:
+    if win_type is not None:
         X -= X.min()
-        tapering = build_2D_tapering_function(X.shape, tapering_function)
+        tapering = build_2D_tapering_function(X.shape, win_type)
     else:
         tapering = np.ones_like(X)
     F = fft.fft2(X*tapering)
@@ -182,12 +201,16 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     ----------
     win_size : int or two-element tuple of ints
         Size-length of the window to compute the SSFT.
+        Default : (128, 128)
     win_type : string ['hanning', 'flat-hanning'] 
         Type of window used for localization.
+        Default : flat-hanning
     overlap : float [0,1[ 
         The proportion of overlap to be applied between successive windows.
-    war_thr : float [0;1]
+        Default : 0.3
+    war_thr : float [0,1]
         Threshold for the minimum fraction of rain needed for computing the FFT.
+        Default : 0.1
 
     Returns
     -------
@@ -201,13 +224,13 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     if np.any(np.isnan(X)):
         raise ValueError("X must not contain NaNs")
         
-    # Set default parameters
+    # defaults
     win_size = kwargs.get('win_size', (128,128))
     if type(win_size) == int:
         win_size = (win_size, win_size)
     win_type = kwargs.get('win_type', 'flat-hanning')
+    overlap  = kwargs.get('overlap', 0.3)
     war_thr  = kwargs.get('war_thr', 0.1)
-    overlap = kwargs.get('overlap', 0.3)
     
     # make sure non-rainy pixels are set to zero
     min_value = np.min(X)
@@ -247,6 +270,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
             idxj[1] = np.min( (idxj[0] + win_size[1]  + overlap*win_size[1], dim_x) ).astype(int)
        
             # build localization mask
+            # TODO: the 0.01 rain threshold must be improved
             mask = _get_mask(dim, idxi, idxj, win_type)
             war = float(np.sum((X*mask) > 0.01)) / ((idxi[1]-idxi[0])*(idxj[1]-idxj[0]))
             
@@ -266,14 +290,18 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
         to be finite and the domain must be square.
     gridres : float
         Grid resolution in km.
+        
     Optional kwargs:
     ----------
     max_level : int 
         Localization parameter. 0: global noise, >0: increasing degree of localization.
+        Default : 3
     win_type : string ['hanning', 'flat-hanning'] 
         Type of window used for localization.
+        Default : flat-hanning
     war_thr : float [0;1]
         Threshold for the minimum fraction of rain needed for computing the FFT.
+        Default : 0.1
 
     Returns
     -------
@@ -290,10 +318,10 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     if np.any(np.isnan(X)):
         raise ValueError("X must not contain NaNs")
         
-    # Set default parameters
+    # defaults
     max_level = kwargs.get('max_level', 3)
-    win_type = kwargs.get('win_type', 'flat-hanning')
-    war_thr = kwargs.get('war_thr', 0.1)
+    win_type  = kwargs.get('win_type', 'flat-hanning')
+    war_thr   = kwargs.get('war_thr', 0.1)
     
     # make sure non-rainy pixels are set to zero
     min_value = np.min(X)
@@ -346,6 +374,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
                     
                     # compute logistic function to define weights as function of frequency
                     # k controls the shape of the weighting function
+                    # TODO: optimize parameters
                     k = 0.05
                     x0 = (Idxinext[n, 1] - Idxinext[n, 0])/2.
                     merge_weights = 1/(1 + np.exp(-k*(1/freq_grid - x0)))
@@ -377,8 +406,10 @@ def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
     ----------
     overlap : float 
         Percentage overlap [0-1] between successive windows.
+        Default : 0.2
     win_type : string ['hanning', 'flat-hanning'] 
         Type of window used for localization.
+        Default : flat-hanning
 
     Returns
     -------
@@ -392,8 +423,8 @@ def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
     if np.any(~np.isfinite(F)):
       raise ValueError("F contains non-finite values")
       
-    # Set default parameters
-    overlap = kwargs.get('overlap', 0.2)
+    # defaults
+    overlap  = kwargs.get('overlap', 0.2)
     win_type = kwargs.get('win_type', 'flat-hanning')
     
     # set the seed
@@ -502,6 +533,9 @@ def build_2D_tapering_function(win_size, win_type='flat-hanning'):
     return w2d
     
 def _rapsd(X):
+    """Compute radially averaged PSD of input field X.
+    """
+    
     if X.shape[0] != X.shape[1]:
         raise ValueError("a square array expected, but the shape of X is (%d,%d)" % \
                          (X.shape[0], X.shape[1]))
@@ -532,8 +566,8 @@ def _rapsd(X):
     return np.array(result)
 
 def _split_field(idxi, idxj, Segments):
-    ''' Split domain field into a number of equally sapced segments.
-    '''
+    """ Split domain field into a number of equally sapced segments.
+    """
 
     sizei = (idxi[1] - idxi[0]) 
     sizej = (idxj[1] - idxj[0]) 
@@ -559,8 +593,8 @@ def _split_field(idxi, idxj, Segments):
     return Idxi, Idxj
     
 def _get_mask(Size, idxi, idxj, win_type):
-    '''Compute a mask of zeros with a window at a given position. 
-    '''
+    """Compute a mask of zeros with a window at a given position. 
+    """
 
     idxi = np.array(idxi).astype(int) 
     idxj =  np.array(idxj).astype(int)
