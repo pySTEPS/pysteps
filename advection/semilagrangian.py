@@ -1,4 +1,5 @@
-"""Methods for advection-based extrapolation."""
+"""Implementation of the semi-Lagrangian method of Germann et al (2002)
+"""
 
 import numpy as np
 import scipy.ndimage.interpolation as ip
