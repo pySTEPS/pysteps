@@ -16,8 +16,8 @@ def dense_lucaskanade(R, **kwargs):
         Array of shape (t,m,n) containing the input precipitation fields.
         No missing values are accepted.
     
-    Optional kwargs:
-    ----------
+    Optional kwargs
+    ---------------
     max_corners_ST : int
         Maximum number of corners to return. If there are more corners than are 
         found, the strongest of them is returned.
@@ -63,9 +63,9 @@ def dense_lucaskanade(R, **kwargs):
     if np.any(~np.isfinite(R)):
         raise ValueError("All values in R must be finite")
         
-    # Set default parameters
-    max_corners_ST      = kwargs.get('max_corners_ST', 1000)
-    quality_level_ST    = kwargs.get('quality_level_ST', 0.05)
+    # defaults
+    max_corners_ST      = kwargs.get('max_corners_ST', 500)
+    quality_level_ST    = kwargs.get('quality_level_ST', 0.1)
     min_distance_ST     = kwargs.get('min_distance_ST', 5)
     block_size_ST       = kwargs.get('block_size_ST', 15)
     winsize_LK          = kwargs.get('winsize_LK5', (50, 50))
@@ -102,6 +102,7 @@ def dense_lucaskanade(R, **kwargs):
         next = clean_image(next, n=size_opening)
 
         # Shi-Tomasi good features to track
+        # TODO: implement different feature detection algorithms (e.g. Harris)
         p0 = ShiTomasi_features_to_track(prvs, max_corners_ST, quality_level_ST,
                                           min_distance_ST, block_size_ST)
                                           
@@ -137,7 +138,8 @@ def dense_lucaskanade(R, **kwargs):
     x, y, u, v = declustering(x0, y0, u, v, decl_grid, min_nr_samples)
     
     # kernel interpolation
-    X, Y, UV, b = interpolate_sparse_vectors_kernel(x, y, u, v, domain_size, b = kernel_bandwidth)
+    X, Y, UV = interpolate_sparse_vectors(x, y, u, v, domain_size, 
+                                          epsilon=kernel_bandwidth)
     
     return UV
     
@@ -335,10 +337,10 @@ def declustering(x, y, u, v, decl_grid, min_nr_samples):
 
     return x, y, u, v
     
-def interpolate_sparse_vectors_kernel(x, y, u, v, domain_size, b=None):
+def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10):
     
-    """Gaussian kernel interpolation of sparse motion vectors to produce
-    a dense field of motion vectors
+    """Interpolation of sparse motion vectors to produce a dense field of motion 
+    vectors. 
     
     Parameters
     ----------
@@ -352,9 +354,12 @@ def interpolate_sparse_vectors_kernel(x, y, u, v, domain_size, b=None):
         v components of the sparse motion vectors
     domain_size : tuple
         size of the domain of the dense motion field [px]
-    b : float   
-        bandwidth of the Gaussian kernel. If None, b 
-        is automatically estimated from the data.
+    epsilon : float   
+        adjustable constant for gaussian or multiquadrics functions - defaults 
+        to Silverman's rule of thumb (which is a good start)
+    nchunks : int
+        split the grid points in n chunks to limit the memory usage during the 
+        interpolation
     
     Returns
     -------
@@ -366,12 +371,17 @@ def interpolate_sparse_vectors_kernel(x, y, u, v, domain_size, b=None):
         Three-dimensional array (2,domain_size[0],domain_size[1]) 
         containing the dense U, V motion fields.
     """
-
+    
+    
+    import time
+    t0 = time.time()
+    
     # make sure these are vertical arrays
     x = x[:,None]
     y = y[:,None]
     u = u[:,None]
     v = v[:,None]
+    points = np.column_stack((x, y))
     
     if len(domain_size)==1:
         domain_size = (domain_size, domain_size)
@@ -382,27 +392,47 @@ def interpolate_sparse_vectors_kernel(x, y, u, v, domain_size, b=None):
     X, Y = np.meshgrid(xgrid, ygrid)
     grid = np.column_stack((X.ravel(), Y.ravel()))
     
-    # compute distances
-    points = np.column_stack((x, y))
-    D = sd.cdist(points, grid, 'euclidean')
-
-    # get bandwidth if empty argument
-    if b is None:
-        # Silverman's rule of thumb
-        n = points.shape[0]
-        sigma = np.std(D[:])
-        b = sigma*(4/3./float(n))**(1/5.)
-        
-    # compute Gaussian kernel weights
-    weights =  1/np.sqrt(2*np.pi)*np.exp(-0.5*(D/float(b))**2)
+    U = np.zeros(grid.shape[0])
+    V = np.zeros(grid.shape[0])
     
-    # perform weighted average on the grid
-    U = np.sum(weights*u, axis=0)/np.sum(weights,axis=0)
-    V = np.sum(weights*v, axis=0)/np.sum(weights,axis=0)
+    # split grid points in n chunks
+    subgrids = np.array_split(grid, nchunks, 0)
+    subgrids = [x for x in subgrids if x.size > 0]
+    
+    # loop subgrids
+    i0=0
+    for i,subgrid in enumerate(subgrids):
+    
+        idelta = subgrid.shape[0]
+    
+        # compute distances
+        D = sd.cdist(points, subgrid, 'euclidean')
+
+        # get bandwidth if empty argument
+        if epsilon is None:
+            # Silverman's rule of thumb
+            n = points.shape[0]
+            sigma = np.std(D[:])
+            epsilon_ = sigma*(4/3./float(n))**(1/5.)
+        else:
+            epsilon_ = epsilon
+            
+        print(epsilon_)
+        
+        # compute Gaussian kernel weights
+        weights =  1/np.sqrt(2*np.pi)*np.exp(-0.5*(D/float(epsilon_))**2)
+    
+        # perform weighted average on the grid
+        U[i0:(i0+idelta)] = np.sum(weights*u, axis=0)/np.sum(weights,axis=0)
+        V[i0:(i0+idelta)] = np.sum(weights*v, axis=0)/np.sum(weights,axis=0)
+    
+        i0 += idelta
     
     # reshape back to original size
     U = U.reshape(domain_size[0], domain_size[1])
     V = V.reshape(domain_size[0], domain_size[1])
     UV = np.stack([U, V])
     
-    return X, Y, UV, b
+    print("--- %s seconds ---" % (time.time() - t0))
+    
+    return X, Y, UV
