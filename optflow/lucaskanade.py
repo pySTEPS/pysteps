@@ -144,7 +144,7 @@ def dense_lucaskanade(R, **kwargs):
     
     # kernel interpolation
     X, Y, UV = interpolate_sparse_vectors(x, y, u, v, domain_size, 
-                                          epsilon=kernel_bandwidth, nchunks)
+                                          epsilon=kernel_bandwidth, nchunks=nchunks)
     
     return UV
     
@@ -424,8 +424,6 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10
             epsilon_ = sigma*(4/3./float(n))**(1/5.)
         else:
             epsilon_ = epsilon
-            
-        print(epsilon_)
         
         # compute Gaussian kernel weights
         weights =  1/np.sqrt(2*np.pi)*np.exp(-0.5*(D/float(epsilon_))**2)
