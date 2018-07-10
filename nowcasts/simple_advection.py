@@ -2,7 +2,7 @@
 
 from .. import advection
 
-def forecast(R, V, num_timesteps, extrap_method, extrap_args={}):
+def forecast(R, V, num_timesteps, extrap_method, extrap_kwargs={}):
     """Generate a nowcast by applying a simple advection-based extrapolation to 
     the given precipitation field.
     
@@ -19,7 +19,7 @@ def forecast(R, V, num_timesteps, extrap_method, extrap_args={}):
     extrap_method : str
       Name of the extrapolation method to use. See the documentation of the 
       advection module for the available choices.
-    extrap_args : dict
+    extrap_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
       extrapolation method.
     
@@ -33,7 +33,7 @@ def forecast(R, V, num_timesteps, extrap_method, extrap_args={}):
     
     extrap_method = advection.get_method(extrap_method)
     
-    return extrap_method(R, V, num_timesteps)
+    return extrap_method(R, V, num_timesteps, **extrap_kwargs)
 
 def _check_inputs(R, V):
     if len(R.shape) != 2:
