@@ -9,7 +9,7 @@ from . import optflow
 from . import postprocessing
 from . import timeseries
 from . import utils
-from . import verification
-from . import visualization
+from . import verification as vf
+from . import visualization as plt
 
 
