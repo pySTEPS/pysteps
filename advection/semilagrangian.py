@@ -4,7 +4,7 @@
 import numpy as np
 import scipy.ndimage.interpolation as ip
 
-def extrapolate(R, V, num_timesteps, **kwargs):
+def extrapolate(R, V, num_timesteps, outval = np.nan, **kwargs):
     """Apply semi-Lagrangian extrapolation to a two-dimensional precipitation 
     field.
     
@@ -17,6 +17,11 @@ def extrapolate(R, V, num_timesteps, **kwargs):
         advection field.
     num_timesteps : int
         Number of time steps to extrapolate.
+    outval : float
+        Optional argument for specifying the value for pixels advected from outside 
+        the domain. If outval is set to 'min', the value is taken as the minimum 
+        value of R.
+        Default : np.nan
 
     Optional kwargs:
     ----------
@@ -35,11 +40,6 @@ def extrapolate(R, V, num_timesteps, **kwargs):
         If True, return the total advection velocity (displacement) between the 
         initial input field and the advected one integrated along the trajectory.
         Default : False
-    outval : float
-        Optional argument for specifying the value for pixels advected from outside 
-        the domain. If outval is set to 'min', the value is taken as the minimum 
-        value of R.
-        Default : np.nan
     
     Returns
     -------
@@ -55,11 +55,10 @@ def extrapolate(R, V, num_timesteps, **kwargs):
         raise ValueError("V must be a three-dimensional array")
       
     # defaults
-    D_prev              = kwargs.get('D_prev', None)
-    n_iter              = kwargs.get('n_iter', 3)
-    inverse             = kwargs.get('inverse', True)
-    return_displacement = kwargs.get('return_displacement', False)
-    outval              = kwargs.get('outval', np.nan)
+    D_prev              = kwargs.get("D_prev", None)
+    n_iter              = kwargs.get("n_iter", 3)
+    inverse             = kwargs.get("inverse", True)
+    return_displacement = kwargs.get("return_displacement", False)
     
     if outval == "min":
         outval = np.nanmin(R)
