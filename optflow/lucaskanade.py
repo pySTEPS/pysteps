@@ -47,6 +47,10 @@ def dense_lucaskanade(R, **kwargs):
         Size of the declustering grid [px].
     min_nr_samples : int
         The minimum number of samples for computing the median within given declustering cell.
+    nchunks : int
+        Split the grid points in n chunks to limit the memory usage during the 
+        interpolation
+        
 
     Returns
     -------
@@ -76,6 +80,7 @@ def dense_lucaskanade(R, **kwargs):
     size_opening        = kwargs.get('size_opening', 3)
     decl_grid           = kwargs.get('decl_grid', 10)
     min_nr_samples      = kwargs.get('min_nr_samples', 2)
+    nchunks             = kwargs.get('nchunks', 10)
     
     nr_fields = R.shape[0]
     domain_size = (R.shape[1], R.shape[2])
@@ -139,7 +144,7 @@ def dense_lucaskanade(R, **kwargs):
     
     # kernel interpolation
     X, Y, UV = interpolate_sparse_vectors(x, y, u, v, domain_size, 
-                                          epsilon=kernel_bandwidth)
+                                          epsilon=kernel_bandwidth, nchunks)
     
     return UV
     
@@ -342,6 +347,8 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10
     """Interpolation of sparse motion vectors to produce a dense field of motion 
     vectors. 
     
+    TODO: use KDTree to speed up interpolation
+    
     Parameters
     ----------
     x : array-like
@@ -372,9 +379,10 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10
         containing the dense U, V motion fields.
     """
     
-    
-    import time
-    t0 = time.time()
+    dotime = False
+    if dotime:
+        import time
+        t0 = time.time()
     
     # make sure these are vertical arrays
     x = x[:,None]
@@ -433,6 +441,7 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10
     V = V.reshape(domain_size[0], domain_size[1])
     UV = np.stack([U, V])
     
-    print("--- %s seconds ---" % (time.time() - t0))
+    if dotime:
+        print("--- %s seconds ---" % (time.time() - t0))
     
     return X, Y, UV
