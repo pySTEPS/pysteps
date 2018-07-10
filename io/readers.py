@@ -1,9 +1,10 @@
-"""Miscellaneous utility methods."""
+"""Methods for reading files.
+"""
 
 import numpy as np
 
 def read_timeseries(inputfns, importer, **kwargs):
-    """Read a list of input files using iotools and stack them into a 3d array.
+    """Read a list of input files using io tools and stack them into a 3d array.
   
     Parameters
     ----------

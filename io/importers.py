@@ -1,8 +1,8 @@
-"""Methods for reading files containing 2d precipitation fields.
+"""Methods for importing files containing 2d precipitation fields.
 
 The methods in this module implement the following interface:
 
-  read_xxx(filename, optional arguments)
+  import_xxx(filename, optional arguments)
 
 where xxx is the name (or abbreviation) of the file format and filename is the 
 name of the input file.
@@ -11,22 +11,22 @@ The output of each method is a three-element tuple containing the two-dimensiona
 precipitation field and georeferencing and metadata dictionaries.
 
 The geodata dictionary contains the following mandatory key-value pairs:
-  projection   PROJ.4-compatible projection definition
-  x1           x-coordinate of the lower-left corner of the data raster
-  y1           y-coordinate of the lower-left corner of the data raster
-  x2           x-coordinate of the upper-right corner of the data raster
-  y2           y-coordinate of the upper-right corner of the data raster
-  xpixelsize   grid resolution in x-direction (meters)
-  ypixelsize   grid resolution in y-direction (meters)
-  yorigin      a string specifying the location of the first element in
-               the data raster w.r.t. y-axis:
-               'upper' = upper border
-               'lower' = lower border
+    projection   PROJ.4-compatible projection definition
+    x1           x-coordinate of the lower-left corner of the data raster
+    y1           y-coordinate of the lower-left corner of the data raster
+    x2           x-coordinate of the upper-right corner of the data raster
+    y2           y-coordinate of the upper-right corner of the data raster
+    xpixelsize   grid resolution in x-direction (meters)
+    ypixelsize   grid resolution in y-direction (meters)
+    yorigin      a string specifying the location of the first element in
+                 the data raster w.r.t. y-axis:
+                 'upper' = upper border
+                 'lower' = lower border
 
 The metadata dictionary contains the following mandatory key-value pairs:
-  institution  name of the institution who provides the data
-  timestep     time step of the input data (minutes)
-  unit         the unit of the data: 'mm/h', 'mm' or 'dBZ'
+    institution  name of the institution who provides the data
+    timestep     time step of the input data (minutes)
+    unit         the unit of the data: 'mm/h', 'mm' or 'dBZ'
 """
 
 import datetime
@@ -49,33 +49,33 @@ try:
 except ImportError:
     pyproj_imported = False
 
-def read_pgm(filename, gzipped=False):
-    """Read a 8-bit PGM radar reflectivity composite from the FMI archive and 
+def import_pgm(filename, gzipped=False):
+    """Import a 8-bit PGM radar reflectivity composite from the FMI archive and 
     optionally convert the reflectivity values to precipitation rates.
 
     Parameters
     ----------
     filename : str
-        Name of the file to read from.
+        Name of the file to import.
     gzipped : bool
         If True, the input file is treated as a compressed gzip file.
 
     Returns
     -------
     out : tuple
-        A three-element tuple containing the reflectivity field in dBZ read from 
-        the PGM file and the associated georeferencing data and metadata.
+        A three-element tuple containing the reflectivity field in dBZ imported 
+        from the PGM file and the associated georeferencing data and metadata.
     """
     if not pyproj_imported:
         raise Exception("pyproj not imported")
     
-    metadata = _read_pgm_metadata(filename, gzipped=gzipped)
+    metadata = _import_pgm_metadata(filename, gzipped=gzipped)
 
     if gzipped == False:
         R = imread(filename)
     else:
         R = imread(gzip.open(filename, 'r'))
-    geodata = _read_pgm_geodata(metadata)
+    geodata = _import_pgm_geodata(metadata)
     
     MASK = R == metadata["missingval"]
     R = R.astype(float)
@@ -84,7 +84,7 @@ def read_pgm(filename, gzipped=False):
 
     return R, geodata, metadata
 
-def _read_pgm_geodata(metadata):
+def _import_pgm_geodata(metadata):
     geodata = {}
 
     projdef = ""
@@ -123,7 +123,7 @@ def _read_pgm_geodata(metadata):
   
     return geodata
 
-def _read_pgm_metadata(filename, gzipped=False):
+def _import_pgm_metadata(filename, gzipped=False):
     metadata = {}
   
     if gzipped == False:
@@ -154,20 +154,20 @@ def _read_pgm_metadata(filename, gzipped=False):
     
     return metadata
     
-def read_aqc(filename):
-    """Read a 8-bit gif radar reflectivity composite (AQC) from the MeteoSwiss 
+def import_aqc(filename):
+    """Import a 8-bit gif radar reflectivity composite (AQC) from the MeteoSwiss 
     archive.
 
     Parameters
     ----------
     filename : str
-        Name of the file to read from.
+        Name of the file to import.
     dtype : type
-        The output datatype for the dataset that is read from the file.
+        The output datatype for the dataset that is imported from the file.
     Returns
     -------
     out : tuple
-        A three-element tuple containing the precipitation field in mm h-1 read 
+        A three-element tuple containing the precipitation field in mm h-1 imported 
         from a MeteoSwiss AQC file, the associated georeferencing data and some 
         metadata.
     """
@@ -179,7 +179,7 @@ def read_aqc(filename):
     metadata["timestep"]    = 5
     metadata["unit"]        = "mm/h"
     
-    geodata = _read_aqc_geodata()
+    geodata = _import_aqc_geodata()
     
     B = Image.open(filename)
     B = np.array(B, dtype=int)
@@ -201,7 +201,7 @@ def read_aqc(filename):
     
     return R, geodata, metadata
     
-def _read_aqc_geodata():
+def _import_aqc_geodata():
     geodata = {}
     
     projdef = ""
@@ -233,18 +233,18 @@ def _read_aqc_geodata():
     return geodata
 
 
-def read_bom_rf3(filename):
-    """Read a netcdf radar rainfall product from the BoM Rainfields3.
+def import_bom_rf3(filename):
+    """Import a netcdf radar rainfall product from the BoM Rainfields3.
 
     Parameters
     ----------
     filename : str
-        Name of the file to read from.
+        Name of the file to import.
 
     Returns
     -------
     out : tuple
-        A three-element tuple containing the rainfall field in mm read from
+        A three-element tuple containing the rainfall field in mm imported from
         the Bureau RF3 netcdf and the associated georeferencing data and metadata.
         TO DO: Complete metadata decription as per the others methods
 
@@ -252,14 +252,14 @@ def read_bom_rf3(filename):
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
     
-    R = _read_bom_rf3_data(filename)
-    geodata = _read_bom_rf3_geodata(filename)
-    metadata = _read_bom_rf3_metadata(filename)
+    R = _import_bom_rf3_data(filename)
+    geodata = _import_bom_rf3_geodata(filename)
+    metadata = _import_bom_rf3_metadata(filename)
 
     return R, geodata, metadata
 
 
-def _read_bom_rf3_data(filename):
+def _import_bom_rf3_data(filename):
     print(filename)
     ds_rainfall = Dataset(filename)
     if ('precipitation' in ds_rainfall.variables.keys()):
@@ -286,7 +286,7 @@ def _read_bom_rf3_data(filename):
     ds_rainfall.close()
     return precipitation
 
-def _read_bom_rf3_geodata(filename):
+def _import_bom_rf3_geodata(filename):
     ds_rainfall = Dataset(filename)
     if ('proj' in ds_rainfall.variables.keys()):
         projection = ds_rainfall.variables['proj']
@@ -309,7 +309,7 @@ def _read_bom_rf3_geodata(filename):
     return projdef
 
 
-def _read_bom_rf3_metadata(filename):
+def _import_bom_rf3_metadata(filename):
     metadata = {}
     # TODO: Set the correct time step.
     metadata["institution"] = "Bureau of Meteorology"
