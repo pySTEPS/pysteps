@@ -87,7 +87,7 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
                 VWY = ip.map_coordinates(V[1, :, :], XYW, mode="nearest", order=0, 
                                         prefilter=False)
             else:
-                WX = V[0, :, :]
+                VWX = V[0, :, :]
                 VWY = V[1, :, :]
         
             V_inc[0, :, :] = VWX / n_iter
