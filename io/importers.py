@@ -217,6 +217,117 @@ def _import_bom_rf3_metadata(filename):
     
     return metadata
 
+def import_fmi_pgm(filename, **kwargs):
+    """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
+    
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+    
+    Optional kwargs
+    ---------------
+    gzipped : bool
+        If True, the input file is treated as a compressed gzip file.
+    
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the reflectivity composite in dBZ 
+        and the associated quality field and metadata. The quality field is 
+        currently set to None.
+    """
+    if not pyproj_imported:
+        raise Exception("pyproj not imported")
+    
+    gzipped = kwargs.get("gzipped", False)
+    
+    pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
+
+    if gzipped == False:
+        R = imread(filename)
+    else:
+        R = imread(gzip.open(filename, 'r'))
+    geodata = _import_fmi_pgm_geodata(pgm_metadata)
+    
+    MASK = R == pgm_metadata["missingval"]
+    R = R.astype(float)
+    R[MASK] = np.nan
+    R = (R - 64.0) / 2.0
+    
+    metadata = geodata
+    metadata["institution"] = "Finnish Meteorological Institute"
+    metadata["timestep"]    = 5
+    metadata["unit"]        = "dBZ"
+    
+    return R,None,metadata
+
+def _import_fmi_pgm_geodata(metadata):
+    geodata = {}
+
+    projdef = ""
+
+    if metadata["type"][0] != "stereographic":
+        raise ValueError("unknown projection %s" % metadata["type"][0])
+    projdef += "+proj=stere "
+    projdef += " +lon_0=" + metadata["centrallongitude"][0] + 'E'
+    projdef += " +lat_0=" + metadata["centrallatitude"][0] + 'N'
+    projdef += " +lat_ts=" + metadata["truelatitude"][0]
+    # These are hard-coded because the projection definition is missing from the 
+    # PGM files.
+    projdef += " +a=6371288"
+    projdef += " +x_0=380886.310"
+    projdef += " +y_0=3395677.920"
+    projdef += " +no_defs"
+    #
+    geodata["projection"] = projdef
+  
+    ll_lon,ll_lat = [float(v) for v in metadata["bottomleft"]]
+    ur_lon,ur_lat = [float(v) for v in metadata["topright"]]
+
+    pr = pyproj.Proj(projdef)
+    x1,y1 = pr(ll_lon, ll_lat)
+    x2,y2 = pr(ur_lon, ur_lat)
+
+    geodata["x1"] = x1
+    geodata["y1"] = y1
+    geodata["x2"] = x2
+    geodata["y2"] = y2
+
+    geodata["xpixelsize"] = float(metadata["metersperpixel_x"][0])
+    geodata["ypixelsize"] = float(metadata["metersperpixel_y"][0])
+
+    geodata["yorigin"] = "upper"
+  
+    return geodata
+
+def _import_fmi_pgm_metadata(filename, gzipped=False):
+    metadata = {}
+  
+    if gzipped == False:
+        f = open(filename, 'r')
+    else:
+        f = gzip.open(filename, 'r')
+  
+    l = f.readline().decode()
+    while l[0] != '#':
+        l = f.readline().decode()
+    while l[0] == '#':
+        x = l[1:].strip().split(' ')
+        if len(x) >= 2:
+            k = x[0]
+            v = x[1:]
+            metadata[k] = v
+        else:
+            l = f.readline().decode()
+            continue
+        l = f.readline().decode()
+    l = f.readline().decode()
+    metadata["missingval"] = int(l)
+    f.close()
+    
+    return metadata
+
 def import_odimhdf5(filename, **kwargs):
     """Read a precipitation field (and optionally the quality field) from a HDF5 
     file conforming to the ODIM specification.
@@ -364,114 +475,3 @@ def _read_odimhdf5_what_group(whatgrp):
     undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else 0.0
     
     return qty,gain,offset,nodata,undetect
-
-def import_pgm(filename, **kwargs):
-    """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
-    
-    Parameters
-    ----------
-    filename : str
-        Name of the file to import.
-    
-    Optional kwargs
-    ---------------
-    gzipped : bool
-        If True, the input file is treated as a compressed gzip file.
-    
-    Returns
-    -------
-    out : tuple
-        A three-element tuple containing the reflectivity composite in dBZ 
-        and the associated quality field and metadata. The quality field is 
-        currently set to None.
-    """
-    if not pyproj_imported:
-        raise Exception("pyproj not imported")
-    
-    gzipped = kwargs.get("gzipped", False)
-    
-    pgm_metadata = _import_pgm_metadata(filename, gzipped=gzipped)
-
-    if gzipped == False:
-        R = imread(filename)
-    else:
-        R = imread(gzip.open(filename, 'r'))
-    geodata = _import_pgm_geodata(pgm_metadata)
-    
-    MASK = R == pgm_metadata["missingval"]
-    R = R.astype(float)
-    R[MASK] = np.nan
-    R = (R - 64.0) / 2.0
-    
-    metadata = geodata
-    metadata["institution"] = "Finnish Meteorological Institute"
-    metadata["timestep"]    = 5
-    metadata["unit"]        = "dBZ"
-    
-    return R,None,metadata
-
-def _import_pgm_geodata(metadata):
-    geodata = {}
-
-    projdef = ""
-
-    if metadata["type"][0] != "stereographic":
-        raise ValueError("unknown projection %s" % metadata["type"][0])
-    projdef += "+proj=stere "
-    projdef += " +lon_0=" + metadata["centrallongitude"][0] + 'E'
-    projdef += " +lat_0=" + metadata["centrallatitude"][0] + 'N'
-    projdef += " +lat_ts=" + metadata["truelatitude"][0]
-    # These are hard-coded because the projection definition is missing from the 
-    # PGM files.
-    projdef += " +a=6371288"
-    projdef += " +x_0=380886.310"
-    projdef += " +y_0=3395677.920"
-    projdef += " +no_defs"
-    #
-    geodata["projection"] = projdef
-  
-    ll_lon,ll_lat = [float(v) for v in metadata["bottomleft"]]
-    ur_lon,ur_lat = [float(v) for v in metadata["topright"]]
-
-    pr = pyproj.Proj(projdef)
-    x1,y1 = pr(ll_lon, ll_lat)
-    x2,y2 = pr(ur_lon, ur_lat)
-
-    geodata["x1"] = x1
-    geodata["y1"] = y1
-    geodata["x2"] = x2
-    geodata["y2"] = y2
-
-    geodata["xpixelsize"] = float(metadata["metersperpixel_x"][0])
-    geodata["ypixelsize"] = float(metadata["metersperpixel_y"][0])
-
-    geodata["yorigin"] = "upper"
-  
-    return geodata
-
-def _import_pgm_metadata(filename, gzipped=False):
-    metadata = {}
-  
-    if gzipped == False:
-        f = open(filename, 'r')
-    else:
-        f = gzip.open(filename, 'r')
-  
-    l = f.readline().decode()
-    while l[0] != '#':
-        l = f.readline().decode()
-    while l[0] == '#':
-        x = l[1:].strip().split(' ')
-        if len(x) >= 2:
-            k = x[0]
-            v = x[1:]
-            metadata[k] = v
-        else:
-            l = f.readline().decode()
-            continue
-        l = f.readline().decode()
-    l = f.readline().decode()
-    metadata["missingval"] = int(l)
-    f.close()
-    
-    return metadata
