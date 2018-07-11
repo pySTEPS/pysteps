@@ -95,7 +95,7 @@ def import_aqc(filename, **kwargs):
     
     metadata = geodata
     metadata["institution"] = "MeteoSwiss"
-    metadata["timestep"]    = 5
+    metadata["accutime"]    = 5
     metadata["unit"]        = "mm/h"
     
     return R,None,metadata
@@ -210,9 +210,8 @@ def _import_bom_rf3_geodata(filename):
 
 def _import_bom_rf3_metadata(filename):
     metadata = {}
-    # TODO: Set the correct time step.
     metadata["institution"] = "Bureau of Meteorology"
-    metadata["timestep"]    = 6
+    metadata["accutime"]    = 6
     metadata["unit"]        = "mm/h"
     
     return metadata
@@ -257,7 +256,7 @@ def import_fmi_pgm(filename, **kwargs):
     
     metadata = geodata
     metadata["institution"] = "Finnish Meteorological Institute"
-    metadata["timestep"]    = 5
+    metadata["accutime"]    = 5
     metadata["unit"]        = "dBZ"
     
     return R,None,metadata
@@ -460,7 +459,7 @@ def import_odimh_df5(filename, **kwargs):
                 "xpixelsize":xpixelsize, 
                 "ypixelsize":ypixelsize, 
                 "institution": "Odyssey datacentre", 
-                "timestep":15, 
+                "accutime":15, 
                 "unit":unit}
     
     f.close()
