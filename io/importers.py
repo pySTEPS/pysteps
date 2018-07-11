@@ -8,9 +8,11 @@ where xxx is the name (or abbreviation) of the file format and filename is the
 name of the input file.
 
 The output of each method is a three-element tuple containing the two-dimensional 
-precipitation field and georeferencing and metadata dictionaries.
+precipitation field, quality field and metadata dictionaries. If the file contains 
+no quality information, the quality field is set to None. Pixels containing 
+missing data are set to nan.
 
-The geodata dictionary contains the following mandatory key-value pairs:
+The metadata dictionary contains the following mandatory key-value pairs:
     projection   PROJ.4-compatible projection definition
     x1           x-coordinate of the lower-left corner of the data raster
     y1           y-coordinate of the lower-left corner of the data raster
@@ -22,17 +24,25 @@ The geodata dictionary contains the following mandatory key-value pairs:
                  the data raster w.r.t. y-axis:
                  'upper' = upper border
                  'lower' = lower border
-
-The metadata dictionary contains the following mandatory key-value pairs:
     institution  name of the institution who provides the data
     timestep     time step of the input data (minutes)
     unit         the unit of the data: 'mm/h', 'mm' or 'dBZ'
 """
 
+# TODO: quality information
+# TODO: doc for nan values
+# TODO: use **kwargs
+# TODO: include geodata into metadata
+
 import datetime
 import gzip
 from matplotlib.pyplot import imread
 import numpy as np
+try:
+    import h5py
+    h5py_imported = True
+except ImportError:
+    h5py_imported = False
 try:
     from netCDF4 import Dataset
     netcdf4_imported = True
@@ -57,8 +67,7 @@ def import_aqc(filename):
     ----------
     filename : str
         Name of the file to import.
-    dtype : type
-        The output datatype for the dataset that is imported from the file.
+    
     Returns
     -------
     out : tuple
@@ -208,6 +217,133 @@ def _import_bom_rf3_metadata(filename):
     metadata["timestep"]    = 0
     metadata["unit"]        = "mm/h"
     return metadata
+
+def import_odimhdf5(filename, qty="RATE"):
+    """Read a precipitation field (and optionally the quality field) from a HDF5 
+    file conforming to the ODIM specification.
+    
+    Parameters
+    ----------
+    filename : str
+        Name of the file to read from.
+    qty : str
+        Name of the quantity corresponding to the precipitation field dataset.
+    
+    Returns
+    -------
+    out : tuple
+        A two-or three-element tuple containing the precipitation field (R) read 
+        from the HDF5 file and the associated georeferencing data (geodata). If 
+        read_quality is False, the returned elements are R and geodata. Otherwise, 
+        the elements are R,Q and geodata, where Q is the quality field corresponding 
+        to R. The missing (nodata) and non-measured (undetect) values are read from 
+        the file. If not found, nan is used for missing and 0 for non-measured.
+    """
+    if not h5py_imported:
+        raise Exception("h5py not imported")
+    
+    f = h5py.File(filename, 'r')
+    
+    R = None
+    
+    for dsg in f.items():
+        if dsg[0][0:7] == "dataset":
+            what_grp_found = False
+            # check if the "what" group is in the "dataset" group
+            if "what" in dsg[1].keys():
+                qty_,gain,offset,nodata,undetect = _read_odimhdf5_what_group(dsg[1]["what"])
+                what_grp_found = True
+            
+            for dg in dsg[1].items():
+                if dg[0][0:4] == "data":
+                    # check if the "what" group is in the "data" group
+                    if "what" in dg[1].keys():
+                        qty_,gain,offset,nodata,undetect = _read_h5_what_group(dg[1]["what"])
+                    elif what_grp_found == False:
+                        raise Exception("no what group found from %s or its subgroups" % dg[0])
+                
+                if qty_ == qty:
+                    ARR = dg[1]["data"][...]
+                    MASK_N = ARR == nodata
+                    MASK_U = ARR == undetect
+                    MASK = np.logical_and(~MASK_U, ~MASK_N)
+                    
+                    R = np.empty(ARR.shape)
+                    R[MASK]   = ARR[MASK] * gain + offset
+                    R[MASK_U] = 0.0
+                    R[MASK_N] = np.nan
+                    
+                    break
+    
+    if R is None:
+        raise IOError("requested quantity %s not found" % qty)
+    
+    where = f["where"]
+    proj4str = str(where.attrs["projdef"])
+    pr = pyproj.Proj(proj4str)
+    
+    LL_lat = where.attrs["LL_lat"]
+    LL_lon = where.attrs["LL_lon"]
+    UR_lat = where.attrs["UR_lat"]
+    UR_lon = where.attrs["UR_lon"]
+    if "LR_lat" in where.attrs.keys() and "LR_lon" in where.attrs.keys() and \
+        "UL_lat" in where.attrs.keys() and "UL_lon" in where.attrs.keys():
+        LR_lat = where.attrs["LR_lat"]
+        LR_lon = where.attrs["LR_lon"]
+        UL_lat = where.attrs["UL_lat"]
+        UL_lon = where.attrs["UL_lon"]
+        full_cornerpts = True
+    else:
+        full_cornerpts = False
+    
+    LL_x,LL_y = pr(LL_lon, LL_lat)
+    UR_x,UR_y = pr(UR_lon, UR_lat)
+    if full_cornerpts:
+        LR_x,LR_y = pr(LR_lon, LR_lat)
+        UL_x,UL_y = pr(UL_lon, UL_lat)
+        x1 = min(LL_x, UL_x)
+        y1 = min(LL_y, LR_y)
+        x2 = max(LR_x, UR_x)
+        y2 = max(UL_y, UR_y)
+    else:
+        x1 = LL_x
+        y1 = LL_y
+        x2 = UR_x
+        y2 = UR_y
+    
+    if "xscale" in where.attrs.keys() and "yscale" in where.attrs.keys():
+        xpixelsize = where.attrs["xscale"]
+        ypixelsize = where.attrs["yscale"]
+    else:
+        xpixelsize = None
+        ypixelsize = None
+    
+    geodata = {"projection":proj4str, 
+               "ll_lon":LL_lon, 
+               "ll_lat":LL_lat, 
+               "ur_lon":UR_lon, 
+               "ur_lat":UR_lat, 
+               "x1":x1, 
+               "y1":y1, 
+               "x2":x2, 
+               "y2":y2, 
+               "xpixelsize":xpixelsize, 
+               "ypixelsize":ypixelsize}
+    
+    f.close()
+    
+    metadata = {}
+    
+    return R,Q,geodata,metadata
+
+def _read_odimhdf5_what_group(whatgrp):
+    qty      = whatgrp.attrs["quantity"]
+    gain     = whatgrp.attrs["gain"]     if "gain" in whatgrp.attrs.keys() else 1.0
+    offset   = whatgrp.attrs["offset"]   if "offset" in whatgrp.attrs.keys() else 0.0
+    nodata   = whatgrp.attrs["nodata"]   if "nodata" in whatgrp.attrs.keys() else nan
+    undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else 0.0
+    
+    return qty,gain,offset,nodata,undetect
 
 def import_pgm(filename, gzipped=False):
     """Import a 8-bit PGM radar reflectivity composite from the FMI archive and 
