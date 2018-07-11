@@ -328,7 +328,7 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     
     return metadata
 
-def import_odimhdf5(filename, **kwargs):
+def import_odimh_df5(filename, **kwargs):
     """Read a precipitation field (and optionally the quality field) from a HDF5 
     file conforming to the ODIM specification.
     
@@ -467,7 +467,7 @@ def import_odimhdf5(filename, **kwargs):
     
     return R,Q,metadata
 
-def _read_odimhdf5_what_group(whatgrp):
+def _read_odim_hdf5_what_group(whatgrp):
     qty      = whatgrp.attrs["quantity"]
     gain     = whatgrp.attrs["gain"]     if "gain" in whatgrp.attrs.keys() else 1.0
     offset   = whatgrp.attrs["offset"]   if "offset" in whatgrp.attrs.keys() else 0.0
