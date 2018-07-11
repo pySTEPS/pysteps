@@ -49,6 +49,166 @@ try:
 except ImportError:
     pyproj_imported = False
 
+def import_aqc(filename):
+    """Import a 8-bit gif radar reflectivity composite (AQC) from the MeteoSwiss 
+    archive.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+    dtype : type
+        The output datatype for the dataset that is imported from the file.
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the precipitation field in mm h-1 imported 
+        from a MeteoSwiss AQC file, the associated georeferencing data and some 
+        metadata.
+    """
+    if not pil_imported:
+        raise Exception("PIL not imported")
+    
+    metadata = {}
+    metadata["institution"] = "MeteoSwiss"
+    metadata["timestep"]    = 5
+    metadata["unit"]        = "mm/h"
+    
+    geodata = _import_aqc_geodata()
+    
+    B = Image.open(filename)
+    B = np.array(B, dtype=int)
+    
+    # generate lookup table in mmh-1
+    # valid for AQC product only
+    lut = np.zeros(256)
+    A = 316.0; b = 1.5
+    for i in range(256):
+        if (i < 2) or (i > 250 and i < 255):
+            lut[i] = 0.0
+        elif (i == 255):
+            lut[i] = np.nan
+        else:
+            lut[i] = (10.**((i - 71.2)/20.0)/A)**(1.0/b)*60/5
+            
+    # apply lookup table [mm h-1]
+    R = lut[B]
+    
+    return R, geodata, metadata
+    
+def _import_aqc_geodata():
+    geodata = {}
+    
+    projdef = ""
+    # These are all hard-coded because the projection definition is missing from the 
+    # gif files.
+    projdef += "+proj=somerc "
+    projdef += " +lon_0=7.439583333333333"
+    projdef += " +lat_0=46.95240555555556"
+    projdef += " +k_0=1"
+    projdef += " +x_0=600000"
+    projdef += " +y_0=200000"
+    projdef += " +ellps=bessel"
+    projdef += " +towgs84=674.374,15.056,405.346,0,0,0,0"
+    projdef += " +units=m"
+    projdef += " +no_defs"
+    #
+    geodata["projection"] = projdef
+
+    geodata["x1"] = 255000
+    geodata["y1"] = 160000
+    geodata["x2"] = 965000
+    geodata["y2"] = 480000
+
+    geodata["xpixelsize"] = 1000
+    geodata["ypixelsize"] = 1000
+
+    geodata["yorigin"] = "upper"
+  
+    return geodata
+
+def import_bom_rf3(filename):
+    """Import a netcdf radar rainfall product from the BoM Rainfields3.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the rainfall field in mm imported from
+        the Bureau RF3 netcdf and the associated georeferencing data and metadata.
+        TO DO: Complete metadata decription as per the others methods
+
+    """
+    if not netcdf4_imported:
+        raise Exception("netCDF4 not imported")
+    
+    R = _import_bom_rf3_data(filename)
+    geodata = _import_bom_rf3_geodata(filename)
+    metadata = _import_bom_rf3_metadata(filename)
+
+    return R, geodata, metadata
+
+def _import_bom_rf3_data(filename):
+    print(filename)
+    ds_rainfall = Dataset(filename)
+    if ('precipitation' in ds_rainfall.variables.keys()):
+        precipitation = ds_rainfall.variables['precipitation'][:]
+        # estimate time-step to transform from mm to mm/h
+        if ('valid_time' in ds_rainfall.variables.keys()):
+            valid_time = datetime.datetime.utcfromtimestamp(
+                ds_rainfall.variables['valid_time'][:])
+        else:
+            valid_time = None
+        if ('start_time' in ds_rainfall.variables.keys()):
+            start_time = datetime.datetime.utcfromtimestamp(
+                ds_rainfall.variables['start_time'][:])
+        else:
+            start_time = None
+        if start_time is not None:
+            if valid_time is not None:
+                time_step = (valid_time-start_time).seconds//60
+        if time_step:
+            factor_rain = 60./time_step
+            precipitation = precipitation*factor_rain
+    else:
+        precipitation = None
+    ds_rainfall.close()
+    return precipitation
+
+def _import_bom_rf3_geodata(filename):
+    ds_rainfall = Dataset(filename)
+    if ('proj' in ds_rainfall.variables.keys()):
+        projection = ds_rainfall.variables['proj']
+        if (getattr(projection, 'grid_mapping_name') ==
+                "albers_conical_equal_area"):
+            projdef = "+proj=aea "
+            lon_0 = getattr(projection,
+                            'longitude_of_central_meridian')
+            projdef += " +lon_0=" + str(lon_0)
+            lat_0 = getattr(projection,
+                            'latitude_of_projection_origin')
+            projdef += " +lat_0=" + str(lat_0) 
+            standard_parallels = getattr(projection,
+                                         'standard_parallel')
+            projdef += " +lat_1=" + str(standard_parallels[0])
+            projdef += " +lat_2=" + str(standard_parallels[1])
+        else:
+            projdef = None
+    ds_rainfall.close()
+    return projdef
+
+def _import_bom_rf3_metadata(filename):
+    metadata = {}
+    # TODO: Set the correct time step.
+    metadata["institution"] = "Bureau of Meteorology"
+    metadata["timestep"]    = 0
+    metadata["unit"]        = "mm/h"
+    return metadata
+
 def import_pgm(filename, gzipped=False):
     """Import a 8-bit PGM radar reflectivity composite from the FMI archive and 
     optionally convert the reflectivity values to precipitation rates.
@@ -152,167 +312,4 @@ def _import_pgm_metadata(filename, gzipped=False):
     metadata["timestep"]    = 5
     metadata["unit"]        = "dBZ"
     
-    return metadata
-    
-def import_aqc(filename):
-    """Import a 8-bit gif radar reflectivity composite (AQC) from the MeteoSwiss 
-    archive.
-
-    Parameters
-    ----------
-    filename : str
-        Name of the file to import.
-    dtype : type
-        The output datatype for the dataset that is imported from the file.
-    Returns
-    -------
-    out : tuple
-        A three-element tuple containing the precipitation field in mm h-1 imported 
-        from a MeteoSwiss AQC file, the associated georeferencing data and some 
-        metadata.
-    """
-    if not pil_imported:
-        raise Exception("PIL not imported")
-    
-    metadata = {}
-    metadata["institution"] = "MeteoSwiss"
-    metadata["timestep"]    = 5
-    metadata["unit"]        = "mm/h"
-    
-    geodata = _import_aqc_geodata()
-    
-    B = Image.open(filename)
-    B = np.array(B, dtype=int)
-    
-    # generate lookup table in mmh-1
-    # valid for AQC product only
-    lut = np.zeros(256)
-    A = 316.0; b = 1.5
-    for i in range(256):
-        if (i < 2) or (i > 250 and i < 255):
-            lut[i] = 0.0
-        elif (i == 255):
-            lut[i] = np.nan
-        else:
-            lut[i] = (10.**((i - 71.2)/20.0)/A)**(1.0/b)*60/5
-            
-    # apply lookup table [mm h-1]
-    R = lut[B]
-    
-    return R, geodata, metadata
-    
-def _import_aqc_geodata():
-    geodata = {}
-    
-    projdef = ""
-    # These are all hard-coded because the projection definition is missing from the 
-    # gif files.
-    projdef += "+proj=somerc "
-    projdef += " +lon_0=7.439583333333333"
-    projdef += " +lat_0=46.95240555555556"
-    projdef += " +k_0=1"
-    projdef += " +x_0=600000"
-    projdef += " +y_0=200000"
-    projdef += " +ellps=bessel"
-    projdef += " +towgs84=674.374,15.056,405.346,0,0,0,0"
-    projdef += " +units=m"
-    projdef += " +no_defs"
-    #
-    geodata["projection"] = projdef
-
-    geodata["x1"] = 255000
-    geodata["y1"] = 160000
-    geodata["x2"] = 965000
-    geodata["y2"] = 480000
-
-    geodata["xpixelsize"] = 1000
-    geodata["ypixelsize"] = 1000
-
-    geodata["yorigin"] = "upper"
-  
-    return geodata
-
-
-def import_bom_rf3(filename):
-    """Import a netcdf radar rainfall product from the BoM Rainfields3.
-
-    Parameters
-    ----------
-    filename : str
-        Name of the file to import.
-
-    Returns
-    -------
-    out : tuple
-        A three-element tuple containing the rainfall field in mm imported from
-        the Bureau RF3 netcdf and the associated georeferencing data and metadata.
-        TO DO: Complete metadata decription as per the others methods
-
-    """
-    if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
-    
-    R = _import_bom_rf3_data(filename)
-    geodata = _import_bom_rf3_geodata(filename)
-    metadata = _import_bom_rf3_metadata(filename)
-
-    return R, geodata, metadata
-
-
-def _import_bom_rf3_data(filename):
-    print(filename)
-    ds_rainfall = Dataset(filename)
-    if ('precipitation' in ds_rainfall.variables.keys()):
-        precipitation = ds_rainfall.variables['precipitation'][:]
-        # estimate time-step to transform from mm to mm/h
-        if ('valid_time' in ds_rainfall.variables.keys()):
-            valid_time = datetime.datetime.utcfromtimestamp(
-                ds_rainfall.variables['valid_time'][:])
-        else:
-            valid_time = None
-        if ('start_time' in ds_rainfall.variables.keys()):
-            start_time = datetime.datetime.utcfromtimestamp(
-                ds_rainfall.variables['start_time'][:])
-        else:
-            start_time = None
-        if start_time is not None:
-            if valid_time is not None:
-                time_step = (valid_time-start_time).seconds//60
-        if time_step:
-            factor_rain = 60./time_step
-            precipitation = precipitation*factor_rain
-    else:
-        precipitation = None
-    ds_rainfall.close()
-    return precipitation
-
-def _import_bom_rf3_geodata(filename):
-    ds_rainfall = Dataset(filename)
-    if ('proj' in ds_rainfall.variables.keys()):
-        projection = ds_rainfall.variables['proj']
-        if (getattr(projection, 'grid_mapping_name') ==
-                "albers_conical_equal_area"):
-            projdef = "+proj=aea "
-            lon_0 = getattr(projection,
-                            'longitude_of_central_meridian')
-            projdef += " +lon_0=" + str(lon_0)
-            lat_0 = getattr(projection,
-                            'latitude_of_projection_origin')
-            projdef += " +lat_0=" + str(lat_0) 
-            standard_parallels = getattr(projection,
-                                         'standard_parallel')
-            projdef += " +lat_1=" + str(standard_parallels[0])
-            projdef += " +lat_2=" + str(standard_parallels[1])
-        else:
-            projdef = None
-    ds_rainfall.close()
-    return projdef
-
-
-def _import_bom_rf3_metadata(filename):
-    metadata = {}
-    # TODO: Set the correct time step.
-    metadata["institution"] = "Bureau of Meteorology"
-    metadata["timestep"]    = 0
-    metadata["unit"]        = "mm/h"
     return metadata
