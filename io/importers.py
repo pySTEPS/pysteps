@@ -212,7 +212,7 @@ def _import_bom_rf3_metadata(filename):
     metadata = {}
     # TODO: Set the correct time step.
     metadata["institution"] = "Bureau of Meteorology"
-    metadata["timestep"]    = 0
+    metadata["timestep"]    = 6
     metadata["unit"]        = "mm/h"
     
     return metadata
