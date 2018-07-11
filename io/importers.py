@@ -8,9 +8,9 @@ where xxx is the name (or abbreviation) of the file format and filename is the
 name of the input file.
 
 The output of each method is a three-element tuple containing the two-dimensional 
-precipitation field, quality field and metadata dictionaries. If the file contains 
-no quality information, the quality field is set to None. Pixels containing 
-missing data are set to nan.
+precipitation field, the corresponding quality field and a metadata dictionary. 
+If the file contains no quality information, the quality field is set to None. 
+Pixels containing missing data are set to nan.
 
 The metadata dictionary contains the following mandatory key-value pairs:
     projection   PROJ.4-compatible projection definition
@@ -28,11 +28,6 @@ The metadata dictionary contains the following mandatory key-value pairs:
     timestep     time step of the input data (minutes)
     unit         the unit of the data: 'mm/h', 'mm' or 'dBZ'
 """
-
-# TODO: quality information
-# TODO: doc for nan values
-# TODO: use **kwargs
-# TODO: include geodata into metadata
 
 import datetime
 import gzip
@@ -59,10 +54,10 @@ try:
 except ImportError:
     pyproj_imported = False
 
-def import_aqc(filename):
+def import_aqc(filename, **kwargs):
     """Import a 8-bit gif radar reflectivity composite (AQC) from the MeteoSwiss 
     archive.
-
+    
     Parameters
     ----------
     filename : str
@@ -71,17 +66,12 @@ def import_aqc(filename):
     Returns
     -------
     out : tuple
-        A three-element tuple containing the precipitation field in mm h-1 imported 
-        from a MeteoSwiss AQC file, the associated georeferencing data and some 
-        metadata.
+        A three-element tuple containing the precipitation field in mm/h imported 
+        from a MeteoSwiss AQC file and the associated quality field and metadata. 
+        The quality field is currently set to None.
     """
     if not pil_imported:
         raise Exception("PIL not imported")
-    
-    metadata = {}
-    metadata["institution"] = "MeteoSwiss"
-    metadata["timestep"]    = 5
-    metadata["unit"]        = "mm/h"
     
     geodata = _import_aqc_geodata()
     
@@ -103,8 +93,13 @@ def import_aqc(filename):
     # apply lookup table [mm h-1]
     R = lut[B]
     
-    return R, geodata, metadata
+    metadata = geodata
+    metadata["institution"] = "MeteoSwiss"
+    metadata["timestep"]    = 5
+    metadata["unit"]        = "mm/h"
     
+    return R,None,metadata
+
 def _import_aqc_geodata():
     geodata = {}
     
@@ -123,43 +118,44 @@ def _import_aqc_geodata():
     projdef += " +no_defs"
     #
     geodata["projection"] = projdef
-
+    
     geodata["x1"] = 255000
     geodata["y1"] = 160000
     geodata["x2"] = 965000
     geodata["y2"] = 480000
-
+    
     geodata["xpixelsize"] = 1000
     geodata["ypixelsize"] = 1000
-
+    
     geodata["yorigin"] = "upper"
-  
+    
     return geodata
 
-def import_bom_rf3(filename):
-    """Import a netcdf radar rainfall product from the BoM Rainfields3.
-
+def import_bom_rf3(filename, **kwargs):
+    """Import a NetCDF radar rainfall product from the BoM Rainfields3.
+    
     Parameters
     ----------
     filename : str
         Name of the file to import.
-
+    
     Returns
     -------
     out : tuple
-        A three-element tuple containing the rainfall field in mm imported from
-        the Bureau RF3 netcdf and the associated georeferencing data and metadata.
-        TO DO: Complete metadata decription as per the others methods
-
+        A three-element tuple containing the rainfall field in mm/h imported 
+        from the Bureau RF3 netcdf, the quality field and the metadata. The 
+        quality field is currently set to None.
     """
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
     
     R = _import_bom_rf3_data(filename)
-    geodata = _import_bom_rf3_geodata(filename)
     metadata = _import_bom_rf3_metadata(filename)
-
-    return R, geodata, metadata
+    projdef = _import_bom_rf3_geodata(filename)
+    metadata["projection"] = projdef
+    # TODO: Add missing georeferencing data.
+    
+    return R, None, metadata
 
 def _import_bom_rf3_data(filename):
     print(filename)
@@ -186,6 +182,7 @@ def _import_bom_rf3_data(filename):
     else:
         precipitation = None
     ds_rainfall.close()
+    
     return precipitation
 
 def _import_bom_rf3_geodata(filename):
@@ -208,6 +205,7 @@ def _import_bom_rf3_geodata(filename):
         else:
             projdef = None
     ds_rainfall.close()
+    
     return projdef
 
 def _import_bom_rf3_metadata(filename):
@@ -216,70 +214,84 @@ def _import_bom_rf3_metadata(filename):
     metadata["institution"] = "Bureau of Meteorology"
     metadata["timestep"]    = 0
     metadata["unit"]        = "mm/h"
+    
     return metadata
 
-def import_odimhdf5(filename, qty="RATE"):
+def import_odimhdf5(filename, **kwargs):
     """Read a precipitation field (and optionally the quality field) from a HDF5 
     file conforming to the ODIM specification.
     
     Parameters
     ----------
     filename : str
-        Name of the file to read from.
+        Name of the file to import.
+    
+    Optional kwargs
+    ---------------
     qty : str
-        Name of the quantity corresponding to the precipitation field dataset.
+        The quantity to read from the file. The currently supported identitiers 
+        are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall 
+        accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value 
+        is 'RATE'.
     
     Returns
     -------
     out : tuple
-        A two-or three-element tuple containing the precipitation field (R) read 
-        from the HDF5 file and the associated georeferencing data (geodata). If 
-        read_quality is False, the returned elements are R and geodata. Otherwise, 
-        the elements are R,Q and geodata, where Q is the quality field corresponding 
-        to R. The missing (nodata) and non-measured (undetect) values are read from 
-        the file. If not found, nan is used for missing and 0 for non-measured.
+        A three-element tuple containing the OPERA product for the requested 
+        quantity and the associated quality field and metadata. The quality 
+        field is read from the file if it contains a dataset whose quantity 
+        identifier is 'QIND'.
     """
     if not h5py_imported:
         raise Exception("h5py not imported")
     
+    qty = kwargs.get("qty", "RATE")
+    
+    if qty not in ["ACRR", "DBZH", "RATE"]:
+        raise ValueError("unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'")
+    
     f = h5py.File(filename, 'r')
     
     R = None
+    Q = None
     
     for dsg in f.items():
         if dsg[0][0:7] == "dataset":
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
-            if "what" in dsg[1].keys():
+            if "what" in list(dsg[1].keys()):
                 qty_,gain,offset,nodata,undetect = _read_odimhdf5_what_group(dsg[1]["what"])
                 what_grp_found = True
             
             for dg in dsg[1].items():
                 if dg[0][0:4] == "data":
                     # check if the "what" group is in the "data" group
-                    if "what" in dg[1].keys():
+                    if "what" in list(dg[1].keys()):
                         qty_,gain,offset,nodata,undetect = _read_h5_what_group(dg[1]["what"])
                     elif what_grp_found == False:
                         raise Exception("no what group found from %s or its subgroups" % dg[0])
                 
-                if qty_ == qty:
-                    ARR = dg[1]["data"][...]
-                    MASK_N = ARR == nodata
-                    MASK_U = ARR == undetect
-                    MASK = np.logical_and(~MASK_U, ~MASK_N)
-                    
-                    R = np.empty(ARR.shape)
-                    R[MASK]   = ARR[MASK] * gain + offset
-                    R[MASK_U] = 0.0
-                    R[MASK_N] = np.nan
-                    
-                    break
+                    if qty_.decode() in [qty, "QIND"]:
+                        ARR = dg[1]["data"][...]
+                        MASK_N = ARR == nodata
+                        MASK_U = ARR == undetect
+                        MASK = np.logical_and(~MASK_U, ~MASK_N)
+                        
+                        if qty_.decode() == qty:
+                            R = np.empty(ARR.shape)
+                            R[MASK]   = ARR[MASK] * gain + offset
+                            R[MASK_U] = 0.0
+                            R[MASK_N] = np.nan
+                        elif qty_.decode() == "QIND":
+                            Q = np.empty(ARR.shape, dtype=float)
+                            Q[MASK]  = ARR[MASK]
+                            Q[~MASK] = np.nan
     
     if R is None:
         raise IOError("requested quantity %s not found" % qty)
     
     where = f["where"]
-    proj4str = str(where.attrs["projdef"])
+    proj4str = where.attrs["projdef"].decode()
     pr = pyproj.Proj(proj4str)
     
     LL_lat = where.attrs["LL_lat"]
@@ -288,10 +300,10 @@ def import_odimhdf5(filename, qty="RATE"):
     UR_lon = where.attrs["UR_lon"]
     if "LR_lat" in where.attrs.keys() and "LR_lon" in where.attrs.keys() and \
         "UL_lat" in where.attrs.keys() and "UL_lon" in where.attrs.keys():
-        LR_lat = where.attrs["LR_lat"]
-        LR_lon = where.attrs["LR_lon"]
-        UL_lat = where.attrs["UL_lat"]
-        UL_lon = where.attrs["UL_lon"]
+        LR_lat = float(where.attrs["LR_lat"])
+        LR_lon = float(where.attrs["LR_lon"])
+        UL_lat = float(where.attrs["UL_lat"])
+        UL_lon = float(where.attrs["UL_lon"])
         full_cornerpts = True
     else:
         full_cornerpts = False
@@ -318,23 +330,31 @@ def import_odimhdf5(filename, qty="RATE"):
         xpixelsize = None
         ypixelsize = None
     
-    geodata = {"projection":proj4str, 
-               "ll_lon":LL_lon, 
-               "ll_lat":LL_lat, 
-               "ur_lon":UR_lon, 
-               "ur_lat":UR_lat, 
-               "x1":x1, 
-               "y1":y1, 
-               "x2":x2, 
-               "y2":y2, 
-               "xpixelsize":xpixelsize, 
-               "ypixelsize":ypixelsize}
+    if qty == "ACRR":
+        unit = "mm"
+    elif qty == "DBZH":
+        unit = "dBZ"
+    else:
+        unit = "mm/h"
+    
+    metadata = {"projection":proj4str, 
+                "ll_lon":LL_lon, 
+                "ll_lat":LL_lat, 
+                "ur_lon":UR_lon, 
+                "ur_lat":UR_lat, 
+                "x1":x1, 
+                "y1":y1, 
+                "x2":x2, 
+                "y2":y2, 
+                "xpixelsize":xpixelsize, 
+                "ypixelsize":ypixelsize, 
+                "institution": "Odyssey datacentre", 
+                "timestep":15, 
+                "unit":unit}
     
     f.close()
     
-    metadata = {}
-    
-    return R,Q,geodata,metadata
+    return R,Q,metadata
 
 def _read_odimhdf5_what_group(whatgrp):
     qty      = whatgrp.attrs["quantity"]
@@ -345,40 +365,50 @@ def _read_odimhdf5_what_group(whatgrp):
     
     return qty,gain,offset,nodata,undetect
 
-def import_pgm(filename, gzipped=False):
-    """Import a 8-bit PGM radar reflectivity composite from the FMI archive and 
-    optionally convert the reflectivity values to precipitation rates.
-
+def import_pgm(filename, **kwargs):
+    """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
+    
     Parameters
     ----------
     filename : str
         Name of the file to import.
+    
+    Optional kwargs
+    ---------------
     gzipped : bool
         If True, the input file is treated as a compressed gzip file.
-
+    
     Returns
     -------
     out : tuple
-        A three-element tuple containing the reflectivity field in dBZ imported 
-        from the PGM file and the associated georeferencing data and metadata.
+        A three-element tuple containing the reflectivity composite in dBZ 
+        and the associated quality field and metadata. The quality field is 
+        currently set to None.
     """
     if not pyproj_imported:
         raise Exception("pyproj not imported")
     
-    metadata = _import_pgm_metadata(filename, gzipped=gzipped)
+    gzipped = kwargs.get("gzipped", False)
+    
+    pgm_metadata = _import_pgm_metadata(filename, gzipped=gzipped)
 
     if gzipped == False:
         R = imread(filename)
     else:
         R = imread(gzip.open(filename, 'r'))
-    geodata = _import_pgm_geodata(metadata)
+    geodata = _import_pgm_geodata(pgm_metadata)
     
-    MASK = R == metadata["missingval"]
+    MASK = R == pgm_metadata["missingval"]
     R = R.astype(float)
     R[MASK] = np.nan
     R = (R - 64.0) / 2.0
-
-    return R, geodata, metadata
+    
+    metadata = geodata
+    metadata["institution"] = "Finnish Meteorological Institute"
+    metadata["timestep"]    = 5
+    metadata["unit"]        = "dBZ"
+    
+    return R,None,metadata
 
 def _import_pgm_geodata(metadata):
     geodata = {}
@@ -443,9 +473,5 @@ def _import_pgm_metadata(filename, gzipped=False):
     l = f.readline().decode()
     metadata["missingval"] = int(l)
     f.close()
-    
-    metadata["institution"] = "Finnish Meteorological Institute"
-    metadata["timestep"]    = 5
-    metadata["unit"]        = "dBZ"
     
     return metadata
