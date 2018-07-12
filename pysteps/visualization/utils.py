@@ -42,14 +42,6 @@ def parse_proj4_string(proj4str, parse_type="default"):
                     result[k] = float(v)
                 elif k == "ellps":
                     result[k] = v
-                elif k == "LL_lat":
-                    result["llcrnrlat"] = float(v)
-                elif k == "LL_lon":
-                    result["llcrnrlon"] = float(v)
-                elif k == "UR_lat":
-                    result["urcrnrlat"] = float(v)
-                elif k == "UR_lon":
-                    result["urcrnrlon"] = float(v)
                 elif k == "R":
                     result["rsphere"] = float(v)
                 elif k in ["k", "k0"]:
