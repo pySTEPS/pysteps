@@ -171,7 +171,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     return np.abs(F)
  
 def generate_noise_2d_fft_filter(F, seed=None):
-    """Produces a field of correlated noise using global Fourier filering.
+    """Produces a field of correlated noise using global Fourier filtering.
     
     Parameters
     ----------
