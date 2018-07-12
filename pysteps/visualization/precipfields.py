@@ -5,9 +5,9 @@ import matplotlib.colors as colors
 
 import numpy as np
 
-def plot_field(R, geodata=None, units='mmhr', colorscale='MeteoSwiss', title=None, 
-                      colorbar=True):
-    """Function to plot a precipitation field witha a colorbar. 
+def plot_precip_field(R, geodata=None, units='mmhr', colorscale='MeteoSwiss', 
+                      title=None, colorbar=True):
+    """Function to plot a precipitation field with a colorbar. 
     
     Parameters 
     ---------- 
@@ -26,9 +26,7 @@ def plot_field(R, geodata=None, units='mmhr', colorscale='MeteoSwiss', title=Non
     ----------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-    
     """
-    
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
     
@@ -54,21 +52,22 @@ def plot_field(R, geodata=None, units='mmhr', colorscale='MeteoSwiss', title=Non
     if units == 'dBZ':
         Rplot[Rplot < 10] = np.nan
     im = plt.imshow(Rplot, cmap=cmap, norm=norm, extent=extent, interpolation='nearest')
-    plt.title(title)
+    if title is not None:
+      plt.title(title)
     
     axes = plt.gca()
     # Add colorbar
-    if (colorbar == True):
+    if colorbar:
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm, extend='max')
         cbar.ax.set_yticklabels(clevsStr)
         cbar.ax.set_title(units, fontsize=12)
-        
+    
     if geodata is None:
         axes.xaxis.set_ticklabels([])
         axes.yaxis.set_ticklabels([])
     
     return axes
-    
+
 def get_colormap(units='mmhr', colorscale='MeteoSwiss'):
     ''' Function to generate a colormap (cmap) and norm
     
@@ -159,7 +158,7 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
     ''' Function to format the floats defining the class limits of the colorbar.
     '''
     floatArray = np.array(floatArray, dtype=float)
-        
+    
     labels = []
     for label in floatArray:
         if label >= 0.1 and label < 1:
