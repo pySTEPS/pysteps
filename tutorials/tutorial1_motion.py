@@ -121,7 +121,7 @@ while loop < nloops:
     for i in range(R.shape[0]):
         plt.clf()
         if doanimation:
-            st.plt.plot_field(R[i,:,:], None, units="mmhr", 
+            st.plt.plot_precip_field(R[i,:,:], None, units="mmhr", 
                           colorscale=colorscale, 
                           title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
                           colorbar=True)
@@ -150,7 +150,7 @@ while loop < nloops:
     for i in range(R.shape[0]):
         plt.clf()
         if doanimation:
-            st.plt.plot_field(R[i,:,:], None, units="mmhr", 
+            st.plt.plot_precip_field(R[i,:,:], None, units="mmhr", 
                           colorscale=colorscale, 
                           title="Motion field", colorbar=True)
             if motion_plot == "quiver":
@@ -190,7 +190,7 @@ while loop < nloops:
         if doanimation:
             if i < R.shape[0]:
                 # Plot last observed rainfields
-                st.plt.plot_field(R[i,:,:], None, units="mmhr",
+                st.plt.plot_precip_fields(R[i,:,:], None, units="mmhr",
                               colorscale=colorscale, 
                               title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
                               colorbar=True)
