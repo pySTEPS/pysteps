@@ -37,11 +37,12 @@ startdate_str = "201701311030"
 data_source   = "mch"
 
 ## methods
-oflow_method    = "lucaskanade" # lucaskanade or DARTS
+oflow_method    = "lucaskanade" # lucaskanade or DARTS 
 adv_method      = "semilagrangian"
 
 ## forecast parameters
-n_lead_times    = 24
+n_prvs_times    = 9 
+n_lead_times    = 12
 R_threshold     = 0.1 # [mm/h]
 
 ## visualization parameters
@@ -83,7 +84,7 @@ startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
 ## find radar field filenames
 input_files = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
-                                 fn_ext, timestep, 9)
+                                 fn_ext, timestep, n_prvs_times, 0)
 if all(fpath is None for fpath in input_files[0]):
     raise IOError("input data not found in %s" % root_path)
 
@@ -190,7 +191,7 @@ while loop < nloops:
         if doanimation:
             if i < R.shape[0]:
                 # Plot last observed rainfields
-                st.plt.plot_precip_fields(R[i,:,:], None, units="mmhr",
+                st.plt.plot_precip_field(R[i,:,:], None, units="mmhr",
                               colorscale=colorscale, 
                               title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
                               colorbar=True)
@@ -200,7 +201,7 @@ while loop < nloops:
                     print(figname, 'saved.')
             else:
                 # Plot nowcast
-                st.plt.plot_field(R_forecast[i - R.shape[0],:,:], 
+                st.plt.plot_precip_field(R_forecast[i - R.shape[0],:,:], 
                               None, units="mmhr", 
                               title="%s +%02d min" % 
                               (input_files[1][-1].strftime("%Y-%m-%d %H:%M"),
@@ -222,15 +223,14 @@ if doanimation == True:
 print('Forecast verification...')
 
 ## find the verifying observations
-input_files_verif = st.io.find_by_date(
-                                   startdate + datetime.timedelta(minutes=n_lead_times*timestep), 
-                                   root_path, path_fmt, fn_pattern, fn_ext, 
-                                   timestep, n_lead_times - 1)
+input_files_verif = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
+                                        fn_ext, timestep, 0, n_lead_times)
 if all(fpath is None for fpath in input_files_verif[0]):
     raise ValueError("Verification data not found")
 
 ## read observations
 Robs, _, _ = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
+Robs = Robs[1:,:,:]
 
 ## convert units
 if data_units is 'dBZ':
