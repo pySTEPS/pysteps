@@ -36,9 +36,6 @@ import pysteps as st
 startdate_str = "201609281500"
 data_source   = "fmi"
 
-startdate_str = "201807021705"
-data_source   = "mch_rzc"
-
 ## methods
 oflow_method    = "lucaskanade"
 adv_method      = "semilagrangian"
@@ -101,8 +98,6 @@ importer_kwargs = {}
 for v in config["importer_kwargs"].items():
     importer_kwargs[str(v[0])] = ast.literal_eval(v[1])
     
-print(importer_kwargs)
-
 startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
 ## find radar field filenames
