@@ -21,47 +21,29 @@ import pysteps as st
 #+-------+--------------+-------------+----------------------------------------+
 #| event |  start_time  | data_source | description                            |
 #+=======+==============+=============+========================================+
-#|  01   | 201701311000 |     mch     | orographic precipitation               |
+#|  01   | 201701311030 |     mch     | orographic precipitation               |
 #+-------+--------------+-------------+----------------------------------------+
-#|  02   | 201505151600 |     mch     | non-stationary field, apparent rotation|
+#|  02   | 201505151630 |     mch     | non-stationary field, apparent rotation|
 #+-------+--------------+------------------------------------------------------+
-#|  03   | 201609281500 |     fmi     | stratiform rain band                   |
+#|  03   | 201609281530 |     fmi     | stratiform rain band                   |
 #+-------+--------------+-------------+----------------------------------------+
-#|  04   | 201705091100 |     fmi     | widespread convective activity         |
+#|  04   | 201705091130 |     fmi     | widespread convective activity         |
 #+-------+--------------+-------------+----------------------------------------+
 
 # Set parameters for this tutorial
 
 ## input data (copy/paste values from table above)
-startdate_str = "201609281500"
-data_source   = "fmi"
+startdate_str = "201701311030"
+data_source   = "mch"
 
 ## methods
-oflow_method    = "lucaskanade"
+oflow_method    = "lucaskanade" # lucaskanade or DARTS 
 adv_method      = "semilagrangian"
 
 ## forecast parameters
-n_lead_times    = 24
-R_threshold     = 0.1 # [mmhr]
-
-## optical flow parameters
-oflow_kwargs    = {
-                # to control the number of tracking objects
-                "quality_level_ST"  : 0.1,
-                "min_distance_ST"   : 5,
-                "block_size_ST"     : 15,
-                # to control the tracking of those objects
-                "winsize_LK"        : (50, 50),
-                "nr_levels_LK"      : 2,
-                # to control the removal of outliers
-                "max_speed"         : 10,
-                "nr_IQR_outlier"    : 3,
-                # to control the interpolation
-                "decl_grid"         : 10,
-                "min_nr_samples"    : 2,
-                "kernel_bandwidth"  : 40,
-                "nchunks"           : 10 # to limit the memory usage
-                }
+n_prvs_times    = 9 
+n_lead_times    = 12
+R_threshold     = 0.1 # [mm/h]
 
 ## visualization parameters
 colorscale      = "MeteoSwiss" # MeteoSwiss or STEPS-BE
@@ -69,7 +51,7 @@ motion_plot     = "quiver" # streamplot or quiver
 
 ## verification parameters
 skill_score     = "CSI"
-verif_thr       = 1 # [mmhr]
+verif_thr       = 1 # [mm/h]
  
 # Read-in the data
 print('Read the data...')
@@ -102,7 +84,7 @@ startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
 ## find radar field filenames
 input_files = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
-                                 fn_ext, timestep, 2)
+                                 fn_ext, timestep, n_prvs_times, 0)
 if all(fpath is None for fpath in input_files[0]):
     raise IOError("input data not found in %s" % root_path)
 
@@ -140,13 +122,13 @@ while loop < nloops:
     for i in range(R.shape[0]):
         plt.clf()
         if doanimation:
-            st.plt.plot_field(R[i,:,:], None, units="mmhr", 
+            st.plt.plot_precip_field(R[i,:,:], None, units="mmhr", 
                           colorscale=colorscale, 
                           title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
                           colorbar=True)
-            plt.pause(.5)
+            plt.pause(.2)
     if doanimation:
-        plt.pause(1)
+        plt.pause(.5)
     loop += 1
 
 if doanimation == True:
@@ -156,7 +138,7 @@ if doanimation == True:
 print("Computing motion vectors...")
 
 oflow_method = st.optflow.get_method(oflow_method)
-UV = oflow_method(dBR, **oflow_kwargs) 
+UV = oflow_method(dBR) 
 
 ## plot the motion field
 doanimation = True
@@ -169,17 +151,17 @@ while loop < nloops:
     for i in range(R.shape[0]):
         plt.clf()
         if doanimation:
-            st.plt.plot_field(R[i,:,:], None, units="mmhr", 
+            st.plt.plot_precip_field(R[i,:,:], None, units="mmhr", 
                           colorscale=colorscale, 
                           title="Motion field", colorbar=True)
             if motion_plot == "quiver":
                 st.plt.quiver(UV, None, 20)
             if motion_plot == "streamplot":    
                 st.plt.streamplot(UV, None)        
-            plt.pause(.5)
+            plt.pause(.2)
         
     if doanimation:
-        plt.pause(1)
+        plt.pause(.5)
     loop += 1
 
 if doanimation == True:
@@ -209,7 +191,7 @@ while loop < nloops:
         if doanimation:
             if i < R.shape[0]:
                 # Plot last observed rainfields
-                st.plt.plot_field(R[i,:,:], None, units="mmhr",
+                st.plt.plot_precip_field(R[i,:,:], None, units="mmhr",
                               colorscale=colorscale, 
                               title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
                               colorbar=True)
@@ -219,7 +201,7 @@ while loop < nloops:
                     print(figname, 'saved.')
             else:
                 # Plot nowcast
-                st.plt.plot_field(R_forecast[i - R.shape[0],:,:], 
+                st.plt.plot_precip_field(R_forecast[i - R.shape[0],:,:], 
                               None, units="mmhr", 
                               title="%s +%02d min" % 
                               (input_files[1][-1].strftime("%Y-%m-%d %H:%M"),
@@ -229,9 +211,9 @@ while loop < nloops:
                     figname = "%s/%s_%s_simple_advection_%02d_nwc.png" % (path_outputs, startdate_str, data_source, i)
                     plt.savefig(figname)
                     print(figname, "saved.")
-            plt.pause(.5)
+            plt.pause(.2)
     if doanimation:
-        plt.pause(1)
+        plt.pause(.5)
     loop += 1
 
 if doanimation == True:
@@ -241,15 +223,14 @@ if doanimation == True:
 print('Forecast verification...')
 
 ## find the verifying observations
-input_files_verif = st.io.find_by_date(
-                                   startdate + datetime.timedelta(minutes=n_lead_times*timestep), 
-                                   root_path, path_fmt, fn_pattern, fn_ext, 
-                                   timestep, n_lead_times - 1)
+input_files_verif = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
+                                        fn_ext, timestep, 0, n_lead_times)
 if all(fpath is None for fpath in input_files_verif[0]):
     raise ValueError("Verification data not found")
 
 ## read observations
 Robs, _, _ = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
+Robs = Robs[1:,:,:]
 
 ## convert units
 if data_units is 'dBZ':

@@ -14,10 +14,10 @@ Pixels containing missing data are set to nan.
 
 The metadata dictionary contains the following mandatory key-value pairs:
     projection   PROJ.4-compatible projection definition
-    x1           x-coordinate of the lower-left corner of the data raster
-    y1           y-coordinate of the lower-left corner of the data raster
-    x2           x-coordinate of the upper-right corner of the data raster
-    y2           y-coordinate of the upper-right corner of the data raster
+    x1           x-coordinate of the lower-left corner of the data raster (meters)
+    y1           y-coordinate of the lower-left corner of the data raster (meters)
+    x2           x-coordinate of the upper-right corner of the data raster (meters)
+    y2           y-coordinate of the upper-right corner of the data raster (meters)
     xpixelsize   grid resolution in x-direction (meters)
     ypixelsize   grid resolution in y-direction (meters)
     yorigin      a string specifying the location of the first element in
@@ -316,12 +316,11 @@ def import_mch_gif(filename, **kwargs):
         # apply lookup table conversion
         R = np.zeros(len(Brgb.getdata()))
         for i,dn in enumerate(Brgb.getdata()):
-            R[i] = lut.get(dn,-1.0)
+            R[i] = lut.get(dn, np.nan)
             
         # convert to original shape
         width, height = B.size
         R = R.reshape(height,width)
-
 
         # set values outside observational range to NaN,
         # and values in non-precipitating areas to zero.
@@ -371,9 +370,8 @@ def _import_mch_gif_geodata():
 
     return geodata
 
-
-def import_odimh_df5(filename, **kwargs):
-    """Read a precipitation field (and optionally the quality field) from a HDF5
+def import_odim_hdf5(filename, **kwargs):
+    """Read a precipitation field (and optionally the quality field) from a HDF5 
     file conforming to the ODIM specification.
 
     Parameters
