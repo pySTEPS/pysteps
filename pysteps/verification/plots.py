@@ -2,11 +2,24 @@
 import matplotlib.pylab as plt
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
 import numpy as np
+from . import probscores
 
 def plot_reldiag(reldiag, ax=None):
+    """Plot a reliability diagram.
+    
+    Parameters
+    ----------
+    reldiag : dict
+        A ROC curve object created by probscores.reldiag_init.
+    ax : axis handle
+        Axis handle for the figure. If set to None, the handle is taken from 
+        the current figure (matplotlib.pylab.gca()).
+    """
     if ax is None:
         ax = plt.gca()
     
+    # Plot the reliability diagram.
+    # TODO: Use the compute method here.
     f = 1.0 * reldiag["Y_sum"] / reldiag["num_idx"]
     r = 1.0 * reldiag["X_sum"] / reldiag["num_idx"]
     
@@ -23,7 +36,7 @@ def plot_reldiag(reldiag, ax=None):
     ax.set_xlabel("Forecast probability")
     ax.set_ylabel("Observed relative frequency")
     
-    # 
+    # Plot sharpness diagram into an inset figure.
     iax = inset_axes(ax, width="35%", height="20%", loc=4, borderpad=3.5)
     bw = reldiag["bin_edges"][2] - reldiag["bin_edges"][1]
     iax.bar(reldiag["bin_edges"][:-1], reldiag["sample_size"], width=bw, 
@@ -42,3 +55,37 @@ def plot_reldiag(reldiag, ax=None):
     iax.yaxis.tick_right()
     iax.yaxis.set_label_position("right")
     iax.tick_params(axis="both", which="major", labelsize=6)
+
+def plot_ROC(ROC, ax=None):
+    """Plot a ROC curve.
+    
+    Parameters
+    ----------
+    ROC : dict
+        A ROC curve object created by probscores.ROC_curve_init.
+    ax : axis handle
+        Axis handle for the figure. If set to None, the handle is taken from 
+        the current figure (matplotlib.pylab.gca()).
+    """
+    if ax is None:
+        ax = plt.gca()
+    
+    POFD,POD,area = probscores.ROC_curve_compute(ROC, compute_area=True)
+    p_thr = ROC["prob_thrs"]
+    
+    ax.plot([0, 1], [0, 1], "k--")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_xlabel("False alarm rate (POFD)")
+    ax.set_ylabel("Probability of detection (POD)")
+    ax.grid(True, ls=':')
+    
+    l, = ax.plot(POFD, POD, "kD-")
+    opt_prob_thr_idx = np.argmax(np.array(POD) - np.array(POFD))
+    ax.scatter([POFD[opt_prob_thr_idx]], [POD[opt_prob_thr_idx]], c='r', s=150, 
+               facecolors=None, edgecolors='r')
+    
+    for p_thr_,x,y in zip(p_thr, POFD, POD):
+        if p_thr_ > 0.05 and p_thr_ < 0.95:
+            ax.text(x+0.02, y-0.02, "%.2f" % p_thr_, fontsize=7)
+
