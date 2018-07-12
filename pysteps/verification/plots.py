@@ -2,7 +2,35 @@
 import matplotlib.pylab as plt
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
 import numpy as np
-from . import probscores
+from . import ensscores, probscores
+
+def plot_rankhist(rankhist, ax=None):
+    """Plot a rank histogram.
+    
+    Parameters
+    ----------
+    rankhist : dict
+        A rank histogram object created by ensscores.rankhist_init.
+    ax : axis handle
+        Axis handle for the figure. If set to None, the handle is taken from 
+        the current figure (matplotlib.pylab.gca()).
+    """
+    if ax is None:
+        ax = plt.gca()
+    
+    r = ensscores.rankhist_compute(rankhist)
+    x = np.linspace(0, 1, rankhist["num_ens_members"] + 1)
+    ax.bar(x, r, width=1.0/len(x), align="edge", color="gray", edgecolor="black")
+    
+    ax.set_xticks(x[::3] + (x[1] - x[0]))
+    ax.set_xticklabels(np.arange(1, len(x))[::3])
+    ax.set_xlim(0, 1+1.0/len(x))
+    ax.set_ylim(0, np.max(r)*1.25)
+    
+    ax.set_xlabel("Rank of observation (among ensemble members)")
+    ax.set_ylabel("Relative frequency")
+    
+    ax.grid(True, axis='y', ls=':')
 
 def plot_reldiag(reldiag, ax=None):
     """Plot a reliability diagram.
@@ -19,7 +47,6 @@ def plot_reldiag(reldiag, ax=None):
         ax = plt.gca()
     
     # Plot the reliability diagram.
-    # TODO: Use the compute method here.
     f = 1.0 * reldiag["Y_sum"] / reldiag["num_idx"]
     r = 1.0 * reldiag["X_sum"] / reldiag["num_idx"]
     
