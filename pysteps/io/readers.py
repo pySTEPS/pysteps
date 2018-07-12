@@ -18,15 +18,32 @@ def read_timeseries(inputfns, importer, **kwargs):
     Returns
     -------
     out : tuple
-        A three-element tuple containing the precipitation fields read, the quality field,
+        A three-element tuple containing the precipitation fields read, the quality fields,
         and associated metadata.
     """
+    
+    # check for missing data
+    if all(ifn is None for ifn in inputfns):
+        return None, None, None
+    else:
+        for ifn in inputfns[0]:
+            if ifn is not None:
+                Rref, Qref, _ = importer(ifn, **kwargs)
+                break
+    
     R = []
     Q = []
     for ifn in inputfns[0]:
-        R_, Q_, metadata = importer(ifn, **kwargs)
-        R.append(R_)
-        Q.append(Q_)
+        if ifn is not None:
+            R_, Q_, metadata = importer(ifn, **kwargs)
+            R.append(R_)
+            Q.append(Q_)
+        else:
+            R.append(Rref*np.nan)
+            if Qref is not None:
+                Q.append(Qref*np.nan)
+            else:
+                Q.append(None)
         
     R = np.concatenate([R_[None, :, :] for R_ in R])      
     #TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
