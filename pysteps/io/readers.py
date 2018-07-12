@@ -28,7 +28,7 @@ def read_timeseries(inputfns, importer, **kwargs):
         R.append(R_)
         Q.append(Q_)
         
-    R = np.concatenate([R_[None, :, :] for R_ in R])    
-    Q = np.concatenate([Q_[None, :, :] for Q_ in Q])    
+    R = np.concatenate([R_[None, :, :] for R_ in R])      
+    #TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
 
     return R, Q, metadata
