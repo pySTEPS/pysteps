@@ -316,12 +316,11 @@ def import_mch_gif(filename, **kwargs):
         # apply lookup table conversion
         R = np.zeros(len(Brgb.getdata()))
         for i,dn in enumerate(Brgb.getdata()):
-            R[i] = lut.get(dn,-1.0)
+            R[i] = lut.get(dn, np.nan)
             
         # convert to original shape
         width, height = B.size
         R = R.reshape(height,width)
-
 
         # set values outside observational range to NaN,
         # and values in non-precipitating areas to zero.
