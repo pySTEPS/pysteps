@@ -54,83 +54,6 @@ try:
 except ImportError:
     pyproj_imported = False
 
-def import_aqc(filename, **kwargs):
-    """Import a 8-bit gif radar reflectivity composite (AQC) from the MeteoSwiss 
-    archive.
-    
-    Parameters
-    ----------
-    filename : str
-        Name of the file to import.
-    
-    Returns
-    -------
-    out : tuple
-        A three-element tuple containing the precipitation field in mm/h imported 
-        from a MeteoSwiss AQC file and the associated quality field and metadata. 
-        The quality field is currently set to None.
-    """
-    if not pil_imported:
-        raise Exception("PIL not imported")
-    
-    geodata = _import_aqc_geodata()
-    
-    B = Image.open(filename)
-    B = np.array(B, dtype=int)
-    
-    # generate lookup table in mmh-1
-    # valid for AQC product only
-    lut = np.zeros(256)
-    A = 316.0; b = 1.5
-    for i in range(256):
-        if (i < 2) or (i > 250 and i < 255):
-            lut[i] = 0.0
-        elif (i == 255):
-            lut[i] = np.nan
-        else:
-            lut[i] = (10.**((i - 71.2)/20.0)/A)**(1.0/b)*60/5
-            
-    # apply lookup table [mm h-1]
-    R = lut[B]
-    
-    metadata = geodata
-    metadata["institution"] = "MeteoSwiss"
-    metadata["accutime"]    = 5
-    metadata["unit"]        = "mm/h"
-    
-    return R,None,metadata
-
-def _import_aqc_geodata():
-    geodata = {}
-    
-    projdef = ""
-    # These are all hard-coded because the projection definition is missing from the 
-    # gif files.
-    projdef += "+proj=somerc "
-    projdef += " +lon_0=7.439583333333333"
-    projdef += " +lat_0=46.95240555555556"
-    projdef += " +k_0=1"
-    projdef += " +x_0=600000"
-    projdef += " +y_0=200000"
-    projdef += " +ellps=bessel"
-    projdef += " +towgs84=674.374,15.056,405.346,0,0,0,0"
-    projdef += " +units=m"
-    projdef += " +no_defs"
-    #
-    geodata["projection"] = projdef
-    
-    geodata["x1"] = 255000
-    geodata["y1"] = 160000
-    geodata["x2"] = 965000
-    geodata["y2"] = 480000
-    
-    geodata["xpixelsize"] = 1000
-    geodata["ypixelsize"] = 1000
-    
-    geodata["yorigin"] = "upper"
-    
-    return geodata
-
 def import_bom_rf3(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the BoM Rainfields3.
     
@@ -326,6 +249,100 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     f.close()
     
     return metadata
+	
+def import_mch_gif(filename, **kwargs):
+    """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss 
+    archive.
+    
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+		
+    Optional kwargs
+    ---------------
+    product : string
+        The name of the MeteoSwiss QPE product.
+		Options:
+			- "AQC" (AQUIRE)
+			- "RZC" (PRECIP)
+		
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the precipitation field in mm/h imported 
+        from a MeteoSwiss gif file and the associated quality field and metadata. 
+        The quality field is currently set to None.
+    """
+    if not pil_imported:
+        raise Exception("PIL not imported")
+		
+    product = kwargs.get("product", "AQC")
+    
+    geodata = _import_mch_gif_geodata()
+    
+    B = Image.open(filename)
+    B = np.array(B, dtype=int)
+    
+    # generate lookup table in mmh-1
+    if product == "AQC":
+        lut = np.zeros(256)
+        A = 316.0; b = 1.5
+        for i in range(256):
+            if (i < 2) or (i > 250 and i < 255):
+                lut[i] = 0.0
+            elif (i == 255):
+                lut[i] = np.nan
+            else:
+                lut[i] = (10.**((i - 71.2)/20.0)/A)**(1.0/b)*12
+    elif product == "RZC":
+        raise NotImplementedError("product %s is not implemented" % product)
+    else:
+        raise ValueError("unknown product %s" % product)
+		
+    # apply lookup table [mm h-1]
+    R = lut[B]
+    
+    metadata = geodata
+    metadata["institution"] = "MeteoSwiss"
+    metadata["accutime"]    = 5
+    metadata["unit"]        = "mm/h"
+    
+    return R,None,metadata
+
+def _import_mch_gif_geodata():
+    """Swiss radar domain CCS4
+    These are all hard-coded because the georeferencing is missing from the gif files.
+    """
+	
+    geodata = {}
+    
+    # LV03 Swiss projection definition in Proj4
+    projdef = ""
+    projdef += "+proj=somerc "
+    projdef += " +lon_0=7.43958333333333"
+    projdef += " +lat_0=46.9524055555556"
+    projdef += " +k_0=1"
+    projdef += " +x_0=600000"
+    projdef += " +y_0=200000"
+    projdef += " +ellps=bessel"
+    projdef += " +towgs84=674.374,15.056,405.346,0,0,0,0"
+    projdef += " +units=m"
+    projdef += " +no_defs"
+    geodata["projection"] = projdef
+    
+    geodata["x1"] = 255000
+    geodata["y1"] = -160000
+    geodata["x2"] = 965000
+    geodata["y2"] = 480000
+    
+    geodata["xpixelsize"] = 1000
+    geodata["ypixelsize"] = 1000
+    
+    geodata["yorigin"] = "upper"
+    
+    return geodata
+
 
 def import_odimh_df5(filename, **kwargs):
     """Read a precipitation field (and optionally the quality field) from a HDF5 
