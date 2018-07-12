@@ -6,7 +6,7 @@ import os
 
 
 def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep, 
-                 num_prev_files=0):
+                 num_prev_files=0, num_next_files=0):
     """List input files whose timestamp matches the given date.
 
     Parameters
@@ -27,27 +27,28 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         Time step between consecutive input files (minutes).
     num_prev_files : int
         Optional, number of previous files to find before the given timestamp.
-  
+    num_next_files : int
+        Optional, number of future files to find after the given timestamp.
     Returns
     -------
     out : tuple
-        If num_prev_files=0, return a pair containing the found file name and the 
-        corresponding timestamp as a datetime.datetime object. Otherwise, return 
-        a tuple of two lists, the first one for the file names and the second one 
-        for the correspondign timestemps. The lists are sorted in ascending order 
-        with respect to timestamp.
+        If num_prev_files=0 and num_next_files=0, return a pair containing the 
+        found file name and the corresponding timestamp as a datetime.datetime 
+        object. Otherwise, return a tuple of two lists, the first one for the 
+        file names and the second one for the correspondign timestemps. The lists 
+        are sorted in ascending order with respect to timestamp.
     """
     filenames  = []
     timestamps = []
 
-    for i in range(num_prev_files+1):
-        curdate = date - timedelta(minutes=i*timestep)
+    for i in range(num_prev_files+num_next_files+1):
+        curdate = date + timedelta(minutes=num_next_files*timestep) - timedelta(minutes=i*timestep)
         fn = _find_matching_filename(curdate, root_path, path_fmt, fn_pattern, fn_ext)
         filenames.append(fn)
 
         timestamps.append(curdate)
 
-    if num_prev_files > 0:
+    if (num_prev_files+num_next_files) > 0:
         return (filenames[::-1], timestamps[::-1])
     else:
         return (filenames[0], timestamps[0])
