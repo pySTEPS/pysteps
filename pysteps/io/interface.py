@@ -15,12 +15,12 @@ def get_method(name):
     |                   |                                                        |
     +-------------------+--------------------------------------------------------+
     """
-    if name.lower() == "aqc":
-        return importers.import_aqc
-    elif name.lower() == "bom":
+    if name.lower() == "bom":
         return importers.import_bom
     elif name.lower() == "fmi_pgm":
         return importers.import_fmi_pgm
+    if name.lower() == "mch_gif":
+        return importers.import_mch_gif
     elif name.lower() == "odim_hdf5":
         return importers.import_odim_hdf5
     else:
