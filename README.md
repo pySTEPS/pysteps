@@ -1,2 +1,0 @@
-# pysteps
-pysteps main repository
