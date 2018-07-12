@@ -343,8 +343,7 @@ def _import_mch_gif_geodata():
     
     return geodata
 
-
-def import_odimh_df5(filename, **kwargs):
+def import_odim_hdf5(filename, **kwargs):
     """Read a precipitation field (and optionally the quality field) from a HDF5 
     file conforming to the ODIM specification.
     
