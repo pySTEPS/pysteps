@@ -1,3 +1,7 @@
+# TODO: This file is no longer used:
+# path_inputs is read from the data source configuration file
+# path_outputs was moved to tutorials.cfg
+
 ## Example data paths (specify the relevant paths*): 
 path_inputs  = "/users/ned/pySTEPS/pysteps-data"   # the root path to the input radar files**
 path_outputs = "/users/ned/pySTEPS/out"   # the path where to save outputs (figures, forecasts, etc)
