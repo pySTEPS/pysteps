@@ -23,7 +23,7 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         contain time specifiers (e.g. %H, %M and %S).
     fn_ext : str
         Extension of the input files.
-    timestep : int
+    timestep : float
         Time step between consecutive input files (minutes).
     num_prev_files : int
         Optional, number of previous files to find before the given timestamp.

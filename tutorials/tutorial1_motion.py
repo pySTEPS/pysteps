@@ -91,13 +91,13 @@ path_fmt        = config_ds["path_fmt"]
 fn_pattern      = config_ds["fn_pattern"]
 fn_ext          = config_ds["fn_ext"]
 importer        = config_ds["importer"]
-timestep        = int(config_ds["timestep"])
+timestep        = float(config_ds["timestep"])
 
 # Read the keyword arguments into importer_kwargs
 importer_kwargs = {}
 for v in config["importer_kwargs"].items():
     importer_kwargs[str(v[0])] = ast.literal_eval(v[1])
-
+    
 startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
 ## find radar field filenames
@@ -109,7 +109,7 @@ if all(fpath is None for fpath in input_files[0]):
 importer = st.io.get_method(importer)
 
 ## read radar field files
-R, _, _ = st.io.read_timeseries(input_files, importer, **importer_kwargs)
+R, _, metadata = st.io.read_timeseries(input_files, importer, **importer_kwargs)
 print("The data array has size [nleadtimes,nrows,ncols] =", R.shape)
 orig_field_dim = R.shape
 
@@ -117,7 +117,7 @@ orig_field_dim = R.shape
 print("Prepare the data...")
 
 # TODO: This is currently hard-coded.
-data_units = "dBZ"
+data_units = metadata["unit"]
 
 ## convert units
 if data_units is "dBZ":
