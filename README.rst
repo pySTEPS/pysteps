@@ -30,10 +30,16 @@ The pySTEPS package need the following dependencies
 Install from source
 -------------------
 
-The latest version can be installed manually by downloading the sources from
-https://github.com/pySTEPS/pysteps
+The latest version can be installed manually by downloading the sources using::
 
-Then, for a **global installation** run::
+    git clone https://github.com/pySTEPS/pysteps
+
+
+To install using pip run::
+
+    pip install ./pysteps
+
+Or, to install it using setup.py run (global installation)::
 
     python setup.py install
     
@@ -44,7 +50,7 @@ For `user installation`_::
 .. _user installation: \
     https://docs.python.org/2/install/#alternate-installation-the-user-scheme
     
-If you want to put it somewhere different than your system files, you can do::
+If you want to install the package in a specific directory run::
     
     python setup.py install --prefix=/path/to/local/dir
 
