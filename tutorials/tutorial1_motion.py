@@ -7,12 +7,14 @@ nowcasting.
 
 More info: https://pysteps.github.io/
 """
-import pysteps as st
+import ast
+import configparser
 import datetime
 import matplotlib.pylab as plt
 import numpy as np
 import pickle
 import os
+import pysteps as st
 
 # List of case studies that can be used in this tutorial
 
@@ -33,10 +35,6 @@ import os
 ## input data (copy/paste values from table above)
 startdate_str = "201609281500"
 data_source   = "fmi"
-
-## Read-in data and output paths (to be set beforehand in file data_paths.py)
-# TODO: use a configuration file
-from data_paths import path_inputs, path_outputs
 
 ## methods
 oflow_method    = "lucaskanade"
@@ -76,34 +74,39 @@ verif_thr       = 1 # [mmhr]
 # Read-in the data
 print('Read the data...')
 
-## data specifications
-# TODO: use a configuration file
-if data_source == "fmi":
-    fn_pattern      = "%Y%m%d%H%M_fmi.radar.composite.lowest_FIN_SUOMI1"
-    path_fmt        = "fmi/%Y%m%d"
-    fn_ext          = "pgm.gz"
-    data_units      = "dBZ"
-    importer        = st.io.import_pgm
-    importer_kwargs = {"gzipped":True}
-    grid_res_km     = 1.0
-    time_step_min   = 5.0
-elif data_source == "mch":
-    fn_pattern      = "AQC%y%j%H%M?_00005.801"
-    path_fmt        = "mch/%Y%m%d"
-    fn_ext          = "gif"
-    data_units      = "mmhr"
-    importer        = st.io.import_aqc
-    importer_kwargs = {}
-    grid_res_km     = 1.0
-    time_step_min   = 5.0
-    
+# Read the tutorial configuration file
+config = configparser.RawConfigParser()
+config.read("tutorials.cfg")
+
+path_outputs = config["paths"]["output"]
+
+# Read the data source configuration file
+config = configparser.RawConfigParser()
+config.read("datasource_%s.cfg" % data_source)
+
+config_ds = config["datasource"]
+
+root_path       = config_ds["root_path"]
+path_fmt        = config_ds["path_fmt"]
+fn_pattern      = config_ds["fn_pattern"]
+fn_ext          = config_ds["fn_ext"]
+importer        = config_ds["importer"]
+timestep        = int(config_ds["timestep"])
+
+# Read the keyword arguments into importer_kwargs
+importer_kwargs = {}
+for v in config["importer_kwargs"].items():
+    importer_kwargs[str(v[0])] = ast.literal_eval(v[1])
+
 startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
 ## find radar field filenames
-input_files = st.io.find_by_date(startdate, path_inputs, path_fmt, 
-                                  fn_pattern, fn_ext, time_step_min, 2)
+input_files = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
+                                 fn_ext, timestep, 2)
 if all(fpath is None for fpath in input_files[0]):
-    raise ValueError("Input data not found in", path_inputs)
+    raise IOError("input data not found in %s" % root_path)
+
+importer = st.io.get_method(importer)
 
 ## read radar field files
 R, _, _ = st.io.read_timeseries(input_files, importer, **importer_kwargs)
@@ -112,6 +115,9 @@ orig_field_dim = R.shape
 
 # Prepare input files
 print("Prepare the data...")
+
+# TODO: This is currently hard-coded.
+data_units = "dBZ"
 
 ## convert units
 if data_units is "dBZ":
@@ -217,7 +223,7 @@ while loop < nloops:
                               None, units="mmhr", 
                               title="%s +%02d min" % 
                               (input_files[1][-1].strftime("%Y-%m-%d %H:%M"),
-                              (1 + i - R.shape[0])*time_step_min),
+                              (1 + i - R.shape[0])*timestep),
                               colorscale=colorscale, colorbar=True)
                 if savefig & (loop == 0):
                     figname = "%s/%s_%s_simple_advection_%02d_nwc.png" % (path_outputs, startdate_str, data_source, i)
@@ -236,9 +242,9 @@ print('Forecast verification...')
 
 ## find the verifying observations
 input_files_verif = st.io.find_by_date(
-                                   startdate + datetime.timedelta(minutes=n_lead_times*time_step_min), 
-                                   path_inputs, path_fmt, fn_pattern, fn_ext, 
-                                   time_step_min, n_lead_times - 1)
+                                   startdate + datetime.timedelta(minutes=n_lead_times*timestep), 
+                                   root_path, path_fmt, fn_pattern, fn_ext, 
+                                   timestep, n_lead_times - 1)
 if all(fpath is None for fpath in input_files_verif[0]):
     raise ValueError("Verification data not found")
 
@@ -268,7 +274,7 @@ else:
     
 ## plot the scores
 nplots = len(ax.lines)
-x = (np.arange(n_lead_times) + 1)*time_step_min
+x = (np.arange(n_lead_times) + 1)*timestep
 ax.plot(x, scores, color='C%i'%(nplots + 1), label = "run %02d" % (nplots + 1))
 ax.set_xlabel("Lead-time [min]")
 ax.set_ylabel("%s" % skill_score)
