@@ -14,10 +14,10 @@ Pixels containing missing data are set to nan.
 
 The metadata dictionary contains the following mandatory key-value pairs:
     projection   PROJ.4-compatible projection definition
-    x1           x-coordinate of the lower-left corner of the data raster
-    y1           y-coordinate of the lower-left corner of the data raster
-    x2           x-coordinate of the upper-right corner of the data raster
-    y2           y-coordinate of the upper-right corner of the data raster
+    x1           x-coordinate of the lower-left corner of the data raster (meters)
+    y1           y-coordinate of the lower-left corner of the data raster (meters)
+    x2           x-coordinate of the upper-right corner of the data raster (meters)
+    y2           y-coordinate of the upper-right corner of the data raster (meters)
     xpixelsize   grid resolution in x-direction (meters)
     ypixelsize   grid resolution in y-direction (meters)
     yorigin      a string specifying the location of the first element in
