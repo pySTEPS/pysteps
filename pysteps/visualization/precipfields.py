@@ -13,7 +13,7 @@ try:
     pyproj_imported = True
 except ImportError:
     pyproj_imported = False
-import utils
+from . import utils
 
 def plot_precip_field(R, with_basemap=False, geodata=None, units='mmhr', 
                       colorscale='MeteoSwiss', title=None, colorbar=True, 
