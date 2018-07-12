@@ -2,41 +2,135 @@
 
 import matplotlib.pylab as plt
 import matplotlib.colors as colors
-
 import numpy as np
+try:
+    from mpl_toolkits.basemap import Basemap
+    basemap_imported = True
+except ImportError:
+    basemap_imported = False
+try:
+    import pyproj
+    pyproj_imported = True
+except ImportError:
+    pyproj_imported = False
+import utils
 
-def plot_precip_field(R, geodata=None, units='mmhr', colorscale='MeteoSwiss', 
-                      title=None, colorbar=True):
+def plot_precip_field(R, with_basemap=False, geodata=None, units='mmhr', 
+                      colorscale='MeteoSwiss', title=None, colorbar=True, 
+                      basemap_resolution='l', drawlonlatlines=False):
     """Function to plot a precipitation field with a colorbar.
     
     Parameters
     ----------
-    R : array-like 
+    R : array-like
         Two-dimensional array containing the input precipitation field.
+    with_basemap : bool
+        If True, plot a basemap.
     geodata : dictionary
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
         
-        x1   x-coordinate of the lower-left corner of the data raster (meters)
-        y1   y-coordinate of the lower-left corner of the data raster (meters)
-        x2   x-coordinate of the upper-right corner of the data raster (meters)
-        y2   y-coordinate of the upper-right corner of the data raster (meters)
+        projection   PROJ.4-compatible projection definition
+        x1           x-coordinate of the lower-left corner of the data raster (meters)
+        y1           y-coordinate of the lower-left corner of the data raster (meters)
+        x2           x-coordinate of the upper-right corner of the data raster (meters)
+        y2           y-coordinate of the upper-right corner of the data raster (meters)
+        yorigin      a string specifying the location of the first element in
+                     the data raster w.r.t. y-axis:
+                     'upper' = upper border
+                     'lower' = lower border
     units : str
         Units of the input array (mmhr or dBZ)
     colorscale : str 
         Which colorscale to use (MeteoSwiss, STEPS-BE)
+    title : str
+        If not None, print the title on top of the plot.
     colorbar : bool
-        Whether to add the colorbar or not.
+        If set to True, add a colorbar on the right side of the plot.
+    basemap_resolution : str
+        The resolution of the basemap, see the documentation of mpl_toolkits.basemap. 
+        Applicable if with_basemap is True.
+    drawlonlatlines : bool
+        If set to True, draw longitude and latitude lines. Applicable if 
+        with_basemap is True.
     
     Returns
     -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
+    if with_basemap and not basemap_imported:
+        raise Exception("with_basemap=True but basemap not imported")
+    if with_basemap and not pyproj_imported:
+        raise Exception("with_basemap=True but pyproj not imported")
+    
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
     
-    Rplot = R.copy()    
+    # Get colormap and color levels
+    cmap, norm, clevs, clevsStr = get_colormap(units, colorscale)
+    
+    if not with_basemap:
+        # Extract extent for imshow function
+        if geodata is not None:
+            extent = np.array([geodata['x1'],geodata['x2'],geodata['y1'],geodata['y2']]) / 1000
+        else:
+            extent = np.array([0, R.shape[1], 0, R.shape[0]])
+        
+        # Plot radar domain mask
+        mask = np.ones(R.shape)
+        mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
+        plt.imshow(mask, cmap=colors.ListedColormap(['gray']), extent=extent)
+        
+        im = _plot_precip_field(R, plt.gca(), units, colorscale, geodata)
+    else:
+        bm_params = utils.parse_proj4_string(geodata["projection"], parse_type="basemap")
+        
+        pr = pyproj.Proj(geodata["projection"])
+        ll_lon,ll_lat = pr(geodata["x1"], geodata["y1"], inverse=True)
+        ur_lon,ur_lat = pr(geodata["x2"], geodata["y2"], inverse=True)
+        
+        bm_params["llcrnrlon"]  = ll_lon
+        bm_params["llcrnrlat"]  = ll_lat
+        bm_params["urcrnrlon"]  = ur_lon
+        bm_params["urcrnrlat"]  = ur_lat
+        bm_params["resolution"] = basemap_resolution
+        
+        if geodata["yorigin"] == "upper":
+          R = np.flipud(R)
+        
+        bm = _plot_basemap(bm_params, drawlonlatlines=drawlonlatlines)
+        im = _plot_precip_field(R, bm, units, colorscale, geodata)
+        
+        # Plot radar domain mask
+        mask = np.ones(R.shape)
+        mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
+        bm.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5, zorder=1e6)
+    
+    if title is not None:
+        plt.title(title)
+    
+    # Add colorbar
+    if colorbar:
+        cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm, extend='max')
+        cbar.ax.set_yticklabels(clevsStr)
+        cbar.ax.set_title(units, fontsize=12)
+    
+    if not with_basemap:
+        axes = plt.gca()
+        if geodata is None:
+            axes.xaxis.set_ticks([])
+            axes.xaxis.set_ticklabels([])
+            axes.yaxis.set_ticks([])
+            axes.yaxis.set_ticklabels([])
+    
+    if not with_basemap:
+        return axes
+    else:
+        return bm
+
+def _plot_precip_field(R, ax, units, colorscale, geodata):
+    R = R.copy()
     
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(units, colorscale)
@@ -47,32 +141,14 @@ def plot_precip_field(R, geodata=None, units='mmhr', colorscale='MeteoSwiss',
     else:
         extent = np.array([0, R.shape[1], 0, R.shape[0]])
     
-    # Plot radar domain mask
-    mask = np.ones(Rplot.shape)
-    mask[~np.isnan(Rplot)] = np.nan # Fully transparent within the radar domain
-    plt.imshow(mask, cmap=colors.ListedColormap(['gray']), extent=extent)
-    
     # Plot precipitation field
     if units == 'mmhr':
-        Rplot[Rplot < 0.1] = np.nan # Transparent where no precipitation
+        R[R < 0.1] = np.nan # Transparent where no precipitation
     if units == 'dBZ':
-        Rplot[Rplot < 10] = np.nan
-    im = plt.imshow(Rplot, cmap=cmap, norm=norm, extent=extent, interpolation='nearest')
-    if title is not None:
-      plt.title(title)
+        R[R < 10] = np.nan
+    im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest')
     
-    axes = plt.gca()
-    # Add colorbar
-    if colorbar:
-        cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm, extend='max')
-        cbar.ax.set_yticklabels(clevsStr)
-        cbar.ax.set_title(units, fontsize=12)
-    
-    if geodata is None:
-        axes.xaxis.set_ticklabels([])
-        axes.yaxis.set_ticklabels([])
-    
-    return axes
+    return im
 
 def get_colormap(units='mmhr', colorscale='MeteoSwiss'):
     ''' Function to generate a colormap (cmap) and norm
@@ -189,3 +265,29 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
             labels.append(str(int(label)))
         
     return labels
+
+def _plot_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1), 
+                  countrycolor=(0.3,0.3,0.3), continentcolor=(1,1,1), 
+                  lakecolor=(0.7,0.7,0.7), rivercolor=(0.7,0.7,0.7), 
+                  mapboundarycolor=(0.7,0.7,0.7)):
+    bm = Basemap(**bm_params)
+    
+    if coastlinecolor is not None:
+        bm.drawcoastlines(color=coastlinecolor, zorder=0.1)
+    if countrycolor is not None:
+        bm.drawcountries(countrycolor, zorder=0.2)
+    if rivercolor is not None:
+        bm.drawrivers(zorder=0.2, color=rivercolor)
+    if continentcolor is not None:
+        bm.fillcontinents(color=continentcolor, lake_color=lakecolor, zorder=0)
+    if mapboundarycolor is not None:
+        bm.drawmapboundary(fill_color=mapboundarycolor, zorder=-1)
+    if drawlonlatlines:
+        bm.drawmeridians(np.linspace(bm.llcrnrlon, bm.urcrnrlon, 10), 
+                         color=(0.5,0.5,0.5), linewidth=0.5, labels=[1,0,0,1], 
+                         fmt="%.1f", fontsize=6)
+        bm.drawparallels(np.linspace(bm.llcrnrlat, bm.urcrnrlat, 10), 
+                         color=(0.5,0.5,0.5), linewidth=0.5, labels=[1,0,0,1], 
+                         fmt="%.1f", fontsize=6)
+    
+    return bm
