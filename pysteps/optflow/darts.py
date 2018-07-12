@@ -85,7 +85,7 @@ def DARTS(Z, **kwargs):
     
     k_t,k_y,k_x = np.unravel_index(np.arange(m), (2*N_t+1, 2*N_y+1, 2*N_x+1))
     
-    for i in xrange(m):
+    for i in range(m):
         k_x_ = k_x[i] - N_x
         k_y_ = k_y[i] - N_y
         k_t_ = k_t[i] - N_t
@@ -109,7 +109,7 @@ def DARTS(Z, **kwargs):
     
     kp_y,kp_x = np.unravel_index(np.arange(n), (2*M_y+1, 2*M_x+1))
     
-    for i in xrange(m):
+    for i in range(m):
         k_x_  = k_x[i] - N_x
         k_y_  = k_y[i] - N_y
         k_t_  = k_t[i] - N_t
