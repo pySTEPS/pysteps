@@ -138,6 +138,9 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
     
     # TODO: Extract the map projection from the metadata and save it to the grid 
     # mapping attributes in the NetCDF file.
+    # Currently the projection string is saved into the "projection" attribute  
+    # at the top level.
+    ds.projection = metadata["projection"]
     
     var_time = ds.createVariable("time", np.int, dimensions=("time",))
     var_time[:] = [i*timestep*60 for i in range(1, num_timesteps+1)]
