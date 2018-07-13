@@ -23,18 +23,21 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
     
     Parameters
     ----------
-    F : array-like
+    F : array_like
         Three- or four-dimensional array containing the forecast F(t,x,y) or a 
         forecast ensemble F(i,t,y,x), where i is ensemble member, t is lead time 
         and x and y are grid coordinates. The time index t is assumed to be in 
         ascending order, and the time steps are assumed to be regular with no 
         gaps.
-    leadtimes : array_like
-        
     filename : str
         Name of the output file.
+    startdate : datetime.datetime
+        Start date of the forecast.
     timestep : int
-        Time step of the nowcasts (minutes).
+        Time step of the forecast (minutes).
+    metadata : dict
+        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit 
+        attributes described in the documentation of pysteps.io.importers.
     """
     if len(F.shape) not in [3, 4]:
         raise ValueError("F has invalid dimensions: must be a three- or four-dimensional array")
@@ -83,6 +86,7 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
     else:
         raise ValueError("unknown unit %s" % metadata["unit"])
     
+    # TODO: Always save the dataset into a four-dimensional array?
     if len(F.shape) == 3:
         var_F = ds.createVariable(var_name, np.float32, 
                                   dimensions=("time", "y", "x"), zlib=True, 
