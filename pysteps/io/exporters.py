@@ -45,7 +45,7 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
     ds = netCDF4.Dataset(filename, 'w', format="NETCDF4")
     
     ds.Conventions = "CF-1.7"
-    ds.title = "pySTEPS-generated nowcast"
+    ds.title = "pysteps-generated nowcast"
     ds.institution = "the pySTEPS community (https://pysteps.github.io)"
     ds.source = "pysteps" # TODO: Add pySTEPS version here
     ds.history = ""
