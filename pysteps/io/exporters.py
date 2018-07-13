@@ -39,6 +39,11 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
         Metadata dictionary containing the projection,x1,x2,y1,y2 and unit 
         attributes described in the documentation of pysteps.io.importers.
     """
+    if not netcdf4_imported:
+        raise Exception("netCDF4 not imported")
+    if not pyproj_imported:
+        raise Exception("pyproj not imported")
+    
     if len(F.shape) not in [3, 4]:
         raise ValueError("F has invalid dimensions: must be a three- or four-dimensional array")
     
@@ -156,8 +161,7 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
     
     ds.close()
 
-# TODO: Write a method for converting a Proj.4 projection definition into 
-# CF grid mapping attributes.
+# TODO: Write a method for converting a Proj.4 projection definition into CF 
+# grid mapping attributes.
 def _convert_proj4_to_grid_mapping():
     pass
-
