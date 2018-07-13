@@ -122,7 +122,7 @@ while loop < nloops:
     for i in range(R.shape[0]):
         plt.clf()
         if doanimation:
-            st.plt.plot_precip_field(R[i,:,:], None, units="mmhr", 
+            st.plt.plot_precip_field(R[i,:,:], False, None, units="mm/h", 
                           colorscale=colorscale, 
                           title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
                           colorbar=True)
@@ -151,7 +151,7 @@ while loop < nloops:
     for i in range(R.shape[0]):
         plt.clf()
         if doanimation:
-            st.plt.plot_precip_field(R[i,:,:], None, units="mmhr", 
+            st.plt.plot_precip_field(R[i,:,:], False, None, units="mm/h", 
                           colorscale=colorscale, 
                           title="Motion field", colorbar=True)
             if motion_plot == "quiver":
@@ -173,7 +173,7 @@ print('Computing extrapolation...')
 adv_method = st.advection.get_method(adv_method) 
 dBR_forecast = adv_method(dBR[-1,:,:], UV, n_lead_times) 
 
-## convert the forecasted dBR to mmhr
+## convert the forecasted dBR to mm/h
 R_forecast = st.utils.dBR2mmhr(dBR_forecast, R_threshold)
 print("The forecast array has size [nleadtimes,nrows,ncols] =", R_forecast.shape)
 
@@ -191,7 +191,7 @@ while loop < nloops:
         if doanimation:
             if i < R.shape[0]:
                 # Plot last observed rainfields
-                st.plt.plot_precip_field(R[i,:,:], None, units="mmhr",
+                st.plt.plot_precip_field(R[i,:,:], False, None, units="mm/h",
                               colorscale=colorscale, 
                               title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
                               colorbar=True)
@@ -201,8 +201,8 @@ while loop < nloops:
                     print(figname, 'saved.')
             else:
                 # Plot nowcast
-                st.plt.plot_precip_field(R_forecast[i - R.shape[0],:,:], 
-                              None, units="mmhr", 
+                st.plt.plot_precip_field(R_forecast[i - R.shape[0],:,:], False,
+                              None, units="mm/h", 
                               title="%s +%02d min" % 
                               (input_files[1][-1].strftime("%Y-%m-%d %H:%M"),
                               (1 + i - R.shape[0])*timestep),
