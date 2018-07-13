@@ -15,7 +15,7 @@ except ImportError:
     pyproj_imported = False
 from . import utils
 
-def plot_precip_field(R, with_basemap=False, geodata=None, units='mmhr', 
+def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h', 
                       colorscale='MeteoSwiss', title=None, colorbar=True, 
                       basemap_resolution='l', drawlonlatlines=False):
     """Function to plot a precipitation field with a colorbar.
@@ -40,7 +40,7 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mmhr',
                      'upper' = upper border
                      'lower' = lower border
     units : str
-        Units of the input array (mmhr or dBZ)
+        Units of the input array (mm/h or dBZ)
     colorscale : str 
         Which colorscale to use (MeteoSwiss, STEPS-BE)
     title : str
@@ -142,7 +142,7 @@ def _plot_precip_field(R, ax, units, colorscale, geodata):
         extent = np.array([0, R.shape[1], 0, R.shape[0]])
     
     # Plot precipitation field
-    if units == 'mmhr':
+    if units == 'mm/h':
         R[R < 0.1] = np.nan # Transparent where no precipitation
     if units == 'dBZ':
         R[R < 10] = np.nan
@@ -150,13 +150,13 @@ def _plot_precip_field(R, ax, units, colorscale, geodata):
     
     return im
 
-def get_colormap(units='mmhr', colorscale='MeteoSwiss'):
+def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
     ''' Function to generate a colormap (cmap) and norm
     
     Parameters: 
     ----------  
     units : str
-        Units of the input array (mmhr or dBZ)     
+        Units of the input array (mm/h or dBZ)     
     colorscale : str 
         Which colorscale to use (MeteoSwiss, STEPS-BE)
         
@@ -185,13 +185,13 @@ def get_colormap(units='mmhr', colorscale='MeteoSwiss'):
     
     return cmap, norm, clevs, clevsStr
     
-def _get_colorlist(units='mmhr', colorscale='MeteoSwiss'):
+def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     """Function to get a list of colors to generate the colormap. 
     
     Optional kwargs: 
     ----------  
     units : str
-        Units of the input array (mmhr or dBZ)     
+        Units of the input array (mm/h or dBZ)     
     colorscale : str 
         Which colorscale to use (MeteoSwiss, STEPS-BE)
     
@@ -207,7 +207,7 @@ def _get_colorlist(units='mmhr', colorscale='MeteoSwiss'):
     
     if colorscale == 'STEPS-BE':
         color_list = ['cyan','deepskyblue','dodgerblue','blue','chartreuse','limegreen','green','darkgreen','yellow','gold','orange','red','magenta','darkmagenta']
-        if units == 'mmhr':
+        if units == 'mm/h':
             clevs = [0.1,0.25,0.4,0.63,1,1.6,2.5,4,6.3,10,16,25,40,63,100]
         elif units == 'dBZ':
             clevs = np.arange(10,65,5)
@@ -219,7 +219,7 @@ def _get_colorlist(units='mmhr', colorscale='MeteoSwiss'):
         redgreyHex = '#%02x%02x%02x' % (156, 126, 148)
         color_list = [redgreyHex, "#640064","#AF00AF","#DC00DC","#3232C8","#0064FF","#009696","#00C832",
         "#64FF00","#96FF00","#C8FF00","#FFFF00","#FFC800","#FFA000","#FF7D00","#E11900"]
-        if units == 'mmhr':
+        if units == 'mm/h':
             clevs= [0.08,0.16,0.25,0.40,0.63,1,1.6,2.5,4,6.3,10,16,25,40,63,100,160]
         elif units == 'dBZ':
             clevs = np.arange(10,65,5)
