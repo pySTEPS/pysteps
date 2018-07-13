@@ -26,6 +26,12 @@ The pySTEPS package need the following dependencies
 * pyproj
 * matplolib (for examples)
 
+We recommend that you create a conda environment using the available `environment.yml`_ file to install all the necessary dependencies::
+
+    conda env create -f environment.yml
+    
+.. _environment.yml: \
+     https://github.com/pySTEPS/pysteps/blob/master/environment.yml
 
 Install from source
 -------------------
