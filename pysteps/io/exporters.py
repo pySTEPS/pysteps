@@ -3,7 +3,6 @@ formats."""
 
 import numpy as np
 from datetime import datetime
-# TODO: Check that the needed modules are imported when trying to use them
 try:
     import netCDF4
     netcdf4_imported = True
@@ -141,11 +140,16 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
     # TODO: Don't hard-code the unit.
     var_lat.units         = "degrees_north"
     
-    # TODO: Extract the map projection from the metadata and save it to the grid 
-    # mapping attributes in the NetCDF file.
-    # Currently the projection string is saved into the "projection" attribute  
-    # at the top level.
     ds.projection = metadata["projection"]
+    
+    grid_mapping_var_name,grid_mapping_name,grid_mapping_params = \
+        _convert_proj4_to_grid_mapping(metadata["projection"])
+    # skip writing the grid mapping if a matching name was not found
+    if grid_mapping_var_name is not None:
+        var_gm = ds.createVariable(grid_mapping_var_name, np.int, dimensions=())
+        var_gm.grid_mapping_name = grid_mapping_name
+        for i in grid_mapping_params.items():
+            exec("var_gm.%s = '%s'" % (str(i[0]), str(i[1])))
     
     var_time = ds.createVariable("time", np.int, dimensions=("time",))
     var_time[:] = [i*timestep*60 for i in range(1, num_timesteps+1)]
@@ -161,7 +165,34 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
     
     ds.close()
 
-# TODO: Write a method for converting a Proj.4 projection definition into CF 
-# grid mapping attributes.
-def _convert_proj4_to_grid_mapping():
-    pass
+# TODO: Write methods for converting Proj.4 projection definitions into CF grid 
+# mapping attributes. Currently this has been implemented for the stereographic 
+# projection.
+# The conversions implemented here are take from:
+# https://github.com/cf-convention/cf-convention.github.io/blob/master/wkt-proj-4.md
+def _convert_proj4_to_grid_mapping(proj4str):
+    tokens = proj4str.split('+')
+    
+    d = {}
+    for t in tokens[1:]:
+        t = t.split('=')
+        if len(t) > 1:
+            d[t[0]] = t[1].strip()
+    
+    params = {}
+    # TODO: implement more projection types here
+    if d["proj"] == "stere":
+        grid_mapping_var_name = "polar_stereographic"
+        grid_mapping_name = "polar_stereographic"
+        params["straight_vertical_longitude_from_pole"] = d["lon_0"]
+        params["latitude_of_projection_origin"] = d["lat_0"]
+        if "lat_ts" in list(d.keys()):
+            params["standars_parallel"] = d["lat_ts"]
+        elif "k_0" in list(d.keys()):
+            params["scale_factor_at_projection_origin"] = d["k_0"]
+        params["false_easting"]  = d["x_0"]
+        params["false_northing"] = d["y_0"]
+    else:
+        return None,None,None
+    
+    return grid_mapping_var_name, grid_mapping_name, params
