@@ -17,12 +17,16 @@ The output of each method is a dictionary with the following key-value pairs:
 """
 
 import numpy as np
-# Use the SciPy fft by default. If SciPy is not installed, fall back to the 
-# numpy implementation.
+# Use the pyfftw interface if it is installed. If not, fall back to the fftpack 
+# interface provided by SciPy, and finally to numpy if SciPy is not installed.
 try:
+    import pyfftw.interfaces.numpy_fft as fft
+    import pyfftw
+    pyfftw.interfaces.cache.enable()
+except ImportError:
     import scipy.fftpack as fft
 except ImportError:
-    from numpy import fft
+    import numpy.fft as fft
 
 def decomposition_fft(X, filter, MASK=None):
     """Decompose a 2d input field into multiple spatial scales by using the Fast 

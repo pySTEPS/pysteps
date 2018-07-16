@@ -29,12 +29,16 @@ the field of correlated noise cN of shape (m, n).
 
 import numpy as np
 
-# Use the SciPy FFT implementation by default. If SciPy is not installed, fall 
-# back to the numpy implementation.
+# Use the pyfftw interface if it is installed. If not, fall back to the fftpack 
+# interface provided by SciPy, and finally to numpy if SciPy is not installed.
 try:
+    import pyfftw.interfaces.numpy_fft as fft
+    import pyfftw
+    pyfftw.interfaces.cache.enable()
+except ImportError:
     import scipy.fftpack as fft
 except ImportError:
-    from numpy import fft
+    import numpy.fft as fft
 
 def initialize_param_2d_fft_filter(X, **kwargs):
     """Takes a 2d input field and produces a fourier filter by using the Fast 
@@ -204,7 +208,7 @@ def generate_noise_2d_fft_filter(F, seed=None):
     fN *= F
     N = np.array(fft.ifft2(fN).real)
     N = (N - N.mean())/N.std()
-            
+    
     return N
        
 def initialize_nonparam_2d_ssft_filter(X, **kwargs):
