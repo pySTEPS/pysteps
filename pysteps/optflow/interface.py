@@ -28,7 +28,7 @@ def get_method(name):
     |                   | (http://www.ipol.im/pub/art/2015/44)                   |
     +-------------------+--------------------------------------------------------+
     """
-    if name.lower() == "lucaskanade":
+    if name.lower() == "lucaskanade" or name.lower() == "lk":
         from .lucaskanade import dense_lucaskanade 
         return dense_lucaskanade
     elif name.lower() == "darts":
