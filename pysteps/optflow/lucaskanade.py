@@ -4,7 +4,8 @@
 
 import numpy as np
 import cv2
-import scipy.spatial.distance as sd
+from scipy.spatial.distance import cdist
+from scipy.interpolate import Rbf
 
 def dense_lucaskanade(R, **kwargs):
     """OpenCV implementation of the Lucas-Kanade method with interpolated motion
@@ -35,8 +36,6 @@ def dense_lucaskanade(R, **kwargs):
     nr_levels_LK : int
         0-based maximal pyramid level number.
         Not very sensitive parameter.
-    kernel_bandwidth : float
-        Bandwidth for kernel interpolation [px].
     max_speed : float
         The maximum allowed speed [px/timestep].
     nr_IQR_outlier : int
@@ -47,6 +46,13 @@ def dense_lucaskanade(R, **kwargs):
         Size of the declustering grid [px].
     min_nr_samples : int
         The minimum number of samples for computing the median within given declustering cell.
+    epsilon : float   
+        Adjustable constant for gaussian or multiquadrics functions - defaults 
+        to approximate average distance between nodes (which is a good start).
+    smooth : float
+        Values greater than zero increase the smoothness of the approximation. 
+        0 is for interpolation, meaning that the function will always go through 
+        the nodal points in this case.
     nchunks : int
         Split the grid points in n chunks to limit the memory usage during the 
         interpolation
@@ -54,9 +60,9 @@ def dense_lucaskanade(R, **kwargs):
 
     Returns
     -------
-    UV : array-like
-        Three-dimensional array (2,m,n) containing the dense x- and y-components of 
-        the motion field.
+    out : ndarray
+        Three-dimensional array (2,m,n) containing the dense x- and y-components 
+        of the motion field.
 
     """
     
@@ -74,12 +80,13 @@ def dense_lucaskanade(R, **kwargs):
     block_size_ST       = kwargs.get('block_size_ST', 15)
     winsize_LK          = kwargs.get('winsize_LK5', (50, 50))
     nr_levels_LK        = kwargs.get('nr_levels_LK', 2)
-    kernel_bandwidth    = kwargs.get('kernel_bandwidth', None)
     max_speed           = kwargs.get('max_speed', 10)
     nr_IQR_outlier      = kwargs.get('nr_IQR_outlier', 3)
     size_opening        = kwargs.get('size_opening', 3)
     decl_grid           = kwargs.get('decl_grid', 10)
     min_nr_samples      = kwargs.get('min_nr_samples', 2)
+    epsilon             = kwargs.get('epsilon', None)
+    smooth              = kwargs.get('smooth', .5)
     nchunks             = kwargs.get('nchunks', 10)
     
     nr_fields = R.shape[0]
@@ -142,9 +149,12 @@ def dense_lucaskanade(R, **kwargs):
     # decluster sparse motion vectors
     x, y, u, v = declustering(x0, y0, u, v, decl_grid, min_nr_samples)
     
+
+    
     # kernel interpolation
     X, Y, UV = interpolate_sparse_vectors(x, y, u, v, domain_size, 
-                                          epsilon=kernel_bandwidth, nchunks=nchunks)
+                                          epsilon=epsilon, smooth=smooth,
+                                          nchunks=nchunks)
     
     return UV
     
@@ -342,10 +352,12 @@ def declustering(x, y, u, v, decl_grid, min_nr_samples):
 
     return x, y, u, v
     
-def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10):
+def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
+                               epsilon=None, smooth=0.5, nchunks=10):
     
     """Interpolation of sparse motion vectors to produce a dense field of motion 
-    vectors. 
+    vectors. It uses the scipy.interpolate class Rbf():
+    https://docs.scipy.org/doc/scipy-0.18.1/reference/generated/scipy.interpolate.Rbf.html
     
     TODO: use KDTree to speed up interpolation
     
@@ -361,9 +373,16 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10
         v components of the sparse motion vectors
     domain_size : tuple
         size of the domain of the dense motion field [px]
+    function : string
+        the radial basis function, based on the radius, r, given by the Euclidian 
+        norm 
     epsilon : float   
         adjustable constant for gaussian or multiquadrics functions - defaults 
-        to Silverman's rule of thumb (which is a good start)
+        to approximate average distance between nodes (which is a good start)
+    smooth : float
+        values greater than zero increase the smoothness of the approximation. 
+        0 is for interpolation, meaning that the function will always go through 
+        the nodal points in this case
     nchunks : int
         split the grid points in n chunks to limit the memory usage during the 
         interpolation
@@ -379,6 +398,7 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10
         containing the dense U, V motion fields.
     """
     
+    testinterpolation = False
     dotime = False
     if dotime:
         import time
@@ -413,24 +433,14 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10
     
         idelta = subgrid.shape[0]
     
-        # compute distances
-        D = sd.cdist(points, subgrid, 'euclidean')
-
-        # get bandwidth if empty argument
-        if epsilon is None:
-            # Silverman's rule of thumb
-            n = points.shape[0]
-            sigma = np.std(D[:])
-            epsilon_ = sigma*(4/3./float(n))**(1/5.)
-        else:
-            epsilon_ = epsilon
-        
-        # compute Gaussian kernel weights
-        weights =  1/np.sqrt(2*np.pi)*np.exp(-0.5*(D/float(epsilon_))**2)
-    
-        # perform weighted average on the grid
-        U[i0:(i0+idelta)] = np.sum(weights*u, axis=0)/np.sum(weights,axis=0)
-        V[i0:(i0+idelta)] = np.sum(weights*v, axis=0)/np.sum(weights,axis=0)
+        # get instances of the radial basis function interpolator
+        if i == 0:
+            rbfiu = Rbf(x, y, u, function=function, epsilon=epsilon, smooth=smooth) 
+            rbfiv = Rbf(x, y, v, function=function, epsilon=epsilon, smooth=smooth)
+           
+        # interpolate values
+        U[i0:(i0+idelta)] = rbfiu(subgrid[:,0], subgrid[:,1])
+        V[i0:(i0+idelta)] = rbfiv(subgrid[:,0], subgrid[:,1])
     
         i0 += idelta
     
@@ -441,5 +451,15 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, epsilon=None, nchunks=10
     
     if dotime:
         print("--- %s seconds ---" % (time.time() - t0))
+        
+    if testinterpolation:
+        import matplotlib.pylab as plt
+        step=15
+        UV_ = UV[:, 0:UV.shape[1]:step, 0:UV.shape[2]:step]
+        X_ = X[0:UV.shape[1]:step, 0:UV.shape[2]:step]
+        Y_ = Y[0:UV.shape[1]:step, 0:UV.shape[2]:step]                                                         
+        plt.quiver(X_, np.flipud(Y_), UV_[0,:,:], -UV_[1,:,:], angles='xy', scale=100)     
+        plt.quiver(x, np.flipud(y), u, -v, angles='xy', scale=100, color='red')
+        plt.show()
     
     return X, Y, UV
