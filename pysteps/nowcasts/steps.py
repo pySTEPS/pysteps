@@ -99,7 +99,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     # Advect the previous precipitation fields to the same position with the 
     # most recent one (i.e. transform them into the Lagrangian coordinates).
     for i in range(ar_order):
-        R[i, :, :] = extrap_method(R[i, :, :], V, ar_order-i, outval="min", **extrap_kwargs)[-1]
+        R[i, :, :] = extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
     
     if conditional:
         MASK = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
@@ -246,13 +246,15 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             
             # Advect the recomposed precipitation field to obtain the forecast 
             # for time step t.
-            R_f_,D_ = extrap_method(R_r, V_, 1, dict(D_prev=D[j], return_displacement=True))
+            extrap_kwargs.update({"D_prev":D[j], "return_displacement":True})
+            R_f_,D_ = extrap_method(R_r, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]
             
             #if use_precip_mask:
                 # Advect the precipitation mask and apply it to the output.
-                #MASK_p_ = extrap_method(MASK_p, V, 1, dict(D_prev=D[j]))[0]
+                #extrap_kwargs.update({"D_prev":D[j], "return_displacement":False})
+                #MASK_p_ = extrap_method(MASK_p, V, 1, **extrap_kwargs))[0]
                 #R_f_[MASK_p_ < 0.5] = R_min
             
             R_f[j].append(R_f_)
