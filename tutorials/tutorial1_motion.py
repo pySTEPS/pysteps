@@ -85,8 +85,6 @@ startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 ## find radar field filenames
 input_files = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
                                  fn_ext, timestep, n_prvs_times, 0)
-if all(fpath is None for fpath in input_files[0]):
-    raise IOError("input data not found in %s" % root_path)
 
 importer = st.io.get_method(importer)
 
@@ -105,70 +103,18 @@ data_units = metadata["unit"]
 if data_units is "dBZ":
     R = st.utils.dBZ2mmhr(R, R_threshold)
 
-## make sure we work with a square domain
-R = st.utils.square_domain(R, "crop")
-
 ## convert linear rainrates to logarithimc dBR units
 dBR, dBRmin = st.utils.mmhr2dBR(R, R_threshold)
 dBR[~np.isfinite(dBR)] = dBRmin
 
-## visualize the input radar fields
-doanimation = True
-nloops = 2 # how many times to loop
-# TODO: wrap code for animations into a nicely written function
-
-loop = 0
-while loop < nloops:
-    for i in range(R.shape[0]):
-        plt.clf()
-        if doanimation:
-            st.plt.plot_precip_field(R[i,:,:], False, None, units="mm/h", 
-                          colorscale=colorscale, 
-                          title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
-                          colorbar=True)
-            plt.pause(.2)
-    if doanimation:
-        plt.pause(.5)
-    loop += 1
-
-if doanimation == True:
-    plt.close()
-    
 # Compute motion field
-print("Computing motion vectors...")
+print("Compute the motion vectors...")
 
 oflow_method = st.optflow.get_method(oflow_method)
 UV = oflow_method(dBR) 
 
-## plot the motion field
-doanimation = True
-nloops = 2
-# TODO: wrap code for animations into a nicely written function
-
-loop = 0
-while loop < nloops:
-    
-    for i in range(R.shape[0]):
-        plt.clf()
-        if doanimation:
-            st.plt.plot_precip_field(R[i,:,:], False, None, units="mm/h", 
-                          colorscale=colorscale, 
-                          title="Motion field", colorbar=True)
-            if motion_plot == "quiver":
-                st.plt.quiver(UV, None, 20)
-            if motion_plot == "streamplot":    
-                st.plt.streamplot(UV, None)        
-            plt.pause(.2)
-        
-    if doanimation:
-        plt.pause(.5)
-    loop += 1
-
-if doanimation == True:
-    plt.close()
-
 # Perform the advection of the radar field
-print('Computing extrapolation...')
+print("Computing extrapolation...")
 
 adv_method = st.advection.get_method(adv_method) 
 dBR_forecast = adv_method(dBR[-1,:,:], UV, n_lead_times) 
@@ -178,49 +124,14 @@ R_forecast = st.utils.dBR2mmhr(dBR_forecast, R_threshold)
 print("The forecast array has size [nleadtimes,nrows,ncols] =", R_forecast.shape)
 
 ## plot the nowcast...
-doanimation     = True
-savefig         = False
-nloops = 2
-# TODO: wrap code for animations into a nicely written function
-
-loop = 0
-while loop < nloops:
-    
-    for i in range(R.shape[0] + n_lead_times):
-        plt.clf()
-        if doanimation:
-            if i < R.shape[0]:
-                # Plot last observed rainfields
-                st.plt.plot_precip_field(R[i,:,:], False, None, units="mm/h",
-                              colorscale=colorscale, 
-                              title=input_files[1][i].strftime("%Y-%m-%d %H:%M"), 
-                              colorbar=True)
-                if savefig & (loop == 0):
-                    figname = "%s/%s_%s_simple_advection_%02d_obs.png" % (path_outputs, startdate_str, data_source, i)
-                    plt.savefig(figname)
-                    print(figname, 'saved.')
-            else:
-                # Plot nowcast
-                st.plt.plot_precip_field(R_forecast[i - R.shape[0],:,:], False,
-                              None, units="mm/h", 
-                              title="%s +%02d min" % 
-                              (input_files[1][-1].strftime("%Y-%m-%d %H:%M"),
-                              (1 + i - R.shape[0])*timestep),
-                              colorscale=colorscale, colorbar=True)
-                if savefig & (loop == 0):
-                    figname = "%s/%s_%s_simple_advection_%02d_nwc.png" % (path_outputs, startdate_str, data_source, i)
-                    plt.savefig(figname)
-                    print(figname, "saved.")
-            plt.pause(.2)
-    if doanimation:
-        plt.pause(.5)
-    loop += 1
-
-if doanimation == True:
-    plt.close()
+st.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
+               R_for=R_forecast, timestep_min=timestep,
+               UV=UV, motion_plot=motion_plot,
+               geodata=metadata, colorscale=colorscale,
+               plotanimation=True, savefig=False, path_outputs=path_outputs) 
 
 # Forecast verification
-print('Forecast verification...')
+print("Forecast verification...")
 
 ## find the verifying observations
 input_files_verif = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
@@ -233,17 +144,14 @@ Robs, _, _ = st.io.read_timeseries(input_files_verif, importer, **importer_kwarg
 Robs = Robs[1:,:,:]
 
 ## convert units
-if data_units is 'dBZ':
+if data_units is "dBZ":
     Robs = st.utils.dBZ2mmhr(Robs, R_threshold)
-
-## and square domain
-Robs_ = st.utils.square_domain(Robs, "crop")
 
 ## compute verification scores
 scores = np.zeros(n_lead_times)*np.nan
 for i in range(n_lead_times):
-    scores[i] = st.vf.scores_det_cat_fcst(R_forecast[i,:,:], Robs_[i,:,:], 
-                                           verif_thr, [skill_score])[0]
+    scores[i] = st.vf.scores_det_cat_fcst(R_forecast[i,:,:], Robs[i,:,:], 
+                                          verif_thr, [skill_score])[0]
 
 ## if already exists, load the figure object to append the new verification results
 filename = "%s/%s" % (path_outputs, "tutorial1_fig_verif")
