@@ -61,13 +61,20 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
         Intensity values below R_thr_1 are set to this value.
     F : dict
         A bandpass filter dictionary returned by a method defined in 
-        pysteps.cascade.bandpass_filters.
+        pysteps.cascade.bandpass_filters. This defines the filter to use and 
+        the number of cascade levels.
     decomp_method : function
         A function defined in pysteps.cascade.decomposition. Specifies the 
         method to use for decomposing the observed precipitation field and 
         noise field into different spatial scales.
     num_iter : int
         The number of noise fields to generate.
+    
+    Returns
+    -------
+    out : list
+        A list containing the standard deviation adjustment factor for each 
+        cascade level.
     """
     if R.shape[0] != R.shape[1]:
         raise ValueError("the dimensions of the input field are %dx%d, but square shape expected" % (R.shape[0], R.shape[1]))
