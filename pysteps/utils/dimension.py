@@ -91,52 +91,94 @@ def aggregate_fields(R, window_size, axis=0, method="sum"):
         
     return R
 
-def square_domain(Xin, method='crop'):
-    '''Either pad or crop the data to get a square domain.
-    '''
+def square_domain(R, method="pad"):
+    """Either pad or crop the data to get a square domain.
     
-    X = Xin.copy()
-    if len(Xin.shape) < 2:
+    Parameters
+    ----------
+    R : array-like
+        Array of shape (m,n) or (t,m,n) containing the input fields.
+    method : string
+        Either pad or crop. 
+        If pad, an equal number of zeros is added to both ends of its shortest
+        side in order to produce a square domain.
+        If crop, an equal number of pixels is removed to both ends of its longest
+        side in order to produce a square domain. 
+        Note that the crop method is irreversible, while the pad method can be
+        reversed with the unsquare_domain() method.
+    """
+    
+    R = R.copy()
+    if len(R.shape) < 2:
         raise ValueError("The number of dimension must be > 2")
-    if len(Xin.shape) == 2:
-        X = X[None,None,:,:]
-    if len(Xin.shape) == 3:
-        X = X[None,:,:]
-    if len(Xin.shape) > 4:
+    if len(R.shape) == 2:
+        R = R[None, None, :, :]
+    if len(R.shape) == 3:
+        R = R[None, :, :]
+    if len(R.shape) > 4:
         raise ValueError("The number of dimension must be <= 4")
         
-    if X.shape[2] == X.shape[3]:
-        return X.squeeze()
+    if R.shape[2] == R.shape[3]:
+        return R.squeeze()
         
-    orig_dim = (X.shape)
+    orig_dim = (R.shape)
     orig_dim_n = orig_dim[0]
     orig_dim_t = orig_dim[1]
     orig_dim_y = orig_dim[2]
     orig_dim_x = orig_dim[3]
     
-    if method=='pad':
+    if method == "pad":
     
         new_dim = np.max(orig_dim[2:]) 
-        X_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim))*X.min()
+        R_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim))*R.min()
         if(orig_dim_x < new_dim):
             idx_buffer = int((new_dim - orig_dim_x)/2.)
-            X_[:, :, :, idx_buffer:(idx_buffer + orig_dim_x)] = X
+            R_[:, :, :, idx_buffer:(idx_buffer + orig_dim_x)] = R
         elif(orig_dim_y < new_dim):
             idx_buffer = int((new_dim - orig_dim_y)/2.)
-            X_[:, :, idx_buffer:(idx_buffer + orig_dim_y), :] = X
+            R_[:, :, idx_buffer:(idx_buffer + orig_dim_y), :] = R
         
-    elif method=='crop':
+    elif method == "crop":
     
         new_dim = np.min(orig_dim[2:]) 
-        X_ = np.zeros((orig_dim_n, orig_dim_t, new_dim, new_dim))
+        R_ = np.zeros((orig_dim_n, orig_dim_t, new_dim, new_dim))
         if(orig_dim_x > new_dim):
             idx_buffer = int((orig_dim_x - new_dim)/2.)
-            X_ = X[:, :, :, idx_buffer:(idx_buffer + new_dim)]
+            R_ = R[:, :, :, idx_buffer:(idx_buffer + new_dim)]
         elif(orig_dim_y > new_dim):
             idx_buffer = int((orig_dim_y - new_dim)/2.)
-            X_ = X[:, :, idx_buffer:(idx_buffer + new_dim), :]
+            R_ = R[:, :, idx_buffer:(idx_buffer + new_dim), :]
             
     else:
         raise ValueError("Unknown type")
             
-    return X_.squeeze()
+    return R_.squeeze()
+    
+def unsquare_domain(R, shape):
+    """Crop a padded domain to its original shape. It is the inverse operation to
+    the square_domain(method="pad") method.
+    """
+    
+    R = R.copy()
+    if len(R.shape) < 2:
+        raise ValueError("The number of dimension must be > 2")
+    if len(R.shape) == 2:
+        R = R[None, None, :, :]
+    if len(R.shape) == 3:
+        R = R[None, :, :]
+    if len(R.shape) > 4:
+        raise ValueError("The number of dimension must be <= 4")
+        
+    if R.shape[2] != R.shape[3]:
+        return ValueError("To unsquare R, R must be squared to start with")
+        
+    if R.shape[2] == shape[0]:
+        idx_buffer = int((R.shape[3] - shape[1])/2.)
+        R = R[:, :, :, idx_buffer:(idx_buffer + shape[1])]
+    elif R.shape[3] == shape[1]:    
+        idx_buffer = int((R.shape[2] - shape[0])/2.)
+        R = R[:, :, idx_buffer:(idx_buffer + shape[0]), :]
+        
+    print(R.shape)
+        
+    return R.squeeze()
