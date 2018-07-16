@@ -56,8 +56,13 @@ def dense_lucaskanade(R, **kwargs):
     nchunks : int
         Split the grid points in n chunks to limit the memory usage during the 
         interpolation
+    extra_vectors : array-like
+        Additional sparse motion vectors as 2d array (columns: x,y,u,v; rows: 
+        nbr. of vectors) to be integrated with the sparse vectors from the Lucas-Kanade 
+        local tracking.
+        x and y must be in pixel coordinates, with (0,0) being the upper-left 
+        corner of the field R. u and v must be in pixel units. 
         
-
     Returns
     -------
     out : ndarray
@@ -74,20 +79,29 @@ def dense_lucaskanade(R, **kwargs):
         raise ValueError("All values in R must be finite")
         
     # defaults
-    max_corners_ST      = kwargs.get('max_corners_ST', 500)
-    quality_level_ST    = kwargs.get('quality_level_ST', 0.1)
-    min_distance_ST     = kwargs.get('min_distance_ST', 5)
-    block_size_ST       = kwargs.get('block_size_ST', 15)
-    winsize_LK          = kwargs.get('winsize_LK5', (50, 50))
-    nr_levels_LK        = kwargs.get('nr_levels_LK', 2)
-    max_speed           = kwargs.get('max_speed', 10)
-    nr_IQR_outlier      = kwargs.get('nr_IQR_outlier', 3)
-    size_opening        = kwargs.get('size_opening', 3)
-    decl_grid           = kwargs.get('decl_grid', 10)
-    min_nr_samples      = kwargs.get('min_nr_samples', 2)
-    epsilon             = kwargs.get('epsilon', None)
-    smooth              = kwargs.get('smooth', .5)
-    nchunks             = kwargs.get('nchunks', 10)
+    max_corners_ST      = kwargs.get("max_corners_ST", 500)
+    quality_level_ST    = kwargs.get("quality_level_ST", 0.1)
+    min_distance_ST     = kwargs.get("min_distance_ST", 5)
+    block_size_ST       = kwargs.get("block_size_ST", 15)
+    winsize_LK          = kwargs.get("winsize_LK5", (50, 50))
+    nr_levels_LK        = kwargs.get("nr_levels_LK", 2)
+    max_speed           = kwargs.get("max_speed", 10)
+    nr_IQR_outlier      = kwargs.get("nr_IQR_outlier", 3)
+    size_opening        = kwargs.get("size_opening", 3)
+    decl_grid           = kwargs.get("decl_grid", 10)
+    min_nr_samples      = kwargs.get("min_nr_samples", 2)
+    epsilon             = kwargs.get("epsilon", None)
+    smooth              = kwargs.get("smooth", .5)
+    nchunks             = kwargs.get("nchunks", 10)
+    extra_vectors       = kwargs.get("extra_vectors", None)
+    if extra_vectors is not None:
+        if len(extra_vectors.shape) != 2:
+            raise ValueError("extra_vectors has %i dimensions, but 2 dimensions are expected" 
+                            % len(extra_vectors.shape))
+        if extra_vectors.shape[1] != 4:
+            raise ValueError("extra_vectors has %i columns, but 4 columns are expected" 
+                               % extra_vectors.shape[1])
+    
     
     nr_fields = R.shape[0]
     domain_size = (R.shape[1], R.shape[2])
@@ -106,8 +120,8 @@ def dense_lucaskanade(R, **kwargs):
         next = (next - next.min())/(next.max() - next.min())*255
 
         # convert to 8-bit
-        prvs = np.ndarray.astype(prvs,'uint8')
-        next = np.ndarray.astype(next,'uint8')
+        prvs = np.ndarray.astype(prvs,"uint8")
+        next = np.ndarray.astype(next,"uint8")
 
         # remove small noise with a morphological operator (opening)
         prvs = clean_image(prvs, n=size_opening)
@@ -148,9 +162,14 @@ def dense_lucaskanade(R, **kwargs):
     
     # decluster sparse motion vectors
     x, y, u, v = declustering(x0, y0, u, v, decl_grid, min_nr_samples)
-    
 
-    
+    # append extra vectors if provided
+    if extra_vectors is not None:
+        x = np.concatenate((x, extra_vectors[:, 0]))
+        y = np.concatenate((y, extra_vectors[:, 1]))
+        u = np.concatenate((u, extra_vectors[:, 2]))
+        v = np.concatenate((v, extra_vectors[:, 3]))
+
     # kernel interpolation
     X, Y, UV = interpolate_sparse_vectors(x, y, u, v, domain_size, 
                                           epsilon=epsilon, smooth=smooth,
@@ -186,7 +205,7 @@ def ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
 
     if len(R.shape) != 2:
         raise ValueError("R must be a two-dimensional array")
-    if R.dtype != 'uint8':
+    if R.dtype != "uint8":
         raise ValueError("R must be passed as 8-bit image")
 
     # ShiTomasi corner detection parameters
@@ -273,7 +292,7 @@ def clean_image(R, n=3, thr=0):
     """
 
     # convert to binary image (rain/no rain)
-    field_bin = np.ndarray.astype(R > thr,'uint8')
+    field_bin = np.ndarray.astype(R > thr,"uint8")
 
     # build a structuring element of size (nx)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n,n))
@@ -458,8 +477,8 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
         UV_ = UV[:, 0:UV.shape[1]:step, 0:UV.shape[2]:step]
         X_ = X[0:UV.shape[1]:step, 0:UV.shape[2]:step]
         Y_ = Y[0:UV.shape[1]:step, 0:UV.shape[2]:step]                                                         
-        plt.quiver(X_, np.flipud(Y_), UV_[0,:,:], -UV_[1,:,:], angles='xy', scale=100)     
-        plt.quiver(x, np.flipud(y), u, -v, angles='xy', scale=100, color='red')
+        plt.quiver(X_, np.flipud(Y_), UV_[0,:,:], -UV_[1,:,:], angles="xy", scale=100)     
+        plt.quiver(x, np.flipud(y), u, -v, angles="xy", scale=100, color="red")
         plt.show()
     
     return X, Y, UV
