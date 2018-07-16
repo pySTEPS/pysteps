@@ -98,6 +98,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     
     # Advect the previous precipitation fields to the same position with the 
     # most recent one (i.e. transform them into the Lagrangian coordinates).
+    extrap_kwargs = extrap_kwargs.copy()
     for i in range(ar_order):
         R[i, :, :] = extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
     
