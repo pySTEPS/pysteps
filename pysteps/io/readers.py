@@ -28,24 +28,28 @@ def read_timeseries(inputfns, importer, **kwargs):
     else:
         for ifn in inputfns[0]:
             if ifn is not None:
-                Rref, Qref, _ = importer(ifn, **kwargs)
+                Rref, Qref, metadata = importer(ifn, **kwargs)
                 break
     
     R = []
     Q = []
-    for ifn in inputfns[0]:
+    timesteps = []
+    for i,ifn in enumerate(inputfns[0]):
         if ifn is not None:
-            R_, Q_, metadata = importer(ifn, **kwargs)
+            R_, Q_, _ = importer(ifn, **kwargs)
             R.append(R_)
             Q.append(Q_)
+            timesteps.append(inputfns[1][i])
         else:
             R.append(Rref*np.nan)
             if Qref is not None:
                 Q.append(Qref*np.nan)
             else:
                 Q.append(None)
+            timesteps.append(inputfns[1][i])
         
-    R = np.concatenate([R_[None, :, :] for R_ in R])      
+    R = np.concatenate([R_[None, :, :] for R_ in R])
     #TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
+    metadata["timesteps"] = timesteps
 
     return R, Q, metadata
