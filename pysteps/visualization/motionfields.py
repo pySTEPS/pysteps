@@ -5,16 +5,16 @@ import matplotlib.colors as colors
 
 import numpy as np
 
-def quiver(UV, metadata=None, **kwargs):
+def quiver(UV, geodata=None, **kwargs):
     """Function to plot a motion field as arrows. 
     
     Parameters 
     ---------- 
     UV : array-like 
         Array of shape (2, m,n) containing the input motion field.
-    metadata : dictionary
+    geodata : dictionary
         Optional dictionary containing geographical information about the field. 
-        If metadata is not None, it must contain the following key-value pairs:
+        If geodata is not None, it must contain the following key-value pairs:
         
         x1           x-coordinate of the lower-left corner of the data raster (meters)
         y1           y-coordinate of the lower-left corner of the data raster (meters)
@@ -47,9 +47,9 @@ def quiver(UV, metadata=None, **kwargs):
     color       = kwargs.get("color", "black")
     
     # prepare x y coordinates
-    if metadata is not None:
-        x = np.arange(metadata['x1']/1000, metadata['x2']/1000)
-        y = np.arange(metadata['y1']/1000, metadata['y2']/1000)
+    if geodata is not None:
+        x = np.arange(geodata['x1']/1000, geodata['x2']/1000)
+        y = np.arange(geodata['y1']/1000, geodata['y2']/1000)
     else:
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1])
@@ -64,22 +64,22 @@ def quiver(UV, metadata=None, **kwargs):
         
     axes = plt.gca()
     
-    if metadata is None:
+    if geodata is None:
         axes.xaxis.set_ticklabels([])
         axes.yaxis.set_ticklabels([])
    
     return axes
     
-def streamplot(UV, metadata=None, **kwargs):
+def streamplot(UV, geodata=None, **kwargs):
     """Function to plot a motion field as streamlines. 
     
     Parameters 
     ---------- 
     UV : array-like 
         Array of shape (2, m,n) containing the input motion field.
-    metadata : dictionary
+    geodata : dictionary
         Optional dictionary containing geographical information about the field. 
-        If metadata is not None, it must contain the following key-value pairs:
+        If geodata is not None, it must contain the following key-value pairs:
         
         x1           x-coordinate of the lower-left corner of the data raster (meters)
         y1           y-coordinate of the lower-left corner of the data raster (meters)
@@ -112,9 +112,9 @@ def streamplot(UV, metadata=None, **kwargs):
     color       = kwargs.get("color", "black")
     
     # prepare x y coordinates
-    if metadata is not None:
-        x = np.arange(metadata['x1']/1000,metadata['x2']/1000)
-        y = np.arange(metadata['y1']/1000,metadata['y2']/1000)
+    if geodata is not None:
+        x = np.arange(geodata['x1']/1000, geodata['x2']/1000)
+        y = np.arange(geodata['y1']/1000, geodata['y2']/1000)
     else:
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1],0,-1)
@@ -124,7 +124,7 @@ def streamplot(UV, metadata=None, **kwargs):
     
     axes = plt.gca()
     
-    if metadata is None:
+    if geodata is None:
         axes.xaxis.set_ticklabels([])
         axes.yaxis.set_ticklabels([])
    
