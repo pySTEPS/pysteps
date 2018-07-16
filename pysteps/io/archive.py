@@ -47,6 +47,9 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         filenames.append(fn)
 
         timestamps.append(curdate)
+        
+    if all(filename is None for filename in filenames[0]):
+        raise IOError("no input data found in %s" % root_path)    
 
     if (num_prev_files+num_next_files) > 0:
         return (filenames[::-1], timestamps[::-1])
