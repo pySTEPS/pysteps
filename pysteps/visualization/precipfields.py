@@ -73,14 +73,18 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
     if not with_basemap:
         # Extract extent for imshow function
         if geodata is not None:
-            extent = np.array([geodata['x1'],geodata['x2'],geodata['y1'],geodata['y2']]) / 1000
+            extent = np.array([geodata['x1'],geodata['x2'],
+                               geodata['y1'],geodata['y2']]) / 1000
+            origin = geodata["yorigin"]
         else:
             extent = np.array([0, R.shape[1], 0, R.shape[0]])
+            origin = "upper"
         
         # Plot radar domain mask
         mask = np.ones(R.shape)
         mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
-        plt.imshow(mask, cmap=colors.ListedColormap(['gray']), extent=extent)
+        plt.imshow(mask, cmap=colors.ListedColormap(['gray']), 
+                   extent=extent, origin=origin)
         
         im = _plot_precip_field(R, plt.gca(), units, colorscale, geodata)
     else:
