@@ -184,14 +184,16 @@ def _convert_proj4_to_grid_mapping(proj4str):
     if d["proj"] == "stere":
         grid_mapping_var_name = "polar_stereographic"
         grid_mapping_name = "polar_stereographic"
-        params["straight_vertical_longitude_from_pole"] = d["lon_0"]
-        params["latitude_of_projection_origin"] = d["lat_0"]
+        v = d["lon_0"] if d["lon_0"][-1] not in ["E", "W"] else d["lon_0"][:-1]
+        params["straight_vertical_longitude_from_pole"] = float(v)
+        v = d["lat_0"] if d["lat_0"][-1] not in ["N", "S"] else d["lat_0"][:-1]
+        params["latitude_of_projection_origin"] = float(v)
         if "lat_ts" in list(d.keys()):
-            params["standars_parallel"] = d["lat_ts"]
+            params["standars_parallel"] = float(d["lat_ts"])
         elif "k_0" in list(d.keys()):
-            params["scale_factor_at_projection_origin"] = d["k_0"]
-        params["false_easting"]  = d["x_0"]
-        params["false_northing"] = d["y_0"]
+            params["scale_factor_at_projection_origin"] = float(d["k_0"])
+        params["false_easting"]  = float(d["x_0"])
+        params["false_northing"] = float(d["y_0"])
     else:
         return None,None,None
     
