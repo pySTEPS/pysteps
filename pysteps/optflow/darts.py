@@ -2,9 +2,21 @@
 
 import numpy as np
 from numpy.linalg import lstsq, svd
-from numpy.fft import fftn, ifft2, ifftshift
 import sys
 import time
+# Use the pyfftw interface if it is installed. If not, fall back to the fftpack 
+# interface provided by SciPy, and finally to numpy if SciPy is not installed.
+try:
+    import pyfftw.interfaces.numpy_fft as fft
+    import pyfftw
+    pyfftw.interfaces.cache.enable()
+    fft_kwargs = {"threads":4, "planner_effort":"FFTW_ESTIMATE"}
+except ImportError:
+    import scipy.fftpack as fft
+    fft_kwargs = {}
+except ImportError:
+    import numpy.fft as fft
+    fft_kwargs = {}
 
 def DARTS(Z, **kwargs):
     """Compute the advection field from a sequence of input images by using the 
@@ -69,7 +81,7 @@ def DARTS(Z, **kwargs):
         sys.stdout.flush()
         starttime = time.time()
     
-    Z = fftn(Z)
+    Z = fft.fftn(Z, **fft_kwargs)
     
     if print_info:
         print("Done in %.2f seconds." % (time.time() - starttime))
@@ -155,8 +167,8 @@ def DARTS(Z, **kwargs):
     
     k_x,k_y = np.meshgrid(np.arange(-M_x, M_x+1), np.arange(-M_y, M_y+1))
     
-    U = np.real(ifft2(_fill(U, Z.shape[0], Z.shape[1], k_x, k_y)))
-    V = np.real(ifft2(_fill(V, Z.shape[0], Z.shape[1], k_x, k_y)))
+    U = np.real(fft.ifft2(_fill(U, Z.shape[0], Z.shape[1], k_x, k_y), **fft_kwargs))
+    V = np.real(fft.ifft2(_fill(V, Z.shape[0], Z.shape[1], k_x, k_y), **fft_kwargs))
     
     # TODO: Sometimes the sign of the advection field is wrong. This appears to 
     # depend on N_t...
