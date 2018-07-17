@@ -494,7 +494,7 @@ def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
             # apply fourier filtering with local filter
             lF = F[i,j,:,:]
             flN = fN * lF
-            flN = np.array(np.fft.ifft2(flN, **fft_kwargs).real)
+            flN = np.array(fft.ifft2(flN, **fft_kwargs).real)
             
             # compute indices of local window
             idxi[0] = np.max( (i*win_size[0] - overlap*win_size[0], 0) ).astype(int)
@@ -586,7 +586,7 @@ def _rapsd(X):
     
     R = np.sqrt(XC*XC + YC*YC).astype(int)
     
-    F = fft.fftshift(np.fft.fft2(X, **fft_kwargs))
+    F = fft.fftshift(fft.fft2(X, **fft_kwargs))
     F = abs(F)**2
     
     if L % 2 == 0:
