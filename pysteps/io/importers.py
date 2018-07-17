@@ -40,12 +40,12 @@ try:
 except ImportError:
     h5py_imported = False
 try:
-    from netCDF4 import Dataset
+    import netCDF4
     netcdf4_imported = True
 except ImportError:
     netcdf4_imported = False
 try:
-    from PIL import Image
+    import PIL
     pil_imported = True
 except ImportError:
     pil_imported = False
@@ -83,7 +83,7 @@ def import_bom_rf3(filename, **kwargs):
 
 def _import_bom_rf3_data(filename):
     print(filename)
-    ds_rainfall = Dataset(filename)
+    ds_rainfall = netCDF4.Dataset(filename)
     if ('precipitation' in ds_rainfall.variables.keys()):
         precipitation = ds_rainfall.variables['precipitation'][:]
         # estimate time-step to transform from mm to mm/h
@@ -110,7 +110,7 @@ def _import_bom_rf3_data(filename):
     return precipitation
 
 def _import_bom_rf3_geodata(filename):
-    ds_rainfall = Dataset(filename)
+    ds_rainfall = netCDF4.Dataset(filename)
     if ('proj' in ds_rainfall.variables.keys()):
         projection = ds_rainfall.variables['proj']
         if (getattr(projection, 'grid_mapping_name') ==
@@ -283,7 +283,7 @@ def import_mch_gif(filename, **kwargs):
     geodata = _import_mch_gif_geodata()
 
     # import gif file
-    B = Image.open(filename)
+    B = PIL.Image.open(filename)
     
     # convert digital numbers to physical values
     if product == "AQC":
