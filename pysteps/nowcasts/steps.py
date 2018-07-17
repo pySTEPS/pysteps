@@ -193,13 +193,13 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         # MASK_p = (R[-1, :, :] >= R_thr).astype(float)
         R_min = np.min(R)
         R_m = R_c.copy()
-        
+    
     # Iterate each time step
     for t in range(num_timesteps):
     
         # Iterate each ensemble member
-        for j in range(num_ens_members):
-        
+        res = []
+        def worker(j):
             # If perturbations are needed
             if perturbation_method is not None:
                 # Generate noise field
@@ -272,7 +272,17 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 #MASK_p_ = extrap_method(MASK_p, V, 1, **extrap_kwargs))[0]
                 #R_f_[MASK_p_ < 0.5] = R_min
             
-            R_f[j].append(R_f_)
+            return R_f_
+        
+        for j in range(num_ens_members):
+            if not dask_imported:
+                res.append(worker(j))
+            else:
+                res.append(dask.delayed(worker)(j))
+        
+        R_f_ = dask.compute(*res) if dask_imported else res
+        for j in range(num_ens_members):
+            R_f[j].append(R_f_[j])
     
     if num_ens_members == 1:
         return np.stack(R_f[0])
