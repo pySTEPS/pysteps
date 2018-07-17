@@ -235,11 +235,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 R_m_ = [(R_m[j, i, -1, :, :] * sigma[i]) + mu[i] for i in range(num_cascade_levels)]
                 R_m_ = np.sum(np.stack(R_m_), axis=0)
             
-            if vp_par is not None:
-                V_ = V + noise.motion.generate_bps(vps[j], t*timestep)
-            else:
-                V_ = V
-            
             if use_precip_mask:
                 # Compute the threshold value R_mask_thr corresponding to the 
                 # same fraction of precipitation pixels (values above R_min) 
@@ -257,6 +252,12 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 # Adjust the empirical probability distribution of the forecast 
                 # to match the most recently measured precipitation field.
                 R_r = probmatching.nonparam_match_empirical_cdf(R_r, R[-1, :, :])
+            
+            # Compute the perturbed motion field.
+            if vp_par is not None:
+                V_ = V + noise.motion.generate_bps(vps[j], t*timestep)
+            else:
+                V_ = V
             
             # Advect the recomposed precipitation field to obtain the forecast 
             # for time step t.
