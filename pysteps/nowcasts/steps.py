@@ -6,6 +6,11 @@ from .. import cascade
 from .. import noise
 from ..postprocessing import probmatching
 from ..timeseries import autoregression, correlation
+try:
+    import dask
+    dask_imported = True
+except ImportError:
+    dask_imported = False
 
 # TODO: Add options for choosing the perturbation methods.
 def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr, 
@@ -99,8 +104,16 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     # Advect the previous precipitation fields to the same position with the 
     # most recent one (i.e. transform them into the Lagrangian coordinates).
     extrap_kwargs = extrap_kwargs.copy()
+    res = []
+    f = lambda R,i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
-        R[i, :, :] = extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
+        if not dask_imported:
+            R[i, :, :] = f(R, i)
+        else:
+            res.append(dask.delayed(f)(R, i))
+    
+    if dask_imported:
+        R = np.stack(list(dask.compute(*res)) + [R[-1, :, :]])
     
     if conditional:
         MASK = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
