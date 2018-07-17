@@ -34,8 +34,10 @@ import numpy as np
 try:
     import pyfftw.interfaces.numpy_fft as fft
     import pyfftw
-    pyfftw.interfaces.cache.enable()
-    fft_kwargs = {"threads":4, "planner_effort":"FFTW_ESTIMATE"}
+    # TODO: Caching and multithreading currently disabled because they give a 
+    # segfault with dask.
+    #pyfftw.interfaces.cache.enable()
+    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
 except ImportError:
     import scipy.fftpack as fft
     fft_kwargs = {}
