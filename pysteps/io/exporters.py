@@ -189,7 +189,7 @@ def _convert_proj4_to_grid_mapping(proj4str):
         v = d["lat_0"] if d["lat_0"][-1] not in ["N", "S"] else d["lat_0"][:-1]
         params["latitude_of_projection_origin"] = float(v)
         if "lat_ts" in list(d.keys()):
-            params["standars_parallel"] = float(d["lat_ts"])
+            params["standard_parallel"] = float(d["lat_ts"])
         elif "k_0" in list(d.keys()):
             params["scale_factor_at_projection_origin"] = float(d["k_0"])
         params["false_easting"]  = float(d["x_0"])
