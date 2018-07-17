@@ -35,10 +35,13 @@ try:
     import pyfftw.interfaces.numpy_fft as fft
     import pyfftw
     pyfftw.interfaces.cache.enable()
+    fft_kwargs = {"threads":4, "planner_effort":"FFTW_ESTIMATE"}
 except ImportError:
     import scipy.fftpack as fft
+    fft_kwargs = {}
 except ImportError:
     import numpy.fft as fft
+    fft_kwargs = {}
 
 def initialize_param_2d_fft_filter(X, **kwargs):
     """Takes a 2d input field and produces a fourier filter by using the Fast 
@@ -158,14 +161,14 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     # defaults
     win_type = kwargs.get('win_type', 'flat-hanning')
     donorm   = kwargs.get('donorm', False)
-      
+    
     X = X.copy()
     if win_type is not None:
         X -= X.min()
         tapering = build_2D_tapering_function(X.shape, win_type)
     else:
         tapering = np.ones_like(X)
-    F = fft.fft2(X*tapering)
+    F = fft.fft2(X*tapering, **fft_kwargs)
     
     # normalize the real and imaginary parts
     if donorm:
@@ -204,9 +207,9 @@ def generate_noise_2d_fft_filter(F, seed=None):
     N = np.random.randn(F.shape[0], F.shape[1])
     
     # apply the global Fourier filter to impose a correlation structure
-    fN = fft.fft2(N)
+    fN = fft.fft2(N, **fft_kwargs)
     fN *= F
-    N = np.array(fft.ifft2(fN).real)
+    N = np.array(fft.ifft2(fN, **fft_kwargs).real)
     N = (N - N.mean())/N.std()
     
     return N
@@ -467,7 +470,7 @@ def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
     
     # produce fields of white noise
     N = np.random.randn(dim_y, dim_x)
-    fN = fft.fft2(N)
+    fN = fft.fft2(N, **fft_kwargs)
     
     # initialize variables
     cN = np.zeros(dim)
@@ -489,7 +492,7 @@ def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
             # apply fourier filtering with local filter
             lF = F[i,j,:,:]
             flN = fN * lF
-            flN = np.array(np.fft.ifft2(flN).real)
+            flN = np.array(np.fft.ifft2(flN, **fft_kwargs).real)
             
             # compute indices of local window
             idxi[0] = np.max( (i*win_size[0] - overlap*win_size[0], 0) ).astype(int)
@@ -581,7 +584,7 @@ def _rapsd(X):
     
     R = np.sqrt(XC*XC + YC*YC).astype(int)
     
-    F = fft.fftshift(np.fft.fft2(X))
+    F = fft.fftshift(np.fft.fft2(X, **fft_kwargs))
     F = abs(F)**2
     
     if L % 2 == 0:
