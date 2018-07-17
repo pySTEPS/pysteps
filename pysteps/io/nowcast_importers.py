@@ -27,7 +27,6 @@ The metadata dictionary contains the following mandatory key-value pairs:
     unit         the unit of the data: 'mm/h', 'mm' or 'dBZ'
 """
 
-
 try:
     import netCDF4
     netcdf4_imported = True
@@ -35,7 +34,8 @@ except ImportError:
     netcdf4_imported = False
 
 def import_netcdf_pysteps(filename, **kwargs):
-    """the CF 1.7 format"""
+    """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the 
+    CF 1.7 specification."""
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
     
@@ -64,6 +64,7 @@ def import_netcdf_pysteps(filename, **kwargs):
     
     metadata = {}
     proj_str = _convert_grid_mapping_to_proj4(attr_dict)
+    metadata["projection"] = proj_str
     # TODO: Read the metadata to the dictionary.
     
     ds.close()
