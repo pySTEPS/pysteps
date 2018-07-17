@@ -149,7 +149,7 @@ def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
         var_gm = ds.createVariable(grid_mapping_var_name, np.int, dimensions=())
         var_gm.grid_mapping_name = grid_mapping_name
         for i in grid_mapping_params.items():
-            exec("var_gm.%s = '%s'" % (str(i[0]), str(i[1])))
+            var_gm.setncattr(i[0], i[1])
     
     var_time = ds.createVariable("time", np.int, dimensions=("time",))
     var_time[:] = [i*timestep*60 for i in range(1, num_timesteps+1)]
