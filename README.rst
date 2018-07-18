@@ -24,7 +24,10 @@ The pySTEPS package need the following dependencies
 * opencv
 * pillow
 * pyproj
+* dask (for code parallelisation)
 * matplolib (for examples)
+
+Additionally, the following packages can be installed to provide better computational efficiency:
 
 We recommend that you create a conda environment using the available `environment.yml`_ file to install all the necessary dependencies::
 
