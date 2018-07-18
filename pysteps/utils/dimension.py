@@ -179,6 +179,4 @@ def unsquare_domain(R, shape):
         idx_buffer = int((R.shape[2] - shape[0])/2.)
         R = R[:, :, idx_buffer:(idx_buffer + shape[0]), :]
         
-    print(R.shape)
-        
     return R.squeeze()

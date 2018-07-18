@@ -47,7 +47,7 @@ decomp_method       = "fft"
 ## forecast parameters
 n_prvs_times        = 9 
 n_lead_times        = 12
-n_ens_members       = 2
+n_ens_members       = 20
 n_cascade_levels    = 6
 ar_order            = 2
 R_threshold         = 0.1 # [mm/h]
@@ -99,10 +99,8 @@ R, _, metadata = st.io.read_timeseries(input_files, importer, **importer_kwargs)
 print("Prepare the data...")
 
 ## make sure we work with a square domain
-print(R.shape)
 orig_field_dim = R.shape[1:]
 R = st.utils.square_domain(R, "pad")
-print(R.shape)
 
 ## convert units
 data_units = metadata["unit"]
@@ -136,8 +134,6 @@ R_forecast = st.utils.dBR2mmhr(dBR_forecast, R_threshold)
 ## readjust to initial domain shape
 R          = st.utils.unsquare_domain(R,          orig_field_dim)
 R_forecast = st.utils.unsquare_domain(R_forecast, orig_field_dim)
-
-print(R_forecast.shape)    
 
 ## plot the nowcast...
 st.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
