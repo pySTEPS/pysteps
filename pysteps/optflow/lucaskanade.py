@@ -4,8 +4,7 @@
 
 import numpy as np
 import cv2
-from scipy.spatial.distance import cdist
-from scipy.interpolate import Rbf
+import scipy
 
 def dense_lucaskanade(R, **kwargs):
     """OpenCV implementation of the Lucas-Kanade method with interpolated motion
@@ -454,8 +453,8 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
     
         # get instances of the radial basis function interpolator
         if i == 0:
-            rbfiu = Rbf(x, y, u, function=function, epsilon=epsilon, smooth=smooth) 
-            rbfiv = Rbf(x, y, v, function=function, epsilon=epsilon, smooth=smooth)
+            rbfiu = scipy.interpolate.Rbf(x, y, u, function=function, epsilon=epsilon, smooth=smooth) 
+            rbfiv = scipy.interpolate.Rbf(x, y, v, function=function, epsilon=epsilon, smooth=smooth)
            
         # interpolate values
         U[i0:(i0+idelta)] = rbfiu(subgrid[:,0], subgrid[:,1])
