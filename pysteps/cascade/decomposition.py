@@ -33,7 +33,7 @@ except ImportError:
     import numpy.fft as fft
     fft_kwargs = {}
 
-def decomposition_fft(X, filter, MASK=None):
+def decomposition_fft(X, filter, **kwargs):
     """Decompose a 2d input field into multiple spatial scales by using the Fast 
     Fourier Transform (FFT) and a bandpass filter.
     
@@ -44,6 +44,9 @@ def decomposition_fft(X, filter, MASK=None):
       X must be equal, and all values are required to be finite.
     filter : dict
       A filter returned by any method implemented in bandpass_filters.py.
+    
+    Optional kwargs
+    ---------------
     MASK : array_like
       Optional mask to use for computing the statistics for the cascade levels. 
       Pixels with MASK==False are excluded from the computations.
@@ -54,6 +57,8 @@ def decomposition_fft(X, filter, MASK=None):
       A dictionary described in the module documentation. The parameter n is 
       determined from the filter (see bandpass_filters.py).
     """
+    MASK = kwargs.get("MASK", None)
+    
     if len(X.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
     if X.shape[0] != X.shape[1]:
