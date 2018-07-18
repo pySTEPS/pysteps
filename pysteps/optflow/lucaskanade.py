@@ -5,6 +5,7 @@
 import numpy as np
 import cv2
 import scipy
+import time
 
 def dense_lucaskanade(R, **kwargs):
     """OpenCV implementation of the Lucas-Kanade method with interpolated motion
@@ -12,64 +13,72 @@ def dense_lucaskanade(R, **kwargs):
 
     Parameters
     ----------
-    R : array-like
-        Array of shape (t,m,n) containing the input precipitation fields.
-        No missing values are accepted.
+    R : array-like, shape (t,m,n)
+        array containing the input precipitation fields, no missing values are 
+        accepted
     
     Optional kwargs
     ---------------
     max_corners_ST : int
-        Maximum number of corners to return. If there are more corners than are 
-        found, the strongest of them is returned.
+        maximum number of corners to return. If there are more corners than are 
+        found, the strongest of them is returned
     quality_level_ST : float
-        Parameter characterizing the minimal accepted quality of image corners.
-        See original documentation for more details (https://docs.opencv.org).
+        parameter characterizing the minimal accepted quality of image corners.
+        See original documentation for more details (https://docs.opencv.org)
     min_distance_ST : int
-        Minimum possible Euclidean distance between the returned corners [px].
+        minimum possible Euclidean distance between the returned corners [px]
     block_size_ST : int
-        Size of an average block for computing a derivative covariation matrix 
-        over each pixel neighborhood. 
+        size of an average block for computing a derivative covariation matrix 
+        over each pixel neighborhood
     winsize_LK : int
-        Size of the search window at each pyramid level. 
-        Small windows (e.g. 10) lead to unrealistic motion.
+        size of the search window at each pyramid level. 
+        Small windows (e.g. 10) lead to unrealistic motion
     nr_levels_LK : int
         0-based maximal pyramid level number.
-        Not very sensitive parameter.
+        Not very sensitive parameter
     max_speed : float
-        The maximum allowed speed [px/timestep].
+        the maximum allowed speed [px/timestep]
     nr_IQR_outlier : int
-        Nr of IQR above median to consider the velocity vector as outlier and discard it.
+        nr of IQR above median to consider the velocity vector as outlier and discard it
     size_opening : int
-        The structuring element size for the filtering of isolated pixels [px].
+        the structuring element size for the filtering of isolated pixels [px]
     decl_grid : int
-        Size of the declustering grid [px].
+        size of the declustering grid [px]
     min_nr_samples : int
-        The minimum number of samples for computing the median within given declustering cell.
+        the minimum number of samples for computing the median within given declustering cell
+    function : string
+        the radial basis function, based on the Euclidian norm d, used in the 
+        interpolation of the sparse vectors.
+        default : inverse
+        available : nearest, inverse, gaussian
+    k : int or "all"
+        the number of nearest neighbors used to speed-up the interpolation
+        If set equal to "all", it employs all the sparse vectors
+        default : 20
     epsilon : float   
-        Adjustable constant for gaussian or multiquadrics functions - defaults 
-        to approximate average distance between nodes (which is a good start).
-    smooth : float
-        Values greater than zero increase the smoothness of the approximation. 
-        0 is for interpolation, meaning that the function will always go through 
-        the nodal points in this case.
+        adjustable constant for gaussian or inverse functions
+        default : median distance between sparse vectors
     nchunks : int
-        Split the grid points in n chunks to limit the memory usage during the 
+        split the grid points in n chunks to limit the memory usage during the 
         interpolation
+        default : 5
     extra_vectors : array-like
-        Additional sparse motion vectors as 2d array (columns: x,y,u,v; rows: 
+        additional sparse motion vectors as 2d array (columns: x,y,u,v; rows: 
         nbr. of vectors) to be integrated with the sparse vectors from the Lucas-Kanade 
         local tracking.
         x and y must be in pixel coordinates, with (0,0) being the upper-left 
-        corner of the field R. u and v must be in pixel units. 
+        corner of the field R. u and v must be in pixel units
+    verbose : bool
+        if set to True, it prints information about the program
         
     Returns
     -------
-    out : ndarray
-        Three-dimensional array (2,m,n) containing the dense x- and y-components 
-        of the motion field.
+    out : ndarray, shape (2,m,n)
+        three-dimensional array containing the dense x- and y-components of the 
+        motion field.
 
     """
-    
+        
     if len(R.shape) != 3:
         raise ValueError("R has %i dimensions, but a three-dimensional array is expected" % len(R.shape))
     if R.shape[0] < 2:
@@ -87,11 +96,12 @@ def dense_lucaskanade(R, **kwargs):
     max_speed           = kwargs.get("max_speed", 10)
     nr_IQR_outlier      = kwargs.get("nr_IQR_outlier", 3)
     size_opening        = kwargs.get("size_opening", 3)
-    decl_grid           = kwargs.get("decl_grid", 10)
+    decl_grid           = kwargs.get("decl_grid", 20)
     min_nr_samples      = kwargs.get("min_nr_samples", 2)
+    function            = kwargs.get("function", "inverse")
+    k                   = kwargs.get("k", 20)
     epsilon             = kwargs.get("epsilon", None)
-    smooth              = kwargs.get("smooth", .5)
-    nchunks             = kwargs.get("nchunks", 10)
+    nchunks             = kwargs.get("nchunks", 5)
     extra_vectors       = kwargs.get("extra_vectors", None)
     if extra_vectors is not None:
         if len(extra_vectors.shape) != 2:
@@ -100,7 +110,10 @@ def dense_lucaskanade(R, **kwargs):
         if extra_vectors.shape[1] != 4:
             raise ValueError("extra_vectors has %i columns, but 4 columns are expected" 
                                % extra_vectors.shape[1])
-    
+    verbose             = kwargs.get("verbose", True)
+    if verbose:
+        print("Computing the motion field with the Lucas-Kanade method.")
+        t0 = time.time()
     
     nr_fields = R.shape[0]
     domain_size = (R.shape[1], R.shape[2])
@@ -133,7 +146,7 @@ def dense_lucaskanade(R, **kwargs):
                                           
         # get sparse u, v vectors with Lucas-Kanade tracking
         x0, y0, u, v = LucasKanade_features_tracking(prvs, next, p0, winsize_LK, 
-                                                      nr_levels_LK)
+                                                     nr_levels_LK)
 
         # exclude outlier vectors
         speed = np.sqrt(u**2 + v**2) # [px/timesteps]
@@ -170,9 +183,11 @@ def dense_lucaskanade(R, **kwargs):
         v = np.concatenate((v, extra_vectors[:, 3]))
 
     # kernel interpolation
-    X, Y, UV = interpolate_sparse_vectors(x, y, u, v, domain_size, 
-                                          epsilon=epsilon, smooth=smooth,
-                                          nchunks=nchunks)
+    X, Y, UV = interpolate_sparse_vectors(x, y, u, v, domain_size, function=function,
+                                          k=k, epsilon=epsilon, nchunks=nchunks)
+    
+    if verbose:
+        print("--- %s seconds ---" % (time.time() - t0))
     
     return UV
     
@@ -370,14 +385,11 @@ def declustering(x, y, u, v, decl_grid, min_nr_samples):
 
     return x, y, u, v
     
-def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
-                               epsilon=None, smooth=0.5, nchunks=10):
+def interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
+                               k=20, epsilon=None, nchunks=5):
     
     """Interpolation of sparse motion vectors to produce a dense field of motion 
-    vectors. It uses the scipy.interpolate class Rbf():
-    https://docs.scipy.org/doc/scipy-0.18.1/reference/generated/scipy.interpolate.Rbf.html
-    
-    TODO: use KDTree to speed up interpolation
+    vectors. 
     
     Parameters
     ----------
@@ -392,18 +404,20 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
     domain_size : tuple
         size of the domain of the dense motion field [px]
     function : string
-        the radial basis function, based on the radius, r, given by the Euclidian 
-        norm 
+        the radial basis function, based on the Euclidian norm, d.
+        default : inverse
+        available : nearest, inverse, gaussian
+    k : int or "all"
+        the number of nearest neighbors used to speed-up the interpolation
+        If set equal to "all", it employs all the sparse vectors
+        default : 20
     epsilon : float   
-        adjustable constant for gaussian or multiquadrics functions - defaults 
-        to approximate average distance between nodes (which is a good start)
-    smooth : float
-        values greater than zero increase the smoothness of the approximation. 
-        0 is for interpolation, meaning that the function will always go through 
-        the nodal points in this case
+        adjustable constant for gaussian or inverse functions
+        default : median distance between sparse vectors
     nchunks : int
         split the grid points in n chunks to limit the memory usage during the 
         interpolation
+        default : 5
     
     Returns
     -------
@@ -417,10 +431,6 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
     """
     
     testinterpolation = False
-    dotime = False
-    if dotime:
-        import time
-        t0 = time.time()
     
     # make sure these are vertical arrays
     x = x[:,None]
@@ -440,6 +450,10 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
     
     U = np.zeros(grid.shape[0])
     V = np.zeros(grid.shape[0])
+         
+    # create cKDTree object to represent source grid
+    if k is not "all":
+        tree = scipy.spatial.cKDTree(points)
     
     # split grid points in n chunks
     subgrids = np.array_split(grid, nchunks, 0)
@@ -450,25 +464,46 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
     for i,subgrid in enumerate(subgrids):
     
         idelta = subgrid.shape[0]
-    
-        # get instances of the radial basis function interpolator
-        if i == 0:
-            rbfiu = scipy.interpolate.Rbf(x, y, u, function=function, epsilon=epsilon, smooth=smooth) 
-            rbfiv = scipy.interpolate.Rbf(x, y, v, function=function, epsilon=epsilon, smooth=smooth)
-           
-        # interpolate values
-        U[i0:(i0+idelta)] = rbfiu(subgrid[:,0], subgrid[:,1])
-        V[i0:(i0+idelta)] = rbfiv(subgrid[:,0], subgrid[:,1])
-    
+
+        if function.lower() == "nearest":
+        
+            # find indices of the nearest neighbors
+            _, inds = tree.query(subgrid, k=1)
+        
+            U[i0:(i0+idelta)] = u.flatten()[inds]
+            V[i0:(i0+idelta)] = v.flatten()[inds]
+        
+        else:
+            if k == "all":
+                d = scipy.spatial.distance.cdist(points, subgrid, 'euclidean').transpose()
+                inds = np.arange(u.size)[None,:]*np.ones((subgrid.shape[0],u.size)).astype(int)
+
+            else: 
+                # find indices of the k-nearest neighbors
+                d, inds = tree.query(subgrid, k=k)
+        
+            # the bandwidth
+            if epsilon is None:
+                dpoints = scipy.spatial.distance.pdist(points, 'euclidean')
+                epsilon = np.median(dpoints)
+            
+            # the interpolation weights
+            if function.lower() == "inverse":
+                w = 1.0/np.sqrt((d/epsilon)**2 + 1)
+            elif function.lower() == "gaussian":
+                w = np.exp(-0.5*(d/epsilon)**2)
+            else:
+                raise ValueError("unknown radial fucntion %s" % function)
+
+            U[i0:(i0+idelta)] = np.sum(w * u.flatten()[inds], axis=1) / np.sum(w, axis=1)
+            V[i0:(i0+idelta)] = np.sum(w * v.flatten()[inds], axis=1) / np.sum(w, axis=1)
+               
         i0 += idelta
     
     # reshape back to original size
     U = U.reshape(domain_size[0], domain_size[1])
     V = V.reshape(domain_size[0], domain_size[1])
     UV = np.stack([U, V])
-    
-    if dotime:
-        print("--- %s seconds ---" % (time.time() - t0))
         
     if testinterpolation:
         import matplotlib.pylab as plt
@@ -476,8 +511,8 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="multiquadric",
         UV_ = UV[:, 0:UV.shape[1]:step, 0:UV.shape[2]:step]
         X_ = X[0:UV.shape[1]:step, 0:UV.shape[2]:step]
         Y_ = Y[0:UV.shape[1]:step, 0:UV.shape[2]:step]                                                         
-        plt.quiver(X_, np.flipud(Y_), UV_[0,:,:], -UV_[1,:,:], angles="xy", scale=100)     
-        plt.quiver(x, np.flipud(y), u, -v, angles="xy", scale=100, color="red")
+        plt.quiver(X_, np.flipud(Y_), UV_[0,:,:], -UV_[1,:,:])     
+        plt.quiver(x, np.flipud(y), u, -v, color="red")
         plt.show()
     
     return X, Y, UV
