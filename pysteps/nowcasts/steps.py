@@ -4,7 +4,7 @@ import numpy as np
 from .. import advection
 from .. import cascade
 from .. import noise
-from ..postprocessing import probmatching
+from ..postproc import probmatching
 from ..timeseries import autoregression, correlation
 try:
     import dask

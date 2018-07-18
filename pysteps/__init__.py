@@ -6,7 +6,7 @@ from . import io
 from . import noise
 from . import nowcasts
 from . import optflow
-from . import postprocessing
+from . import postproc
 from . import timeseries
 from . import utils
 from . import verification as vf
