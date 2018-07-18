@@ -2,6 +2,7 @@ name: pysteps
 dependencies: 
   - python=3.6
   - git
+  - dask
   - numpy 
   - matplotlib 
   - opencv 
