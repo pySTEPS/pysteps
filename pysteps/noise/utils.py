@@ -67,7 +67,9 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
     for k in range(num_iter):
         # generate Gaussian white noise field, multiply it with the standard 
         # deviation of the observed field and apply the precipitation mask
-        N = np.random.randn(R.shape[0], R.shape[1]) * sigma
+        N = np.random.randn(R.shape[0], R.shape[1])
+        N = np.real(np.fft.ifft2(np.fft.fft2(N) * abs(np.fft.fft2(R))))
+        N = (N - np.mean(N)) / np.std(N) * sigma
         N[~MASK] = R_thr_2 - mu
         
         # subtract the mean and decompose the masked noise field into a cascade
