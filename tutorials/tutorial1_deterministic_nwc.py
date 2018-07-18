@@ -41,8 +41,8 @@ oflow_method    = "lucaskanade" # lucaskanade or DARTS
 adv_method      = "semilagrangian"
 
 ## forecast parameters
-n_prvs_times    = 9 
-n_lead_times    = 12
+n_prvs_times    = 2 # use 9 with DARTS
+n_lead_times    = 24
 R_threshold     = 0.1 # [mm/h]
 
 ## visualization parameters
@@ -96,10 +96,8 @@ orig_field_dim = R.shape
 # Prepare input files
 print("Prepare the data...")
 
-# TODO: This is currently hard-coded.
-data_units = metadata["unit"]
-
 ## convert units
+data_units = metadata["unit"]
 if data_units is "dBZ":
     R = st.utils.dBZ2mmhr(R, R_threshold)
 
@@ -108,16 +106,12 @@ dBR, dBRmin = st.utils.mmhr2dBR(R, R_threshold)
 dBR[~np.isfinite(dBR)] = dBRmin
 
 # Compute motion field
-print("Compute the motion vectors...")
-
 oflow_method = st.optflow.get_method(oflow_method)
 UV = oflow_method(dBR) 
 
 # Perform the advection of the radar field
-print("Computing extrapolation...")
-
 adv_method = st.advection.get_method(adv_method) 
-dBR_forecast = adv_method(dBR[-1,:,:], UV, n_lead_times) 
+dBR_forecast = adv_method(dBR[-1,:,:], UV, n_lead_times, verbose=True) 
 
 ## convert the forecasted dBR to mm/h
 R_forecast = st.utils.dBR2mmhr(dBR_forecast, R_threshold)
@@ -136,8 +130,6 @@ print("Forecast verification...")
 ## find the verifying observations
 input_files_verif = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
                                         fn_ext, timestep, 0, n_lead_times)
-if all(fpath is None for fpath in input_files_verif[0]):
-    raise ValueError("Verification data not found")
 
 ## read observations
 Robs, _, _ = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
