@@ -3,6 +3,7 @@
 
 import numpy as np
 import scipy.ndimage.interpolation as ip
+import time
 
 def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
     """Apply semi-Lagrangian extrapolation to a two-dimensional precipitation 
@@ -55,10 +56,15 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
         raise ValueError("V must be a three-dimensional array")
       
     # defaults
+    verbose             = kwargs.get("verbose", False)
     D_prev              = kwargs.get("D_prev", None)
     n_iter              = kwargs.get("n_iter", 3)
     inverse             = kwargs.get("inverse", True)
     return_displacement = kwargs.get("return_displacement", False)
+    
+    if verbose:
+        print("Computing the advection with the semi-lagrangian scheme.")
+        t0 = time.time()
     
     if outval == "min":
         outval = np.nanmin(R)
@@ -101,6 +107,9 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
         IW = ip.map_coordinates(R, XYW, mode="constant", cval=outval, order=0, 
                               prefilter=False)
         R_e.append(np.reshape(IW, R.shape))
+        
+    if verbose:
+        print("--- %s seconds ---" % (time.time() - t0))
     
     if not return_displacement:
         return np.stack(R_e)
