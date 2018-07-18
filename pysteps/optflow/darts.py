@@ -4,6 +4,7 @@ import numpy as np
 from numpy.linalg import lstsq, svd
 import sys
 import time
+
 # Use the pyfftw interface if it is installed. If not, fall back to the fftpack 
 # interface provided by SciPy, and finally to numpy if SciPy is not installed.
 try:
@@ -53,6 +54,8 @@ def DARTS(Z, **kwargs):
       The method to use for solving the linear equations in the least squares 
       sense: 1=numpy.linalg.lstsq, 2=explicit computation of the Moore-Penrose 
       pseudoinverse and SVD.
+    verbose : bool
+        if set to True, it prints information about the program
     
     Returns
     -------
@@ -67,6 +70,10 @@ def DARTS(Z, **kwargs):
     M_y = kwargs.get("M_y", 2)
     print_info = kwargs.get("print_info", False)
     lsq_method = kwargs.get("lsq_method", 2)
+    verbose             = kwargs.get("verbose", True)
+    if verbose:
+        print("Computing the motion field with the DARTS method.")
+        t0 = time.time()
     
     Z = np.moveaxis(Z, (0, 1, 2), (2, 0, 1))
     
@@ -171,6 +178,9 @@ def DARTS(Z, **kwargs):
     
     U = np.real(fft.ifft2(_fill(U, Z.shape[0], Z.shape[1], k_x, k_y), **fft_kwargs))
     V = np.real(fft.ifft2(_fill(V, Z.shape[0], Z.shape[1], k_x, k_y), **fft_kwargs))
+    
+    if verbose:
+        print("--- %s seconds ---" % (time.time() - t0))
     
     # TODO: Sometimes the sign of the advection field is wrong. This appears to 
     # depend on N_t...
