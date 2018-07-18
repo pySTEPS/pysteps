@@ -44,6 +44,9 @@ def decomposition_fft(X, filter, **kwargs):
       X must be equal, and all values are required to be finite.
     filter : dict
       A filter returned by any method implemented in bandpass_filters.py.
+    
+    Optional kwargs
+    ---------------
     MASK : array_like
       Optional mask to use for computing the statistics for the cascade levels. 
       Pixels with MASK==False are excluded from the computations.
