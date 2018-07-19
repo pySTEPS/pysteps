@@ -12,7 +12,7 @@ try:
 except ImportError:
     dask_imported = False
 
-# TODO: Add options for choosing the perturbation methods.
+# TODO: Using non-square shapes of the inputs has not been tested.
 def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr, 
              extrap_method, decomp_method, bandpass_filter_method, perturbation_method,
              pixelsperkm, timestep, ar_order=2, vp_par=(10.88,0.23,-7.68), 
@@ -31,7 +31,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     V : array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection 
       field. The velocities are assumed to represent one time step between the 
-      inputs.
+      inputs. All values are required to be finite.
     num_timesteps : int
       Number of time steps to forecast.
     num_ens_members : int
@@ -39,23 +39,23 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     num_cascade_levels : int
       The number of cascade levels to use.
     R_thr : float
-      Specifies the threshold value to use if conditional is True.
+      Specifies the threshold value to use. Applicable if conditional is True.
     extrap_method : str
-      Name of the extrapolation method to use. See the documentation of the 
-      advection module for the available choices.
+      Name of the extrapolation method to use. See the documentation of 
+      pysteps.advection for the available choices.
     decomp_method : str
-      Name of the cascade decomposition method to use, see the documentation 
-      of the cascade.decomposition module.
+      Name of the cascade decomposition method to use. See the documentation 
+      of pysteps.cascade.decomposition.
     bandpass_filter_method : str
-      Name of the bandpass filter method to use with the cascade decomposition, 
-      see the documentation of the cascade.bandpass_filters module.
+      Name of the bandpass filter method to use with the cascade decomposition. 
+      See the documentation of pysteps.cascade.bandpass_filters.
     perturbation_method : str
       Name of the noise generator to use for the perturbations of the precipitation
-      field, see the documentation of the noise.fftgenerators module.
+      field. See the documentation of pysteps.noise.fftgenerators.
     pixelsperkm : float
       Spatial resolution of the motion field (pixels/kilometer).
     timestep : float
-      Time step for the motion vectors (minutes).
+      Time step of the motion vectors (minutes).
     ar_order : int
       The order of the autoregressive model to use.
     vp_par : tuple
@@ -69,8 +69,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
       vectors. See noise.motion.initialize_bps. The default values are taken 
       from Bowler et al. 2006.
     conditional : bool
-      If set to True, compute the correlation coefficients conditionally by 
-      excluding the areas where the values are below the threshold R_thr.
+      If set to True, compute the statistics of the precipitation field 
+      conditionally by excluding the areas where the values are below the 
+      threshold R_thr.
     use_precip_mask : bool
       If True, set pixels outside precipitation areas to the minimum value of 
       the observed field.
