@@ -275,7 +275,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             else:
                 res.append(dask.delayed(worker)(j))
         
-        R_f_ = dask.compute(*res) if dask_imported else res
+        R_f_ = dask.compute(*res) if dask_imported and num_ens_members > 1 else res
         for j in range(num_ens_members):
             R_f[j].append(R_f_[j])
     
