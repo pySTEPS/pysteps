@@ -289,9 +289,6 @@ def _check_inputs(R, V, ar_order):
         raise ValueError("R must be a three-dimensional array")
     if R.shape[0] < ar_order + 1:
         raise ValueError("R.shape[0] < ar_order+1")
-    if R.shape[1] != R.shape[2]:
-        raise ValueError("the dimensions of the input fields are %dx%d, but square shape expected" % \
-                        (R.shape[1], R.shape[2]))
     if len(V.shape) != 3:
         raise ValueError("V must be a three-dimensional array")
     if R.shape[1:3] != V.shape[1:3]:
