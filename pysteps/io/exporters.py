@@ -114,7 +114,7 @@ def write_nowcast_netcdf(F, filename, startdate, timestep, metadata):
     # TODO: Don't hard-code the unit.
     var_xc.units = 'm'
     
-    var_yc = ds.createVariable("yc", np.float32, dimensions=("x",))
+    var_yc = ds.createVariable("yc", np.float32, dimensions=("y",))
     var_yc[:] = yr
     var_yc.axis = 'Y'
     var_yc.standard_name = "projection_y_coordinate"
