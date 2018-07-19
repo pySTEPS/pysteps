@@ -98,12 +98,15 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     if np.any(~np.isfinite(R)):
         raise ValueError("R contains non-finite values")
     
+    if np.any(~np.isfinite(V)):
+        raise ValueError("V contains non-finite values")
+    
     L = R.shape[1]
     extrap_method = advection.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
     
-    # Advect the previous precipitation fields to the same position with the 
-    # most recent one (i.e. transform them into the Lagrangian coordinates).
+    # advect the previous precipitation fields to the same position with the 
+    # most recent one (i.e. transform them into the Lagrangian coordinates)
     extrap_kwargs = extrap_kwargs.copy()
     res = []
     f = lambda R,i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
@@ -117,66 +120,66 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         R = np.stack(list(dask.compute(*res)) + [R[-1, :, :]])
     
     if conditional:
-        MASK = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
+        MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
     else:
-        MASK = None
+        MASK_thr = None
     
-    # Initialize the band-pass filter.
+    # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
     filter = filter_method(L, num_cascade_levels, **filter_kwargs)
     
-    # Compute the cascade decompositions of the input precipitation fields.
+    # compute the cascade decompositions of the input precipitation fields
     decomp_method = cascade.get_method(decomp_method)
     R_d = []
     for i in range(ar_order+1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK)
+        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr)
         R_d.append(R_)
     
-    # Normalize the cascades and rearrange them into a four-dimensional array 
-    # of shape (num_cascade_levels,ar_order+1,L,L) for the autoregressive model.
+    # normalize the cascades and rearrange them into a four-dimensional array 
+    # of shape (num_cascade_levels,ar_order+1,L,L) for the autoregressive model
     R_c,mu,sigma = _stack_cascades(R_d, num_cascade_levels)
     
-    # Compute lag-l temporal autocorrelation coefficients for each cascade level.
+    # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((num_cascade_levels, ar_order))
     for i in range(num_cascade_levels):
         R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order+1)])
-        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK)
+        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
     
     _print_corrcoefs(GAMMA)
     
     if ar_order == 2:
-        # Adjust the lag-2 correlation coefficient to ensure that the AR(p) 
-        # process is stationary.
+        # adjust the lag-2 correlation coefficient to ensure that the AR(p) 
+        # process is stationary
         for i in range(num_cascade_levels):
             GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef(GAMMA[i, 0], GAMMA[i, 1])
     
-    # Estimate the parameters of the AR(p) model from the autocorrelation 
-    # coefficients.
+    # estimate the parameters of the AR(p) model from the autocorrelation 
+    # coefficients
     PHI = np.empty((num_cascade_levels, ar_order+1))
     for i in range(num_cascade_levels):
         PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
     
     _print_ar_params(PHI, False)
     
-    # Discard all except the two last cascades because they are not needed for 
-    # the AR(p) model.
+    # discard all except the two last cascades because they are not needed for 
+    # the AR(p) model
     R_c = R_c[:, 1:, :, :]
     
-    # Stack the cascades into a five-dimensional array containing all ensemble 
-    # members.
+    # stack the cascades into a five-dimensional array containing all ensemble 
+    # members
     R_c = np.stack([R_c.copy() for i in range(num_ens_members)])
     
     if perturbation_method is not None:
     
-        # Get methods for perturbations
+        # get methods for perturbations
         init_noise, generate_noise = noise.get_method(perturbation_method)
         
-        # Initialize the perturbation generator for the precipitation field.
+        # initialize the perturbation generator for the precipitation field
         pp = init_noise(R[-1, :, :])
     
     if vp_par is not None:
     
-        # Initialize the perturbation generators for the motion field.
+        # initialize the perturbation generators for the motion field
         vps = []
         for j in range(num_ens_members):
             vp_ = noise.motion.initialize_bps(V, vp_par, vp_perp, pixelsperkm, 
@@ -187,91 +190,82 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     R_f = [[] for j in range(num_ens_members)]
     
     if use_precip_mask:
-        # Compute the wet area ratio and precipitation mask.
+        # compute the wet area ratio and the precipitation mask
         war = 1.0*np.sum(R[-1, :, :] >= R_thr) / (R.shape[1]*R.shape[2])
-        # TODO: The commented code implements a different version of the masking. 
-        # Allow the user to choose the method.
-        # MASK_p = (R[-1, :, :] >= R_thr).astype(float)
         R_min = np.min(R)
         R_m = R_c.copy()
     
-    # Iterate each time step
+    # iterate each time step
     for t in range(num_timesteps):
     
-        # Iterate each ensemble member
+        # iterate each ensemble member
         res = []
         def worker(j):
-            # If perturbations are needed
             if perturbation_method is not None:
-                # Generate noise field
+                # generate noise field
                 EPS = generate_noise(pp)
-                # Decompose the noise field
+                # decompose the noise field into a cascade
                 EPS = decomp_method(EPS, filter)
             else:
                 EPS = None
-                
-            # Iterate the AR(p) model for each cascade level.
+            
+            # iterate the AR(p) model for each cascade level
             for i in range(num_cascade_levels):
             
-                # Normalize the noise cascade
+                # normalize the noise cascade
                 if EPS is not None:
                     EPS_ = (EPS["cascade_levels"][i, :, :] - EPS["means"][i]) / EPS["stds"][i]
                 else:
                     EPS_ = None
-                # Apply AR(p) process to cascade level
+                # apply AR(p) process to cascade level
                 R_c[j, i, :, :, :] = \
                     autoregression.iterate_ar_model(R_c[j, i, :, :, :], PHI[i, :], EPS=EPS_)
-                # Use a separate AR(p) model for the non-perturbed forecast, 
-                # from which the mask is obtained.
+                # use a separate AR(p) model for the non-perturbed forecast, 
+                # from which the mask is obtained
                 if use_precip_mask:
                     R_m[j, i, :, :, :] = \
                         autoregression.iterate_ar_model(R_m[j, i, :, :], PHI[i, :])
-        
-            # Compute the recomposed precipitation field from the cascade obtained 
-            # from the AR(p) model.
-            R_r = [(R_c[j, i, -1, :, :] * sigma[i]) + mu[i] for i in range(num_cascade_levels)]
-            R_r = np.sum(np.stack(R_r), axis=0)
+            
+            # compute the recomposed precipitation field(s) from the cascades 
+            # obtained from the AR(p) model(s)
+            R_r = _recompose_cascade(R_c[j, :, :, :], mu, sigma)
+            if use_precip_mask:
+                R_m_ = _recompose_cascade(R_m[j, :, :, :], mu, sigma)
             
             if use_precip_mask:
-                R_m_ = [(R_m[j, i, -1, :, :] * sigma[i]) + mu[i] for i in range(num_cascade_levels)]
-                R_m_ = np.sum(np.stack(R_m_), axis=0)
-            
-            if use_precip_mask:
-                # Compute the threshold value R_mask_thr corresponding to the 
+                # obtain the precipitation mask from the non-perturbed 
+                # forecast that is scale-filtered by the AR(p) model
+                
+                # compute the threshold value R_mask_thr corresponding to the 
                 # same fraction of precipitation pixels (values above R_min) 
-                # as in the most recently observed precipitation field.
+                # as in the most recently observed precipitation field
                 R_s = R_m_.flatten()
                 R_s.sort(kind="quicksort")
                 x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
                 i = np.argmin(abs(x - war))
                 R_mask_thr = R_s[i]
                 
+                # apply the mask
                 MASK_p = R_m_ < R_mask_thr
                 R_r[MASK_p] = R_min
             
             if use_probmatching:
-                # Adjust the empirical probability distribution of the forecast 
-                # to match the most recently measured precipitation field.
+                # adjust the empirical probability distribution of the forecast 
+                # to match the most recently measured precipitation field
                 R_r = probmatching.nonparam_match_empirical_cdf(R_r, R[-1, :, :])
             
-            # Compute the perturbed motion field.
+            # compute the perturbed motion field
             if vp_par is not None:
                 V_ = V + noise.motion.generate_bps(vps[j], t*timestep)
             else:
                 V_ = V
             
-            # Advect the recomposed precipitation field to obtain the forecast 
-            # for time step t.
+            # advect the recomposed precipitation field to obtain the forecast 
+            # for time step t
             extrap_kwargs.update({"D_prev":D[j], "return_displacement":True})
             R_f_,D_ = extrap_method(R_r, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]
-            
-            #if use_precip_mask:
-                # Advect the precipitation mask and apply it to the output.
-                #extrap_kwargs.update({"D_prev":D[j], "return_displacement":False})
-                #MASK_p_ = extrap_method(MASK_p, V, 1, **extrap_kwargs))[0]
-                #R_f_[MASK_p_ < 0.5] = R_min
             
             return R_f_
         
@@ -377,3 +371,9 @@ def _stack_cascades(R_d, num_levels):
       R_c.append(np.stack(R_))
   
   return np.stack(R_c),mu,sigma
+
+def _recompose_cascade(R, mu, sigma):
+    R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
+    R_rc = np.sum(np.stack(R_rc), axis=0)
+    
+    return R_rc
