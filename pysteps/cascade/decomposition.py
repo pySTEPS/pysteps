@@ -67,6 +67,8 @@ def decomposition_fft(X, filter, **kwargs):
     if MASK is not None and MASK.shape != X.shape:
       raise ValueError("dimension mismatch between X and MASK: X.shape=%s, MASK.shape=%s" % \
         (str(X.shape), str(MASK.shape)))
+    if X.shape != filter["weights_2d"].shape[1:3]:
+        raise ValueError("dimension mismatch between X and filter: X.shape=%s, filter['weights_2d'].shape[1:3]=%s" % (str(X.shape), str(filter["weights_2d"].shape[1:3])))
     if np.any(~np.isfinite(X)):
       raise ValueError("X contains non-finite values")
     
