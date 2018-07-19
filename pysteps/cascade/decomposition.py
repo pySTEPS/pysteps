@@ -40,8 +40,8 @@ def decomposition_fft(X, filter, **kwargs):
     Parameters
     ----------
     X : array_like
-      Two-dimensional array containing the input field. The width and height of 
-      X must be equal, and all values are required to be finite.
+      Two-dimensional array containing the input field. All values are required 
+      to be finite.
     filter : dict
       A filter returned by any method implemented in bandpass_filters.py.
     
@@ -61,9 +61,6 @@ def decomposition_fft(X, filter, **kwargs):
     
     if len(X.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
-    if X.shape[0] != X.shape[1]:
-        raise ValueError("the dimensions of the input field are %dx%d, but square shape expected" % \
-                         (X.shape[0], X.shape[1]))
     if MASK is not None and MASK.shape != X.shape:
       raise ValueError("dimension mismatch between X and MASK: X.shape=%s, MASK.shape=%s" % \
         (str(X.shape), str(MASK.shape)))
