@@ -270,7 +270,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             return R_f_
         
         for j in range(num_ens_members):
-            if not dask_imported:
+            if not dask_imported or num_ens_members == 1:
                 res.append(worker(j))
             else:
                 res.append(dask.delayed(worker)(j))
