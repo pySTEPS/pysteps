@@ -16,7 +16,7 @@ except ImportError:
 
 # TODO: This is a draft version of the exporter. Revise the variable names and 
 # the structure of the file if necessary.
-def write_nowcast_netCDF(F, filename, startdate, timestep, metadata):
+def write_nowcast_netcdf(F, filename, startdate, timestep, metadata):
     """Write a forecast or a forecast ensemble into a netCDF file in the CF 1.7 
     format.
     
