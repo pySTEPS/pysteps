@@ -1,6 +1,8 @@
 """Implementation of the STEPS method."""
 
 import numpy as np
+import sys
+import time
 from .. import advection
 from .. import cascade
 from .. import noise
@@ -197,7 +199,10 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     
     # iterate each time step
     for t in range(num_timesteps):
-    
+        print("Computing nowcasts for time step %d..." % (t+1), end="")
+        sys.stdout.flush()
+        starttime = time.time()
+        
         # iterate each ensemble member
         res = []
         def worker(j):
@@ -278,6 +283,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         R_f_ = dask.compute(*res) if dask_imported and num_ens_members > 1 else res
         for j in range(num_ens_members):
             R_f[j].append(R_f_[j])
+        
+        print("done in %.2f seconds." % (time.time() - starttime))
     
     if num_ens_members == 1:
         return np.stack(R_f[0])
