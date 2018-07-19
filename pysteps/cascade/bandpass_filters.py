@@ -14,10 +14,10 @@ key-value pairs:
 
     weights_1d       2d array of shape (n, L/2) containing 1d filter weights 
                      for each frequency band k=1,2,...,n
-    weights_2d       3d array of shape (n, L, L) containing the 2d filter weights 
-                     for each frequency band k=1,2,...,n
-    central_freqs    1d array of shape n containing the central frequencies of the 
-                     filters
+    weights_2d       3d array of shape (n, L, L) containing the 2d filter 
+                     weights for each frequency band k=1,2,...,n
+    central_freqs    1d array of shape n containing the central frequencies of 
+                     the filters
 
 The filter weights are assumed to be normalized so that for any Fourier 
 wavenumber they sum to one.
@@ -28,16 +28,19 @@ import numpy as np
 # TODO: Should the filter always return an 1d array and should we use a separate 
 # method for generating the 2d filter from the 1d filter?
 
-def filter_uniform(L, n):
+def filter_uniform(N, n, M=None):
     """A dummy filter with one frequency band covering the whole domain. The 
     weights are set to one.
   
     Parameters
     ----------
-    L : int
-      The width and height of the input field.
+    N : int
+        The width of the input field.
+    M : int
+        The height of the input field. If M is None, the height is assumed to 
+        be equal to the width.
     n : int
-      Not used. Needed for compatibility with the filter interface.
+        Not used. Needed for compatibility with the filter interface.
     """
     result = {}
     result["weights_1d"]    = np.ones((1, int(L/2)+1))
@@ -46,7 +49,7 @@ def filter_uniform(L, n):
     
     return result
 
-def filter_gaussian(L, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
+def filter_gaussian(N, n, M=None, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     """Gaussian band-pass filter in logarithmic frequency scale. The method is 
     described in
     
@@ -57,37 +60,51 @@ def filter_gaussian(L, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     
     Parameters
     ----------
-    L : int
-        The width and height of the input field.
+    N : int
+        The width of the input field.
+    M : int
+        The height of the input field. If M is None, the height is assumed to 
+        be equal to the width.
     n : int
-        The number of frequency bands to use. n must be greater than 2.
+        The number of frequency bands to use. Must be greater than 2.
     l_0 : int
-        Central frequency of the second band (the first band is always centered at 
-        zero).
+        Central frequency of the second band (the first band is always centered 
+        at zero).
     gauss_scale : float
         Optional scaling prameter. Proportional to the standard deviation of the 
         Gaussian weight functions.
     gauss_scale_0 : float
-        Optional scaling parameter for the Gaussian function corresponding to the 
-        first frequency band.
+        Optional scaling parameter for the Gaussian function corresponding to 
+        the first frequency band.
     """
     if n < 3:
         raise ValueError("n must be greater than 2")
     
-    r = np.arange(int(L/2)+1)
+    if M == None:
+        M = N
     
-    if L % 2 == 1:
-        X,Y = np.ogrid[-int(L/2):int(L/2)+1, -int(L/2):int(L/2)+1]
+    if N % 2 == 1:
+        rx = np.s_[-int(N/2):int(N/2)+1]
     else:
-        X,Y = np.ogrid[-int(L/2):int(L/2), -int(L/2):int(L/2)]
+        rx = np.s_[-int(N/2):int(N/2)]
     
+    if M % 2 == 1:
+        ry = np.s_[-int(M/2):int(M/2)+1]
+    else:
+        ry = np.s_[-int(M/2):int(M/2)]
+    
+    Y,X = np.ogrid[ry, rx]
     R = np.sqrt(X*X + Y*Y)
+    
+    L = max(N, M)
+    r_max = int(L/2)+1
+    r = np.arange(r_max)
     
     wfs,cfs = _gaussweights_1d(L, n, l_0=l_0, gauss_scale=gauss_scale, 
                                gauss_scale_0=gauss_scale_0)
     
-    w = np.empty((n, int(L/2)+1))
-    W = np.empty((n, L, L))
+    w = np.empty((n, r_max))
+    W = np.empty((n, M, N))
     
     for i,wf in enumerate(wfs):
         w[i, :] = wf(r)
