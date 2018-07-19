@@ -29,6 +29,8 @@ the field of correlated noise cN of shape (m, n).
 
 import numpy as np
 
+# TODO: Update the methods so that they allow inputs with non-square shapes.
+
 # Use the pyfftw interface if it is installed. If not, fall back to the fftpack 
 # interface provided by SciPy, and finally to numpy if SciPy is not installed.
 try:
@@ -139,7 +141,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     X : array-like
       Two-dimensional array containing the input field. All values are required 
       to be finite.
-      
+    
     Optional kwargs
     ---------------
     win_type : string
@@ -158,8 +160,8 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     if len(X.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
     if np.any(~np.isfinite(X)):
-      raise ValueError("X contains non-finite values")
-      
+        raise ValueError("X contains non-finite values")
+    
     # defaults
     win_type = kwargs.get('win_type', 'flat-hanning')
     donorm   = kwargs.get('donorm', False)
