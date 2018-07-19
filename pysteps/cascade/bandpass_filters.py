@@ -1,6 +1,5 @@
 """Implementations of bandpass filters for separating different spatial scales 
-from two-dimensional images in the frequency domain. The input images are assumed 
-to have square shape.
+from two-dimensional images in the frequency domain.
 
 The methods in this module implement the following interface:
 
