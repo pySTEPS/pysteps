@@ -12,16 +12,17 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
     Parameters
     ----------
     R : array-like
-        Array of shape (m,n) containing the input precipitation field.
+        Array of shape (m,n) containing the input precipitation field. All 
+        values are required to be finite.
     V : array-like
         Array of shape (2,m,n) containing the x- and y-components of the m*n 
-        advection field.
+        advection field. All values are required to be finite.
     num_timesteps : int
         Number of time steps to extrapolate.
     outval : float
-        Optional argument for specifying the value for pixels advected from outside 
-        the domain. If outval is set to 'min', the value is taken as the minimum 
-        value of R.
+        Optional argument for specifying the value for pixels advected from 
+        outside the domain. If outval is set to 'min', the value is taken as 
+        the minimum value of R.
         Default : np.nan
 
     Optional kwargs:
@@ -54,7 +55,13 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
     
     if len(V.shape) != 3:
         raise ValueError("V must be a three-dimensional array")
-      
+    
+    if np.any(~np.isfinite(R)):
+        raise ValueError("R contains non-finite values")
+    
+    if np.any(~np.isfinite(V)):
+        raise ValueError("V contains non-finite values")
+    
     # defaults
     verbose             = kwargs.get("verbose", False)
     D_prev              = kwargs.get("D_prev", None)
