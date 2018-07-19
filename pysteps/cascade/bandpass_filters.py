@@ -50,8 +50,8 @@ def filter_gaussian(L, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     """Gaussian band-pass filter in logarithmic frequency scale. The method is 
     described in
     
-    S. Pulkkinen, V. Chandrasekar and A.-M. Harri, Nowcasting of Precipitation in 
-    the High-Resolution Dallas-Fort Worth (DFW) Urban Radar Remote Sensing 
+    S. Pulkkinen, V. Chandrasekar and A.-M. Harri, Nowcasting of Precipitation 
+    in the High-Resolution Dallas-Fort Worth (DFW) Urban Radar Remote Sensing 
     Network, IEEE Journal of Selected Topics in Applied Earth Observations and 
     Remote Sensing, 2018, to appear.
     
@@ -71,7 +71,6 @@ def filter_gaussian(L, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
         Optional scaling parameter for the Gaussian function corresponding to the 
         first frequency band.
     """
-  
     if n < 3:
         raise ValueError("n must be greater than 2")
     
@@ -102,24 +101,6 @@ def filter_gaussian(L, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     result["central_freqs"] = np.array(cfs)
     
     return result
-
-# TODO: Is this function needed? If yes, then implement it.
-def compute_2d_weights(w):
-    """Compute two-dimensional filter weights from those specified in one dimension.
-    
-    Parameters
-    ----------
-    w : array-like
-        Two-dimensional array of shape (n,L/2) containing one-dimensional weights 
-        for frequency bands k=1,2,...,n.
-    
-    Returns
-    -------
-    Three-dimensional array of shape (n,L,L) containing two-dimensional weights 
-    for frequency bands k=1,2,...,n. The weights are normalized so that for 
-    each Fourier wavenumber they sum to one.
-    """
-    pass
 
 def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     e = pow(0.5*l/l_0, 1.0/(n-2))
