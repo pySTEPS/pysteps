@@ -6,8 +6,8 @@ The methods in this module implement the following interface:
   decomposition_xxx(X, filter, optional arguments)
 
 where X is the input field and filter is a dictionary returned by a filter 
-method implemented in bandpass_filters.py. X is required to have a square shape. 
-The output of each method is a dictionary with the following key-value pairs:
+method implemented in bandpass_filters.py. The output of each method is a 
+dictionary with the following key-value pairs:
 
   cascade_levels    three-dimensional array of shape (n,L,L), where n is 
                     the number of cascade levels and L is the size of the input 
