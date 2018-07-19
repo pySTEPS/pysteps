@@ -40,10 +40,10 @@ def filter_uniform(L, n):
       Not used. Needed for compatibility with the filter interface.
     """
     result = {}
-    result["weights_1d"]    = np.ones((1, L/2))
+    result["weights_1d"]    = np.ones((1, int(L/2)+1))
     result["weights_2d"]    = np.ones((1, L, L))
     result["central_freqs"] = None
-  
+    
     return result
 
 def filter_gaussian(L, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
@@ -74,15 +74,19 @@ def filter_gaussian(L, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     if n < 3:
         raise ValueError("n must be greater than 2")
     
-    r = np.arange(L/2)
+    r = np.arange(int(L/2)+1)
     
-    X,Y = np.ogrid[-L/2+1:L/2+1, -L/2+1:L/2+1]
+    if L % 2 == 1:
+        X,Y = np.ogrid[-int(L/2):int(L/2)+1, -int(L/2):int(L/2)+1]
+    else:
+        X,Y = np.ogrid[-int(L/2):int(L/2), -int(L/2):int(L/2)]
+    
     R = np.sqrt(X*X + Y*Y)
     
     wfs,cfs = _gaussweights_1d(L, n, l_0=l_0, gauss_scale=gauss_scale, 
                                gauss_scale_0=gauss_scale_0)
     
-    w = np.empty((n, int(np.ceil(L/2))))
+    w = np.empty((n, int(L/2)+1))
     W = np.empty((n, L, L))
     
     for i,wf in enumerate(wfs):
