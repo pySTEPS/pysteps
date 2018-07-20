@@ -5,6 +5,7 @@ import sys
 import time
 from .. import advection
 from .. import cascade
+from .. import io
 from .. import noise
 from ..postproc import probmatching
 from ..timeseries import autoregression, correlation
@@ -82,6 +83,10 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
       If True, apply probability matching to the forecast field in order to 
       preserve the distribution of the most recently observed precipitation 
       field.
+    exporter : dict
+       Optional nowcast exporter for writing intermediate results to files, which 
+       reduces memory usage. The exporter must be a dictionary created with 
+       a method defined in pysteps.io.exporters and with incremental="timestep".
     extrap_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
       extrapolation method.
@@ -92,9 +97,10 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     Returns
     -------
     out : ndarray
-      Four-dimensional array of shape (num_ens_members,num_timesteps,m,n) 
+      If exporter is None, a four-dimensional array of shape (num_ens_members,num_timesteps,m,n) 
       containing a time series of forecast precipitation fields for each ensemble 
-      member.
+      member. Otherwise, a None value is returned and the results are written 
+      to a file specified with the exporter object.
     """
     _check_inputs(R, V, ar_order)
     
@@ -103,6 +109,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
+    
+    if exporter is not None and exporter["incremental"] != "timestep":
+        raise ValueError("exporter['incremental']='%s', but 'timestep' required'" % exporter["incremental"])
     
     L = R.shape[1]
     extrap_method = advection.get_method(extrap_method)
@@ -282,15 +291,26 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 res.append(dask.delayed(worker)(j))
         
         R_f_ = dask.compute(*res) if dask_imported and num_ens_members > 1 else res
-        for j in range(num_ens_members):
-            R_f[j].append(R_f_[j])
         
         print("done in %.2f seconds." % (time.time() - starttime))
+        
+        if exporter is not None:
+            print("Writing nowcasts for time step %d..." % (t+1), end="")
+            sys.stdout.flush()
+            starttime = time.time()
+            io.exporters.export_nowcast(np.stack(R_f_), exporter)
+            print("done in %.2f seconds." % (time.time() - starttime))
+        else:
+            for j in range(num_ens_members):
+                R_f[j].append(R_f_[j])
     
-    if num_ens_members == 1:
-        return np.stack(R_f[0])
+    if exporter is None:
+        if num_ens_members == 1:
+            return np.stack(R_f[0])
+        else:
+            return np.stack([np.stack(R_f[j]) for j in range(num_ens_members)])
     else:
-        return np.stack([np.stack(R_f[j]) for j in range(num_ens_members)])
+        return None
 
 def _check_inputs(R, V, ar_order):
     if len(R.shape) != 3:

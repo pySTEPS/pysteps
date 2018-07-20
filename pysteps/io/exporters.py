@@ -14,63 +14,80 @@ try:
 except ImportError:
     pyproj_imported = False
 
+# TODO: Define an interface for exporter methods.
+
+# TODO: Write documentation about the written dataset dimensions.
+
 # TODO: This is a draft version of the exporter. Revise the variable names and 
 # the structure of the file if necessary.
-def export_nowcast_netcdf(F, filename, startdate, timestep, metadata):
-    """Write a forecast or a forecast ensemble into a netCDF file in the CF 1.7 
-    format.
+def initialize_nowcast_exporter_netcdf(filename, startdate, timestep, num_timesteps, 
+                                       shape, num_ens_members, metadata, 
+                                       incremental=None):
+    """Initialize a netCDF nowcast exporter.
     
     Parameters
     ----------
-    F : array_like
-        Three- or four-dimensional array containing the forecast F(t,x,y) or a 
-        forecast ensemble F(i,t,y,x), where i is ensemble member, t is lead time 
-        and x and y are grid coordinates. The time index t is assumed to be in 
-        ascending order, and the time steps are assumed to be regular with no 
-        gaps.
     filename : str
         Name of the output file.
     startdate : datetime.datetime
-        Start date of the forecast.
+        Start date of the nowcast.
     timestep : int
-        Time step of the forecast (minutes).
+        Time step of the nowcast (minutes).
+    num_timesteps : int
+        Number of time steps in the nowcast. This argument is ignored if 
+        incremental is set to 'timestep'.
+    shape : tuple
+        Two-element tuple defining the shape (height,width) of the nowcast grids.
+    num_ens_members : int
+        Number of ensemble members in the nowcast. This argument is ignored if 
+        incremental is set to 'member'.
     metadata : dict
         Metadata dictionary containing the projection,x1,x2,y1,y2 and unit 
         attributes described in the documentation of pysteps.io.importers.
+    incremental : str
+        Allow incremental writing of datasets into the netCDF file. The 
+        available options are: 'timestep'=write one nowcast or a nowcast 
+        ensemble per each time step or 'member'=write one forecast sequence per 
+        each ensemble member.
+    
+    Returns
+    -------
+    out : dict
+        An exporter object that can be used with export_nowcast to write 
+        datasets into the netCDF file.
     """
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
+    
     if not pyproj_imported:
         raise Exception("pyproj not imported")
     
-    if len(F.shape) not in [3, 4]:
-        raise ValueError("F has invalid dimensions: must be a three- or four-dimensional array")
+    if incremental not in [None, "timestep", "member"]:
+        raise ValueError("unknown option %s: incremental must be 'timestep' or 'member'" % incremental)
     
-    ds = netCDF4.Dataset(filename, 'w', format="NETCDF4")
+    if incremental == "timestep":
+        num_timesteps = None
+    elif incremental == "member":
+        num_ens_members = None
     
-    ds.Conventions = "CF-1.7"
-    ds.title = "pysteps-generated nowcast"
-    ds.institution = "the pySTEPS community (https://pysteps.github.io)"
-    ds.source = "pysteps" # TODO: Add pySTEPS version here
-    ds.history = ""
-    ds.references = ""
-    ds.comment = ""
+    exporter = {}
     
-    if len(F.shape) == 3:
-        time = ds.createDimension("time", size=F.shape[0])
-        y = ds.createDimension("y",    size=F.shape[1])
-        x = ds.createDimension("x",    size=F.shape[2])
-        w = F.shape[2]
-        h = F.shape[1]
-        num_timesteps = F.shape[0]
-    else:
-        ens_number  = ds.createDimension("ens_number", size=F.shape[0])
-        time = ds.createDimension("time", size=F.shape[1])
-        y = ds.createDimension("y",    size=F.shape[2])
-        x = ds.createDimension("x",    size=F.shape[3])
-        w = F.shape[3]
-        h = F.shape[2]
-        num_timesteps = F.shape[1]
+    ncf = netCDF4.Dataset(filename, 'w', format="NETCDF4")
+    
+    ncf.Conventions = "CF-1.7"
+    ncf.title = "pysteps-generated nowcast"
+    ncf.institution = "the pySTEPS community (https://pysteps.github.io)"
+    ncf.source = "pysteps" # TODO: Add pySTEPS version here
+    ncf.history = ""
+    ncf.references = ""
+    ncf.comment = ""
+    
+    h,w = shape
+    
+    ncf.createDimension("ens_number", size=num_ens_members)
+    ncf.createDimension("time", size=num_timesteps)
+    ncf.createDimension("y", size=h)
+    ncf.createDimension("x", size=w)
     
     if metadata["unit"] == "mm/h":
         var_name = "precip_intensity"
@@ -90,23 +107,12 @@ def export_nowcast_netcdf(F, filename, startdate, timestep, metadata):
     else:
         raise ValueError("unknown unit %s" % metadata["unit"])
     
-    # TODO: Always save the dataset into a four-dimensional array?
-    if len(F.shape) == 3:
-        var_F = ds.createVariable(var_name, np.float32, 
-                                  dimensions=("time", "y", "x"), zlib=True, 
-                                  complevel=9)
-    else:
-        var_F = ds.createVariable(var_name, np.float32, 
-                                  dimensions=("ens_number", "time", "y", "x"), 
-                                  zlib=True, complevel=9)
-    var_F[:] = F
-    
     xr = np.linspace(metadata["x1"], metadata["x2"], w+1)[:-1]
     xr += 0.5 * (xr[1] - xr[0])
     yr = np.linspace(metadata["y1"], metadata["y2"], h+1)[:-1]
     yr += 0.5 * (yr[1] - yr[0])
     
-    var_xc = ds.createVariable("xc", np.float32, dimensions=("x",))
+    var_xc = ncf.createVariable("xc", np.float32, dimensions=("x",))
     var_xc[:] = xr
     var_xc.axis = 'X'
     var_xc.standard_name = "projection_x_coordinate"
@@ -114,7 +120,7 @@ def export_nowcast_netcdf(F, filename, startdate, timestep, metadata):
     # TODO: Don't hard-code the unit.
     var_xc.units = 'm'
     
-    var_yc = ds.createVariable("yc", np.float32, dimensions=("y",))
+    var_yc = ncf.createVariable("yc", np.float32, dimensions=("y",))
     var_yc[:] = yr
     var_yc.axis = 'Y'
     var_yc.standard_name = "projection_y_coordinate"
@@ -126,36 +132,52 @@ def export_nowcast_netcdf(F, filename, startdate, timestep, metadata):
     pr = pyproj.Proj(metadata["projection"])
     lon,lat = pr(X.flatten(), Y.flatten(), inverse=True)
     
-    var_lon = ds.createVariable("lon", np.float, dimensions=("y", "x"))
+    var_lon = ncf.createVariable("lon", np.float, dimensions=("y", "x"))
     var_lon[:] = lon
     var_lon.standard_name = "longitude"
     var_lon.long_name     = "longitude coordinate"
     # TODO: Don't hard-code the unit.
     var_lon.units         = "degrees_east"
     
-    var_lat = ds.createVariable("lat", np.float, dimensions=("y", "x"))
+    var_lat = ncf.createVariable("lat", np.float, dimensions=("y", "x"))
     var_lat[:] = lat
     var_lat.standard_name = "latitude"
     var_lat.long_name     = "latitude coordinate"
     # TODO: Don't hard-code the unit.
     var_lat.units         = "degrees_north"
     
-    ds.projection = metadata["projection"]
+    ncf.projection = metadata["projection"]
     
     grid_mapping_var_name,grid_mapping_name,grid_mapping_params = \
         _convert_proj4_to_grid_mapping(metadata["projection"])
     # skip writing the grid mapping if a matching name was not found
     if grid_mapping_var_name is not None:
-        var_gm = ds.createVariable(grid_mapping_var_name, np.int, dimensions=())
+        var_gm = ncf.createVariable(grid_mapping_var_name, np.int, dimensions=())
         var_gm.grid_mapping_name = grid_mapping_name
         for i in grid_mapping_params.items():
             var_gm.setncattr(i[0], i[1])
     
-    var_time = ds.createVariable("time", np.int, dimensions=("time",))
-    var_time[:] = [i*timestep*60 for i in range(1, num_timesteps+1)]
+    var_ens_num = ncf.createVariable("ens_number", np.int, dimensions=("ens_number",))
+    if incremental != "member":
+        var_ens_num[:] = list(range(1, num_ens_members+1))
+    var_ens_num.long_name = "ensemble member"
+    var_ens_num.units = ""
+    
+    var_time = ncf.createVariable("time", np.int, dimensions=("time",))
+    if incremental != "timestep":
+        var_time[:] = [i*timestep*60 for i in range(1, num_timesteps+1)]
     var_time.long_name = "forecast time"
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
+    
+    if num_ens_members == 1:
+        var_F = ncf.createVariable(var_name, np.float32, 
+                                   dimensions=("time", "y", "x"), zlib=True, 
+                                   complevel=9)
+    else:
+        var_F = ncf.createVariable(var_name, np.float32, 
+                                   dimensions=("ens_number", "time", "y", "x"), 
+                                   zlib=True, complevel=9)
     
     if var_standard_name is not None:
         var_F.standard_name = var_standard_name
@@ -163,7 +185,78 @@ def export_nowcast_netcdf(F, filename, startdate, timestep, metadata):
     var_F.coordinates = "y x"
     var_F.units = var_unit
     
-    ds.close()
+    exporter["method"] = "netcdf"
+    exporter["ncfile"] = ncf
+    exporter["var_F"] = var_F
+    exporter["var_ens_num"] = var_ens_num
+    exporter["var_time"] = var_time
+    exporter["var_name"] = var_name
+    exporter["startdate"] = startdate
+    exporter["timestep"]  = timestep
+    exporter["metadata"]  = metadata
+    exporter["incremental"] = incremental
+    exporter["num_timesteps"] = num_timesteps
+    exporter["num_ens_members"] = num_ens_members
+    exporter["shape"] = shape
+    
+    return exporter
+
+def export_nowcast(F, exporter):
+    """Write a nowcast dataset into a file.
+    
+    Parameters
+    ----------
+    exporter : dict
+        An exporter object created with initialize_nowcast_exporter_netcdf 
+        with num_ens_members=1.
+    F : array_like
+        The dataset to write. The required shape depends on the choice of the 
+        'incremental' parameter the exporter was initialized with:
+        
+        +-------------------+-----------------------------------------------------+
+        |    incremental    |                    required shape                   |
+        +===================+=====================================================+
+        |    None           |  (num_ens_members,num_timesteps,shape[0],shape[1])  |
+        +-------------------+-----------------------------------------------------+
+        |    'timestep'     |  (num_ens_members,shape[0],shape[1])                |
+        +-------------------+-----------------------------------------------------+
+        |    'member'       |  (num_timesteps,shape[0],shape[1])                  |
+        +-------------------+-----------------------------------------------------+
+    """
+    if not netcdf4_imported:
+        raise Exception("netCDF4 not imported")
+    
+    if exporter["incremental"] == None and \
+       F.shape != (exporter["num_ens_members"], exporter["num_timesteps"], 
+                   exporter["shape"][0], exporter["shape"][1]):
+        raise ValueError("F has invalid shape")
+    elif exporter["incremental"] == "timestep" and \
+       F.shape != (exporter["num_ens_members"], exporter["shape"][0], 
+                   exporter["shape"][1]):
+        raise ValueError("F has invalid shape")
+    elif exporter["incremental"] == "member" and \
+        F.shape != (exporter["num_timesteps"], exporter["shape"][0], 
+                    exporter["shape"][1]):
+        raise ValueError("F has invalid shape")
+    
+    if exporter["method"] == "netcdf":
+        _export_netcdf(F, exporter)
+    else:
+        raise ValueError("unknown exporter method %s" % exporter["method"])
+
+def _export_netcdf(F, exporter):
+    var_F = exporter["var_F"]
+    
+    if exporter["incremental"] == None:
+        var_F[:] = F
+    elif exporter["incremental"] == "timestep":
+        var_F[:, var_F.shape[1], :, :] = F
+        var_time = exporter["var_time"]
+        var_time[len(var_time)-1] = len(var_time) * exporter["timestep"] * 60
+    else:
+        var_F[var_F.shape[0], :, :, :] = F
+        var_ens_num = exporter["var_time"]
+        var_ens_num[len(var_ens_num)-1] = len(var_ens_num)
 
 # TODO: Write methods for converting Proj.4 projection definitions into CF grid 
 # mapping attributes. Currently this has been implemented for the stereographic 
