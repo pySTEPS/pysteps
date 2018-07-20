@@ -298,7 +298,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             print("Writing nowcasts for time step %d..." % (t+1), end="")
             sys.stdout.flush()
             starttime = time.time()
-            io.exporters.export_nowcast(np.stack(R_f_), exporter)
+            io.exporters.export_nowcast_dataset(np.stack(R_f_), exporter)
             print("done in %.2f seconds." % (time.time() - starttime))
         else:
             for j in range(num_ens_members):
