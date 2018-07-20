@@ -1,5 +1,14 @@
 """Methods for writing forecasts of 2d precipitation fields into various file 
-formats."""
+formats.
+
+Each exporter method in this module has its own initialization function that 
+implements the following interface:
+
+  initialize_nowcast_exporter_xxx(filename, optional arguments)
+
+where xxx describes the file format. This function creates the file and writes 
+the metadata. The datasets are written by calling export_nowcast dataset, and 
+the file is closed by calling close_nowcast_file."""
 
 import numpy as np
 from datetime import datetime
@@ -17,6 +26,8 @@ except ImportError:
 # TODO: Define an interface for exporter methods.
 
 # TODO: Write documentation about the written dataset dimensions.
+
+# TODO: Replace nowcast with forecast.
 
 # TODO: This is a draft version of the exporter. Revise the variable names and 
 # the structure of the file if necessary.
@@ -46,9 +57,9 @@ def initialize_nowcast_exporter_netcdf(filename, startdate, timestep, num_timest
         attributes described in the documentation of pysteps.io.importers.
     incremental : str
         Allow incremental writing of datasets into the netCDF file. The 
-        available options are: 'timestep'=write one nowcast or a nowcast 
-        ensemble per each time step or 'member'=write one forecast sequence per 
-        each ensemble member.
+        available options are: 'timestep'=write a nowcast or a nowcast 
+        ensemble for a given time step or 'member'=write a forecast sequence 
+        for a given ensemble member.
     
     Returns
     -------
@@ -201,16 +212,20 @@ def initialize_nowcast_exporter_netcdf(filename, startdate, timestep, num_timest
     
     return exporter
 
-def export_nowcast(F, exporter):
-    """Write a nowcast dataset into a file.
+def export_nowcast_dataset(F, exporter):
+    """Write a nowcast array into a file. The written dataset has dimensions 
+    (num_ens_members,num_timesteps,shape[0],shape[1]), where shape refers to 
+    the shape of the two-dimensional nowcast grids. If the exporter was 
+    initialized with incremental!=None, the array is appended to the existing 
+    dataset either along the ensemble member or time axis.
     
     Parameters
     ----------
     exporter : dict
-        An exporter object created with any initialization method impelmented 
+        An exporter object created with any initialization method implemented 
         in this module.
     F : array_like
-        The dataset to write. The required shape depends on the choice of the 
+        The array to write. The required shape depends on the choice of the 
         'incremental' parameter the exporter was initialized with:
         
         +-------------------+-----------------------------------------------------+
@@ -227,12 +242,12 @@ def export_nowcast(F, exporter):
         raise Exception("netCDF4 not imported")
     
     if exporter["incremental"] == None and \
-       F.shape != (exporter["num_ens_members"], exporter["num_timesteps"], 
-                   exporter["shape"][0], exporter["shape"][1]):
+        F.shape != (exporter["num_ens_members"], exporter["num_timesteps"], 
+                    exporter["shape"][0], exporter["shape"][1]):
         raise ValueError("F has invalid shape")
     elif exporter["incremental"] == "timestep" and \
-       F.shape != (exporter["num_ens_members"], exporter["shape"][0], 
-                   exporter["shape"][1]):
+        F.shape != (exporter["num_ens_members"], exporter["shape"][0], 
+                    exporter["shape"][1]):
         raise ValueError("F has invalid shape")
     elif exporter["incremental"] == "member" and \
         F.shape != (exporter["num_timesteps"], exporter["shape"][0], 
@@ -243,6 +258,18 @@ def export_nowcast(F, exporter):
         _export_netcdf(F, exporter)
     else:
         raise ValueError("unknown exporter method %s" % exporter["method"])
+
+def close_nowcast_file(exporter):
+    """Finish writing nowcasts and close the file associated with a nowcast 
+    exporter.
+    
+    Parameters
+    ----------
+    exporter : dict
+        An exporter object created with any initialization method implemented 
+        in this module.
+    """
+    exporter["ncfile"].close()
 
 def _export_netcdf(F, exporter):
     var_F = exporter["var_F"]
