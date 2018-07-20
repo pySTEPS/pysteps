@@ -16,10 +16,11 @@ except ImportError:
 
 # TODO: Using non-square shapes of the inputs has not been tested.
 def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr, 
-             extrap_method, decomp_method, bandpass_filter_method, perturbation_method,
+             extrap_method, decomp_method, bandpass_filter_method, perturbation_method, 
              pixelsperkm, timestep, ar_order=2, vp_par=(10.88,0.23,-7.68), 
              vp_perp=(5.76,0.31,-2.72), conditional=True, use_precip_mask=False, 
-             use_probmatching=True, extrap_kwargs={}, filter_kwargs={}):
+             use_probmatching=True, exporter=None, extrap_kwargs={}, 
+             filter_kwargs={}):
     """Generate a nowcast ensemble by using the STEPS method described in 
     Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
     which merges an extrapolation nowcast with downscaled NWP.
@@ -229,7 +230,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 # from which the mask is obtained
                 if use_precip_mask:
                     R_m[j, i, :, :, :] = \
-                        autoregression.iterate_ar_model(R_m[j, i, :, :], PHI[i, :])
+                        autoregression.iterate_ar_model(R_m[j, i, :, :, :], PHI[i, :])
             
             # compute the recomposed precipitation field(s) from the cascades 
             # obtained from the AR(p) model(s)
