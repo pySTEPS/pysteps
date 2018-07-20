@@ -207,8 +207,8 @@ def export_nowcast(F, exporter):
     Parameters
     ----------
     exporter : dict
-        An exporter object created with initialize_nowcast_exporter_netcdf 
-        with num_ens_members=1.
+        An exporter object created with any initialization method impelmented 
+        in this module.
     F : array_like
         The dataset to write. The required shape depends on the choice of the 
         'incremental' parameter the exporter was initialized with:
