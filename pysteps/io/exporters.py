@@ -4,7 +4,7 @@ formats.
 Each exporter method in this module has its own initialization function that 
 implements the following interface:
 
-  initialize_nowcast_exporter_xxx(filename, startdate, timestep, num_timesteps, 
+  initialize_forecast_exporter_xxx(filename, startdate, timestep, num_timesteps, 
       shape, num_ens_members, metadata, incremental=None)
   
   Parameters
@@ -12,35 +12,35 @@ implements the following interface:
   filename : str
       Name of the output file.
   startdate : datetime.datetime
-      Start date of the nowcast.
+      Start date of the forecast.
   timestep : int
-      Time step of the nowcast (minutes).  
+      Time step of the forecast (minutes).  
   num_timesteps : int
-      Number of time steps in the nowcast. This argument is ignored if 
+      Number of time steps in the forecast. This argument is ignored if 
       incremental is set to 'timestep'.
   shape : tuple
-      Two-element tuple defining the shape (height,width) of the nowcast grids.
+      Two-element tuple defining the shape (height,width) of the forecast grids.
   num_ens_members : int
-      Number of ensemble members in the nowcast. This argument is ignored if 
+      Number of ensemble members in the forecast. This argument is ignored if 
       incremental is set to 'member'.
   metadata : dict
       Metadata dictionary containing the projection,x1,x2,y1,y2 and unit 
       attributes described in the documentation of pysteps.io.importers.
   incremental : str
       Allow incremental writing of datasets into the netCDF file. The 
-      available options are: 'timestep'=write a nowcast or a nowcast 
+      available options are: 'timestep'=write a forecast or a forecast 
       ensemble for a given time step or 'member'=write a forecast sequence 
       for a given ensemble member.
   
   Returns
   -------
   out : dict
-      An exporter object that can be used with export_nowcast to write datasets 
-      into the netCDF file.
+      An exporter object that can be used with export_forecast_dataset to write 
+      datasets into the netCDF file.
 
 where xxx describes the file format. This function creates the file and writes 
-the metadata. The datasets are written by calling export_nowcast dataset, and 
-the file is closed by calling close_nowcast_file."""
+the metadata. The datasets are written by calling export_forecast_dataset, and 
+the file is closed by calling close_forecast_file."""
 
 import numpy as np
 from datetime import datetime
@@ -55,18 +55,12 @@ try:
 except ImportError:
     pyproj_imported = False
 
-# TODO: Define an interface for exporter methods.
-
-# TODO: Write documentation about the written dataset dimensions.
-
-# TODO: Replace nowcast with forecast.
-
 # TODO: This is a draft version of the exporter. Revise the variable names and 
 # the structure of the file if necessary.
-def initialize_nowcast_exporter_netcdf(filename, startdate, timestep, num_timesteps, 
-                                       shape, num_ens_members, metadata, 
-                                       incremental=None):
-    """Initialize a netCDF nowcast exporter.
+def initialize_forecast_exporter_netcdf(filename, startdate, timestep, num_timesteps, 
+                                        shape, num_ens_members, metadata, 
+                                        incremental=None):
+    """Initialize a netCDF forecast exporter.
     
     Parameters
     ----------
@@ -221,10 +215,10 @@ def initialize_nowcast_exporter_netcdf(filename, startdate, timestep, num_timest
     
     return exporter
 
-def export_nowcast_dataset(F, exporter):
-    """Write a nowcast array into a file. The written dataset has dimensions 
+def export_forecast_dataset(F, exporter):
+    """Write a forecast array into a file. The written dataset has dimensions 
     (num_ens_members,num_timesteps,shape[0],shape[1]), where shape refers to 
-    the shape of the two-dimensional nowcast grids. If the exporter was 
+    the shape of the two-dimensional forecast grids. If the exporter was 
     initialized with incremental!=None, the array is appended to the existing 
     dataset either along the ensemble member or time axis.
     
@@ -268,8 +262,8 @@ def export_nowcast_dataset(F, exporter):
     else:
         raise ValueError("unknown exporter method %s" % exporter["method"])
 
-def close_nowcast_file(exporter):
-    """Finish writing nowcasts and close the file associated with a nowcast 
+def close_forecast_file(exporter):
+    """Finish writing forecasts and close the file associated with a forecast 
     exporter.
     
     Parameters
