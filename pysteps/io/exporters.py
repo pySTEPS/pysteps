@@ -4,7 +4,39 @@ formats.
 Each exporter method in this module has its own initialization function that 
 implements the following interface:
 
-  initialize_nowcast_exporter_xxx(filename, optional arguments)
+  initialize_nowcast_exporter_xxx(filename, startdate, timestep, num_timesteps, 
+      shape, num_ens_members, metadata, incremental=None)
+  
+  Parameters
+  ----------
+  filename : str
+      Name of the output file.
+  startdate : datetime.datetime
+      Start date of the nowcast.
+  timestep : int
+      Time step of the nowcast (minutes).  
+  num_timesteps : int
+      Number of time steps in the nowcast. This argument is ignored if 
+      incremental is set to 'timestep'.
+  shape : tuple
+      Two-element tuple defining the shape (height,width) of the nowcast grids.
+  num_ens_members : int
+      Number of ensemble members in the nowcast. This argument is ignored if 
+      incremental is set to 'member'.
+  metadata : dict
+      Metadata dictionary containing the projection,x1,x2,y1,y2 and unit 
+      attributes described in the documentation of pysteps.io.importers.
+  incremental : str
+      Allow incremental writing of datasets into the netCDF file. The 
+      available options are: 'timestep'=write a nowcast or a nowcast 
+      ensemble for a given time step or 'member'=write a forecast sequence 
+      for a given ensemble member.
+  
+  Returns
+  -------
+  out : dict
+      An exporter object that can be used with export_nowcast to write datasets 
+      into the netCDF file.
 
 where xxx describes the file format. This function creates the file and writes 
 the metadata. The datasets are written by calling export_nowcast dataset, and 
@@ -38,34 +70,11 @@ def initialize_nowcast_exporter_netcdf(filename, startdate, timestep, num_timest
     
     Parameters
     ----------
-    filename : str
-        Name of the output file.
-    startdate : datetime.datetime
-        Start date of the nowcast.
-    timestep : int
-        Time step of the nowcast (minutes).
-    num_timesteps : int
-        Number of time steps in the nowcast. This argument is ignored if 
-        incremental is set to 'timestep'.
-    shape : tuple
-        Two-element tuple defining the shape (height,width) of the nowcast grids.
-    num_ens_members : int
-        Number of ensemble members in the nowcast. This argument is ignored if 
-        incremental is set to 'member'.
-    metadata : dict
-        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit 
-        attributes described in the documentation of pysteps.io.importers.
-    incremental : str
-        Allow incremental writing of datasets into the netCDF file. The 
-        available options are: 'timestep'=write a nowcast or a nowcast 
-        ensemble for a given time step or 'member'=write a forecast sequence 
-        for a given ensemble member.
+    See the module docstring.
     
     Returns
     -------
-    out : dict
-        An exporter object that can be used with export_nowcast to write 
-        datasets into the netCDF file.
+    See the module docstring.
     """
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
