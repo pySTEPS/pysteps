@@ -73,8 +73,8 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
     if not with_basemap:
         # Extract extent for imshow function
         if geodata is not None:
-            extent = np.array([geodata['x1'],geodata['x2'],
-                               geodata['y1'],geodata['y2']]) / 1000
+            extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
+                               geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]]) 
             origin = geodata["yorigin"]
         else:
             extent = np.array([0, R.shape[1], 0, R.shape[0]])
@@ -141,7 +141,8 @@ def _plot_precip_field(R, ax, units, colorscale, geodata):
     
     # Extract extent for imshow function
     if geodata is not None:
-        extent = np.array([geodata['x1'],geodata['x2'],geodata['y1'],geodata['y2']]) / 1000
+        extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
+                           geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]]) 
     else:
         extent = np.array([0, R.shape[1], 0, R.shape[0]])
     
