@@ -74,15 +74,18 @@ def import_bom_rf3(filename, **kwargs):
         raise Exception("netCDF4 not imported")
 
     R = _import_bom_rf3_data(filename)
-    metadata = _import_bom_rf3_metadata(filename)
-    projdef = _import_bom_rf3_geodata(filename)
-    metadata["projection"] = projdef
+   
+    geodata = _import_bom_rf3_geodata(filename)
+    metadata = geodata
     # TODO: Add missing georeferencing data.
+    
+    metadata["institution"] = "Bureau of Meteorology"
+    metadata["accutime"]    = 6
+    metadata["unit"]        = "mm/h"
 
     return R, None, metadata
 
 def _import_bom_rf3_data(filename):
-    print(filename)
     ds_rainfall = netCDF4.Dataset(filename)
     if ('precipitation' in ds_rainfall.variables.keys()):
         precipitation = ds_rainfall.variables['precipitation'][:]
@@ -110,7 +113,11 @@ def _import_bom_rf3_data(filename):
     return precipitation
 
 def _import_bom_rf3_geodata(filename):
+
+    geodata = {}
+
     ds_rainfall = netCDF4.Dataset(filename)
+
     if ('proj' in ds_rainfall.variables.keys()):
         projection = ds_rainfall.variables['proj']
         if (getattr(projection, 'grid_mapping_name') ==
@@ -128,17 +135,30 @@ def _import_bom_rf3_geodata(filename):
             projdef += " +lat_2=" + str(standard_parallels[1])
         else:
             projdef = None
+
+    geodata["projection"] = projdef
+    
+    xmin = getattr(ds_rainfall.variables['x'], 'valid_min')
+    xmax = getattr(ds_rainfall.variables['x'], 'valid_max')
+    ymin = getattr(ds_rainfall.variables['y'], 'valid_min')
+    ymax = getattr(ds_rainfall.variables['y'], 'valid_max')
+
+    # TODO: this is only a quick solution
+    geodata["x1"] = xmin*1000
+    geodata["y1"] = ymin*1000
+    geodata["x2"] = xmax*1000
+    geodata["y2"] = ymax*1000
+
+    geodata["xpixelsize"] = abs(ds_rainfall.variables['x'][1] - ds_rainfall.variables['x'][0])*1000.
+    geodata["ypixelsize"] = abs(ds_rainfall.variables['y'][1] - ds_rainfall.variables['y'][0])*1000.
+    
+    # TODO: pixel size is currently hard-coded
+
+    geodata["yorigin"] = "upper" # TODO: check this
+
     ds_rainfall.close()
 
-    return projdef
-
-def _import_bom_rf3_metadata(filename):
-    metadata = {}
-    metadata["institution"] = "Bureau of Meteorology"
-    metadata["accutime"]    = 6
-    metadata["unit"]        = "mm/h"
-
-    return metadata
+    return geodata
 
 def import_fmi_pgm(filename, **kwargs):
     """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
@@ -284,7 +304,7 @@ def import_mch_gif(filename, **kwargs):
 
     # import gif file
     B = PIL.Image.open(filename)
-    
+
     # convert digital numbers to physical values
     if product == "AQC":
         B = np.array(B, dtype=int)
@@ -317,7 +337,7 @@ def import_mch_gif(filename, **kwargs):
         R = np.zeros(len(Brgb.getdata()))
         for i,dn in enumerate(Brgb.getdata()):
             R[i] = lut.get(dn, np.nan)
-            
+
         # convert to original shape
         width, height = B.size
         R = R.reshape(height,width)
@@ -326,7 +346,7 @@ def import_mch_gif(filename, **kwargs):
         # and values in non-precipitating areas to zero.
         R[R<0] = 0
         R[R>1000] = np.nan
-        
+
     else:
         raise ValueError("unknown product %s" % product)
 
@@ -358,20 +378,20 @@ def _import_mch_gif_geodata():
     projdef += " +no_defs"
     geodata["projection"] = projdef
 
-    geodata["x1"] = 255000
-    geodata["y1"] = -160000
-    geodata["x2"] = 965000
-    geodata["y2"] = 480000
+    geodata["x1"] = 255000.
+    geodata["y1"] = -160000.
+    geodata["x2"] = 965000.
+    geodata["y2"] = 480000.
 
-    geodata["xpixelsize"] = 1000
-    geodata["ypixelsize"] = 1000
+    geodata["xpixelsize"] = 1000.
+    geodata["ypixelsize"] = 1000.
 
     geodata["yorigin"] = "upper"
 
     return geodata
 
 def import_odim_hdf5(filename, **kwargs):
-    """Read a precipitation field (and optionally the quality field) from a HDF5 
+    """Read a precipitation field (and optionally the quality field) from a HDF5
     file conforming to the ODIM specification.
 
     Parameters
