@@ -45,8 +45,6 @@ def rankhist_accum(rankhist, X_f, X_o):
     idx = [np.digitize(v.flatten(), f.flatten()) for v,f in \
            zip(X_o[mask], X_f[mask, :])]
     
-    X_min = np.min(X_f, axis=1)
-    
     # handle ties, where the verifying observation lies between ensemble members 
     # having the same value
     for i in range(len(idx)):
