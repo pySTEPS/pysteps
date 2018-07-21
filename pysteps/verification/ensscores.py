@@ -36,7 +36,7 @@ def rankhist_accum(rankhist, X_f, X_o):
       forecast.
     """
     if X_f.shape[1] != rankhist["num_ens_members"]:
-        raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[0], rankhist["num_ens_members"]))
+        raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[1], rankhist["num_ens_members"]))
     
     mask = np.logical_and(np.isfinite(X_o), np.all(np.isfinite(X_f), axis=1))
     
