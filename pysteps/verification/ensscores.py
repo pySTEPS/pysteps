@@ -2,7 +2,7 @@
 
 import numpy as np
 
-def rankhist_init(num_ens_members):
+def rankhist_init(num_ens_members, X_min):
     """Initialize a rank histogram object.
     
     Parameters
@@ -10,6 +10,10 @@ def rankhist_init(num_ens_members):
     num_ens_members : int
       Number ensemble members in the forecasts to accumulate into the rank 
       histogram.
+    X_min : float
+      Threshold for minimum intensity. Forecast-observation pairs, where all 
+      ensemble members and verifying observations are below X_min, are not 
+      counted in the rank histogram.
     
     Returns
     -------
@@ -20,6 +24,7 @@ def rankhist_init(num_ens_members):
     
     rankhist["num_ens_members"] = num_ens_members
     rankhist["n"] = np.zeros(num_ens_members+1, dtype=int)
+    rankhist["X_min"] = X_min
     
     return rankhist
 
@@ -39,6 +44,8 @@ def rankhist_accum(rankhist, X_f, X_o):
         raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[1], rankhist["num_ens_members"]))
     
     mask = np.logical_and(np.isfinite(X_o), np.all(np.isfinite(X_f), axis=1))
+    X_min = rankhist["X_min"]
+    mask = np.logical_and(mask, np.logical_or(X_o >= X_min, np.any(X_f >= X_min, axis=1)))
     
     X_f = X_f.copy()
     X_f.sort(axis=1)
