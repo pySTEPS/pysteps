@@ -184,14 +184,9 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep, num_times
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
     
-    if num_ens_members == 1:
-        var_F = ncf.createVariable(var_name, np.float32, 
-                                   dimensions=("time", "y", "x"), zlib=True, 
-                                   complevel=9)
-    else:
-        var_F = ncf.createVariable(var_name, np.float32, 
-                                   dimensions=("ens_number", "time", "y", "x"), 
-                                   zlib=True, complevel=9)
+    var_F = ncf.createVariable(var_name, np.float32, 
+                               dimensions=("ens_number", "time", "y", "x"), 
+                               zlib=True, complevel=9)
     
     if var_standard_name is not None:
         var_F.standard_name = var_standard_name
