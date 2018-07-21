@@ -21,7 +21,7 @@ def get_method(name):
     +-------------------+---------------------------------------------------------+
     """
     if name.lower() == "bom_rf3":
-        return importers.import_bom
+        return importers.import_bom_rf3
     elif name.lower() == "fmi_pgm":
         return importers.import_fmi_pgm
     if name.lower() == "mch_gif":
