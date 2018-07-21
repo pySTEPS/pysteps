@@ -244,18 +244,21 @@ def export_forecast_dataset(F, exporter):
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
     
-    if exporter["incremental"] == None and \
-        F.shape != (exporter["num_ens_members"], exporter["num_timesteps"], 
-                    exporter["shape"][0], exporter["shape"][1]):
-        raise ValueError("F has invalid shape")
-    elif exporter["incremental"] == "timestep" and \
-        F.shape != (exporter["num_ens_members"], exporter["shape"][0], 
-                    exporter["shape"][1]):
-        raise ValueError("F has invalid shape")
-    elif exporter["incremental"] == "member" and \
-        F.shape != (exporter["num_timesteps"], exporter["shape"][0], 
-                    exporter["shape"][1]):
-        raise ValueError("F has invalid shape")
+    if exporter["incremental"] == None:
+        shp = (exporter["num_ens_members"], exporter["num_timesteps"], 
+               exporter["shape"][0], exporter["shape"][1])
+        if F.shape != shp:
+            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape),str(shp)))
+    elif exporter["incremental"] == "timestep":
+        shp = (exporter["num_ens_members"], exporter["shape"][0], 
+               exporter["shape"][1])
+        if F.shape != shp:
+            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape),str(shp)))
+    elif exporter["incremental"] == "member":
+        shp = (exporter["num_timesteps"], exporter["shape"][0], 
+               exporter["shape"][1])
+        if F.shape != shp:
+            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape),str(shp)))
     
     if exporter["method"] == "netcdf":
         _export_netcdf(F, exporter)
