@@ -48,8 +48,8 @@ def quiver(UV, geodata=None, **kwargs):
     
     # prepare x y coordinates
     if geodata is not None:
-        x = np.arange(geodata['x1']/1000, geodata['x2']/1000)
-        y = np.arange(geodata['y1']/1000, geodata['y2']/1000)
+        x = np.linspace(geodata['x1']/geodata["xpixelsize"], geodata['x2']/geodata["xpixelsize"], UV.shape[2])
+        y = np.linspace(geodata['y1']/geodata["ypixelsize"], geodata['y2']/geodata["ypixelsize"], UV.shape[1])
     else:
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1])
@@ -113,8 +113,8 @@ def streamplot(UV, geodata=None, **kwargs):
     
     # prepare x y coordinates
     if geodata is not None:
-        x = np.linspace(geodata['x1']/1000, geodata['x2']/1000, UV.shape[2])
-        y = np.linspace(geodata['y1']/1000, geodata['y2']/1000, UV.shape[1])
+        x = np.linspace(geodata['x1']/geodata["xpixelsize"], geodata['x2']/geodata["xpixelsize"], UV.shape[2])
+        y = np.linspace(geodata['y1']/geodata["ypixelsize"], geodata['y2']/geodata["ypixelsize"], UV.shape[1])
     else:
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1],0,-1)

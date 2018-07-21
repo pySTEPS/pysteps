@@ -453,6 +453,7 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
          
     # create cKDTree object to represent source grid
     if k is not "all":
+        k = np.min((k, points.shape[0]))
         tree = scipy.spatial.cKDTree(points)
     
     # split grid points in n chunks
