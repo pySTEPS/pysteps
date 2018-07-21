@@ -29,6 +29,8 @@ import pysteps as st
 #+-------+--------------+-------------+----------------------------------------+
 #|  04   | 201705091130 |     fmi     | widespread convective activity         |
 #+-------+--------------+-------------+----------------------------------------+
+#|  05   | 201806161100 |     bom     | bom example data                       |
+#+-------+--------------+-------------+----------------------------------------+
 
 # Set parameters for this tutorial
 
@@ -45,9 +47,9 @@ bandpass_filter     = "gaussian"
 decomp_method       = "fft"
 
 ## forecast parameters
-n_prvs_times        = 9 
+n_prvs_times        = 3 # use at least 9 with DARTS
 n_lead_times        = 12
-n_ens_members       = 20
+n_ens_members       = 5
 n_cascade_levels    = 6
 ar_order            = 2
 R_threshold         = 0.1 # [mm/h]

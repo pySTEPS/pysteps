@@ -29,6 +29,8 @@ import pysteps as st
 #+-------+--------------+-------------+----------------------------------------+
 #|  04   | 201705091130 |     fmi     | widespread convective activity         |
 #+-------+--------------+-------------+----------------------------------------+
+#|  05   | 201806161100 |     bom     | bom example data                       |
+#+-------+--------------+-------------+----------------------------------------+
 
 # Set parameters for this tutorial
 
@@ -41,7 +43,7 @@ oflow_method    = "lucaskanade" # lucaskanade or DARTS
 adv_method      = "semilagrangian"
 
 ## forecast parameters
-n_prvs_times    = 2 # use 9 with DARTS
+n_prvs_times    = 3 # use at least 9 with DARTS
 n_lead_times    = 24
 R_threshold     = 0.1 # [mm/h]
 
