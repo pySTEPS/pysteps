@@ -10,20 +10,20 @@ def animate(R_obs, nloops=2, timestamps=None,
             geodata=None,
             colorscale="MeteoSwiss", units="mm/h", colorbar=True,
             plotanimation=True, savefig=False, path_outputs=""):
-            
+
     """Function to animate observations and forecasts in pysteps.
-    
+
     Parameters
     ----------
     R_obs : array-like
-        Three-dimensional array containing the time series of observed 
-        precipitation field. 
+        Three-dimensional array containing the time series of observed
+        precipitation field.
     nloops : int
         Optional, the number of loops in the animation.
 
     R_for : array-like
-        Optional, the three or four-dimensional (for ensembles) array containing 
-        the time series of forecasted precipitation field. 
+        Optional, the three or four-dimensional (for ensembles) array containing
+        the time series of forecasted precipitation field.
     timestep_min : float
         The time resolution in minutes of the forecast.
     UV : array-like
@@ -31,9 +31,9 @@ def animate(R_obs, nloops=2, timestamps=None,
     motion_plot : string
         The method to plot the motion field.
     geodata : dictionary
-        Optional dictionary containing geographical information about the field. 
+        Optional dictionary containing geographical information about the field.
         If geodata is not None, it must contain the following key-value pairs:
-        
+
         projection   PROJ.4-compatible projection definition
         x1           x-coordinate of the lower-left corner of the data raster (meters)
         y1           y-coordinate of the lower-left corner of the data raster (meters)
@@ -42,10 +42,10 @@ def animate(R_obs, nloops=2, timestamps=None,
         yorigin      a string specifying the location of the first element in
                      the data raster w.r.t. y-axis:
                      'upper' = upper border
-                     'lower' = lower border      
+                     'lower' = lower border
     units : str
         Units of the input array (mm/h or dBZ)
-    colorscale : str 
+    colorscale : str
         Which colorscale to use.
     title : str
         If not None, print the title on top of the plot.
@@ -58,82 +58,95 @@ def animate(R_obs, nloops=2, timestamps=None,
         If set to True, save the individual frames to path_outputs.
     path_outputs : string
         Path to folder where to save the frames.
-    
+
     Returns
     -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
-        
-           
-    if timestamps is not None: 
+
+
+    if timestamps is not None:
         startdate_str = timestamps[-1].strftime("%Y-%m-%d %H:%M")
     else:
         startdate_str = None
-    
+
     if R_for is not None:
-        n_lead_times = R_for.shape[0]
+        if len(R_for.shape) == 3:
+            R_for = R_for[None, :, :, :]
+
+    if R_for is not None:
+        n_lead_times = R_for.shape[1]
+        n_members = R_for.shape[0]
     else:
         n_lead_times = 0
-    
+        n_members = 1
+
+
     loop = 0
     while loop < nloops:
-        
-        for i in range(R_obs.shape[0] + n_lead_times):
-            plt.clf()
 
-            if i < R_obs.shape[0]:
-            
-                if timestamps is not None: 
-                    title = timestamps[i].strftime("%Y-%m-%d %H:%M")
-                else:
-                    title = None
-                
-                st.plt.plot_precip_field(R_obs[i,:,:], False, geodata, 
-                              units=units, colorscale=colorscale, 
-                              title=title, 
-                              colorbar=colorbar)
-                if UV is not None:             
-                    if motion_plot == "quiver":
-                        st.plt.quiver(UV, geodata)
-                    else:    
-                        st.plt.streamplot(UV, geodata)
-                if savefig & (loop == 0):
-                    figname = "%s/%s_frame_%02d.png" % (path_outputs, startdate_str, i)
-                    plt.savefig(figname)
-                    print(figname, 'saved.')
-            elif i >= R_obs.shape[0] and R_for is not None:
-                
-                if timestamps is not None:
-                    title = "%s +%02d min" % (timestamps[-1].strftime("%Y-%m-%d %H:%M"),
-                            (1 + i - R_obs.shape[0])*timestep_min)
-                else:
-                    title = "+%02d min" % (1 + i - R_obs.shape[0])*timestep_min
-                
-                if len(R_for.shape)==3: # deterministic forecast
-                
-                    st.plt.plot_precip_field(R_for[i - R_obs.shape[0],:,:], 
-                                  False, geodata, units=units, 
+        for n in range(n_members):
+
+            for i in range(R_obs.shape[0] + n_lead_times):
+                plt.clf()
+
+                # Observations
+                if i < R_obs.shape[0]:
+
+                    if timestamps is not None:
+                        title = timestamps[i].strftime("%Y-%m-%d %H:%M")
+                    else:
+                        title = None
+
+                    st.plt.plot_precip_field(R_obs[i,:,:], False, geodata,
+                                  units=units, colorscale=colorscale,
+                                  title=title,
+                                  colorbar=colorbar)
+                    if UV is not None and motion_plot is not None:
+                        if motion_plot.lower() == "quiver":
+                            st.plt.quiver(UV, geodata)
+                        elif motion_plot.lower() == "streamplot":
+                            st.plt.streamplot(UV, geodata)
+                    if savefig & (loop == 0):
+                        figname = "%s/%s_frame_%02d.png" % (path_outputs, startdate_str, i)
+                        plt.savefig(figname)
+                        print(figname, 'saved.')
+
+                # Forecasts
+                elif i >= R_obs.shape[0] and R_for is not None:
+
+                    if timestamps is not None:
+                        title = "%s +%02d min" % (timestamps[-1].strftime("%Y-%m-%d %H:%M"),
+                                (1 + i - R_obs.shape[0])*timestep_min)
+                    else:
+                        title = "+%02d min" % (1 + i - R_obs.shape[0])*timestep_min
+
+                    if n_members > 1:
+                        title = "%s (member %02d)" % (title, n)
+
+
+                    st.plt.plot_precip_field(R_for[n, i - R_obs.shape[0],:,:],
+                                  False, geodata, units=units,
                                   title=title,
                                   colorscale=colorscale, colorbar=colorbar)
-                              
-                    if motion_plot == "quiver":
-                        st.plt.quiver(UV, geodata)
-                    elif motion_plot == "streamplot":     
-                        st.plt.streamplot(UV, geodata)           
+                    if UV is not None and motion_plot is not None:
+                        if motion_plot.lower() == "quiver":
+                            st.plt.quiver(UV, geodata)
+                        elif motion_plot.lower() == "streamplot":
+                            st.plt.streamplot(UV, geodata)
                     if savefig & (loop == 0):
                         figname = "%s/%s_frame_%02d.png" % (path_outputs, startdate_str, i)
                         plt.savefig(figname)
                         print(figname, "saved.")
-                
-                elif len(R_for.shape)==4: # ensemble forecast
-                    raise NotImplementedError("not implemented")
-                
+
+                if plotanimation:
+                    plt.pause(.2)
+
             if plotanimation:
-                plt.pause(.2)
-                
-        if plotanimation:
-            plt.pause(.5)
+                plt.pause(.5)
+
+
         loop += 1
 
     plt.close()
