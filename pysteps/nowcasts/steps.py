@@ -19,7 +19,7 @@ except ImportError:
 def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr, 
              extrap_method, decomp_method, bandpass_filter_method, perturbation_method, 
              pixelsperkm, timestep, ar_order=2, vp_par=(10.88,0.23,-7.68), 
-             vp_perp=(5.76,0.31,-2.72), conditional=False, use_precip_mask=False, 
+             vp_perp=(5.76,0.31,-2.72), conditional=False, use_precip_mask=True, 
              use_probmatching=True, exporter=None, extrap_kwargs={}, 
              filter_kwargs={}):
     """Generate a nowcast ensemble by using the STEPS method described in 
