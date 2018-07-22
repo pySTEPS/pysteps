@@ -3,7 +3,7 @@
 import numpy as np
 
 def adjust_lag2_corrcoef(gamma_1, gamma_2):
-    """A simple adjustment of lag-2 temporal autocorrelation coefficients to 
+    """A simple adjustment of lag-2 temporal autocorrelation coefficient to 
     ensure that the resulting AR(2) process is stationary.
     
     Parameters
