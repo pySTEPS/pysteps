@@ -150,12 +150,14 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     # normalize the cascades and rearrange them into a four-dimensional array 
     # of shape (num_cascade_levels,ar_order+1,L,L) for the autoregressive model
     R_c,mu,sigma = _stack_cascades(R_d, num_cascade_levels)
+    R_d = None
     
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((num_cascade_levels, ar_order))
     for i in range(num_cascade_levels):
         R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order+1)])
         GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
+    R_c_ = None
     
     _print_corrcoefs(GAMMA)
     
@@ -182,7 +184,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     R_c = np.stack([R_c.copy() for i in range(num_ens_members)])
     
     if perturbation_method is not None:
-    
         # get methods for perturbations
         init_noise, generate_noise = noise.get_method(perturbation_method)
         
@@ -190,7 +191,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         pp = init_noise(R[-1, :, :])
     
     if vp_par is not None:
-    
         # initialize the perturbation generators for the motion field
         vps = []
         for j in range(num_ens_members):
@@ -206,6 +206,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         war = 1.0*np.sum(R[-1, :, :] >= R_thr) / (R.shape[1]*R.shape[2])
         R_min = np.min(R)
         R_m = R_c.copy()
+    
+    R = R[-1, :, :]
     
     # iterate each time step
     for t in range(num_timesteps):
@@ -226,7 +228,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             
             # iterate the AR(p) model for each cascade level
             for i in range(num_cascade_levels):
-            
                 # normalize the noise cascade
                 if EPS is not None:
                     EPS_ = (EPS["cascade_levels"][i, :, :] - EPS["means"][i]) / EPS["stds"][i]
@@ -241,13 +242,15 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                     R_m[j, i, :, :, :] = \
                         autoregression.iterate_ar_model(R_m[j, i, :, :, :], PHI[i, :])
             
+            EPS  = None
+            EPS_ = None
+            
             # compute the recomposed precipitation field(s) from the cascades 
             # obtained from the AR(p) model(s)
             R_r = _recompose_cascade(R_c[j, :, :, :], mu, sigma)
             if use_precip_mask:
                 R_m_ = _recompose_cascade(R_m[j, :, :, :], mu, sigma)
-            
-            if use_precip_mask:
+                
                 # obtain the precipitation mask from the non-perturbed 
                 # forecast that is scale-filtered by the AR(p) model
                 
@@ -263,11 +266,14 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 # apply the mask
                 MASK_p = R_m_ < R_mask_thr
                 R_r[MASK_p] = R_min
+                
+                R_s  = None
+                R_m_ = None
             
             if use_probmatching:
                 # adjust the empirical probability distribution of the forecast 
                 # to match the most recently measured precipitation field
-                R_r = probmatching.nonparam_match_empirical_cdf(R_r, R[-1, :, :])
+                R_r = probmatching.nonparam_match_empirical_cdf(R_r, R)
             
             # compute the perturbed motion field
             if vp_par is not None:
