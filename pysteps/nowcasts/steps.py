@@ -113,6 +113,39 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     if exporter is not None and exporter["incremental"] != "timestep":
         raise ValueError("exporter['incremental']='%s', but 'timestep' required'" % exporter["incremental"])
     
+    print("Computing STEPS nowcast:")
+    print("------------------------")
+    print("")
+    
+    print("Inputs:")
+    print("-------")
+    print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
+    print("pixels/km:        %g" % pixelsperkm)
+    print("time step:        %d minutes" % timestep)
+    print("")
+    
+    print("Methods:")
+    print("--------")
+    print("extrapolation:        %s" % extrap_method)
+    print("bandpass filter:      %s" % bandpass_filter_method)
+    print("decomposition:        %s" % decomp_method)
+    print("perturbations:        %s" % perturbation_method)
+    print("precipitation mask:   %s" % "yes" if use_precip_mask  else "no")
+    print("probability matching: %s" % "yes" if use_probmatching else "no")
+    print("")
+    
+    print("Parameters:")
+    print("-----------")
+    print("number of time steps:     %d" % num_timesteps)
+    print("ensemble size:            %d" % num_ens_members)
+    print("number of cascade levels: %d" % num_cascade_levels)
+    print("order of the AR(p) model: %d" % ar_order)
+    print("velocity perturbations, parallel:      %g,%g,%g" % (vp_par[0],  vp_par[1],  vp_par[2]))
+    print("velocity perturbations, perpendicular: %g,%g,%g" % (vp_perp[0], vp_perp[1], vp_perp[2]))
+    
+    if conditional:
+        print("conditional precip. intensity threshold: %g" % R_thr)
+    
     L = R.shape[1]
     extrap_method = advection.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
@@ -209,9 +242,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     
     R = R[-1, :, :]
     
+    print("Starting nowcast computation.")
+    
     # iterate each time step
     for t in range(num_timesteps):
-        print("Computing nowcasts for time step %d..." % (t+1), end="")
+        print("Computing nowcast for time step %d... " % (t+1), end="")
         sys.stdout.flush()
         starttime = time.time()
         
@@ -298,14 +333,14 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         
         R_f_ = dask.compute(*res) if dask_imported and num_ens_members > 1 else res
         
-        print("done in %.2f seconds." % (time.time() - starttime))
+        print("%.2f seconds." % (time.time() - starttime))
         
         if exporter is not None:
-            print("Writing nowcasts for time step %d..." % (t+1), end="")
+            print("Writing nowcasts for time step %d ... " % (t+1), end="")
             sys.stdout.flush()
             starttime = time.time()
             io.exporters.export_forecast_dataset(np.stack(R_f_), exporter)
-            print("done in %.2f seconds." % (time.time() - starttime))
+            print("%.2f seconds." % (time.time() - starttime))
         else:
             for j in range(num_ens_members):
                 R_f[j].append(R_f_[j])
