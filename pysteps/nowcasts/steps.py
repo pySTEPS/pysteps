@@ -383,12 +383,14 @@ def _stack_cascades(R_d, num_levels):
   mu    = np.empty(num_levels)
   sigma = np.empty(num_levels)
   
+  num_inputs = len(R_d)
+  
   for i in range(num_levels):
       R_ = []
-      for j in range(len(R_d)):
+      for j in range(num_inputs):
           mu_    = R_d[j]["means"][i]
           sigma_ = R_d[j]["stds"][i]
-          if j == 2:
+          if j == num_inputs - 1:
               mu[i]    = mu_
               sigma[i] = sigma_
           R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
