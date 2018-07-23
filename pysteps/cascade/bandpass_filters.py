@@ -42,8 +42,13 @@ def filter_uniform(N, n, M=None):
         Not used. Needed for compatibility with the filter interface.
     """
     result = {}
-    result["weights_1d"]    = np.ones((1, int(L/2)+1))
-    result["weights_2d"]    = np.ones((1, L, L))
+    
+    if M == None:
+        M = N
+    r_max = int(max(N, M)/2)+1
+    
+    result["weights_1d"]    = np.ones((1, r_max))
+    result["weights_2d"]    = np.ones((1, M, N))
     result["central_freqs"] = None
     
     return result
