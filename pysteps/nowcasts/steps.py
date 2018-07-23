@@ -173,9 +173,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     
     _print_ar_params(PHI, False)
     
-    # discard all except the two last cascades because they are not needed for 
+    # discard all except the p-1 last cascades because they are not needed for 
     # the AR(p) model
-    R_c = R_c[:, 1:, :, :]
+    R_c = R_c[:, -ar_order:, :, :]
     
     # stack the cascades into a five-dimensional array containing all ensemble 
     # members
