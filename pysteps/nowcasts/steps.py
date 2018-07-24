@@ -21,7 +21,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
              pixelsperkm, timestep, ar_order=2, vp_par=(10.88,0.23,-7.68), 
              vp_perp=(5.76,0.31,-2.72), conditional=False, use_precip_mask=True, 
              use_probmatching=True, exporter=None, extrap_kwargs={}, 
-             filter_kwargs={}):
+             filter_kwargs={}, seed=None):
     """Generate a nowcast ensemble by using the STEPS method described in 
     Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
     which merges an extrapolation nowcast with downscaled NWP.
@@ -93,6 +93,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     filter_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
       filter method.
+    seed : int
+      Optional seed number for the random generators.
     
     Returns
     -------
@@ -216,6 +218,17 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     # members
     R_c = np.stack([R_c.copy() for i in range(num_ens_members)])
     
+    # initialize the random generators
+    if perturbation_method is not None:
+        randgen_prec   = []
+        randgen_motion = []
+        np.random.seed(seed)
+        for j in range(num_ens_members):
+            randgen_prec.append(np.random.RandomState(seed))
+            seed = np.random.randint(0, high=1e9)
+            randgen_motion.append(np.random.RandomState(seed))
+            seed = np.random.randint(0, high=1e9)
+    
     if perturbation_method is not None:
         # get methods for perturbations
         init_noise, generate_noise = noise.get_method(perturbation_method)
@@ -228,7 +241,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         vps = []
         for j in range(num_ens_members):
             vp_ = noise.motion.initialize_bps(V, vp_par, vp_perp, pixelsperkm, 
-                                              timestep)
+                                              timestep, randstate=randgen_motion[j])
             vps.append(vp_)
     
     D = [None for j in range(num_ens_members)]
@@ -254,7 +267,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         def worker(j):
             if perturbation_method is not None:
                 # generate noise field
-                EPS = generate_noise(pp)
+                EPS = generate_noise(pp, randstate=randgen_prec[j])
                 # decompose the noise field into a cascade
                 EPS = decomp_method(EPS, filter)
             else:
