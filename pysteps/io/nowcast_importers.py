@@ -54,17 +54,22 @@ def import_netcdf_pysteps(filename, **kwargs):
     
     R = R[...].squeeze().astype(float)
     
+    metadata = {}
+    
+    time_var = ds.variables['time']
+    timestamps = netCDF4.num2date(time_var[:], time_var.units)
+    metadata["timestamps"] = timestamps
+    
     projdef = ""
     if "polar_stereographic" in var_names:
         vn = "polar_stereographic"
     
-    attr_dict = {}
-    for attr_name in ds.variables[vn].ncattrs():
-        attr_dict[attr_name] = ds[vn].getncattr(attr_name)
-    
-    metadata = {}
-    proj_str = _convert_grid_mapping_to_proj4(attr_dict)
-    metadata["projection"] = proj_str
+        attr_dict = {}
+        for attr_name in ds.variables[vn].ncattrs():
+            attr_dict[attr_name] = ds[vn].getncattr(attr_name)
+        
+        proj_str = _convert_grid_mapping_to_proj4(attr_dict)
+        metadata["projection"] = proj_str
     # TODO: Read the metadata to the dictionary.
     
     ds.close()
