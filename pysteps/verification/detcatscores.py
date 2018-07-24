@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+import time
 
 def scores_det_cat_fcst(pred, obs, thr,
                         scores=['csi']):
@@ -23,6 +24,8 @@ def scores_det_cat_fcst(pred, obs, thr,
         the verification results
     """
     
+    starttime = time.time()
+    
     # flatten array if 2D
     pred = pred.flatten()
     obs = obs.flatten()
@@ -37,10 +40,10 @@ def scores_det_cat_fcst(pred, obs, thr,
     M_idx = np.logical_and(predb==0, obsb==1) # predicted no precip even though there was
     R_idx = np.logical_and(predb==0, obsb==0) # correctly predicted no precip
 
-    H = sum(H_idx).astype(float) # hits
-    M = sum(M_idx).astype(float) # misses
-    F = sum(F_idx).astype(float) # false alarms
-    R = sum(R_idx).astype(float) # correct rejections
+    H = sum(H_idx.astype(float)) # hits
+    M = sum(M_idx.astype(float)) # misses
+    F = sum(F_idx.astype(float)) # false alarms
+    R = sum(R_idx.astype(float)) # correct rejections
     tot = H+M+F+R
     
     result = []
@@ -80,5 +83,7 @@ def scores_det_cat_fcst(pred, obs, thr,
             SEDI = (np.log(FA)-np.log(POD)+np.log(1-POD)-np.log(1-FA))/(np.log(FA)
                     +np.log(POD)+np.log(1-POD)+np.log(1-FA))
             result.append(SEDI)
+            
+    print("done in %.2f seconds." % (time.time() - starttime))
             
     return result
