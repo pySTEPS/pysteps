@@ -251,7 +251,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         starttime = time.time()
         
         # iterate each ensemble member
-        res = []
         def worker(j):
             if perturbation_method is not None:
                 # generate noise field
@@ -325,6 +324,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             
             return R_f_
         
+        res = []
         for j in range(num_ens_members):
             if not dask_imported or num_ens_members == 1:
                 res.append(worker(j))
@@ -332,6 +332,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 res.append(dask.delayed(worker)(j))
         
         R_f_ = dask.compute(*res) if dask_imported and num_ens_members > 1 else res
+        res = None
         
         print("%.2f seconds." % (time.time() - starttime))
         
@@ -341,6 +342,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             starttime = time.time()
             io.exporters.export_forecast_dataset(np.stack(R_f_), exporter)
             print("%.2f seconds." % (time.time() - starttime))
+            R_f_ = None
         else:
             for j in range(num_ens_members):
                 R_f[j].append(R_f_[j])
