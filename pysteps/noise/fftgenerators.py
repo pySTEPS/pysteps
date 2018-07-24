@@ -468,7 +468,8 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     
     # set the seed
-    randstate.seed(seed)
+    if seed is not None:
+        randstate.seed(seed)
     
     dim_y = F.shape[2]
     dim_x = F.shape[3]

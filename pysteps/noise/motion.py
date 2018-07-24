@@ -73,7 +73,8 @@ def initialize_bps(V, p_pert_par, p_pert_perp, pixelsperkm, timestep,
     
     perturbator = {}
     
-    randstate.seed(seed)
+    if seed is not None:
+        randstate.seed(seed)
     
     v_pert_x = randstate.laplace()
     v_pert_y = randstate.laplace()
