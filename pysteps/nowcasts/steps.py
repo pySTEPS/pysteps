@@ -5,7 +5,6 @@ import sys
 import time
 from .. import advection
 from .. import cascade
-from .. import io
 from .. import noise
 from ..postproc import probmatching
 from ..timeseries import autoregression, correlation
