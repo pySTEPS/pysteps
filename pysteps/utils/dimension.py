@@ -112,9 +112,9 @@ def square_domain(R, method="pad"):
     if len(R.shape) < 2:
         raise ValueError("The number of dimension must be > 2")
     if len(R.shape) == 2:
-        R = R[None, None, :, :]
+        R = R[None, None, :]
     if len(R.shape) == 3:
-        R = R[None, :, :]
+        R = R[None, :]
     if len(R.shape) > 4:
         raise ValueError("The number of dimension must be <= 4")
         
@@ -163,14 +163,14 @@ def unsquare_domain(R, shape):
     if len(R.shape) < 2:
         raise ValueError("The number of dimension must be > 2")
     if len(R.shape) == 2:
-        R = R[None, None, :, :]
+        R = R[None, None, :]
     if len(R.shape) == 3:
-        R = R[None, :, :]
+        R = R[None, :]
     if len(R.shape) > 4:
         raise ValueError("The number of dimension must be <= 4")
         
-    if R.shape[2] != R.shape[3]:
-        return ValueError("To unsquare R, R must be squared to start with")
+    if R.shape[2] == shape[0] and R.shape[3] == shape[1]:
+        return R.squeeze()
         
     if R.shape[2] == shape[0]:
         idx_buffer = int((R.shape[3] - shape[1])/2.)
