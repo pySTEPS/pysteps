@@ -17,15 +17,13 @@ the filter F of shape (m, n).
 The methods in this module implement the following interface for the generation
 of correlated noise:
 
-  generate_noise_2d_xxx_filter(F, seed=None, keyword arguments)   
+  generate_noise_2d_xxx_filter(F, randstate=np.random, seed=None, optional arguments)
 
-where F (m, n) is a filter returned from an initialization method, and seed 
-can set the seed of the random generator. Additional keyword arguments are included 
-as a dictionary.
-The output of each generator method is a two-dimensional array containing 
-the field of correlated noise cN of shape (m, n).
-
-"""
+where F (m, n) is a filter returned from an initialization method, and randstate 
+and seed can be used to set the random generator and its seed. Additional 
+keyword arguments can be included as a dictionary.
+The output of each generator method is a two-dimensional array containing the 
+field of correlated noise cN of shape (m, n)."""
 
 import numpy as np
 
@@ -181,7 +179,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     
     return np.abs(F)
 
-def generate_noise_2d_fft_filter(F, seed=None):
+def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None):
     """Produces a field of correlated noise using global Fourier filtering.
     
     Parameters
@@ -190,6 +188,8 @@ def generate_noise_2d_fft_filter(F, seed=None):
         Two-dimensional array containing the input filter. 
         It can be computed by related methods.
         All values are required to be finite.
+    randstate : mtrand.RandomState
+        Optional random generator to use. If set to None, use numpy.random.
     seed : int
         Value to set a seed for the generator. None will not set the seed.
     
@@ -203,12 +203,13 @@ def generate_noise_2d_fft_filter(F, seed=None):
         raise ValueError("the input is not two-dimensional array")
     if np.any(~np.isfinite(F)):
       raise ValueError("F contains non-finite values")
-      
+    
     # set the seed
-    np.random.seed(seed)
+    if seed is not None:
+        randstate.seed(seed)
     
     # produce fields of white noise
-    N = np.random.randn(F.shape[0], F.shape[1])
+    N = randstate.randn(F.shape[0], F.shape[1])
     
     # apply the global Fourier filter to impose a correlation structure
     fN = fft.fft2(N, **fft_kwargs)
@@ -428,8 +429,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
         Idxipsd, Idxjpsd = _split_field((0, 2**max_level), (0, 2**max_level), 2**level)
         
     return F
- 
-def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
+
+def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     """Function to compute the locally correlated noise using a nested approach.
 
     Parameters
@@ -437,6 +438,8 @@ def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
     F : array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
+    randstate : mtrand.RandomState
+        Optional random generator to use. If set to None, use numpy.random.
     seed : int
         Value to set a seed for the generator. None will not set the seed.
         
@@ -466,14 +469,15 @@ def generate_noise_2d_ssft_filter(F, seed=None, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     
     # set the seed
-    np.random.seed(seed)
+    if seed is not None:
+        randstate.seed(seed)
     
     dim_y = F.shape[2]
     dim_x = F.shape[3]
     dim = (dim_y, dim_x)
     
     # produce fields of white noise
-    N = np.random.randn(dim_y, dim_x)
+    N = randstate.randn(dim_y, dim_x)
     fN = fft.fft2(N, **fft_kwargs)
     
     # initialize variables
@@ -645,4 +649,3 @@ def _get_mask(Size, idxi, idxj, win_type):
     mask[idxi.item(0):idxi.item(1), idxj.item(0):idxj.item(1)] = wind
     
     return mask
-    

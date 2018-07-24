@@ -1,5 +1,6 @@
 """Implementations of deterministic nowcasting methods."""
 
+import time
 from .. import advection
 
 def forecast(R, V, num_timesteps, extrap_method, extrap_kwargs={}):
@@ -31,9 +32,17 @@ def forecast(R, V, num_timesteps, extrap_method, extrap_kwargs={}):
     """
     _check_inputs(R, V)
     
-    extrap_method = advection.get_method(extrap_method)
+    print("Computing extrapolation nowcast from a %dx%d input grid... " % \
+          (R.shape[0], R.shape[1]), end="")
     
-    return extrap_method(R, V, num_timesteps, **extrap_kwargs)
+    starttime = time.time()
+    
+    extrap_method = advection.get_method(extrap_method)
+    R_f = extrap_method(R, V, num_timesteps, **extrap_kwargs)
+    
+    print("%.2f seconds." % (time.time() - starttime))
+    
+    return R_f
 
 def _check_inputs(R, V):
     if len(R.shape) != 2:
