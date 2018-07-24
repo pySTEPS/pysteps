@@ -20,8 +20,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
              extrap_method, decomp_method, bandpass_filter_method, perturbation_method, 
              pixelsperkm, timestep, ar_order=2, vp_par=(10.88,0.23,-7.68), 
              vp_perp=(5.76,0.31,-2.72), conditional=False, use_precip_mask=True, 
-             use_probmatching=True, exporter=None, extrap_kwargs={}, 
-             filter_kwargs={}, seed=None):
+             use_probmatching=True, callback=None, return_output=True, 
+             extrap_kwargs={}, filter_kwargs={}, seed=None):
     """Generate a nowcast ensemble by using the STEPS method described in 
     Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
     which merges an extrapolation nowcast with downscaled NWP.
@@ -83,10 +83,16 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
       If True, apply probability matching to the forecast field in order to 
       preserve the distribution of the most recently observed precipitation 
       field.
-    exporter : dict
-       Optional nowcast exporter for writing intermediate results to files, which 
-       reduces memory usage. The exporter must be a dictionary created with 
-       a method defined in pysteps.io.exporters and with incremental="timestep".
+    callback : function
+      Optional function that is called after computation of each time step of 
+      the nowcast. The function takes one argument: a three-dimensional array 
+      of shape (num_ens_members,h,w), where h and w are the height and width 
+      of the input field R, respectively. This can be used, for instance, 
+      writing the outputs into files.
+    return_output : bool
+      Set to False to disable returning the outputs as numpy arrays. This can 
+      save memory if the intermediate results are written to output files using 
+      the callback function.
     extrap_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
       extrapolation method.
@@ -99,10 +105,10 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     Returns
     -------
     out : ndarray
-      If exporter is None, a four-dimensional array of shape (num_ens_members,num_timesteps,m,n) 
-      containing a time series of forecast precipitation fields for each ensemble 
-      member. Otherwise, a None value is returned and the results are written 
-      to a file specified with the exporter object.
+      If return_output is True, a four-dimensional array of shape 
+      (num_ens_members,num_timesteps,m,n) containing a time series of forecast 
+      precipitation fields for each ensemble member. Otherwise, a None value 
+      is returned.
     """
     _check_inputs(R, V, ar_order)
     
@@ -111,9 +117,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
-    
-    if exporter is not None and exporter["incremental"] != "timestep":
-        raise ValueError("exporter['incremental']='%s', but 'timestep' required'" % exporter["incremental"])
     
     print("Computing STEPS nowcast:")
     print("------------------------")
@@ -349,18 +352,15 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         
         print("%.2f seconds." % (time.time() - starttime))
         
-        if exporter is not None:
-            print("Writing nowcasts for time step %d ... " % (t+1), end="")
-            sys.stdout.flush()
-            starttime = time.time()
-            io.exporters.export_forecast_dataset(np.stack(R_f_), exporter)
-            print("%.2f seconds." % (time.time() - starttime))
+        if callback is not None:
+            callback(np.stack(R_f_))
             R_f_ = None
-        else:
+        
+        if return_output:
             for j in range(num_ens_members):
                 R_f[j].append(R_f_[j])
     
-    if exporter is None:
+    if return_output:
         if num_ens_members == 1:
             return np.stack(R_f[0])
         else:
