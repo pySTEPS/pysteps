@@ -2,7 +2,6 @@
 """
 
 import numpy as np
-import time
 
 def scores_det_cat_fcst(pred, obs, thr,
                         scores=['csi']):
@@ -23,8 +22,6 @@ def scores_det_cat_fcst(pred, obs, thr,
     result : list
         the verification results
     """
-    
-    starttime = time.time()
     
     # flatten array if 2D
     pred = pred.flatten()
@@ -83,7 +80,5 @@ def scores_det_cat_fcst(pred, obs, thr,
             SEDI = (np.log(FA)-np.log(POD)+np.log(1-POD)-np.log(1-FA))/(np.log(FA)
                     +np.log(POD)+np.log(1-POD)+np.log(1-FA))
             result.append(SEDI)
-            
-    print("done in %.2f seconds." % (time.time() - starttime))
             
     return result
