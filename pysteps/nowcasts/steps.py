@@ -76,7 +76,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     use_probmatching : bool
       If True, apply probability matching to the forecast field in order to 
       preserve the distribution of the most recently observed precipitation 
-      field. In this case, use_precip_mask is also set to True.
+      field.
     callback : function
       Optional function that is called after computation of each time step of 
       the nowcast. The function takes one argument: a three-dimensional array 
@@ -119,9 +119,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
-    
-    if use_probmatching:
-        use_precip_mask = True
     
     print("Computing STEPS nowcast:")
     print("------------------------")
@@ -270,7 +267,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     if use_precip_mask or use_probmatching:
         MASK_thr = R[-1, :, :] >= R_thr
     
-    if use_precip_mask:
+    if use_probmatching:
         # compute the wet area ratio and the precipitation mask
         war = 1.0*np.sum(MASK_thr) / (R.shape[1]*R.shape[2])
         R_min = np.min(R)
@@ -323,14 +320,15 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             # compute the recomposed precipitation field(s) from the cascades 
             # obtained from the AR(p) model(s)
             R_r = _recompose_cascade(R_c[j, :, :, :], mu, sigma)
-            if use_precip_mask:
+            
+            if use_probmatching:
                 # obtain the precipitation mask from the non-perturbed 
                 # forecast that is scale-filtered by the AR(p) model
                 #R_m_ = _recompose_cascade(R_m[j, :, :, :], mu, sigma)
                 
                 #R_s = R_m_.flatten()
                 
-                # compute the threshold value R_mask_thr corresponding to the 
+                # compute the threshold value R_pct_thr corresponding to the 
                 # same fraction of precipitation pixels (forecast values above 
                 # R_min) as in the most recently observed precipitation field
                 R_s = R_r.flatten()
@@ -340,19 +338,19 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 # handle ties
                 if R_s[i] == R_s[i + 1]:
                     i = np.where(R_s == R_s[i])[0][-1] + 1
-                R_mask_thr = R_s[i]
+                R_pct_thr = R_s[i]
                 
                 # apply the mask and adjust the intensity values to preserve 
                 # the wet-area ratio
-                MASK_p = R_r < R_mask_thr
-                R_r[~MASK_p] = R_r[~MASK_p] + (R_thr - R_mask_thr)
+                MASK_p = R_r < R_pct_thr
+                R_r[~MASK_p] = R_r[~MASK_p] + (R_thr - R_pct_thr)
                 R_r[MASK_p] = R_min
                 
                 R_s  = None
                 #R_m_ = None
-            
-            if use_probmatching:
-                # adjust the conditional CDF of the forecast to match the most 
+                
+                # adjust the conditional CDF of the forecast (precipitation 
+                # intensity above the threshold R_thr) to match the most 
                 # recently measured precipitation field
                 R_out_hist = np.histogram(R_r[~MASK_p], bins=pmm_bin_edges)[0]
                 R_out_cdf = probmatching.compute_empirical_cdf(pmm_bin_edges, R_out_hist)
