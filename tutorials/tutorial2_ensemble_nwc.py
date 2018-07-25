@@ -42,18 +42,23 @@ data_source   = "mch"
 oflow_method        = "lucaskanade" # lucaskanade or darts
 nwc_method          = "STEPS"
 adv_method          = "semilagrangian"
-noise_method        = "parametric" # nonparametric or nested
+noise_method        = "nonparametric" # paramtric or nonparametric
 bandpass_filter     = "gaussian" 
 decomp_method       = "fft"
 
 ## forecast parameters
 n_prvs_times        = 3 # use at least 9 with DARTS
 n_lead_times        = 12
-n_ens_members       = 5
+n_ens_members       = 3
 n_cascade_levels    = 6
 ar_order            = 2
-R_threshold         = 0.1 # [mm/h]
+r_threshold         = 0.1 # [mm/h]
 prob_matching       = True
+precip_mask         = True
+conditional         = True
+unit                = "mm/h" # mm/h or dBZ
+transformation      = "dB"   # None or dB 
+adjust_domain       = "square_domain"
 
 ## visualization parameters
 colorscale      = "MeteoSwiss" # MeteoSwiss or STEPS-BE
@@ -96,50 +101,55 @@ importer = st.io.get_method(importer)
 
 ## read radar field files
 R, _, metadata = st.io.read_timeseries(input_files, importer, **importer_kwargs)
+Rmask = np.isnan(R)
 
 # Prepare input files
 print("Prepare the data...")
 
 ## make sure we work with a square domain
-orig_field_dim = R.shape[1:]
-R = st.utils.square_domain(R, "pad")
+reshaper = st.utils.get_method(adjust_domain)
+R, metadata = reshaper(R, metadata, method="pad")
 
-## convert units
-data_units = metadata["unit"]
-if data_units is "dBZ":
-    R = st.utils.dBZ2mmhr(R, R_threshold)
+## if necessary, convert to rain rates [mm/h]    
+converter = st.utils.get_method(unit)
+R, metadata = converter(R, metadata)
 
-## convert linear rainrates to logarithimc dBR units
-dBR, dBRmin = st.utils.mmhr2dBR(R, R_threshold)
-dBR[~np.isfinite(dBR)] = dBRmin
+## threshold the data
+R[R<r_threshold] = 0.0
+metadata["threshold"] = r_threshold
+
+## transform the data
+transformer = st.utils.get_method(transformation)
+R, metadata = transformer(R, metadata)
+
+## set NaN equal to zero
+R[~np.isfinite(R)] = metadata["zerovalue"]
 
 # Compute motion field
-print("Compute the motion vectors...")
-
 oflow_method = st.optflow.get_method(oflow_method)
-UV = oflow_method(dBR) 
+UV = oflow_method(R) 
 
 # Perform the nowcast
-print("Compute the ensemble nowcast...")
-
-# Generate the ensemble nowcast
 nwc_method = st.nowcasts.get_method(nwc_method)
-dBR_forecast = nwc_method(dBR, UV, n_lead_times, n_ens_members, 
-                    n_cascade_levels, R_threshold, adv_method, decomp_method, 
+R_fct = nwc_method(R, UV, n_lead_times, n_ens_members, 
+                    n_cascade_levels, metadata["threshold"], adv_method, decomp_method, 
                     bandpass_filter, noise_method, 
-                    metadata["xpixelsize"]/1000, timestep, 
+                    metadata["xpixelsize"]/1000, timestep, ar_order=ar_order,
+                    conditional=conditional, use_precip_mask=precip_mask, 
                     use_probmatching=prob_matching)
 
-## convert the forecasted dBR to mm/h
-R_forecast = st.utils.dBR2mmhr(dBR_forecast, R_threshold)
+## trasnform back values to mm/h
+R_fct, _    = transformer(R_fct, metadata, inverse=True)
+R, metadata = transformer(R, metadata, inverse=True)
 
 ## readjust to initial domain shape
-R          = st.utils.unsquare_domain(R,          orig_field_dim)
-R_forecast = st.utils.unsquare_domain(R_forecast, orig_field_dim)
+R_fct, _    = reshaper(R_fct, metadata, inverse=True)
+R, metadata = reshaper(R, metadata, inverse=True)
 
-## plot the nowcast...
+## plot the nowcast..
+R[Rmask] = np.nan # reapply radar mask
 st.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
-               R_for=R_forecast, timestep_min=timestep,
+               R_for=R_fct, timestep_min=timestep,
                UV=UV, motion_plot=motion_plot,
                geodata=metadata, colorscale=colorscale,
                plotanimation=True, savefig=False, path_outputs=path_outputs) 
@@ -150,22 +160,24 @@ print("Forecast verification...")
 ## find the verifying observations
 input_files_verif = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
                                         fn_ext, timestep, 0, n_lead_times)
-if all(fpath is None for fpath in input_files_verif[0]):
-    raise ValueError("Verification data not found")
 
 ## read observations
-Robs, _, _ = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
-Robs = Robs[1:,:,:]
+R_obs, _, metadata_obs = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
+R_obs = R_obs[1:,:,:]
+metadata_obs["timestamps"] = metadata_obs["timestamps"][1:]
 
-## convert units
-if data_units is "dBZ":
-    Robs = st.utils.dBZ2mmhr(Robs, R_threshold)
+## if necessary, convert to rain rates [mm/h]    
+R_obs, metadata_obs = converter(R_obs, metadata_obs)
+
+## threshold the data
+R_obs[R_obs<r_threshold] = 0.0
+metadata_obs["threshold"] = r_threshold
 
 ## compute the average continuous ranked probability score (CRPS)
 scores = np.zeros(n_lead_times)*np.nan
 for i in range(n_lead_times):
-    scores[i] = st.vf.CRPS(R_forecast[:,i,:,:].reshape((n_ens_members, -1)).transpose(), 
-                           Robs[i,:,:].flatten())
+    scores[i] = st.vf.CRPS(R_fct[:,i,:,:].reshape((n_ens_members, -1)).transpose(), 
+                           R_obs[i,:,:].flatten())
 
 ## if already exists, load the figure object to append the new verification results
 filename = "%s/%s" % (path_outputs, "tutorial2_fig_verif")

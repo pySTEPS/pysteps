@@ -45,7 +45,9 @@ adv_method      = "semilagrangian"
 ## forecast parameters
 n_prvs_times    = 3 # use at least 9 with DARTS
 n_lead_times    = 24
-R_threshold     = 0.1 # [mm/h]
+unit            = "mm/h" # mm/h or dBZ
+transformation  = "dB"   # None or dB 
+r_threshold     = 0.1 # [mm/h]
 
 ## visualization parameters
 colorscale      = "MeteoSwiss" # MeteoSwiss or STEPS-BE
@@ -53,7 +55,7 @@ motion_plot     = "quiver" # streamplot or quiver
 
 ## verification parameters
 skill_score     = "CSI"
-verif_thr       = 1 # [mm/h]
+v_threshold     = 1 # [mm/h]
  
 # Read-in the data
 print('Read the data...')
@@ -87,41 +89,48 @@ startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 ## find radar field filenames
 input_files = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
                                  fn_ext, timestep, n_prvs_times, 0)
-
 importer = st.io.get_method(importer)
 
 ## read radar field files
 R, _, metadata = st.io.read_timeseries(input_files, importer, **importer_kwargs)
+Rmask = np.isnan(R)
 print("The data array has size [nleadtimes,nrows,ncols] =", R.shape)
-orig_field_dim = R.shape
 
 # Prepare input files
 print("Prepare the data...")
 
-## convert units
-data_units = metadata["unit"]
-if data_units is "dBZ":
-    R = st.utils.dBZ2mmhr(R, R_threshold)
+## if necessary, convert to rain rates [mm/h]    
+converter = st.utils.get_method(unit)
+R, metadata = converter(R, metadata)
 
-## convert linear rainrates to logarithimc dBR units
-dBR, dBRmin = st.utils.mmhr2dBR(R, R_threshold)
-dBR[~np.isfinite(dBR)] = dBRmin
+## threshold the data
+R[R<r_threshold] = 0.0
+metadata["threshold"] = r_threshold
+
+## transform the data
+transformer = st.utils.get_method(transformation)
+R, metadata = transformer(R, metadata)
+
+## set NaN equal to zero
+R[~np.isfinite(R)] = metadata["zerovalue"]
 
 # Compute motion field
 oflow_method = st.optflow.get_method(oflow_method)
-UV = oflow_method(dBR) 
+UV = oflow_method(R) 
 
 # Perform the advection of the radar field
 adv_method = st.advection.get_method(adv_method) 
-dBR_forecast = adv_method(dBR[-1,:,:], UV, n_lead_times, verbose=True) 
+R_fct = adv_method(R[-1,:,:], UV, n_lead_times, verbose=True)
+print("The forecast array has size [nleadtimes,nrows,ncols] =", R_fct.shape)
 
-## convert the forecasted dBR to mm/h
-R_forecast = st.utils.dBR2mmhr(dBR_forecast, R_threshold)
-print("The forecast array has size [nleadtimes,nrows,ncols] =", R_forecast.shape)
+## trasnform back values to mm/h
+R_fct, _ = transformer(R_fct, metadata, inverse=True)
+R, metadata = transformer(R, metadata, inverse=True)
 
 ## plot the nowcast...
+R[Rmask] = np.nan # reapply radar mask
 st.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
-               R_for=R_forecast, timestep_min=timestep,
+               R_for=R_fct, timestep_min=timestep,
                UV=UV, motion_plot=motion_plot,
                geodata=metadata, colorscale=colorscale,
                plotanimation=True, savefig=False, path_outputs=path_outputs) 
@@ -134,18 +143,21 @@ input_files_verif = st.io.find_by_date(startdate, root_path, path_fmt, fn_patter
                                         fn_ext, timestep, 0, n_lead_times)
 
 ## read observations
-Robs, _, _ = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
-Robs = Robs[1:,:,:]
+R_obs, _, metadata_obs = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
+R_obs = R_obs[1:,:,:]
 
-## convert units
-if data_units is "dBZ":
-    Robs = st.utils.dBZ2mmhr(Robs, R_threshold)
+## if necessary, convert to rain rates [mm/h]    
+R_obs, metadata_obs = converter(R_obs, metadata_obs)
+
+## threshold the data
+R_obs[R_obs<r_threshold] = 0.0
+metadata_obs["threshold"] = r_threshold
 
 ## compute verification scores
 scores = np.zeros(n_lead_times)*np.nan
 for i in range(n_lead_times):
-    scores[i] = st.vf.scores_det_cat_fcst(R_forecast[i,:,:], Robs[i,:,:], 
-                                          verif_thr, [skill_score])[0]
+    scores[i] = st.vf.scores_det_cat_fcst(R_fct[i,:,:], R_obs[i,:,:], 
+                                          v_threshold, [skill_score])[0]
 
 ## if already exists, load the figure object to append the new verification results
 filename = "%s/%s" % (path_outputs, "tutorial1_fig_verif")

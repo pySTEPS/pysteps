@@ -24,7 +24,13 @@ The metadata dictionary contains the following mandatory key-value pairs:
                  'lower' = lower border
     institution  name of the institution who provides the data
     timestep     time step of the input data (minutes)
-    unit         the unit of the data: 'mm/h', 'mm' or 'dBZ'
+    unit         the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
+    transform    the transformation of the data: None, 'dB', 'Box-Cox' or others
+    accutime     the accumulation time in minutes of the data, float
+    threshold    the rain/no rain threshold with the same unit, transformation
+                 and accutime of the data. 
+    zerovalue    it is the value assigned to the no rain pixels with the same 
+                 unit, transformation and accutime of the data. 
 """
 
 try:
@@ -70,7 +76,13 @@ def import_netcdf_pysteps(filename, **kwargs):
         
         proj_str = _convert_grid_mapping_to_proj4(attr_dict)
         metadata["projection"] = proj_str
+        
     # TODO: Read the metadata to the dictionary.
+    metadata["accutime"]    = None
+    metadata["unit"]        = None
+    metadata["transform"]   = None
+    metadata["zerovalue"]   = np.nanmin(R)
+    metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
     
     ds.close()
     

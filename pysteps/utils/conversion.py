@@ -1,128 +1,209 @@
-''' Functions to convert rainrate to dBR or reflectivity (and viceversa)'''
+""" Methods to convert physical units
+"""
 
 import numpy as np
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) # To desactivate warnings for comparison operators with NaNs
 
-def mmhr2dBR(R, R_threshold=0.1):
-    """Function to convert rainrates to dBR.
-    The values below the R_threshold receive all the dBR value corresponding to the threshold.
-    This procedure removes the sharp "step" at the rain/no-rain transition, which should have a positive impact on power spectrum estimates.
-    
-    Parameters 
-    ---------- 
-    R : array-like 
-        Array of any shape containing the rainrates.
-    R_threshold : float 
-        Rainfall threshold value.
-    
-    Returns: 
-    ----------
-    dBR : array-like 
-        Array of any shape containing the dBR of rainrates.
-    dBR_threshold : float 
-        dBR value associated to the rainfall threshold.
-    """
-    
-    # Set all values below threshold to zero
-    zeros = (R < R_threshold)
-    
-    # Convert mmhr to dBR
-    dBR = np.zeros_like(R)
-    dBR[~zeros] = 10.0*np.log10(R[~zeros])
-    
-    # Set the zeros ot the mindBR value of the threshold
-    dBR_threshold = 10.0*np.log10(R_threshold) 
-    dBR[zeros] = dBR_threshold - 1e-9 # remove small offset to account for numerical precision
-    
-    return dBR, dBR_threshold
+from . import transformation
 
-def dBR2mmhr(dBR, R_threshold=0.1):
-    """Function to convert dBR to rainrates.
-    
-    Parameters 
-    ---------- 
-    dBR : array-like 
-        Array of any shape containing the dBR values
-    R_threshold : float 
-        Rainfall threshold value.
-    
-    Returns: 
-    ----------
-    R : array-like 
-        Array of any shape containing the rainrates.
-    """
-    
-    # Convert dBR to mmhr
-    R = 10.0**(dBR/10.0)
-    
-    # Set all values below or equal to threshold to zero
-    zeros = (R <= R_threshold)
-    R[zeros] = 0.0
-    
-    return R
-    
-def mmmhr2dBZ(R, R_threshold=0.1, A=316.0, b=1.5):
-    """Function to convert rainrates to dBZ.
-    The values below the R_threshold receive all the dBR value corresponding to the threshold.
+def to_rainrate(R, metadata, a=None, b=None):
+    """Convert to rain rate [mm/h].
     
     Parameters 
     ---------- 
     R : array-like 
-        Array of any shape containing the rainrates.
-    R_threshold : float 
-        Rainfall threshold value.
-    A: float
-        Slope parameter of the Z-R relationship.
-    B: float
-        Power parameter of the Z-R relationship.
-    
+        Array of any shape to be (back-)transformed.
+    metadata : dict
+        The metadata dictionary contains all data-related information.
+    a,b : float
+        Optional, the a and b coefficients of the Z-R relationship. 
+        
     Returns: 
-    ----------
-    dBZ : array-like 
-        Array of any shape containing the reflectivity in dBZ.
-    dBZ_threshold : float 
-        dBZ value associated to the R_threshold.
+    --------
+    R : array-like 
+        Array of any shape containing the converted units.
+    metadata : dict 
+        The metadata with updated attributes.
     """
     
-    # Set all values below threshold to zero
-    zeros = (R < R_threshold)
+    R = R.copy()
+    metadata = metadata.copy()
     
-    # Convert mmhr to dBZ
-    dBZ = np.zeros_like(R)
-    dBZ[~zeros] = 10.0*np.log10(A*R[~zeros]**b)
+    if metadata["unit"].lower() == "mm/h" and metadata["transform"] is None: 
+        
+        pass
+            
+    elif metadata["unit"].lower() == "mm" and metadata["transform"] is None: 
+        
+        threshold = metadata["threshold"] # convert the threshold, too
+        zerovalue = metadata["zerovalue"] # convert the zerovalue, too
+        
+        R = R/float(metadata["accutime"])*60.0
+        threshold = threshold/float(metadata["accutime"])*60.0
+        zerovalue = zerovalue/float(metadata["accutime"])*60.0
+        
+        metadata["threshold"] = threshold
+        metadata["zerovalue"] = zerovalue
+            
+    elif metadata["unit"].lower() == "dbz" and metadata["transform"].lower() == "db": 
+                  
+        # dBZ to Z
+        R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+        threshold = metadata["threshold"] # convert the threshold, too
+        zerovalue = metadata["zerovalue"] # convert the zerovalue, too
+        
+        # Z to R
+        if a is None:
+            a = metadata.get("zr_a", 316.0)
+        if b is None:
+            b = metadata.get("zr_b", 1.5)
+        R = (R/a)**(1.0/b)
+        threshold = (threshold/a)**(1.0/b)
+        zerovalue = (zerovalue/a)**(1.0/b)
+                
+        metadata["zr_a"] = a
+        metadata["zr_b"] = b
+        metadata["threshold"] = threshold
+        metadata["zerovalue"] = zerovalue
+        
+    else:
+        raise ValueError("Cannot convert unit %s and transform %s to mm/h" % (metadata["unit"], metadata["transform"]))
+        
+    metadata["unit"] = "mm/h"
     
-    # Set the zeros ot the mindBR value of the threshold
-    dBZ_threshold = 10.0*np.log10(A*R**b)
-    dBZ[zeros] = dBZ_threshold - 1e-9 # remove small offset to account for numerical precision
+    return R, metadata
     
-    return dBR, dBZ_threshold
-    
-def dBZ2mmhr(dBZ, R_threshold=0.1, A=316.0, b=1.5):
-    """Function to convert dBZ to rainrates.
+def to_raindetph(R, metadata, a=None, b=None):
+    """Convert to rain depth [mm].
     
     Parameters 
     ---------- 
-    dBZ : array-like 
-        Array of any shape containing the dBZ values.
-    R_threshold : float 
-        Rainfall threshold value.
-    A: float
-        Slope parameter of the Z-R relationship.
-    B: float
-        Power parameter of the Z-R relationship.
-    
-    Returns: 
-    ----------
     R : array-like 
-        Array of any shape containing the rainrates.
+        Array of any shape to be (back-)transformed.
+    metadata : dict
+        The metadata dictionary contains all data-related information.
+    a,b : float
+        Optional, the a and b coefficients of the Z-R relationship. 
+        
+    Returns: 
+    --------
+    R : array-like 
+        Array of any shape containing the converted units.
+    metadata : dict 
+        The metadata with updated attributes.
     """
     
-    # Convert dBZ to mmhr
-    R = (10.0**(dBZ/10.0)/A)**(1.0/b)
+    R = R.copy()
+    metadata = metadata.copy()
+      
+    if metadata["unit"].lower() == "mm" and metadata["transform"] is None: 
+        
+        pass
+            
+    elif metadata["unit"].lower() == "mm/h" and metadata["transform"] is None: 
+        
+        threshold = metadata["threshold"] # convert the threshold, too
+        zerovalue = metadata["zerovalue"] # convert the zerovalue, too
+        
+        R = R/60.0*metadata["accutime"]
+        threshold = threshold/60.0*metadata["accutime"]
+        zerovalue = zerovalue/60.0*metadata["accutime"]
+        
+        metadata["threshold"] = threshold
+        metadata["zerovalue"] = zerovalue
+            
+    elif metadata["unit"].lower() == "dbz" and metadata["transform"].lower() == "db": 
+                  
+        # dBZ to Z
+        R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+        threshold = metadata["threshold"] # convert the threshold, too
+        zerovalue = metadata["zerovalue"] # convert the zerovalue, too
+        
+        # Z to R
+        if a is None:
+            a = metadata.get("zr_a", 316.0)
+        if b is None:
+            b = metadata.get("zr_b", 1.5)
+        R = (R/a)**(1.0/b)/60.0*metadata["accutime"]
+        threshold = (threshold/a)**(1.0/b)/60.0*metadata["accutime"]
+        zerovalue = (zerovalue/a)**(1.0/b)/60.0*metadata["accutime"]
+                
+        metadata["zr_a"] = a
+        metadata["zr_b"] = b
+        metadata["threshold"] = threshold
+        metadata["zerovalue"] = zerovalue
+        
+    else:
+        raise ValueError("Cannot convert unit %s and transform %s to mm" % (metadata["unit"], metadata["transform"]))
+        
+    metadata["unit"] = "mm"
     
-    # Set all values below or equal to threshold to zero
-    zeros = (R <= R_threshold)
-    R[zeros] = 0.0
+    return R, metadata
     
-    return R
+def to_reflectivity(R, metadata, a=None, b=None):
+    """Convert to reflectivity [dBZ].
+    
+    Parameters 
+    ---------- 
+    R : array-like 
+        Array of any shape to be (back-)transformed.
+    metadata : dict
+        The metadata dictionary contains all data-related information.
+    a,b : float
+        Optional, the a and b coefficients of the Z-R relationship. 
+        
+    Returns: 
+    --------
+    R : array-like 
+        Array of any shape containing the converted units.
+    metadata : dict 
+        The metadata with updated attributes.
+    """
+    
+    R = R.copy()
+    metadata = metadata.copy()
+      
+    if metadata["unit"].lower() == "mm/h" and metadata["transform"] is None: 
+        
+        # R to Z
+        if a is None:
+            a = metadata.get("zr_a", 316.0)
+        if b is None:
+            b = metadata.get("zr_b", 1.5)
+            
+        R = a*R**b
+        metadata["threshold"] = a*threshold**b
+        metadata["zerovalue"] = a*zerovalue**b
+        
+        # Z to dBZ
+        R, metadata = transformation.dB_transform(R, metadata)
+        
+            
+    elif metadata["unit"].lower() == "mm" and metadata["transform"] is None: 
+    
+        # depth to rate
+        R, metadata = to_rainrate(R, metadata)
+        
+        # R to Z
+        if a is None:
+            a = metadata.get("zr_a", 316.0)
+        if b is None:
+            b = metadata.get("zr_b", 1.5)
+        R = a*R**b
+        metadata["threshold"] = a*threshold**b
+        metadata["zerovalue"] = a*zerovalue**b
+        
+        # Z to dBZ
+        R, metadata = transformation.dB_transform(R, metadata)
+            
+    elif metadata["unit"].lower() == "dbz" and metadata["transform"].lower() == "db": 
+                  
+        pass
+        
+    else:
+        raise ValueError("Cannot convert unit %s and transform %s to mm/h" % (metadata["unit"], metadata["transform"]))
+        
+    metadata["unit"] = "dBZ"
+    
+    return R, metadata

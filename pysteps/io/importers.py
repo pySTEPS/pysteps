@@ -13,20 +13,26 @@ If the file contains no quality information, the quality field is set to None.
 Pixels containing missing data are set to nan.
 
 The metadata dictionary contains the following mandatory key-value pairs:
-    projection   PROJ.4-compatible projection definition
-    x1           x-coordinate of the lower-left corner of the data raster (meters)
-    y1           y-coordinate of the lower-left corner of the data raster (meters)
-    x2           x-coordinate of the upper-right corner of the data raster (meters)
-    y2           y-coordinate of the upper-right corner of the data raster (meters)
-    xpixelsize   grid resolution in x-direction (meters)
-    ypixelsize   grid resolution in y-direction (meters)
-    yorigin      a string specifying the location of the first element in
-                 the data raster w.r.t. y-axis:
-                 'upper' = upper border
-                 'lower' = lower border
-    institution  name of the institution who provides the data
-    timestep     time step of the input data (minutes)
-    unit         the unit of the data: 'mm/h', 'mm' or 'dBZ'
+    projection      PROJ.4-compatible projection definition
+    x1              x-coordinate of the lower-left corner of the data raster (meters)
+    y1              y-coordinate of the lower-left corner of the data raster (meters)
+    x2              x-coordinate of the upper-right corner of the data raster (meters)
+    y2              y-coordinate of the upper-right corner of the data raster (meters)
+    xpixelsize      grid resolution in x-direction (meters)
+    ypixelsize      grid resolution in y-direction (meters)
+    yorigin         a string specifying the location of the first element in
+                    the data raster w.r.t. y-axis:
+                    'upper' = upper border
+                    'lower' = lower border
+    institution     name of the institution who provides the data
+    timestep        time step of the input data (minutes)
+    unit            the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
+    transform       the transformation of the data: None, 'dB', 'Box-Cox' or others
+    accutime        the accumulation time in minutes of the data, float
+    threshold       the rain/no rain threshold with the same unit, transformation
+                    and accutime of the data. 
+    zerovalue       it is the value assigned to the no rain pixels with the same 
+                    unit, transformation and accutime of the data. 
 """
 
 import datetime
@@ -80,8 +86,11 @@ def import_bom_rf3(filename, **kwargs):
     # TODO: Add missing georeferencing data.
     
     metadata["institution"] = "Bureau of Meteorology"
-    metadata["accutime"]    = 6
+    metadata["accutime"]    = 6.
     metadata["unit"]        = "mm/h"
+    metadata["transform"]   = None
+    metadata["zerovalue"]   = np.nanmin(R)
+    metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
 
     return R, None, metadata
 
@@ -200,8 +209,11 @@ def import_fmi_pgm(filename, **kwargs):
 
     metadata = geodata
     metadata["institution"] = "Finnish Meteorological Institute"
-    metadata["accutime"]    = 5
+    metadata["accutime"]    = 5.
     metadata["unit"]        = "dBZ"
+    metadata["transform"]   = "dB"
+    metadata["zerovalue"]   = np.nanmin(R)
+    metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
 
     return R,None,metadata
 
@@ -352,9 +364,12 @@ def import_mch_gif(filename, **kwargs):
 
     metadata = geodata
     metadata["institution"] = "MeteoSwiss"
-    metadata["accutime"]    = 5
+    metadata["accutime"]    = 5.
     metadata["unit"]        = "mm/h"
-
+    metadata["transform"]   = None
+    metadata["zerovalue"]   = np.nanmin(R)
+    metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
+    
     return R,None,metadata
 
 def _import_mch_gif_geodata():
@@ -505,10 +520,13 @@ def import_odim_hdf5(filename, **kwargs):
 
     if qty == "ACRR":
         unit = "mm"
+        transform = None
     elif qty == "DBZH":
         unit = "dBZ"
+        transform = "dB"
     else:
         unit = "mm/h"
+        transform = None
 
     metadata = {"projection":proj4str,
                 "ll_lon":LL_lon,
@@ -522,8 +540,11 @@ def import_odim_hdf5(filename, **kwargs):
                 "xpixelsize":xpixelsize,
                 "ypixelsize":ypixelsize,
                 "institution": "Odyssey datacentre",
-                "accutime":15,
-                "unit":unit}
+                "accutime":15.,
+                "unit":unit,
+                "transform":transform,
+                "zerovalue":np.nanmin(R),
+                "threshold":np.nanmin(R[R>np.nanmin(R)])}
 
     f.close()
 
