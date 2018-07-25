@@ -321,6 +321,12 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             # obtained from the AR(p) model(s)
             R_r = _recompose_cascade(R_c[j, :, :, :], mu, sigma)
             
+            if use_precip_mask:
+                # apply the precipitation mask to prevent generation of new 
+                # precipitation into areas where it was not originally 
+                # observed
+                R_r[~MASK_thr] = R_min
+            
             if use_probmatching:
                 # obtain the precipitation mask from the non-perturbed 
                 # forecast that is scale-filtered by the AR(p) model
@@ -340,8 +346,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                     i = np.where(R_s == R_s[i])[0][-1] + 1
                 R_pct_thr = R_s[i]
                 
-                # apply the mask and adjust the intensity values to preserve 
-                # the wet-area ratio
+                # apply the above mask and adjust the intensity values to 
+                # preserve the wet-area ratio
                 MASK_p = R_r < R_pct_thr
                 R_r[~MASK_p] = R_r[~MASK_p] + (R_thr - R_pct_thr)
                 R_r[MASK_p] = R_min
