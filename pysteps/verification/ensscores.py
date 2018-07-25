@@ -43,18 +43,20 @@ def rankhist_accum(rankhist, X_f, X_o):
     if X_f.shape[1] != rankhist["num_ens_members"]:
         raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[1], rankhist["num_ens_members"]))
     
-    mask = np.logical_and(np.isfinite(X_o), np.all(np.isfinite(X_f), axis=1))
     X_min = rankhist["X_min"]
-    mask = np.logical_and(mask, np.logical_or(X_o >= X_min, np.any(X_f >= X_min, axis=1)))
     
-    X_f = X_f.copy()
+    mask = np.logical_and(np.isfinite(X_o), np.all(np.isfinite(X_f), axis=1))
+    X_f = X_f[mask, :].copy()
+    X_o = X_o[mask]
+    
+    mask_nz = np.logical_or(X_o >= X_min, np.all(X_f >= X_min, axis=1))
+    
     X_f.sort(axis=1)
-    idx = [np.digitize(v.flatten(), f.flatten()) for v,f in \
-           zip(X_o[mask], X_f[mask, :])]
+    idx = [np.digitize(v, f) for v,f in zip(X_o[mask_nz], X_f[mask_nz, :])]
     
     # handle ties, where the verifying observation lies between ensemble members 
     # having the same value
-    for i in range(len(idx)):
+    for i in np.where(~mask_nz)[0]:
         i_eq = np.where(X_f[i, :] == X_o)[0]
         if len(i_eq) > 1:
             idx[i] = np.random.randint(low=i_eq[0]+1, high=i_eq[-1]+1)
