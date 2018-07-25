@@ -17,17 +17,19 @@ Installing pySTEPS
 Dependencies
 ------------
 
-The pySTEPS package need the following dependencies
+The pySTEPS package needs the following dependencies
 
 * numpy
 * scipy
 * opencv
 * pillow
 * pyproj
-* dask (for code parallelisation)
 * matplolib (for examples)
 
 Additionally, the following packages can be installed to provide better computational efficiency:
+
+* dask (for code parallelisation)
+* pyfftw (for faster FFT computations)
 
 We recommend that you create a conda environment using the available `environment.yml`_ file to install all the necessary dependencies::
 
