@@ -257,8 +257,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             kwargs = {"randstate":randgen_motion[j], 
                       "p_pert_par":vp_par, 
                       "p_pert_perp":vp_perp}
-            vp_ = init_vel_noise(V, pixelsperkm, timestep, 
-                                 randstate=randgen_motion[j], **kwargs)
+            vp_ = init_vel_noise(V, pixelsperkm, timestep, **kwargs)
             vps.append(vp_)
     
     D = [None for j in range(num_ens_members)]
