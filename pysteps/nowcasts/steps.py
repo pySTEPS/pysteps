@@ -148,8 +148,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     print("number of cascade levels: %d" % num_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
     if vel_pert_method is not None:
-        vp_par  = vel_pert_kwargs["vp_par"]
-        vp_perp = vel_pert_kwargs["vp_perp"]
+        vp_par  = vel_pert_kwargs["p_pert_par"]
+        vp_perp = vel_pert_kwargs["p_pert_perp"]
         print("velocity perturbations, parallel:      %g,%g,%g" % \
             (vp_par[0],  vp_par[1],  vp_par[2]))
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
@@ -254,8 +254,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         # initialize the perturbation generators for the motion field
         vps = []
         for j in range(num_ens_members):
-            vp_ = init_vel_noise(V, vp_par, vp_perp, pixelsperkm, timestep, 
-                                 randstate=randgen_motion[j])
+            kwargs = {"randstate":randgen_motion[j], 
+                      "p_pert_par":vp_par, 
+                      "p_pert_perp":vp_perp}
+            vp_ = init_vel_noise(V, pixelsperkm, timestep, 
+                                 randstate=randgen_motion[j], **kwargs)
             vps.append(vp_)
     
     D = [None for j in range(num_ens_members)]
