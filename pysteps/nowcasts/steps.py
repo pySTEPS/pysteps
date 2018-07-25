@@ -234,10 +234,12 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         randgen_motion = []
         np.random.seed(seed)
         for j in range(num_ens_members):
-            randgen_prec.append(np.random.RandomState(seed))
-            seed = np.random.randint(0, high=1e9)
-            randgen_motion.append(np.random.RandomState(seed))
-            seed = np.random.randint(0, high=1e9)
+            rs = np.random.RandomState(seed)
+            randgen_prec.append(rs)
+            seed = rs.randint(0, high=1e9)
+            rs = np.random.RandomState(seed)
+            randgen_motion.append(rs)
+            seed = rs.randint(0, high=1e9)
     
     if noise_method is not None:
         # get methods for perturbations
