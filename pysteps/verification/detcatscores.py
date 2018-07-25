@@ -37,20 +37,20 @@ def scores_det_cat_fcst(pred, obs, thr,
     M_idx = np.logical_and(predb==0, obsb==1) # predicted no precip even though there was
     R_idx = np.logical_and(predb==0, obsb==0) # correctly predicted no precip
 
-    H = sum(H_idx.astype(float)) # hits
-    M = sum(M_idx.astype(float)) # misses
-    F = sum(F_idx.astype(float)) # false alarms
-    R = sum(R_idx.astype(float)) # correct rejections
+    H = sum(H_idx.astype(int)) # hits
+    M = sum(M_idx.astype(int)) # misses
+    F = sum(F_idx.astype(int)) # false alarms
+    R = sum(R_idx.astype(int)) # correct rejections
     tot = H+M+F+R
     
     result = []
     for score in scores:
          
         # simple scores 
-        POD = H/(H+M) # probability of detection
-        FAR = F/(H+F) # false alarm ratio
-        FA = F/(F+R) # false alarm rate = prob of false detection
-        s = (H+M)/(H+M+F+R) # base rate = freq of observed events
+        POD = H/float(H+M) # probability of detection
+        FAR = F/float(H+F) # false alarm ratio
+        FA = F/float(F+R) # false alarm rate = prob of false detection
+        s = (H+M)/float(H+M+F+R) # base rate = freq of observed events
             
         if score.lower() == 'pod':
             result.append(POD)
