@@ -41,7 +41,6 @@ def scores_det_cat_fcst(pred, obs, thr,
     M = sum(M_idx.astype(int)) # misses
     F = sum(F_idx.astype(int)) # false alarms
     R = sum(R_idx.astype(int)) # correct rejections
-    tot = H+M+F+R
     
     result = []
     for score in scores:
