@@ -125,7 +125,8 @@ def reldiag_accum(reldiag, P_f, X_o):
     for k in range(1, len(reldiag["bin_edges"])):
         I_k = np.where(idx == k)[0]
         if len(I_k) >= reldiag["min_count"]:
-            y.append(np.sum(X_o[I_k] >= reldiag["X_min"]))
+            X_o_above_thr = (X_o[I_k] >= reldiag["X_min"]).astype(int)
+            y.append(np.sum(X_o_above_thr))
             x.append(np.sum(P_f[I_k]))
             num_idx.append(len(I_k))
             ss.append(len(I_k))
@@ -206,10 +207,14 @@ def ROC_curve_accum(ROC, P_f, X_o):
     X_o = X_o[mask]
     
     for i,p in enumerate(ROC["prob_thrs"]):
-        ROC["hits"][i]         += np.sum(np.logical_and(P_f >= p, X_o >= ROC["X_min"]))
-        ROC["misses"][i]       += np.sum(np.logical_and(P_f <  p, X_o >= ROC["X_min"]))
-        ROC["false_alarms"][i] += np.sum(np.logical_and(P_f >= p, X_o <  ROC["X_min"]))
-        ROC["corr_neg"][i]     += np.sum(np.logical_and(P_f <  p, X_o <  ROC["X_min"]))
+        mask = np.logical_and(P_f >= p, X_o >= ROC["X_min"])
+        ROC["hits"][i]         += np.sum(mask.astype(int))
+        mask = np.logical_and(P_f <  p, X_o >= ROC["X_min"])
+        ROC["misses"][i]       += np.sum(mask.astype(int))
+        mask = np.logical_and(P_f >= p, X_o <  ROC["X_min"])
+        ROC["false_alarms"][i] += np.sum(mask.astype(int))
+        mask = np.logical_and(P_f <  p, X_o <  ROC["X_min"])
+        ROC["corr_neg"][i]     += np.sum(mask.astype(int))
 
 def ROC_curve_compute(ROC, compute_area=False):
     """Compute the ROC curve and its area from the given ROC object.
