@@ -16,11 +16,12 @@ except ImportError:
 
 # TODO: Using non-square shapes of the inputs has not been tested.
 def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr, 
-             extrap_method, decomp_method, bandpass_filter_method, perturbation_method, 
-             pixelsperkm, timestep, ar_order=2, vp_par=(10.88,0.23,-7.68), 
-             vp_perp=(5.76,0.31,-2.72), conditional=False, use_precip_mask=True, 
+             extrap_method, decomp_method, bandpass_filter_method, 
+             noise_method, pixelsperkm, timestep, ar_order=2, 
+             vel_pert_method=None, conditional=False, use_precip_mask=True, 
              use_probmatching=True, callback=None, return_output=True, 
-             extrap_kwargs={}, filter_kwargs={}, seed=None):
+             extrap_kwargs={}, filter_kwargs={}, noise_kwargs={}, 
+             vel_pert_kwargs={}, seed=None):
     """Generate a nowcast ensemble by using the STEPS method described in 
     Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
     which merges an extrapolation nowcast with downscaled NWP.
@@ -52,25 +53,18 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     bandpass_filter_method : str
       Name of the bandpass filter method to use with the cascade decomposition. 
       See the documentation of pysteps.cascade.bandpass_filters.
-    perturbation_method : str
-      Name of the noise generator to use for the perturbations of the precipitation
-      field. See the documentation of pysteps.noise.fftgenerators.
+    noise_method : str
+      Name of the noise generator to use for perturbating the precipitation 
+      field. See the documentation of pysteps.noise.interface.
     pixelsperkm : float
       Spatial resolution of the motion field (pixels/kilometer).
     timestep : float
       Time step of the motion vectors (minutes).
+    vel_pert_method : str
+      Name of the noise generator to use for perturbing the velocity field. See 
+      the documentation of pysteps.noise.interface.
     ar_order : int
       The order of the autoregressive model to use.
-    vp_par : tuple
-      Optional three-element tuple containing the parameters for the standard 
-      deviation of the perturbations in the direction parallel to the motion 
-      vectors. See noise.motion.initialize_bps. The default values are taken 
-      from Bowler et al. 2006.
-    vp_perp : tuple
-      Optional three-element tuple containing the parameters for the standard 
-      deviation of the perturbations in the direction perpendicular to the motion 
-      vectors. See noise.motion.initialize_bps. The default values are taken 
-      from Bowler et al. 2006.
     conditional : bool
       If set to True, compute the statistics of the precipitation field 
       conditionally by excluding the areas where the values are below the 
@@ -98,6 +92,14 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     filter_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
       filter method.
+    noise_kwargs : dict
+      Optional dictionary that is supplied as keyword arguments to the 
+      initializer of the noise generator. See the documentation of 
+      pysteps.noise.fftgenerators.
+    vel_pert_kwargs : dict
+      Optional dictionary that is supplied as keyword arguments to the 
+      initializer of the velocity perturbator. See the documentation of 
+      pysteps.noise.motion.
     seed : int
       Optional seed number for the random generators.
     
@@ -133,7 +135,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     print("extrapolation:        %s" % extrap_method)
     print("bandpass filter:      %s" % bandpass_filter_method)
     print("decomposition:        %s" % decomp_method)
-    print("perturbations:        %s" % perturbation_method)
+    print("noise generator:      %s" % noise_method)
+    print("velocity perturbator: %s" % vel_pert_method)
     print("precipitation mask:   %s" % "yes" if use_precip_mask  else "no")
     print("probability matching: %s" % "yes" if use_probmatching else "no")
     print("")
@@ -144,8 +147,13 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     print("ensemble size:            %d" % num_ens_members)
     print("number of cascade levels: %d" % num_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
-    print("velocity perturbations, parallel:      %g,%g,%g" % (vp_par[0],  vp_par[1],  vp_par[2]))
-    print("velocity perturbations, perpendicular: %g,%g,%g" % (vp_perp[0], vp_perp[1], vp_perp[2]))
+    if vel_pert_method is not None:
+        vp_par  = vel_pert_kwargs["vp_par"]
+        vp_perp = vel_pert_kwargs["vp_perp"]
+        print("velocity perturbations, parallel:      %g,%g,%g" % \
+            (vp_par[0],  vp_par[1],  vp_par[2]))
+        print("velocity perturbations, perpendicular: %g,%g,%g" % \
+            (vp_perp[0], vp_perp[1], vp_perp[2]))
     
     if conditional:
         print("conditional precip. intensity threshold: %g" % R_thr)
@@ -221,7 +229,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     R_c = np.stack([R_c.copy() for i in range(num_ens_members)])
     
     # initialize the random generators
-    if perturbation_method is not None:
+    if noise_method is not None:
         randgen_prec   = []
         randgen_motion = []
         np.random.seed(seed)
@@ -231,19 +239,21 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             randgen_motion.append(np.random.RandomState(seed))
             seed = np.random.randint(0, high=1e9)
     
-    if perturbation_method is not None:
+    if noise_method is not None:
         # get methods for perturbations
-        init_noise, generate_noise = noise.get_method(perturbation_method)
+        init_noise, generate_noise = noise.get_method(noise_method)
         
         # initialize the perturbation generator for the precipitation field
-        pp = init_noise(R[-1, :, :])
+        pp = init_noise(R[-1, :, :], **noise_kwargs)
     
-    if vp_par is not None:
+    if vel_pert_method is not None:
+        init_vel_noise, generate_vel_noise = noise.get_method(vel_pert_method)
+        
         # initialize the perturbation generators for the motion field
         vps = []
         for j in range(num_ens_members):
-            vp_ = noise.motion.initialize_bps(V, vp_par, vp_perp, pixelsperkm, 
-                                              timestep, randstate=randgen_motion[j])
+            vp_ = init_vel_noise(V, vp_par, vp_perp, pixelsperkm, timestep, 
+                                 randstate=randgen_motion[j])
             vps.append(vp_)
     
     D = [None for j in range(num_ens_members)]
@@ -267,7 +277,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         
         # iterate each ensemble member
         def worker(j):
-            if perturbation_method is not None:
+            if noise_method is not None:
                 # generate noise field
                 EPS = generate_noise(pp, randstate=randgen_prec[j])
                 # decompose the noise field into a cascade
@@ -325,8 +335,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                 R_r = probmatching.nonparam_match_empirical_cdf(R_r, R)
             
             # compute the perturbed motion field
-            if vp_par is not None:
-                V_ = V + noise.motion.generate_bps(vps[j], t*timestep)
+            if vel_pert_method is not None:
+                V_ = V + generate_vel_noise(vps[j], t*timestep)
             else:
                 V_ = V
             

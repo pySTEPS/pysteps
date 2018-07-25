@@ -3,11 +3,11 @@
 The methods in this module implement the following interface for filter 
 initialization depending on their parametric or nonparametric nature:
 
-  inizialize_param_2d_xxx_filter(X, optional arguments, keyword arguments)
+  initialize_param_2d_xxx_filter(X, keyword arguments)
   
   or
   
-  inizialize_nonparam_2d_xxx_filter(X, optional arguments, keyword arguments)
+  initialize_nonparam_2d_xxx_filter(X, keyword arguments)
   
 where X (m, n) is the target field and the optional keyword arguments are included 
 in a dictionary. 
@@ -17,7 +17,7 @@ the filter F of shape (m, n).
 The methods in this module implement the following interface for the generation
 of correlated noise:
 
-  generate_noise_2d_xxx_filter(F, randstate=np.random, seed=None, optional arguments)
+  generate_noise_2d_xxx_filter(F, randstate=np.random, seed=None)
 
 where F (m, n) is a filter returned from an initialization method, and randstate 
 and seed can be used to set the random generator and its seed. Additional 

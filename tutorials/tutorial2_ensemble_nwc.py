@@ -39,7 +39,7 @@ startdate_str = "201701311030"
 data_source   = "mch"
 
 ## methods
-oflow_method        = "lucaskanade" # lucaskanade or DARTS 
+oflow_method        = "lucaskanade" # lucaskanade or darts
 nwc_method          = "STEPS"
 adv_method          = "semilagrangian"
 noise_method        = "parametric" # nonparametric or nested
@@ -127,8 +127,8 @@ nwc_method = st.nowcasts.get_method(nwc_method)
 dBR_forecast = nwc_method(dBR, UV, n_lead_times, n_ens_members, 
                     n_cascade_levels, R_threshold, adv_method, decomp_method, 
                     bandpass_filter, noise_method, 
-                    metadata["xpixelsize"]/1000, timestep, ar_order, 
-                    None, None, False, False, prob_matching)    
+                    metadata["xpixelsize"]/1000, timestep, 
+                    use_probmatching=prob_matching)
 
 ## convert the forecasted dBR to mm/h
 R_forecast = st.utils.dBR2mmhr(dBR_forecast, R_threshold)

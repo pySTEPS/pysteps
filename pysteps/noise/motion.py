@@ -2,9 +2,10 @@
 
 The methods in this module implement the following interface for initialization:
 
-  inizialize_xxx(V, optional arguments)
+  inizialize_xxx(V, pixelsperkm, timestep, optional arguments)
   
-where V (2,m,n) is the motion field.
+where V (2,m,n) is the motion field and pixelsperkm and timestep describe the 
+spatial and temporal resolution of the motion vectors.
 The output of each initialization method is a dictionary containing the perturbator 
 that can be supplied to generate_xxx.
   
@@ -23,8 +24,8 @@ determined from the perturbator."""
 import numpy as np
 from scipy import linalg
 
-def initialize_bps(V, p_pert_par, p_pert_perp, pixelsperkm, timestep, 
-                   randstate=np.random, seed=None):
+def initialize_bps(V, pixelsperkm, timestep, p_pert_par=(10.88,0.23,-7.68), 
+                   p_pert_perp=(5.76,0.31,-2.72), randstate=np.random, seed=None):
     """Initialize the motion field perturbator described in Bowler et al. 
     2006: STEPS: A probabilistic precipitation forecasting scheme which merges 
     an extrapolation nowcast with downscaled NWP. For simplicity, the bias 
@@ -41,12 +42,12 @@ def initialize_bps(V, p_pert_par, p_pert_perp, pixelsperkm, timestep,
       Tuple containing the parameters a,b and c for the standard deviation of 
       the perturbations in the direction parallel to the motion vectors. The 
       standard deviations are modeled by the function f_par(t) = a*t^b+c, where 
-      t is lead time.
+      t is lead time. The default values are taken from Bowler et al. 2006.
     p_pert_perp : tuple
       Tuple containing the parameters a,b and c for the standard deviation of 
       the perturbations in the direction perpendicular to the motion vectors. 
       The standard deviations are modeled by the function f_par(t) = a*t^b+c, 
-      where t is lead time.
+      where t is lead time. The default values are taken from Bowler et al. 2006.
     pixelsperkm : float
       Spatial resolution of the motion field (pixels/kilometer).
     timestep : float
