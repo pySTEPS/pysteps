@@ -1,9 +1,9 @@
 #!/bin/env python
 
-"""Tutorial 2: Stochastic ensemble precipitation nowcasting
+"""Stochastic ensemble precipitation nowcasting
 
-The tutorial introduces stochastic perturbations in order to generate a stochastic 
-ensemble of precipitation nowcasts. 
+The script shows how to run a stochastic ensemble of precipitation nowcasts with
+pysteps.
 
 More info: https://pysteps.github.io/
 """
@@ -55,10 +55,11 @@ ar_order            = 2
 r_threshold         = 0.1 # [mm/h]
 prob_matching       = True
 precip_mask         = True
-conditional         = True
+mask_method         = "incremental"
+conditional         = False
 unit                = "mm/h" # mm/h or dBZ
 transformation      = "dB"   # None or dB 
-adjust_domain       = "square_domain"
+adjust_domain       = "square" # None or square
 
 # Read-in the data
 print('Read the data...')
@@ -70,9 +71,9 @@ ds = cfg.get_specifications(data_source)
 ## find radar field filenames
 input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
                                   ds.fn_ext, ds.timestep, n_prvs_times, 0)
-importer = stp.io.get_method(ds.importer)
 
 ## read radar field files
+importer = stp.io.get_method(ds.importer)
 R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
 Rmask = np.isnan(R)
 
@@ -105,12 +106,14 @@ UV = oflow_method(R)
 # Perform the nowcast
 nwc_method = stp.nowcasts.get_method(nwc_method)
 R_fct = nwc_method(R, UV, n_lead_times, n_ens_members, 
-                   n_cascade_levels, metadata["threshold"], adv_method, decomp_method, 
-                   bandpass_filter, noise_method, metadata["xpixelsize"]/1000, 
-                   ds.timestep, ar_order=ar_order, conditional=conditional, 
-                   use_precip_mask=precip_mask, use_probmatching=prob_matching)
+                   n_cascade_levels, metadata["xpixelsize"]/1000, 
+                   ds.timestep,  R_thr=metadata["threshold"], extrap_method=adv_method, 
+                   decomp_method=decomp_method, bandpass_filter_method=bandpass_filter, 
+                   noise_method=noise_method, ar_order=ar_order, conditional=conditional, 
+                   use_precip_mask=precip_mask, mask_method=mask_method, 
+                   use_probmatching=prob_matching)
 
-## trasnform back values to mm/h
+## transform back values to mm/h
 R_fct, _    = transformer(R_fct, metadata, inverse=True)
 R, metadata = transformer(R, metadata, inverse=True)
 

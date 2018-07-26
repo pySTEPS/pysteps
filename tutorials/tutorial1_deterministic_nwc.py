@@ -63,9 +63,9 @@ ds = cfg.get_specifications(data_source)
 ## find radar field filenames
 input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
                                  ds.fn_ext, ds.timestep, n_prvs_times, 0)
-importer = stp.io.get_method(ds.importer)
 
 ## read radar field files
+importer = stp.io.get_method(ds.importer)
 R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
 Rmask = np.isnan(R)
 print("The data array has size [nleadtimes,nrows,ncols] =", R.shape)
