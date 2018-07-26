@@ -7,14 +7,14 @@ ensemble of precipitation nowcasts.
 
 More info: https://pysteps.github.io/
 """
-import ast
-import configparser
 import datetime
 import matplotlib.pylab as plt
 import numpy as np
 import pickle
 import os
-import pysteps as st
+
+import pysteps as stp
+import config as cfg
 
 # List of case studies that can be used in this tutorial
 
@@ -60,58 +60,31 @@ unit                = "mm/h" # mm/h or dBZ
 transformation      = "dB"   # None or dB 
 adjust_domain       = "square_domain"
 
-## visualization parameters
-colorscale      = "MeteoSwiss" # MeteoSwiss or STEPS-BE
-motion_plot     = None # None, streamplot, quiver
-
 # Read-in the data
 print('Read the data...')
-
-# Read the tutorial configuration file
-config = configparser.RawConfigParser()
-config.read("tutorials.cfg")
-
-path_outputs = config["paths"]["output"]
-
-# Read the data source configuration file
-config = configparser.RawConfigParser()
-config.read("datasource_%s.cfg" % data_source)
-
-config_ds = config["datasource"]
-
-root_path       = config_ds["root_path"]
-path_fmt        = config_ds["path_fmt"]
-fn_pattern      = config_ds["fn_pattern"]
-fn_ext          = config_ds["fn_ext"]
-importer        = config_ds["importer"]
-timestep        = float(config_ds["timestep"])
-
-# Read the keyword arguments into importer_kwargs
-importer_kwargs = {}
-for v in config["importer_kwargs"].items():
-    importer_kwargs[str(v[0])] = ast.literal_eval(v[1])
-    
 startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
-## find radar field filenames
-input_files = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
-                                 fn_ext, timestep, n_prvs_times, 0)
+## import data specifications
+ds = cfg.get_specifications(data_source)
 
-importer = st.io.get_method(importer)
+## find radar field filenames
+input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
+                                  ds.fn_ext, ds.timestep, n_prvs_times, 0)
+importer = stp.io.get_method(ds.importer)
 
 ## read radar field files
-R, _, metadata = st.io.read_timeseries(input_files, importer, **importer_kwargs)
+R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
 Rmask = np.isnan(R)
 
 # Prepare input files
 print("Prepare the data...")
 
 ## make sure we work with a square domain
-reshaper = st.utils.get_method(adjust_domain)
+reshaper = stp.utils.get_method(adjust_domain)
 R, metadata = reshaper(R, metadata, method="pad")
 
 ## if necessary, convert to rain rates [mm/h]    
-converter = st.utils.get_method(unit)
+converter = stp.utils.get_method(unit)
 R, metadata = converter(R, metadata)
 
 ## threshold the data
@@ -119,24 +92,23 @@ R[R<r_threshold] = 0.0
 metadata["threshold"] = r_threshold
 
 ## transform the data
-transformer = st.utils.get_method(transformation)
+transformer = stp.utils.get_method(transformation)
 R, metadata = transformer(R, metadata)
 
 ## set NaN equal to zero
 R[~np.isfinite(R)] = metadata["zerovalue"]
 
 # Compute motion field
-oflow_method = st.optflow.get_method(oflow_method)
+oflow_method = stp.optflow.get_method(oflow_method)
 UV = oflow_method(R) 
 
 # Perform the nowcast
-nwc_method = st.nowcasts.get_method(nwc_method)
+nwc_method = stp.nowcasts.get_method(nwc_method)
 R_fct = nwc_method(R, UV, n_lead_times, n_ens_members, 
-                    n_cascade_levels, metadata["threshold"], adv_method, decomp_method, 
-                    bandpass_filter, noise_method, 
-                    metadata["xpixelsize"]/1000, timestep, ar_order=ar_order,
-                    conditional=conditional, use_precip_mask=precip_mask, 
-                    use_probmatching=prob_matching)
+                   n_cascade_levels, metadata["threshold"], adv_method, decomp_method, 
+                   bandpass_filter, noise_method, metadata["xpixelsize"]/1000, 
+                   ds.timestep, ar_order=ar_order, conditional=conditional, 
+                   use_precip_mask=precip_mask, use_probmatching=prob_matching)
 
 ## trasnform back values to mm/h
 R_fct, _    = transformer(R_fct, metadata, inverse=True)
@@ -148,21 +120,22 @@ R, metadata = reshaper(R, metadata, inverse=True)
 
 ## plot the nowcast..
 R[Rmask] = np.nan # reapply radar mask
-st.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
-               R_for=R_fct, timestep_min=timestep,
-               UV=UV, motion_plot=motion_plot,
-               geodata=metadata, colorscale=colorscale,
-               plotanimation=True, savefig=False, path_outputs=path_outputs) 
+stp.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
+                R_for=R_fct, timestep_min=ds.timestep,
+                UV=UV, motion_plot=cfg.motion_plot,
+                geodata=metadata, colorscale=cfg.colorscale,
+                plotanimation=True, savefig=False, path_outputs=cfg.path_outputs) 
 
 # Forecast verification
 print("Forecast verification...")
 
 ## find the verifying observations
-input_files_verif = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
-                                        fn_ext, timestep, 0, n_lead_times)
+input_files_verif = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
+                                        ds.fn_ext, ds.timestep, 0, n_lead_times)
 
 ## read observations
-R_obs, _, metadata_obs = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
+R_obs, _, metadata_obs = stp.io.read_timeseries(input_files_verif, importer, 
+                                                **ds.importer_kwargs)
 R_obs = R_obs[1:,:,:]
 metadata_obs["timestamps"] = metadata_obs["timestamps"][1:]
 
@@ -176,11 +149,11 @@ metadata_obs["threshold"] = r_threshold
 ## compute the average continuous ranked probability score (CRPS)
 scores = np.zeros(n_lead_times)*np.nan
 for i in range(n_lead_times):
-    scores[i] = st.vf.CRPS(R_fct[:,i,:,:].reshape((n_ens_members, -1)).transpose(), 
-                           R_obs[i,:,:].flatten())
+    scores[i] = stp.vf.CRPS(R_fct[:,i,:,:].reshape((n_ens_members, -1)).transpose(), 
+                            R_obs[i,:,:].flatten())
 
 ## if already exists, load the figure object to append the new verification results
-filename = "%s/%s" % (path_outputs, "tutorial2_fig_verif")
+filename = "%s/%s" % (cfg.path_outputs, "tutorial2_fig_verif")
 if os.path.exists("%s.dat" % filename):
     ax = pickle.load(open("%s.dat" % filename, "rb"))
     print("Figure object loaded: %s.dat" % filename) 
@@ -189,7 +162,7 @@ else:
     
 ## plot the scores
 nplots = len(ax.lines)
-x = (np.arange(n_lead_times) + 1)*timestep
+x = (np.arange(n_lead_times) + 1)*ds.timestep
 ax.plot(x, scores, color="C%i"%(nplots + 1), label = "run %02d" % (nplots + 1))
 ax.set_xlabel("Lead-time [min]")
 ax.set_ylabel("CRPS")

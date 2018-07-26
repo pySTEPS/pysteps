@@ -1,20 +1,20 @@
 #!/bin/env python
 
-"""Tutorial 1: Motion field estimation and extrapolation forecast
+"""Motion field estimation and extrapolation forecast
 
-The tutorial guides you into the basic notions and techniques for extrapolation 
-nowcasting. 
+The script shows how to run a deterministic radar-based extrapolation nowcast with
+pysteps.
 
 More info: https://pysteps.github.io/
 """
-import ast
-import configparser
 import datetime
 import matplotlib.pylab as plt
 import numpy as np
 import pickle
 import os
-import pysteps as st
+
+import pysteps as stp
+import config as cfg
 
 # List of case studies that can be used in this tutorial
 
@@ -49,50 +49,24 @@ unit            = "mm/h" # mm/h or dBZ
 transformation  = "dB"   # None or dB 
 r_threshold     = 0.1 # [mm/h]
 
-## visualization parameters
-colorscale      = "MeteoSwiss" # MeteoSwiss or STEPS-BE
-motion_plot     = "quiver" # streamplot or quiver
-
 ## verification parameters
 skill_score     = "CSI"
 v_threshold     = 1 # [mm/h]
- 
+
 # Read-in the data
 print('Read the data...')
-
-# Read the tutorial configuration file
-config = configparser.RawConfigParser()
-config.read("tutorials.cfg")
-
-path_outputs = config["paths"]["output"]
-
-# Read the data source configuration file
-config = configparser.RawConfigParser()
-config.read("datasource_%s.cfg" % data_source)
-
-config_ds = config["datasource"]
-
-root_path       = config_ds["root_path"]
-path_fmt        = config_ds["path_fmt"]
-fn_pattern      = config_ds["fn_pattern"]
-fn_ext          = config_ds["fn_ext"]
-importer        = config_ds["importer"]
-timestep        = float(config_ds["timestep"])
-
-# Read the keyword arguments into importer_kwargs
-importer_kwargs = {}
-for v in config["importer_kwargs"].items():
-    importer_kwargs[str(v[0])] = ast.literal_eval(v[1])
-    
 startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
+## import data specifications
+ds = cfg.get_specifications(data_source)
+
 ## find radar field filenames
-input_files = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
-                                 fn_ext, timestep, n_prvs_times, 0)
-importer = st.io.get_method(importer)
+input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
+                                 ds.fn_ext, ds.timestep, n_prvs_times, 0)
+importer = stp.io.get_method(ds.importer)
 
 ## read radar field files
-R, _, metadata = st.io.read_timeseries(input_files, importer, **importer_kwargs)
+R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
 Rmask = np.isnan(R)
 print("The data array has size [nleadtimes,nrows,ncols] =", R.shape)
 
@@ -100,7 +74,7 @@ print("The data array has size [nleadtimes,nrows,ncols] =", R.shape)
 print("Prepare the data...")
 
 ## if necessary, convert to rain rates [mm/h]    
-converter = st.utils.get_method(unit)
+converter = stp.utils.get_method(unit)
 R, metadata = converter(R, metadata)
 
 ## threshold the data
@@ -108,18 +82,18 @@ R[R<r_threshold] = 0.0
 metadata["threshold"] = r_threshold
 
 ## transform the data
-transformer = st.utils.get_method(transformation)
+transformer = stp.utils.get_method(transformation)
 R, metadata = transformer(R, metadata)
 
 ## set NaN equal to zero
 R[~np.isfinite(R)] = metadata["zerovalue"]
 
 # Compute motion field
-oflow_method = st.optflow.get_method(oflow_method)
+oflow_method = stp.optflow.get_method(oflow_method)
 UV = oflow_method(R) 
 
 # Perform the advection of the radar field
-adv_method = st.advection.get_method(adv_method) 
+adv_method = stp.advection.get_method(adv_method) 
 R_fct = adv_method(R[-1,:,:], UV, n_lead_times, verbose=True)
 print("The forecast array has size [nleadtimes,nrows,ncols] =", R_fct.shape)
 
@@ -129,21 +103,21 @@ R, metadata = transformer(R, metadata, inverse=True)
 
 ## plot the nowcast...
 R[Rmask] = np.nan # reapply radar mask
-st.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
-               R_for=R_fct, timestep_min=timestep,
-               UV=UV, motion_plot=motion_plot,
-               geodata=metadata, colorscale=colorscale,
-               plotanimation=True, savefig=False, path_outputs=path_outputs) 
+stp.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
+               R_for=R_fct, timestep_min=ds.timestep,
+               UV=UV, motion_plot=cfg.motion_plot,
+               geodata=metadata, colorscale=cfg.colorscale,
+               plotanimation=True, savefig=False, path_outputs=cfg.path_outputs) 
 
 # Forecast verification
 print("Forecast verification...")
 
 ## find the verifying observations
-input_files_verif = st.io.find_by_date(startdate, root_path, path_fmt, fn_pattern, 
-                                        fn_ext, timestep, 0, n_lead_times)
+input_files_verif = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
+                                        ds.fn_ext, ds.timestep, 0, n_lead_times)
 
 ## read observations
-R_obs, _, metadata_obs = st.io.read_timeseries(input_files_verif, importer, **importer_kwargs)
+R_obs, _, metadata_obs = stp.io.read_timeseries(input_files_verif, importer, **ds.importer_kwargs)
 R_obs = R_obs[1:,:,:]
 
 ## if necessary, convert to rain rates [mm/h]    
@@ -156,11 +130,11 @@ metadata_obs["threshold"] = r_threshold
 ## compute verification scores
 scores = np.zeros(n_lead_times)*np.nan
 for i in range(n_lead_times):
-    scores[i] = st.vf.scores_det_cat_fcst(R_fct[i,:,:], R_obs[i,:,:], 
+    scores[i] = stp.vf.scores_det_cat_fcst(R_fct[i,:,:], R_obs[i,:,:], 
                                           v_threshold, [skill_score])[0]
 
 ## if already exists, load the figure object to append the new verification results
-filename = "%s/%s" % (path_outputs, "tutorial1_fig_verif")
+filename = "%s/%s" % (cfg.path_outputs, "tutorial1_fig_verif")
 if os.path.exists("%s.dat" % filename):
     ax = pickle.load(open("%s.dat" % filename, "rb"))
     print("Figure object loaded: %s.dat" % filename) 
@@ -169,7 +143,7 @@ else:
     
 ## plot the scores
 nplots = len(ax.lines)
-x = (np.arange(n_lead_times) + 1)*timestep
+x = (np.arange(n_lead_times) + 1)*ds.timestep
 ax.plot(x, scores, color='C%i'%(nplots + 1), label = "run %02d" % (nplots + 1))
 ax.set_xlabel("Lead-time [min]")
 ax.set_ylabel("%s" % skill_score)
