@@ -33,6 +33,7 @@ The metadata dictionary contains the following mandatory key-value pairs:
                  unit, transformation and accutime of the data. 
 """
 
+import numpy as np
 try:
     import netCDF4
     netcdf4_imported = True
@@ -63,8 +64,11 @@ def import_netcdf_pysteps(filename, **kwargs):
     metadata = {}
     
     time_var = ds.variables['time']
+    leadtimes = time_var[:]/60. # minutes leadtime
+    metadata["leadtimes"] = leadtimes
     timestamps = netCDF4.num2date(time_var[:], time_var.units)
     metadata["timestamps"] = timestamps
+
     
     projdef = ""
     if "polar_stereographic" in var_names:
