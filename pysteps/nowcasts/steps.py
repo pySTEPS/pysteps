@@ -19,9 +19,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
              extrap_method, decomp_method, bandpass_filter_method, 
              noise_method, pixelsperkm, timestep, ar_order=2, 
              vel_pert_method=None, conditional=False, use_precip_mask=True, 
-             use_probmatching=True, callback=None, return_output=True, 
-             extrap_kwargs={}, filter_kwargs={}, noise_kwargs={}, 
-             vel_pert_kwargs={}, seed=None):
+             use_probmatching=True, pm_thr_method="obs", callback=None, 
+             return_output=True, extrap_kwargs={}, filter_kwargs={}, 
+             noise_kwargs={}, vel_pert_kwargs={}, seed=None):
     """Generate a nowcast ensemble by using the STEPS method described in 
     Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
     which merges an extrapolation nowcast with downscaled NWP.
@@ -77,6 +77,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
       If True, apply probability matching to the forecast field in order to 
       preserve the distribution of the most recently observed precipitation 
       field.
+    pm_thr_method : str
+      The precipitation/no precipitation thresholding method to use with 
+      probability matching: 'obs' = use the mask from the most recently observed 
+      precipitation intensity field, 'ar' = use the mask from a smoothed forecast 
+      field, where the AR(p) model (i.e. S-PROG) has been applied.
     callback : function
       Optional function that is called after computation of each time step of 
       the nowcast. The function takes one argument: a three-dimensional array 
@@ -120,6 +125,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
     
+    if pm_thr_method not in ["obs", "ar"]:
+        raise ValueError("unknown mask method %s: must be 'obs' or 'ar'" % pm_thr_method)
+    
     print("Computing STEPS nowcast:")
     print("------------------------")
     print("")
@@ -138,8 +146,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     print("decomposition:        %s" % decomp_method)
     print("noise generator:      %s" % noise_method)
     print("velocity perturbator: %s" % vel_pert_method)
-    print("precipitation mask:   %s" % "yes" if use_precip_mask  else "no")
-    print("probability matching: %s" % "yes" if use_probmatching else "no")
+    print("precipitation mask:   %s" % ("yes" if use_precip_mask  else "no"))
+    print("probability matching: %s" % ("yes" if use_probmatching else "no"))
+    print("pm threshold method:  %s" % pm_thr_method)
     print("")
     
     print("Parameters:")
@@ -271,7 +280,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
         # compute the wet area ratio and the precipitation mask
         war = 1.0*np.sum(MASK_thr) / (R.shape[1]*R.shape[2])
         R_min = np.min(R)
-        #R_m = R_c.copy()
+        if pm_thr_method == "ar":
+            R_m = R_c.copy()
     
     if use_probmatching:
         pmm_bin_edges = np.linspace(R_thr, 60, 200)
@@ -307,37 +317,40 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                     EPS_ = None
                 # apply AR(p) process to cascade level
                 R_c[j, i, :, :, :] = \
-                    autoregression.iterate_ar_model(R_c[j, i, :, :, :], PHI[i, :], EPS=EPS_)
-                # use a separate AR(p) model for the non-perturbed forecast, 
-                # from which the mask is obtained
-                #if use_precip_mask:
-                #    R_m[j, i, :, :, :] = \
-                #        autoregression.iterate_ar_model(R_m[j, i, :, :, :], PHI[i, :])
+                    autoregression.iterate_ar_model(R_c[j, i, :, :, :], 
+                                                    PHI[i, :], EPS=EPS_)
+                if use_probmatching and pm_thr_method == "ar":
+                    # use a separate AR(p) model for the non-perturbed forecast, 
+                    # from which the mask is obtained
+                    R_m[j, i, :, :, :] = \
+                        autoregression.iterate_ar_model(R_m[j, i, :, :, :], PHI[i, :])
             
             EPS  = None
             EPS_ = None
             
             # compute the recomposed precipitation field(s) from the cascades 
             # obtained from the AR(p) model(s)
-            R_r = _recompose_cascade(R_c[j, :, :, :], mu, sigma)
+            R_c_ = _recompose_cascade(R_c[j, :, :, :], mu, sigma)
             
             if use_precip_mask:
                 # apply the precipitation mask to prevent generation of new 
                 # precipitation into areas where it was not originally 
                 # observed
-                R_r[~MASK_thr] = R_min
+                R_c_[~MASK_thr] = R_min
             
             if use_probmatching:
-                # obtain the precipitation mask from the non-perturbed 
-                # forecast that is scale-filtered by the AR(p) model
-                #R_m_ = _recompose_cascade(R_m[j, :, :, :], mu, sigma)
-                
-                #R_s = R_m_.flatten()
+                if pm_thr_method == "ar":
+                    # method 1: obtain the CDF from the non-perturbed 
+                    # forecast that is scale-filtered by the AR(p) model
+                    R_m_ = _recompose_cascade(R_m[j, :, :, :], mu, sigma)
+                    R_s = R_m_.flatten()
+                else:
+                    # method 2: obtain the CDF from the perturbed forecast
+                    R_s = R_c_.flatten()
                 
                 # compute the threshold value R_pct_thr corresponding to the 
                 # same fraction of precipitation pixels (forecast values above 
                 # R_min) as in the most recently observed precipitation field
-                R_s = R_r.flatten()
                 R_s.sort(kind="quicksort")
                 x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
                 i = np.argmin(abs(x - war))
@@ -346,27 +359,31 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
                     i = np.where(R_s == R_s[i])[0][-1] + 1
                 R_pct_thr = R_s[i]
                 
-                # apply the above mask and adjust the intensity values to 
-                # preserve the wet-area ratio
-                MASK_p = R_r < R_pct_thr
-                R_r[~MASK_p] = R_r[~MASK_p] + (R_thr - R_pct_thr)
-                R_r[MASK_p] = R_min
+                # apply a mask obtained from the above to preserve the 
+                # wet-area ratio
+                if pm_thr_method == "obs":
+                    MASK_p = R_c_ < R_pct_thr
+                else:
+                    MASK_p = R_m_ < R_pct_thr
+                #R_r[~MASK_p] = R_r[~MASK_p] + (R_thr - R_pct_thr)
+                R_c_[MASK_p] = R_min
                 
                 R_s  = None
-                #R_m_ = None
+                if pm_thr_method == "ar":
+                    R_m_ = None
                 
                 # adjust the conditional CDF of the forecast (precipitation 
                 # intensity above the threshold R_thr) to match the most 
-                # recently measured precipitation field
-                R_out_hist = np.histogram(R_r[~MASK_p], bins=pmm_bin_edges)[0]
+                # recently observed precipitation field
+                R_out_hist = np.histogram(R_c_[~MASK_p], bins=pmm_bin_edges)[0]
                 R_out_cdf = probmatching.compute_empirical_cdf(pmm_bin_edges, R_out_hist)
                 pmm = probmatching.pmm_init(pmm_bin_edges, R_out_cdf, pmm_bin_edges, R0_cdf)
-                R_r[~MASK_p] = probmatching.pmm_compute(pmm, R_r[~MASK_p])
+                R_c_[~MASK_p] = probmatching.pmm_compute(pmm, R_c_[~MASK_p])
                 
                 # TODO: this is needed because the probability matching 
                 # introduces nan values for some reason. Take a closer look 
                 # on this.
-                R_r[~np.isfinite(R_r)] = R_thr
+                R_c_[~np.isfinite(R_c_)] = R_thr
                 
                 R_out_hist = None
                 R_out_cdf = None
@@ -383,7 +400,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
             # advect the recomposed precipitation field to obtain the forecast 
             # for time step t
             extrap_kwargs.update({"D_prev":D[j], "return_displacement":True})
-            R_f_,D_ = extrap_method(R_r, V_, 1, **extrap_kwargs)
+            R_f_,D_ = extrap_method(R_c_, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]
             
@@ -433,7 +450,6 @@ def _print_ar_params(PHI, include_perturb_term):
     print("* AR(p) parameters for cascade levels: *")
     print("****************************************")
     
-    m = PHI.shape[0]
     n = PHI.shape[1]
     
     hline_str = "---------"
