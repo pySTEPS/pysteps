@@ -3,7 +3,7 @@
 import time
 from .. import advection
 
-def forecast(R, V, num_timesteps, extrap_method, extrap_kwargs={}):
+def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs={}):
     """Generate a nowcast by applying a simple advection-based extrapolation to 
     the given precipitation field.
     
