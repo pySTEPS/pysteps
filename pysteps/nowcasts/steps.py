@@ -1,6 +1,7 @@
 """Implementation of the STEPS method."""
 
 import numpy as np
+import scipy.ndimage
 import sys
 import time
 from .. import advection
@@ -20,7 +21,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
              decomp_method="fft", bandpass_filter_method="gaussian", 
              noise_method="nonparametric", ar_order=2, vel_pert_method=None, 
              conditional=False, use_precip_mask=True, use_probmatching=True, 
-             pm_thr_method="obs", callback=None, return_output=True, extrap_kwargs={}, 
+             mask_method="obs", callback=None, return_output=True, extrap_kwargs={}, 
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}, seed=None):
     """Generate a nowcast ensemble by using the STEPS method described in 
     Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
@@ -73,15 +74,16 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     use_precip_mask : bool
       If True, set pixels outside precipitation areas to the minimum value of 
       the observed field.
+    mask_method : str
+      The precipitation/no precipitation method to use with mask: 'obs' = apply R_thr
+      to the most recently observed precipitation intensity field, 'sprog' = use the
+      smoothed forecast field from S-PROG, where the AR(p) model has been applied,
+      'incremental' = iteratively buffer the mask with a certain rate (currently
+      it is 1 km/min)
     use_probmatching : bool
       If True, apply probability matching to the forecast field in order to 
       preserve the distribution of the most recently observed precipitation 
-      field. This requires R_thr to be set.
-    pm_thr_method : str
-      The precipitation/no precipitation thresholding method to use with 
-      probability matching: 'obs' = use the mask from the most recently observed 
-      precipitation intensity field, 'ar' = use the mask from a smoothed forecast 
-      field, where the AR(p) model (i.e. S-PROG) has been applied.
+      field.
     callback : function
       Optional function that is called after computation of each time step of 
       the nowcast. The function takes one argument: a three-dimensional array 
@@ -125,14 +127,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
     
-    if pm_thr_method not in ["obs", "ar"]:
-        raise ValueError("unknown mask method %s: must be 'obs' or 'ar'" % pm_thr_method)
+    if mask_method not in ["obs", "sprog", "incremental"]:
+        raise ValueError("unknown mask method %s: must be 'obs', 'sprog' or 'incremental'" % pm_thr_method)
     
     if conditional and R_thr is None:
         raise Exception("conditional=True but R_thr is not set")
-    
-    if use_probmatching and R_thr is None:
-        raise Exception("use_probmatching=True but R_thr is not set")
     
     print("Computing STEPS nowcast:")
     print("------------------------")
@@ -147,14 +146,15 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     
     print("Methods:")
     print("--------")
-    print("extrapolation:        %s" % extrap_method)
-    print("bandpass filter:      %s" % bandpass_filter_method)
-    print("decomposition:        %s" % decomp_method)
-    print("noise generator:      %s" % noise_method)
-    print("velocity perturbator: %s" % vel_pert_method)
-    print("precipitation mask:   %s" % ("yes" if use_precip_mask  else "no"))
-    print("probability matching: %s" % ("yes" if use_probmatching else "no"))
-    print("pm threshold method:  %s" % pm_thr_method)
+    print("extrapolation:          %s" % extrap_method)
+    print("bandpass filter:        %s" % bandpass_filter_method)
+    print("decomposition:          %s" % decomp_method)
+    print("noise generator:        %s" % noise_method)
+    print("velocity perturbator:   %s" % vel_pert_method)
+    print("conditional statistics: %s" % ("yes" if conditional  else "no"))
+    print("precipitation mask:     %s" % ("yes" if use_precip_mask  else "no"))
+    print("mask method:            %s" % mask_method)
+    print("probability matching:   %s" % ("yes" if use_probmatching else "no"))
     print("")
     
     print("Parameters:")
@@ -192,7 +192,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     if dask_imported:
         R = np.stack(list(dask.compute(*res)) + [R[-1, :, :]])
     
-    if conditional:
+    if conditional or use_probmatching:
         MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
     else:
         MASK_thr = None
@@ -279,21 +279,32 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     D = [None for j in range(num_ens_members)]
     R_f = [[] for j in range(num_ens_members)]
     
-    if use_precip_mask or use_probmatching:
-        MASK_thr = R[-1, :, :] >= R_thr
+    R_min = np.min(R)
     
-    if use_probmatching:
-        # compute the wet area ratio and the precipitation mask
-        war = 1.0*np.sum(MASK_thr) / (R.shape[1]*R.shape[2])
-        R_min = np.min(R)
-        if pm_thr_method == "ar":
+    if use_precip_mask:
+        if mask_method == "obs":
+            MASK_prec = R[-1, :, :] >= R_thr
+            # add a slight buffer to the mask
+            # n=5
+            # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n,n))   
+            # MASK_prec = MASK_prec.astype('uint8')
+            # MASK_prec = cv2.dilate(MASK_prec,kernel).astype(bool)
+            
+        elif mask_method == "sprog":
+            # compute the wet area ratio and the precipitation mask
+            MASK_prec = R[-1, :, :] >= R_thr
+            war = 1.0*np.sum(MASK_prec) / (R.shape[1]*R.shape[2])
             R_m = R_c.copy()
-    
-    if use_probmatching:
-        pmm_bin_edges = np.linspace(R_thr, 60, 200)
-        hist = np.histogram(R[-1, :, :][MASK_thr], bins=pmm_bin_edges)[0]
-        R0_cdf = probmatching.compute_empirical_cdf(pmm_bin_edges, hist)
-    
+        elif mask_method == "incremental":
+            # initialize precip mask for each member
+            MASK_prec_ = R[-1, :, :] >= R_thr
+            MASK_prec = [ MASK_prec_.copy() for j in range(num_ens_members)]
+            # initialize the structuring element
+            struct = scipy.ndimage.generate_binary_structure(2, 1)
+            # iterate it to expand it nxn
+            n = timestep/pixelsperkm
+            struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
+            
     R = R[-1, :, :]
     
     print("Starting nowcast computation.")
@@ -306,6 +317,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
         
         # iterate each ensemble member
         def worker(j):
+
             if noise_method is not None:
                 # generate noise field
                 EPS = generate_noise(pp, randstate=randgen_prec[j])
@@ -325,7 +337,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
                 R_c[j, i, :, :, :] = \
                     autoregression.iterate_ar_model(R_c[j, i, :, :, :], 
                                                     PHI[i, :], EPS=EPS_)
-                if use_probmatching and pm_thr_method == "ar":
+                if use_precip_mask and mask_method == "sprog":
                     # use a separate AR(p) model for the non-perturbed forecast, 
                     # from which the mask is obtained
                     R_m[j, i, :, :, :] = \
@@ -342,60 +354,45 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
                 # apply the precipitation mask to prevent generation of new 
                 # precipitation into areas where it was not originally 
                 # observed
-                R_c_[~MASK_thr] = R_min
-            
-            if use_probmatching:
-                if pm_thr_method == "ar":
-                    # method 1: obtain the CDF from the non-perturbed 
-                    # forecast that is scale-filtered by the AR(p) model
+                if mask_method == "obs":
+                    R_c_[~MASK_prec] = R_c_.min()
+                elif mask_method == "incremental":
+                    R_c_[~MASK_prec[j]] = R_c_.min()
+                elif mask_method == "sprog":
+                    # obtain the CDF from the non-perturbed forecast that is 
+                    # scale-filtered by the AR(p) model
                     R_m_ = _recompose_cascade(R_m[j, :, :, :], mu, sigma)
                     R_s = R_m_.flatten()
-                else:
-                    # method 2: obtain the CDF from the perturbed forecast
-                    R_s = R_c_.flatten()
+                    
+                    # compute the threshold value R_pct_thr corresponding to the 
+                    # same fraction of precipitation pixels (forecast values above 
+                    # R_min) as in the most recently observed precipitation field
+                    R_s.sort(kind="quicksort")
+                    x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
+                    i = np.argmin(abs(x - war))
+                    # handle ties
+                    if R_s[i] == R_s[i + 1]:
+                        i = np.where(R_s == R_s[i])[0][-1] + 1
+                    R_pct_thr = R_s[i]
+                    
+                    # apply a mask obtained from the above to preserve the 
+                    # wet-area ratio
+                    MASK_prec_ = R_m_ < R_pct_thr
+                    R_c_[MASK_prec_] = R_c_.min()
+
+            
+            if use_probmatching:
+                ## adjust the conditional CDF of the forecast (precipitation 
+                ## intensity above the threshold R_thr) to match the most 
+                ## recently observed precipitation field
+                R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
                 
-                # compute the threshold value R_pct_thr corresponding to the 
-                # same fraction of precipitation pixels (forecast values above 
-                # R_min) as in the most recently observed precipitation field
-                R_s.sort(kind="quicksort")
-                x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
-                i = np.argmin(abs(x - war))
-                # handle ties
-                if R_s[i] == R_s[i + 1]:
-                    i = np.where(R_s == R_s[i])[0][-1] + 1
-                R_pct_thr = R_s[i]
                 
-                # apply a mask obtained from the above to preserve the 
-                # wet-area ratio
-                if pm_thr_method == "obs":
-                    MASK_p = R_c_ < R_pct_thr
-                else:
-                    MASK_p = R_m_ < R_pct_thr
-                #R_r[~MASK_p] = R_r[~MASK_p] + (R_thr - R_pct_thr)
-                R_c_[MASK_p] = R_min
+            if use_precip_mask and mask_method == "incremental":
+                MASK_prec_ = R_c_ >= R_thr
+                MASK_prec_ = scipy.ndimage.morphology.binary_dilation(MASK_prec_, struct)
+                MASK_prec[j] = MASK_prec_
                 
-                R_s  = None
-                if pm_thr_method == "ar":
-                    R_m_ = None
-                
-                # adjust the conditional CDF of the forecast (precipitation 
-                # intensity above the threshold R_thr) to match the most 
-                # recently observed precipitation field
-                R_out_hist = np.histogram(R_c_[~MASK_p], bins=pmm_bin_edges)[0]
-                R_out_cdf = probmatching.compute_empirical_cdf(pmm_bin_edges, R_out_hist)
-                pmm = probmatching.pmm_init(pmm_bin_edges, R_out_cdf, pmm_bin_edges, R0_cdf)
-                R_c_[~MASK_p] = probmatching.pmm_compute(pmm, R_c_[~MASK_p])
-                
-                # TODO: this is needed because the probability matching 
-                # introduces nan values for some reason. Take a closer look 
-                # on this.
-                R_c_[~np.isfinite(R_c_)] = R_thr
-                
-                R_out_hist = None
-                R_out_cdf = None
-                pmm = None
-                # the old version is currently commented out
-                #R_r = probmatching.nonparam_match_empirical_cdf(R_r, R)
             
             # compute the perturbed motion field
             if vel_pert_method is not None:
