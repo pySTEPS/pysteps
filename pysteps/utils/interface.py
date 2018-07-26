@@ -33,7 +33,7 @@ def get_method(name):
     +===================+========================================================+
     |  aggregate        | aggregate fields in time                               |
     +-------------------+--------------------------------------------------------+
-    |  square_domain    | either pad or crop the data to get a square domain     |
+    |  square           | either pad or crop the data to get a square domain     |
     +-------------------+--------------------------------------------------------+
     """
     if name.lower() == "mm/h" or name.lower() == "rainrate":
@@ -48,7 +48,11 @@ def get_method(name):
         return transformation.boxcox_transform
     elif name.lower() == "aggregate":
         return dimension.aggregate_fields_time
-    elif name.lower() == "square_domain":
+    elif name.lower() == "square":
         return dimension.square_domain
+    elif name is None:
+        def donothing(R, metadata, *args, **kwargs):
+            return R.copy(), metadata.copy()
+        return donothing
     else:
         raise ValueError("unknown method %s" % name)

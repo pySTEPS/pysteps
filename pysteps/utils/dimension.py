@@ -2,16 +2,16 @@
 
 import numpy as np
 
-def aggregate_fields_time(R, timestamps, time_window_min, method="sum"):
+def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
     """Aggregate fields in time.
 
     Parameters
     ----------
     R : array-like
-        Array of shape (t,m,n) containing the input fields.
+        Array of shape (t,m,n) or (i,t,m,n) containing the input fields.
         They must be evenly spaced in time.
-    timestamps : list
-        List of datetime.datetime objects related to time dimension of R.
+    metadata : dict
+        The metadata dictionary contains all data-related information.
     time_window_min : float
         The length in minutes of the time window that is used to aggregate the fields.
         The total length of R must be a multiple of time_window_min.
@@ -24,27 +24,42 @@ def aggregate_fields_time(R, timestamps, time_window_min, method="sum"):
     outputarray : array-like
         The new array of aggregated precipitation fields of shape (k,m,n), where 
         k = int(t*delta/time_window_min)
+    metadata : dict 
+        The metadata with updated attributes.
+        
     """
     
-    if R.shape[0] != len(timestamps):
-        raise ValueError("The list of timestamps has length %i, but R contains %i frames" 
-                         % (len(timestamps), R.shape[0]))
-                         
     R = R.copy()
-    timestamps = timestamps.copy()
-
+    metadata = metadata.copy()
+    timestamps = metadata["timestamps"]
+    
+    if len(R.shape) < 3:
+        raise ValueError("The number of dimension must be > 2")
+    if len(R.shape) == 3:
+        axis = 0
+    if len(R.shape) == 3:
+        axis = 1
+    if len(R.shape) > 4:
+        raise ValueError("The number of dimension must be <= 4")
+    
+    if R.shape[axis] != len(timestamps):
+        raise ValueError("The list of timestamps has length %i, but R contains %i frames" 
+                         % (len(timestamps), R.shape[axis]))
+                        
     # assumes that frames are evenly spaced 
     delta = (timestamps[1] - timestamps[0]).seconds/60
-    if (R.shape[0]*delta) % time_window_min:
+    if delta == time_window_min:
+        return R, metadata
+    if (R.shape[axis]*delta) % time_window_min:
         raise ValueError('time_window_size does not equally split R')
     
     nframes = int(time_window_min/delta)
     
-    R = aggregate_fields(R, nframes, axis=0, method=method)
+    R = aggregate_fields(R, nframes, axis=axis, method=method)
     
-    timestamps = timestamps[nframes-1::nframes]
+    metadata["timestamps"] = timestamps[nframes-1::nframes]
     
-    return R, timestamps
+    return R, metadata
 
 def aggregate_fields(R, window_size, axis=0, method="sum"):
     """Aggregate fields. 
@@ -54,11 +69,11 @@ def aggregate_fields(R, window_size, axis=0, method="sum"):
     Parameters
     ----------
     R : array-like
-        Array of shape (t,m,n) containing the input fields.
+        Array of any shape containing the input fields.
     window_size : int
         The length of the window that is used to aggregate the fields.
     axis : int
-        
+        The axis where to perform the aggregation.
     method : string
         Optional argument that specifies the operation to use to aggregate the values within the time
         window.
@@ -68,6 +83,7 @@ def aggregate_fields(R, window_size, axis=0, method="sum"):
     outputarray : array-like
         The new aggregated array of shape (k,m,n), where k = t/time_window
     """
+    
     
     N = R.shape[axis]
     if N % window_size:
@@ -127,7 +143,7 @@ def square_domain(R, metadata, method="pad", inverse=False):
     if not inverse:
     
         if len(R.shape) < 2:
-            raise ValueError("The number of dimension must be > 2")
+            raise ValueError("The number of dimension must be > 1")
         if len(R.shape) == 2:
             R = R[None, None, :]
         if len(R.shape) == 3:
