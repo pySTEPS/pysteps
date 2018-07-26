@@ -15,13 +15,13 @@ except ImportError:
     dask_imported = False
 
 # TODO: Using non-square shapes of the inputs has not been tested.
-def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr, 
-             extrap_method, decomp_method, bandpass_filter_method, 
-             noise_method, pixelsperkm, timestep, ar_order=2, 
-             vel_pert_method=None, conditional=False, use_precip_mask=True, 
-             use_probmatching=True, pm_thr_method="obs", callback=None, 
-             return_output=True, extrap_kwargs={}, filter_kwargs={}, 
-             noise_kwargs={}, vel_pert_kwargs={}, seed=None):
+def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, 
+             pixelsperkm, timestep, R_thr=None, extrap_method="semilagrangian", 
+             decomp_method="fft", bandpass_filter_method="gaussian", 
+             noise_method="nonparametric", ar_order=2, vel_pert_method=None, 
+             conditional=False, use_precip_mask=True, use_probmatching=True, 
+             pm_thr_method="obs", callback=None, return_output=True, extrap_kwargs={}, 
+             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}, seed=None):
     """Generate a nowcast ensemble by using the STEPS method described in 
     Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
     which merges an extrapolation nowcast with downscaled NWP.
@@ -42,9 +42,13 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
       The number of ensemble members to generate.
     num_cascade_levels : int
       The number of cascade levels to use.
+    pixelsperkm : float
+      Spatial resolution of the motion field (pixels/kilometer).
+    timestep : float
+      Time step of the motion vectors (minutes).
     R_thr : float
       Specifies the threshold value for minimum observable precipitation 
-      intensity. Applicable if use_probmatching is True or conditional is True.
+      intensity. Must be set if use_probmatching is True or conditional is True.
     extrap_method : str
       Name of the extrapolation method to use. See the documentation of 
       pysteps.advection for the available choices.
@@ -57,15 +61,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     noise_method : str
       Name of the noise generator to use for perturbating the precipitation 
       field. See the documentation of pysteps.noise.interface.
-    pixelsperkm : float
-      Spatial resolution of the motion field (pixels/kilometer).
-    timestep : float
-      Time step of the motion vectors (minutes).
+    ar_order : int
+      The order of the autoregressive model to use.
     vel_pert_method : str
       Name of the noise generator to use for perturbing the velocity field. See 
       the documentation of pysteps.noise.interface.
-    ar_order : int
-      The order of the autoregressive model to use.
     conditional : bool
       If set to True, compute the statistics of the precipitation field 
       conditionally by excluding the areas where the values are below the 
@@ -76,7 +76,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     use_probmatching : bool
       If True, apply probability matching to the forecast field in order to 
       preserve the distribution of the most recently observed precipitation 
-      field.
+      field. This requires R_thr to be set.
     pm_thr_method : str
       The precipitation/no precipitation thresholding method to use with 
       probability matching: 'obs' = use the mask from the most recently observed 
@@ -127,6 +127,12 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, R_thr,
     
     if pm_thr_method not in ["obs", "ar"]:
         raise ValueError("unknown mask method %s: must be 'obs' or 'ar'" % pm_thr_method)
+    
+    if conditional and R_thr is None:
+        raise Exception("conditional=True but R_thr is not set")
+    
+    if use_probmatching and R_thr is None:
+        raise Exception("use_probmatching=True but R_thr is not set")
     
     print("Computing STEPS nowcast:")
     print("------------------------")
