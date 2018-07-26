@@ -8,5 +8,5 @@ def get_specifications(name):
     where <name> is the datasource identifier (e.g. "fmi", "mch", "bom", etc.)
 
     """
-    datasoruce_name = ".datasource_%s" % name
-    return importlib.import_module(datasoruce_name, "config")
+    datasource_name = ".datasource_%s" % name
+    return importlib.import_module(datasource_name, "config")
