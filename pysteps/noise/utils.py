@@ -1,6 +1,26 @@
 """Miscellaneous utility functions related to generating stochastic perturbations."""
 
 import numpy as np
+try:
+    import dask
+    dask_imported = True
+except ImportError:
+    dask_imported = False
+# Use the pyfftw interface if it is installed. If not, fall back to the fftpack 
+# interface provided by SciPy, and finally to numpy if SciPy is not installed.
+try:
+    import pyfftw.interfaces.numpy_fft as fft
+    import pyfftw
+    # TODO: Caching and multithreading currently disabled because they give a 
+    # segfault with dask.
+    #pyfftw.interfaces.cache.enable()
+    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
+except ImportError:
+    import scipy.fftpack as fft
+    fft_kwargs = {}
+except ImportError:
+    import numpy.fft as fft
+    fft_kwargs = {}
 
 def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter, 
                               conditional=True):
@@ -59,21 +79,40 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
     MASK_ = MASK if conditional else None
     decomp_R = decomp_method(R, F, MASK=MASK_)
     
-    N_stds = []
+    if not dask_imported:
+        N_stds = []
+    else:
+        res = []
+    
+    randstates = []
+    seed = None
+    for k in range(num_iter):
+        randstates.append(np.random.RandomState(seed=seed))
+        seed = np.random.randint(0, high=1e9)
     
     for k in range(num_iter):
-        # generate Gaussian white noise field, multiply it with the standard 
-        # deviation of the observed field and apply the precipitation mask
-        N = np.random.randn(R.shape[0], R.shape[1])
-        N = np.real(np.fft.ifft2(np.fft.fft2(N) * abs(np.fft.fft2(R))))
-        N = (N - np.mean(N)) / np.std(N) * sigma
-        N[~MASK] = R_thr_2 - mu
+        def worker():
+            # generate Gaussian white noise field, multiply it with the standard 
+            # deviation of the observed field and apply the precipitation mask
+            N = randstates[k].randn(R.shape[0], R.shape[1])
+            N = np.real(fft.ifft2(fft.fft2(N) * abs(fft.fft2(R))))
+            N = (N - np.mean(N)) / np.std(N) * sigma
+            N[~MASK] = R_thr_2 - mu
+            
+            # subtract the mean and decompose the masked noise field into a 
+            # cascade
+            N -= mu
+            decomp_N = decomp_method(N, F, MASK=MASK_)
+            
+            return decomp_N["stds"]
         
-        # subtract the mean and decompose the masked noise field into a cascade
-        N -= mu
-        decomp_N = decomp_method(N, F, MASK=MASK_)
-        
-        N_stds.append(decomp_N["stds"])
+        if dask_imported:
+            res.append(dask.delayed(worker)())
+        else:
+            N_stds.append(worker())
+    
+    if dask_imported:
+        N_stds = dask.compute(*res)
     
     # for each cascade level, compare the standard deviations between the 
     # observed field and the masked noise field, which gives the correction 
