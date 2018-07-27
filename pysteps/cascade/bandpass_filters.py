@@ -27,24 +27,25 @@ import numpy as np
 # TODO: Should the filter always return an 1d array and should we use a separate 
 # method for generating the 2d filter from the 1d filter?
 
-def filter_uniform(N, n, M=None):
+def filter_uniform(shape, n):
     """A dummy filter with one frequency band covering the whole domain. The 
     weights are set to one.
   
     Parameters
     ----------
-    N : int
-        The width of the input field.
-    M : int
-        The height of the input field. If M is None, the height is assumed to 
-        be equal to the width.
+    shape : int or tuple
+        The dimensions (height, width) of the input field. If shape is an int, it 
+        assumes to be a square domain.
     n : int
         Not used. Needed for compatibility with the filter interface.
     """
     result = {}
     
-    if M == None:
-        M = N
+    try:
+        M,N = shape
+    except TypeError:
+        M,N = (shape, shape)
+    
     r_max = int(max(N, M)/2)+1
     
     result["weights_1d"]    = np.ones((1, r_max))
@@ -53,7 +54,7 @@ def filter_uniform(N, n, M=None):
     
     return result
 
-def filter_gaussian(N, n, M=None, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
+def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     """Gaussian band-pass filter in logarithmic frequency scale. The method is 
     described in
     
@@ -64,11 +65,9 @@ def filter_gaussian(N, n, M=None, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     
     Parameters
     ----------
-    N : int
-        The width of the input field.
-    M : int
-        The height of the input field. If M is None, the height is assumed to 
-        be equal to the width.
+    shape : int or tuple
+        The dimensions (height, width) of the input field. If shape is an int, it 
+        assumes to be a square domain.
     n : int
         The number of frequency bands to use. Must be greater than 2.
     l_0 : int
@@ -84,8 +83,10 @@ def filter_gaussian(N, n, M=None, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     if n < 3:
         raise ValueError("n must be greater than 2")
     
-    if M == None:
-        M = N
+    try:
+        M,N = shape
+    except TypeError:
+        M,N = (shape, shape)
     
     if N % 2 == 1:
         rx = np.s_[-int(N/2):int(N/2)+1]

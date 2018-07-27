@@ -52,7 +52,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     Parameters
     ----------
     X : array-like
-      Two-dimensional square array containing the input field. All values are 
+      Two-dimensional array containing the input field. All values are 
       required to be finite.
       
     Optional kwargs
@@ -78,21 +78,18 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         raise ValueError("the input is not two-dimensional array")
     if np.any(~np.isfinite(X)):
       raise ValueError("X contains non-finite values")
-    if X.shape[0] != X.shape[1]:
-        raise ValueError("a square array expected, but the shape of X is (%d,%d)" % \
-                         (X.shape[0], X.shape[1]))
        
     # defaults
     win_type = kwargs.get('win_type', 'flat-hanning')
     model    = kwargs.get('model', 'power-law')
     weighted = kwargs.get('weighted', True)
         
-    L = X.shape[0]
+    M,N = X.shape
     
     X = X.copy()
     if win_type is not None:
         X -= X.min()
-        tapering = build_2D_tapering_function((L, L), win_type)
+        tapering = build_2D_tapering_function((M, N), win_type)
     else:
         tapering = np.ones_like(X)
     
@@ -100,6 +97,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
        
         # compute radially averaged PSD
         psd = _rapsd(X*tapering)
+        L = max(M,N)
         
         # wavenumbers
         if L % 2 == 0:
@@ -113,12 +111,9 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         else:
             p0 = np.polyfit(np.log(wn[1:]), np.log(psd[1:]), 1)
         beta = -p0[0]
-        
+
         # compute 2d filter
-        if L % 2 == 1:
-            XC,YC = np.ogrid[-int(L/2):int(L/2)+1, -int(L/2):int(L/2)+1]
-        else:
-            XC,YC = np.ogrid[-int(L/2):int(L/2), -int(L/2):int(L/2)]
+        YC, XC = _compute_centred_coord_array(M,N)
         R = np.sqrt(XC*XC + YC*YC)
         R = fft.fftshift(R)
         F = R**(-beta)
@@ -127,7 +122,6 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     else:
         raise ValueError("unknown parametric model %s" % model)
     
-
     return F
 
 def initialize_nonparam_2d_fft_filter(X, **kwargs):
@@ -579,21 +573,20 @@ def _rapsd(X):
     """Compute radially averaged PSD of input field X.
     """
     
-    if X.shape[0] != X.shape[1]:
-        raise ValueError("a square array expected, but the shape of X is (%d,%d)" % \
-                         (X.shape[0], X.shape[1]))
+    if len(X.shape) != 2:
+        raise ValueError("%i dimensions are found, but the number of dimensions should be 2" % \
+                         len(X.shape))
     
-    L = X.shape[0]
+    M,N = X.shape
     
-    if L % 2 == 1:
-        XC,YC = np.ogrid[-int(L/2):int(L/2)+1, -int(L/2):int(L/2)+1]
-    else:
-        XC,YC = np.ogrid[-int(L/2):int(L/2), -int(L/2):int(L/2)]
+    YC, XC = _compute_centred_coord_array(M,N)
     
     R = np.sqrt(XC*XC + YC*YC).astype(int)
     
     F = fft.fftshift(fft.fft2(X, **fft_kwargs))
     F = abs(F)**2
+    
+    L = max(X.shape[0], X.shape[1])
     
     if L % 2 == 0:
         r_range = np.arange(0, int(L/2)+1)
@@ -649,3 +642,19 @@ def _get_mask(Size, idxi, idxj, win_type):
     mask[idxi.item(0):idxi.item(1), idxj.item(0):idxj.item(1)] = wind
     
     return mask
+    
+def _compute_centred_coord_array(M,N):
+
+    if M % 2 == 1:
+        s1 = np.s_[-int(M/2):int(M/2)+1]
+    else:
+        s1 = np.s_[-int(M/2):int(M/2)]
+    
+    if N % 2 == 1:
+        s2 = np.s_[-int(N/2):int(N/2)+1]
+    else:
+        s2 = np.s_[-int(N/2):int(N/2)]
+    
+    YC,XC = np.ogrid[s1, s2]
+    
+    return YC,XC

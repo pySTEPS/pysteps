@@ -174,7 +174,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     if conditional:
         print("conditional precip. intensity threshold: %g" % R_thr)
     
-    L = R.shape[1]
+    M,N = R.shape[1:]
     extrap_method = advection.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
     
@@ -199,7 +199,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     
     # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
-    filter = filter_method(L, num_cascade_levels, **filter_kwargs)
+    filter = filter_method((M,N), num_cascade_levels, **filter_kwargs)
     
     # compute the cascade decompositions of the input precipitation fields
     decomp_method = cascade.get_method(decomp_method)
@@ -308,7 +308,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     R = R[-1, :, :]
     
     print("Starting nowcast computation.")
-    
+
     # iterate each time step
     for t in range(num_timesteps):
         print("Computing nowcast for time step %d... " % (t+1), end="")
@@ -428,7 +428,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
         if return_output:
             for j in range(num_ens_members):
                 R_f[j].append(R_f_[j])
-    
+
     if return_output:
         if num_ens_members == 1:
             return np.stack(R_f[0])
