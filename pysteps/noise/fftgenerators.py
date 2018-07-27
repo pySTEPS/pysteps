@@ -26,6 +26,7 @@ The output of each generator method is a two-dimensional array containing the
 field of correlated noise cN of shape (m, n)."""
 
 import numpy as np
+from scipy import optimize
 
 # TODO: Update the methods so that they allow inputs with non-square shapes.
 
@@ -66,6 +67,9 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     weighted : bool
         Whether or not to apply the sqrt(power) as weight in the polyfit() function.
         Default : True
+    doplot : bool
+        Plot the fit.
+        Default : False
         
     Returns
     -------
@@ -83,6 +87,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     model    = kwargs.get('model', 'power-law')
     weighted = kwargs.get('weighted', True)
+    doplot   = kwargs.get('doplot', False)
         
     M,N = X.shape
     
@@ -104,20 +109,40 @@ def initialize_param_2d_fft_filter(X, **kwargs):
             wn = np.arange(0, int(L/2)+1)
         else:
             wn = np.arange(0, int(L/2))
-        
-        # compute spectral slope Beta
+            
+        # compute single spectral slope beta as first guess
         if weighted:
             p0 = np.polyfit(np.log(wn[1:]), np.log(psd[1:]), 1, w=np.sqrt(psd[1:]))
         else:
             p0 = np.polyfit(np.log(wn[1:]), np.log(psd[1:]), 1)
-        beta = -p0[0]
+        beta = p0[0]
+        
+        # create the piecewise function with two spectral slopes beta1 and beta2  
+        def piecewise_linear(x, x0, y0, beta1, beta2):
+            return np.piecewise(x, [x < x0], [lambda x:beta1*x + y0-beta1*x0, lambda x:beta2*x + y0-beta2*x0])
+        
+        # fit the two betas and the scale breaking point
+        p0 = [2., 0, beta, beta] # first guess
+        bounds=([2., 0, -4, -4], [5., 20, -1., -1.]) # TODO: provide better bounds
+        if weighted:
+            p, e = optimize.curve_fit(piecewise_linear, np.log(wn[1:]), np.log(psd[1:]),
+                                      p0=p0, bounds=bounds, sigma=1/np.sqrt(psd[1:]))
+        else:
+            p, e = optimize.curve_fit(piecewise_linear, np.log(wn[1:]), np.log(psd[1:]),
+                                      p0=p0, bounds=bounds)
 
         # compute 2d filter
         YC, XC = _compute_centred_coord_array(M,N)
         R = np.sqrt(XC*XC + YC*YC)
         R = fft.fftshift(R)
-        F = R**(-beta)
+        F = np.exp(piecewise_linear(np.log(R), *p))
         F[~np.isfinite(F)] = 1
+        
+        if doplot:
+            import matplotlib.pylab as plt
+            plt.loglog(wn[1:], psd[1:], "-k")
+            plt.plot(wn[1:], np.exp(piecewise_linear(np.log(wn[1:]), *p)))
+            plt.show()
     
     else:
         raise ValueError("unknown parametric model %s" % model)
