@@ -32,12 +32,14 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
     R = R.copy()
     metadata = metadata.copy()
     timestamps = metadata["timestamps"]
-    
+    if "leadtimes" in metadata:
+        leadtimes = metadata["leadtimes"]
+        
     if len(R.shape) < 3:
         raise ValueError("The number of dimension must be > 2")
     if len(R.shape) == 3:
         axis = 0
-    if len(R.shape) == 3:
+    if len(R.shape) == 4:
         axis = 1
     if len(R.shape) > 4:
         raise ValueError("The number of dimension must be <= 4")
@@ -58,7 +60,9 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
     R = aggregate_fields(R, nframes, axis=axis, method=method)
     
     metadata["timestamps"] = timestamps[nframes-1::nframes]
-    
+    if "leadtimes" in metadata:
+        metadata["leadtimes"] = leadtimes[nframes-1::nframes]
+        
     return R, metadata
 
 def aggregate_fields(R, window_size, axis=0, method="sum"):
@@ -88,8 +92,8 @@ def aggregate_fields(R, window_size, axis=0, method="sum"):
     N = R.shape[axis]
     if N % window_size:
         raise ValueError('window_size does not equally split R')
-    
     R = R.copy().swapaxes(axis, 0)    
+    shape = list(R.shape)
     R_ = R.reshape((N, -1))
     
     if   method.lower() == "sum":
@@ -103,7 +107,8 @@ def aggregate_fields(R, window_size, axis=0, method="sum"):
     else:
         raise ValueError("unknown method %s" % method)
     
-    R = R__.reshape((int(N/window_size), R.shape[1], R.shape[2])).swapaxes(axis, 0)
+    shape[0] = int(N/window_size)
+    R = R__.reshape(shape).swapaxes(axis, 0)
         
     return R
 

@@ -38,11 +38,11 @@ import config as cfg
 # Verification settings
 verification = {
     "experiment_name"   : "ex01_cascade_decomp",
-    "overwrite"         : True,
-    "v_threshold"       : 1.0,  # [mm/h]                 
+    "overwrite"         : False,
+    "v_threshold"       : 1.0,          # [mm/h]                 
     "v_leadtimes"       : [10, 30, 60], # [min]
-    "v_accu"            : 5.0,
-    "seed"              : 42   # for reproducibility
+    "v_accu"            : 5.0,          # [min]
+    "seed"              : 42            # for reproducibility
 }
 
 # Forecast settings
@@ -51,7 +51,7 @@ forecast = {
     "r_threshold"       : 0.1,      # [mm/h]
     "unit"              : "mm/h",   # mm/h or dBZ
     "transformation"    : "dB",     # None or dB 
-    "adjust_domain"     : "square"  # None or square
+    "adjust_domain"     : None      # None or square
 }
 
 # The experiment set-up
@@ -64,19 +64,19 @@ experiment = {
                            ("201705091130", "201705091400", 30,           "fmi")],
     
     ## the methods
-    "oflow_method"      : ["lucaskanade"],
+    "oflow_method"      : ["lucaskanade"],  # lucaskanade, darts
     "adv_method"        : ["semilagrangian"],
     "nwc_method"        : ["steps"],
-    "noise_method"      : ["nonparametric"],
+    "noise_method"      : ["nonparametric"], # parametric, nonparametric, ssft
     "decomp_method"     : ["fft"],
     
     ## the parameters
     "n_ens_members"     : [10],
     "ar_order"          : [2],
-    "n_cascade_levels"  : [1,3,6,9],
+    "n_cascade_levels"  : [1,3,6],
     "conditional"       : [False],
-    "precip_mask"       : [False],
-    "mask_method"       : ["sprog"], # sprog, obs or incremental
+    "precip_mask"       : [True],
+    "mask_method"       : ["incremental"], # sprog, obs or incremental
     "prob_matching"     : [True],
 }
 
@@ -201,7 +201,7 @@ for n, parset in enumerate(parsets):
             # Prepare input files
             print("Prepare the data...")
             
-            ## make sure we work with a square domain
+            ## if requested, make sure we work with a square domain
             reshaper = stp.utils.get_method(p["adjust_domain"])
             R, metadata = reshaper(R, metadata)
     
@@ -273,7 +273,7 @@ for n, parset in enumerate(parsets):
     reldiags = {}
     rocs = {}
     for lt in p["v_leadtimes"]:
-        rankhists[lt] = stp.verification.ensscores.rankhist_init(p["n_ens_members"], p["v_threshold"])
+        rankhists[lt] = stp.verification.ensscores.rankhist_init(p["n_ens_members"], p["r_threshold"])
         reldiags[lt]  = stp.verification.probscores.reldiag_init(p["v_threshold"])
         rocs[lt]      = stp.verification.probscores.ROC_curve_init(p["v_threshold"])
     
@@ -318,16 +318,18 @@ for n, parset in enumerate(parsets):
         R_fct, metadata_fct = stp.io.import_netcdf_pysteps(infn)
         timestamps = metadata_fct["timestamps"]
         leadtimes = np.arange(1,len(timestamps)+1)*ds.timestep # min
+        metadata_fct["leadtimes"] = leadtimes
         
         ## threshold the data
         R_fct[R_fct < p["r_threshold"]] = 0.0
         metadata_fct["threshold"] = p["r_threshold"]
         
         # If needed, compute accumulations
-        # aggregator = stp.utils.get_method("aggregate")
-        # R_obs, metadata_obs = aggregator(R_obs, metadata_obs, p["v_accu"], method="mean")
-        # R_fct, metadata_fct = aggregator(R_fct, metadata_fct, p["v_accu"], method="mean")
-    
+        aggregator = stp.utils.get_method("aggregate")
+        R_obs, metadata_obs = aggregator(R_obs, metadata_obs, p["v_accu"], method="mean")
+        R_fct, metadata_fct = aggregator(R_fct, metadata_fct, p["v_accu"], method="mean")
+        leadtimes = metadata_fct["leadtimes"]
+        
         # Loop leadtimes and do verification
         for i,lt in enumerate(p["v_leadtimes"]):
             
@@ -359,18 +361,18 @@ for n, parset in enumerate(parsets):
         
         fig = plt.figure()
         stp.verification.plot_rankhist(rankhists[lt], ax=fig.gca())
-        plt.savefig(os.path.join(path_to_nwc, "rankhist_%03d_thr%.1f.png" % (lt, p["v_threshold"])), 
+        plt.savefig(os.path.join(path_to_nwc, "rankhist_%03d_%03d.png" % (lt, p["v_accu"])), 
                 bbox_inches="tight")
         plt.close()
         
         fig = plt.figure()
         stp.verification.plot_reldiag(reldiags[lt], ax=fig.gca())
-        plt.savefig(os.path.join(path_to_nwc, "reldiag_%03d_thr%.1f.png" % (lt, p["v_threshold"])), 
+        plt.savefig(os.path.join(path_to_nwc, "reldiag_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], p["v_threshold"])), 
                 bbox_inches="tight")
         plt.close()
         
         fig = plt.figure()
         stp.verification.plot_ROC(rocs[lt], ax=fig.gca())
-        plt.savefig(os.path.join(path_to_nwc, "roc_%03d_thr%.1f.png" % (lt, p["v_threshold"])), 
+        plt.savefig(os.path.join(path_to_nwc, "roc_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], p["v_threshold"])), 
                 bbox_inches="tight")
         plt.close()        
