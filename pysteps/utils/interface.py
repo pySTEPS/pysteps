@@ -36,7 +36,11 @@ def get_method(name):
     |  square           | either pad or crop the data to get a square domain     |
     +-------------------+--------------------------------------------------------+
     """
-    if name.lower() == "mm/h" or name.lower() == "rainrate":
+    if name is None:
+        def donothing(R, metadata, *args, **kwargs):
+            return R.copy(), metadata.copy()
+        return donothing
+    elif name.lower() == "mm/h" or name.lower() == "rainrate":
         return conversion.to_rainrate
     elif name.lower() == "mm" or name.lower() == "raindepth":
         return conversion.to_raindepth
@@ -50,9 +54,5 @@ def get_method(name):
         return dimension.aggregate_fields_time
     elif name.lower() == "square":
         return dimension.square_domain
-    elif name is None:
-        def donothing(R, metadata, *args, **kwargs):
-            return R.copy(), metadata.copy()
-        return donothing
     else:
         raise ValueError("unknown method %s" % name)
