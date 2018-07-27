@@ -52,17 +52,17 @@ def rankhist_accum(rankhist, X_f, X_o):
     mask_nz = np.logical_or(X_o >= X_min, np.all(X_f >= X_min, axis=1))
     
     X_f.sort(axis=1)
-    bin_idx = [np.digitize(v, f) for v,f in zip(X_o[mask_nz], X_f[mask_nz, :])]
+    bin_idx = [np.digitize([v], f)[0] for v,f in zip(X_o[mask_nz], X_f[mask_nz, :])]
     
-    # handle ties, where the verifying observation lies between ensemble members 
-    # having the same value
+    # handle ties, where the verifying observation lies between ensemble 
+    # members having the same value
     # ignore the cases where the verifying observations and all ensemble 
     # members are below the threshold X_min
     for i in np.where(~mask_nz)[0]:
         if np.any(X_f[i, :] >= X_min):
             i_eq = np.where(X_f[i, :] < X_min)[0]
             if len(i_eq) > 1 and X_o[i] < X_min:
-                bin_idx.append(np.random.randint(low=np.min(i_eq)+1, 
+                bin_idx.append(np.random.randint(low=np.min(i_eq), 
                                                  high=np.max(i_eq)+1))
     
     for bi in bin_idx:
