@@ -22,8 +22,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
              noise_method="nonparametric", noise_stddev_adj=False, ar_order=2, 
              vel_pert_method=None, conditional=False, use_precip_mask=True, 
              use_probmatching=True, mask_method="obs", callback=None, 
-             return_output=True, extrap_kwargs={}, filter_kwargs={}, 
-             noise_kwargs={}, vel_pert_kwargs={}, seed=None):
+             return_output=True, seed=None, num_workers=None, extrap_kwargs={}, 
+             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
     """Generate a nowcast ensemble by using the STEPS method described in 
     Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
     which merges an extrapolation nowcast with downscaled NWP.
@@ -98,6 +98,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
       Set to False to disable returning the outputs as numpy arrays. This can 
       save memory if the intermediate results are written to output files using 
       the callback function.
+    seed : int
+      Optional seed number for the random generators.
+    num_workers : int
+      The number of workers to use for parallel computation. Set to None to use 
+      all available CPUs. Applicable if dask is enabled.
     extrap_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
       extrapolation method.
@@ -112,8 +117,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
       Optional dictionary that is supplied as keyword arguments to the 
       initializer of the velocity perturbator. See the documentation of 
       pysteps.noise.motion.
-    seed : int
-      Optional seed number for the random generators.
     
     Returns
     -------
@@ -195,7 +198,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
             res.append(dask.delayed(f)(R, i))
     
     if dask_imported:
-        R = np.stack(list(dask.compute(*res)) + [R[-1, :, :]])
+        R = np.stack(list(dask.compute(*res, num_workers=num_workers)) + [R[-1, :, :]])
     
     if conditional or use_probmatching:
         MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
@@ -430,7 +433,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
             else:
                 res.append(dask.delayed(worker)(j))
         
-        R_f_ = dask.compute(*res) if dask_imported and num_ens_members > 1 else res
+        R_f_ = dask.compute(*res, num_workers=num_workers) \
+            if dask_imported and num_ens_members > 1 else res
         res = None
         
         print("%.2f seconds." % (time.time() - starttime))
