@@ -1,12 +1,9 @@
 """Miscellaneous utility functions related to generating stochastic perturbations."""
 
 import numpy as np
- 
-# TODO: This method needs a careful testing. Check the verification statistics, 
-# and particularly the ensemble spread and rank histogram with and without the 
-# adjustment.
+
 def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter, 
-                              conditional):
+                              conditional=True):
     """Simulate the effect of applying a precipitation mask to a Gaussian noise 
     field obtained by the nonparametric filter method. The idea is to decompose 
     the masked noise field into a cascade and compare the standard deviations of 
@@ -73,7 +70,7 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
         N[~MASK] = R_thr_2 - mu
         
         # subtract the mean and decompose the masked noise field into a cascade
-        N -= np.mean(N)
+        N -= mu
         decomp_N = decomp_method(N, F, MASK=MASK_)
         
         N_stds.append(decomp_N["stds"])
