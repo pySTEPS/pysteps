@@ -98,8 +98,8 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
             # deviation of the observed field and apply the precipitation mask
             N = randstates[k].randn(R.shape[0], R.shape[1])
             N = np.real(fft.ifft2(fft.fft2(N) * R_fft))
-            N = (N - np.mean(N)) / np.std(N) * sigma
-            N[~MASK] = R_thr_2 - mu
+            N = N / np.std(N) * sigma + mu
+            N[~MASK] = R_thr_2
             
             # subtract the mean and decompose the masked noise field into a 
             # cascade
