@@ -311,7 +311,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     num_windows_x = np.ceil( float(dim_x) / win_size[1] ).astype(int)
     
     # domain fourier filter
-    F0 = initialize_nonparam_2d_fft_filter(X, win_type, True)
+    F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True)
     # and allocate it to the final grid
     F = np.zeros((num_windows_y, num_windows_x, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -322,10 +322,10 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
         for j in range(F.shape[1]):
         
             # compute indices of local window
-            idxi[0] = np.max( (i*win_size[0] - overlap*win_size[0], 0) ).astype(int)
-            idxi[1] = np.min( (idxi[0] + win_size[0]  + overlap*win_size[0], dim_y) ).astype(int)
-            idxj[0] = np.max( (j*win_size[1] - overlap*win_size[1], 0) ).astype(int)
-            idxj[1] = np.min( (idxj[0] + win_size[1]  + overlap*win_size[1], dim_x) ).astype(int)
+            idxi[0] = int(np.max( (i*win_size[0] - overlap*win_size[0], 0) ))
+            idxi[1] = int(np.min( (idxi[0] + win_size[0]  + overlap*win_size[0], dim_y) ))
+            idxj[0] = int(np.max( (j*win_size[1] - overlap*win_size[1], 0) ))
+            idxj[1] = int(np.min( (idxj[0] + win_size[1]  + overlap*win_size[1], dim_x) ))
        
             # build localization mask
             # TODO: the 0.01 rain threshold must be improved
@@ -334,7 +334,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
             
             if war > war_thr:
                 # the new filter 
-                F[i, j, : ,:] = initialize_nonparam_2d_fft_filter(X*mask, None, True)
+                F[i, j, : ,:] = initialize_nonparam_2d_fft_filter(X*mask, win_type=None, donorm=True)
                 
     return F            
  
@@ -405,7 +405,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     freq_grid = np.sqrt(fx**2 + fy**2)
     
     # domain fourier filter
-    F0 = initialize_nonparam_2d_fft_filter(X, win_type, True)
+    F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True)
     # and allocate it to the final grid
     F = np.zeros((2**max_level, 2**max_level, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -428,7 +428,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
                 
                 if war > war_thr:
                     # the new filter 
-                    newfilter = initialize_nonparam_2d_fft_filter(X*mask, None, True)
+                    newfilter = initialize_nonparam_2d_fft_filter(X*mask, win_type=None, donorm=True)
                     
                     # compute logistic function to define weights as function of frequency
                     # k controls the shape of the weighting function

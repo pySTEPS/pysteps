@@ -35,14 +35,14 @@ import config as cfg
 # Set parameters for this tutorial
 
 ## input data (copy/paste values from table above)
-startdate_str = "201701311030"
+startdate_str = "201505151630"
 data_source   = "mch"
 
 ## methods
 oflow_method        = "lucaskanade" # lucaskanade or darts
 nwc_method          = "STEPS"
 adv_method          = "semilagrangian"
-noise_method        = "nonparametric" # paramtric or nonparametric
+noise_method        = "nonparametric" # parametric, nonparametric, ssft
 bandpass_filter     = "gaussian" 
 decomp_method       = "fft"
 
@@ -52,14 +52,15 @@ n_lead_times        = 12
 n_ens_members       = 3
 n_cascade_levels    = 6
 ar_order            = 2
-r_threshold         = 0.1 # [mm/h]
+r_threshold         = 0.1       # [mm/h]
 prob_matching       = True
 precip_mask         = True
-mask_method         = "incremental"
+mask_method         = "incremental" # sprog, obs or incremental
 conditional         = False
-unit                = "mm/h" # mm/h or dBZ
-transformation      = "dB"   # None or dB 
-adjust_domain       = "square" # None or square
+unit                = "mm/h"    # mm/h or dBZ
+transformation      = "dB"      # None or dB 
+adjust_domain       = None      # None or square
+seed                = 42        # for reproducibility
 
 # Read-in the data
 print('Read the data...')
@@ -80,7 +81,7 @@ Rmask = np.isnan(R)
 # Prepare input files
 print("Prepare the data...")
 
-## make sure we work with a square domain
+## if requested, make sure we work with a square domain
 reshaper = stp.utils.get_method(adjust_domain)
 R, metadata = reshaper(R, metadata, method="pad")
 
@@ -111,7 +112,7 @@ R_fct = nwc_method(R, UV, n_lead_times, n_ens_members,
                    decomp_method=decomp_method, bandpass_filter_method=bandpass_filter, 
                    noise_method=noise_method, ar_order=ar_order, conditional=conditional, 
                    use_precip_mask=precip_mask, mask_method=mask_method, 
-                   use_probmatching=prob_matching)
+                   use_probmatching=prob_matching, seed=seed)
 
 ## transform back values to mm/h
 R_fct, _    = transformer(R_fct, metadata, inverse=True)
