@@ -280,7 +280,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
             starttime = time.time()
             
             noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(R[-1, :, :], 
-                R_thr, R_min, filter, decomp_method, 10, conditional=True)
+                R_thr, R_min, filter, decomp_method, 10, conditional=True, 
+                num_workers=num_workers)
             
             print("%.2f seconds." % (time.time() - starttime))
         else:

@@ -23,7 +23,7 @@ except ImportError:
     fft_kwargs = {}
 
 def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter, 
-                              conditional=True):
+                              conditional=True, num_workers=None):
     """Simulate the effect of applying a precipitation mask to a Gaussian noise 
     field obtained by the nonparametric filter method. The idea is to decompose 
     the masked noise field into a cascade and compare the standard deviations of 
@@ -55,6 +55,9 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
     conditional : bool
         If set to True, compute the statistics conditionally by excluding areas 
         of no precipitation.
+    num_workers : int
+      The number of workers to use for parallel computation. Set to None to use 
+      all available CPUs. Applicable if dask is enabled.
     
     Returns
     -------
@@ -114,7 +117,7 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
             N_stds.append(worker())
     
     if dask_imported:
-        N_stds = dask.compute(*res)
+        N_stds = dask.compute(*res, num_workers=num_workers)
     
     # for each cascade level, compare the standard deviations between the 
     # observed field and the masked noise field, which gives the correction 
