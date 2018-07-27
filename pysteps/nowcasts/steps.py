@@ -186,6 +186,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     extrap_method = advection.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
     
+    if conditional or use_probmatching:
+        MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
+    else:
+        MASK_thr = None
+    
     # advect the previous precipitation fields to the same position with the 
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     extrap_kwargs = extrap_kwargs.copy()
@@ -199,11 +204,6 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     
     if dask_imported:
         R = np.stack(list(dask.compute(*res, num_workers=num_workers)) + [R[-1, :, :]])
-    
-    if conditional or use_probmatching:
-        MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
-    else:
-        MASK_thr = None
     
     # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
