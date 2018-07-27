@@ -135,7 +135,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
         raise ValueError("V contains non-finite values")
     
     if mask_method not in ["obs", "sprog", "incremental"]:
-        raise ValueError("unknown mask method %s: must be 'obs', 'sprog' or 'incremental'" % pm_thr_method)
+        raise ValueError("unknown mask method %s: must be 'obs', 'sprog' or 'incremental'" % mask_method)
     
     if conditional and R_thr is None:
         raise Exception("conditional=True but R_thr is not set")
