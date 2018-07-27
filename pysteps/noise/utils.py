@@ -90,12 +90,14 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
         randstates.append(np.random.RandomState(seed=seed))
         seed = np.random.randint(0, high=1e9)
     
+    R_fft = abs(fft.fft2(R))
+    
     for k in range(num_iter):
         def worker():
             # generate Gaussian white noise field, multiply it with the standard 
             # deviation of the observed field and apply the precipitation mask
             N = randstates[k].randn(R.shape[0], R.shape[1])
-            N = np.real(fft.ifft2(fft.fft2(N) * abs(fft.fft2(R))))
+            N = np.real(fft.ifft2(fft.fft2(N) * R_fft))
             N = (N - np.mean(N)) / np.std(N) * sigma
             N[~MASK] = R_thr_2 - mu
             
