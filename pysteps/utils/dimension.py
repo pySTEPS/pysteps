@@ -12,9 +12,10 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
         They must be evenly spaced in time.
     metadata : dict
         The metadata dictionary contains all data-related information.
-    time_window_min : float
+    time_window_min : float or None
         The length in minutes of the time window that is used to aggregate the fields.
         The total length of R must be a multiple of time_window_min.
+        If set to None, it returns a copy of the original R and metadata.
     method : string
         Optional argument that specifies the operation to use to aggregate the values within the time
         window.
@@ -31,6 +32,10 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
     
     R = R.copy()
     metadata = metadata.copy()
+    
+    if time_window is None:
+        return R, metadata
+    
     timestamps = metadata["timestamps"]
     if "leadtimes" in metadata:
         leadtimes = metadata["leadtimes"]
