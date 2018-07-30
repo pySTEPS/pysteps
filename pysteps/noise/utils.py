@@ -65,9 +65,7 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
         A list containing the standard deviation adjustment factor for each 
         cascade level.
     """
-    if R.shape[0] != R.shape[1]:
-        raise ValueError("the dimensions of the input field are %dx%d, but square shape expected" % (R.shape[0], R.shape[1]))
-    
+
     MASK = R >= R_thr_1
     
     R = R.copy()
