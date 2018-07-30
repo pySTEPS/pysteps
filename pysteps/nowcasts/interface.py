@@ -1,3 +1,5 @@
+import numpy as np
+
 """The forecast methods in the nowcasts module implement the following interface:
 
     forecast(R, V, num_timesteps, non-keyworded arguments, keyword arguments)

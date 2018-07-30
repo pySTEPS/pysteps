@@ -1,3 +1,4 @@
+import numpy as np
 
 def get_method(name):
     """Return a callable function for the optical flow method corresponding to
@@ -8,7 +9,7 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
-    |  None             | Returns None                                           |
+    |  None             | Returns a zero motion field                            |
     +-------------------+--------------------------------------------------------+
     |  lucaskanade      | OpenCV implementation of the Lucas-Kanade method       |
     |                   | with interpolated motion vectors for areas with no     |
@@ -32,7 +33,7 @@ def get_method(name):
     """
     if name is None:
         def donothing(R, *args, **kwargs):
-            return None
+            return np.zeros((2, R.shape[1], R.shape[2]))
         return donothing
     elif name.lower() in ["lucaskanade", "lk"]:
         from .lucaskanade import dense_lucaskanade 
