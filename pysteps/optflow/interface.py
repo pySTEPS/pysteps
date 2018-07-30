@@ -8,14 +8,13 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
-    |  eulerian or None | Returns a zero motion field for eulerian persistence   |
-    |                   | experiments.                                           |
+    |  None             | Returns None                                           |
     +-------------------+--------------------------------------------------------+
     |  lucaskanade      | OpenCV implementation of the Lucas-Kanade method       |
     |                   | with interpolated motion vectors for areas with no     |
     |                   | precipitation.                                         |
     +-------------------+--------------------------------------------------------+
-    |     darts         | Implementation of the DARTS method of Ruzanski et al.  |
+    |  darts            | Implementation of the DARTS method of Ruzanski et al.  |
     +-------------------+--------------------------------------------------------+
 
     +----------------------------------------------------------------------------+
@@ -31,10 +30,10 @@ def get_method(name):
     |                   | (http://www.ipol.im/pub/art/2015/44)                   |
     +-------------------+--------------------------------------------------------+
     """
-    if name is None or name.lower() == "eulerian":
-        def eulerian(R, *args, **kwargs):
-            return np.stack([np.zeros(R.shape[1:]),np.zeros(R.shape[1:])])
-        return eulerian
+    if name is None:
+        def donothing(R, V, num_timesteps, *args, **kwargs):
+            return None
+        return donothing
     elif name.lower() in ["lucaskanade", "lk"]:
         from .lucaskanade import dense_lucaskanade 
         return dense_lucaskanade

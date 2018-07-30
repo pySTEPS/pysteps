@@ -22,8 +22,11 @@ def get_method(name):
     +-------------------+-------------------------------------------------------+
     |     Name          |              Description                              |
     +===================+=======================================================+
-    |  extrapolation    | this method is a simple advection forecast based      |
-    |                   | on Lagrangian persistence                             |
+    |  eulerian         | this approach simply keeps the last observation       |
+    |                   | frozen (Eulerian persistence)                         |
+    +-------------------+-------------------------------------------------------+
+    |  lagrangian or    | this approach extrapolate the last observation        |
+    |  extrapolation    | following the motion field (Lagrangian persistence)   |
     +-------------------+-------------------------------------------------------+
     |                   | implementation of the STEPS stochastic nowcasting     |
     |  steps            | method as described in Seed (2003), Bowler et al      |
@@ -31,7 +34,11 @@ def get_method(name):
     +-------------------+-------------------------------------------------------+
 
     """
-    if name.lower() in ["extrapolation", "lagrangian"]:
+    if name.lower() in ["eulerian"]:
+        def eulerian(R, V, num_timesteps, *args, **kwargs):
+            return np.repeat(R[None, :, :,], num_timesteps, axis=0)
+        return eulerian
+    elif name.lower() in ["extrapolation", "lagrangian"]:
         from . import simple_advection
         return simple_advection.forecast
     elif name.lower() in ["steps"]:

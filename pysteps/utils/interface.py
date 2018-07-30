@@ -15,14 +15,15 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     | mm or raindepth   | convert to rain depth [mm]                             |
     +-------------------+--------------------------------------------------------+
-    | dBZ or reflectivity  | convert to reflectivity [dBZ]                       |
+    | dBZ or            | convert to reflectivity [dBZ]                          |
+    | reflectivity      |                                                        |
     +-------------------+--------------------------------------------------------+
     
     Transformation methods:
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
-    |  dB, decibel      | transform to units of decibel                          |
+    |  dB or decibel    | transform to units of decibel                          |
     +-------------------+--------------------------------------------------------+
     |  BoxCox           | apply one-parameter Box-Cox transform                  |
     +-------------------+--------------------------------------------------------+
