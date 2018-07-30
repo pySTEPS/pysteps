@@ -13,8 +13,6 @@ The output of each method is an array R_e that includes the time series of extra
 fields of shape (num_timesteps, m, n). 
 """
 
-from . import semilagrangian
-
 def get_method(name):
     """Return a callable function for the extrapolation method corresponding to 
     the given name. The available options are:\n\
@@ -35,6 +33,7 @@ def get_method(name):
             return np.repeat(R[None, :, :,], num_timesteps, axis=0)
         return eulerian
     elif name.lower() == "semilagrangian":
+        from . import semilagrangian
         return semilagrangian.extrapolate
     else:
         raise ValueError("unknown method %s, the only currently implemented method is 'semilagrangian'" % name)

@@ -1,6 +1,18 @@
+"""The forecast methods in the nowcasts module implement the following interface:
 
-from . import simple_advection
-from . import steps
+    forecast(R, V, num_timesteps, non-keyworded arguments, keyword arguments)
+
+where R (m,n) is the input precipitation field to be extrapolated and V (2,m,n) is
+an array containing  the x- and y-components of the m*n advection field. num_timesteps
+is an integer specifying the number of time steps to forecast.
+Non-keyworded arguments specific to each method can be included 
+The interface accepts additional ptional keyword arguments that are specific to a given 
+forecast method.
+        
+The output of each method is a three-dimensional array of shape (num_timesteps,m,n) 
+containing a time series of nowcast precipitation fields.
+
+"""
 
 def get_method(name):
     """Return one callable function to produce deterministic or ensemble 
@@ -10,8 +22,8 @@ def get_method(name):
     +-------------------+-------------------------------------------------------+
     |     Name          |              Description                              |
     +===================+=======================================================+
-    |  extrapolation    |  this method is a simple advection forecast based     |
-    |                   |  on Lagrangian persistence                            |
+    |  extrapolation    | this method is a simple advection forecast based      |
+    |                   | on Lagrangian persistence                             |
     +-------------------+-------------------------------------------------------+
     |                   | implementation of the STEPS stochastic nowcasting     |
     |  steps            | method as described in Seed (2003), Bowler et al      |
@@ -19,9 +31,11 @@ def get_method(name):
     +-------------------+-------------------------------------------------------+
 
     """
-    if name.lower() == "extrapolation":
+    if name.lower() in ["extrapolation", "lagrangian"]:
+        from . import simple_advection
         return simple_advection.forecast
-    elif name.lower() == "steps":
+    elif name.lower() in ["steps"]:
+        from . import steps
         return steps.forecast
     else:
         raise ValueError("unknown nowcasting method %s" % name)
