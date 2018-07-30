@@ -8,6 +8,9 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
+    |  eulerian or None | Returns a zero motion field for eulerian persistence   |
+    |                   | experiments.                                           |
+    +-------------------+--------------------------------------------------------+
     |  lucaskanade      | OpenCV implementation of the Lucas-Kanade method       |
     |                   | with interpolated motion vectors for areas with no     |
     |                   | precipitation.                                         |
@@ -28,7 +31,11 @@ def get_method(name):
     |                   | (http://www.ipol.im/pub/art/2015/44)                   |
     +-------------------+--------------------------------------------------------+
     """
-    if name.lower() == "lucaskanade" or name.lower() == "lk":
+    if name is None or name.lower() == "eulerian":
+        def eulerian(R, *args, **kwargs):
+            return np.stack([np.zeros(R.shape[1:]),np.zeros(R.shape[1:])])
+        return eulerian
+    elif name.lower() in ["lucaskanade", "lk"]:
         from .lucaskanade import dense_lucaskanade 
         return dense_lucaskanade
     elif name.lower() == "darts":

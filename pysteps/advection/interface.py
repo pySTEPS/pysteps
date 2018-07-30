@@ -22,12 +22,19 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
+    |  eulerian or None | Returns the same initial field for eulerian persistence|
+    |                   | experiments.                                           |
+    +-------------------+--------------------------------------------------------+
     |  semilagrangian   | implementation of the semi-Lagrangian method of        |
     |                   | Germann et al. (2002)                                  |
     +-------------------+--------------------------------------------------------+
     
     """
-    if name == "semilagrangian":
+    if name is None or name.lower() == "eulerian":
+        def eulerian(R, V, num_timesteps, *args, **kwargs):
+            return np.repeat(R[None, :, :,], num_timesteps, axis=0)
+        return eulerian
+    elif name.lower() == "semilagrangian":
         return semilagrangian.extrapolate
     else:
         raise ValueError("unknown method %s, the only currently implemented method is 'semilagrangian'" % name)
