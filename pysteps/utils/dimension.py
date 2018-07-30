@@ -33,7 +33,7 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
     R = R.copy()
     metadata = metadata.copy()
     
-    if time_window is None:
+    if time_window_min is None:
         return R, metadata
     
     timestamps = metadata["timestamps"]
