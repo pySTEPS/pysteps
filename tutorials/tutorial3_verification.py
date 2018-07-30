@@ -37,18 +37,18 @@ import config as cfg
 
 # Verification settings
 verification = {
-    "experiment_name"   : "ex01_cascade_decomp",
-    "overwrite"         : False,
-    "v_threshold"       : 1.0,          # [mm/h]                 
-    "v_leadtimes"       : [10, 30, 60], # [min]
-    "v_accu"            : 5.0,          # [min]
-    "seed"              : 42            # for reproducibility
+    "experiment_name"   : "pysteps_default",
+    "overwrite"         : False,            # to recompute nowcasts
+    "v_thresholds"      : [0.1, 1.0],       # [mm/h]                 
+    "v_leadtimes"       : [10, 30, 60],     # [min]
+    "v_accu"            : [None, 60]        # [min]
+    "seed"              : 42                # for reproducibility
 }
 
 # Forecast settings
 forecast = {
-    "n_lead_times"      : 12,
-    "r_threshold"       : 0.1,      # [mm/h]
+    "n_lead_times"      : 12,       # timesteps per nowcast
+    "r_threshold"       : 0.1,      # rain/no rain threshold [mm/h]
     "unit"              : "mm/h",   # mm/h or dBZ
     "transformation"    : "dB",     # None or dB 
     "adjust_domain"     : None      # None or square
@@ -61,26 +61,29 @@ experiment = {
     "data"              : [("201505151630", "201505151900", 30,           "mch"),
                            ("201701311030", "201701311300", 30,           "mch"),
                            ("201609281530", "201609281800", 30,           "fmi"),
-                           ("201705091130", "201705091400", 30,           "fmi")],
+                           ("201705091130", "201705091400", 30,           "fmi"),
+                           ("201806161100", "201806161600", 30,           "bom")],
     
     ## the methods
-    "oflow_method"      : ["lucaskanade"],  # lucaskanade, darts
-    "adv_method"        : ["semilagrangian"],
+    "oflow_method"      : ["darts"],            # lucaskanade, darts
+    "adv_method"        : ["semilagrangian"],   # semilagrangian, eulerian
     "nwc_method"        : ["steps"],
-    "noise_method"      : ["nonparametric"], # parametric, nonparametric, ssft
+    "noise_method"      : ["nonparametric"],    # parametric, nonparametric, ssft
     "decomp_method"     : ["fft"],
     
     ## the parameters
     "n_ens_members"     : [10],
     "ar_order"          : [2],
-    "n_cascade_levels"  : [1,3,6],
+    "n_cascade_levels"  : [6],
+    "noise_adjustment"  : [True],
     "conditional"       : [False],
     "precip_mask"       : [True],
-    "mask_method"       : ["incremental"], # sprog, obs or incremental
+    "mask_method"       : ["incremental"],      # obs, incremental, sprog
     "prob_matching"     : [True],
 }
 
 # Conditional parameters
+## parameters that can be directly related to other parameters
 def cond_pars(pars):
     for key in list(pars):
         if key == "oflow_method":
@@ -139,6 +142,9 @@ for n, parset in enumerate(parsets):
     ## import data specifications
     ds = cfg.get_specifications(p["data"][3])
     
+    if p["v_accu"] is None:
+        p["v_accu"] = ds.timestep
+    
     # Loop forecasts for given event
     startdate   = datetime.datetime.strptime(p["data"][0], "%Y%m%d%H%M")
     enddate     = datetime.datetime.strptime(p["data"][1], "%Y%m%d%H%M")
@@ -166,6 +172,8 @@ for n, parset in enumerate(parsets):
         else:
             countnwc += 1
             print("Computing the nowcast (%02d) ..." % countnwc)
+            
+            print("Starttime: %s" % startdate.strftime("%Y%m%d%H%M"))
             
             ## redirect stdout to log file
             logfn =  os.path.join(path_to_nwc, "%s_log.txt" % startdate.strftime("%Y%m%d%H%M")) 
@@ -195,13 +203,15 @@ for n, parset in enumerate(parsets):
     
             ## read radar field files
             importer    = stp.io.get_method(ds.importer)
-            R, _, metadata0 = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
-            metadata = metadata0.copy()
+            R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
+            metadata0 = metadata.copy()
+            metadata0["shape"] = R.shape[1:]
             
             # Prepare input files
             print("Prepare the data...")
             
             ## if requested, make sure we work with a square domain
+            
             reshaper = stp.utils.get_method(p["adjust_domain"])
             R, metadata = reshaper(R, metadata)
     
@@ -229,16 +239,16 @@ for n, parset in enumerate(parsets):
             ## define the callback function to export the nowcast to netcdf
             def export(X):
                 ## transform back values to mm/h
-                X,_    = transformer(X, metadata, inverse=True)
+                X,_ = transformer(X, metadata, inverse=True)
                 # readjust to initial domain shape
-                X,_    = reshaper(X, metadata, inverse=True)
+                X,_ = reshaper(X, metadata, inverse=True)
                 # export to netcdf
                 stp.io.export_forecast_dataset(X, exporter)
             
             ## initialize netcdf file
             incremental = "timestep" if p["nwc_method"].lower() == "steps" else None
             exporter = stp.io.initialize_forecast_exporter_netcdf(outfn, startdate,
-                              ds.timestep, p["n_lead_times"], metadata["orig_domain"], 
+                              ds.timestep, p["n_lead_times"], metadata0["shape"], 
                               p["n_ens_members"], metadata0, incremental=incremental)
             
             ## start the nowcast
@@ -247,10 +257,11 @@ for n, parset in enumerate(parsets):
                             p["n_cascade_levels"], metadata["xpixelsize"]/1000, 
                             ds.timestep, R_thr=metadata["threshold"], extrap_method=p["adv_method"],
                             decomp_method=p["decomp_method"], bandpass_filter_method=p["bandpass_filter"], 
-                            noise_method=p["noise_method"], ar_order=p["ar_order"],
-                            conditional=p["conditional"], use_probmatching=p["prob_matching"], 
-                            mask_method=p["mask_method"], use_precip_mask=p["precip_mask"], 
-                            callback=export, return_output=False, seed=p["seed"])
+                            noise_method=p["noise_method"], noise_stddev_adj=p["noise_adjustment"],
+                            ar_order=p["ar_order"],conditional=p["conditional"], 
+                            use_probmatching=p["prob_matching"], mask_method=p["mask_method"], 
+                            use_precip_mask=p["precip_mask"], callback=export, 
+                            return_output=False, seed=p["seed"])
     
             ## save results
             stp.io.close_forecast_file(exporter)
@@ -268,14 +279,15 @@ for n, parset in enumerate(parsets):
     # **************************************************************************
     # VERIFICATION
     # **************************************************************************  
-        
+    
     rankhists = {}
     reldiags = {}
     rocs = {}
     for lt in p["v_leadtimes"]:
         rankhists[lt] = stp.verification.ensscores.rankhist_init(p["n_ens_members"], p["r_threshold"])
-        reldiags[lt]  = stp.verification.probscores.reldiag_init(p["v_threshold"])
-        rocs[lt]      = stp.verification.probscores.ROC_curve_init(p["v_threshold"])
+        for thr in p["v_thresholds"]:
+            reldiags[lt, thr]  = stp.verification.probscores.reldiag_init(thr)
+            rocs[lt, thr]      = stp.verification.probscores.ROC_curve_init(thr)
     
     # Loop the forecasts
     startdate   = datetime.datetime.strptime(p["data"][0], "%Y%m%d%H%M")
@@ -324,37 +336,48 @@ for n, parset in enumerate(parsets):
         R_fct[R_fct < p["r_threshold"]] = 0.0
         metadata_fct["threshold"] = p["r_threshold"]
         
-        # If needed, compute accumulations
+        ## if needed, compute accumulations
         aggregator = stp.utils.get_method("aggregate")
         R_obs, metadata_obs = aggregator(R_obs, metadata_obs, p["v_accu"], method="mean")
         R_fct, metadata_fct = aggregator(R_fct, metadata_fct, p["v_accu"], method="mean")
         leadtimes = metadata_fct["leadtimes"]
         
-        # Loop leadtimes and do verification
+        # Do verification
+        
+        ## loop leadtimes
         for i,lt in enumerate(p["v_leadtimes"]):
             
             idlt = leadtimes == lt
             
+            ## plot observation
             fig = plt.figure()
             im = stp.plt.plot_precip_field(R_obs[idlt,:,:].squeeze())
-            plt.savefig(os.path.join(path_to_nwc, "%s_R_obs_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"),lt,p["v_accu"])))
+            plt.savefig(os.path.join(path_to_nwc, "%s_R_obs_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"), lt, p["v_accu"])))
             plt.close()        
             
+            ## plot forecast
             fig = plt.figure()
             im = stp.plt.plot_precip_field(R_fct[0, idlt, :, :].squeeze())
-            plt.savefig(os.path.join(path_to_nwc, "%s_R_fct_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"),lt,p["v_accu"])))
+            plt.savefig(os.path.join(path_to_nwc, "%s_R_fct_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"), lt, p["v_accu"])))
             plt.close()
             
+            ## rank histogram
             R_fct_ = np.vstack([R_fct[j, idlt, :, :].flatten() for j in range(p["n_ens_members"])]).T
             stp.verification.ensscores.rankhist_accum(rankhists[lt], 
                 R_fct_, R_obs[idlt, :, :].flatten())
-            P_fct = 1.0*np.sum(R_fct_ >= p["v_threshold"], axis=1) / p["n_ens_members"]
-            stp.verification.probscores.reldiag_accum(reldiags[lt], P_fct, R_obs[idlt, :, :].flatten())
-            stp.verification.probscores.ROC_curve_accum(rocs[lt], P_fct, R_obs[idlt, :, :].flatten())
+            
+            ## loop thresholds
+            for thr in p["v_thresholds"]:    
+                P_fct = 1.0*np.sum(R_fct_ >= thr, axis=1) / p["n_ens_members"]
+                ## reliability diagram
+                stp.verification.probscores.reldiag_accum(reldiags[lt, thr], P_fct, R_obs[idlt, :, :].flatten())
+                ## roc curve
+                stp.verification.probscores.ROC_curve_accum(rocs[lt, thr], P_fct, R_obs[idlt, :, :].flatten())
       
-        # next forecast
+        ## next forecast
         startdate += datetime.timedelta(minutes = p["data"][2])
-      
+    
+    # Plot verification scores for given event
     for i,lt in enumerate(p["v_leadtimes"]):
     
         idlt = leadtimes == lt
@@ -365,14 +388,17 @@ for n, parset in enumerate(parsets):
                 bbox_inches="tight")
         plt.close()
         
-        fig = plt.figure()
-        stp.verification.plot_reldiag(reldiags[lt], ax=fig.gca())
-        plt.savefig(os.path.join(path_to_nwc, "reldiag_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], p["v_threshold"])), 
-                bbox_inches="tight")
-        plt.close()
-        
-        fig = plt.figure()
-        stp.verification.plot_ROC(rocs[lt], ax=fig.gca())
-        plt.savefig(os.path.join(path_to_nwc, "roc_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], p["v_threshold"])), 
-                bbox_inches="tight")
-        plt.close()        
+        for thr in p["v_thresholds"]:
+            fig = plt.figure()
+            stp.verification.plot_reldiag(reldiags[lt, thr], ax=fig.gca())
+            plt.savefig(os.path.join(path_to_nwc, "reldiag_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], thr)), 
+                    bbox_inches="tight")
+            plt.close()
+            
+            fig = plt.figure()
+            stp.verification.plot_ROC(rocs[lt, thr], ax=fig.gca())
+            plt.savefig(os.path.join(path_to_nwc, "roc_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], thr)), 
+                    bbox_inches="tight")
+            plt.close()
+            
+    # Plot verification scores for all events
