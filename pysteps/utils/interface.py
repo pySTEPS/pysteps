@@ -40,19 +40,19 @@ def get_method(name):
         def donothing(R, metadata, *args, **kwargs):
             return R.copy(), metadata.copy()
         return donothing
-    elif name.lower() == "mm/h" or name.lower() == "rainrate":
+    elif name.lower() in ["mm/h", "rainrate"]:
         return conversion.to_rainrate
-    elif name.lower() == "mm" or name.lower() == "raindepth":
+    elif name.lower() in ["mm", "raindepth"]:
         return conversion.to_raindepth
-    elif name.lower() == "dbz" or name.lower() == "reflectivity":
+    elif name.lower() in ["dbz", "reflectivity"]:
         return conversion.to_reflectivity
-    elif name.lower() == "db" or name.lower() == "decibel":
+    elif name.lower() in ["db", "decibel"]:
         return transformation.dB_transform
-    elif name.lower() == "boxcox":
+    elif name.lower() in ["boxcox", "box-cox"]:
         return transformation.boxcox_transform
-    elif name.lower() == "aggregate":
+    elif name.lower() in ["aggregate", "accumulate"]:
         return dimension.aggregate_fields_time
-    elif name.lower() == "square":
+    elif name.lower() in ["square"]:
         return dimension.square_domain
     else:
         raise ValueError("unknown method %s" % name)
