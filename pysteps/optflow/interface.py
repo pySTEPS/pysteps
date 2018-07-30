@@ -31,7 +31,7 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     """
     if name is None:
-        def donothing(R, V, num_timesteps, *args, **kwargs):
+        def donothing(R, *args, **kwargs):
             return None
         return donothing
     elif name.lower() in ["lucaskanade", "lk"]:
