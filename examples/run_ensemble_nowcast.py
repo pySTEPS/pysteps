@@ -159,7 +159,7 @@ for i in range(n_lead_times):
                             R_obs[i,:,:].flatten())
 
 ## if already exists, load the figure object to append the new verification results
-filename = "%s/%s" % (cfg.path_outputs, "tutorial2_fig_verif")
+filename = "%s/%s" % (cfg.path_outputs, "verif_ensemble_nwc_example")
 if os.path.exists("%s.dat" % filename):
     ax = pickle.load(open("%s.dat" % filename, "rb"))
     print("Figure object loaded: %s.dat" % filename) 

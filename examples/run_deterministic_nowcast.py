@@ -134,7 +134,7 @@ for i in range(n_lead_times):
                                           v_threshold, [skill_score])[0]
 
 ## if already exists, load the figure object to append the new verification results
-filename = "%s/%s" % (cfg.path_outputs, "tutorial1_fig_verif")
+filename = "%s/%s" % (cfg.path_outputs, "verif_deterministic_nwc_example")
 if os.path.exists("%s.dat" % filename):
     ax = pickle.load(open("%s.dat" % filename, "rb"))
     print("Figure object loaded: %s.dat" % filename) 
