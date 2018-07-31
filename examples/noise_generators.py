@@ -2,7 +2,7 @@
 
 """Generation of stochastic noise
 
-This tutorial demonstrates the stochastic noise generators.
+This script shows the stochastic noise generators included in pysteps.
 
 More info: https://pysteps.github.io/
 """
