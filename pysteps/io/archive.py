@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import fnmatch
 import os
 
-
 def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep, 
                  num_prev_files=0, num_next_files=0):
     """List input files whose timestamp matches the given date.
@@ -29,6 +28,7 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         Optional, number of previous files to find before the given timestamp.
     num_next_files : int
         Optional, number of future files to find after the given timestamp.
+    
     Returns
     -------
     out : tuple

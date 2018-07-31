@@ -13,26 +13,50 @@ If the file contains no quality information, the quality field is set to None.
 Pixels containing missing data are set to nan.
 
 The metadata dictionary contains the following mandatory key-value pairs:
-    projection      PROJ.4-compatible projection definition
-    x1              x-coordinate of the lower-left corner of the data raster (meters)
-    y1              y-coordinate of the lower-left corner of the data raster (meters)
-    x2              x-coordinate of the upper-right corner of the data raster (meters)
-    y2              y-coordinate of the upper-right corner of the data raster (meters)
-    xpixelsize      grid resolution in x-direction (meters)
-    ypixelsize      grid resolution in y-direction (meters)
-    yorigin         a string specifying the location of the first element in
-                    the data raster w.r.t. y-axis:
-                    'upper' = upper border
-                    'lower' = lower border
-    institution     name of the institution who provides the data
-    timestep        time step of the input data (minutes)
-    unit            the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
-    transform       the transformation of the data: None, 'dB', 'Box-Cox' or others
-    accutime        the accumulation time in minutes of the data, float
-    threshold       the rain/no rain threshold with the same unit, transformation
-                    and accutime of the data. 
-    zerovalue       it is the value assigned to the no rain pixels with the same 
-                    unit, transformation and accutime of the data. 
+
++-------------------+----------------------------------------------------------+
+|       Key         |                Value                                     |
++===================+==========================================================+
+|    projection     | PROJ.4-compatible projection definition                  |
++-------------------+----------------------------------------------------------+
+|    x1             | x-coordinate of the lower-left corner of the data raster |
+|                   | (meters)                                                 |
++-------------------+----------------------------------------------------------+
+|    y1             | y-coordinate of the lower-left corner of the data raster |
+|                   | (meters)                                                 |
++-------------------+----------------------------------------------------------+
+|    x2             | x-coordinate of the upper-right corner of the data raster|
+|                   | (meters)                                                 |
++-------------------+----------------------------------------------------------+
+|    y2             | y-coordinate of the upper-right corner of the data raster|
+|                   | (meters)                                                 |
++-------------------+----------------------------------------------------------+
+|    xpixelsize     | grid resolution in x-direction (meters)                  |
++-------------------+----------------------------------------------------------+
+|    ypixelsize     | grid resolution in y-direction (meters)                  |
++-------------------+----------------------------------------------------------+
+|    yorigin        | a string specifying the location of the first element in |
+|                   | the data raster w.r.t. y-axis:                           |
+|                   | 'upper' = upper border                                   |
+|                   | 'lower' = lower border                                   |
++-------------------+----------------------------------------------------------+
+|    institution    | name of the institution who provides the data            |
++-------------------+----------------------------------------------------------+
+|    timestep       | time step of the input data (minutes)                    |
++-------------------+----------------------------------------------------------+
+|    unit           | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
++-------------------+----------------------------------------------------------+
+|    transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|                   | others                                                   |
++-------------------+----------------------------------------------------------+
+|    accutime       | the accumulation time in minutes of the data, float      |
++-------------------+----------------------------------------------------------+
+|    threshold      | the rain/no rain threshold with the same unit,           |
+|                   | transformation and accutime of the data.                 |
++-------------------+----------------------------------------------------------+
+|    zerovalue      | the value assigned to the no rain pixels with the same   |
+|                   | unit, transformation and accutime of the data.           |
++-------------------+----------------------------------------------------------+
 """
 
 import datetime

@@ -24,9 +24,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
              use_probmatching=True, mask_method="obs", callback=None, 
              return_output=True, seed=None, num_workers=None, extrap_kwargs={}, 
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
-    """Generate a nowcast ensemble by using the STEPS method described in 
-    Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
-    which merges an extrapolation nowcast with downscaled NWP.
+    """Generate a nowcast ensemble by using the STEPS method.
     
     Parameters
     ----------
@@ -48,6 +46,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
       Spatial resolution of the motion field (pixels/kilometer).
     timestep : float
       Time step of the motion vectors (minutes).
+    
+    Other Parameters
+    ----------------
     R_thr : float
       Specifies the threshold value for minimum observable precipitation 
       intensity. Must be set if use_probmatching is True or conditional is True.
@@ -125,6 +126,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
       (num_ens_members,num_timesteps,m,n) containing a time series of forecast 
       precipitation fields for each ensemble member. Otherwise, a None value 
       is returned.
+    
+    References
+    ----------
+    Bowler et al. (2006): STEPS: A probabilistic precipitation forecasting scheme 
+    which merges an extrapolation nowcast with downscaled NWP.
     """
     _check_inputs(R, V, ar_order)
     

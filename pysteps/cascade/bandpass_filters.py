@@ -55,13 +55,8 @@ def filter_uniform(shape, n):
     return result
 
 def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
-    """Gaussian band-pass filter in logarithmic frequency scale. The method is 
-    described in
-    
-    S. Pulkkinen, V. Chandrasekar and A.-M. Harri, Nowcasting of Precipitation 
-    in the High-Resolution Dallas-Fort Worth (DFW) Urban Radar Remote Sensing 
-    Network, IEEE Journal of Selected Topics in Applied Earth Observations and 
-    Remote Sensing, 2018, to appear.
+    """Implements a set of Gaussian band-pass filters in logarithmic frequency 
+    scale.
     
     Parameters
     ----------
@@ -79,6 +74,19 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     gauss_scale_0 : float
         Optional scaling parameter for the Gaussian function corresponding to 
         the first frequency band.
+    
+    Returns
+    -------
+    out : dict
+        A dictionary containing the bandpass filters corresponding to the 
+        specified frequency bands.
+    
+    References
+    ----------
+    S. Pulkkinen, V. Chandrasekar and A.-M. Harri, Nowcasting of Precipitation 
+    in the High-Resolution Dallas-Fort Worth (DFW) Urban Radar Remote Sensing 
+    Network, IEEE Journal of Selected Topics in Applied Earth Observations and 
+    Remote Sensing, 2018, to appear.
     """
     if n < 3:
         raise ValueError("n must be greater than 2")

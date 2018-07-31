@@ -30,15 +30,27 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
         
-        projection   PROJ.4-compatible projection definition
-        x1           x-coordinate of the lower-left corner of the data raster (meters)
-        y1           y-coordinate of the lower-left corner of the data raster (meters)
-        x2           x-coordinate of the upper-right corner of the data raster (meters)
-        y2           y-coordinate of the upper-right corner of the data raster (meters)
-        yorigin      a string specifying the location of the first element in
-                     the data raster w.r.t. y-axis:
-                     'upper' = upper border
-                     'lower' = lower border
+        +-----------------+----------------------------------------------------+
+        |        Key      |                  Value                             |
+        +=================+====================================================+
+        |   projection    | PROJ.4-compatible projection definition            |
+        +-----------------+----------------------------------------------------+
+        |    x1           | x-coordinate of the lower-left corner of the data  |
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    y1           | y-coordinate of the lower-left corner of the data  |
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    x2           | x-coordinate of the upper-right corner of the data | 
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    y2           | y-coordinate of the upper-right corner of the data | 
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    yorigin      | a string specifying the location of the first      |
+        |                 | element in the data raster w.r.t. y-axis:          |
+        |                 | 'upper' = upper border, 'lower' = lower border     |
+        +-----------------+----------------------------------------------------+
     units : str
         Units of the input array (mm/h or dBZ)
     colorscale : str 

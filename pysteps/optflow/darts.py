@@ -23,10 +23,7 @@ except ImportError:
 
 def DARTS(Z, **kwargs):
     """Compute the advection field from a sequence of input images by using the 
-    DARTS method. The method is described in
-    
-    E. Ruzanski, V. Chandrasekar and Y. Wang, 2011: The CASA Nowcasting System, 
-    Journal of Atmospheric and Oceanic Technology, 28(5), 640-655
+    DARTS method.
     
     Parameters
     ----------
@@ -62,6 +59,11 @@ def DARTS(Z, **kwargs):
     out : ndarray
       Three-dimensional array (2,L,L) containing the dense x- and y-components 
       of the motion field.
+    
+    References
+    ----------
+    E. Ruzanski, V. Chandrasekar and Y. Wang, 2011: The CASA Nowcasting System, 
+    Journal of Atmospheric and Oceanic Technology, 28(5), 640-655
     """
     N_x = kwargs.get("N_x", 50)
     N_y = kwargs.get("N_y", 50)
