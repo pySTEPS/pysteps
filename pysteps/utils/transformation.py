@@ -7,7 +7,7 @@ import scipy
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) # To deactivate warnings for comparison operators with NaNs
 
-def dB_transform(R, metadata, threshold=None, zerovalue=None, inverse=False):
+def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
     """Methods to transform to/from dB units.
     
     Parameters 
@@ -33,7 +33,14 @@ def dB_transform(R, metadata, threshold=None, zerovalue=None, inverse=False):
     """
     
     R = R.copy()
-    metadata = metadata.copy()
+    
+    if metadata is None:
+        if inverse:
+            metadata = {"transform": "dB"}
+        else:
+            metadata = {"transform": None}
+    else:
+        metadata = metadata.copy()
     
     # to dB units
     if not inverse:
@@ -82,7 +89,7 @@ def dB_transform(R, metadata, threshold=None, zerovalue=None, inverse=False):
             
         return R, metadata
     
-def boxcox_transform(R, metadata, Lambda=None, threshold=None, zerovalue=None, inverse=False):
+def boxcox_transform(R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False):
     """The one-parameter Box–Cox transformation.
     
     Parameters 
@@ -110,7 +117,13 @@ def boxcox_transform(R, metadata, Lambda=None, threshold=None, zerovalue=None, i
     """
     
     R = R.copy()
-    metadata = metadata.copy()
+    if metadata is None:   
+        if inverse:
+            metadata = {"transform": "BoxCox"}
+        else:
+            metadata = {"transform": None}
+    else:
+        metadata = metadata.copy()
     
     if not inverse:
     
