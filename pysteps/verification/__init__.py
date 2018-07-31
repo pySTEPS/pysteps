@@ -3,4 +3,5 @@ from .detcontscores import *
 from .ensscores import *
 from .plots import *
 from .probscores import *
+from .spatialscores import *
 
