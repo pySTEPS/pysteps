@@ -104,7 +104,7 @@ R, metadata = transformer(R, metadata, inverse=True)
 ## plot the nowcast...
 R[Rmask] = np.nan # reapply radar mask
 stp.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
-               R_for=R_fct, timestep_min=ds.timestep,
+               R_fct=R_fct, timestep_min=ds.timestep,
                UV=UV, motion_plot=cfg.motion_plot,
                geodata=metadata, colorscale=cfg.colorscale,
                plotanimation=True, savefig=False, path_outputs=cfg.path_outputs) 
