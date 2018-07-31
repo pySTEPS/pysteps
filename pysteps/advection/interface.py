@@ -10,7 +10,7 @@ is an integer specifying the number of time steps to extrapolate.
 The optional argument outval specifies the value for pixels advected from outside
 the domain. Optional keyword arguments that are specific to a given extrapolation
 method are passed as a dictionary.
-        
+
 The output of each method is an array R_e that includes the time series of extrapolated 
 fields of shape (num_timesteps, m, n). 
 """
@@ -22,7 +22,7 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
-    |  None             | returns None                                           |                                        |
+    |  None             | returns None                                           |
     +-------------------+--------------------------------------------------------+
     |  eulerian         | this methods does not apply any advection to the input |
     |                   | precipitation field (Eulerian persistence)             |
@@ -30,7 +30,6 @@ def get_method(name):
     |  semilagrangian   | implementation of the semi-Lagrangian method of        |
     |                   | Germann et al. (2002)                                  |
     +-------------------+--------------------------------------------------------+
-    
     """
     if name is None:
         def donothing(R, V, num_timesteps, *args, **kwargs):
