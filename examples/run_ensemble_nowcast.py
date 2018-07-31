@@ -35,11 +35,11 @@ import config as cfg
 # Set parameters for this tutorial
 
 ## input data (copy/paste values from table above)
-startdate_str = "201505151630"
+startdate_str = "201701311030"
 data_source   = "mch"
 
 ## methods
-oflow_method        = "darts"           # lucaskanade, darts
+oflow_method        = "darts"           # lucaskanade, darts, None
 nwc_method          = "steps"
 adv_method          = "semilagrangian"  # semilagrangian, eulerian
 noise_method        = "nonparametric"   # parametric, nonparametric, ssft
@@ -49,10 +49,10 @@ decomp_method       = "fft"
 ## forecast parameters
 n_prvs_times        = 9                 # use at least 9 with DARTS
 n_lead_times        = 12
-n_ens_members       = 3
+n_ens_members       = 10
 n_cascade_levels    = 6
 ar_order            = 2
-r_threshold         = 0.1               # [mm/h]
+r_threshold         = 0.1               # rain/no-rain threshold [mm/h]
 adjust_noise        = True
 prob_matching       = True
 precip_mask         = True
