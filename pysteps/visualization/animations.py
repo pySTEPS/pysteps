@@ -5,7 +5,7 @@ import numpy as np
 import pysteps as st
 
 def animate(R_obs, nloops=2, timestamps=None,
-            R_for=None, timestep_min=5,
+            R_fct=None, timestep_min=5,
             UV=None, motion_plot="quiver",
             geodata=None,
             colorscale="MeteoSwiss", units="mm/h", colorbar=True,
@@ -21,7 +21,7 @@ def animate(R_obs, nloops=2, timestamps=None,
     nloops : int
         Optional, the number of loops in the animation.
 
-    R_for : array-like
+    R_fct : array-like
         Optional, the three or four-dimensional (for ensembles) array containing
         the time series of forecasted precipitation field.
     timestep_min : float
@@ -71,17 +71,16 @@ def animate(R_obs, nloops=2, timestamps=None,
     else:
         startdate_str = None
 
-    if R_for is not None:
-        if len(R_for.shape) == 3:
-            R_for = R_for[None, :, :, :]
+    if R_fct is not None:
+        if len(R_fct.shape) == 3:
+            R_fct = R_fct[None, :, :, :]
 
-    if R_for is not None:
-        n_lead_times = R_for.shape[1]
-        n_members = R_for.shape[0]
+    if R_fct is not None:
+        n_lead_times = R_fct.shape[1]
+        n_members = R_fct.shape[0]
     else:
         n_lead_times = 0
         n_members = 1
-
 
     loop = 0
     while loop < nloops:
@@ -114,19 +113,19 @@ def animate(R_obs, nloops=2, timestamps=None,
                         print(figname, 'saved.')
 
                 # Forecasts
-                elif i >= R_obs.shape[0] and R_for is not None:
+                elif i >= R_obs.shape[0] and R_fct is not None:
 
                     if timestamps is not None:
                         title = "%s +%02d min" % (timestamps[-1].strftime("%Y-%m-%d %H:%M"),
                                 (1 + i - R_obs.shape[0])*timestep_min)
                     else:
-                        title = "+%02d min" % (1 + i - R_obs.shape[0])*timestep_min
+                        title = "+%02d min" % ((1 + i - R_obs.shape[0])*timestep_min)
 
                     if n_members > 1:
                         title = "%s (member %02d)" % (title, n)
 
 
-                    st.plt.plot_precip_field(R_for[n, i - R_obs.shape[0],:,:],
+                    st.plt.plot_precip_field(R_fct[n, i - R_obs.shape[0],:,:],
                                   False, geodata, units=units,
                                   title=title,
                                   colorscale=colorscale, colorbar=colorbar)
