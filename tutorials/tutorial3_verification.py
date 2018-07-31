@@ -3,7 +3,7 @@
 """Verification of an ensemble nowcast
 
 The script shows how to run verification experiments for ensemble precipitation
-nowcasting with pysteps
+nowcasting with pysteps.
 
 More info: https://pysteps.github.io/
 """
@@ -19,29 +19,13 @@ import time
 import pysteps as stp
 import config as cfg
 
-# List of case studies that can be used in this tutorial
-
-#+-------+--------------+-------------+----------------------------------------+
-#| event |  start_time  | data_source | description                            |
-#+=======+==============+=============+========================================+
-#|  01   | 201701311030 |     mch     | orographic precipitation               |
-#+-------+--------------+-------------+----------------------------------------+
-#|  02   | 201505151630 |     mch     | non-stationary field, apparent rotation|
-#+-------+--------------+------------------------------------------------------+
-#|  03   | 201609281530 |     fmi     | stratiform rain band                   |
-#+-------+--------------+-------------+----------------------------------------+
-#|  04   | 201705091130 |     fmi     | widespread convective activity         |
-#+-------+--------------+-------------+----------------------------------------+
-#|  05   | 201806161100 |     bom     | bom example data                       |
-#+-------+--------------+-------------+----------------------------------------+
-
 # Verification settings
 verification = {
     "experiment_name"   : "pysteps_default",
     "overwrite"         : False,            # to recompute nowcasts
     "v_thresholds"      : [0.1, 1.0],       # [mm/h]                 
     "v_leadtimes"       : [10, 30, 60],     # [min]
-    "v_accu"            : [None, 60]        # [min]
+    "v_accu"            : None,             # [min]
     "seed"              : 42                # for reproducibility
 }
 
@@ -61,8 +45,7 @@ experiment = {
     "data"              : [("201505151630", "201505151900", 30,           "mch"),
                            ("201701311030", "201701311300", 30,           "mch"),
                            ("201609281530", "201609281800", 30,           "fmi"),
-                           ("201705091130", "201705091400", 30,           "fmi"),
-                           ("201806161100", "201806161600", 30,           "bom")],
+                           ("201705091130", "201705091400", 30,           "fmi")],
     
     ## the methods
     "oflow_method"      : ["darts"],            # lucaskanade, darts
@@ -72,7 +55,7 @@ experiment = {
     "decomp_method"     : ["fft"],
     
     ## the parameters
-    "n_ens_members"     : [10],
+    "n_ens_members"     : [20],
     "ar_order"          : [2],
     "n_cascade_levels"  : [6],
     "noise_adjustment"  : [True],
@@ -122,12 +105,12 @@ for n, parset in enumerate(parsets):
     pprint.pprint(p)
     
     # If necessary, build path to results
-    path_to_nwc = os.path.join(cfg.path_outputs, p["experiment_name"])
+    path_to_experiment = os.path.join(cfg.path_outputs, p["experiment_name"])
     for key, item in p.items():
         if key.lower() == "data":
-            path_to_nwc = os.path.join(path_to_nwc, '-'.join([item[0], item[3]]))
+            path_to_nwc = os.path.join(path_to_experiment, '-'.join([item[0], item[3]]))
         elif len(experiment.get(key,[None])) > 1: # include only variables that change
-            path_to_nwc = os.path.join(path_to_nwc, '-'.join([key, str(item)]))
+            path_to_nwc = os.path.join(path_to_experiment, '-'.join([key, str(item)]))
     try:
         os.makedirs(path_to_nwc)
     except FileExistsError:
@@ -287,7 +270,7 @@ for n, parset in enumerate(parsets):
         rankhists[lt] = stp.verification.ensscores.rankhist_init(p["n_ens_members"], p["r_threshold"])
         for thr in p["v_thresholds"]:
             reldiags[lt, thr]  = stp.verification.probscores.reldiag_init(thr)
-            rocs[lt, thr]      = stp.verification.probscores.ROC_curve_init(thr)
+            rocs[lt, thr]      = stp.verification.probscores.ROC_curve_init(thr) 
     
     # Loop the forecasts
     startdate   = datetime.datetime.strptime(p["data"][0], "%Y%m%d%H%M")
@@ -365,7 +348,7 @@ for n, parset in enumerate(parsets):
             R_fct_ = np.vstack([R_fct[j, idlt, :, :].flatten() for j in range(p["n_ens_members"])]).T
             stp.verification.ensscores.rankhist_accum(rankhists[lt], 
                 R_fct_, R_obs[idlt, :, :].flatten())
-            
+
             ## loop thresholds
             for thr in p["v_thresholds"]:    
                 P_fct = 1.0*np.sum(R_fct_ >= thr, axis=1) / p["n_ens_members"]
@@ -400,5 +383,3 @@ for n, parset in enumerate(parsets):
             plt.savefig(os.path.join(path_to_nwc, "roc_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], thr)), 
                     bbox_inches="tight")
             plt.close()
-            
-    # Plot verification scores for all events

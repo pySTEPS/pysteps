@@ -39,28 +39,29 @@ startdate_str = "201505151630"
 data_source   = "mch"
 
 ## methods
-oflow_method        = "lucaskanade" # lucaskanade or darts
-nwc_method          = "STEPS"
-adv_method          = "semilagrangian"
-noise_method        = "nonparametric" # parametric, nonparametric, ssft
+oflow_method        = "darts"           # lucaskanade, darts
+nwc_method          = "steps"
+adv_method          = "semilagrangian"  # semilagrangian, eulerian
+noise_method        = "nonparametric"   # parametric, nonparametric, ssft
 bandpass_filter     = "gaussian" 
 decomp_method       = "fft"
 
 ## forecast parameters
-n_prvs_times        = 3 # use at least 9 with DARTS
+n_prvs_times        = 9                 # use at least 9 with DARTS
 n_lead_times        = 12
 n_ens_members       = 3
 n_cascade_levels    = 6
 ar_order            = 2
-r_threshold         = 0.1       # [mm/h]
+r_threshold         = 0.1               # [mm/h]
+adjust_noise        = True
 prob_matching       = True
 precip_mask         = True
-mask_method         = "incremental" # sprog, obs or incremental
+mask_method         = "incremental"     # sprog, obs or incremental
 conditional         = False
-unit                = "mm/h"    # mm/h or dBZ
-transformation      = "dB"      # None or dB 
-adjust_domain       = None      # None or square
-seed                = 42        # for reproducibility
+unit                = "mm/h"            # mm/h or dBZ
+transformation      = "dB"              # None or dB 
+adjust_domain       = None              # None or square
+seed                = 42                # for reproducibility
 
 # Read-in the data
 print('Read the data...')
@@ -110,7 +111,8 @@ R_fct = nwc_method(R, UV, n_lead_times, n_ens_members,
                    n_cascade_levels, metadata["xpixelsize"]/1000, 
                    ds.timestep,  R_thr=metadata["threshold"], extrap_method=adv_method, 
                    decomp_method=decomp_method, bandpass_filter_method=bandpass_filter, 
-                   noise_method=noise_method, ar_order=ar_order, conditional=conditional, 
+                   noise_method=noise_method, noise_stddev_adj=adjust_noise, 
+                   ar_order=ar_order, conditional=conditional, 
                    use_precip_mask=precip_mask, mask_method=mask_method, 
                    use_probmatching=prob_matching, seed=seed)
 
