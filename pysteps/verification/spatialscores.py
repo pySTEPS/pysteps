@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.ndimage.filters import uniform_filter
 
-def fss(X_f, X_o, threshold=1.0, scale=32):
+def compute_fss(X_f, X_o, threshold=1.0, scale=32):
     """Compute the fractions skill score (FSS, Roberts and Lean 2008) for a 
     deterministic forecast field and the corresponding observation. 
     
