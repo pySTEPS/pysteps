@@ -10,8 +10,7 @@ method implemented in bandpass_filters.py. The output of each method is a
 dictionary with the following key-value pairs:
 
   cascade_levels    three-dimensional array of shape (n,L,L), where n is 
-                    the number of cascade levels and L is the size of the input 
-                    field
+                    the number of cascade levels and L is the size of the input field
   means             list of mean values for each cascade level
   stds              list of standard deviations for each cascade level
 """
