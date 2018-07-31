@@ -1,6 +1,6 @@
 
 import matplotlib.pylab as plt
-from mpl_toolkits.axes_grid.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
 from . import ensscores, probscores
 
