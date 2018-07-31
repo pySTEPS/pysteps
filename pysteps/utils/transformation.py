@@ -2,8 +2,8 @@
 """
 
 import numpy as np
-from pylab import *
 import scipy
+import scipy.stats as scipy_stats
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) # To deactivate warnings for comparison operators with NaNs
 
@@ -176,7 +176,7 @@ def boxcox_transform(R, metadata, Lambda=None, threshold=None, zerovalue=None, i
 def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
     """Test and plot various lambdas for the Box-Cox transformation.
     """
-    
+    import matplotlib.pyplot as plt
     
     R = R[R>threshold].flatten()
 
@@ -191,29 +191,29 @@ def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
         R_ = (R_ - np.mean(R_))/np.std(R_)
         data.append(R_)
         labels.append('{0:.1f}'.format(Lambda))
-        sk.append(scipy.stats.skew(R_)) # skewness
+        sk.append(scipy_stats.skew(R_)) # skewness
     
-    fig = figure()
+    fig = plt.figure()
     
-    bp = boxplot(data, labels=labels)
+    bp = plt.boxplot(data, labels=labels)
     
     ylims = np.percentile(data,0.99)
-    title('Box-Cox transform')
-    xlabel(r'Lambda, $\lambda$ []')
+    plt.title('Box-Cox transform')
+    plt.xlabel(r'Lambda, $\lambda$ []')
     
     ymax = np.zeros(len(data))
     for i in range(len(data)):
         y = sk[i]
         x = i+1
-        plot(x, y, 'ok', ms=5, markeredgecolor='k') # plot skewness
+        plt.plot(x, y, 'ok', ms=5, markeredgecolor='k') # plot skewness
         fliers = bp['fliers'][i].get_ydata()
         if len(fliers>0):
             ymax[i] = np.max(fliers)
     ylims = np.percentile(ymax,60)
-    ylim((-1*ylims,ylims))
-    ylabel(r'Standardized values [$\sigma]$')
+    plt.ylim((-1*ylims,ylims))
+    plt.ylabel(r'Standardized values [$\sigma]$')
     
-    savefig("box-cox-transform-test-lambdas.png", bbox_inches="tight")
+    plt.savefig("box-cox-transform-test-lambdas.png", bbox_inches="tight")
     print("Saved: box-cox-transform-test-lambdas.png")
     
-    close()
+    plt.close()
