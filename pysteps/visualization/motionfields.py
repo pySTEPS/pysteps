@@ -24,9 +24,9 @@ def quiver(UV, geodata=None, **kwargs):
                      the data raster w.r.t. y-axis:
                      'upper' = upper border
                      'lower' = lower border
-                     
-    Optional kwargs
-    ---------------              
+    
+    Other Parameters
+    ----------------
     step : int
         Optional resample step to control the density of the arrows.
         Default : 20
@@ -89,9 +89,9 @@ def streamplot(UV, geodata=None, **kwargs):
                      the data raster w.r.t. y-axis:
                      'upper' = upper border
                      'lower' = lower border
-                     
-    Optional kwargs
-    ---------------    
+    
+    Other Parameters
+    ----------------
     density : float
         Controls the closeness of streamlines.
         Default : 1.5

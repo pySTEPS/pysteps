@@ -55,9 +55,9 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     X : array-like
       Two-dimensional array containing the input field. All values are 
       required to be finite.
-      
-    Optional kwargs
-    ---------------
+    
+    Other Parameters
+    ----------------
     win_type : string
        Optional tapering function to be applied to X.
        Default : flat-hanning
@@ -159,8 +159,8 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
       Two-dimensional array containing the input field. All values are required 
       to be finite.
     
-    Optional kwargs
-    ---------------
+    Other Parameters
+    ----------------
     win_type : string
        Optional tapering function to be applied to X.
        Default : flat-hanning
@@ -254,9 +254,9 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     X : array-like
         Two-dimensional array containing the input field. All values are required 
         to be finite.
-
-    Optional kwargs
-    ---------------
+    
+    Other Parameters
+    ----------------
     win_size : int or two-element tuple of ints
         Size-length of the window to compute the SSFT.
         Default : (128, 128)
@@ -348,9 +348,9 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
         to be finite and the domain must be square.
     gridres : float
         Grid resolution in km.
-        
-    Optional kwargs
-    ---------------
+    
+    Other Parameters
+    ----------------
     max_level : int 
         Localization parameter. 0: global noise, >0: increasing degree of localization.
         Default : 3
@@ -461,9 +461,9 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
         Optional random generator to use. If set to None, use numpy.random.
     seed : int
         Value to set a seed for the generator. None will not set the seed.
-        
-    Optional kwargs
-    ---------------
+    
+    Other Parameters
+    ----------------
     overlap : float 
         Percentage overlap [0-1] between successive windows.
         Default : 0.2

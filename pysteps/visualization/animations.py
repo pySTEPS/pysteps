@@ -4,15 +4,12 @@ import matplotlib.pylab as plt
 import numpy as np
 import pysteps as st
 
-def animate(R_obs, nloops=2, timestamps=None,
-            R_fct=None, timestep_min=5,
-            UV=None, motion_plot="quiver",
-            geodata=None,
-            colorscale="MeteoSwiss", units="mm/h", colorbar=True,
-            plotanimation=True, savefig=False, path_outputs=""):
-
+def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5, 
+            UV=None, motion_plot="quiver", geodata=None, colorscale="MeteoSwiss", 
+            units="mm/h", colorbar=True, plotanimation=True, savefig=False, 
+            path_outputs=""):
     """Function to animate observations and forecasts in pysteps.
-
+    
     Parameters
     ----------
     R_obs : array-like
@@ -20,7 +17,6 @@ def animate(R_obs, nloops=2, timestamps=None,
         precipitation field.
     nloops : int
         Optional, the number of loops in the animation.
-
     R_fct : array-like
         Optional, the three or four-dimensional (for ensembles) array containing
         the time series of forecasted precipitation field.
@@ -64,8 +60,6 @@ def animate(R_obs, nloops=2, timestamps=None,
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
-
-
     if timestamps is not None:
         startdate_str = timestamps[-1].strftime("%Y-%m-%d %H:%M")
     else:

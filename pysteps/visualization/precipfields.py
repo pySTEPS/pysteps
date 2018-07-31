@@ -156,17 +156,17 @@ def _plot_precip_field(R, ax, units, colorscale, geodata):
     return im
 
 def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
-    ''' Function to generate a colormap (cmap) and norm
+    """Function to generate a colormap (cmap) and norm.
     
-    Parameters: 
-    ----------  
+    Parameters
+    ----------
     units : str
-        Units of the input array (mm/h or dBZ)     
-    colorscale : str 
+        Units of the input array (mm/h or dBZ)
+    colorscale : str
         Which colorscale to use (MeteoSwiss, STEPS-BE)
-        
+    
     Returns
-    -----------
+    -------
     cmap : Colormap instance
         colormap
     norm : colors.Normalize object 
@@ -175,8 +175,7 @@ def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
         List of precipitation values defining the color limits.
     clevsStr: list(str)
         List of precipitation values defining the color limits (with correct number of decimals).
-    
-    '''
+    """
     # Get list of colors
     colors_list,clevs,clevsStr = _get_colorlist(units, colorscale)
     
@@ -193,8 +192,8 @@ def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
 def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     """Function to get a list of colors to generate the colormap. 
     
-    Optional kwargs: 
-    ----------  
+    Parameters
+    ----------
     units : str
         Units of the input array (mm/h or dBZ)     
     colorscale : str 

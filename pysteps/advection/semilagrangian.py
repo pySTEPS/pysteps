@@ -23,9 +23,9 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
         outside the domain. If outval is set to 'min', the value is taken as 
         the minimum value of R.
         Default : np.nan
-
-    Optional kwargs
-    ---------------
+    
+    Other Parameters
+    ----------------
     D_prev : array-like
         Optional initial displacement vector field of shape (2,m,n) for the 
         extrapolation.

@@ -9,10 +9,17 @@ where X is the input field and filter is a dictionary returned by a filter
 method implemented in bandpass_filters.py. The output of each method is a 
 dictionary with the following key-value pairs:
 
-  cascade_levels    three-dimensional array of shape (n,L,L), where n is 
-                    the number of cascade levels and L is the size of the input field
-  means             list of mean values for each cascade level
-  stds              list of standard deviations for each cascade level
++-------------------+----------------------------------------------------------+
+|        Key        |                      Value                               |
++===================+==========================================================+
+|  cascade_levels   | three-dimensional array of shape (n,L,L), where n is the |
+|                   | number of cascade levels and L is the size of the input  |
+|                   | field                                                    |
++-------------------+----------------------------------------------------------+
+|  means            | list of mean values for each cascade level               |
++-------------------+----------------------------------------------------------+
+|  stds             | list of standard deviations for each cascade level       |
++-------------------+----------------------------------------------------------+
 """
 
 import numpy as np
@@ -44,8 +51,8 @@ def decomposition_fft(X, filter, **kwargs):
     filter : dict
       A filter returned by any method implemented in bandpass_filters.py.
     
-    Optional kwargs
-    ---------------
+    Other Parameters
+    ----------------
     MASK : array_like
       Optional mask to use for computing the statistics for the cascade levels. 
       Pixels with MASK==False are excluded from the computations.

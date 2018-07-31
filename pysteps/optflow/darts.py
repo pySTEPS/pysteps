@@ -34,8 +34,8 @@ def DARTS(Z, **kwargs):
       Array of shape (T,L,L) containing a sequence of T two-dimensional input 
       images of shape (L,L).
     
-    Optional kwargs
-    ---------------
+    Other Parameters
+    ----------------
     N_x : int
       Number of DFT coefficients to use for the input images, x-axis.
     N_y : int

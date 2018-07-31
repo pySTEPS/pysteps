@@ -17,8 +17,8 @@ def dense_lucaskanade(R, **kwargs):
         array containing the input precipitation fields, no missing values are 
         accepted
     
-    Optional kwargs
-    ---------------
+    Other Parameters
+    ----------------
     max_corners_ST : int
         maximum number of corners to return. If there are more corners than are 
         found, the strongest of them is returned

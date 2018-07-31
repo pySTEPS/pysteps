@@ -176,9 +176,9 @@ def import_fmi_pgm(filename, **kwargs):
     ----------
     filename : str
         Name of the file to import.
-
-    Optional kwargs
-    ---------------
+    
+    Other Parameters
+    ----------------
     gzipped : bool
         If True, the input file is treated as a compressed gzip file.
 
@@ -291,9 +291,9 @@ def import_mch_gif(filename, **kwargs):
     ----------
     filename : str
         Name of the file to import.
-
-    Optional kwargs
-    ---------------
+    
+    Other Parameters
+    ----------------
     product : string
         The name of the MeteoSwiss QPE product.
 		Options:
@@ -413,9 +413,9 @@ def import_odim_hdf5(filename, **kwargs):
     ----------
     filename : str
         Name of the file to import.
-
-    Optional kwargs
-    ---------------
+    
+    Other Parameters
+    ----------------
     qty : str
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
