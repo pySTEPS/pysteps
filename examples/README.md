@@ -2,7 +2,7 @@
 
 ## Example scripts ##
 
-This repository consists of a collections of scripts to illustrate the usage of pysteps.
+This folder includes a collection of scripts to illustrate the usage of pysteps.
 
 As a first thing, try runnnig pysteps "hello world" script:
 
