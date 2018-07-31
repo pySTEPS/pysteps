@@ -22,11 +22,11 @@ def nonparam_match_empirical_cdf(R, R_trg):
     Initial ranks are conserved, but empirical distribution matches the target one.
     Zero-pixels in initial array are conserved.
     
-    Parameters: 
+    Parameters
     ----------
-    R : array-like
+    R : array_like
         The initial array whose CDF is to be changed.
-    R_trg : 
+    R_trg : array_like
         The target array whose CDF is to be matched.
         
     Returns

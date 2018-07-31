@@ -1,5 +1,4 @@
-"""Implementation of the semi-Lagrangian method of Germann et al (2002).
-"""
+"""Implementation of the semi-Lagrangian method of Germann et al (2002)."""
 
 import numpy as np
 import scipy.ndimage.interpolation as ip
@@ -25,7 +24,7 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
         the minimum value of R.
         Default : np.nan
 
-    Optional kwargs:
+    Optional kwargs
     ---------------
     D_prev : array-like
         Optional initial displacement vector field of shape (2,m,n) for the 
