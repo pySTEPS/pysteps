@@ -25,11 +25,11 @@ def get_method(name):
     |                   | and a bandpass filter                                  |
     +-------------------+--------------------------------------------------------+
     """
-    if name == "fft":
+    if name.lower() == "fft":
         return decomposition.decomposition_fft
-    elif name == "gaussian":
+    elif name.lower() == "gaussian":
         return bandpass_filters.filter_gaussian
-    elif name == "uniform":
+    elif name.lower() == "uniform":
         return bandpass_filters.filter_uniform
     else:
         raise ValueError("unknown method %s, the currently implemented methods are 'fft', 'gaussian' and 'uniform'" % name)
