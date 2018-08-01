@@ -319,11 +319,16 @@ def import_mch_gif(filename, **kwargs):
     Other Parameters
     ----------------
     product : string
-        The name of the MeteoSwiss QPE product.
-		Options:
-			- "AQC" (AQUIRE)
-			- "RZC" (PRECIP)
-
+        The name of the MeteoSwiss QPE product:
+        
+        +------+----------------------------+
+        | Name |          Product           |
+        +======+============================+
+        | AQC  |         AQUIRE             |
+        +------+----------------------------+
+        | RZC  |         PRECIP             |
+        +------+----------------------------+
+    
     Returns
     -------
     out : tuple
