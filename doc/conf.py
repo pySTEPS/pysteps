@@ -122,6 +122,15 @@ htmlhelp_basename = 'pystepsdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
+# This hack is taken from numpy (https://github.com/numpy/numpy/blob/master/doc/source/conf.py).
+latex_preamble = r'''
+    % In the parameters section, place a newline after the Parameters
+    % header
+    \usepackage{expdlist}
+    \let\latexdescription=\description
+    \def\description{\latexdescription{}{} \breaklabel}
+'''
+
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
@@ -129,11 +138,11 @@ latex_elements = {
 
     # The font size ('10pt', '11pt' or '12pt').
     #
-    'pointsize': '10pt'
+    'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
     #
-    # 'preamble': '',
+    'preamble': latex_preamble
 
     # Latex figure (float) alignment
     #
