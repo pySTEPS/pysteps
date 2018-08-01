@@ -51,8 +51,8 @@ master_doc = 'source/index'
 
 # General information about the project.
 project = u'pysteps'
-copyright = u'2018, Seppo Pulkkinen'
-author = u'Seppo Pulkkinen'
+copyright = u'2018, Seppo Pulkkinen, Daniele Nerini and Loris Foresti'
+author = u'Seppo Pulkkinen, Daniele Nerini and Loris Foresti'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -144,7 +144,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'pysteps.tex', u'pysteps Documentation',
-     u'Seppo Pulkkinen', 'manual'),
+     u'Seppo Pulkkinen, Daniele Nerini and Loris Foresti', 'manual'),
 ]
 
 
