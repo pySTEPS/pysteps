@@ -153,7 +153,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'pysteps.tex', u'pysteps Documentation',
+    (master_doc, 'pysteps.tex', u'pysteps Reference',
      u'Seppo Pulkkinen, Daniele Nerini and Loris Foresti', 'manual'),
 ]
 
@@ -163,7 +163,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'pysteps', u'pysteps Documentation',
+    (master_doc, 'pysteps', u'pysteps Reference',
      [author], 1)
 ]
 
@@ -174,10 +174,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'pysteps', u'pysteps Documentation',
+    (master_doc, 'pysteps', u'pysteps Reference',
      author, 'pysteps', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-
