@@ -1,0 +1,49 @@
+.. _pysteps.utils:
+
+Miscellaneous utility functions (:mod:`pysteps.utils`)
+******************************************************
+
+pysteps\.utils\.conversion
+--------------------------
+
+.. currentmodule:: pysteps.utils.conversion
+
+.. autosummary::
+    to_rainrate
+    to_raindetph
+    to_reflectivity
+
+.. automodule:: pysteps.utils.conversion
+    :members:
+
+pysteps\.utils\.dimension
+-------------------------
+
+.. currentmodule:: pysteps.utils.dimension
+
+.. autosummary::
+    aggregate_fields_time
+    aggregate_fields
+    square_domain
+
+.. automodule:: pysteps.utils.dimension
+    :members:
+
+pysteps\.utils\.interface
+-------------------------
+
+.. automodule:: pysteps.utils.interface
+    :members:
+
+pysteps\.utils\.transformation
+------------------------------
+
+.. currentmodule:: pysteps.utils.transformation
+
+.. autosummary::
+    dB_transform
+    boxcox_transform
+    boxcox_transform_test_lambdas
+
+.. automodule:: pysteps.utils.transformation
+    :members:

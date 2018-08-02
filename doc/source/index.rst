@@ -1,17 +1,35 @@
-.. pysteps documentation master file, created by
-   sphinx-quickstart on Tue Jul 31 01:11:37 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. _reference:
 
-Welcome to pysteps's documentation!
-===================================
+#################
+pysteps Reference
+#################
+
+:Release: |version|
+:Date: |today|
+
+.. module:: pysteps
+
+pysteps reference manual
+========================
+
+This reference manual gives a detailed description of the modules, functions 
+and objects included in pysteps.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
    
-   modules
-
+   nowcasting
+   io
+   oflow
+   advection
+   cascade
+   noise
+   postprocessing
+   timeseries
+   utils
+   verification
+   visualization
 
 Indices and tables
 ==================
