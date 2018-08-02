@@ -10,7 +10,7 @@ pysteps\.advection\.interface
     :members:
 
 pysteps\.advection\.semilagrangian
-----------------
+----------------------------------
 
 .. automodule:: pysteps.advection.semilagrangian
     :members:
