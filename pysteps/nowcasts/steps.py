@@ -15,7 +15,6 @@ try:
 except ImportError:
     dask_imported = False
 
-# TODO: Using non-square shapes of the inputs has not been tested.
 def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, 
              pixelsperkm, timestep, R_thr=None, extrap_method="semilagrangian", 
              decomp_method="fft", bandpass_filter_method="gaussian", 
