@@ -18,9 +18,9 @@ def to_rainrate(R, metadata, a=None, b=None):
         The metadata dictionary contains all data-related information.
     a,b : float
         Optional, the a and b coefficients of the Z-R relationship. 
-        
-    Returns: 
-    --------
+    
+    Returns
+    -------
     R : array-like 
         Array of any shape containing the converted units.
     metadata : dict 
@@ -86,8 +86,8 @@ def to_raindetph(R, metadata, a=None, b=None):
     a,b : float
         Optional, the a and b coefficients of the Z-R relationship. 
         
-    Returns: 
-    --------
+    Returns
+    -------
     R : array-like 
         Array of any shape containing the converted units.
     metadata : dict 
@@ -152,9 +152,9 @@ def to_reflectivity(R, metadata, a=None, b=None):
         The metadata dictionary contains all data-related information.
     a,b : float
         Optional, the a and b coefficients of the Z-R relationship. 
-        
-    Returns: 
-    --------
+    
+    Returns
+    -------
     R : array-like 
         Array of any shape containing the converted units.
     metadata : dict 

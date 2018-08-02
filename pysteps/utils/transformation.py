@@ -24,8 +24,8 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
     inverse : bool
         Optional, if set to True, it performs the inverse transform
     
-    Returns: 
-    --------
+    Returns
+    -------
     R : array-like 
         Array of any shape containing the (back-)transformed units.
     metadata : dict 
@@ -107,9 +107,9 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None, zerovalue=No
         Optional value to be assigned to no rain pixels as defined by the threshold.
     inverse : bool
         Optional, if set to True, it performs the inverse transform
-        
-    Returns: 
-    --------
+    
+    Returns
+    -------
     R : array-like 
         Array of any shape containing the (back-)transformed units.
     metadata : dict 

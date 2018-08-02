@@ -48,8 +48,8 @@ def quiver(UV, geodata=None, **kwargs):
         facecolor kwarg in matplotlib.collections.
         Default : black
         
-    Returns: 
-    ----------
+    Returns
+    -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     
@@ -126,8 +126,8 @@ def streamplot(UV, geodata=None, **kwargs):
         facecolor kwarg in matplotlib.collections.
         Default : black
     
-    Returns: 
-    ----------
+    Returns
+    -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     

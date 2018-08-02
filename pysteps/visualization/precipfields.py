@@ -211,8 +211,8 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     colorscale : str 
         Which colorscale to use (MeteoSwiss, STEPS-BE)
     
-    Returns: 
-    ----------
+    Returns
+    -------
     color_list : list(str)
         List of color strings.
     clevs : list(float)
