@@ -62,8 +62,10 @@ def DARTS(Z, **kwargs):
     
     References
     ----------
-    E. Ruzanski, V. Chandrasekar and Y. Wang, 2011: The CASA Nowcasting System, 
-    Journal of Atmospheric and Oceanic Technology, 28(5), 640-655
+    .. [1] E. Ruzanski, V. Chandrasekar and Y. Wang, "The CASA Nowcasting System", 
+           Journal of Atmospheric and Oceanic Technology, 28(5), 640-655, 2011, 
+           doi:10.1175/2011JTECHA1496.1.
+    
     """
     N_x = kwargs.get("N_x", 50)
     N_y = kwargs.get("N_y", 50)

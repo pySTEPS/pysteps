@@ -83,10 +83,11 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     
     References
     ----------
-    S. Pulkkinen, V. Chandrasekar and A.-M. Harri, Nowcasting of Precipitation 
-    in the High-Resolution Dallas-Fort Worth (DFW) Urban Radar Remote Sensing 
-    Network, IEEE Journal of Selected Topics in Applied Earth Observations and 
-    Remote Sensing, 2018, to appear.
+    .. [1] S. Pulkkinen, V. Chandrasekar and A.-M. Harri, "Nowcasting of 
+           Precipitation in the High-Resolution Dallas-Fort Worth (DFW) Urban 
+           Radar Remote Sensing Network", IEEE Journal of Selected Topics in 
+           Applied Earth Observations and Remote Sensing, to appear, 2018, 
+           doi:10.1109/JSTARS.2018.2840491.
     """
     if n < 3:
         raise ValueError("n must be greater than 2")

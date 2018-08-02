@@ -7,15 +7,6 @@ def compute_fss(X_f, X_o, threshold=1.0, scale=32):
     """Compute the fractions skill score (FSS, Roberts and Lean 2008) for a 
     deterministic forecast field and the corresponding observation. 
     
-    References
-    ----------
-    Roberts, N. M., amd H. W. Lean, 2008: Scale-Selective Verification of Rainfall 
-    Accumulations from High-Resolution Forecasts of Convective Events. Mon. Wea. Rev., 
-    136 (1), 78-97, doi:10.1175/2007MWR2123.1.
-    
-    Ebert, E., and Coauthors, 2013: Progress and challenges in forecast verification. 
-    Meteor. Appl., 20 (2), 130-139, doi:10.1002/met.1392.
-    
     Parameters
     ----------
     X_f : array_like
@@ -32,7 +23,17 @@ def compute_fss(X_f, X_o, threshold=1.0, scale=32):
     Returns
     -------
     out : float
-      The fractions skill score between 0 and 1.
+        The fractions skill score between 0 and 1.
+    
+    References
+    ----------
+    .. [1] N.M. Roberts and H.W. Lean, Scale-Selective Verification of Rainfall 
+           Accumulations from High-Resolution Forecasts of Convective Events. 
+           Mon. Wea. Rev., 136(1), 78-97, 2008, doi:10.1175/2007MWR2123.1.
+    
+    .. [2] E. Ebert et al, "Progress and challenges in forecast verification.", 
+           Meteor. Appl., 20(2), 130-139, 2013, doi:10.1002/met.1392.
+    
     """
     if X_f.shape != X_o.shape:
         raise ValueError("the shape of X_f does not match the shape of X_o (%d,%d)!=(%d,%d)" 
