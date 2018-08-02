@@ -3,14 +3,6 @@
 Input/output routines (:mod:`pysteps.io`)
 *****************************************
 
-.. currentmodule:: pysteps.io
-
-.. autosummary::
-    import_bom_rf3
-    import_fmi_pgm
-    import_mch_gif
-    import_odim_hdf5
-
 pysteps\.io\.interface
 ----------------------
 
@@ -26,6 +18,14 @@ pysteps\.io\.archive
 pysteps\.io\.importers
 ----------------------
 
+.. currentmodule:: pysteps.io.importers
+
+.. autosummary::
+    import_bom_rf3
+    import_fmi_pgm
+    import_mch_gif
+    import_odim_hdf5
+
 .. automodule:: pysteps.io.importers
     :members:
 
@@ -38,7 +38,7 @@ pysteps\.io\.readers
 pysteps\.io\.exporters
 ----------------------
 
-.. currentmodule:: pysteps.exporters
+.. currentmodule:: pysteps.io.exporters
 
 .. autosummary::
     initialize_forecast_exporter_netcdf
