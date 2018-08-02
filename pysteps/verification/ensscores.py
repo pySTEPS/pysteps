@@ -30,9 +30,9 @@ def ensemble_fss_skill(X_f, X_o, threshold, scale):
         
     References
     ----------
-    .. [1] P. Zacharov and D. Rezacova, "Using the fractions skill score to 
-           assess the relationship between and ensemble QPF apread and skill". 
-           Atmos. Res., 94(4), 684-693, doi:10.1002/asl.248, 2009.
+    .. [ZR2009] P. Zacharov and D. Rezacova, "Using the fractions skill score to 
+                assess the relationship between and ensemble QPF apread and skill". 
+                Atmos. Res., 94(4), 684-693, doi:10.1002/asl.248, 2009.
     
     """
     if len(X_f.shape) != 3:
@@ -74,9 +74,9 @@ def ensemble_fss_spread(X_f, threshold, scale):
     
     References
     ----------
-    .. [1] P. Zacharov and D. Rezacova, "Using the fractions skill score to 
-           assess the relationship between and ensemble QPF apread and skill". 
-           Atmos. Res., 94(4), 684-693, doi:10.1002/asl.248, 2009.
+    .. [ZR2009] P. Zacharov and D. Rezacova, "Using the fractions skill score to 
+                assess the relationship between and ensemble QPF apread and skill". 
+                Atmos. Res., 94(4), 684-693, doi:10.1002/asl.248, 2009.
     
     """
     if len(X_f.shape) != 3:

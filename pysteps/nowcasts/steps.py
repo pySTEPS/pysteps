@@ -129,10 +129,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     
     References
     ----------
-    .. [1] N.E. Bowler, C.E. Pierce and A.W. Seed, "STEPS: A probabilistic 
-           precipitation forecasting scheme which merges an extrapolation 
-           nowcast with downscaled NWP", Quarterly Journal of the Royal
-           Meteorological Society 132(620), 2127-2155, 2006, doi:10.1256/qj.04.100.
+    .. [BPS2006] N.E. Bowler, C.E. Pierce and A.W. Seed, "STEPS: A probabilistic 
+                 precipitation forecasting scheme which merges an extrapolation 
+                 nowcast with downscaled NWP", Quarterly Journal of the Royal 
+                 Meteorological Society 132(620), 2127-2155, 2006, 
+                 doi:10.1256/qj.04.100.
     
     """
     _check_inputs(R, V, ar_order)
