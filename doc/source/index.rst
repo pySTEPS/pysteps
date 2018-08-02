@@ -38,5 +38,10 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+.. only:: html
+
+    Bibliography
+    ------------
+
 .. bibliography:: references.bib
     :style: plain
