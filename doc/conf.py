@@ -124,30 +124,37 @@ htmlhelp_basename = 'pystepsdoc'
 
 # This hack is taken from numpy (https://github.com/numpy/numpy/blob/master/doc/source/conf.py).
 latex_preamble = r'''
+    \usepackage{amsmath}
+    \DeclareUnicodeCharacter{00A0}{\nobreakspace}
+    
     % In the parameters section, place a newline after the Parameters
     % header
     \usepackage{expdlist}
     \let\latexdescription=\description
     \def\description{\latexdescription{}{} \breaklabel}
+    
+    % Make Examples/etc section headers smaller and more compact
+    \makeatletter
+    \titleformat{\paragraph}{\normalsize\py@HeaderFamily}%
+                {\py@TitleColor}{0em}{\py@TitleColor}{\py@NormalColor}
+    \titlespacing*{\paragraph}{0pt}{1ex}{0pt}
+    \makeatother
+    
+    % Fix footer/header
+    \renewcommand{\chaptermark}[1]{\markboth{\MakeUppercase{\thechapter.\ #1}}{}}
+    \renewcommand{\sectionmark}[1]{\markright{\MakeUppercase{\thesection.\ #1}}}
 '''
 
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
     'papersize': 'a4paper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #
     'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #
     'preamble': latex_preamble
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
 }
+
+latex_domain_indices = False
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
