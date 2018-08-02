@@ -271,9 +271,8 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     
     References
     ----------
-    Nerini et al. (2017), "A non-stationary stochastic ensemble generator for radar 
-    rainfall fields based on the short-space Fourier transform", 
-    https://doi.org/10.5194/hess-21-2777-2017.
+    :cite:`NBSG2017`
+    
     """
     
     if len(X.shape) != 2:

@@ -21,10 +21,7 @@ def CRPS(X_f, X_o):
     
     References
     ----------
-    .. [Her2000] H. Hersbach, "Decomposition of the Continuous Ranked Probability 
-                 Score for Ensemble Prediction Systems", Weather and Forecasting, 
-                 15(5), 559-570, 2000, 
-                 doi:10.1175/1520-0434(2000)015<0559:DOTCRP>2.0.CO;2.
+    :cite:`Her2000`
     
     """
     mask = np.logical_and(np.all(np.isfinite(X_f), axis=1), np.isfinite(X_o))
@@ -85,9 +82,7 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
     
     References
     ----------
-    .. [BS2007] J. Brocker and L.A. Smith. "Increasing the Reliability of 
-                Reliability Diagrams", Weather and Forecasting, 22(3), 651-661, 
-                2007, doi:10.1175/WAF993.1.
+    :cite:`BS2007`
     
     """
     reldiag = {}
