@@ -33,7 +33,7 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
         +-----------------+----------------------------------------------------+
         |        Key      |                  Value                             |
         +=================+====================================================+
-        |   projection    | PROJ.4-compatible projection definition            |
+        |    projection   | PROJ.4-compatible projection definition            |
         +-----------------+----------------------------------------------------+
         |    x1           | x-coordinate of the lower-left corner of the data  |
         |                 | raster (meters)                                    |
@@ -163,7 +163,8 @@ def _plot_precip_field(R, ax, units, colorscale, geodata):
         R[R < 0.1] = np.nan # Transparent where no precipitation
     if units == 'dBZ':
         R[R < 10] = np.nan
-    im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest')
+    im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest', 
+                   zorder=1)
     
     return im
 
