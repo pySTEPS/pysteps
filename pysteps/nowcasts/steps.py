@@ -21,7 +21,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
              decomp_method="fft", bandpass_filter_method="gaussian", 
              noise_method="nonparametric", noise_stddev_adj=True, ar_order=2, 
              vel_pert_method=None, conditional=False, use_precip_mask=True, 
-             use_probmatching=True, mask_method="obs", callback=None, 
+             use_probmatching=True, mask_method="incremental", callback=None, 
              return_output=True, seed=None, num_workers=None, extrap_kwargs={}, 
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
     """Generate a nowcast ensemble by using the STEPS method described in 
