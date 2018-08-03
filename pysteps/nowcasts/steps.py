@@ -16,7 +16,7 @@ except ImportError:
     dask_imported = False
 
 def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, 
-             pixelsperkm, timestep, R_thr=None, extrap_method="semilagrangian", 
+             kmperpixel, timestep, R_thr=None, extrap_method="semilagrangian", 
              decomp_method="fft", bandpass_filter_method="gaussian", 
              noise_method="nonparametric", noise_stddev_adj=True, ar_order=2, 
              vel_pert_method=None, conditional=False, use_precip_mask=True, 
@@ -41,8 +41,8 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
       The number of ensemble members to generate.
     num_cascade_levels : int
       The number of cascade levels to use.
-    pixelsperkm : float
-      Spatial resolution of the motion field (pixels/kilometer).
+    kmperpixel : float
+      Spatial resolution of the input data (kilometers/pixel).
     timestep : float
       Time step of the motion vectors (minutes).
     
@@ -152,7 +152,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     print("Inputs:")
     print("-------")
     print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
-    print("pixels/km:        %g" % pixelsperkm)
+    print("km/pixel:         %g"    % kmperpixel)
     print("time step:        %d minutes" % timestep)
     print("")
     
@@ -301,7 +301,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
             kwargs = {"randstate":randgen_motion[j], 
                       "p_pert_par":vp_par, 
                       "p_pert_perp":vp_perp}
-            vp_ = init_vel_noise(V, pixelsperkm, timestep, **kwargs)
+            vp_ = init_vel_noise(V, 1./kmperpixel, timestep, **kwargs)
             vps.append(vp_)
     
     D = [None for j in range(num_ens_members)]
@@ -328,7 +328,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
             # initialize the structuring element
             struct = scipy.ndimage.generate_binary_structure(2, 1)
             # iterate it to expand it nxn
-            n = timestep/pixelsperkm
+            n = timestep/kmperpixel
             struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
     
     R = R[-1, :, :]
