@@ -3,8 +3,7 @@
 
 import numpy as np
 
-def scores_det_cat_fcst(pred, obs, thr,
-                        scores=['csi']):
+def scores_det_cat_fcst(pred, obs, thr, scores):
                          
     """ Calculate simple and skill scores for deterministic categorical forecasts
     
@@ -15,12 +14,38 @@ def scores_det_cat_fcst(pred, obs, thr,
     obs: array-like
         verifiyinig observations
     scores : list
-        names of the scores to be computed
-
+        a list containing the names of the scores to be computed, the full list 
+        is:
+        
+    +------------+--------------------------------------------------------------+
+    | Name       | Description                                                  |
+    +============+==============================================================+
+    |  ACC       | accuracy (proportion correct)                                |
+    +------------+--------------------------------------------------------------+
+    |  BIAS      | frequency bias                                               |
+    +------------+--------------------------------------------------------------+
+    |  CSI       | critical success indey (threat score)                        |
+    +------------+--------------------------------------------------------------+
+    |  FA        | false alarm rate (prob. of false detection)                  |
+    +------------+--------------------------------------------------------------+   
+    |  FAR       | false alarm ratio                                            |
+    +------------+--------------------------------------------------------------+ 
+    |  GSS       | Gilber skill score (equitable threat score)                  |
+    +------------+--------------------------------------------------------------+
+    |  HK        | Hanssen-Kuipers discriminant (Pierce skill score)            |
+    +------------+--------------------------------------------------------------+
+    |  HSS       | Heidke skill score                                           |
+    +------------+--------------------------------------------------------------+    
+    |  POD       | probability of detection (hit rate)                          |
+    +------------+--------------------------------------------------------------+
+    |  SEDI      | linear regression slope (conditional bias)                   |
+    +------------+--------------------------------------------------------------+
+    
     Return:
     ------
     result : list
         the verification results
+        
     """
     
     # flatten array if 2D
@@ -44,37 +69,41 @@ def scores_det_cat_fcst(pred, obs, thr,
     
     result = []
     for score in scores:
+    
+        score = score.lower()
          
         # simple scores 
-        POD = H/float(H+M) # probability of detection
-        FAR = F/float(H+F) # false alarm ratio
-        FA = F/float(F+R) # false alarm rate = prob of false detection
-        s = (H+M)/float(H+M+F+R) # base rate = freq of observed events
+        POD = H/float(H+M)       # probability of detection
+        FAR = F/float(H+F)       # false alarm ratio
+        FA  = F/float(F+R)        # false alarm rate = prob of false detection
+        s   = (H+M)/float(H+M+F+R) # base rate = freq of observed events
             
-        if score.lower() == 'pod':
+        if score == 'pod':
             result.append(POD)
-        if score.lower() == 'far':
+        if score == 'far':
             result.append(FAR)
-        if score.lower() == 'fa':
+        if score == 'fa':
             result.append(FA)
-        if score.lower() == 'acc':
+        if score == 'acc':
             ACC = (H+R)/(H+M+F+R) # accuracy (fraction correct) 
             result.append(ACC)
-        if score.lower() == 'csi':
-            CSI = H/(H+M+F) # critical success index
+        if score == 'csi':
+            CSI = H/(H+M+F)       # critical success index
             result.append(CSI)
+        if score == 'bias': # frequency bias 
+            B = H + (1 - s)*FA/s
         
         # skill scores
-        if score.lower() == 'hss':
+        if score == 'hss':
             HSS = 2*(H*R-F*M)/((H+M)*(M+R)+(H+F)*(F+R)) # Heidke Skill Score (-1 < HSS < 1) < 0 implies no skill
             result.append(HSS)
-        if score.lower() == 'hk':
+        if score == 'hk':
             HK = POD-FA # Hanssen-Kuipers Discriminant
             result.append(HK)
-        if score.lower() == 'gss':
+        if score == 'gss':
             GSS = (POD-FA)/((1-s*POD)/(1-s)+FA*(1-s)/s) # Gilbert Skill Score
             result.append(GSS)
-        if score.lower() == 'sedi':
+        if score == 'sedi':
             # Symmetric extremal dependence index
             SEDI = (np.log(FA)-np.log(POD)+np.log(1-POD)-np.log(1-FA))/(np.log(FA)
                     +np.log(POD)+np.log(1-POD)+np.log(1-FA))
