@@ -105,8 +105,7 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=(10.88,0.23,-7.68),
 
 def generate_bps(perturbator, t):
     """Generate a motion perturbation field by using the method described in 
-    Bowler et al. 2006: STEPS: A probabilistic precipitation forecasting scheme 
-    which merges an extrapolation nowcast with downscaled NWP.
+    :cite:`BPS2006`.
     
     Parameters
     ----------

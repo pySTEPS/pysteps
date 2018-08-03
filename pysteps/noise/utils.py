@@ -24,11 +24,13 @@ except ImportError:
 
 def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter, 
                               conditional=True, num_workers=None):
-    """Simulate the effect of applying a precipitation mask to a Gaussian noise 
+    """Apply a scale-dependent adjustment factor to the noise fields used in STEPS.
+    
+    Simulates the effect of applying a precipitation mask to a Gaussian noise 
     field obtained by the nonparametric filter method. The idea is to decompose 
-    the masked noise field into a cascade and compare the standard deviations of 
-    each level into those of the observed precipitation intensity field. This 
-    gives correction factors for the standard deviations (Bowler et al. 2006). 
+    the masked noise field into a cascade and compare the standard deviations 
+    of each level into those of the observed precipitation intensity field. 
+    This gives correction factors for the standard deviations :cite:`BPS2006`. 
     The calculations are done for n realizations of the noise field, and the 
     correction factors are calculated from the average values of the standard 
     deviations.

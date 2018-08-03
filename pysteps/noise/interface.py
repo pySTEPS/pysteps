@@ -25,13 +25,13 @@ def get_method(name):
     
     Methods for velocity fields:
     
-    +-------------------+-------------------------------------------------------+
-    |     Name          |              Description                              |
-    +===================+=======================================================+
-    |  bps              | The method of Bowler et al. (2006), where             |
-    |                   | time-dependent velocity perturbations are sampled     |
-    |                   | from the exponential distribution                     |
-    +-------------------+-------------------------------------------------------+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    |  bps              | The method described in :cite:`BPS2006`, where      |
+    |                   | time-dependent velocity perturbations are sampled   |
+    |                   | from the exponential distribution                   |
+    +-------------------+-----------------------------------------------------+
     
     """
     if name.lower() == "parametric":

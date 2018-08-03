@@ -128,7 +128,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
     
     References
     ----------
-    :cite:`BPS2006`
+    :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`
     
     """
     _check_inputs(R, V, ar_order)
