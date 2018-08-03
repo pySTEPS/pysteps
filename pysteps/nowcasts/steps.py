@@ -145,6 +145,9 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
     if conditional and R_thr is None:
         raise Exception("conditional=True but R_thr is not set")
     
+    if use_probmatching and R_thr is None:
+        raise Exception("use_probmatching=True but R_thr is not set")
+    
     print("Computing STEPS nowcast:")
     print("------------------------")
     print("")
@@ -184,7 +187,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
             (vp_perp[0], vp_perp[1], vp_perp[2]))
     
-    if conditional:
+    if conditional or use_probmatching:
         print("conditional precip. intensity threshold: %g" % R_thr)
     
     M,N = R.shape[1:]
