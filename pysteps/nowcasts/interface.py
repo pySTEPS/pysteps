@@ -10,7 +10,7 @@ is an integer specifying the number of time steps to forecast.
 Non-keyworded arguments specific to each method can be included 
 The interface accepts additional ptional keyword arguments that are specific to a given 
 forecast method.
-        
+
 The output of each method is a three-dimensional array of shape (num_timesteps,m,n) 
 containing a time series of nowcast precipitation fields.
 
@@ -42,8 +42,8 @@ def get_method(name):
             return np.repeat(R[None, :, :,], num_timesteps, axis=0)
         return eulerian
     elif name.lower() in ["extrapolation", "lagrangian"]:
-        from . import simple_advection
-        return simple_advection.forecast
+        from . import extrapolation
+        return extrapolation.forecast
     elif name.lower() in ["steps"]:
         from . import steps
         return steps.forecast
