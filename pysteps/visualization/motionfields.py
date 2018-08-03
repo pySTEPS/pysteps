@@ -8,10 +8,10 @@ import numpy as np
 def quiver(UV, geodata=None, **kwargs):
     """Function to plot a motion field as arrows. 
     
-    Parameters 
-    ---------- 
+    Parameters
+    ----------
     UV : array-like 
-        Array of shape (2, m,n) containing the input motion field.
+        Array of shape (2,m,n) containing the input motion field.
     geodata : dictionary
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:

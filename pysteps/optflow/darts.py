@@ -34,17 +34,17 @@ def DARTS(Z, **kwargs):
     Other Parameters
     ----------------
     N_x : int
-      Number of DFT coefficients to use for the input images, x-axis.
+      Number of DFT coefficients to use for the input images, x-axis (default=50).
     N_y : int
-      Number of DFT coefficients to use for the input images, y-axis.
+      Number of DFT coefficients to use for the input images, y-axis (default=50).
     N_t : int
-      Number of DFT coefficients to use for the input images, time axis.
+      Number of DFT coefficients to use for the input images, time axis (default=4).
     M_x : int
       Number of DFT coefficients to compute for the output advection field, 
-      x-axis.
+      x-axis  (default=2).
     M_y : int
       Number of DFT coefficients to compute for the output advection field, 
-      y-axis.
+      y-axis (default=2).
     print_info : bool
       If True, print information messages.
     lsq_method : {1, 2}
