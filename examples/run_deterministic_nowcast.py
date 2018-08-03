@@ -39,15 +39,15 @@ startdate_str = "201701311030"
 data_source   = "mch"
 
 ## methods
-oflow_method    = "lucaskanade" # lucaskanade or DARTS 
-adv_method      = "semilagrangian"
+oflow_method    = "lucaskanade"      # lucaskanade, darts, None
+adv_method      = "semilagrangian"   # semilagrangian, eulerian
 
 ## forecast parameters
-n_prvs_times    = 3 # use at least 9 with DARTS
+n_prvs_times    = 3                  # use at least 9 with DARTS
 n_lead_times    = 24
-unit            = "mm/h" # mm/h or dBZ
-transformation  = "dB"   # None or dB 
-r_threshold     = 0.1 # [mm/h]
+unit            = "mm/h"             # mm/h or dBZ
+transformation  = "dB"               # None or dB 
+r_threshold     = 0.1                # rain/no-rain threshold [mm/h]
 
 ## verification parameters
 skill_score     = "CSI"
@@ -100,6 +100,12 @@ print("The forecast array has size [nleadtimes,nrows,ncols] =", R_fct.shape)
 ## trasnform back values to mm/h
 R_fct, _ = transformer(R_fct, metadata, inverse=True)
 R, metadata = transformer(R, metadata, inverse=True)
+
+Rplot=R.copy()
+Rplot[Rmask]=np.nan
+stp.plt.plot_precip_field(Rplot[-1,:,:], False, metadata)
+stp.plt.quiver(UV, metadata)
+plt.show()
 
 ## plot the nowcast...
 R[Rmask] = np.nan # reapply radar mask

@@ -39,7 +39,7 @@ startdate_str = "201701311030"
 data_source   = "mch"
 
 ## methods
-oflow_method        = "darts"           # lucaskanade, darts, None
+oflow_method        = "lucaskanade"     # lucaskanade, darts, None
 nwc_method          = "steps"
 adv_method          = "semilagrangian"  # semilagrangian, eulerian
 noise_method        = "nonparametric"   # parametric, nonparametric, ssft
@@ -47,9 +47,9 @@ bandpass_filter     = "gaussian"
 decomp_method       = "fft"
 
 ## forecast parameters
-n_prvs_times        = 9                 # use at least 9 with DARTS
+n_prvs_times        = 3                 # use at least 9 with DARTS
 n_lead_times        = 12
-n_ens_members       = 10
+n_ens_members       = 3
 n_cascade_levels    = 6
 ar_order            = 2
 r_threshold         = 0.1               # rain/no-rain threshold [mm/h]
