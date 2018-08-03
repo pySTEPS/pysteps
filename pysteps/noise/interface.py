@@ -32,6 +32,7 @@ def get_method(name):
     |                   | time-dependent velocity perturbations are sampled     |
     |                   | from the exponential distribution                     |
     +-------------------+-------------------------------------------------------+
+    
     """
     if name.lower() == "parametric":
         return fftgenerators.initialize_param_2d_fft_filter, \

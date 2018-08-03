@@ -9,10 +9,10 @@ pysteps\.nowcasts\.interface
 .. automodule:: pysteps.nowcasts.interface
     :members:
 
-pysteps\.nowcasts\.simple\_advection
-------------------------------------
+pysteps\.nowcasts\.extrapolation
+--------------------------------
 
-.. automodule:: pysteps.nowcasts.simple_advection
+.. automodule:: pysteps.nowcasts.extrapolation
     :members:
 
 pysteps\.nowcasts\.steps

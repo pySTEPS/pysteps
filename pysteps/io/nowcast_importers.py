@@ -55,6 +55,7 @@ The metadata dictionary contains the following mandatory key-value pairs:
 |    zerovalue      | it is the value assigned to the no rain pixels with the  |
 |                   | same unit, transformation and accutime of the data.      |
 +-------------------+----------------------------------------------------------+
+
 """
 
 import numpy as np
@@ -92,7 +93,6 @@ def import_netcdf_pysteps(filename, **kwargs):
     metadata["leadtimes"] = leadtimes
     timestamps = netCDF4.num2date(time_var[:], time_var.units)
     metadata["timestamps"] = timestamps
-
     
     projdef = ""
     if "polar_stereographic" in var_names:

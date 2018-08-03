@@ -47,7 +47,7 @@ def DARTS(Z, **kwargs):
       y-axis.
     print_info : bool
       If True, print information messages.
-    lsq_method : int
+    lsq_method : {1, 2}
       The method to use for solving the linear equations in the least squares 
       sense: 1=numpy.linalg.lstsq, 2=explicit computation of the Moore-Penrose 
       pseudoinverse and SVD.

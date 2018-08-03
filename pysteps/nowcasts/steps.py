@@ -51,24 +51,24 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
     R_thr : float
       Specifies the threshold value for minimum observable precipitation 
       intensity. Must be set if use_probmatching is True or conditional is True.
-    extrap_method : str
+    extrap_method : {'semilagrangian'}
       Name of the extrapolation method to use. See the documentation of 
-      pysteps.advection for the available choices.
-    decomp_method : str
+      pysteps.advection.
+    decomp_method : {'fft'}
       Name of the cascade decomposition method to use. See the documentation 
       of pysteps.cascade.decomposition.
-    bandpass_filter_method : str
+    bandpass_filter_method : {'gaussian', 'uniform'}
       Name of the bandpass filter method to use with the cascade decomposition. 
       See the documentation of pysteps.cascade.bandpass_filters.
-    noise_method : str
+    noise_method : {'parametric','nonparametric','ssft','nested'}
       Name of the noise generator to use for perturbating the precipitation 
       field. See the documentation of pysteps.noise.interface.
     noise_stddev_adj : bool
       Optional adjustment for the standard deviations of the noise fields added 
       to each cascade level. See pysteps.noise.utils.compute_noise_stddev_adjs.
     ar_order : int
-      The order of the autoregressive model to use.
-    vel_pert_method : str
+      The order of the autoregressive model to use. Must be >= 1.
+    vel_pert_method : {'bps'}
       Name of the noise generator to use for perturbing the velocity field. See 
       the documentation of pysteps.noise.interface.
     conditional : bool
@@ -78,7 +78,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
     use_precip_mask : bool
       If True, set pixels outside precipitation areas to the minimum value of 
       the observed field.
-    mask_method : str
+    mask_method : {'obs', 'sprog', 'incremental'}
       The precipitation/no precipitation method to use with mask: 'obs' = apply R_thr
       to the most recently observed precipitation intensity field, 'sprog' = use the
       smoothed forecast field from S-PROG, where the AR(p) model has been applied,

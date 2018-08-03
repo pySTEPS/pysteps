@@ -2,7 +2,6 @@
 """
 
 import numpy as np
-import scipy
 import scipy.stats as scipy_stats
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) # To deactivate warnings for comparison operators with NaNs
@@ -89,7 +88,8 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
             
         return R, metadata
     
-def boxcox_transform(R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False):
+def boxcox_transform(R, metadata=None, Lambda=None, threshold=None, 
+                     zerovalue=None, inverse=False):
     """The one-parameter Box–Cox transformation.
     
     Parameters 
@@ -185,10 +185,10 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None, zerovalue=No
         metadata["threshold"] = threshold
     
     return R, metadata
-    
+
 def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
-    """Test and plot various lambdas for the Box-Cox transformation.
-    """
+    """Test and plot various lambdas for the Box-Cox transformation."""
+    
     import matplotlib.pyplot as plt
     
     R = R[R>threshold].flatten()

@@ -445,7 +445,7 @@ def import_odim_hdf5(filename, **kwargs):
     
     Other Parameters
     ----------------
-    qty : str
+    qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value

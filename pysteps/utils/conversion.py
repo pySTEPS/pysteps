@@ -3,7 +3,11 @@
 
 import numpy as np
 import warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning) # To desactivate warnings for comparison operators with NaNs
+
+# TODO: This should not be done. Instead fix the code so that it doesn't 
+# produce the warnings.
+# to deactivate warnings for comparison operators with NaNs
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 from . import transformation
 
@@ -78,8 +82,8 @@ def to_rainrate(R, metadata, a=None, b=None):
 def to_raindepth(R, metadata, a=None, b=None):
     """Convert to rain depth [mm].
     
-    Parameters 
-    ---------- 
+    Parameters
+    ----------
     R : array-like 
         Array of any shape to be (back-)transformed.
     metadata : dict

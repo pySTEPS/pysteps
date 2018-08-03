@@ -56,8 +56,8 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
         If set to True, compute the statistics conditionally by excluding areas 
         of no precipitation.
     num_workers : int
-      The number of workers to use for parallel computation. Set to None to use 
-      all available CPUs. Applicable if dask is enabled.
+        The number of workers to use for parallel computation. Set to None to 
+        use all available CPUs. Applicable if dask is enabled.
     
     Returns
     -------

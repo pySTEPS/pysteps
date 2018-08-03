@@ -26,6 +26,7 @@ def get_method(name):
     |  fft              | decomposition based on Fast Fourier Transform (FFT)    |
     |                   | and a bandpass filter                                  |
     +-------------------+--------------------------------------------------------+
+    
     """
     if name.lower() == "fft":
         return decomposition.decomposition_fft

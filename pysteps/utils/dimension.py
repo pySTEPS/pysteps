@@ -2,9 +2,10 @@
 
 import numpy as np
 
+# TODO: If time_window_min can be set to None, it should be a keyword argument.
 def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
     """Aggregate fields in time.
-
+    
     Parameters
     ----------
     R : array-like
@@ -19,7 +20,7 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
     method : string
         Optional argument that specifies the operation to use to aggregate the values within the time
         window.
-        
+    
     Returns
     -------
     outputarray : array-like
@@ -227,5 +228,3 @@ def square_domain(R, metadata, method="pad", inverse=False):
             R = R[:, :, idx_buffer:(idx_buffer + shape[0]), :]
             
         return R.squeeze(),metadata
-    
-

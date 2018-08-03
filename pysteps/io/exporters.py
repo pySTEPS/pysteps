@@ -26,7 +26,7 @@ implements the following interface:
   metadata : dict
       Metadata dictionary containing the projection,x1,x2,y1,y2 and unit 
       attributes described in the documentation of pysteps.io.importers.
-  incremental : str
+  incremental : {'timestep', 'member'}
       Allow incremental writing of datasets into the netCDF file. The 
       available options are: 'timestep'=write a forecast or a forecast 
       ensemble for a given time step or 'member'=write a forecast sequence 

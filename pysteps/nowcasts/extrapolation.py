@@ -20,9 +20,9 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
     
     Other Parameters
     ----------------
-    extrap_method : str
+    extrap_method : {'semilagrangian'}
       Name of the extrapolation method to use. See the documentation of the 
-      advection module for the available choices.
+      advection module.
     extrap_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
       extrapolation method.
