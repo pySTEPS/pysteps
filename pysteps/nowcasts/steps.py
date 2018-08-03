@@ -15,7 +15,7 @@ try:
 except ImportError:
     dask_imported = False
 
-def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels, 
+def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, 
              kmperpixel, timestep, R_thr=None, extrap_method="semilagrangian", 
              decomp_method="fft", bandpass_filter_method="gaussian", 
              noise_method="nonparametric", noise_stddev_adj=True, ar_order=2, 
@@ -35,11 +35,11 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
       Array of shape (2,m,n) containing the x- and y-components of the advection 
       field. The velocities are assumed to represent one time step between the 
       inputs. All values are required to be finite.
-    num_timesteps : int
+    n_timesteps : int
       Number of time steps to forecast.
-    num_ens_members : int
+    n_ens_members : int
       The number of ensemble members to generate.
-    num_cascade_levels : int
+    n_cascade_levels : int
       The number of cascade levels to use.
     kmperpixel : float
       Spatial resolution of the input data (kilometers/pixel).
@@ -91,7 +91,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     callback : function
       Optional function that is called after computation of each time step of 
       the nowcast. The function takes one argument: a three-dimensional array 
-      of shape (num_ens_members,h,w), where h and w are the height and width 
+      of shape (n_ens_members,h,w), where h and w are the height and width 
       of the input field R, respectively. This can be used, for instance, 
       writing the outputs into files.
     return_output : bool
@@ -122,7 +122,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     -------
     out : ndarray
       If return_output is True, a four-dimensional array of shape 
-      (num_ens_members,num_timesteps,m,n) containing a time series of forecast 
+      (n_ens_members,n_timesteps,m,n) containing a time series of forecast 
       precipitation fields for each ensemble member. Otherwise, a None value 
       is returned.
     
@@ -144,6 +144,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     
     if conditional and R_thr is None:
         raise Exception("conditional=True but R_thr is not set")
+    
+    if use_probmatching and R_thr is None:
+        raise Exception("use_probmatching=True but R_thr is not set")
     
     print("Computing STEPS nowcast:")
     print("------------------------")
@@ -172,9 +175,9 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     
     print("Parameters:")
     print("-----------")
-    print("number of time steps:     %d" % num_timesteps)
-    print("ensemble size:            %d" % num_ens_members)
-    print("number of cascade levels: %d" % num_cascade_levels)
+    print("number of time steps:     %d" % n_timesteps)
+    print("ensemble size:            %d" % n_ens_members)
+    print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
     if vel_pert_method is not None:
         vp_par  = vel_pert_kwargs["p_pert_par"]
@@ -184,7 +187,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
             (vp_perp[0], vp_perp[1], vp_perp[2]))
     
-    if conditional:
+    if conditional or use_probmatching:
         print("conditional precip. intensity threshold: %g" % R_thr)
     
     M,N = R.shape[1:]
@@ -212,7 +215,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     
     # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
-    filter = filter_method((M, N), num_cascade_levels, **filter_kwargs)
+    filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
     
     # compute the cascade decompositions of the input precipitation fields
     decomp_method = cascade.get_method(decomp_method)
@@ -222,13 +225,13 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
         R_d.append(R_)
     
     # normalize the cascades and rearrange them into a four-dimensional array 
-    # of shape (num_cascade_levels,ar_order+1,L,L) for the autoregressive model
-    R_c,mu,sigma = _stack_cascades(R_d, num_cascade_levels)
+    # of shape (n_cascade_levels,ar_order+1,L,L) for the autoregressive model
+    R_c,mu,sigma = _stack_cascades(R_d, n_cascade_levels)
     R_d = None
     
     # compute lag-l temporal autocorrelation coefficients for each cascade level
-    GAMMA = np.empty((num_cascade_levels, ar_order))
-    for i in range(num_cascade_levels):
+    GAMMA = np.empty((n_cascade_levels, ar_order))
+    for i in range(n_cascade_levels):
         R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order+1)])
         GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
     R_c_ = None
@@ -238,13 +241,13 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     if ar_order == 2:
         # adjust the lag-2 correlation coefficient to ensure that the AR(p) 
         # process is stationary
-        for i in range(num_cascade_levels):
+        for i in range(n_cascade_levels):
             GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef(GAMMA[i, 0], GAMMA[i, 1])
     
     # estimate the parameters of the AR(p) model from the autocorrelation 
     # coefficients
-    PHI = np.empty((num_cascade_levels, ar_order+1))
-    for i in range(num_cascade_levels):
+    PHI = np.empty((n_cascade_levels, ar_order+1))
+    for i in range(n_cascade_levels):
         PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
     
     _print_ar_params(PHI, False)
@@ -255,14 +258,14 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     
     # stack the cascades into a five-dimensional array containing all ensemble 
     # members
-    R_c = np.stack([R_c.copy() for i in range(num_ens_members)])
+    R_c = np.stack([R_c.copy() for i in range(n_ens_members)])
     
     # initialize the random generators
     if noise_method is not None:
         randgen_prec   = []
         randgen_motion = []
         np.random.seed(seed)
-        for j in range(num_ens_members):
+        for j in range(n_ens_members):
             rs = np.random.RandomState(seed)
             randgen_prec.append(rs)
             seed = rs.randint(0, high=1e9)
@@ -290,22 +293,22 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
             
             print("%.2f seconds." % (time.time() - starttime))
         else:
-            noise_std_coeffs = np.ones(num_cascade_levels)
+            noise_std_coeffs = np.ones(n_cascade_levels)
     
     if vel_pert_method is not None:
         init_vel_noise, generate_vel_noise = noise.get_method(vel_pert_method)
         
         # initialize the perturbation generators for the motion field
         vps = []
-        for j in range(num_ens_members):
+        for j in range(n_ens_members):
             kwargs = {"randstate":randgen_motion[j], 
                       "p_pert_par":vp_par, 
                       "p_pert_perp":vp_perp}
             vp_ = init_vel_noise(V, 1./kmperpixel, timestep, **kwargs)
             vps.append(vp_)
     
-    D = [None for j in range(num_ens_members)]
-    R_f = [[] for j in range(num_ens_members)]
+    D = [None for j in range(n_ens_members)]
+    R_f = [[] for j in range(n_ens_members)]
     
     if use_precip_mask:
         if mask_method == "obs":
@@ -324,7 +327,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
         elif mask_method == "incremental":
             # initialize precip mask for each member
             MASK_prec_ = R[-1, :, :] >= R_thr
-            MASK_prec = [ MASK_prec_.copy() for j in range(num_ens_members)]
+            MASK_prec = [ MASK_prec_.copy() for j in range(n_ens_members)]
             # initialize the structuring element
             struct = scipy.ndimage.generate_binary_structure(2, 1)
             # iterate it to expand it nxn
@@ -336,7 +339,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
     print("Starting nowcast computation.")
     
     # iterate each time step
-    for t in range(num_timesteps):
+    for t in range(n_timesteps):
         print("Computing nowcast for time step %d... " % (t+1), end="")
         sys.stdout.flush()
         starttime = time.time()
@@ -352,7 +355,7 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
                 EPS = None
             
             # iterate the AR(p) model for each cascade level
-            for i in range(num_cascade_levels):
+            for i in range(n_cascade_levels):
                 # normalize the noise cascade
                 if EPS is not None:
                     EPS_ = (EPS["cascade_levels"][i, :, :] - EPS["means"][i]) / EPS["stds"][i]
@@ -433,14 +436,14 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
             return R_f_
         
         res = []
-        for j in range(num_ens_members):
-            if not dask_imported or num_ens_members == 1:
+        for j in range(n_ens_members):
+            if not dask_imported or n_ens_members == 1:
                 res.append(worker(j))
             else:
                 res.append(dask.delayed(worker)(j))
         
         R_f_ = dask.compute(*res, num_workers=num_workers) \
-            if dask_imported and num_ens_members > 1 else res
+            if dask_imported and n_ens_members > 1 else res
         res = None
         
         print("%.2f seconds." % (time.time() - starttime))
@@ -450,14 +453,14 @@ def forecast(R, V, num_timesteps, num_ens_members, num_cascade_levels,
             R_f_ = None
         
         if return_output:
-            for j in range(num_ens_members):
+            for j in range(n_ens_members):
                 R_f[j].append(R_f_[j])
     
     if return_output:
-        if num_ens_members == 1:
+        if n_ens_members == 1:
             return np.stack(R_f[0])
         else:
-            return np.stack([np.stack(R_f[j]) for j in range(num_ens_members)])
+            return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
     else:
         return None
 
@@ -526,19 +529,19 @@ def _print_corrcoefs(GAMMA):
         print(fmt_str % ((k+1,) + tuple(GAMMA[k, :])))
         print(hline_str)
 
-def _stack_cascades(R_d, num_levels):
+def _stack_cascades(R_d, n_levels):
   R_c   = []
-  mu    = np.empty(num_levels)
-  sigma = np.empty(num_levels)
+  mu    = np.empty(n_levels)
+  sigma = np.empty(n_levels)
   
-  num_inputs = len(R_d)
+  n_inputs = len(R_d)
   
-  for i in range(num_levels):
+  for i in range(n_levels):
       R_ = []
-      for j in range(num_inputs):
+      for j in range(n_inputs):
           mu_    = R_d[j]["means"][i]
           sigma_ = R_d[j]["stds"][i]
-          if j == num_inputs - 1:
+          if j == n_inputs - 1:
               mu[i]    = mu_
               sigma[i] = sigma_
           R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
