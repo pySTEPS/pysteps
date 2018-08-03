@@ -25,6 +25,7 @@ def to_rainrate(R, metadata, a=None, b=None):
         Array of any shape containing the converted units.
     metadata : dict 
         The metadata with updated attributes.
+        
     """
     
     R = R.copy()
@@ -74,7 +75,7 @@ def to_rainrate(R, metadata, a=None, b=None):
     
     return R, metadata
     
-def to_raindetph(R, metadata, a=None, b=None):
+def to_raindepth(R, metadata, a=None, b=None):
     """Convert to rain depth [mm].
     
     Parameters 
@@ -92,17 +93,17 @@ def to_raindetph(R, metadata, a=None, b=None):
         Array of any shape containing the converted units.
     metadata : dict 
         The metadata with updated attributes.
+        
     """
     
     R = R.copy()
     metadata = metadata.copy()
       
     if metadata["unit"].lower() == "mm" and metadata["transform"] is None: 
-        
         pass
             
     elif metadata["unit"].lower() == "mm/h" and metadata["transform"] is None: 
-        
+    
         threshold = metadata["threshold"] # convert the threshold, too
         zerovalue = metadata["zerovalue"] # convert the zerovalue, too
         
@@ -159,6 +160,7 @@ def to_reflectivity(R, metadata, a=None, b=None):
         Array of any shape containing the converted units.
     metadata : dict 
         The metadata with updated attributes.
+        
     """
     
     R = R.copy()
