@@ -92,6 +92,7 @@ def scores_det_cat_fcst(pred, obs, thr, scores):
             result.append(CSI)
         if score == 'bias': # frequency bias 
             B = H + (1 - s)*FA/s
+            result.append(B)
         
         # skill scores
         if score == 'hss':
