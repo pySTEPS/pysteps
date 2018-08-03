@@ -26,12 +26,10 @@ from scipy import linalg
 
 def initialize_bps(V, pixelsperkm, timestep, p_pert_par=(10.88,0.23,-7.68), 
                    p_pert_perp=(5.76,0.31,-2.72), randstate=np.random, seed=None):
-    """Initialize the motion field perturbator described in Bowler et al. 
-    2006: STEPS: A probabilistic precipitation forecasting scheme which merges 
-    an extrapolation nowcast with downscaled NWP. For simplicity, the bias 
-    adjustment procedure described in the above reference has not been 
+    """Initialize the motion field perturbator described in :cite:`BPS2006`. 
+    For simplicity, the bias adjustment procedure described there has not been 
     implemented. The perturbator generates a constant field whose magnitude 
-    depends on lead time, see generate_motion_perturbations_bps.
+    depends on lead time.
     
     Parameters
     ----------
@@ -42,12 +40,12 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=(10.88,0.23,-7.68),
       Tuple containing the parameters a,b and c for the standard deviation of 
       the perturbations in the direction parallel to the motion vectors. The 
       standard deviations are modeled by the function f_par(t) = a*t^b+c, where 
-      t is lead time. The default values are taken from Bowler et al. 2006.
+      t is lead time. The default values are taken from :cite:`BPS2006`.
     p_pert_perp : tuple
       Tuple containing the parameters a,b and c for the standard deviation of 
       the perturbations in the direction perpendicular to the motion vectors. 
       The standard deviations are modeled by the function f_par(t) = a*t^b+c, 
-      where t is lead time. The default values are taken from Bowler et al. 2006.
+      where t is lead time. The default values are taken from :cite:`BPS2006`.
     pixelsperkm : float
       Spatial resolution of the motion field (pixels/kilometer).
     timestep : float
@@ -62,6 +60,11 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=(10.88,0.23,-7.68),
     out : dict
       A dictionary containing the perturbator that can be supplied to 
       generate_motion_perturbations_bps.
+    
+    See also
+    --------
+    pysteps.noise.motion.generate_bps
+    
     """
     if len(V.shape) != 3:
         raise ValueError("V is not a three-dimensional array")
@@ -117,6 +120,11 @@ def generate_bps(perturbator, t):
     out : ndarray
       Array of shape (2,m,n) containing the x- and y-components of the motion 
       vector perturbations, where m and n are determined from the perturbator.
+     
+    See also
+    --------
+    pysteps.noise.motion.initialize_bps
+    
     """
     vsf         = perturbator["vsf"]
     p_par       = perturbator["p_par"]
