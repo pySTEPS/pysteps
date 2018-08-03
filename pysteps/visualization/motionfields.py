@@ -16,14 +16,27 @@ def quiver(UV, geodata=None, **kwargs):
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
         
-        x1           x-coordinate of the lower-left corner of the data raster (meters)
-        y1           y-coordinate of the lower-left corner of the data raster (meters)
-        x2           x-coordinate of the upper-right corner of the data raster (meters)
-        y2           y-coordinate of the upper-right corner of the data raster (meters)
-        yorigin      a string specifying the location of the first element in
-                     the data raster w.r.t. y-axis:
-                     'upper' = upper border
-                     'lower' = lower border
+        +-----------------+----------------------------------------------------+
+        |        Key      |                  Value                             |
+        +=================+====================================================+
+        |   projection    | PROJ.4-compatible projection definition            |
+        +-----------------+----------------------------------------------------+
+        |    x1           | x-coordinate of the lower-left corner of the data  |
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    y1           | y-coordinate of the lower-left corner of the data  |
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    x2           | x-coordinate of the upper-right corner of the data | 
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    y2           | y-coordinate of the upper-right corner of the data | 
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    yorigin      | a string specifying the location of the first      |
+        |                 | element in the data raster w.r.t. y-axis:          |
+        |                 | 'upper' = upper border, 'lower' = lower border     |
+        +-----------------+----------------------------------------------------+
     
     Other Parameters
     ----------------
@@ -35,8 +48,8 @@ def quiver(UV, geodata=None, **kwargs):
         facecolor kwarg in matplotlib.collections.
         Default : black
         
-    Returns: 
-    ----------
+    Returns
+    -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     
@@ -81,14 +94,27 @@ def streamplot(UV, geodata=None, **kwargs):
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
         
-        x1           x-coordinate of the lower-left corner of the data raster (meters)
-        y1           y-coordinate of the lower-left corner of the data raster (meters)
-        x2           x-coordinate of the upper-right corner of the data raster (meters)
-        y2           y-coordinate of the upper-right corner of the data raster (meters)
-        yorigin      a string specifying the location of the first element in
-                     the data raster w.r.t. y-axis:
-                     'upper' = upper border
-                     'lower' = lower border
+        +-----------------+----------------------------------------------------+
+        |        Key      |                  Value                             |
+        +=================+====================================================+
+        |   projection    | PROJ.4-compatible projection definition            |
+        +-----------------+----------------------------------------------------+
+        |    x1           | x-coordinate of the lower-left corner of the data  |
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    y1           | y-coordinate of the lower-left corner of the data  |
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    x2           | x-coordinate of the upper-right corner of the data | 
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    y2           | y-coordinate of the upper-right corner of the data | 
+        |                 | raster (meters)                                    |
+        +-----------------+----------------------------------------------------+
+        |    yorigin      | a string specifying the location of the first      |
+        |                 | element in the data raster w.r.t. y-axis:          |
+        |                 | 'upper' = upper border, 'lower' = lower border     |
+        +-----------------+----------------------------------------------------+
     
     Other Parameters
     ----------------
@@ -100,8 +126,8 @@ def streamplot(UV, geodata=None, **kwargs):
         facecolor kwarg in matplotlib.collections.
         Default : black
     
-    Returns: 
-    ----------
+    Returns
+    -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     

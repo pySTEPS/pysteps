@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='pysteps',
-    version='1.0',
+    version='0.1',
     packages=find_packages(),
     license='LICENSE',
     description='Python framework for short-term ensemble prediction systems',
@@ -17,8 +17,6 @@ setup(
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Atmospheric Science',
         'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Cython'],    

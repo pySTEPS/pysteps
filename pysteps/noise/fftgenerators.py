@@ -242,13 +242,6 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     """Function to compute the local Fourier filters using the Short-Space Fourier
     filtering approach.
     
-    Reference
-    ---------
-    Nerini et al. (2017), "A non-stationary stochastic ensemble generator for radar 
-    rainfall fields based on the short-space Fourier transform", 
-    https://doi.org/10.5194/hess-21-2777-2017.
-
-
     Parameters
     ----------
     X : array-like
@@ -269,12 +262,17 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     war_thr : float [0,1]
         Threshold for the minimum fraction of rain needed for computing the FFT.
         Default : 0.1
-
+    
     Returns
     -------
     F : array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
+    
+    References
+    ----------
+    :cite:`NBSG2017`
+    
     """
     
     if len(X.shape) != 2:

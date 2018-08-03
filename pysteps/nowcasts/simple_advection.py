@@ -17,6 +17,9 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
       field. The velocities are assumed to represent one time step.
     num_timesteps : int
       Number of time steps to forecast.
+    
+    Other Parameters
+    ----------------
     extrap_method : str
       Name of the extrapolation method to use. See the documentation of the 
       advection module for the available choices.

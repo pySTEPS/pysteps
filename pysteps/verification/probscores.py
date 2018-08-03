@@ -4,11 +4,7 @@ import numpy as np
 
 def CRPS(X_f, X_o):
     """Compute the average continuous ranked probability score (CRPS) for a set 
-    of forecast ensembles and the corresponding observations. This implementation 
-    is adapted from 
-    
-    H. Hersbach. Decomposition of the Continuous Ranked Probability Score for 
-    Ensemble Prediction Systems, Weather and Forecasting, 15(5), 559-570, 2000.
+    of forecast ensembles and the corresponding observations.
     
     Parameters
     ----------
@@ -22,6 +18,11 @@ def CRPS(X_f, X_o):
     -------
     out : float
       The continuous ranked probability score.
+    
+    References
+    ----------
+    :cite:`Her2000`
+    
     """
     mask = np.logical_and(np.all(np.isfinite(X_f), axis=1), np.isfinite(X_o))
     
@@ -62,11 +63,7 @@ def CRPS(X_f, X_o):
     return np.mean(res)
 
 def reldiag_init(X_min, n_bins=10, min_count=10):
-    """Initialize a reliability diagram object. The method for computing the 
-    reliability diagram is based on
-    
-    J. Brocker and L. A. Smith. Increasing the Reliability of Reliability Diagrams, 
-    Weather and Forecasting, 22(3), 651-661, 2007.
+    """Initialize a reliability diagram object.
     
     Parameters
     ----------
@@ -82,6 +79,11 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
     -------
     out : dict
       The reliability diagram object.
+    
+    References
+    ----------
+    :cite:`BS2007`
+    
     """
     reldiag = {}
     

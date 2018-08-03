@@ -7,11 +7,12 @@ def get_method(name):
     of precipitation  or velocity fields.\n\
     
     Methods for precipitation fields:
+    
     +-------------------+-------------------------------------------------------+
     |     Name          |              Description                              |
     +===================+=======================================================+
     |  parametric       | this global generator uses parametric Fourier         |
-    |                   | filering (power-law model)                          |
+    |                   | filering (power-law model)                            |
     +-------------------+-------------------------------------------------------+
     |  nonparametric    | this global generator uses nonparametric Fourier      |
     |                   | filering                                              |
@@ -23,6 +24,7 @@ def get_method(name):
     +-------------------+-------------------------------------------------------+
     
     Methods for velocity fields:
+    
     +-------------------+-------------------------------------------------------+
     |     Name          |              Description                              |
     +===================+=======================================================+

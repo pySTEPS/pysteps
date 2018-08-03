@@ -21,6 +21,7 @@ def get_method(name):
     precipitation nowcasts.\n\
     
     Methods for precipitation nowcasting:
+    
     +-------------------+-------------------------------------------------------+
     |     Name          |              Description                              |
     +===================+=======================================================+

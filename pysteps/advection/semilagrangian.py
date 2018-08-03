@@ -48,6 +48,11 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
         If return_displacement=False, return a time series extrapolated fields of 
         shape (num_timesteps,m,n). Otherwise, return a tuple containing the 
         extrapolated fields and the total displacement along the advection trajectory.
+    
+    References
+    ----------
+    :cite:`GZ2002`
+    
     """
     if len(R.shape) != 2:
         raise ValueError("R must be a two-dimensional array")

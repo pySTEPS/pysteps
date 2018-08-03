@@ -226,15 +226,15 @@ def export_forecast_dataset(F, exporter):
         The array to write. The required shape depends on the choice of the 
         'incremental' parameter the exporter was initialized with:
         
-        +-------------------+-----------------------------------------------------+
-        |    incremental    |                    required shape                   |
-        +===================+=====================================================+
-        |    None           |  (num_ens_members,num_timesteps,shape[0],shape[1])  |
-        +-------------------+-----------------------------------------------------+
-        |    'timestep'     |  (num_ens_members,shape[0],shape[1])                |
-        +-------------------+-----------------------------------------------------+
-        |    'member'       |  (num_timesteps,shape[0],shape[1])                  |
-        +-------------------+-----------------------------------------------------+
+        +-------------------+---------------------------------------------------+
+        |    incremental    |                    required shape                 |
+        +===================+===================================================+
+        |    None           | (num_ens_members,num_timesteps,shape[0],shape[1]) |
+        +-------------------+---------------------------------------------------+
+        |    'timestep'     | (num_ens_members,shape[0],shape[1])               |
+        +-------------------+---------------------------------------------------+
+        |    'member'       | (num_timesteps,shape[0],shape[1])                 |
+        +-------------------+---------------------------------------------------+
     """
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
