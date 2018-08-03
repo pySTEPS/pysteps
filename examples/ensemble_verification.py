@@ -7,6 +7,7 @@ nowcasting with pysteps.
 
 More info: https://pysteps.github.io/
 """
+import csv
 import datetime
 import matplotlib.pylab as plt
 import netCDF4
@@ -26,7 +27,9 @@ verification = {
     "v_thresholds"      : [0.1, 1.0],       # [mm/h]                 
     "v_leadtimes"       : [10, 30, 60],     # [min]
     "v_accu"            : None,             # [min]
-    "seed"              : 42                # for reproducibility
+    "seed"              : 42,               # for reproducibility
+    "doplot"            : True,            # save figures
+    "dosaveresults"     : True              # save verification scores to csv
 }
 
 # Forecast settings
@@ -48,7 +51,7 @@ experiment = {
                            ("201705091130", "201705091400", 30,           "fmi")],
     
     ## the methods
-    "oflow_method"      : ["darts"],            # lucaskanade, darts
+    "oflow_method"      : ["lucaskanade"],      # lucaskanade, darts
     "adv_method"        : ["semilagrangian"],   # semilagrangian, eulerian
     "nwc_method"        : ["steps"],
     "noise_method"      : ["nonparametric"],    # parametric, nonparametric, ssft
@@ -332,17 +335,18 @@ for n, parset in enumerate(parsets):
             
             idlt = leadtimes == lt
             
-            ## plot observation
-            fig = plt.figure()
-            im = stp.plt.plot_precip_field(R_obs[idlt,:,:].squeeze())
-            plt.savefig(os.path.join(path_to_nwc, "%s_R_obs_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"), lt, p["v_accu"])))
-            plt.close()        
-            
-            ## plot forecast
-            fig = plt.figure()
-            im = stp.plt.plot_precip_field(R_fct[0, idlt, :, :].squeeze())
-            plt.savefig(os.path.join(path_to_nwc, "%s_R_fct_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"), lt, p["v_accu"])))
-            plt.close()
+            if verification["doplot"]:
+                ## plot observation
+                fig = plt.figure()
+                im = stp.plt.plot_precip_field(R_obs[idlt,:,:].squeeze())
+                plt.savefig(os.path.join(path_to_nwc, "%s_R_obs_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"), lt, p["v_accu"])))
+                plt.close()        
+                
+                ## plot forecast
+                fig = plt.figure()
+                im = stp.plt.plot_precip_field(R_fct[0, idlt, :, :].squeeze())
+                plt.savefig(os.path.join(path_to_nwc, "%s_R_fct_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"), lt, p["v_accu"])))
+                plt.close()
             
             ## rank histogram
             R_fct_ = np.vstack([R_fct[j, idlt, :, :].flatten() for j in range(p["n_ens_members"])]).T
@@ -360,26 +364,53 @@ for n, parset in enumerate(parsets):
         ## next forecast
         startdate += datetime.timedelta(minutes = p["data"][2])
     
-    # Plot verification scores for given event
+    # Write out and plot verification scores for the event
     for i,lt in enumerate(p["v_leadtimes"]):
     
         idlt = leadtimes == lt
         
-        fig = plt.figure()
-        stp.verification.plot_rankhist(rankhists[lt], ax=fig.gca())
-        plt.savefig(os.path.join(path_to_nwc, "rankhist_%03d_%03d.png" % (lt, p["v_accu"])), 
-                bbox_inches="tight")
-        plt.close()
+        ## write rank hist results to csv file
+        if verification["dosaveresults"]:
+            fn = os.path.join(path_to_nwc, "rankhist_%03d_%03d.csv" % (lt, p["v_accu"]))
+            with open(fn, 'w') as csv_file:
+                writer = csv.writer(csv_file)
+                for key, value in rankhists[lt].items():
+                   writer.writerow([key, value])
+        
+        ## plot rank hist
+        if verification["doplot"]:
+            fig = plt.figure()
+            stp.verification.plot_rankhist(rankhists[lt], ax=fig.gca())
+            plt.savefig(os.path.join(path_to_nwc, "rankhist_%03d_%03d.png" % (lt, p["v_accu"])), 
+                    bbox_inches="tight")
+            plt.close()
         
         for thr in p["v_thresholds"]:
-            fig = plt.figure()
-            stp.verification.plot_reldiag(reldiags[lt, thr], ax=fig.gca())
-            plt.savefig(os.path.join(path_to_nwc, "reldiag_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], thr)), 
-                    bbox_inches="tight")
-            plt.close()
-            
-            fig = plt.figure()
-            stp.verification.plot_ROC(rocs[lt, thr], ax=fig.gca())
-            plt.savefig(os.path.join(path_to_nwc, "roc_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], thr)), 
-                    bbox_inches="tight")
-            plt.close()
+        
+            if verification["dosaveresults"]:
+                ## write rel diag results to csv file
+                fn = os.path.join(path_to_nwc, "reldiag_%03d_%03d_thr%.1f.csv" % (lt, p["v_accu"], thr))
+                with open(fn, 'w') as csv_file:
+                    writer = csv.writer(csv_file)
+                    for key, value in reldiags[lt, thr].items():
+                       writer.writerow([key, value])
+                
+                ## write roc curve results to csv file                
+                fn = os.path.join(path_to_nwc, "roc_%03d_%03d_thr%.1f.csv" % (lt, p["v_accu"], thr))
+                with open(fn, 'w') as csv_file:
+                    writer = csv.writer(csv_file)
+                    for key, value in rocs[lt, thr].items():
+                       writer.writerow([key, value])
+        
+            if verification["doplot"]:
+                fig = plt.figure()
+                stp.verification.plot_reldiag(reldiags[lt, thr], ax=fig.gca())
+                plt.savefig(os.path.join(path_to_nwc, "reldiag_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], thr)), 
+                        bbox_inches="tight")
+                plt.close()
+                
+                fig = plt.figure()
+                stp.verification.plot_ROC(rocs[lt, thr], ax=fig.gca())
+                plt.savefig(os.path.join(path_to_nwc, "roc_%03d_%03d_thr%.1f.png" % (lt, p["v_accu"], thr)), 
+                        bbox_inches="tight")
+                plt.close()
