@@ -12,9 +12,9 @@ dictionary with the following key-value pairs:
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
 +===================+==========================================================+
-|  cascade_levels   | three-dimensional array of shape (n,L,L), where n is the |
-|                   | number of cascade levels and L is the size of the input  |
-|                   | field                                                    |
+|  cascade_levels   | three-dimensional array of shape (k,m,n), where k is the |
+|                   | number of cascade levels and the input fields have shape |
+|                   | (m,n)                                                    |
 +-------------------+----------------------------------------------------------+
 |  means            | list of mean values for each cascade level               |
 +-------------------+----------------------------------------------------------+

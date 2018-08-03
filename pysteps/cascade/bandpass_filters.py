@@ -3,20 +3,22 @@ from two-dimensional images in the frequency domain.
 
 The methods in this module implement the following interface:
 
-    filter_xxx(L, n, optional arguments)
+    filter_xxx(shape, n, optional arguments)
 
-where L is size of the input field, respectively, and n is the number of 
-frequency bands to use.
+where shape is the shape of the input field, respectively, and n is the number 
+of frequency bands to use.
 
 The output of each filter function is a dictionary containing the following 
 key-value pairs:
 
-    weights_1d       2d array of shape (n, L/2) containing 1d filter weights 
+    weights_1d       2d array of shape (n, r) containing 1d filter weights 
                      for each frequency band k=1,2,...,n
-    weights_2d       3d array of shape (n, L, L) containing the 2d filter 
+    weights_2d       3d array of shape (n, M, N) containing the 2d filter 
                      weights for each frequency band k=1,2,...,n
     central_freqs    1d array of shape n containing the central frequencies of 
                      the filters
+
+where r = int(max(N, M)/2)+1
 
 The filter weights are assumed to be normalized so that for any Fourier 
 wavenumber they sum to one.

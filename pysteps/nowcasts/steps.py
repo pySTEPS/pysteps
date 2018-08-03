@@ -225,7 +225,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
         R_d.append(R_)
     
     # normalize the cascades and rearrange them into a four-dimensional array 
-    # of shape (n_cascade_levels,ar_order+1,L,L) for the autoregressive model
+    # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
     R_c,mu,sigma = _stack_cascades(R_d, n_cascade_levels)
     R_d = None
     

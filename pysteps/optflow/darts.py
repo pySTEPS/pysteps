@@ -28,8 +28,8 @@ def DARTS(Z, **kwargs):
     Parameters
     ----------
     Z : array-like
-      Array of shape (T,L,L) containing a sequence of T two-dimensional input 
-      images of shape (L,L).
+      Array of shape (T,m,n) containing a sequence of T two-dimensional input 
+      images of shape (m,n).
     
     Other Parameters
     ----------------
@@ -57,7 +57,7 @@ def DARTS(Z, **kwargs):
     Returns
     -------
     out : ndarray
-      Three-dimensional array (2,L,L) containing the dense x- and y-components 
+      Three-dimensional array (2,H,W) containing the dense x- and y-components 
       of the motion field.
     
     References
