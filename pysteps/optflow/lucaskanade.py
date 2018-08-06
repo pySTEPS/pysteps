@@ -330,18 +330,18 @@ def declustering(x, y, u, v, decl_grid, min_nr_samples):
     Parameters
     ----------
     x : array_like
-        x-coordinates of the origins of the velocity vectors
+        X-coordinates of the origins of the velocity vectors.
     y : array_like
-        y-coordinates of the origins of the velocity vectors
+        Y-coordinates of the origins of the velocity vectors.
     u : array_like
-        x-components of the velocities
+        X-components of the velocities.
     v : array_like
-        y-components of the velocities
+        Y-components of the velocities.
     decl_grid : int
-        size of the declustering grid [px]
+        Size of the declustering grid [px].
     min_nr_samples : int
-        the minimum number of samples for computing the median within given 
-        declustering cell
+        The minimum number of samples for computing the median within given 
+        declustering cell.
     
     Returns
     -------
