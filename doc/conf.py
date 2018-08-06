@@ -114,7 +114,7 @@ html_sidebars = {
     ]
 }
 
-html_domain_indices = False
+html_domain_indices = True
 
 # -- Options for HTMLHelp output ------------------------------------------
 
