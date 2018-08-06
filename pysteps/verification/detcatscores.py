@@ -5,8 +5,8 @@ import numpy as np
 def scores_det_cat_fcst(pred, obs, thr, scores):
     """Calculate simple and skill scores for deterministic categorical forecasts.
     
-    Input:
-    ------
+    Parameters
+    ----------
     pred: array-like
         predictions
     obs: array-like

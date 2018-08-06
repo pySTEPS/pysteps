@@ -4,7 +4,7 @@ import numpy as np
 from scipy.stats import spearmanr, pearsonr
 
 def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
-    """ Calculate simple and skill scores for deterministic continuous forecasts
+    """Calculate simple and skill scores for deterministic continuous forecasts
     
     Parameters
     ----------
