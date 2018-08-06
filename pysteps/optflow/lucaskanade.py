@@ -136,16 +136,16 @@ def dense_lucaskanade(R, **kwargs):
         next = np.ndarray.astype(next,"uint8")
 
         # remove small noise with a morphological operator (opening)
-        prvs = clean_image(prvs, n=size_opening)
-        next = clean_image(next, n=size_opening)
+        prvs = _clean_image(prvs, n=size_opening)
+        next = _clean_image(next, n=size_opening)
 
         # Shi-Tomasi good features to track
         # TODO: implement different feature detection algorithms (e.g. Harris)
-        p0 = ShiTomasi_features_to_track(prvs, max_corners_ST, quality_level_ST,
+        p0 = _ShiTomasi_features_to_track(prvs, max_corners_ST, quality_level_ST,
                                           min_distance_ST, block_size_ST)
                                           
         # get sparse u, v vectors with Lucas-Kanade tracking
-        x0, y0, u, v = LucasKanade_features_tracking(prvs, next, p0, winsize_LK, 
+        x0, y0, u, v = _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, 
                                                      nr_levels_LK)
 
         # exclude outlier vectors
@@ -173,7 +173,7 @@ def dense_lucaskanade(R, **kwargs):
     v = np.vstack(vStack)
     
     # decluster sparse motion vectors
-    x, y, u, v = declustering(x0, y0, u, v, decl_grid, min_nr_samples)
+    x, y, u, v = _declustering(x0, y0, u, v, decl_grid, min_nr_samples)
 
     # append extra vectors if provided
     if extra_vectors is not None:
@@ -183,7 +183,7 @@ def dense_lucaskanade(R, **kwargs):
         v = np.concatenate((v, extra_vectors[:, 3]))
 
     # kernel interpolation
-    X, Y, UV = interpolate_sparse_vectors(x, y, u, v, domain_size, function=function,
+    X, Y, UV = _interpolate_sparse_vectors(x, y, u, v, domain_size, function=function,
                                           k=k, epsilon=epsilon, nchunks=nchunks)
     
     if verbose:
@@ -191,7 +191,7 @@ def dense_lucaskanade(R, **kwargs):
     
     return UV
     
-def ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
+def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
                                  min_distance_ST, block_size_ST):
     """Call the Shi-Tomasi corner detection algorithm.
 
@@ -234,7 +234,7 @@ def ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
 
     return p0
 
-def LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
+def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
     """Call the Lucas-Kanade features tracking algorithm.
 
     Parameters
@@ -287,7 +287,7 @@ def LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
 
     return x0, y0, u, v
  
-def clean_image(R, n=3, thr=0):
+def _clean_image(R, n=3, thr=0):
     """Apply a binary morphological opening to filter small isolated echoes.
 
     Parameters
@@ -322,7 +322,7 @@ def clean_image(R, n=3, thr=0):
 
     return R
 
-def declustering(x, y, u, v, decl_grid, min_nr_samples):
+def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     """Filter out outliers in a sparse motion field and get more representative 
     data points. The method assigns data points to a (RxR) declustering grid 
     and then take the median of all values within one cell.
@@ -389,7 +389,7 @@ def declustering(x, y, u, v, decl_grid, min_nr_samples):
 
     return x, y, u, v
     
-def interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
+def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
                                k=20, epsilon=None, nchunks=5):
     
     """Interpolation of sparse motion vectors to produce a dense field of motion 
