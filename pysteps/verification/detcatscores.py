@@ -7,40 +7,40 @@ def scores_det_cat_fcst(pred, obs, thr, scores):
     
     Parameters
     ----------
-    pred: array-like
+    pred : array_like
         predictions
-    obs: array-like
-        verifiyinig observations
+    obs : array_like
+        verifying observations
     scores : list
         a list containing the names of the scores to be computed, the full list 
         is:
         
-    +------------+--------------------------------------------------------------+
-    | Name       | Description                                                  |
-    +============+==============================================================+
-    |  ACC       | accuracy (proportion correct)                                |
-    +------------+--------------------------------------------------------------+
-    |  BIAS      | frequency bias                                               |
-    +------------+--------------------------------------------------------------+
-    |  CSI       | critical success indey (threat score)                        |
-    +------------+--------------------------------------------------------------+
-    |  FA        | false alarm rate (prob. of false detection)                  |
-    +------------+--------------------------------------------------------------+   
-    |  FAR       | false alarm ratio                                            |
-    +------------+--------------------------------------------------------------+ 
-    |  GSS       | Gilber skill score (equitable threat score)                  |
-    +------------+--------------------------------------------------------------+
-    |  HK        | Hanssen-Kuipers discriminant (Pierce skill score)            |
-    +------------+--------------------------------------------------------------+
-    |  HSS       | Heidke skill score                                           |
-    +------------+--------------------------------------------------------------+    
-    |  POD       | probability of detection (hit rate)                          |
-    +------------+--------------------------------------------------------------+
-    |  SEDI      | linear regression slope (conditional bias)                   |
-    +------------+--------------------------------------------------------------+
+        +------------+--------------------------------------------------------------+
+        | Name       | Description                                                  |
+        +============+==============================================================+
+        |  ACC       | accuracy (proportion correct)                                |
+        +------------+--------------------------------------------------------------+
+        |  BIAS      | frequency bias                                               |
+        +------------+--------------------------------------------------------------+
+        |  CSI       | critical success indey (threat score)                        |
+        +------------+--------------------------------------------------------------+
+        |  FA        | false alarm rate (prob. of false detection)                  |
+        +------------+--------------------------------------------------------------+   
+        |  FAR       | false alarm ratio                                            |
+        +------------+--------------------------------------------------------------+ 
+        |  GSS       | Gilbert skill score (equitable threat score)                 |
+        +------------+--------------------------------------------------------------+
+        |  HK        | Hanssen-Kuipers discriminant (Pierce skill score)            |
+        +------------+--------------------------------------------------------------+
+        |  HSS       | Heidke skill score                                           |
+        +------------+--------------------------------------------------------------+    
+        |  POD       | probability of detection (hit rate)                          |
+        +------------+--------------------------------------------------------------+
+        |  SEDI      | linear regression slope (conditional bias)                   |
+        +------------+--------------------------------------------------------------+
     
-    Return:
-    ------
+    Returns
+    -------
     result : list
         the verification results
         
