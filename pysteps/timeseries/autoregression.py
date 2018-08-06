@@ -17,6 +17,7 @@ def adjust_lag2_corrcoef(gamma_1, gamma_2):
     -------
     out : float
       The adjusted lag-2 correlation coefficient.
+    
     """
     gamma_2 = max(gamma_2, 2*gamma_1*gamma_1-1+1e-10)
     gamma_2 = min(gamma_2, 1-1e-10)
@@ -40,6 +41,7 @@ def estimate_ar_params_yw(gamma):
       An array of shape (n,p+1) containing the AR(p) parameters for for the 
       lag-p terms for each cascade level, and also the standard deviation of 
       the innovation term.
+    
     """
     p = len(gamma)
     
@@ -90,6 +92,7 @@ def iterate_ar_model(X, phi, EPS=None):
     EPS : array_like
       Optional perturbation field for the AR(p) process. If EPS is None, the 
       innovation term is not added.
+    
     """
     if X.shape[0] != len(phi)-1:
       raise ValueError("dimension mismatch between X and phi: X.shape[0]=%d, len(phi)=%d" % (X.shape[0], len(phi)))

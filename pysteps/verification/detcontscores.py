@@ -1,15 +1,13 @@
-"""Forecast evaluation and skill scores for deterministic continuous forecasts.
-"""
+"""Forecast evaluation and skill scores for deterministic continuous forecasts."""
 
 import numpy as np
 from scipy.stats import spearmanr, pearsonr
 
 def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
-                         
     """ Calculate simple and skill scores for deterministic continuous forecasts
     
-    Input:
-    ------
+    Parameters
+    ----------
     pred: array-like
         predictions
     obs: array-like
@@ -17,7 +15,7 @@ def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
     scores : list
         a list containing the names of the scores to be computed, the full list 
         is:
-        
+    
     +------------+--------------------------------------------------------------+
     | Name       | Description                                                  |
     +============+==============================================================+
@@ -44,9 +42,8 @@ def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
         an offset that is added to both prediction and observation to avoid 0 division
         when computing multiplicative residuals
     
-    
-    Return:
-    ------
+    Returns
+    -------
     result : list
         list containing the verification results
         

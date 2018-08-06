@@ -1,6 +1,5 @@
-"""OpenCV implementation of the Lucas-Kanade method with interpolated motion
-   vectors for areas with no precipitation
-"""
+"""OpenCV implementation of the Lucas-Kanade method with interpolated motion 
+vectors for areas with no precipitation."""
 
 import numpy as np
 import cv2
@@ -9,8 +8,8 @@ import time
 
 def dense_lucaskanade(R, **kwargs):
     """OpenCV implementation of the Lucas-Kanade method with interpolated motion
-        vectors for areas with no precipitation.
-
+    vectors for areas with no precipitation.
+    
     Parameters
     ----------
     R : array-like, shape (t,m,n)
@@ -215,8 +214,9 @@ def ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
     -------
     p0 : list
         Output vector of detected corners.
+    
     """
-
+    
     if len(R.shape) != 2:
         raise ValueError("R must be a two-dimensional array")
     if R.dtype != "uint8":
@@ -303,6 +303,7 @@ def clean_image(R, n=3, thr=0):
     -------
     R : array
         Array of shape (m,n) containing the cleaned precipitation field.
+    
     """
 
     # convert to binary image (rain/no rain)
@@ -432,6 +433,7 @@ def interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
     UV : array-like
         Three-dimensional array (2,domain_size[0],domain_size[1]) 
         containing the dense U, V motion fields.
+
     """
     
     testinterpolation = False

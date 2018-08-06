@@ -1,5 +1,4 @@
-"""Methods to transform the data
-"""
+"""Methods for transforming data values."""
 
 import numpy as np
 import scipy.stats as scipy_stats
@@ -29,6 +28,7 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
         Array of any shape containing the (back-)transformed units.
     metadata : dict 
         The metadata with updated attributes.
+    
     """
     
     R = R.copy()
@@ -114,6 +114,7 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
         Array of any shape containing the (back-)transformed units.
     metadata : dict 
         The metadata with updated attributes.
+    
     """
     
     R = R.copy()

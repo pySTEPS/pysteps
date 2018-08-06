@@ -14,6 +14,7 @@ def plot_rankhist(rankhist, ax=None):
     ax : axis handle
         Axis handle for the figure. If set to None, the handle is taken from 
         the current figure (matplotlib.pylab.gca()).
+    
     """
     if ax is None:
         ax = plt.gca()
@@ -42,6 +43,7 @@ def plot_reldiag(reldiag, ax=None):
     ax : axis handle
         Axis handle for the figure. If set to None, the handle is taken from 
         the current figure (matplotlib.pylab.gca()).
+    
     """
     if ax is None:
         ax = plt.gca()
@@ -93,6 +95,7 @@ def plot_ROC(ROC, ax=None):
     ax : axis handle
         Axis handle for the figure. If set to None, the handle is taken from 
         the current figure (matplotlib.pylab.gca()).
+    
     """
     if ax is None:
         ax = plt.gca()

@@ -111,6 +111,7 @@ def reldiag_accum(reldiag, P_f, X_o):
       in the reliability diagram object.
     X_o : array-like
       Observed values.
+    
     """
     mask = np.logical_and(np.isfinite(P_f), np.isfinite(X_o))
     
@@ -177,6 +178,7 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
     -------
     out : dict
       The ROC curve object.
+    
     """
     ROC = {}
     
@@ -202,6 +204,7 @@ def ROC_curve_accum(ROC, P_f, X_o):
       object. Non-finite values are ignored.
     X_o : array_like
       Observed values. Non-finite values are ignored.
+    
     """
     mask = np.logical_and(np.isfinite(P_f), np.isfinite(X_o))
     
@@ -235,6 +238,7 @@ def ROC_curve_compute(ROC, compute_area=False):
       probability of false detection (POFD) for the probability thresholds 
       specified in the ROC curve object. If compute_area is True, return the 
       area under the ROC curve as the third element of the tuple.
+    
     """
     POD_vals  = []
     POFD_vals = []

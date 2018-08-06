@@ -1,11 +1,9 @@
-"""Forecast evaluation and skill scores for deterministic categorial forecasts.
-"""
+"""Forecast evaluation and skill scores for deterministic categorial forecasts."""
 
 import numpy as np
 
 def scores_det_cat_fcst(pred, obs, thr, scores):
-                         
-    """ Calculate simple and skill scores for deterministic categorical forecasts
+    """Calculate simple and skill scores for deterministic categorical forecasts.
     
     Input:
     ------

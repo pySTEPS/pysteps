@@ -62,6 +62,7 @@ def decomposition_fft(X, filter, **kwargs):
     out : ndarray
       A dictionary described in the module documentation. The parameter n is 
       determined from the filter (see bandpass_filters.py).
+    
     """
     MASK = kwargs.get("MASK", None)
     

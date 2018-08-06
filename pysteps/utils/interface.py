@@ -39,6 +39,7 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |  square           | either pad or crop the data to get a square domain     |
     +-------------------+--------------------------------------------------------+
+    
     """
     if name is None:
         def donothing(R, metadata, *args, **kwargs):

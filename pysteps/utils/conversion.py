@@ -1,5 +1,4 @@
-""" Methods to convert physical units
-"""
+""" Methods for converting physical units."""
 
 import numpy as np
 import warnings

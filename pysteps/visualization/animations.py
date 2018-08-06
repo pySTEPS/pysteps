@@ -15,6 +15,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     R_obs : array-like
         Three-dimensional array containing the time series of observed
         precipitation field.
+    
+    Other parameters
+    ----------------
     nloops : int
         Optional, the number of loops in the animation.
     R_fct : array-like
@@ -71,6 +74,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
+    
     """
     if timestamps is not None:
         startdate_str = timestamps[-1].strftime("%Y-%m-%d %H:%M")
@@ -155,4 +159,3 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         loop += 1
 
     plt.close()
-

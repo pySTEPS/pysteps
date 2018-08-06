@@ -92,8 +92,8 @@ def aggregate_fields(R, window_size, axis=0, method="sum"):
     -------
     outputarray : array-like
         The new aggregated array of shape (k,m,n), where k = t/time_window
-    """
     
+    """
     
     N = R.shape[axis]
     if N % window_size:
@@ -146,6 +146,7 @@ def square_domain(R, metadata, method="pad", inverse=False):
         the reshape dataset
     metadata : dict 
         the metadata with updated attributes.
+    
     """
     
     R = R.copy()
