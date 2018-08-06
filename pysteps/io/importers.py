@@ -14,6 +14,8 @@ Pixels containing missing data are set to nan.
 
 The metadata dictionary contains the following mandatory key-value pairs:
 
+.. tabularcolumns:: |p{2cm}|L|
+
 +-------------------+----------------------------------------------------------+
 |       Key         |                Value                                     |
 +===================+==========================================================+
