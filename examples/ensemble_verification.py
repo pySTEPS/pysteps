@@ -188,7 +188,7 @@ for n, parset in enumerate(parsets):
             
     
             ## read radar field files
-            importer    = stp.io.get_method(ds.importer)
+            importer    = stp.io.get_method(ds.importer, type="importer")
             R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
             metadata0 = metadata.copy()
             metadata0["shape"] = R.shape[1:]
@@ -296,7 +296,7 @@ for n, parset in enumerate(parsets):
                                           ds.fn_ext, ds.timestep, 0, p["n_lead_times"])
                                           
         ## read radar field files
-        importer = stp.io.get_method(ds.importer)
+        importer = stp.io.get_method(ds.importer, type="importer")
         R_obs, _, metadata_obs = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
         R_obs = R_obs[1:,:,:]
         metadata_obs["timestamps"] = metadata_obs["timestamps"][1:]
@@ -338,20 +338,7 @@ for n, parset in enumerate(parsets):
         for i,lt in enumerate(p["v_leadtimes"]):
             
             idlt = leadtimes == lt
-            
-            if verification["doplot"]:
-                ## plot observation
-                fig = plt.figure()
-                im = stp.plt.plot_precip_field(R_obs[idlt,:,:].squeeze())
-                plt.savefig(os.path.join(path_to_nwc, "%s_R_obs_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"), lt, p["v_accu"])))
-                plt.close()        
-                
-                ## plot forecast
-                fig = plt.figure()
-                im = stp.plt.plot_precip_field(R_fct[0, idlt, :, :].squeeze())
-                plt.savefig(os.path.join(path_to_nwc, "%s_R_fct_%03d_%03d.png" % (startdate.strftime("%Y%m%d%H%M"), lt, p["v_accu"])))
-                plt.close()
-            
+                        
             ## rank histogram
             R_fct_ = np.vstack([R_fct[j, idlt, :, :].flatten() for j in range(p["n_ens_members"])]).T
             stp.verification.ensscores.rankhist_accum(rankhists[lt], 

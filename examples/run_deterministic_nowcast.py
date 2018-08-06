@@ -65,7 +65,7 @@ input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pa
                                  ds.fn_ext, ds.timestep, n_prvs_times, 0)
 
 ## read radar field files
-importer = stp.io.get_method(ds.importer)
+importer = stp.io.get_method(ds.importer, type="importer")
 R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
 Rmask = np.isnan(R)
 print("The data array has size [nleadtimes,nrows,ncols] =", R.shape)
@@ -100,12 +100,6 @@ print("The forecast array has size [nleadtimes,nrows,ncols] =", R_fct.shape)
 ## trasnform back values to mm/h
 R_fct, _ = transformer(R_fct, metadata, inverse=True)
 R, metadata = transformer(R, metadata, inverse=True)
-
-Rplot=R.copy()
-Rplot[Rmask]=np.nan
-stp.plt.plot_precip_field(Rplot[-1,:,:], False, metadata)
-stp.plt.quiver(UV, metadata)
-plt.show()
 
 ## plot the nowcast...
 R[Rmask] = np.nan # reapply radar mask
