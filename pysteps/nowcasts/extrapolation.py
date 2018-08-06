@@ -21,8 +21,8 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
     Other Parameters
     ----------------
     extrap_method : {'semilagrangian'}
-      Name of the extrapolation method to use. See the documentation of the 
-      advection module.
+      Name of the extrapolation method to use. See the documentation of 
+      pysteps.advection.interface.
     extrap_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
       extrapolation method.
@@ -32,6 +32,10 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
     out : ndarray
       Three-dimensional array of shape (num_timesteps,m,n) containing a time 
       series of nowcast precipitation fields.
+    
+    See also
+    --------
+    pysteps.advection.interface
     """
     _check_inputs(R, V)
     
