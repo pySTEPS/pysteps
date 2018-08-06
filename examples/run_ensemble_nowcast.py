@@ -108,9 +108,10 @@ UV = oflow_method(R)
 # Perform the nowcast
 nwc_method = stp.nowcasts.get_method(nwc_method)
 R_fct = nwc_method(R, UV, n_lead_times, n_ens_members, 
-                   n_cascade_levels, metadata["xpixelsize"]/1000, 
-                   ds.timestep,  R_thr=metadata["threshold"], extrap_method=adv_method, 
-                   decomp_method=decomp_method, bandpass_filter_method=bandpass_filter, 
+                   n_cascade_levels, kmperpixel=metadata["xpixelsize"]/1000, 
+                   timestep=ds.timestep,  R_thr=metadata["threshold"], 
+                   extrap_method=adv_method, decomp_method=decomp_method, 
+                   bandpass_filter_method=bandpass_filter, 
                    noise_method=noise_method, noise_stddev_adj=adjust_noise, 
                    ar_order=ar_order, conditional=conditional, 
                    use_precip_mask=precip_mask, mask_method=mask_method, 

@@ -240,15 +240,19 @@ for n, parset in enumerate(parsets):
             ## start the nowcast
             nwc_method = stp.nowcasts.get_method(p["nwc_method"])
             R_fct = nwc_method(R, UV, p["n_lead_times"], p["n_ens_members"],
-                            p["n_cascade_levels"], metadata["xpixelsize"]/1000, 
-                            ds.timestep, R_thr=metadata["threshold"], extrap_method=p["adv_method"],
-                            decomp_method=p["decomp_method"], bandpass_filter_method=p["bandpass_filter"], 
-                            noise_method=p["noise_method"], noise_stddev_adj=p["noise_adjustment"],
+                            p["n_cascade_levels"], kmperpixel=metadata["xpixelsize"]/1000, 
+                            timestep=ds.timestep, R_thr=metadata["threshold"], 
+                            extrap_method=p["adv_method"], 
+                            decomp_method=p["decomp_method"], 
+                            bandpass_filter_method=p["bandpass_filter"], 
+                            noise_method=p["noise_method"], 
+                            noise_stddev_adj=p["noise_adjustment"],
                             ar_order=p["ar_order"],conditional=p["conditional"], 
-                            use_probmatching=p["prob_matching"], mask_method=p["mask_method"], 
+                            use_probmatching=p["prob_matching"], 
+                            mask_method=p["mask_method"], 
                             use_precip_mask=p["precip_mask"], callback=export, 
                             return_output=False, seed=p["seed"])
-    
+            
             ## save results
             stp.io.close_forecast_file(exporter)
             R_fct = None

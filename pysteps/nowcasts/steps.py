@@ -15,8 +15,8 @@ try:
 except ImportError:
     dask_imported = False
 
-def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, 
-             kmperpixel, timestep, R_thr=None, extrap_method="semilagrangian", 
+def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None, 
+             kmperpixel=None, timestep=None, extrap_method="semilagrangian", 
              decomp_method="fft", bandpass_filter_method="gaussian", 
              noise_method="nonparametric", noise_stddev_adj=True, ar_order=2, 
              vel_pert_method=None, conditional=False, use_precip_mask=True, 
@@ -41,16 +41,18 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
       The number of ensemble members to generate.
     n_cascade_levels : int
       The number of cascade levels to use.
-    kmperpixel : float
-      Spatial resolution of the input data (kilometers/pixel).
-    timestep : float
-      Time step of the motion vectors (minutes).
     
     Other Parameters
     ----------------
     R_thr : float
       Specifies the threshold value for minimum observable precipitation 
       intensity. Must be set if use_probmatching is True or conditional is True.
+    kmperpixel : float
+      Spatial resolution of the input data (kilometers/pixel). Required if 
+      vel_pert_method is not None or mask_method is 'incremental'.
+    timestep : float
+      Time step of the motion vectors (minutes). Required if vel_pert_method is 
+      not None or mask_method is 'incremental'.
     extrap_method : {'semilagrangian'}
       Name of the extrapolation method to use. See the documentation of 
       pysteps.advection.
@@ -148,6 +150,18 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
     if use_probmatching and R_thr is None:
         raise Exception("use_probmatching=True but R_thr is not set")
     
+    if kmperpixel is None:
+        if vel_pert_method is None:
+            raise Exception("vel_pert_method is set but kmperpixel=None")
+        if mask_method == "incremental":
+            raise Exception("mask_method='incremental' but kmperpixel=None")
+    
+    if timestep is None:
+        if vel_pert_method is None:
+            raise Exception("vel_pert_method is set but timestep=None")
+        if mask_method == "incremental":
+            raise Exception("mask_method='incremental' but timestep=None")
+    
     print("Computing STEPS nowcast:")
     print("------------------------")
     print("")
@@ -155,8 +169,10 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels,
     print("Inputs:")
     print("-------")
     print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
-    print("km/pixel:         %g"    % kmperpixel)
-    print("time step:        %d minutes" % timestep)
+    if kmperpixel is not None:
+        print("km/pixel:         %g"    % kmperpixel)
+    if timestep is not None:
+        print("time step:        %d minutes" % timestep)
     print("")
     
     print("Methods:")
