@@ -3,6 +3,9 @@
 Miscellaneous utility functions (:mod:`pysteps.utils`)
 ******************************************************
 
+Utility functions for converting data values to/from different units and 
+manipulating the dimensions of precipitation fields.
+
 pysteps\.utils\.conversion
 --------------------------
 
@@ -10,7 +13,7 @@ pysteps\.utils\.conversion
 
 .. autosummary::
     to_rainrate
-    to_raindetph
+    to_raindepth
     to_reflectivity
 
 .. automodule:: pysteps.utils.conversion

@@ -3,6 +3,8 @@
 Forecast verification (:mod:`pysteps.verification`)
 ***************************************************
 
+Methods for verification of deterministic and ensemble forecasts.
+
 pysteps\.verification\.detcatscores
 -----------------------------------
 

@@ -3,6 +3,9 @@
 Scale-based decomposition of precipitation fields (:mod:`pysteps.cascade`)
 **************************************************************************
 
+Methods for band-pass filtering and scale-based decomposition of 2d precipitation 
+fields.
+
 pysteps.cascade.interface
 -------------------------
 

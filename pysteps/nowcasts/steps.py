@@ -23,7 +23,8 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
              use_probmatching=True, mask_method="incremental", callback=None, 
              return_output=True, seed=None, num_workers=None, extrap_kwargs={}, 
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
-    """Generate a nowcast ensemble by using the STEPS method.
+    """Generate a nowcast ensemble by using the STEPS method described in 
+    :cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013`.
     
     Parameters
     ----------

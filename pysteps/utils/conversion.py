@@ -78,7 +78,7 @@ def to_rainrate(R, metadata, a=None, b=None):
     metadata["unit"] = "mm/h"
     
     return R, metadata
-    
+
 def to_raindepth(R, metadata, a=None, b=None):
     """Convert to rain depth [mm].
     

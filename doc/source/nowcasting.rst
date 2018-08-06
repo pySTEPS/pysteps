@@ -3,6 +3,9 @@
 Nowcasting methods (:mod:`pysteps.nowcasts`)
 ********************************************
 
+Implementations of nowcasting methods. Currently the module contains a 
+deterministic advection extrapolation method and STEPS.
+
 pysteps\.nowcasts\.interface
 ----------------------------
 

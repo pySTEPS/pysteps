@@ -3,6 +3,8 @@
 Optical flow methods (:mod:`pysteps.optflow`)
 *********************************************
 
+Implementations of optical flow methods.
+
 pysteps\.optflow\.interface
 ---------------------------
 
