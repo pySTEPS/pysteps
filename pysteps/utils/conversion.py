@@ -1,5 +1,4 @@
-""" Methods to convert physical units
-"""
+""" Methods for converting physical units."""
 
 import numpy as np
 import warnings
@@ -78,7 +77,7 @@ def to_rainrate(R, metadata, a=None, b=None):
     metadata["unit"] = "mm/h"
     
     return R, metadata
-    
+
 def to_raindepth(R, metadata, a=None, b=None):
     """Convert to rain depth [mm].
     

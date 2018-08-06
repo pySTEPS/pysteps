@@ -12,8 +12,7 @@ the domain. Optional keyword arguments that are specific to a given extrapolatio
 method are passed as a dictionary.
 
 The output of each method is an array R_e that includes the time series of extrapolated 
-fields of shape (num_timesteps, m, n). 
-"""
+fields of shape (num_timesteps, m, n)."""
 
 def get_method(name):
     """Return a callable function for the extrapolation method corresponding to 
@@ -30,6 +29,7 @@ def get_method(name):
     |  semilagrangian   | implementation of the semi-Lagrangian method of        |
     |                   | Germann et al. (2002)                                  |
     +-------------------+--------------------------------------------------------+
+    
     """
     if name is None:
         def donothing(R, V, num_timesteps, *args, **kwargs):

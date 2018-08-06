@@ -3,13 +3,15 @@
 Forecast verification (:mod:`pysteps.verification`)
 ***************************************************
 
+Methods for verification of deterministic and ensemble forecasts.
+
 pysteps\.verification\.detcatscores
 -----------------------------------
 
 .. currentmodule:: pysteps.verification.detcatscores
 
 .. autosummary::
-    scores_det_cont_fsct
+    scores_det_cat_fcst
 
 .. automodule:: pysteps.verification.detcatscores
     :members:
@@ -20,7 +22,7 @@ pysteps\.verification\.detcontscores
 .. currentmodule:: pysteps.verification.detcontscores
 
 .. autosummary::
-    scores_det_cont_fsct
+    scores_det_cont_fcst
 
 .. automodule:: pysteps.verification.detcontscores
     :members:

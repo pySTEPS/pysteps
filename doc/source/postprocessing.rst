@@ -3,6 +3,10 @@
 Post-processing of forecasts (:mod:`pysteps.postproc`)
 ******************************************************
 
+Methods for post-processing of forecasts. Currently the module contains 
+cumulative density function (CDF)-based matching between a forecast and the 
+target distribution.
+
 pysteps\.postproc\.probmatching
 -------------------------------
 

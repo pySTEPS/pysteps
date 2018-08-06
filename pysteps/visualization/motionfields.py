@@ -1,4 +1,4 @@
-"""Functions to plot precipitation fields."""
+"""Functions to plot motion fields."""
 
 import matplotlib.pylab as plt
 import matplotlib.colors as colors
@@ -6,7 +6,7 @@ import matplotlib.colors as colors
 import numpy as np
 
 def quiver(UV, geodata=None, **kwargs):
-    """Function to plot a motion field as arrows. 
+    """Function to plot a motion field as arrows.
     
     Parameters
     ----------

@@ -24,6 +24,9 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
     ----------
     R : array-like
         Two-dimensional array containing the input precipitation field.
+    
+    Other parameters
+    ----------------
     with_basemap : bool
         If True, plot a basemap.
     geodata : dictionary
@@ -70,6 +73,7 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
     -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
+    
     """
     if with_basemap and not basemap_imported:
         raise Exception("with_basemap=True but basemap not imported")
@@ -188,6 +192,7 @@ def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
         List of precipitation values defining the color limits.
     clevsStr: list(str)
         List of precipitation values defining the color limits (with correct number of decimals).
+    
     """
     # Get list of colors
     colors_list,clevs,clevsStr = _get_colorlist(units, colorscale)
@@ -220,6 +225,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
         List of precipitation values defining the color limits.
     clevsStr : list(str)
         List of precipitation values defining the color limits (with correct number of decimals).
+    
     """
     
     if colorscale == 'STEPS-BE':

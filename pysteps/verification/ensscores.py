@@ -9,11 +9,11 @@ def ensemble_fss_skill(X_f, X_o, threshold, scale):
     Parameters
     ----------
     X_f : array-like
-      Array of shape (l,m,n) containing the forecast fields of shape (m,n) from
-      l ensemble members.
+        Array of shape (l,m,n) containing the forecast fields of shape (m,n) 
+        from l ensemble members.
     X_o : array_like
-      Array of shape (m,n) containing the observed field corresponding to the 
-      forecast.
+        Array of shape (m,n) containing the observed field corresponding to 
+        the forecast.
     threshold : float
         Intensity threshold.
     scale : int
@@ -54,8 +54,8 @@ def ensemble_fss_spread(X_f, threshold, scale):
     Parameters
     ----------
     X_f : array-like
-      Array of shape (l,m,n) containing the forecast fields of shape (m,n) from
-      l ensemble members.
+        Array of shape (l,m,n) containing the forecast fields of shape (m,n) 
+        from l ensemble members.
     threshold : float
         Intensity threshold.
     scale : int
@@ -96,17 +96,18 @@ def rankhist_init(num_ens_members, X_min):
     Parameters
     ----------
     num_ens_members : int
-      Number ensemble members in the forecasts to accumulate into the rank 
-      histogram.
+        Number ensemble members in the forecasts to accumulate into the rank 
+        histogram.
     X_min : float
-      Threshold for minimum intensity. Forecast-observation pairs, where all 
-      ensemble members and verifying observations are below X_min, are not 
-      counted in the rank histogram.
+        Threshold for minimum intensity. Forecast-observation pairs, where all 
+        ensemble members and verifying observations are below X_min, are not 
+        counted in the rank histogram.
     
     Returns
     -------
     out : dict
-      The rank histogram object.
+        The rank histogram object.
+    
     """
     rankhist = {}
     
@@ -122,11 +123,12 @@ def rankhist_accum(rankhist, X_f, X_o):
     Parameters
     ----------
     X_f : array-like
-      Array of shape (n,m) containing the values from n ensemble forecasts with 
-      m members.
+        Array of shape (n,m) containing the values from n ensemble forecasts 
+        with m members.
     X_o : array_like
-      Array of length n containing the observed values corresponding to the 
-      forecast.
+        Array of length n containing the observed values corresponding to the 
+        forecast.
+    
     """
     if X_f.shape[1] != rankhist["num_ens_members"]:
         raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[1], rankhist["num_ens_members"]))
@@ -155,20 +157,23 @@ def rankhist_accum(rankhist, X_f, X_o):
     
     for bi in bin_idx:
         rankhist["n"][bi] += 1
-        
+
 def rankhist_compute(rankhist, normalize=True):
     """Return the rank histogram counts and optionally normalize the histogram.
     
     Parameters
     ----------
     rankhist : dict
-      A rank histogram object created with rankhist_init.
+        A rank histogram object created with rankhist_init.
+    normalize : bool
+        If True, normalize the rank histogram so that the bin counts sum to one.
     
     Returns
     -------
     out : array_like
-      The counts for the n+1 bins in the rank histogram, where n is the number 
-      of ensemble members.
+        The counts for the n+1 bins in the rank histogram, where n is the number 
+        of ensemble members.
+    
     """
     if normalize:
         return 1.0*rankhist["n"] / sum(rankhist["n"])

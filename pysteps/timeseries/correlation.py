@@ -23,6 +23,7 @@ def temporal_autocorrelation(X, MASK=None):
     out : ndarray
       Array of length n-1 containing the temporal autocorrelation coefficients 
       for time lags l=1,2,...,n-1.
+    
     """
     if len(X.shape) != 3:
         raise ValueError("the input X is not three-dimensional array")

@@ -49,6 +49,7 @@ def filter_uniform(shape, n):
         it assumes to be a square domain.
     n : int
         Not used. Needed for compatibility with the filter interface.
+    
     """
     result = {}
     
@@ -195,4 +196,3 @@ def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     central_freqs.append(l/2)
     
     return weight_funcs, central_freqs
-    

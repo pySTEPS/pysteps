@@ -20,6 +20,7 @@ def read_timeseries(inputfns, importer, **kwargs):
     out : tuple
         A three-element tuple containing the precipitation fields read, the quality fields,
         and associated metadata.
+    
     """
     
     # check for missing data

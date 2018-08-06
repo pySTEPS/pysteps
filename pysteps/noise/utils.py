@@ -1,4 +1,4 @@
-"""Miscellaneous utility functions related to generating stochastic perturbations."""
+"""Miscellaneous utility functions related to generation of stochastic perturbations."""
 
 import numpy as np
 try:
@@ -66,6 +66,7 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
     out : list
         A list containing the standard deviation adjustment factor for each 
         cascade level.
+    
     """
 
     MASK = R >= R_thr_1

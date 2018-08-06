@@ -1,52 +1,49 @@
-"""Forecast evaluation and skill scores for deterministic continuous forecasts.
-"""
+"""Forecast evaluation and skill scores for deterministic continuous forecasts."""
 
 import numpy as np
 from scipy.stats import spearmanr, pearsonr
 
 def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
-                         
-    """ Calculate simple and skill scores for deterministic continuous forecasts
+    """Calculate simple and skill scores for deterministic continuous forecasts
     
-    Input:
-    ------
-    pred: array-like
+    Parameters
+    ----------
+    pred : array_like
         predictions
-    obs: array-like
-        verifiyinig observations
+    obs : array_like
+        verifying observations
     scores : list
         a list containing the names of the scores to be computed, the full list 
         is:
-        
-    +------------+--------------------------------------------------------------+
-    | Name       | Description                                                  |
-    +============+==============================================================+
-    |  beta      | linear regression slope (conditional bias)                   |
-    +------------+--------------------------------------------------------------+
-    |  corr_p    | pearson's correleation coefficien (linear correlation)       |
-    +------------+--------------------------------------------------------------+
-    |  corr_s    | spearman's correlation coefficient (rank correlation)        |
-    +------------+--------------------------------------------------------------+
-    |  ME_add    | mean error or bias of additive residuals                     |
-    +------------+--------------------------------------------------------------+
-    |  ME_mult   | mean error or bias of multiplicative residuals               |
-    +------------+--------------------------------------------------------------+
-    |  RMSE_add  | root mean squared additive error                             |
-    +------------+--------------------------------------------------------------+
-    |  RMSE_mult | root mean squared multiplicative error                       |
-    +------------+--------------------------------------------------------------+
-    |  RV_add    | reduction of variance (Brier Score, Nash-Sutcliffe Efficiency|
-    +------------+--------------------------------------------------------------+
-    |  RV_mult   | reduction of variance in multiplicative space                |
-    +------------+--------------------------------------------------------------+
+    
+        +------------+--------------------------------------------------------------+
+        | Name       | Description                                                  |
+        +============+==============================================================+
+        |  beta      | linear regression slope (conditional bias)                   |
+        +------------+--------------------------------------------------------------+
+        |  corr_p    | pearson's correleation coefficien (linear correlation)       |
+        +------------+--------------------------------------------------------------+
+        |  corr_s    | spearman's correlation coefficient (rank correlation)        |
+        +------------+--------------------------------------------------------------+
+        |  ME_add    | mean error or bias of additive residuals                     |
+        +------------+--------------------------------------------------------------+
+        |  ME_mult   | mean error or bias of multiplicative residuals               |
+        +------------+--------------------------------------------------------------+
+        |  RMSE_add  | root mean squared additive error                             |
+        +------------+--------------------------------------------------------------+
+        |  RMSE_mult | root mean squared multiplicative error                       |
+        +------------+--------------------------------------------------------------+
+        |  RV_add    | reduction of variance (Brier Score, Nash-Sutcliffe Efficiency|
+        +------------+--------------------------------------------------------------+
+        |  RV_mult   | reduction of variance in multiplicative space                |
+        +------------+--------------------------------------------------------------+
     
     offset : float
         an offset that is added to both prediction and observation to avoid 0 division
         when computing multiplicative residuals
     
-    
-    Return:
-    ------
+    Returns
+    -------
     result : list
         list containing the verification results
         

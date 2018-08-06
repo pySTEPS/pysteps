@@ -23,7 +23,8 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
              use_probmatching=True, mask_method="incremental", callback=None, 
              return_output=True, seed=None, num_workers=None, extrap_kwargs={}, 
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
-    """Generate a nowcast ensemble by using the STEPS method.
+    """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction 
+    System (STEPS) method.
     
     Parameters
     ----------
@@ -55,13 +56,13 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
       not None or mask_method is 'incremental'.
     extrap_method : {'semilagrangian'}
       Name of the extrapolation method to use. See the documentation of 
-      pysteps.advection.
+      pysteps.advection.interface.
     decomp_method : {'fft'}
       Name of the cascade decomposition method to use. See the documentation 
-      of pysteps.cascade.decomposition.
+      of pysteps.cascade.interface.
     bandpass_filter_method : {'gaussian', 'uniform'}
       Name of the bandpass filter method to use with the cascade decomposition. 
-      See the documentation of pysteps.cascade.bandpass_filters.
+      See the documentation of pysteps.cascade.interface.
     noise_method : {'parametric','nonparametric','ssft','nested'}
       Name of the noise generator to use for perturbating the precipitation 
       field. See the documentation of pysteps.noise.interface.
@@ -113,12 +114,10 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
       filter method.
     noise_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
-      initializer of the noise generator. See the documentation of 
-      pysteps.noise.fftgenerators.
+      initializer of the noise generator.
     vel_pert_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the 
-      initializer of the velocity perturbator. See the documentation of 
-      pysteps.noise.motion.
+      initializer of the velocity perturbator.
     
     Returns
     -------
@@ -127,6 +126,11 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
       (n_ens_members,n_timesteps,m,n) containing a time series of forecast 
       precipitation fields for each ensemble member. Otherwise, a None value 
       is returned.
+    
+    See also
+    --------
+    pysteps.advection.interface, pysteps.cascade.interface, 
+    pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
     
     References
     ----------

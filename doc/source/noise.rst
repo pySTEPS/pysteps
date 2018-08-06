@@ -3,6 +3,9 @@
 Noise generators (:mod:`pysteps.noise`)
 ***************************************
 
+Methods for generating stochastic perturbations of 2d precipitation and velocity 
+fields.
+
 pysteps\.noise\.interface
 -------------------------
 

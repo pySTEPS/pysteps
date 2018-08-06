@@ -3,6 +3,8 @@
 Visualization (:mod:`pysteps.visualization`)
 ********************************************
 
+Methods for plotting precipitation and motion fields.
+
 pysteps\.visualization\.animations
 ----------------------------------
 

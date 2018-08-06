@@ -1,4 +1,4 @@
-''' Methods for probability matching'''
+"""Methods for matching the empirical probability distribution of two data sets."""
 
 import numpy as np
 from scipy import interpolate as sip
@@ -18,6 +18,7 @@ def compute_empirical_cdf(bin_edges, hist):
     -------
     out : ndarray
         CDF values corresponding to the bin edges.
+    
     """
     cdf = []
     xs = 0.0
@@ -47,6 +48,7 @@ def nonparam_match_empirical_cdf(R, R_trg):
     -------
     out : array_like
         The new array.
+    
     """
     if R.size != R_trg.size:
         raise ValueError("the input arrays must have the same size")
@@ -114,6 +116,7 @@ def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
         Coordinates of the left bin edges of the target cdf.
     cdf_2 : array_like
         Values of the target CDF at the bin edges.
+    
     """
     pmm = {}
     
@@ -136,6 +139,7 @@ def pmm_compute(pmm, x):
         A PMM object returned by pmm_init.
     x : float
         The coordinate for which to compute the probability matched value.
+    
     """
     mask = np.logical_and(x >= pmm["bin_edges_1"][0], x <= pmm["bin_edges_1"][-1])
     p = pmm["cdf_interpolator"](x[mask])

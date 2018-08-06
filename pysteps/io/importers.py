@@ -101,6 +101,7 @@ def import_bom_rf3(filename, **kwargs):
         A three-element tuple containing the rainfall field in mm/h imported
         from the Bureau RF3 netcdf, the quality field and the metadata. The
         quality field is currently set to None.
+    
     """
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
@@ -214,6 +215,7 @@ def import_fmi_pgm(filename, **kwargs):
         A three-element tuple containing the reflectivity composite in dBZ
         and the associated quality field and metadata. The quality field is
         currently set to None.
+    
     """
     if not pyproj_imported:
         raise Exception("pyproj not imported")
@@ -337,6 +339,7 @@ def import_mch_gif(filename, **kwargs):
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
+    
     """
     if not pil_imported:
         raise Exception("PIL not imported")
@@ -460,6 +463,7 @@ def import_odim_hdf5(filename, **kwargs):
         quantity and the associated quality field and metadata. The quality
         field is read from the file if it contains a dataset whose quantity
         identifier is 'QIND'.
+    
     """
     if not h5py_imported:
         raise Exception("h5py not imported")
