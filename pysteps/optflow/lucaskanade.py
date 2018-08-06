@@ -321,41 +321,44 @@ def clean_image(R, n=3, thr=0):
     R[mask] = np.nanmin(R)
 
     return R
-    
+
 def declustering(x, y, u, v, decl_grid, min_nr_samples):
-    """
-    Filter out outliers and get more representative data points.
-    It assigns data points to a (RxR) declustering grid and then take the median of all values within one cell.
+    """Filter out outliers in a sparse motion field and get more representative 
+    data points. The method assigns data points to a (RxR) declustering grid 
+    and then take the median of all values within one cell.
     
     Parameters
     ----------
-    x0 : 
-    y0 :
-    u :
-    v :
+    x : array_like
+        x-coordinates of the origins of the velocity vectors
+    y : array_like
+        y-coordinates of the origins of the velocity vectors
+    u : array_like
+        x-components of the velocities
+    v : array_like
+        y-components of the velocities
     decl_grid : int
-        Size of the declustering grid [px].
+        size of the declustering grid [px]
     min_nr_samples : int
-        The minimum number of samples for computing the median within given declustering cell.
-        
+        the minimum number of samples for computing the median within given 
+        declustering cell
+    
     Returns
     -------
-    x : array-like
-    y : array-like
-    u : array-like
-    v : array-like
-
+    A four-element tuple (x,y,u,v) containing the x- and y-coordinates and 
+    velocity components of the declustered motion vectors.
+    
     """
     # make sure these are all vertical arrays
     x = x[:,None]
     y = y[:,None]
     u = u[:,None]
     v = v[:,None]
-    
+
     # discretize coordinates into declustering grid
     xT = x/float(decl_grid)
     yT = y/float(decl_grid)
-       
+
     # round coordinates to low integer 
     xT = np.floor(xT)
     yT = np.floor(yT)
@@ -366,7 +369,8 @@ def declustering(x, y, u, v, decl_grid, min_nr_samples):
     _,idx = np.unique(xyb, return_index=True)
     unique_xy = xy[idx]
 
-    # now loop through these unique values and average vectors which belong to the same declustering grid cell
+    # now loop through these unique values and average vectors which belong to 
+    # the same declustering grid cell
     xN=[]; yN=[]; uN=[]; vN=[]
     for i in range(unique_xy.shape[0]):
         idx = np.logical_and(xT==unique_xy[i,0], yT==unique_xy[i,1])
