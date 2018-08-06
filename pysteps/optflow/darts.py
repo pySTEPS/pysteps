@@ -38,7 +38,8 @@ def DARTS(Z, **kwargs):
     N_y : int
       Number of DFT coefficients to use for the input images, y-axis (default=50).
     N_t : int
-      Number of DFT coefficients to use for the input images, time axis (default=4).
+      Number of DFT coefficients to use for the input images, time axis (default=4). 
+      N_t must be strictly smaller than T.
     M_x : int
       Number of DFT coefficients to compute for the output advection field, 
       x-axis  (default=2).
@@ -73,6 +74,10 @@ def DARTS(Z, **kwargs):
     print_info = kwargs.get("print_info", False)
     lsq_method = kwargs.get("lsq_method", 2)
     verbose             = kwargs.get("verbose", True)
+    
+    if N_t >= Z.shape[0]:
+        raise ValueError("N_t = %d >= %d = T, but N_t < T required" % (N_t, Z.shape[0]))
+    
     if verbose:
         print("Computing the motion field with the DARTS method.")
         t0 = time.time()
