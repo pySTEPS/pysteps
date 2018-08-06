@@ -24,11 +24,6 @@ pysteps\.optflow\.lucaskanade
 
 .. autosummary::
     dense_lucaskanade
-    ShiTomasi_features_to_track
-    LucasKanade_features_tracking
-    clean_image
-    declustering
-    interpolate_sparse_vectors
 
 .. automodule:: pysteps.optflow.lucaskanade
     :members:

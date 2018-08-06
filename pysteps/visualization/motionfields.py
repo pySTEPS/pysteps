@@ -16,6 +16,8 @@ def quiver(UV, geodata=None, **kwargs):
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
         
+        .. tabularcolumns:: |p{1.5cm}|L|
+        
         +-----------------+----------------------------------------------------+
         |        Key      |                  Value                             |
         +=================+====================================================+
@@ -93,6 +95,8 @@ def streamplot(UV, geodata=None, **kwargs):
     geodata : dictionary
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
+        
+        .. tabularcolumns:: |p{1.5cm}|L|
         
         +-----------------+----------------------------------------------------+
         |        Key      |                  Value                             |

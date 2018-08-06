@@ -32,7 +32,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     geodata : dictionary
         Optional dictionary containing geographical information about the field.
         If geodata is not None, it must contain the following key-value pairs:
-
+        
+        .. tabularcolumns:: |p{1.5cm}|L|
+        
         +-----------------+----------------------------------------------------+
         |        Key      |                  Value                             |
         +=================+====================================================+
