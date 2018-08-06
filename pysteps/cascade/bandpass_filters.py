@@ -11,17 +11,26 @@ of frequency bands to use.
 The output of each filter function is a dictionary containing the following 
 key-value pairs:
 
-    weights_1d       2d array of shape (n, r) containing 1d filter weights 
-                     for each frequency band k=1,2,...,n
-    weights_2d       3d array of shape (n, M, N) containing the 2d filter 
-                     weights for each frequency band k=1,2,...,n
-    central_freqs    1d array of shape n containing the central frequencies of 
-                     the filters
+.. tabularcolumns:: |p{1.8cm}|L|
+
++-----------------+-----------------------------------------------------------+
+|       Key       |                Value                                      |
++=================+===========================================================+
+| weights_1d      | 2d array of shape (n, r) containing 1d filter weights     |
+|                 | for each frequency band k=1,2,...,n                       |
++-----------------+-----------------------------------------------------------+
+| weights_2d      | 3d array of shape (n, M, N) containing the 2d filter      |
+|                 | weights for each frequency band k=1,2,...,n               |
++-----------------+-----------------------------------------------------------+
+| central_freqs   | 1d array of shape n containing the central frequencies of |
+|                 | the filters                                               |
++-----------------+-----------------------------------------------------------+
 
 where r = int(max(N, M)/2)+1
 
 The filter weights are assumed to be normalized so that for any Fourier 
 wavenumber they sum to one.
+
 """
 
 import numpy as np
@@ -36,8 +45,8 @@ def filter_uniform(shape, n):
     Parameters
     ----------
     shape : int or tuple
-        The dimensions (height, width) of the input field. If shape is an int, it 
-        assumes to be a square domain.
+        The dimensions (height, width) of the input field. If shape is an int, 
+        it assumes to be a square domain.
     n : int
         Not used. Needed for compatibility with the filter interface.
     """

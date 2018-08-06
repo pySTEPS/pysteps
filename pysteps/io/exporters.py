@@ -4,43 +4,55 @@ formats.
 Each exporter method in this module has its own initialization function that 
 implements the following interface:
 
-  initialize_forecast_exporter_xxx(filename, startdate, timestep, num_timesteps, 
-      shape, num_ens_members, metadata, incremental=None)
+  initialize_forecast_exporter_xxx(filename, startdate, timestep, num_timesteps, \
+  shape, num_ens_members, metadata, incremental=None)
   
-  Parameters
-  ----------
-  filename : str
-      Name of the output file.
-  startdate : datetime.datetime
-      Start date of the forecast.
-  timestep : int
-      Time step of the forecast (minutes).  
-  num_timesteps : int
-      Number of time steps in the forecast. This argument is ignored if 
-      incremental is set to 'timestep'.
-  shape : tuple
-      Two-element tuple defining the shape (height,width) of the forecast grids.
-  num_ens_members : int
-      Number of ensemble members in the forecast. This argument is ignored if 
-      incremental is set to 'member'.
-  metadata : dict
-      Metadata dictionary containing the projection,x1,x2,y1,y2 and unit 
-      attributes described in the documentation of pysteps.io.importers.
-  incremental : {'timestep', 'member'}
-      Allow incremental writing of datasets into the netCDF file. The 
-      available options are: 'timestep'=write a forecast or a forecast 
-      ensemble for a given time step or 'member'=write a forecast sequence 
-      for a given ensemble member.
+  where xxx describes the file format. This function creates the file and writes 
+  the metadata. The datasets are written by calling export_forecast_dataset, and 
+  the file is closed by calling close_forecast_file.
   
-  Returns
-  -------
-  out : dict
-      An exporter object that can be used with export_forecast_dataset to write 
-      datasets into the netCDF file.
+  The arguments in the above are defined as follows:
+  
+  .. tabularcolumns:: |p{2.3cm}|p{2.5cm}|L|
+  
+  +-------------------+-------------------+------------------------------------------------+
+  |   Argument        | Type/values       |             Description                        |
+  +===================+===================+================================================+
+  |   filename        | str               | name of the output file                        |
+  +-------------------+-------------------+------------------------------------------------+
+  | startdate         | datetime.datetime | start date of the forecast                     |
+  +-------------------+-------------------+------------------------------------------------+
+  | timestep          | int               | time step of the forecast (minutes)            |
+  +-------------------+-------------------+------------------------------------------------+
+  | n_timesteps       | int               | number of time steps in the forecast           |
+  |                   |                   | this argument is ignored if incremental is     |
+  |                   |                   | set to 'timestep'.                             |
+  +-------------------+-------------------+------------------------------------------------+
+  | shape             | tuple             | two-element tuple defining the shape           |
+  |                   |                   | (height,width) of the forecast grids           |
+  +-------------------+-------------------+------------------------------------------------+
+  | n_ens_members     | int               | number of ensemble members in the forecast     | 
+  |                   |                   | this argument is ignored if incremental is     |
+  |                   |                   | set to 'member'                                |
+  +-------------------+-------------------+------------------------------------------------+
+  | metadata          | dict              | metadata dictionary containing the             |
+  |                   |                   | projection,x1,x2,y1,y2 and unit attributes     |
+  |                   |                   | described in the documentation of              |
+  |                   |                   | pysteps.io.importers                           |
+  +-------------------+-------------------+------------------------------------------------+
+  | incremental       | {'timestep',      | Allow incremental writing of datasets into     |
+  |                   | 'member'}         | the netCDF file                                |
+  |                   |                   | the available options are:                     |
+  |                   |                   | 'timestep' = write a forecast or a             |
+  |                   |                   | forecast ensemble for a given time step        |
+  |                   |                   | 'member' = write a forecast sequence           |
+  |                   |                   | for a given ensemble member                    |
+  +-------------------+-------------------+------------------------------------------------+
+  
+  The return value is a dictionary containing an exporter object. This can be 
+  used with export_forecast_dataset to write datasets into the netCDF file.
 
-where xxx describes the file format. This function creates the file and writes 
-the metadata. The datasets are written by calling export_forecast_dataset, and 
-the file is closed by calling close_forecast_file."""
+"""
 
 import numpy as np
 from datetime import datetime
@@ -57,19 +69,10 @@ except ImportError:
 
 # TODO: This is a draft version of the exporter. Revise the variable names and 
 # the structure of the file if necessary.
-def initialize_forecast_exporter_netcdf(filename, startdate, timestep, num_timesteps, 
-                                        shape, num_ens_members, metadata, 
-                                        incremental=None):
-    """Initialize a netCDF forecast exporter.
-    
-    Parameters
-    ----------
-    See the module docstring.
-    
-    Returns
-    -------
-    See the module docstring.
-    """
+def initialize_forecast_exporter_netcdf(filename, startdate, timestep, 
+                                        n_timesteps, shape, n_ens_members, 
+                                        metadata, incremental=None):
+    """Initialize a netCDF forecast exporter."""
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
     
@@ -80,9 +83,9 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep, num_times
         raise ValueError("unknown option %s: incremental must be 'timestep' or 'member'" % incremental)
     
     if incremental == "timestep":
-        num_timesteps = None
+        n_timesteps = None
     elif incremental == "member":
-        num_ens_members = None
+        n_ens_members = None
     
     exporter = {}
     
@@ -98,8 +101,8 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep, num_times
     
     h,w = shape
     
-    ncf.createDimension("ens_number", size=num_ens_members)
-    ncf.createDimension("time", size=num_timesteps)
+    ncf.createDimension("ens_number", size=n_ens_members)
+    ncf.createDimension("time", size=n_timesteps)
     ncf.createDimension("y", size=h)
     ncf.createDimension("x", size=w)
     
@@ -173,13 +176,13 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep, num_times
     
     var_ens_num = ncf.createVariable("ens_number", np.int, dimensions=("ens_number",))
     if incremental != "member":
-        var_ens_num[:] = list(range(1, num_ens_members+1))
+        var_ens_num[:] = list(range(1, n_ens_members+1))
     var_ens_num.long_name = "ensemble member"
     var_ens_num.units = ""
     
     var_time = ncf.createVariable("time", np.int, dimensions=("time",))
     if incremental != "timestep":
-        var_time[:] = [i*timestep*60 for i in range(1, num_timesteps+1)]
+        var_time[:] = [i*timestep*60 for i in range(1, n_timesteps+1)]
     var_time.long_name = "forecast time"
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
@@ -204,8 +207,8 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep, num_times
     exporter["timestep"]  = timestep
     exporter["metadata"]  = metadata
     exporter["incremental"] = incremental
-    exporter["num_timesteps"] = num_timesteps
-    exporter["num_ens_members"] = num_ens_members
+    exporter["num_timesteps"] = n_timesteps
+    exporter["num_ens_members"] = n_ens_members
     exporter["shape"] = shape
     
     return exporter
