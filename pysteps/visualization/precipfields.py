@@ -9,15 +9,22 @@ try:
 except ImportError:
     basemap_imported = False
 try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+    cartopy_imported = True
+except ImportError:
+    cartopy_imported = False
+try:
     import pyproj
     pyproj_imported = True
 except ImportError:
     pyproj_imported = False
 from . import utils
 
-def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h', 
+def plot_precip_field(R, map=None, geodata=None, units='mm/h', 
                       colorscale='MeteoSwiss', title=None, colorbar=True, 
-                      basemap_resolution='l', drawlonlatlines=False):
+                      drawlonlatlines=False, basemap_resolution='l', 
+                      cartopy_scale="50m"):
     """Function to plot a precipitation field with a colorbar.
     
     Parameters
@@ -27,8 +34,10 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
     
     Other parameters
     ----------------
-    with_basemap : bool
-        If True, plot a basemap.
+    map : str
+        Optional method for plotting a map: 'basemap' or 'cartopy'. The former 
+        uses mpl_toolkits.basemap (https://matplotlib.org/basemap), and the 
+        latter uses cartopy (https://scitools.org.uk/cartopy/docs/latest).
     geodata : dictionary
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
@@ -62,12 +71,15 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
         If not None, print the title on top of the plot.
     colorbar : bool
         If set to True, add a colorbar on the right side of the plot.
-    basemap_resolution : str
-        The resolution of the basemap, see the documentation of mpl_toolkits.basemap. 
-        Applicable if with_basemap is True.
     drawlonlatlines : bool
         If set to True, draw longitude and latitude lines. Applicable if 
-        with_basemap is True.
+        map=='basemap' or map=='cartopy'.
+    basemap_resolution : str
+        The resolution of the basemap, see the documentation of mpl_toolkits.basemap. 
+        Applicable if map=='basemap'.
+    cartopy_scale : str
+        The scale (resolution) of the cartopy map. The available options are 
+        '10m', '50m', and '110m'.
     
     Returns
     -------
@@ -75,18 +87,21 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     
     """
-    if with_basemap and not basemap_imported:
-        raise Exception("with_basemap=True but basemap not imported")
-    if with_basemap and not pyproj_imported:
-        raise Exception("with_basemap=True but pyproj not imported")
-    
+    if map is not None and map not in ["basemap", "cartopy"]:
+        raise ValueError("unknown map method %s: must be 'basemap' or 'cartopy'" % map)
+    if map == "basemap" and not basemap_imported:
+        raise Exception("map='basemap' but basemap not imported")
+    if map == "cartopy" and not cartopy_imported:
+        raise Exception("map='cartopy' but cartopy not imported")
+    if map is not None and not pyproj_imported:
+        raise Exception("map!=None but pyproj not imported")
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
     
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(units, colorscale)
     
-    if not with_basemap:
+    if map is None:
         # Extract extent for imshow function
         if geodata is not None:
             extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
@@ -102,30 +117,43 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
         plt.imshow(mask, cmap=colors.ListedColormap(['gray']), 
                    extent=extent, origin=origin)
         
-        im = _plot_precip_field(R, plt.gca(), units, colorscale, geodata)
+        im = _plot_precip_field(R, plt.gca(), units, colorscale, geodata, 
+                                extent=extent)
     else:
-        bm_params = utils.proj4_to_basemap(geodata["projection"])
+        if map == "basemap":
+            pr = pyproj.Proj(geodata["projection"])
+            ll_lon,ll_lat = pr(geodata["x1"], geodata["y1"], inverse=True)
+            ur_lon,ur_lat = pr(geodata["x2"], geodata["y2"], inverse=True)
+            
+            bm_params = utils.proj4_to_basemap(geodata["projection"])
+            
+            bm_params["llcrnrlon"]  = ll_lon
+            bm_params["llcrnrlat"]  = ll_lat
+            bm_params["urcrnrlon"]  = ur_lon
+            bm_params["urcrnrlat"]  = ur_lat
+            bm_params["resolution"] = basemap_resolution
+            
+            bm = _plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines)
+            
+            if geodata["yorigin"] == "upper":
+                R = np.flipud(R)
+            
+            extent = None
+        else:
+            x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
+            crs = utils.proj4_to_cartopy(geodata["projection"])
+            
+            bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale)
+            
+            extent = (x1, x2, y2, y1)
         
-        pr = pyproj.Proj(geodata["projection"])
-        ll_lon,ll_lat = pr(geodata["x1"], geodata["y1"], inverse=True)
-        ur_lon,ur_lat = pr(geodata["x2"], geodata["y2"], inverse=True)
-        
-        bm_params["llcrnrlon"]  = ll_lon
-        bm_params["llcrnrlat"]  = ll_lat
-        bm_params["urcrnrlon"]  = ur_lon
-        bm_params["urcrnrlat"]  = ur_lat
-        bm_params["resolution"] = basemap_resolution
-        
-        if geodata["yorigin"] == "upper":
-          R = np.flipud(R)
-        
-        bm = _plot_basemap(bm_params, drawlonlatlines=drawlonlatlines)
-        im = _plot_precip_field(R, bm, units, colorscale, geodata)
+        im = _plot_precip_field(R, bm, units, colorscale, geodata, extent=extent)
         
         # Plot radar domain mask
         mask = np.ones(R.shape)
         mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
-        bm.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5, zorder=1e6)
+        bm.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5, 
+                  zorder=1e6, extent=extent)
     
     if title is not None:
         plt.title(title)
@@ -136,7 +164,7 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
         cbar.ax.set_yticklabels(clevsStr)
         cbar.ax.set_title(units, fontsize=12)
     
-    if not with_basemap:
+    if map is None:
         axes = plt.gca()
         if geodata is None:
             axes.xaxis.set_ticks([])
@@ -144,23 +172,23 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
             axes.yaxis.set_ticks([])
             axes.yaxis.set_ticklabels([])
     
-    if not with_basemap:
+    if map is None:
         return axes
     else:
         return bm
 
-def _plot_precip_field(R, ax, units, colorscale, geodata):
+def _plot_precip_field(R, ax, units, colorscale, geodata, extent):
     R = R.copy()
     
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(units, colorscale)
     
     # Extract extent for imshow function
-    if geodata is not None:
-        extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
-                           geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]]) 
-    else:
-        extent = np.array([0, R.shape[1], 0, R.shape[0]])
+#    if geodata is not None:
+#        extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
+#                           geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]]) 
+#    else:
+#        extent = np.array([0, R.shape[1], 0, R.shape[0]])
     
     # Plot precipitation field
     if units == 'mm/h':
@@ -289,7 +317,7 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
         
     return labels
 
-def _plot_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1), 
+def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1), 
                   countrycolor=(0.3,0.3,0.3), continentcolor=(1,1,1), 
                   lakecolor=(0.7,0.7,0.7), rivercolor=(0.7,0.7,0.7), 
                   mapboundarycolor=(0.7,0.7,0.7)):
@@ -314,3 +342,24 @@ def _plot_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1),
                          fmt="%.1f", fontsize=6)
     
     return bm
+
+def _plot_map_cartopy(crs, x1, y1, x2, y2, scale):
+    ax = plt.axes(projection=crs)
+    
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "land", 
+       scale=scale, edgecolor="face", facecolor=np.array([0.9375, 0.9375, 0.859375])))
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "coastline", scale=scale, 
+        edgecolor="black", facecolor="none"))
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "ocean", scale=scale, 
+        edgecolor="face", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "lakes", scale=scale, 
+        edgecolor="face", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "rivers_lake_centerlines", 
+        scale=scale, edgecolor= np.array([ 0.59375, 0.71484375, 0.8828125]), 
+        facecolor="none"))
+    ax.add_feature(cfeature.NaturalEarthFeature("cultural", "admin_0_boundary_lines_land", 
+        scale=scale, edgecolor="black", facecolor="none", linewidth=0.25))
+    
+    ax.set_extent([x1, x2, y1, y2], crs)
+    
+    return ax
