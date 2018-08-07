@@ -143,7 +143,8 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
             x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
             crs = utils.proj4_to_cartopy(geodata["projection"])
             
-            bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale)
+            bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale, 
+                                   drawlonlatlines=drawlonlatlines)
             
             extent = (x1, x2, y2, y1)
         
@@ -343,13 +344,13 @@ def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1),
     
     return bm
 
-def _plot_map_cartopy(crs, x1, y1, x2, y2, scale):
+def _plot_map_cartopy(crs, x1, y1, x2, y2, scale, drawlonlatlines=False):
     ax = plt.axes(projection=crs)
     
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "land", 
        scale=scale, edgecolor="none", facecolor=np.array([0.9375, 0.9375, 0.859375])))
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "coastline", scale=scale, 
-        edgecolor="black", facecolor="none"))
+        edgecolor="black", facecolor="none", linewidth=0.25))
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "ocean", scale=scale, 
         edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "lakes", scale=scale, 
@@ -359,6 +360,9 @@ def _plot_map_cartopy(crs, x1, y1, x2, y2, scale):
         facecolor="none"))
     ax.add_feature(cfeature.NaturalEarthFeature("cultural", "admin_0_boundary_lines_land", 
         scale=scale, edgecolor="black", facecolor="none", linewidth=0.25))
+    
+    if drawlonlatlines:
+        ax.gridlines(crs=ccrs.PlateCarree())
     
     ax.set_extent([x1, x2, y1, y2], crs)
     
