@@ -347,15 +347,15 @@ def _plot_map_cartopy(crs, x1, y1, x2, y2, scale):
     ax = plt.axes(projection=crs)
     
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "land", 
-       scale=scale, edgecolor="face", facecolor=np.array([0.9375, 0.9375, 0.859375])))
+       scale=scale, edgecolor="none", facecolor=np.array([0.9375, 0.9375, 0.859375])))
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "coastline", scale=scale, 
         edgecolor="black", facecolor="none"))
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "ocean", scale=scale, 
-        edgecolor="face", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
+        edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "lakes", scale=scale, 
-        edgecolor="face", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
+        edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "rivers_lake_centerlines", 
-        scale=scale, edgecolor= np.array([ 0.59375, 0.71484375, 0.8828125]), 
+        scale=scale, edgecolor=np.array([ 0.59375, 0.71484375, 0.8828125]), 
         facecolor="none"))
     ax.add_feature(cfeature.NaturalEarthFeature("cultural", "admin_0_boundary_lines_land", 
         scale=scale, edgecolor="black", facecolor="none", linewidth=0.25))
