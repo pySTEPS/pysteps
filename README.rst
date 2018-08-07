@@ -24,7 +24,7 @@ The pySTEPS package needs the following dependencies
 * opencv
 * pillow
 * pyproj
-* matplolib (for examples)
+* matplotlib (for examples)
 
 Additionally, the following packages can be installed to provide better computational efficiency:
 
