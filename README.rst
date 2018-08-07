@@ -28,7 +28,7 @@ The pySTEPS package needs the following dependencies
 
 Additionally, the following packages can be installed to provide better computational efficiency:
 
-* dask (for code parallelisation)
+* dask and toolz (for code parallelisation)
 * pyfftw (for faster FFT computations)
 
 We recommend that you create a conda environment using the available `environment.yml`_ file to install all the necessary dependencies::
