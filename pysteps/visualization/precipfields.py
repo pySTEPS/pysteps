@@ -104,7 +104,7 @@ def plot_precip_field(R, with_basemap=False, geodata=None, units='mm/h',
         
         im = _plot_precip_field(R, plt.gca(), units, colorscale, geodata)
     else:
-        bm_params = utils.parse_proj4_string(geodata["projection"], parse_type="basemap")
+        bm_params = utils.proj4_to_basemap(geodata["projection"])
         
         pr = pyproj.Proj(geodata["projection"])
         ll_lon,ll_lat = pr(geodata["x1"], geodata["y1"], inverse=True)

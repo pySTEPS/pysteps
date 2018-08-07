@@ -11,16 +11,13 @@ try:
 except ImportError:
     pyproj_imported = False
 
-def parse_proj4_string(proj4str, parse_type="default"):
-    """Construct a dictionary from a proj 4 string.
+def parse_proj4_string(proj4str):
+    """Construct a dictionary from a PROJ.4 projection string.
     
     Parameters
     ----------
     proj4str : str
-      A proj.4-compatible projection string.
-    parse_type : str
-      The valid options are 'default'=take each token (beginning with '+') in 
-      proj4str as is, 'basemap'=convert the keys to be compatible with Basemap.
+      A PROJ.4-compatible projection string.
     
     Returns
     -------
@@ -29,60 +26,78 @@ def parse_proj4_string(proj4str, parse_type="default"):
       tokens beginning with '+'.
     
     """
-    if parse_type not in ["default", "basemap"]:
-        raise ValueError("invalid parse type: must be 'default' or 'basemap'")
-    
     tokens = proj4str.split('+')
+    
     result = {}
     for t in tokens[1:]:
         if '=' in t:
             k,v = t.split('=')
-            v = v.strip()
-            if parse_type == "basemap":
-                if k == "proj":
-                    # TODO: Make sure that the proj.4 projection type is in all cases 
-                    # mapped to the corresponding (or closest matching) Basemap projection.
-                    if v not in ["latlon", "latlong", "lonlat", "longlat"]:
-                        result["projection"] = v
-                    else:
-                        result["projection"] = "cyl"
-                elif k == "lon_0" or k == "lat_0" or k == "lat_ts":
-                    # TODO: Check that east/west and north/south hemispheres are 
-                    # handled correctly.
-                    if v[-1] in ["E", "N", "S", "W"]:
-                        v = v[:-1]
-                    result[k] = float(v)
-                elif k == "ellps":
-                    result[k] = v
-                elif k == "R":
-                    result["rsphere"] = float(v)
-                elif k in ["k", "k0"]:
-                    result["k_0"] = float(v)
-            else:
-                result[k] = v
+            result[k] = v.strip()
     
     return result
 
-def proj4_to_cartopy(projdef):
+def proj4_to_basemap(proj4str):
+    """Convert a PROJ.4 projection string into a dictionary that can be expanded 
+    as keyword arguments to mpl_toolkits.basemap.Basemap.__init__.
+    
+    Parameters
+    ----------
+    proj4str : str
+        A PROJ.4-compatible projection string.
+    
+    Returns
+    -------
+    out : dict
+        The output dictionary.
+    
+    """
+    pdict = parse_proj4_string(proj4str)
+    odict = {}
+    
+    for k,v in list(pdict.items()):
+        if k == "proj":
+            # TODO: Make sure that the proj.4 projection type is in all cases 
+            # mapped to the corresponding (or closest matching) Basemap projection.
+            if v not in ["latlon", "latlong", "lonlat", "longlat"]:
+                odict["projection"] = v
+            else:
+                odict["projection"] = "cyl"
+        elif k == "lon_0" or k == "lat_0" or k == "lat_ts":
+            # TODO: Check that east/west and north/south hemispheres are 
+            # handled correctly.
+            if v[-1] in ["E", "N", "S", "W"]:
+                v = v[:-1]
+            odict[k] = float(v)
+        elif k == "ellps":
+            odict[k] = v
+        elif k == "R":
+            odict["rsphere"] = float(v)
+        elif k in ["k", "k0"]:
+            odict["k_0"] = float(v)
+    
+    return odict
+
+def proj4_to_cartopy(proj4str):
     """Convert a PROJ.4 projection string into a Cartopy coordinate reference 
     system (crs) object.
     
     Parameters
     ----------
-    projdef : str
-        The projection string.
+    proj4str : str
+        A PROJ.4-compatible projection string.
     
     Returns
     -------
     out : object
         Instance of a crs class defined in cartopy.crs.
+    
     """
     if not cartopy_imported:
         raise Exception("cartopy not imported")
     if not pyproj_imported:
         raise Exception("pyproj not imported")
     
-    proj = pyproj.Proj(projdef)
+    proj = pyproj.Proj(proj4str)
     
     if proj.is_latlong():
         return ccrs.PlateCarree()
