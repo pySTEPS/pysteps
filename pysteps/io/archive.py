@@ -35,7 +35,7 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         If num_prev_files=0 and num_next_files=0, return a pair containing the 
         found file name and the corresponding timestamp as a datetime.datetime 
         object. Otherwise, return a tuple of two lists, the first one for the 
-        file names and the second one for the correspondign timestemps. The lists 
+        file names and the second one for the corresponding timestemps. The lists 
         are sorted in ascending order with respect to timestamp.
     
     """
