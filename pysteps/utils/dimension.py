@@ -1,4 +1,4 @@
-''' Functions to manipualte array dimensions.'''
+''' Functions to manipulate array dimensions.'''
 
 import numpy as np
 
@@ -9,23 +9,26 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
     Parameters
     ----------
     R : array-like
-        Array of shape (t,m,n) or (i,t,m,n) containing the input fields.
+        Array of shape (t,m,n) or (l,t,m,n) containing a time series of (ensemble)
+        input fields.
         They must be evenly spaced in time.
     metadata : dict
-        The metadata dictionary contains all data-related information.
+        The metadata dictionary contains all data-related information. It requires 
+        the key "timestamps".
     time_window_min : float or None
         The length in minutes of the time window that is used to aggregate the fields.
-        The total length of R must be a multiple of time_window_min.
+        The time spanned by the t dimension of R must be a multiple of time_window_min.
         If set to None, it returns a copy of the original R and metadata.
     method : string
         Optional argument that specifies the operation to use to aggregate the values within the time
-        window.
+        window. Default to mean operator.
     
     Returns
     -------
     outputarray : array-like
-        The new array of aggregated precipitation fields of shape (k,m,n), where 
-        k = int(t*delta/time_window_min)
+        The new array of aggregated fields of shape (k,m,n) or (l,k,m,n), where 
+        k = t*delta/time_window_min and delta is the time interval between two
+        successive timestamps.
     metadata : dict 
         The metadata with updated attributes.
         
@@ -71,7 +74,7 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
         
     return R, metadata
 
-def aggregate_fields(R, window_size, axis=0, method="sum"):
+def aggregate_fields(R, window_size, axis=0, method="mean"):
     """Aggregate fields. 
     It attemps to aggregate the given R axis in an integer number of sections of
     length = window_size.  If such a aggregation is not possible, an error is raised.
@@ -85,19 +88,20 @@ def aggregate_fields(R, window_size, axis=0, method="sum"):
     axis : int
         The axis where to perform the aggregation.
     method : string
-        Optional argument that specifies the operation to use to aggregate the values within the time
-        window.
+        Optional argument that specifies the operation to use to aggregate the values within the
+        window. Default to mean operator.
         
     Returns
     -------
     outputarray : array-like
-        The new aggregated array of shape (k,m,n), where k = t/time_window
+        The new aggregated array with shape[axis] = k, where k = R.shape[axis]/window_size
     
     """
     
     N = R.shape[axis]
     if N % window_size:
-        raise ValueError('window_size does not equally split R')
+        raise ValueError('window_size %i does not equally split R.shape[axis] %i' % (window_size, N))
+        
     R = R.copy().swapaxes(axis, 0)    
     shape = list(R.shape)
     R_ = R.reshape((N, -1))
