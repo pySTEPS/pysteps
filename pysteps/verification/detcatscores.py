@@ -36,7 +36,7 @@ def scores_det_cat_fcst(pred, obs, thr, scores):
         +------------+--------------------------------------------------------+    
         |  POD       | probability of detection (hit rate)                    |
         +------------+--------------------------------------------------------+
-        |  SEDI      | linear regression slope (conditional bias)             |
+        |  SEDI      | symmetric extremal dependency index                    |
         +------------+--------------------------------------------------------+
     
     Returns
