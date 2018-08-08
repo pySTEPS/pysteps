@@ -37,6 +37,9 @@ def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
         +------------+----------------------------------------------------------------+
         |  RV_mult   | reduction of variance in multiplicative space                  |
         +------------+----------------------------------------------------------------+
+        |  scatter   | half the distance between the 16% and 84% percentiles of the   |
+        |            | error distribution                                             |
+        +------------+----------------------------------------------------------------+
     
     offset : float
         an offset that is added to both prediction and observation to avoid 0 division
@@ -113,5 +116,10 @@ def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
         if score == 'beta':
             beta = s_o/s_pred*corr_p
             result.append(beta)
+            
+        # scatter
+        if score == 'scatter':
+            scatter = 0.5*(np.nanpercentile(mult_res, 84) - np.nanpercentile(mult_res, 16))
+            result.append(scatter)
     
     return result
