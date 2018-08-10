@@ -1,10 +1,10 @@
 """Evaluation and skill scores for ensemble forecasts."""
 
 import numpy as np
-from .spatialscores import compute_fss
+from .interface import get_method
 
-def ensemble_fss_skill(X_f, X_o, threshold, scale):
-    """Compute mean ensemble skill in terms of FSS.
+def ensemble_skill(X_f, X_o, metric, **kwargs):
+    """Compute mean ensemble skill for a given skill metric.
     
     Parameters
     ----------
@@ -14,61 +14,77 @@ def ensemble_fss_skill(X_f, X_o, threshold, scale):
     X_o : array_like
         Array of shape (m,n) containing the observed field corresponding to 
         the forecast.
-    threshold : float
-        Intensity threshold.
+    metric : str
+        The deterministic skill metric to be used (list available in  
+        :func:`~pysteps.verification.interface.get_method`)
+        
+    Other Parameters
+    ----------------
+    thr : float
+        Intensity threshold for categorical scores.
     scale : int
         The spatial scale to verify in px. In practice it represents the size of 
         the moving window that it is used to compute the fraction of pixels above
-        the threshold.
+        the threshold for the FSS.
         
     Returns
     -------
     out : float
-        The mean of all FSS computed between ensemble members and observation. 
-        This can be used as definition of ensemble skill (as in Zacharov and 
-        Rezcova 2009).
+        The mean skill of all ensemble members that is used as defintion of 
+        ensemble skill (as in Zacharov and Rezcova 2009 with the FSS).
     
     References
     ----------
     :cite:`ZR2009`
     
     """
+    
     if len(X_f.shape) != 3:
         raise ValueError("the number of dimensions of X_f must be equal to 3, but %i dimensions were passed" 
                          % len(X_f.shape))
     if X_f.shape[1:] != X_o.shape:
         raise ValueError("the shape of X_f does not match the shape of X_o (%d,%d)!=(%d,%d)" 
                          % (X_f.shape[1], X_f.shape[2], X_o.shape[0], X_o.shape[1]))
+                         
+    thr = kwargs.get("thr", None)
+    scale = kwargs.get("scale", None)
+                         
+    compute_skill = get_method(metric, type="deterministic")
 
     l = X_f.shape[0]                     
-    fss = []
+    skill = []
     for member in range(l):
-        fss_ = compute_fss(X_f[member, :, :], X_o, threshold, scale)
-        fss.append(fss_)
+        skill_ = compute_skill(X_f[member, :, :], X_o, thr=thr, scale=scale)
+        skill.append(skill_)
             
-    return np.mean(fss)  
+    return np.mean(skill)  
     
-def ensemble_fss_spread(X_f, threshold, scale):
-    """Compute mean ensemble spread in terms of FSS.
+def ensemble_spread(X_f, metric, **kwargs):
+    """Compute mean ensemble spread for a given skill metric.
     
     Parameters
     ----------
     X_f : array-like
         Array of shape (l,m,n) containing the forecast fields of shape (m,n) 
         from l ensemble members.
-    threshold : float
-        Intensity threshold.
+    metric : str
+        The skill metric to be used, the list includes:
+        
+    Other Parameters
+    ----------------
+    thr : float
+        Intensity threshold for categorical scores.
     scale : int
         The spatial scale to verify in px. In practice it represents the size of 
         the moving window that it is used to compute the fraction of pixels above
-        the threshold.
+        the threshold for the FSS.
         
     Returns
     -------
     out : float
-        The mean ensemble FSS computed withing all possible combinations of the
-        ensemble member. This can be used as definition of ensemble spread (as
-        in Zacharov and Rezcova 2009).
+        The mean skill compted between all possible pairs of the ensemble members,
+        which can be used as definition of mean ensemble spread (as in Zacharov 
+        and Rezcova 2009 with the FSS).
     
     References
     ----------
@@ -80,15 +96,21 @@ def ensemble_fss_spread(X_f, threshold, scale):
                          % len(X_f.shape))
     if X_f.shape[0] < 2:
         raise ValueError("the number of members in X_f must be greater than 1, but %i members were passed" 
-                         % X_f.shape[0])                  
+                         % X_f.shape[0])   
+                         
+    thr = kwargs.get("thr", None)
+    scale = kwargs.get("scale", None)
+                         
+    compute_skill = get_method(metric, type="deterministic")              
+                         
     l = X_f.shape[0]
-    fss = []
+    skill = []
     for member in range(l):
         for othermember in range(member + 1, l):
-            fss_ = compute_fss(X_f[member, :, :], X_f[othermember, :, :], threshold, scale)
-            fss.append(fss_)
+            skill_ = compute_skill(X_f[member, :, :], X_f[othermember, :, :], thr=thr, scale=scale)
+            skill.append(skill_)
             
-    return np.mean(fss)        
+    return np.mean(skill)      
             
 def rankhist_init(num_ens_members, X_min):
     """Initialize a rank histogram object.

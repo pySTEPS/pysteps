@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.ndimage.filters import uniform_filter
 
-def compute_fss(X_f, X_o, threshold=1.0, scale=32):
+def compute_fss(X_f, X_o, thr, scale):
     """Compute the fractions skill score (FSS, Roberts and Lean 2008) for a 
     deterministic forecast field and the corresponding observation. 
     
@@ -13,7 +13,7 @@ def compute_fss(X_f, X_o, threshold=1.0, scale=32):
         Array of shape (n,m) containing the deterministic forecast field.
     X_o : array_like
         Array of shape (n,m) containing the observed field
-    threshold : float
+    thr : float
         Intensity threshold.
     scale : int
         The spatial scale to verify in px. In practice it represents the size of 
@@ -35,8 +35,8 @@ def compute_fss(X_f, X_o, threshold=1.0, scale=32):
                             % (X_f.shape[0], X_f.shape[1], X_o.shape[0], X_o.shape[1]))
 
     # Convert to binary fields with the intensity threshold
-    X_f = (X_f >= threshold).astype(float)
-    X_o = (X_o >= threshold).astype(float) 
+    X_f = (X_f >= thr).astype(float)
+    X_o = (X_o >= thr).astype(float) 
     
     # Compute fractions of pixels above the threshold within a square neighboring 
     # area by applying a 2D moving average to the binary fields

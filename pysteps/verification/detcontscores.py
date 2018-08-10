@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.stats import spearmanr, pearsonr
 
-def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
+def scores_det_cont_fcst(pred, obs, scores, **kwargs):
     """Calculate simple and skill scores for deterministic continuous forecasts
     
     Parameters
@@ -41,9 +41,11 @@ def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
         |            | error distribution                                             |
         +------------+----------------------------------------------------------------+
     
+    Other Parameters
+    ----------------
     offset : float
         an offset that is added to both prediction and observation to avoid 0 division
-        when computing multiplicative residuals
+        when computing multiplicative residuals. Default is 0.01.
     
     Returns
     -------
@@ -51,6 +53,8 @@ def scores_det_cont_fcst(pred, obs, scores, offset=0.01):
         list containing the verification results
         
     """
+    
+    offset = kwargs.get("offset", 0.01)
 
     # flatten array if 2D
     pred  = pred.flatten()
