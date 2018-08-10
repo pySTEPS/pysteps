@@ -1,6 +1,6 @@
 
 from . import importers
-
+from . import exporters
 def get_method(name, type):
     """Return a callable function for the method corresponding to the given name.
     
@@ -40,13 +40,24 @@ def get_method(name, type):
         Type of the method. The available options are 'importer' and 'exporter'.
     
     """
-    if name.lower() == "bom_rf3":
-        return importers.import_bom_rf3
-    elif name.lower() == "fmi_pgm":
-        return importers.import_fmi_pgm
-    if name.lower() == "mch_gif":
-        return importers.import_mch_gif
-    elif name.lower() == "odim_hdf5":
-        return importers.import_odim_hdf5
+    if type.lower() == "importer":
+        if name.lower() == "bom_rf3":
+            return importers.import_bom_rf3
+        elif name.lower() == "fmi_pgm":
+            return importers.import_fmi_pgm
+        elif name.lower() == "mch_gif":
+            return importers.import_mch_gif
+        elif name.lower() == "odim_hdf5":
+            return importers.import_odim_hdf5
+        else:
+            raise ValueError("unknown importer method %s" % name)
+            
+    elif type.lower() == "exporter":
+        if name.lower() == "netcdf":
+            return exporters.initialize_forecast_exporter_netcdf
+                else:
+            raise ValueError("unknown exporter method %s" % name)
+
+            
     else:
-        raise ValueError("unknown method %s" % name)
+        raise ValueError("unknown method type %s" % type)
