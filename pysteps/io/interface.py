@@ -47,8 +47,6 @@ def get_method(name, type):
             return importers.import_fmi_pgm
         elif name.lower() == "mch_gif":
             return importers.import_mch_gif
-        elif name.lower() == "mch_metranet":
-            return importers._import_mch_metranet
         elif name.lower() == "odim_hdf5":
             return importers.import_odim_hdf5
         else:
