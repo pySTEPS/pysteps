@@ -90,7 +90,7 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
     
 def boxcox_transform(R, metadata=None, Lambda=None, threshold=None, 
                      zerovalue=None, inverse=False):
-    """The one-parameter Box–Cox transformation.
+    """The one-parameter Box-Cox transformation.
     
     Parameters 
     ---------- 
