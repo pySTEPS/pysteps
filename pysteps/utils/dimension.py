@@ -142,7 +142,8 @@ def square_domain(R, metadata, method="pad", inverse=False):
     shape : 2-element tuple
         Necessary for the inverse method only, it is the original shape of the domain.
     inverse : bool
-        Perform the inverse method, possible only with the "pad" method
+        Perform the inverse method. After a crop, the inverse is performed by 
+        padding the field with zeros.
         
     Returns
     -------
@@ -230,23 +231,39 @@ def square_domain(R, metadata, method="pad", inverse=False):
             raise ValueError("The number of dimension must be <= 4")
                    
         method = metadata.pop("square_method")
-        if method is not "pad":
-            raise ValueError("Inverse method only applicable to padded fields")
         shape = metadata.pop("orig_domain")
         
         if R.shape[2] == shape[0] and R.shape[3] == shape[1]:
             return R.squeeze()
             
-        if R.shape[2] == shape[0]:
-            idx_buffer = int((R.shape[3] - shape[1])/2.)
-            R = R[:, :, :, idx_buffer:(idx_buffer + shape[1])]
-            metadata["x1"] += idx_buffer*metadata["xpixelsize"]
-            metadata["x2"] -= idx_buffer*metadata["xpixelsize"]
+        R_ = np.zeros((R.shape[0], R.shape[1], shape[0], shape[1]))
             
-        elif R.shape[3] == shape[1]:    
-            idx_buffer = int((R.shape[2] - shape[0])/2.)
-            R = R[:, :, idx_buffer:(idx_buffer + shape[0]), :]
-            metadata["y1"] += idx_buffer*metadata["ypixelsize"]
-            metadata["y2"] -= idx_buffer*metadata["ypixelsize"]
+        if method == "pad":
             
-        return R.squeeze(),metadata
+            if R.shape[2] == shape[0]:
+                idx_buffer = int((R.shape[3] - shape[1])/2.)
+                R_ = R[:, :, :, idx_buffer:(idx_buffer + shape[1])]
+                metadata["x1"] += idx_buffer*metadata["xpixelsize"]
+                metadata["x2"] -= idx_buffer*metadata["xpixelsize"]
+                
+            elif R.shape[3] == shape[1]:    
+                idx_buffer = int((R.shape[2] - shape[0])/2.)
+                R_ = R[:, :, idx_buffer:(idx_buffer + shape[0]), :]
+                metadata["y1"] += idx_buffer*metadata["ypixelsize"]
+                metadata["y2"] -= idx_buffer*metadata["ypixelsize"]
+                
+        elif method == "crop":
+        
+            if R.shape[2] == shape[0]:
+                idx_buffer = int((shape[1] - R.shape[3])/2.)
+                R_[:, :, :, idx_buffer:(idx_buffer + R.shape[3])] = R
+                metadata["x1"] -= idx_buffer*metadata["xpixelsize"]
+                metadata["x2"] += idx_buffer*metadata["xpixelsize"]
+                
+            elif R.shape[3] == shape[1]: 
+                idx_buffer = int((shape[0] - R.shape[2])/2.)
+                R_[:, :, idx_buffer:(idx_buffer + R.shape[2]), :] = R
+                metadata["y1"] -= idx_buffer*metadata["ypixelsize"]
+                metadata["y2"] += idx_buffer*metadata["ypixelsize"]
+            
+        return R_.squeeze(),metadata
