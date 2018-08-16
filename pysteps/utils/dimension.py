@@ -180,30 +180,42 @@ def square_domain(R, metadata, method="pad", inverse=False):
         
             new_dim = np.max(orig_dim[2:]) 
             R_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim))*R.min()
+            
             if(orig_dim_x < new_dim):
                 idx_buffer = int((new_dim - orig_dim_x)/2.)
                 R_[:, :, :, idx_buffer:(idx_buffer + orig_dim_x)] = R
+                metadata["x1"] -= idx_buffer*metadata["xpixelsize"]
+                metadata["x2"] += idx_buffer*metadata["xpixelsize"]
+                
             elif(orig_dim_y < new_dim):
                 idx_buffer = int((new_dim - orig_dim_y)/2.)
                 R_[:, :, idx_buffer:(idx_buffer + orig_dim_y), :] = R
-            
+                metadata["y1"] -= idx_buffer*metadata["ypixelsize"]
+                metadata["y2"] += idx_buffer*metadata["ypixelsize"]
+                
         elif method == "crop":
         
             new_dim = np.min(orig_dim[2:]) 
             R_ = np.zeros((orig_dim_n, orig_dim_t, new_dim, new_dim))
+            
             if(orig_dim_x > new_dim):
                 idx_buffer = int((orig_dim_x - new_dim)/2.)
                 R_ = R[:, :, :, idx_buffer:(idx_buffer + new_dim)]
+                metadata["x1"] += idx_buffer*metadata["xpixelsize"]
+                metadata["x2"] -= idx_buffer*metadata["xpixelsize"]
+                
             elif(orig_dim_y > new_dim):
                 idx_buffer = int((orig_dim_y - new_dim)/2.)
                 R_ = R[:, :, idx_buffer:(idx_buffer + new_dim), :]
+                metadata["y1"] += idx_buffer*metadata["ypixelsize"]
+                metadata["y2"] -= idx_buffer*metadata["ypixelsize"]
                 
         else:
             raise ValueError("Unknown type")
                 
         metadata["orig_domain"] = (orig_dim_y, orig_dim_x)    
         metadata["square_method"] = method 
-                
+                       
         return R_.squeeze(),metadata
         
     elif inverse:
@@ -228,8 +240,13 @@ def square_domain(R, metadata, method="pad", inverse=False):
         if R.shape[2] == shape[0]:
             idx_buffer = int((R.shape[3] - shape[1])/2.)
             R = R[:, :, :, idx_buffer:(idx_buffer + shape[1])]
+            metadata["x1"] += idx_buffer*metadata["xpixelsize"]
+            metadata["x2"] -= idx_buffer*metadata["xpixelsize"]
+            
         elif R.shape[3] == shape[1]:    
             idx_buffer = int((R.shape[2] - shape[0])/2.)
             R = R[:, :, idx_buffer:(idx_buffer + shape[0]), :]
+            metadata["y1"] += idx_buffer*metadata["ypixelsize"]
+            metadata["y2"] -= idx_buffer*metadata["ypixelsize"]
             
         return R.squeeze(),metadata
