@@ -110,7 +110,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     else:
                         title = None
 
-                    st.plt.plot_precip_field(R_obs[i,:,:], False, geodata,
+                    st.plt.plot_precip_field(R_obs[i,:,:], map=False, geodata=geodata,
                                   units=units, colorscale=colorscale,
                                   title=title,
                                   colorbar=colorbar)
@@ -138,7 +138,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
 
 
                     st.plt.plot_precip_field(R_fct[n, i - R_obs.shape[0],:,:],
-                                  False, geodata, units=units,
+                                  map=False, geodata=geodata, units=units,
                                   title=title,
                                   colorscale=colorscale, colorbar=colorbar)
                     if UV is not None and motion_plot is not None:
