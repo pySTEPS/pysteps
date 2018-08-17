@@ -122,6 +122,77 @@ def aggregate_fields(R, window_size, axis=0, method="mean"):
         
     return R
 
+def adjust_domain(R, metadata, xlim=None, ylim=None):
+    """Resize the field domain by geographical coordinates.
+    
+    Parameters
+    ----------
+    R : array-like
+        Array of shape (m,n) or (t,m,n) containing the input fields.
+    metadata : dict
+        The metadata dictionary contains all data-related information.
+    xlim : 2-element tuple or list
+        The new limits of the x-coordinates. If set equal to None, the original
+        limits are kept.
+    ylim : 2-element tuple or list
+        The new limits of the y-coordinates. If set equal to None, the original
+        limits are kept.
+        
+    Returns
+    -------
+    R : array-like
+        the reshape dataset
+    metadata : dict 
+        the metadata with updated attributes.
+    
+    """
+    
+    R = R.copy()
+    metadata = metadata.copy()
+    
+    if xlim is None and ylim is None:
+        return R,metadata
+    if ylim is None and xlim is not None:
+        ylim = [metadata["y1"], metadata["y2"]]
+    if xlim is None and ylim is not None:
+        xlim = [metadata["x1"], metadata["x2"]]
+        
+    if len(R.shape) < 2:
+        raise ValueError("The number of dimension must be > 1")
+    if len(R.shape) == 2:
+        R = R[None, None, :]
+    if len(R.shape) == 3:
+        R = R[None, :]
+    if len(R.shape) > 4:
+        raise ValueError("The number of dimension must be <= 4")
+        
+    xlim = np.array(xlim).astype(float)
+    ylim = np.array(ylim).astype(float)
+        
+    new_dim_x = int((xlim.max() - xlim.min())/metadata["xpixelsize"])
+    new_dim_y = int((ylim.max() - ylim.min())/metadata["ypixelsize"])
+    R_ = np.zeros((R.shape[0], R.shape[1], new_dim_y, new_dim_x))
+
+    y_coord = np.linspace(metadata["y1"], metadata["y2"] - metadata["ypixelsize"], R.shape[2]) + metadata["ypixelsize"]/2.
+    x_coord = np.linspace(metadata["x1"], metadata["x2"] - metadata["xpixelsize"], R.shape[3]) + metadata["xpixelsize"]/2.
+
+    y_coord_ = np.linspace(ylim.min(), ylim.max() - metadata["ypixelsize"], R_.shape[2]) + metadata["ypixelsize"]/2.
+    x_coord_ = np.linspace(xlim.min(), xlim.max() - metadata["xpixelsize"], R_.shape[3]) + metadata["xpixelsize"]/2.
+    idx_y = np.where(np.logical_and(y_coord < ylim.max(), y_coord > ylim.min()))[0]
+    idx_x = np.where(np.logical_and(x_coord < xlim.max(), x_coord > xlim.min()))[0]
+
+    idx_y_ = np.where(np.logical_and(y_coord_ < metadata["y2"], y_coord_ > metadata["y1"]))[0]
+    idx_x_ = np.where(np.logical_and(x_coord_ < metadata["x2"], x_coord_ > metadata["x1"]))[0]
+
+    R_[:, :, idx_y_[0]:idx_y_[-1], idx_x_[0]:idx_x_[-1]] = R[:, :, idx_y[0]:idx_y[-1], idx_x[0]:idx_x[-1]]
+        
+    metadata["y1"] = ylim.min()
+    metadata["y2"] = ylim.max()
+    metadata["x1"] = xlim.min()
+    metadata["x2"] = xlim.max()
+        
+    return R_.squeeze(), metadata 
+    
 def square_domain(R, metadata, method="pad", inverse=False):
     """Either pad or crop the data to get a square domain.
     
