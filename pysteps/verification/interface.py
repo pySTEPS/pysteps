@@ -124,8 +124,7 @@ def get_method(name, type="deterministic"):
     
     elif type in ["ensemble"]:
     
-        from .ensscores import ensemble_skill, ensemble_spread, rankhist_accum, 
-                               rankhist_compute
+        from .ensscores import ensemble_skill, ensemble_spread, rankhist_accum, rankhist_compute
 
             
         if name in ["ens_skill"]:
@@ -139,8 +138,7 @@ def get_method(name, type="deterministic"):
     
     elif type in ["probabilistic"]:
     
-        from .probscores import CRPS, reldiag_init, reldiag_accum, reldiag_compute, 
-                                ROC_curve_init, ROC_curve_accum, ROC_curve_compute   
+        from .probscores import CRPS, reldiag_init, reldiag_accum, reldiag_compute, ROC_curve_init, ROC_curve_accum, ROC_curve_compute   
 
         if name in ["crps"]:
             return CRPS
