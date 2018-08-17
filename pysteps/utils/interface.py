@@ -35,6 +35,8 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
+    |  adjust           | resize the field domain by geographical coordinates    |
+    +-------------------+--------------------------------------------------------+
     |  aggregate        | aggregate fields in time                               |
     +-------------------+--------------------------------------------------------+
     |  square           | either pad or crop the data to get a square domain     |
@@ -55,6 +57,8 @@ def get_method(name):
         return transformation.dB_transform
     elif name.lower() in ["boxcox", "box-cox"]:
         return transformation.boxcox_transform
+    elif name.lower() in ["adjust"]:
+        return dimension.adjust_domain
     elif name.lower() in ["aggregate", "accumulate"]:
         return dimension.aggregate_fields_time
     elif name.lower() in ["square"]:
