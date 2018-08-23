@@ -194,7 +194,7 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
     return R_.squeeze(), metadata 
     
 def square_domain(R, metadata, method="pad", inverse=False):
-    """Either pad or crop the data to get a square domain.
+    """Either pad or crop a field to obtain a square domain.
     
     Parameters
     ----------
@@ -208,13 +208,10 @@ def square_domain(R, metadata, method="pad", inverse=False):
         side in order to produce a square domain.
         If crop, an equal number of pixels is removed to both ends of its longest
         side in order to produce a square domain. 
-        Note that the crop method is irreversible, while the pad method can be
-        reversed with the unsquare_domain() method.
-    shape : 2-element tuple
-        Necessary for the inverse method only, it is the original shape of the domain.
+        Note that the crop method involves a loss of data.
     inverse : bool
-        Perform the inverse method. After a crop, the inverse is performed by 
-        padding the field with zeros.
+        Perform the inverse method to recover the original domain shape. After a 
+        crop, the inverse is performed by padding the field with zeros.
         
     Returns
     -------
