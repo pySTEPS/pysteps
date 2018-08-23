@@ -1,0 +1,67 @@
+
+import numpy as np
+
+def mean(X, ignore_nan=False, X_thr=None):
+    """Compute the mean value from a forecast ensemble field.
+    
+    Parameters
+    ----------
+    X : array_like
+        Array of shape (n_members,m,n) containing an ensemble of forecast 
+        fields of shape (m,n).
+    ignore_nan : bool
+        If True, ignore nan values.
+    X_thr : float
+        Optional threshold for computing the ensemble mean. Values below X_thr 
+        are ignored.
+    
+    Returns
+    -------
+    out : ndarray
+        Array of shape (m,n) containing the ensemble mean.
+    """
+    if ignore_nan or X_thr is not None:
+        if X_thr is not None:
+            X = X.copy()
+            X[X < X_thr] = np.nan
+        
+        return np.nanmean(X, axis=0)
+    else:
+        return np.mean(X, axis=0)
+
+def excprob(X, X_thr, ignore_nan=False):
+    """For a given forecast ensemble field, compute exceedance probabilities 
+    for the given intensity thresholds.
+    
+    Parameters
+    ----------
+    X : array_like
+        Array of shape (n_members,m,n) containing an ensemble of forecast 
+        fields of shape (m,n).
+    X_thr : a sequence of floats
+        Intensity thresholds for which the exceedance probabilities are 
+        computed.
+    ignore_nan : bool
+        If True, ignore inf and nan values.
+    
+    Returns
+    -------
+    out : ndarray
+        Array of shape (k,m,n) containing the exceedance probabilities for the 
+        k given intensity thresholds.
+    """
+    P = []
+    
+    for x in X_thr:
+        if ignore_nan or X_thr is not None:
+            if X_thr is not None:
+                X_ = X.copy()
+                X_[X_ < x] = np.nan
+            else:
+                X_ = X
+            
+            P.append(1.0*np.nansum(X_, axis=0))
+        else:
+            P.append(1.0*np.sum(X, axis=0))
+    
+    return np.stack(P)
