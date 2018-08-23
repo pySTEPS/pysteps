@@ -7,7 +7,7 @@ import time
 from .. import advection
 from .. import cascade
 from .. import noise
-from ..postproc import probmatching
+from ..postprocessing import probmatching
 from ..timeseries import autoregression, correlation
 try:
     import dask
