@@ -1,7 +1,7 @@
-"""Methods to plot precipitation fields."""
+"""Methods for plotting precipitation fields."""
 
 import matplotlib.pylab as plt
-import matplotlib.colors as colors
+from matplotlib import cm, colors
 import numpy as np
 try:
     from mpl_toolkits.basemap import Basemap
@@ -25,7 +25,8 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
                       colorscale='MeteoSwiss', title=None, colorbar=True, 
                       drawlonlatlines=False, basemap_resolution='l', 
                       cartopy_scale="50m"):
-    """Function to plot a precipitation field with a colorbar.
+    """Function to plot a precipitation intensity or probability field with a 
+    colorbar.
     
     Parameters
     ----------
@@ -64,22 +65,23 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
         |                 | 'upper' = upper border, 'lower' = lower border     |
         +-----------------+----------------------------------------------------+
     units : str
-        Units of the input array (mm/h or dBZ)
-    colorscale : str 
-        Which colorscale to use (MeteoSwiss, STEPS-BE)
+        Units of the input array (mm/h, dBZ or prob).
+    colorscale : str
+        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is 
+        'mm/h' or 'dBZ'.
     title : str
         If not None, print the title on top of the plot.
     colorbar : bool
         If set to True, add a colorbar on the right side of the plot.
     drawlonlatlines : bool
-        If set to True, draw longitude and latitude lines. Applicable if 
-        map=='basemap' or map=='cartopy'.
+        If set to True, draw longitude and latitude lines. Applicable if map is 
+        'basemap' or 'cartopy'.
     basemap_resolution : str
         The resolution of the basemap, see the documentation of mpl_toolkits.basemap. 
-        Applicable if map=='basemap'.
+        Applicable if map is 'basemap'.
     cartopy_scale : str
-        The scale (resolution) of the cartopy map. The available options are 
-        '10m', '50m', and '110m'.
+        The scale (resolution) of the map. The available options are '10m', 
+        '50m', and '110m'. Applicable if map is 'cartopy'.
     
     Returns
     -------
@@ -117,8 +119,7 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
         plt.imshow(mask, cmap=colors.ListedColormap(['gray']), 
                    extent=extent, origin=origin)
         
-        im = _plot_precip_field(R, plt.gca(), units, colorscale, geodata, 
-                                extent=extent)
+        im = _plot_field(R, plt.gca(), units, colorscale, geodata, extent=extent)
     else:
         if map == "basemap":
             pr = pyproj.Proj(geodata["projection"])
@@ -148,7 +149,7 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
             
             extent = (x1, x2, y2, y1)
         
-        im = _plot_precip_field(R, bm, units, colorscale, geodata, extent=extent)
+        im = _plot_field(R, bm, units, colorscale, geodata, extent=extent)
         
         # Plot radar domain mask
         mask = np.ones(R.shape)
@@ -161,8 +162,10 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
     
     # Add colorbar
     if colorbar:
-        cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm, extend='max')
-        cbar.ax.set_yticklabels(clevsStr)
+        cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm, 
+                            extend="max" if units != "prob" else "neither")
+        if clevsStr != None:
+            cbar.ax.set_yticklabels(clevsStr)
         cbar.ax.set_title(units, fontsize=12)
     
     if map is None:
@@ -178,7 +181,7 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
     else:
         return bm
 
-def _plot_precip_field(R, ax, units, colorscale, geodata, extent):
+def _plot_field(R, ax, units, colorscale, geodata, extent):
     R = R.copy()
     
     # Get colormap and color levels
@@ -192,12 +195,18 @@ def _plot_precip_field(R, ax, units, colorscale, geodata, extent):
 #        extent = np.array([0, R.shape[1], 0, R.shape[0]])
     
     # Plot precipitation field
+    # transparent where no precipitation or the probability is zero
     if units == 'mm/h':
-        R[R < 0.1] = np.nan # Transparent where no precipitation
-    if units == 'dBZ':
+        R[R < 0.1] = np.nan
+    elif units == 'dBZ':
         R[R < 10] = np.nan
+    else:
+        R[R < 1e-3] = np.nan
+    
+    vmin,vmax = [None, None] if units != "prob" else [0.0, 1.0]
+    
     im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest', 
-                   zorder=1)
+                   vmin=vmin, vmax=vmax, zorder=1)
     
     return im
 
@@ -207,9 +216,10 @@ def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
     Parameters
     ----------
     units : str
-        Units of the input array (mm/h or dBZ)
+        Units of the input array (mm/h, dBZ or prob)
     colorscale : str
-        Which colorscale to use (MeteoSwiss, STEPS-BE)
+        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is 
+        'mm/h' or 'dBZ'.
     
     Returns
     -------
@@ -220,22 +230,26 @@ def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
     clevs: list(float)
         List of precipitation values defining the color limits.
     clevsStr: list(str)
-        List of precipitation values defining the color limits (with correct number of decimals).
+        List of precipitation values defining the color limits (with correct 
+        number of decimals).
     
     """
-    # Get list of colors
-    colors_list,clevs,clevsStr = _get_colorlist(units, colorscale)
-    
-    cmap = colors.LinearSegmentedColormap.from_list("cmap", colors_list, len(clevs)-1)
-    
-    if colorscale == 'MeteoSwiss':
-        cmap.set_over('darkred',1)
-    if colorscale == 'STEPS-BE':
-        cmap.set_over('black',1)
-    norm = colors.BoundaryNorm(clevs, cmap.N)    
-    
-    return cmap, norm, clevs, clevsStr
-    
+    if units != "prob":
+        # Get list of colors
+        colors_list,clevs,clevsStr = _get_colorlist(units, colorscale)
+        
+        cmap = colors.LinearSegmentedColormap.from_list("cmap", colors_list, len(clevs)-1)
+        
+        if colorscale == 'MeteoSwiss':
+            cmap.set_over('darkred',1)
+        if colorscale == 'STEPS-BE':
+            cmap.set_over('black',1)
+        norm = colors.BoundaryNorm(clevs, cmap.N)    
+        
+        return cmap, norm, clevs, clevsStr
+    else:
+        return cm.jet, colors.Normalize(), None, None
+
 def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     """Function to get a list of colors to generate the colormap. 
     
