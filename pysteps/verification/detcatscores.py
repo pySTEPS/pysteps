@@ -2,7 +2,7 @@
 
 import numpy as np
 
-def scores_det_cat_fcst(pred, obs, thr, scores):
+def det_cat_fcst(pred, obs, thr, scores):
     """Calculate simple and skill scores for deterministic categorical forecasts.
     
     Parameters
@@ -107,5 +107,5 @@ def scores_det_cat_fcst(pred, obs, thr, scores):
             SEDI = (np.log(FA)-np.log(POD)+np.log(1-POD)-np.log(1-FA))/(np.log(FA)
                     +np.log(POD)+np.log(1-POD)+np.log(1-FA))
             result.append(SEDI)
-            
+    
     return result

@@ -98,21 +98,21 @@ def get_method(name, type="deterministic"):
     
     if type in ["deterministic"]:
     
-        from .detcatscores import scores_det_cat_fcst
-        from .detcontscores import scores_det_cont_fcst
+        from .detcatscores import det_cat_fcst
+        from .detcontscores import det_cont_fcst
         from .spatialscores import compute_fss
         
         # categorical
         if name in ["acc", "csi", "fa", "far", "gss", "hk", "hss", "pod", "sedi"]:
             def f(fct, obs, **kwargs):
-                return scores_det_cat_fcst(fct, obs, kwargs.pop("thr"), [name])
+                return det_cat_fcst(fct, obs, kwargs.pop("thr"), [name])
             return f
         
         # continuous
         elif name in ["beta", "corr_p", "corr_s", "me_add", "me_mult", "rmse_add", 
                       "rmse_mult", "rv_add", "rv_mult", "scatter"]:
             def f(fct, obs, **kwargs):
-                return scores_det_cont_fcst(fct, obs, [name], **kwargs)
+                return det_cont_fcst(fct, obs, [name], **kwargs)
             return f
         
         # spatial
@@ -123,10 +123,10 @@ def get_method(name, type="deterministic"):
             raise ValueError("unknown deterministic method %s" % name)
     
     elif type in ["ensemble"]:
-    
-        from .ensscores import ensemble_skill, ensemble_spread, rankhist_accum, rankhist_compute
-
-            
+        
+        from .ensscores import ensemble_skill, ensemble_spread, rankhist_init, \
+          rankhist_accum, rankhist_compute
+        
         if name in ["ens_skill"]:
             return ensemble_skill
         elif name in ["ens_spread"]:

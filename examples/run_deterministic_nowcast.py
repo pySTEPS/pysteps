@@ -130,8 +130,8 @@ metadata_obs["threshold"] = r_threshold
 ## compute verification scores
 scores = np.zeros(n_lead_times)*np.nan
 for i in range(n_lead_times):
-    scores[i] = stp.vf.scores_det_cat_fcst(R_fct[i,:,:], R_obs[i,:,:], 
-                                          v_threshold, [skill_score])[0]
+    scores[i] = stp.vf.det_cat_fcst(R_fct[i,:,:], R_obs[i,:,:], 
+                                    v_threshold, [skill_score])[0]
 
 ## if already exists, load the figure object to append the new verification results
 filename = "%s/%s" % (cfg.path_outputs, "verif_deterministic_nwc_example")
