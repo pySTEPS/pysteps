@@ -89,7 +89,7 @@ def scores_det_cat_fcst(pred, obs, thr, scores):
             CSI = H/(H+M+F)       # critical success index
             result.append(CSI)
         if score == 'bias': # frequency bias 
-            B = H + (1 - s)*FA/s
+            B = (H + F) / (H + M)
             result.append(B)
         
         # skill scores
