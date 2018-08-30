@@ -15,7 +15,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     ----------
     R_obs : array-like
         Three-dimensional array containing the time series of observed
-        precipitation field.
+        precipitation fields.
     
     Other parameters
     ----------------
@@ -103,16 +103,18 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         n_lead_times = 0
         n_members = 1
 
+    n_obs = R_obs.shape[0]
+
     loop = 0
     while loop < nloops:
 
         for n in range(n_members):
 
-            for i in range(R_obs.shape[0] + n_lead_times):
+            for i in range(n_obs + n_lead_times):
                 plt.clf()
 
                 # Observations
-                if i < R_obs.shape[0] and (plotanimation or n == 0):
+                if i < n_obs and (plotanimation or n == 0):
 
                     if timestamps is not None:
                         title = timestamps[i].strftime("%Y-%m-%d %H:%M")
@@ -134,18 +136,18 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         print(figname, 'saved.')
 
                 # Forecasts
-                elif i >= R_obs.shape[0] and R_fct is not None:
+                elif i >= n_obs and R_fct is not None:
 
                     if timestamps is not None:
                         title = "%s +%02d min" % (timestamps[-1].strftime("%Y-%m-%d %H:%M"),
-                                (1 + i - R_obs.shape[0])*timestep_min)
+                                (1 + i - n_obs)*timestep_min)
                     else:
-                        title = "+%02d min" % ((1 + i - R_obs.shape[0])*timestep_min)
+                        title = "+%02d min" % ((1 + i - n_obs)*timestep_min)
 
                     if n_members > 1:
                         title = "%s (member %02d)" % (title, (n+1))
                     
-                    st.plt.plot_precip_field(R_fct[n, i - R_obs.shape[0],:,:], 
+                    st.plt.plot_precip_field(R_fct[n, i - n_obs,:,:], 
                                   geodata=geodata, units=units, title=title, 
                                   colorscale=colorscale, colorbar=colorbar)
                     
@@ -185,7 +187,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_probmap_%.1f.png" % \
-                                (path_outputs, startdate_str, i, thr)
+                                (path_outputs, startdate_str, i+n_obs, thr)
                             plt.savefig(figname)
                             print(figname, "saved.")
                         
@@ -202,7 +204,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
 
                     if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_ensmean.png" % \
-                                (path_outputs, startdate_str, i)
+                                (path_outputs, startdate_str, i+n_obs)
                             plt.savefig(figname)
                             print(figname, "saved.")
 
