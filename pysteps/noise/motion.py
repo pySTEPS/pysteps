@@ -24,8 +24,8 @@ determined from the perturbator."""
 import numpy as np
 from scipy import linalg
 
-def initialize_bps(V, pixelsperkm, timestep, p_pert_par=(10.88,0.23,-7.68), 
-                   p_pert_perp=(5.76,0.31,-2.72), randstate=np.random, seed=None):
+def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None, 
+                   randstate=np.random, seed=None):
     """Initialize the motion field perturbator described in :cite:`BPS2006`. 
     For simplicity, the bias adjustment procedure described there has not been 
     implemented. The perturbator generates a constant field whose magnitude 
@@ -74,6 +74,11 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=(10.88,0.23,-7.68),
         raise ValueError("the length of p_pert_par is not 3")
     if len(p_pert_perp) != 3:
         raise ValueError("the length of p_pert_perp is not 3")
+    
+    if p_pert_par is None:
+        p_pert_par = (10.88,0.23,-7.68)
+    if p_pert_perp is None:
+        p_pert_perp = (5.76,0.31,-2.72)
     
     perturbator = {}
     
