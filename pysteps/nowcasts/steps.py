@@ -199,9 +199,9 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
     print("ensemble size:            %d" % n_ens_members)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
-    if vel_pert_method is not None:
-        vp_par  = vel_pert_kwargs["p_pert_par"]
-        vp_perp = vel_pert_kwargs["p_pert_perp"]
+    if vel_pert_method is "bps":
+        vp_par  = vel_pert_kwargs.get("p_pert_par",  noise.motion.get_default_params_par())
+        vp_perp = vel_pert_kwargs.get("p_pert_perp", noise.motion.get_default_params_perp())
         print("velocity perturbations, parallel:      %g,%g,%g" % \
             (vp_par[0],  vp_par[1],  vp_par[2]))
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
