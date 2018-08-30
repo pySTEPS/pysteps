@@ -42,7 +42,7 @@ def excprob(X, X_thr, ignore_nan=False):
         Intensity thresholds for which the exceedance probabilities are 
         computed.
     ignore_nan : bool
-        If True, ignore inf and nan values.
+        If True, ignore nan values.
     
     Returns
     -------
@@ -53,15 +53,14 @@ def excprob(X, X_thr, ignore_nan=False):
     P = []
     
     for x in X_thr:
-        if ignore_nan or X_thr is not None:
-            if X_thr is not None:
-                X_ = X.copy()
-                X_[X_ < x] = np.nan
-            else:
-                X_ = X
-            
-            P.append(1.0*np.nansum(X_, axis=0))
+        X_ = X.copy()
+        
+        X_[X_ >= x] = 1.0
+        X_[X_ <  x] = 0.0
+        
+        if ignore_nan:
+            P.append(np.nanmean(X_, axis=0))
         else:
-            P.append(1.0*np.sum(X, axis=0))
+            P.append(np.mean(X_, axis=0))
     
     return np.stack(P)
