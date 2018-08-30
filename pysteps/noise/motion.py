@@ -24,12 +24,12 @@ determined from the perturbator."""
 import numpy as np
 from scipy import linalg
 
-def get_default_params_par():
+def get_default_params_bps_par():
     """Return a tuple containing the default velocity perturbation parameters 
     given in :cite:`BPS2006` for the parallel component."""
     return (10.88,0.23,-7.68)
 
-def get_default_params_perp():
+def get_default_params_bps_perp():
     """Return a tuple containing the default velocity perturbation parameters 
     given in :cite:`BPS2006` for the perpendicular component."""
     return (5.76,0.31,-2.72)
