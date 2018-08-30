@@ -140,7 +140,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         title = "+%02d min" % ((1 + i - R_obs.shape[0])*timestep_min)
 
                     if n_members > 1:
-                        title = "%s (member %02d)" % (title, n)
+                        title = "%s (member %02d)" % (title, (n+1))
                     
                     st.plt.plot_precip_field(R_fct[n, i - R_obs.shape[0],:,:], 
                                   geodata=geodata, units=units,
@@ -153,7 +153,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         elif motion_plot.lower() == "streamplot":
                             st.plt.streamplot(UV, geodata)
                     if savefig & (loop == 0):
-                        figname = "%s/%s_frame_%02d.png" % (path_outputs, startdate_str, i)
+                        figname = "%s/%s_frame_%02d_member_%02d.png" % \
+                            (path_outputs, startdate_str, i, (n+1))
                         plt.savefig(figname)
                         print(figname, "saved.")
 
@@ -181,7 +182,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                              probthr=thr, title=title)
 
                     if savefig & (loop == 0):
-                        figname = "%s/%s_probmap_%02d_%.1f.png" % \
+                        figname = "%s/%s_probmap_frame_%02d_%.1f.png" % \
                             (path_outputs, startdate_str, i, thr)
                         plt.savefig(figname)
                         print(figname, "saved.")
