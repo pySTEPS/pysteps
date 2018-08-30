@@ -103,13 +103,13 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                 plt.clf()
 
                 # Observations
-                if i < R_obs.shape[0]:
+                if i < R_obs.shape[0] and (plotanimation or n == 0):
 
                     if timestamps is not None:
                         title = timestamps[i].strftime("%Y-%m-%d %H:%M")
                     else:
                         title = None
-
+                    
                     st.plt.plot_precip_field(R_obs[i,:,:], geodata=geodata,
                                   units=units, colorscale=colorscale,
                                   title=title,
@@ -135,12 +135,12 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
 
                     if n_members > 1:
                         title = "%s (member %02d)" % (title, n)
-
-
+                    
                     st.plt.plot_precip_field(R_fct[n, i - R_obs.shape[0],:,:], 
                                   geodata=geodata, units=units,
                                   title=title,
                                   colorscale=colorscale, colorbar=colorbar)
+                    
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
                             st.plt.quiver(UV, geodata)
