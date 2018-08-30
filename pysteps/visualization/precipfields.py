@@ -21,9 +21,9 @@ except ImportError:
     pyproj_imported = False
 from . import utils
 
-def plot_precip_field(R, map=None, geodata=None, units='mm/h', 
-                      colorscale='MeteoSwiss', title=None, colorbar=True, 
-                      drawlonlatlines=False, basemap_resolution='l', 
+def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h', 
+                      colorscale='MeteoSwiss', probthr=None, title=None, 
+                      colorbar=True, drawlonlatlines=False, basemap_resolution='l', 
                       cartopy_scale="50m"):
     """Function to plot a precipitation intensity or probability field with a 
     colorbar.
@@ -31,10 +31,14 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
     Parameters
     ----------
     R : array-like
-        Two-dimensional array containing the input precipitation field.
+        Two-dimensional array containing the input precipitation field or an 
+        exceedance probability map.
     
     Other parameters
     ----------------
+    type : str
+        Type of the map to plot: 'intensity' = precipitation intensity field, 
+        'prob' = exceedance probability field.
     map : str
         Optional method for plotting a map: 'basemap' or 'cartopy'. The former 
         uses mpl_toolkits.basemap (https://matplotlib.org/basemap), and the 
@@ -65,10 +69,14 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
         |                 | 'upper' = upper border, 'lower' = lower border     |
         +-----------------+----------------------------------------------------+
     units : str
-        Units of the input array (mm/h, dBZ or prob).
+        Units of the input array (mm/h or dBZ). If type is 'prob', this specifies 
+        the unit of the intensity threshold.
     colorscale : str
         Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is 
         'mm/h' or 'dBZ'.
+    probthr : float
+      Intensity threshold for the exceedance probability map. Required if type 
+      is "prob".
     title : str
         If not None, print the title on top of the plot.
     colorbar : bool
@@ -89,6 +97,12 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     
     """
+    if type not in ["intensity", "prob"]:
+        raise ValueError("invalid type '%s', must be 'intensity' or 'prob'" % type)
+    if units not in ["mm/h", "dBZ"]:
+        raise ValueError("invalid units '%s', must be 'mm/h' or 'dBZ'")
+    if type == "prob" and probthr is None:
+        raise Exception("type='prob' but probthr not specified")
     if map is not None and map not in ["basemap", "cartopy"]:
         raise ValueError("unknown map method %s: must be 'basemap' or 'cartopy'" % map)
     if map == "basemap" and not basemap_imported:
@@ -101,7 +115,7 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
         raise ValueError("the input is not two-dimensional array")
     
     # Get colormap and color levels
-    cmap, norm, clevs, clevsStr = get_colormap(units, colorscale)
+    cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
     
     if map is None:
         # Extract extent for imshow function
@@ -119,7 +133,7 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
         plt.imshow(mask, cmap=colors.ListedColormap(['gray']), 
                    extent=extent, origin=origin)
         
-        im = _plot_field(R, plt.gca(), units, colorscale, geodata, extent=extent)
+        im = _plot_field(R, plt.gca(), type, units, colorscale, geodata, extent=extent)
     else:
         if map == "basemap":
             pr = pyproj.Proj(geodata["projection"])
@@ -149,7 +163,7 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
             
             extent = (x1, x2, y2, y1)
         
-        im = _plot_field(R, bm, units, colorscale, geodata, extent=extent)
+        im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent)
         
         # Plot radar domain mask
         mask = np.ones(R.shape)
@@ -163,10 +177,15 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
     # Add colorbar
     if colorbar:
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm, 
-                            extend="max" if units != "prob" else "neither")
+                            extend="max" if type == "intensity" else "neither")
         if clevsStr != None:
             cbar.ax.set_yticklabels(clevsStr)
-        cbar.ax.set_title(units, fontsize=12)
+        
+        if type == "intensity":
+            cbar.ax.set_title(units, fontsize=12)
+            cbar.set_label("Precipitation intensity")
+        else:
+            cbar.set_label("P(R > %.1f %s)" % (probthr, units))
     
     if map is None:
         axes = plt.gca()
@@ -181,11 +200,11 @@ def plot_precip_field(R, map=None, geodata=None, units='mm/h',
     else:
         return bm
 
-def _plot_field(R, ax, units, colorscale, geodata, extent):
+def _plot_field(R, ax, type, units, colorscale, geodata, extent):
     R = R.copy()
     
     # Get colormap and color levels
-    cmap, norm, clevs, clevsStr = get_colormap(units, colorscale)
+    cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
     
     # Extract extent for imshow function
 #    if geodata is not None:
@@ -196,27 +215,31 @@ def _plot_field(R, ax, units, colorscale, geodata, extent):
     
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
-    if units == 'mm/h':
-        R[R < 0.1] = np.nan
-    elif units == 'dBZ':
-        R[R < 10] = np.nan
+    if type == "intensity":
+        if units == 'mm/h':
+            R[R < 0.1] = np.nan
+        elif units == 'dBZ':
+            R[R < 10] = np.nan
     else:
         R[R < 1e-3] = np.nan
     
-    vmin,vmax = [None, None] if units != "prob" else [0.0, 1.0]
+    vmin,vmax = [None, None] if type == "intensity" else [0.0, 1.0]
     
     im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest', 
                    vmin=vmin, vmax=vmax, zorder=1)
     
     return im
 
-def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
+def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
     """Function to generate a colormap (cmap) and norm.
     
     Parameters
     ----------
+    type : str
+        Type of the map to plot: 'intensity' = precipitation intensity field, 
+        'prob' = exceedance probability field.
     units : str
-        Units of the input array (mm/h, dBZ or prob)
+        Units of the input array (mm/h or dBZ).
     colorscale : str
         Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is 
         'mm/h' or 'dBZ'.
@@ -234,7 +257,7 @@ def get_colormap(units='mm/h', colorscale='MeteoSwiss'):
         number of decimals).
     
     """
-    if units != "prob":
+    if type == "intensity":
         # Get list of colors
         colors_list,clevs,clevsStr = _get_colorlist(units, colorscale)
         
