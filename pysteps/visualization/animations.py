@@ -6,8 +6,8 @@ import pysteps as st
 
 def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5, 
             UV=None, motion_plot="quiver", geodata=None, colorscale="MeteoSwiss", 
-            units="mm/h", colorbar=True, plotanimation=True, savefig=False, 
-            path_outputs=""):
+            units="mm/h", colorbar=True, probmaps=False, probmap_thrs=None, 
+            plotanimation=True, savefig=False, path_outputs=""):
     """Function to animate observations and forecasts in pysteps.
     
     Parameters
@@ -64,6 +64,12 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         If not None, print the title on top of the plot.
     colorbar : bool
         If set to True, add a colorbar on the right side of the plot.
+    probmaps : bool
+        If True, compute and plot exceedance probability maps from the nowcast 
+        ensemble.
+    probmap_thrs : a sequence of floats
+        Intensity thresholds for the exceedance probability maps. Applicable 
+        if probmaps is set to True.
     plotanimation : bool
         If set to True, visualize the animation (useful when one is only interested
         in saving the individual frames).
@@ -157,6 +163,31 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
             if plotanimation:
                 plt.pause(.5)
 
+        if probmaps:
+            for i in range(n_lead_times):
+                if timestamps is not None:
+                    title = "%s +%02d min" % (timestamps[-1].strftime("%Y-%m-%d %H:%M"),
+                                (1 + i)*timestep_min)
+                else:
+                    title = "+%02d min" % ((1 + i)*timestep_min)
+
+                P = st.postprocessing.ensemblestats.excprob(R_fct[:, i, :, :], probmap_thrs)
+
+                for j,thr in enumerate(probmap_thrs):
+                    plt.clf()
+
+                    st.plt.plot_precip_field(P[j, :, :], type="prob", 
+                                             geodata=geodata, units=units, 
+                                             probthr=thr, title=title)
+
+                    if savefig & (loop == 0):
+                        figname = "%s/%s_probmap_%02d_%.1f.png" % \
+                            (path_outputs, startdate_str, i, thr)
+                        plt.savefig(figname)
+                        print(figname, "saved.")
+
+                    if plotanimation:
+                        plt.pause(.2)
 
         loop += 1
 
