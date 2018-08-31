@@ -9,7 +9,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
             UV=None, motion_plot="quiver", geodata=None, map=None, 
             colorscale="MeteoSwiss", units="mm/h", colorbar=True, probmaps=False, 
             probmap_thrs=None, ensmeans=False, plotanimation=True, savefig=False, 
-            path_outputs="", **kwargs):
+            dpi=150, path_outputs="", **kwargs):
     """Function to animate observations and forecasts in pysteps.
     
     Parameters
@@ -81,6 +81,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         in saving the individual frames).
     savefig : bool
         If set to True, save the individual frames to path_outputs.
+    dpi : scalar > 0
+        Resolution of the output figures, see the documentation of 
+        matplotlib.pyplot.savefig. Applicable if savefig is True.
     path_outputs : string
         Path to folder where to save the frames.
     **kwargs : dict
@@ -136,7 +139,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                             st.plt.streamplot(UV, geodata)
                     if savefig & (loop == 0):
                         figname = "%s/%s_frame_%02d.png" % (path_outputs, startdate_str, i)
-                        plt.savefig(figname, bbox_inches="tight")
+                        plt.savefig(figname, bbox_inches="tight", dpi=dpi)
                         print(figname, 'saved.')
 
                 # Forecasts
@@ -164,7 +167,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     if savefig & (loop == 0):
                         figname = "%s/%s_frame_%02d_member_%02d.png" % \
                             (path_outputs, startdate_str, i, (n+1))
-                        plt.savefig(figname, bbox_inches="tight")
+                        plt.savefig(figname, bbox_inches="tight", dpi=dpi)
                         print(figname, "saved.")
 
                 if plotanimation:
@@ -194,7 +197,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_probmap_%.1f.png" % \
                                 (path_outputs, startdate_str, i+n_obs, thr)
-                            plt.savefig(figname, bbox_inches="tight")
+                            plt.savefig(figname, bbox_inches="tight", dpi=dpi)
                             print(figname, "saved.")
                         
                         if plotanimation:
@@ -216,7 +219,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_ensmean.png" % \
                                 (path_outputs, startdate_str, i+n_obs)
-                            plt.savefig(figname, bbox_inches="tight")
+                            plt.savefig(figname, bbox_inches="tight", dpi=dpi)
                             print(figname, "saved.")
 
                     if plotanimation:
