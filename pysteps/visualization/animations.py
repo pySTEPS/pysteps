@@ -202,6 +202,11 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                              title=title, colorscale=colorscale, 
                                              colorbar=colorbar)
 
+                    if motion_plot.lower() == "quiver":
+                        st.plt.quiver(UV, geodata)
+                    elif motion_plot.lower() == "streamplot":
+                        st.plt.streamplot(UV, geodata)
+
                     if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_ensmean.png" % \
                                 (path_outputs, startdate_str, i+n_obs)
