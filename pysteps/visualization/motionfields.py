@@ -10,8 +10,10 @@ def quiver(UV, ax=None, geodata=None, **kwargs):
     
     Parameters
     ----------
-    UV : array-like 
+    UV : array-like
         Array of shape (2,m,n) containing the input motion field.
+    ax : axis object
+        Optional axis object to use for plotting.
     geodata : dictionary
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
@@ -49,7 +51,7 @@ def quiver(UV, ax=None, geodata=None, **kwargs):
         Optional color of the arrows. This is a synonym for the PolyCollection 
         facecolor kwarg in matplotlib.collections.
         Default : black
-        
+    
     Returns
     -------
     out : axis object
@@ -65,8 +67,8 @@ def quiver(UV, ax=None, geodata=None, **kwargs):
     
     # prepare x y coordinates
     if geodata is not None:
-        x = np.linspace(geodata['x1']/geodata["xpixelsize"], geodata['x2']/geodata["xpixelsize"], UV.shape[2])
-        y = np.linspace(geodata['y1']/geodata["ypixelsize"], geodata['y2']/geodata["ypixelsize"], UV.shape[1])
+        x = np.linspace(geodata['x1'], geodata['x2'], UV.shape[2])
+        y = np.linspace(geodata['y1'], geodata['y2'], UV.shape[1])
     else:
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1])
@@ -77,8 +79,8 @@ def quiver(UV, ax=None, geodata=None, **kwargs):
     x_ = x[0:UV.shape[2]:step]
     
     ax.quiver(x_, np.flipud(y_), UV_[0,:,:], -UV_[1,:,:], angles='xy',
-              color=color)
-        
+              color=color, zorder=1e6)
+    
     axes = plt.gca() if ax == plt else ax
     
     if geodata is None:
@@ -87,13 +89,15 @@ def quiver(UV, ax=None, geodata=None, **kwargs):
    
     return axes
     
-def streamplot(UV, geodata=None, **kwargs):
+def streamplot(UV, ax=None, geodata=None, **kwargs):
     """Function to plot a motion field as streamlines. 
     
     Parameters 
     ---------- 
-    UV : array-like 
+    UV : array-like
         Array of shape (2, m,n) containing the input motion field.
+    ax : axis object
+        Optional axis object to use for plotting.
     geodata : dictionary
         Optional dictionary containing geographical information about the field. 
         If geodata is not None, it must contain the following key-value pairs:
@@ -134,10 +138,12 @@ def streamplot(UV, geodata=None, **kwargs):
     
     Returns
     -------
-    ax : fig axes
+    out : axis object
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     
     """
+    if ax is None:
+        ax = plt
     
     # defaults
     density     = kwargs.get("density", 1.5)
@@ -145,16 +151,16 @@ def streamplot(UV, geodata=None, **kwargs):
     
     # prepare x y coordinates
     if geodata is not None:
-        x = np.linspace(geodata['x1']/geodata["xpixelsize"], geodata['x2']/geodata["xpixelsize"], UV.shape[2])
-        y = np.linspace(geodata['y1']/geodata["ypixelsize"], geodata['y2']/geodata["ypixelsize"], UV.shape[1])
+        x = np.linspace(geodata['x1'], geodata['x2'], UV.shape[2])
+        y = np.linspace(geodata['y1'], geodata['y2'], UV.shape[1])
     else:
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1],0,-1)
     
-    plt.streamplot(x, np.flipud(y), UV[0,:,:], -UV[1,:,:], density=density, 
-                   color=color)
+    ax.streamplot(x, np.flipud(y), UV[0,:,:], -UV[1,:,:], density=density, 
+                  color=color, zorder=1e6)
     
-    axes = plt.gca()
+    axes = plt.gca() if ax == plt else ax
     
     if geodata is None:
         axes.xaxis.set_ticklabels([])

@@ -129,14 +129,14 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     else:
                         title = None
                     
-                    st.plt.plot_precip_field(R_obs[i,:,:], map=map, 
+                    ax = st.plt.plot_precip_field(R_obs[i,:,:], map=map, 
                         geodata=geodata, units=units, colorscale=colorscale, 
                         title=title, colorbar=colorbar, **kwargs)
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, geodata=geodata)
+                            st.plt.quiver(UV, ax=ax, geodata=geodata)
                         elif motion_plot.lower() == "streamplot":
-                            st.plt.streamplot(UV, geodata)
+                            st.plt.streamplot(UV, ax=ax, geodata=geodata)
                     if savefig & (loop == 0):
                         figname = "%s/%s_frame_%02d.%s" % \
                             (path_outputs, startdate_str, i, fig_format)
@@ -155,16 +155,16 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     if n_members > 1:
                         title = "%s \n (member %02d)" % (title, (n+1))
                     
-                    st.plt.plot_precip_field(R_fct[n, i - n_obs,:,:], map=map, 
+                    ax = st.plt.plot_precip_field(R_fct[n, i - n_obs,:,:], map=map, 
                                   geodata=geodata, units=units, title=title, 
                                   colorscale=colorscale, colorbar=colorbar, 
                                   **kwargs)
                     
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, geodata=geodata)
+                            st.plt.quiver(UV, ax=ax, geodata=geodata)
                         elif motion_plot.lower() == "streamplot":
-                            st.plt.streamplot(UV, geodata)
+                            st.plt.streamplot(UV, ax=ax, geodata=geodata)
                     if savefig & (loop == 0):
                         figname = "%s/%s_frame_%02d_member_%02d.%s" % \
                             (path_outputs, startdate_str, i, (n+1), fig_format)
@@ -208,14 +208,14 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     EM = st.postprocessing.ensemblestats.mean(R_fct[:, i, :, :])
 
                     plt.clf()
-                    st.plt.plot_precip_field(EM, map=map, geodata=geodata, units=units, 
+                    ax = st.plt.plot_precip_field(EM, map=map, geodata=geodata, units=units, 
                                              title=title, colorscale=colorscale, 
                                              colorbar=colorbar, **kwargs)
 
                     if motion_plot.lower() == "quiver":
-                        st.plt.quiver(UV, geodata=geodata)
+                        st.plt.quiver(UV, ax=ax, geodata=geodata)
                     elif motion_plot.lower() == "streamplot":
-                        st.plt.streamplot(UV, geodata)
+                        st.plt.streamplot(UV, ax=ax, geodata=geodata)
 
                     if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_ensmean.%s" % \

@@ -120,8 +120,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     if map is None:
         # Extract extent for imshow function
         if geodata is not None:
-            extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
-                               geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]]) 
+            extent = np.array([geodata['x1'],geodata['x2'], 
+                               geodata['y1'],geodata['y2']])
             origin = geodata["yorigin"]
         else:
             extent = np.array([0, R.shape[1], 0, R.shape[0]])
