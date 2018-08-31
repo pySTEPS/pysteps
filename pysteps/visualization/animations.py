@@ -9,13 +9,13 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
             UV=None, motion_plot="quiver", geodata=None, map=None, 
             colorscale="MeteoSwiss", units="mm/h", colorbar=True, probmaps=False, 
             probmap_thrs=None, ensmeans=False, plotanimation=True, savefig=False, 
-            dpi=150, path_outputs="", **kwargs):
+            fig_dpi=150, fig_format="png", path_outputs="", **kwargs):
     """Function to animate observations and forecasts in pysteps.
     
     Parameters
     ----------
     R_obs : array-like
-        Three-dimensional array containing the time series of observed
+        Three-dimensional array containing the time series of observed 
         precipitation fields.
     
     Other parameters
@@ -81,7 +81,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         in saving the individual frames).
     savefig : bool
         If set to True, save the individual frames to path_outputs.
-    dpi : scalar > 0
+    fig_dpi : scalar > 0
         Resolution of the output figures, see the documentation of 
         matplotlib.pyplot.savefig. Applicable if savefig is True.
     path_outputs : string
@@ -138,8 +138,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         elif motion_plot.lower() == "streamplot":
                             st.plt.streamplot(UV, geodata)
                     if savefig & (loop == 0):
-                        figname = "%s/%s_frame_%02d.png" % (path_outputs, startdate_str, i)
-                        plt.savefig(figname, bbox_inches="tight", dpi=dpi)
+                        figname = "%s/%s_frame_%02d.%s" % \
+                            (path_outputs, startdate_str, i, fig_format)
+                        plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                         print(figname, 'saved.')
 
                 # Forecasts
@@ -165,9 +166,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         elif motion_plot.lower() == "streamplot":
                             st.plt.streamplot(UV, geodata)
                     if savefig & (loop == 0):
-                        figname = "%s/%s_frame_%02d_member_%02d.png" % \
-                            (path_outputs, startdate_str, i, (n+1))
-                        plt.savefig(figname, bbox_inches="tight", dpi=dpi)
+                        figname = "%s/%s_frame_%02d_member_%02d.%s" % \
+                            (path_outputs, startdate_str, i, (n+1), fig_format)
+                        plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                         print(figname, "saved.")
 
                 if plotanimation:
@@ -195,9 +196,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                                  **kwargs)
     
                         if savefig & (loop == 0):
-                            figname = "%s/%s_frame_%02d_probmap_%.1f.png" % \
-                                (path_outputs, startdate_str, i+n_obs, thr)
-                            plt.savefig(figname, bbox_inches="tight", dpi=dpi)
+                            figname = "%s/%s_frame_%02d_probmap_%.1f.%s" % \
+                                (path_outputs, startdate_str, i+n_obs, thr, fig_format)
+                            plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                             print(figname, "saved.")
                         
                         if plotanimation:
@@ -217,9 +218,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         st.plt.streamplot(UV, geodata)
 
                     if savefig & (loop == 0):
-                            figname = "%s/%s_frame_%02d_ensmean.png" % \
-                                (path_outputs, startdate_str, i+n_obs)
-                            plt.savefig(figname, bbox_inches="tight", dpi=dpi)
+                            figname = "%s/%s_frame_%02d_ensmean.%s" % \
+                                (path_outputs, startdate_str, i+n_obs, fig_format)
+                            plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                             print(figname, "saved.")
 
                     if plotanimation:
