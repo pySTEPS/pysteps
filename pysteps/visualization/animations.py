@@ -134,7 +134,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         title=title, colorbar=colorbar, **kwargs)
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, geodata)
+                            st.plt.quiver(UV, geodata=geodata)
                         elif motion_plot.lower() == "streamplot":
                             st.plt.streamplot(UV, geodata)
                     if savefig & (loop == 0):
@@ -153,7 +153,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         title = "+%02d min" % ((1 + i - n_obs)*timestep_min)
 
                     if n_members > 1:
-                        title = "%s (member %02d)" % (title, (n+1))
+                        title = "%s \n (member %02d)" % (title, (n+1))
                     
                     st.plt.plot_precip_field(R_fct[n, i - n_obs,:,:], map=map, 
                                   geodata=geodata, units=units, title=title, 
@@ -162,7 +162,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, geodata)
+                            st.plt.quiver(UV, geodata=geodata)
                         elif motion_plot.lower() == "streamplot":
                             st.plt.streamplot(UV, geodata)
                     if savefig & (loop == 0):
@@ -213,7 +213,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                              colorbar=colorbar, **kwargs)
 
                     if motion_plot.lower() == "quiver":
-                        st.plt.quiver(UV, geodata)
+                        st.plt.quiver(UV, geodata=geodata)
                     elif motion_plot.lower() == "streamplot":
                         st.plt.streamplot(UV, geodata)
 
