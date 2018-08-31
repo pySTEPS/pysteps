@@ -5,7 +5,7 @@ import matplotlib.colors as colors
 
 import numpy as np
 
-def quiver(UV, geodata=None, **kwargs):
+def quiver(UV, ax=None, geodata=None, **kwargs):
     """Function to plot a motion field as arrows.
     
     Parameters
@@ -52,10 +52,12 @@ def quiver(UV, geodata=None, **kwargs):
         
     Returns
     -------
-    ax : fig axes
+    out : axis object
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     
     """
+    if ax is None:
+        ax = plt
     
     # defaults
     step        = kwargs.get("step", 20)
@@ -74,10 +76,10 @@ def quiver(UV, geodata=None, **kwargs):
     y_ = y[0:UV.shape[1]:step]
     x_ = x[0:UV.shape[2]:step]
     
-    plt.quiver(x_, np.flipud(y_), UV_[0,:,:], -UV_[1,:,:], angles='xy',
-               color=color)
+    ax.quiver(x_, np.flipud(y_), UV_[0,:,:], -UV_[1,:,:], angles='xy',
+              color=color)
         
-    axes = plt.gca()
+    axes = plt.gca() if ax == plt else ax
     
     if geodata is None:
         axes.xaxis.set_ticklabels([])
