@@ -132,7 +132,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                             st.plt.streamplot(UV, geodata)
                     if savefig & (loop == 0):
                         figname = "%s/%s_frame_%02d.png" % (path_outputs, startdate_str, i)
-                        plt.savefig(figname)
+                        plt.savefig(figname, bbox_inches="tight")
                         print(figname, 'saved.')
 
                 # Forecasts
@@ -159,7 +159,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     if savefig & (loop == 0):
                         figname = "%s/%s_frame_%02d_member_%02d.png" % \
                             (path_outputs, startdate_str, i, (n+1))
-                        plt.savefig(figname)
+                        plt.savefig(figname, bbox_inches="tight")
                         print(figname, "saved.")
 
                 if plotanimation:
@@ -188,7 +188,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_probmap_%.1f.png" % \
                                 (path_outputs, startdate_str, i+n_obs, thr)
-                            plt.savefig(figname)
+                            plt.savefig(figname, bbox_inches="tight")
                             print(figname, "saved.")
                         
                         if plotanimation:
@@ -210,7 +210,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_ensmean.png" % \
                                 (path_outputs, startdate_str, i+n_obs)
-                            plt.savefig(figname)
+                            plt.savefig(figname, bbox_inches="tight")
                             print(figname, "saved.")
 
                     if plotanimation:
