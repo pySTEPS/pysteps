@@ -9,7 +9,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
             UV=None, motion_plot="quiver", geodata=None, map=None, 
             colorscale="MeteoSwiss", units="mm/h", colorbar=True, probmaps=False, 
             probmap_thrs=None, ensmeans=False, plotanimation=True, savefig=False, 
-            path_outputs=""):
+            path_outputs="", **kwargs):
     """Function to animate observations and forecasts in pysteps.
     
     Parameters
@@ -83,6 +83,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         If set to True, save the individual frames to path_outputs.
     path_outputs : string
         Path to folder where to save the frames.
+    **kwargs : dict
+        Optional keyword arguments that are supplied to plot_precip_field.
 
     Returns
     -------
@@ -126,7 +128,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     
                     st.plt.plot_precip_field(R_obs[i,:,:], map=map, 
                         geodata=geodata, units=units, colorscale=colorscale, 
-                        title=title, colorbar=colorbar)
+                        title=title, colorbar=colorbar, **kwargs)
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
                             st.plt.quiver(UV, geodata)
@@ -151,7 +153,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     
                     st.plt.plot_precip_field(R_fct[n, i - n_obs,:,:], map=map, 
                                   geodata=geodata, units=units, title=title, 
-                                  colorscale=colorscale, colorbar=colorbar)
+                                  colorscale=colorscale, colorbar=colorbar, 
+                                  **kwargs)
                     
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
@@ -185,7 +188,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         plt.clf()
                         st.plt.plot_precip_field(P[j, :, :], type="prob", map=map, 
                                                  geodata=geodata, units=units, 
-                                                 probthr=thr, title=title)
+                                                 probthr=thr, title=title, 
+                                                 **kwargs)
     
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_probmap_%.1f.png" % \
@@ -202,7 +206,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     plt.clf()
                     st.plt.plot_precip_field(EM, map=map, geodata=geodata, units=units, 
                                              title=title, colorscale=colorscale, 
-                                             colorbar=colorbar)
+                                             colorbar=colorbar, **kwargs)
 
                     if motion_plot.lower() == "quiver":
                         st.plt.quiver(UV, geodata)
