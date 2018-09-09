@@ -1,9 +1,9 @@
-"""Skill scores for spatial forecasts"""
+"""Skill scores for spatial forecasts."""
 
 import numpy as np
 from scipy.ndimage.filters import uniform_filter
 
-def compute_fss(X_f, X_o, thr, scale):
+def fss(X_f, X_o, thr, scale):
     """Compute the fractions skill score (FSS, Roberts and Lean 2008) for a 
     deterministic forecast field and the corresponding observation. 
     

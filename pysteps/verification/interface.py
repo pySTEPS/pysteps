@@ -117,8 +117,7 @@ def get_method(name, type="deterministic"):
         
         # spatial
         elif name in ["fss"]:
-            return compute_fss
-            
+            return fss
         else:
             raise ValueError("unknown deterministic method %s" % name)
     
