@@ -1,8 +1,57 @@
 
+from matplotlib import cm
 import matplotlib.pylab as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
 from . import ensscores, probscores
+
+def plot_intensityscale(iss, fig=None, vmin=-2, vmax=1, kmperpixel=None):
+    """Plot a intensity-scale verification table with a color bar and axis 
+    labels.
+    
+    Parameters
+    ----------
+    iss : dict
+        An intensity-scale verification results dictionary returned by 
+        pysteps.verification.spatialscores.intensity_scale.
+    fig : matplotlib.figure.Figure
+        Optional figure object to use for plotting. If not supplied, a new 
+        figure is created.
+    vmin : float
+       Optional minimum value for the intensity-scale skill score in the plot. 
+       Defaults to -2.
+    vmax : float
+       Optional maximum value for the intensity-scale skill score in the plot. 
+       Defaults to 1.
+    kmperpixel : float
+       Optional conversion factor from pixels to kilometers. If supplied, 
+       the unit of the shown spatial scales is km instead of pixels.
+    
+    """
+    if fig is None:
+        fig = plt.figure()
+    
+    ax = fig.gca()
+    
+    im = ax.imshow(iss["SS"], vmin=vmin, vmax=vmax, interpolation="nearest", 
+                   cmap=cm.jet)
+    cb = fig.colorbar(im)
+    cb.set_label("Binary MSE skill score")
+    
+    ax.set_xlabel("Intensity threshold (dBZ)")
+    if kmperpixel is None:
+        ax.set_ylabel("Spatial scale (pixels)")
+    else:
+        ax.set_ylabel("Spatial scale (km)")
+    
+    ax.set_xticks(np.arange(iss["SS"].shape[1]))
+    ax.set_xticklabels(iss["thrs"])
+    ax.set_yticks(np.arange(iss["SS"].shape[0]))
+    if kmperpixel is None:
+        scales = iss["scales"]
+    else:
+        scales = iss["scales"] * kmperpixel
+    ax.set_yticklabels(scales)
 
 def plot_rankhist(rankhist, ax=None):
     """Plot a rank histogram.
