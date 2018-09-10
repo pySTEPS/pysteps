@@ -9,8 +9,8 @@ except ImportError:
   pywt_imported = False
 
 def fss(X_f, X_o, thr, scale):
-    """Compute the fractions skill score (FSS, Roberts and Lean 2008) for a 
-    deterministic forecast field and the corresponding observation. 
+    """Compute the fractions skill score (FSS) for a deterministic forecast 
+    field and the corresponding observation.
     
     Parameters
     ----------
@@ -57,9 +57,9 @@ def fss(X_f, X_o, thr, scale):
     return 1 - N / D
 
 def intensity_scale(X_f, X_o, thrs, wavelet="haar"):
-    """Compute intensity-scale verification (Casati et al. 2004). This method 
-    uses PyWavelets for decomposing the error field between the forecasts and 
-    observations into multiple spatial scales.
+    """Compute intensity-scale verification. This method uses PyWavelets for 
+    decomposing the error field between the forecasts and observations into 
+    multiple spatial scales.
     
     Parameters
     ----------
@@ -92,6 +92,10 @@ def intensity_scale(X_f, X_o, thrs, wavelet="haar"):
         |  thrs        | the used intensity thresholds in increasing order,   |
         |              | corresponds to the second index of SS                |
         +--------------+------------------------------------------------------+
+    
+    References
+    ----------
+    :cite:`CRS2004`
     
     """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
