@@ -3,7 +3,7 @@ vectors for areas with no precipitation."""
 
 import numpy as np
 import cv2
-import scipy
+import scipy.spatial
 import time
 
 def dense_lucaskanade(R, **kwargs):
