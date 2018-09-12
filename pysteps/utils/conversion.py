@@ -34,11 +34,26 @@ def to_rainrate(R, metadata, a=None, b=None):
     R = R.copy()
     metadata = metadata.copy()
     
-    if metadata["unit"].lower() == "mm/h" and metadata["transform"] is None: 
+    if metadata["transform"] is not None:
+        
+        if metadata["transform"] is "dB":
+        
+            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+            
+        elif metadata["transform"] is "BoxCox":
+        
+            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            
+        else:
+
+            raise ValueError("Unknown transformation %s" % metadata["transform"])
+        
+    
+    if metadata["unit"] == "mm/h": 
         
         pass
             
-    elif metadata["unit"].lower() == "mm" and metadata["transform"] is None: 
+    elif metadata["unit"] == "mm": 
         
         threshold = metadata["threshold"] # convert the threshold, too
         zerovalue = metadata["zerovalue"] # convert the zerovalue, too
@@ -49,14 +64,12 @@ def to_rainrate(R, metadata, a=None, b=None):
         
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
-            
-    elif metadata["unit"].lower() == "dbz" and metadata["transform"].lower() == "db": 
-                  
-        # dBZ to Z
-        R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+        
+    elif metadata["unit"] == "dBZ": 
+    
         threshold = metadata["threshold"] # convert the threshold, too
         zerovalue = metadata["zerovalue"] # convert the zerovalue, too
-        
+                          
         # Z to R
         if a is None:
             a = metadata.get("zr_a", 316.0)
@@ -65,12 +78,12 @@ def to_rainrate(R, metadata, a=None, b=None):
         R = (R/a)**(1.0/b)
         threshold = (threshold/a)**(1.0/b)
         zerovalue = (zerovalue/a)**(1.0/b)
-                
+        
         metadata["zr_a"] = a
         metadata["zr_b"] = b
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
-        
+            
     else:
         raise ValueError("Cannot convert unit %s and transform %s to mm/h" % (metadata["unit"], metadata["transform"]))
         
@@ -101,11 +114,25 @@ def to_raindepth(R, metadata, a=None, b=None):
     
     R = R.copy()
     metadata = metadata.copy()
+    
+    if metadata["transform"] is not None:
+        
+        if metadata["transform"] is "dB":
+        
+            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+            
+        elif metadata["transform"] is "BoxCox":
+        
+            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            
+        else:
+        
+            raise ValueError("Unknown transformation %s" % metadata["transform"])
       
-    if metadata["unit"].lower() == "mm" and metadata["transform"] is None: 
+    if metadata["unit"] == "mm" and metadata["transform"] is None: 
         pass
             
-    elif metadata["unit"].lower() == "mm/h" and metadata["transform"] is None: 
+    elif metadata["unit"] == "mm/h": 
     
         threshold = metadata["threshold"] # convert the threshold, too
         zerovalue = metadata["zerovalue"] # convert the zerovalue, too
@@ -117,10 +144,8 @@ def to_raindepth(R, metadata, a=None, b=None):
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
             
-    elif metadata["unit"].lower() == "dbz" and metadata["transform"].lower() == "db": 
+    elif metadata["unit"] == "dBZ": 
                   
-        # dBZ to Z
-        R, metadata = transformation.dB_transform(R, metadata, inverse=True)
         threshold = metadata["threshold"] # convert the threshold, too
         zerovalue = metadata["zerovalue"] # convert the zerovalue, too
         
@@ -168,8 +193,22 @@ def to_reflectivity(R, metadata, a=None, b=None):
     
     R = R.copy()
     metadata = metadata.copy()
+    
+    if metadata["transform"] is not None:
+        
+        if metadata["transform"] is "dB":
+        
+            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+            
+        elif metadata["transform"] is "BoxCox":
+        
+            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            
+        else:
+        
+            raise ValueError("Unknown transformation %s" % metadata["transform"])
       
-    if metadata["unit"].lower() == "mm/h" and metadata["transform"] is None: 
+    if metadata["unit"] == "mm/h": 
         
         # R to Z
         if a is None:
@@ -178,14 +217,13 @@ def to_reflectivity(R, metadata, a=None, b=None):
             b = metadata.get("zr_b", 1.5)
             
         R = a*R**b
-        metadata["threshold"] = a*threshold**b
-        metadata["zerovalue"] = a*zerovalue**b
+        metadata["threshold"] = a*metadata["threshold"]**b
+        metadata["zerovalue"] = a*metadata["zerovalue"]**b
         
         # Z to dBZ
         R, metadata = transformation.dB_transform(R, metadata)
-        
-            
-    elif metadata["unit"].lower() == "mm" and metadata["transform"] is None: 
+
+    elif metadata["unit"] == "mm": 
     
         # depth to rate
         R, metadata = to_rainrate(R, metadata)
@@ -196,17 +234,19 @@ def to_reflectivity(R, metadata, a=None, b=None):
         if b is None:
             b = metadata.get("zr_b", 1.5)
         R = a*R**b
-        metadata["threshold"] = a*threshold**b
-        metadata["zerovalue"] = a*zerovalue**b
+        metadata["threshold"] = a*metadata["threshold"]**b
+        metadata["zerovalue"] = a*metadata["zerovalue"]**b
         
         # Z to dBZ
         R, metadata = transformation.dB_transform(R, metadata)
             
-    elif metadata["unit"].lower() == "dbz" and metadata["transform"].lower() == "db": 
+    elif metadata["unit"] == "dBZ": 
                   
-        pass
+        # Z to dBZ
+        R, metadata = transformation.dB_transform(R, metadata)
         
     else:
+    
         raise ValueError("Cannot convert unit %s and transform %s to mm/h" % (metadata["unit"], metadata["transform"]))
         
     metadata["unit"] = "dBZ"
