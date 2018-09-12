@@ -197,17 +197,20 @@ for n, parset in enumerate(parsets):
             print("Prepare the data...")
             
             ## if requested, make sure we work with a square domain
-            
             reshaper = stp.utils.get_method(p["adjust_domain"])
             R, metadata = reshaper(R, metadata)
     
             ## if necessary, convert to rain rates [mm/h]    
-            converter = stp.utils.get_method(p["unit"])
+            converter = stp.utils.get_method("mm/h")
             R, metadata = converter(R, metadata)
             
             ## threshold the data
             R[R < p["r_threshold"]] = 0.0
             metadata["threshold"] = p["r_threshold"]
+            
+            ## convert the data
+            converter = stp.utils.get_method(p["unit"])
+            R, metadata = converter(R, metadata)
                 
             ## transform the data
             transformer = stp.utils.get_method(p["transformation"])
@@ -223,9 +226,12 @@ for n, parset in enumerate(parsets):
             # Perform the nowcast       
     
             ## define the callback function to export the nowcast to netcdf
+            converter   = stp.utils.get_method("mm/h")
             def export(X):
-                ## transform back values to mm/h
+                ## transform back values 
                 X,_ = transformer(X, metadata, inverse=True)
+                ## convert to mm/h
+                X,_ = converter(X, metadata)
                 # readjust to initial domain shape
                 X,_ = reshaper(X, metadata, inverse=True)
                 # export to netcdf
@@ -302,7 +308,7 @@ for n, parset in enumerate(parsets):
         metadata_obs["timestamps"] = metadata_obs["timestamps"][1:]
         
         ## if necessary, convert to rain rates [mm/h]   
-        converter = stp.utils.get_method(p["unit"])        
+        converter = stp.utils.get_method("mm/h")        
         R_obs, metadata_obs = converter(R_obs, metadata_obs)  
         
         ## threshold the data

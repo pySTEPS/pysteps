@@ -74,12 +74,16 @@ print("The data array has size [nleadtimes,nrows,ncols] =", R.shape)
 print("Prepare the data...")
 
 ## if necessary, convert to rain rates [mm/h]    
-converter = stp.utils.get_method(unit)
+converter = stp.utils.get_method("mm/h")
 R, metadata = converter(R, metadata)
 
 ## threshold the data
 R[R<r_threshold] = 0.0
 metadata["threshold"] = r_threshold
+
+## convert the data
+converter = stp.utils.get_method(unit)
+R, metadata = converter(R, metadata)
 
 ## transform the data
 transformer = stp.utils.get_method(transformation)
@@ -97,9 +101,14 @@ adv_method = stp.advection.get_method(adv_method)
 R_fct = adv_method(R[-1,:,:], UV, n_lead_times, verbose=True)
 print("The forecast array has size [nleadtimes,nrows,ncols] =", R_fct.shape)
 
-## trasnform back values to mm/h
-R_fct, _ = transformer(R_fct, metadata, inverse=True)
+## if necessary, transform back all data
+R_fct, _    = transformer(R_fct, metadata, inverse=True)
 R, metadata = transformer(R, metadata, inverse=True)
+
+## convert all data to mm/h
+converter   = stp.utils.get_method("mm/h")
+R_fct, _    = converter(R_fct, metadata)
+R, metadata = converter(R, metadata)
 
 ## plot the nowcast...
 R[Rmask] = np.nan # reapply radar mask
