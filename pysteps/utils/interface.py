@@ -43,25 +43,38 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     
     """
+    
     if name is None:
-        def donothing(R, metadata, *args, **kwargs):
-            return R.copy(), metadata.copy()
-        return donothing
-    elif name.lower() in ["mm/h", "rainrate"]:
-        return conversion.to_rainrate
-    elif name.lower() in ["mm", "raindepth"]:
-        return conversion.to_raindepth
-    elif name.lower() in ["dbz", "reflectivity"]:
-        return conversion.to_reflectivity
-    elif name.lower() in ["db", "decibel"]:
-        return transformation.dB_transform
-    elif name.lower() in ["boxcox", "box-cox"]:
-        return transformation.boxcox_transform
-    elif name.lower() in ["adjust"]:
-        return dimension.adjust_domain
-    elif name.lower() in ["aggregate", "accumulate"]:
-        return dimension.aggregate_fields_time
-    elif name.lower() in ["square"]:
-        return dimension.square_domain
-    else:
-        raise ValueError("unknown method %s" % name)
+        name = "none"
+
+    name = name.lower()
+    
+    def donothing(R, metadata, *args, **kwargs):
+        return R.copy(), metadata.copy()
+        
+    methods_objects                 = dict()   
+    methods_objects["none"]         = donothing
+    # conversion methods
+    methods_objects["mm/h"]         = conversion.to_rainrate
+    methods_objects["rainrate"]     = conversion.to_rainrate
+    methods_objects["mm"]           = conversion.to_raindepth
+    methods_objects["raindepth"]    = conversion.to_raindepth
+    methods_objects["dbz"]          = conversion.to_reflectivity
+    methods_objects["reflectivity"] = conversion.to_reflectivity
+    # transformation methods
+    methods_objects["db"]           = transformation.dB_transform
+    methods_objects["decibel"]      = transformation.dB_transform
+    methods_objects["boxcox"]       = transformation.boxcox_transform
+    methods_objects["box-cox"]      = transformation.boxcox_transform
+    # dimension methods
+    methods_objects["adjust"]       = dimension.adjust_domain
+    methods_objects["aggregate"]    = dimension.aggregate_fields_time
+    methods_objects["accumulate"]   = dimension.aggregate_fields_time
+    methods_objects["square"]       = dimension.square_domain
+    
+    try:
+        return methods_objects[name]
+
+    except KeyError as e:
+        raise ValueError("Unknown method %s\n" % e + 
+                         "Supported methods:%s" % str(methods_objects.keys()))
