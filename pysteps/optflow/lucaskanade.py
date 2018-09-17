@@ -90,7 +90,7 @@ def dense_lucaskanade(R, **kwargs):
     block_size_ST       = kwargs.get("block_size_ST", 15)
     winsize_LK          = kwargs.get("winsize_LK5", (50, 50))
     nr_levels_LK        = kwargs.get("nr_levels_LK", 2)
-    nr_IQR_outlier      = kwargs.get("nr_IQR_outlier", 3)
+    nr_IQR_outlier      = kwargs.get("nr_IQR_outlier", 2)
     size_opening        = kwargs.get("size_opening", 3)
     decl_grid           = kwargs.get("decl_grid", 20)
     min_nr_samples      = kwargs.get("min_nr_samples", 2)
@@ -145,12 +145,12 @@ def dense_lucaskanade(R, **kwargs):
                                                      nr_levels_LK)
                                                      
         # exclude outlier vectors
-        speed = np.sqrt(u**2 + v**2) # [px/timesteps]
-        q1, q2, q3 = np.percentile(speed, [25,50,75])
-        max_speed_thr = q2 + nr_IQR_outlier*(q3 - q1)) # [px/timesteps]
-        min_speed_thr = np.max((0,q2 - 2*(q3 - q1)))
-        keep = np.logical_and(speed < max_speed_thr, speed > min_speed_thr)
-        
+        vel = np.sqrt(u**2 + v**2) # [px/timesteps]
+        q1, q2 = np.percentile(vel, [25,75])
+        min_speed_thr = np.max((0, q1 - nr_IQR_outlier*(q2 - q1)))
+        max_speed_thr = q2 + nr_IQR_outlier*(q2 - q1)
+        keep = np.logical_and(vel < max_speed_thr, vel > min_speed_thr)
+
         u = u[keep][:,None]
         v = v[keep][:,None]
         y0 = y0[keep][:,None]
