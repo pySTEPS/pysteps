@@ -35,8 +35,6 @@ def dense_lucaskanade(R, **kwargs):
     nr_levels_LK : int
         0-based maximal pyramid level number.
         Not very sensitive parameter
-    max_speed : float
-        the maximum allowed speed [px/timestep]
     nr_IQR_outlier : int
         nr of IQR above median to consider the velocity vector as outlier and discard it
     size_opening : int
@@ -92,7 +90,6 @@ def dense_lucaskanade(R, **kwargs):
     block_size_ST       = kwargs.get("block_size_ST", 15)
     winsize_LK          = kwargs.get("winsize_LK5", (50, 50))
     nr_levels_LK        = kwargs.get("nr_levels_LK", 2)
-    max_speed           = kwargs.get("max_speed", 10)
     nr_IQR_outlier      = kwargs.get("nr_IQR_outlier", 3)
     size_opening        = kwargs.get("size_opening", 3)
     decl_grid           = kwargs.get("decl_grid", 20)
@@ -146,11 +143,11 @@ def dense_lucaskanade(R, **kwargs):
         # get sparse u, v vectors with Lucas-Kanade tracking
         x0, y0, u, v = _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, 
                                                      nr_levels_LK)
-
+                                                     
         # exclude outlier vectors
         speed = np.sqrt(u**2 + v**2) # [px/timesteps]
         q1, q2, q3 = np.percentile(speed, [25,50,75])
-        max_speed_thr = np.min((max_speed, q2 + nr_IQR_outlier*(q3 - q1))) # [px/timesteps]
+        max_speed_thr = q2 + nr_IQR_outlier*(q3 - q1)) # [px/timesteps]
         min_speed_thr = np.max((0,q2 - 2*(q3 - q1)))
         keep = np.logical_and(speed < max_speed_thr, speed > min_speed_thr)
         
