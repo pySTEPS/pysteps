@@ -101,17 +101,17 @@ def import_bom_rf3(filename, **kwargs):
         A three-element tuple containing the rainfall field in mm/h imported
         from the Bureau RF3 netcdf, the quality field and the metadata. The
         quality field is currently set to None.
-    
+
     """
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
 
     R = _import_bom_rf3_data(filename)
-   
+
     geodata = _import_bom_rf3_geodata(filename)
     metadata = geodata
     # TODO: Add missing georeferencing data.
-    
+
     metadata["institution"] = "Bureau of Meteorology"
     metadata["accutime"]    = 6.
     metadata["unit"]        = "mm/h"
@@ -173,7 +173,7 @@ def _import_bom_rf3_geodata(filename):
             projdef = None
 
     geodata["projection"] = projdef
-    
+
     xmin = getattr(ds_rainfall.variables['x'], 'valid_min')
     xmax = getattr(ds_rainfall.variables['x'], 'valid_max')
     ymin = getattr(ds_rainfall.variables['y'], 'valid_min')
@@ -187,7 +187,7 @@ def _import_bom_rf3_geodata(filename):
 
     geodata["xpixelsize"] = abs(ds_rainfall.variables['x'][1] - ds_rainfall.variables['x'][0])*1000.
     geodata["ypixelsize"] = abs(ds_rainfall.variables['y'][1] - ds_rainfall.variables['y'][0])*1000.
-    
+
     # TODO: pixel size is currently hard-coded
 
     geodata["yorigin"] = "upper" # TODO: check this
@@ -203,7 +203,7 @@ def import_fmi_pgm(filename, **kwargs):
     ----------
     filename : str
         Name of the file to import.
-    
+
     Other Parameters
     ----------------
     gzipped : bool
@@ -215,7 +215,7 @@ def import_fmi_pgm(filename, **kwargs):
         A three-element tuple containing the reflectivity composite in dBZ
         and the associated quality field and metadata. The quality field is
         currently set to None.
-    
+
     """
     if not pyproj_imported:
         raise Exception("pyproj not imported")
@@ -319,12 +319,12 @@ def import_mch_gif(filename, **kwargs):
     ----------
     filename : str
         Name of the file to import.
-    
+
     Other Parameters
     ----------------
     product : string
         The name of the MeteoSwiss QPE product:
-        
+
         +------+----------------------------+
         | Name |          Product           |
         +======+============================+
@@ -332,14 +332,14 @@ def import_mch_gif(filename, **kwargs):
         +------+----------------------------+
         | RZC  |         PRECIP             |
         +------+----------------------------+
-    
+
     Returns
     -------
     out : tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
-    
+
     """
     if not pil_imported:
         raise Exception("PIL not imported")
@@ -403,7 +403,7 @@ def import_mch_gif(filename, **kwargs):
     metadata["transform"]   = None
     metadata["zerovalue"]   = np.nanmin(R)
     metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
-    
+
     return R,None,metadata
 
 def _import_mch_gif_geodata():
@@ -447,7 +447,7 @@ def import_odim_hdf5(filename, **kwargs):
     ----------
     filename : str
         Name of the file to import.
-    
+
     Other Parameters
     ----------------
     qty : {'RATE', 'ACRR', 'DBZH'}
@@ -463,7 +463,7 @@ def import_odim_hdf5(filename, **kwargs):
         quantity and the associated quality field and metadata. The quality
         field is read from the file if it contains a dataset whose quantity
         identifier is 'QIND'.
-    
+
     """
     if not h5py_imported:
         raise Exception("h5py not imported")
@@ -593,4 +593,3 @@ def _read_odim_hdf5_what_group(whatgrp):
     undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else 0.0
 
     return qty,gain,offset,nodata,undetect
-

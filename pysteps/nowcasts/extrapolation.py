@@ -4,52 +4,52 @@ import time
 from .. import advection
 
 def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs={}):
-    """Generate a nowcast by applying a simple advection-based extrapolation to 
+    """Generate a nowcast by applying a simple advection-based extrapolation to
     the given precipitation field.
-    
+
     Parameters
     ----------
     R : array-like
-      Two-dimensional array of shape (m,n) containing the input precipitation 
+      Two-dimensional array of shape (m,n) containing the input precipitation
       field.
     V : array-like
-      Array of shape (2,m,n) containing the x- and y-components of the advection 
+      Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step.
     num_timesteps : int
       Number of time steps to forecast.
-    
+
     Other Parameters
     ----------------
     extrap_method : {'semilagrangian'}
-      Name of the extrapolation method to use. See the documentation of 
+      Name of the extrapolation method to use. See the documentation of
       pysteps.advection.interface.
     extrap_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the 
+      Optional dictionary that is supplied as keyword arguments to the
       extrapolation method.
-    
+
     Returns
     -------
     out : ndarray
-      Three-dimensional array of shape (num_timesteps,m,n) containing a time 
+      Three-dimensional array of shape (num_timesteps,m,n) containing a time
       series of nowcast precipitation fields.
-    
+
     See also
     --------
     pysteps.advection.interface
-    
+
     """
     _check_inputs(R, V)
-    
+
     print("Computing extrapolation nowcast from a %dx%d input grid... " % \
           (R.shape[0], R.shape[1]), end="")
-    
+
     starttime = time.time()
-    
+
     extrap_method = advection.get_method(extrap_method)
     R_f = extrap_method(R, V, num_timesteps, **extrap_kwargs)
-    
+
     print("%.2f seconds." % (time.time() - starttime))
-    
+
     return R_f
 
 def _check_inputs(R, V):

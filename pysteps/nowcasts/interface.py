@@ -6,21 +6,21 @@ import numpy as np
 
 where R (m,n) is the input precipitation field to be extrapolated and V (2,m,n) is
 an array containing  the x- and y-components of the m*n advection field. num_timesteps
-is an integer specifying the number of time steps to forecast. Non-keyword 
-arguments specific to each method can be included. The interface accepts optional 
+is an integer specifying the number of time steps to forecast. Non-keyword
+arguments specific to each method can be included. The interface accepts optional
 keyword arguments that are specific to a given forecast method.
 
-The output of each method is a three-dimensional array of shape (num_timesteps,m,n) 
+The output of each method is a three-dimensional array of shape (num_timesteps,m,n)
 containing a time series of nowcast precipitation fields.
 
 """
 
 def get_method(name):
-    """Return one callable function to produce deterministic or ensemble 
+    """Return one callable function to produce deterministic or ensemble
     precipitation nowcasts.\n\
-    
+
     Methods for precipitation nowcasting:
-    
+
     +-------------------+-----------------------------------------------------+
     |     Name          |              Description                            |
     +===================+=====================================================+
@@ -34,7 +34,7 @@ def get_method(name):
     |                   | method as described in :cite:`Seed2003`,            |
     |                   | :cite:`BPS2006` and :cite:`SPN2013`                 |
     +-------------------+-----------------------------------------------------+
-    
+
     """
     if name.lower() in ["eulerian"]:
         def eulerian(R, V, num_timesteps, *args, **kwargs):

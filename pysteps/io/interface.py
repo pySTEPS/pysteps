@@ -3,16 +3,16 @@ from . import importers
 from . import exporters
 def get_method(name, type):
     """Return a callable function for the method corresponding to the given name.
-    
+
     Parameters
     ----------
     name : str
         Name of the method. The available options are:\n\
-        
+
         Importers:
-        
+
         .. tabularcolumns:: |p{2cm}|L|
-        
+
         +-------------------+---------------------------------------------------------+
         |     Name          |              Description                                |
         +===================+=========================================================+
@@ -27,18 +27,18 @@ def get_method(name, type):
         +-------------------+---------------------------------------------------------+
         |     odim_hdf5     |  ODIM HDF5 file format used by Eumetnet/OPERA           |
         +-------------------+---------------------------------------------------------+
-        
+
         Exporters:
-        
+
         +-------------+--------------------------------------------------------+
         |     Name    |              Description                               |
         +=============+========================================================+
         | netcdf      | NetCDF files conforming to the CF 1.7 specification    |
         +-------------+--------------------------------------------------------+
-    
+
     type : str
         Type of the method. The available options are 'importer' and 'exporter'.
-    
+
     """
     if type.lower() == "importer":
         if name.lower() == "bom_rf3":
@@ -51,13 +51,13 @@ def get_method(name, type):
             return importers.import_odim_hdf5
         else:
             raise ValueError("unknown importer method %s" % name)
-            
+
     elif type.lower() == "exporter":
         if name.lower() == "netcdf":
             return exporters.initialize_forecast_exporter_netcdf
         else:
             raise ValueError("unknown exporter method %s" % name)
 
-            
+
     else:
         raise ValueError("unknown method type %s" % type)

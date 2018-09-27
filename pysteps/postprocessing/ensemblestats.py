@@ -3,18 +3,18 @@ import numpy as np
 
 def mean(X, ignore_nan=False, X_thr=None):
     """Compute the mean value from a forecast ensemble field.
-    
+
     Parameters
     ----------
     X : array_like
-        Array of shape (n_members,m,n) containing an ensemble of forecast 
+        Array of shape (n_members,m,n) containing an ensemble of forecast
         fields of shape (m,n).
     ignore_nan : bool
         If True, ignore nan values.
     X_thr : float
-        Optional threshold for computing the ensemble mean. Values below X_thr 
+        Optional threshold for computing the ensemble mean. Values below X_thr
         are ignored.
-    
+
     Returns
     -------
     out : ndarray
@@ -24,43 +24,43 @@ def mean(X, ignore_nan=False, X_thr=None):
         if X_thr is not None:
             X = X.copy()
             X[X < X_thr] = np.nan
-        
+
         return np.nanmean(X, axis=0)
     else:
         return np.mean(X, axis=0)
 
 def excprob(X, X_thr, ignore_nan=False):
-    """For a given forecast ensemble field, compute exceedance probabilities 
+    """For a given forecast ensemble field, compute exceedance probabilities
     for the given intensity thresholds.
-    
+
     Parameters
     ----------
     X : array_like
-        Array of shape (n_members,m,n) containing an ensemble of forecast 
+        Array of shape (n_members,m,n) containing an ensemble of forecast
         fields of shape (m,n).
     X_thr : a sequence of floats
-        Intensity thresholds for which the exceedance probabilities are 
+        Intensity thresholds for which the exceedance probabilities are
         computed.
     ignore_nan : bool
         If True, ignore nan values.
-    
+
     Returns
     -------
     out : ndarray
-        Array of shape (k,m,n) containing the exceedance probabilities for the 
+        Array of shape (k,m,n) containing the exceedance probabilities for the
         k given intensity thresholds.
     """
     P = []
-    
+
     for x in X_thr:
         X_ = X.copy()
-        
+
         X_[X_ >= x] = 1.0
         X_[X_ <  x] = 0.0
-        
+
         if ignore_nan:
             P.append(np.nanmean(X_, axis=0))
         else:
             P.append(np.mean(X_, axis=0))
-    
+
     return np.stack(P)

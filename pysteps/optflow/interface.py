@@ -30,14 +30,14 @@ def get_method(name):
     |                   | method of Bruhn et al., 2005 from IPOL                 |
     |                   | (http://www.ipol.im/pub/art/2015/44)                   |
     +-------------------+--------------------------------------------------------+
-    
+
     """
     if name is None:
         def donothing(R, *args, **kwargs):
             return np.zeros((2, R.shape[1], R.shape[2]))
         return donothing
     elif name.lower() in ["lucaskanade", "lk"]:
-        from .lucaskanade import dense_lucaskanade 
+        from .lucaskanade import dense_lucaskanade
         return dense_lucaskanade
     elif name.lower() == "darts":
         from .darts import DARTS

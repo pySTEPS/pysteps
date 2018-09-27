@@ -3,11 +3,11 @@ from . import bandpass_filters
 from . import decomposition
 
 def get_method(name):
-    """Return a callable function for the bandpass filter or decomposition method 
+    """Return a callable function for the bandpass filter or decomposition method
     corresponding to the given name.\n\
-    
+
     Filter methods:
-    
+
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
@@ -17,16 +17,16 @@ def get_method(name):
     |  uniform          | implementation of a filter where all weights are set   |
     |                   | to one                                                 |
     +-------------------+--------------------------------------------------------+
-    
+
     Decomposition methods:
-    
+
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
     |  fft              | decomposition based on Fast Fourier Transform (FFT)    |
     |                   | and a bandpass filter                                  |
     +-------------------+--------------------------------------------------------+
-    
+
     """
     if name.lower() == "fft":
         return decomposition.decomposition_fft

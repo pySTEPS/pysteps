@@ -7,7 +7,7 @@ The methods in this module implement the following interface:
 where xxx is the name (or abbreviation) of the file format and filename is the
 name of the input file.
 
-The output of each method is a two-element tuple containing the nowcast array 
+The output of each method is a two-element tuple containing the nowcast array
 and a metadata dictionary.
 
 The metadata dictionary contains the following mandatory key-value pairs:
@@ -46,7 +46,7 @@ The metadata dictionary contains the following mandatory key-value pairs:
 +-------------------+----------------------------------------------------------+
 |    unit           | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
 +-------------------+----------------------------------------------------------+
-|    transform      | the transformation of the data: None, 'dB', 'Box-Cox' or | 
+|    transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
 |                   | others                                                   |
 +-------------------+----------------------------------------------------------+
 |    accutime       | the accumulation time in minutes of the data, float      |
@@ -68,15 +68,15 @@ except ImportError:
     netcdf4_imported = False
 
 def import_netcdf_pysteps(filename, **kwargs):
-    """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the 
+    """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the
     CF 1.7 specification."""
     if not netcdf4_imported:
         raise Exception("netCDF4 not imported")
-    
+
     ds = netCDF4.Dataset(filename, 'r')
-    
+
     var_names = list(ds.variables.keys())
-    
+
     if "precip_intensity" in var_names:
         R = ds.variables["precip_intensity"]
     elif "hourly_precip_accum" in var_names:
@@ -85,42 +85,42 @@ def import_netcdf_pysteps(filename, **kwargs):
         R = ds.variables["reflectivity"]
     else:
         raise Exception("the netCDF file does not contain any supported variable name ('precip_intensity', 'hourly_precip_accum', or 'reflectivity')")
-    
+
     R = R[...].squeeze().astype(float)
-    
+
     metadata = {}
-    
+
     time_var = ds.variables['time']
     leadtimes = time_var[:]/60. # minutes leadtime
     metadata["leadtimes"] = leadtimes
     timestamps = netCDF4.num2date(time_var[:], time_var.units)
     metadata["timestamps"] = timestamps
-    
+
     projdef = ""
     if "polar_stereographic" in var_names:
         vn = "polar_stereographic"
-    
+
         attr_dict = {}
         for attr_name in ds.variables[vn].ncattrs():
             attr_dict[attr_name] = ds[vn].getncattr(attr_name)
-        
+
         proj_str = _convert_grid_mapping_to_proj4(attr_dict)
         metadata["projection"] = proj_str
-        
+
     # TODO: Read the metadata to the dictionary.
     metadata["accutime"]    = None
     metadata["unit"]        = None
     metadata["transform"]   = None
     metadata["zerovalue"]   = np.nanmin(R)
     metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
-    
+
     ds.close()
-    
+
     return R,metadata
 
 def _convert_grid_mapping_to_proj4(grid_mapping):
     gm_keys = list(grid_mapping.keys())
-    
+
     # TODO: implement more projection types here
     if grid_mapping["grid_mapping_name"] == "polar_stereographic":
         proj_str = "+proj=stere"
@@ -132,7 +132,7 @@ def _convert_grid_mapping_to_proj4(grid_mapping):
             proj_str += " +k_0=%s" % grid_mapping["scale_factor_at_projection_origin"]
         proj_str += " +x_0=%s" % grid_mapping["false_easting"]
         proj_str += " +y_0=%s" % grid_mapping["false_northing"]
-        
+
         return proj_str
     else:
         return None

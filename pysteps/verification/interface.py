@@ -1,15 +1,15 @@
 
 def get_method(name, type="deterministic"):
-    """Return a callable function for the method corresponding to the given 
+    """Return a callable function for the method corresponding to the given
     verification score.
-    
+
     Parameters
     ----------
     name : str
         Name of the verification method. The available options are:\n\
-        
+
         type: deterministic
-                
+
         +------------+----------------------------------------------------------+
         | Name       | Description                                              |
         +============+==========================================================+
@@ -20,15 +20,15 @@ def get_method(name, type="deterministic"):
         |  CSI       | critical success index (threat score)                    |
         +------------+----------------------------------------------------------+
         |  FA        | false alarm rate (prob. of false detection)              |
-        +------------+----------------------------------------------------------+   
+        +------------+----------------------------------------------------------+
         |  FAR       | false alarm ratio                                        |
-        +------------+----------------------------------------------------------+ 
+        +------------+----------------------------------------------------------+
         |  GSS       | Gilbert skill score (equitable threat score)             |
         +------------+----------------------------------------------------------+
-        |  HK        | Hanssen-Kuipers discriminant (Pierce skill score)        | 
+        |  HK        | Hanssen-Kuipers discriminant (Pierce skill score)        |
         +------------+----------------------------------------------------------+
         |  HSS       | Heidke skill score                                       |
-        +------------+----------------------------------------------------------+    
+        +------------+----------------------------------------------------------+
         |  POD       | probability of detection (hit rate)                      |
         +------------+----------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                      |
@@ -57,9 +57,9 @@ def get_method(name, type="deterministic"):
         +------------+----------------------------------------------------------+
         |  FSS       | fractions skill score                                    |
         +------------+----------------------------------------------------------+
-        
+
         type: ensemble
-        
+
         +------------+----------------------------------------------------------+
         | Name       | Description                                              |
         +============+==========================================================+
@@ -71,7 +71,7 @@ def get_method(name, type="deterministic"):
         +------------+----------------------------------------------------------+
 
         type: probabilistic
-        
+
         +------------+----------------------------------------------------------+
         | Name       | Description                                              |
         +============+==========================================================+
@@ -81,51 +81,51 @@ def get_method(name, type="deterministic"):
         +------------+----------------------------------------------------------+
         |  ROC       | ROC curve                                                |
         +------------+----------------------------------------------------------+
-        
+
     type : str
         Type of the method. The available options are 'deterministic', 'ensemble'
         and 'probabilistic'.
-        
+
     """
-    
+
     if name is None:
         name = 'none'
     if type is None:
         type = 'none'
-        
+
     name = name.lower()
     type = type.lower()
-    
+
     if type in ["deterministic"]:
-    
+
         from .detcatscores import det_cat_fcst
         from .detcontscores import det_cont_fcst
         from .spatialscores import compute_fss
-        
+
         # categorical
         if name in ["acc", "csi", "fa", "far", "gss", "hk", "hss", "pod", "sedi"]:
             def f(fct, obs, **kwargs):
                 return det_cat_fcst(fct, obs, kwargs.pop("thr"), [name])
             return f
-        
+
         # continuous
-        elif name in ["beta", "corr_p", "corr_s", "me_add", "me_mult", "rmse_add", 
+        elif name in ["beta", "corr_p", "corr_s", "me_add", "me_mult", "rmse_add",
                       "rmse_mult", "rv_add", "rv_mult", "scatter"]:
             def f(fct, obs, **kwargs):
                 return det_cont_fcst(fct, obs, [name], **kwargs)
             return f
-        
+
         # spatial
         elif name in ["fss"]:
             return fss
         else:
             raise ValueError("unknown deterministic method %s" % name)
-    
+
     elif type in ["ensemble"]:
-        
+
         from .ensscores import ensemble_skill, ensemble_spread, rankhist_init, \
           rankhist_accum, rankhist_compute
-        
+
         if name in ["ens_skill"]:
             return ensemble_skill
         elif name in ["ens_spread"]:
@@ -134,19 +134,19 @@ def get_method(name, type="deterministic"):
             return rankhist_init, rankhist_accum, rankhist_compute
         else:
             raise ValueError("unknown ensemble method %s" % name)
-    
+
     elif type in ["probabilistic"]:
-    
-        from .probscores import CRPS, reldiag_init, reldiag_accum, reldiag_compute, ROC_curve_init, ROC_curve_accum, ROC_curve_compute   
+
+        from .probscores import CRPS, reldiag_init, reldiag_accum, reldiag_compute, ROC_curve_init, ROC_curve_accum, ROC_curve_compute
 
         if name in ["crps"]:
             return CRPS
         elif name in ["reldiag"]:
             return reldiag_init, reldiag_accum, reldiag_compute
         elif name in ["roc"]:
-            return ROC_curve_init, ROC_curve_accum, ROC_curve_compute   
+            return ROC_curve_init, ROC_curve_accum, ROC_curve_compute
         else:
             raise ValueError("unknown probabilistic method %s" % name)
-            
+
     else:
         raise ValueError("unknown type %s" % name)

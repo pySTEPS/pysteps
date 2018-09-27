@@ -21,32 +21,32 @@ except ImportError:
     pyproj_imported = False
 from . import utils
 
-def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h', 
-                      colorscale='MeteoSwiss', probthr=None, title=None, 
-                      colorbar=True, drawlonlatlines=False, basemap_resolution='l', 
+def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
+                      colorscale='MeteoSwiss', probthr=None, title=None,
+                      colorbar=True, drawlonlatlines=False, basemap_resolution='l',
                       cartopy_scale="50m"):
-    """Function to plot a precipitation intensity or probability field with a 
+    """Function to plot a precipitation intensity or probability field with a
     colorbar.
-    
+
     Parameters
     ----------
     R : array-like
-        Two-dimensional array containing the input precipitation field or an 
+        Two-dimensional array containing the input precipitation field or an
         exceedance probability map.
-    
+
     Other parameters
     ----------------
     type : str
-        Type of the map to plot: 'intensity' = precipitation intensity field, 
+        Type of the map to plot: 'intensity' = precipitation intensity field,
         'prob' = exceedance probability field.
     map : str
-        Optional method for plotting a map: 'basemap' or 'cartopy'. The former 
-        uses mpl_toolkits.basemap (https://matplotlib.org/basemap), and the 
+        Optional method for plotting a map: 'basemap' or 'cartopy'. The former
+        uses mpl_toolkits.basemap (https://matplotlib.org/basemap), and the
         latter uses cartopy (https://scitools.org.uk/cartopy/docs/latest).
     geodata : dictionary
-        Optional dictionary containing geographical information about the field. 
+        Optional dictionary containing geographical information about the field.
         If geodata is not None, it must contain the following key-value pairs:
-        
+
         +-----------------+----------------------------------------------------+
         |        Key      |                  Value                             |
         +=================+====================================================+
@@ -58,10 +58,10 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         |    y1           | y-coordinate of the lower-left corner of the data  |
         |                 | raster (meters)                                    |
         +-----------------+----------------------------------------------------+
-        |    x2           | x-coordinate of the upper-right corner of the data | 
+        |    x2           | x-coordinate of the upper-right corner of the data |
         |                 | raster (meters)                                    |
         +-----------------+----------------------------------------------------+
-        |    y2           | y-coordinate of the upper-right corner of the data | 
+        |    y2           | y-coordinate of the upper-right corner of the data |
         |                 | raster (meters)                                    |
         +-----------------+----------------------------------------------------+
         |    yorigin      | a string specifying the location of the first      |
@@ -69,33 +69,33 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         |                 | 'upper' = upper border, 'lower' = lower border     |
         +-----------------+----------------------------------------------------+
     units : str
-        Units of the input array (mm/h or dBZ). If type is 'prob', this specifies 
+        Units of the input array (mm/h or dBZ). If type is 'prob', this specifies
         the unit of the intensity threshold.
     colorscale : str
-        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is 
+        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
         'mm/h' or 'dBZ'.
     probthr : float
-      Intensity threshold for the exceedance probability map. Required if type 
+      Intensity threshold for the exceedance probability map. Required if type
       is "prob".
     title : str
         If not None, print the title on top of the plot.
     colorbar : bool
         If set to True, add a colorbar on the right side of the plot.
     drawlonlatlines : bool
-        If set to True, draw longitude and latitude lines. Applicable if map is 
+        If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
     basemap_resolution : str
-        The resolution of the basemap, see the documentation of mpl_toolkits.basemap. 
+        The resolution of the basemap, see the documentation of mpl_toolkits.basemap.
         Applicable if map is 'basemap'.
     cartopy_scale : str
-        The scale (resolution) of the map. The available options are '10m', 
+        The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'. Applicable if map is 'cartopy'.
-    
+
     Returns
     -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-    
+
     """
     if type not in ["intensity", "prob"]:
         raise ValueError("invalid type '%s', must be 'intensity' or 'prob'" % type)
@@ -113,80 +113,80 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         raise Exception("map!=None but pyproj not imported")
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
-    
+
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-    
+
     if map is None:
         # Extract extent for imshow function
         if geodata is not None:
-            extent = np.array([geodata['x1'],geodata['x2'], 
+            extent = np.array([geodata['x1'],geodata['x2'],
                                geodata['y1'],geodata['y2']])
             origin = geodata["yorigin"]
         else:
             extent = np.array([0, R.shape[1], 0, R.shape[0]])
             origin = "upper"
-        
+
         # Plot radar domain mask
         mask = np.ones(R.shape)
         mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
-        plt.imshow(mask, cmap=colors.ListedColormap(['gray']), 
+        plt.imshow(mask, cmap=colors.ListedColormap(['gray']),
                    extent=extent, origin=origin)
-        
+
         im = _plot_field(R, plt.gca(), type, units, colorscale, geodata, extent=extent)
     else:
         if map == "basemap":
             pr = pyproj.Proj(geodata["projection"])
             ll_lon,ll_lat = pr(geodata["x1"], geodata["y1"], inverse=True)
             ur_lon,ur_lat = pr(geodata["x2"], geodata["y2"], inverse=True)
-            
+
             bm_params = utils.proj4_to_basemap(geodata["projection"])
-            
+
             bm_params["llcrnrlon"]  = ll_lon
             bm_params["llcrnrlat"]  = ll_lat
             bm_params["urcrnrlon"]  = ur_lon
             bm_params["urcrnrlat"]  = ur_lat
             bm_params["resolution"] = basemap_resolution
-            
+
             bm = _plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines)
-            
+
             if geodata["yorigin"] == "upper":
                 R = np.flipud(R)
-            
+
             extent = None
         else:
             x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
             crs = utils.proj4_to_cartopy(geodata["projection"])
-            
-            bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale, 
+
+            bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale,
                                    drawlonlatlines=drawlonlatlines)
-            
+
             extent = (x1, x2, y2, y1)
-        
+
         im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent)
-        
+
         # Plot radar domain mask
         mask = np.ones(R.shape)
         mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
-        bm.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5, 
+        bm.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5,
                   zorder=1e6, extent=extent)
-    
+
     if title is not None:
         plt.title(title)
-    
+
     # Add colorbar
     if colorbar:
-        cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm, 
+        cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm,
                             extend="max" if type == "intensity" else "neither")
         if clevsStr != None:
             cbar.ax.set_yticklabels(clevsStr)
-        
+
         if type == "intensity":
             cbar.ax.set_title(units, fontsize=12)
             cbar.set_label("Precipitation intensity")
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
-    
+
     if map is None:
         axes = plt.gca()
         if geodata is None:
@@ -194,7 +194,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             axes.xaxis.set_ticklabels([])
             axes.yaxis.set_ticks([])
             axes.yaxis.set_ticklabels([])
-    
+
     if map is None:
         return axes
     else:
@@ -202,17 +202,17 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
 def _plot_field(R, ax, type, units, colorscale, geodata, extent):
     R = R.copy()
-    
+
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-    
+
     # Extract extent for imshow function
 #    if geodata is not None:
 #        extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
-#                           geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]]) 
+#                           geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]])
 #    else:
 #        extent = np.array([0, R.shape[1], 0, R.shape[0]])
-    
+
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
     if type == "intensity":
@@ -222,67 +222,67 @@ def _plot_field(R, ax, type, units, colorscale, geodata, extent):
             R[R < 10] = np.nan
     else:
         R[R < 1e-3] = np.nan
-    
+
     vmin,vmax = [None, None] if type == "intensity" else [0.0, 1.0]
-    
-    im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest', 
+
+    im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest',
                    vmin=vmin, vmax=vmax, zorder=1)
-    
+
     return im
 
 def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
     """Function to generate a colormap (cmap) and norm.
-    
+
     Parameters
     ----------
     type : str
-        Type of the map to plot: 'intensity' = precipitation intensity field, 
+        Type of the map to plot: 'intensity' = precipitation intensity field,
         'prob' = exceedance probability field.
     units : str
         Units of the input array (mm/h or dBZ).
     colorscale : str
-        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is 
+        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
         'mm/h' or 'dBZ'.
-    
+
     Returns
     -------
     cmap : Colormap instance
         colormap
-    norm : colors.Normalize object 
+    norm : colors.Normalize object
         Colors norm
     clevs: list(float)
         List of precipitation values defining the color limits.
     clevsStr: list(str)
-        List of precipitation values defining the color limits (with correct 
+        List of precipitation values defining the color limits (with correct
         number of decimals).
-    
+
     """
     if type == "intensity":
         # Get list of colors
         colors_list,clevs,clevsStr = _get_colorlist(units, colorscale)
-        
+
         cmap = colors.LinearSegmentedColormap.from_list("cmap", colors_list, len(clevs)-1)
-        
+
         if colorscale == 'MeteoSwiss':
             cmap.set_over('darkred',1)
         if colorscale == 'STEPS-BE':
             cmap.set_over('black',1)
-        norm = colors.BoundaryNorm(clevs, cmap.N)    
-        
+        norm = colors.BoundaryNorm(clevs, cmap.N)
+
         return cmap, norm, clevs, clevsStr
     else:
         return cm.jet, colors.Normalize(), None, None
 
 def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
-    """Function to get a list of colors to generate the colormap. 
-    
+    """Function to get a list of colors to generate the colormap.
+
     Parameters
     ----------
     units : str
-        Units of the input array (mm/h or dBZ)     
-    colorscale : str 
+        Units of the input array (mm/h or dBZ)
+    colorscale : str
         Which colorscale to use (MeteoSwiss, STEPS-BE)
-    
+
     Returns
     -------
     color_list : list(str)
@@ -291,9 +291,9 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
         List of precipitation values defining the color limits.
     clevsStr : list(str)
         List of precipitation values defining the color limits (with correct number of decimals).
-    
+
     """
-    
+
     if colorscale == 'STEPS-BE':
         color_list = ['cyan','deepskyblue','dodgerblue','blue','chartreuse','limegreen','green','darkgreen','yellow','gold','orange','red','magenta','darkmagenta']
         if units == 'mm/h':
@@ -302,7 +302,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
             clevs = np.arange(10,65,5)
         else:
             print('Wrong units in get_colorlist')
-            sys.exit(1)        
+            sys.exit(1)
     elif colorscale == 'MeteoSwiss':
         pinkHex = '#%02x%02x%02x' % (232, 215, 242)
         redgreyHex = '#%02x%02x%02x' % (156, 126, 148)
@@ -318,18 +318,18 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     else:
         print('Invalid colorscale', colorscale)
         raise ValueError("Invalid colorscale " + colorscale)
-    
+
     # Generate color level strings with correct amount of decimal places
     clevsStr = []
     clevsStr = _dynamic_formatting_floats(clevs, )
-    
+
     return color_list, clevs, clevsStr
 
 def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
     ''' Function to format the floats defining the class limits of the colorbar.
     '''
     floatArray = np.array(floatArray, dtype=float)
-    
+
     labels = []
     for label in floatArray:
         if label >= 0.1 and label < 1:
@@ -347,20 +347,20 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
             formatting = 'i'
         else:
             formatting = ',.1f'
-            
+
         if formatting != 'i':
             labels.append(format(label, formatting))
         else:
             labels.append(str(int(label)))
-        
+
     return labels
 
-def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1), 
-                  countrycolor=(0.3,0.3,0.3), continentcolor=(1,1,1), 
-                  lakecolor=(0.7,0.7,0.7), rivercolor=(0.7,0.7,0.7), 
+def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1),
+                  countrycolor=(0.3,0.3,0.3), continentcolor=(1,1,1),
+                  lakecolor=(0.7,0.7,0.7), rivercolor=(0.7,0.7,0.7),
                   mapboundarycolor=(0.7,0.7,0.7)):
     bm = Basemap(**bm_params)
-    
+
     if coastlinecolor is not None:
         bm.drawcoastlines(color=coastlinecolor, zorder=0.1)
     if countrycolor is not None:
@@ -372,35 +372,35 @@ def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1),
     if mapboundarycolor is not None:
         bm.drawmapboundary(fill_color=mapboundarycolor, zorder=-1)
     if drawlonlatlines:
-        bm.drawmeridians(np.linspace(bm.llcrnrlon, bm.urcrnrlon, 10), 
-                         color=(0.5,0.5,0.5), linewidth=0.5, labels=[1,0,0,1], 
+        bm.drawmeridians(np.linspace(bm.llcrnrlon, bm.urcrnrlon, 10),
+                         color=(0.5,0.5,0.5), linewidth=0.5, labels=[1,0,0,1],
                          fmt="%.1f", fontsize=6)
-        bm.drawparallels(np.linspace(bm.llcrnrlat, bm.urcrnrlat, 10), 
-                         color=(0.5,0.5,0.5), linewidth=0.5, labels=[1,0,0,1], 
+        bm.drawparallels(np.linspace(bm.llcrnrlat, bm.urcrnrlat, 10),
+                         color=(0.5,0.5,0.5), linewidth=0.5, labels=[1,0,0,1],
                          fmt="%.1f", fontsize=6)
-    
+
     return bm
 
 def _plot_map_cartopy(crs, x1, y1, x2, y2, scale, drawlonlatlines=False):
     ax = plt.axes(projection=crs)
-    
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "land", 
+
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "land",
        scale=scale, edgecolor="none", facecolor=np.array([0.9375, 0.9375, 0.859375])))
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "coastline", scale=scale, 
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "coastline", scale=scale,
         edgecolor="black", facecolor="none", linewidth=0.25))
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "ocean", scale=scale, 
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "ocean", scale=scale,
         edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "lakes", scale=scale, 
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "lakes", scale=scale,
         edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "rivers_lake_centerlines", 
-        scale=scale, edgecolor=np.array([ 0.59375, 0.71484375, 0.8828125]), 
+    ax.add_feature(cfeature.NaturalEarthFeature("physical", "rivers_lake_centerlines",
+        scale=scale, edgecolor=np.array([ 0.59375, 0.71484375, 0.8828125]),
         facecolor="none"))
-    ax.add_feature(cfeature.NaturalEarthFeature("cultural", "admin_0_boundary_lines_land", 
+    ax.add_feature(cfeature.NaturalEarthFeature("cultural", "admin_0_boundary_lines_land",
         scale=scale, edgecolor="black", facecolor="none", linewidth=0.25))
-    
+
     if drawlonlatlines:
         ax.gridlines(crs=ccrs.PlateCarree())
-    
+
     ax.set_extent([x1, x2, y1, y2], crs)
-    
+
     return ax

@@ -11,13 +11,13 @@ The optional argument outval specifies the value for pixels advected from outsid
 the domain. Optional keyword arguments that are specific to a given extrapolation
 method are passed as a dictionary.
 
-The output of each method is an array R_e that includes the time series of extrapolated 
+The output of each method is an array R_e that includes the time series of extrapolated
 fields of shape (num_timesteps, m, n)."""
 
 def get_method(name):
-    """Return a callable function for the extrapolation method corresponding to 
+    """Return a callable function for the extrapolation method corresponding to
     the given name. The available options are:\n\
-    
+
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
@@ -29,13 +29,13 @@ def get_method(name):
     |  semilagrangian   | implementation of the semi-Lagrangian method of        |
     |                   | Germann et al. (2002)                                  |
     +-------------------+--------------------------------------------------------+
-    
+
     """
     if name is None:
         def donothing(R, V, num_timesteps, *args, **kwargs):
             return None
         return donothing
-    elif name.lower() in ["eulerian"]:  
+    elif name.lower() in ["eulerian"]:
         def eulerian(R, V, num_timesteps, *args, **kwargs):
             return_displacement = kwargs.get("return_displacement", False)
             R_e = np.repeat(R[None, :, :,], num_timesteps, axis=0)

@@ -5,19 +5,19 @@ import numpy as np
 import pysteps as st
 
 # TODO: Add documentation for the output files.
-def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5, 
-            UV=None, motion_plot="quiver", geodata=None, map=None, 
-            colorscale="MeteoSwiss", units="mm/h", colorbar=True, probmaps=False, 
-            probmap_thrs=None, ensmeans=False, plotanimation=True, savefig=False, 
+def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
+            UV=None, motion_plot="quiver", geodata=None, map=None,
+            colorscale="MeteoSwiss", units="mm/h", colorbar=True, probmaps=False,
+            probmap_thrs=None, ensmeans=False, plotanimation=True, savefig=False,
             fig_dpi=150, fig_format="png", path_outputs="", **kwargs):
     """Function to animate observations and forecasts in pysteps.
-    
+
     Parameters
     ----------
     R_obs : array-like
-        Three-dimensional array containing the time series of observed 
+        Three-dimensional array containing the time series of observed
         precipitation fields.
-    
+
     Other parameters
     ----------------
     nloops : int
@@ -34,9 +34,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     geodata : dictionary
         Optional dictionary containing geographical information about the field.
         If geodata is not None, it must contain the following key-value pairs:
-        
+
         .. tabularcolumns:: |p{1.5cm}|L|
-        
+
         +-----------------+----------------------------------------------------+
         |        Key      |                  Value                             |
         +=================+====================================================+
@@ -48,10 +48,10 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         |    y1           | y-coordinate of the lower-left corner of the data  |
         |                 | raster (meters)                                    |
         +-----------------+----------------------------------------------------+
-        |    x2           | x-coordinate of the upper-right corner of the data | 
+        |    x2           | x-coordinate of the upper-right corner of the data |
         |                 | raster (meters)                                    |
         +-----------------+----------------------------------------------------+
-        |    y2           | y-coordinate of the upper-right corner of the data | 
+        |    y2           | y-coordinate of the upper-right corner of the data |
         |                 | raster (meters)                                    |
         +-----------------+----------------------------------------------------+
         |    yorigin      | a string specifying the location of the first      |
@@ -69,10 +69,10 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     colorbar : bool
         If set to True, add a colorbar on the right side of the plot.
     probmaps : bool
-        If True, compute and plot exceedance probability maps from the nowcast 
+        If True, compute and plot exceedance probability maps from the nowcast
         ensemble.
     probmap_thrs : a sequence of floats
-        Intensity thresholds for the exceedance probability maps. Applicable 
+        Intensity thresholds for the exceedance probability maps. Applicable
         if probmaps is set to True.
     ensmeans : bool
         If True, plot ensemble mean nowcasts.
@@ -82,7 +82,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     savefig : bool
         If set to True, save the individual frames to path_outputs.
     fig_dpi : scalar > 0
-        Resolution of the output figures, see the documentation of 
+        Resolution of the output figures, see the documentation of
         matplotlib.pyplot.savefig. Applicable if savefig is True.
     path_outputs : string
         Path to folder where to save the frames.
@@ -93,7 +93,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-    
+
     """
     if timestamps is not None:
         startdate_str = timestamps[-1].strftime("%Y-%m-%d %H:%M")
@@ -128,9 +128,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         title = timestamps[i].strftime("%Y-%m-%d %H:%M")
                     else:
                         title = None
-                    
-                    ax = st.plt.plot_precip_field(R_obs[i,:,:], map=map, 
-                        geodata=geodata, units=units, colorscale=colorscale, 
+
+                    ax = st.plt.plot_precip_field(R_obs[i,:,:], map=map,
+                        geodata=geodata, units=units, colorscale=colorscale,
                         title=title, colorbar=colorbar, **kwargs)
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
@@ -154,12 +154,12 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
 
                     if n_members > 1:
                         title = "%s \n (member %02d)" % (title, (n+1))
-                    
-                    ax = st.plt.plot_precip_field(R_fct[n, i - n_obs,:,:], map=map, 
-                                  geodata=geodata, units=units, title=title, 
-                                  colorscale=colorscale, colorbar=colorbar, 
+
+                    ax = st.plt.plot_precip_field(R_fct[n, i - n_obs,:,:], map=map,
+                                  geodata=geodata, units=units, title=title,
+                                  colorscale=colorscale, colorbar=colorbar,
                                   **kwargs)
-                    
+
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
                             st.plt.quiver(UV, ax=ax, geodata=geodata)
@@ -184,32 +184,32 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                 (1 + i)*timestep_min)
                 else:
                     title = "+%02d min" % ((1 + i)*timestep_min)
-                
+
                 if probmaps:
                     P = st.postprocessing.ensemblestats.excprob(R_fct[:, i, :, :], probmap_thrs)
-    
+
                     for j,thr in enumerate(probmap_thrs):
                         plt.clf()
-                        st.plt.plot_precip_field(P[j, :, :], type="prob", map=map, 
-                                                 geodata=geodata, units=units, 
-                                                 probthr=thr, title=title, 
+                        st.plt.plot_precip_field(P[j, :, :], type="prob", map=map,
+                                                 geodata=geodata, units=units,
+                                                 probthr=thr, title=title,
                                                  **kwargs)
-    
+
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_probmap_%.1f.%s" % \
                                 (path_outputs, startdate_str, i+n_obs, thr, fig_format)
                             plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                             print(figname, "saved.")
-                        
+
                         if plotanimation:
                             plt.pause(.2)
-                
+
                 if ensmeans:
                     EM = st.postprocessing.ensemblestats.mean(R_fct[:, i, :, :])
 
                     plt.clf()
-                    ax = st.plt.plot_precip_field(EM, map=map, geodata=geodata, units=units, 
-                                             title=title, colorscale=colorscale, 
+                    ax = st.plt.plot_precip_field(EM, map=map, geodata=geodata, units=units,
+                                             title=title, colorscale=colorscale,
                                              colorbar=colorbar, **kwargs)
 
                     if motion_plot.lower() == "quiver":

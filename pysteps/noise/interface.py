@@ -5,9 +5,9 @@ from . import motion
 def get_method(name):
     """Return two callable functions to initialize and generate 2d perturbations
     of precipitation  or velocity fields.\n\
-    
+
     Methods for precipitation fields:
-    
+
     +-------------------+-------------------------------------------------------+
     |     Name          |              Description                              |
     +===================+=======================================================+
@@ -22,9 +22,9 @@ def get_method(name):
     +-------------------+-------------------------------------------------------+
     |  nested           | this local generator uses a nested Fourier filtering  |
     +-------------------+-------------------------------------------------------+
-    
+
     Methods for velocity fields:
-    
+
     +-------------------+-----------------------------------------------------+
     |     Name          |              Description                            |
     +===================+=====================================================+
@@ -32,7 +32,7 @@ def get_method(name):
     |                   | time-dependent velocity perturbations are sampled   |
     |                   | from the exponential distribution                   |
     +-------------------+-----------------------------------------------------+
-    
+
     """
     if name.lower() == "parametric":
         return fftgenerators.initialize_param_2d_fft_filter, \

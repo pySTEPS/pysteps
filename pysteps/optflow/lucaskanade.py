@@ -1,4 +1,4 @@
-"""OpenCV implementation of the Lucas-Kanade method with interpolated motion 
+"""OpenCV implementation of the Lucas-Kanade method with interpolated motion
 vectors for areas with no precipitation."""
 
 import numpy as np
@@ -9,17 +9,17 @@ import time
 def dense_lucaskanade(R, **kwargs):
     """OpenCV implementation of the Lucas-Kanade method with interpolated motion
     vectors for areas with no precipitation.
-    
+
     Parameters
     ----------
     R : array-like, shape (t,m,n)
-        array containing the input precipitation fields, no missing values are 
+        array containing the input precipitation fields, no missing values are
         accepted
-    
+
     Other Parameters
     ----------------
     max_corners_ST : int
-        maximum number of corners to return. If there are more corners than are 
+        maximum number of corners to return. If there are more corners than are
         found, the strongest of them is returned
     quality_level_ST : float
         parameter characterizing the minimal accepted quality of image corners.
@@ -27,10 +27,10 @@ def dense_lucaskanade(R, **kwargs):
     min_distance_ST : int
         minimum possible Euclidean distance between the returned corners [px]
     block_size_ST : int
-        size of an average block for computing a derivative covariation matrix 
+        size of an average block for computing a derivative covariation matrix
         over each pixel neighborhood
     winsize_LK : int
-        size of the search window at each pyramid level. 
+        size of the search window at each pyramid level.
         Small windows (e.g. 10) lead to unrealistic motion
     nr_levels_LK : int
         0-based maximal pyramid level number.
@@ -44,7 +44,7 @@ def dense_lucaskanade(R, **kwargs):
     min_nr_samples : int
         the minimum number of samples for computing the median within given declustering cell
     function : string
-        the radial basis function, based on the Euclidian norm d, used in the 
+        the radial basis function, based on the Euclidian norm d, used in the
         interpolation of the sparse vectors.
         default : inverse
         available : nearest, inverse, gaussian
@@ -52,37 +52,37 @@ def dense_lucaskanade(R, **kwargs):
         the number of nearest neighbors used to speed-up the interpolation
         If set equal to "all", it employs all the sparse vectors
         default : 20
-    epsilon : float   
+    epsilon : float
         adjustable constant for gaussian or inverse functions
         default : median distance between sparse vectors
     nchunks : int
-        split the grid points in n chunks to limit the memory usage during the 
+        split the grid points in n chunks to limit the memory usage during the
         interpolation
         default : 5
     extra_vectors : array-like
-        additional sparse motion vectors as 2d array (columns: x,y,u,v; rows: 
-        nbr. of vectors) to be integrated with the sparse vectors from the Lucas-Kanade 
+        additional sparse motion vectors as 2d array (columns: x,y,u,v; rows:
+        nbr. of vectors) to be integrated with the sparse vectors from the Lucas-Kanade
         local tracking.
-        x and y must be in pixel coordinates, with (0,0) being the upper-left 
+        x and y must be in pixel coordinates, with (0,0) being the upper-left
         corner of the field R. u and v must be in pixel units
     verbose : bool
         if set to True, it prints information about the program
-        
+
     Returns
     -------
     out : ndarray, shape (2,m,n)
-        three-dimensional array containing the dense x- and y-components of the 
+        three-dimensional array containing the dense x- and y-components of the
         motion field.
 
     """
-        
+
     if len(R.shape) != 3:
         raise ValueError("R has %i dimensions, but a three-dimensional array is expected" % len(R.shape))
     if R.shape[0] < 2:
         raise ValueError("R has %i frame, but at least two frames are expected" % R.shape[0])
     if np.any(~np.isfinite(R)):
         raise ValueError("All values in R must be finite")
-        
+
     # defaults
     max_corners_ST      = kwargs.get("max_corners_ST", 500)
     quality_level_ST    = kwargs.get("quality_level_ST", 0.1)
@@ -101,16 +101,16 @@ def dense_lucaskanade(R, **kwargs):
     extra_vectors       = kwargs.get("extra_vectors", None)
     if extra_vectors is not None:
         if len(extra_vectors.shape) != 2:
-            raise ValueError("extra_vectors has %i dimensions, but 2 dimensions are expected" 
+            raise ValueError("extra_vectors has %i dimensions, but 2 dimensions are expected"
                             % len(extra_vectors.shape))
         if extra_vectors.shape[1] != 4:
-            raise ValueError("extra_vectors has %i columns, but 4 columns are expected" 
+            raise ValueError("extra_vectors has %i columns, but 4 columns are expected"
                                % extra_vectors.shape[1])
     verbose             = kwargs.get("verbose", True)
     if verbose:
         print("Computing the motion field with the Lucas-Kanade method.")
         t0 = time.time()
-    
+
     nr_fields = R.shape[0]
     domain_size = (R.shape[1], R.shape[2])
     y0Stack=[]
@@ -139,11 +139,11 @@ def dense_lucaskanade(R, **kwargs):
         # TODO: implement different feature detection algorithms (e.g. Harris)
         p0 = _ShiTomasi_features_to_track(prvs, max_corners_ST, quality_level_ST,
                                           min_distance_ST, block_size_ST)
-                                          
+
         # get sparse u, v vectors with Lucas-Kanade tracking
-        x0, y0, u, v = _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, 
+        x0, y0, u, v = _LucasKanade_features_tracking(prvs, next, p0, winsize_LK,
                                                      nr_levels_LK)
-                                                     
+
         # exclude outlier vectors
         vel = np.sqrt(u**2 + v**2) # [px/timesteps]
         q1, q2 = np.percentile(vel, [25,75])
@@ -155,19 +155,19 @@ def dense_lucaskanade(R, **kwargs):
         v = v[keep][:,None]
         y0 = y0[keep][:,None]
         x0 = x0[keep][:,None]
-        
+
         # stack vectors within time window
         y0Stack.append(y0)
         x0Stack.append(x0)
         uStack.append(u)
         vStack.append(v)
-        
+
     # convert lists of arrays into single arrays
     y0 = np.vstack(y0Stack)
-    x0 = np.vstack(x0Stack) 
+    x0 = np.vstack(x0Stack)
     u = np.vstack(uStack)
     v = np.vstack(vStack)
-    
+
     # decluster sparse motion vectors
     x, y, u, v = _declustering(x0, y0, u, v, decl_grid, min_nr_samples)
 
@@ -181,12 +181,12 @@ def dense_lucaskanade(R, **kwargs):
     # kernel interpolation
     X, Y, UV = _interpolate_sparse_vectors(x, y, u, v, domain_size, function=function,
                                           k=k, epsilon=epsilon, nchunks=nchunks)
-    
+
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
-    
+
     return UV
-    
+
 def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
                                  min_distance_ST, block_size_ST):
     """Call the Shi-Tomasi corner detection algorithm.
@@ -196,7 +196,7 @@ def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
     R : array-like
         Array of shape (m,n) containing the input precipitation field passed as 8-bit image.
     max_corners_ST : int
-        Maximum number of corners to return. If there are more corners than are 
+        Maximum number of corners to return. If there are more corners than are
         found, the strongest of them is returned.
     quality_level_ST : float
         Parameter characterizing the minimal accepted quality of image corners.
@@ -204,16 +204,16 @@ def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
     min_distance_ST : int
         Minimum possible Euclidean distance between the returned corners [px].
     block_size_ST : int
-        Size of an average block for computing a derivative covariation matrix 
-        over each pixel neighborhood. 
-        
+        Size of an average block for computing a derivative covariation matrix
+        over each pixel neighborhood.
+
     Returns
     -------
     p0 : list
         Output vector of detected corners.
-    
+
     """
-    
+
     if len(R.shape) != 2:
         raise ValueError("R must be a two-dimensional array")
     if R.dtype != "uint8":
@@ -225,7 +225,7 @@ def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
 
     # detect corners
     p0 = cv2.goodFeaturesToTrack(R, mask=None, **ShiTomasi_params)
-    
+
     if p0 is None:
         raise ValueError("Shi-Tomasi found no good feature to be tracked.")
 
@@ -244,12 +244,12 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
         Vector of 2D points for which the flow needs to be found.
         Point coordinates must be single-precision floating-point numbers.
     winsize_LK : tuple
-        Size of the search window at each pyramid level. 
+        Size of the search window at each pyramid level.
         Small windows (e.g. 10) lead to unrealistic motion.
     nr_levels_LK : int
         0-based maximal pyramid level number.
         Not very sensitive parameter.
-        
+
     Returns
     -------
     x0 : array-like
@@ -283,7 +283,7 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
     v = np.array((p1-p0)[:,:,1])
 
     return x0, y0, u, v
- 
+
 def _clean_image(R, n=3, thr=0):
     """Apply a binary morphological opening to filter small isolated echoes.
 
@@ -300,7 +300,7 @@ def _clean_image(R, n=3, thr=0):
     -------
     R : array
         Array of shape (m,n) containing the cleaned precipitation field.
-    
+
     """
 
     # convert to binary image (rain/no rain)
@@ -321,10 +321,10 @@ def _clean_image(R, n=3, thr=0):
     return R
 
 def _declustering(x, y, u, v, decl_grid, min_nr_samples):
-    """Filter out outliers in a sparse motion field and get more representative 
-    data points. The method assigns data points to a (RxR) declustering grid 
+    """Filter out outliers in a sparse motion field and get more representative
+    data points. The method assigns data points to a (RxR) declustering grid
     and then take the median of all values within one cell.
-    
+
     Parameters
     ----------
     x : array_like
@@ -338,14 +338,14 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     decl_grid : int
         Size of the declustering grid [px].
     min_nr_samples : int
-        The minimum number of samples for computing the median within given 
+        The minimum number of samples for computing the median within given
         declustering cell.
-    
+
     Returns
     -------
-    A four-element tuple (x,y,u,v) containing the x- and y-coordinates and 
+    A four-element tuple (x,y,u,v) containing the x- and y-coordinates and
     velocity components of the declustered motion vectors.
-    
+
     """
     # make sure these are all vertical arrays
     x = x[:,None]
@@ -357,7 +357,7 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     xT = x/float(decl_grid)
     yT = y/float(decl_grid)
 
-    # round coordinates to low integer 
+    # round coordinates to low integer
     xT = np.floor(xT)
     yT = np.floor(yT)
 
@@ -367,7 +367,7 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     _,idx = np.unique(xyb, return_index=True)
     unique_xy = xy[idx]
 
-    # now loop through these unique values and average vectors which belong to 
+    # now loop through these unique values and average vectors which belong to
     # the same declustering grid cell
     xN=[]; yN=[]; uN=[]; vN=[]
     for i in range(unique_xy.shape[0]):
@@ -378,30 +378,30 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
             yN.append(np.median(y[idx]))
             uN.append(np.median(u[idx]))
             vN.append(np.median(v[idx]))
-    
+
     # convert to numpy arrays
     x = np.array(xN)
-    y = np.array(yN) 
+    y = np.array(yN)
     u = np.array(uN)
-    v = np.array(vN) 
+    v = np.array(vN)
 
     return x, y, u, v
-    
+
 def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
                                k=20, epsilon=None, nchunks=5):
-    
-    """Interpolation of sparse motion vectors to produce a dense field of motion 
-    vectors. 
-    
+
+    """Interpolation of sparse motion vectors to produce a dense field of motion
+    vectors.
+
     Parameters
     ----------
     x : array-like
         x coordinates of the sparse motion vectors
     y : array-like
         y coordinates of the sparse motion vectors
-    u : array_like  
+    u : array_like
         u components of the sparse motion vectors
-    v : array_like  
+    v : array_like
         v components of the sparse motion vectors
     domain_size : tuple
         size of the domain of the dense motion field [px]
@@ -413,14 +413,14 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
         the number of nearest neighbors used to speed-up the interpolation
         If set equal to "all", it employs all the sparse vectors
         default : 20
-    epsilon : float   
+    epsilon : float
         adjustable constant for gaussian or inverse functions
         default : median distance between sparse vectors
     nchunks : int
-        split the grid points in n chunks to limit the memory usage during the 
+        split the grid points in n chunks to limit the memory usage during the
         interpolation
         default : 5
-    
+
     Returns
     -------
     X : array-like
@@ -428,69 +428,69 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
     Y : array-like
         grid
     UV : array-like
-        Three-dimensional array (2,domain_size[0],domain_size[1]) 
+        Three-dimensional array (2,domain_size[0],domain_size[1])
         containing the dense U, V motion fields.
 
     """
-    
+
     testinterpolation = False
-    
+
     # make sure these are vertical arrays
     x = x[:,None]
     y = y[:,None]
     u = u[:,None]
     v = v[:,None]
     points = np.column_stack((x, y))
-    
+
     if len(domain_size)==1:
         domain_size = (domain_size, domain_size)
-        
+
     # generate the grid
     xgrid = np.arange(domain_size[1])
     ygrid = np.arange(domain_size[0])
     X, Y = np.meshgrid(xgrid, ygrid)
     grid = np.column_stack((X.ravel(), Y.ravel()))
-    
+
     U = np.zeros(grid.shape[0])
     V = np.zeros(grid.shape[0])
-         
+
     # create cKDTree object to represent source grid
     if k is not "all":
         k = np.min((k, points.shape[0]))
         tree = scipy.spatial.cKDTree(points)
-    
+
     # split grid points in n chunks
     subgrids = np.array_split(grid, nchunks, 0)
     subgrids = [x for x in subgrids if x.size > 0]
-    
+
     # loop subgrids
     i0=0
     for i,subgrid in enumerate(subgrids):
-    
+
         idelta = subgrid.shape[0]
 
         if function.lower() == "nearest":
-        
+
             # find indices of the nearest neighbors
             _, inds = tree.query(subgrid, k=1)
-        
+
             U[i0:(i0+idelta)] = u.flatten()[inds]
             V[i0:(i0+idelta)] = v.flatten()[inds]
-        
+
         else:
             if k == "all":
                 d = scipy.spatial.distance.cdist(points, subgrid, 'euclidean').transpose()
                 inds = np.arange(u.size)[None,:]*np.ones((subgrid.shape[0],u.size)).astype(int)
 
-            else: 
+            else:
                 # find indices of the k-nearest neighbors
                 d, inds = tree.query(subgrid, k=k)
-        
+
             # the bandwidth
             if epsilon is None:
                 dpoints = scipy.spatial.distance.pdist(points, 'euclidean')
                 epsilon = np.median(dpoints)
-            
+
             # the interpolation weights
             if function.lower() == "inverse":
                 w = 1.0/np.sqrt((d/epsilon)**2 + 1)
@@ -501,22 +501,22 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
 
             U[i0:(i0+idelta)] = np.sum(w * u.flatten()[inds], axis=1) / np.sum(w, axis=1)
             V[i0:(i0+idelta)] = np.sum(w * v.flatten()[inds], axis=1) / np.sum(w, axis=1)
-               
+
         i0 += idelta
-    
+
     # reshape back to original size
     U = U.reshape(domain_size[0], domain_size[1])
     V = V.reshape(domain_size[0], domain_size[1])
     UV = np.stack([U, V])
-        
+
     if testinterpolation:
         import matplotlib.pylab as plt
         step=15
         UV_ = UV[:, 0:UV.shape[1]:step, 0:UV.shape[2]:step]
         X_ = X[0:UV.shape[1]:step, 0:UV.shape[2]:step]
-        Y_ = Y[0:UV.shape[1]:step, 0:UV.shape[2]:step]                                                         
-        plt.quiver(X_, np.flipud(Y_), UV_[0,:,:], -UV_[1,:,:])     
+        Y_ = Y[0:UV.shape[1]:step, 0:UV.shape[2]:step]
+        plt.quiver(X_, np.flipud(Y_), UV_[0,:,:], -UV_[1,:,:])
         plt.quiver(x, np.flipud(y), u, -v, color="red")
         plt.show()
-    
+
     return X, Y, UV

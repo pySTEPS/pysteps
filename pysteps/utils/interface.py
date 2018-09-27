@@ -4,11 +4,11 @@ from . import transformation
 from . import dimension
 
 def get_method(name):
-    """Return a callable function for the bandpass filter or decomposition method 
+    """Return a callable function for the bandpass filter or decomposition method
     corresponding to the given name.\n\
-    
+
     Conversion methods:
-    
+
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
@@ -19,9 +19,9 @@ def get_method(name):
     | dBZ or            | convert to reflectivity [dBZ]                          |
     | reflectivity      |                                                        |
     +-------------------+--------------------------------------------------------+
-    
+
     Transformation methods:
-    
+
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
@@ -29,9 +29,9 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |  BoxCox           | apply one-parameter Box-Cox transform                  |
     +-------------------+--------------------------------------------------------+
-    
+
     Dimension methods:
-    
+
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
@@ -41,18 +41,18 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |  square           | either pad or crop the data to get a square domain     |
     +-------------------+--------------------------------------------------------+
-    
+
     """
-    
+
     if name is None:
         name = "none"
 
     name = name.lower()
-    
+
     def donothing(R, metadata, *args, **kwargs):
         return R.copy(), metadata.copy()
-        
-    methods_objects                 = dict()   
+
+    methods_objects                 = dict()
     methods_objects["none"]         = donothing
     # conversion methods
     methods_objects["mm/h"]         = conversion.to_rainrate
@@ -71,10 +71,10 @@ def get_method(name):
     methods_objects["aggregate"]    = dimension.aggregate_fields_time
     methods_objects["accumulate"]   = dimension.aggregate_fields_time
     methods_objects["square"]       = dimension.square_domain
-    
+
     try:
         return methods_objects[name]
 
     except KeyError as e:
-        raise ValueError("Unknown method %s\n" % e + 
+        raise ValueError("Unknown method %s\n" % e +
                          "Supported methods:%s" % str(methods_objects.keys()))
