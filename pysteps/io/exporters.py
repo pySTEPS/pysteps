@@ -86,6 +86,8 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         n_timesteps = None
     elif incremental == "member":
         n_ens_members = None
+    elif incremental is not None:
+        raise ValueError("unknown argument value incremental='%s': must be 'timestep' or 'member'" % str(incremental))
 
     exporter = {}
 
