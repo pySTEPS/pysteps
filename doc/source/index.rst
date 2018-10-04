@@ -21,7 +21,7 @@ and objects included in pysteps.
    
    nowcasting
    io
-   oflow
+   motion
    advection
    cascade
    noise

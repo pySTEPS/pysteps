@@ -38,7 +38,7 @@ R_, _ = stp.utils.dB_transform(R_)
 
 # Compute motion field
 
-oflow_method = stp.optflow.get_method("lucaskanade")
+oflow_method = stp.motion.get_method("lucaskanade")
 UV = oflow_method(R_) 
 
 # Perform the advection of the radar field

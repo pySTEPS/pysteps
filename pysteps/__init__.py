@@ -5,7 +5,7 @@ from . import cascade
 from . import io
 from . import noise
 from . import nowcasts
-from . import optflow
+from . import motion
 from . import postprocessing
 from . import timeseries
 from . import utils

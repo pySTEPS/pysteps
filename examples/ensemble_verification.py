@@ -220,7 +220,7 @@ for n, parset in enumerate(parsets):
             R[~np.isfinite(R)] = metadata["zerovalue"]
             
             # Compute motion field
-            oflow_method = stp.optflow.get_method(p["oflow_method"])
+            oflow_method = stp.motion.get_method(p["oflow_method"])
             UV = oflow_method(R)
             
             # Perform the nowcast       

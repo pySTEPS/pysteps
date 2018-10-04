@@ -106,7 +106,7 @@ R, metadata = transformer(R, metadata)
 R[~np.isfinite(R)] = metadata["zerovalue"]
 
 # Compute motion field
-oflow_method = stp.optflow.get_method(oflow_method)
+oflow_method = stp.motion.get_method(oflow_method)
 UV = oflow_method(R)
 
 # Perform the nowcast
