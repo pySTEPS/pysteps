@@ -483,14 +483,14 @@ def import_odim_hdf5(filename, **kwargs):
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
-                qty_,gain,offset,nodata,undetect = _read_odimhdf5_what_group(dsg[1]["what"])
+                qty_,gain,offset,nodata,undetect = _read_odim_hdf5_what_group(dsg[1]["what"])
                 what_grp_found = True
 
             for dg in dsg[1].items():
                 if dg[0][0:4] == "data":
                     # check if the "what" group is in the "data" group
                     if "what" in list(dg[1].keys()):
-                        qty_,gain,offset,nodata,undetect = _read_h5_what_group(dg[1]["what"])
+                        qty_,gain,offset,nodata,undetect = _read_odim_hdf5_what_group(dg[1]["what"])
                     elif what_grp_found == False:
                         raise Exception("no what group found from %s or its subgroups" % dg[0])
 
