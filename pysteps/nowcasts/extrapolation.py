@@ -1,7 +1,7 @@
 """Implementations of deterministic nowcasting methods."""
 
 import time
-from .. import advection
+from .. import extrapolation
 
 def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs={}):
     """Generate a nowcast by applying a simple advection-based extrapolation to
@@ -22,7 +22,7 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
     ----------------
     extrap_method : {'semilagrangian'}
       Name of the extrapolation method to use. See the documentation of
-      pysteps.advection.interface.
+      pysteps.extrapolation.interface.
     extrap_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the
       extrapolation method.
@@ -35,7 +35,7 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
 
     See also
     --------
-    pysteps.advection.interface
+    pysteps.extrapolation.interface
 
     """
     _check_inputs(R, V)
@@ -45,7 +45,7 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
 
     starttime = time.time()
 
-    extrap_method = advection.get_method(extrap_method)
+    extrap_method = extrapolation.get_method(extrap_method)
     R_f = extrap_method(R, V, num_timesteps, **extrap_kwargs)
 
     print("%.2f seconds." % (time.time() - starttime))

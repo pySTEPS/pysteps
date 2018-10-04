@@ -44,7 +44,7 @@ UV = oflow_method(R_)
 # Perform the advection of the radar field
 
 n_lead_times = 12 
-adv_method = stp.advection.get_method("semilagrangian") 
+adv_method = stp.extrapolation.get_method("semilagrangian") 
 R_fct = adv_method(R_[-1,:,:], UV, n_lead_times, verbose=True)
 
 ## transform forecast values back to mm/h

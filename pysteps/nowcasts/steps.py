@@ -4,7 +4,7 @@ import numpy as np
 import scipy.ndimage
 import sys
 import time
-from .. import advection
+from .. import extrapolation
 from .. import cascade
 from .. import noise
 from ..postprocessing import probmatching
@@ -56,7 +56,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
       not None or mask_method is 'incremental'.
     extrap_method : {'semilagrangian'}
       Name of the extrapolation method to use. See the documentation of
-      pysteps.advection.interface.
+      pysteps.extrapolation.interface.
     decomp_method : {'fft'}
       Name of the cascade decomposition method to use. See the documentation
       of pysteps.cascade.interface.
@@ -129,7 +129,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
 
     See also
     --------
-    pysteps.advection.interface, pysteps.cascade.interface,
+    pysteps.extrapolation.interface, pysteps.cascade.interface,
     pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
 
     References
@@ -211,7 +211,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
         print("conditional precip. intensity threshold: %g" % R_thr)
 
     M,N = R.shape[1:]
-    extrap_method = advection.get_method(extrap_method)
+    extrap_method = extrapolation.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
 
     if conditional or use_probmatching:

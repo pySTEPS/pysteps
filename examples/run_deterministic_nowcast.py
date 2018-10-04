@@ -97,7 +97,7 @@ oflow_method = stp.motion.get_method(oflow_method)
 UV = oflow_method(R) 
 
 # Perform the advection of the radar field
-adv_method = stp.advection.get_method(adv_method) 
+adv_method = stp.extrapolation.get_method(adv_method) 
 R_fct = adv_method(R[-1,:,:], UV, n_lead_times, verbose=True)
 print("The forecast array has size [nleadtimes,nrows,ncols] =", R_fct.shape)
 

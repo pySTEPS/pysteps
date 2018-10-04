@@ -1,6 +1,6 @@
 import numpy as np
 
-"""The advection methods in the advection module implement the following interface:
+"""The methods in the extrapolation module implement the following interface:
 
     extrapolate(R, V, num_timesteps, outval=np.nan, keyword arguments)
 

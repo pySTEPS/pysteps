@@ -22,7 +22,7 @@ and objects included in pysteps.
    nowcasting
    io
    motion
-   advection
+   extrapolation
    cascade
    noise
    postprocessing

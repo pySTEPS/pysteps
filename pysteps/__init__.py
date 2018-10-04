@@ -1,6 +1,6 @@
 
 # import subpackages
-from . import advection
+from . import extrapolation
 from . import cascade
 from . import io
 from . import noise
