@@ -68,6 +68,7 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
 
     R = aggregate_fields(R, nframes, axis=axis, method=method)
 
+    metadata["accutime"] = time_window_min
     metadata["timestamps"] = timestamps[nframes-1::nframes]
     if "leadtimes" in metadata:
         metadata["leadtimes"] = leadtimes[nframes-1::nframes]
