@@ -338,16 +338,15 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
             # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n,n))
             # MASK_prec = MASK_prec.astype('uint8')
             # MASK_prec = cv2.dilate(MASK_prec,kernel).astype(bool)
-
         elif mask_method == "sprog":
             # compute the wet area ratio and the precipitation mask
             MASK_prec = R[-1, :, :] >= R_thr
             war = 1.0*np.sum(MASK_prec) / (R.shape[1]*R.shape[2])
-            R_m = R_c.copy()
+            R_m = R_c[0, :, :, :].copy()
         elif mask_method == "incremental":
             # initialize precip mask for each member
             MASK_prec_ = R[-1, :, :] >= R_thr
-            MASK_prec = [ MASK_prec_.copy() for j in range(n_ens_members)]
+            MASK_prec = [MASK_prec_.copy() for j in range(n_ens_members)]
             # initialize the structuring element
             struct = scipy.ndimage.generate_binary_structure(2, 1)
             # iterate it to expand it nxn
@@ -363,6 +362,34 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
         print("Computing nowcast for time step %d... " % (t+1), end="")
         sys.stdout.flush()
         starttime = time.time()
+
+        if use_precip_mask and mask_method == "sprog":
+            for i in range(n_cascade_levels):
+                # use a separate AR(p) model for the non-perturbed forecast,
+                # from which the mask is obtained
+                R_m[i, :, :, :] = \
+                    autoregression.iterate_ar_model(R_m[i, :, :, :], PHI[i, :])
+
+            R_m_ = _recompose_cascade(R_m, mu, sigma)
+
+            # obtain the CDF from the non-perturbed forecast that is
+            # scale-filtered by the AR(p) model
+            R_s = R_m_.flatten()
+
+            # compute the threshold value R_pct_thr corresponding to the
+            # same fraction of precipitation pixels (forecast values above
+            # R_min) as in the most recently observed precipitation field
+            R_s.sort(kind="quicksort")
+            x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
+            i = np.argmin(abs(x - war))
+            # handle ties
+            if R_s[i] == R_s[i + 1]:
+                i = np.where(R_s == R_s[i])[0][-1] + 1
+            R_pct_thr = R_s[i]
+
+            # determine a mask using the above threshold value to preserve the
+            # wet-area ratio
+            MASK_prec = R_m_ < R_pct_thr
 
         # iterate each ensemble member
         def worker(j):
@@ -386,11 +413,6 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
                 R_c[j, i, :, :, :] = \
                     autoregression.iterate_ar_model(R_c[j, i, :, :, :],
                                                     PHI[i, :], EPS=EPS_)
-                if use_precip_mask and mask_method == "sprog":
-                    # use a separate AR(p) model for the non-perturbed forecast,
-                    # from which the mask is obtained
-                    R_m[j, i, :, :, :] = \
-                        autoregression.iterate_ar_model(R_m[j, i, :, :, :], PHI[i, :])
 
             EPS  = None
             EPS_ = None
@@ -408,26 +430,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
                 elif mask_method == "incremental":
                     R_c_[~MASK_prec[j]] = R_c_.min()
                 elif mask_method == "sprog":
-                    # obtain the CDF from the non-perturbed forecast that is
-                    # scale-filtered by the AR(p) model
-                    R_m_ = _recompose_cascade(R_m[j, :, :, :], mu, sigma)
-                    R_s = R_m_.flatten()
-
-                    # compute the threshold value R_pct_thr corresponding to the
-                    # same fraction of precipitation pixels (forecast values above
-                    # R_min) as in the most recently observed precipitation field
-                    R_s.sort(kind="quicksort")
-                    x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
-                    i = np.argmin(abs(x - war))
-                    # handle ties
-                    if R_s[i] == R_s[i + 1]:
-                        i = np.where(R_s == R_s[i])[0][-1] + 1
-                    R_pct_thr = R_s[i]
-
-                    # apply a mask obtained from the above to preserve the
-                    # wet-area ratio
-                    MASK_prec_ = R_m_ < R_pct_thr
-                    R_c_[MASK_prec_] = R_c_.min()
+                    R_c_[MASK_prec] = R_c_.min()
 
             if use_probmatching:
                 ## adjust the conditional CDF of the forecast (precipitation
