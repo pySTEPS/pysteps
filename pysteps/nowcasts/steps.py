@@ -18,7 +18,7 @@ except ImportError:
 def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
              kmperpixel=None, timestep=None, extrap_method="semilagrangian",
              decomp_method="fft", bandpass_filter_method="gaussian",
-             noise_method="nonparametric", noise_stddev_adj=True, ar_order=2,
+             noise_method="nonparametric", noise_stddev_adj=False, ar_order=2,
              vel_pert_method=None, conditional=False, use_precip_mask=True,
              use_probmatching=True, mask_method="incremental", callback=None,
              return_output=True, seed=None, num_workers=None, extrap_kwargs={},
