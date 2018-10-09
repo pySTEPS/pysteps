@@ -362,7 +362,7 @@ def import_mch_metranet(filename, **kwargs):
     ret = metranet.read_file(filename, physic_value=True, verbose=False)
     R = ret.data
     
-    geodata = _import_mch_gif_geodata()
+    geodata = _import_mch_geodata()
 
     # read metranet
     metadata = geodata
@@ -421,7 +421,7 @@ def import_mch_gif(filename, **kwargs):
     unit        = kwargs.get("unit",    "mm")
     accutime    = kwargs.get("accutime", 5.)
 
-    geodata = _import_mch_gif_geodata()
+    geodata = _import_mch_geodata()
     
     metadata = geodata
 
@@ -487,7 +487,7 @@ def import_mch_gif(filename, **kwargs):
 
     return R,None,metadata
 
-def _import_mch_gif_geodata():
+def _import_mch_geodata():
     """Swiss radar domain CCS4
     These are all hard-coded because the georeferencing is missing from the gif files.
     """
