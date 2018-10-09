@@ -3,7 +3,7 @@
 import numpy as np
 
 # TODO: If time_window_min can be set to None, it should be a keyword argument.
-def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
+def aggregate_fields_time(R, metadata, time_window_min):
     """Aggregate fields in time.
 
     Parameters
@@ -14,14 +14,11 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
         They must be evenly spaced in time.
     metadata : dict
         The metadata dictionary contains all data-related information. It requires
-        the key "timestamps".
+        the key "timestamps" and "units".
     time_window_min : float or None
         The length in minutes of the time window that is used to aggregate the fields.
         The time spanned by the t dimension of R must be a multiple of time_window_min.
         If set to None, it returns a copy of the original R and metadata.
-    method : string
-        Optional argument that specifies the operation to use to aggregate the values within the time
-        window. Default to mean operator.
 
     Returns
     -------
@@ -39,7 +36,8 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
 
     if time_window_min is None:
         return R, metadata
-
+        
+    unit       = metadata["unit"]
     timestamps = metadata["timestamps"]
     if "leadtimes" in metadata:
         leadtimes = metadata["leadtimes"]
@@ -65,7 +63,15 @@ def aggregate_fields_time(R, metadata, time_window_min, method="mean"):
         raise ValueError('time_window_size does not equally split R')
 
     nframes = int(time_window_min/delta)
-
+    
+    # specify the operator to be used to aggregate the values within the time window
+    if unit == "mm/h":
+        method = "mean"
+    elif unit == "mm":
+        method = "sum"
+    else:
+        raise ValueError("can only aggregate units of 'mm/h' or 'mm' not %s" % unit)
+        
     R = aggregate_fields(R, nframes, axis=axis, method=method)
 
     metadata["accutime"] = time_window_min
