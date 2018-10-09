@@ -8,5 +8,7 @@ timestep   = 5.
 
 # importer arguments
 importer_kwargs = {
-    "product"   :   "AQC"
+    "product"   :   "AQC",
+    "unit"      :   "mm",
+    "accutime"  :   5.
 }

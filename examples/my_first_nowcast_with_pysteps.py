@@ -19,10 +19,13 @@ import pysteps as stp
 filenames = ("sample_mch_radar_composite_00.gif","sample_mch_radar_composite_01.gif")
 R = []
 for fn in filenames:
-    R_, _, _ = stp.io.import_mch_gif(fn)
+    R_, _, metadata = stp.io.import_mch_gif(fn)
     R.append(R_)
     R_ = None
 R = np.stack(R)
+
+## convert to mm/h
+R, metadata = stp.utils.to_rainrate(R, metadata)
 
 ## threshold the data
 R[R<0.1] = 0.0

@@ -310,7 +310,7 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     f.close()
 
     return metadata
-
+    
 def import_mch_gif(filename, **kwargs):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
@@ -328,10 +328,16 @@ def import_mch_gif(filename, **kwargs):
         +------+----------------------------+
         | Name |          Product           |
         +======+============================+
-        | AQC  |         AQUIRE             |
+        | AQC  |         Acquire            |
         +------+----------------------------+
-        | RZC  |         PRECIP             |
+        | CPC  |         CombiPrecip        |
         +------+----------------------------+
+        | RZC  |         Precip             |
+        +------+----------------------------+
+    unit : string
+        the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
+    accutime : float
+        the accumulation time in minutes of the data 
 
     Returns
     -------
@@ -344,33 +350,19 @@ def import_mch_gif(filename, **kwargs):
     if not pil_imported:
         raise Exception("PIL not imported")
 
-    product = kwargs.get("product", "AQC")
+    product     = kwargs.get("product", "AQC")
+    unit        = kwargs.get("unit",    "mm")
+    accutime    = kwargs.get("accutime", 5.)
 
     geodata = _import_mch_gif_geodata()
+    
+    metadata = geodata
 
     # import gif file
     B = PIL.Image.open(filename)
-
-    # convert digital numbers to physical values
-    if product == "AQC":
-        B = np.array(B, dtype=int)
-
-        # build lookup table [mm/5min]
-        lut = np.zeros(256)
-        A = 316.0; b = 1.5
-        for i in range(256):
-            if (i < 2) or (i > 250 and i < 255):
-                lut[i] = 0.0
-            elif (i == 255):
-                lut[i] = np.nan
-            else:
-                lut[i] = (10.**((i - 71.2)/20.0)/A)**(1.0/b)
-
-        # apply lookup table [mm/h]
-        R = lut[B]*12
-
-    elif product == "RZC":
-
+    
+    if product.lower() in ["rzc", "precip"]:
+    
         # convert 8-bit GIF colortable to RGB values
         Brgb = B.convert('RGB')
 
@@ -392,17 +384,39 @@ def import_mch_gif(filename, **kwargs):
         # and values in non-precipitating areas to zero.
         R[R<0] = 0
         R[R>1000] = np.nan
+    
+    elif product.lower() in ["aqc", "cpc", "acquire ", "combiprecip"]:
+    
+        # convert digital numbers to physical values
+        B = np.array(B, dtype=int)
 
+        # build lookup table [mm/5min]
+        lut = np.zeros(256)
+        A = 316.0; b = 1.5
+        for i in range(256):
+            if (i < 2) or (i > 250 and i < 255):
+                lut[i] = 0.0
+            elif (i == 255):
+                lut[i] = np.nan
+            else:
+                lut[i] = (10.**((i - 71.2)/20.0)/A)**(1.0/b)
+
+        # apply lookup table
+        R = lut[B]
+        
     else:
         raise ValueError("unknown product %s" % product)
-
-    metadata = geodata
-    metadata["institution"] = "MeteoSwiss"
-    metadata["accutime"]    = 5.
-    metadata["unit"]        = "mm/h"
+        
+    metadata["accutime"]    = accutime
+    metadata["unit"]        = unit
     metadata["transform"]   = None
     metadata["zerovalue"]   = np.nanmin(R)
-    metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
+    if np.any(R>np.nanmin(R)):
+        metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
+    else:
+        metadata["threshold"]   = None
+    metadata["institution"] = "MeteoSwiss"
+    metadata["product"] = product
 
     return R,None,metadata
 
