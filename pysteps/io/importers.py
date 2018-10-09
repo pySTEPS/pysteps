@@ -72,6 +72,11 @@ try:
 except ImportError:
     h5py_imported = False
 try:
+    import metranet
+    metranet_imported = True
+except ImportError:
+    metranet_imported = False
+try:
     import netCDF4
     netcdf4_imported = True
 except ImportError:
@@ -310,7 +315,69 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     f.close()
 
     return metadata
+   
+def import_mch_metranet(filename, **kwargs):
+    """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
+    archive.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+
+    Other Parameters
+    ----------------
+    product : string
+        The name of the MeteoSwiss QPE product:
+
+        +------+----------------------------+
+        | Name |          Product           |
+        +======+============================+
+        | AQC  |         Acquire            |
+        +------+----------------------------+
+        | CPC  |         CombiPrecip        |
+        +------+----------------------------+
+        | RZC  |         Precip             |
+        +------+----------------------------+
+    unit : string
+        the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
+    accutime : float
+        the accumulation time in minutes of the data 
     
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the precipitation field in mm/h imported
+        from a MeteoSwiss gif file and the associated quality field and metadata.
+        The quality field is currently set to None.
+    
+    """
+    if not metranet_imported:
+        raise Exception("metranet not imported")
+        
+    product     = kwargs.get("product", "AQC")
+    unit        = kwargs.get("unit",    "mm")
+    accutime    = kwargs.get("accutime", 5.)
+    
+    ret = metranet.read_file(filename, physic_value=True, verbose=False)
+    R = ret.data
+    
+    geodata = _import_mch_gif_geodata()
+
+    # read metranet
+    metadata = geodata
+    metadata["institution"] = "MeteoSwiss"
+    metadata["accutime"]    = accutime
+    metadata["unit"]        = unit
+    metadata["transform"]   = None
+    metadata["zerovalue"]   = np.nanmin(R)
+    if np.isnan(metadata["zerovalue"]):
+        metadata["threshold"] = np.nan
+    else:
+        metadata["threshold"]   = np.nanmin(R[R>metadata["zerovalue"]])
+    
+    return R,None,metadata
+   
 def import_mch_gif(filename, **kwargs):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
