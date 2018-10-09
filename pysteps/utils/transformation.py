@@ -75,16 +75,16 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
 
         if threshold is None:
             threshold = metadata.get("threshold", -10.)
-
+        if zerovalue is None:
+            zerovalue = 0.0
+            
         R = 10.0**(R/10.0)
         threshold = 10.0**(threshold/10.0)
-
-        if zerovalue is not None:
-            R[R < threshold] = zerovalue
-            metadata["zerovalue"] = zerovalue
-
+        R[R < threshold] = zerovalue
+        
         metadata["transform"] = None
         metadata["threshold"] = threshold
+        metadata["zerovalue"] = zerovalue
 
         return R, metadata
 
