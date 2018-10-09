@@ -252,7 +252,7 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
 
     new_dim_x = int((xlim.max() - xlim.min())/metadata["xpixelsize"])
     new_dim_y = int((ylim.max() - ylim.min())/metadata["ypixelsize"])
-    R_ = np.zeros((R.shape[0], R.shape[1], new_dim_y, new_dim_x))
+    R_ = np.ones((R.shape[0], R.shape[1], new_dim_y, new_dim_x))*metadata["zerovalue"]
 
     y_coord = np.linspace(metadata["y1"], metadata["y2"] - metadata["ypixelsize"], R.shape[2]) + metadata["ypixelsize"]/2.
     x_coord = np.linspace(metadata["x1"], metadata["x2"] - metadata["xpixelsize"], R.shape[3]) + metadata["xpixelsize"]/2.
