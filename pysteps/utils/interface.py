@@ -35,11 +35,13 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
+    |  accumulate       | aggregate fields in time                               |
+    +-------------------+--------------------------------------------------------+
     |  adjust           | resize the field domain by geographical coordinates    |
     +-------------------+--------------------------------------------------------+
-    |  aggregate        | aggregate fields in time                               |
-    +-------------------+--------------------------------------------------------+
     |  square           | either pad or crop the data to get a square domain     |
+    +-------------------+--------------------------------------------------------+
+    |  upscale          | upscale the field                                      |
     +-------------------+--------------------------------------------------------+
 
     """
@@ -67,10 +69,10 @@ def get_method(name):
     methods_objects["boxcox"]       = transformation.boxcox_transform
     methods_objects["box-cox"]      = transformation.boxcox_transform
     # dimension methods
-    methods_objects["adjust"]       = dimension.adjust_domain
-    methods_objects["aggregate"]    = dimension.aggregate_fields_time
     methods_objects["accumulate"]   = dimension.aggregate_fields_time
+    methods_objects["adjust"]       = dimension.adjust_domain
     methods_objects["square"]       = dimension.square_domain
+    methods_objects["upscale"]      = dimension.aggregate_fields_space
 
     try:
         return methods_objects[name]

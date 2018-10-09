@@ -2,7 +2,6 @@
 
 import numpy as np
 
-# TODO: If time_window_min can be set to None, it should be a keyword argument.
 def aggregate_fields_time(R, metadata, time_window_min):
     """Aggregate fields in time.
 
@@ -14,7 +13,7 @@ def aggregate_fields_time(R, metadata, time_window_min):
         They must be evenly spaced in time.
     metadata : dict
         The metadata dictionary contains all data-related information. It requires
-        the key "timestamps" and "unit".
+        the keys "timestamps" and "unit".
     time_window_min : float or None
         The length in minutes of the time window that is used to aggregate the fields.
         The time spanned by the t dimension of R must be a multiple of time_window_min.
@@ -78,6 +77,81 @@ def aggregate_fields_time(R, metadata, time_window_min):
     metadata["timestamps"] = timestamps[nframes-1::nframes]
     if "leadtimes" in metadata:
         metadata["leadtimes"] = leadtimes[nframes-1::nframes]
+
+    return R, metadata
+
+def aggregate_fields_space(R, metadata, space_window_m):
+    """Upscale fields in space.
+
+    Parameters
+    ----------
+    R : array-like
+        Array of shape (t,m,n) or (l,t,m,n) containing a time series of (ensemble)
+        input fields.
+        They must be evenly spaced in time.
+    metadata : dict
+        The metadata dictionary contains all data-related information. It requires
+        the keys "xpixelsize", "ypixelsize" and "unit".
+    space_window_m : float or None
+        The length in meters of the space window that is used to upscale the fields.
+        The space spanned by the m and n dimensions of R must be a multiple of 
+        space_window_m. If set to None, it returns a copy of the original R and 
+        metadata.
+
+    Returns
+    -------
+    outputarray : array-like
+        The new array of aggregated fields of shape (t,k,j) or (l,t,k,j), where
+        k = m*delta/space_window_m and j = n*delta/space_window_m; delta is the 
+        grid size.
+    metadata : dict
+        The metadata with updated attributes.
+
+    """ 
+    
+    R = R.copy()
+    metadata = metadata.copy()
+
+    if space_window_m is None:
+        return R, metadata
+        
+    unit       = metadata["unit"]
+    ypixelsize = metadata["ypixelsize"]
+    xpixelsize = metadata["xpixelsize"]
+    if "leadtimes" in metadata:
+        leadtimes = metadata["leadtimes"]
+
+    if len(R.shape) < 3:
+        raise ValueError("The number of dimension must be > 2")
+    if len(R.shape) == 3:
+        axes = [1,2]
+    if len(R.shape) == 4:
+        axes = [2,3]
+    if len(R.shape) > 4:
+        raise ValueError("The number of dimension must be <= 4")
+
+    # assumes that frames are evenly spaced
+    if ypixelsize == space_window_m and xpixelsize == space_window_m:
+        return R, metadata
+    if (R.shape[axes[0]]*ypixelsize) % space_window_m or \
+       (R.shape[axes[1]]*xpixelsize) % space_window_m:
+        raise ValueError('space_window_m does not equally split R')
+
+    nframes = [int(space_window_m/ypixelsize), int(space_window_m/xpixelsize)]
+    
+    # specify the operator to be used to aggregate the values within the space window
+    if unit == "mm/h":
+        method = "mean"
+    elif unit == "mm":
+        method = "sum"
+    else:
+        raise ValueError("can only aggregate units of 'mm/h' or 'mm' not %s" % unit)
+        
+    R = aggregate_fields(R, nframes[0], axis=axes[0], method=method)
+    R = aggregate_fields(R, nframes[1], axis=axes[1], method=method)
+
+    metadata["ypixelsize"] = space_window_m
+    metadata["xpixelsize"] = space_window_m
 
     return R, metadata
 
