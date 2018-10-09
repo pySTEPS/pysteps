@@ -14,7 +14,7 @@ def aggregate_fields_time(R, metadata, time_window_min):
         They must be evenly spaced in time.
     metadata : dict
         The metadata dictionary contains all data-related information. It requires
-        the key "timestamps" and "units".
+        the key "timestamps" and "unit".
     time_window_min : float or None
         The length in minutes of the time window that is used to aggregate the fields.
         The time spanned by the t dimension of R must be a multiple of time_window_min.
