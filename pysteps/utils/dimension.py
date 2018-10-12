@@ -259,14 +259,19 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
 
     y_coord_ = np.linspace(ylim.min(), ylim.max() - metadata["ypixelsize"], R_.shape[2]) + metadata["ypixelsize"]/2.
     x_coord_ = np.linspace(xlim.min(), xlim.max() - metadata["xpixelsize"], R_.shape[3]) + metadata["xpixelsize"]/2.
+    
+    # since we work with matrix indexing (i.e. rows)
+    y_coord = y_coord[::-1]
+    y_coord_ = y_coord_[::-1]
+    
     idx_y = np.where(np.logical_and(y_coord < ylim.max(), y_coord > ylim.min()))[0]
     idx_x = np.where(np.logical_and(x_coord < xlim.max(), x_coord > xlim.min()))[0]
 
     idx_y_ = np.where(np.logical_and(y_coord_ < metadata["y2"], y_coord_ > metadata["y1"]))[0]
     idx_x_ = np.where(np.logical_and(x_coord_ < metadata["x2"], x_coord_ > metadata["x1"]))[0]
-
+    
     R_[:, :, idx_y_[0]:idx_y_[-1], idx_x_[0]:idx_x_[-1]] = R[:, :, idx_y[0]:idx_y[-1], idx_x[0]:idx_x[-1]]
-
+    
     metadata["y1"] = ylim.min()
     metadata["y2"] = ylim.max()
     metadata["x1"] = xlim.min()
