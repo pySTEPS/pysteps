@@ -95,8 +95,8 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None,
     if seed is not None:
         randstate.seed(seed)
 
-    v_pert_x = randstate.laplace()
-    v_pert_y = randstate.laplace()
+    v_pert_x = randstate.laplace(scale=1.0/np.sqrt(2))
+    v_pert_y = randstate.laplace(scale=1.0/np.sqrt(2))
     V_pert = np.stack([v_pert_x*np.ones(V.shape[1:3]),
                        v_pert_y*np.ones(V.shape[1:3])])
 
