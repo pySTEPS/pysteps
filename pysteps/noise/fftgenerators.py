@@ -47,20 +47,22 @@ except ImportError:
     fft_kwargs = {}
 
 def initialize_param_2d_fft_filter(X, **kwargs):
-    """Takes a 2d input field and produces a fourier filter by using the Fast
-    Fourier Transform (FFT).
+    """Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
+    to produce one parametric, global and isotropic fourier filter.
 
     Parameters
     ----------
     X : array-like
-      Two-dimensional array containing the input field. All values are
-      required to be finite.
+        Two- or three-dimensional array containing one or more input fields.
+        All values are required to be finite. If more than one field are passed,
+        the average fourier filter is returned. It assumes that fields are stacked
+        by the first axis: [nr_fields, y, x].
 
     Other Parameters
     ----------------
     win_type : string
-       Optional tapering function to be applied to X.
-       Default : flat-hanning
+        Optional tapering function to be applied to X.
+        Default : flat-hanning
     model : string
         The parametric model to be used to fit the power spectrum of X.
         Default : power-law
@@ -78,30 +80,42 @@ def initialize_param_2d_fft_filter(X, **kwargs):
       It can be passed to generate_noise_2d_fft_filter().
     """
 
-    if len(X.shape) != 2:
-        raise ValueError("the input is not two-dimensional array")
+    if len(X.shape) < 2 or len(X.shape) > 3:
+        raise ValueError("the input is not two- or three-dimensional array")
     if np.any(~np.isfinite(X)):
-      raise ValueError("X contains non-finite values")
+        raise ValueError("X contains non-finite values")
 
     # defaults
     win_type = kwargs.get('win_type', 'flat-hanning')
     model    = kwargs.get('model', 'power-law')
     weighted = kwargs.get('weighted', True)
     doplot   = kwargs.get('doplot', False)
-
-    M,N = X.shape
-
+    
     X = X.copy()
+
+    # dims
+    if len(X.shape) == 2:
+        X = X[None, :, :]
+    nr_fields   = X.shape[0]
+    M,N = X.shape[1:]
+
     if win_type is not None:
-        X -= X.min()
+        X -= X.min(axis=(1,2))[:,None,None]
         tapering = build_2D_tapering_function((M, N), win_type)
     else:
-        tapering = np.ones_like(X)
+        tapering = np.ones((M,N))
 
     if model.lower() == 'power-law':
+        
+        # compute average 2D PSD
+        F = np.zeros((M, N), dtype=complex)
+        for i in range(nr_fields):
+            F += fft.fftshift(fft.fft2(X[i, :, :]*tapering, **fft_kwargs))
+        F /= nr_fields
+        F = abs(F)**2
 
-        # compute radially averaged PSD
-        psd = _rapsd(X*tapering)
+        # compute radially averaged 1D PSD
+        psd = _rapsd(F)
         L = max(M,N)
 
         # wavenumbers
@@ -150,14 +164,16 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     return F
 
 def initialize_nonparam_2d_fft_filter(X, **kwargs):
-    """Takes a 2d input field and produces a fourier filter by using the Fast
-    Fourier Transform (FFT).
+    """Takes one ore more 2d input fields and produces one non-paramtric, global
+    and anasotropic fourier filter.
 
     Parameters
     ----------
     X : array-like
-      Two-dimensional array containing the input field. All values are required
-      to be finite.
+        Two- or three-dimensional array containing one or more input fields.
+        All values are required to be finite. If more than one field are passed,
+        the average fourier filter is returned. It assumes that fields are stacked
+        by the first axis: [nr_fields, y, x].
 
     Other Parameters
     ----------------
@@ -174,22 +190,33 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
       A two-dimensional array containing the non-parametric filter.
       It can be passed to generate_noise_2d_fft_filter().
     """
-    if len(X.shape) != 2:
-        raise ValueError("the input is not two-dimensional array")
+    if len(X.shape) < 2 or len(X.shape) > 3:
+        raise ValueError("the input is not two- or three-dimensional array")
     if np.any(~np.isfinite(X)):
         raise ValueError("X contains non-finite values")
 
     # defaults
     win_type = kwargs.get('win_type', 'flat-hanning')
     donorm   = kwargs.get('donorm', False)
-
+    
     X = X.copy()
+    
+    # dims
+    if len(X.shape) == 2:
+        X = X[None, :, :]
+    nr_fields   = X.shape[0]
+    field_shape = X.shape[1:]
+    
     if win_type is not None:
-        X -= X.min()
-        tapering = build_2D_tapering_function(X.shape, win_type)
+        X -= X.min(axis=(1,2))[:,None,None]
+        tapering = build_2D_tapering_function(field_shape, win_type)
     else:
-        tapering = np.ones_like(X)
-    F = fft.fft2(X*tapering, **fft_kwargs)
+        tapering = np.ones(field_shape)
+    
+    F = np.zeros(field_shape, dtype=complex)
+    for i in range(nr_fields):
+        F += fft.fft2(X[i, :, :]*tapering, **fft_kwargs)
+    F /= nr_fields 
 
     # normalize the real and imaginary parts
     if donorm:
@@ -245,8 +272,10 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     Parameters
     ----------
     X : array-like
-        Two-dimensional array containing the input field. All values are required
-        to be finite.
+        Two- or three-dimensional array containing one or more input fields.
+        All values are required to be finite. If more than one field are passed,
+        the average fourier filter is returned. It assumes that fields are stacked
+        by the first axis: [nr_fields, y, x].
 
     Other Parameters
     ----------------
@@ -275,8 +304,8 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
     """
 
-    if len(X.shape) != 2:
-        raise ValueError("X must be a two-dimensional array")
+    if len(X.shape) < 2 or len(X.shape) > 3:
+        raise ValueError("the input is not two- or three-dimensional array")
     if np.any(np.isnan(X)):
         raise ValueError("X must not contain NaNs")
 
@@ -287,16 +316,19 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     overlap  = kwargs.get('overlap', 0.3)
     war_thr  = kwargs.get('war_thr', 0.1)
+    
+    X = X.copy()
 
     # make sure non-rainy pixels are set to zero
-    min_value = np.min(X)
-    X = X.copy()
-    X -= min_value
+    X -= X.min(axis=(1,2))[:,None,None]
 
-    #
-    dim = X.shape
-    dim_x = dim[1]
-    dim_y = dim[0]
+    # dims
+    if len(X.shape) == 2:
+        X = X[None, :, :]
+    nr_fields   = X.shape[0]
+    dim         = X.shape[1:]
+    dim_x       = dim[1]
+    dim_y       = dim[0]
 
     # SSFT algorithm
 
@@ -328,11 +360,11 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
             # build localization mask
             # TODO: the 0.01 rain threshold must be improved
             mask = _get_mask(dim, idxi, idxj, win_type)
-            war = float(np.sum((X*mask) > 0.01)) / ((idxi[1]-idxi[0])*(idxj[1]-idxj[0]))
+            war = float(np.sum((X*mask[None, :, :]) > 0.01)) / ((idxi[1]-idxi[0])*(idxj[1]-idxj[0])*nr_fields)
 
             if war > war_thr:
                 # the new filter
-                F[i, j, : ,:] = initialize_nonparam_2d_fft_filter(X*mask, win_type=None, donorm=True)
+                F[i, j, : ,:] = initialize_nonparam_2d_fft_filter(X*mask[None, :, :], win_type=None, donorm=True)
 
     return F
 
@@ -342,8 +374,10 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     Parameters
     ----------
     X : array-like
-        Two-dimensional array containing the input field. All values are required
-        to be finite and the domain must be square.
+        Two- or three-dimensional array containing one or more input fields.
+        All values are required to be finite and the domain must be square. 
+        If more than one field are passed, the average fourier filter is returned. 
+        It assumes that fields are stacked by the first axis: [nr_fields, y, x].
     gridres : float
         Grid resolution in km.
 
@@ -366,11 +400,11 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
         a 2d spatial grid.
     """
 
-    if len(X.shape) != 2:
-        raise ValueError("X must be a two-dimensional array")
-    if X.shape[0] != X.shape[1]:
+    if len(X.shape) < 2 or len(X.shape) > 3:
+        raise ValueError("the input is not two- or three-dimensional array")
+    if X.shape[1] != X.shape[2]:
         raise ValueError("a square array expected, but the shape of X is (%d,%d)" % \
-                         (X.shape[0], X.shape[1]))
+                         (X.shape[1], X.shape[2]))
     if np.any(np.isnan(X)):
         raise ValueError("X must not contain NaNs")
 
@@ -379,15 +413,18 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     win_type  = kwargs.get('win_type', 'flat-hanning')
     war_thr   = kwargs.get('war_thr', 0.1)
 
-    # make sure non-rainy pixels are set to zero
-    min_value = np.min(X)
     X = X.copy()
-    X -= min_value
 
-    #
-    dim = X.shape
-    dim_x = dim[1]
-    dim_y = dim[0]
+    # make sure non-rainy pixels are set to zero
+    X -= X.min(axis=(1,2))[:,None,None]
+
+    # dims
+    if len(X.shape) == 2:
+        X = X[None, :, :]
+    nr_fields   = X.shape[0]
+    dim         = X.shape[1:]
+    dim_x       = dim[1]
+    dim_y       = dim[0]
 
     # Nested algorithm
 
@@ -422,11 +459,11 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
             for n in range(len(Idxinext)):
 
                 mask = _get_mask(dim, Idxinext[n, :], Idxjnext[n, :], win_type)
-                war = np.sum((X*mask) > 0.01)/float((Idxinext[n, 1] - Idxinext[n, 0])**2)
+                war = np.sum((X*mask[None, :, :]) > 0.01)/float((Idxinext[n, 1] - Idxinext[n, 0])**2*nr_fields)
 
                 if war > war_thr:
                     # the new filter
-                    newfilter = initialize_nonparam_2d_fft_filter(X*mask, win_type=None, donorm=True)
+                    newfilter = initialize_nonparam_2d_fft_filter(X*mask[None, :, :], win_type=None, donorm=True)
 
                     # compute logistic function to define weights as function of frequency
                     # k controls the shape of the weighting function
@@ -592,24 +629,21 @@ def build_2D_tapering_function(win_size, win_type='flat-hanning'):
 
     return w2d
 
-def _rapsd(X):
-    """Compute radially averaged PSD of input field X.
+def _rapsd(F):
+    """Compute radially averaged 1D PSD from te input 2D PSD F.
     """
 
-    if len(X.shape) != 2:
+    if len(F.shape) != 2:
         raise ValueError("%i dimensions are found, but the number of dimensions should be 2" % \
-                         len(X.shape))
+                         len(F.shape))
 
-    M,N = X.shape
+    M,N = F.shape
 
     YC, XC = _compute_centred_coord_array(M,N)
 
     R = np.sqrt(XC*XC + YC*YC).astype(int)
 
-    F = fft.fftshift(fft.fft2(X, **fft_kwargs))
-    F = abs(F)**2
-
-    L = max(X.shape[0], X.shape[1])
+    L = max(F.shape[0], F.shape[1])
 
     if L % 2 == 0:
         r_range = np.arange(0, int(L/2)+1)

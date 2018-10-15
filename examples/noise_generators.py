@@ -39,6 +39,7 @@ startdate_str = "201701311030"
 data_source   = "mch"
 
 ## parameters
+n_prvs_times        = 3
 r_threshold         = 0.1 # [mm/h]
 noise_method        = "nonparametric" # parametric, nonparametric, ssft
 num_realizations    = 7
@@ -56,35 +57,38 @@ ds = cfg.get_specifications(data_source)
 
 ## find radar field filenames
 input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
-                                  ds.fn_ext, ds.timestep, 0, 0)
+                                  ds.fn_ext, ds.timestep, n_prvs_times, 0)
 
 ## read radar field files
 importer = stp.io.get_method(ds.importer, type="importer")
 R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
-R = R.squeeze() # since this contains just one frame
 Rmask = np.isnan(R)
 
 # Prepare input files
 print("Prepare the data...")
 
 ## if necessary, convert to rain rates [mm/h]    
-converter = stp.utils.get_method(unit)
+converter = stp.utils.get_method("mm/h")
 R, metadata = converter(R, metadata)
 
 ## threshold the data
 R[R<r_threshold] = 0.0
 metadata["threshold"] = r_threshold
 
+## convert the data
+converter = stp.utils.get_method(unit)
+R, metadata = converter(R, metadata)
+
+## transform the data
+transformer = stp.utils.get_method(transformation)
+R, metadata = transformer(R, metadata)
+
 ## if requested, make sure we work with a square domain
 reshaper = stp.utils.get_method(adjust_domain)
-R_, metadata_ = reshaper(R, metadata, method="pad")
-
-## if requested, transform the data
-transformer = stp.utils.get_method(transformation)
-R_, metadata_ = transformer(R_, metadata_)
+R, metadata = reshaper(R, metadata, method="pad")
 
 ## set NaN equal to zero
-R_[~np.isfinite(R_)] = metadata_["zerovalue"]
+R[~np.isfinite(R)] = metadata["zerovalue"]
 
 # Noise generation
 
@@ -93,28 +97,38 @@ R_[~np.isfinite(R_)] = metadata_["zerovalue"]
 # "nonparametric" method)
 # this produces a noise field having spatial correlation structure similar to 
 # the input field
+print("Initialize the filter...")
 init_noise, generate_noise = stp.noise.get_method(noise_method)
-F = init_noise(R_)
+F = init_noise(R)
+
+# generate the noise
+print("Generate the noise fields...")
+N=[]
+for k in range(num_realizations):
+    N.append(generate_noise(F, seed=seed+k))
 
 # plot four realizations of the stochastic noise
+print("Plot the results...")
+
+## convert to rain rates [mm/h]    
+converter = stp.utils.get_method("mm/h")
+R, metadata = converter(R, metadata)
+
 nrows = int(np.ceil((1 + num_realizations)/4.))
 plt.subplot(nrows,4,1)
 for k in range(num_realizations+1):
     if k==0:
         plt.subplot(nrows,4,k+1)
-        stp.plt.plot_precip_field(R, units=metadata["unit"], 
+        stp.plt.plot_precip_field(R[-1,:,:], units=metadata["unit"], 
         title="Rainfall field", colorbar=False)
     else:
-        ## generate the noise
-        N = generate_noise(F, seed=seed+k)
         
-        ## if necessary, reshape to orginal domain
-        N, _ = reshaper(N, metadata_, inverse=True)
+        N_ = N[k-1]
         
         plt.subplot(nrows,4,k+1)
-        plt.imshow(N, cmap=cm.jet)
+        plt.imshow(N_, cmap=cm.jet)
         plt.xticks([])
         plt.yticks([])
-        plt.title("Noise field %d" % (k+1))
+        plt.title("Noise field %d" % (k))
 
 plt.show()
