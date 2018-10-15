@@ -228,8 +228,6 @@ for n, parset in enumerate(parsets):
             ## define the callback function to export the nowcast to netcdf
             converter   = stp.utils.get_method("mm/h")
             def export(X):
-                ## transform back values 
-                X,_ = transformer(X, metadata, inverse=True)
                 ## convert to mm/h
                 X,_ = converter(X, metadata)
                 # readjust to initial domain shape
