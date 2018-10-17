@@ -49,12 +49,12 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None,
     p_pert_par : tuple
       Tuple containing the parameters a,b and c for the standard deviation of
       the perturbations in the direction parallel to the motion vectors. The
-      standard deviations are modeled by the function f_par(t) = a*t^b+c, where
+      standard deviations are modeled by the function f_par(t) = a*t**b+c, where
       t is lead time. The default values are taken from :cite:`BPS2006`.
     p_pert_perp : tuple
       Tuple containing the parameters a,b and c for the standard deviation of
       the perturbations in the direction perpendicular to the motion vectors.
-      The standard deviations are modeled by the function f_par(t) = a*t^b+c,
+      The standard deviations are modeled by the function f_par(t) = a*t**b+c,
       where t is lead time. The default values are taken from :cite:`BPS2006`.
     pixelsperkm : float
       Spatial resolution of the motion field (pixels/kilometer).
@@ -95,26 +95,23 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None,
     if seed is not None:
         randstate.seed(seed)
 
-    v_pert_x = randstate.laplace(scale=1.0/np.sqrt(2))
-    v_pert_y = randstate.laplace(scale=1.0/np.sqrt(2))
-    V_pert = np.stack([v_pert_x*np.ones(V.shape[1:3]),
-                       v_pert_y*np.ones(V.shape[1:3])])
+    eps_par  = randstate.laplace(scale=1.0/np.sqrt(2))
+    eps_perp = randstate.laplace(scale=1.0/np.sqrt(2))
 
     # scale factor for converting the unit of the advection velocities into km/h
     vsf = 60.0 / (timestep * pixelsperkm)
-    V = V * vsf
 
     N = linalg.norm(V, axis=0)
     V_n = V / np.stack([N, N])
-    DP = np.sum(V_pert*V_n, axis=0)
 
     perturbator["randstate"] = randstate
-    perturbator["vsf"]    = vsf
-    perturbator["p_par"]  = p_pert_par
-    perturbator["p_perp"] = p_pert_perp
-    V_pert_par = V_n * np.stack([DP, DP])
-    perturbator["V_pert_par"]  = V_pert_par
-    perturbator["V_pert_perp"] = V_pert - V_pert_par
+    perturbator["vsf"]       = vsf
+    perturbator["p_par"]     = p_pert_par
+    perturbator["p_perp"]    = p_pert_perp
+    perturbator["eps_par"]   = eps_par
+    perturbator["eps_perp"]  = eps_perp
+    perturbator["V_par"]     = V_n
+    perturbator["V_perp"]    = np.stack([-V_n[1, :, :], V_n[0, :, :]])
 
     return perturbator
 
@@ -140,13 +137,15 @@ def generate_bps(perturbator, t):
     pysteps.noise.motion.initialize_bps
 
     """
-    vsf         = perturbator["vsf"]
-    p_par       = perturbator["p_par"]
-    p_perp      = perturbator["p_perp"]
-    V_pert_par  = perturbator["V_pert_par"]
-    V_pert_perp = perturbator["V_pert_perp"]
+    vsf      = perturbator["vsf"]
+    p_par    = perturbator["p_par"]
+    p_perp   = perturbator["p_perp"]
+    eps_par  = perturbator["eps_par"]
+    eps_perp = perturbator["eps_perp"]
+    V_par    = perturbator["V_par"]
+    V_perp   = perturbator["V_perp"]
 
     g_par  = p_par[0]  * pow(t, p_par[1])  + p_par[2]
     g_perp = p_perp[0] * pow(t, p_perp[1]) + p_perp[2]
 
-    return (g_par*V_pert_par + g_perp*V_pert_perp) / vsf
+    return (g_par*eps_par*V_par + g_perp*eps_perp*V_perp) / vsf
