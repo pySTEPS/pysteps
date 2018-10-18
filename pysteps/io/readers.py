@@ -51,6 +51,6 @@ def read_timeseries(inputfns, importer, **kwargs):
 
     R = np.concatenate([R_[None, :, :] for R_ in R])
     #TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
-    metadata["timestamps"] = timestamps
+    metadata["timestamps"] = np.array(timestamps)
 
     return R, Q, metadata
