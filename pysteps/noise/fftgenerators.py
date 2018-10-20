@@ -375,8 +375,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     ----------
     X : array-like
         Two- or three-dimensional array containing one or more input fields.
-        All values are required to be finite and the domain must be square. 
-        If more than one field are passed, the average fourier filter is returned. 
+        All values are required to be finite.
+        If more than one field are passed, the average fourier filter is returned.
         It assumes that fields are stacked by the first axis: [nr_fields, y, x].
     gridres : float
         Grid resolution in km.
@@ -402,9 +402,6 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     if len(X.shape) < 2 or len(X.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
-    if X.shape[-1] != X.shape[-2]:
-        raise ValueError("a square array expected, but the shape of X is (%d,%d)" % \
-                         (X.shape[-1], X.shape[-2]))
     if np.any(np.isnan(X)):
         raise ValueError("X must not contain NaNs")
 
@@ -435,8 +432,9 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     Idxjpsd = np.array([[0, 2**max_level]])
 
     # generate the FFT sample frequencies
-    freq = fft.fftfreq(dim_y, gridres)
-    fx,fy = np.meshgrid(freq, freq)
+    freqx = fft.fftfreq(dim_x, gridres)
+    freqy = fft.fftfreq(dim_y, gridres)
+    fx,fy = np.meshgrid(freqx, freqy)
     freq_grid = np.sqrt(fx**2 + fy**2)
 
     # domain fourier filter
@@ -459,7 +457,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
             for n in range(len(Idxinext)):
 
                 mask = _get_mask(dim, Idxinext[n, :], Idxjnext[n, :], win_type)
-                war = np.sum((X*mask[None, :, :]) > 0.01)/float((Idxinext[n, 1] - Idxinext[n, 0])**2*nr_fields)
+                war = np.sum((X*mask[None, :, :]) > 0.01)/float((Idxinext[n, 1] - Idxinext[n, 0])*(Idxjnext[n, 1] - Idxjnext[n, 0])*nr_fields)
 
                 if war > war_thr:
                     # the new filter
@@ -469,13 +467,13 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
                     # k controls the shape of the weighting function
                     # TODO: optimize parameters
                     k = 0.05
-                    x0 = (Idxinext[n, 1] - Idxinext[n, 0])/2.
+                    x0 = (Idxinext[n, 1] - Idxinext[n, 0])/2. #TODO: consider y dimension, too
                     merge_weights = 1/(1 + np.exp(-k*(1/freq_grid - x0)))
                     newfilter *= (1 - merge_weights)
 
                     # perform the weighted average of previous and new fourier filters
                     F[Idxipsdnext[n, 0]:Idxipsdnext[n, 1], Idxjpsdnext[n,0]:Idxjpsdnext[n, 1], :, :] *= merge_weights[np.newaxis, np.newaxis, :, :]
-                    F[Idxipsdnext[n, 0]:Idxipsdnext[n, 1],Idxjpsdnext[n, 0]:Idxjpsdnext[n, 1], :, :] += newfilter[np.newaxis, np.newaxis, :, :]
+                    F[Idxipsdnext[n, 0]:Idxipsdnext[n, 1], Idxjpsdnext[n, 0]:Idxjpsdnext[n, 1], :, :] += newfilter[np.newaxis, np.newaxis, :, :]
 
         # update indices
         level += 1
