@@ -402,9 +402,9 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     if len(X.shape) < 2 or len(X.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
-    if X.shape[1] != X.shape[2]:
+    if X.shape[-1] != X.shape[-2]:
         raise ValueError("a square array expected, but the shape of X is (%d,%d)" % \
-                         (X.shape[1], X.shape[2]))
+                         (X.shape[-1], X.shape[-2]))
     if np.any(np.isnan(X)):
         raise ValueError("X must not contain NaNs")
 
