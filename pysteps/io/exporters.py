@@ -114,9 +114,9 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         var_long_name = "instantaneous precipitation rate"
         var_unit = "mm h-1"
     elif metadata["unit"] == "mm":
-        var_name = "hourly_precip_accum"
+        var_name = "precip_accum"
         var_standard_name = None
-        var_long_name = "hourly precipitation accumulation"
+        var_long_name = "accumulated precipitation"
         var_unit = "mm"
     elif metadata["unit"] == "dBZ":
         var_name = "reflectivity"
