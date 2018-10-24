@@ -86,9 +86,8 @@ def aggregate_fields_space(R, metadata, space_window_m):
     Parameters
     ----------
     R : array-like
-        Array of shape (t,m,n) or (l,t,m,n) containing a time series of (ensemble)
-        input fields.
-        They must be evenly spaced in time.
+        Array of shape (m,n), (t,m,n) or (l,t,m,n) containing a single field or
+        a time series of (ensemble) input fields.
     metadata : dict
         The metadata dictionary contains all data-related information. It requires
         the keys "xpixelsize", "ypixelsize" and "unit".
@@ -101,9 +100,9 @@ def aggregate_fields_space(R, metadata, space_window_m):
     Returns
     -------
     outputarray : array-like
-        The new array of aggregated fields of shape (t,k,j) or (l,t,k,j), where
-        k = m*delta/space_window_m and j = n*delta/space_window_m; delta is the 
-        grid size.
+        The new array of aggregated fields of shape (k,j), (t,k,j) or (l,t,k,j), 
+        where k = m*delta/space_window_m and j = n*delta/space_window_m; delta is
+        the grid size.
     metadata : dict
         The metadata with updated attributes.
 
@@ -121,14 +120,16 @@ def aggregate_fields_space(R, metadata, space_window_m):
     if "leadtimes" in metadata:
         leadtimes = metadata["leadtimes"]
 
-    if len(R.shape) < 3:
-        raise ValueError("The number of dimension must be > 2")
+    if len(R.shape) < 2:
+        raise ValueError("The number of dimensions must be >= 2")
+    if len(R.shape) == 2:
+        axes = [0,1]
     if len(R.shape) == 3:
         axes = [1,2]
     if len(R.shape) == 4:
         axes = [2,3]
     if len(R.shape) > 4:
-        raise ValueError("The number of dimension must be <= 4")
+        raise ValueError("The number of dimensions must be <= 4")
 
     # assumes that frames are evenly spaced
     if ypixelsize == space_window_m and xpixelsize == space_window_m:
