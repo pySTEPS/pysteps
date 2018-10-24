@@ -78,18 +78,32 @@ def import_netcdf_pysteps(filename, **kwargs):
     var_names = list(ds.variables.keys())
 
     if "precip_intensity" in var_names:
-        R = ds.variables["precip_intensity"]
+        R         = ds.variables["precip_intensity"]
+        unit      = "mm/" 
+        accutime  = None
+        transform = None
+    elif "precip_accum" in var_names:
+        R         = ds.variables["precip_accum"]
+        unit      = "mm"
+        accutime  = None
+        transform = None
     elif "hourly_precip_accum" in var_names:
-        R = ds.variables["hourly_precip_accum"]
+        R         = ds.variables["hourly_precip_accum"]
+        unit      = "mm"
+        accutime  = 60.
+        transform = None
     elif "reflectivity" in var_names:
-        R = ds.variables["reflectivity"]
+        R         = ds.variables["reflectivity"]
+        unit      = "dBZ"
+        accutime  = None
+        transform = "dB"
     else:
         raise Exception("the netCDF file does not contain any supported variable name ('precip_intensity', 'hourly_precip_accum', or 'reflectivity')")
 
     R = R[...].squeeze().astype(float)
 
     metadata = {}
-
+    
     time_var = ds.variables['time']
     leadtimes = time_var[:]/60. # minutes leadtime
     metadata["leadtimes"] = leadtimes
@@ -106,11 +120,30 @@ def import_netcdf_pysteps(filename, **kwargs):
 
         proj_str = _convert_grid_mapping_to_proj4(attr_dict)
         metadata["projection"] = proj_str
+        
+    # geodata
+    metadata["xpixelsize"] = abs(ds.variables['xc'][1] - ds.variables['xc'][0])
+    metadata["ypixelsize"] = abs(ds.variables['yc'][1] - ds.variables['yc'][0])
+    
+    xmin = np.min(ds.variables['xc']) - 0.5*metadata["xpixelsize"]
+    xmax = np.max(ds.variables['xc']) + 0.5*metadata["xpixelsize"]
+    ymin = np.min(ds.variables['yc']) - 0.5*metadata["ypixelsize"]
+    ymax = np.max(ds.variables['yc']) + 0.5*metadata["ypixelsize"]
+
+    # TODO: this is only a quick solution
+    metadata["x1"] = xmin
+    metadata["y1"] = ymin
+    metadata["x2"] = xmax
+    metadata["y2"] = ymax
+
+    metadata["yorigin"] = "upper" # TODO: check this
 
     # TODO: Read the metadata to the dictionary.
-    metadata["accutime"]    = None
-    metadata["unit"]        = None
-    metadata["transform"]   = None
+    if accutime is None:
+        accutime = leadtimes[1] - leadtimes[0]
+    metadata["accutime"]    = accutime
+    metadata["unit"]        = unit
+    metadata["transform"]   = transform
     metadata["zerovalue"]   = np.nanmin(R)
     metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
 
