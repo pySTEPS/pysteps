@@ -19,17 +19,28 @@ Dependencies
 
 The pySTEPS package needs the following dependencies
 
-* numpy
-* scipy
-* opencv
-* pillow
-* pyproj
-* matplotlib (for examples)
+* numpy_
+* scipy_
+* opencv_
+* pillow_
+* pyproj_
+* matplotlib_ (for examples)
+
+.. _numpy: http://www.numpy.org/
+.. _scipy: https://www.scipy.org/
+.. _opencv: https://opencv.org/
+.. _pillow: https://python-pillow.org/
+.. _pyproj: https://github.com/jswhit/pyproj
+.. _matplotlib: http://matplotlib.org/
 
 Additionally, the following packages can be installed to provide better computational efficiency:
 
-* dask and toolz (for code parallelisation)
-* pyfftw (for faster FFT computations)
+* dask_ and toolz_ (for code parallelisation)
+* pyfftw_ (for faster FFT computations)
+
+.. _dask: https://dask.org/
+.. _toolz: https://github.com/pytoolz/toolz/
+.. _pyfftw: https://hgomersall.github.io/pyFFTW/
 
 We recommend that you create a conda environment using the available `environment.yml`_ file to install all the necessary dependencies::
 
