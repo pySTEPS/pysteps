@@ -282,9 +282,9 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     
         # Plotting positions
         # https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot#Plotting_position
-        n   = R.size
+        n   = R_.size
         a   = 0 # 
-        Rpp = (np.arange(n) + 1 - a)/(n + 1 - 2*a)
+        Rpp = ((np.arange(n) + 1 - a)/(n + 1 - 2*a)).reshape(R_.shape)
         
         # NQ transform
         Rqn = scipy_stats.norm.ppf(Rpp)
