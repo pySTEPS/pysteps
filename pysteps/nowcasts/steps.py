@@ -552,7 +552,7 @@ def _print_corrcoefs(GAMMA):
         print(fmt_str % ((k+1,) + tuple(GAMMA[k, :])))
         print(hline_str)
 
-def _stack_cascades(R_d, n_levels):
+def _stack_cascades(R_d, n_levels, donorm=True):
   R_c   = []
   mu    = np.empty(n_levels)
   sigma = np.empty(n_levels)
@@ -561,9 +561,12 @@ def _stack_cascades(R_d, n_levels):
 
   for i in range(n_levels):
       R_ = []
+      mu_    = 0
+      sigma_ = 1
       for j in range(n_inputs):
-          mu_    = R_d[j]["means"][i]
-          sigma_ = R_d[j]["stds"][i]
+          if donorm:
+              mu_    = R_d[j]["means"][i]
+              sigma_ = R_d[j]["stds"][i]
           if j == n_inputs - 1:
               mu[i]    = mu_
               sigma[i] = sigma_
