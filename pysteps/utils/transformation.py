@@ -2,6 +2,7 @@
 
 import numpy as np
 import scipy.stats as scipy_stats
+from scipy.interpolate import interp1d
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) # To deactivate warnings for comparison operators with NaNs
 
@@ -231,3 +232,83 @@ def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
     print("Saved: box-cox-transform-test-lambdas.png")
 
     plt.close()
+
+def NQ_transform(R, metadata=None, inverse=False, **kwargs):
+    """The normal quantile transformation. 
+    Zero rain vales are set to zero in norm space.
+
+    Parameters
+    ----------
+    R : array-like
+        Array of any shape to be transformed.
+    metadata : dict
+        The metadata dictionary contains all data-related information.
+    inverse : bool
+        Optional, if set to True, it performs the inverse transform
+        
+    Other Parameters
+    ----------------
+    a : float
+        Optional offset fraction to be used; typically in (0,1).
+        Default : 0., i.e. it spaces the points evenly in the uniform distribution
+
+    Returns
+    -------
+    R : array-like
+        Array of any shape containing the (back-)transformed units.
+    metadata : dict
+        The metadata with updated attributes.
+
+    """
+    
+    # defaults
+    a = kwargs.get('a', 0.)
+    
+    R = R.copy()
+    shape0 = R.shape
+    R = R.ravel()
+    idxNan = np.isnan(R)
+    R_ = R[~idxNan]
+
+    if metadata is None:
+        if inverse:
+            metadata = {"transform": "NQT"}
+        else:
+            metadata = {"transform": None, "zerovalue" : 0}
+    else:
+        metadata = metadata.copy()
+
+    if not inverse:
+    
+        # Plotting positions
+        # https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot#Plotting_position
+        n   = R.size
+        a   = 0 # 
+        Rpp = (np.arange(n) + 1 - a)/(n + 1 - 2*a)
+        
+        # NQ transform
+        Rqn = scipy_stats.norm.ppf(Rpp)
+        R__ = np.interp(R_, R_[np.argsort(R_)], Rqn)
+        
+        # set zero rain to 0 in norm space
+        R__[R[~idxNan] == metadata["zerovalue"]] = 0
+        
+        # build inverse transform
+        metadata["inqt"] = interp1d(Rqn, R_[np.argsort(R_)], bounds_error=False, 
+                                     fill_value=(R_.min(), R_.max()))
+                                
+        metadata["transform"] = "NQT"
+        metadata["zerovalue"] = 0
+        metadata["threshold"] = R__[R__ > 0].min()
+        
+    else:
+     
+        f   = metadata.pop("inqt")
+        R__ = f(R_)
+        metadata["transform"] = None
+        metadata["zerovalue"] = R__.min()
+        metadata["threshold"] = R__[R__ > R__.min()].min()
+        
+    R[~idxNan] = R__
+    
+    return R.reshape(shape0), metadata

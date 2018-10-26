@@ -29,6 +29,8 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |  BoxCox           | apply one-parameter Box-Cox transform                  |
     +-------------------+--------------------------------------------------------+
+    |  NQT              | Normal Quantile Transform                              |
+    +-------------------+--------------------------------------------------------+
 
     Dimension methods:
 
@@ -68,6 +70,7 @@ def get_method(name):
     methods_objects["decibel"]      = transformation.dB_transform
     methods_objects["boxcox"]       = transformation.boxcox_transform
     methods_objects["box-cox"]      = transformation.boxcox_transform
+    methods_objects["nqt"]          = transformation.NQ_transform
     # dimension methods
     methods_objects["accumulate"]   = dimension.aggregate_fields_time
     methods_objects["adjust"]       = dimension.adjust_domain

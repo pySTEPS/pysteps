@@ -43,6 +43,10 @@ def to_rainrate(R, metadata, a=None, b=None):
         elif metadata["transform"] is "BoxCox":
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            
+        elif metadata["transform"] is "NQT":
+
+            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         else:
 
@@ -124,6 +128,10 @@ def to_raindepth(R, metadata, a=None, b=None):
         elif metadata["transform"] is "BoxCox":
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            
+        elif metadata["transform"] is "NQT":
+
+            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         else:
 
@@ -203,6 +211,10 @@ def to_reflectivity(R, metadata, a=None, b=None):
         elif metadata["transform"] is "BoxCox":
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            
+        elif metadata["transform"] is "NQT":
+
+            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         else:
 
