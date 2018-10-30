@@ -124,7 +124,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                                geodata['y1'],geodata['y2']])
             origin = geodata["yorigin"]
         else:
-            extent = np.array([0, R.shape[1], 0, R.shape[0]])
+            extent = np.array([0, R.shape[1]-1, 0, R.shape[0]-1])
             origin = "upper"
 
         # Plot radar domain mask
