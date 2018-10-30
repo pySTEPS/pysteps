@@ -79,7 +79,7 @@ def import_netcdf_pysteps(filename, **kwargs):
 
     if "precip_intensity" in var_names:
         R         = ds.variables["precip_intensity"]
-        unit      = "mm/" 
+        unit      = "mm/h" 
         accutime  = None
         transform = None
     elif "precip_accum" in var_names:
