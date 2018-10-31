@@ -96,7 +96,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
 
     """
     if timestamps is not None:
-        startdate_str = timestamps[-1].strftime("%Y-%m-%d %H:%M")
+        startdate_str = timestamps[-1].strftime("%Y%m%d%H%M")
     else:
         startdate_str = None
 
@@ -166,8 +166,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         elif motion_plot.lower() == "streamplot":
                             st.plt.streamplot(UV, ax=ax, geodata=geodata)
                     if savefig & (loop == 0):
-                        figname = "%s/%s_frame_%02d_member_%02d.%s" % \
-                            (path_outputs, startdate_str, i, (n+1), fig_format)
+                        figname = "%s/%s_member_%02d_frame_%02d.%s" % \
+                            (path_outputs, startdate_str, (n+1), i, fig_format)
                         plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                         print(figname, "saved.")
 
