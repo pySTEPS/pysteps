@@ -27,9 +27,6 @@ field of correlated noise cN of shape (m, n)."""
 
 import numpy as np
 from scipy import optimize
-
-# TODO: Update the methods so that they allow inputs with non-square shapes.
-
 # Use the pyfftw interface if it is installed. If not, fall back to the fftpack
 # interface provided by SciPy, and finally to numpy if SciPy is not installed.
 try:
@@ -45,6 +42,7 @@ except ImportError:
 except ImportError:
     import numpy.fft as fft
     fft_kwargs = {}
+from .. import utils
 
 def initialize_param_2d_fft_filter(X, **kwargs):
     """Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
@@ -126,7 +124,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         F = abs(F)**2
 
         # compute radially averaged 1D PSD
-        psd = _rapsd(F)
+        psd = utils.spectral.rapsd(F)
         L = max(M,N)
 
         # wavenumbers
@@ -157,7 +155,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
                                       p0=p0, bounds=bounds)
 
         # compute 2d filter
-        YC, XC = _compute_centred_coord_array(M,N)
+        YC, XC = utils.arrays.compute_centred_coord_array(M, N)
         R = np.sqrt(XC*XC + YC*YC)
         R = fft.fftshift(R)
         F = np.exp(piecewise_linear(np.log(R), *p))
@@ -664,40 +662,6 @@ def build_2D_tapering_function(win_size, win_type='flat-hanning'):
 
     return w2d
 
-def _rapsd(F):
-    """Compute radially averaged power spectral density (PSD) from the given 2D 
-    input field.
-    
-    References
-    ----------
-    :cite:`RC2011`
-    """
-
-    if len(F.shape) != 2:
-        raise ValueError("%i dimensions are found, but the number of dimensions should be 2" % \
-                         len(F.shape))
-
-    M,N = F.shape
-
-    YC, XC = _compute_centred_coord_array(M, N)
-
-    R = np.sqrt(XC*XC + YC*YC).round()
-
-    L = max(F.shape[0], F.shape[1])
-
-    if L % 2 == 0:
-        r_range = np.arange(0, int(L/2)+1)
-    else:
-        r_range = np.arange(0, int(L/2))
-
-    result = []
-    for r in r_range:
-        MASK = R == r
-        F_vals = F[MASK]
-        result.append(np.mean(F_vals))
-
-    return np.array(result)
-
 def _split_field(idxi, idxj, Segments):
     """ Split domain field into a number of equally sapced segments.
     """
@@ -739,19 +703,3 @@ def _get_mask(Size, idxi, idxj, win_type):
     mask[idxi.item(0):idxi.item(1), idxj.item(0):idxj.item(1)] = wind
 
     return mask
-
-def _compute_centred_coord_array(M, N):
-
-    if M % 2 == 1:
-        s1 = np.s_[-int(M/2):int(M/2)+1]
-    else:
-        s1 = np.s_[-int(M/2):int(M/2)]
-
-    if N % 2 == 1:
-        s2 = np.s_[-int(N/2):int(N/2)+1]
-    else:
-        s2 = np.s_[-int(N/2):int(N/2)]
-
-    YC,XC = np.ogrid[s1, s2]
-
-    return YC,XC
