@@ -72,7 +72,8 @@ def dense_lucaskanade(R, **kwargs):
     -------
     out : ndarray, shape (2,m,n)
         three-dimensional array containing the dense x- and y-components of the
-        motion field.
+        motion field. Return an empty UV array when any sparse vectors is left to
+        be interpolated.
 
     """
 
@@ -179,8 +180,11 @@ def dense_lucaskanade(R, **kwargs):
         v = np.concatenate((v, extra_vectors[:, 3]))
 
     # kernel interpolation
-    X, Y, UV = _interpolate_sparse_vectors(x, y, u, v, domain_size, function=function,
-                                          k=k, epsilon=epsilon, nchunks=nchunks)
+    if x.size > 0:
+        _, _, UV = _interpolate_sparse_vectors(x, y, u, v, domain_size, function=function,
+                                              k=k, epsilon=epsilon, nchunks=nchunks)
+    else:
+        UV = np.empty((2, domain_size[0], domain_size[1]))
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
@@ -347,11 +351,16 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     velocity components of the declustered motion vectors.
 
     """
-    # make sure these are all vertical arrays
-    x = x[:,None]
-    y = y[:,None]
-    u = u[:,None]
-    v = v[:,None]
+
+    # make sure these are all numpy vertical arrays
+    x = np.atleast_1d(np.array(x).squeeze())[:, None]
+    y = np.atleast_1d(np.array(y).squeeze())[:, None]
+    u = np.atleast_1d(np.array(u).squeeze())[:, None]
+    v = np.atleast_1d(np.array(v).squeeze())[:, None]
+
+    # return empty arrays if the number of sparse vectors is < min_nr_samples
+    if x.size < min_nr_samples:
+        return np.array([]), np.array([]), np.array([]), np.array([])
 
     # discretize coordinates into declustering grid
     xT = x/float(decl_grid)
@@ -362,16 +371,16 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     yT = np.floor(yT)
 
     # keep only unique combinations of coordinates
-    xy = np.hstack((xT,yT)).squeeze()
-    xyb = np.ascontiguousarray(xy).view(np.dtype((np.void, xy.dtype.itemsize*xy.shape[1])))
+    xy    = np.concatenate((xT,yT), axis=1)
+    xyb   = np.ascontiguousarray(xy).view(np.dtype((np.void, xy.dtype.itemsize*xy.shape[1])))
     _,idx = np.unique(xyb, return_index=True)
-    unique_xy = xy[idx]
+    uxy   = xy[idx]
 
     # now loop through these unique values and average vectors which belong to
     # the same declustering grid cell
     xN=[]; yN=[]; uN=[]; vN=[]
-    for i in range(unique_xy.shape[0]):
-        idx = np.logical_and(xT==unique_xy[i,0], yT==unique_xy[i,1])
+    for i in range(uxy.shape[0]):
+        idx = np.logical_and(xT==uxy[i,0], yT==uxy[i,1])
         npoints = np.sum(idx)
         if npoints >= min_nr_samples:
             xN.append(np.median(x[idx]))
@@ -433,14 +442,13 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
 
     """
 
-    testinterpolation = False
-
     # make sure these are vertical arrays
-    x = x[:,None]
-    y = y[:,None]
-    u = u[:,None]
-    v = v[:,None]
-    points = np.column_stack((x, y))
+    x = np.atleast_1d(np.array(x).squeeze())[:, None]
+    y = np.atleast_1d(np.array(y).squeeze())[:, None]
+    u = np.atleast_1d(np.array(u).squeeze())[:, None]
+    v = np.atleast_1d(np.array(v).squeeze())[:, None]
+    points  = np.concatenate((x, y), axis=1)
+    npoints = points.shape[0]
 
     if len(domain_size)==1:
         domain_size = (domain_size, domain_size)
@@ -456,7 +464,7 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
 
     # create cKDTree object to represent source grid
     if k is not "all":
-        k = np.min((k, points.shape[0]))
+        k = np.min((k, npoints))
         tree = scipy.spatial.cKDTree(points)
 
     # split grid points in n chunks
@@ -470,26 +478,31 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
         idelta = subgrid.shape[0]
 
         if function.lower() == "nearest":
-
             # find indices of the nearest neighbors
             _, inds = tree.query(subgrid, k=1)
 
-            U[i0:(i0+idelta)] = u.flatten()[inds]
-            V[i0:(i0+idelta)] = v.flatten()[inds]
+            U[i0:(i0+idelta)] = u.ravel()[inds]
+            V[i0:(i0+idelta)] = v.ravel()[inds]
 
         else:
             if k == "all":
-                d = scipy.spatial.distance.cdist(points, subgrid, 'euclidean').transpose()
+                d = scipy.spatial.distance.cdist(points, subgrid, "euclidean").transpose()
                 inds = np.arange(u.size)[None,:]*np.ones((subgrid.shape[0],u.size)).astype(int)
 
             else:
                 # find indices of the k-nearest neighbors
                 d, inds = tree.query(subgrid, k=k)
 
+            if inds.ndim == 1:
+                inds = inds[:, None]
+                d    = d[:, None]
+
             # the bandwidth
             if epsilon is None:
-                dpoints = scipy.spatial.distance.pdist(points, 'euclidean')
-                epsilon = np.median(dpoints)
+                epsilon = 1
+                if npoints > 1:
+                    dpoints = scipy.spatial.distance.pdist(points, "euclidean")
+                    epsilon = np.median(dpoints)
 
             # the interpolation weights
             if function.lower() == "inverse":
@@ -499,8 +512,8 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
             else:
                 raise ValueError("unknown radial fucntion %s" % function)
 
-            U[i0:(i0+idelta)] = np.sum(w * u.flatten()[inds], axis=1) / np.sum(w, axis=1)
-            V[i0:(i0+idelta)] = np.sum(w * v.flatten()[inds], axis=1) / np.sum(w, axis=1)
+            U[i0:(i0+idelta)] = np.sum(w * u.ravel()[inds], axis=1) / np.sum(w, axis=1)
+            V[i0:(i0+idelta)] = np.sum(w * v.ravel()[inds], axis=1) / np.sum(w, axis=1)
 
         i0 += idelta
 
@@ -508,15 +521,5 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
     U = U.reshape(domain_size[0], domain_size[1])
     V = V.reshape(domain_size[0], domain_size[1])
     UV = np.stack([U, V])
-
-    if testinterpolation:
-        import matplotlib.pylab as plt
-        step=15
-        UV_ = UV[:, 0:UV.shape[1]:step, 0:UV.shape[2]:step]
-        X_ = X[0:UV.shape[1]:step, 0:UV.shape[2]:step]
-        Y_ = Y[0:UV.shape[1]:step, 0:UV.shape[2]:step]
-        plt.quiver(X_, np.flipud(Y_), UV_[0,:,:], -UV_[1,:,:])
-        plt.quiver(x, np.flipud(y), u, -v, color="red")
-        plt.show()
 
     return X, Y, UV
