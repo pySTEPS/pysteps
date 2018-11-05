@@ -665,7 +665,12 @@ def build_2D_tapering_function(win_size, win_type='flat-hanning'):
     return w2d
 
 def _rapsd(F):
-    """Compute radially averaged 1D PSD from te input 2D PSD F.
+    """Compute radially averaged power spectral density (PSD) from the given 2D 
+    input field.
+    
+    References
+    ----------
+    :cite:`RC2011`
     """
 
     if len(F.shape) != 2:
@@ -674,9 +679,9 @@ def _rapsd(F):
 
     M,N = F.shape
 
-    YC, XC = _compute_centred_coord_array(M,N)
+    YC, XC = _compute_centred_coord_array(M, N)
 
-    R = np.sqrt(XC*XC + YC*YC).astype(int)
+    R = np.sqrt(XC*XC + YC*YC).round()
 
     L = max(F.shape[0], F.shape[1])
 
@@ -735,7 +740,7 @@ def _get_mask(Size, idxi, idxj, win_type):
 
     return mask
 
-def _compute_centred_coord_array(M,N):
+def _compute_centred_coord_array(M, N):
 
     if M % 2 == 1:
         s1 = np.s_[-int(M/2):int(M/2)+1]
