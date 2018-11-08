@@ -2,7 +2,7 @@
 domain."""
 
 import numpy as np
-import arrays
+from . import arrays
 
 def rapsd(Z, fft_method=None, **fft_kwargs):
     """Compute radially averaged power spectral density (RAPSD) from the given 
