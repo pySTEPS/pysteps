@@ -2,6 +2,7 @@
 
 import numpy as np
 from scipy import interpolate as sip
+from scipy import optimize as sop
 
 def compute_empirical_cdf(bin_edges, hist):
     """Compute an empirical cumulative distribution function from the given
@@ -148,6 +149,82 @@ def pmm_compute(pmm, x):
     result[mask] = _invfunc(p, pmm["bin_edges_2"], pmm["cdf_2"])
 
     return result
+
+def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
+    """Find shift and scale that is needed to return the required second_moment
+    and rain area. The optimization is performed with the Nelder-Mead algorithm
+    available in scipy.
+    It ssumes a forward transformation ln_rain = ln(rain)-ln(min_rain) if
+    rain > min_rain, else 0.
+
+    Parameters
+    ----------
+    R : array_like
+        The initial array to be shift and scaled.
+    f : function
+        The inverse transformation that is applied after the shift and scale.
+    rain_fraction_trg : float
+        The required rain fraction to be matched by shifting.
+    second_moment_trg : float
+        The required second moment to be matched by scaling.
+        The second_moment is defined as second_moment = var + mean^2.
+
+    Other Parameters
+    ----------------
+    scale : float
+        Optional initial value of the scale parameter for the Nelder-Mead optimisation.
+        Typically, this would be the scale parameter estimated the previous time step.
+        Default : 1.
+    max_iterations : int
+        Maximum allowed number of iterations and function evaluations.
+        More details: https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html
+        Deafult: 100.
+    tol : float
+        Tolerance for termination.
+        More details: https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html
+        Default: 0.05*second_moment_trg, i.e. terminate the search if the error
+        is less than 5% since the second moment is a bit unstable.
+
+    Returns
+    -------
+    shift : float
+        The shift value that produces the required rain fraction.
+    scale : float
+        The scale value that produces the required second_moment.
+    R : array_like
+        The shifted, scaled and back-transformed array.
+    """
+
+    shape = R.shape
+    R = R.flatten()
+
+    # defaults
+    scale = kwargs.get("scale", 1.)
+    max_iterations = kwargs.get("max_iterations", 100)
+    tol = kwargs.get("tol", 0.05*second_moment_trg)
+
+    # calculate the shift parameter based on the required rain fraction
+    shift = np.percentile(R, 100*(1 - rain_fraction_trg))
+    idx_wet = R > shift
+
+    # define objective function
+    def _get_error(scale):
+        R_ = np.zeros_like(R)
+        R_[idx_wet]  = f((R[idx_wet] - shift)*scale)
+        R_[~idx_wet] = 0
+        second_moment = np.nanstd(R_)**2 + np.nanmean(R_)**2
+        return np.abs(second_moment - second_moment_trg)
+
+    # Nelder-Mead optimisation
+    nm_scale = sop.minimize(_get_error, scale, method="Nelder-Mead", tol=tol,
+                options={"disp":False,"maxiter":max_iterations})
+    scale = nm_scale["x"][0]
+
+    R[idx_wet]  = f((R[idx_wet] - shift)*scale)
+    R[~idx_wet] = 0
+
+    return shift, scale, R.reshape(shape)
+
 
 def _invfunc(y, fx, fy):
   if len(y) == 0:
