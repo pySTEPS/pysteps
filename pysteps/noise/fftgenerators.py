@@ -100,14 +100,14 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     if rm_rdisc:
         X[X > X.min()] -= X[X > X.min()].min()
         
-    # make sure non-rainy pixels are set to zero
-    X -= X.min(axis=(1,2))[:,None,None]
-
     # dims
     if len(X.shape) == 2:
         X = X[None, :, :]
     nr_fields   = X.shape[0]
     M,N = X.shape[1:]
+        
+    # make sure non-rainy pixels are set to zero
+    X -= X.min(axis=(1,2))[:,None,None]
 
     if win_type is not None:
         tapering = build_2D_tapering_function((M, N), win_type)
@@ -218,14 +218,14 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     if rm_rdisc:
         X[X > X.min()] -= X[X > X.min()].min()
         
-    # make sure non-rainy pixels are set to zero
-    X -= X.min(axis=(1,2))[:,None,None]
-    
     # dims
     if len(X.shape) == 2:
         X = X[None, :, :]
     nr_fields   = X.shape[0]
     field_shape = X.shape[1:]
+        
+    # make sure non-rainy pixels are set to zero
+    X -= X.min(axis=(1,2))[:,None,None]
     
     if win_type is not None:
         tapering = build_2D_tapering_function(field_shape, win_type)
@@ -345,10 +345,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     # remove rain/no-rain discontinuity
     if rm_rdisc:
         X[X > X.min()] -= X[X > X.min()].min()
-
-    # make sure non-rainy pixels are set to zero
-    X -= X.min(axis=(1,2))[:,None,None]
-
+        
     # dims
     if len(X.shape) == 2:
         X = X[None, :, :]
@@ -356,6 +353,9 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     dim         = X.shape[1:]
     dim_x       = dim[1]
     dim_y       = dim[0]
+
+    # make sure non-rainy pixels are set to zero
+    X -= X.min(axis=(1,2))[:,None,None]
 
     # SSFT algorithm
 
@@ -446,10 +446,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     # remove rain/no-rain discontinuity
     if rm_rdisc:
         X[X > X.min()] -= X[X > X.min()].min()
-
-    # make sure non-rainy pixels are set to zero
-    X -= X.min(axis=(1,2))[:,None,None]
-
+        
     # dims
     if len(X.shape) == 2:
         X = X[None, :, :]
@@ -457,6 +454,9 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     dim         = X.shape[1:]
     dim_x       = dim[1]
     dim_y       = dim[0]
+
+    # make sure non-rainy pixels are set to zero
+    X -= X.min(axis=(1,2))[:,None,None]
 
     # Nested algorithm
 
