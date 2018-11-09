@@ -72,6 +72,7 @@ try:
 except ImportError:
     h5py_imported = False
 try:
+
     import metranet
     metranet_imported = True
 except ImportError:
@@ -315,69 +316,7 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     f.close()
 
     return metadata
-   
-def import_mch_metranet(filename, **kwargs):
-    """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
-    archive.
 
-    Parameters
-    ----------
-    filename : str
-        Name of the file to import.
-
-    Other Parameters
-    ----------------
-    product : string
-        The name of the MeteoSwiss QPE product:
-
-        +------+----------------------------+
-        | Name |          Product           |
-        +======+============================+
-        | AQC  |         Acquire            |
-        +------+----------------------------+
-        | CPC  |         CombiPrecip        |
-        +------+----------------------------+
-        | RZC  |         Precip             |
-        +------+----------------------------+
-    unit : string
-        the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
-    accutime : float
-        the accumulation time in minutes of the data 
-    
-    Returns
-    -------
-    out : tuple
-        A three-element tuple containing the precipitation field in mm/h imported
-        from a MeteoSwiss gif file and the associated quality field and metadata.
-        The quality field is currently set to None.
-    
-    """
-    if not metranet_imported:
-        raise Exception("metranet not imported")
-        
-    product     = kwargs.get("product", "AQC")
-    unit        = kwargs.get("unit",    "mm")
-    accutime    = kwargs.get("accutime", 5.)
-    
-    ret = metranet.read_file(filename, physic_value=True, verbose=False)
-    R = ret.data
-    
-    geodata = _import_mch_geodata()
-
-    # read metranet
-    metadata = geodata
-    metadata["institution"] = "MeteoSwiss"
-    metadata["accutime"]    = accutime
-    metadata["unit"]        = unit
-    metadata["transform"]   = None
-    metadata["zerovalue"]   = np.nanmin(R)
-    if np.isnan(metadata["zerovalue"]):
-        metadata["threshold"] = np.nan
-    else:
-        metadata["threshold"]   = np.nanmin(R[R>metadata["zerovalue"]])
-    
-    return R,None,metadata
-   
 def import_mch_gif(filename, **kwargs):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
@@ -404,7 +343,7 @@ def import_mch_gif(filename, **kwargs):
     unit : string
         the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
     accutime : float
-        the accumulation time in minutes of the data 
+        the accumulation time in minutes of the data
 
     Returns
     -------
@@ -422,14 +361,14 @@ def import_mch_gif(filename, **kwargs):
     accutime    = kwargs.get("accutime", 5.)
 
     geodata = _import_mch_geodata()
-    
+
     metadata = geodata
 
     # import gif file
     B = PIL.Image.open(filename)
-    
+
     if product.lower() in ["rzc", "precip"]:
-    
+
         # convert 8-bit GIF colortable to RGB values
         Brgb = B.convert('RGB')
 
@@ -451,9 +390,9 @@ def import_mch_gif(filename, **kwargs):
         # and values in non-precipitating areas to zero.
         R[R<0] = 0
         R[R>1000] = np.nan
-    
+
     elif product.lower() in ["aqc", "cpc", "acquire ", "combiprecip"]:
-    
+
         # convert digital numbers to physical values
         B = np.array(B, dtype=int)
 
@@ -466,14 +405,14 @@ def import_mch_gif(filename, **kwargs):
             elif (i == 255):
                 lut[i] = np.nan
             else:
-                lut[i] = (10.**((i - 71.2)/20.0)/A)**(1.0/b)
+                lut[i] = (10.**((i - 71.5)/20.0)/A)**(1.0/b)
 
         # apply lookup table
         R = lut[B]
-        
+
     else:
         raise ValueError("unknown product %s" % product)
-        
+
     metadata["accutime"]    = accutime
     metadata["unit"]        = unit
     metadata["transform"]   = None
@@ -484,6 +423,176 @@ def import_mch_gif(filename, **kwargs):
         metadata["threshold"]   = None
     metadata["institution"] = "MeteoSwiss"
     metadata["product"] = product
+
+    return R,None,metadata
+
+def import_mch_hdf5(filename, **kwargs):
+    """Read a precipitation field (and optionally the quality field) from a HDF5
+    file conforming to the ODIM specification.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+
+    Other Parameters
+    ----------------
+    qty : {'RATE', 'ACRR', 'DBZH'}
+        The quantity to read from the file. The currently supported identitiers
+        are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
+        accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
+        is 'RATE'.
+
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the OPERA product for the requested
+        quantity and the associated quality field and metadata. The quality
+        field is read from the file if it contains a dataset whose quantity
+        identifier is 'QIND'.
+
+    """
+    if not h5py_imported:
+        raise Exception("h5py not imported")
+
+    qty = kwargs.get("qty", "RATE")
+
+    if qty not in ["ACRR", "DBZH", "RATE"]:
+        raise ValueError("unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'")
+
+    f = h5py.File(filename, 'r')
+
+    R = None
+    Q = None
+
+    for dsg in f.items():
+        if dsg[0][0:7] == "dataset":
+            what_grp_found = False
+            # check if the "what" group is in the "dataset" group
+            if "what" in list(dsg[1].keys()):
+                qty_,gain,offset,nodata,undetect = _read_mch_hdf5_what_group(dsg[1]["what"])
+                what_grp_found = True
+
+            for dg in dsg[1].items():
+                if dg[0][0:4] == "data":
+                    # check if the "what" group is in the "data" group
+                    if "what" in list(dg[1].keys()):
+                        qty_,gain,offset,nodata,undetect = _read_mch_hdf5_what_group(dg[1]["what"])
+                    elif what_grp_found == False:
+                        raise Exception("no what group found from %s or its subgroups" % dg[0])
+
+                    if qty_.decode() in [qty, "QIND"]:
+                        ARR = dg[1]["data"][...]
+                        MASK_N = ARR == nodata
+                        MASK_U = ARR == undetect
+                        MASK = np.logical_and(~MASK_U, ~MASK_N)
+
+                        if qty_.decode() == qty:
+                            R = np.empty(ARR.shape)
+                            R[MASK]   = ARR[MASK] * gain + offset
+                            R[MASK_U] = np.nan
+                            R[MASK_N] = np.nan
+                        elif qty_.decode() == "QIND":
+                            Q = np.empty(ARR.shape, dtype=float)
+                            Q[MASK]  = ARR[MASK]
+                            Q[~MASK] = np.nan
+
+    if R is None:
+        raise IOError("requested quantity %s not found" % qty)
+
+    where = f["where"]
+    proj4str = where.attrs["projdef"].decode() # is emtpy ...
+
+    geodata = _import_mch_geodata() # TODO: use those from the hdf5 file instead
+    metadata = geodata
+
+    xpixelsize = where.attrs["xscale"]*1000.
+    ypixelsize = where.attrs["yscale"]*1000.
+    xsize = where.attrs["xsize"]
+    ysize = where.attrs["ysize"]
+
+    if qty == "ACRR":
+        unit = "mm"
+        transform = None
+    elif qty == "DBZH":
+        unit = "dBZ"
+        transform = "dB"
+    else:
+        unit = "mm/h"
+        transform = None
+
+    metadata.update({
+                "yorigin":"upper",
+                "institution":"MeteoSwiss",
+                "accutime":5.,
+                "unit":unit,
+                "transform":transform,
+                "zerovalue":np.nanmin(R),
+                "threshold":np.nanmin(R[R>np.nanmin(R)]) })
+
+    f.close()
+
+    return R,Q,metadata
+
+def import_mch_metranet(filename, **kwargs):
+    """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
+    archive.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+
+    Other Parameters
+    ----------------
+    product : string
+        The name of the MeteoSwiss QPE product:
+
+        +------+----------------------------+
+        | Name |          Product           |
+        +======+============================+
+        | AQC  |         Acquire            |
+        +------+----------------------------+
+        | CPC  |         CombiPrecip        |
+        +------+----------------------------+
+        | RZC  |         Precip             |
+        +------+----------------------------+
+    unit : string
+        the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
+    accutime : float
+        the accumulation time in minutes of the data
+
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the precipitation field in mm/h imported
+        from a MeteoSwiss gif file and the associated quality field and metadata.
+        The quality field is currently set to None.
+
+    """
+    if not metranet_imported:
+        raise Exception("metranet not imported")
+
+    product     = kwargs.get("product", "AQC")
+    unit        = kwargs.get("unit",    "mm")
+    accutime    = kwargs.get("accutime", 5.)
+
+    ret = metranet.read_file(filename, physic_value=True, verbose=False)
+    R = ret.data
+
+    geodata = _import_mch_geodata()
+
+    # read metranet
+    metadata = geodata
+    metadata["institution"] = "MeteoSwiss"
+    metadata["accutime"]    = accutime
+    metadata["unit"]        = unit
+    metadata["transform"]   = None
+    metadata["zerovalue"]   = np.nanmin(R)
+    if np.isnan(metadata["zerovalue"]):
+        metadata["threshold"] = np.nan
+    else:
+        metadata["threshold"]   = np.nanmin(R[R>metadata["zerovalue"]])
 
     return R,None,metadata
 
@@ -667,7 +776,18 @@ def import_odim_hdf5(filename, **kwargs):
 
     return R,Q,metadata
 
+def _read_mch_hdf5_what_group(whatgrp):
+
+    qty      = whatgrp.attrs["quantity"] if "quantity" in whatgrp.attrs.keys() else "RATE"
+    gain     = whatgrp.attrs["gain"]     if "gain" in whatgrp.attrs.keys() else 1.0
+    offset   = whatgrp.attrs["offset"]   if "offset" in whatgrp.attrs.keys() else 0.0
+    nodata   = whatgrp.attrs["nodata"]   if "nodata" in whatgrp.attrs.keys() else 0
+    undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else -1.0
+
+    return qty,gain,offset,nodata,undetect
+
 def _read_odim_hdf5_what_group(whatgrp):
+
     qty      = whatgrp.attrs["quantity"]
     gain     = whatgrp.attrs["gain"]     if "gain" in whatgrp.attrs.keys() else 1.0
     offset   = whatgrp.attrs["offset"]   if "offset" in whatgrp.attrs.keys() else 0.0

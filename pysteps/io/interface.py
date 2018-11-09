@@ -23,10 +23,12 @@ def get_method(name, type):
         |     fmi_pgm       |  PGM files in the Finnish Meteorological Institute      |
         |                   |  (FMI) archive containing reflectivity composites (dBZ) |
         +-------------------+---------------------------------------------------------+
-        |     mch_metranet  |  metranet files in the MeteoSwiss archive containing    |
+        |     mch_gif       |  GIF files in the MeteoSwiss archive containing         |
         |                   |  precipitation composites                               |
         +-------------------+---------------------------------------------------------+
-        |     mch_gif       |  GIF files in the MeteoSwiss archive containing         |
+        |     mch_hdf5      |  HDF5 file format used by MeteoSiss                     |
+        +-------------------+---------------------------------------------------------+
+        |     mch_metranet  |  metranet files in the MeteoSwiss archive containing    |
         |                   |  precipitation composites                               |
         +-------------------+---------------------------------------------------------+
         |     odim_hdf5     |  ODIM HDF5 file format used by Eumetnet/OPERA           |
@@ -49,10 +51,12 @@ def get_method(name, type):
             return importers.import_bom_rf3
         elif name.lower() == "fmi_pgm":
             return importers.import_fmi_pgm
-        elif name.lower() == "mch_metranet":
-            return importers.import_mch_metranet
         elif name.lower() == "mch_gif":
             return importers.import_mch_gif
+        elif name.lower() == "mch_hdf5":
+            return importers.import_mch_hdf5
+        elif name.lower() == "mch_metranet":
+            return importers.import_mch_metranet
         elif name.lower() == "odim_hdf5":
             return importers.import_odim_hdf5
         else:
