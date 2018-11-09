@@ -59,7 +59,7 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
 
         # Set value for zeros
         if zerovalue is None:
-            zerovalue = threshold - 1 # TODO: set to a more meaningful value
+            zerovalue = threshold - 5 # TODO: set to a more meaningful value
         R[zeros] = zerovalue
 
         metadata["transform"] = "dB"
