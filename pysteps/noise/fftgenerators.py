@@ -68,7 +68,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         Whether or not to apply the sqrt(power) as weight in the polyfit() function.
         Default : True
     rm_rdisc : bool
-        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain 
+        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
         Default : True
     doplot : bool
@@ -91,21 +91,21 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     model    = kwargs.get('model', 'power-law')
     weighted = kwargs.get('weighted', True)
-    rm_rdisc   = kwargs.get('rm_disc', True)
+    rm_rdisc = kwargs.get('rm_disc', True)
     doplot   = kwargs.get('doplot', False)
-    
+
     X = X.copy()
-    
+
     # remove rain/no-rain discontinuity
     if rm_rdisc:
         X[X > X.min()] -= X[X > X.min()].min()
-        
+
     # dims
     if len(X.shape) == 2:
         X = X[None, :, :]
     nr_fields   = X.shape[0]
     M,N = X.shape[1:]
-        
+
     # make sure non-rainy pixels are set to zero
     X -= X.min(axis=(1,2))[:,None,None]
 
@@ -115,7 +115,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         tapering = np.ones((M,N))
 
     if model.lower() == 'power-law':
-        
+
         # compute average 2D PSD
         F = np.zeros((M, N), dtype=complex)
         for i in range(nr_fields):
@@ -142,7 +142,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
         # create the piecewise function with two spectral slopes beta1 and beta2
         def piecewise_linear(x, x0, y0, beta1, beta2):
-            return np.piecewise(x, [x < x0], [lambda x:beta1*x + y0-beta1*x0, lambda x:beta2*x + y0-beta2*x0])
+            return np.piecewise(x, [x < x0, x >= x0], [lambda x:beta1*x + y0-beta1*x0, lambda x:beta2*x + y0-beta2*x0])
 
         # fit the two betas and the scale breaking point
         p0 = [2., 0, beta, beta] # first guess
@@ -158,6 +158,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         YC, XC = utils.arrays.compute_centred_coord_array(M, N)
         R = np.sqrt(XC*XC + YC*YC)
         R = fft.fftshift(R)
+        p[2]=p[2]/2; p[3]=p[3]/2
         F = np.exp(piecewise_linear(np.log(R), *p))
         F[~np.isfinite(F)] = 1
 
@@ -193,7 +194,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
        Option to normalize the real and imaginary parts.
        Default : False
     rm_rdisc : bool
-        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain 
+        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
 
     Returns
@@ -211,31 +212,31 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     donorm   = kwargs.get('donorm', False)
     rm_rdisc = kwargs.get('rm_disc', True)
-    
+
     X = X.copy()
-    
+
     # remove rain/no-rain discontinuity
     if rm_rdisc:
         X[X > X.min()] -= X[X > X.min()].min()
-        
+
     # dims
     if len(X.shape) == 2:
         X = X[None, :, :]
     nr_fields   = X.shape[0]
     field_shape = X.shape[1:]
-        
+
     # make sure non-rainy pixels are set to zero
     X -= X.min(axis=(1,2))[:,None,None]
-    
+
     if win_type is not None:
         tapering = build_2D_tapering_function(field_shape, win_type)
     else:
         tapering = np.ones(field_shape)
-    
+
     F = np.zeros(field_shape, dtype=complex)
     for i in range(nr_fields):
         F += fft.fft2(X[i, :, :]*tapering, **fft_kwargs)
-    F /= nr_fields 
+    F /= nr_fields
 
     # normalize the real and imaginary parts
     if donorm:
@@ -311,7 +312,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
         Threshold for the minimum fraction of rain needed for computing the FFT.
         Default : 0.1
     rm_rdisc : bool
-        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain 
+        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
 
     Returns
@@ -339,13 +340,13 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     overlap  = kwargs.get('overlap', 0.3)
     war_thr  = kwargs.get('war_thr', 0.1)
     rm_rdisc = kwargs.get('rm_disc', True)
-    
+
     X = X.copy()
-    
+
     # remove rain/no-rain discontinuity
     if rm_rdisc:
         X[X > X.min()] -= X[X > X.min()].min()
-        
+
     # dims
     if len(X.shape) == 2:
         X = X[None, :, :]
@@ -420,7 +421,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
         Threshold for the minimum fraction of rain needed for computing the FFT.
         Default : 0.1
     rm_rdisc : bool
-        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain 
+        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
 
     Returns
@@ -442,11 +443,11 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     rm_rdisc  = kwargs.get('rm_disc', True)
 
     X = X.copy()
-    
+
     # remove rain/no-rain discontinuity
     if rm_rdisc:
         X[X > X.min()] -= X[X > X.min()].min()
-        
+
     # dims
     if len(X.shape) == 2:
         X = X[None, :, :]
