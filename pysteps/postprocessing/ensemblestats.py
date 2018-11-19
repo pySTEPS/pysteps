@@ -36,8 +36,8 @@ def excprob(X, X_thr, ignore_nan=False):
     Parameters
     ----------
     X : array_like
-        Array of shape (n_members,m,n) containing an ensemble of forecast
-        fields of shape (m,n).
+        Array of shape (k,m,n,...) containing an k-member ensemble of forecasts
+        with shape (m,n,...).
     X_thr : a sequence of floats
         Intensity thresholds for which the exceedance probabilities are
         computed.
@@ -47,8 +47,8 @@ def excprob(X, X_thr, ignore_nan=False):
     Returns
     -------
     out : ndarray
-        Array of shape (k,m,n) containing the exceedance probabilities for the
-        k given intensity thresholds.
+        Array of shape (len(X_thr),m,n) containing the exceedance probabilities 
+        for the given intensity thresholds.
     """
     P = []
 
