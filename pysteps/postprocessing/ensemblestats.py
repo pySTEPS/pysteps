@@ -52,6 +52,12 @@ def excprob(X, X_thr, ignore_nan=False):
     """
     P = []
 
+    if np.isscalar(X_thr):
+        X_thr = [X_thr]
+        scalar_thr = True
+    else:
+        scalar_thr = False
+
     for x in X_thr:
         X_ = X.copy()
 
@@ -63,4 +69,7 @@ def excprob(X, X_thr, ignore_nan=False):
         else:
             P.append(np.mean(X_, axis=0))
 
-    return np.stack(P)
+    if not scalar_thr:
+        return np.stack(P)
+    else:
+        return P[0]
