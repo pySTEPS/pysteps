@@ -2,9 +2,10 @@
 
 import numpy as np
 
-def adjust_lag2_corrcoef(gamma_1, gamma_2):
+def adjust_lag2_corrcoef1(gamma_1, gamma_2):
     """A simple adjustment of lag-2 temporal autocorrelation coefficient to
-    ensure that the resulting AR(2) process is stationary.
+    ensure that the resulting AR(2) process is stationary when the parameters 
+    are estimated from the Yule-Walker equations.
 
     Parameters
     ----------
@@ -22,6 +23,29 @@ def adjust_lag2_corrcoef(gamma_1, gamma_2):
     gamma_2 = max(gamma_2, 2*gamma_1*gamma_1-1+1e-10)
     gamma_2 = min(gamma_2, 1-1e-10)
 
+    return gamma_2
+
+def adjust_lag2_corrcoef2(gamma_1, gamma_2):
+    """A more advanced adjustment of lag-2 temporal autocorrelation coefficient 
+    to ensure that the resulting AR(2) process is stationary when the parameters 
+    are estimated from the Yule-Walker equations.
+
+    Parameters
+    ----------
+    gamma_1 : float
+      Lag-1 temporal autocorrelation coeffient.
+    gamma_2 : float
+      Lag-2 temporal autocorrelation coeffient.
+
+    Returns
+    -------
+    out : float
+      The adjusted lag-2 correlation coefficient.
+
+    """
+    gamma_2 = max(gamma_2, 2*gamma_1*gamma_2-1)
+    gamma_2 = max(gamma_2, (3*gamma_1**2-2+2*(1-gamma_1**2)**1.5) / gamma_1**2)
+    
     return gamma_2
 
 def estimate_ar_params_yw(gamma):
