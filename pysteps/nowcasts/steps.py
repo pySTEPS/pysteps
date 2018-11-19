@@ -262,7 +262,7 @@ def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
         # adjust the lag-2 correlation coefficient to ensure that the AR(p)
         # process is stationary
         for i in range(n_cascade_levels):
-            GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef(GAMMA[i, 0], GAMMA[i, 1])
+            GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(GAMMA[i, 0], GAMMA[i, 1])
 
     # estimate the parameters of the AR(p) model from the autocorrelation
     # coefficients
