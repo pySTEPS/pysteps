@@ -145,17 +145,20 @@ def rankhist_accum(rankhist, X_f, X_o):
     Parameters
     ----------
     X_f : array-like
-        Array of shape (n,m) containing the values from n ensemble forecasts
-        with m members.
+        Array of shape (k,m,n,...) containing the values from an ensemble 
+        forecast of k members with shape (m,n,...).
     X_o : array_like
-        Array of length n containing the observed values corresponding to the
-        forecast.
+        Array of shape (m,n,...) containing the observed values corresponding 
+        to the forecast.
 
     """
-    if X_f.shape[1] != rankhist["num_ens_members"]:
+    if X_f.shape[0] != rankhist["num_ens_members"]:
         raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[1], rankhist["num_ens_members"]))
 
     X_min = rankhist["X_min"]
+
+    X_f = np.vstack([X_f[i, :].flatten() for i in range(X_f.shape[0])]).T
+    X_o = X_o.flatten()
 
     mask = np.logical_and(np.isfinite(X_o), np.all(np.isfinite(X_f), axis=1))
     X_f = X_f[mask, :].copy()

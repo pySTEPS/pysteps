@@ -343,11 +343,11 @@ for n, parset in enumerate(parsets):
         for i,lt in enumerate(p["v_leadtimes"]):
             
             idlt = leadtimes == lt
-                        
+            
             ## rank histogram
             R_fct_ = np.vstack([R_fct[j, idlt, :, :].flatten() for j in range(p["n_ens_members"])]).T
             stp.verification.ensscores.rankhist_accum(rankhists[lt], 
-                R_fct_, R_obs[idlt, :, :].flatten())
+                R_fct[:, idlt, :, :], R_obs[idlt, :, :])
 
             ## loop thresholds
             for thr in p["v_thresholds"]:    
