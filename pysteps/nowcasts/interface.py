@@ -2,24 +2,25 @@ import numpy as np
 
 """The forecast methods in the nowcasts module implement the following interface:
 
-    forecast(R, V, num_timesteps, non-keyworded arguments, keyword arguments)
+    forecast(R, V, num_timesteps, keyword arguments)
 
-where R (m,n) is the input precipitation field to be extrapolated and V (2,m,n) is
-an array containing  the x- and y-components of the m*n advection field. num_timesteps
-is an integer specifying the number of time steps to forecast. Non-keyword
-arguments specific to each method can be included. The interface accepts optional
-keyword arguments that are specific to a given forecast method.
+where R (m,n) is the input precipitation field and V (2,m,n) is an array
+containing  the x- and y-components of the m*n advection field. num_timesteps
+is an integer specifying the number of time steps to forecast. The interface
+accepts optional keyword arguments specific to the given method.
 
-The output of each method is a three-dimensional array of shape (num_timesteps,m,n)
-containing a time series of nowcast precipitation fields.
+The output depends on the type of the method. For deterministic methods, the 
+output is a three-dimensional array of shape (num_timesteps,m,n) containing a 
+time series of nowcast precipitation fields. For stochastic methods, the 
+output is a four-dimensional array of shape (num_ensemble_members,num_timesteps,m,n).
 
 """
 
 def get_method(name):
-    """Return one callable function to produce deterministic or ensemble
+    """Return a callable function for computing deterministic or ensemble
     precipitation nowcasts.\n\
 
-    Methods for precipitation nowcasting:
+    Implemented methods:
 
     +-------------------+-----------------------------------------------------+
     |     Name          |              Description                            |
@@ -34,6 +35,8 @@ def get_method(name):
     |                   | method as described in :cite:`Seed2003`,            |
     |                   | :cite:`BPS2006` and :cite:`SPN2013`                 |
     +-------------------+-----------------------------------------------------+
+
+    steps produces stochastic nowcasts, and the other methods are deterministic.
 
     """
     if name.lower() in ["eulerian"]:
