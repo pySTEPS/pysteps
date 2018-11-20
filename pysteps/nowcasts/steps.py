@@ -15,7 +15,7 @@ try:
 except ImportError:
     dask_imported = False
 
-def forecast(R, V, n_timesteps, n_ens_members, n_cascade_levels, R_thr=None,
+def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None,
              kmperpixel=None, timestep=None, extrap_method="semilagrangian",
              decomp_method="fft", bandpass_filter_method="gaussian",
              noise_method="nonparametric", noise_stddev_adj=False, ar_order=2,
