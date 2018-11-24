@@ -133,6 +133,7 @@ class DotDictify(AttrDict):
         value = super().__getitem__(key)
         if isinstance(value, dict) and not isinstance(value, DotDictify):
             value = DotDictify(value)
+            super().__setitem__(key, value)
         return value
 
     __setattr__, __getattr__ = __setitem__, __getitem__
