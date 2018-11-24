@@ -1,0 +1,70 @@
+{
+    "title": "pystepsrc params",
+    "description": "Pysteps default parameters",
+    "required": [
+        "plot",
+        "data_sources"
+    ],
+    "type": "object",
+    "properties": {
+        "plot": {
+            "type": "object",
+            "required": [
+                "motion_plot",
+                "colorscale",
+                "path_outputs"
+            ],
+            "properties": {
+                "motion_plot": {
+                    "type": "string"
+                },
+                "colorscale": {
+                    "type": "string"
+                },
+                "path_outputs": {
+                    "type": "string"
+                }
+            }
+        },
+        "data_sources": {
+            "type": "object",
+            "patternProperties": {
+                "": {
+                    "type": "object",
+                    "required": [
+                        "root_path",
+                        "path_fmt",
+                        "fn_pattern",
+                        "fn_ext",
+                        "importer",
+                        "timestep",
+                        "importer_kwargs"
+                    ],
+                    "properties": {
+                        "root_path": {
+                            "type": "string"
+                        },
+                        "path_fmt": {
+                            "type": "string"
+                        },
+                        "fn_pattern": {
+                            "type": "string"
+                        },
+                        "fn_ext": {
+                            "type": "string"
+                        },
+                        "importer": {
+                            "type": "string"
+                        },
+                        "timestep": {
+                            "type": "number"
+                        },
+                        "importer_kwargs": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
