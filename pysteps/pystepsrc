@@ -1,0 +1,55 @@
+// pysteps configuration for data sources
+{
+    "plot": {
+        // "motion_plot" : "streamplot" or "quiver"
+        "motion_plot": "quiver",
+        // "colorscale" :  "MeteoSwiss" or "STEPS-BE"
+        "colorscale": "MeteoSwiss",
+        // path_outputs : path where to save results (figures, forecasts, etc)
+        "path_outputs": "./"
+    },
+    "data_sources": {
+        "bom": {
+            "root_path": "./bom",
+            "path_fmt": "radar/bom/prcp-cscn/2/%Y/%m/%d",
+            "fn_pattern": "2_%Y%m%d_%H%M00.prcp-cscn",
+            "fn_ext": "nc",
+            "importer": "bom_rf3",
+            "timestep": 6,
+            "importer_kwargs": {
+                "gzipped": true
+            }
+        },
+        "fmi": {
+            "root_path": "./fmi",
+            "path_fmt": "%Y%m%d",
+            "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.lowest_FIN_SUOMI1",
+            "fn_ext": "pgm.gz",
+            "importer": "fmi_pgm",
+            "timestep": 5,
+            "importer_kwargs": {
+                "gzipped": true
+            }
+        },
+        "mch": {
+            "root_path": "./mch",
+            "path_fmt": "%Y%m%d",
+            "fn_pattern": "AQC%y%j%H%M?_00005.801",
+            "fn_ext": "gif",
+            "importer": "mch_gif",
+            "timestep": 5,
+            "importer_kwargs": {
+                "product": "AQC"
+            }
+        },
+        "opera": {
+            "root_path": "./opera",
+            "path_fmt": "%Y%m%d",
+            "fn_pattern": "T_PAAH21_C_EUOC_%Y%m%d%H%M%S",
+            "fn_ext": "hdf",
+            "importer": "odim_hdf5",
+            "timestep": 15,
+            "importer_kwargs": {}
+        }
+    }
+}

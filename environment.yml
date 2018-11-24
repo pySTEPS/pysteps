@@ -8,4 +8,7 @@ dependencies:
   - opencv 
   - pillow
   - pyproj
-  - scipy 
+  - jsmin
+  - jsonschema
+  - attrdict
+

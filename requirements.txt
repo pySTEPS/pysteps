@@ -1,0 +1,12 @@
+
+python>=3.6
+numpy
+opencv-python
+pillow
+pyproj
+scipy
+matplotlib
+dask
+attrdict
+jsmin
+jsonschema

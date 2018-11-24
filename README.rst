@@ -19,16 +19,23 @@ Dependencies
 
 The pySTEPS package needs the following dependencies
 
+* python>=3.6
 * numpy_
 * scipy_
-* opencv_
+* opencv-python_
 * pillow_
 * pyproj_
-* matplotlib_ (for examples)
+* matplotlib_
+* attrdict_
+* jsmin_
+* jsonschema_
 
+.. _attrdict : https://pypi.org/project/attrdict/
+.. _jsmin : https://pypi.org/project/jsmin/
+.. _jsonschema : https://pypi.org/project/jsonschema/
 .. _numpy: http://www.numpy.org/
 .. _scipy: https://www.scipy.org/
-.. _opencv: https://opencv.org/
+.. _opencv-python: https://opencv.org/
 .. _pillow: https://python-pillow.org/
 .. _pyproj: https://github.com/jswhit/pyproj
 .. _matplotlib: http://matplotlib.org/
@@ -42,7 +49,8 @@ Additionally, the following packages can be installed to provide better computat
 .. _toolz: https://github.com/pytoolz/toolz/
 .. _pyfftw: https://hgomersall.github.io/pyFFTW/
 
-We recommend that you create a conda environment using the available `environment.yml`_ file to install all the necessary dependencies::
+We recommend that you create a conda environment using the available
+`environment.yml`_ file to install all the necessary dependencies::
 
     conda env create -f environment.yml
     
@@ -52,17 +60,15 @@ We recommend that you create a conda environment using the available `environmen
 Install from source
 -------------------
 
-The latest version can be installed manually by downloading the sources using::
+The lastest pysteps version in the repository can be installed using pip by
+simply running in a terminal::
 
-    git clone https://github.com/pySTEPS/pysteps
-
-
-To install using pip run::
-
-    pip install ./pysteps
+    pip install git+https://github.com/pySTEPS/pysteps
 
 Or, to install it using setup.py run (global installation)::
 
+    git clone https://github.com/pySTEPS/pysteps
+    cd pysteps
     python setup.py install
     
 For `user installation`_::
@@ -73,7 +79,93 @@ For `user installation`_::
     https://docs.python.org/2/install/#alternate-installation-the-user-scheme
     
 If you want to install the package in a specific directory run::
-    
+
     python setup.py install --prefix=/path/to/local/dir
 
-IMPORTANT: All the dependencies need to be already installed! 
+
+Setting the user-defined configuration file
+-------------------------------------------
+
+The pySTEPS package allows the users to customize the default settings
+and configuration.
+
+The defaults configuration are stored in the pysteps.rcparams AttrDict_, which
+are loaded from a pystepsrc JSON_ file located in the system.
+
+When pysteps is imported, it looks for pystepsrc file in the following order:
+- $PWD/pystepsrc : Looks for the file in the current directory
+- $PYSTEPSRC : If the system variable $PYSTEPSRC is defined and it points
+to a file, it is used.
+- $PYSTEPSRC/pystepsrc : If $PYSTEPSRC points to a directory, it looks for the
+pystepsrc file inside that directory.
+- $HOME/.pysteps/pystepsrc (unix and Mac OS X) : If the system variable $HOME is defined, it looks
+for the configuration file in this path.
+- $USERPROFILE/pysteps/pystepsrc (windows only): It looks for the configuration file
+in the pysteps directory located user's home directory.
+- Lastly, it looks inside the library in pysteps/pystepsrc for a
+system-defined copy.
+
+.. _JSON: https://en.wikipedia.org/wiki/JSON
+.. _AttrDict: https://pypi.org/project/attrdict/
+
+
+Linux and OSX users
+~~~~~~~~~~~~~~~~~~~
+
+For Linux and OSX users, the recommended way to customize the pysteps
+configuration is place the pystepsrc parameters file in the users home folder
+${HOME} in the following path: **${HOME}/.pysteps/pystepsrc**
+
+This are the steps to setup up the configuration file in that directory:
+
+1. Create the directory if it does not exist. Type in a terminal::
+
+    $> mkdir -p ${HOME}/.pysteps
+
+1. Find the location of the library's pystepsrc file used at the moment. When
+the pystep is imported, the configuration file loaded is shown::
+
+    import pysteps
+    "Pysteps configuration file found at: /path/to/pysteps/library/pystepsrc"
+
+1.Copy the library's default rc file to that directory. In a terminal type::
+
+    $> cp /path/to/pysteps/library/pystepsrc ${HOME}/.pysteps/pystepsrc
+
+1. Edit the file with the text editor of your preference
+1. Check that the location of the library's pystepsrc file used at the moment::
+
+     import pysteps
+     "Pysteps configuration file found at: /home/user_name/.pysteps/pystepsrc"
+
+
+Windows
+~~~~~~~
+
+For windows users, the recommended way to customize the pysteps
+configuration is place the pystepsrc parameters file in the users folder
+(defined in the %USERPROFILE% environment variable) in the following path:
+**%USERPROFILE%/pysteps/pystepsrc**
+
+This are the steps to setup up the configuration file in that directory:
+
+1. Create the directory if it does not exist. Type in a terminal::
+
+    $> mkdir -p %USERPROFILE%/pysteps
+
+1. Find the location of the library's pystepsrc file used at the moment. When
+the pystep is imported, the configuration file loaded is shown::
+
+    import pysteps
+    "Pysteps configuration file found at: /path/to/pysteps/library/pystepsrc"
+
+1.Copy the library's default rc file to that directory. In a terminal type::
+
+    $> cp /path/to/pysteps/library/pystepsrc %USERPROFILE%/pysteps/pystepsrc
+
+1. Edit the file with the text editor of your preference
+1. Check that the location of the library's pystepsrc file used at the moment::
+
+     import pysteps
+     "Pysteps configuration file found at: /home/user_name/.pysteps/pystepsrc"
+
