@@ -83,30 +83,60 @@ If you want to install the package in a specific directory run::
     python setup.py install --prefix=/path/to/local/dir
 
 
-Setting the user-defined configuration file
--------------------------------------------
+Setting up the user-defined configuration file
+----------------------------------------------
 
 The pySTEPS package allows the users to customize the default settings
 and configuration.
+The configuration parameters used by default are stored in
+pysteps.rcparams AttrDict_, which are loaded from a pystepsrc JSON_ file
+located in the system.
+The configuration parameters can be accessed as attributes or as items
+in a dictionary. For e.g., to retrieve the default parameters
+the following ways are equivalent::
 
-The defaults configuration are stored in the pysteps.rcparams AttrDict_, which
-are loaded from a pystepsrc JSON_ file located in the system.
+    import pysteps
 
-When pysteps is imported, it looks for pystepsrc file in the following order:
+    # Retrieve the colorscale for plots
+    colorscale = pysteps.rcparams['plot']['colorscale']
+    colorscale = pysteps.rcparams.plot.colorscale
+
+    # Retrieve the the root directory of the fmi data
+    pysteps.rcparams['data_sources']['fmi']['root_path']
+    pysteps.rcparams.data_sources.fmi.root_path
+
+    # -----------------------------------------------------------------
+    # A less wordy alternative
+    # -----------------------------------------------------------------
+    from pysteps import rcparams
+    colorscale = rcparams['plot']['colorscale']
+    colorscale = rcparams.plot.colorscale
+
+    fmi_root_path = rcparams['data_sources']['fmi']['root_path']
+    fmi_root_path = rcparams.data_sources.fmi.root_path
+
+When the pysteps package imported, it looks for **pystepsrc** file in the
+following order:
+
 - $PWD/pystepsrc : Looks for the file in the current directory
-- $PYSTEPSRC : If the system variable $PYSTEPSRC is defined and it points
-to a file, it is used.
+- $PYSTEPSRC : If the system variable $PYSTEPSRC is defined and it
+  points to a file, it is used.
 - $PYSTEPSRC/pystepsrc : If $PYSTEPSRC points to a directory, it looks for the
-pystepsrc file inside that directory.
+  pystepsrc file inside that directory.
 - $HOME/.pysteps/pystepsrc (unix and Mac OS X) : If the system variable $HOME is defined, it looks
-for the configuration file in this path.
+  for the configuration file in this path.
 - $USERPROFILE/pysteps/pystepsrc (windows only): It looks for the configuration file
-in the pysteps directory located user's home directory.
+  in the pysteps directory located user's home directory.
 - Lastly, it looks inside the library in pysteps/pystepsrc for a
-system-defined copy.
+  system-defined copy.
 
 .. _JSON: https://en.wikipedia.org/wiki/JSON
 .. _AttrDict: https://pypi.org/project/attrdict/
+
+
+The suggested way to setup the configuration files, is by editing a copy
+of the default **pystepsrc** file that is distributed with the package
+and place that copy inside the user home folder.
 
 
 Linux and OSX users
@@ -122,8 +152,9 @@ This are the steps to setup up the configuration file in that directory:
 
     $> mkdir -p ${HOME}/.pysteps
 
-1. Find the location of the library's pystepsrc file used at the moment. When
-the pystep is imported, the configuration file loaded is shown::
+1. Find the location of the library's pystepsrc file used at the moment.
+When we import pysteps in a python interpreter,
+the configuration file loaded is shown::
 
     import pysteps
     "Pysteps configuration file found at: /path/to/pysteps/library/pystepsrc"
@@ -133,7 +164,7 @@ the pystep is imported, the configuration file loaded is shown::
     $> cp /path/to/pysteps/library/pystepsrc ${HOME}/.pysteps/pystepsrc
 
 1. Edit the file with the text editor of your preference
-1. Check that the location of the library's pystepsrc file used at the moment::
+1. Check that the location of the library's pystepsrc file used at the moment.::
 
      import pysteps
      "Pysteps configuration file found at: /home/user_name/.pysteps/pystepsrc"
