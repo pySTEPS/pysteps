@@ -10,8 +10,8 @@
     },
     "data_sources": {
         "bom": {
-            "root_path": "./bom",
-            "path_fmt": "radar/bom/prcp-cscn/2/%Y/%m/%d",
+            "root_path": "./radar/bom",
+            "path_fmt": "prcp-cscn/2/%Y/%m/%d",
             "fn_pattern": "2_%Y%m%d_%H%M00.prcp-cscn",
             "fn_ext": "nc",
             "importer": "bom_rf3",
@@ -21,7 +21,7 @@
             }
         },
         "fmi": {
-            "root_path": "./fmi",
+            "root_path": "./radar/fmi",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.lowest_FIN_SUOMI1",
             "fn_ext": "pgm.gz",
@@ -32,7 +32,7 @@
             }
         },
         "mch": {
-            "root_path": "./mch",
+            "root_path": "./radar/mch",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "AQC%y%j%H%M?_00005.801",
             "fn_ext": "gif",
@@ -43,7 +43,7 @@
             }
         },
         "opera": {
-            "root_path": "./opera",
+            "root_path": "./radar/OPERA",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "T_PAAH21_C_EUOC_%Y%m%d%H%M%S",
             "fn_ext": "hdf",
