@@ -177,7 +177,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     # Add colorbar
     if colorbar:
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm,
-                            extend="max" if type == "intensity" else "neither")
+                            extend="max" if type == "intensity" else "neither",
+                            shrink=0.8)
         if clevsStr != None:
             cbar.ax.set_yticklabels(clevsStr)
 
