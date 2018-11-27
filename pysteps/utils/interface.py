@@ -25,11 +25,15 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
+    |  BoxCox           | one-parameter Box-Cox transform                        |
+    +-------------------+--------------------------------------------------------+
     |  dB or decibel    | transform to units of decibel                          |
     +-------------------+--------------------------------------------------------+
-    |  BoxCox           | apply one-parameter Box-Cox transform                  |
+    |  log              | log transform                                          |
     +-------------------+--------------------------------------------------------+
     |  NQT              | Normal Quantile Transform                              |
+    +-------------------+--------------------------------------------------------+
+    |  sqrt             | square-root transform                                  |
     +-------------------+--------------------------------------------------------+
 
     Dimension methods:
@@ -66,11 +70,13 @@ def get_method(name):
     methods_objects["dbz"]          = conversion.to_reflectivity
     methods_objects["reflectivity"] = conversion.to_reflectivity
     # transformation methods
-    methods_objects["db"]           = transformation.dB_transform
-    methods_objects["decibel"]      = transformation.dB_transform
     methods_objects["boxcox"]       = transformation.boxcox_transform
     methods_objects["box-cox"]      = transformation.boxcox_transform
+    methods_objects["db"]           = transformation.dB_transform
+    methods_objects["decibel"]      = transformation.dB_transform
+    methods_objects["log"]          = transformation.boxcox_transform
     methods_objects["nqt"]          = transformation.NQ_transform
+    methods_objects["sqrt"]         = transformation.sqrt_transform
     # dimension methods
     methods_objects["accumulate"]   = dimension.aggregate_fields_time
     methods_objects["adjust"]       = dimension.adjust_domain

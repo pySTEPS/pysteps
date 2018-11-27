@@ -6,92 +6,10 @@ from scipy.interpolate import interp1d
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) # To deactivate warnings for comparison operators with NaNs
 
-def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
-    """Methods to transform to/from dB units.
-
-    Parameters
-    ----------
-    R : array-like
-        Array of any shape to be (back-)transformed.
-    metadata : dict
-        The metadata dictionary contains all data-related information.
-    threshold : float
-        Optional value that is used for thresholding with the same units as R.
-        If None, the threshold contained in metadata is used.
-    zerovalue : float
-        Optional value to be assigned to no rain pixels as defined by the threshold.
-    inverse : bool
-        Optional, if set to True, it performs the inverse transform
-
-    Returns
-    -------
-    R : array-like
-        Array of any shape containing the (back-)transformed units.
-    metadata : dict
-        The metadata with updated attributes.
-
-    """
-
-    R = R.copy()
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "dB"}
-        else:
-            metadata = {"transform": None}
-    else:
-        metadata = metadata.copy()
-
-    # to dB units
-    if not inverse:
-
-        if metadata["transform"] is "dB":
-            return R, metadata
-
-        if threshold is None:
-            threshold = metadata.get("threshold", 0.1)
-
-        zeros = R < threshold
-
-        # Convert to dB
-        R[~zeros] = 10.0*np.log10(R[~zeros])
-        threshold = 10.0*np.log10(threshold)
-
-        # Set value for zeros
-        if zerovalue is None:
-            zerovalue = threshold - 5 # TODO: set to a more meaningful value
-        R[zeros] = zerovalue
-
-        metadata["transform"] = "dB"
-        metadata["zerovalue"] = zerovalue
-        metadata["threshold"] = threshold
-
-        return R, metadata
-
-    # from dB units
-    elif inverse:
-
-        if metadata["transform"] is not "dB":
-            return R, metadata
-
-        if threshold is None:
-            threshold = metadata.get("threshold", -10.)
-        if zerovalue is None:
-            zerovalue = 0.0
-            
-        R = 10.0**(R/10.0)
-        threshold = 10.0**(threshold/10.0)
-        R[R < threshold] = zerovalue
-        
-        metadata["transform"] = None
-        metadata["threshold"] = threshold
-        metadata["zerovalue"] = zerovalue
-
-        return R, metadata
-
 def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
                      zerovalue=None, inverse=False):
     """The one-parameter Box-Cox transformation.
+    Default parameters will produce a log transform (i.e. Lambda=0).
 
     Parameters
     ----------
@@ -101,6 +19,7 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
         The metadata dictionary contains all data-related information.
     Lambda : float
         Parameter lambda of the Box-Cox transformation.
+        Default : 0
     threshold : float
         Optional value that is used for thresholding with the same units as R.
         If None, the threshold contained in metadata is used.
@@ -119,11 +38,13 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
     """
 
     R = R.copy()
+    
     if metadata is None:
         if inverse:
             metadata = {"transform": "BoxCox"}
         else:
-            metadata = {"transform": None}
+            metadata = {"transform" : None}
+
     else:
         metadata = metadata.copy()
 
@@ -232,6 +153,90 @@ def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
     print("Saved: box-cox-transform-test-lambdas.png")
 
     plt.close()
+    
+def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
+    """Methods to transform to/from dB units.
+
+    Parameters
+    ----------
+    R : array-like
+        Array of any shape to be (back-)transformed.
+    metadata : dict
+        The metadata dictionary contains all data-related information.
+    threshold : float
+        Optional value that is used for thresholding with the same units as R.
+        If None, the threshold contained in metadata is used.
+    zerovalue : float
+        Optional value to be assigned to no rain pixels as defined by the threshold.
+    inverse : bool
+        Optional, if set to True, it performs the inverse transform
+
+    Returns
+    -------
+    R : array-like
+        Array of any shape containing the (back-)transformed units.
+    metadata : dict
+        The metadata with updated attributes.
+
+    """
+
+    R = R.copy()
+
+    if metadata is None:
+        if inverse:
+            metadata = {"transform": "dB"}
+        else:
+            metadata = {"transform" : None}
+
+    else:
+        metadata = metadata.copy()
+
+    # to dB units
+    if not inverse:
+
+        if metadata["transform"] is "dB":
+            return R, metadata
+
+        if threshold is None:
+            threshold = metadata.get("threshold", 0.1)
+
+        zeros = R < threshold
+
+        # Convert to dB
+        R[~zeros] = 10.0*np.log10(R[~zeros])
+        threshold = 10.0*np.log10(threshold)
+
+        # Set value for zeros
+        if zerovalue is None:
+            zerovalue = threshold - 5 # TODO: set to a more meaningful value
+        R[zeros] = zerovalue
+
+        metadata["transform"] = "dB"
+        metadata["zerovalue"] = zerovalue
+        metadata["threshold"] = threshold
+
+        return R, metadata
+
+    # from dB units
+    elif inverse:
+
+        if metadata["transform"] is not "dB":
+            return R, metadata
+
+        if threshold is None:
+            threshold = metadata.get("threshold", -10.)
+        if zerovalue is None:
+            zerovalue = 0.0
+            
+        R = 10.0**(R/10.0)
+        threshold = 10.0**(threshold/10.0)
+        R[R < threshold] = zerovalue
+        
+        metadata["transform"] = None
+        metadata["threshold"] = threshold
+        metadata["zerovalue"] = zerovalue
+
+        return R, metadata
 
 def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     """The normal quantile transformation. 
@@ -274,7 +279,9 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
         if inverse:
             metadata = {"transform": "NQT"}
         else:
-            metadata = {"transform": None, "zerovalue" : 0}
+            metadata = {"transform" : None}
+        metadata["zerovalue"] = np.min(R_)
+
     else:
         metadata = metadata.copy()
 
@@ -312,3 +319,58 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     R[~idxNan] = R__
     
     return R.reshape(shape0), metadata
+    
+def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
+    """Square-root transform.
+
+    Parameters
+    ----------
+    R : array-like
+        Array of any shape to be transformed.
+    metadata : dict
+        The metadata dictionary contains all data-related information.
+    inverse : bool
+        Optional, if set to True, it performs the inverse transform
+        
+    Returns
+    -------
+    R : array-like
+        Array of any shape containing the (back-)transformed units.
+    metadata : dict
+        The metadata with updated attributes.
+
+    """
+    
+    R = R.copy()
+    
+    if metadata is None:
+        if inverse:
+            metadata = {"transform": "sqrt"}
+        else:
+            metadata = {"transform" : None}
+        metadata["zerovalue"] = np.nan
+        metadata["threshold"] = np.nan
+
+    else:
+        metadata = metadata.copy()
+
+    if not inverse:
+    
+        # sqrt transform
+        R = np.sqrt(R)
+
+        metadata["transform"] = "sqrt"
+        metadata["zerovalue"] = np.sqrt(metadata["zerovalue"])
+        metadata["threshold"] = np.sqrt(metadata["threshold"])
+        
+    else:
+    
+        # inverse sqrt transform
+        R = R**2
+
+        metadata["transform"] = None
+        metadata["zerovalue"] = metadata["zerovalue"]**2
+        metadata["threshold"] = metadata["threshold"]**2
+        
+    
+    return R, metadata
