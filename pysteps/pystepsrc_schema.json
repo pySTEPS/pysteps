@@ -2,26 +2,34 @@
     "title": "pystepsrc params",
     "description": "Pysteps default parameters",
     "required": [
+        "outputs",
         "plot",
         "data_sources"
     ],
     "type": "object",
     "properties": {
+        "outputs": {
+            "type": "object",
+            "required": [
+                "path_outputs"
+            ],
+            "properties": {
+                "path_outputs": {
+                    "type": "string"
+                }
+            }
+        },
         "plot": {
             "type": "object",
             "required": [
                 "motion_plot",
-                "colorscale",
-                "path_outputs"
+                "colorscale"
             ],
             "properties": {
                 "motion_plot": {
                     "type": "string"
                 },
                 "colorscale": {
-                    "type": "string"
-                },
-                "path_outputs": {
                     "type": "string"
                 }
             }
