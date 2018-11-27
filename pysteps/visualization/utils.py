@@ -132,6 +132,8 @@ def proj4_to_cartopy(proj4str):
         if k == "proj":
             if v == "tmerc":
                 cl = ccrs.TransverseMercator
+            elif v == "laea":
+                cl = ccrs.LambertAzimuthalEqualArea
             elif v == "lcc":
                 cl = ccrs.LambertConformal
             elif v == "merc":
