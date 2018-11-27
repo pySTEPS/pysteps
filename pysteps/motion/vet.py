@@ -510,7 +510,7 @@ def vet(input_images,
     if (input_images.ndim != 3) or (1 < input_images.shape[0] > 3):
         raise ValueError("input_images dimension mismatch.\n" +
                          "input_images.shape: " + str(input_images.shape) +
-                         "\n(2, x, y ) dimensions expected.")
+                         "\n(2, x, y ) or (2, x, y ) dimensions expected")
 
     valid_indexing = ['yx', 'xy', 'ij']
 
