@@ -11,8 +11,10 @@ warnings.warn("config module will be deprecated in the next release; "
               category=FutureWarning
               )
 
+outputs_params = rcparams['outputs']
+path_outputs = outputs_params['path_outputs']
+
 plot_params = rcparams['plot']
-path_outputs = plot_params['path_outputs']
 colorscale = plot_params['colorscale']
 motion_plot = plot_params['motion_plot']
 
