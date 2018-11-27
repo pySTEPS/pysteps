@@ -271,6 +271,9 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
         norm = colors.BoundaryNorm(clevs, cmap.N)
 
         return cmap, norm, clevs, clevsStr
+    elif type == "prob":
+        cmap = plt.get_cmap('OrRd', 10)
+        return cmap, colors.Normalize(vmin=0, vmax=1), None, None
     else:
         return cm.jet, colors.Normalize(), None, None
 
