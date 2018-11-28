@@ -11,13 +11,13 @@ but pySTEPS is designed to allow a wider range of uses.
 
 
 
-Installing pySTEPS
+Installing pysteps
 ==================
 
 Dependencies
 ------------
 
-The pySTEPS package needs the following dependencies
+The pysteps package needs the following dependencies
 
 * python>=3.6
 * numpy_
@@ -48,6 +48,12 @@ Additionally, the following packages can be installed to provide better computat
 .. _dask: https://dask.org/
 .. _toolz: https://github.com/pytoolz/toolz/
 .. _pyfftw: https://hgomersall.github.io/pyFFTW/
+
+Finally, pysteps uses netCDF as default output format:
+
+* netCDF4_
+
+.. _netCDF4: https://pypi.org/project/netCDF4/
 
 We recommend that you create a conda environment using the available
 `environment.yml`_ file to install all the necessary dependencies::
@@ -86,7 +92,7 @@ If you want to install the package in a specific directory run::
 Setting up the user-defined configuration file
 ----------------------------------------------
 
-The pySTEPS package allows the users to customize the default settings
+The pysteps package allows the users to customize the default settings
 and configuration.
 The configuration parameters used by default are stored in
 pysteps.rcparams AttrDict_, which are loaded from a pystepsrc JSON_ file
