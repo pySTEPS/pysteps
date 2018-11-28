@@ -12,3 +12,4 @@ dependencies:
   - jsmin
   - jsonschema
   - attrdict
+  - netCDF4
