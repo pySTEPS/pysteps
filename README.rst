@@ -20,15 +20,15 @@ Dependencies
 The pysteps package needs the following dependencies
 
 * python>=3.6
-* numpy_
-* scipy_
-* opencv-python_
-* pillow_
-* pyproj_
-* matplotlib_
 * attrdict_
 * jsmin_
 * jsonschema_
+* matplotlib_
+* netCDF4_
+* numpy_
+* opencv-python_
+* pyproj_
+* scipy_
 
 .. _attrdict : https://pypi.org/project/attrdict/
 .. _jsmin : https://pypi.org/project/jsmin/
@@ -36,9 +36,9 @@ The pysteps package needs the following dependencies
 .. _numpy: http://www.numpy.org/
 .. _scipy: https://www.scipy.org/
 .. _opencv-python: https://opencv.org/
-.. _pillow: https://python-pillow.org/
 .. _pyproj: https://github.com/jswhit/pyproj
 .. _matplotlib: http://matplotlib.org/
+.. _netCDF4: https://pypi.org/project/netCDF4/
 
 Additionally, the following packages can be installed to provide better computational efficiency:
 
@@ -49,19 +49,36 @@ Additionally, the following packages can be installed to provide better computat
 .. _toolz: https://github.com/pytoolz/toolz/
 .. _pyfftw: https://hgomersall.github.io/pyFFTW/
 
-Finally, pysteps uses netCDF as default output format:
+Other optional packages include:
 
-* netCDF4_
+* cartopy_ or basemap_ (for georeferenced visualization) 
+* h5py_ (for importing HDF5 data)
+* pillow_ (for importing gif data)
+* pyproj_ (for cartographic transformations)
+* scikit-image_ (for the VET optical flow method)
 
-.. _netCDF4: https://pypi.org/project/netCDF4/
+.. _basemap: https://matplotlib.org/basemap/
+.. _cartopy: https://scitools.org.uk/cartopy/docs/v0.16/
+.. _h5py: https://www.h5py.org/
+.. _pillow: https://python-pillow.org/
+.. _pyproj: https://jswhit.github.io/pyproj/
+.. _scikit-image: https://scikit-image.org/
 
 We recommend that you create a conda environment using the available
-`environment.yml`_ file to install all the necessary dependencies::
+`environment.yml`_ file to install the most important dependencies::
 
     conda env create -f environment.yml
+    conda activate pysteps
     
 .. _environment.yml: \
      https://github.com/pySTEPS/pysteps/blob/master/environment.yml
+     
+In addition, you still need to pip install few remaining important dependencies::
+
+    pip install attrdict
+    pip install jsmin
+
+This will allow running most of the basic functionalities in pysteps.
 
 Install from source
 -------------------
