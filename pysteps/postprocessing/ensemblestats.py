@@ -61,8 +61,8 @@ def excprob(X, X_thr, ignore_nan=False):
     for x in X_thr:
         X_ = X.copy()
 
-        X_[X_ >= x] = 1.0
-        X_[X_ <  x] = 0.0
+        X_[X >= x] = 1.0
+        X_[X <  x] = 0.0
 
         if ignore_nan:
             P.append(np.nanmean(X_, axis=0))
