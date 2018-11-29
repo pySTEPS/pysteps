@@ -1,15 +1,11 @@
 name: pysteps
-dependencies: 
+dependencies:
   - python=3.6
-  - git
-  - dask
-  - numpy 
-  - scipy
-  - matplotlib 
-  - opencv 
+  - jsonschema
+  - matplotlib
+  - netCDF4
+  - numpy
+  - opencv
   - pillow
   - pyproj
-  - jsmin
-  - jsonschema
-  - attrdict
-  - netCDF4
+  - scipy
