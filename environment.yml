@@ -4,6 +4,7 @@ dependencies:
   - git
   - dask
   - numpy 
+  - scipy
   - matplotlib 
   - opencv 
   - pillow
@@ -11,4 +12,4 @@ dependencies:
   - jsmin
   - jsonschema
   - attrdict
-
+  - netCDF4

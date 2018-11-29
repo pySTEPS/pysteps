@@ -1,5 +1,5 @@
-include LICENSE *.txt *.rst *.md
-recursive-include tutorials *
+include LICENSE *.txt *.rst
 include pysteps/pystepsrc
 include pysteps/pystepsrc_schema.json
+recursive-include pysteps *.pyx
   
