@@ -27,7 +27,6 @@ The pysteps package needs the following dependencies
 * netCDF4_
 * numpy_
 * opencv-python_
-* pyproj_
 * scipy_
 
 .. _attrdict : https://pypi.org/project/attrdict/
@@ -36,7 +35,6 @@ The pysteps package needs the following dependencies
 .. _numpy: http://www.numpy.org/
 .. _scipy: https://www.scipy.org/
 .. _opencv-python: https://opencv.org/
-.. _pyproj: https://github.com/jswhit/pyproj
 .. _matplotlib: http://matplotlib.org/
 .. _netCDF4: https://pypi.org/project/netCDF4/
 
