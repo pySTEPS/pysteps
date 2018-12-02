@@ -70,11 +70,6 @@ We recommend that you create a conda environment using the available
     
 .. _environment.yml: \
      https://github.com/pySTEPS/pysteps/blob/master/environment.yml
-     
-In addition, you still need to pip install few remaining important dependencies::
-
-    pip install attrdict
-    pip install jsmin
 
 This will allow running most of the basic functionalities in pysteps.
 
