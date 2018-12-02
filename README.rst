@@ -26,7 +26,6 @@ The pysteps package needs the following dependencies
 * matplotlib_
 * netCDF4_
 * numpy_
-* opencv-python_
 * scipy_
 
 .. _attrdict : https://pypi.org/project/attrdict/
@@ -34,7 +33,6 @@ The pysteps package needs the following dependencies
 .. _jsonschema : https://pypi.org/project/jsonschema/
 .. _numpy: http://www.numpy.org/
 .. _scipy: https://www.scipy.org/
-.. _opencv-python: https://opencv.org/
 .. _matplotlib: http://matplotlib.org/
 .. _netCDF4: https://pypi.org/project/netCDF4/
 
@@ -51,6 +49,7 @@ Other optional packages include:
 
 * cartopy_ or basemap_ (for georeferenced visualization) 
 * h5py_ (for importing HDF5 data)
+* opencv-python_ (for the Lucas-Kanade optical flow)
 * pillow_ (for importing gif data)
 * pyproj_ (for cartographic transformations)
 * scikit-image_ (for the VET optical flow method)
@@ -58,6 +57,7 @@ Other optional packages include:
 .. _basemap: https://matplotlib.org/basemap/
 .. _cartopy: https://scitools.org.uk/cartopy/docs/v0.16/
 .. _h5py: https://www.h5py.org/
+.. _opencv-python: https://opencv.org/
 .. _pillow: https://python-pillow.org/
 .. _pyproj: https://jswhit.github.io/pyproj/
 .. _scikit-image: https://scikit-image.org/
