@@ -55,6 +55,8 @@ def get_method(name, type="deterministic"):
         |  scatter   | half the distance between the 16% and 84% percentiles of |
         |            | the error distribution                                   |
         +------------+----------------------------------------------------------+
+        |  binary_mse| binary MSE                                               |
+        +------------+----------------------------------------------------------+
         |  FSS       | fractions skill score                                    |
         +------------+----------------------------------------------------------+
 
@@ -100,7 +102,7 @@ def get_method(name, type="deterministic"):
 
         from .detcatscores import det_cat_fcst
         from .detcontscores import det_cont_fcst
-        from .spatialscores import compute_fss
+        from .spatialscores import fss, binary_mse
 
         # categorical
         if name in ["acc", "csi", "fa", "far", "gss", "hk", "hss", "pod", "sedi"]:
@@ -116,6 +118,8 @@ def get_method(name, type="deterministic"):
             return f
 
         # spatial
+        elif name in ["binary_mse"]:
+            return binary_mse
         elif name in ["fss"]:
             return fss
         else:
