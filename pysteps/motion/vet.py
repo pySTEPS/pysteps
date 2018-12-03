@@ -26,7 +26,6 @@ import numpy
 from numpy.ma.core import MaskedArray
 from scipy.ndimage.interpolation import zoom
 from scipy.optimize import minimize
-from skimage.util.shape import view_as_blocks
 
 from pysteps.motion._vet import _warp, _cost_function
 
@@ -154,45 +153,6 @@ def morph(image, displacement, gradient=False):
     _displacement = numpy.asarray(displacement, dtype='float64', order='C')
 
     return _warp(_image, _mask, _displacement, gradient=gradient)
-
-
-def downsize(input_array, x_factor, y_factor=None):
-    """
-    Reduce resolution of an array by neighbourhood averaging (2D averaging)
-    of x_factor by y_factor elements.
-
-    Parameters
-    ----------
-
-    input_array: ndarray
-        Array to downsize by neighbourhood averaging
-
-    x_factor : int
-        factor of downsizing in the x dimension
-
-    y_factor : int
-        factor of downsizing in the y dimension
-
-    Returns
-    -------
-
-    downsized_array : MaskedArray
-        Downsized array with the invalid entries masked.
-
-    """
-
-    x_factor = int(x_factor)
-
-    if y_factor is None:
-        y_factor = x_factor
-    else:
-        y_factor = int(y_factor)
-
-    input_block_view = view_as_blocks(input_array, (x_factor, y_factor))
-
-    data = input_block_view.mean(-1).mean(-1)
-
-    return numpy.ma.masked_invalid(data)
 
 
 def vet_cost_function_gradient(*args, **kwargs):

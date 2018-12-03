@@ -1,6 +1,11 @@
 name: pysteps
+channels:
+- conda-forge
+- defaults
 dependencies:
   - python=3.6
+  - attrdict
+  - jsmin
   - jsonschema
   - matplotlib
   - netCDF4
