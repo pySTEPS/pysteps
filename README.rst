@@ -52,7 +52,6 @@ Other optional packages include:
 * opencv-python_ (for the Lucas-Kanade optical flow)
 * pillow_ (for importing gif data)
 * pyproj_ (for cartographic transformations)
-* scikit-image_ (for the VET optical flow method)
 
 .. _basemap: https://matplotlib.org/basemap/
 .. _cartopy: https://scitools.org.uk/cartopy/docs/v0.16/
@@ -60,7 +59,6 @@ Other optional packages include:
 .. _opencv-python: https://opencv.org/
 .. _pillow: https://python-pillow.org/
 .. _pyproj: https://jswhit.github.io/pyproj/
-.. _scikit-image: https://scikit-image.org/
 
 We recommend that you create a conda environment using the available
 `environment.yml`_ file to install the most important dependencies::
@@ -75,6 +73,14 @@ This will allow running most of the basic functionalities in pysteps.
 
 Install from source
 -------------------
+
+**IMPORTANT**: installing from sources requires numpy to be installed
+beforehand.
+
+The installer need numpy to compile the Cython extensions.
+If numpy is not installed you can running in a terminal::
+
+    pip install numpy
 
 The lastest pysteps version in the repository can be installed using pip by
 simply running in a terminal::
@@ -97,6 +103,29 @@ For `user installation`_::
 If you want to install the package in a specific directory run::
 
     python setup.py install --prefix=/path/to/local/dir
+
+
+Non anaconda users or minimal anaconda environments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The installation using **setup.py** will try to to install the minimum
+dependencies needed to run the program correctly.
+If you are not using the suggested conda environment (defined in
+environment.yml) or you are working with a minimal python distribution,
+you may get the following error during the installation::
+
+    ModuleNotFoundError: No module named 'Cython'
+
+This means that Cython is not installed, which is needed to build some of the
+dependencies of pysteps.
+
+For non anaconda users, you can install Cython using::
+
+    pip install Cython
+
+Anaconda users can install Cython using::
+
+    conda install cython
 
 
 Setting up the user-defined configuration file
