@@ -37,7 +37,7 @@ requirements = ['numpy', 'opencv-python', 'pillow', 'pyproj',
 
 setup(
     name='pysteps',
-    version='0.1',
+    version='0.2',
     packages=find_packages(),
     license='LICENSE',
     include_package_data=True,
