@@ -211,7 +211,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     # defaults
     win_type = kwargs.get('win_type', 'flat-hanning')
     donorm   = kwargs.get('donorm', False)
-    rm_rdisc = kwargs.get('rm_disc', True)
+    rm_rdisc = kwargs.get('rm_rdisc', True)
 
     X = X.copy()
 
