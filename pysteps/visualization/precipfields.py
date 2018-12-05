@@ -99,8 +99,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     """
     if type not in ["intensity", "prob"]:
         raise ValueError("invalid type '%s', must be 'intensity' or 'prob'" % type)
-    if units not in ["mm/h", "dBZ"]:
-        raise ValueError("invalid units '%s', must be 'mm/h' or 'dBZ'")
+    if type is "intensity" and units not in ["mm/h", "dBZ"]:
+        raise ValueError("invalid units '%s', must be 'mm/h' or 'dBZ'" % units)
     if type == "prob" and probthr is None:
         raise Exception("type='prob' but probthr not specified")
     if map is not None and map not in ["basemap", "cartopy"]:
