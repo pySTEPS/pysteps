@@ -107,7 +107,7 @@ for n, parset in enumerate(parsets):
     pprint.pprint(p)
     
     # If necessary, build path to results
-    path_to_experiment = os.path.join(stp.rcparams.path_outputs, p["experiment_name"])
+    path_to_experiment = os.path.join(stp.rcparams.outputs.path_outputs, p["experiment_name"])
     # subdir with event date
     path_to_nwc = os.path.join(path_to_experiment, '-'.join([p["data"][0], p["data"][3]]))
     for key, item in p.items():
@@ -126,7 +126,7 @@ for n, parset in enumerate(parsets):
     # Loop forecasts within given event using the prescribed update cycle interval
 
     ## import data specifications
-    ds = stp.rcparams.data_source[p["data"][3]]
+    ds = stp.rcparams.data_sources[p["data"][3]]
     
     if p["v_accu"] is None:
         p["v_accu"] = ds.timestep
