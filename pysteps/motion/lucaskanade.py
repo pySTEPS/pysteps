@@ -2,11 +2,7 @@
 vectors for areas with no precipitation."""
 
 import numpy as np
-try:
-    import cv2
-    cv2_imported = True
-except ImportError:
-    cv2_imported = False
+import cv2
 import scipy.spatial
 import time
 
@@ -221,9 +217,7 @@ def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
         Output vector of detected corners.
 
     """
-    if not cv2_imported:
-        raise Exception("opencv not imported")
-        
+
     if len(R.shape) != 2:
         raise ValueError("R must be a two-dimensional array")
     if R.dtype != "uint8":
@@ -272,9 +266,6 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
         Output vector of v-components of detected point motions.
 
     """
-    if not cv2_imported:
-        raise Exception("opencv not imported")
-
     # LK parameters
     lk_params = dict( winSize=winsize_LK, maxLevel=nr_levels_LK,
                      criteria=(cv2.TERM_CRITERIA_EPS|cv2.TERM_CRITERIA_COUNT, 10, 0))
@@ -314,9 +305,7 @@ def _clean_image(R, n=3, thr=0):
         Array of shape (m,n) containing the cleaned precipitation field.
 
     """
-    if not cv2_imported:
-        raise Exception("opencv not imported")
-        
+
     # convert to binary image (rain/no rain)
     field_bin = np.ndarray.astype(R > thr,"uint8")
 

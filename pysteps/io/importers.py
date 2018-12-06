@@ -66,32 +66,21 @@ import gzip
 from matplotlib.pyplot import imread
 import numpy as np
 import os
+import netCDF4
+import pyproj
+import PIL
 try:
     import h5py
     h5py_imported = True
 except ImportError:
     h5py_imported = False
-try:
 
+try:
     import metranet
     metranet_imported = True
 except ImportError:
     metranet_imported = False
-try:
-    import netCDF4
-    netcdf4_imported = True
-except ImportError:
-    netcdf4_imported = False
-try:
-    import PIL
-    pil_imported = True
-except ImportError:
-    pil_imported = False
-try:
-    import pyproj
-    pyproj_imported = True
-except ImportError:
-    pyproj_imported = False
+
 
 def import_bom_rf3(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the BoM Rainfields3.
@@ -109,8 +98,6 @@ def import_bom_rf3(filename, **kwargs):
         quality field is currently set to None.
 
     """
-    if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
 
     R = _import_bom_rf3_data(filename)
 
@@ -223,8 +210,6 @@ def import_fmi_pgm(filename, **kwargs):
         currently set to None.
 
     """
-    if not pyproj_imported:
-        raise Exception("pyproj not imported")
 
     gzipped = kwargs.get("gzipped", False)
 
@@ -353,8 +338,6 @@ def import_mch_gif(filename, **kwargs):
         The quality field is currently set to None.
 
     """
-    if not pil_imported:
-        raise Exception("PIL not imported")
 
     product     = kwargs.get("product", "AQC")
     unit        = kwargs.get("unit",    "mm")

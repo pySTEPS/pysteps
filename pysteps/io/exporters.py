@@ -56,16 +56,8 @@ implements the following interface:
 
 import numpy as np
 from datetime import datetime
-try:
-    import netCDF4
-    netcdf4_imported = True
-except ImportError:
-    netcdf4_imported = False
-try:
-    import pyproj
-    pyproj_imported = True
-except ImportError:
-    pyproj_imported = False
+import netCDF4
+import pyproj
 
 # TODO: This is a draft version of the exporter. Revise the variable names and
 # the structure of the file if necessary.
@@ -73,11 +65,6 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
                                         n_timesteps, shape, n_ens_members,
                                         metadata, incremental=None):
     """Initialize a netCDF forecast exporter."""
-    if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
-
-    if not pyproj_imported:
-        raise Exception("pyproj not imported")
 
     if incremental not in [None, "timestep", "member"]:
         raise ValueError("unknown option %s: incremental must be 'timestep' or 'member'" % incremental)
@@ -241,10 +228,8 @@ def export_forecast_dataset(F, exporter):
         |    'member'       | (num_timesteps,shape[0],shape[1])                 |
         +-------------------+---------------------------------------------------+
     """
-    if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
 
-    if exporter["incremental"] == None:
+    if exporter["incremental"] is None:
         shp = (exporter["num_ens_members"], exporter["num_timesteps"],
                exporter["shape"][0], exporter["shape"][1])
         if F.shape != shp:

@@ -1,15 +1,12 @@
 """Miscellaneous utility functions."""
 
+import pyproj
+
 try:
     import cartopy.crs as ccrs
     cartopy_imported = True
 except ImportError:
     cartopy_imported = False
-try:
-    import pyproj
-    pyproj_imported = True
-except ImportError:
-    pyproj_imported = False
 
 def parse_proj4_string(proj4str):
     """Construct a dictionary from a PROJ.4 projection string.
@@ -94,8 +91,6 @@ def proj4_to_cartopy(proj4str):
     """
     if not cartopy_imported:
         raise Exception("cartopy not imported")
-    if not pyproj_imported:
-        raise Exception("pyproj not imported")
 
     proj = pyproj.Proj(proj4str)
 

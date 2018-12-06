@@ -61,17 +61,11 @@ The metadata dictionary contains the following mandatory key-value pairs:
 """
 
 import numpy as np
-try:
-    import netCDF4
-    netcdf4_imported = True
-except ImportError:
-    netcdf4_imported = False
+import netCDF4
 
 def import_netcdf_pysteps(filename, **kwargs):
     """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the
     CF 1.7 specification."""
-    if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
 
     ds = netCDF4.Dataset(filename, 'r')
 
