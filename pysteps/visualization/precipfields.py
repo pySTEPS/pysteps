@@ -75,8 +75,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
         'mm/h' or 'dBZ'.
     probthr : float
-      Intensity threshold for the exceedance probability map. Required if type
-      is "prob".
+      Intensity threshold to show in the color bar of the exceedance probability 
+      map. Required if type is "prob" and colorbar is True.
     title : str
         If not None, print the title on top of the plot.
     colorbar : bool
@@ -101,7 +101,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         raise ValueError("invalid type '%s', must be 'intensity' or 'prob'" % type)
     if type is "intensity" and units not in ["mm/h", "dBZ"]:
         raise ValueError("invalid units '%s', must be 'mm/h' or 'dBZ'" % units)
-    if type == "prob" and probthr is None:
+    if type == "prob" and colorbar and probthr is None:
         raise Exception("type='prob' but probthr not specified")
     if map is not None and map not in ["basemap", "cartopy"]:
         raise ValueError("unknown map method %s: must be 'basemap' or 'cartopy'" % map)
