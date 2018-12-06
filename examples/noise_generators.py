@@ -14,7 +14,6 @@ import numpy as np
 import os
 
 import pysteps as stp
-import config as cfg
 
 # List of case studies that can be used in this tutorial
 
@@ -53,7 +52,7 @@ print('Read the data...')
 startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
 ## import data specifications
-ds = cfg.get_specifications(data_source)
+ds = stp.rcparams.data_sources[data_source]
 
 ## find radar field filenames
 input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
