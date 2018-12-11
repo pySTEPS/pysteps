@@ -216,7 +216,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             cbar.ax.set_yticklabels(clevsStr)
 
         if type == "intensity":
-            cbar.ax.set_title(units, fontsize=12)
+            cbar.ax.set_title(units, fontsize=10)
             cbar.set_label("Precipitation intensity")
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
