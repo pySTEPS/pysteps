@@ -75,7 +75,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
         'mm/h' or 'dBZ'.
     probthr : float
-      Intensity threshold to show in the color bar of the exceedance probability 
+      Intensity threshold to show in the color bar of the exceedance probability
       map. Required if type is "prob" and colorbar is True.
     title : str
         If not None, print the title on top of the plot.
@@ -103,6 +103,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         raise ValueError("invalid units '%s', must be 'mm/h' or 'dBZ'" % units)
     if type == "prob" and colorbar and probthr is None:
         raise Exception("type='prob' but probthr not specified")
+    if map is not None and geodata is None:
+        raise ValueError("map!=None but geodata=None")
     if map is not None and map not in ["basemap", "cartopy"]:
         raise ValueError("unknown map method %s: must be 'basemap' or 'cartopy'" % map)
     if map == "basemap" and not basemap_imported:
@@ -156,20 +158,51 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             extent = None
         else:
             x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
-            crs = utils.proj4_to_cartopy(geodata["projection"])
+
+            try:
+                crs = utils.proj4_to_cartopy(geodata["projection"])
+                regular_grid = True
+
+            except:
+                # Necessary since cartopy doesn't support the Swiss projection
+                # TODO: remove once the somerc projection is supported in cartopy.
+
+                # Define fall back projection
+                laeastr = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs" # EPSG:3035
+                laea = pyproj.Proj(laeastr)
+                crs = utils.proj4_to_cartopy(laeastr)
+
+                # Reproject swiss data on fall back projection
+                # this will work reasonably well for Europe only.
+                pr = pyproj.Proj(geodata["projection"])
+                y_coord = np.linspace(y1, y2, R.shape[0] + 1)
+                x_coord = np.linspace(x1, x2, R.shape[1] + 1)
+                X, Y = np.meshgrid(x_coord, y_coord)
+                x1, y1 = pyproj.transform(pr, laea, x1, y1)
+                x2, y2 = pyproj.transform(pr, laea, x2, y2)
+                X, Y = pyproj.transform(pr, laea, X.flatten(), Y.flatten())
+                X = X.reshape((y_coord.size, x_coord.size))
+                Y = Y.reshape((y_coord.size, x_coord.size))
+
+                regular_grid = False
 
             bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale,
                                    drawlonlatlines=drawlonlatlines)
-
             extent = (x1, x2, y2, y1)
 
-        im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent)
+        if regular_grid:
+            im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent)
+        else:
+            im = _plot_field_pcolormesh(X, Y, np.flipud(R), bm, type, units, colorscale, geodata)
 
         # Plot radar domain mask
         mask = np.ones(R.shape)
         mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
         bm.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5,
                   zorder=1e6, extent=extent)
+        # bm.pcolormesh(X, Y, np.flipud(mask), cmap=colors.ListedColormap(['gray']),
+                        # alpha=0.5, zorder=1e6)
+        # TODO: pcolormesh doesn't work properly with the alpha parameter
 
     if title is not None:
         plt.title(title)
@@ -228,6 +261,28 @@ def _plot_field(R, ax, type, units, colorscale, geodata, extent):
 
     im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest',
                    vmin=vmin, vmax=vmax, zorder=1)
+
+    return im
+
+def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
+    R = R.copy()
+
+    # Get colormap and color levels
+    cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
+
+    # Plot precipitation field
+    # transparent where no precipitation or the probability is zero
+    if type == "intensity":
+        if units == 'mm/h':
+            R[R < 0.1] = np.nan
+        elif units == 'dBZ':
+            R[R < 10] = np.nan
+    else:
+        R[R < 1e-3] = np.nan
+
+    vmin,vmax = [None, None] if type == "intensity" else [0.0, 1.0]
+
+    im = plt.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=10)
 
     return im
 
