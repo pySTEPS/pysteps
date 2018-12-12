@@ -105,7 +105,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     if units not in ["mm/h", "dBZ"]:
         raise ValueError("invalid units '%s', must be 'mm/h' or 'dBZ'" % units)
     if type == "prob" and colorbar and probthr is None:
-        raise Exception("type='prob' but probthr not specified")
+        raise ValueError("type='prob' but probthr not specified")
     if map is not None and geodata is None:
         raise ValueError("map!=None but geodata=None")
     if map is not None and map not in ["basemap", "cartopy"]:

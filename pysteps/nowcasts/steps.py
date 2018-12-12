@@ -149,22 +149,22 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         raise ValueError("unknown mask method %s: must be 'obs', 'sprog' or 'incremental'" % mask_method)
 
     if conditional and R_thr is None:
-        raise Exception("conditional=True but R_thr is not set")
+        raise ValueError("conditional=True but R_thr is not set")
 
     if use_probmatching and R_thr is None:
-        raise Exception("use_probmatching=True but R_thr is not set")
+        raise ValueError("use_probmatching=True but R_thr is not set")
 
     if kmperpixel is None:
         if vel_pert_method is not None:
-            raise Exception("vel_pert_method is set but kmperpixel=None")
+            raise ValueError("vel_pert_method is set but kmperpixel=None")
         if mask_method == "incremental":
-            raise Exception("mask_method='incremental' but kmperpixel=None")
+            raise ValueError("mask_method='incremental' but kmperpixel=None")
 
     if timestep is None:
         if vel_pert_method is not None:
-            raise Exception("vel_pert_method is set but timestep=None")
+            raise ValueError("vel_pert_method is set but timestep=None")
         if mask_method == "incremental":
-            raise Exception("mask_method='incremental' but timestep=None")
+            raise ValueError("mask_method='incremental' but timestep=None")
 
     print("Computing STEPS nowcast:")
     print("------------------------")
