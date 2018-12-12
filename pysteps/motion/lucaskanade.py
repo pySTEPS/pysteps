@@ -2,6 +2,9 @@
 vectors for areas with no precipitation."""
 
 import numpy as np
+
+from pysteps.exceptions import MissingOptionalDependency
+
 try:
     import cv2
     cv2_imported = True
@@ -222,8 +225,10 @@ def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
 
     """
     if not cv2_imported:
-        raise Exception("opencv not imported")
-        
+        raise MissingOptionalDependency(
+            "opencv package is required for the Lucas-Kanade "
+            "optical flow method but it is not installed")
+
     if len(R.shape) != 2:
         raise ValueError("R must be a two-dimensional array")
     if R.dtype != "uint8":
@@ -273,7 +278,9 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
 
     """
     if not cv2_imported:
-        raise Exception("opencv not imported")
+        raise MissingOptionalDependency(
+            "opencv package is required for the Lucas-Kanade method "
+            "optical flow method but it is not installed")
 
     # LK parameters
     lk_params = dict( winSize=winsize_LK, maxLevel=nr_levels_LK,
@@ -315,7 +322,9 @@ def _clean_image(R, n=3, thr=0):
 
     """
     if not cv2_imported:
-        raise Exception("opencv not imported")
+        raise MissingOptionalDependency(
+            "opencv package is required for the Lucas-Kanade method "
+            "optical flow method but it is not installed")
         
     # convert to binary image (rain/no rain)
     field_bin = np.ndarray.astype(R > thr,"uint8")

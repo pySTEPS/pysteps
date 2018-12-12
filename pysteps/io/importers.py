@@ -66,6 +66,9 @@ import gzip
 from matplotlib.pyplot import imread
 import numpy as np
 import os
+
+from pysteps.exceptions import MissingOptionalDependency
+
 try:
     import h5py
     h5py_imported = True
@@ -110,7 +113,9 @@ def import_bom_rf3(filename, **kwargs):
 
     """
     if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
+        raise MissingOptionalDependency(
+            "netCDF4 package is required to import BoM Rainfields3 products "
+            "but it is not installed")
 
     R = _import_bom_rf3_data(filename)
 
@@ -224,7 +229,10 @@ def import_fmi_pgm(filename, **kwargs):
 
     """
     if not pyproj_imported:
-        raise Exception("pyproj not imported")
+        raise MissingOptionalDependency(
+            "pyproj package is required to import "
+            "FMI's radar reflectivity composite "
+            "but it is not installed")
 
     gzipped = kwargs.get("gzipped", False)
 
@@ -354,7 +362,10 @@ def import_mch_gif(filename, **kwargs):
 
     """
     if not pil_imported:
-        raise Exception("PIL not imported")
+        raise MissingOptionalDependency(
+            "PIL package is required to import "
+            "radar reflectivity composite from MeteoSwiss"
+            "but it is not installed")
 
     product     = kwargs.get("product", "AQC")
     unit        = kwargs.get("unit",    "mm")
@@ -453,7 +464,10 @@ def import_mch_hdf5(filename, **kwargs):
 
     """
     if not h5py_imported:
-        raise Exception("h5py not imported")
+        raise MissingOptionalDependency(
+            "h5py package is required to import "
+            "radar reflectivity composites using ODIM HDF5 specification "
+            "but it is not installed")
 
     qty = kwargs.get("qty", "RATE")
 
@@ -571,7 +585,9 @@ def import_mch_metranet(filename, **kwargs):
 
     """
     if not metranet_imported:
-        raise Exception("metranet not imported")
+        raise MissingOptionalDependency(
+            "metranet package needed for importing MeteoSwiss "
+            "radar composites but it is not installed")
 
     product     = kwargs.get("product", "AQC")
     unit        = kwargs.get("unit",    "mm")
@@ -656,7 +672,10 @@ def import_odim_hdf5(filename, **kwargs):
 
     """
     if not h5py_imported:
-        raise Exception("h5py not imported")
+        raise MissingOptionalDependency(
+            "h5py package is required to import "
+            "radar reflectivity composites using ODIM HDF5 specification "
+            "but it is not installed")
 
     qty = kwargs.get("qty", "RATE")
 

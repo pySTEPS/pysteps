@@ -3,6 +3,9 @@
 import matplotlib.pylab as plt
 from matplotlib import cm, colors
 import numpy as np
+
+from pysteps.exceptions import MissingOptionalDependency
+
 try:
     from mpl_toolkits.basemap import Basemap
     basemap_imported = True
@@ -108,11 +111,17 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     if map is not None and map not in ["basemap", "cartopy"]:
         raise ValueError("unknown map method %s: must be 'basemap' or 'cartopy'" % map)
     if map == "basemap" and not basemap_imported:
-        raise Exception("map='basemap' but basemap not imported")
+        raise MissingOptionalDependency(
+            "map='basemap' option passed to plot_precip_field function"
+            "but the basemap package is not installed")
     if map == "cartopy" and not cartopy_imported:
-        raise Exception("map='cartopy' but cartopy not imported")
+        raise MissingOptionalDependency(
+            "map='cartopy' option passed to plot_precip_field function"
+            "but the cartopy package is not installed")
     if map is not None and not pyproj_imported:
-        raise Exception("map!=None but pyproj not imported")
+        raise MissingOptionalDependency(
+            "map!=None option passed to plot_precip_field function"
+            "but the pyproj package is not installed")
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
 
@@ -360,8 +369,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
         elif units == 'dBZ':
             clevs = np.arange(10,65,5)
         else:
-            print('Wrong units in get_colorlist')
-            sys.exit(1)
+            raise ValueError('Wrong units in get_colorlist')
     elif colorscale == 'MeteoSwiss':
         pinkHex = '#%02x%02x%02x' % (232, 215, 242)
         redgreyHex = '#%02x%02x%02x' % (156, 126, 148)
@@ -372,8 +380,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
         elif units == 'dBZ':
             clevs = np.arange(10,65,5)
         else:
-            print('Wrong units in get_colorlist')
-            sys.exit(1)
+            raise ValueError('Wrong units in get_colorlist')
     else:
         print('Invalid colorscale', colorscale)
         raise ValueError("Invalid colorscale " + colorscale)

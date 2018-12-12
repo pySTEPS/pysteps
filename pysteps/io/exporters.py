@@ -56,6 +56,9 @@ implements the following interface:
 
 import numpy as np
 from datetime import datetime
+
+from pysteps.exceptions import MissingOptionalDependency
+
 try:
     import netCDF4
     netcdf4_imported = True
@@ -74,10 +77,14 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
                                         metadata, incremental=None):
     """Initialize a netCDF forecast exporter."""
     if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
+        raise MissingOptionalDependency(
+            "netCDF4 package is required for netcdf "
+            "exporters but it is not installed")
 
     if not pyproj_imported:
-        raise Exception("pyproj not imported")
+        raise MissingOptionalDependency(
+            "pyproj package is required for netcdf "
+            "exporters but it is not installed")
 
     if incremental not in [None, "timestep", "member"]:
         raise ValueError("unknown option %s: incremental must be 'timestep' or 'member'" % incremental)
@@ -242,7 +249,9 @@ def export_forecast_dataset(F, exporter):
         +-------------------+---------------------------------------------------+
     """
     if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
+        raise MissingOptionalDependency(
+            "netCDF4 package is required for netcdf "
+            "exporters but it is not installed")
 
     if exporter["incremental"] == None:
         shp = (exporter["num_ens_members"], exporter["num_timesteps"],

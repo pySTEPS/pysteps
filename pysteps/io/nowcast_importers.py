@@ -61,6 +61,9 @@ The metadata dictionary contains the following mandatory key-value pairs:
 """
 
 import numpy as np
+
+from pysteps.exceptions import MissingOptionalDependency
+
 try:
     import netCDF4
     netcdf4_imported = True
@@ -71,7 +74,9 @@ def import_netcdf_pysteps(filename, **kwargs):
     """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the
     CF 1.7 specification."""
     if not netcdf4_imported:
-        raise Exception("netCDF4 not imported")
+        raise MissingOptionalDependency(
+            "netCDF4 package is required to import pysteps netcdf "
+            "nowcasts but it is not installed")
 
     ds = netCDF4.Dataset(filename, 'r')
 
