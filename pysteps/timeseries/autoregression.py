@@ -83,7 +83,9 @@ def estimate_ar_params_yw(gamma):
     r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi_[i] \
                   for i in range(p)])])
     if any(r >= 1):
-        raise Exception("nonstationary AR(p) process")
+        raise RuntimeError(
+            "Error in estimate_ar_params_y: "
+            "nonstationary AR(p) process")
 
     c = 1.0
     for j in range(p):

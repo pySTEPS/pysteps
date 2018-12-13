@@ -67,7 +67,7 @@ from matplotlib.pyplot import imread
 import numpy as np
 import os
 
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import MissingOptionalDependency, DataModelError
 
 try:
     import h5py
@@ -492,8 +492,11 @@ def import_mch_hdf5(filename, **kwargs):
                     # check if the "what" group is in the "data" group
                     if "what" in list(dg[1].keys()):
                         qty_,gain,offset,nodata,undetect = _read_mch_hdf5_what_group(dg[1]["what"])
-                    elif what_grp_found == False:
-                        raise Exception("no what group found from %s or its subgroups" % dg[0])
+                    elif not what_grp_found:
+                        raise DataModelError(
+                            "Non ODIM compilant file: "
+                            "no what group found from {} "
+                            "or its subgroups".format(dg[0]))
 
                     if qty_.decode() in [qty, "QIND"]:
                         ARR = dg[1]["data"][...]
@@ -700,8 +703,11 @@ def import_odim_hdf5(filename, **kwargs):
                     # check if the "what" group is in the "data" group
                     if "what" in list(dg[1].keys()):
                         qty_,gain,offset,nodata,undetect = _read_odim_hdf5_what_group(dg[1]["what"])
-                    elif what_grp_found == False:
-                        raise Exception("no what group found from %s or its subgroups" % dg[0])
+                    elif not what_grp_found:
+                        raise DataModelError(
+                            "Non ODIM compilant file: "
+                            "no what group found from {} "
+                            "or its subgroups".format(dg[0]))
 
                     if qty_.decode() in [qty, "QIND"]:
                         ARR = dg[1]["data"][...]

@@ -62,7 +62,7 @@ The metadata dictionary contains the following mandatory key-value pairs:
 
 import numpy as np
 
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import MissingOptionalDependency, DataModelError
 
 try:
     import netCDF4
@@ -103,7 +103,12 @@ def import_netcdf_pysteps(filename, **kwargs):
         accutime  = None
         transform = "dB"
     else:
-        raise Exception("the netCDF file does not contain any supported variable name ('precip_intensity', 'hourly_precip_accum', or 'reflectivity')")
+        raise DataModelError(
+            "Non CF compilant file: "
+            "the netCDF file does not contain any supported variable name.\n"
+            "Supported names: 'precip_intensity', 'hourly_precip_accum', "
+            "or 'reflectivity'\n"
+            "file: "+filename)
 
     R = R[...].squeeze().astype(float)
 
