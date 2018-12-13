@@ -2,7 +2,7 @@
 
 import numpy as np
 
-def aggregate_fields_time(R, metadata, time_window_min):
+def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
     """Aggregate fields in time.
 
     Parameters
@@ -18,6 +18,8 @@ def aggregate_fields_time(R, metadata, time_window_min):
         The length in minutes of the time window that is used to aggregate the fields.
         The time spanned by the t dimension of R must be a multiple of time_window_min.
         If set to None, it returns a copy of the original R and metadata.
+    ignore_nan : bool
+        If True, ignore nan values.
 
     Returns
     -------
@@ -35,7 +37,7 @@ def aggregate_fields_time(R, metadata, time_window_min):
 
     if time_window_min is None:
         return R, metadata
-        
+
     unit       = metadata["unit"]
     timestamps = metadata["timestamps"]
     if "leadtimes" in metadata:
@@ -62,7 +64,7 @@ def aggregate_fields_time(R, metadata, time_window_min):
         raise ValueError('time_window_size does not equally split R')
 
     nframes = int(time_window_min/delta)
-    
+
     # specify the operator to be used to aggregate the values within the time window
     if unit == "mm/h":
         method = "mean"
@@ -70,7 +72,10 @@ def aggregate_fields_time(R, metadata, time_window_min):
         method = "sum"
     else:
         raise ValueError("can only aggregate units of 'mm/h' or 'mm' not %s" % unit)
-        
+
+    if ignore_nan:
+        method = "".join(("nan", method))
+
     R = aggregate_fields(R, nframes, axis=axis, method=method)
 
     metadata["accutime"] = time_window_min
@@ -80,7 +85,7 @@ def aggregate_fields_time(R, metadata, time_window_min):
 
     return R, metadata
 
-def aggregate_fields_space(R, metadata, space_window_m):
+def aggregate_fields_space(R, metadata, space_window_m, ignore_nan=False):
     """Upscale fields in space.
 
     Parameters
@@ -93,27 +98,29 @@ def aggregate_fields_space(R, metadata, space_window_m):
         the keys "xpixelsize", "ypixelsize" and "unit".
     space_window_m : float or None
         The length in meters of the space window that is used to upscale the fields.
-        The space spanned by the m and n dimensions of R must be a multiple of 
-        space_window_m. If set to None, it returns a copy of the original R and 
+        The space spanned by the m and n dimensions of R must be a multiple of
+        space_window_m. If set to None, it returns a copy of the original R and
         metadata.
+    ignore_nan : bool
+        If True, ignore nan values.
 
     Returns
     -------
     outputarray : array-like
-        The new array of aggregated fields of shape (k,j), (t,k,j) or (l,t,k,j), 
+        The new array of aggregated fields of shape (k,j), (t,k,j) or (l,t,k,j),
         where k = m*delta/space_window_m and j = n*delta/space_window_m; delta is
         the grid size.
     metadata : dict
         The metadata with updated attributes.
 
-    """ 
-    
+    """
+
     R = R.copy()
     metadata = metadata.copy()
 
     if space_window_m is None:
         return R, metadata
-        
+
     unit       = metadata["unit"]
     ypixelsize = metadata["ypixelsize"]
     xpixelsize = metadata["xpixelsize"]
@@ -139,7 +146,7 @@ def aggregate_fields_space(R, metadata, space_window_m):
         raise ValueError('space_window_m does not equally split R')
 
     nframes = [int(space_window_m/ypixelsize), int(space_window_m/xpixelsize)]
-    
+
     # specify the operator to be used to aggregate the values within the space window
     if unit == "mm/h":
         method = "mean"
@@ -147,7 +154,10 @@ def aggregate_fields_space(R, metadata, space_window_m):
         method = "sum"
     else:
         raise ValueError("can only aggregate units of 'mm/h' or 'mm' not %s" % unit)
-        
+
+    if ignore_nan:
+        method = "".join(("nan", method))
+
     R = aggregate_fields(R, nframes[0], axis=axes[0], method=method)
     R = aggregate_fields(R, nframes[1], axis=axes[1], method=method)
 
@@ -260,19 +270,19 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
 
     y_coord_ = np.linspace(ylim.min(), ylim.max() - metadata["ypixelsize"], R_.shape[2]) + metadata["ypixelsize"]/2.
     x_coord_ = np.linspace(xlim.min(), xlim.max() - metadata["xpixelsize"], R_.shape[3]) + metadata["xpixelsize"]/2.
-    
+
     # since we work with matrix indexing (i.e. rows)
     y_coord = y_coord[::-1]
     y_coord_ = y_coord_[::-1]
-    
+
     idx_y = np.where(np.logical_and(y_coord < ylim.max(), y_coord > ylim.min()))[0]
     idx_x = np.where(np.logical_and(x_coord < xlim.max(), x_coord > xlim.min()))[0]
 
     idx_y_ = np.where(np.logical_and(y_coord_ < metadata["y2"], y_coord_ > metadata["y1"]))[0]
     idx_x_ = np.where(np.logical_and(x_coord_ < metadata["x2"], x_coord_ > metadata["x1"]))[0]
-    
+
     R_[:, :, idx_y_[0]:idx_y_[-1], idx_x_[0]:idx_x_[-1]] = R[:, :, idx_y[0]:idx_y[-1], idx_x[0]:idx_x[-1]]
-    
+
     metadata["y1"] = ylim.min()
     metadata["y2"] = ylim.max()
     metadata["x1"] = xlim.min()
