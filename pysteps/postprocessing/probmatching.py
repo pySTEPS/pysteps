@@ -53,9 +53,10 @@ def nonparam_match_empirical_cdf(R, R_trg):
     """
     if R.size != R_trg.size:
         raise ValueError("the input arrays must have the same size")
-    if np.any(~np.isfinite(R)) or np.any(~np.isfinite(R_trg)):
-      raise ValueError("input contains non-finite values")
-
+    if np.any(~np.isfinite(R)):
+        raise ValueError("initial array contains non-finite values")
+    if np.any(~np.isfinite(R_trg)):
+        raise ValueError("target array contains non-finite values")
 
     # zeros in initial image
     zvalue = R.min()
