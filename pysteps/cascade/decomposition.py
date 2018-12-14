@@ -88,7 +88,7 @@ def decomposition_fft(X, filter, **kwargs):
     X_decomp = []
     for k in range(len(filter["weights_1d"])):
         W_k = filter["weights_2d"][k, :, :]
-        X_ = np.real(fft.irfft2(F*W_k, s=X.shape, **fft_kwargs))
+        X_ = fft.irfft2(F*W_k, s=X.shape, **fft_kwargs)
         X_decomp.append(X_)
 
         if MASK is not None:
