@@ -4,22 +4,27 @@
 import numpy as np
 
 def read_timeseries(inputfns, importer, **kwargs):
-    """Read a list of input files using io tools and stack them into a 3d array.
+    """Read a time series of input files using the methods implemented in the 
+    importers module and stack them into a 3d array of shape (num_timesteps, 
+    height, width).
 
     Parameters
     ----------
-    inputfns : list
-        List of input files returned by any function implemented in archive.
+    inputfns : tuple
+        Input files returned by a function implemented in the archive module.
     importer : function
-        Any function implemented in importers.
+        A function implemented in the importers module.
     kwargs : dict
         Optional keyword arguments for the importer.
 
     Returns
     -------
     out : tuple
-        A three-element tuple containing the precipitation fields read, the quality fields,
-        and associated metadata.
+        A three-element tuple containing the read data and quality rasters and
+        associated metadata. If an input file name is None, the corresponding
+        precipitation and quality fields are filled with nan values. If all
+        input file names are None or if the length of the file name list is
+        zero, a three-element tuple containing None values is returned.
 
     """
 
