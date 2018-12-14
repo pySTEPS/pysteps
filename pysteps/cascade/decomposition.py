@@ -25,19 +25,19 @@ dictionary with the following key-value pairs:
 import numpy as np
 # Use the pyfftw interface if it is installed. If not, fall back to the fftpack
 # interface provided by SciPy, and finally to numpy if SciPy is not installed.
-try:
-    import pyfftw.interfaces.numpy_fft as fft
-    import pyfftw
-    # TODO: Caching and multithreading currently disabled because they give a
-    # segfault with dask.
-    #pyfftw.interfaces.cache.enable()
-    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
-except ImportError:
-    import scipy.fftpack as fft
-    fft_kwargs = {}
-except ImportError:
-    import numpy.fft as fft
-    fft_kwargs = {}
+#try:
+#    import pyfftw.interfaces.numpy_fft as fft
+#    import pyfftw
+#    # TODO: Caching and multithreading currently disabled because they give a
+#    # segfault with dask.
+#    #pyfftw.interfaces.cache.enable()
+#    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
+#except ImportError:
+#    import scipy.fftpack as fft
+#    fft_kwargs = {}
+#except ImportError:
+import numpy.fft as fft
+fft_kwargs = {}
 
 def decomposition_fft(X, filter, **kwargs):
     """Decompose a 2d input field into multiple spatial scales by using the Fast
@@ -71,8 +71,12 @@ def decomposition_fft(X, filter, **kwargs):
     if MASK is not None and MASK.shape != X.shape:
       raise ValueError("dimension mismatch between X and MASK: X.shape=%s, MASK.shape=%s" % \
         (str(X.shape), str(MASK.shape)))
-    if X.shape != filter["weights_2d"].shape[1:3]:
-        raise ValueError("dimension mismatch between X and filter: X.shape=%s, filter['weights_2d'].shape[1:3]=%s" % (str(X.shape), str(filter["weights_2d"].shape[1:3])))
+    if X.shape[0] != filter["weights_2d"].shape[1]:
+        raise ValueError("dimension mismatch between X and filter: X.shape[0]=%d, filter['weights_2d'].shape[1]=%d" % \
+            (X.shape[0], filter["weights_2d"].shape[1]))
+    if int(X.shape[1]/2)+1 != filter["weights_2d"].shape[2]:
+        raise ValueError("dimension mismatch between X and filter: int(X.shape[1]/2)+1=%d, filter['weights_2d'].shape[2]=%d" % \
+            (int(X.shape[1]/2)+1, filter["weights_2d"].shape[2]))
     if np.any(~np.isfinite(X)):
       raise ValueError("X contains non-finite values")
 
@@ -80,11 +84,11 @@ def decomposition_fft(X, filter, **kwargs):
     means  = []
     stds   = []
 
-    F = fft.fftshift(fft.fft2(X, **fft_kwargs))
+    F = fft.rfft2(X, **fft_kwargs)
     X_decomp = []
     for k in range(len(filter["weights_1d"])):
         W_k = filter["weights_2d"][k, :, :]
-        X_ = np.real(fft.ifft2(fft.ifftshift(F*W_k), **fft_kwargs))
+        X_ = np.real(fft.irfft2(F*W_k, **fft_kwargs))
         X_decomp.append(X_)
 
         if MASK is not None:
