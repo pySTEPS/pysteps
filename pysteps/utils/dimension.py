@@ -214,8 +214,8 @@ def aggregate_fields(R, window_size, axis=0, method="mean"):
 
     return R
 
-def adjust_domain(R, metadata, xlim=None, ylim=None):
-    """Resize the field domain by geographical coordinates.
+def clip_domain(R, metadata, extent=None):
+    """Clip the field domain by geographical coordinates.
 
     Parameters
     ----------
@@ -223,17 +223,18 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
         Array of shape (m,n) or (t,m,n) containing the input fields.
     metadata : dict
         The metadata dictionary contains all data-related information.
-    xlim : 2-element tuple or list
-        The new limits of the x-coordinates. If set equal to None, the original
-        limits are kept.
-    ylim : 2-element tuple or list
-        The new limits of the y-coordinates. If set equal to None, the original
-        limits are kept.
+    extent : scalars (left, right, bottom, top)
+        The extent of the bounding box in data coordinates to be used to clip 
+        the data.
+        Note that the direction of the vertical axis and thus the default 
+        values for top and bottom depend on origin. We follow the same 
+        convention as in the imshow method of matplotlib:
+        https://matplotlib.org/tutorials/intermediate/imshow_extent.html
 
     Returns
     -------
     R : array-like
-        the reshape dataset
+        the clipped array
     metadata : dict
         the metadata with updated attributes.
 
@@ -242,12 +243,8 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
     R = R.copy()
     metadata = metadata.copy()
 
-    if xlim is None and ylim is None:
+    if extent is None:
         return R,metadata
-    if ylim is None and xlim is not None:
-        ylim = [metadata["y1"], metadata["y2"]]
-    if xlim is None and ylim is not None:
-        xlim = [metadata["x1"], metadata["x2"]]
 
     if len(R.shape) < 2:
         raise ValueError("The number of dimension must be > 1")
@@ -258,35 +255,57 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
     if len(R.shape) > 4:
         raise ValueError("The number of dimension must be <= 4")
 
-    xlim = np.array(xlim).astype(float)
-    ylim = np.array(ylim).astype(float)
+    # extract original domain coordinates
+    left = metadata["x1"]
+    right = metadata["x2"]
+    bottom = metadata["y1"]
+    top = metadata["y2"]
 
-    new_dim_x = int((xlim.max() - xlim.min())/metadata["xpixelsize"])
-    new_dim_y = int((ylim.max() - ylim.min())/metadata["ypixelsize"])
-    R_ = np.ones((R.shape[0], R.shape[1], new_dim_y, new_dim_x))*metadata["zerovalue"]
+    # extract bounding box coordinates
+    left_ = extent[0]
+    right_ = extent[1]
+    bottom_ = extent[2]
+    top_ = extent[3]
 
-    y_coord = np.linspace(metadata["y1"], metadata["y2"] - metadata["ypixelsize"], R.shape[2]) + metadata["ypixelsize"]/2.
-    x_coord = np.linspace(metadata["x1"], metadata["x2"] - metadata["xpixelsize"], R.shape[3]) + metadata["xpixelsize"]/2.
+    # compute its extent in pixels
+    dim_x_ = int((right_ - left_)/metadata["xpixelsize"])
+    dim_y_ = int((top_ - bottom_)/metadata["ypixelsize"])
+    R_ = np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_))*metadata["zerovalue"]
 
-    y_coord_ = np.linspace(ylim.min(), ylim.max() - metadata["ypixelsize"], R_.shape[2]) + metadata["ypixelsize"]/2.
-    x_coord_ = np.linspace(xlim.min(), xlim.max() - metadata["xpixelsize"], R_.shape[3]) + metadata["xpixelsize"]/2.
+    # build set of coordinates for the original domain
+    y_coord = np.linspace(bottom, top - metadata["ypixelsize"], R.shape[2]) \
+                        + metadata["ypixelsize"]/2.
+    x_coord = np.linspace(left, right - metadata["xpixelsize"], R.shape[3]) \
+                        + metadata["xpixelsize"]/2.
 
-    # since we work with matrix indexing (i.e. rows)
-    y_coord = y_coord[::-1]
-    y_coord_ = y_coord_[::-1]
+    # build set of coordinates for the new domain
+    y_coord_ = np.linspace(bottom_, top_ - metadata["ypixelsize"], R_.shape[2]) \
+                        + metadata["ypixelsize"]/2.
+    x_coord_ = np.linspace(left_, right_ - metadata["xpixelsize"], R_.shape[3]) \
+                        + metadata["xpixelsize"]/2.
 
-    idx_y = np.where(np.logical_and(y_coord < ylim.max(), y_coord > ylim.min()))[0]
-    idx_x = np.where(np.logical_and(x_coord < xlim.max(), x_coord > xlim.min()))[0]
+    # origin='upper' reverses the vertical axes direction
+    if metadata["yorigin"] == "upper":
+        y_coord = y_coord[::-1]
+        y_coord_ = y_coord_[::-1]
 
-    idx_y_ = np.where(np.logical_and(y_coord_ < metadata["y2"], y_coord_ > metadata["y1"]))[0]
-    idx_x_ = np.where(np.logical_and(x_coord_ < metadata["x2"], x_coord_ > metadata["x1"]))[0]
+    # extract original domain
+    idx_y = np.where(np.logical_and(y_coord < top_, y_coord > bottom_))[0]
+    idx_x = np.where(np.logical_and(x_coord < right_, x_coord > left_))[0]
 
-    R_[:, :, idx_y_[0]:idx_y_[-1], idx_x_[0]:idx_x_[-1]] = R[:, :, idx_y[0]:idx_y[-1], idx_x[0]:idx_x[-1]]
+    # extract new domain
+    idx_y_ = np.where(np.logical_and(y_coord_ < top, y_coord_ > bottom))[0]
+    idx_x_ = np.where(np.logical_and(x_coord_ < right, x_coord_ > left))[0]
 
-    metadata["y1"] = ylim.min()
-    metadata["y2"] = ylim.max()
-    metadata["x1"] = xlim.min()
-    metadata["x2"] = xlim.max()
+    # compose the new array
+    R_[:, :, idx_y_[0]:idx_y_[-1], idx_x_[0]:idx_x_[-1]] = \
+                    R[:, :, idx_y[0]:idx_y[-1], idx_x[0]:idx_x[-1]]
+
+    # update coordinates
+    metadata["y1"] = bottom_
+    metadata["y2"] = top_
+    metadata["x1"] = left_
+    metadata["x2"] = right_
 
     return R_.squeeze(), metadata
 

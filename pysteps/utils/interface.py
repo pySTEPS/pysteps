@@ -43,7 +43,7 @@ def get_method(name):
     +===================+========================================================+
     |  accumulate       | aggregate fields in time                               |
     +-------------------+--------------------------------------------------------+
-    |  adjust           | resize the field domain by geographical coordinates    |
+    |  clip             | resize the field domain by geographical coordinates    |
     +-------------------+--------------------------------------------------------+
     |  square           | either pad or crop the data to get a square domain     |
     +-------------------+--------------------------------------------------------+
@@ -79,7 +79,7 @@ def get_method(name):
     methods_objects["sqrt"]         = transformation.sqrt_transform
     # dimension methods
     methods_objects["accumulate"]   = dimension.aggregate_fields_time
-    methods_objects["adjust"]       = dimension.adjust_domain
+    methods_objects["clip"]         = dimension.clip_domain
     methods_objects["square"]       = dimension.square_domain
     methods_objects["upscale"]      = dimension.aggregate_fields_space
 
