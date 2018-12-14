@@ -24,13 +24,19 @@ def read_timeseries(inputfns, importer, **kwargs):
     """
 
     # check for missing data
+    Rref = None
     if all(ifn is None for ifn in inputfns):
         return None, None, None
     else:
+        if len(inputfns[0]) == 0:
+            return None, None, None
         for ifn in inputfns[0]:
             if ifn is not None:
                 Rref, Qref, metadata = importer(ifn, **kwargs)
                 break
+
+    if Rref is None:
+        return None, None, None
 
     R = []
     Q = []
@@ -49,6 +55,7 @@ def read_timeseries(inputfns, importer, **kwargs):
                 Q.append(None)
             timestamps.append(inputfns[1][i])
 
+    # Replace this with stack?
     R = np.concatenate([R_[None, :, :] for R_ in R])
     #TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
     metadata["timestamps"] = np.array(timestamps)
