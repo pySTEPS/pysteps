@@ -25,18 +25,18 @@ dictionary with the following key-value pairs:
 import numpy as np
 # Use the pyfftw interface if it is installed. If not, fall back to the fftpack
 # interface provided by SciPy, and finally to numpy if SciPy is not installed.
-#try:
-#    import pyfftw.interfaces.numpy_fft as fft
-#    import pyfftw
-#    # TODO: Caching and multithreading currently disabled because they give a
-#    # segfault with dask.
-#    #pyfftw.interfaces.cache.enable()
-#    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
-#except ImportError:
-#    import scipy.fftpack as fft
-#    fft_kwargs = {}
-#except ImportError:
-import numpy.fft as fft
+try:
+    import pyfftw.interfaces.numpy_fft as fft
+    import pyfftw
+    # TODO: Caching and multithreading currently disabled because they give a
+    # segfault with dask.
+    #pyfftw.interfaces.cache.enable()
+    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
+except ImportError:
+    import scipy.fftpack as fft
+    fft_kwargs = {}
+except ImportError:
+    import numpy.fft as fft
 fft_kwargs = {}
 
 def decomposition_fft(X, filter, **kwargs):
