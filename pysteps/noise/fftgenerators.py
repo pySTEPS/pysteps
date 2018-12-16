@@ -3,25 +3,29 @@
 The methods in this module implement the following interface for filter
 initialization depending on their parametric or nonparametric nature:
 
-  initialize_param_2d_xxx_filter(X, keyword arguments)
+  initialize_param_2d_xxx_filter(X, **kwargs)
 
   or
 
-  initialize_nonparam_2d_xxx_filter(X, keyword arguments)
+  initialize_nonparam_2d_xxx_filter(X, **kwargs)
 
-where X (m, n) is the target field and the optional keyword arguments are included
-in a dictionary.
-The output of each initialization method is a two-dimensional array containing
-the filter F of shape (m, n).
+where X is an array of shape (m, n) that defines the target field and optional
+parameters are supplied as keyword arguments.
+
+The output of each initialization method is a dictionary containing the keys F
+and input_shape. The first is a two-dimensional array of shape (m, int(n/2)+1)
+that defines the filter. The second one is the shape of the input field for the
+filter.
 
 The methods in this module implement the following interface for the generation
 of correlated noise:
 
-  generate_noise_2d_xxx_filter(F, randstate=np.random, seed=None)
+  generate_noise_2d_xxx_filter(F, randstate=np.random, seed=None, **kwargs)
 
-where F (m, n) is a filter returned from an initialization method, and randstate
-and seed can be used to set the random generator and its seed. Additional
-keyword arguments can be included as a dictionary.
+where F (m, n) is a filter returned from the correspondign initialization method,
+and randstate and seed can be used to set the random generator and its seed.
+Additional keyword arguments can be included as a dictionary.
+
 The output of each generator method is a two-dimensional array containing the
 field of correlated noise cN of shape (m, n)."""
 
@@ -171,7 +175,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     else:
         raise ValueError("unknown parametric model %s" % model)
 
-    return F
+    return {"F":F, "input_shape":X.shape[1:], "use_full_fft":True}
 
 def initialize_nonparam_2d_fft_filter(X, **kwargs):
     """Takes one ore more 2d input fields and produces one non-paramtric, global
@@ -212,6 +216,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     donorm   = kwargs.get('donorm', False)
     rm_rdisc = kwargs.get('rm_rdisc', True)
+    use_full_fft = kwargs.get('use_full_fft', False)
 
     X = X.copy()
 
@@ -224,6 +229,10 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
         X = X[None, :, :]
     nr_fields   = X.shape[0]
     field_shape = X.shape[1:]
+    if use_full_fft:
+        fft_shape = (X.shape[1], X.shape[2])
+    else:
+        fft_shape = (X.shape[1], int(X.shape[2]/2)+1)
 
     # make sure non-rainy pixels are set to zero
     X -= X.min(axis=(1,2))[:,None,None]
@@ -233,9 +242,12 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     else:
         tapering = np.ones(field_shape)
 
-    F = np.zeros(field_shape, dtype=complex)
+    F = np.zeros(fft_shape, dtype=complex)
     for i in range(nr_fields):
-        F += fft.fft2(X[i, :, :]*tapering, **fft_kwargs)
+        if use_full_fft:
+            F += fft.fft2(X[i, :, :]*tapering, **fft_kwargs)
+        else:
+            F += fft.rfft2(X[i, :, :]*tapering, **fft_kwargs)
     F /= nr_fields
 
     # normalize the real and imaginary parts
@@ -243,17 +255,17 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
         F.imag = (F.imag - np.mean(F.imag))/np.std(F.imag)
         F.real = (F.real - np.mean(F.real))/np.std(F.real)
 
-    return np.abs(F)
+    return {"F":np.abs(F), "input_shape":X.shape[1:], "use_full_fft":use_full_fft}
 
 def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None):
     """Produces a field of correlated noise using global Fourier filtering.
 
     Parameters
     ----------
-    F : array-like
-        Two-dimensional array containing the input filter.
-        It can be computed by related methods.
-        All values are required to be finite.
+    F : dict
+        A filter object returned by initialize_param_2d_fft_filter or
+        initialize_nonparam_2d_fft_filter. All values in the filter array are
+        required to be finite.
     randstate : mtrand.RandomState
         Optional random generator to use. If set to None, use numpy.random.
     seed : int
@@ -264,9 +276,12 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None):
     N : array-like
         A two-dimensional numpy array of stationary correlated noise.
     """
+    input_shape = F["input_shape"]
+    use_full_fft = F["use_full_fft"]
+    F = F["F"]
 
     if len(F.shape) != 2:
-        raise ValueError("the input is not two-dimensional array")
+        raise ValueError("F is not two-dimensional array")
     if np.any(~np.isfinite(F)):
       raise ValueError("F contains non-finite values")
 
@@ -275,12 +290,18 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None):
         randstate.seed(seed)
 
     # produce fields of white noise
-    N = randstate.randn(F.shape[0], F.shape[1])
+    N = randstate.randn(input_shape[0], input_shape[1])
 
     # apply the global Fourier filter to impose a correlation structure
-    fN = fft.fft2(N, **fft_kwargs)
+    if use_full_fft:
+        fN = fft.fft2(N, **fft_kwargs)
+    else:
+        fN = fft.rfft2(N, **fft_kwargs)
     fN *= F
-    N = np.array(fft.ifft2(fN, **fft_kwargs).real)
+    if use_full_fft:
+        N = np.array(fft.ifft2(fN, **fft_kwargs).real)
+    else:
+        N = np.array(fft.irfft2(fN, s=input_shape, **fft_kwargs).real)
     N = (N - N.mean())/N.std()
 
     return N
@@ -369,7 +390,8 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     num_windows_x = np.ceil( float(dim_x) / win_size[1] ).astype(int)
 
     # domain fourier filter
-    F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True)
+    F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True,
+                                           use_full_fft=True)["F"]
     # and allocate it to the final grid
     F = np.zeros((num_windows_y, num_windows_x, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -392,9 +414,10 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
             if war > war_thr:
                 # the new filter
-                F[i, j, : ,:] = initialize_nonparam_2d_fft_filter(X*mask[None, :, :], win_type=None, donorm=True)
+                F[i, j, : ,:] = initialize_nonparam_2d_fft_filter(X*mask[None, :, :],
+                    win_type=None, donorm=True, use_full_fft=True)["F"]
 
-    return F
+    return {"F":F, "input_shape":X.shape[1:], "use_full_fft":True}
 
 def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     """Function to compute the local Fourier filters using a nested approach.
@@ -474,7 +497,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     freq_grid = np.sqrt(fx**2 + fy**2)
 
     # domain fourier filter
-    F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True)
+    F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True,
+                                           use_full_fft=True)["F"]
     # and allocate it to the final grid
     F = np.zeros((2**max_level, 2**max_level, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -497,7 +521,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
                 if war > war_thr:
                     # the new filter
-                    newfilter = initialize_nonparam_2d_fft_filter(X*mask[None, :, :], win_type=None, donorm=True)
+                    newfilter = initialize_nonparam_2d_fft_filter(X*mask[None, :, :],
+                        win_type=None, donorm=True, use_full_fft=True)["F"]
 
                     # compute logistic function to define weights as function of frequency
                     # k controls the shape of the weighting function
@@ -516,7 +541,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
         Idxi, Idxj = _split_field((0, dim[0]), (0, dim[1]), 2**level)
         Idxipsd, Idxjpsd = _split_field((0, 2**max_level), (0, 2**max_level), 2**level)
 
-    return F
+    return {"F":F, "input_shape":X.shape[1:], "use_full_fft":True}
 
 def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     """Function to compute the locally correlated noise using a nested approach.
@@ -524,8 +549,10 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     Parameters
     ----------
     F : array-like
-        Four-dimensional array containing the 2d fourier filters distributed over
-        a 2d spatial grid.
+        A filter object returned by initialize_nonparam_2d_nested_filter or
+        initialize_nonparam_2d_ssft_filter. The filter is a four-dimensional
+        array containing the 2d fourier filters distributed over a 2d spatial
+        grid.
     randstate : mtrand.RandomState
         Optional random generator to use. If set to None, use numpy.random.
     seed : int
@@ -546,6 +573,9 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
         A two-dimensional numpy array of non-stationary correlated noise.
 
     """
+    input_shape = F["input_shape"]
+    use_full_fft = F["use_full_fft"]
+    F = F["F"]
 
     if len(F.shape) != 4:
         raise ValueError("the input is not four-dimensional array")
