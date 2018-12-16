@@ -301,7 +301,7 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None):
     if use_full_fft:
         N = np.array(fft.ifft2(fN, **fft_kwargs).real)
     else:
-        N = np.array(fft.irfft2(fN, s=input_shape, **fft_kwargs).real)
+        N = np.array(fft.irfft2(fN, s=input_shape, **fft_kwargs))
     N = (N - N.mean())/N.std()
 
     return N
