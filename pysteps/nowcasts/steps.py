@@ -21,8 +21,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
              noise_method="nonparametric", noise_stddev_adj=False, ar_order=2,
              vel_pert_method=None, conditional=False, use_precip_mask=True,
              use_probmatching=True, mask_method="incremental", callback=None,
-             return_output=True, seed=None, num_workers=None, extrap_kwargs={},
-             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
+             return_output=True, seed=None, num_workers=None, fft_method="numpy",
+             extrap_kwargs={}, filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
 
@@ -106,6 +106,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     num_workers : int
       The number of workers to use for parallel computation. Set to None to use
       all available CPUs. Applicable if dask is enabled.
+    fft_method : str or tuple
+      A string or a (function,kwargs) tuple defining the FFT method to use
+      (see utils.fft.get_method). Defaults to "numpy".
     extrap_kwargs : dict
       Optional dictionary that is supplied as keyword arguments to the
       extrapolation method.
@@ -241,7 +244,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     decomp_method = cascade.get_method(decomp_method)
     R_d = []
     for i in range(ar_order+1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr)
+        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft_method)
         R_d.append(R_)
 
     # normalize the cascades and rearrange them into a four-dimensional array
@@ -397,7 +400,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 # generate noise field
                 EPS = generate_noise(pp, randstate=randgen_prec[j])
                 # decompose the noise field into a cascade
-                EPS = decomp_method(EPS, filter)
+                EPS = decomp_method(EPS, filter, fft_method=fft_method)
             else:
                 EPS = None
 
