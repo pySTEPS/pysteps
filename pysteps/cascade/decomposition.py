@@ -32,16 +32,16 @@ def decomposition_fft(X, filter, **kwargs):
     Parameters
     ----------
     X : array_like
-      Two-dimensional array containing the input field. All values are required
-      to be finite.
+        Two-dimensional array containing the input field. All values are required
+        to be finite.
     filter : dict
-      A filter returned by a method implemented in bandpass_filters.py.
+        A filter returned by a method implemented in bandpass_filters.py.
 
     Other Parameters
     ----------------
-    fft_method : tuple
-        A tuple defining the FFT method to use (see utils.fft.get_method).
-        Defaults to numpy.fft.
+    fft_method : str or tuple
+        A string or a (function,kwargs) tuple defining the FFT method to use
+        (see utils.fft.get_method). Defaults to "numpy".
     MASK : array_like
         Optional mask to use for computing the statistics for the cascade levels.
         Pixels with MASK==False are excluded from the computations.
@@ -53,7 +53,11 @@ def decomposition_fft(X, filter, **kwargs):
         levels is determined from the filter (see bandpass_filters.py).
 
     """
-    fft,fft_kwargs = fft_module.get_method(kwargs.get("fft_method", "numpy"))
+    fft = kwargs.get("fft_method", "numpy")
+    if type(fft) == str:
+        fft,fft_kwargs = fft_module.get_method(fft)
+    else:
+        fft,fft_kwargs = fft
     MASK = kwargs.get("MASK", None)
 
     if len(X.shape) != 2:
