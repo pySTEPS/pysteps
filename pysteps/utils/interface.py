@@ -4,8 +4,8 @@ from . import transformation
 from . import dimension
 
 def get_method(name):
-    """Return a callable function for the bandpass filter or decomposition method
-    corresponding to the given name.\n\
+    """Return a callable function for the utility function corresponding to the
+    given name.\n\
 
     Conversion methods:
 
