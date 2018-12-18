@@ -6,27 +6,28 @@ try:
     # TODO: Caching and multithreading are currently disabled because they give 
     # a segfault with dask.
     pyfftw.interfaces.cache.disable()
-    pyfftw_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
     pyfftw_imported = True
 except ImportError:
     pyfftw_imported = False
-try:
-    import scipy.fftpack as scipy_fft
-    scipy_fft_kwargs = {}
-except ImportError:
-    scipy_imported = False
-try:
-    import numpy.fft as numpy_fft
-    numpy_fft_kwargs = {}
-except ImportError:
-    numpy_imported = False
+import scipy.fftpack as scipy_fft
+import numpy.fft as numpy_fft
+
+from pysteps.exceptions import MissingOptionalDependency
+
+# use numpy implementation of rfft2/irfft2 because they have not been
+# implemented in scipy.fftpack
+scipy_fft.rfft2  = numpy_fft.rfft2
+scipy_fft.irfft2 = numpy_fft.irfft2
 
 def get_method(name):
+    """Return a callable function for the FFT method corresponding to the given name."""
     if name == "numpy":
-        return numpy_fft
+        return numpy_fft,{}
     elif name == "scipy":
-        return scipy_fft
+        return scipy_fft,{}
     elif name == "pyfftw":
-        return pyfftw_fft
+        if not pyfftw_imported:
+            raise MissingOptionalDependency("pyfftw is required but it is not installed")
+        return pyfftw_fft,{"threads":1, "planner_effort":"FFTW_ESTIMATE"}
     else:
         raise ValueError("unknown method %s, the available methods are 'numpy', 'scipy' and 'pyfftw'" % name)

@@ -2,10 +2,12 @@
 from . import conversion
 from . import transformation
 from . import dimension
+from . import fft
 
 def get_method(name):
     """Return a callable function for the utility method corresponding to the
-    given name.\n\
+    given name. For the FFT methods, the return value is a two-element tuple
+    containing the function and a dictionary of keyword arguments.\n\
 
     Conversion methods:
 
@@ -50,6 +52,18 @@ def get_method(name):
     |  upscale          | upscale the field                                      |
     +-------------------+--------------------------------------------------------+
 
+    FFT methods (wrappers to different implementations):
+
+    +-------------------+--------------------------------------------------------+
+    |     Name          |              Description                               |
+    +===================+========================================================+
+    |  numpy_fft        | numpy.fft                                              |
+    +-------------------+--------------------------------------------------------+
+    |  scipy_fft        | scipy.fftpack                                          |
+    +-------------------+--------------------------------------------------------+
+    |  pyfftw_fft       | pyfftw.interfaces.numpy_fft                            |
+    +-------------------+--------------------------------------------------------+
+
     """
 
     if name is None:
@@ -82,6 +96,10 @@ def get_method(name):
     methods_objects["clip"]         = dimension.clip_domain
     methods_objects["square"]       = dimension.square_domain
     methods_objects["upscale"]      = dimension.aggregate_fields_space
+    # FFT methods
+    methods_objects["numpy_fft"]    = fft.get_method("numpy")
+    methods_objects["scipy_fft"]    = fft.get_method("scipy")
+    methods_objects["pyfftw_fft"]   = fft.get_method("pyfftw")
 
     try:
         return methods_objects[name]
