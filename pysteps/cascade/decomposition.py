@@ -23,21 +23,7 @@ following key-value pairs:
 """
 
 import numpy as np
-# Use the pyfftw interface if it is installed. If not, fall back to the fftpack
-# interface provided by SciPy, and finally to numpy if SciPy is not installed.
-try:
-    import pyfftw.interfaces.numpy_fft as fft
-    import pyfftw
-    # TODO: Caching and multithreading currently disabled because they give a
-    # segfault with dask.
-    #pyfftw.interfaces.cache.enable()
-    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
-except ImportError:
-    import scipy.fftpack as fft
-    fft_kwargs = {}
-except ImportError:
-    import numpy.fft as fft
-fft_kwargs = {}
+from .. utils import fft as fft_module
 
 def decomposition_fft(X, filter, **kwargs):
     """Decompose a 2d input field into multiple spatial scales by using the Fast
@@ -53,17 +39,21 @@ def decomposition_fft(X, filter, **kwargs):
 
     Other Parameters
     ----------------
+    fft_method : tuple
+        A tuple defining the FFT method to use (see utils.fft.get_method).
+        Defaults to numpy.fft.
     MASK : array_like
-      Optional mask to use for computing the statistics for the cascade levels.
-      Pixels with MASK==False are excluded from the computations.
+        Optional mask to use for computing the statistics for the cascade levels.
+        Pixels with MASK==False are excluded from the computations.
 
     Returns
     -------
     out : ndarray
-      A dictionary described in the module documentation. The number of cascade
-      levels is determined from the filter (see bandpass_filters.py).
+        A dictionary described in the module documentation. The number of cascade
+        levels is determined from the filter (see bandpass_filters.py).
 
     """
+    fft,fft_kwargs = kwargs.get("fft", fft_module.get_method("numpy"))
     MASK = kwargs.get("MASK", None)
 
     if len(X.shape) != 2:
