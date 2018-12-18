@@ -53,7 +53,7 @@ def decomposition_fft(X, filter, **kwargs):
         levels is determined from the filter (see bandpass_filters.py).
 
     """
-    fft,fft_kwargs = kwargs.get("fft", fft_module.get_method("numpy"))
+    fft,fft_kwargs = fft_module.get_method(kwargs.get("fft_method", "numpy"))
     MASK = kwargs.get("MASK", None)
 
     if len(X.shape) != 2:
