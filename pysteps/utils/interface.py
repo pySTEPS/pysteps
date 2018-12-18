@@ -4,7 +4,7 @@ from . import transformation
 from . import dimension
 
 def get_method(name):
-    """Return a callable function for the utility function corresponding to the
+    """Return a callable function for the utility method corresponding to the
     given name.\n\
 
     Conversion methods:
@@ -16,7 +16,7 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     | mm or raindepth   | convert to rain depth [mm]                             |
     +-------------------+--------------------------------------------------------+
-    | dBZ or            | convert to reflectivity [dBZ]                          |
+    | dbz or            | convert to reflectivity [dBZ]                          |
     | reflectivity      |                                                        |
     +-------------------+--------------------------------------------------------+
 
@@ -25,15 +25,15 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
-    |  BoxCox           | one-parameter Box-Cox transform                        |
+    | boxcox or box-cox | one-parameter Box-Cox transform                        |
     +-------------------+--------------------------------------------------------+
-    |  dB or decibel    | transform to units of decibel                          |
+    | db or decibel     | transform to units of decibel                          |
     +-------------------+--------------------------------------------------------+
-    |  log              | log transform                                          |
+    | log               | log transform                                          |
     +-------------------+--------------------------------------------------------+
-    |  NQT              | Normal Quantile Transform                              |
+    | nqt               | Normal Quantile Transform                              |
     +-------------------+--------------------------------------------------------+
-    |  sqrt             | square-root transform                                  |
+    | sqrt              | square-root transform                                  |
     +-------------------+--------------------------------------------------------+
 
     Dimension methods:
