@@ -1,13 +1,13 @@
-"""Implementations of cascade decompositions for separating two-dimensional
-images into multiple spatial scales.
+"""Methods for decomposing two-dimensional images into multiple spatial scales.
 
 The methods in this module implement the following interface:
 
-  decomposition_xxx(X, filter, optional arguments)
+  decomposition_xxx(X, filter, **kwargs)
 
 where X is the input field and filter is a dictionary returned by a filter
-method implemented in bandpass_filters.py. The output of each method is a
-dictionary with the following key-value pairs:
+method implemented in bandpass_filters.py. Optional parameters can be passed in
+the keyword arguments. The output of each method is a dictionary with the
+following key-value pairs:
 
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
@@ -49,7 +49,7 @@ def decomposition_fft(X, filter, **kwargs):
       Two-dimensional array containing the input field. All values are required
       to be finite.
     filter : dict
-      A filter returned by any method implemented in bandpass_filters.py.
+      A filter returned by a method implemented in bandpass_filters.py.
 
     Other Parameters
     ----------------
@@ -60,8 +60,8 @@ def decomposition_fft(X, filter, **kwargs):
     Returns
     -------
     out : ndarray
-      A dictionary described in the module documentation. The parameter n is
-      determined from the filter (see bandpass_filters.py).
+      A dictionary described in the module documentation. The number of cascade
+      levels is determined from the filter (see bandpass_filters.py).
 
     """
     MASK = kwargs.get("MASK", None)
