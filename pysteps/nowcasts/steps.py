@@ -303,7 +303,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         init_noise, generate_noise = noise.get_method(noise_method)
 
         # initialize the perturbation generator for the precipitation field
-        pp = init_noise(R, **noise_kwargs)
+        pp = init_noise(R, fft_method=fft_method, **noise_kwargs)
 
         if noise_stddev_adj:
             print("Computing noise adjustment factors... ", end="")
@@ -398,7 +398,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         def worker(j):
             if noise_method is not None:
                 # generate noise field
-                EPS = generate_noise(pp, randstate=randgen_prec[j])
+                EPS = generate_noise(pp, randstate=randgen_prec[j], 
+                                     fft_method=fft_method)
                 # decompose the noise field into a cascade
                 EPS = decomp_method(EPS, filter, fft_method=fft_method)
             else:
