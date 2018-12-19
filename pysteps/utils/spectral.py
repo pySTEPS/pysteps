@@ -4,7 +4,7 @@ domain."""
 import numpy as np
 from . import arrays
 
-def rapsd(Z, fft_method=None, **fft_kwargs):
+def rapsd(Z, fft_method=None, return_freq=False, **fft_kwargs):
     """Compute radially averaged power spectral density (RAPSD) from the given 
     2D input field.
     
@@ -56,5 +56,10 @@ def rapsd(Z, fft_method=None, **fft_kwargs):
         MASK = R == r
         F_vals = F[MASK]
         result.append(np.mean(F_vals))
-
-    return np.array(result)
+    
+    if return_freq:
+        freq = np.fft.fftfreq(L)
+        freq = freq[r_range]
+        return np.array(result), freq
+    else:
+        return np.array(result)
