@@ -19,68 +19,84 @@ def dense_lucaskanade(R, **kwargs):
 
     Parameters
     ----------
-    R : array-like, shape (t,m,n)
-        array containing the input precipitation fields, no missing values are
-        accepted
+    R : ndarray_ or MaskedArray, shape (t,m,n)
+        Input images, sequence of 2D arrays, or 3D arrays.
+        The first dimension represents the images time dimension.
 
     Other Parameters
     ----------------
     max_corners_ST : int
-        maximum number of corners to return. If there are more corners than are
-        found, the strongest of them is returned
+        Maximum number of corners to return. If there are more corners than are
+        found, the strongest of them is returned.
+        
     quality_level_ST : float
-        parameter characterizing the minimal accepted quality of image corners.
-        See original documentation for more details (https://docs.opencv.org)
+        Parameter characterizing the minimal accepted quality of image corners.
+        See original documentation for more details (https://docs.opencv.org).
+        
     min_distance_ST : int
-        minimum possible Euclidean distance between the returned corners [px]
+        minimum possible Euclidean distance between the returned corners [px].
+        
     block_size_ST : int
-        size of an average block for computing a derivative covariation matrix
-        over each pixel neighborhood
+        Size of an average block for computing a derivative covariation matrix
+        over each pixel neighborhood.
+        
     winsize_LK : int
-        size of the search window at each pyramid level.
-        Small windows (e.g. 10) lead to unrealistic motion
+        Size of the search window at each pyramid level.
+        Small windows (e.g. 10) lead to unrealistic motion.
+        
     nr_levels_LK : int
         0-based maximal pyramid level number.
-        Not very sensitive parameter
+        Not very sensitive parameter.
+        
     nr_IQR_outlier : int
-        nr of IQR above median to consider the velocity vector as outlier and discard it
+        Nr of IQR above median to consider the velocity vector as outlier and 
+        discard it.
+        
     size_opening : int
-        the structuring element size for the filtering of isolated pixels [px]
+        The structuring element size for the filtering of isolated pixels [px].
+        
     decl_grid : int
-        size of the declustering grid [px]
+        Size of the declustering grid [px].
+        
     min_nr_samples : int
-        the minimum number of samples for computing the median within given declustering cell
+        The minimum number of samples for computing the median within given 
+        declustering cell.
+        
     function : string
-        the radial basis function, based on the Euclidian norm d, used in the
+        The radial basis function, based on the Euclidian norm d, used in the
         interpolation of the sparse vectors.
-        default : inverse
-        available : nearest, inverse, gaussian
+        Default : inverse
+        Available : nearest, inverse, gaussian
+        
     k : int or "all"
-        the number of nearest neighbors used to speed-up the interpolation
-        If set equal to "all", it employs all the sparse vectors
+        The number of nearest neighbors used to speed-up the interpolation.
+        If set equal to "all", it employs all the sparse vectors.
         default : 20
+        
     epsilon : float
-        adjustable constant for gaussian or inverse functions
-        default : median distance between sparse vectors
+        Adjustable constant for gaussian or inverse functions.
+        Default : median distance between sparse vectors.
+        
     nchunks : int
-        split the grid points in n chunks to limit the memory usage during the
-        interpolation
+        Split the grid points in n chunks to limit the memory usage during the
+        interpolation.
         default : 5
-    extra_vectors : array-like
-        additional sparse motion vectors as 2d array (columns: x,y,u,v; rows:
-        nbr. of vectors) to be integrated with the sparse vectors from the Lucas-Kanade
-        local tracking.
+        
+    extra_vectors : ndarray_
+        Additional sparse motion vectors as 2d array (columns: x,y,u,v; rows:
+        nbr. of vectors) to be integrated with the sparse vectors from the 
+        Lucas-Kanade local tracking.
         x and y must be in pixel coordinates, with (0,0) being the upper-left
-        corner of the field R. u and v must be in pixel units
+        corner of the field R. u and v must be in pixel units.
+        
     verbose : bool
         if set to True, it prints information about the program
 
     Returns
     -------
-    out : ndarray, shape (2,m,n)
-        three-dimensional array containing the dense x- and y-components of the
-        motion field. Return an empty UV array when any sparse vectors is left to
-        be interpolated.
+    out : ndarray_, shape (2,m,n)
+        Three-dimensional array containing the dense x- and y-components of the
+        motion field. Return an empty array when no motion vectors are found.
 
     """
 
