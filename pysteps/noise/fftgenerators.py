@@ -31,22 +31,8 @@ field of correlated noise cN of shape (m, n)."""
 
 import numpy as np
 from scipy import optimize
-# Use the pyfftw interface if it is installed. If not, fall back to the fftpack
-# interface provided by SciPy, and finally to numpy if SciPy is not installed.
-try:
-    import pyfftw.interfaces.numpy_fft as fft
-    import pyfftw
-    # TODO: Caching and multithreading currently disabled because they give a
-    # segfault with dask.
-    #pyfftw.interfaces.cache.enable()
-    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
-except ImportError:
-    import scipy.fftpack as fft
-    fft_kwargs = {}
-except ImportError:
-    import numpy.fft as fft
-    fft_kwargs = {}
 from .. import utils
+from .. utils import fft as fft_module
 
 def initialize_param_2d_fft_filter(X, **kwargs):
     """Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
@@ -78,6 +64,9 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     doplot : bool
         Plot the fit.
         Default : False
+    fft_method : tuple
+        A string or a (function,kwargs) tuple defining the FFT method to use
+        (see utils.fft.get_method). Defaults to "numpy".
 
     Returns
     -------
@@ -97,6 +86,11 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     weighted = kwargs.get('weighted', True)
     rm_rdisc = kwargs.get('rm_disc', True)
     doplot   = kwargs.get('doplot', False)
+    fft = kwargs.get("fft_method", "numpy")
+    if type(fft) == str:
+        fft,fft_kwargs = fft_module.get_method(fft)
+    else:
+        fft,fft_kwargs = fft
 
     X = X.copy()
 
@@ -200,6 +194,9 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
+    fft_method : tuple
+        A string or a (function,kwargs) tuple defining the FFT method to use
+        (see utils.fft.get_method). Defaults to "numpy".
 
     Returns
     -------
@@ -217,6 +214,11 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     donorm   = kwargs.get('donorm', False)
     rm_rdisc = kwargs.get('rm_rdisc', True)
     use_full_fft = kwargs.get('use_full_fft', False)
+    fft = kwargs.get("fft_method", "numpy")
+    if type(fft) == str:
+        fft,fft_kwargs = fft_module.get_method(fft)
+    else:
+        fft,fft_kwargs = fft
 
     X = X.copy()
 
@@ -257,7 +259,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
 
     return {"F":np.abs(F), "input_shape":X.shape[1:], "use_full_fft":use_full_fft}
 
-def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None):
+def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None, fft_method=None):
     """Produces a field of correlated noise using global Fourier filtering.
 
     Parameters
@@ -270,6 +272,9 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None):
         Optional random generator to use. If set to None, use numpy.random.
     seed : int
         Value to set a seed for the generator. None will not set the seed.
+    fft_method : tuple
+        A string or a (function,kwargs) tuple defining the FFT method to use
+        (see utils.fft.get_method). Defaults to "numpy".
 
     Returns
     -------
@@ -288,6 +293,14 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None):
     # set the seed
     if seed is not None:
         randstate.seed(seed)
+
+    if fft_method is None:
+        fft,fft_kwargs = fft_module.get_method("numpy")
+    else:
+        if type(fft_method) == str:
+            fft,fft_kwargs = fft_module.get_method(fft_method)
+        else:
+            fft,fft_kwargs = fft
 
     # produce fields of white noise
     N = randstate.randn(input_shape[0], input_shape[1])
@@ -335,6 +348,9 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
+    fft_method : tuple
+        A string or a (function,kwargs) tuple defining the FFT method to use
+        (see utils.fft.get_method). Defaults to "numpy".
 
     Returns
     -------
@@ -361,6 +377,11 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     overlap  = kwargs.get('overlap', 0.3)
     war_thr  = kwargs.get('war_thr', 0.1)
     rm_rdisc = kwargs.get('rm_disc', True)
+    fft = kwargs.get("fft_method", "numpy")
+    if type(fft) == str:
+        fft,fft_kwargs = fft_module.get_method(fft)
+    else:
+        fft,fft_kwargs = fft
 
     X = X.copy()
 
@@ -391,7 +412,8 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True,
-                                           use_full_fft=True)["F"]
+                                           use_full_fft=True,
+                                           fft_method=(fft,fft_kwargs))["F"]
     # and allocate it to the final grid
     F = np.zeros((num_windows_y, num_windows_x, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -415,7 +437,8 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
             if war > war_thr:
                 # the new filter
                 F[i, j, : ,:] = initialize_nonparam_2d_fft_filter(X*mask[None, :, :],
-                    win_type=None, donorm=True, use_full_fft=True)["F"]
+                    win_type=None, donorm=True, use_full_fft=True, 
+                    fft_method=(fft,fft_kwargs))["F"]
 
     return {"F":F, "input_shape":X.shape[1:], "use_full_fft":True}
 
@@ -446,6 +469,9 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
+    fft_method : tuple
+        A string or a (function,kwargs) tuple defining the FFT method to use
+        (see utils.fft.get_method). Defaults to "numpy".
 
     Returns
     -------
@@ -464,6 +490,11 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     win_type  = kwargs.get('win_type', 'flat-hanning')
     war_thr   = kwargs.get('war_thr', 0.1)
     rm_rdisc  = kwargs.get('rm_disc', True)
+    fft = kwargs.get("fft_method", "numpy")
+    if type(fft) == str:
+        fft,fft_kwargs = fft_module.get_method(fft)
+    else:
+        fft,fft_kwargs = fft
 
     X = X.copy()
 
@@ -498,7 +529,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True,
-                                           use_full_fft=True)["F"]
+                                           use_full_fft=True, 
+                                           fft_method=(fft,fft_kwargs))["F"]
     # and allocate it to the final grid
     F = np.zeros((2**max_level, 2**max_level, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -522,7 +554,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
                 if war > war_thr:
                     # the new filter
                     newfilter = initialize_nonparam_2d_fft_filter(X*mask[None, :, :],
-                        win_type=None, donorm=True, use_full_fft=True)["F"]
+                        win_type=None, donorm=True, use_full_fft=True, 
+                        fft_method=(fft,fft_kwargs))["F"]
 
                     # compute logistic function to define weights as function of frequency
                     # k controls the shape of the weighting function
@@ -566,6 +599,9 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     win_type : string ['hanning', 'flat-hanning']
         Type of window used for localization.
         Default : flat-hanning
+    fft_method : tuple
+        A string or a (function,kwargs) tuple defining the FFT method to use
+        (see utils.fft.get_method). Defaults to "numpy".
 
     Returns
     -------
@@ -585,6 +621,11 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     # defaults
     overlap  = kwargs.get('overlap', 0.2)
     win_type = kwargs.get('win_type', 'flat-hanning')
+    fft = kwargs.get("fft_method", "numpy")
+    if type(fft) == str:
+        fft,fft_kwargs = fft_module.get_method(fft)
+    else:
+        fft,fft_kwargs = fft
 
     # set the seed
     if seed is not None:
