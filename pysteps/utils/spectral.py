@@ -47,6 +47,7 @@ def rapsd(Z, fft_method=None, **fft_kwargs):
 
     if fft_method is not None:
       F = fft_method.fftshift(fft_method.fft2(Z, **fft_kwargs))
+      F = np.abs(F)**2/F.size
     else:
       F = Z
 
