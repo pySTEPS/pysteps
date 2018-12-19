@@ -17,12 +17,16 @@ def rapsd(Z, fft_method=None, return_freq=False, **fft_kwargs):
       scipy.fftpack. If set to None, Z is assumed to represent the shifted 
       discrete Fourier transform of the input field, where the origin is at 
       the center of the array (see numpy.fft.fftshift or scipy.fftpack.fftshift).
+    return_freq: bool
+      Whether to also return the Fourier frequencies.
     
     Returns
     -------
     out : ndarray
       One-dimensional array containing the RAPSD. The length of the array is 
       int(L/2)+1 (if L is even) or int(L/2) (if L is odd), where L=max(M,N).
+    freq : ndarray
+      One-dimensional array containing the Fourier frequencies.
     
     References
     ----------
