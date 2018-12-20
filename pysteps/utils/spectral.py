@@ -4,7 +4,7 @@ domain."""
 import numpy as np
 from . import arrays
 
-def rapsd(Z, fft_method=None, **fft_kwargs):
+def rapsd(Z, fft_method=None, return_freq=False, **fft_kwargs):
     """Compute radially averaged power spectral density (RAPSD) from the given 
     2D input field.
     
@@ -17,12 +17,16 @@ def rapsd(Z, fft_method=None, **fft_kwargs):
       scipy.fftpack. If set to None, Z is assumed to represent the shifted 
       discrete Fourier transform of the input field, where the origin is at 
       the center of the array (see numpy.fft.fftshift or scipy.fftpack.fftshift).
+    return_freq: bool
+      Whether to also return the Fourier frequencies.
     
     Returns
     -------
     out : ndarray
       One-dimensional array containing the RAPSD. The length of the array is 
       int(L/2)+1 (if L is even) or int(L/2) (if L is odd), where L=max(M,N).
+    freq : ndarray
+      One-dimensional array containing the Fourier frequencies.
     
     References
     ----------
@@ -47,6 +51,7 @@ def rapsd(Z, fft_method=None, **fft_kwargs):
 
     if fft_method is not None:
       F = fft_method.fftshift(fft_method.fft2(Z, **fft_kwargs))
+      F = np.abs(F)**2/F.size
     else:
       F = Z
 
@@ -55,5 +60,10 @@ def rapsd(Z, fft_method=None, **fft_kwargs):
         MASK = R == r
         F_vals = F[MASK]
         result.append(np.mean(F_vals))
-
-    return np.array(result)
+    
+    if return_freq:
+        freq = np.fft.fftfreq(L)
+        freq = freq[r_range]
+        return np.array(result), freq
+    else:
+        return np.array(result)
