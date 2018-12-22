@@ -26,7 +26,9 @@ pysteps\.utils\.dimension
 
 .. autosummary::
     aggregate_fields_time
+    aggregate_fields_space
     aggregate_fields
+    clip_domain
     square_domain
 
 .. automodule:: pysteps.utils.dimension
@@ -58,6 +60,8 @@ pysteps\.utils\.transformation
     dB_transform
     boxcox_transform
     boxcox_transform_test_lambdas
+    NQ_transform
+    sqrt_transform
 
 .. automodule:: pysteps.utils.transformation
     :members:
