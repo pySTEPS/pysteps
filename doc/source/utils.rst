@@ -37,6 +37,9 @@ pysteps\.utils\.fft
 
 .. currentmodule:: pysteps.utils.fft
 
+.. autosummary::
+    get_method
+
 .. automodule:: pysteps.utils.fft
     :members:
 
