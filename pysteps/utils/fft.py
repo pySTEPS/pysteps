@@ -20,7 +20,22 @@ scipy_fft.rfft2  = numpy_fft.rfft2
 scipy_fft.irfft2 = numpy_fft.irfft2
 
 def get_method(name):
-    """Return a callable function for the FFT method corresponding to the given name."""
+    """Return a callable function for the FFT method corresponding to the given
+    name.
+    
+    Parameters
+    ----------
+    name : str
+        The name of the method. The available options are 'numpy', 'scipy' and 
+        'pyfftw'
+    
+    Returns
+    -------
+    out : tuple
+        A two-element tuple containing the FFT module and a dictionary of 
+        default keyword arguments for calling the FFT method. Each module 
+        implements the numpy.fft interface.
+    """
     if name == "numpy":
         return numpy_fft,{}
     elif name == "scipy":
