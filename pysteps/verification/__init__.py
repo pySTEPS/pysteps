@@ -1,3 +1,5 @@
+"""Methods for verification of deterministic and ensemble forecasts."""
+
 from .interface import get_method
 from .detcatscores import *
 from .detcontscores import *
