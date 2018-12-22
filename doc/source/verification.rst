@@ -33,8 +33,8 @@ pysteps\.verification\.ensscores
 .. currentmodule:: pysteps.verification.ensscores
 
 .. autosummary::
-    ensemble_fss_skill
-    ensemble_fss_spread
+    ensemble_skill
+    ensemble_spread
     rankhist_init
     rankhist_accum
     rankhist_compute
@@ -78,7 +78,7 @@ pysteps\.verification\.spatialscores
 .. currentmodule:: pysteps.verification.spatialscores
 
 .. autosummary::
-    compute_fss
+    fss
 
 .. automodule:: pysteps.verification.spatialscores
     :members:
