@@ -30,6 +30,7 @@ pysteps\.postprocessing\.probmatching
     nonparam_match_empirical_cdf
     pmm_init
     pmm_compute
+    shift_scale
 
 .. automodule:: pysteps.postprocessing.probmatching
     :members:
