@@ -32,6 +32,14 @@ pysteps\.utils\.dimension
 .. automodule:: pysteps.utils.dimension
     :members:
 
+pysteps\.utils\.fft
+-------------------
+
+.. currentmodule:: pysteps.utils.fft
+
+.. automodule:: pysteps.utils.fft
+    :members:
+
 pysteps\.utils\.interface
 -------------------------
 
