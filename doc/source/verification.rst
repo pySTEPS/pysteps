@@ -78,6 +78,9 @@ pysteps\.verification\.spatialscores
 .. currentmodule:: pysteps.verification.spatialscores
 
 .. autosummary::
+    binary_mse
+    intensity_scale_init
+    intensity_scale_accum
     fss
 
 .. automodule:: pysteps.verification.spatialscores
