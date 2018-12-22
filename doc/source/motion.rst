@@ -27,3 +27,14 @@ pysteps\.motion\.lucaskanade
 
 .. automodule:: pysteps.motion.lucaskanade
     :members:
+
+pysteps\.motion\.vet
+--------------------
+
+.. currentmodule:: pysteps.motion.vet
+
+.. autosummary::
+    vet
+
+.. automodule:: pysteps.motion.vet
+    :members:
