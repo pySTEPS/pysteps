@@ -3,8 +3,8 @@
 Miscellaneous utility functions (:mod:`pysteps.utils`)
 ******************************************************
 
-Utility functions for converting data values to/from different units and 
-manipulating the dimensions of precipitation fields.
+Utility functions for converting data values to/from different units, 
+manipulating the dimensions of precipitation fields and computing the FFT.
 
 pysteps\.utils\.conversion
 --------------------------
