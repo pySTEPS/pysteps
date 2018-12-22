@@ -48,6 +48,7 @@ pysteps\.verification\.plots
 .. currentmodule:: pysteps.verification.plots
 
 .. autosummary::
+    plot_intensityscale
     plot_rankhist
     plot_reldiag
     plot_ROC
