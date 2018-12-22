@@ -1,16 +1,29 @@
 .. _pysteps.postprocessing:
 
-Post-processing of forecasts (:mod:`pysteps.postproc`)
-******************************************************
+Post-processing of forecasts (:mod:`pysteps.postprocessing`)
+************************************************************
 
 Methods for post-processing of forecasts. Currently the module contains 
 cumulative density function (CDF)-based matching between a forecast and the 
-target distribution.
+target distribution and computation of mean value and exceedance probabilities 
+from forecast ensembles.
 
-pysteps\.postproc\.probmatching
--------------------------------
+pysteps\.postprocessing\.ensemblestats
+--------------------------------------
 
-.. currentmodule:: pysteps.postproc.probmatching
+.. currentmodule:: pysteps.postprocessing.ensemblestats
+
+.. autosummary::
+    mean
+    excprob
+
+.. automodule:: pysteps.postprocessing.ensemblestats
+    :members:
+
+pysteps\.postprocessing\.probmatching
+-------------------------------------
+
+.. currentmodule:: pysteps.postprocessing.probmatching
 
 .. autosummary::
     compute_empirical_cdf
@@ -18,5 +31,5 @@ pysteps\.postproc\.probmatching
     pmm_init
     pmm_compute
 
-.. automodule:: pysteps.postproc.probmatching
+.. automodule:: pysteps.postprocessing.probmatching
     :members:
