@@ -23,7 +23,7 @@ following key-value pairs:
 """
 
 import numpy as np
-from .. utils import fft as fft_module
+from .. import utils
 
 def decomposition_fft(X, filter, **kwargs):
     """Decompose a 2d input field into multiple spatial scales by using the Fast
@@ -55,7 +55,7 @@ def decomposition_fft(X, filter, **kwargs):
     """
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = fft_module.get_method(fft)
+        fft,fft_kwargs = utils.get_method(fft)
     else:
         fft,fft_kwargs = fft
     MASK = kwargs.get("MASK", None)
