@@ -19,7 +19,7 @@ and objects included in pysteps.
    :maxdepth: 2
    :caption: Contents
    
-   nowcasting
+   nowcasts
    io
    motion
    extrapolation

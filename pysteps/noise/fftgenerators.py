@@ -32,7 +32,7 @@ field of correlated noise cN of shape (m, n)."""
 import numpy as np
 from scipy import optimize
 from .. import utils
-from .. utils import fft as fft_module
+from .. import utils
 
 def initialize_param_2d_fft_filter(X, **kwargs):
     """Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
@@ -88,7 +88,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     doplot   = kwargs.get('doplot', False)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = fft_module.get_method(fft)
+        fft,fft_kwargs = utils.get_method(fft)
     else:
         fft,fft_kwargs = fft
 
@@ -216,7 +216,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     use_full_fft = kwargs.get('use_full_fft', False)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = fft_module.get_method(fft)
+        fft,fft_kwargs = utils.get_method(fft)
     else:
         fft,fft_kwargs = fft
 
@@ -295,10 +295,10 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None, fft_method=N
         randstate.seed(seed)
 
     if fft_method is None:
-        fft,fft_kwargs = fft_module.get_method("numpy")
+        fft,fft_kwargs = utils.get_method("numpy")
     else:
         if type(fft_method) == str:
-            fft,fft_kwargs = fft_module.get_method(fft_method)
+            fft,fft_kwargs = utils.get_method(fft_method)
         else:
             fft,fft_kwargs = fft
 
@@ -379,7 +379,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     rm_rdisc = kwargs.get('rm_disc', True)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = fft_module.get_method(fft)
+        fft,fft_kwargs = utils.get_method(fft)
     else:
         fft,fft_kwargs = fft
 
@@ -492,7 +492,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     rm_rdisc  = kwargs.get('rm_disc', True)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = fft_module.get_method(fft)
+        fft,fft_kwargs = utils.get_method(fft)
     else:
         fft,fft_kwargs = fft
 
@@ -623,7 +623,7 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = fft_module.get_method(fft)
+        fft,fft_kwargs = utils.get_method(fft)
     else:
         fft,fft_kwargs = fft
 

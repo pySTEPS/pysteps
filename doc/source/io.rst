@@ -27,6 +27,8 @@ pysteps\.io\.importers
     import_bom_rf3
     import_fmi_pgm
     import_mch_gif
+    import_mch_hdf5
+    import_mch_metranet
     import_odim_hdf5
 
 .. automodule:: pysteps.io.importers

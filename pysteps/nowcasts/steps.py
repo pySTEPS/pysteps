@@ -194,6 +194,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     print("precipitation mask:     %s" % ("yes" if use_precip_mask else "no"))
     print("mask method:            %s" % mask_method)
     print("probability matching:   %s" % ("yes" if use_probmatching else "no"))
+    print("FFT method:             %s" % fft_method)
     print("")
 
     print("Parameters:")

@@ -3,6 +3,7 @@ from . import conversion
 from . import transformation
 from . import dimension
 from . import fft
+from pysteps.exceptions import MissingOptionalDependency
 
 def get_method(name):
     """Return a callable function for the utility method corresponding to the
@@ -97,13 +98,29 @@ def get_method(name):
     methods_objects["square"]       = dimension.square_domain
     methods_objects["upscale"]      = dimension.aggregate_fields_space
     # FFT methods
-    methods_objects["numpy_fft"]    = fft.get_method("numpy")
-    methods_objects["scipy_fft"]    = fft.get_method("scipy")
-    methods_objects["pyfftw_fft"]   = fft.get_method("pyfftw")
+    methods_objects["numpy"]        = _get_fft_method("numpy")
+    methods_objects["scipy"]        = _get_fft_method("scipy")
 
     try:
-        return methods_objects[name]
+        if name == "pyfftw":
+            return _get_fft_method("pyfftw")
+        else:
+            return methods_objects[name]
 
     except KeyError as e:
         raise ValueError("Unknown method %s\n" % e +
                          "Supported methods:%s" % str(methods_objects.keys()))
+
+def _get_fft_method(name):
+    if name == "numpy":
+        return fft.numpy_fft,{}
+    elif name == "scipy":
+        return fft.scipy_fft,{}
+    elif name == "pyfftw":
+        if not fft.pyfftw_imported:
+            raise MissingOptionalDependency("pyfftw is required but it is not installed")
+        # TODO: Multithreading is currently disabled because it gives segfault
+        # with dask.
+        return fft.pyfftw_fft,{"threads":1, "planner_effort":"FFTW_ESTIMATE"}
+    else:
+        raise ValueError("unknown method %s, the available methods are 'numpy', 'scipy' and 'pyfftw'" % name)
