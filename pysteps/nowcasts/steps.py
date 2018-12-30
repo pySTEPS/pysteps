@@ -128,7 +128,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       If return_output is True, a four-dimensional array of shape
       (n_ens_members,n_timesteps,m,n) containing a time series of forecast
       precipitation fields for each ensemble member. Otherwise, a None value
-      is returned.
+      is returned. The time step is taken from the input precipitation fields R.
 
     See also
     --------
