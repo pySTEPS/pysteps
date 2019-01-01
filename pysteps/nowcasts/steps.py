@@ -72,9 +72,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       to each cascade level. See pysteps.noise.utils.compute_noise_stddev_adjs.
     ar_order : int
       The order of the autoregressive model to use. Must be >= 1.
-    vel_pert_method : {'bps'}
-      Name of the noise generator to use for perturbing the velocity field. See
-      the documentation of pysteps.noise.interface.
+    vel_pert_method : {'bps',None}
+      Name of the noise generator to use for perturbing the advection field. See
+      the documentation of pysteps.noise.interface. If set to None, the advection 
+      field is not perturbed.
     conditional : bool
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding the areas where the values are below the
