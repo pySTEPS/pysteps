@@ -137,6 +137,12 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     pysteps.extrapolation.interface, pysteps.cascade.interface,
     pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
 
+    Notes
+    -----
+    If noise_method and vel_pert_method are set to None and n_ens_members is set
+    to 1, the produced nowcast is deterministic (i.e. the S-PROG nowcast, see
+    :cite:`Seed2003`).
+
     References
     ----------
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`
