@@ -63,9 +63,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     bandpass_filter_method : {'gaussian', 'uniform'}
       Name of the bandpass filter method to use with the cascade decomposition.
       See the documentation of pysteps.cascade.interface.
-    noise_method : {'parametric','nonparametric','ssft','nested'}
+    noise_method : {'parametric','nonparametric','ssft','nested',None}
       Name of the noise generator to use for perturbating the precipitation
-      field. See the documentation of pysteps.noise.interface.
+      field. See the documentation of pysteps.noise.interface. If set to None,
+      no noise is generated.
     noise_stddev_adj : bool
       Optional adjustment for the standard deviations of the noise fields added
       to each cascade level. See pysteps.noise.utils.compute_noise_stddev_adjs.
