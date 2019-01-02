@@ -14,7 +14,8 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
       field.
     V : array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection
-      field. The velocities are assumed to represent one time step.
+      field. The velocities are assumed to represent one time step between the 
+      inputs.
     num_timesteps : int
       Number of time steps to forecast.
 
@@ -24,14 +25,15 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
     extrap_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
+      Optional dictionary that is expanded into keyword arguments for the
       extrapolation method.
 
     Returns
     -------
     out : ndarray
       Three-dimensional array of shape (num_timesteps,m,n) containing a time
-      series of nowcast precipitation fields.
+      series of nowcast precipitation fields. The time step is taken from
+      the advection field.
 
     See also
     --------

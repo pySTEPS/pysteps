@@ -63,17 +63,19 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     bandpass_filter_method : {'gaussian', 'uniform'}
       Name of the bandpass filter method to use with the cascade decomposition.
       See the documentation of pysteps.cascade.interface.
-    noise_method : {'parametric','nonparametric','ssft','nested'}
+    noise_method : {'parametric','nonparametric','ssft','nested',None}
       Name of the noise generator to use for perturbating the precipitation
-      field. See the documentation of pysteps.noise.interface.
+      field. See the documentation of pysteps.noise.interface. If set to None,
+      no noise is generated.
     noise_stddev_adj : bool
       Optional adjustment for the standard deviations of the noise fields added
       to each cascade level. See pysteps.noise.utils.compute_noise_stddev_adjs.
     ar_order : int
       The order of the autoregressive model to use. Must be >= 1.
-    vel_pert_method : {'bps'}
-      Name of the noise generator to use for perturbing the velocity field. See
-      the documentation of pysteps.noise.interface.
+    vel_pert_method : {'bps',None}
+      Name of the noise generator to use for perturbing the advection field. See
+      the documentation of pysteps.noise.interface. If set to None, the advection 
+      field is not perturbed.
     conditional : bool
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding the areas where the values are below the
@@ -128,12 +130,18 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       If return_output is True, a four-dimensional array of shape
       (n_ens_members,n_timesteps,m,n) containing a time series of forecast
       precipitation fields for each ensemble member. Otherwise, a None value
-      is returned.
+      is returned. The time step is taken from the input precipitation fields R.
 
     See also
     --------
     pysteps.extrapolation.interface, pysteps.cascade.interface,
     pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
+
+    Notes
+    -----
+    If noise_method and vel_pert_method are set to None and n_ens_members is set
+    to 1, the produced nowcast is deterministic (i.e. the S-PROG nowcast, see
+    :cite:`Seed2003`).
 
     References
     ----------
