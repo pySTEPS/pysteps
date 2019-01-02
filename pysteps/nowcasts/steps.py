@@ -500,10 +500,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 R_f[j].append(R_f_[j])
 
     if return_output:
-        if n_ens_members == 1:
-            return np.stack(R_f[0])
-        else:
-            return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
+        return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
     else:
         return None
 
