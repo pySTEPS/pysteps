@@ -343,27 +343,31 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     D = [None for j in range(n_ens_members)]
     R_f = [[] for j in range(n_ens_members)]
 
-    if mask_method == "obs":
+    if mask_method is not None:
         MASK_prec = R[-1, :, :] >= R_thr
-        # add a slight buffer to the mask
-        # n=5
-        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n,n))
-        # MASK_prec = MASK_prec.astype('uint8')
-        # MASK_prec = cv2.dilate(MASK_prec,kernel).astype(bool)
-    elif mask_method == "sprog":
-        # compute the wet area ratio and the precipitation mask
-        MASK_prec = R[-1, :, :] >= R_thr
-        war = 1.0*np.sum(MASK_prec) / (R.shape[1]*R.shape[2])
-        R_m = R_c[0, :, :, :].copy()
-    elif mask_method == "incremental":
-        # initialize precip mask for each member
-        MASK_prec_ = R[-1, :, :] >= R_thr
-        MASK_prec = [MASK_prec_.copy() for j in range(n_ens_members)]
-        # initialize the structuring element
-        struct = scipy.ndimage.generate_binary_structure(2, 1)
-        # iterate it to expand it nxn
-        n = timestep/kmperpixel
-        struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
+
+        if mask_method == "obs":
+            pass
+            # add a slight buffer to the mask
+            # n=5
+            # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n,n))
+            # MASK_prec = MASK_prec.astype('uint8')
+            # MASK_prec = cv2.dilate(MASK_prec,kernel).astype(bool)
+        elif mask_method == "sprog":
+            # compute the wet area ratio and the precipitation mask
+            war = 1.0*np.sum(MASK_prec) / (R.shape[1]*R.shape[2])
+            R_m = R_c[0, :, :, :].copy()
+        elif mask_method == "incremental":
+            # initialize precip mask for each member
+            MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
+            # initialize the structuring element
+            struct = scipy.ndimage.generate_binary_structure(2, 1)
+            # iterate it to expand it nxn
+            n = timestep/kmperpixel
+            struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
+
+        if probmatching_method == "mean":
+            mu_0 = np.mean(R[-1, :, :][MASK_prec])
 
     R = R[-1, :, :]
 
@@ -453,10 +457,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 # recently observed precipitation field
                 R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
             elif probmatching_method == "mean":
-                pass
-                # TODO: implement the mean value adjustment
-                #mu = np.mean(R_c_[])
-                #R_c_ = R_c_ - mu + mu_0
+                mu_fct = np.mean(R_c_[~MASK_prec_])
+                R_c_[~MASK_prec_] = R_c_[~MASK_prec_] - mu_fct + mu_0
+                print(- mu_fct + mu_0)
 
             if mask_method == "incremental":
                 MASK_prec_ = R_c_ >= R_thr
