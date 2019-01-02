@@ -19,7 +19,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
              kmperpixel=None, timestep=None, extrap_method="semilagrangian",
              decomp_method="fft", bandpass_filter_method="gaussian",
              noise_method="nonparametric", noise_stddev_adj=False, ar_order=2,
-             vel_pert_method=None, conditional=False, probmatching_method="cdf",
+             vel_pert_method="bps", conditional=False, probmatching_method="cdf",
              mask_method="incremental", callback=None, return_output=True,
              seed=None, num_workers=None, fft_method="numpy", extrap_kwargs={},
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
