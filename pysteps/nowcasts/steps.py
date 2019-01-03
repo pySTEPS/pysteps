@@ -459,7 +459,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             elif probmatching_method == "mean":
                 mu_fct = np.mean(R_c_[~MASK_prec_])
                 R_c_[~MASK_prec_] = R_c_[~MASK_prec_] - mu_fct + mu_0
-                print(- mu_fct + mu_0)
 
             if mask_method == "incremental":
                 MASK_prec_ = R_c_ >= R_thr
