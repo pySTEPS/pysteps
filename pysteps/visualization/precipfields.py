@@ -421,14 +421,14 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
 
     return labels
 
-def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1),
-                  countrycolor=(0.3,0.3,0.3), continentcolor=(1,1,1),
-                  lakecolor=(0.7,0.7,0.7), rivercolor=(0.7,0.7,0.7),
-                  mapboundarycolor=(0.7,0.7,0.7)):
+def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,0.3),
+                  countrycolor=(0.3,0.3,0.3), continentcolor=(0.95,0.95,0.85),
+                  lakecolor=(0.65,0.75,0.9), rivercolor=(0.65,0.75,0.9),
+                  mapboundarycolor=(0.65,0.75,0.9)):
     bm = Basemap(**bm_params)
 
     if coastlinecolor is not None:
-        bm.drawcoastlines(color=coastlinecolor, zorder=0.1)
+        bm.drawcoastlines(color=coastlinecolor, linewidth=0.1, zorder=0.1)
     if countrycolor is not None:
         bm.drawcountries(countrycolor, zorder=0.2)
     if rivercolor is not None:
