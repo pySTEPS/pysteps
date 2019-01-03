@@ -138,9 +138,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
     Notes
     -----
-    If noise_method and vel_pert_method are None, n_ens_members is 1 an
-    mask_method is 'sprog', the deterministic S-PROG nowcast is generated, see
-    :cite:`Seed2003`.
+    If noise_method and vel_pert_method are None, n_ens_members is 1,
+    mask_method is 'sprog' and probmatching_method is 'mean', the deterministic
+    S-PROG nowcast is generated, see :cite:`Seed2003`.
 
     References
     ----------
