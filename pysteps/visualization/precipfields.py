@@ -165,13 +165,13 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                 R = np.flipud(R)
 
             extent = None
+            regular_grid = True
         else:
             x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
 
             try:
                 crs = utils.proj4_to_cartopy(geodata["projection"])
                 regular_grid = True
-
             except:
                 # Necessary since cartopy doesn't support the Swiss projection
                 # TODO: remove once the somerc projection is supported in cartopy.
