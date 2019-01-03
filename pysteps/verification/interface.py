@@ -39,6 +39,10 @@ def get_method(name, type="deterministic"):
         +------------+----------------------------------------------------------+
         |  corr_s    | spearman's correlation coefficient (rank correlation)    |
         +------------+----------------------------------------------------------+
+        |  MAE_add   | mean absolute error of additive residuals                |
+        +------------+----------------------------------------------------------+
+        |  MAE_mul   | mean absolute error of multiplicative residuals          |
+        +------------+----------------------------------------------------------+
         |  ME_add    | mean error or bias of additive residuals                 |
         +------------+----------------------------------------------------------+
         |  ME_mult   | mean error or bias of multiplicative residuals           |
@@ -111,8 +115,9 @@ def get_method(name, type="deterministic"):
             return f
 
         # continuous
-        elif name in ["beta", "corr_p", "corr_s", "me_add", "me_mult", "rmse_add",
-                      "rmse_mult", "rv_add", "rv_mult", "scatter"]:
+        elif name in ["beta", "corr_p", "corr_s", "mae_add", "mae_mult",
+                      "me_add", "me_mult", "rmse_add", "rmse_mult", "rv_add",
+                      "rv_mult", "scatter"]:
             def f(fct, obs, **kwargs):
                 return det_cont_fcst(fct, obs, [name], **kwargs)
             return f
