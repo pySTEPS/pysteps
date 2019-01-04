@@ -15,8 +15,9 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
     root_path : str
         The root path to search the input files.
     path_fmt : str
-        Path format. It may consist of directory names separated by '/' and
-        date/time specifiers beginning with '%' (e.g. %Y/%m/%d).
+        Path format. It may consist of directory names separated by '/',
+        date/time specifiers beginning with '%' (e.g. %Y/%m/%d) and wildcards
+        (?) that match any single character.
     fn_pattern : str
         The name pattern of the input files without extension. The pattern can
         contain time specifiers (e.g. %H, %M and %S).
