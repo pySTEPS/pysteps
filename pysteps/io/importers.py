@@ -128,7 +128,10 @@ def import_bom_rf3(filename, **kwargs):
     metadata["unit"]        = "mm/h"
     metadata["transform"]   = None
     metadata["zerovalue"]   = np.nanmin(R)
-    metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
+    if np.any(np.isfinite(R)):
+        metadata["threshold"] = np.nanmin(R[R>np.nanmin(R)])
+    else:
+        metadata["threshold"] = np.nan
 
     return R, None, metadata
 
@@ -255,7 +258,10 @@ def import_fmi_pgm(filename, **kwargs):
     metadata["unit"]        = "dBZ"
     metadata["transform"]   = "dB"
     metadata["zerovalue"]   = np.nanmin(R)
-    metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
+    if np.any(np.isfinite(R)):
+        metadata["threshold"] = np.nanmin(R[R>np.nanmin(R)])
+    else:
+        metadata["threshold"] = np.nan
 
     return R,None,metadata
 
@@ -431,7 +437,7 @@ def import_mch_gif(filename, **kwargs):
     if np.any(R>np.nanmin(R)):
         metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
     else:
-        metadata["threshold"]   = None
+        metadata["threshold"]   = np.nan
     metadata["institution"] = "MeteoSwiss"
     metadata["product"] = product
 
@@ -538,6 +544,11 @@ def import_mch_hdf5(filename, **kwargs):
         unit = "mm/h"
         transform = None
 
+    if np.any(np.isfinite(R)):
+        thr = np.nanmin(R[R>np.nanmin(R)])
+    else:
+        thr = np.nan
+
     metadata.update({
                 "yorigin":"upper",
                 "institution":"MeteoSwiss",
@@ -545,7 +556,7 @@ def import_mch_hdf5(filename, **kwargs):
                 "unit":unit,
                 "transform":transform,
                 "zerovalue":np.nanmin(R),
-                "threshold":np.nanmin(R[R>np.nanmin(R)]) })
+                "threshold":thr })
 
     f.close()
 
@@ -778,6 +789,11 @@ def import_odim_hdf5(filename, **kwargs):
         unit = "mm/h"
         transform = None
 
+    if np.any(np.isfinite(R)):
+        thr = np.nanmin(R[R>np.nanmin(R)])
+    else:
+        thr = nan
+    
     metadata = {"projection":proj4str,
                 "ll_lon":LL_lon,
                 "ll_lat":LL_lat,
@@ -795,7 +811,7 @@ def import_odim_hdf5(filename, **kwargs):
                 "unit":unit,
                 "transform":transform,
                 "zerovalue":np.nanmin(R),
-                "threshold":np.nanmin(R[R>np.nanmin(R)])}
+                "threshold":thr}
 
     f.close()
 
