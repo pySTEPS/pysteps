@@ -165,13 +165,13 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                 R = np.flipud(R)
 
             extent = None
+            regular_grid = True
         else:
             x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
 
             try:
                 crs = utils.proj4_to_cartopy(geodata["projection"])
                 regular_grid = True
-
             except:
                 # Necessary since cartopy doesn't support the Swiss projection
                 # TODO: remove once the somerc projection is supported in cartopy.
@@ -336,7 +336,7 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
 
         return cmap, norm, clevs, clevsStr
     elif type == "prob":
-        cmap = plt.get_cmap("OrRd_r", 10)
+        cmap = plt.get_cmap("OrRd", 10)
         return cmap, colors.Normalize(vmin=0, vmax=1), None, None
     else:
         return cm.jet, colors.Normalize(), None, None
@@ -421,14 +421,14 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
 
     return labels
 
-def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(1,1,1),
-                  countrycolor=(0.3,0.3,0.3), continentcolor=(1,1,1),
-                  lakecolor=(0.7,0.7,0.7), rivercolor=(0.7,0.7,0.7),
-                  mapboundarycolor=(0.7,0.7,0.7)):
+def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,0.3),
+                  countrycolor=(0.3,0.3,0.3), continentcolor=(0.95,0.95,0.85),
+                  lakecolor=(0.65,0.75,0.9), rivercolor=(0.65,0.75,0.9),
+                  mapboundarycolor=(0.65,0.75,0.9)):
     bm = Basemap(**bm_params)
 
     if coastlinecolor is not None:
-        bm.drawcoastlines(color=coastlinecolor, zorder=0.1)
+        bm.drawcoastlines(color=coastlinecolor, linewidth=0.1, zorder=0.1)
     if countrycolor is not None:
         bm.drawcountries(countrycolor, zorder=0.2)
     if rivercolor is not None:

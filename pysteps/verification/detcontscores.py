@@ -25,6 +25,10 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
         +------------+----------------------------------------------------------------+
         |  corr_s    | spearman's correlation coefficient (rank correlation)          |
         +------------+----------------------------------------------------------------+
+        |  MAE_add   | mean absolute error of additive residuals                      |
+        +------------+----------------------------------------------------------------+
+        |  MAE_mul   | mean absolute error of multiplicative residuals                |
+        +------------+----------------------------------------------------------------+
         |  ME_add    | mean error or bias of additive residuals                       |
         +------------+----------------------------------------------------------------+
         |  ME_mult   | mean error or bias of multiplicative residuals                 |
@@ -76,6 +80,15 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
     for score in scores:
 
         score = score.lower()
+
+        # mean absolute error
+        if score == 'mae_add':
+            MAE_add = np.mean(np.abs(add_res))
+            result.append(MAE_add)
+
+        if score == 'mae_mult':
+            MAE_mult = np.mean(np.abs(mult_res))
+            result.append(MAE_mult)
 
         # mean error (stm called bias)
         if score == 'me_add':

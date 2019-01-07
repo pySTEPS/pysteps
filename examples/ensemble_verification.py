@@ -62,9 +62,7 @@ experiment = {
     "n_cascade_levels"  : [6],
     "noise_adjustment"  : [True],
     "conditional"       : [False],
-    "precip_mask"       : [True],
     "mask_method"       : ["incremental"],      # obs, incremental, sprog
-    "prob_matching"     : [True],
 }
 
 # Conditional parameters
@@ -252,9 +250,7 @@ for n, parset in enumerate(parsets):
                             noise_method=p["noise_method"], 
                             noise_stddev_adj=p["noise_adjustment"],
                             ar_order=p["ar_order"],conditional=p["conditional"], 
-                            use_probmatching=p["prob_matching"], 
-                            mask_method=p["mask_method"], 
-                            use_precip_mask=p["precip_mask"], callback=export, 
+                            mask_method=p["mask_method"], callback=export, 
                             return_output=False, seed=p["seed"])
             
             ## save results
