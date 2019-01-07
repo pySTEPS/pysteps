@@ -249,9 +249,9 @@ def clip_domain(R, metadata, extent=None):
     if len(R.shape) < 2:
         raise ValueError("The number of dimension must be > 1")
     if len(R.shape) == 2:
-        R = R[None, None, :]
+        R = R[None, None, :, :]
     if len(R.shape) == 3:
-        R = R[None, :]
+        R = R[None, :, :, :]
     if len(R.shape) > 4:
         raise ValueError("The number of dimension must be <= 4")
 
@@ -298,8 +298,8 @@ def clip_domain(R, metadata, extent=None):
     idx_x_ = np.where(np.logical_and(x_coord_ < right, x_coord_ > left))[0]
 
     # compose the new array
-    R_[:, :, idx_y_[0]:idx_y_[-1], idx_x_[0]:idx_x_[-1]] = \
-                    R[:, :, idx_y[0]:idx_y[-1], idx_x[0]:idx_x[-1]]
+    R_[:, :, idx_y_[0]:(idx_y_[-1] + 1), idx_x_[0]:(idx_x_[-1] + 1)] = \
+                    R[:, :, idx_y[0]:(idx_y[-1] + 1), idx_x[0]:(idx_x[-1] + 1)]
 
     # update coordinates
     metadata["y1"] = bottom_
