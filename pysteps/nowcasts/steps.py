@@ -109,19 +109,19 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       all available CPUs. Applicable if dask is enabled.
     fft_method : str or tuple
       A string or a (function,kwargs) tuple defining the FFT method to use
-      (see utils.fft.get_method). Defaults to "numpy".
+      (see utils.fft.get_method). Defaults to 'numpy'.
     extrap_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
-      extrapolation method.
+      Optional dictionary containing keyword arguments for the extrapolation
+      method. See the documentation of pysteps.extrapolation.
     filter_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
-      filter method.
+      Optional dictionary containing keyword arguments for the filter method.
+      See the documentation of pysteps.cascade.bandpass_filters.py.
     noise_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
-      initializer of the noise generator.
+      Optional dictionary containing keyword arguments for the initializer of
+      the noise generator. See the documentation of pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
-      initializer of the velocity perturbator.
+      Optional dictionary containing keyword arguments for the initializer of
+      the velocity perturbator. See the documentation of pysteps.noise.motion.
 
     Returns
     -------
