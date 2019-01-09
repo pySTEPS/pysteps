@@ -7,6 +7,7 @@ def get_numpy(shape):
     import numpy.fft as numpy_fft
 
     f = {"fft2":numpy_fft.fft2,
+         "fftn":numpy_fft.fftn,
          "ifft2":numpy_fft.ifft2,
          "rfft2":numpy_fft.rfft2,
          "irfft2":lambda X: numpy_fft.irfft2(X, s=shape),
@@ -24,6 +25,7 @@ def get_scipy(shape):
     # use numpy implementation of rfft2/irfft2 because they have not been
     # implemented in scipy.fftpack
     f = {"fft2":scipy_fft.fft2,
+         "fftn":scipy_fft.fftn,
          "ifft2":scipy_fft.ifft2,
          "rfft2":numpy_fft.rfft2,
          "irfft2":lambda X: numpy_fft.irfft2(X, s=shape),
@@ -42,8 +44,8 @@ def get_pyfftw(shape, n_threads=1):
     except ImportError:
         raise MissingOptionalDependency("pyfftw is required but not installed")
 
-    X = pyfftw.empty_aligned(shape, dtype="complex128")
-    F = pyfftw.empty_aligned(shape, dtype="complex128")
+    X = pyfftw.empty_aligned(shape[-2:], dtype="complex128")
+    F = pyfftw.empty_aligned(shape[-2:], dtype="complex128")
 
     fft_obj = pyfftw.FFTW(X, F, flags=["FFTW_ESTIMATE"],
                           direction="FFTW_FORWARD", axes=(0, 1),
@@ -52,8 +54,17 @@ def get_pyfftw(shape, n_threads=1):
                            direction="FFTW_BACKWARD", axes=(0, 1),
                            threads=n_threads)
 
-    X = pyfftw.empty_aligned(shape, dtype="float64")
-    output_shape = list(shape[:-1])
+    if len(shape) > 2:
+        X = pyfftw.empty_aligned(shape, dtype="complex128")
+        F = pyfftw.empty_aligned(shape, dtype="complex128")
+
+        fftn_obj = pyfftw.FFTW(X, F, flags=["FFTW_ESTIMATE"],
+                              direction="FFTW_FORWARD",
+                              axes=list(range(len(shape))),
+                              threads=n_threads)
+
+    X = pyfftw.empty_aligned(shape[-2:], dtype="float64")
+    output_shape = list(shape[-2:-1])
     output_shape.append(int(shape[-1]/2)+1)
     output_shape = tuple(output_shape)
     F = pyfftw.empty_aligned(output_shape, dtype="complex128")
@@ -66,6 +77,7 @@ def get_pyfftw(shape, n_threads=1):
                             threads=n_threads)
 
     f = {"fft2":lambda X: fft_obj(input_array=X).copy(),
+         "fftn":lambda X: fftn_obj(input_array=X).copy(),
          "ifft2":lambda X: ifft_obj(input_array=X).copy(),
          "rfft2":lambda X: rfft_obj(input_array=X).copy(),
          "irfft2":lambda X: irfft_obj(input_array=X).copy(),
