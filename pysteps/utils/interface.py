@@ -63,6 +63,9 @@ def get_method(name, **kwargs):
     |  pyfftw_fft       | pyfftw.interfaces.numpy_fft                            |
     +-------------------+--------------------------------------------------------+
 
+    Additional keyword arguments are passed to the initializer of the FFT 
+    methods, see utils.fft.
+
     """
 
     if name is None:
@@ -113,8 +116,6 @@ def _get_fft_method(name, **kwargs):
     elif name == "scipy":
         return fft.get_scipy(kwargs["shape"])
     elif name == "pyfftw":
-        #if not fft.pyfftw_imported:
-        #    raise MissingOptionalDependency("pyfftw is required but not installed")
         # TODO: Multithreading is currently disabled because it gives segfault
         # with dask.
         n_threads = kwargs.get("n_threads", 1)
