@@ -73,7 +73,7 @@ def DARTS(Z, **kwargs):
 
     Z = np.moveaxis(Z, (0, 1, 2), (2, 0, 1))
 
-    fft = utils.get_method(fft_method, shape=Z.shape)
+    fft = utils.get_method(fft_method, shape=Z.shape[:2], fftn_shape=Z.shape)
 
     T_x = Z.shape[1]
     T_y = Z.shape[0]
@@ -173,8 +173,6 @@ def DARTS(Z, **kwargs):
     U[i, j] = x[h*w:2*h*w]
 
     k_x,k_y = np.meshgrid(np.arange(-M_x, M_x+1), np.arange(-M_y, M_y+1))
-
-    fft = utils.get_method(fft_method, shape=Z.shape[0:2])
 
     U = np.real(fft.ifft2(_fill(U, Z.shape[0], Z.shape[1], k_x, k_y)))
     V = np.real(fft.ifft2(_fill(V, Z.shape[0], Z.shape[1], k_x, k_y)))
