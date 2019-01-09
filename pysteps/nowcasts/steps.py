@@ -316,7 +316,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         init_noise, generate_noise = noise.get_method(noise_method)
 
         # initialize the perturbation generator for the precipitation field
-        pp = init_noise(R, fft_method=fft, **noise_kwargs)
+        pp = init_noise(R[-1, :, :], fft_method=fft, **noise_kwargs)
 
         if noise_stddev_adj:
             print("Computing noise adjustment factors... ", end="")
