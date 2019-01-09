@@ -114,15 +114,12 @@ def _get_fft_method(name, **kwargs):
     kwargs = kwargs.copy()
     shape = kwargs["shape"]
     kwargs.pop("shape")
-    
+
     if name == "numpy":
         return fft.get_numpy(shape, **kwargs)
     elif name == "scipy":
         return fft.get_scipy(shape, **kwargs)
     elif name == "pyfftw":
-        # TODO: Multithreading is currently disabled because it gives segfault
-        # with dask.
-        #n_threads = kwargs.get("n_threads", 1)
         return fft.get_pyfftw(shape, **kwargs)
     else:
         raise ValueError("unknown method %s, the available methods are 'numpy', 'scipy' and 'pyfftw'" % name)

@@ -34,6 +34,9 @@ def DARTS(Z, **kwargs):
     fft_method : str
         A string defining the FFT method to use, see utils.fft.get_method.
         Defaults to 'numpy'.
+    n_threads : int
+        Number of threads to use for the FFT computation. Applicable if
+        fft_method is 'pyfftw'.
     print_info : bool
         If True, print information messages.
     lsq_method : {1, 2}
@@ -73,7 +76,8 @@ def DARTS(Z, **kwargs):
 
     Z = np.moveaxis(Z, (0, 1, 2), (2, 0, 1))
 
-    fft = utils.get_method(fft_method, shape=Z.shape[:2], fftn_shape=Z.shape)
+    fft = utils.get_method(fft_method, shape=Z.shape[:2], fftn_shape=Z.shape, 
+                           **kwargs)
 
     T_x = Z.shape[1]
     T_y = Z.shape[0]

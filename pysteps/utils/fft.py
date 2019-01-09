@@ -3,7 +3,7 @@
 from pysteps.exceptions import MissingOptionalDependency
 from types import SimpleNamespace
 
-def get_numpy(shape, fftn_shape=None):
+def get_numpy(shape, fftn_shape=None, **kwargs):
     import numpy.fft as numpy_fft
 
     f = {"fft2":numpy_fft.fft2,
@@ -19,7 +19,7 @@ def get_numpy(shape, fftn_shape=None):
 
     return fft
 
-def get_scipy(shape, fftn_shape=None):
+def get_scipy(shape, fftn_shape=None, **kwargs):
     import numpy.fft as numpy_fft
     import scipy.fftpack as scipy_fft
 
@@ -38,7 +38,8 @@ def get_scipy(shape, fftn_shape=None):
 
     return fft
 
-def get_pyfftw(shape, n_threads=1, fftn_shape=None):
+def get_pyfftw(shape, fftn_shape=None, n_threads=1, **kwargs):
+    print(n_threads)
     try:
         import pyfftw.interfaces.numpy_fft as pyfftw_fft
         import pyfftw
