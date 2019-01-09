@@ -32,7 +32,6 @@ field of correlated noise cN of shape (m, n)."""
 import numpy as np
 from scipy import optimize
 from .. import utils
-from .. import utils
 
 def initialize_param_2d_fft_filter(X, **kwargs):
     """Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
@@ -88,9 +87,8 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     doplot   = kwargs.get('doplot', False)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = utils.get_method(fft)
-    else:
-        fft,fft_kwargs = fft
+        fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
+        fft = utils.get_method(fft, shape=fft_shape)
 
     X = X.copy()
 
@@ -117,7 +115,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         # compute average 2D PSD
         F = np.zeros((M, N), dtype=complex)
         for i in range(nr_fields):
-            F += fft.fftshift(fft.fft2(X[i, :, :]*tapering, **fft_kwargs))
+            F += fft.fftshift(fft.fft2(X[i, :, :]*tapering))
         F /= nr_fields
         F = abs(F)**2
 
@@ -216,9 +214,8 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     use_full_fft = kwargs.get('use_full_fft', False)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = utils.get_method(fft)
-    else:
-        fft,fft_kwargs = fft
+        fft_shape = X.shape if len(X.shape)==2 else X.shape[1:]
+        fft = utils.get_method(fft, shape=fft_shape)
 
     X = X.copy()
 
@@ -247,9 +244,9 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     F = np.zeros(fft_shape, dtype=complex)
     for i in range(nr_fields):
         if use_full_fft:
-            F += fft.fft2(X[i, :, :]*tapering, **fft_kwargs)
+            F += fft.fft2(X[i, :, :]*tapering)
         else:
-            F += fft.rfft2(X[i, :, :]*tapering, **fft_kwargs)
+            F += fft.rfft2(X[i, :, :]*tapering)
     F /= nr_fields
 
     # normalize the real and imaginary parts
@@ -295,26 +292,26 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None, fft_method=N
         randstate.seed(seed)
 
     if fft_method is None:
-        fft,fft_kwargs = utils.get_method("numpy")
+        fft = utils.get_method("numpy", shape=input_shape)
     else:
         if type(fft_method) == str:
-            fft,fft_kwargs = utils.get_method(fft_method)
+            fft = utils.get_method(fft_method, shape=input_shape)
         else:
-            fft,fft_kwargs = fft
+            fft = fft_method
 
     # produce fields of white noise
     N = randstate.randn(input_shape[0], input_shape[1])
 
     # apply the global Fourier filter to impose a correlation structure
     if use_full_fft:
-        fN = fft.fft2(N, **fft_kwargs)
+        fN = fft.fft2(N)
     else:
-        fN = fft.rfft2(N, **fft_kwargs)
+        fN = fft.rfft2(N)
     fN *= F
     if use_full_fft:
-        N = np.array(fft.ifft2(fN, **fft_kwargs).real)
+        N = np.array(fft.ifft2(fN).real)
     else:
-        N = np.array(fft.irfft2(fN, s=input_shape, **fft_kwargs))
+        N = np.array(fft.irfft2(fN))
     N = (N - N.mean())/N.std()
 
     return N
@@ -379,9 +376,8 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     rm_rdisc = kwargs.get('rm_disc', True)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = utils.get_method(fft)
-    else:
-        fft,fft_kwargs = fft
+        fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
+        fft = utils.get_method(fft, shape=fft_shape)
 
     X = X.copy()
 
@@ -413,7 +409,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True,
                                            use_full_fft=True,
-                                           fft_method=(fft,fft_kwargs))["F"]
+                                           fft_method=fft)["F"]
     # and allocate it to the final grid
     F = np.zeros((num_windows_y, num_windows_x, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -438,7 +434,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
                 # the new filter
                 F[i, j, : ,:] = initialize_nonparam_2d_fft_filter(X*mask[None, :, :],
                     win_type=None, donorm=True, use_full_fft=True, 
-                    fft_method=(fft,fft_kwargs))["F"]
+                    fft_method=fft)["F"]
 
     return {"F":F, "input_shape":X.shape[1:], "use_full_fft":True}
 
@@ -492,9 +488,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     rm_rdisc  = kwargs.get('rm_disc', True)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = utils.get_method(fft)
-    else:
-        fft,fft_kwargs = fft
+        fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
+        fft = utils.get_method(fft, shape=fft_shape)
 
     X = X.copy()
 
@@ -529,8 +524,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(X, win_type=win_type, donorm=True,
-                                           use_full_fft=True, 
-                                           fft_method=(fft,fft_kwargs))["F"]
+                                           use_full_fft=True,
+                                           fft_method=fft)["F"]
     # and allocate it to the final grid
     F = np.zeros((2**max_level, 2**max_level, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -555,7 +550,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
                     # the new filter
                     newfilter = initialize_nonparam_2d_fft_filter(X*mask[None, :, :],
                         win_type=None, donorm=True, use_full_fft=True, 
-                        fft_method=(fft,fft_kwargs))["F"]
+                        fft_method=fft)["F"]
 
                     # compute logistic function to define weights as function of frequency
                     # k controls the shape of the weighting function
@@ -623,9 +618,7 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     win_type = kwargs.get('win_type', 'flat-hanning')
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = utils.get_method(fft)
-    else:
-        fft,fft_kwargs = fft
+        fft = utils.get_method(fft, shape=input_shape)
 
     # set the seed
     if seed is not None:
@@ -637,7 +630,7 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
 
     # produce fields of white noise
     N = randstate.randn(dim_y, dim_x)
-    fN = fft.fft2(N, **fft_kwargs)
+    fN = fft.fft2(N)
 
     # initialize variables
     cN = np.zeros(dim)
@@ -659,7 +652,7 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
             # apply fourier filtering with local filter
             lF = F[i,j,:,:]
             flN = fN * lF
-            flN = np.array(fft.ifft2(flN, **fft_kwargs).real)
+            flN = np.array(fft.ifft2(flN).real)
 
             # compute indices of local window
             idxi[0] = np.max( (i*win_size[0] - overlap*win_size[0], 0) ).astype(int)

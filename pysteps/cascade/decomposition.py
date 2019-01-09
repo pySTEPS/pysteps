@@ -55,9 +55,8 @@ def decomposition_fft(X, filter, **kwargs):
     """
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft,fft_kwargs = utils.get_method(fft)
-    else:
-        fft,fft_kwargs = fft
+        fft = utils.get_method(fft, shape=X.shape)
+
     MASK = kwargs.get("MASK", None)
 
     if len(X.shape) != 2:
@@ -78,11 +77,11 @@ def decomposition_fft(X, filter, **kwargs):
     means  = []
     stds   = []
 
-    F = fft.rfft2(X, **fft_kwargs)
+    F = fft.rfft2(X)
     X_decomp = []
     for k in range(len(filter["weights_1d"])):
         W_k = filter["weights_2d"][k, :, :]
-        X_ = fft.irfft2(F*W_k, s=X.shape, **fft_kwargs)
+        X_ = fft.irfft2(F*W_k)
         X_decomp.append(X_)
 
         if MASK is not None:

@@ -9,6 +9,7 @@ from .. import cascade
 from .. import noise
 from ..postprocessing import probmatching
 from ..timeseries import autoregression, correlation
+from .. import utils
 try:
     import dask
     dask_imported = True
@@ -107,9 +108,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     num_workers : int
       The number of workers to use for parallel computation. Set to None to use
       all available CPUs. Applicable if dask is enabled.
-    fft_method : str or tuple
-      A string or a (function,kwargs) tuple defining the FFT method to use
-      (see utils.fft.get_method). Defaults to 'numpy'.
+    fft_method : str
+      A string defining the FFT method to use (see utils.fft.get_method).
+      Defaults to 'numpy'.
     extrap_kwargs : dict
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
@@ -227,6 +228,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     extrap_method = extrapolation.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
 
+    fft_objs = []
+    for i in range(n_ens_members):
+      fft_objs.append(utils.get_method(fft_method, shape=R.shape[1:]))
+
     if conditional:
         MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
     else:
@@ -254,7 +259,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     decomp_method = cascade.get_method(decomp_method)
     R_d = []
     for i in range(ar_order+1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft_method)
+        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, 
+                           fft_method=fft_objs[0])
         R_d.append(R_)
 
     # normalize the cascades and rearrange them into a four-dimensional array
@@ -313,7 +319,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         init_noise, generate_noise = noise.get_method(noise_method)
 
         # initialize the perturbation generator for the precipitation field
-        pp = init_noise(R, fft_method=fft_method, **noise_kwargs)
+        pp = init_noise(R, fft_method=fft_objs[0], **noise_kwargs)
 
         if noise_stddev_adj:
             print("Computing noise adjustment factors... ", end="")
@@ -412,9 +418,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             if noise_method is not None:
                 # generate noise field
                 EPS = generate_noise(pp, randstate=randgen_prec[j], 
-                                     fft_method=fft_method)
+                                     fft_method=fft_objs[j])
                 # decompose the noise field into a cascade
-                EPS = decomp_method(EPS, filter, fft_method=fft_method)
+                EPS = decomp_method(EPS, filter, fft_method=fft_objs[j])
             else:
                 EPS = None
 
