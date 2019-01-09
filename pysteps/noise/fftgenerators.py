@@ -63,7 +63,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     doplot : bool
         Plot the fit.
         Default : False
-    fft_method : tuple
+    fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see utils.fft.get_method). Defaults to "numpy".
 
@@ -192,7 +192,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
-    fft_method : tuple
+    fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see utils.fft.get_method). Defaults to "numpy".
 
@@ -269,7 +269,7 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None, fft_method=N
         Optional random generator to use. If set to None, use numpy.random.
     seed : int
         Value to set a seed for the generator. None will not set the seed.
-    fft_method : tuple
+    fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see utils.fft.get_method). Defaults to "numpy".
 
@@ -345,7 +345,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
-    fft_method : tuple
+    fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see utils.fft.get_method). Defaults to "numpy".
 
@@ -465,7 +465,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
-    fft_method : tuple
+    fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see utils.fft.get_method). Defaults to "numpy".
 
@@ -594,7 +594,7 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     win_type : string ['hanning', 'flat-hanning']
         Type of window used for localization.
         Default : flat-hanning
-    fft_method : tuple
+    fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see utils.fft.get_method). Defaults to "numpy".
 
