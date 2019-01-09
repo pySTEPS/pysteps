@@ -228,10 +228,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     extrap_method = extrapolation.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
 
-    fft_objs = []
-    for i in range(n_ens_members):
-      fft_objs.append(utils.get_method(fft_method, shape=R.shape[1:]))
-
     if conditional:
         MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
     else:
@@ -256,11 +252,12 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
 
     # compute the cascade decompositions of the input precipitation fields
+    fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
+
     decomp_method = cascade.get_method(decomp_method)
     R_d = []
     for i in range(ar_order+1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, 
-                           fft_method=fft_objs[0])
+        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft)
         R_d.append(R_)
 
     # normalize the cascades and rearrange them into a four-dimensional array
@@ -319,7 +316,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         init_noise, generate_noise = noise.get_method(noise_method)
 
         # initialize the perturbation generator for the precipitation field
-        pp = init_noise(R, fft_method=fft_objs[0], **noise_kwargs)
+        pp = init_noise(R, fft_method=fft, **noise_kwargs)
 
         if noise_stddev_adj:
             print("Computing noise adjustment factors... ", end="")
@@ -374,6 +371,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
         if probmatching_method == "mean":
             mu_0 = np.mean(R[-1, :, :][MASK_prec])
+
+    fft_objs = []
+    for i in range(n_ens_members):
+      fft_objs.append(utils.get_method(fft_method, shape=R.shape[1:]))
 
     R = R[-1, :, :]
 

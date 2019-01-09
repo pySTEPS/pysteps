@@ -39,7 +39,6 @@ def get_scipy(shape, fftn_shape=None, **kwargs):
     return fft
 
 def get_pyfftw(shape, fftn_shape=None, n_threads=1, **kwargs):
-    print(n_threads)
     try:
         import pyfftw.interfaces.numpy_fft as pyfftw_fft
         import pyfftw
