@@ -224,6 +224,29 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     if conditional or mask_method is not None:
         print("precip. intensity threshold: %g" % R_thr)
 
+    fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
+
+    if noise_method is not None:
+        # get methods for perturbations
+        init_noise, generate_noise = noise.get_method(noise_method)
+
+        # initialize the perturbation generator for the precipitation field
+        pp = init_noise(R, fft_method=fft, **noise_kwargs)
+
+        if noise_stddev_adj:
+            print("Computing noise adjustment factors... ", end="")
+            sys.stdout.flush()
+            starttime = time.time()
+
+            R_min = np.min(R)
+            noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(R[-1, :, :],
+                R_thr, R_min, filter, decomp_method, 10, conditional=True,
+                num_workers=num_workers)
+
+            print("%.2f seconds." % (time.time() - starttime))
+        else:
+            noise_std_coeffs = np.ones(n_cascade_levels)
+
     M,N = R.shape[1:]
     extrap_method = extrapolation.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
@@ -252,8 +275,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
 
     # compute the cascade decompositions of the input precipitation fields
-    fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
-
     decomp_method = cascade.get_method(decomp_method)
     R_d = []
     for i in range(ar_order+1):
@@ -308,28 +329,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             rs = np.random.RandomState(seed)
             randgen_motion.append(rs)
             seed = rs.randint(0, high=1e9)
-
-    R_min = np.min(R)
-
-    if noise_method is not None:
-        # get methods for perturbations
-        init_noise, generate_noise = noise.get_method(noise_method)
-
-        # initialize the perturbation generator for the precipitation field
-        pp = init_noise(R[-1, :, :], fft_method=fft, **noise_kwargs)
-
-        if noise_stddev_adj:
-            print("Computing noise adjustment factors... ", end="")
-            sys.stdout.flush()
-            starttime = time.time()
-
-            noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(R[-1, :, :],
-                R_thr, R_min, filter, decomp_method, 10, conditional=True,
-                num_workers=num_workers)
-
-            print("%.2f seconds." % (time.time() - starttime))
-        else:
-            noise_std_coeffs = np.ones(n_cascade_levels)
 
     if vel_pert_method is not None:
         init_vel_noise, generate_vel_noise = noise.get_method(vel_pert_method)
@@ -401,7 +400,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
             # compute the threshold value R_pct_thr corresponding to the
             # same fraction of precipitation pixels (forecast values above
-            # R_min) as in the most recently observed precipitation field
+            # R_thr) as in the most recently observed precipitation field
             R_s.sort(kind="quicksort")
             x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
             i = np.argmin(abs(x - war))
