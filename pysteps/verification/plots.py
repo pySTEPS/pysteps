@@ -167,8 +167,9 @@ def plot_ROC(ROC, ax=None, opt_prob_thr=False):
     ax.set_ylabel("Probability of detection (POD)")
     ax.grid(True, ls=':')
 
+    ax.plot(POFD, POD, "kD-")
+
     if opt_prob_thr:
-        l, = ax.plot(POFD, POD, "kD-")
         opt_prob_thr_idx = np.argmax(np.array(POD) - np.array(POFD))
         ax.scatter([POFD[opt_prob_thr_idx]], [POD[opt_prob_thr_idx]], c='r', s=150,
                    facecolors=None, edgecolors='r')
