@@ -211,7 +211,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     print("-----------")
     print("number of time steps:     %d" % n_timesteps)
     print("ensemble size:            %d" % n_ens_members)
-    print("parallel threads:         %d" % num_workers)
+    # TODO: Query the number of parallel threads from dask if it was not 
+    # specified by the user.
+    if num_workers is not None:
+        print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
     if vel_pert_method is "bps":
