@@ -225,6 +225,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     if conditional or mask_method is not None:
         print("precip. intensity threshold: %g" % R_thr)
 
+    num_ensemble_workers = n_ens_members if num_workers > n_ens_members \
+                           else num_workers
+
     fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
 
     M,N = R.shape[1:]
@@ -276,7 +279,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             res.append(dask.delayed(f)(R, i))
 
     if dask_imported:
-        R = np.stack(list(dask.compute(*res, num_workers=num_workers)) + [R[-1, :, :]])
+        num_workers_ = len(res) if num_workers > len(res) else num_workers
+        R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
 
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
@@ -496,7 +500,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             else:
                 res.append(dask.delayed(worker)(j))
 
-        R_f_ = dask.compute(*res, num_workers=num_workers) \
+        R_f_ = dask.compute(*res, num_workers=num_ensemble_workers) \
             if dask_imported and n_ens_members > 1 else res
         res = None
 
