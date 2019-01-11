@@ -22,7 +22,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
              noise_method="nonparametric", noise_stddev_adj=False, ar_order=2,
              vel_pert_method="bps", conditional=False, probmatching_method="cdf",
              mask_method="incremental", callback=None, return_output=True,
-             seed=None, num_workers=None, fft_method="numpy", extrap_kwargs={},
+             seed=None, num_workers=1, fft_method="numpy", extrap_kwargs={},
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
@@ -106,8 +106,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     seed : int
       Optional seed number for the random generators.
     num_workers : int
-      The number of workers to use for parallel computation. Set to None to use
-      all available CPUs. Applicable if dask is enabled.
+      The number of workers to use for parallel computation. Applicable if dask 
+      is enabled or pyFFTW is used for computing the FFT.
     fft_method : str
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy'.
@@ -211,10 +211,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     print("-----------")
     print("number of time steps:     %d" % n_timesteps)
     print("ensemble size:            %d" % n_ens_members)
-    # TODO: Query the number of parallel threads from dask if it was not
-    # specified by the user.
-    if num_workers is not None:
-        print("parallel threads:         %d" % num_workers)
+    print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
     if vel_pert_method is "bps":
