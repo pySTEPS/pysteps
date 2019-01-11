@@ -75,14 +75,14 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       The order of the autoregressive model to use. Must be >= 1.
     vel_pert_method : {'bps',None}
       Name of the noise generator to use for perturbing the advection field. See
-      the documentation of pysteps.noise.interface. If set to None, the advection 
+      the documentation of pysteps.noise.interface. If set to None, the advection
       field is not perturbed.
     conditional : bool
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
       R_thr.
     mask_method : {'obs','sprog','incremental',None}
-      The method to use for masking no precipitation areas in the forecast field. 
+      The method to use for masking no precipitation areas in the forecast field.
       The masked pixels are set to the minimum value of the observations.
       'obs' = apply R_thr to the most recently observed precipitation intensity
       field, 'sprog' = use the smoothed forecast field from S-PROG, where the
@@ -211,7 +211,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     print("-----------")
     print("number of time steps:     %d" % n_timesteps)
     print("ensemble size:            %d" % n_ens_members)
-    # TODO: Query the number of parallel threads from dask if it was not 
+    # TODO: Query the number of parallel threads from dask if it was not
     # specified by the user.
     if num_workers is not None:
         print("parallel threads:         %d" % num_workers)
@@ -229,6 +229,14 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         print("precip. intensity threshold: %g" % R_thr)
 
     fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
+
+    M,N = R.shape[1:]
+
+    # initialize the band-pass filter
+    filter_method = cascade.get_method(bandpass_filter_method)
+    filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
+
+    decomp_method = cascade.get_method(decomp_method)
 
     if noise_method is not None:
         # get methods for perturbations
@@ -251,7 +259,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         else:
             noise_std_coeffs = np.ones(n_cascade_levels)
 
-    M,N = R.shape[1:]
     extrap_method = extrapolation.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
 
@@ -274,12 +281,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     if dask_imported:
         R = np.stack(list(dask.compute(*res, num_workers=num_workers)) + [R[-1, :, :]])
 
-    # initialize the band-pass filter
-    filter_method = cascade.get_method(bandpass_filter_method)
-    filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
-
     # compute the cascade decompositions of the input precipitation fields
-    decomp_method = cascade.get_method(decomp_method)
     R_d = []
     for i in range(ar_order+1):
         R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft)
@@ -421,7 +423,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         def worker(j):
             if noise_method is not None:
                 # generate noise field
-                EPS = generate_noise(pp, randstate=randgen_prec[j], 
+                EPS = generate_noise(pp, randstate=randgen_prec[j],
                                      fft_method=fft_objs[j])
                 # decompose the noise field into a cascade
                 EPS = decomp_method(EPS, filter, fft_method=fft_objs[j])
