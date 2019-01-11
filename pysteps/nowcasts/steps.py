@@ -110,7 +110,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       is enabled or pyFFTW is used for computing the FFT.
     fft_method : str
       A string defining the FFT method to use (see utils.fft.get_method).
-      Defaults to 'numpy'.
+      Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
+      the recommended method is 'pyfftw'.
     extrap_kwargs : dict
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
