@@ -153,32 +153,47 @@ def rankhist_accum(rankhist, X_f, X_o):
 
     """
     if X_f.shape[0] != rankhist["num_ens_members"]:
-        raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[1], rankhist["num_ens_members"]))
-
-    X_min = rankhist["X_min"]
+        raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[0], rankhist["num_ens_members"]))
 
     X_f = np.vstack([X_f[i, :].flatten() for i in range(X_f.shape[0])]).T
     X_o = X_o.flatten()
 
+    X_min = rankhist["X_min"]
+
     mask = np.logical_and(np.isfinite(X_o), np.all(np.isfinite(X_f), axis=1))
+    # ignore pairs where the verifying observations and all ensemble members
+    # are below the threshold X_min
+    mask_nz = np.logical_or(X_o >= X_min, np.any(X_f >= X_min, axis=1))
+    mask = np.logical_and(mask, mask_nz)
+
     X_f = X_f[mask, :].copy()
-    X_o = X_o[mask]
+    X_f[X_f < X_min] = X_min - 1
+    X_o = X_o[mask].copy()
+    X_o[X_o < X_min] = X_min - 1
 
-    mask_nz = np.logical_or(X_o >= X_min, np.all(X_f >= X_min, axis=1))
+    X_o = np.reshape(X_o, (len(X_o), 1))
 
-    X_f.sort(axis=1)
-    bin_idx = [np.digitize([v], f)[0] for v,f in zip(X_o[mask_nz], X_f[mask_nz, :])]
+    X_c = np.hstack([X_f, X_o])
+    X_c.sort(axis=1)
+
+    idx1 = np.where(X_c == X_o)
+    _,idx2,idx_counts = np.unique(idx1[0], return_index=True, return_counts=True)
+    bin_idx_1 = idx1[1][idx2]
+
+    bin_idx = list(bin_idx_1[np.where(idx_counts == 1)[0]])
 
     # handle ties, where the verifying observation lies between ensemble
     # members having the same value
-    # ignore the cases where the verifying observations and all ensemble
-    # members are below the threshold X_min
-    for i in np.where(~mask_nz)[0]:
-        if np.any(X_f[i, :] >= X_min):
-            i_eq = np.where(X_f[i, :] < X_min)[0]
-            if len(i_eq) > 1 and X_o[i] < X_min:
-                bin_idx.append(np.random.randint(low=np.min(i_eq),
-                                                 high=np.max(i_eq)+1))
+    idxdup = np.where(idx_counts > 1)[0]
+    if len(idxdup) > 0:
+        X_c_ = np.fliplr(X_c)
+        idx1 = np.where(X_c_ == X_o)
+        _,idx2 = np.unique(idx1[0], return_index=True)
+        bin_idx_2 = X_f.shape[1] - idx1[1][idx2]
+
+        idxr = np.random.uniform(low=0.0, high=1.0, size=len(idxdup))
+        idxr = bin_idx_1[idxdup] + idxr * (bin_idx_2[idxdup] - bin_idx_1[idxdup])
+        bin_idx.extend(idxr.round().astype(int))
 
     for bi in bin_idx:
         rankhist["n"][bi] += 1
