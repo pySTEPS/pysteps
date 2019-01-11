@@ -73,8 +73,8 @@ def get_method(name, **kwargs):
 
     name = name.lower()
 
-    def donothing(R, metadata, *args, **kwargs):
-        return R.copy(), metadata.copy()
+    def donothing(R, metadata=None, *args, **kwargs):
+        return R.copy(), {} if metadata is None else metadata.copy()
 
     methods_objects                 = dict()
     methods_objects["none"]         = donothing
