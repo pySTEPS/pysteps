@@ -112,7 +112,7 @@ def ensemble_spread(X_f, metric, **kwargs):
 
     return np.mean(skill)
 
-def rankhist_init(num_ens_members, X_min):
+def rankhist_init(num_ens_members, X_min=None):
     """Initialize a rank histogram object.
 
     Parameters
@@ -120,10 +120,10 @@ def rankhist_init(num_ens_members, X_min):
     num_ens_members : int
         Number ensemble members in the forecasts to accumulate into the rank
         histogram.
-    X_min : float
+    X_min : {float,None}
         Threshold for minimum intensity. Forecast-observation pairs, where all
         ensemble members and verifying observations are below X_min, are not
-        counted in the rank histogram.
+        counted in the rank histogram. If set to None, thresholding is not used.
 
     Returns
     -------
@@ -163,13 +163,15 @@ def rankhist_accum(rankhist, X_f, X_o):
     mask = np.logical_and(np.isfinite(X_o), np.all(np.isfinite(X_f), axis=1))
     # ignore pairs where the verifying observations and all ensemble members
     # are below the threshold X_min
-    mask_nz = np.logical_or(X_o >= X_min, np.any(X_f >= X_min, axis=1))
-    mask = np.logical_and(mask, mask_nz)
+    if X_min is not None:
+        mask_nz = np.logical_or(X_o >= X_min, np.any(X_f >= X_min, axis=1))
+        mask = np.logical_and(mask, mask_nz)
 
     X_f = X_f[mask, :].copy()
-    X_f[X_f < X_min] = X_min - 1
     X_o = X_o[mask].copy()
-    X_o[X_o < X_min] = X_min - 1
+    if X_min is not None:
+        X_f[X_f < X_min] = X_min - 1
+        X_o[X_o < X_min] = X_min - 1
 
     X_o = np.reshape(X_o, (len(X_o), 1))
 
