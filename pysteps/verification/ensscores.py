@@ -193,7 +193,7 @@ def rankhist_accum(rankhist, X_f, X_o):
 
         idxr = np.random.uniform(low=0.0, high=1.0, size=len(idxdup))
         idxr = bin_idx_1[idxdup] + idxr * (bin_idx_2[idxdup] - bin_idx_1[idxdup])
-        bin_idx.extend(idxr.round().astype(int))
+        bin_idx.extend(idxr.astype(int))
 
     for bi in bin_idx:
         rankhist["n"][bi] += 1
