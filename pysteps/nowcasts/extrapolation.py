@@ -32,8 +32,8 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
     -------
     out : ndarray
       Three-dimensional array of shape (num_timesteps,m,n) containing a time
-      series of nowcast precipitation fields. The time step is taken from
-      the advection field.
+      series of nowcast precipitation fields. The time series starts from
+      t0+timestep, where timestep is taken from the advection field V.
 
     See also
     --------
