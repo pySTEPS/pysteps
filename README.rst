@@ -53,12 +53,14 @@ Additionally, the following packages can be installed to provide better computat
 
 Other optional packages include:
 
-* cartopy_ or basemap_ (for georeferenced visualization) 
+* cartopy_ or basemap_ (for georeferenced visualization)
 * h5py_ (for importing HDF5 data)
+* pywavelets_ (for intensity-scale verification)
 
 .. _basemap: https://matplotlib.org/basemap/
 .. _cartopy: https://scitools.org.uk/cartopy/docs/v0.16/
 .. _h5py: https://www.h5py.org/
+.. _pywavelets: https://pywavelets.readthedocs.io/en/latest/
 
 We recommend that you create a conda environment using the available
 `environment.yml`_ file to install the most important dependencies::
