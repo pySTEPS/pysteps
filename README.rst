@@ -19,7 +19,7 @@ Dependencies
 
 The pysteps package needs the following dependencies
 
-* python>=3.6
+* python_>=3.6
 * attrdict_
 * jsmin_
 * jsonschema_
@@ -31,6 +31,7 @@ The pysteps package needs the following dependencies
 * pyproj_
 * scipy_
 
+.. _python : http://www.python.org/
 .. _attrdict : https://pypi.org/project/attrdict/
 .. _jsmin : https://pypi.org/project/jsmin/
 .. _jsonschema : https://pypi.org/project/jsonschema/
