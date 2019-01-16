@@ -251,3 +251,29 @@ the pystep is imported, the configuration file loaded is shown::
      import pysteps
      "Pysteps configuration file found at: /home/user_name/.pysteps/pystepsrc"
 
+
+Testing
+=======
+
+The pysteps distribution includes a small test suite for some of the modules.
+To run the tests the pytest_ package is needed. To install it, run::
+
+    $> pip install pytest
+
+.. _pytest: https://docs.pytest.org
+
+Installation tests
+------------------
+After installation, you can launch the test suite from any directory by
+running::
+
+    $> pytest --pyargs pysteps
+
+Source code tests
+-----------------
+
+The source code can be tested in-place using the **pytest** command on the root
+of the pysteps source directory. E.g.::
+
+    $> pytest -v --tb=line
+
