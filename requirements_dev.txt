@@ -1,0 +1,23 @@
+# Base dependencies
+python>=3.6
+numpy
+opencv-python
+pillow
+pyproj
+scipy
+matplotlib
+attrdict
+jsmin
+jsonschema
+netCDF4
+
+# Optional dependencies
+dask
+pyfftw
+cartopy
+basemap
+h5py
+
+# Testing
+pytest
+
