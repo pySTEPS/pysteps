@@ -43,8 +43,12 @@ for lt in leadtimes:
 p_par  = curve_fit(f, leadtimes, std_par)[0]
 p_perp = curve_fit(f, leadtimes, std_perp)[0]
 
+print("p_par  = %s" % str(p_par))
+print("p_perp = %s" % str(p_perp))
+
 if args.plot is not None:
     pyplot.figure()
+
     pyplot.scatter(leadtimes, std_par,  c='r')
     t = np.linspace(0.5*leadtimes[0], 1.025*leadtimes[-1], 200)
     l1, = pyplot.plot(t, f(t, *p_par), "r-")
