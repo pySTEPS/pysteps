@@ -1,5 +1,5 @@
 # Fits STEPS motion perturbation parameters to the output of run_vel_pert_analysis.py 
-# and optionally plots the results. For the description of the method, see 
+# and optionally plots the results. For a description of the method, see 
 # :cite:`BPS2006`.
 
 import argparse
