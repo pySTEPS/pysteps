@@ -26,7 +26,7 @@ The pysteps package needs the following dependencies
 * matplotlib_
 * netCDF4_
 * numpy_
-* opencv-python_
+* opencv_
 * pillow_
 * pyproj_
 * scipy_
@@ -37,7 +37,7 @@ The pysteps package needs the following dependencies
 .. _matplotlib: http://matplotlib.org/
 .. _netCDF4: https://pypi.org/project/netCDF4/
 .. _numpy: http://www.numpy.org/
-.. _opencv-python: https://opencv.org/
+.. _opencv: https://opencv.org/
 .. _pillow: https://python-pillow.org/
 .. _pyproj: https://jswhit.github.io/pyproj/
 .. _scipy: https://www.scipy.org/
