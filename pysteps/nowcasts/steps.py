@@ -1,9 +1,9 @@
 """Implementation of the STEPS method."""
 
-import numpy as np
-import scipy.ndimage
 import sys
 import time
+import numpy as np
+import scipy.ndimage
 from .. import extrapolation
 from .. import cascade
 from .. import noise
@@ -106,7 +106,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     seed : int
       Optional seed number for the random generators.
     num_workers : int
-      The number of workers to use for parallel computation. Applicable if dask 
+      The number of workers to use for parallel computation. Applicable if dask
       is enabled or pyFFTW is used for computing the FFT.
     fft_method : str
       A string defining the FFT method to use (see utils.fft.get_method).
@@ -217,10 +217,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
     if vel_pert_method is "bps":
-        vp_par  = vel_pert_kwargs.get("p_pert_par",  noise.motion.get_default_params_bps_par())
+        vp_par = vel_pert_kwargs.get("p_pert_par", noise.motion.get_default_params_bps_par())
         vp_perp = vel_pert_kwargs.get("p_pert_perp", noise.motion.get_default_params_bps_perp())
         print("velocity perturbations, parallel:      %g,%g,%g" % \
-            (vp_par[0],  vp_par[1],  vp_par[2]))
+            (vp_par[0], vp_par[1], vp_par[2]))
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
             (vp_perp[0], vp_perp[1], vp_perp[2]))
 
@@ -232,7 +232,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
     fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
 
-    M,N = R.shape[1:]
+    M, N = R.shape[1:]
 
     # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
@@ -273,7 +273,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     extrap_kwargs = extrap_kwargs.copy()
     res = []
-    f = lambda R,i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
+    f = lambda R, i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
         if not dask_imported:
             R[i, :, :] = f(R, i)
@@ -292,7 +292,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
     # normalize the cascades and rearrange them into a four-dimensional array
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c,mu,sigma = _stack_cascades(R_d, n_cascade_levels)
+    R_c, mu, sigma = _stack_cascades(R_d, n_cascade_levels)
     R_d = None
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
@@ -328,7 +328,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
     # initialize the random generators
     if noise_method is not None:
-        randgen_prec   = []
+        randgen_prec = []
         randgen_motion = []
         np.random.seed(seed)
         for j in range(n_ens_members):
@@ -446,7 +446,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                     autoregression.iterate_ar_model(R_c[j, i, :, :, :],
                                                     PHI[i, :], EPS=EPS_)
 
-            EPS  = None
+            EPS = None
             EPS_ = None
 
             # compute the recomposed precipitation field(s) from the cascades
@@ -489,7 +489,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             # advect the recomposed precipitation field to obtain the forecast
             # for time step t
             extrap_kwargs.update({"D_prev":D[j], "return_displacement":True})
-            R_f_,D_ = extrap_method(R_c_, V_, 1, **extrap_kwargs)
+            R_f_, D_ = extrap_method(R_c_, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]
 
@@ -587,28 +587,28 @@ def _print_corrcoefs(GAMMA):
         print(hline_str)
 
 def _stack_cascades(R_d, n_levels, donorm=True):
-    R_c   = []
-    mu    = np.empty(n_levels)
+    R_c = []
+    mu = np.empty(n_levels)
     sigma = np.empty(n_levels)
 
     n_inputs = len(R_d)
 
     for i in range(n_levels):
         R_ = []
-        mu_    = 0
+        mu_ = 0
         sigma_ = 1
         for j in range(n_inputs):
             if donorm:
-                mu_    = R_d[j]["means"][i]
+                mu_ = R_d[j]["means"][i]
                 sigma_ = R_d[j]["stds"][i]
             if j == n_inputs - 1:
-                mu[i]    = mu_
+                mu[i] = mu_
                 sigma[i] = sigma_
             R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
             R_.append(R__)
         R_c.append(np.stack(R_))
 
-    return np.stack(R_c),mu,sigma
+    return np.stack(R_c), mu, sigma
 
 def _recompose_cascade(R, mu, sigma):
     R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
