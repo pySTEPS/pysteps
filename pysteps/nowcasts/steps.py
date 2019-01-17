@@ -382,7 +382,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
     fft_objs = []
     for i in range(n_ens_members):
-      fft_objs.append(utils.get_method(fft_method, shape=R.shape[1:]))
+        fft_objs.append(utils.get_method(fft_method, shape=R.shape[1:]))
 
     R = R[-1, :, :]
 
@@ -587,28 +587,28 @@ def _print_corrcoefs(GAMMA):
         print(hline_str)
 
 def _stack_cascades(R_d, n_levels, donorm=True):
-  R_c   = []
-  mu    = np.empty(n_levels)
-  sigma = np.empty(n_levels)
+    R_c   = []
+    mu    = np.empty(n_levels)
+    sigma = np.empty(n_levels)
 
-  n_inputs = len(R_d)
+    n_inputs = len(R_d)
 
-  for i in range(n_levels):
-      R_ = []
-      mu_    = 0
-      sigma_ = 1
-      for j in range(n_inputs):
-          if donorm:
-              mu_    = R_d[j]["means"][i]
-              sigma_ = R_d[j]["stds"][i]
-          if j == n_inputs - 1:
-              mu[i]    = mu_
-              sigma[i] = sigma_
-          R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
-          R_.append(R__)
-      R_c.append(np.stack(R_))
+    for i in range(n_levels):
+        R_ = []
+        mu_    = 0
+        sigma_ = 1
+        for j in range(n_inputs):
+            if donorm:
+                mu_    = R_d[j]["means"][i]
+                sigma_ = R_d[j]["stds"][i]
+            if j == n_inputs - 1:
+                mu[i]    = mu_
+                sigma[i] = sigma_
+            R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
+            R_.append(R__)
+        R_c.append(np.stack(R_))
 
-  return np.stack(R_c),mu,sigma
+    return np.stack(R_c),mu,sigma
 
 def _recompose_cascade(R, mu, sigma):
     R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
