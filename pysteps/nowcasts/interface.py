@@ -1,26 +1,36 @@
-import numpy as np
+"""
+The methods in the nowcasts module implement the following interface:
 
-"""The methods in the nowcasts module implement the following interface:
+    forecast(precip, velocity, num_timesteps, **keywords)
 
-    forecast(R, V, num_timesteps, **kwargs)
+where precip is a (m,n) array with input precipitation field to be advected and
+velocity is a (2,m,n) array containing  the x- and y-components of
+the m x n advection field.
+num_timesteps is an integer specifying the number of time steps to forecast.
+The interface accepts optional keyword arguments specific to the given method.
 
-where R (m,n) is the input precipitation field and V (2,m,n) is an array
-containing  the x- and y-components of the m*n advection field. num_timesteps
-is an integer specifying the number of time steps to forecast. The interface
-accepts optional keyword arguments specific to the given method.
-
-The output depends on the type of the method. For deterministic methods, the
-output is a three-dimensional array of shape (num_timesteps,m,n) containing a
-time series of nowcast precipitation fields. For stochastic methods that produce
-an ensemble, the output is a four-dimensional array of shape
-(num_ensemble_members,num_timesteps,m,n). The time step of the output is taken
-from the inputs.
-
+The output depends on the type of the method.
+For deterministic methods, the output is a three-dimensional array of shape
+(num_timesteps,m,n) containing a time series of nowcast precipitation fields.
+For stochastic methods that produce an ensemble, the output is a
+four-dimensional array of shape (num_ensemble_members,num_timesteps,m,n).
+The time step of the output is taken from the inputs.
 """
 
+from pysteps.extrapolation.interface import eulerian_persistence
+from pysteps.nowcasts import steps, extrapolation
+
+_nowcast_methods = dict()
+_nowcast_methods["eulerian"] = eulerian_persistence
+_nowcast_methods["lagrangian"] = extrapolation.forecast
+_nowcast_methods["extrapolation"] = extrapolation.forecast
+_nowcast_methods["steps"] = steps.forecast
+
+
 def get_method(name):
-    """Return a callable function for computing deterministic or ensemble
-    precipitation nowcasts.\n\
+    """
+    Return a callable function for computing deterministic or ensemble
+    precipitation nowcasts.\n
 
     Implemented methods:
 
@@ -39,17 +49,18 @@ def get_method(name):
     +-------------------+-----------------------------------------------------+
 
     steps produces stochastic nowcasts, and the other methods are deterministic.
-
     """
-    if name.lower() in ["eulerian"]:
-        def eulerian(R, V, num_timesteps, *args, **kwargs):
-            return np.repeat(R[None, :, :,], num_timesteps, axis=0)
-        return eulerian
-    elif name.lower() in ["extrapolation", "lagrangian"]:
-        from . import extrapolation
-        return extrapolation.forecast
-    elif name.lower() in ["steps"]:
-        from . import steps
-        return steps.forecast
+
+    if isinstance(name, str):
+        name = name.lower()
     else:
-        raise ValueError("unknown nowcasting method %s" % name)
+        raise TypeError("Only strings supported for the method's names.\n"
+                        + "Available names:"
+                        + str(list(_nowcast_methods.keys()))) from None
+
+    try:
+        return _nowcast_methods[name]
+    except KeyError:
+        raise ValueError("Unknown nowcasting method {}\n".format(name)
+                         + "The available methods are:"
+                         + str(list(_nowcast_methods.keys()))) from None

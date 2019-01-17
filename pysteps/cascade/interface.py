@@ -1,4 +1,3 @@
-
 from pysteps.cascade import decomposition, bandpass_filters
 
 _cascade_methods = dict()
@@ -37,7 +36,10 @@ def get_method(name):
 
     if isinstance(name, str):
         name = name.lower()
-
+    else:
+        raise TypeError("Only strings supported for the method's names.\n"
+                        + "Available names:"
+                        + str(list(_cascade_methods.keys()))) from None
     try:
         return _cascade_methods[name]
     except KeyError:

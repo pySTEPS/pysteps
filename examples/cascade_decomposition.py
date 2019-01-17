@@ -57,7 +57,7 @@ input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pa
                                   ds.fn_ext, ds.timestep, 0, 0)
 
 ## read radar field files
-importer = stp.io.get_method(ds.importer, type="importer")
+importer = stp.io.get_method(ds.importer, "importer")
 R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
 R = R.squeeze() # since this contains just one frame
 Rmask = np.isnan(R)
