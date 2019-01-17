@@ -10,7 +10,6 @@ from scipy import linalg as la
 from pysteps import io, motion
 from pysteps import rcparams
 from pysteps.utils import transformation
-import datasources
 
 # TODO: Don't hard-code this.
 num_prev_files = 9
