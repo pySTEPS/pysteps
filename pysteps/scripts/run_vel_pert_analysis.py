@@ -4,8 +4,8 @@ For a description of the method, see :cite:`BPS2006`."""
 
 import argparse
 from datetime import datetime, timedelta
-import numpy as np
 import pickle
+import numpy as np
 from scipy import linalg as la
 from pysteps import io, motion
 from pysteps import rcparams
@@ -13,7 +13,7 @@ from pysteps.utils import transformation
 
 # TODO: Don't hard-code these.
 num_prev_files = 9
-use_precip_mask = False
+use_precip_mask = True
 R_min = 0.1
 
 argparser = argparse.ArgumentParser(\
@@ -33,7 +33,7 @@ args = argparser.parse_args()
 datasource = rcparams["data_sources"][args.datasource]
 
 startdate = datetime.strptime(args.startdate, "%Y%m%d%H%M")
-enddate = datetime.strptime(args.enddate,   "%Y%m%d%H%M")
+enddate = datetime.strptime(args.enddate, "%Y%m%d%H%M")
 
 importer = io.get_method(datasource["importer"], "importer")
 
@@ -87,6 +87,7 @@ while curdate <= enddate:
     else:
         R_ = R
 
+    # TODO: Allow the user to supply parameters for the optical flow.
     V = oflow(R_) * vsf
     if use_precip_mask:
         V[0, :, :][MASK] = np.nan
