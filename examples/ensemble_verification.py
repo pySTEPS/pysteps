@@ -186,7 +186,7 @@ for n, parset in enumerate(parsets):
             
     
             ## read radar field files
-            importer    = stp.io.get_method(ds.importer, type="importer")
+            importer    = stp.io.get_method(ds.importer, "importer")
             R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
             metadata0 = metadata.copy()
             metadata0["shape"] = R.shape[1:]
@@ -296,7 +296,7 @@ for n, parset in enumerate(parsets):
                                           ds.fn_ext, ds.timestep, 0, p["n_lead_times"])
                                           
         ## read radar field files
-        importer = stp.io.get_method(ds.importer, type="importer")
+        importer = stp.io.get_method(ds.importer, "importer")
         R_obs, _, metadata_obs = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
         R_obs = R_obs[1:,:,:]
         metadata_obs["timestamps"] = metadata_obs["timestamps"][1:]
