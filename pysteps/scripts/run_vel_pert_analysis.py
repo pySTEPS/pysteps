@@ -13,6 +13,8 @@ from pysteps.utils import transformation
 
 # TODO: Don't hard-code these.
 num_prev_files = 9
+use_precip_mask = False
+R_min = 0.1
 
 argparser = argparse.ArgumentParser(\
     description="Estimate motion perturbation parameters for STEPS.")
@@ -59,8 +61,8 @@ while curdate <= enddate:
         curdate += timedelta(minutes=datasource["timestep"])
         continue
 
-    R,_, metadata = io.readers.read_timeseries(fns, importer,
-                                               **datasource["importer_kwargs"])
+    R, _, metadata = io.readers.read_timeseries(fns, importer,
+                                                **datasource["importer_kwargs"])
 
     # TODO: Here we assume that metadata["xpixelsize"] = metadata["ypixelsize"]
     vsf = 60.0 / datasource["timestep"] * metadata["xpixelsize"] / 1000.0
@@ -76,6 +78,8 @@ while curdate <= enddate:
         continue
 
     R[~np.isfinite(R)] = metadata["zerovalue"]
+    if use_precip_mask:
+        MASK = np.any(R < R_min, axis=0)
     R = transformation.dB_transform(R)[0]
 
     if args.oflow == "vet":
@@ -83,7 +87,11 @@ while curdate <= enddate:
     else:
         R_ = R
 
-    motionfields[curdate] = (oflow(R_) * vsf).astype(np.float32)
+    V = oflow(R_) * vsf
+    if use_precip_mask:
+        V[0, :, :][MASK] = np.nan
+        V[1, :, :][MASK] = np.nan
+    motionfields[curdate] = V.astype(np.float32)
 
     curdate += timedelta(minutes=datasource["timestep"])
 
@@ -99,7 +107,12 @@ else:
 
 for i, date1 in enumerate(dates):
     V1 = motionfields[date1].astype(float)
-    N = la.norm(V1, axis=0)
+    if not use_precip_mask:
+        N = la.norm(V1, axis=0)
+    else:
+        N = np.ones(V1.shape[1:]) * np.nan
+        MASK = np.isfinite(V1[0, :, :])
+        N[MASK] = la.norm(V1[:, MASK], axis=0)
     V1_par = V1 / N
     V1_perp = np.stack([-V1_par[1, :, :], V1_par[0, :, :]])
 
@@ -115,7 +128,7 @@ for i, date1 in enumerate(dates):
 
         DV = V2 - V1
 
-        DP_par  = DV[0, :, :] * V1_par[0, :, :]  + DV[1, :, :] * V1_par[1, :, :]
+        DP_par = DV[0, :, :] * V1_par[0, :, :]  + DV[1, :, :] * V1_par[1, :, :]
         DP_perp = DV[0, :, :] * V1_perp[0, :, :] + DV[1, :, :] * V1_perp[1, :, :]
 
         if not lt in results.keys():
@@ -125,6 +138,15 @@ for i, date1 in enumerate(dates):
             results[lt]["dp_perp_sum"] = 0.0
             results[lt]["dp_perp_sq_sum"] = 0.0
             results[lt]["n_samples"] = 0
+
+        if use_precip_mask:
+            MASK = np.logical_and(np.isfinite(V1[0, :, :]),
+                                  np.isfinite(V2[0, :, :]))
+            DP_par = DP_par[MASK]
+            DP_perp = DP_perp[MASK]
+            n_samples = np.sum(MASK)
+        else:
+            n_samples = DP_par.size
 
         results[lt]["dp_par_sum"] += np.sum(DP_par)
         results[lt]["dp_par_sq_sum"] += np.sum(DP_par**2)
