@@ -152,7 +152,7 @@ for i, date1 in enumerate(dates):
         results[lt]["dp_par_sq_sum"] += np.sum(DP_par**2)
         results[lt]["dp_perp_sum"] += np.sum(DP_perp)
         results[lt]["dp_perp_sq_sum"] += np.sum(DP_perp**2)
-        results[lt]["n_samples"] += DP_par.size
+        results[lt]["n_samples"] += n_samples
 
 with open("%s" % args.outfile, "wb") as f:
     pickle.dump(results, f)
