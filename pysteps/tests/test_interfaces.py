@@ -97,6 +97,15 @@ def test_io_interface():
 
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
+    # Test for invalid argument type
+    with pytest.raises(TypeError):
+        pysteps.io.interface.get_method('mch_gif', None)
+        pysteps.io.interface.get_method(None, 'importer')
+
+    # Test for invalid method types
+    with pytest.raises(ValueError):
+        pysteps.io.interface.get_method('mch_gif', 'io')
+
 
 def test_motion_interface():
     """ Test the motion module interface"""
