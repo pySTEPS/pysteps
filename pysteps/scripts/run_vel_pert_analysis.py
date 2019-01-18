@@ -13,7 +13,7 @@ from pysteps.utils import transformation
 
 # TODO: Don't hard-code these.
 num_prev_files = 9
-use_precip_mask = True
+use_precip_mask = False
 R_min = 0.1
 
 argparser = argparse.ArgumentParser(\
@@ -80,6 +80,7 @@ while curdate <= enddate:
     R[~np.isfinite(R)] = metadata["zerovalue"]
     if use_precip_mask:
         MASK = np.any(R < R_min, axis=0)
+    # TODO: the unit of the input data needs to be checked
     R = transformation.dB_transform(R)[0]
 
     if args.oflow == "vet":
