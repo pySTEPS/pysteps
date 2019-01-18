@@ -18,7 +18,6 @@ import sys
 import time
 
 import pysteps as stp
-import config as cfg
 
 # Verification settings
 verification = {
@@ -63,9 +62,7 @@ experiment = {
     "n_cascade_levels"  : [6],
     "noise_adjustment"  : [True],
     "conditional"       : [False],
-    "precip_mask"       : [True],
     "mask_method"       : ["incremental"],      # obs, incremental, sprog
-    "prob_matching"     : [True],
 }
 
 # Conditional parameters
@@ -108,7 +105,7 @@ for n, parset in enumerate(parsets):
     pprint.pprint(p)
     
     # If necessary, build path to results
-    path_to_experiment = os.path.join(cfg.path_outputs, p["experiment_name"])
+    path_to_experiment = os.path.join(stp.rcparams.outputs.path_outputs, p["experiment_name"])
     # subdir with event date
     path_to_nwc = os.path.join(path_to_experiment, '-'.join([p["data"][0], p["data"][3]]))
     for key, item in p.items():
@@ -127,7 +124,7 @@ for n, parset in enumerate(parsets):
     # Loop forecasts within given event using the prescribed update cycle interval
 
     ## import data specifications
-    ds = cfg.get_specifications(p["data"][3])
+    ds = stp.rcparams.data_sources[p["data"][3]]
     
     if p["v_accu"] is None:
         p["v_accu"] = ds.timestep
@@ -189,7 +186,7 @@ for n, parset in enumerate(parsets):
             
     
             ## read radar field files
-            importer    = stp.io.get_method(ds.importer, type="importer")
+            importer    = stp.io.get_method(ds.importer, "importer")
             R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
             metadata0 = metadata.copy()
             metadata0["shape"] = R.shape[1:]
@@ -253,9 +250,7 @@ for n, parset in enumerate(parsets):
                             noise_method=p["noise_method"], 
                             noise_stddev_adj=p["noise_adjustment"],
                             ar_order=p["ar_order"],conditional=p["conditional"], 
-                            use_probmatching=p["prob_matching"], 
-                            mask_method=p["mask_method"], 
-                            use_precip_mask=p["precip_mask"], callback=export, 
+                            mask_method=p["mask_method"], callback=export, 
                             return_output=False, seed=p["seed"])
             
             ## save results
@@ -301,7 +296,7 @@ for n, parset in enumerate(parsets):
                                           ds.fn_ext, ds.timestep, 0, p["n_lead_times"])
                                           
         ## read radar field files
-        importer = stp.io.get_method(ds.importer, type="importer")
+        importer = stp.io.get_method(ds.importer, "importer")
         R_obs, _, metadata_obs = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
         R_obs = R_obs[1:,:,:]
         metadata_obs["timestamps"] = metadata_obs["timestamps"][1:]

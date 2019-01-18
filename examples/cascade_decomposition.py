@@ -15,7 +15,6 @@ import numpy as np
 import os
 
 import pysteps as stp
-import config as cfg
 
 # List of case studies that can be used in this tutorial
 
@@ -51,14 +50,14 @@ print('Read the data...')
 startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 
 ## import data specifications
-ds = cfg.get_specifications(data_source)
+ds = stp.rcparams.data_sources[data_source]
 
 ## find radar field filenames
 input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
                                   ds.fn_ext, ds.timestep, 0, 0)
 
 ## read radar field files
-importer = stp.io.get_method(ds.importer, type="importer")
+importer = stp.io.get_method(ds.importer, "importer")
 R, _, metadata = stp.io.read_timeseries(input_files, importer, **ds.importer_kwargs)
 R = R.squeeze() # since this contains just one frame
 Rmask = np.isnan(R)

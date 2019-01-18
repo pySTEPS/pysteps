@@ -63,7 +63,12 @@ def quiver(UV, ax=None, geodata=None, **kwargs):
 
     # defaults
     step        = kwargs.get("step", 20)
-    color       = kwargs.get("color", "black")
+
+    quiver_keys = ["scale", "scale_units", "width", "headwidth", "headlength", 
+                   "headaxislength", "minshaft", "minlength", "pivot", "color"]
+    kwargs_quiver = {k: kwargs[k] for k in set(quiver_keys).intersection(kwargs)}
+
+    kwargs_quiver["color"] = kwargs.get("color", "black")
 
     # prepare x y coordinates
     if geodata is not None:
@@ -79,7 +84,7 @@ def quiver(UV, ax=None, geodata=None, **kwargs):
     x_ = x[0:UV.shape[2]:step]
 
     ax.quiver(x_, np.flipud(y_), UV_[0,:,:], -UV_[1,:,:], angles='xy',
-              color=color, zorder=1e6)
+              zorder=1e6, **kwargs_quiver)
 
     axes = plt.gca() if ax == plt else ax
 

@@ -33,8 +33,8 @@ pysteps\.verification\.ensscores
 .. currentmodule:: pysteps.verification.ensscores
 
 .. autosummary::
-    ensemble_fss_skill
-    ensemble_fss_spread
+    ensemble_skill
+    ensemble_spread
     rankhist_init
     rankhist_accum
     rankhist_compute
@@ -48,6 +48,7 @@ pysteps\.verification\.plots
 .. currentmodule:: pysteps.verification.plots
 
 .. autosummary::
+    plot_intensityscale
     plot_rankhist
     plot_reldiag
     plot_ROC
@@ -78,7 +79,10 @@ pysteps\.verification\.spatialscores
 .. currentmodule:: pysteps.verification.spatialscores
 
 .. autosummary::
-    compute_fss
+    binary_mse
+    intensity_scale_init
+    intensity_scale_accum
+    fss
 
 .. automodule:: pysteps.verification.spatialscores
     :members:

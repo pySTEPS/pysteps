@@ -1,14 +1,15 @@
 """Implementation of the STEPS method."""
 
-import numpy as np
-import scipy.ndimage
 import sys
 import time
+import numpy as np
+import scipy.ndimage
 from .. import extrapolation
 from .. import cascade
 from .. import noise
 from ..postprocessing import probmatching
 from ..timeseries import autoregression, correlation
+from .. import utils
 try:
     import dask
     dask_imported = True
@@ -19,9 +20,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
              kmperpixel=None, timestep=None, extrap_method="semilagrangian",
              decomp_method="fft", bandpass_filter_method="gaussian",
              noise_method="nonparametric", noise_stddev_adj=False, ar_order=2,
-             vel_pert_method=None, conditional=False, use_precip_mask=True,
-             use_probmatching=True, mask_method="incremental", callback=None,
-             return_output=True, seed=None, num_workers=None, extrap_kwargs={},
+             vel_pert_method="bps", conditional=False, probmatching_method="cdf",
+             mask_method="incremental", callback=None, return_output=True,
+             seed=None, num_workers=1, fft_method="numpy", extrap_kwargs={},
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
@@ -47,7 +48,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     ----------------
     R_thr : float
       Specifies the threshold value for minimum observable precipitation
-      intensity. Must be set if use_probmatching is True or conditional is True.
+      intensity. Required if mask_method is not None or conditional is True.
     kmperpixel : float
       Spatial resolution of the input data (kilometers/pixel). Required if
       vel_pert_method is not None or mask_method is 'incremental'.
@@ -63,34 +64,35 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     bandpass_filter_method : {'gaussian', 'uniform'}
       Name of the bandpass filter method to use with the cascade decomposition.
       See the documentation of pysteps.cascade.interface.
-    noise_method : {'parametric','nonparametric','ssft','nested'}
+    noise_method : {'parametric','nonparametric','ssft','nested',None}
       Name of the noise generator to use for perturbating the precipitation
-      field. See the documentation of pysteps.noise.interface.
+      field. See the documentation of pysteps.noise.interface. If set to None,
+      no noise is generated.
     noise_stddev_adj : bool
       Optional adjustment for the standard deviations of the noise fields added
       to each cascade level. See pysteps.noise.utils.compute_noise_stddev_adjs.
     ar_order : int
       The order of the autoregressive model to use. Must be >= 1.
-    vel_pert_method : {'bps'}
-      Name of the noise generator to use for perturbing the velocity field. See
-      the documentation of pysteps.noise.interface.
+    vel_pert_method : {'bps',None}
+      Name of the noise generator to use for perturbing the advection field. See
+      the documentation of pysteps.noise.interface. If set to None, the advection
+      field is not perturbed.
     conditional : bool
       If set to True, compute the statistics of the precipitation field
-      conditionally by excluding the areas where the values are below the
-      threshold R_thr.
-    use_precip_mask : bool
-      If True, set pixels outside precipitation areas to the minimum value of
-      the observed field.
-    mask_method : {'obs', 'sprog', 'incremental'}
-      The precipitation/no precipitation method to use with mask: 'obs' = apply R_thr
-      to the most recently observed precipitation intensity field, 'sprog' = use the
-      smoothed forecast field from S-PROG, where the AR(p) model has been applied,
-      'incremental' = iteratively buffer the mask with a certain rate (currently
-      it is 1 km/min)
-    use_probmatching : bool
-      If True, apply probability matching to the forecast field in order to
-      preserve the distribution of the most recently observed precipitation
-      field.
+      conditionally by excluding pixels where the values are below the threshold
+      R_thr.
+    mask_method : {'obs','sprog','incremental',None}
+      The method to use for masking no precipitation areas in the forecast field.
+      The masked pixels are set to the minimum value of the observations.
+      'obs' = apply R_thr to the most recently observed precipitation intensity
+      field, 'sprog' = use the smoothed forecast field from S-PROG, where the
+      AR(p) model has been applied, 'incremental' = iteratively buffer the mask
+      with a certain rate (currently it is 1 km/min), None=no masking.
+    probmatching_method : {'cdf','mean',None}
+      Method for matching the statistics of the forecast field with those of
+      the most recently observed one. Requires that mask_method is not None.
+      'cdf'=map the forecast CDF to the observed one, 'mean'=adjust only the
+      mean value of the forecast field, None=no matching applied.
     callback : function
       Optional function that is called after computation of each time step of
       the nowcast. The function takes one argument: a three-dimensional array
@@ -104,20 +106,24 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     seed : int
       Optional seed number for the random generators.
     num_workers : int
-      The number of workers to use for parallel computation. Set to None to use
-      all available CPUs. Applicable if dask is enabled.
+      The number of workers to use for parallel computation. Applicable if dask
+      is enabled or pyFFTW is used for computing the FFT.
+    fft_method : str
+      A string defining the FFT method to use (see utils.fft.get_method).
+      Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
+      the recommended method is 'pyfftw'.
     extrap_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
-      extrapolation method.
+      Optional dictionary containing keyword arguments for the extrapolation
+      method. See the documentation of pysteps.extrapolation.
     filter_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
-      filter method.
+      Optional dictionary containing keyword arguments for the filter method.
+      See the documentation of pysteps.cascade.bandpass_filters.py.
     noise_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
-      initializer of the noise generator.
+      Optional dictionary containing keyword arguments for the initializer of
+      the noise generator. See the documentation of pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
-      Optional dictionary that is supplied as keyword arguments to the
-      initializer of the velocity perturbator.
+      Optional dictionary containing keyword arguments for the initializer of
+      the velocity perturbator. See the documentation of pysteps.noise.motion.
 
     Returns
     -------
@@ -125,12 +131,19 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       If return_output is True, a four-dimensional array of shape
       (n_ens_members,n_timesteps,m,n) containing a time series of forecast
       precipitation fields for each ensemble member. Otherwise, a None value
-      is returned.
+      is returned. The time series starts from t0+timestep, where timestep is
+      taken from the input precipitation fields R.
 
     See also
     --------
     pysteps.extrapolation.interface, pysteps.cascade.interface,
     pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
+
+    Notes
+    -----
+    If noise_method and vel_pert_method are None, n_ens_members is 1,
+    mask_method is 'sprog' and probmatching_method is 'mean', the deterministic
+    S-PROG nowcast is generated, see :cite:`Seed2003`.
 
     References
     ----------
@@ -145,26 +158,29 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
 
-    if mask_method not in ["obs", "sprog", "incremental"]:
-        raise ValueError("unknown mask method %s: must be 'obs', 'sprog' or 'incremental'" % mask_method)
+    if mask_method not in ["obs", "sprog", "incremental", None]:
+        raise ValueError("unknown mask method %s: must be 'obs', 'sprog' or 'incremental' or None" % mask_method)
 
     if conditional and R_thr is None:
-        raise Exception("conditional=True but R_thr is not set")
+        raise ValueError("conditional=True but R_thr is not set")
 
-    if use_probmatching and R_thr is None:
-        raise Exception("use_probmatching=True but R_thr is not set")
+    if probmatching_method is not None and R_thr is None:
+        raise ValueError("probmatching_method!=None but R_thr is not set")
+
+    if probmatching_method is not None and mask_method is None:
+        raise ValueError("probmatching_method!=None but mask_method=None")
 
     if kmperpixel is None:
         if vel_pert_method is not None:
-            raise Exception("vel_pert_method is set but kmperpixel=None")
+            raise ValueError("vel_pert_method is set but kmperpixel=None")
         if mask_method == "incremental":
-            raise Exception("mask_method='incremental' but kmperpixel=None")
+            raise ValueError("mask_method='incremental' but kmperpixel=None")
 
     if timestep is None:
         if vel_pert_method is not None:
-            raise Exception("vel_pert_method is set but timestep=None")
+            raise ValueError("vel_pert_method is set but timestep=None")
         if mask_method == "incremental":
-            raise Exception("mask_method='incremental' but timestep=None")
+            raise ValueError("mask_method='incremental' but timestep=None")
 
     print("Computing STEPS nowcast:")
     print("------------------------")
@@ -188,33 +204,67 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     print("noise adjustment:       %s" % ("yes" if noise_stddev_adj else "no"))
     print("velocity perturbator:   %s" % vel_pert_method)
     print("conditional statistics: %s" % ("yes" if conditional else "no"))
-    print("precipitation mask:     %s" % ("yes" if use_precip_mask else "no"))
-    print("mask method:            %s" % mask_method)
-    print("probability matching:   %s" % ("yes" if use_probmatching else "no"))
+    print("precip. mask method:    %s" % mask_method)
+    print("probability matching:   %s" % probmatching_method)
+    print("FFT method:             %s" % fft_method)
     print("")
 
     print("Parameters:")
     print("-----------")
     print("number of time steps:     %d" % n_timesteps)
     print("ensemble size:            %d" % n_ens_members)
+    print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
     if vel_pert_method is "bps":
-        vp_par  = vel_pert_kwargs.get("p_pert_par",  noise.motion.get_default_params_bps_par())
+        vp_par = vel_pert_kwargs.get("p_pert_par", noise.motion.get_default_params_bps_par())
         vp_perp = vel_pert_kwargs.get("p_pert_perp", noise.motion.get_default_params_bps_perp())
         print("velocity perturbations, parallel:      %g,%g,%g" % \
-            (vp_par[0],  vp_par[1],  vp_par[2]))
+            (vp_par[0], vp_par[1], vp_par[2]))
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
             (vp_perp[0], vp_perp[1], vp_perp[2]))
 
-    if conditional or use_probmatching:
-        print("conditional precip. intensity threshold: %g" % R_thr)
+    if conditional or mask_method is not None:
+        print("precip. intensity threshold: %g" % R_thr)
 
-    M,N = R.shape[1:]
+    num_ensemble_workers = n_ens_members if num_workers > n_ens_members \
+                           else num_workers
+
+    fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
+
+    M, N = R.shape[1:]
+
+    # initialize the band-pass filter
+    filter_method = cascade.get_method(bandpass_filter_method)
+    filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
+
+    decomp_method = cascade.get_method(decomp_method)
+
+    if noise_method is not None:
+        # get methods for perturbations
+        init_noise, generate_noise = noise.get_method(noise_method)
+
+        # initialize the perturbation generator for the precipitation field
+        pp = init_noise(R, fft_method=fft, **noise_kwargs)
+
+        if noise_stddev_adj:
+            print("Computing noise adjustment factors... ", end="")
+            sys.stdout.flush()
+            starttime = time.time()
+
+            R_min = np.min(R)
+            noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(R[-1, :, :],
+                R_thr, R_min, filter, decomp_method, 10, conditional=True,
+                num_workers=num_workers)
+
+            print("%.2f seconds." % (time.time() - starttime))
+        else:
+            noise_std_coeffs = np.ones(n_cascade_levels)
+
     extrap_method = extrapolation.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()
 
-    if conditional or use_probmatching:
+    if conditional:
         MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
     else:
         MASK_thr = None
@@ -223,7 +273,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     extrap_kwargs = extrap_kwargs.copy()
     res = []
-    f = lambda R,i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
+    f = lambda R, i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
         if not dask_imported:
             R[i, :, :] = f(R, i)
@@ -231,22 +281,18 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             res.append(dask.delayed(f)(R, i))
 
     if dask_imported:
-        R = np.stack(list(dask.compute(*res, num_workers=num_workers)) + [R[-1, :, :]])
-
-    # initialize the band-pass filter
-    filter_method = cascade.get_method(bandpass_filter_method)
-    filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
+        num_workers_ = len(res) if num_workers > len(res) else num_workers
+        R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
 
     # compute the cascade decompositions of the input precipitation fields
-    decomp_method = cascade.get_method(decomp_method)
     R_d = []
     for i in range(ar_order+1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr)
+        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft)
         R_d.append(R_)
 
     # normalize the cascades and rearrange them into a four-dimensional array
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c,mu,sigma = _stack_cascades(R_d, n_cascade_levels)
+    R_c, mu, sigma = _stack_cascades(R_d, n_cascade_levels)
     R_d = None
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
@@ -282,7 +328,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
     # initialize the random generators
     if noise_method is not None:
-        randgen_prec   = []
+        randgen_prec = []
         randgen_motion = []
         np.random.seed(seed)
         for j in range(n_ens_members):
@@ -292,28 +338,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             rs = np.random.RandomState(seed)
             randgen_motion.append(rs)
             seed = rs.randint(0, high=1e9)
-
-    R_min = np.min(R)
-
-    if noise_method is not None:
-        # get methods for perturbations
-        init_noise, generate_noise = noise.get_method(noise_method)
-
-        # initialize the perturbation generator for the precipitation field
-        pp = init_noise(R, **noise_kwargs)
-
-        if noise_stddev_adj:
-            print("Computing noise adjustment factors... ", end="")
-            sys.stdout.flush()
-            starttime = time.time()
-
-            noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(R[-1, :, :],
-                R_thr, R_min, filter, decomp_method, 10, conditional=True,
-                num_workers=num_workers)
-
-            print("%.2f seconds." % (time.time() - starttime))
-        else:
-            noise_std_coeffs = np.ones(n_cascade_levels)
 
     if vel_pert_method is not None:
         init_vel_noise, generate_vel_noise = noise.get_method(vel_pert_method)
@@ -330,9 +354,11 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     D = [None for j in range(n_ens_members)]
     R_f = [[] for j in range(n_ens_members)]
 
-    if use_precip_mask:
+    if mask_method is not None:
+        MASK_prec = R[-1, :, :] >= R_thr
+
         if mask_method == "obs":
-            MASK_prec = R[-1, :, :] >= R_thr
+            pass
             # add a slight buffer to the mask
             # n=5
             # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n,n))
@@ -340,18 +366,23 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             # MASK_prec = cv2.dilate(MASK_prec,kernel).astype(bool)
         elif mask_method == "sprog":
             # compute the wet area ratio and the precipitation mask
-            MASK_prec = R[-1, :, :] >= R_thr
             war = 1.0*np.sum(MASK_prec) / (R.shape[1]*R.shape[2])
             R_m = R_c[0, :, :, :].copy()
         elif mask_method == "incremental":
             # initialize precip mask for each member
-            MASK_prec_ = R[-1, :, :] >= R_thr
-            MASK_prec = [MASK_prec_.copy() for j in range(n_ens_members)]
+            MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
             # initialize the structuring element
             struct = scipy.ndimage.generate_binary_structure(2, 1)
             # iterate it to expand it nxn
             n = timestep/kmperpixel
             struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
+
+        if probmatching_method == "mean":
+            mu_0 = np.mean(R[-1, :, :][MASK_prec])
+
+    fft_objs = []
+    for i in range(n_ens_members):
+        fft_objs.append(utils.get_method(fft_method, shape=R.shape[1:]))
 
     R = R[-1, :, :]
 
@@ -363,7 +394,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         sys.stdout.flush()
         starttime = time.time()
 
-        if use_precip_mask and mask_method == "sprog":
+        if mask_method == "sprog":
             for i in range(n_cascade_levels):
                 # use a separate AR(p) model for the non-perturbed forecast,
                 # from which the mask is obtained
@@ -378,7 +409,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
             # compute the threshold value R_pct_thr corresponding to the
             # same fraction of precipitation pixels (forecast values above
-            # R_min) as in the most recently observed precipitation field
+            # R_thr) as in the most recently observed precipitation field
             R_s.sort(kind="quicksort")
             x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
             i = np.argmin(abs(x - war))
@@ -395,9 +426,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         def worker(j):
             if noise_method is not None:
                 # generate noise field
-                EPS = generate_noise(pp, randstate=randgen_prec[j])
+                EPS = generate_noise(pp, randstate=randgen_prec[j],
+                                     fft_method=fft_objs[j])
                 # decompose the noise field into a cascade
-                EPS = decomp_method(EPS, filter)
+                EPS = decomp_method(EPS, filter, fft_method=fft_objs[j])
             else:
                 EPS = None
 
@@ -414,31 +446,36 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                     autoregression.iterate_ar_model(R_c[j, i, :, :, :],
                                                     PHI[i, :], EPS=EPS_)
 
-            EPS  = None
+            EPS = None
             EPS_ = None
 
             # compute the recomposed precipitation field(s) from the cascades
             # obtained from the AR(p) model(s)
             R_c_ = _recompose_cascade(R_c[j, :, :, :], mu, sigma)
 
-            if use_precip_mask:
+            if mask_method is not None:
                 # apply the precipitation mask to prevent generation of new
                 # precipitation into areas where it was not originally
                 # observed
                 if mask_method == "obs":
-                    R_c_[~MASK_prec] = R_c_.min()
+                    MASK_prec_ = ~MASK_prec
                 elif mask_method == "incremental":
-                    R_c_[~MASK_prec[j]] = R_c_.min()
+                    MASK_prec_ = ~MASK_prec[j]
                 elif mask_method == "sprog":
-                    R_c_[MASK_prec] = R_c_.min()
+                    MASK_prec_ = MASK_prec
 
-            if use_probmatching:
-                ## adjust the conditional CDF of the forecast (precipitation
-                ## intensity above the threshold R_thr) to match the most
-                ## recently observed precipitation field
+                R_c_[MASK_prec_] = R_c_.min()
+
+            if probmatching_method == "cdf":
+                # adjust the conditional CDF of the forecast (precipitation
+                # intensity above the threshold R_thr) to match the most
+                # recently observed precipitation field
                 R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
+            elif probmatching_method == "mean":
+                mu_fct = np.mean(R_c_[~MASK_prec_])
+                R_c_[~MASK_prec_] = R_c_[~MASK_prec_] - mu_fct + mu_0
 
-            if use_precip_mask and mask_method == "incremental":
+            if mask_method == "incremental":
                 MASK_prec_ = R_c_ >= R_thr
                 MASK_prec_ = scipy.ndimage.morphology.binary_dilation(MASK_prec_, struct)
                 MASK_prec[j] = MASK_prec_
@@ -452,7 +489,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             # advect the recomposed precipitation field to obtain the forecast
             # for time step t
             extrap_kwargs.update({"D_prev":D[j], "return_displacement":True})
-            R_f_,D_ = extrap_method(R_c_, V_, 1, **extrap_kwargs)
+            R_f_, D_ = extrap_method(R_c_, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]
 
@@ -465,7 +502,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             else:
                 res.append(dask.delayed(worker)(j))
 
-        R_f_ = dask.compute(*res, num_workers=num_workers) \
+        R_f_ = dask.compute(*res, num_workers=num_ensemble_workers) \
             if dask_imported and n_ens_members > 1 else res
         res = None
 
@@ -480,10 +517,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 R_f[j].append(R_f_[j])
 
     if return_output:
-        if n_ens_members == 1:
-            return np.stack(R_f[0])
-        else:
-            return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
+        return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
     else:
         return None
 
@@ -553,28 +587,28 @@ def _print_corrcoefs(GAMMA):
         print(hline_str)
 
 def _stack_cascades(R_d, n_levels, donorm=True):
-  R_c   = []
-  mu    = np.empty(n_levels)
-  sigma = np.empty(n_levels)
+    R_c = []
+    mu = np.empty(n_levels)
+    sigma = np.empty(n_levels)
 
-  n_inputs = len(R_d)
+    n_inputs = len(R_d)
 
-  for i in range(n_levels):
-      R_ = []
-      mu_    = 0
-      sigma_ = 1
-      for j in range(n_inputs):
-          if donorm:
-              mu_    = R_d[j]["means"][i]
-              sigma_ = R_d[j]["stds"][i]
-          if j == n_inputs - 1:
-              mu[i]    = mu_
-              sigma[i] = sigma_
-          R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
-          R_.append(R__)
-      R_c.append(np.stack(R_))
+    for i in range(n_levels):
+        R_ = []
+        mu_ = 0
+        sigma_ = 1
+        for j in range(n_inputs):
+            if donorm:
+                mu_ = R_d[j]["means"][i]
+                sigma_ = R_d[j]["stds"][i]
+            if j == n_inputs - 1:
+                mu[i] = mu_
+                sigma[i] = sigma_
+            R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
+            R_.append(R__)
+        R_c.append(np.stack(R_))
 
-  return np.stack(R_c),mu,sigma
+    return np.stack(R_c), mu, sigma
 
 def _recompose_cascade(R, mu, sigma):
     R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]

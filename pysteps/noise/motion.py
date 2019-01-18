@@ -38,8 +38,8 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None,
                    randstate=np.random, seed=None):
     """Initialize the motion field perturbator described in :cite:`BPS2006`.
     For simplicity, the bias adjustment procedure described there has not been
-    implemented. The perturbator generates a constant field whose magnitude
-    depends on lead time.
+    implemented. The perturbator generates a field whose magnitude increases
+    with respect to lead time.
 
     Parameters
     ----------

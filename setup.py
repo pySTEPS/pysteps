@@ -31,7 +31,7 @@ except ImportError:
                                    **_vet_extension_arguments)
     external_modules = [_vet_lib_extension]
 
-requirements = ['numpy', 'opencv-python', 'pillow', 'pyproj',
+requirements = ['numpy',
                 'attrdict', 'jsmin', 'scipy', 'matplotlib',
                 'jsonschema']
 

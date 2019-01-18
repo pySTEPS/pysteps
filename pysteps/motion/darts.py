@@ -4,22 +4,7 @@ import numpy as np
 from numpy.linalg import lstsq, svd
 import sys
 import time
-
-# Use the pyfftw interface if it is installed. If not, fall back to the fftpack
-# interface provided by SciPy, and finally to numpy if SciPy is not installed.
-try:
-    import pyfftw.interfaces.numpy_fft as fft
-    import pyfftw
-    # TODO: Caching and multithreading currently disabled because they give a
-    # segfault with dask.
-    #pyfftw.interfaces.cache.enable()
-    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
-except ImportError:
-    import scipy.fftpack as fft
-    fft_kwargs = {}
-except ImportError:
-    import numpy.fft as fft
-    fft_kwargs = {}
+from .. import utils
 
 def DARTS(Z, **kwargs):
     """Compute the advection field from a sequence of input images by using the
@@ -34,32 +19,38 @@ def DARTS(Z, **kwargs):
     Other Parameters
     ----------------
     N_x : int
-      Number of DFT coefficients to use for the input images, x-axis (default=50).
+        Number of DFT coefficients to use for the input images, x-axis (default=50).
     N_y : int
-      Number of DFT coefficients to use for the input images, y-axis (default=50).
+        Number of DFT coefficients to use for the input images, y-axis (default=50).
     N_t : int
-      Number of DFT coefficients to use for the input images, time axis (default=4).
-      N_t must be strictly smaller than T.
+        Number of DFT coefficients to use for the input images, time axis (default=4).
+        N_t must be strictly smaller than T.
     M_x : int
-      Number of DFT coefficients to compute for the output advection field,
-      x-axis  (default=2).
+        Number of DFT coefficients to compute for the output advection field,
+        x-axis  (default=2).
     M_y : int
-      Number of DFT coefficients to compute for the output advection field,
-      y-axis (default=2).
+        Number of DFT coefficients to compute for the output advection field,
+        y-axis (default=2).
+    fft_method : str
+        A string defining the FFT method to use, see utils.fft.get_method.
+        Defaults to 'numpy'.
+    n_threads : int
+        Number of threads to use for the FFT computation. Applicable if
+        fft_method is 'pyfftw'.
     print_info : bool
-      If True, print information messages.
+        If True, print information messages.
     lsq_method : {1, 2}
-      The method to use for solving the linear equations in the least squares
-      sense: 1=numpy.linalg.lstsq, 2=explicit computation of the Moore-Penrose
-      pseudoinverse and SVD.
+        The method to use for solving the linear equations in the least squares
+        sense: 1=numpy.linalg.lstsq, 2=explicit computation of the Moore-Penrose
+        pseudoinverse and SVD.
     verbose : bool
         if set to True, it prints information about the program
 
     Returns
     -------
     out : ndarray
-      Three-dimensional array (2,H,W) containing the dense x- and y-components
-      of the motion field.
+        Three-dimensional array (2,H,W) containing the dense x- and y-components
+        of the motion field.
 
     References
     ----------
@@ -71,6 +62,7 @@ def DARTS(Z, **kwargs):
     N_t = kwargs.get("N_t", 4)
     M_x = kwargs.get("M_x", 2)
     M_y = kwargs.get("M_y", 2)
+    fft_method = kwargs.get("fft_method", "numpy")
     print_info = kwargs.get("print_info", False)
     lsq_method = kwargs.get("lsq_method", 2)
     verbose             = kwargs.get("verbose", True)
@@ -83,6 +75,9 @@ def DARTS(Z, **kwargs):
         t0 = time.time()
 
     Z = np.moveaxis(Z, (0, 1, 2), (2, 0, 1))
+
+    fft = utils.get_method(fft_method, shape=Z.shape[:2], fftn_shape=Z.shape, 
+                           **kwargs)
 
     T_x = Z.shape[1]
     T_y = Z.shape[0]
@@ -97,7 +92,7 @@ def DARTS(Z, **kwargs):
         sys.stdout.flush()
         starttime = time.time()
 
-    Z = fft.fftn(Z, **fft_kwargs)
+    Z = fft.fftn(Z)
 
     if print_info:
         print("Done in %.2f seconds." % (time.time() - starttime))
@@ -183,8 +178,8 @@ def DARTS(Z, **kwargs):
 
     k_x,k_y = np.meshgrid(np.arange(-M_x, M_x+1), np.arange(-M_y, M_y+1))
 
-    U = np.real(fft.ifft2(_fill(U, Z.shape[0], Z.shape[1], k_x, k_y), **fft_kwargs))
-    V = np.real(fft.ifft2(_fill(V, Z.shape[0], Z.shape[1], k_x, k_y), **fft_kwargs))
+    U = np.real(fft.ifft2(_fill(U, Z.shape[0], Z.shape[1], k_x, k_y)))
+    V = np.real(fft.ifft2(_fill(V, Z.shape[0], Z.shape[1], k_x, k_y)))
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))

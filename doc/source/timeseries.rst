@@ -13,7 +13,8 @@ pysteps\.timeseries\.autoregression
 .. currentmodule:: pysteps.timeseries.autoregression
 
 .. autosummary::
-    adjust_lag2_corrcoef
+    adjust_lag2_corrcoef1
+    adjust_lag2_corrcoef2
     estimate_ar_params_yw
     iterate_ar_model
 

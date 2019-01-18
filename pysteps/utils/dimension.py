@@ -2,7 +2,7 @@
 
 import numpy as np
 
-def aggregate_fields_time(R, metadata, time_window_min):
+def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
     """Aggregate fields in time.
 
     Parameters
@@ -18,6 +18,8 @@ def aggregate_fields_time(R, metadata, time_window_min):
         The length in minutes of the time window that is used to aggregate the fields.
         The time spanned by the t dimension of R must be a multiple of time_window_min.
         If set to None, it returns a copy of the original R and metadata.
+    ignore_nan : bool
+        If True, ignore nan values.
 
     Returns
     -------
@@ -35,7 +37,7 @@ def aggregate_fields_time(R, metadata, time_window_min):
 
     if time_window_min is None:
         return R, metadata
-        
+
     unit       = metadata["unit"]
     timestamps = metadata["timestamps"]
     if "leadtimes" in metadata:
@@ -62,7 +64,7 @@ def aggregate_fields_time(R, metadata, time_window_min):
         raise ValueError('time_window_size does not equally split R')
 
     nframes = int(time_window_min/delta)
-    
+
     # specify the operator to be used to aggregate the values within the time window
     if unit == "mm/h":
         method = "mean"
@@ -70,7 +72,10 @@ def aggregate_fields_time(R, metadata, time_window_min):
         method = "sum"
     else:
         raise ValueError("can only aggregate units of 'mm/h' or 'mm' not %s" % unit)
-        
+
+    if ignore_nan:
+        method = "".join(("nan", method))
+
     R = aggregate_fields(R, nframes, axis=axis, method=method)
 
     metadata["accutime"] = time_window_min
@@ -80,7 +85,7 @@ def aggregate_fields_time(R, metadata, time_window_min):
 
     return R, metadata
 
-def aggregate_fields_space(R, metadata, space_window_m):
+def aggregate_fields_space(R, metadata, space_window_m, ignore_nan=False):
     """Upscale fields in space.
 
     Parameters
@@ -93,27 +98,29 @@ def aggregate_fields_space(R, metadata, space_window_m):
         the keys "xpixelsize", "ypixelsize" and "unit".
     space_window_m : float or None
         The length in meters of the space window that is used to upscale the fields.
-        The space spanned by the m and n dimensions of R must be a multiple of 
-        space_window_m. If set to None, it returns a copy of the original R and 
+        The space spanned by the m and n dimensions of R must be a multiple of
+        space_window_m. If set to None, it returns a copy of the original R and
         metadata.
+    ignore_nan : bool
+        If True, ignore nan values.
 
     Returns
     -------
     outputarray : array-like
-        The new array of aggregated fields of shape (k,j), (t,k,j) or (l,t,k,j), 
+        The new array of aggregated fields of shape (k,j), (t,k,j) or (l,t,k,j),
         where k = m*delta/space_window_m and j = n*delta/space_window_m; delta is
         the grid size.
     metadata : dict
         The metadata with updated attributes.
 
-    """ 
-    
+    """
+
     R = R.copy()
     metadata = metadata.copy()
 
     if space_window_m is None:
         return R, metadata
-        
+
     unit       = metadata["unit"]
     ypixelsize = metadata["ypixelsize"]
     xpixelsize = metadata["xpixelsize"]
@@ -139,7 +146,7 @@ def aggregate_fields_space(R, metadata, space_window_m):
         raise ValueError('space_window_m does not equally split R')
 
     nframes = [int(space_window_m/ypixelsize), int(space_window_m/xpixelsize)]
-    
+
     # specify the operator to be used to aggregate the values within the space window
     if unit == "mm/h":
         method = "mean"
@@ -147,7 +154,10 @@ def aggregate_fields_space(R, metadata, space_window_m):
         method = "sum"
     else:
         raise ValueError("can only aggregate units of 'mm/h' or 'mm' not %s" % unit)
-        
+
+    if ignore_nan:
+        method = "".join(("nan", method))
+
     R = aggregate_fields(R, nframes[0], axis=axes[0], method=method)
     R = aggregate_fields(R, nframes[1], axis=axes[1], method=method)
 
@@ -204,8 +214,8 @@ def aggregate_fields(R, window_size, axis=0, method="mean"):
 
     return R
 
-def adjust_domain(R, metadata, xlim=None, ylim=None):
-    """Resize the field domain by geographical coordinates.
+def clip_domain(R, metadata, extent=None):
+    """Clip the field domain by geographical coordinates.
 
     Parameters
     ----------
@@ -213,17 +223,18 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
         Array of shape (m,n) or (t,m,n) containing the input fields.
     metadata : dict
         The metadata dictionary contains all data-related information.
-    xlim : 2-element tuple or list
-        The new limits of the x-coordinates. If set equal to None, the original
-        limits are kept.
-    ylim : 2-element tuple or list
-        The new limits of the y-coordinates. If set equal to None, the original
-        limits are kept.
+    extent : scalars (left, right, bottom, top)
+        The extent of the bounding box in data coordinates to be used to clip 
+        the data.
+        Note that the direction of the vertical axis and thus the default 
+        values for top and bottom depend on origin. We follow the same 
+        convention as in the imshow method of matplotlib:
+        https://matplotlib.org/tutorials/intermediate/imshow_extent.html
 
     Returns
     -------
     R : array-like
-        the reshape dataset
+        the clipped array
     metadata : dict
         the metadata with updated attributes.
 
@@ -232,51 +243,69 @@ def adjust_domain(R, metadata, xlim=None, ylim=None):
     R = R.copy()
     metadata = metadata.copy()
 
-    if xlim is None and ylim is None:
+    if extent is None:
         return R,metadata
-    if ylim is None and xlim is not None:
-        ylim = [metadata["y1"], metadata["y2"]]
-    if xlim is None and ylim is not None:
-        xlim = [metadata["x1"], metadata["x2"]]
 
     if len(R.shape) < 2:
         raise ValueError("The number of dimension must be > 1")
     if len(R.shape) == 2:
-        R = R[None, None, :]
+        R = R[None, None, :, :]
     if len(R.shape) == 3:
-        R = R[None, :]
+        R = R[None, :, :, :]
     if len(R.shape) > 4:
         raise ValueError("The number of dimension must be <= 4")
 
-    xlim = np.array(xlim).astype(float)
-    ylim = np.array(ylim).astype(float)
+    # extract original domain coordinates
+    left = metadata["x1"]
+    right = metadata["x2"]
+    bottom = metadata["y1"]
+    top = metadata["y2"]
 
-    new_dim_x = int((xlim.max() - xlim.min())/metadata["xpixelsize"])
-    new_dim_y = int((ylim.max() - ylim.min())/metadata["ypixelsize"])
-    R_ = np.ones((R.shape[0], R.shape[1], new_dim_y, new_dim_x))*metadata["zerovalue"]
+    # extract bounding box coordinates
+    left_ = extent[0]
+    right_ = extent[1]
+    bottom_ = extent[2]
+    top_ = extent[3]
 
-    y_coord = np.linspace(metadata["y1"], metadata["y2"] - metadata["ypixelsize"], R.shape[2]) + metadata["ypixelsize"]/2.
-    x_coord = np.linspace(metadata["x1"], metadata["x2"] - metadata["xpixelsize"], R.shape[3]) + metadata["xpixelsize"]/2.
+    # compute its extent in pixels
+    dim_x_ = int((right_ - left_)/metadata["xpixelsize"])
+    dim_y_ = int((top_ - bottom_)/metadata["ypixelsize"])
+    R_ = np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_))*metadata["zerovalue"]
 
-    y_coord_ = np.linspace(ylim.min(), ylim.max() - metadata["ypixelsize"], R_.shape[2]) + metadata["ypixelsize"]/2.
-    x_coord_ = np.linspace(xlim.min(), xlim.max() - metadata["xpixelsize"], R_.shape[3]) + metadata["xpixelsize"]/2.
-    
-    # since we work with matrix indexing (i.e. rows)
-    y_coord = y_coord[::-1]
-    y_coord_ = y_coord_[::-1]
-    
-    idx_y = np.where(np.logical_and(y_coord < ylim.max(), y_coord > ylim.min()))[0]
-    idx_x = np.where(np.logical_and(x_coord < xlim.max(), x_coord > xlim.min()))[0]
+    # build set of coordinates for the original domain
+    y_coord = np.linspace(bottom, top - metadata["ypixelsize"], R.shape[2]) \
+                        + metadata["ypixelsize"]/2.
+    x_coord = np.linspace(left, right - metadata["xpixelsize"], R.shape[3]) \
+                        + metadata["xpixelsize"]/2.
 
-    idx_y_ = np.where(np.logical_and(y_coord_ < metadata["y2"], y_coord_ > metadata["y1"]))[0]
-    idx_x_ = np.where(np.logical_and(x_coord_ < metadata["x2"], x_coord_ > metadata["x1"]))[0]
-    
-    R_[:, :, idx_y_[0]:idx_y_[-1], idx_x_[0]:idx_x_[-1]] = R[:, :, idx_y[0]:idx_y[-1], idx_x[0]:idx_x[-1]]
-    
-    metadata["y1"] = ylim.min()
-    metadata["y2"] = ylim.max()
-    metadata["x1"] = xlim.min()
-    metadata["x2"] = xlim.max()
+    # build set of coordinates for the new domain
+    y_coord_ = np.linspace(bottom_, top_ - metadata["ypixelsize"], R_.shape[2]) \
+                        + metadata["ypixelsize"]/2.
+    x_coord_ = np.linspace(left_, right_ - metadata["xpixelsize"], R_.shape[3]) \
+                        + metadata["xpixelsize"]/2.
+
+    # origin='upper' reverses the vertical axes direction
+    if metadata["yorigin"] == "upper":
+        y_coord = y_coord[::-1]
+        y_coord_ = y_coord_[::-1]
+
+    # extract original domain
+    idx_y = np.where(np.logical_and(y_coord < top_, y_coord > bottom_))[0]
+    idx_x = np.where(np.logical_and(x_coord < right_, x_coord > left_))[0]
+
+    # extract new domain
+    idx_y_ = np.where(np.logical_and(y_coord_ < top, y_coord_ > bottom))[0]
+    idx_x_ = np.where(np.logical_and(x_coord_ < right, x_coord_ > left))[0]
+
+    # compose the new array
+    R_[:, :, idx_y_[0]:(idx_y_[-1] + 1), idx_x_[0]:(idx_x_[-1] + 1)] = \
+                    R[:, :, idx_y[0]:(idx_y[-1] + 1), idx_x[0]:(idx_x[-1] + 1)]
+
+    # update coordinates
+    metadata["y1"] = bottom_
+    metadata["y2"] = top_
+    metadata["x1"] = left_
+    metadata["x2"] = right_
 
     return R_.squeeze(), metadata
 

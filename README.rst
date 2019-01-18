@@ -2,8 +2,8 @@
 pySTEPS
 =======
 
-The pySTEPS initiative is a community that develops and maintains an easy to 
-use, modular, free and open source python framework for short-term ensemble 
+pySTEPS is a community-driven initiative for developing and maintaining an easy 
+to use, modular, free and open source Python framework for short-term ensemble 
 prediction systems.
 
 The focus is on probabilistic nowcasting of radar precipitation fields,
@@ -19,46 +19,53 @@ Dependencies
 
 The pysteps package needs the following dependencies
 
-* python>=3.6
+* python_>=3.6
 * attrdict_
 * jsmin_
 * jsonschema_
 * matplotlib_
 * netCDF4_
 * numpy_
-* opencv-python_
+* opencv_
 * pillow_
 * pyproj_
 * scipy_
 
+.. _python : http://www.python.org/
 .. _attrdict : https://pypi.org/project/attrdict/
 .. _jsmin : https://pypi.org/project/jsmin/
 .. _jsonschema : https://pypi.org/project/jsonschema/
 .. _matplotlib: http://matplotlib.org/
 .. _netCDF4: https://pypi.org/project/netCDF4/
 .. _numpy: http://www.numpy.org/
-.. _opencv-python: https://opencv.org/
+.. _opencv: https://opencv.org/
 .. _pillow: https://python-pillow.org/
 .. _pyproj: https://jswhit.github.io/pyproj/
 .. _scipy: https://www.scipy.org/
 
-Additionally, the following packages can be installed to provide better computational efficiency:
+Additionally, the following packages can be installed for better computational efficiency:
 
 * dask_ and toolz_ (for code parallelisation)
-* pyfftw_ (for faster FFT computations)
+* pyfftw_ (for faster FFT computation)
 
 .. _dask: https://dask.org/
 .. _toolz: https://github.com/pytoolz/toolz/
 .. _pyfftw: https://hgomersall.github.io/pyFFTW/
 
-Other optional packages include:
+Other optional dependencies include:
 
-* cartopy_ or basemap_ (for georeferenced visualization) 
+* cartopy_ or basemap_ (for georeferenced visualization)
 * h5py_ (for importing HDF5 data)
+* pywavelets_ (for intensity-scale verification)
+* cython_ (for the variational echo tracking method)
 
 .. _basemap: https://matplotlib.org/basemap/
 .. _cartopy: https://scitools.org.uk/cartopy/docs/v0.16/
 .. _h5py: https://www.h5py.org/
+.. _pywavelets: https://pywavelets.readthedocs.io/en/latest/
+.. _cython: https://cython.org/
+
+Note that cython also requires a C compiler. See https://cython.readthedocs.io/en/latest/src/quickstart/install.html for instructions.
 
 We recommend that you create a conda environment using the available
 `environment.yml`_ file to install the most important dependencies::
@@ -69,20 +76,19 @@ We recommend that you create a conda environment using the available
 .. _environment.yml: \
      https://github.com/pySTEPS/pysteps/blob/master/environment.yml
 
-This will allow running most of the basic functionalities in pysteps.
+This will allow running pysteps with the basic functionality.
 
 Install from source
 -------------------
 
-**IMPORTANT**: installing from sources requires numpy to be installed
-beforehand.
+**IMPORTANT**: installing from source requires numpy to be installed.
 
-The installer need numpy to compile the Cython extensions.
-If numpy is not installed you can running in a terminal::
+The installer needs numpy to compile the Cython extensions.
+If numpy is not installed you can run in a terminal::
 
     pip install numpy
 
-The lastest pysteps version in the repository can be installed using pip by
+The latest pysteps version in the repository can be installed using pip by
 simply running in a terminal::
 
     pip install git+https://github.com/pySTEPS/pysteps
@@ -105,12 +111,12 @@ If you want to install the package in a specific directory run::
     python setup.py install --prefix=/path/to/local/dir
 
 
-Non anaconda users or minimal anaconda environments
+Non-anaconda users or minimal anaconda environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The installation using **setup.py** will try to to install the minimum
 dependencies needed to run the program correctly.
-If you are not using the suggested conda environment (defined in
+If you are not using the recommended conda environment (defined in
 environment.yml) or you are working with a minimal python distribution,
 you may get the following error during the installation::
 
@@ -119,7 +125,7 @@ you may get the following error during the installation::
 This means that Cython is not installed, which is needed to build some of the
 dependencies of pysteps.
 
-For non anaconda users, you can install Cython using::
+For non-anaconda users, you can install Cython using::
 
     pip install Cython
 
@@ -179,7 +185,7 @@ following order:
 .. _AttrDict: https://pypi.org/project/attrdict/
 
 
-The suggested way to setup the configuration files, is by editing a copy
+The recommended method to setup the configuration files is to edit a copy
 of the default **pystepsrc** file that is distributed with the package
 and place that copy inside the user home folder.
 
@@ -223,7 +229,7 @@ configuration is place the pystepsrc parameters file in the users folder
 (defined in the %USERPROFILE% environment variable) in the following path:
 **%USERPROFILE%/pysteps/pystepsrc**
 
-This are the steps to setup up the configuration file in that directory:
+The following steps are needed to setup up the configuration file in that directory:
 
 1. Create the directory if it does not exist. Type in a terminal::
 
@@ -244,4 +250,30 @@ the pystep is imported, the configuration file loaded is shown::
 
      import pysteps
      "Pysteps configuration file found at: /home/user_name/.pysteps/pystepsrc"
+
+
+Testing
+=======
+
+The pysteps distribution includes a small test suite for some of the modules.
+To run the tests the pytest_ package is needed. To install it, run::
+
+    $> pip install pytest
+
+.. _pytest: https://docs.pytest.org
+
+Installation tests
+------------------
+After installation, you can launch the test suite from any directory by
+running::
+
+    $> pytest --pyargs pysteps
+
+Source code tests
+-----------------
+
+The source code can be tested in-place using the **pytest** command on the root
+of the pysteps source directory. E.g.::
+
+    $> pytest -v --tb=line
 

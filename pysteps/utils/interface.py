@@ -2,10 +2,11 @@
 from . import conversion
 from . import transformation
 from . import dimension
+from . import fft
 
-def get_method(name):
-    """Return a callable function for the bandpass filter or decomposition method
-    corresponding to the given name.\n\
+def get_method(name, **kwargs):
+    """Return a callable function for the utility method corresponding to the
+    given name.\n\
 
     Conversion methods:
 
@@ -16,7 +17,7 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     | mm or raindepth   | convert to rain depth [mm]                             |
     +-------------------+--------------------------------------------------------+
-    | dBZ or            | convert to reflectivity [dBZ]                          |
+    | dbz or            | convert to reflectivity [dBZ]                          |
     | reflectivity      |                                                        |
     +-------------------+--------------------------------------------------------+
 
@@ -25,15 +26,15 @@ def get_method(name):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
-    |  BoxCox           | one-parameter Box-Cox transform                        |
+    | boxcox or box-cox | one-parameter Box-Cox transform                        |
     +-------------------+--------------------------------------------------------+
-    |  dB or decibel    | transform to units of decibel                          |
+    | db or decibel     | transform to units of decibel                          |
     +-------------------+--------------------------------------------------------+
-    |  log              | log transform                                          |
+    | log               | log transform                                          |
     +-------------------+--------------------------------------------------------+
-    |  NQT              | Normal Quantile Transform                              |
+    | nqt               | Normal Quantile Transform                              |
     +-------------------+--------------------------------------------------------+
-    |  sqrt             | square-root transform                                  |
+    | sqrt              | square-root transform                                  |
     +-------------------+--------------------------------------------------------+
 
     Dimension methods:
@@ -43,12 +44,27 @@ def get_method(name):
     +===================+========================================================+
     |  accumulate       | aggregate fields in time                               |
     +-------------------+--------------------------------------------------------+
-    |  adjust           | resize the field domain by geographical coordinates    |
+    |  clip             | resize the field domain by geographical coordinates    |
     +-------------------+--------------------------------------------------------+
     |  square           | either pad or crop the data to get a square domain     |
     +-------------------+--------------------------------------------------------+
     |  upscale          | upscale the field                                      |
     +-------------------+--------------------------------------------------------+
+
+    FFT methods (wrappers to different implementations):
+
+    +-------------------+--------------------------------------------------------+
+    |     Name          |              Description                               |
+    +===================+========================================================+
+    |  numpy_fft        | numpy.fft                                              |
+    +-------------------+--------------------------------------------------------+
+    |  scipy_fft        | scipy.fftpack                                          |
+    +-------------------+--------------------------------------------------------+
+    |  pyfftw_fft       | pyfftw.interfaces.numpy_fft                            |
+    +-------------------+--------------------------------------------------------+
+
+    Additional keyword arguments are passed to the initializer of the FFT 
+    methods, see utils.fft.
 
     """
 
@@ -57,8 +73,8 @@ def get_method(name):
 
     name = name.lower()
 
-    def donothing(R, metadata, *args, **kwargs):
-        return R.copy(), metadata.copy()
+    def donothing(R, metadata=None, *args, **kwargs):
+        return R.copy(), {} if metadata is None else metadata.copy()
 
     methods_objects                 = dict()
     methods_objects["none"]         = donothing
@@ -79,13 +95,31 @@ def get_method(name):
     methods_objects["sqrt"]         = transformation.sqrt_transform
     # dimension methods
     methods_objects["accumulate"]   = dimension.aggregate_fields_time
-    methods_objects["adjust"]       = dimension.adjust_domain
+    methods_objects["clip"]         = dimension.clip_domain
     methods_objects["square"]       = dimension.square_domain
     methods_objects["upscale"]      = dimension.aggregate_fields_space
+    # FFT methods
+    if name in ["numpy", "pyfftw", "scipy"]:
+        if "shape" not in kwargs.keys():
+            raise KeyError("mandatory keyword argument shape not given")
+        return _get_fft_method(name, **kwargs)
+    else:
+        try:
+            return methods_objects[name]
+        except KeyError as e:
+            raise ValueError("Unknown method %s\n" % e +
+                             "Supported methods:%s" % str(methods_objects.keys()))
 
-    try:
-        return methods_objects[name]
+def _get_fft_method(name, **kwargs):
+    kwargs = kwargs.copy()
+    shape = kwargs["shape"]
+    kwargs.pop("shape")
 
-    except KeyError as e:
-        raise ValueError("Unknown method %s\n" % e +
-                         "Supported methods:%s" % str(methods_objects.keys()))
+    if name == "numpy":
+        return fft.get_numpy(shape, **kwargs)
+    elif name == "scipy":
+        return fft.get_scipy(shape, **kwargs)
+    elif name == "pyfftw":
+        return fft.get_pyfftw(shape, **kwargs)
+    else:
+        raise ValueError("unknown method %s, the available methods are 'numpy', 'scipy' and 'pyfftw'" % name)

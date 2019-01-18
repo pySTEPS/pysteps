@@ -1,5 +1,5 @@
-"""Implementations of bandpass filters for separating different spatial scales
-from two-dimensional images in the frequency domain.
+"""Bandpass filters for separating different spatial scales from two-dimensional
+images in the frequency domain.
 
 The methods in this module implement the following interface:
 
@@ -16,11 +16,11 @@ key-value pairs:
 +-----------------+-----------------------------------------------------------+
 |       Key       |                Value                                      |
 +=================+===========================================================+
-| weights_1d      | 2d array of shape (n, r) containing 1d filter weights     |
-|                 | for each frequency band k=1,2,...,n                       |
+| weights_1d      | 2d array of shape (n, r) containing 1d filter weights for |
+|                 | each frequency band k=1,2,...,n                           |
 +-----------------+-----------------------------------------------------------+
-| weights_2d      | 3d array of shape (n, M, N) containing the 2d filter      |
-|                 | weights for each frequency band k=1,2,...,n               |
+| weights_2d      | 3d array of shape (n, M, int(N/2)+1) containing the 2d    |
+|                 | filter weights for each frequency band k=1,2,...,n        |
 +-----------------+-----------------------------------------------------------+
 | central_freqs   | 1d array of shape n containing the central frequencies of |
 |                 | the filters                                               |
@@ -35,9 +35,6 @@ wavenumber they sum to one.
 
 import numpy as np
 
-# TODO: Should the filter always return an 1d array and should we use a separate
-# method for generating the 2d filter from the 1d filter?
-
 def filter_uniform(shape, n):
     """A dummy filter with one frequency band covering the whole domain. The
     weights are set to one.
@@ -46,7 +43,7 @@ def filter_uniform(shape, n):
     ----------
     shape : int or tuple
         The dimensions (height, width) of the input field. If shape is an int,
-        it assumes to be a square domain.
+        the domain is assumed to have square shape.
     n : int
         Not used. Needed for compatibility with the filter interface.
 
@@ -61,20 +58,20 @@ def filter_uniform(shape, n):
     r_max = int(max(N, M)/2)+1
 
     result["weights_1d"]    = np.ones((1, r_max))
-    result["weights_2d"]    = np.ones((1, M, N))
+    result["weights_2d"]    = np.ones((1, M, int(N/2)+1))
     result["central_freqs"] = None
 
     return result
 
 def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
-    """Implements a set of Gaussian band-pass filters in logarithmic frequency
+    """Implements a set of Gaussian bandpass filters in logarithmic frequency
     scale.
 
     Parameters
     ----------
     shape : int or tuple
-        The dimensions (height, width) of the input field. If shape is an int, it
-        assumes to be a square domain.
+        The dimensions (height, width) of the input field. If shape is an int,
+        the domain is assumed to have square shape.
     n : int
         The number of frequency bands to use. Must be greater than 2.
     l_0 : int
@@ -106,10 +103,7 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     except TypeError:
         M,N = (shape, shape)
 
-    if N % 2 == 1:
-        rx = np.s_[-int(N/2):int(N/2)+1]
-    else:
-        rx = np.s_[-int(N/2):int(N/2)]
+    rx = np.s_[:int(N/2)+1]
 
     if M % 2 == 1:
         ry = np.s_[-int(M/2):int(M/2)+1]
@@ -117,7 +111,8 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
         ry = np.s_[-int(M/2):int(M/2)]
 
     Y,X = np.ogrid[ry, rx]
-    R = np.sqrt(X*X + Y*Y)
+    dy = int(M/2) if M % 2 == 0 else int(M/2)+1
+    R = np.roll(np.sqrt(X*X + Y*Y), dy, axis=0)
 
     L = max(N, M)
     r_max = int(L/2)+1
@@ -127,7 +122,7 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
                                gauss_scale_0=gauss_scale_0)
 
     w = np.empty((n, r_max))
-    W = np.empty((n, M, N))
+    W = np.empty((n, M, int(N/2)+1))
 
     for i,wf in enumerate(wfs):
         w[i, :] = wf(r)
