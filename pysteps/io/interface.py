@@ -7,6 +7,7 @@ _importer_methods['mch_gif'] = importers.import_mch_gif
 _importer_methods['mch_hdf5'] = importers.import_mch_hdf5
 _importer_methods['mch_metranet'] = importers.import_mch_metranet
 _importer_methods['odim_hdf5'] = importers.import_odim_hdf5
+_importer_methods['knmi_hdf5'] = importers.import_knmi_hdf5
 
 _exporter_methods = dict()
 _exporter_methods['netcdf'] = exporters.initialize_forecast_exporter_netcdf
@@ -42,7 +43,9 @@ def get_method(name, method_type):
         |              | precipitation composites                              |
         +--------------+-------------------------------------------------------+
         |   odim_hdf5  | ODIM HDF5 file format used by Eumetnet/OPERA          |
-        +--------------+-------------------------------------------------------+
+        +-------------------+--------------------------------------------------+
+        |   knmi_hdf5  |  HDF5 file format used by KNMI                        |
+        +----------------------------------------------------------------------+
 
         Exporters:
 
