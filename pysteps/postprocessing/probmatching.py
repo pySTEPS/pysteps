@@ -99,10 +99,6 @@ def nonparam_match_empirical_cdf(R, R_trg):
 
     return R
 
-# TODO: What is this?
-def nonparam_match_empirical_cdf_masked():
-    pass
-
 # TODO: A more detailed explanation of the PMM method + references.
 def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
     """Initialize a probability matching method (PMM) object from binned
