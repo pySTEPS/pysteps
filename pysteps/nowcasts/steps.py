@@ -468,9 +468,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 R_c_[MASK_prec_] = R_c_.min()
 
             if probmatching_method == "cdf":
-                # adjust the conditional CDF of the forecast (precipitation
-                # intensity above the threshold R_thr) to match the most
-                # recently observed precipitation field
+                # adjust the CDF of the forecast to match the most recently
+                # observed precipitation field
                 R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
             elif probmatching_method == "mean":
                 mu_fct = np.mean(R_c_[~MASK_prec_])
