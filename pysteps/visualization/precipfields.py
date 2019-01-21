@@ -27,7 +27,7 @@ from . import utils
 def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                       colorscale='MeteoSwiss', probthr=None, title=None,
                       colorbar=True, drawlonlatlines=False, basemap_resolution='l',
-                      cartopy_scale="50m"):
+                      cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1)):
     """Function to plot a precipitation intensity or probability field with a
     colorbar.
 
@@ -93,6 +93,10 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     cartopy_scale : str
         The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'. Applicable if map is 'cartopy'.
+    lw: float
+        Linewidth of the map (administrative boundaries and coastlines).
+    cartopy_subplot: tuple
+        Cartopy subplot. Applicable if map is 'cartopy'.
 
     Returns
     -------
@@ -127,7 +131,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-
+    
     if map is None:
         # Extract extent for imshow function
         if geodata is not None:
@@ -159,7 +163,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             bm_params["urcrnrlat"]  = ur_lat
             bm_params["resolution"] = basemap_resolution
 
-            bm = _plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines)
+            bm = _plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw)
 
             if geodata["yorigin"] == "upper":
                 R = np.flipud(R)
@@ -196,7 +200,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                 regular_grid = False
 
             bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale,
-                                   drawlonlatlines=drawlonlatlines)
+                                   drawlonlatlines=drawlonlatlines, lw=lw, subplot=cartopy_subplot)
             extent = (x1, x2, y2, y1)
 
         if regular_grid:
@@ -291,7 +295,7 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
 
     vmin,vmax = [None, None] if type == "intensity" else [0.0, 1.0]
 
-    im = plt.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=10)
+    im = plt.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
 
     return im
 
@@ -424,13 +428,13 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
 def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,0.3),
                   countrycolor=(0.3,0.3,0.3), continentcolor=(0.95,0.95,0.85),
                   lakecolor=(0.65,0.75,0.9), rivercolor=(0.65,0.75,0.9),
-                  mapboundarycolor=(0.65,0.75,0.9)):
+                  mapboundarycolor=(0.65,0.75,0.9), lw=0.5):
     bm = Basemap(**bm_params)
 
     if coastlinecolor is not None:
-        bm.drawcoastlines(color=coastlinecolor, linewidth=0.1, zorder=0.1)
+        bm.drawcoastlines(color=coastlinecolor, linewidth=lw, zorder=0.1)
     if countrycolor is not None:
-        bm.drawcountries(countrycolor, zorder=0.2)
+        bm.drawcountries(countrycolor, linewidth=lw, zorder=0.2)
     if rivercolor is not None:
         bm.drawrivers(zorder=0.2, color=rivercolor)
     if continentcolor is not None:
@@ -439,30 +443,30 @@ def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,
         bm.drawmapboundary(fill_color=mapboundarycolor, zorder=-1)
     if drawlonlatlines:
         bm.drawmeridians(np.linspace(bm.llcrnrlon, bm.urcrnrlon, 10),
-                         color=(0.5,0.5,0.5), linewidth=0.5, labels=[1,0,0,1],
+                         color=(0.5,0.5,0.5), linewidth=0.25, labels=[1,0,0,1],
                          fmt="%.1f", fontsize=6)
         bm.drawparallels(np.linspace(bm.llcrnrlat, bm.urcrnrlat, 10),
-                         color=(0.5,0.5,0.5), linewidth=0.5, labels=[1,0,0,1],
+                         color=(0.5,0.5,0.5), linewidth=0.25, labels=[1,0,0,1],
                          fmt="%.1f", fontsize=6)
 
     return bm
 
-def _plot_map_cartopy(crs, x1, y1, x2, y2, scale, drawlonlatlines=False):
-    ax = plt.axes(projection=crs)
+def _plot_map_cartopy(crs, x1, y1, x2, y2, scale, drawlonlatlines=False, lw=0.5, subplot=(1,1,1)):
+    ax = plt.subplot(subplot[0], subplot[1], subplot[2], projection=crs)
 
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "ocean", scale = "50m" if scale is "10m" else scale,
-        edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
+        edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])), zorder=0)
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "land",
-       scale=scale, edgecolor="none", facecolor=np.array([0.9375, 0.9375, 0.859375])))
+       scale=scale, edgecolor="none", facecolor=np.array([0.9375, 0.9375, 0.859375])), zorder=0)
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "coastline", scale=scale,
-        edgecolor="black", facecolor="none", linewidth=0.25))
+        edgecolor="black", facecolor="none", linewidth=lw), zorder=2)
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "lakes", scale=scale,
-        edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])))
+        edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])), zorder=0)
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "rivers_lake_centerlines",
         scale=scale, edgecolor=np.array([ 0.59375, 0.71484375, 0.8828125]),
-        facecolor="none"))
+        facecolor="none"), zorder=0)
     ax.add_feature(cfeature.NaturalEarthFeature("cultural", "admin_0_boundary_lines_land",
-        scale=scale, edgecolor="black", facecolor="none", linewidth=0.25))
+        scale=scale, edgecolor="black", facecolor="none", linewidth=lw), zorder=2)
 
     if drawlonlatlines:
         ax.gridlines(crs=ccrs.PlateCarree())
