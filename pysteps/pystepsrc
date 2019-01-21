@@ -54,6 +54,17 @@
             "importer": "odim_hdf5",
             "timestep": 15,
             "importer_kwargs": {}
+        },
+        "knmi": {
+            "root_path": "./radar/KNMI",
+            "path_fmt": "%Y/%m",
+            "fn_pattern": "RAD_NL25_RAP_5min_%Y%m%d%H%M",
+            "fn_ext": "h5",
+            "importer": "knmi_hdf5",
+            "timestep": 5,
+            "importer_kwargs": {
+                "accutime": 5
+			}
         }
     }
 }

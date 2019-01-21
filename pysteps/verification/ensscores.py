@@ -194,7 +194,7 @@ def rankhist_accum(rankhist, X_f, X_o):
         bin_idx_2 = X_f.shape[1] - idx1[1][idx2]
 
         idxr = np.random.uniform(low=0.0, high=1.0, size=len(idxdup))
-        idxr = bin_idx_1[idxdup] + idxr * (bin_idx_2[idxdup] - bin_idx_1[idxdup])
+        idxr = bin_idx_1[idxdup] + idxr * (bin_idx_2[idxdup] + 1 - bin_idx_1[idxdup])
         bin_idx.extend(idxr.astype(int))
 
     for bi in bin_idx:

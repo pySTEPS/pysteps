@@ -836,3 +836,105 @@ def _read_odim_hdf5_what_group(whatgrp):
     undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else 0.0
 
     return qty,gain,offset,nodata,undetect
+  
+def import_knmi_hdf5(filename, **kwargs):
+    """Read a precipitation field (and optionally the quality field) from a HDF5
+    file conforming to the KNMI Data Centre specification. TO DO: Add quality 
+    field.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+
+    Other Parameters
+    ----------------
+    accutime : float
+        The accumulation time of the dataset in minutes.
+    pixelsize: float
+        The pixelsize of a raster cell in meters.
+
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing precipitation accumulation of the KNMI 
+        product, the associated quality field and metadata. The quality
+        field is currently set to None.
+
+    """
+    if not h5py_imported:
+        raise Exception("h5py not imported")
+    
+    # Generally, the 5 min. data is used, but also hourly, daily and monthly 
+    # accumulations are present.
+    accutime    = kwargs.get("accutime", 5.)
+    pixelsize   = kwargs.get("pixelsize", 1000.) # 1.0 or 2.4 km datasets are available - give pixelsize in meters
+    
+    ####
+    # Precipitation fields
+    ####
+    
+    f = h5py.File(filename, 'r')
+    dset=f['image1']['image_data']
+    R_intermediate = np.copy(dset) #copy the content
+    R = np.where(R_intermediate == 65535, np.NaN, R_intermediate / 100.0) 
+    # R is divided by 100.0, because the data is saved as hundreds of mm (so, as integers)
+    # 65535 is the no data value
+    # Precision of the data is two decimals (0.01 mm).
+    
+    if R is None:
+        raise IOError("requested quantity [mm] not found")
+    
+    ####
+    # Meta data
+    ####
+
+    metadata = {}
+
+    # The 'where' group of mch- and Opera-data, is called 'geographic' in the 
+    # KNMI data.
+    geographic = f["geographic"]
+    proj4str = geographic['map_projection'].attrs["projection_proj4_params"].decode()
+    pr = pyproj.Proj(proj4str)
+    metadata["projection"] = proj4str
+
+    # Get coordinates
+    latlon_corners = geographic.attrs["geo_product_corners"]
+    LL_lat = latlon_corners[1]
+    LL_lon = latlon_corners[0]
+    UR_lat = latlon_corners[5]
+    UR_lon = latlon_corners[4]
+    LR_lat = latlon_corners[7]
+    LR_lon = latlon_corners[6]
+    UL_lat = latlon_corners[3]
+    UL_lon = latlon_corners[2]
+
+    LL_x,LL_y = pr(LL_lon, LL_lat)
+    UR_x,UR_y = pr(UR_lon, UR_lat)
+    LR_x,LR_y = pr(LR_lon, LR_lat)
+    UL_x,UL_y = pr(UL_lon, UL_lat)
+    x1 = min(LL_x, UL_x)
+    y2 = min(LL_y, LR_y)
+    x2 = max(LR_x, UR_x)
+    y1 = max(UL_y, UR_y)
+    
+    # Fill in the metadata
+    metadata["x1"] = x1
+    metadata["y1"] = y1
+    metadata["x2"] = x2
+    metadata["y2"] = y2
+
+    metadata["xpixelsize"] = pixelsize
+    metadata["ypixelsize"] = pixelsize
+
+    metadata["yorigin"] = "upper"
+    metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
+    metadata["accutime"] = accutime
+    metadata["unit"] = "mm"
+    metadata["transform"] = None
+    metadata["zerovalue"] = 0.0
+    metadata["threshold"] = np.nanmin(R[R>np.nanmin(R)])
+
+    f.close()
+
+    return R,None,metadata
