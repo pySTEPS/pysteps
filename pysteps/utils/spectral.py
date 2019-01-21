@@ -65,7 +65,7 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, **fft_kwargs):
         result.append(np.mean(F_vals))
     
     if return_freq:
-        freq = np.fft.fftfreq(L,d=d)
+        freq = np.fft.fftfreq(L, d=d)
         freq = freq[r_range]
         return np.array(result), freq
     else:
