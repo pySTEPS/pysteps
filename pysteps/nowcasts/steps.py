@@ -90,9 +90,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       with a certain rate (currently it is 1 km/min), None=no masking.
     probmatching_method : {'cdf','mean',None}
       Method for matching the statistics of the forecast field with those of
-      the most recently observed one. Requires that mask_method is not None.
-      'cdf'=map the forecast CDF to the observed one, 'mean'=adjust only the
-      mean value of the forecast field, None=no matching applied.
+      the most recently observed one. 'cdf'=map the forecast CDF to the observed
+      one, 'mean'=adjust only the conditional mean value of the forecast field
+      in precipitation areas, None=no matching applied. Using 'mean' requires
+      that mask_method is not None.
     callback : function
       Optional function that is called after computation of each time step of
       the nowcast. The function takes one argument: a three-dimensional array
@@ -164,11 +165,11 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     if conditional and R_thr is None:
         raise ValueError("conditional=True but R_thr is not set")
 
-    if probmatching_method is not None and R_thr is None:
-        raise ValueError("probmatching_method!=None but R_thr is not set")
+    if mask_method is not None and R_thr is None:
+        raise ValueError("mask_method!=None but R_thr=None")
 
-    if probmatching_method is not None and mask_method is None:
-        raise ValueError("probmatching_method!=None but mask_method=None")
+    if probmatching_method == "mean" and mask_method is None:
+        raise ValueError("probmatching_method=='mean' but mask_method=None")
 
     if kmperpixel is None:
         if vel_pert_method is not None:
