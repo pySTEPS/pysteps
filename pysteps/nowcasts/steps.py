@@ -123,8 +123,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       Optional dictionary containing keyword arguments for the initializer of
       the noise generator. See the documentation of pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
-      Optional dictionary containing keyword arguments for the initializer of
-      the velocity perturbator. See the documentation of pysteps.noise.motion.
+      Optional dictionary containing keyword arguments "p_pert_par" and 
+      "p_pert_perp" for the initializer of the velocity perturbator. 
+      See the documentation of pysteps.noise.motion.
 
     Returns
     -------
