@@ -36,19 +36,20 @@ def compute_empirical_cdf(bin_edges, hist):
 def nonparam_match_empirical_cdf(R, R_trg):
     """Matches the empirical CDF of the initial array with the empirical CDF
     of a target array. Initial ranks are conserved, but empirical distribution
-    matches the target one. Zero-pixels in initial array are conserved.
+    matches the target one. Zero-pixels (i.e. pixels having the minimum value)
+    in the initial array are conserved.
 
     Parameters
     ----------
     R : array_like
-        The initial array whose CDF is to be changed.
+        The initial array whose CDF is to be matched with the target.
     R_trg : array_like
-        The target array whose CDF is to be matched.
+        The target array.
 
     Returns
     -------
     out : array_like
-        The new array.
+        The matched array.
 
     """
     if R.size != R_trg.size:
