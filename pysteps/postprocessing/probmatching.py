@@ -71,6 +71,7 @@ def nonparam_match_empirical_cdf(R, R_trg):
         # TODO: this needs more testing
         war = np.sum(R > zvalue)/R.size
         p = np.percentile(R_trg, 100*(1 - war))
+        R_trg = R_trg.copy()
         R_trg[R_trg < p] = zvalue_trg
 
     # flatten the arrays
