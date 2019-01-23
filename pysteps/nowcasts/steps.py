@@ -108,7 +108,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       Optional seed number for the random generators.
     num_workers : int
       The number of workers to use for parallel computation. Applicable if dask
-      is enabled or pyFFTW is used for computing the FFT.
+      is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
+      is advisable to disable OpenMP by setting the environment variable
+      OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
+      threads.
     fft_method : str
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
@@ -123,8 +126,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       Optional dictionary containing keyword arguments for the initializer of
       the noise generator. See the documentation of pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
-      Optional dictionary containing keyword arguments for the initializer of
-      the velocity perturbator. See the documentation of pysteps.noise.motion.
+      Optional dictionary containing keyword arguments "p_pert_par" and 
+      "p_pert_perp" for the initializer of the velocity perturbator. 
+      See the documentation of pysteps.noise.motion.
 
     Returns
     -------
