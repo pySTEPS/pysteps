@@ -66,8 +66,8 @@ def nonparam_match_empirical_cdf(R, R_trg):
     # zeros in the target array
     zvalue_trg = R_trg.min()
 
-    # adjust the fraction of rain in target distribution if the number of zeros
-    # is greater than in the initial array
+    # adjust the fraction of rain in target distribution if the number of
+    # nonzeros is greater than in the initial array
     if np.sum(R_trg > zvalue_trg) > np.sum(R > zvalue):
         war = np.sum(R > zvalue)/R.size
         p = np.percentile(R_trg, 100*(1 - war))
