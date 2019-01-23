@@ -75,7 +75,8 @@ try:
 except ImportError:
     h5py_imported = False
 try:
-
+    import sys
+    sys.path.append('/store/mch/msrad/python/library/radar/io/') # path to metranet library
     import metranet
     metranet_imported = True
 except ImportError:
@@ -348,12 +349,15 @@ def import_mch_gif(filename, **kwargs):
         +------+----------------------------+
         | Name |          Product           |
         +======+============================+
-        | AQC  |         Acquire            |
+        | AQC  |     Acquire                |
         +------+----------------------------+
-        | CPC  |         CombiPrecip        |
+        | CPC  |     CombiPrecip            |
         +------+----------------------------+
-        | RZC  |         Precip             |
+        | RZC  |     Precip                 |
         +------+----------------------------+
+        | AZC  |     RZC accumulation       |
+        +------+----------------------------+
+
     unit : string
         the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
     accutime : float
@@ -373,9 +377,9 @@ def import_mch_gif(filename, **kwargs):
             "radar reflectivity composite from MeteoSwiss"
             "but it is not installed")
 
-    product     = kwargs.get("product", "AQC")
-    unit        = kwargs.get("unit",    "mm")
-    accutime    = kwargs.get("accutime", 5.)
+    product = kwargs.get("product", "AQC")
+    unit = kwargs.get("unit",    "mm")
+    accutime = kwargs.get("accutime", 5.)
 
     geodata = _import_mch_geodata()
 
@@ -384,13 +388,16 @@ def import_mch_gif(filename, **kwargs):
     # import gif file
     B = PIL.Image.open(filename)
 
-    if product.lower() in ["rzc", "precip"]:
+    if product.lower() in ["azc", "rzc", "precip"]:
 
         # convert 8-bit GIF colortable to RGB values
         Brgb = B.convert('RGB')
 
         # load lookup table
-        lut_filename = os.path.join(os.path.dirname(__file__), "mch_lut_8bit_Metranet_v103.txt")
+        if product.lower() == "azc":
+            lut_filename = os.path.join(os.path.dirname(__file__), "mch_lut_8bit_Metranet_AZC_V104.txt")
+        else:
+            lut_filename = os.path.join(os.path.dirname(__file__), "mch_lut_8bit_Metranet_v103.txt")
         lut = np.genfromtxt(lut_filename, skip_header=1)
         lut = dict(zip(zip(lut[:, 1], lut[:,2], lut[:,3]), lut[:,-1]))
 
@@ -406,7 +413,7 @@ def import_mch_gif(filename, **kwargs):
         # set values outside observational range to NaN,
         # and values in non-precipitating areas to zero.
         R[R<0] = 0
-        R[R>1000] = np.nan
+        R[R>9999] = np.nan
 
     elif product.lower() in ["aqc", "cpc", "acquire ", "combiprecip"]:
 
@@ -430,14 +437,14 @@ def import_mch_gif(filename, **kwargs):
     else:
         raise ValueError("unknown product %s" % product)
 
-    metadata["accutime"]    = accutime
-    metadata["unit"]        = unit
-    metadata["transform"]   = None
-    metadata["zerovalue"]   = np.nanmin(R)
+    metadata["accutime"] = accutime
+    metadata["unit"] = unit
+    metadata["transform"] = None
+    metadata["zerovalue"] = np.nanmin(R)
     if np.any(R>np.nanmin(R)):
-        metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
+        metadata["threshold"] = np.nanmin(R[R>np.nanmin(R)])
     else:
-        metadata["threshold"]   = np.nan
+        metadata["threshold"] = np.nan
     metadata["institution"] = "MeteoSwiss"
     metadata["product"] = product
 
@@ -793,7 +800,7 @@ def import_odim_hdf5(filename, **kwargs):
         thr = np.nanmin(R[R>np.nanmin(R)])
     else:
         thr = nan
-    
+
     metadata = {"projection":proj4str,
                 "ll_lon":LL_lon,
                 "ll_lat":LL_lat,
@@ -836,10 +843,10 @@ def _read_odim_hdf5_what_group(whatgrp):
     undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else 0.0
 
     return qty,gain,offset,nodata,undetect
-  
+
 def import_knmi_hdf5(filename, **kwargs):
     """Read a precipitation field (and optionally the quality field) from a HDF5
-    file conforming to the KNMI Data Centre specification. TO DO: Add quality 
+    file conforming to the KNMI Data Centre specification. TO DO: Add quality
     field.
 
     Parameters
@@ -857,41 +864,41 @@ def import_knmi_hdf5(filename, **kwargs):
     Returns
     -------
     out : tuple
-        A three-element tuple containing precipitation accumulation of the KNMI 
+        A three-element tuple containing precipitation accumulation of the KNMI
         product, the associated quality field and metadata. The quality
         field is currently set to None.
 
     """
     if not h5py_imported:
         raise Exception("h5py not imported")
-    
-    # Generally, the 5 min. data is used, but also hourly, daily and monthly 
+
+    # Generally, the 5 min. data is used, but also hourly, daily and monthly
     # accumulations are present.
     accutime    = kwargs.get("accutime", 5.)
     pixelsize   = kwargs.get("pixelsize", 1000.) # 1.0 or 2.4 km datasets are available - give pixelsize in meters
-    
+
     ####
     # Precipitation fields
     ####
-    
+
     f = h5py.File(filename, 'r')
     dset=f['image1']['image_data']
     R_intermediate = np.copy(dset) #copy the content
-    R = np.where(R_intermediate == 65535, np.NaN, R_intermediate / 100.0) 
+    R = np.where(R_intermediate == 65535, np.NaN, R_intermediate / 100.0)
     # R is divided by 100.0, because the data is saved as hundreds of mm (so, as integers)
     # 65535 is the no data value
     # Precision of the data is two decimals (0.01 mm).
-    
+
     if R is None:
         raise IOError("requested quantity [mm] not found")
-    
+
     ####
     # Meta data
     ####
 
     metadata = {}
 
-    # The 'where' group of mch- and Opera-data, is called 'geographic' in the 
+    # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
     proj4str = geographic['map_projection'].attrs["projection_proj4_params"].decode()
@@ -917,7 +924,7 @@ def import_knmi_hdf5(filename, **kwargs):
     y2 = min(LL_y, LR_y)
     x2 = max(LR_x, UR_x)
     y1 = max(UL_y, UR_y)
-    
+
     # Fill in the metadata
     metadata["x1"] = x1
     metadata["y1"] = y1
