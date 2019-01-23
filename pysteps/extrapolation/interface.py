@@ -20,7 +20,7 @@ import numpy as np
 from pysteps.extrapolation import semilagrangian
 
 
-def eulerian_persistence(precip, velocity, num_timesteps, outval, **kwargs):
+def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan, **kwargs):
     """ Eulerian persistence extrapolator """
     del velocity, outval  # Unused by _eulerian_persistence
     return_displacement = kwargs.get("return_displacement", False)
@@ -35,7 +35,7 @@ def eulerian_persistence(precip, velocity, num_timesteps, outval, **kwargs):
         return extrapolated_precip, np.zeros((2,) + extrapolated_precip.shape)
 
 
-def _do_nothing(precip, velocity, num_timesteps, outval, **kwargs):
+def _do_nothing(precip, velocity, num_timesteps, outval=np.nan, **kwargs):
     del precip, velocity, num_timesteps, outval, kwargs  # Unused by _do_nothing
     return None
 
