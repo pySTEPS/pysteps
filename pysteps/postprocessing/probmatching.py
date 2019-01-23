@@ -59,17 +59,16 @@ def nonparam_match_empirical_cdf(R, R_trg):
     if np.any(~np.isfinite(R_trg)):
         raise ValueError("target array contains non-finite values")
 
-    # zeros in initial image
+    # zeros in initial array
     zvalue = R.min()
     idxzeros = R == zvalue
 
-    # zeros in target image
+    # zeros in the target array
     zvalue_trg = R_trg.min()
 
+    # adjust the fraction of rain in target distribution if the number of zeros
+    # is greater than in the initial array
     if np.sum(R_trg > zvalue_trg) > np.sum(R > zvalue):
-        # adjust the fraction of rain in target distribution if the number of zeros
-        # is greater than in the initial array
-        # TODO: this needs more testing
         war = np.sum(R > zvalue)/R.size
         p = np.percentile(R_trg, 100*(1 - war))
         R_trg = R_trg.copy()
@@ -89,13 +88,13 @@ def nonparam_match_empirical_cdf(R, R_trg):
     ranks = np.empty(len(R), int)
     ranks[orderin] = np.arange(len(R))
 
-    # get ranked values from target and rearrange with inital order
+    # get ranked values from target and rearrange with the initial order
     R = ranked[ranks]
 
-    # reshape as original array
+    # reshape to the original array dimensions
     R = R.reshape(arrayshape)
 
-    # readding original zeros
+    # readd original zeros
     R[idxzeros] = zvalue_trg
 
     return R
