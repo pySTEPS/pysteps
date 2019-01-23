@@ -64,7 +64,6 @@ def nonparam_match_empirical_cdf(R, R_trg):
 
     # zeros in target image
     zvalue_trg = R_trg.min()
-    idxzeros_trg = R_trg == zvalue
 
     if np.sum(R_trg > zvalue_trg) > np.sum(R > zvalue):
         # adjust the fraction of rain in target distribution if the number of zeros
