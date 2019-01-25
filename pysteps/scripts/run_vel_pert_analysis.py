@@ -80,7 +80,6 @@ while curdate <= enddate:
     R[~np.isfinite(R)] = metadata["zerovalue"]
     if use_precip_mask:
         MASK = np.any(R < R_min, axis=0)
-    # TODO: the unit of the input data needs to be checked
     R = transformation.dB_transform(R)[0]
 
     if args.oflow == "vet":
