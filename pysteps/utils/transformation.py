@@ -155,7 +155,7 @@ def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
     plt.close()
     
 def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
-    """Methods to transform to/from dB units.
+    """Methods to transform precipitation intensities to/from dB units.
 
     Parameters
     ----------
@@ -371,6 +371,5 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
         metadata["transform"] = None
         metadata["zerovalue"] = metadata["zerovalue"]**2
         metadata["threshold"] = metadata["threshold"]**2
-        
-    
+
     return R, metadata
