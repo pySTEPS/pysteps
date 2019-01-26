@@ -253,16 +253,17 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         pp = init_noise(R, fft_method=fft, **noise_kwargs)
 
         if noise_stddev_adj:
-            print("Computing noise adjustment factors... ", end="")
+            print("Computing noise adjustment coefficients... ", end="")
             sys.stdout.flush()
             starttime = time.time()
 
             R_min = np.min(R)
             noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(R[-1, :, :],
-                R_thr, R_min, filter, decomp_method, 10, conditional=True,
-                num_workers=num_workers)
+                R_thr, R_min, filter, decomp_method, pp, generate_noise, 20,
+                conditional=True, num_workers=num_workers)
 
             print("%.2f seconds." % (time.time() - starttime))
+            print("coeffs = %s" % str(noise_std_coeffs))
         else:
             noise_std_coeffs = np.ones(n_cascade_levels)
 
