@@ -40,26 +40,32 @@ for lt in leadtimes:
 
     std_perp.append(np.sqrt((dp_perp_sq_sum-2*mu*dp_perp_sum+dp_perp_n*mu**2) / dp_perp_n))
 
-p_par = curve_fit(f, leadtimes, std_par)[0]
-p_perp = curve_fit(f, leadtimes, std_perp)[0]
-
-print("p_par  = %s" % str(p_par))
-print("p_perp = %s" % str(p_perp))
+try:
+    p_par = curve_fit(f, leadtimes, std_par)[0]
+    p_perp = curve_fit(f, leadtimes, std_perp)[0]
+    fit_succeeded = True
+    print("p_par  = %s" % str(p_par))
+    print("p_perp = %s" % str(p_perp))
+except RuntimeError:
+    fit_succeeded = False
+    print("Parameter fitting failed.")
 
 if args.plot is not None:
     pyplot.figure()
 
     pyplot.scatter(leadtimes, std_par,  c='r')
     t = np.linspace(0.5*leadtimes[0], 1.025*leadtimes[-1], 200)
-    l1, = pyplot.plot(t, f(t, *p_par), "r-")
     pyplot.scatter(leadtimes, std_perp, c='g')
-    l2, = pyplot.plot(t, f(t, *p_perp), "g-")
+    if fit_succeeded:
+        l1, = pyplot.plot(t, f(t, *p_par), "r-")
+        l2, = pyplot.plot(t, f(t, *p_perp), "g-")
 
     p_str_1 = lambda p: "%.2f\cdot t^{%.2f}+%.2f" % (p[0], p[1], p[2])
     p_str_2 = lambda p: "%.2f\cdot t^{%.2f}%.2f" % (p[0], p[1], p[2])
-    lbl = lambda p: p_str_1(p) if p[2] > 0.0 else p_str_2(p)
-    pyplot.legend([l1, l2], ["Parallel: $f(t)=%s$" % lbl(p_par),
-        "Perpendicular: $f(t)=%s$" % lbl(p_perp)], fontsize=12)
+    if fit_succeeded:
+        lbl = lambda p: p_str_1(p) if p[2] > 0.0 else p_str_2(p)
+        pyplot.legend([l1, l2], ["Parallel: $f(t)=%s$" % lbl(p_par),
+            "Perpendicular: $f(t)=%s$" % lbl(p_perp)], fontsize=12)
     pyplot.xlim(0.5*leadtimes[0], 1.025*leadtimes[-1])
     pyplot.xlabel("Lead time (minutes)", fontsize=12)
     pyplot.ylabel("Standard deviation of differences (km/h)", fontsize=12)
