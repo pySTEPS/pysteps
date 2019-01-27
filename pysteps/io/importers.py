@@ -837,7 +837,7 @@ def _read_odim_hdf5_what_group(whatgrp):
     qty      = whatgrp.attrs["quantity"]
     gain     = whatgrp.attrs["gain"]     if "gain" in whatgrp.attrs.keys() else 1.0
     offset   = whatgrp.attrs["offset"]   if "offset" in whatgrp.attrs.keys() else 0.0
-    nodata   = whatgrp.attrs["nodata"]   if "nodata" in whatgrp.attrs.keys() else nan
+    nodata   = whatgrp.attrs["nodata"]   if "nodata" in whatgrp.attrs.keys() else np.nan
     undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else 0.0
 
     return qty,gain,offset,nodata,undetect
