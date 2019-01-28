@@ -89,6 +89,11 @@ while curdate <= enddate:
 
     # TODO: Allow the user to supply parameters for the optical flow.
     V = oflow(R_) * vsf
+    # discard the motion field if the mean velocity is abnormally large
+    if np.nanmean(np.linalg.norm(V, axis=0)) > 0.5*R.shape[1]:
+        curdate += timedelta(minutes=datasource["timestep"])
+        continue
+
     if use_precip_mask:
         V[0, :, :][MASK] = np.nan
         V[1, :, :][MASK] = np.nan
