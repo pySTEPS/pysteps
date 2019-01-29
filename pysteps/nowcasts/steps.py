@@ -301,6 +301,29 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
     decomp_method = cascade.get_method(decomp_method)
 
+    extrap_method = extrapolation.get_method(extrap_method)
+    R = R[-(ar_order + 1):, :, :].copy()
+
+    if conditional:
+        MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
+    else:
+        MASK_thr = None
+
+    # advect the previous precipitation fields to the same position with the
+    # most recent one (i.e. transform them into the Lagrangian coordinates)
+    extrap_kwargs = extrap_kwargs.copy()
+    res = []
+    f = lambda R, i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
+    for i in range(ar_order):
+        if not dask_imported:
+            R[i, :, :] = f(R, i)
+        else:
+            res.append(dask.delayed(f)(R, i))
+
+    if dask_imported:
+        num_workers_ = len(res) if num_workers > len(res) else num_workers
+        R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
+
     if noise_method is not None:
         # get methods for perturbations
         init_noise, generate_noise = noise.get_method(noise_method)
@@ -327,29 +350,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
         if noise_stddev_adj is not None:
             print("noise std. dev. coeffs:   %s" % str(noise_std_coeffs))
-
-    extrap_method = extrapolation.get_method(extrap_method)
-    R = R[-(ar_order + 1):, :, :].copy()
-
-    if conditional:
-        MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
-    else:
-        MASK_thr = None
-
-    # advect the previous precipitation fields to the same position with the
-    # most recent one (i.e. transform them into the Lagrangian coordinates)
-    extrap_kwargs = extrap_kwargs.copy()
-    res = []
-    f = lambda R, i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
-    for i in range(ar_order):
-        if not dask_imported:
-            R[i, :, :] = f(R, i)
-        else:
-            res.append(dask.delayed(f)(R, i))
-
-    if dask_imported:
-        num_workers_ = len(res) if num_workers > len(res) else num_workers
-        R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
 
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
