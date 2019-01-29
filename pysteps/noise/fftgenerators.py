@@ -94,7 +94,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
     # remove rain/no-rain discontinuity
     if rm_rdisc:
-        X[X > X.min()] -= X[X > X.min()].min()
+        X[X > X.min()] -= (X[X > X.min()].min() - X.min())
 
     # dims
     if len(X.shape) == 2:
@@ -221,7 +221,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
 
     # remove rain/no-rain discontinuity
     if rm_rdisc:
-        X[X > X.min()] -= X[X > X.min()].min()
+        X[X > X.min()] -= (X[X > X.min()].min() - X.min())
 
     # dims
     if len(X.shape) == 2:
@@ -383,7 +383,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
     # remove rain/no-rain discontinuity
     if rm_rdisc:
-        X[X > X.min()] -= X[X > X.min()].min()
+        X[X > X.min()] -= (X[X > X.min()].min() - X.min())
 
     # dims
     if len(X.shape) == 2:
@@ -495,7 +495,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     # remove rain/no-rain discontinuity
     if rm_rdisc:
-        X[X > X.min()] -= X[X > X.min()].min()
+        X[X > X.min()] -= (X[X > X.min()].min() - X.min())
 
     # dims
     if len(X.shape) == 2:
