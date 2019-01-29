@@ -19,7 +19,7 @@ except ImportError:
 def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None,
              kmperpixel=None, timestep=None, extrap_method="semilagrangian",
              decomp_method="fft", bandpass_filter_method="gaussian",
-             noise_method="nonparametric", noise_stddev_adj=False, ar_order=2,
+             noise_method="nonparametric", noise_stddev_adj=None, ar_order=2,
              vel_pert_method="bps", conditional=False, probmatching_method="cdf",
              mask_method="incremental", callback=None, return_output=True,
              seed=None, num_workers=1, fft_method="numpy", extrap_kwargs={},
@@ -68,9 +68,13 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       Name of the noise generator to use for perturbating the precipitation
       field. See the documentation of pysteps.noise.interface. If set to None,
       no noise is generated.
-    noise_stddev_adj : bool
+    noise_stddev_adj : {'auto','fixed',None}
       Optional adjustment for the standard deviations of the noise fields added
-      to each cascade level. See pysteps.noise.utils.compute_noise_stddev_adjs.
+      to each cascade level. This is done to compensate incorrect std. dev.
+      estimates of casace levels due to presence of no-rain areas. 'auto'=use
+      the method implemented in pysteps.noise.utils.compute_noise_stddev_adjs.
+      'fixed'= use the formula given in :cite:`BPS2006` (eq. 6), None=disable
+      noise std. dev adjustment.
     ar_order : int
       The order of the autoregressive model to use. Must be >= 1.
     vel_pert_method : {'bps',None}
@@ -126,8 +130,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       Optional dictionary containing keyword arguments for the initializer of
       the noise generator. See the documentation of pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
-      Optional dictionary containing keyword arguments "p_pert_par" and 
-      "p_pert_perp" for the initializer of the velocity perturbator. 
+      Optional dictionary containing keyword arguments "p_pert_par" and
+      "p_pert_perp" for the initializer of the velocity perturbator.
       See the documentation of pysteps.noise.motion.
 
     Returns
@@ -174,6 +178,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
     if probmatching_method == "mean" and mask_method is None:
         raise ValueError("probmatching_method=='mean' but mask_method=None")
+
+    if noise_stddev_adj not in ['auto', 'fixed', None]:
+        raise ValueError("unknown noise_std_dev_adj method %s: must be 'auto', 'fixed', or None" % noise_stddev_adj)
 
     if kmperpixel is None:
         if vel_pert_method is not None:
@@ -252,7 +259,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         # initialize the perturbation generator for the precipitation field
         pp = init_noise(R, fft_method=fft, **noise_kwargs)
 
-        if noise_stddev_adj:
+        if noise_stddev_adj == "auto":
             print("Computing noise adjustment coefficients... ", end="")
             sys.stdout.flush()
             starttime = time.time()
@@ -263,9 +270,14 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 conditional=True, num_workers=num_workers)
 
             print("%.2f seconds." % (time.time() - starttime))
-            print("coeffs = %s" % str(noise_std_coeffs))
+        elif noise_stddev_adj == "fixed":
+            f = lambda k: 1.0 / (0.75 + 0.09*k)
+            noise_std_coeffs = [f(k) for k in range(1, n_cascade_levels+1)]
         else:
             noise_std_coeffs = np.ones(n_cascade_levels)
+
+        if noise_stddev_adj is not None:
+            print("noise std. dev. coeffs:   %s" % str(noise_std_coeffs))
 
     extrap_method = extrapolation.get_method(extrap_method)
     R = R[-(ar_order + 1):, :, :].copy()

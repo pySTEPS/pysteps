@@ -6,7 +6,6 @@ try:
     dask_imported = True
 except ImportError:
     dask_imported = False
-from .. import noise
 
 def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
                               noise_filter, noise_generator, num_iter,
@@ -64,9 +63,9 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
     R[~np.isfinite(R)] = R_thr_2
     R[~MASK] = R_thr_2
     if not conditional:
-        mu,sigma = np.mean(R),np.std(R)
+        mu, sigma = np.mean(R),np.std(R)
     else:
-        mu,sigma = np.mean(R[MASK]),np.std(R[MASK])
+        mu, sigma = np.mean(R[MASK]),np.std(R[MASK])
     R -= mu
 
     MASK_ = MASK if conditional else None
