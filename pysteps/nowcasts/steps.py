@@ -131,8 +131,58 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       the noise generator. See the documentation of pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
       Optional dictionary containing keyword arguments "p_pert_par" and
-      "p_pert_perp" for the initializer of the velocity perturbator.
-      See the documentation of pysteps.noise.motion.
+      "p_pert_perp" for the initializer of the velocity perturbator. The choice
+      of optimal parameters depends on the domain and the used optical flow
+      method.
+
+      Default parameters from :cite:`BPS2006`:
+      p_par  = [10.88, 0.23, -7.68]
+      p_perp = [5.76, 0.31, -2.72]
+
+      Parameters fitted to the data (optical flow/domain):
+
+      darts/fmi:
+      p_par  = [13.71259667, 0.15658963, -16.24368207]
+      p_perp = [8.26550355, 0.17820458, -9.54107834]
+
+      darts/mch:
+      p_par  = [24.27562298, 0.11297186, -27.30087471]
+      p_perp = [-7.80797846e+01, -3.38641048e-02, 7.56715304e+01]
+
+      darts/fmi+mch:
+      p_par  = [16.55447057, 0.14160448, -19.24613059]
+      p_perp = [14.75343395, 0.11785398, -16.26151612]
+
+      lucaskanade/fmi:
+      p_par  = [2.20837526, 0.33887032, -2.48995355]
+      p_perp = [2.21722634, 0.32359621, -2.57402761]
+
+      lucaskanade/mch:
+      p_par  = [2.56338484, 0.3330941, -2.99714349]
+      p_perp = [1.31204508, 0.3578426, -1.02499891]
+
+      lucaskanade/fmi+mch:
+      p_par  = [2.31970635, 0.33734287, -2.64972861]
+      p_perp = [1.90769947, 0.33446594, -2.06603662]
+
+      vet/fmi:
+      p_par  = [0.25337388, 0.67542291, 11.04895538]
+      p_perp = [0.02432118, 0.99613295, 7.40146505]
+
+      vet/mch:
+      p_par  = [0.5075159, 0.53895212, 7.90331791]
+      p_perp = [0.68025501, 0.41761289, 4.73793581]
+
+      vet/fmi+mch:
+      p_par  = [0.29495222, 0.62429207, 8.6804131 ]
+      p_perp = [0.23127377, 0.59010281, 5.98180004]
+
+      fmi=Finland, mch=Switzerland, fmi+mch=both pooled into the same data set
+      
+      The above parameters have been fitten by using run_vel_pert_analysis.py
+      and fit_vel_pert_params.py located in the scripts directory.
+
+      See pysteps.noise.motion for additional documentation.
 
     Returns
     -------
