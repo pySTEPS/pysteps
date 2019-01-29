@@ -34,7 +34,7 @@ def get_default_params_bps_perp():
     given in :cite:`BPS2006` for the perpendicular component."""
     return (5.76,0.31,-2.72)
 
-def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None,
+def initialize_bps(V, pixelsperkm, timestep, p_par=None, p_perp=None,
                    randstate=np.random, seed=None):
     """Initialize the motion field perturbator described in :cite:`BPS2006`.
     For simplicity, the bias adjustment procedure described there has not been
@@ -46,12 +46,12 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None,
     V : array_like
       Array of shape (2,m,n) containing the x- and y-components of the m*n
       motion field to perturb.
-    p_pert_par : tuple
+    p_par : tuple
       Tuple containing the parameters a,b and c for the standard deviation of
       the perturbations in the direction parallel to the motion vectors. The
       standard deviations are modeled by the function f_par(t) = a*t**b+c, where
       t is lead time. The default values are taken from :cite:`BPS2006`.
-    p_pert_perp : tuple
+    p_perp : tuple
       Tuple containing the parameters a,b and c for the standard deviation of
       the perturbations in the direction perpendicular to the motion vectors.
       The standard deviations are modeled by the function f_par(t) = a*t**b+c,
@@ -80,15 +80,15 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None,
         raise ValueError("V is not a three-dimensional array")
     if V.shape[0] != 2:
         raise ValueError("the first dimension of V is not 2")
-    if len(p_pert_par) != 3:
-        raise ValueError("the length of p_pert_par is not 3")
-    if len(p_pert_perp) != 3:
-        raise ValueError("the length of p_pert_perp is not 3")
+    if len(p_par) != 3:
+        raise ValueError("the length of p_par is not 3")
+    if len(p_perp) != 3:
+        raise ValueError("the length of p_perp is not 3")
 
-    if p_pert_par is None:
-        p_pert_par = get_default_params_par()
-    if p_pert_perp is None:
-        p_pert_perp = get_default_params_perp()
+    if p_par is None:
+        p_par = get_default_params_bps_par()
+    if p_perp is None:
+        p_perp = get_default_params_bps_perp()
 
     perturbator = {}
 
@@ -106,8 +106,8 @@ def initialize_bps(V, pixelsperkm, timestep, p_pert_par=None, p_pert_perp=None,
 
     perturbator["randstate"] = randstate
     perturbator["vsf"]       = vsf
-    perturbator["p_par"]     = p_pert_par
-    perturbator["p_perp"]    = p_pert_perp
+    perturbator["p_par"]     = p_par
+    perturbator["p_perp"]    = p_perp
     perturbator["eps_par"]   = eps_par
     perturbator["eps_perp"]  = eps_perp
     perturbator["V_par"]     = V_n

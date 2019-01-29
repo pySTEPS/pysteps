@@ -130,10 +130,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       Optional dictionary containing keyword arguments for the initializer of
       the noise generator. See the documentation of pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
-      Optional dictionary containing keyword arguments "p_pert_par" and
-      "p_pert_perp" for the initializer of the velocity perturbator. The choice
-      of optimal parameters depends on the domain and the used optical flow
-      method.
+      Optional dictionary containing keyword arguments "p_par" and "p_perp" for
+      the initializer of the velocity perturbator. The choice of the optimal
+      parameters depends on the domain and the used optical flow method.
 
       Default parameters from :cite:`BPS2006`:
       p_par  = [10.88, 0.23, -7.68]
@@ -279,8 +278,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
     if vel_pert_method is "bps":
-        vp_par = vel_pert_kwargs.get("p_pert_par", noise.motion.get_default_params_bps_par())
-        vp_perp = vel_pert_kwargs.get("p_pert_perp", noise.motion.get_default_params_bps_perp())
+        vp_par = vel_pert_kwargs.get("p_par", noise.motion.get_default_params_bps_par())
+        vp_perp = vel_pert_kwargs.get("p_perp", noise.motion.get_default_params_bps_perp())
         print("velocity perturbations, parallel:      %g,%g,%g" % \
             (vp_par[0], vp_par[1], vp_par[2]))
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
@@ -414,8 +413,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         vps = []
         for j in range(n_ens_members):
             kwargs = {"randstate":randgen_motion[j],
-                      "p_pert_par":vp_par,
-                      "p_pert_perp":vp_perp}
+                      "p_par":vp_par,
+                      "p_perp":vp_perp}
             vp_ = init_vel_noise(V, 1./kmperpixel, timestep, **kwargs)
             vps.append(vp_)
 
