@@ -1,4 +1,14 @@
-"""Implementation of the STEPS method."""
+"""
+Implementation of the Short-space ensemble prediction system (SSEPS) method.
+Essentially, SSEPS is a localized version of STEPS. 
+
+For  localization  we  intend  the  use of  a  subset  of  the  observations  
+in  order  to  estimate  model parameters that are distributed in space. 
+The short-space approach used in :cite:`NBSG2017` is generalized to 
+the whole nowcasting system. This essenially boils down to a moving window 
+localization of the nowcasting procedure, whereby all parameters are estimated 
+over a subdomain of prescribed size.
+"""
 
 import sys
 import time
@@ -24,8 +34,8 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              mask_method="incremental", callback=None, fft_method="numpy",
              return_output=True, seed=None, num_workers=1, extrap_kwargs={},
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
-    """Generate a nowcast ensemble by using the Short-Space Ensemble Prediction
-    System (SSEPS) method.
+    """Generate a nowcast ensemble by using the Short-space ensemble prediction
+    system (SSEPS) method.
     This is an experimental version of STEPS which allows for localization 
     by means of a window function.
 

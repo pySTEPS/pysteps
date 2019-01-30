@@ -52,7 +52,8 @@ def get_method(name):
     |                   | Essentially, this is a localization of STEPS.       |
     +-------------------+-----------------------------------------------------+
 
-    steps produces stochastic nowcasts, and the other methods are deterministic.
+    steps and sseps produce stochastic nowcasts, and the other methods are 
+    deterministic.
     """
 
     if isinstance(name, str):
