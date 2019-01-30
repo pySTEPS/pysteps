@@ -18,13 +18,14 @@ The time step of the output is taken from the inputs.
 """
 
 from pysteps.extrapolation.interface import eulerian_persistence
-from pysteps.nowcasts import steps, extrapolation
+from pysteps.nowcasts import steps, sseps, extrapolation
 
 _nowcast_methods = dict()
 _nowcast_methods["eulerian"] = eulerian_persistence
 _nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["extrapolation"] = extrapolation.forecast
 _nowcast_methods["steps"] = steps.forecast
+_nowcast_methods["sseps"] = sseps.forecast
 
 
 def get_method(name):
@@ -46,6 +47,9 @@ def get_method(name):
     |  steps            | implementation of the STEPS stochastic nowcasting   |
     |                   | method described in :cite:`Seed2003`,               |
     |                   | :cite:`BPS2006` and :cite:`SPN2013`                 |
+    +-------------------+-----------------------------------------------------+
+    |  sseps            | short-space ensemble prediction system (SSEPS).     |
+    |                   | Essentially, this is a localization of STEPS.       |
     +-------------------+-----------------------------------------------------+
 
     steps produces stochastic nowcasts, and the other methods are deterministic.
