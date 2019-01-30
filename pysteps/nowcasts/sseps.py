@@ -215,9 +215,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
             (vp_perp[0], vp_perp[1], vp_perp[2]))
 
-    R_t = R.copy()
-    metadata_t = metadata.copy()
-    R_thr = metadata_t["threshold"]
+    R_thr = metadata["threshold"]
 
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members \
                            else num_workers
@@ -231,19 +229,19 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     # advect the previous precipitation fields to the same position with the
     # most recent one (i.e. transform them into the Lagrangian coordinates)
-    R_t = R_t[-(ar_order + 1):, :, :]
+    R = R[-(ar_order + 1):, :, :]
     extrap_kwargs = extrap_kwargs.copy()
     res = []
-    f = lambda R_t,i: extrap_method(R_t[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
+    f = lambda R,i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
         if not dask_imported:
-            R_t[i, :, :] = f(R_t, i)
+            R[i, :, :] = f(R, i)
         else:
-            res.append(dask.delayed(f)(R_t, i))
+            res.append(dask.delayed(f)(R, i))
 
     if dask_imported:
         num_workers_ = len(res) if num_workers > len(res) else num_workers
-        R_t = np.stack(list(dask.compute(*res, num_workers=num_workers)) + [R_t[-1, :, :]])
+        R = np.stack(list(dask.compute(*res, num_workers=num_workers)) + [R[-1, :, :]])
 
     if mask_method == "incremental":
         # initialize the structuring element
@@ -253,7 +251,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
 
     # loop windows
-    M,N = R_t.shape[1:]
+    M,N = R.shape[1:]
     n_windows_M = np.ceil( 1.*M/win_size[0] ).astype(int)
     n_windows_N = np.ceil( 1.*N/win_size[1] ).astype(int)
     idxm = np.zeros((2, 1), dtype=int)
@@ -274,7 +272,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             idxn[0] = int(np.max( (n*win_size[1] - overlap*win_size[1], 0) ))
             idxn[1] = int(np.min( (idxn[0] + win_size[1]  + overlap*win_size[1], N) ))
 
-            R_ = R_t[:, idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
+            R_ = R[:, idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
 
             war_ = np.sum(R_ >= R_thr) / R_.size
             war[m,n]= war_ > 0
@@ -283,7 +281,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
                 # initialize the perturbation generator for the precipitation field
                 if noise_method is not None:
-                    pp_.append(init_noise(R_, fft_method=fft_method, **{"rm_rdisc":False, "donorm":True}))
+                    pp_.append(init_noise(R_, fft_method=fft_method, **{"rm_rdisc":True, "donorm":True}))
                 else:
                     pp_.append(None)
 
@@ -389,7 +387,6 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     R_f = [[] for j in range(n_ens_members)]
 
     R = R[-1, :, :]
-    R_t = R_t[-1, :, :]
 
     print("Starting nowcast computation.")
 
@@ -473,7 +470,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             
             ind = M_s > 0
             R_f[ind] /= M_s[ind]
-            R_f[~ind] = metadata_t["zerovalue"]
+            R_f[~ind] = metadata["zerovalue"]
 
             if probmatching_method == "cdf":
                 # adjust the CDF of the forecast to match the most recently
