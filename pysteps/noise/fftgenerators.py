@@ -251,8 +251,10 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
 
     # normalize the real and imaginary parts
     if donorm:
-        F.imag = (F.imag - np.mean(F.imag))/np.std(F.imag)
-        F.real = (F.real - np.mean(F.real))/np.std(F.real)
+        if np.std(F.imag) > 0:
+            F.imag = (F.imag - np.mean(F.imag))/np.std(F.imag)
+        if np.std(F.real) > 0:
+            F.real = (F.real - np.mean(F.real))/np.std(F.real)
 
     return {"F":np.abs(F), "input_shape":X.shape[1:], "use_full_fft":use_full_fft}
 
