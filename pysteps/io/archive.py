@@ -76,8 +76,15 @@ def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext):
                         break
 
         fn = os.path.join(path, fn)
-        fn = fn if os.path.exists(fn) else None
-
+         
+        if os.path.exists(fn):
+            fn = fn
+        else:
+            print('filename for date %s not found in %s' % (date,path))
+            fn = None
+    else:
+        print('path', path, 'not found.')
+        
     return fn
 
 def _generate_path(date, root_path, path_fmt):
