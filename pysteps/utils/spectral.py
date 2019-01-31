@@ -70,3 +70,26 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, **fft_kwargs):
         return np.array(result), freq
     else:
         return np.array(result)
+        
+def remove_rain_norain_discontinuity(R):
+    """Function to remove the rain/no-rain discontinuity.
+    It can be used before computing Fourier filters to reduce 
+    the artificial increase of power at high frequencies caused by the discontinuity.
+
+    Parameters
+    ----------
+    R : array-like
+        Array of any shape to be transformed.
+        
+    Returns
+    -------
+    R : array-like
+        Array of any shape containing the transformed data.
+    """
+    R = R.copy()
+    zerovalue = np.nanmin(R)
+    threshold = np.nanmin(R[R > zerovalue])
+    R[R > zerovalue] -= (threshold - zerovalue)
+    R -= np.nanmin(R)
+    
+    return R
