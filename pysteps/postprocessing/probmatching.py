@@ -52,12 +52,14 @@ def nonparam_match_empirical_cdf(R, R_trg):
         The matched array.
 
     """
-    if R.size != R_trg.size:
-        raise ValueError("the input arrays must have the same size")
+
     if np.any(~np.isfinite(R)):
         raise ValueError("initial array contains non-finite values")
     if np.any(~np.isfinite(R_trg)):
         raise ValueError("target array contains non-finite values")
+    if R.size != R_trg.size:
+      raise ValueError("dimension mismatch between R and R_trg: R.shape=%s, R_trg.shape=%s" % \
+        (str(R.shape), str(R_trg.shape)))
 
     # zeros in initial array
     zvalue = R.min()
@@ -214,7 +216,7 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
 
     # Nelder-Mead optimisation
     nm_scale = sop.minimize(_get_error, scale, method="Nelder-Mead", tol=tol,
-                options={"disp":False,"maxiter":max_iterations})
+                            options={"disp":False,"maxiter":max_iterations})
     scale = nm_scale["x"][0]
 
     R[idx_wet]  = f((R[idx_wet] - shift)*scale)
