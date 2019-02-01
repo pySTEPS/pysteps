@@ -306,24 +306,25 @@ def _import_fmi_pgm_geodata(metadata):
 def _import_fmi_pgm_metadata(filename, gzipped=False):
     metadata = {}
 
-    if gzipped == False:
-        f = open(filename, 'r')
+    if not gzipped:
+        f = open(filename, 'rb')
     else:
-        f = gzip.open(filename, 'r')
+        f = gzip.open(filename, 'rb')
 
-    l = f.readline().decode()
-    while l[0] != '#':
-        l = f.readline().decode()
-    while l[0] == '#':
-        x = l[1:].strip().split(' ')
+    l = f.readline()
+    while not l.startswith(b'#'):
+        l = f.readline()
+    while l.startswith(b'#'):
+        x = l.decode()
+        x = x[1:].strip().split(' ')
         if len(x) >= 2:
             k = x[0]
             v = x[1:]
             metadata[k] = v
         else:
-            l = f.readline().decode()
+            l = f.readline()
             continue
-        l = f.readline().decode()
+        l = f.readline()
     l = f.readline().decode()
     metadata["missingval"] = int(l)
     f.close()
