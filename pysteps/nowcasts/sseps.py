@@ -1,12 +1,12 @@
 """
 Implementation of the Short-space ensemble prediction system (SSEPS) method.
-Essentially, SSEPS is a localized version of STEPS. 
+Essentially, SSEPS is a localized version of STEPS.
 
-For  localization  we  intend  the  use of  a  subset  of  the  observations  
-in  order  to  estimate  model parameters that are distributed in space. 
-The short-space approach used in :cite:`NBSG2017` is generalized to 
-the whole nowcasting system. This essenially boils down to a moving window 
-localization of the nowcasting procedure, whereby all parameters are estimated 
+For  localization  we  intend  the  use of  a  subset  of  the  observations
+in  order  to  estimate  model parameters that are distributed in space.
+The short-space approach used in :cite:`NBSG2017` is generalized to
+the whole nowcasting system. This essenially boils down to a moving window
+localization of the nowcasting procedure, whereby all parameters are estimated
 over a subdomain of prescribed size.
 """
 
@@ -27,7 +27,7 @@ except ImportError:
     dask_imported = False
 
 def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
-             win_size=256, overlap = 0.1,
+             win_size=256, overlap=0.1, minwet=100,
              extrap_method="semilagrangian", decomp_method="fft",
              bandpass_filter_method="gaussian", noise_method="nonparametric", ar_order=2,
              vel_pert_method=None, probmatching_method="cdf",
@@ -36,7 +36,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
     """Generate a nowcast ensemble by using the Short-space ensemble prediction
     system (SSEPS) method.
-    This is an experimental version of STEPS which allows for localization 
+    This is an experimental version of STEPS which allows for localization
     by means of a window function.
 
     Parameters
@@ -54,8 +54,10 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     win_size : int or two-element sequence of ints
         Size-length of the localization window.
     overlap : float [0,1[
-        A float between 0 and 1 prescribing the level of overlap between 
+        A float between 0 and 1 prescribing the level of overlap between
         successive windows. If set to 0, no overlap is used.
+    minwet : int
+        Minimum number of wet pixels accepted in a given window.
     n_timesteps : int
         Number of time steps to forecast.
     n_ens_members : int
@@ -250,14 +252,92 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         n = timestep/kmperpixel
         struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
 
-    # loop windows
+    print("Estimating nowcast parameters.")
+
+    def estimator(R):
+
+        pars = {}
+
+        # initialize the perturbation generator for the precipitation field
+        if noise_method is not None:
+            P = init_noise(R, fft_method=fft_method, **{"rm_rdisc":True, "donorm":True})
+        else:
+            P = None
+        pars["P"] = P
+
+        # initialize the band-pass filter
+        filter = filter_method(R.shape[1:], n_cascade_levels, **filter_kwargs)
+        pars["filter"] = filter
+
+        # compute the cascade decompositions of the input precipitation fields
+        R_d = []
+        for i in range(ar_order+1):
+            R_d_ = decomp_method(R[i, :, :], filter, fft_method=fft_method)
+            R_d.append(R_d_)
+        R_d_ = None
+
+        # normalize the cascades and rearrange them into a four-dimensional array
+        # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
+        R_c,mu,sigma = _stack_cascades(R_d, n_cascade_levels)
+        R_d = None
+        pars["mu"] = mu; pars["sigma"] = sigma
+
+        # compute lag-l temporal autocorrelation coefficients for each cascade level
+        GAMMA = np.empty((n_cascade_levels, ar_order))
+        for i in range(n_cascade_levels):
+            R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order+1)])
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_)
+        R_c_ = None
+
+        if ar_order == 2:
+            # adjust the local lag-2 correlation coefficient to ensure that the AR(p)
+            # process is stationary
+            for i in range(n_cascade_levels):
+                GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(GAMMA[i, 0], GAMMA[i, 1])
+
+        # estimate the parameters of the AR(p) model from the autocorrelation
+        # coefficients
+        PHI = np.empty((n_cascade_levels, ar_order+1))
+        for i in range(n_cascade_levels):
+            PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
+        pars["PHI"] = PHI
+
+        # discard all except the p-1 last cascades because they are not needed for
+        # the AR(p) model
+        R_c = R_c[:, -ar_order:, :, :]
+
+        # stack the cascades into a five-dimensional array containing all ensemble
+        # members
+        R_c = np.stack([R_c.copy() for i in range(n_ens_members)])
+        pars["R_c"] = R_c
+
+        if mask_method is not None:
+            MASK_prec = R[-1, :, :] >= R_thr
+            if mask_method == "obs":
+                pass
+            elif mask_method == "incremental":
+                # initialize precip mask for each member
+                MASK_prec = scipy.ndimage.morphology.binary_dilation(MASK_prec, struct)
+                MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
+        else:
+            MASK_prec = None
+        pars["MASK_prec"] = MASK_prec
+
+        return pars
+
+    # prepare windows
     M,N = R.shape[1:]
     n_windows_M = np.ceil( 1.*M/win_size[0] ).astype(int)
     n_windows_N = np.ceil( 1.*N/win_size[1] ).astype(int)
     idxm = np.zeros((2, 1), dtype=int)
     idxn = np.zeros((2, 1), dtype=int)
-    war = np.empty((n_windows_M, n_windows_N))
-    GAMMA = np.empty((n_windows_M, n_windows_N, n_cascade_levels, ar_order))
+
+    # compute global parameters to be used as defaults
+    if n_windows_M > 1 or n_windows_N > 1 or np.sum(R >= R_thr) <= minwet:
+        parsglob = estimator(R)
+
+    # loop windows
+    nwet = np.empty((n_windows_M, n_windows_N))
     PHI = np.empty((n_windows_M, n_windows_N, n_cascade_levels, ar_order+1))
     mu = np.empty((n_windows_M, n_windows_N, n_cascade_levels))
     sigma = np.empty((n_windows_M, n_windows_N, n_cascade_levels))
@@ -274,89 +354,42 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
             R_ = R[:, idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
 
-            war_ = np.sum(R_ >= R_thr) / R_.size
-            war[m,n]= war_ > 0
+            nwet[m, n] = np.sum(R_ >= R_thr)
+            if nwet[m, n] > minwet:
 
-            if war[m,n]:
-
-                # initialize the perturbation generator for the precipitation field
-                if noise_method is not None:
-                    pp_.append(init_noise(R_, fft_method=fft_method, **{"rm_rdisc":True, "donorm":True}))
-                else:
-                    pp_.append(None)
-
-                # initialize the band-pass filter
-                ff_.append(filter_method(R_.shape[1:], n_cascade_levels, **filter_kwargs))
-
-                # compute the cascade decompositions of the input precipitation fields
-                R_d = []
-                for i in range(ar_order+1):
-                    R_d_ = decomp_method(R_[i, :, :], ff_[-1], fft_method=fft_method)
-                    R_d.append(R_d_)
-                R_d_ = None
-
-                # normalize the cascades and rearrange them into a four-dimensional array
-                # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-                R_c,mu_,sigma_ = _stack_cascades(R_d, n_cascade_levels)
-                mu[m, n, :] = mu_
-                sigma[m, n, :] = sigma_
-                R_d = None
-
-                # compute lag-l temporal autocorrelation coefficients for each cascade level
-                for i in range(n_cascade_levels):
-                    R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order+1)])
-                    GAMMA[m, n, i, :] = correlation.temporal_autocorrelation(R_c_)
-                R_c_ = None
-
-                if ar_order == 2:
-                    # adjust the local lag-2 correlation coefficient to ensure that the AR(p)
-                    # process is stationary
-                    for i in range(n_cascade_levels):
-                        GAMMA[m, n, i, 1] = autoregression.adjust_lag2_corrcoef2(
-                                            GAMMA[m, n, i, 0], GAMMA[m, n, i, 1])
-
-                # estimate the parameters of the AR(p) model from the autocorrelation
-                # coefficients
-                for i in range(n_cascade_levels):
-                    PHI[m, n, i, :] = autoregression.estimate_ar_params_yw(GAMMA[m, n, i, :])
-
-                # discard all except the p-1 last cascades because they are not needed for
-                # the AR(p) model
-                R_c = R_c[:, -ar_order:, :, :]
-
-                # stack the cascades into a five-dimensional array containing all ensemble
-                # members
-                R_c = np.stack([R_c.copy() for i in range(n_ens_members)])
-                rc_.append(R_c)
-                R_c = None
-
-
-                if mask_method is not None:
-                    MASK_prec = R_[-1, :, :] >= R_thr
-                    if mask_method == "obs":
-                        pass
-                    elif mask_method == "incremental":
-                        # initialize precip mask for each member
-                        MASK_prec = scipy.ndimage.morphology.binary_dilation(MASK_prec, struct)
-                        MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
-                    mm_.append(MASK_prec)
+                # estimate local parameters
+                pars = estimator(R_)
+                ff_.append(pars["filter"])
+                pp_.append(pars["P"])
+                rc_.append(pars["R_c"])
+                mm_.append(pars["MASK_prec"])
+                mu[m, n, :] = pars["mu"]
+                sigma[m, n, :] = pars["sigma"]
+                PHI[m, n, :, :] = pars["PHI"]
 
             else:
 
-                ff_.append(None)
-                rc_.append(None)
-                pp_.append(None)
-                mm_.append(None)
+                # use global pars as defaults
+                ff_.append(parsglob["filter"])
+                pp_.append(parsglob["P"])
+                rc_.append(parsglob["R_c"])
+                mm_.append(parsglob["MASK_prec"])
+                mu[m, n, :] = parsglob["mu"]
+                sigma[m, n, :] = parsglob["sigma"]
+                PHI[m, n, :, :] = parsglob["PHI"]
 
         ff.append(ff_)
-        rc.append(rc_)
         pp.append(pp_)
+        rc.append(rc_)
         mm.append(mm_)
 
+    # remove unnecessary variables
     ff_ = None
-    rc_ = None
     pp_ = None
+    rc_ = None
     mm_ = None
+    pars = None
+    parsglob = None
 
     # initialize the random generators
     if noise_method is not None:
@@ -405,69 +438,76 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             M_s = np.zeros((M,N), dtype=float)
             for m in range(n_windows_M):
                 for n in range(n_windows_N):
-                    if war[m,n]:
-                        # compute indices of local window
-                        idxm[0] = int(np.max( (m*win_size[0] - overlap*win_size[0], 0) ))
-                        idxm[1] = int(np.min( (idxm[0] + win_size[0]  + overlap*win_size[0], M) ))
-                        idxn[0] = int(np.max( (n*win_size[1] - overlap*win_size[1], 0) ))
-                        idxn[1] = int(np.min( (idxn[0] + win_size[1]  + overlap*win_size[1], N) ))
 
-                        # build localization mask
-                        mask = _build_2D_tapering_function((idxm[1]-idxm[0], idxn[1]-idxn[0]))
-                        M_s[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += mask
+                        # skip if fully dry
+                        if nwet[m, n] > 0:
 
-                        if noise_method is not None:
-                            # generate noise field
-                            EPS = generate_noise(pp[m][n], randstate=randgen_prec[j], fft_method=fft_method)
-                            # decompose the noise field into a cascade
-                            EPS = decomp_method(EPS, ff[m][n], fft_method=fft_method)
-                        else:
+                            # compute indices of local window
+                            idxm[0] = int(np.max( (m*win_size[0] - overlap*win_size[0], 0) ))
+                            idxm[1] = int(np.min( (idxm[0] + win_size[0]  + overlap*win_size[0], M) ))
+                            idxn[0] = int(np.max( (n*win_size[1] - overlap*win_size[1], 0) ))
+                            idxn[1] = int(np.min( (idxn[0] + win_size[1]  + overlap*win_size[1], N) ))
+
+                            # build localization mask
+                            mask = _build_2D_tapering_function((idxm[1]-idxm[0], idxn[1]-idxn[0]))
+                            M_s[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += mask
+
+                            if noise_method is not None:
+                                # generate noise field
+                                EPS = generate_noise(pp[m][n], randstate=randgen_prec[j], fft_method=fft_method)
+                                # decompose the noise field into a cascade
+                                EPS = decomp_method(EPS, ff[m][n], fft_method=fft_method)
+                            else:
+                                EPS = None
+
+                            # iterate the AR(p) model for each cascade level
+                            R_c = rc[m][n]
+                            for i in range(n_cascade_levels):
+                                # normalize the noise cascade
+                                if EPS is not None:
+                                    EPS_ = (EPS["cascade_levels"][i, :, :] - EPS["means"][i]) / EPS["stds"][i]
+                                else:
+                                    EPS_ = None
+                                # apply AR(p) process to cascade level
+                                R_c[j, i, :, :, :] = \
+                                    autoregression.iterate_ar_model(R_c[j, i, :, :, :],
+                                                            PHI[m, n, i, :], EPS=EPS_)
+                                EPS_ = None
+                            rc[m][n] = R_c
                             EPS = None
 
-                        # iterate the AR(p) model for each cascade level
-                        R_c = rc[m][n]
-                        for i in range(n_cascade_levels):
-                            # normalize the noise cascade
-                            if EPS is not None:
-                                EPS_ = (EPS["cascade_levels"][i, :, :] - EPS["means"][i]) / EPS["stds"][i]
-                            else:
-                                EPS_ = None
-                            # apply AR(p) process to cascade level
-                            R_c[j, i, :, :, :] = \
-                                autoregression.iterate_ar_model(R_c[j, i, :, :, :],
-                                                        PHI[m, n, i, :], EPS=EPS_)
-                            EPS_ = None
-                        rc[m][n] = R_c
-                        EPS = None
+                            # compute the recomposed precipitation field(s) from the cascades
+                            # obtained from the AR(p) model(s)
+                            R_c_ = _recompose_cascade(R_c[j, :, :, :], mu[m, n, :], sigma[m, n, :])
 
-                        # compute the recomposed precipitation field(s) from the cascades
-                        # obtained from the AR(p) model(s)
-                        R_c_ = _recompose_cascade(R_c[j, :, :, :], mu[m, n, :], sigma[m, n, :])
+                            if mask_method is not None:
+                                # apply the precipitation mask to prevent generation of new
+                                # precipitation into areas where it was not originally
+                                # observed
+                                MASK_prec = mm[m][n]
+                                if mask_method == "obs":
+                                    R_c_[~MASK_prec] = R_c_.min()
+                                elif mask_method == "incremental":
+                                    R_c_[~MASK_prec[j]] = R_c_.min()
 
-                        if mask_method is not None:
-                            # apply the precipitation mask to prevent generation of new
-                            # precipitation into areas where it was not originally
-                            # observed
-                            MASK_prec = mm[m][n]
-                            if mask_method == "obs":
-                                R_c_[~MASK_prec] = R_c_.min()
-                            elif mask_method == "incremental":
-                                R_c_[~MASK_prec[j]] = R_c_.min()
+                            # resize if default (global) parameters were used
+                            if nwet[m, n] <= minwet:
+                                R_c_ = R_c_[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
 
-                        if probmatching_method == "cdf":
-                            # adjust the CDF of the forecast to match the most recently
-                            # observed precipitation field
-                            R_ = R[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)].copy()
-                            R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R_)
-                            R_ = None
+                            if probmatching_method == "cdf":
+                                # adjust the CDF of the forecast to match the most recently
+                                # observed precipitation field
+                                R_ = R[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)].copy()
+                                R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R_)
+                                R_ = None
 
-                        if mask_method == "incremental":
-                            MASK_prec_ = R_c_ >= R_thr
-                            MASK_prec_ = scipy.ndimage.morphology.binary_dilation(MASK_prec_, struct)
-                            mm[m][n][j] = MASK_prec_
+                            if mask_method == "incremental":
+                                MASK_prec_ = R_c_ >= R_thr
+                                MASK_prec_ = scipy.ndimage.morphology.binary_dilation(MASK_prec_, struct)
+                                mm[m][n][j] = MASK_prec_
 
-                        R_f[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += R_c_*mask
-            
+                            R_f[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += R_c_*mask
+
             ind = M_s > 0
             R_f[ind] /= M_s[ind]
             R_f[~ind] = metadata["zerovalue"]
