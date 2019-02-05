@@ -529,9 +529,14 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 else:
                     EPS_ = None
                 # apply AR(p) process to cascade level
-                R_c[j, i, :, :, :] = \
-                    autoregression.iterate_ar_model(R_c[j, i, :, :, :],
-                                                    PHI[i, :], EPS=EPS_)
+                if EPS is not None or n_ens_members > 1 or vel_pert_method is not None:
+                    R_c[j, i, :, :, :] = \
+                        autoregression.iterate_ar_model(R_c[j, i, :, :, :],
+                                                        PHI[i, :], EPS=EPS_)
+                else:
+                    # use the deterministic AR(p) model computed above if
+                    # perturbations are disabled
+                    R_c[j, i, :, :, :] = R_m[i, :, :, :]
 
             EPS = None
             EPS_ = None
@@ -593,8 +598,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         res = None
 
         if measure_time:
-            mainloop_time = time.time() - starttime_mainloop
-            print("%.2f seconds." % mainloop_time)
+            print("%.2f seconds." % (time.time() - starttime))
         else:
             print("done.")
 
@@ -605,6 +609,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         if return_output:
             for j in range(n_ens_members):
                 R_f[j].append(R_f_[j])
+
+    if measure_time:
+        mainloop_time = time.time() - starttime_mainloop
 
     if return_output:
         outarr = np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
