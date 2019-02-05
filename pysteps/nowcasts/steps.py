@@ -593,7 +593,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         res = None
 
         if measure_time:
-            mainloop_time = time.time() - starttime
+            mainloop_time = time.time() - starttime_mainloop
             print("%.2f seconds." % mainloop_time)
         else:
             print("done.")
