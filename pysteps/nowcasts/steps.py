@@ -23,7 +23,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
              vel_pert_method="bps", conditional=False, probmatching_method="cdf",
              mask_method="incremental", callback=None, return_output=True,
              seed=None, num_workers=1, fft_method="numpy", extrap_kwargs={},
-             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
+             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={},
+             measure_time=False):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
 
@@ -182,6 +183,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       and fit_vel_pert_params.py located in the scripts directory.
 
       See pysteps.noise.motion for additional documentation.
+    measure_time : bool
+      If set to True, measure, print and return the computation time.
 
     Returns
     -------
@@ -190,7 +193,10 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       (n_ens_members,n_timesteps,m,n) containing a time series of forecast
       precipitation fields for each ensemble member. Otherwise, a None value
       is returned. The time series starts from t0+timestep, where timestep is
-      taken from the input precipitation fields R.
+      taken from the input precipitation fields R. If measure_time is True, the
+      return value is a three-element tuple containing the nowcast array, the
+      initialization time of the nowcast generator and the time used in the
+      main loop (seconds).
 
     See also
     --------
@@ -291,6 +297,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members \
                            else num_workers
 
+    if measure_time:
+        starttime_init = time.time()
+
     fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
 
     M, N = R.shape[1:]
@@ -334,14 +343,18 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         if noise_stddev_adj == "auto":
             print("Computing noise adjustment coefficients... ", end="")
             sys.stdout.flush()
-            starttime = time.time()
+            if measure_time:
+                starttime = time.time()
 
             R_min = np.min(R)
             noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(R[-1, :, :],
                 R_thr, R_min, filter, decomp_method, pp, generate_noise, 20,
                 conditional=True, num_workers=num_workers)
 
-            print("%.2f seconds." % (time.time() - starttime))
+            if measure_time:
+                print("%.2f seconds." % (time.time() - starttime))
+            else:
+                print("done.")
         elif noise_stddev_adj == "fixed":
             f = lambda k: 1.0 / (0.75 + 0.09*k)
             noise_std_coeffs = [f(k) for k in range(1, n_cascade_levels+1)]
@@ -451,15 +464,22 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     for i in range(n_ens_members):
         fft_objs.append(utils.get_method(fft_method, shape=R.shape[1:]))
 
+    if measure_time:
+        init_time = time.time() - starttime_init
+
     R = R[-1, :, :]
 
     print("Starting nowcast computation.")
+
+    if measure_time:
+        starttime_mainloop = time.time()
 
     # iterate each time step
     for t in range(n_timesteps):
         print("Computing nowcast for time step %d... " % (t+1), end="")
         sys.stdout.flush()
-        starttime = time.time()
+        if measure_time:
+            starttime = time.time()
 
         if mask_method == "sprog":
             for i in range(n_cascade_levels):
@@ -572,7 +592,11 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             if dask_imported and n_ens_members > 1 else res
         res = None
 
-        print("%.2f seconds." % (time.time() - starttime))
+        if measure_time:
+            mainloop_time = time.time() - starttime
+            print("%.2f seconds." % mainloop_time)
+        else:
+            print("done.")
 
         if callback is not None:
             callback(np.stack(R_f_))
@@ -583,7 +607,11 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 R_f[j].append(R_f_[j])
 
     if return_output:
-        return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
+        outarr = np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
+        if measure_time:
+            return outarr,init_time,mainloop_time
+        else:
+            return outarr
     else:
         return None
 
