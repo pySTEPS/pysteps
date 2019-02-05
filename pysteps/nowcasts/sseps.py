@@ -27,7 +27,7 @@ except ImportError:
     dask_imported = False
 
 def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
-             win_size=256, overlap=0.1, minwet=100,
+             win_size=256, overlap=0.1, minwet=50,
              extrap_method="semilagrangian", decomp_method="fft",
              bandpass_filter_method="gaussian", noise_method="nonparametric", ar_order=2,
              vel_pert_method=None, probmatching_method="cdf",
@@ -85,12 +85,11 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         Name of the noise generator to use for perturbing the advection field. See
         the documentation of pysteps.noise.interface. If set to None, the advection
         field is not perturbed.
-    mask_method : {'obs','incremental', None}
+    mask_method : {'incremental', None}
         The method to use for masking no precipitation areas in the forecast field.
         The masked pixels are set to the minimum value of the observations.
-        'obs' = apply R_thr to the most recently observed precipitation intensity
-        field, 'incremental' = iteratively buffer the mask
-        with a certain rate (currently it is 1 km/min), None=no masking.
+        'incremental' = iteratively buffer the mask with a certain rate 
+        (currently it is 1 km/min), None=no masking.
     probmatching_method : {'cdf', None}
         Method for matching the statistics of the forecast field with those of
         the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -163,8 +162,8 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
 
-    if mask_method not in ["obs", "incremental", None]:
-        raise ValueError("unknown mask method %s: must be 'obs' or 'incremental' or None" % mask_method)
+    if mask_method not in ["incremental", None]:
+        raise ValueError("unknown mask method %s: must be 'incremental' or None" % mask_method)
 
     if np.isscalar(win_size):
         win_size = (np.int(win_size), np.int(win_size))
@@ -201,6 +200,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     print("-----------")
     print("localization window:      %dx%d" % (win_size[0], win_size[1]))
     print("overlap:                  %.1f" % overlap)
+    print("minwet:                   %d" % minwet)
     print("number of time steps:     %d" % n_timesteps)
     print("ensemble size:            %d" % n_ens_members)
     print("number of cascade levels: %d" % n_cascade_levels)
@@ -308,14 +308,13 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
         # stack the cascades into a five-dimensional array containing all ensemble
         # members
-        R_c = np.stack([R_c.copy() for i in range(n_ens_members)])
+        # R_c = np.stack([R_c.copy() for i in range(n_ens_members)])
+        R_c = [R_c.copy() for i in range(n_ens_members)]
         pars["R_c"] = R_c
 
         if mask_method is not None:
             MASK_prec = R[-1, :, :] >= R_thr
-            if mask_method == "obs":
-                pass
-            elif mask_method == "incremental":
+            if mask_method == "incremental":
                 # initialize precip mask for each member
                 MASK_prec = scipy.ndimage.morphology.binary_dilation(MASK_prec, struct)
                 MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
@@ -343,7 +342,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     sigma = np.empty((n_windows_M, n_windows_N, n_cascade_levels))
     ff=[]; rc=[]; pp=[]; mm=[]
     for m in range(n_windows_M):
-        ff_=[]; rc_=[]; pp_=[]; mm_=[]
+        ff_=[]; pp_=[]; rc_=[]; mm_=[]
         for n in range(n_windows_N):
 
             # compute indices of local window
@@ -354,7 +353,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
             R_ = R[:, idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
 
-            nwet[m, n] = np.sum(R_ >= R_thr)
+            nwet[m, n] = np.sum(R_[-1,:,:] >= R_thr)
             if nwet[m, n] > minwet:
 
                 # estimate local parameters
@@ -367,22 +366,28 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                 sigma[m, n, :] = pars["sigma"]
                 PHI[m, n, :, :] = pars["PHI"]
 
-            else:
-
+            elif nwet[m, n] <= minwet and nwet[m, n] > 0:
                 # use global pars as defaults
                 ff_.append(parsglob["filter"])
                 pp_.append(parsglob["P"])
-                rc_.append(parsglob["R_c"])
-                mm_.append(parsglob["MASK_prec"])
+                rc_.append(parsglob["R_c"].copy())
+                mm_.append(parsglob["MASK_prec"].copy())
                 mu[m, n, :] = parsglob["mu"]
                 sigma[m, n, :] = parsglob["sigma"]
                 PHI[m, n, :, :] = parsglob["PHI"]
+                
+            else:
+                # fully dry window
+                ff_.append(None)
+                pp_.append(None)
+                rc_.append(None)
+                mm_.append(None)
 
         ff.append(ff_)
         pp.append(pp_)
         rc.append(rc_)
         mm.append(mm_)
-
+        
     # remove unnecessary variables
     ff_ = None
     pp_ = None
@@ -424,7 +429,6 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     print("Starting nowcast computation.")
 
     # iterate each time step
-    scale = np.ones((n_windows_M, n_windows_N))
     for t in range(n_timesteps):
         print("Computing nowcast for time step %d... " % (t+1), end="")
         sys.stdout.flush()
@@ -439,74 +443,74 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             for m in range(n_windows_M):
                 for n in range(n_windows_N):
 
-                        # skip if fully dry
-                        if nwet[m, n] > 0:
+                    # skip if fully dry
+                    if nwet[m, n] > 0:
 
-                            # compute indices of local window
-                            idxm[0] = int(np.max( (m*win_size[0] - overlap*win_size[0], 0) ))
-                            idxm[1] = int(np.min( (idxm[0] + win_size[0]  + overlap*win_size[0], M) ))
-                            idxn[0] = int(np.max( (n*win_size[1] - overlap*win_size[1], 0) ))
-                            idxn[1] = int(np.min( (idxn[0] + win_size[1]  + overlap*win_size[1], N) ))
+                        # compute indices of local window
+                        idxm[0] = int(np.max( (m*win_size[0] - overlap*win_size[0], 0) ))
+                        idxm[1] = int(np.min( (idxm[0] + win_size[0]  + overlap*win_size[0], M) ))
+                        idxn[0] = int(np.max( (n*win_size[1] - overlap*win_size[1], 0) ))
+                        idxn[1] = int(np.min( (idxn[0] + win_size[1]  + overlap*win_size[1], N) ))
 
-                            # build localization mask
-                            mask = _build_2D_tapering_function((idxm[1]-idxm[0], idxn[1]-idxn[0]))
-                            M_s[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += mask
+                        # build localization mask
+                        mask = _build_2D_tapering_function((idxm[1] - idxm[0], idxn[1] - idxn[0]))
+                        M_s[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += mask
 
-                            if noise_method is not None:
-                                # generate noise field
-                                EPS = generate_noise(pp[m][n], randstate=randgen_prec[j], fft_method=fft_method)
-                                # decompose the noise field into a cascade
-                                EPS = decomp_method(EPS, ff[m][n], fft_method=fft_method)
-                            else:
-                                EPS = None
-
-                            # iterate the AR(p) model for each cascade level
-                            R_c = rc[m][n]
-                            for i in range(n_cascade_levels):
-                                # normalize the noise cascade
-                                if EPS is not None:
-                                    EPS_ = (EPS["cascade_levels"][i, :, :] - EPS["means"][i]) / EPS["stds"][i]
-                                else:
-                                    EPS_ = None
-                                # apply AR(p) process to cascade level
-                                R_c[j, i, :, :, :] = \
-                                    autoregression.iterate_ar_model(R_c[j, i, :, :, :],
-                                                            PHI[m, n, i, :], EPS=EPS_)
-                                EPS_ = None
-                            rc[m][n] = R_c
+                        if noise_method is not None:
+                            # generate noise field
+                            EPS = generate_noise(pp[m][n], randstate=randgen_prec[j], fft_method=fft_method)
+                            # decompose the noise field into a cascade
+                            EPS = decomp_method(EPS, ff[m][n], fft_method=fft_method)
+                        else:
                             EPS = None
 
-                            # compute the recomposed precipitation field(s) from the cascades
-                            # obtained from the AR(p) model(s)
-                            R_c_ = _recompose_cascade(R_c[j, :, :, :], mu[m, n, :], sigma[m, n, :])
+                        # iterate the AR(p) model for each cascade level
+                        R_c = rc[m][n][j]
+                        for i in range(n_cascade_levels):
+                            # normalize the noise cascade
+                            if EPS is not None:
+                                EPS_ = (EPS["cascade_levels"][i, :, :] - EPS["means"][i]) / EPS["stds"][i]
+                            else:
+                                EPS_ = None
+                            # apply AR(p) process to cascade level
+                            R_c[i, :, :, :] = \
+                                autoregression.iterate_ar_model(R_c[i, :, :, :],
+                                                        PHI[m, n, i, :], EPS=EPS_)
+                            EPS_ = None
+                        rc[m][n][j] = R_c.copy()
+                        EPS = None
 
-                            if mask_method is not None:
-                                # apply the precipitation mask to prevent generation of new
-                                # precipitation into areas where it was not originally
-                                # observed
-                                MASK_prec = mm[m][n]
-                                if mask_method == "obs":
-                                    R_c_[~MASK_prec] = R_c_.min()
-                                elif mask_method == "incremental":
-                                    R_c_[~MASK_prec[j]] = R_c_.min()
+                        # compute the recomposed precipitation field(s) from the cascades
+                        # obtained from the AR(p) model(s)
+                        R_c_ = _recompose_cascade(R_c[:, :, :], mu[m, n, :], sigma[m, n, :])
+                        
+                        # resize if default (global) parameters were used
+                        if nwet[m, n] <= minwet:
+                            R_c_ = R_c_[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
 
-                            # resize if default (global) parameters were used
-                            if nwet[m, n] <= minwet:
-                                R_c_ = R_c_[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
-
-                            if probmatching_method == "cdf":
-                                # adjust the CDF of the forecast to match the most recently
-                                # observed precipitation field
-                                R_ = R[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)].copy()
-                                R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R_)
-                                R_ = None
-
+                        if mask_method is not None:
+                            # apply the precipitation mask to prevent generation of new
+                            # precipitation into areas where it was not originally
+                            # observed
                             if mask_method == "incremental":
-                                MASK_prec_ = R_c_ >= R_thr
-                                MASK_prec_ = scipy.ndimage.morphology.binary_dilation(MASK_prec_, struct)
-                                mm[m][n][j] = MASK_prec_
+                                MASK_prec = mm[m][n][j]
+                                if not MASK_prec.shape == R_c_.shape:
+                                    MASK_prec = MASK_prec[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
+                                R_c_[~MASK_prec] = R_c_.min()
 
-                            R_f[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += R_c_*mask
+                        if probmatching_method == "cdf":
+                            # adjust the CDF of the forecast to match the most recently
+                            # observed precipitation field
+                            R_ = R[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)].copy()
+                            R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R_)
+                            R_ = None
+
+                        if mask_method == "incremental":
+                            MASK_prec = R_c_ >= R_thr
+                            MASK_prec = scipy.ndimage.morphology.binary_dilation(MASK_prec, struct)
+                            mm[m][n][j] = MASK_prec.copy()
+
+                        R_f[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += R_c_*mask
 
             ind = M_s > 0
             R_f[ind] /= M_s[ind]
@@ -552,12 +556,9 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         if return_output:
             for j in range(n_ens_members):
                 R_f[j].append(R_f_[j])
-
+        
     if return_output:
-        if n_ens_members == 1:
-            return np.stack(R_f[0])
-        else:
-            return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
+        return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
     else:
         return None
 
