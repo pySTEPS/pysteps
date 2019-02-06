@@ -489,25 +489,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                     autoregression.iterate_ar_model(R_m[i, :, :, :], PHI[i, :])
 
             R_m_ = _recompose_cascade(R_m, mu, sigma)
-
-            # obtain the CDF from the non-perturbed forecast that is
-            # scale-filtered by the AR(p) model
-            R_s = R_m_.flatten()
-
-            # compute the threshold value R_pct_thr corresponding to the
-            # same fraction of precipitation pixels (forecast values above
-            # R_thr) as in the most recently observed precipitation field
-            R_s.sort(kind="quicksort")
-            x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
-            i = np.argmin(abs(x - war))
-            # handle ties
-            if R_s[i] == R_s[i + 1]:
-                i = np.where(R_s == R_s[i])[0][-1] + 1
-            R_pct_thr = R_s[i]
-
-            # determine a mask using the above threshold value to preserve the
-            # wet-area ratio
-            MASK_prec = R_m_ < R_pct_thr
+            MASK_prec = _compute_sprog_mask(R_m_, war)
 
         # iterate each ensemble member
         def worker(j):
@@ -632,6 +614,26 @@ def _check_inputs(R, V, ar_order):
     if R.shape[1:3] != V.shape[1:3]:
         raise ValueError("dimension mismatch between R and V: shape(R)=%s, shape(V)=%s" % \
                          (str(R.shape), str(V.shape)))
+
+def _compute_sprog_mask(R, war):
+    # obtain the CDF from the non-perturbed forecast that is
+    # scale-filtered by the AR(p) model
+    R_s = R.flatten()
+
+    # compute the threshold value R_pct_thr corresponding to the
+    # same fraction of precipitation pixels (forecast values above
+    # R_thr) as in the most recently observed precipitation field
+    R_s.sort(kind="quicksort")
+    x = 1.0*np.arange(1, len(R_s)+1)[::-1] / len(R_s)
+    i = np.argmin(abs(x - war))
+    # handle ties
+    if R_s[i] == R_s[i + 1]:
+        i = np.where(R_s == R_s[i])[0][-1] + 1
+    R_pct_thr = R_s[i]
+
+    # determine a mask using the above threshold value to preserve the
+    # wet-area ratio
+    return R < R_pct_thr
 
 def _print_ar_params(PHI, include_perturb_term):
     print("****************************************")
