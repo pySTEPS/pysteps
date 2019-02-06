@@ -3,7 +3,7 @@
 import matplotlib.pylab as plt
 import numpy as np
 
-def plot_rapsd(fft_freq, fft_power, x_units=None, y_units=None, wavelength_ticks=None, color='k', lw=1.0, label=None, ax=None):
+def plot_rapsd(fft_freq, fft_power, x_units=None, y_units=None, wavelength_ticks=None, color='k', lw=1.0, label=None, ax=None, **kwargs):
     """
     Function to plot in log-log a radially averaged Fourier spectrum.
     
@@ -44,7 +44,7 @@ def plot_rapsd(fft_freq, fft_power, x_units=None, y_units=None, wavelength_ticks
         ax = plt.subplot(111)
     
     # Plot spectrum in log-log scale
-    ax.plot(10.0*np.log10(fft_freq), 10.0*np.log10(fft_power), color=color, linewidth=lw, label=label)
+    ax.plot(10.0*np.log10(fft_freq), 10.0*np.log10(fft_power), color=color, linewidth=lw, label=label, **kwargs)
     
     # X-axis
     if wavelength_ticks is not None:
