@@ -40,7 +40,10 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, **fft_kwargs):
     if len(Z.shape) != 2:
         raise ValueError("%i dimensions are found, but the number of dimensions should be 2" % \
                          len(Z.shape))
-
+    
+    if np.sum(np.isnan(Z)) > 0:
+        raise ValueError('input array Z should not contain nans')
+    
     M,N = Z.shape
 
     YC,XC = arrays.compute_centred_coord_array(M, N)
