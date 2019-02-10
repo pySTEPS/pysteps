@@ -53,8 +53,9 @@ def forecast(R, V, num_timesteps, extrap_method="semilagrangian", extrap_kwargs=
     if measure_time:
         starttime = time.time()
 
-    extrap_method = extrapolation.get_method(extrap_method)
-    R_f = extrap_method(R, V, num_timesteps, **extrap_kwargs)
+    extrap_init, extrap_method = extrapolation.get_method(extrap_method)
+    extrapolator = extrap_init(shape=R.shape)
+    R_f = extrap_method(extrapolator, R, V, num_timesteps, **extrap_kwargs)
 
     if measure_time:
         comptime = time.time() - starttime
