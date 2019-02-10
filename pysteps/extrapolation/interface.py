@@ -1,9 +1,10 @@
 """
 The methods in the extrapolation module implement the following interface:
 
-    extrapolate(precip, velocity, num_timesteps, outval=np.nan, **keywords )
+    extrapolate(extrap, precip, velocity, num_timesteps, outval=np.nan, **keywords)
 
-where precip is a (m,n) array with input precipitation field to be advected and
+where extrap is an extrapolator object returned by the initialize function,
+precip is a (m,n) array with input precipitation field to be advected and
 velocity is a (2,m,n) array containing  the x- and y-components of
 the m x n advection field.
 num_timesteps is an integer specifying the number of time steps to extrapolate.
@@ -41,14 +42,17 @@ def _do_nothing(precip, velocity, num_timesteps, outval=np.nan, **kwargs):
 
 
 _extrapolation_methods = dict()
-_extrapolation_methods['eulerian'] = eulerian_persistence
-_extrapolation_methods['semilagrangian'] = semilagrangian.extrapolate
+_extrapolation_methods['eulerian'] = lambda **kwargs: None, eulerian_persistence
+_extrapolation_methods['semilagrangian'] = \
+  semilagrangian.initialize,semilagrangian.extrapolate
 _extrapolation_methods[None] = _do_nothing
 
 
 def get_method(name):
-    """Return a callable function for the extrapolation method corresponding to
-    the given name. The available options are:\n
+    """Return two-element tuple for the extrapolation method corresponding to
+    the given name. The elements of the tuple are callable functions for the
+    initializer of the extrapolator and the extrapolation method, respectively.
+    The available options are:\n
 
     +-----------------+--------------------------------------------------------+
     |     Name        |              Description                               |

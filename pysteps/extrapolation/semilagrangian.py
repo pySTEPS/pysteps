@@ -1,15 +1,18 @@
 """Implementation of the semi-Lagrangian method of Germann et al (2002)."""
 
+import time
 import numpy as np
 import scipy.ndimage.interpolation as ip
-import time
 
-def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
+def extrapolate(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
     """Apply semi-Lagrangian extrapolation to a two-dimensional precipitation
     field.
 
     Parameters
     ----------
+    extrapolator : dict
+        Dictionary returned by pysteps.extrapolation.semilagrangian.initialize.
+        Contains the extrapolator object.
     R : array-like
         Array of shape (m,n) containing the input precipitation field. All
         values are required to be finite.
@@ -82,10 +85,7 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
 
     coeff = 1.0 if not inverse else -1.0
 
-    X, Y = np.meshgrid(np.arange(V.shape[2]), np.arange(V.shape[1]))
-    XY = np.stack([X, Y])
-    X = None
-    Y = None
+    XY = extrapolator["XY"]
 
     R_e = []
     if D_prev is None:
@@ -128,3 +128,21 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
         return np.stack(R_e)
     else:
         return np.stack(R_e), D
+
+def initialize(**kwargs):
+    """Initialize a semi-Lagrangian extrapolator.
+
+    Parameters
+    ----------
+    shape : tuple
+      Two-element tuple defining the shape of the input grid.
+
+    Returns
+    -------
+    out : dict
+      Dictionary containing the extrapolator object.
+    """
+    shape = kwargs["shape"]
+    X, Y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+    XY = np.stack([X, Y])
+    return {"XY":XY}

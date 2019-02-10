@@ -223,7 +223,8 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                            else num_workers
 
     # get methods
-    extrap_method = extrapolation.get_method(extrap_method)
+    extrap_init,extrap_extrap_method = extrapolation.get_method(extrap_method)
+    extrapolator = extrap_init(shape=R.shape[1:])
     decomp_method = cascade.get_method(decomp_method)
     filter_method = cascade.get_method(bandpass_filter_method)
     if noise_method is not None:
@@ -234,7 +235,8 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     R = R[-(ar_order + 1):, :, :]
     extrap_kwargs = extrap_kwargs.copy()
     res = []
-    f = lambda R,i: extrap_method(R[i, :, :], V, ar_order-i, "min", **extrap_kwargs)[-1]
+    f = lambda R,i: extrap_method(extrapolator, R[i, :, :], V, ar_order-i,
+                                  "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
         if not dask_imported:
             R[i, :, :] = f(R, i)
@@ -530,7 +532,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             # advect the recomposed precipitation field to obtain the forecast
             # for time step t
             extrap_kwargs.update({"D_prev":D[j], "return_displacement":True})
-            R_f_,D_ = extrap_method(R_f, V_, 1, **extrap_kwargs)
+            R_f_,D_ = extrap_method(extrapolator, R_f, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]
 
