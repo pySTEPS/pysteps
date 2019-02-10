@@ -67,10 +67,10 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
         raise ValueError("V contains non-finite values")
 
     # defaults
-    verbose             = kwargs.get("verbose", False)
-    D_prev              = kwargs.get("D_prev", None)
-    n_iter              = kwargs.get("n_iter", 3)
-    inverse             = kwargs.get("inverse", True)
+    verbose = kwargs.get("verbose", False)
+    D_prev = kwargs.get("D_prev", None)
+    n_iter = kwargs.get("n_iter", 3)
+    inverse = kwargs.get("inverse", True)
     return_displacement = kwargs.get("return_displacement", False)
 
     if verbose:
@@ -82,8 +82,10 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
 
     coeff = 1.0 if not inverse else -1.0
 
-    X,Y = np.meshgrid(np.arange(V.shape[2]), np.arange(V.shape[1]))
-    XY  = np.stack([X, Y])
+    X, Y = np.meshgrid(np.arange(V.shape[2]), np.arange(V.shape[1]))
+    XY = np.stack([X, Y])
+    X = None
+    Y = None
 
     R_e = []
     if D_prev is None:
@@ -100,9 +102,9 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
                 XYW = [XYW[1, :, :], XYW[0, :, :]]
 
                 VWX = ip.map_coordinates(V[0, :, :], XYW, mode="nearest", order=0,
-                                        prefilter=False)
+                                         prefilter=False)
                 VWY = ip.map_coordinates(V[1, :, :], XYW, mode="nearest", order=0,
-                                        prefilter=False)
+                                         prefilter=False)
             else:
                 VWX = V[0, :, :]
                 VWY = V[1, :, :]
@@ -116,7 +118,7 @@ def extrapolate(R, V, num_timesteps, outval=np.nan, **kwargs):
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
         IW = ip.map_coordinates(R, XYW, mode="constant", cval=outval, order=0,
-                              prefilter=False)
+                                prefilter=False)
         R_e.append(np.reshape(IW, R.shape))
 
     if verbose:
