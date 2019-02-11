@@ -128,6 +128,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     
                         if timestamps is not None:
                             title = timestamps[i].strftime("%Y-%m-%d %H:%M")
+                            title += "\n (Observed Rainfall)"
                         else:
                             title = None
     
