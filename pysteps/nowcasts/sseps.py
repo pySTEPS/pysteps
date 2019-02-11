@@ -235,7 +235,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     R = R[-(ar_order + 1):, :, :]
     extrap_kwargs = extrap_kwargs.copy()
     res = []
-    f = lambda R,i: extrap_method(extrapolator, R[i, :, :], V, ar_order-i,
+    f = lambda R, i: extrap_extrap_method(extrapolator, R[i, :, :], V, ar_order-i, 
                                   "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
         if not dask_imported:
@@ -245,7 +245,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     if dask_imported:
         num_workers_ = len(res) if num_workers > len(res) else num_workers
-        R = np.stack(list(dask.compute(*res, num_workers=num_workers)) + [R[-1, :, :]])
+        R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
 
     if mask_method == "incremental":
         # initialize the structuring element
@@ -532,7 +532,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             # advect the recomposed precipitation field to obtain the forecast
             # for time step t
             extrap_kwargs.update({"D_prev":D[j], "return_displacement":True})
-            R_f_,D_ = extrap_method(extrapolator, R_f, V_, 1, **extrap_kwargs)
+            R_f_,D_ = extrap_extrap_method(extrapolator, R_f, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]
 
