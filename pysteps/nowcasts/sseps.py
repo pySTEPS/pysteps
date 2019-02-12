@@ -34,7 +34,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              mask_method="incremental", callback=None, fft_method="numpy",
              return_output=True, seed=None, num_workers=1, extrap_kwargs={},
              filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}, mask_kwargs={},
-             measure_time=False):
+             measure_time=True):
     """Generate a nowcast ensemble by using the Short-space ensemble prediction
     system (SSEPS) method.
     This is an experimental version of STEPS which allows for localization
@@ -229,6 +229,9 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members \
                            else num_workers
+                           
+    if measure_time:
+        starttime_init = time.time()
 
     # get methods
     extrap_init,extrap_extrap_method = extrapolation.get_method(extrap_method)
@@ -347,6 +350,11 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     # compute global parameters to be used as defaults
     if n_windows_M > 1 or n_windows_N > 1 or np.sum(R >= R_thr) <= minwet:
         parsglob = estimator(R)
+        
+    print("Estiamting local parameters... ", end="")
+    sys.stdout.flush()
+    if measure_time:
+        starttime = time.time()
 
     # loop windows
     nwet = np.empty((n_windows_M, n_windows_N))
@@ -400,7 +408,12 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         pp.append(pp_)
         rc.append(rc_)
         mm.append(mm_)
-
+        
+    if measure_time:
+        print("%.2f seconds." % (time.time() - starttime))
+    else:
+        print("done.")
+        
     # remove unnecessary variables
     ff_ = None
     pp_ = None
@@ -436,16 +449,23 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     D = [None for j in range(n_ens_members)]
     R_f = [[] for j in range(n_ens_members)]
+    
+    if measure_time:
+        init_time = time.time() - starttime_init
 
     R = R[-1, :, :]
 
     print("Starting nowcast computation.")
+    
+    if measure_time:
+        starttime_mainloop = time.time()
 
     # iterate each time step
     for t in range(n_timesteps):
         print("Computing nowcast for time step %d... " % (t+1), end="")
         sys.stdout.flush()
-        starttime = time.time()
+        if measure_time:
+            starttime = time.time()
 
         # iterate each ensemble member
         def worker(j):
@@ -562,7 +582,10 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             if dask_imported and n_ens_members > 1 else res
         res = None
 
-        print("%.2f seconds." % (time.time() - starttime))
+        if measure_time:
+            print("%.2f seconds." % (time.time() - starttime))
+        else:
+            print("done.")
 
         if callback is not None:
             callback(np.stack(R_f_))
@@ -571,6 +594,9 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         if return_output:
             for j in range(n_ens_members):
                 R_f[j].append(R_f_[j])
+                
+    if measure_time:
+        print("Total time = %.2f seconds." % (time.time() - starttime_mainloop))
 
     if return_output:
         return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
