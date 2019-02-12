@@ -444,6 +444,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     if mask_method is not None:
         MASK_prec = R[-1, :, :] >= R_thr
 
+        if probmatching_method == "mean":
+            mu_0 = np.mean(R[-1, :, :][MASK_prec])
+
         if mask_method == "obs":
             pass
         elif mask_method == "sprog":
@@ -461,9 +464,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             # iterate it to expand it nxn
             n = mask_f*timestep/kmperpixel
             struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
-
-        if probmatching_method == "mean":
-            mu_0 = np.mean(R[-1, :, :][MASK_prec])
 
     fft_objs = []
     for i in range(n_ens_members):
