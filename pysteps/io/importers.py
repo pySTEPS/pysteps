@@ -95,6 +95,7 @@ try:
 except ImportError:
     pyproj_imported = False
 
+
 def import_bom_rf3(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the BoM Rainfields3.
 
@@ -122,9 +123,6 @@ def import_bom_rf3(filename, **kwargs):
     metadata = geodata
     # TODO: Add missing georeferencing data.
 
-    metadata["institution"] = "Bureau of Meteorology"
-    metadata["accutime"]    = 6.
-    metadata["unit"]        = "mm/h"
     metadata["transform"]   = None
     metadata["zerovalue"]   = np.nanmin(R)
     if np.any(np.isfinite(R)):
@@ -134,32 +132,17 @@ def import_bom_rf3(filename, **kwargs):
 
     return R, None, metadata
 
+
 def _import_bom_rf3_data(filename):
     ds_rainfall = netCDF4.Dataset(filename)
     if ('precipitation' in ds_rainfall.variables.keys()):
         precipitation = ds_rainfall.variables['precipitation'][:]
-        # estimate time-step to transform from mm to mm/h
-        if ('valid_time' in ds_rainfall.variables.keys()):
-            valid_time = datetime.datetime.utcfromtimestamp(
-                ds_rainfall.variables['valid_time'][:])
-        else:
-            valid_time = None
-        if ('start_time' in ds_rainfall.variables.keys()):
-            start_time = datetime.datetime.utcfromtimestamp(
-                ds_rainfall.variables['start_time'][:])
-        else:
-            start_time = None
-        if start_time is not None:
-            if valid_time is not None:
-                time_step = (valid_time-start_time).seconds//60
-        if time_step:
-            factor_rain = 60./time_step
-            precipitation = precipitation*factor_rain
     else:
         precipitation = None
     ds_rainfall.close()
 
     return precipitation
+
 
 def _import_bom_rf3_geodata(filename):
 
@@ -184,30 +167,56 @@ def _import_bom_rf3_geodata(filename):
             projdef += " +lat_2=" + str(standard_parallels[1])
         else:
             projdef = None
-
     geodata["projection"] = projdef
 
-    xmin = getattr(ds_rainfall.variables['x'], 'valid_min')
-    xmax = getattr(ds_rainfall.variables['x'], 'valid_max')
-    ymin = getattr(ds_rainfall.variables['y'], 'valid_min')
-    ymax = getattr(ds_rainfall.variables['y'], 'valid_max')
+    if 'valid_min' in ds_rainfall.variables['x'].ncattrs():
+        xmin = getattr(ds_rainfall.variables['x'], 'valid_min')
+        xmax = getattr(ds_rainfall.variables['x'], 'valid_max')
+        ymin = getattr(ds_rainfall.variables['y'], 'valid_min')
+        ymax = getattr(ds_rainfall.variables['y'], 'valid_max')
+    else:
+        xmin = min(ds_rainfall.variables['x'])
+        xmax = max(ds_rainfall.variables['x'])
+        ymin = min(ds_rainfall.variables['y'])
+        ymax = max(ds_rainfall.variables['y'])
 
-    # TODO: this is only a quick solution
-    geodata["x1"] = xmin*1000
-    geodata["y1"] = ymin*1000
-    geodata["x2"] = xmax*1000
-    geodata["y2"] = ymax*1000
+    if 'units' in ds_rainfall.variables['x'].ncattrs():
+        if getattr(ds_rainfall.variables['x'], 'units') == 'km':
+            geodata["x1"] = xmin*1000
+            geodata["y1"] = ymin*1000
+            geodata["x2"] = xmax*1000
+            geodata["y2"] = ymax*1000
 
     geodata["xpixelsize"] = abs(ds_rainfall.variables['x'][1] - ds_rainfall.variables['x'][0])*1000.
     geodata["ypixelsize"] = abs(ds_rainfall.variables['y'][1] - ds_rainfall.variables['y'][0])*1000.
-
-    # TODO: pixel size is currently hard-coded
-
     geodata["yorigin"] = "upper" # TODO: check this
 
+    # get the accumulation period
+    if ('valid_time' in ds_rainfall.variables.keys()):
+        valid_time = datetime.datetime.utcfromtimestamp(
+            ds_rainfall.variables['valid_time'][:])
+    else:
+        valid_time = None
+    if ('start_time' in ds_rainfall.variables.keys()):
+        start_time = datetime.datetime.utcfromtimestamp(
+            ds_rainfall.variables['start_time'][:])
+    else:
+        start_time = None
+    if start_time is not None:
+        if valid_time is not None:
+            time_step = (valid_time-start_time).seconds//60
+    geodata["accutime"] = time_step
+
+    # get the unit of precipitation
+    if 'units' in ds_rainfall.variables['precipitation'].ncattrs():
+        if getattr(ds_rainfall.variables['precipitation'], 'units') in ('kg m-2', 'mm'):
+            geodata["unit"] = "mm"
+
+    geodata["institution"] = "Commonwealth of Australia, Bureau of Meteorology"
     ds_rainfall.close()
 
     return geodata
+
 
 def import_fmi_pgm(filename, **kwargs):
     """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
@@ -262,7 +271,8 @@ def import_fmi_pgm(filename, **kwargs):
     else:
         metadata["threshold"] = np.nan
 
-    return R,None,metadata
+    return R, None, metadata
+
 
 def _import_fmi_pgm_geodata(metadata):
     geodata = {}
