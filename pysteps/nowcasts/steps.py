@@ -452,7 +452,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             R_m = R_c[0, :, :, :].copy()
         elif mask_method == "incremental":
             # get mask parameters
-            mask_rim = mask_kwargs.get("mask_rim", 0)
+            mask_rim = mask_kwargs.get("mask_rim", 10)
             mask_f = mask_kwargs.get("mask_f", 1.)
             # initialize precip mask for each member
             MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
