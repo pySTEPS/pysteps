@@ -1,7 +1,6 @@
 """Methods for plotting precipitation fields."""
-
 import matplotlib.pylab as plt
-from matplotlib import cm, colors
+from matplotlib import cm, colors, gridspec
 import numpy as np
 
 from pysteps.exceptions import MissingOptionalDependency
@@ -27,7 +26,8 @@ from . import utils
 def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                       colorscale='MeteoSwiss', probthr=None, title=None,
                       colorbar=True, drawlonlatlines=False, basemap_resolution='l',
-                      cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1)):
+                      cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1),
+                      cax=None):
     """Function to plot a precipitation intensity or probability field with a
     colorbar.
 
@@ -224,7 +224,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     if colorbar:
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm,
                             extend="max" if type == "intensity" else "neither",
-                            shrink=0.8)
+                            shrink=0.8, cax=cax)
         if clevsStr != None:
             cbar.ax.set_yticklabels(clevsStr)
 
@@ -451,8 +451,13 @@ def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,
 
     return bm
 
-def _plot_map_cartopy(crs, x1, y1, x2, y2, scale, drawlonlatlines=False, lw=0.5, subplot=(1,1,1)):
-    ax = plt.subplot(subplot[0], subplot[1], subplot[2], projection=crs)
+def _plot_map_cartopy(crs, x1, y1, x2, y2, scale, drawlonlatlines=False,
+                      lw=0.5, subplot=(1,1,1)):
+
+    if isinstance(subplot, gridspec.SubplotSpec):
+        ax = plt.subplot(subplot, projection=crs)
+    else:
+        ax = plt.subplot(subplot[0], subplot[1], subplot[2], projection=crs)
 
     ax.add_feature(cfeature.NaturalEarthFeature("physical", "ocean", scale = "50m" if scale is "10m" else scale,
         edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])), zorder=0)
