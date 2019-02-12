@@ -560,7 +560,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
             # compute the perturbed motion field
             if vel_pert_method is not None:
-                V_ = V + generate_vel_noise(vps[j], t*timestep)
+                V_ = V + generate_vel_noise(vps[j], (t+1)*timestep)
             else:
                 V_ = V
 
