@@ -446,11 +446,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
 
         if mask_method == "obs":
             pass
-            # add a slight buffer to the mask
-            # n=5
-            # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n,n))
-            # MASK_prec = MASK_prec.astype('uint8')
-            # MASK_prec = cv2.dilate(MASK_prec,kernel).astype(bool)
         elif mask_method == "sprog":
             # compute the wet area ratio and the precipitation mask
             war = 1.0*np.sum(MASK_prec) / (R.shape[1]*R.shape[2])
@@ -635,7 +630,6 @@ def _compute_incremental_mask(Rbin, kr, r):
 
     # add grayscale rim
     kr1 = scipy.ndimage.generate_binary_structure(2, 1)
-    kr1 = scipy.ndimage.iterate_structure(kr1, 1)
     mask = Rd.astype(float)
     for n in range(r):
         Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
