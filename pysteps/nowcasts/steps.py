@@ -23,7 +23,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
              vel_pert_method="bps", conditional=False, probmatching_method="cdf",
              mask_method="incremental", callback=None, return_output=True,
              seed=None, num_workers=1, fft_method="numpy", extrap_kwargs={},
-             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={},
+             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}, mask_kwargs={},
              measure_time=False):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
@@ -131,7 +131,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       Optional dictionary containing keyword arguments for the initializer of
       the noise generator. See the documentation of pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
-      Optional dictionary containing keyword arguments "p_par" and "p_perp" for
+      Optional dictionary containing keyword arguments 'p_par' and 'p_perp' for
       the initializer of the velocity perturbator. The choice of the optimal
       parameters depends on the domain and the used optical flow method.
 
@@ -178,11 +178,16 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
       p_perp = [0.23127377, 0.59010281, 5.98180004]
 
       fmi=Finland, mch=Switzerland, fmi+mch=both pooled into the same data set
-      
+
       The above parameters have been fitten by using run_vel_pert_analysis.py
       and fit_vel_pert_params.py located in the scripts directory.
 
       See pysteps.noise.motion for additional documentation.
+    mask_kwargs : dict
+      Optional dictionary containing mask keyword arguments 'mask_f' and
+      'mask_rim', the factor defining the the mask increment and the rim size,
+      respectively.
+      The mask increment is defined as mask_f*timestep/kmperpixel.
     measure_time : bool
       If set to True, measure, print and return the computation time.
 
@@ -323,7 +328,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     extrap_kwargs = extrap_kwargs.copy()
     res = []
-    f = lambda R, i: extrap_method(extrapolator, R[i, :, :], V, ar_order-i, 
+    f = lambda R, i: extrap_method(extrapolator, R[i, :, :], V, ar_order-i,
                                    "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
         if not dask_imported:
@@ -451,12 +456,15 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             war = 1.0*np.sum(MASK_prec) / (R.shape[1]*R.shape[2])
             R_m = R_c[0, :, :, :].copy()
         elif mask_method == "incremental":
+            # get mask parameters
+            mask_rim = mask_kwargs.get("mask_rim", 0)
+            mask_f = mask_kwargs.get("mask_f", 1.)
             # initialize precip mask for each member
             MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
             # initialize the structuring element
             struct = scipy.ndimage.generate_binary_structure(2, 1)
             # iterate it to expand it nxn
-            n = timestep/kmperpixel
+            n = mask_f*timestep/kmperpixel
             struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
 
         if probmatching_method == "mean":
@@ -533,14 +541,16 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 # apply the precipitation mask to prevent generation of new
                 # precipitation into areas where it was not originally
                 # observed
+                R_cmin = R_c_.min()
                 if mask_method == "obs":
                     MASK_prec_ = ~MASK_prec
                 elif mask_method == "incremental":
-                    MASK_prec_ = ~MASK_prec[j]
+                    R_c_ = R_cmin + (R_c_ - R_cmin)*MASK_prec[j]
+                    MASK_prec_ = R_c_ <= R_cmin
                 elif mask_method == "sprog":
                     MASK_prec_ = MASK_prec
 
-                R_c_[MASK_prec_] = R_c_.min()
+                R_c_[MASK_prec_] = R_cmin
 
             if probmatching_method == "cdf":
                 # adjust the CDF of the forecast to match the most recently
@@ -551,9 +561,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 R_c_[~MASK_prec_] = R_c_[~MASK_prec_] - mu_fct + mu_0
 
             if mask_method == "incremental":
-                MASK_prec_ = R_c_ >= R_thr
-                MASK_prec_ = scipy.ndimage.morphology.binary_dilation(MASK_prec_, struct)
-                MASK_prec[j] = MASK_prec_
+                MASK_prec[j] = _compute_incremental_mask(R_c_ >= R_thr, struct, mask_rim)
 
             # compute the perturbed motion field
             if vel_pert_method is not None:
@@ -616,6 +624,24 @@ def _check_inputs(R, V, ar_order):
     if R.shape[1:3] != V.shape[1:3]:
         raise ValueError("dimension mismatch between R and V: shape(R)=%s, shape(V)=%s" % \
                          (str(R.shape), str(V.shape)))
+
+def _compute_incremental_mask(Rbin, kr, r):
+    # buffer the observation mask Rbin using the kernel kr
+    # add a grayscale rim r (for smooth rain/no-rain transition)
+
+    # buffer observation mask
+    Rbin = np.ndarray.astype(Rbin.copy(), "uint8")
+    Rd = scipy.ndimage.morphology.binary_dilation(Rbin, kr)
+
+    # add grayscale rim
+    kr1 = scipy.ndimage.generate_binary_structure(2, 1)
+    kr1 = scipy.ndimage.iterate_structure(kr1, 1)
+    mask = Rd.astype(float)
+    for n in range(r):
+        Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
+        mask += Rd
+    # normalize between 0 and 1
+    return mask/(r + 1)
 
 def _compute_sprog_mask(R, war):
     # obtain the CDF from the non-perturbed forecast that is
