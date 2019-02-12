@@ -29,11 +29,12 @@ except ImportError:
 def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              win_size=256, overlap=0.1, minwet=50,
              extrap_method="semilagrangian", decomp_method="fft",
-             bandpass_filter_method="gaussian", noise_method="nonparametric", ar_order=2,
-             vel_pert_method=None, probmatching_method="cdf",
+             bandpass_filter_method="gaussian", noise_method="nonparametric",
+             ar_order=2, vel_pert_method=None, probmatching_method="cdf",
              mask_method="incremental", callback=None, fft_method="numpy",
              return_output=True, seed=None, num_workers=1, extrap_kwargs={},
-             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}):
+             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}, mask_kwargs={},
+             measure_time=False):
     """Generate a nowcast ensemble by using the Short-space ensemble prediction
     system (SSEPS) method.
     This is an experimental version of STEPS which allows for localization
@@ -88,7 +89,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     mask_method : {'incremental', None}
         The method to use for masking no precipitation areas in the forecast field.
         The masked pixels are set to the minimum value of the observations.
-        'incremental' = iteratively buffer the mask with a certain rate 
+        'incremental' = iteratively buffer the mask with a certain rate
         (currently it is 1 km/min), None=no masking.
     probmatching_method : {'cdf', None}
         Method for matching the statistics of the forecast field with those of
@@ -130,6 +131,13 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         Optional dictionary containing keyword arguments "p_pert_par" and
         "p_pert_perp" for the initializer of the velocity perturbator.
         See the documentation of pysteps.noise.motion.
+    mask_kwargs : dict
+      Optional dictionary containing mask keyword arguments 'mask_f' and
+      'mask_rim', the factor defining the the mask increment and the rim size,
+      respectively.
+      The mask increment is defined as mask_f*timestep/kmperpixel.
+    measure_time : bool
+      If set to True, measure, print and return the computation time.
 
     Returns
     -------
@@ -235,7 +243,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     R = R[-(ar_order + 1):, :, :]
     extrap_kwargs = extrap_kwargs.copy()
     res = []
-    f = lambda R, i: extrap_extrap_method(extrapolator, R[i, :, :], V, ar_order-i, 
+    f = lambda R, i: extrap_extrap_method(extrapolator, R[i, :, :], V, ar_order-i,
                                   "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
         if not dask_imported:
@@ -248,10 +256,13 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
 
     if mask_method == "incremental":
+        # get mask parameters
+        mask_rim = mask_kwargs.get("mask_rim", 10)
+        mask_f = mask_kwargs.get("mask_f", 1.)
         # initialize the structuring element
         struct = scipy.ndimage.generate_binary_structure(2, 1)
         # iterate it to expand it nxn
-        n = timestep/kmperpixel
+        n = mask_f*timestep/kmperpixel
         struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
 
     print("Estimating nowcast parameters.")
@@ -318,7 +329,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             MASK_prec = R[-1, :, :] >= R_thr
             if mask_method == "incremental":
                 # initialize precip mask for each member
-                MASK_prec = scipy.ndimage.morphology.binary_dilation(MASK_prec, struct)
+                MASK_prec = _compute_incremental_mask(MASK_prec, struct, mask_rim)
                 MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
         else:
             MASK_prec = None
@@ -377,7 +388,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                 mu[m, n, :] = parsglob["mu"]
                 sigma[m, n, :] = parsglob["sigma"]
                 PHI[m, n, :, :] = parsglob["PHI"]
-                
+
             else:
                 # fully dry window
                 ff_.append(None)
@@ -389,7 +400,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         pp.append(pp_)
         rc.append(rc_)
         mm.append(mm_)
-        
+
     # remove unnecessary variables
     ff_ = None
     pp_ = None
@@ -485,7 +496,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                         # compute the recomposed precipitation field(s) from the cascades
                         # obtained from the AR(p) model(s)
                         R_c_ = _recompose_cascade(R_c[:, :, :], mu[m, n, :], sigma[m, n, :])
-                        
+
                         # resize if default (global) parameters were used
                         if nwet[m, n] <= minwet:
                             R_c_ = R_c_[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
@@ -495,10 +506,14 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                             # precipitation into areas where it was not originally
                             # observed
                             if mask_method == "incremental":
-                                MASK_prec = mm[m][n][j]
+                                R_cmin = R_c_.min()
+                                MASK_prec = mm[m][n][j].copy()
+                                # normalize between 0 and 1
+                                MASK_prec = MASK_prec.astype(float)/MASK_prec.max()
                                 if not MASK_prec.shape == R_c_.shape:
                                     MASK_prec = MASK_prec[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
-                                R_c_[~MASK_prec] = R_c_.min()
+                                R_c_ = R_cmin + (R_c_ - R_cmin)*MASK_prec
+                                MASK_prec = None
 
                         if probmatching_method == "cdf":
                             # adjust the CDF of the forecast to match the most recently
@@ -508,9 +523,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                             R_ = None
 
                         if mask_method == "incremental":
-                            MASK_prec = R_c_ >= R_thr
-                            MASK_prec = scipy.ndimage.morphology.binary_dilation(MASK_prec, struct)
-                            mm[m][n][j] = MASK_prec.copy()
+                            mm[m][n][j] = _compute_incremental_mask(R_c_ >= R_thr, struct, mask_rim)
 
                         R_f[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += R_c_*mask
 
@@ -558,7 +571,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         if return_output:
             for j in range(n_ens_members):
                 R_f[j].append(R_f_[j])
-        
+
     if return_output:
         return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
     else:
@@ -574,6 +587,22 @@ def _check_inputs(R, V, ar_order):
     if R.shape[1:3] != V.shape[1:3]:
         raise ValueError("dimension mismatch between R and V: shape(R)=%s, shape(V)=%s" % \
                          (str(R.shape), str(V.shape)))
+
+def _compute_incremental_mask(Rbin, kr, r):
+    # buffer the observation mask Rbin using the kernel kr
+    # add a grayscale rim r (for smooth rain/no-rain transition)
+
+    # buffer observation mask
+    Rbin = np.ndarray.astype(Rbin.copy(), "uint8")
+    Rd = scipy.ndimage.morphology.binary_dilation(Rbin, kr)
+
+    # add grayscale rim
+    kr1 = scipy.ndimage.generate_binary_structure(2, 1)
+    mask = Rd.astype(int)
+    for n in range(r):
+        Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
+        mask += Rd
+    return mask
 
 def _stack_cascades(R_d, n_levels, donorm=True):
   R_c   = []
