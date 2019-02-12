@@ -21,12 +21,12 @@ import numpy as np
 from pysteps.extrapolation import semilagrangian
 
 
-def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan, **kwargs):
+def eulerian_persistence(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
     """ Eulerian persistence extrapolator """
-    del velocity, outval  # Unused by _eulerian_persistence
+    del extrapolator, V, outval  # Unused by _eulerian_persistence
     return_displacement = kwargs.get("return_displacement", False)
 
-    extrapolated_precip = np.repeat(precip[np.newaxis, :, :, ],
+    extrapolated_precip = np.repeat(R[np.newaxis, :, :, ],
                                     num_timesteps,
                                     axis=0)
 
@@ -36,8 +36,8 @@ def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan, **kwarg
         return extrapolated_precip, np.zeros((2,) + extrapolated_precip.shape)
 
 
-def _do_nothing(precip, velocity, num_timesteps, outval=np.nan, **kwargs):
-    del precip, velocity, num_timesteps, outval, kwargs  # Unused by _do_nothing
+def _do_nothing(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
+    del extrapolator, R, V, num_timesteps, outval, kwargs  # Unused by _do_nothing
     return None
 
 
@@ -45,7 +45,7 @@ _extrapolation_methods = dict()
 _extrapolation_methods['eulerian'] = lambda **kwargs: None, eulerian_persistence
 _extrapolation_methods['semilagrangian'] = \
   semilagrangian.initialize,semilagrangian.extrapolate
-_extrapolation_methods[None] = _do_nothing
+_extrapolation_methods[None] = lambda **kwargs: None, _do_nothing
 
 
 def get_method(name):
