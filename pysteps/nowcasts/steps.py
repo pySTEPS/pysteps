@@ -465,6 +465,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             # initialize precip mask for each member
             MASK_prec = _compute_incremental_mask(MASK_prec, struct, mask_rim)
             MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
+    
+    if noise_method is None:
+        R_m = R_c[0, :, :, :].copy()
 
     fft_objs = []
     for i in range(n_ens_members):
@@ -487,7 +490,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
         if measure_time:
             starttime = time.time()
 
-        if mask_method == "sprog":
+        if noise_method is None or mask_method == "sprog":
             for i in range(n_cascade_levels):
                 # use a separate AR(p) model for the non-perturbed forecast,
                 # from which the mask is obtained
@@ -495,7 +498,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                     autoregression.iterate_ar_model(R_m[i, :, :, :], PHI[i, :])
 
             R_m_ = _recompose_cascade(R_m, mu, sigma)
-            MASK_prec = _compute_sprog_mask(R_m_, war)
+
+            if mask_method == "sprog":
+                MASK_prec = _compute_sprog_mask(R_m_, war)
 
         # iterate each ensemble member
         def worker(j):
@@ -517,7 +522,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 else:
                     EPS_ = None
                 # apply AR(p) process to cascade level
-                if EPS is not None or n_ens_members > 1 or vel_pert_method is not None:
+                if EPS is not None or vel_pert_method is not None:
                     R_c[j, i, :, :, :] = \
                         autoregression.iterate_ar_model(R_c[j, i, :, :, :],
                                                         PHI[i, :], EPS=EPS_)
