@@ -41,6 +41,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     ----------------
     type : str
         Type of the map to plot: 'intensity' = precipitation intensity field,
+        'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
     map : str
         Optional method for plotting a map: 'basemap' or 'cartopy'. The former
@@ -72,11 +73,11 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         |                 | 'upper' = upper border, 'lower' = lower border     |
         +-----------------+----------------------------------------------------+
     units : str
-        Units of the input array (mm/h or dBZ). If type is 'prob', this specifies
+        Units of the input array (mm/h, mm, dBZ). If type is 'prob', this specifies
         the unit of the intensity threshold.
     colorscale : str
         Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
-        'mm/h' or 'dBZ'.
+        'mm/h', 'mm' or 'dBZ'.
     probthr : float
       Intensity threshold to show in the color bar of the exceedance probability
       map. Required if type is "prob" and colorbar is True.
@@ -104,10 +105,10 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-    if type not in ["intensity", "prob"]:
-        raise ValueError("invalid type '%s', must be 'intensity' or 'prob'" % type)
-    if units not in ["mm/h", "dBZ"]:
-        raise ValueError("invalid units '%s', must be 'mm/h' or 'dBZ'" % units)
+    if type not in ["intensity", "depth", "prob"]:
+        raise ValueError("invalid type '%s', must be 'intensity', 'depth' or 'prob'" % type)
+    if units not in ["mm/h", "mm", "dBZ"]:
+        raise ValueError("invalid units '%s', must be 'mm/h', 'mm' or 'dBZ'" % units)
     if type == "prob" and colorbar and probthr is None:
         raise ValueError("type='prob' but probthr not specified")
     if map is not None and geodata is None:
@@ -131,7 +132,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-    
+
     if map is None:
         # Extract extent for imshow function
         if geodata is not None:
@@ -223,14 +224,17 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     # Add colorbar
     if colorbar:
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm,
-                            extend="max" if type == "intensity" else "neither",
-                            shrink=0.8, cax=cax)
+                extend="max" if type in ["intensity", "depth"] else "neither",
+                shrink=0.8, cax=cax)
         if clevsStr != None:
             cbar.ax.set_yticklabels(clevsStr)
 
         if type == "intensity":
             cbar.ax.set_title(units, fontsize=10)
             cbar.set_label("Precipitation intensity")
+        elif type == "depth":
+            cbar.ax.set_title(units, fontsize=10)
+            cbar.set_label("Precipitation depth")
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
 
@@ -262,15 +266,15 @@ def _plot_field(R, ax, type, units, colorscale, geodata, extent):
 
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
-    if type == "intensity":
-        if units == 'mm/h':
+    if type in ["intensity", "depth"]:
+        if units in ['mm/h', 'mm']:
             R[R < 0.1] = np.nan
         elif units == 'dBZ':
             R[R < 10] = np.nan
     else:
         R[R < 1e-3] = np.nan
 
-    vmin,vmax = [None, None] if type == "intensity" else [0.0, 1.0]
+    vmin,vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
     im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest',
                    vmin=vmin, vmax=vmax, zorder=1)
@@ -285,15 +289,15 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
 
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
-    if type == "intensity":
-        if units == 'mm/h':
+    if type in ["intensity", "depth"]:
+        if units in ['mm/h', 'mm']:
             R[R < 0.1] = np.nan
         elif units == 'dBZ':
             R[R < 10] = np.nan
     else:
         R[R < 1e-3] = np.nan
 
-    vmin,vmax = [None, None] if type == "intensity" else [0.0, 1.0]
+    vmin,vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
     im = plt.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
 
@@ -306,12 +310,13 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
     ----------
     type : str
         Type of the map to plot: 'intensity' = precipitation intensity field,
+        'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
     units : str
-        Units of the input array (mm/h or dBZ).
+        Units of the input array (mm/h, mm or dBZ).
     colorscale : str
         Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
-        'mm/h' or 'dBZ'.
+        'mm/h', 'mm' or 'dBZ'.
 
     Returns
     -------
@@ -326,7 +331,7 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
         number of decimals).
 
     """
-    if type == "intensity":
+    if type in ["intensity", "depth"]:
         # Get list of colors
         colors_list,clevs,clevsStr = _get_colorlist(units, colorscale)
 
@@ -339,6 +344,7 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
         norm = colors.BoundaryNorm(clevs, cmap.N)
 
         return cmap, norm, clevs, clevsStr
+
     elif type == "prob":
         cmap = plt.get_cmap("OrRd", 10)
         return cmap, colors.Normalize(vmin=0, vmax=1), None, None
@@ -351,7 +357,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     Parameters
     ----------
     units : str
-        Units of the input array (mm/h or dBZ)
+        Units of the input array (mm/h, mm or dBZ)
     colorscale : str
         Which colorscale to use (MeteoSwiss, STEPS-BE)
 
@@ -368,7 +374,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
 
     if colorscale == 'STEPS-BE':
         color_list = ['cyan','deepskyblue','dodgerblue','blue','chartreuse','limegreen','green','darkgreen','yellow','gold','orange','red','magenta','darkmagenta']
-        if units == 'mm/h':
+        if units in ['mm/h', 'mm']:
             clevs = [0.1,0.25,0.4,0.63,1,1.6,2.5,4,6.3,10,16,25,40,63,100]
         elif units == 'dBZ':
             clevs = np.arange(10,65,5)
@@ -379,7 +385,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
         redgreyHex = '#%02x%02x%02x' % (156, 126, 148)
         color_list = [redgreyHex, "#640064","#AF00AF","#DC00DC","#3232C8","#0064FF","#009696","#00C832",
         "#64FF00","#96FF00","#C8FF00","#FFFF00","#FFC800","#FFA000","#FF7D00","#E11900"]
-        if units == 'mm/h':
+        if units in ['mm/h', 'mm']:
             clevs= [0.08,0.16,0.25,0.40,0.63,1,1.6,2.5,4,6.3,10,16,25,40,63,100,160]
         elif units == 'dBZ':
             clevs = np.arange(10,65,5)
