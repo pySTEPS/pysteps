@@ -457,13 +457,14 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             # get mask parameters
             mask_rim = mask_kwargs.get("mask_rim", 10)
             mask_f = mask_kwargs.get("mask_f", 1.)
-            # initialize precip mask for each member
-            MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
             # initialize the structuring element
             struct = scipy.ndimage.generate_binary_structure(2, 1)
             # iterate it to expand it nxn
             n = mask_f*timestep/kmperpixel
             struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
+            # initialize precip mask for each member
+            MASK_prec = _compute_incremental_mask(MASK_prec, struct, mask_rim)
+            MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
 
     fft_objs = []
     for i in range(n_ens_members):
