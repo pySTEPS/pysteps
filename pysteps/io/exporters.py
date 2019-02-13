@@ -1,61 +1,65 @@
-"""Methods for writing forecasts of 2d precipitation fields into various file
+"""Methods for exporting forecasts.
+
+Methods for writing forecasts of 2d precipitation fields into various file
 formats.
 
 Each exporter method in this module has its own initialization function that
 implements the following interface:
 
-  initialize_forecast_exporter_xxx(filename, startdate, timestep, num_timesteps, \
-  shape, num_ens_members, metadata, incremental=None)
+  initialize_forecast_exporter_xxx(filename, startdate, timestep,
+  num_timesteps, shape, num_ens_members, metadata, incremental=None)
 
-  where xxx describes the file format. This function creates the file and writes
-  the metadata. The datasets are written by calling export_forecast_dataset, and
+  where xxx describes the file format.
+  This function creates the file and writes the metadata.
+  The datasets are written by calling export_forecast_dataset, and
   the file is closed by calling close_forecast_file.
 
   The arguments in the above are defined as follows:
 
   .. tabularcolumns:: |p{2.3cm}|p{2.5cm}|L|
 
-  +-------------------+-------------------+------------------------------------------------+
-  |   Argument        | Type/values       |             Description                        |
-  +===================+===================+================================================+
-  |   filename        | str               | name of the output file                        |
-  +-------------------+-------------------+------------------------------------------------+
-  | startdate         | datetime.datetime | start date of the forecast                     |
-  +-------------------+-------------------+------------------------------------------------+
-  | timestep          | int               | time step of the forecast (minutes)            |
-  +-------------------+-------------------+------------------------------------------------+
-  | n_timesteps       | int               | number of time steps in the forecast           |
-  |                   |                   | this argument is ignored if incremental is     |
-  |                   |                   | set to 'timestep'.                             |
-  +-------------------+-------------------+------------------------------------------------+
-  | shape             | tuple             | two-element tuple defining the shape           |
-  |                   |                   | (height,width) of the forecast grids           |
-  +-------------------+-------------------+------------------------------------------------+
-  | n_ens_members     | int               | number of ensemble members in the forecast     |
-  |                   |                   | this argument is ignored if incremental is     |
-  |                   |                   | set to 'member'                                |
-  +-------------------+-------------------+------------------------------------------------+
-  | metadata          | dict              | metadata dictionary containing the             |
-  |                   |                   | projection,x1,x2,y1,y2 and unit attributes     |
-  |                   |                   | described in the documentation of              |
-  |                   |                   | pysteps.io.importers                           |
-  +-------------------+-------------------+------------------------------------------------+
-  | incremental       | {'timestep',      | Allow incremental writing of datasets into     |
-  |                   | 'member'}         | the netCDF file                                |
-  |                   |                   | the available options are:                     |
-  |                   |                   | 'timestep' = write a forecast or a             |
-  |                   |                   | forecast ensemble for a given time step        |
-  |                   |                   | 'member' = write a forecast sequence           |
-  |                   |                   | for a given ensemble member                    |
-  +-------------------+-------------------+------------------------------------------------+
+  +---------------+-------------------+---------------------------------------+
+  |   Argument    | Type/values       |             Description               |
+  +===============+===================+=======================================+
+  |   filename    | str               | name of the output file               |
+  +---------------+-------------------+---------------------------------------+
+  | startdate     | datetime.datetime | start date of the forecast            |
+  +---------------+-------------------+---------------------------------------+
+  | timestep      | int               | time step of the forecast (minutes)   |
+  +---------------+-------------------+---------------------------------------+
+  | n_timesteps   | int               | number of time steps in the forecast  |
+  |               |                   | this argument is ignored if           |
+  |               |                   | incremental is set to 'timestep'.     |
+  +---------------+-------------------+---------------------------------------+
+  | shape         | tuple             | two-element tuple defining the shape  |
+  |               |                   | (height,width) of the forecast grids  |
+  +---------------+-------------------+---------------------------------------+
+  | n_ens_members | int               | number of ensemble members in the     |
+  |               |                   | forecast. This argument is ignored if |
+  |               |                   | incremental is set to 'member'        |
+  +-----------------+-------------------+-------------------------------------+
+  | metadata      | dict              | metadata dictionary containing the    |
+  |               |                   | projection,x1,x2,y1,y2 and unit       |
+  |               |                   | attributes described in the           |
+  |               |                   | documentation of pysteps.io.importers |
+  +---------------+-------------------+---------------------------------------+
+  | incremental   | {'timestep',      | Allow incremental writing of datasets |
+  |               | 'member'}         | into the netCDF file                  |
+  |               |                   | the available options are:            |
+  |               |                   | 'timestep' = write a forecast or a    |
+  |               |                   | forecast ensemble for a given         |
+  |               |                   | time step                             |
+  |               |                   | 'member' = write a forecast sequence  |
+  |               |                   | for a given ensemble member           |
+  +---------------+-------------------+---------------------------------------+
 
   The return value is a dictionary containing an exporter object. This can be
   used with export_forecast_dataset to write datasets into the netCDF file.
 
 """
 
-import numpy as np
 from datetime import datetime
+import numpy as np
 
 from pysteps.exceptions import MissingOptionalDependency
 
@@ -70,8 +74,11 @@ try:
 except ImportError:
     pyproj_imported = False
 
-# TODO: This is a draft version of the exporter. Revise the variable names and
+# TODO(exporters): This is a draft version of the exporter.
+# Revise the variable names and
 # the structure of the file if necessary.
+
+
 def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
                                         n_timesteps, shape, n_ens_members,
                                         metadata, incremental=None):
@@ -103,12 +110,12 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
     ncf.institution = "the pySTEPS community (https://pysteps.github.io)"
-    ncf.source = "pysteps" # TODO: Add pySTEPS version here
+    ncf.source = "pysteps"  # TODO(exporters): Add pySTEPS version here
     ncf.history = ""
     ncf.references = ""
     ncf.comment = ""
 
-    h,w = shape
+    h, w = shape
 
     ncf.createDimension("ens_number", size=n_ens_members)
     ncf.createDimension("time", size=n_timesteps)
@@ -143,7 +150,7 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
     var_xc.axis = 'X'
     var_xc.standard_name = "projection_x_coordinate"
     var_xc.long_name = "x-coordinate in Cartesian system"
-    # TODO: Don't hard-code the unit.
+    # TODO(exporters): Don't hard-code the unit.
     var_xc.units = 'm'
 
     var_yc = ncf.createVariable("yc", np.float32, dimensions=("y",))
@@ -151,30 +158,30 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
     var_yc.axis = 'Y'
     var_yc.standard_name = "projection_y_coordinate"
     var_yc.long_name = "y-coordinate in Cartesian system"
-    # TODO: Don't hard-code the unit.
+    # TODO(exporters): Don't hard-code the unit.
     var_yc.units = 'm'
 
-    X,Y = np.meshgrid(xr, yr)
+    X, Y = np.meshgrid(xr, yr)
     pr = pyproj.Proj(metadata["projection"])
-    lon,lat = pr(X.flatten(), Y.flatten(), inverse=True)
+    lon, lat = pr(X.flatten(), Y.flatten(), inverse=True)
 
     var_lon = ncf.createVariable("lon", np.float, dimensions=("y", "x"))
     var_lon[:] = lon
     var_lon.standard_name = "longitude"
-    var_lon.long_name     = "longitude coordinate"
-    # TODO: Don't hard-code the unit.
-    var_lon.units         = "degrees_east"
+    var_lon.long_name = "longitude coordinate"
+    # TODO(exporters): Don't hard-code the unit.
+    var_lon.units = "degrees_east"
 
     var_lat = ncf.createVariable("lat", np.float, dimensions=("y", "x"))
     var_lat[:] = lat
     var_lat.standard_name = "latitude"
-    var_lat.long_name     = "latitude coordinate"
-    # TODO: Don't hard-code the unit.
-    var_lat.units         = "degrees_north"
+    var_lat.long_name = "latitude coordinate"
+    # TODO(exporters): Don't hard-code the unit.
+    var_lat.units = "degrees_north"
 
     ncf.projection = metadata["projection"]
 
-    grid_mapping_var_name,grid_mapping_name,grid_mapping_params = \
+    grid_mapping_var_name, grid_mapping_name, grid_mapping_params = \
         _convert_proj4_to_grid_mapping(metadata["projection"])
     # skip writing the grid mapping if a matching name was not found
     if grid_mapping_var_name is not None:
@@ -183,7 +190,9 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         for i in grid_mapping_params.items():
             var_gm.setncattr(i[0], i[1])
 
-    var_ens_num = ncf.createVariable("ens_number", np.int, dimensions=("ens_number",))
+    var_ens_num = ncf.createVariable("ens_number", np.int,
+                                     dimensions=("ens_number",)
+                                     )
     if incremental != "member":
         var_ens_num[:] = list(range(1, n_ens_members+1))
     var_ens_num.long_name = "ensemble member"
@@ -213,8 +222,8 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
     exporter["var_time"] = var_time
     exporter["var_name"] = var_name
     exporter["startdate"] = startdate
-    exporter["timestep"]  = timestep
-    exporter["metadata"]  = metadata
+    exporter["timestep"] = timestep
+    exporter["metadata"] = metadata
     exporter["incremental"] = incremental
     exporter["num_timesteps"] = n_timesteps
     exporter["num_ens_members"] = n_ens_members
@@ -222,8 +231,11 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
 
     return exporter
 
+
 def export_forecast_dataset(F, exporter):
-    """Write a forecast array into a file. The written dataset has dimensions
+    """Write a forecast array into a file.
+
+    The written dataset has dimensions
     (num_ens_members,num_timesteps,shape[0],shape[1]), where shape refers to
     the shape of the two-dimensional forecast grids. If the exporter was
     initialized with incremental!=None, the array is appended to the existing
@@ -238,15 +250,16 @@ def export_forecast_dataset(F, exporter):
         The array to write. The required shape depends on the choice of the
         'incremental' parameter the exporter was initialized with:
 
-        +-------------------+---------------------------------------------------+
-        |    incremental    |                    required shape                 |
-        +===================+===================================================+
-        |    None           | (num_ens_members,num_timesteps,shape[0],shape[1]) |
-        +-------------------+---------------------------------------------------+
-        |    'timestep'     | (num_ens_members,shape[0],shape[1])               |
-        +-------------------+---------------------------------------------------+
-        |    'member'       | (num_timesteps,shape[0],shape[1])                 |
-        +-------------------+---------------------------------------------------+
+        +-----------------+---------------------------------------------------+
+        |    incremental  |                    required shape                 |
+        +=================+===================================================+
+        |    None         | (num_ens_members,num_timesteps,shape[0],shape[1]) |
+        +-----------------+---------------------------------------------------+
+        |    'timestep'   | (num_ens_members,shape[0],shape[1])               |
+        +-----------------+---------------------------------------------------+
+        |    'member'     | (num_timesteps,shape[0],shape[1])                 |
+        +-----------------+---------------------------------------------------+
+
     """
     if not netcdf4_imported:
         raise MissingOptionalDependency(
@@ -274,8 +287,11 @@ def export_forecast_dataset(F, exporter):
     else:
         raise ValueError("unknown exporter method %s" % exporter["method"])
 
+
 def close_forecast_file(exporter):
-    """Finish writing forecasts and close the file associated with a forecast
+    """Close the file associated with a forecast exporter.
+
+    Finish writing forecasts and close the file associated with a forecast
     exporter.
 
     Parameters
@@ -283,8 +299,10 @@ def close_forecast_file(exporter):
     exporter : dict
         An exporter object created with any initialization method implemented
         in this module.
+
     """
     exporter["ncfile"].close()
+
 
 def _export_netcdf(F, exporter):
     var_F = exporter["var_F"]
@@ -300,11 +318,13 @@ def _export_netcdf(F, exporter):
         var_ens_num = exporter["var_time"]
         var_ens_num[len(var_ens_num)-1] = len(var_ens_num)
 
-# TODO: Write methods for converting Proj.4 projection definitions into CF grid
-# mapping attributes. Currently this has been implemented for the stereographic
-# projection.
+# TODO(exporters): Write methods for converting Proj.4 projection definitions
+# into CF grid mapping attributes. Currently this has been implemented for
+# the stereographic projection.
 # The conversions implemented here are take from:
 # https://github.com/cf-convention/cf-convention.github.io/blob/master/wkt-proj-4.md
+
+
 def _convert_proj4_to_grid_mapping(proj4str):
     tokens = proj4str.split('+')
 
@@ -315,7 +335,7 @@ def _convert_proj4_to_grid_mapping(proj4str):
             d[t[0]] = t[1].strip()
 
     params = {}
-    # TODO: implement more projection types here
+    # TODO(exporters): implement more projection types here
     if d["proj"] == "stere":
         grid_mapping_var_name = "polar_stereographic"
         grid_mapping_name = "polar_stereographic"
@@ -327,9 +347,9 @@ def _convert_proj4_to_grid_mapping(proj4str):
             params["standard_parallel"] = float(d["lat_ts"])
         elif "k_0" in list(d.keys()):
             params["scale_factor_at_projection_origin"] = float(d["k_0"])
-        params["false_easting"]  = float(d["x_0"])
+        params["false_easting"] = float(d["x_0"])
         params["false_northing"] = float(d["y_0"])
     else:
-        return None,None,None
+        return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params

@@ -7,7 +7,7 @@ The methods in this module implement the following interface:
 where xxx is the name (or abbreviation) of the file format and filename is the
 name of the input file.
 
-The output of each method is a three-element tuple containing the two-dimensional
+The output of each method is a three-element tuple containing a two-dimensional
 precipitation field, the corresponding quality field and a metadata dictionary.
 If the file contains no quality information, the quality field is set to None.
 Pixels containing missing data are set to nan.
@@ -16,49 +16,49 @@ The metadata dictionary contains the following mandatory key-value pairs:
 
 .. tabularcolumns:: |p{2cm}|L|
 
-+-------------------+----------------------------------------------------------+
-|       Key         |                Value                                     |
-+===================+==========================================================+
-|    projection     | PROJ.4-compatible projection definition                  |
-+-------------------+----------------------------------------------------------+
-|    x1             | x-coordinate of the lower-left corner of the data raster |
-|                   | (meters)                                                 |
-+-------------------+----------------------------------------------------------+
-|    y1             | y-coordinate of the lower-left corner of the data raster |
-|                   | (meters)                                                 |
-+-------------------+----------------------------------------------------------+
-|    x2             | x-coordinate of the upper-right corner of the data raster|
-|                   | (meters)                                                 |
-+-------------------+----------------------------------------------------------+
-|    y2             | y-coordinate of the upper-right corner of the data raster|
-|                   | (meters)                                                 |
-+-------------------+----------------------------------------------------------+
-|    xpixelsize     | grid resolution in x-direction (meters)                  |
-+-------------------+----------------------------------------------------------+
-|    ypixelsize     | grid resolution in y-direction (meters)                  |
-+-------------------+----------------------------------------------------------+
-|    yorigin        | a string specifying the location of the first element in |
-|                   | the data raster w.r.t. y-axis:                           |
-|                   | 'upper' = upper border                                   |
-|                   | 'lower' = lower border                                   |
-+-------------------+----------------------------------------------------------+
-|    institution    | name of the institution who provides the data            |
-+-------------------+----------------------------------------------------------+
-|    timestep       | time step of the input data (minutes)                    |
-+-------------------+----------------------------------------------------------+
-|    unit           | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
-+-------------------+----------------------------------------------------------+
-|    transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
-|                   | others                                                   |
-+-------------------+----------------------------------------------------------+
-|    accutime       | the accumulation time in minutes of the data, float      |
-+-------------------+----------------------------------------------------------+
-|    threshold      | the rain/no rain threshold with the same unit,           |
-|                   | transformation and accutime of the data.                 |
-+-------------------+----------------------------------------------------------+
-|    zerovalue      | the value assigned to the no rain pixels with the same   |
-|                   | unit, transformation and accutime of the data.           |
-+-------------------+----------------------------------------------------------+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|    projection    | PROJ.4-compatible projection definition                  |
++------------------+----------------------------------------------------------+
+|    x1            | x-coordinate of the lower-left corner of the data raster |
+|                  | (meters)                                                 |
++------------------+----------------------------------------------------------+
+|    y1            | y-coordinate of the lower-left corner of the data raster |
+|                  | (meters)                                                 |
++------------------+----------------------------------------------------------+
+|    x2            | x-coordinate of the upper-right corner of the data raster|
+|                  | (meters)                                                 |
++------------------+----------------------------------------------------------+
+|    y2            | y-coordinate of the upper-right corner of the data raster|
+|                  | (meters)                                                 |
++------------------+----------------------------------------------------------+
+|    xpixelsize    | grid resolution in x-direction (meters)                  |
++------------------+----------------------------------------------------------+
+|    ypixelsize    | grid resolution in y-direction (meters)                  |
++------------------+----------------------------------------------------------+
+|    yorigin       | a string specifying the location of the first element in |
+|                  | the data raster w.r.t. y-axis:                           |
+|                  | 'upper' = upper border                                   |
+|                  | 'lower' = lower border                                   |
++------------------+----------------------------------------------------------+
+|    institution   | name of the institution who provides the data            |
++------------------+----------------------------------------------------------+
+|    timestep      | time step of the input data (minutes)                    |
++------------------+----------------------------------------------------------+
+|    unit          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
++------------------+----------------------------------------------------------+
+|    transform     | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|                  | others                                                   |
++------------------+----------------------------------------------------------+
+|    accutime      | the accumulation time in minutes of the data, float      |
++------------------+----------------------------------------------------------+
+|    threshold     | the rain/no rain threshold with the same unit,           |
+|                  | transformation and accutime of the data.                 |
++------------------+----------------------------------------------------------+
+|    zerovalue     | the value assigned to the no rain pixels with the same   |
+|                  | unit, transformation and accutime of the data.           |
++------------------+----------------------------------------------------------+
 """
 
 import datetime
@@ -67,7 +67,8 @@ from matplotlib.pyplot import imread
 import numpy as np
 import os
 
-from pysteps.exceptions import MissingOptionalDependency, DataModelError
+from pysteps.exceptions import DataModelError
+from pysteps.exceptions import MissingOptionalDependency
 
 try:
     import h5py
@@ -121,12 +122,12 @@ def import_bom_rf3(filename, **kwargs):
 
     geodata = _import_bom_rf3_geodata(filename)
     metadata = geodata
-    # TODO: Add missing georeferencing data.
+    # TODO(import_bom_rf3): Add missing georeferencing data.
 
-    metadata["transform"]   = None
-    metadata["zerovalue"]   = np.nanmin(R)
+    metadata["transform"] = None
+    metadata["zerovalue"] = np.nanmin(R)
     if np.any(np.isfinite(R)):
-        metadata["threshold"] = np.nanmin(R[R>np.nanmin(R)])
+        metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
     else:
         metadata["threshold"] = np.nan
 
@@ -187,9 +188,13 @@ def _import_bom_rf3_geodata(filename):
             geodata["x2"] = xmax*1000
             geodata["y2"] = ymax*1000
 
-    geodata["xpixelsize"] = abs(ds_rainfall.variables['x'][1] - ds_rainfall.variables['x'][0])*1000.
-    geodata["ypixelsize"] = abs(ds_rainfall.variables['y'][1] - ds_rainfall.variables['y'][0])*1000.
-    geodata["yorigin"] = "upper" # TODO: check this
+    xpixelsize = abs(ds_rainfall.variables['x'][1] -
+                     ds_rainfall.variables['x'][0])*1000.
+    ypixelsize = abs(ds_rainfall.variables['y'][1] -
+                     ds_rainfall.variables['y'][0])*1000
+    geodata["xpixelsize"] = xpixelsize
+    geodata["ypixelsize"] = ypixelsize
+    geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
 
     # get the accumulation period
     if ('valid_time' in ds_rainfall.variables.keys()):
@@ -209,7 +214,8 @@ def _import_bom_rf3_geodata(filename):
 
     # get the unit of precipitation
     if 'units' in ds_rainfall.variables['precipitation'].ncattrs():
-        if getattr(ds_rainfall.variables['precipitation'], 'units') in ('kg m-2', 'mm'):
+        units = getattr(ds_rainfall.variables['precipitation'], 'units')
+        if units in ('kg m-2', 'mm'):
             geodata["unit"] = "mm"
 
     geodata["institution"] = "Commonwealth of Australia, Bureau of Meteorology"
@@ -313,6 +319,7 @@ def _import_fmi_pgm_geodata(metadata):
 
     return geodata
 
+
 def _import_fmi_pgm_metadata(filename, gzipped=False):
     metadata = {}
 
@@ -340,6 +347,7 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     f.close()
 
     return metadata
+
 
 def import_mch_gif(filename, **kwargs):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
@@ -458,6 +466,7 @@ def import_mch_gif(filename, **kwargs):
     metadata["product"] = product
 
     return R,None,metadata
+
 
 def import_mch_hdf5(filename, **kwargs):
     """Read a precipitation field (and optionally the quality field) from a HDF5
