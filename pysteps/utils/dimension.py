@@ -241,6 +241,7 @@ def clip_domain(R, metadata, extent=None):
     """
 
     R = R.copy()
+    R_shape = np.array(R.shape)
     metadata = metadata.copy()
 
     if extent is None:
@@ -306,8 +307,11 @@ def clip_domain(R, metadata, extent=None):
     metadata["y2"] = top_
     metadata["x1"] = left_
     metadata["x2"] = right_
-
-    return R_.squeeze(), metadata
+    
+    R_shape[-2] = R_.shape[-2]
+    R_shape[-1] = R_.shape[-1]
+    
+    return R_.reshape(R_shape), metadata
 
 def square_domain(R, metadata, method="pad", inverse=False):
     """Either pad or crop a field to obtain a square domain.
@@ -339,6 +343,7 @@ def square_domain(R, metadata, method="pad", inverse=False):
     """
 
     R = R.copy()
+    R_shape = np.array(R.shape)
     metadata = metadata.copy()
 
     if not inverse:
@@ -400,8 +405,11 @@ def square_domain(R, metadata, method="pad", inverse=False):
 
         metadata["orig_domain"] = (orig_dim_y, orig_dim_x)
         metadata["square_method"] = method
-
-        return R_.squeeze(),metadata
+    
+        R_shape[-2] = R_.shape[-2]
+        R_shape[-1] = R_.shape[-1]
+        
+        return R_.reshape(R_shape),metadata
 
     elif inverse:
 
@@ -449,5 +457,8 @@ def square_domain(R, metadata, method="pad", inverse=False):
                 R_[:, :, idx_buffer:(idx_buffer + R.shape[2]), :] = R
                 metadata["y1"] -= idx_buffer*metadata["ypixelsize"]
                 metadata["y2"] += idx_buffer*metadata["ypixelsize"]
-
-        return R_.squeeze(),metadata
+        
+        R_shape[-2] = R_.shape[-2]
+        R_shape[-1] = R_.shape[-1]
+        
+        return R_.reshape(R_shape),metadata
