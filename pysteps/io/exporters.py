@@ -185,7 +185,8 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         _convert_proj4_to_grid_mapping(metadata["projection"])
     # skip writing the grid mapping if a matching name was not found
     if grid_mapping_var_name is not None:
-        var_gm = ncf.createVariable(grid_mapping_var_name, np.int, dimensions=())
+        var_gm = ncf.createVariable(grid_mapping_var_name, np.int,
+                                    dimensions=())
         var_gm.grid_mapping_name = grid_mapping_name
         for i in grid_mapping_params.items():
             var_gm.setncattr(i[0], i[1])
@@ -266,7 +267,7 @@ def export_forecast_dataset(F, exporter):
             "netCDF4 package is required for netcdf "
             "exporters but it is not installed")
 
-    if exporter["incremental"] == None:
+    if exporter["incremental"] is None:
         shp = (exporter["num_ens_members"], exporter["num_timesteps"],
                exporter["shape"][0], exporter["shape"][1])
         if F.shape != shp:
@@ -307,7 +308,7 @@ def close_forecast_file(exporter):
 def _export_netcdf(F, exporter):
     var_F = exporter["var_F"]
 
-    if exporter["incremental"] == None:
+    if exporter["incremental"] is None:
         var_F[:] = F
     elif exporter["incremental"] == "timestep":
         var_F[:, var_F.shape[1], :, :] = F
@@ -349,7 +350,20 @@ def _convert_proj4_to_grid_mapping(proj4str):
             params["scale_factor_at_projection_origin"] = float(d["k_0"])
         params["false_easting"] = float(d["x_0"])
         params["false_northing"] = float(d["y_0"])
+    elif d["proj"] == "aea":  # Albers Conical Equal Area
+        grid_mapping_var_name = "proj"
+        grid_mapping_name = "albers_conical_equal_area"
+        params["false_easting"] = float(d["x_0"]) if "x_0" in d else float(0)
+        params["false_northing"] = float(d["y_0"]) if "y_0" in d else float(0)
+        v = d["lon_0"] if "lon_0" in d else float(0)
+        params["longitude_of_central_meridian"] = float(v)
+        v = d["lat_0"] if "lat_0" in d else float(0)
+        params["latitude_of_projection_origin"] = float(v)
+        v1 = d["lat_1"] if "lat_1" in d else float(0)
+        v2 = d["lat_2"] if "lat_2" in d else float(0)
+        params["standard_parallel"] = (float(v1), float(v2))
     else:
+        print('unknown projection', d["proj"])
         return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params
