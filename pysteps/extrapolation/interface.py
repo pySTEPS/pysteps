@@ -19,33 +19,32 @@ extrapolated fields of shape (num_timesteps, m, n)."""
 import numpy as np
 
 from pysteps.extrapolation import semilagrangian
+from pysteps.nowcasts.interface import _eulerian_persistence
 
 
-def eulerian_persistence(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
+def eulerian_persistence(extrapolator, R, V, num_timesteps,
+                         outval=np.nan, **kwargs):
     """ Eulerian persistence extrapolator """
-    del extrapolator, V, outval  # Unused by _eulerian_persistence
-    return_displacement = kwargs.get("return_displacement", False)
-
-    extrapolated_precip = np.repeat(R[np.newaxis, :, :, ],
-                                    num_timesteps,
-                                    axis=0)
-
-    if not return_displacement:
-        return extrapolated_precip
-    else:
-        return extrapolated_precip, np.zeros((2,) + extrapolated_precip.shape)
+    del extrapolator  # Unused
+    return _eulerian_persistence(R, V, num_timesteps,
+                                 outval=np.nan, **kwargs)
 
 
 def _do_nothing(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
-    del extrapolator, R, V, num_timesteps, outval, kwargs  # Unused by _do_nothing
+    del extrapolator, R, V, num_timesteps, outval, kwargs  # Unused
+    return None
+
+
+def _return_none(**kwargs):
+    del kwargs  # Not used
     return None
 
 
 _extrapolation_methods = dict()
-_extrapolation_methods['eulerian'] = lambda **kwargs: None, eulerian_persistence
+_extrapolation_methods['eulerian'] = _return_none, eulerian_persistence
 _extrapolation_methods['semilagrangian'] = \
-  semilagrangian.initialize,semilagrangian.extrapolate
-_extrapolation_methods[None] = lambda **kwargs: None, _do_nothing
+    semilagrangian.initialize, semilagrangian.extrapolate
+_extrapolation_methods[None] = _return_none, _do_nothing
 
 
 def get_method(name):

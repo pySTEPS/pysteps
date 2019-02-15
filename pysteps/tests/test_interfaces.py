@@ -6,6 +6,8 @@ import pytest
 
 import pysteps
 
+from collections.abc import Iterable
+
 
 def _generic_interface_test(method_getter,
                             valid_names_func_pair,
@@ -13,7 +15,8 @@ def _generic_interface_test(method_getter,
     for name, expected_function in valid_names_func_pair:
         error_message = "Error getting '{}' function.".format(name)
         assert method_getter(name) == expected_function, error_message
-        assert method_getter(name.upper()) == expected_function, error_message
+        if isinstance(name, str):
+            assert method_getter(name.upper()) == expected_function, error_message
 
     # test invalid names
     for invalid_name in invalid_names:
@@ -42,22 +45,38 @@ def test_extrapolation_interface():
     from pysteps import extrapolation
     from pysteps.extrapolation import semilagrangian
 
+    from pysteps.extrapolation.interface import eulerian_persistence as eulerian
+    from pysteps.extrapolation.interface import _do_nothing as do_nothing
+    from pysteps.extrapolation.interface import _return_none
+
     method_getter = extrapolation.interface.get_method
 
-    valid_names_func_pair = [('semilagrangian', semilagrangian.extrapolate)]
+    valid_returned_objs = dict()
+    valid_returned_objs['semilagrangian'] = (semilagrangian.initialize,
+                                             semilagrangian.extrapolate)
+    valid_returned_objs['eulerian'] = (_return_none, eulerian)
+    valid_returned_objs[None] = (_return_none, do_nothing)
+
+    valid_names_func_pair = list(valid_returned_objs.items())
+
     invalid_names = ['euler', 'LAGRANGIAN']
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
     # Test eulerian persistence method
+    extrapolator = None
     precip = numpy.random.rand(100, 100)
     velocity = numpy.random.rand(100, 100)
     num_timesteps = 10
     for name in ["eulerian", "EULERIAN"]:
-        forecast = method_getter(name)(precip, velocity, num_timesteps)
+        initialization, forecaster = method_getter(name)
+        assert initialization() is None
+        forecast = forecaster(extrapolator, precip, velocity, num_timesteps)
         for i in range(num_timesteps):
             assert numpy.all(forecast[i] == precip)
 
-    assert method_getter(None)(precip, velocity, num_timesteps) is None
+    initialization, forecaster = method_getter(None)
+    assert initialization() is None
+    assert forecaster(extrapolator, precip, velocity, num_timesteps) is None
 
 
 def test_io_interface():
@@ -219,4 +238,3 @@ def test_utils_interface():
 
     invalid_names = ['random', 'invalid']
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
-
