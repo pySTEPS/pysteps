@@ -28,7 +28,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                       colorbar=True, drawlonlatlines=False, basemap_resolution='l',
                       cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1),
                       cax=None):
-    """Function to plot a precipitation intensity or probability field with a
+    """
+    Function to plot a precipitation intensity or probability field with a
     colorbar.
 
     Parameters
@@ -43,10 +44,11 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
+
     map : str
         Optional method for plotting a map: 'basemap' or 'cartopy'. The former
-        uses mpl_toolkits.basemap (https://matplotlib.org/basemap), and the
-        latter uses cartopy (https://scitools.org.uk/cartopy/docs/latest).
+        uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
+
     geodata : dictionary
         Optional dictionary containing geographical information about the field.
         If geodata is not None, it must contain the following key-value pairs:
@@ -73,37 +75,58 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         |                 | 'upper' = upper border, 'lower' = lower border     |
         +-----------------+----------------------------------------------------+
     units : str
-        Units of the input array (mm/h, mm, dBZ). If type is 'prob', this specifies
-        the unit of the intensity threshold.
+        Units of the input array (mm/h, mm, dBZ). If type is 'prob',
+        this specifies the unit of the intensity threshold.
+
     colorscale : str
         Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
         'mm/h', 'mm' or 'dBZ'.
+
     probthr : float
       Intensity threshold to show in the color bar of the exceedance probability
       map. Required if type is "prob" and colorbar is True.
+
     title : str
         If not None, print the title on top of the plot.
+
     colorbar : bool
         If set to True, add a colorbar on the right side of the plot.
+
     drawlonlatlines : bool
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
+
     basemap_resolution : str
-        The resolution of the basemap, see the documentation of mpl_toolkits.basemap.
+        The resolution of the basemap, see the documentation of
+        `mpl_toolkits.basemap`_.
         Applicable if map is 'basemap'.
+
     cartopy_scale : str
         The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'. Applicable if map is 'cartopy'.
+
     lw: float
         Linewidth of the map (administrative boundaries and coastlines).
-    cartopy_subplot: tuple
+
+    cartopy_subplot : tuple or SubplotSpec_ instance
         Cartopy subplot. Applicable if map is 'cartopy'.
+
+    cax : Axes_ object, optional
+        Axes into which the colorbar will be drawn. If no axes is provided
+        the colorbar axes are created next to the plot.
 
     Returns
     -------
-    ax : fig axes
+    ax : fig Axes_
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
+    .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
+
+    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
+
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
+
+    .. _mpl_toolkits.basemap: https://matplotlib.org/basemap
     """
     if type not in ["intensity", "depth", "prob"]:
         raise ValueError("invalid type '%s', must be 'intensity', 'depth' or 'prob'" % type)
@@ -352,7 +375,8 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
         return cm.jet, colors.Normalize(), None, None
 
 def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
-    """Function to get a list of colors to generate the colormap.
+    """
+    Function to get a list of colors to generate the colormap.
 
     Parameters
     ----------
@@ -365,10 +389,13 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     -------
     color_list : list(str)
         List of color strings.
+
     clevs : list(float)
         List of precipitation values defining the color limits.
+
     clevsStr : list(str)
-        List of precipitation values defining the color limits (with correct number of decimals).
+        List of precipitation values defining the color limits
+        (with correct number of decimals).
 
     """
 
@@ -402,8 +429,9 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     return color_list, clevs, clevsStr
 
 def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
-    ''' Function to format the floats defining the class limits of the colorbar.
-    '''
+    """
+    Function to format the floats defining the class limits of the colorbar.
+    """
     floatArray = np.array(floatArray, dtype=float)
 
     labels = []
