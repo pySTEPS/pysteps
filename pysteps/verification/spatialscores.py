@@ -3,10 +3,11 @@
 import numpy as np
 from scipy.ndimage.filters import uniform_filter
 try:
-  import pywt
-  pywt_imported = True
+    import pywt
+    pywt_imported = True
 except ImportError:
-  pywt_imported = False
+    pywt_imported = False
+
 
 def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
     """Initialize an intensty-scale verification object.
@@ -14,7 +15,8 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
     Parameters
     ----------
     score_names : string
-        A string indicating the name of the spatial verification score to be used:
+        A string indicating the name of the spatial verification score
+        to be used:
 
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
@@ -25,12 +27,14 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
         +------------+--------------------------------------------------------+
 
     thrs : sequence
-        A sequence of intensity thresholds for which to compute the verification.
+        A sequence of intensity thresholds for which to compute the
+        verification.
     scales : sequence
         A sequence of spatial scales in pixels to be used in the FSS.
     wavelet : str
-        The name of the wavelet function to use in the BMSE. Defaults to the Haar
-        wavelet, as described in Casati et al. 2004. See the documentation of
+        The name of the wavelet function to use in the BMSE.
+        Defaults to the Haar wavelet, as described in
+        Casati et al. 2004. See the documentation of
         PyWavelets for a list of available options.
 
     Returns
@@ -39,25 +43,26 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
         The intensity-scale object.
 
     """
-
     iss = {}
-    iss["name"]    = name
-    iss["SS"]      = None
-    iss["thrs"]    = thrs[:]
-    iss["scales"]  = scales
+    iss["name"] = name
+    iss["SS"] = None
+    iss["thrs"] = thrs[:]
+    iss["scales"] = scales
     iss["wavelet"] = wavelet
-    iss["n"]       = None
-    iss["shape"]   = None
+    iss["n"] = None
+    iss["shape"] = None
     if name.lower() == "fss":
-        iss["label"]   = "Fractions skill score"
+        iss["label"] = "Fractions skill score"
         del iss["wavelet"]
     if name.lower() == "bmse":
-        iss["label"]  = "Binary MSE skill score"
+        iss["label"] = "Binary MSE skill score"
         iss["scales"] = None
     if name.lower() == "fss" and scales is None:
-        raise ValueError("a sequence of scales must be provided for the FSS, but %s was passed" % scales)
-
+        message = "a sequence of scales must be provided for the FSS,"
+        message += " but %s was passed" % scales
+        raise ValueError(message)
     return iss
+
 
 def intensity_scale_accum(iss, X_f, X_o):
     """Compute and update the intensity-scale verification scores.
@@ -96,13 +101,18 @@ def intensity_scale_accum(iss, X_f, X_o):
         +--------------+------------------------------------------------------+
         |  shape       | the shape of the fct-obs fields                      |
         +--------------+------------------------------------------------------+
-    """
 
+    """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
-        raise ValueError("X_f and X_o must be two-dimensional arrays having the same shape, but X_f = %s amd X_o = %s" % (str(X_f.shape), str(X_o.shape)))
+        message = "X_f and X_o must be two-dimensional arrays"
+        message += " having the same shape, but "
+        message += "X_f = %s and X_o = %s" % (str(X_f.shape), str(X_o.shape))
+        raise ValueError(message)
 
     if iss["shape"] is not None and X_f.shape != iss["shape"]:
-        raise ValueError("X_f and X_o shapes do not match the shape of the intensity-scale object")
+        message = "X_f and X_o shapes do not match the shape"
+        message += " of the intensity-scale object"
+        raise ValueError(message)
 
     if iss["shape"] is None:
         iss["shape"] = X_f.shape
@@ -117,7 +127,6 @@ def intensity_scale_accum(iss, X_f, X_o):
     X_o[~np.isfinite(X_o)] = thr_min - 1
 
     if iss["name"].lower() == "bmse":
-
         SS = None
         n_thrs = len(thrs)
         for i in range(n_thrs):
@@ -125,10 +134,8 @@ def intensity_scale_accum(iss, X_f, X_o):
             if SS is None:
                 SS = np.empty((SS_.size, n_thrs))
             SS[:, i] = SS_
-
         if iss["scales"] is None:
             iss["scales"] = scales
-
     elif iss["name"].lower() == "fss":
         scales = iss["scales"]
         n_scales = len(scales)
@@ -136,7 +143,6 @@ def intensity_scale_accum(iss, X_f, X_o):
         for i in range(n_thrs):
             for j in range(n_scales):
                 SS[j, i] = fss(X_f, X_o, thrs[i], scales[j])
-
     else:
         raise ValueError("unknown method %s" % iss["name"])
 
@@ -149,11 +155,12 @@ def intensity_scale_accum(iss, X_f, X_o):
         iss["SS"] = SS
     else:
         iss["SS"] += np.nansum((SS, -1*iss["SS"]), axis=0)/iss["n"]
-
     return iss
+
 
 def binary_mse(X_f, X_o, thr, wavelet="haar"):
     """Compute an intensity-scale verification as the MSE of the binary error.
+
     This method uses PyWavelets for decomposing the error field between the
     forecasts and observations into multiple spatial scales.
 
@@ -182,7 +189,9 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
 
     """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
-        raise ValueError("X_f and X_o must be two-dimensional arrays having the same shape")
+        message = "X_f and X_o must be two-dimensional arrays"
+        message += " having the same shape"
+        raise ValueError(message)
 
     X_f = X_f.copy()
     X_f[~np.isfinite(X_f)] = thr - 1
@@ -205,14 +214,17 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
     for j in range(n_scales):
         mse = np.mean(E_decomp[j]**2)
         SS[j] = 1 - mse / (2*eps*(1-eps) / n_scales)
-    SS[~np.isfinite(SS)] = np.nan 
+    SS[~np.isfinite(SS)] = np.nan
 
     scales = pow(2, np.arange(SS.size))[::-1]
 
     return SS, scales
 
+
 def fss(X_f, X_o, thr, scale):
-    """Compute the fractions skill score (FSS) for a deterministic forecast
+    """Compute the fractions skill score (FSS).
+
+    Compute the fractions skill score (FSS) for a deterministic forecast
     field and the corresponding observation.
 
     Parameters
@@ -239,7 +251,9 @@ def fss(X_f, X_o, thr, scale):
 
     """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
-        raise ValueError("X_f and X_o must be two-dimensional arrays having the same shape")
+        message = "X_f and X_o must be two-dimensional arrays"
+        message += " having the same shape"
+        raise ValueError(message)
 
     X_f = X_f.copy()
     X_f[~np.isfinite(X_f)] = thr - 1
@@ -251,8 +265,8 @@ def fss(X_f, X_o, thr, scale):
     I_f = (X_f >= thr).astype(float)
     I_o = (X_o >= thr).astype(float)
 
-    # Compute fractions of pixels above the threshold within a square neighboring
-    # area by applying a 2D moving average to the binary fields
+    # Compute fractions of pixels above the threshold within a square
+    # neighboring area by applying a 2D moving average to the binary fields
     S_f = uniform_filter(I_f, size=int(scale), mode="constant", cval=0.0)
     S_o = uniform_filter(I_o, size=int(scale), mode="constant", cval=0.0)
 
@@ -263,6 +277,7 @@ def fss(X_f, X_o, thr, scale):
     D = 1.0*(np.sum(S_o**2) + np.nansum(S_f**2)) / n
 
     return 1 - N / D
+
 
 def _wavelet_decomp(X, w):
     c = pywt.wavedec2(X, w)
