@@ -7,8 +7,8 @@
     "plot": {
         // "motion_plot" : "streamplot" or "quiver"
         "motion_plot": "quiver",
-        // "colorscale" :  "MeteoSwiss" or "STEPS-BE"
-        "colorscale": "MeteoSwiss"
+        // "colorscale" :  "BOM-RF3", "pysteps" or "STEPS-BE"
+        "colorscale": "pysteps"
     },
     "data_sources": {
         "bom": {

@@ -24,7 +24,7 @@ except ImportError:
 from . import utils
 
 def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
-                      colorscale='MeteoSwiss', probthr=None, title=None,
+                      colorscale='pysteps', probthr=None, title=None,
                       colorbar=True, drawlonlatlines=False, basemap_resolution='l',
                       cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1),
                       cax=None):
@@ -79,7 +79,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         this specifies the unit of the intensity threshold.
 
     colorscale : str
-        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
+        Which colorscale to use (pysteps, STEPS-BE). Applicable if units is
         'mm/h', 'mm' or 'dBZ'.
 
     probthr : float
@@ -326,7 +326,7 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
 
     return im
 
-def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
+def get_colormap(type, units='mm/h', colorscale='pysteps'):
     """Function to generate a colormap (cmap) and norm.
 
     Parameters
@@ -338,7 +338,7 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
     units : str
         Units of the input array (mm/h, mm or dBZ).
     colorscale : str
-        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
+        Which colorscale to use (BOM-RF3, pysteps, STEPS-BE). Applicable if units is
         'mm/h', 'mm' or 'dBZ'.
 
     Returns
@@ -362,7 +362,7 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
 
         if colorscale == 'BOM-RF3':
             cmap.set_over('black',1)
-        if colorscale == 'MeteoSwiss':
+        if colorscale == 'pysteps':
             cmap.set_over('darkred',1)
         if colorscale == 'STEPS-BE':
             cmap.set_over('black',1)
@@ -376,7 +376,7 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
     else:
         return cm.jet, colors.Normalize(), None, None
 
-def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
+def _get_colorlist(units='mm/h', colorscale='pysteps'):
     """
     Function to get a list of colors to generate the colormap.
 
@@ -385,7 +385,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     units : str
         Units of the input array (mm/h, mm or dBZ)
     colorscale : str
-        Which colorscale to use (BOM-RF3, MeteoSwiss, STEPS-BE)
+        Which colorscale to use (BOM-RF3, pysteps, STEPS-BE)
 
     Returns
     -------
@@ -427,7 +427,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
                     45, 50]
         else:
             raise ValueError('Wrong units in get_colorlist: %s' % units)
-    elif colorscale == 'MeteoSwiss':
+    elif colorscale == 'pysteps':
         pinkHex = '#%02x%02x%02x' % (232, 215, 242)
         redgreyHex = '#%02x%02x%02x' % (156, 126, 148)
         color_list = [redgreyHex, "#640064","#AF00AF","#DC00DC","#3232C8","#0064FF","#009696","#00C832",
@@ -457,7 +457,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
 
     return color_list, clevs, clevsStr
 
-def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
+def _dynamic_formatting_floats(floatArray, colorscale='pysteps'):
     """
     Function to format the floats defining the class limits of the colorbar.
     """
@@ -466,7 +466,7 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
     labels = []
     for label in floatArray:
         if label >= 0.1 and label < 1:
-            if colorscale == 'MeteoSwiss':
+            if colorscale == 'pysteps':
                 formatting = ',.2f'
             else:
                 formatting = ',.1f'
