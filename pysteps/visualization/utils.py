@@ -148,6 +148,8 @@ def proj4_to_cartopy(proj4str):
                 cl = ccrs.UTM
             elif v == "stere":
                 cl = ccrs.Stereographic
+            elif v == "aea":
+                cl = ccrs.AlbersEqualArea
             else:
                 raise ValueError("unsupported projection: %s" % v)
         elif k in km_proj:
