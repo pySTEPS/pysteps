@@ -236,9 +236,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     if mask_method is not None and R_thr is None:
         raise ValueError("mask_method!=None but R_thr=None")
 
-    if probmatching_method == "mean" and mask_method is None:
-        raise ValueError("probmatching_method=='mean' but mask_method=None")
-
     if noise_stddev_adj not in ['auto', 'fixed', None]:
         raise ValueError("unknown noise_std_dev_adj method %s: must be 'auto', 'fixed', or None" % noise_stddev_adj)
 
@@ -441,11 +438,11 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
     D = [None for j in range(n_ens_members)]
     R_f = [[] for j in range(n_ens_members)]
 
+    if probmatching_method == "mean":
+        mu_0 = np.mean(R[-1, :, :][R[-1, :, :] >= R_thr])
+
     if mask_method is not None:
         MASK_prec = R[-1, :, :] >= R_thr
-
-        if probmatching_method == "mean":
-            mu_0 = np.mean(R[-1, :, :][MASK_prec])
 
         if mask_method == "obs":
             pass
@@ -465,7 +462,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
             # initialize precip mask for each member
             MASK_prec = _compute_incremental_mask(MASK_prec, struct, mask_rim)
             MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
-                
+
     if noise_method is None:
         R_m = R_c[0, :, :, :].copy()
 
@@ -548,7 +545,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                     MASK_prec_ = R_c_ > R_cmin
                 else:
                     MASK_prec_ = MASK_prec
-                
+
                 # Set to min value outside of mask
                 R_c_[~MASK_prec_] = R_cmin
 
@@ -557,8 +554,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6, R_thr=None
                 # observed precipitation field
                 R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
             elif probmatching_method == "mean":
-                mu_fct = np.mean(R_c_[MASK_prec_])
-                R_c_[MASK_prec_] = R_c_[MASK_prec_] - mu_fct + mu_0                    
+                mu_fct = np.mean(R_c_[R_c_ >= R_thr])
+                R_c_[R_c_ >= R_thr] = R_c_[R_c_ >= R_thr] - mu_fct + mu_0
 
             if mask_method == "incremental":
                 MASK_prec[j] = _compute_incremental_mask(R_c_ >= R_thr, struct, mask_rim)
