@@ -53,10 +53,10 @@ _extrapolation_methods = dict()
 _extrapolation_methods['eulerian'] = eulerian_persistence
 _extrapolation_methods['semilagrangian'] = semilagrangian.extrapolate
 _extrapolation_methods[None] = _do_nothing
-_extrapolation_methods["None"] = _do_nothing
+_extrapolation_methods["none"] = _do_nothing
 
 
-def get_method(name, extrapolator=False):
+def get_method(name):
     """Return two-element tuple for the extrapolation method corresponding to
     the given name. The elements of the tuple are callable functions for the
     initializer of the extrapolator and the extrapolation method, respectively.
