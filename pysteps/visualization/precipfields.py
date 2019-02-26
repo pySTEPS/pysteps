@@ -24,7 +24,7 @@ except ImportError:
 from . import utils
 
 def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
-                      colorscale='MeteoSwiss', probthr=None, title=None,
+                      colorscale='pysteps', probthr=None, title=None,
                       colorbar=True, drawlonlatlines=False, basemap_resolution='l',
                       cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1),
                       cax=None):
@@ -79,7 +79,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         this specifies the unit of the intensity threshold.
 
     colorscale : str
-        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
+        Which colorscale to use (pysteps, STEPS-BE). Applicable if units is
         'mm/h', 'mm' or 'dBZ'.
 
     probthr : float
@@ -326,7 +326,7 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
 
     return im
 
-def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
+def get_colormap(type, units='mm/h', colorscale='pysteps'):
     """Function to generate a colormap (cmap) and norm.
 
     Parameters
@@ -338,7 +338,7 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
     units : str
         Units of the input array (mm/h, mm or dBZ).
     colorscale : str
-        Which colorscale to use (MeteoSwiss, STEPS-BE). Applicable if units is
+        Which colorscale to use (BOM-RF3, pysteps, STEPS-BE). Applicable if units is
         'mm/h', 'mm' or 'dBZ'.
 
     Returns
@@ -356,11 +356,13 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
     """
     if type in ["intensity", "depth"]:
         # Get list of colors
-        colors_list,clevs,clevsStr = _get_colorlist(units, colorscale)
+        color_list,clevs,clevsStr = _get_colorlist(units, colorscale)
 
-        cmap = colors.LinearSegmentedColormap.from_list("cmap", colors_list, len(clevs)-1)
+        cmap = colors.LinearSegmentedColormap.from_list("cmap", color_list, len(clevs)-1)
 
-        if colorscale == 'MeteoSwiss':
+        if colorscale == 'BOM-RF3':
+            cmap.set_over('black',1)
+        if colorscale == 'pysteps':
             cmap.set_over('darkred',1)
         if colorscale == 'STEPS-BE':
             cmap.set_over('black',1)
@@ -374,7 +376,7 @@ def get_colormap(type, units='mm/h', colorscale='MeteoSwiss'):
     else:
         return cm.jet, colors.Normalize(), None, None
 
-def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
+def _get_colorlist(units='mm/h', colorscale='pysteps'):
     """
     Function to get a list of colors to generate the colormap.
 
@@ -383,7 +385,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
     units : str
         Units of the input array (mm/h, mm or dBZ)
     colorscale : str
-        Which colorscale to use (MeteoSwiss, STEPS-BE)
+        Which colorscale to use (BOM-RF3, pysteps, STEPS-BE)
 
     Returns
     -------
@@ -399,15 +401,33 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
 
     """
 
-    if colorscale == 'STEPS-BE':
-        color_list = ['cyan','deepskyblue','dodgerblue','blue','chartreuse','limegreen','green','darkgreen','yellow','gold','orange','red','magenta','darkmagenta']
-        if units in ['mm/h', 'mm']:
-            clevs = [0.1,0.25,0.4,0.63,1,1.6,2.5,4,6.3,10,16,25,40,63,100]
-        elif units == 'dBZ':
-            clevs = np.arange(10,65,5)
+    if colorscale == "BOM-RF3":
+        color_list = np.array([(255, 255, 255),  # 0.0
+                               (245, 245, 255),  # 0.2
+                               (180, 180, 255),  # 0.5
+                               (120, 120, 255),  # 1.5
+                               (20,  20, 255),   # 2.5
+                               (0, 216, 195),    # 4.0
+                               (0, 150, 144),    # 6.0
+                               (0, 102, 102),    # 10
+                               (255, 255,   0),  # 15
+                               (255, 200,   0),  # 20
+                               (255, 150,   0),  # 30
+                               (255, 100,   0),  # 40
+                               (255,   0,   0),  # 50
+                               (200,   0,   0),  # 60
+                               (120,   0,   0),  # 75
+                               (40,   0,   0)])  # > 100
+        color_list = color_list/255.
+        if units == 'mm/h':
+            clevs = [0.,0.2, 0.5, 1.5, 2.5, 4, 6, 10, 15, 20, 30, 40, 50, 60, 75,
+                    100, 150]
+        elif units == "mm":
+            clevs = [0.,0.2, 0.5, 1.5, 2.5, 4, 5, 7, 10, 15, 20, 25, 30, 35, 40,
+                    45, 50]
         else:
-            raise ValueError('Wrong units in get_colorlist')
-    elif colorscale == 'MeteoSwiss':
+            raise ValueError('Wrong units in get_colorlist: %s' % units)
+    elif colorscale == 'pysteps':
         pinkHex = '#%02x%02x%02x' % (232, 215, 242)
         redgreyHex = '#%02x%02x%02x' % (156, 126, 148)
         color_list = [redgreyHex, "#640064","#AF00AF","#DC00DC","#3232C8","#0064FF","#009696","#00C832",
@@ -417,7 +437,16 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
         elif units == 'dBZ':
             clevs = np.arange(10,65,5)
         else:
-            raise ValueError('Wrong units in get_colorlist')
+            raise ValueError('Wrong units in get_colorlist: %s' % units)
+    elif colorscale == 'STEPS-BE':
+        color_list = ['cyan','deepskyblue','dodgerblue','blue','chartreuse','limegreen','green','darkgreen','yellow','gold','orange','red','magenta','darkmagenta']
+        if units in ['mm/h', 'mm']:
+            clevs = [0.1,0.25,0.4,0.63,1,1.6,2.5,4,6.3,10,16,25,40,63,100]
+        elif units == 'dBZ':
+            clevs = np.arange(10,65,5)
+        else:
+            raise ValueError('Wrong units in get_colorlist: %s' % units)
+
     else:
         print('Invalid colorscale', colorscale)
         raise ValueError("Invalid colorscale " + colorscale)
@@ -428,7 +457,7 @@ def _get_colorlist(units='mm/h', colorscale='MeteoSwiss'):
 
     return color_list, clevs, clevsStr
 
-def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
+def _dynamic_formatting_floats(floatArray, colorscale='pysteps'):
     """
     Function to format the floats defining the class limits of the colorbar.
     """
@@ -437,7 +466,7 @@ def _dynamic_formatting_floats(floatArray, colorscale='MeteoSwiss'):
     labels = []
     for label in floatArray:
         if label >= 0.1 and label < 1:
-            if colorscale == 'MeteoSwiss':
+            if colorscale == 'pysteps':
                 formatting = ',.2f'
             else:
                 formatting = ',.1f'

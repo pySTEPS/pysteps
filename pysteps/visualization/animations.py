@@ -7,7 +7,7 @@ import pysteps as st
 # TODO: Add documentation for the output files.
 def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
             UV=None, motion_plot="quiver", geodata=None, map=None,
-            colorscale="MeteoSwiss", units="mm/h", colorbar=True, probmaps=False,
+            colorscale="pysteps", units="mm/h", colorbar=True, probmaps=False,
             probmap_thrs=None, ensmeans=False, plotanimation=True, savefig=False,
             fig_dpi=150, fig_format="png", path_outputs="", **kwargs):
     """Function to animate observations and forecasts in pysteps.
