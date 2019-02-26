@@ -4,4 +4,4 @@ Currently the module contains a
 deterministic advection extrapolation method and STEPS.
 """
 
-from .interface import get_method
+from pysteps.nowcasts.interface import get_method

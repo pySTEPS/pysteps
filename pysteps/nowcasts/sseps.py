@@ -12,19 +12,23 @@ over a subdomain of prescribed size.
 
 import sys
 import time
+
 import numpy as np
 import scipy.ndimage
-from .. import extrapolation
+
 from .. import cascade
+from .. import extrapolation
 from .. import noise
 from ..postprocessing import probmatching
 from ..timeseries import autoregression, correlation
-from .. import utils
+
 try:
     import dask
+
     dask_imported = True
 except ImportError:
     dask_imported = False
+
 
 def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              win_size=256, overlap=0.1, minwet=50,
@@ -179,7 +183,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         win_size = tuple([np.int(win_size[i]) for i in range(2)])
 
     timestep = metadata["accutime"]
-    kmperpixel = metadata["xpixelsize"]/1000
+    kmperpixel = metadata["xpixelsize"] / 1000
 
     print("Computing SSEPS nowcast:")
     print("------------------------")
@@ -188,7 +192,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     print("Inputs:")
     print("-------")
     print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
-    print("km/pixel:         %g"    % kmperpixel)
+    print("km/pixel:         %g" % kmperpixel)
     print("time step:        %d minutes" % timestep)
     print("")
 
@@ -216,26 +220,30 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     print("dask imported:            %s" % ("yes" if dask_imported else "no"))
     print("num workers:              %d" % num_workers)
 
-
     if vel_pert_method is "bps":
         vp_par = vel_pert_kwargs.get("p_pert_par", noise.motion.get_default_params_bps_par())
         vp_perp = vel_pert_kwargs.get("p_pert_perp", noise.motion.get_default_params_bps_perp())
         print("velocity perturbations, parallel:      %g,%g,%g" % \
-            (vp_par[0], vp_par[1], vp_par[2]))
+              (vp_par[0], vp_par[1], vp_par[2]))
         print("velocity perturbations, perpendicular: %g,%g,%g" % \
-            (vp_perp[0], vp_perp[1], vp_perp[2]))
+              (vp_perp[0], vp_perp[1], vp_perp[2]))
 
     R_thr = metadata["threshold"]
 
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members \
-                           else num_workers
-                           
+        else num_workers
+
     if measure_time:
         starttime_init = time.time()
 
     # get methods
-    extrap_init,extrap_extrap_method = extrapolation.get_method(extrap_method)
-    extrapolator = extrap_init(shape=R.shape[1:])
+    extrapolator_method = extrapolation.get_method(extrap_method)
+
+    x_values, y_values = np.meshgrid(np.arange(R.shape[2]),
+                                     np.arange(R.shape[1]))
+
+    xy_coords = np.stack([x_values, y_values])
+
     decomp_method = cascade.get_method(decomp_method)
     filter_method = cascade.get_method(bandpass_filter_method)
     if noise_method is not None:
@@ -245,9 +253,10 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     R = R[-(ar_order + 1):, :, :]
     extrap_kwargs = extrap_kwargs.copy()
+    extrap_kwargs['xy_coords'] = xy_coords
     res = []
-    f = lambda R, i: extrap_extrap_method(extrapolator, R[i, :, :], V, ar_order-i,
-                                  "min", **extrap_kwargs)[-1]
+    f = lambda R, i: extrapolator_method(R[i, :, :], V, ar_order - i,
+                                         "min", **extrap_kwargs)[-1]
     for i in range(ar_order):
         if not dask_imported:
             R[i, :, :] = f(R, i)
@@ -265,8 +274,8 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         # initialize the structuring element
         struct = scipy.ndimage.generate_binary_structure(2, 1)
         # iterate it to expand it nxn
-        n = mask_f*timestep/kmperpixel
-        struct = scipy.ndimage.iterate_structure(struct, int((n - 1)/2.))
+        n = mask_f * timestep / kmperpixel
+        struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.))
 
     print("Estimating nowcast parameters.")
 
@@ -276,7 +285,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
         # initialize the perturbation generator for the precipitation field
         if noise_method is not None:
-            P = init_noise(R, fft_method=fft_method, **{"rm_rdisc":True, "donorm":True})
+            P = init_noise(R, fft_method=fft_method, **{"rm_rdisc": True, "donorm": True})
         else:
             P = None
         pars["P"] = P
@@ -287,21 +296,22 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
         # compute the cascade decompositions of the input precipitation fields
         R_d = []
-        for i in range(ar_order+1):
+        for i in range(ar_order + 1):
             R_d_ = decomp_method(R[i, :, :], filter, fft_method=fft_method)
             R_d.append(R_d_)
         R_d_ = None
 
         # normalize the cascades and rearrange them into a four-dimensional array
         # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-        R_c,mu,sigma = _stack_cascades(R_d, n_cascade_levels)
+        R_c, mu, sigma = _stack_cascades(R_d, n_cascade_levels)
         R_d = None
-        pars["mu"] = mu; pars["sigma"] = sigma
+        pars["mu"] = mu;
+        pars["sigma"] = sigma
 
         # compute lag-l temporal autocorrelation coefficients for each cascade level
         GAMMA = np.empty((n_cascade_levels, ar_order))
         for i in range(n_cascade_levels):
-            R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order+1)])
+            R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order + 1)])
             GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_)
         R_c_ = None
 
@@ -313,7 +323,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
         # estimate the parameters of the AR(p) model from the autocorrelation
         # coefficients
-        PHI = np.empty((n_cascade_levels, ar_order+1))
+        PHI = np.empty((n_cascade_levels, ar_order + 1))
         for i in range(n_cascade_levels):
             PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
         pars["PHI"] = PHI
@@ -341,16 +351,16 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         return pars
 
     # prepare windows
-    M,N = R.shape[1:]
-    n_windows_M = np.ceil( 1.*M/win_size[0] ).astype(int)
-    n_windows_N = np.ceil( 1.*N/win_size[1] ).astype(int)
+    M, N = R.shape[1:]
+    n_windows_M = np.ceil(1. * M / win_size[0]).astype(int)
+    n_windows_N = np.ceil(1. * N / win_size[1]).astype(int)
     idxm = np.zeros((2, 1), dtype=int)
     idxn = np.zeros((2, 1), dtype=int)
 
     # compute global parameters to be used as defaults
     if n_windows_M > 1 or n_windows_N > 1 or np.sum(R >= R_thr) <= minwet:
         parsglob = estimator(R)
-        
+
     print("Estiamting local parameters... ", end="")
     sys.stdout.flush()
     if measure_time:
@@ -358,23 +368,29 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     # loop windows
     nwet = np.empty((n_windows_M, n_windows_N))
-    PHI = np.empty((n_windows_M, n_windows_N, n_cascade_levels, ar_order+1))
+    PHI = np.empty((n_windows_M, n_windows_N, n_cascade_levels, ar_order + 1))
     mu = np.empty((n_windows_M, n_windows_N, n_cascade_levels))
     sigma = np.empty((n_windows_M, n_windows_N, n_cascade_levels))
-    ff=[]; rc=[]; pp=[]; mm=[]
+    ff = []
+    rc = []
+    pp = []
+    mm = []
     for m in range(n_windows_M):
-        ff_=[]; pp_=[]; rc_=[]; mm_=[]
+        ff_ = []
+        pp_ = []
+        rc_ = []
+        mm_ = []
         for n in range(n_windows_N):
 
             # compute indices of local window
-            idxm[0] = int(np.max( (m*win_size[0] - overlap*win_size[0], 0) ))
-            idxm[1] = int(np.min( (idxm[0] + win_size[0]  + overlap*win_size[0], M) ))
-            idxn[0] = int(np.max( (n*win_size[1] - overlap*win_size[1], 0) ))
-            idxn[1] = int(np.min( (idxn[0] + win_size[1]  + overlap*win_size[1], N) ))
+            idxm[0] = int(np.max((m * win_size[0] - overlap * win_size[0], 0)))
+            idxm[1] = int(np.min((idxm[0] + win_size[0] + overlap * win_size[0], M)))
+            idxn[0] = int(np.max((n * win_size[1] - overlap * win_size[1], 0)))
+            idxn[1] = int(np.min((idxn[0] + win_size[1] + overlap * win_size[1], N)))
 
             R_ = R[:, idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
 
-            nwet[m, n] = np.sum(R_[-1,:,:] >= R_thr)
+            nwet[m, n] = np.sum(R_[-1, :, :] >= R_thr)
             if nwet[m, n] > minwet:
 
                 # estimate local parameters
@@ -408,12 +424,12 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         pp.append(pp_)
         rc.append(rc_)
         mm.append(mm_)
-        
+
     if measure_time:
         print("%.2f seconds." % (time.time() - starttime))
     else:
         print("done.")
-        
+
     # remove unnecessary variables
     ff_ = None
     pp_ = None
@@ -424,7 +440,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     # initialize the random generators
     if noise_method is not None:
-        randgen_prec   = []
+        randgen_prec = []
         randgen_motion = []
         np.random.seed(seed)
         for j in range(n_ens_members):
@@ -441,28 +457,28 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         # initialize the perturbation generators for the motion field
         vps = []
         for j in range(n_ens_members):
-            kwargs = {"randstate":randgen_motion[j],
-                      "p_par":vp_par,
-                      "p_perp":vp_perp}
-            vp_ = init_vel_noise(V, 1./kmperpixel, timestep, **kwargs)
+            kwargs = {"randstate": randgen_motion[j],
+                      "p_par": vp_par,
+                      "p_perp": vp_perp}
+            vp_ = init_vel_noise(V, 1. / kmperpixel, timestep, **kwargs)
             vps.append(vp_)
 
     D = [None for j in range(n_ens_members)]
     R_f = [[] for j in range(n_ens_members)]
-    
+
     if measure_time:
         init_time = time.time() - starttime_init
 
     R = R[-1, :, :]
 
     print("Starting nowcast computation.")
-    
+
     if measure_time:
         starttime_mainloop = time.time()
 
     # iterate each time step
     for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t+1), end="")
+        print("Computing nowcast for time step %d... " % (t + 1), end="")
         sys.stdout.flush()
         if measure_time:
             starttime = time.time()
@@ -471,8 +487,8 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         def worker(j):
             idxm = np.zeros((2, 1), dtype=int)
             idxn = np.zeros((2, 1), dtype=int)
-            R_f = np.zeros((M,N), dtype=float)
-            M_s = np.zeros((M,N), dtype=float)
+            R_f = np.zeros((M, N), dtype=float)
+            M_s = np.zeros((M, N), dtype=float)
             for m in range(n_windows_M):
                 for n in range(n_windows_N):
 
@@ -480,10 +496,10 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                     if nwet[m, n] > 0:
 
                         # compute indices of local window
-                        idxm[0] = int(np.max( (m*win_size[0] - overlap*win_size[0], 0) ))
-                        idxm[1] = int(np.min( (idxm[0] + win_size[0]  + overlap*win_size[0], M) ))
-                        idxn[0] = int(np.max( (n*win_size[1] - overlap*win_size[1], 0) ))
-                        idxn[1] = int(np.min( (idxn[0] + win_size[1]  + overlap*win_size[1], N) ))
+                        idxm[0] = int(np.max((m * win_size[0] - overlap * win_size[0], 0)))
+                        idxm[1] = int(np.min((idxm[0] + win_size[0] + overlap * win_size[0], M)))
+                        idxn[0] = int(np.max((n * win_size[1] - overlap * win_size[1], 0)))
+                        idxn[1] = int(np.min((idxn[0] + win_size[1] + overlap * win_size[1], N)))
 
                         # build localization mask
                         mask = _build_2D_tapering_function((idxm[1] - idxm[0], idxn[1] - idxn[0]))
@@ -508,7 +524,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                             # apply AR(p) process to cascade level
                             R_c[i, :, :, :] = \
                                 autoregression.iterate_ar_model(R_c[i, :, :, :],
-                                                        PHI[m, n, i, :], EPS=EPS_)
+                                                                PHI[m, n, i, :], EPS=EPS_)
                             EPS_ = None
                         rc[m][n][j] = R_c.copy()
                         EPS = None
@@ -529,10 +545,10 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                                 R_cmin = R_c_.min()
                                 MASK_prec = mm[m][n][j].copy()
                                 # normalize between 0 and 1
-                                MASK_prec = MASK_prec.astype(float)/MASK_prec.max()
+                                MASK_prec = MASK_prec.astype(float) / MASK_prec.max()
                                 if not MASK_prec.shape == R_c_.shape:
                                     MASK_prec = MASK_prec[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)]
-                                R_c_ = R_cmin + (R_c_ - R_cmin)*MASK_prec
+                                R_c_ = R_cmin + (R_c_ - R_cmin) * MASK_prec
                                 MASK_prec = None
 
                         if probmatching_method == "cdf":
@@ -545,7 +561,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                         if mask_method == "incremental":
                             mm[m][n][j] = _compute_incremental_mask(R_c_ >= R_thr, struct, mask_rim)
 
-                        R_f[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += R_c_*mask
+                        R_f[idxm.item(0):idxm.item(1), idxn.item(0):idxn.item(1)] += R_c_ * mask
 
             ind = M_s > 0
             R_f[ind] /= M_s[ind]
@@ -558,14 +574,14 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
             # compute the perturbed motion field
             if vel_pert_method is not None:
-                V_ = V + generate_vel_noise(vps[j], t*timestep)
+                V_ = V + generate_vel_noise(vps[j], t * timestep)
             else:
                 V_ = V
 
             # advect the recomposed precipitation field to obtain the forecast
             # for time step t
-            extrap_kwargs.update({"D_prev":D[j], "return_displacement":True})
-            R_f_,D_ = extrap_extrap_method(extrapolator, R_f, V_, 1, **extrap_kwargs)
+            extrap_kwargs.update({"D_prev": D[j], "return_displacement": True})
+            R_f_, D_ = extrapolator_method(R_f, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]
 
@@ -594,7 +610,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         if return_output:
             for j in range(n_ens_members):
                 R_f[j].append(R_f_[j])
-                
+
     if measure_time:
         print("Total time = %.2f seconds." % (time.time() - starttime_mainloop))
 
@@ -602,6 +618,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         return np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
     else:
         return None
+
 
 def _check_inputs(R, V, ar_order):
     if len(R.shape) != 3:
@@ -613,6 +630,7 @@ def _check_inputs(R, V, ar_order):
     if R.shape[1:3] != V.shape[1:3]:
         raise ValueError("dimension mismatch between R and V: shape(R)=%s, shape(V)=%s" % \
                          (str(R.shape), str(V.shape)))
+
 
 def _compute_incremental_mask(Rbin, kr, r):
     # buffer the observation mask Rbin using the kernel kr
@@ -630,35 +648,38 @@ def _compute_incremental_mask(Rbin, kr, r):
         mask += Rd
     return mask
 
+
 def _stack_cascades(R_d, n_levels, donorm=True):
-  R_c   = []
-  mu    = np.empty(n_levels)
-  sigma = np.empty(n_levels)
+    R_c = []
+    mu = np.empty(n_levels)
+    sigma = np.empty(n_levels)
 
-  n_inputs = len(R_d)
+    n_inputs = len(R_d)
 
-  for i in range(n_levels):
-      R_ = []
-      mu_    = 0
-      sigma_ = 1
-      for j in range(n_inputs):
-          if donorm:
-              mu_    = R_d[j]["means"][i]
-              sigma_ = R_d[j]["stds"][i]
-          if j == n_inputs - 1:
-              mu[i]    = mu_
-              sigma[i] = sigma_
-          R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
-          R_.append(R__)
-      R_c.append(np.stack(R_))
+    for i in range(n_levels):
+        R_ = []
+        mu_ = 0
+        sigma_ = 1
+        for j in range(n_inputs):
+            if donorm:
+                mu_ = R_d[j]["means"][i]
+                sigma_ = R_d[j]["stds"][i]
+            if j == n_inputs - 1:
+                mu[i] = mu_
+                sigma[i] = sigma_
+            R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
+            R_.append(R__)
+        R_c.append(np.stack(R_))
 
-  return np.stack(R_c),mu,sigma
+    return np.stack(R_c), mu, sigma
+
 
 def _recompose_cascade(R, mu, sigma):
     R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
     R_rc = np.sum(np.stack(R_rc), axis=0)
 
     return R_rc
+
 
 def _build_2D_tapering_function(win_size, win_type='flat-hanning'):
     """Produces two-dimensional tapering function for rectangular fields.
@@ -685,22 +706,22 @@ def _build_2D_tapering_function(win_size, win_type='flat-hanning'):
 
     elif win_type == 'flat-hanning':
 
-        T = win_size[0]/4.0
-        W = win_size[0]/2.0
-        B = np.linspace(-W,W,2*W)
-        R = np.abs(B)-T
-        R[R < 0] = 0.
-        A = 0.5*(1.0 + np.cos(np.pi*R/T))
-        A[np.abs(B) > (2*T)] = 0.0
-        w1dr = A
-
-        T = win_size[1]/4.0
-        W = win_size[1]/2.0
-        B = np.linspace(-W, W, 2*W)
+        T = win_size[0] / 4.0
+        W = win_size[0] / 2.0
+        B = np.linspace(-W, W, 2 * W)
         R = np.abs(B) - T
         R[R < 0] = 0.
-        A = 0.5*(1.0 + np.cos(np.pi*R/T))
-        A[np.abs(B) > (2*T)] = 0.0
+        A = 0.5 * (1.0 + np.cos(np.pi * R / T))
+        A[np.abs(B) > (2 * T)] = 0.0
+        w1dr = A
+
+        T = win_size[1] / 4.0
+        W = win_size[1] / 2.0
+        B = np.linspace(-W, W, 2 * W)
+        R = np.abs(B) - T
+        R[R < 0] = 0.
+        A = 0.5 * (1.0 + np.cos(np.pi * R / T))
+        A[np.abs(B) > (2 * T)] = 0.0
         w1dc = A
 
     else:
@@ -708,7 +729,7 @@ def _build_2D_tapering_function(win_size, win_type='flat-hanning'):
 
     # Expand to 2-D
     # w2d = np.sqrt(np.outer(w1dr,w1dc))
-    w2d = np.outer(w1dr,w1dc)
+    w2d = np.outer(w1dr, w1dc)
 
     # Set nans to zero
     if np.sum(np.isnan(w2d)) > 0:
@@ -716,14 +737,15 @@ def _build_2D_tapering_function(win_size, win_type='flat-hanning'):
 
     return w2d
 
+
 def _get_mask(Size, idxi, idxj, win_type="flat-hanning"):
     """Compute a mask of zeros with a window at a given position.
     """
 
     idxi = np.array(idxi).astype(int)
-    idxj =  np.array(idxj).astype(int)
+    idxj = np.array(idxj).astype(int)
 
-    win_size = (idxi[1] - idxi[0] , idxj[1] - idxj[0])
+    win_size = (idxi[1] - idxi[0], idxj[1] - idxj[0])
     wind = _build_2D_tapering_function(win_size, win_type)
 
     mask = np.zeros(Size)

@@ -1,34 +1,43 @@
 """Implementation of the semi-Lagrangian method of Germann et al (2002)."""
 
 import time
+
 import numpy as np
 import scipy.ndimage.interpolation as ip
 
-def extrapolate(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
+
+def extrapolate(precip, velocity, num_timesteps,
+                outval=np.nan, xy_coords=None, **kwargs):
     """Apply semi-Lagrangian extrapolation to a two-dimensional precipitation
     field.
 
     Parameters
     ----------
-    extrapolator : dict
-        Dictionary returned by pysteps.extrapolation.semilagrangian.initialize.
-        Contains the extrapolator object.
-    R : array-like
+    precip : array-like
         Array of shape (m,n) containing the input precipitation field. All
         values are required to be finite.
-    V : array-like
+    velocity : array-like
         Array of shape (2,m,n) containing the x- and y-components of the m*n
         advection field. All values are required to be finite.
     num_timesteps : int
         Number of time steps to extrapolate.
-    outval : float
+    outval : float, optional
         Optional argument for specifying the value for pixels advected from
         outside the domain. If outval is set to 'min', the value is taken as
         the minimum value of R.
         Default : np.nan
+    xy_coords : ndarray, optional
+        Array with the coordinates of the grid dimension (2, m, n ).
+
+        * xy_coords[0] : x coordinates
+        * xy_coords[1] : y coordinates
+
+        By default, the *xy_coords* are computed for each extrapolation.
+
 
     Other Parameters
     ----------------
+
     D_prev : array-like
         Optional initial displacement vector field of shape (2,m,n) for the
         extrapolation.
@@ -57,17 +66,17 @@ def extrapolate(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
     :cite:`GZ2002`
 
     """
-    if len(R.shape) != 2:
-        raise ValueError("R must be a two-dimensional array")
+    if len(precip.shape) != 2:
+        raise ValueError("precip must be a two-dimensional array")
 
-    if len(V.shape) != 3:
-        raise ValueError("V must be a three-dimensional array")
+    if len(velocity.shape) != 3:
+        raise ValueError("velocity must be a three-dimensional array")
 
-    if np.any(~np.isfinite(R)):
-        raise ValueError("R contains non-finite values")
+    if np.any(~np.isfinite(precip)):
+        raise ValueError("precip contains non-finite values")
 
-    if np.any(~np.isfinite(V)):
-        raise ValueError("V contains non-finite values")
+    if np.any(~np.isfinite(velocity)):
+        raise ValueError("velocity contains non-finite values")
 
     # defaults
     verbose = kwargs.get("verbose", False)
@@ -81,15 +90,19 @@ def extrapolate(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
         t0 = time.time()
 
     if outval == "min":
-        outval = np.nanmin(R)
+        outval = np.nanmin(precip)
 
     coeff = 1.0 if not inverse else -1.0
 
-    XY = extrapolator["XY"]
+    if xy_coords is None:
+        x_values, y_values = np.meshgrid(np.arange(precip.shape[1]),
+                                         np.arange(precip.shape[0]))
+
+        xy_coords = np.stack([x_values, y_values])
 
     R_e = []
     if D_prev is None:
-        D = np.zeros((2, V.shape[1], V.shape[2]))
+        D = np.zeros((2, velocity.shape[1], velocity.shape[2]))
     else:
         D = D_prev.copy()
 
@@ -98,28 +111,28 @@ def extrapolate(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
 
         for k in range(n_iter):
             if t > 0 or k > 0 or D_prev is not None:
-                XYW = XY + D - V_inc / 2.0
+                XYW = xy_coords + D - V_inc / 2.0
                 XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-                VWX = ip.map_coordinates(V[0, :, :], XYW, mode="nearest", order=0,
+                VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest", order=0,
                                          prefilter=False)
-                VWY = ip.map_coordinates(V[1, :, :], XYW, mode="nearest", order=0,
+                VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest", order=0,
                                          prefilter=False)
             else:
-                VWX = V[0, :, :]
-                VWY = V[1, :, :]
+                VWX = velocity[0, :, :]
+                VWY = velocity[1, :, :]
 
             V_inc[0, :, :] = VWX / n_iter
             V_inc[1, :, :] = VWY / n_iter
 
             D += coeff * V_inc
 
-        XYW = XY + D
+        XYW = xy_coords + D
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-        IW = ip.map_coordinates(R, XYW, mode="constant", cval=outval, order=0,
+        IW = ip.map_coordinates(precip, XYW, mode="constant", cval=outval, order=0,
                                 prefilter=False)
-        R_e.append(np.reshape(IW, R.shape))
+        R_e.append(np.reshape(IW, precip.shape))
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
@@ -128,21 +141,3 @@ def extrapolate(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
         return np.stack(R_e)
     else:
         return np.stack(R_e), D
-
-def initialize(**kwargs):
-    """Initialize a semi-Lagrangian extrapolator.
-
-    Parameters
-    ----------
-    shape : tuple
-      Two-element tuple defining the shape of the input grid.
-
-    Returns
-    -------
-    out : dict
-      Dictionary containing the extrapolator object.
-    """
-    shape = kwargs["shape"]
-    X, Y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
-    XY = np.stack([X, Y])
-    return {"XY":XY}
