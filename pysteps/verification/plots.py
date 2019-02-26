@@ -55,8 +55,9 @@ def plot_intensityscale(iss, fig=None, vmin=-2, vmax=1, kmperpixel=None, unit=No
     if kmperpixel is None:
         scales = iss["scales"]
     else:
-        scales = iss["scales"] * kmperpixel
+        scales = np.array(iss["scales"]) * kmperpixel
     ax.set_yticklabels(scales)
+
 
 def plot_rankhist(rankhist, ax=None):
     """Plot a rank histogram.
@@ -86,6 +87,7 @@ def plot_rankhist(rankhist, ax=None):
     ax.set_ylabel("Relative frequency")
 
     ax.grid(True, axis='y', ls=':')
+
 
 def plot_reldiag(reldiag, ax=None):
     """Plot a reliability diagram.
@@ -139,6 +141,7 @@ def plot_reldiag(reldiag, ax=None):
     iax.yaxis.set_label_position("right")
     iax.tick_params(axis="both", which="major", labelsize=6)
 
+
 def plot_ROC(ROC, ax=None, opt_prob_thr=False):
     """Plot a ROC curve.
 
@@ -157,7 +160,7 @@ def plot_ROC(ROC, ax=None, opt_prob_thr=False):
     if ax is None:
         ax = plt.gca()
 
-    POFD,POD,area = probscores.ROC_curve_compute(ROC, compute_area=True)
+    POFD, POD, area = probscores.ROC_curve_compute(ROC, compute_area=True)
     p_thr = ROC["prob_thrs"]
 
     ax.plot([0, 1], [0, 1], "k--")
