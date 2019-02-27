@@ -9,10 +9,11 @@ def CRPS(X_f, X_o):
     Parameters
     ----------
     X_f : array_like
-      Array of shape (n,m) containing n ensembles of forecast values with each
-      ensemble having m members.
+      Array of shape (k,m,n,...) containing the values from an ensemble
+      forecast of k members with shape (m,n,...).
     X_o : array_like
-      Array of n observed values.
+      Array of shape (m,n,...) containing the observed values corresponding
+      to the forecast.
 
     Returns
     -------
@@ -24,6 +25,9 @@ def CRPS(X_f, X_o):
     :cite:`Her2000`
 
     """
+    X_f = np.vstack([X_f[i, :].flatten() for i in range(X_f.shape[0])]).T
+    X_o = X_o.flatten()
+
     mask = np.logical_and(np.all(np.isfinite(X_f), axis=1), np.isfinite(X_o))
 
     X_f = X_f[mask, :].copy()

@@ -1,5 +1,5 @@
 """Miscellaneous utility functions."""
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 try:
     import cartopy.crs as ccrs
@@ -148,6 +148,10 @@ def proj4_to_cartopy(proj4str):
                 cl = ccrs.UTM
             elif v == "stere":
                 cl = ccrs.Stereographic
+            elif v == "aea":
+                cl = ccrs.AlbersEqualArea
+            elif v == "somerc":
+                raise UnsupportedSomercProjection("unsupported projection: somerc")
             else:
                 raise ValueError("unsupported projection: %s" % v)
         elif k in km_proj:

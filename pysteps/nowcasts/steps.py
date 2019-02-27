@@ -696,7 +696,6 @@ def _compute_sprog_mask(R, war):
     # wet-area ratio
     return R >= R_pct_thr
 
-
 def _print_ar_params(PHI, include_perturb_term):
     print("****************************************")
     print("* AR(p) parameters for cascade levels: *")
