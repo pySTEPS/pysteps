@@ -574,23 +574,22 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                 # precipitation into areas where it was not originally
                 # observed
                 R_cmin = R_c_.min()
-                if mask_method == "obs":
-                    MASK_prec_ = ~MASK_prec
-                elif mask_method == "incremental":
+                if mask_method == "incremental":
                     R_c_ = R_cmin + (R_c_ - R_cmin) * MASK_prec[j]
-                    MASK_prec_ = R_c_ <= R_cmin
-                elif mask_method == "sprog":
+                    MASK_prec_ = R_c_ > R_cmin
+                else:
                     MASK_prec_ = MASK_prec
 
-                R_c_[MASK_prec_] = R_cmin
+                # Set to min value outside of mask
+                R_c_[~MASK_prec_] = R_cmin
 
             if probmatching_method == "cdf":
                 # adjust the CDF of the forecast to match the most recently
                 # observed precipitation field
                 R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
             elif probmatching_method == "mean":
-                mu_fct = np.mean(R_c_[~MASK_prec_])
-                R_c_[~MASK_prec_] = R_c_[~MASK_prec_] - mu_fct + mu_0
+                mu_fct = np.mean(R_c_[MASK_prec_])
+                R_c_[MASK_prec_] = R_c_[MASK_prec_] - mu_fct + mu_0
 
             if mask_method == "incremental":
                 MASK_prec[j] = _compute_incremental_mask(R_c_ >= R_thr, struct, mask_rim)
@@ -695,7 +694,7 @@ def _compute_sprog_mask(R, war):
 
     # determine a mask using the above threshold value to preserve the
     # wet-area ratio
-    return R < R_pct_thr
+    return R >= R_pct_thr
 
 
 def _print_ar_params(PHI, include_perturb_term):
