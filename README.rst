@@ -108,6 +108,20 @@ following environmental variables in the terminal
     export CC=gcc-8
     export CXX=g++-8
 
+First, check that the homebrew's gcc is detected::
+
+    which gcc-8
+
+This should point to the homebrew's gcc installation.
+Under certain circunstances, homebrew does not add the symbolic links for the
+gcc executables under /usr/local/bin.
+If that is the case, specify the CC and CCX variables using the full path to
+the homebrew installation. For example::
+
+    export CC=/usr/local/Cellar/gcc/8.3.0/bin/gcc-8
+    export CXX=/usr/local/Cellar/gcc/8.3.0/bin/g++-8
+
+
 Then, you can continue with the normal installation procedure.
 
 Installation
