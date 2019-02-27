@@ -75,8 +75,6 @@ def CRPS_accum(CRPS, X_f, X_o):
     CRPS["CRPS_sum"] += np.sum(res)
     CRPS["n"] += len(res)
 
-    return np.mean(res)
-
 def CRPS_compute(CRPS):
     """Compute the averaged values from the given CRPS object.
 
