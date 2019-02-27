@@ -2,7 +2,11 @@
 
 import numpy as np
 
-def CRPS(X_f, X_o):
+def CRPS_init():
+    """"""
+    return {"CRPS_sum": 0.0, "n": 0.0}
+
+def CRPS_accum(CRPS, X_f, X_o):
     """Compute the average continuous ranked probability score (CRPS) for a set
     of forecast ensembles and the corresponding observations.
 
@@ -64,7 +68,14 @@ def CRPS(X_f, X_o):
     p = 1.0*np.arange(m+1) / m
     res = np.sum(alpha*p**2.0 + beta*(1.0-p)**2.0, axis=1)
 
+    CRPS["CRPS_sum"] += np.sum(res)
+    CRPS["n"] += len(res)
+
     return np.mean(res)
+
+def CRPS_compute(CRPS):
+    """"""
+    return 1.0*CRPS["CRPS_sum"] / CRPS["n"]
 
 def reldiag_init(X_min, n_bins=10, min_count=10):
     """Initialize a reliability diagram object.
