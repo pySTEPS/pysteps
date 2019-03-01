@@ -585,8 +585,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                 # observed precipitation field
                 R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
             elif probmatching_method == "mean":
-                mu_fct = np.mean(R_c_[R_c_ >= R_thr])
-                R_c_[R_c_ >= R_thr] = R_c_[R_c_ >= R_thr] - mu_fct + mu_0
+                MASK = R_c_ >= R_thr
+                mu_fct = np.mean(R_c_[MASK])
+                R_c_[MASK] = R_c_[MASK] - mu_fct + mu_0
 
             if mask_method == "incremental":
                 MASK_prec[j] = _compute_incremental_mask(R_c_ >= R_thr, struct, mask_rim)
