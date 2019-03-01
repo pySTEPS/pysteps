@@ -2,28 +2,40 @@
 
 import numpy as np
 
-def CRPS(X_f, X_o):
+def CRPS_init():
+    """Initialize a CRPS object.
+    
+    Returns
+    -------
+    out : dict
+      The CRPS object.
+    """
+    return {"CRPS_sum": 0.0, "n": 0.0}
+
+def CRPS_accum(CRPS, X_f, X_o):
     """Compute the average continuous ranked probability score (CRPS) for a set
-    of forecast ensembles and the corresponding observations.
+    of forecast ensembles and the corresponding observations and accumulate the
+    result to the given CRPS object.
 
     Parameters
     ----------
+    CRPS : dict
+      The CRPS object.
     X_f : array_like
-      Array of shape (n,m) containing n ensembles of forecast values with each
-      ensemble having m members.
+      Array of shape (k,m,n,...) containing the values from an ensemble
+      forecast of k members with shape (m,n,...).
     X_o : array_like
-      Array of n observed values.
-
-    Returns
-    -------
-    out : float
-      The continuous ranked probability score.
+      Array of shape (m,n,...) containing the observed values corresponding
+      to the forecast.
 
     References
     ----------
     :cite:`Her2000`
 
     """
+    X_f = np.vstack([X_f[i, :].flatten() for i in range(X_f.shape[0])]).T
+    X_o = X_o.flatten()
+
     mask = np.logical_and(np.all(np.isfinite(X_f), axis=1), np.isfinite(X_o))
 
     X_f = X_f[mask, :].copy()
@@ -60,7 +72,23 @@ def CRPS(X_f, X_o):
     p = 1.0*np.arange(m+1) / m
     res = np.sum(alpha*p**2.0 + beta*(1.0-p)**2.0, axis=1)
 
-    return np.mean(res)
+    CRPS["CRPS_sum"] += np.sum(res)
+    CRPS["n"] += len(res)
+
+def CRPS_compute(CRPS):
+    """Compute the averaged values from the given CRPS object.
+
+    Parameters
+    ----------
+    CRPS : dict
+      A CRPS object created with CRPS_init.
+
+    Returns
+    -------
+    out : float
+      The computed CRPS.
+    """
+    return 1.0*CRPS["CRPS_sum"] / CRPS["n"]
 
 def reldiag_init(X_min, n_bins=10, min_count=10):
     """Initialize a reliability diagram object.

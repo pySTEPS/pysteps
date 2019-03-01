@@ -83,6 +83,50 @@ Install from source
 
 **IMPORTANT**: installing from source requires numpy to be installed.
 
+OSX users
+~~~~~~~~~
+
+Pysteps uses Cython extensions that need to be compiled with multi-threading
+support enabled. The default Apple Clang compiler does not support OpenMP,
+so using the default compiler would have disabled multi-threading and you will
+get the following error during the installation::
+
+    clang: error: unsupported option '-fopenmp'
+    error: command 'gcc' failed with exit status 1
+
+To solve this issue, obtain the lastest gcc version with
+Homebrew_ that has multi-threading enabled::
+
+    brew install gcc
+
+.. _Homebrew: https://brew.sh/
+
+To make sure that the installer uses the homebrew's gcc, export the
+following environmental variables in the terminal
+(supposing that gcc version 8 was installed)::
+
+    export CC=gcc-8
+    export CXX=g++-8
+
+First, check that the homebrew's gcc is detected::
+
+    which gcc-8
+
+This should point to the homebrew's gcc installation.
+Under certain circunstances, homebrew does not add the symbolic links for the
+gcc executables under /usr/local/bin.
+If that is the case, specify the CC and CCX variables using the full path to
+the homebrew installation. For example::
+
+    export CC=/usr/local/Cellar/gcc/8.3.0/bin/gcc-8
+    export CXX=/usr/local/Cellar/gcc/8.3.0/bin/g++-8
+
+
+Then, you can continue with the normal installation procedure.
+
+Installation
+~~~~~~~~~~~~
+
 The installer needs numpy to compile the Cython extensions.
 If numpy is not installed you can run in a terminal::
 
@@ -169,14 +213,14 @@ the following ways are equivalent::
 When the pysteps package imported, it looks for **pystepsrc** file in the
 following order:
 
-- $PWD/pystepsrc : Looks for the file in the current directory
-- $PYSTEPSRC : If the system variable $PYSTEPSRC is defined and it
+- **$PWD/pystepsrc** : Looks for the file in the current directory
+- **$PYSTEPSRC** : If the system variable $PYSTEPSRC is defined and it
   points to a file, it is used.
-- $PYSTEPSRC/pystepsrc : If $PYSTEPSRC points to a directory, it looks for the
+- **$PYSTEPSRC/pystepsrc** : If $PYSTEPSRC points to a directory, it looks for the
   pystepsrc file inside that directory.
-- $HOME/.pysteps/pystepsrc (unix and Mac OS X) : If the system variable $HOME is defined, it looks
+- **$HOME/.pysteps/pystepsrc** (unix and Mac OS X) : If the system variable $HOME is defined, it looks
   for the configuration file in this path.
-- $USERPROFILE/pysteps/pystepsrc (windows only): It looks for the configuration file
+- **$USERPROFILE/pysteps/pystepsrc** (windows only): It looks for the configuration file
   in the pysteps directory located user's home directory.
 - Lastly, it looks inside the library in pysteps/pystepsrc for a
   system-defined copy.

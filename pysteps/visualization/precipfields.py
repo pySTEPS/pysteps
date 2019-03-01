@@ -200,16 +200,17 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             try:
                 crs = utils.proj4_to_cartopy(geodata["projection"])
                 regular_grid = True
-            except:
+
+            except UnsupportedSomercProjection:
                 # Necessary since cartopy doesn't support the Swiss projection
                 # TODO: remove once the somerc projection is supported in cartopy.
 
-                # Define fall back projection
-                laeastr = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs" # EPSG:3035
+                # Define fall-back projection (EPSG:3035)
+                laeastr = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
                 laea = pyproj.Proj(laeastr)
                 crs = utils.proj4_to_cartopy(laeastr)
 
-                # Reproject swiss data on fall back projection
+                # Reproject swiss data on fall-back projection
                 # this will work reasonably well for Europe only.
                 pr = pyproj.Proj(geodata["projection"])
                 y_coord = np.linspace(y1, y2, R.shape[0] + 1)
@@ -220,7 +221,6 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                 X, Y = pyproj.transform(pr, laea, X.flatten(), Y.flatten())
                 X = X.reshape((y_coord.size, x_coord.size))
                 Y = Y.reshape((y_coord.size, x_coord.size))
-
                 regular_grid = False
 
             bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale,

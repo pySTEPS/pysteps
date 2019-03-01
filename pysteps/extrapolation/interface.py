@@ -19,19 +19,28 @@ extrapolated fields of shape (num_timesteps, m, n)."""
 import numpy as np
 
 from pysteps.extrapolation import semilagrangian
-from pysteps.nowcasts.interface import _eulerian_persistence
 
 
-def eulerian_persistence(extrapolator, R, V, num_timesteps,
-                         outval=np.nan, **kwargs):
-    """ Eulerian persistence extrapolator """
-    del extrapolator  # Unused
-    return _eulerian_persistence(R, V, num_timesteps,
-                                 outval=np.nan, **kwargs)
+def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan,
+                         **kwargs):
+    """Eulerian persistence."""
+    del velocity, outval  # Unused by _eulerian_persistence
+    return_displacement = kwargs.get("return_displacement", False)
+
+    extrapolated_precip = np.repeat(precip[np.newaxis, :, :, ],
+                                    num_timesteps,
+                                    axis=0)
+
+    if not return_displacement:
+        return extrapolated_precip
+    else:
+        return extrapolated_precip, np.zeros((2,) + extrapolated_precip.shape)
 
 
-def _do_nothing(extrapolator, R, V, num_timesteps, outval=np.nan, **kwargs):
-    del extrapolator, R, V, num_timesteps, outval, kwargs  # Unused
+def _do_nothing(precip, velocity, num_timesteps, outval=np.nan,
+                **kwargs):
+    """Return None."""
+    del precip, velocity, num_timesteps, outval, kwargs  # Unused
     return None
 
 
@@ -41,10 +50,10 @@ def _return_none(**kwargs):
 
 
 _extrapolation_methods = dict()
-_extrapolation_methods['eulerian'] = _return_none, eulerian_persistence
-_extrapolation_methods['semilagrangian'] = \
-    semilagrangian.initialize, semilagrangian.extrapolate
-_extrapolation_methods[None] = _return_none, _do_nothing
+_extrapolation_methods['eulerian'] = eulerian_persistence
+_extrapolation_methods['semilagrangian'] = semilagrangian.extrapolate
+_extrapolation_methods[None] = _do_nothing
+_extrapolation_methods["none"] = _do_nothing
 
 
 def get_method(name):
@@ -71,6 +80,7 @@ def get_method(name):
 
     try:
         return _extrapolation_methods[name]
+
     except KeyError:
         raise ValueError("Unknown method {}\n".format(name)
                          + "The available methods are:"
