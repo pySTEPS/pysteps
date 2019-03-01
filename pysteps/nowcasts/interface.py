@@ -17,34 +17,11 @@ For stochastic methods that produce an ensemble, the output is a
 four-dimensional array of shape (num_ensemble_members,num_timesteps,m,n).
 The time step of the output is taken from the inputs.
 """
-
-
+from pysteps.extrapolation.interface import eulerian_persistence
 from pysteps.nowcasts import steps, sseps, extrapolation
-import numpy as np
-
-
-def _eulerian_persistence(R, V, num_timesteps, outval=np.nan, **kwargs):
-    """ Eulerian persistence """
-    del V, outval  # Unused by _eulerian_persistence
-    return_displacement = kwargs.get("return_displacement", False)
-
-    extrapolated_precip = np.repeat(R[np.newaxis, :, :, ],
-                                    num_timesteps,
-                                    axis=0)
-
-    if not return_displacement:
-        return extrapolated_precip
-    else:
-        return extrapolated_precip, np.zeros((2,) + extrapolated_precip.shape)
-
-
-def _do_nothing(R, V, num_timesteps, outval=np.nan, **kwargs):
-    del R, V, num_timesteps, outval, kwargs  # Unused by _do_nothing
-    return None
-
 
 _nowcast_methods = dict()
-_nowcast_methods["eulerian"] = _eulerian_persistence
+_nowcast_methods["eulerian"] = eulerian_persistence
 _nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["extrapolation"] = extrapolation.forecast
 _nowcast_methods["steps"] = steps.forecast

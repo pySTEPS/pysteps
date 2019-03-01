@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy
-
 import pytest
 
 import pysteps
-
-from collections.abc import Iterable
 
 
 def _generic_interface_test(method_getter,
@@ -25,7 +22,7 @@ def _generic_interface_test(method_getter,
 
 
 def test_cascade_interface():
-    """ Test the cascade module interface"""
+    """Test the cascade module interface."""
 
     from pysteps.cascade import decomposition, bandpass_filters
 
@@ -40,7 +37,7 @@ def test_cascade_interface():
 
 
 def test_extrapolation_interface():
-    """ Test the extrapolation module interface"""
+    """Test the extrapolation module interface."""
 
     from pysteps import extrapolation
     from pysteps.extrapolation import semilagrangian
@@ -52,10 +49,10 @@ def test_extrapolation_interface():
     method_getter = extrapolation.interface.get_method
 
     valid_returned_objs = dict()
-    valid_returned_objs['semilagrangian'] = (semilagrangian.initialize,
-                                             semilagrangian.extrapolate)
-    valid_returned_objs['eulerian'] = (_return_none, eulerian)
-    valid_returned_objs[None] = (_return_none, do_nothing)
+    valid_returned_objs['semilagrangian'] = semilagrangian.extrapolate
+    valid_returned_objs['eulerian'] = eulerian
+    valid_returned_objs[None] = do_nothing
+    valid_returned_objs['None'] = do_nothing
 
     valid_names_func_pair = list(valid_returned_objs.items())
 
@@ -63,24 +60,21 @@ def test_extrapolation_interface():
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
     # Test eulerian persistence method
-    extrapolator = None
     precip = numpy.random.rand(100, 100)
     velocity = numpy.random.rand(100, 100)
     num_timesteps = 10
     for name in ["eulerian", "EULERIAN"]:
-        initialization, forecaster = method_getter(name)
-        assert initialization() is None
-        forecast = forecaster(extrapolator, precip, velocity, num_timesteps)
+        forecaster = method_getter(name)
+        forecast = forecaster(precip, velocity, num_timesteps)
         for i in range(num_timesteps):
             assert numpy.all(forecast[i] == precip)
 
-    initialization, forecaster = method_getter(None)
-    assert initialization() is None
-    assert forecaster(extrapolator, precip, velocity, num_timesteps) is None
+    forecaster = method_getter(None)
+    assert forecaster(precip, velocity, num_timesteps) is None
 
 
 def test_io_interface():
-    """ Test the io module interface"""
+    """Test the io module interface."""
 
     from pysteps.io import import_bom_rf3
     from pysteps.io import import_fmi_pgm
@@ -127,7 +121,7 @@ def test_io_interface():
 
 
 def test_motion_interface():
-    """ Test the motion module interface"""
+    """Test the motion module interface."""
 
     from pysteps.motion.darts import DARTS
     from pysteps.motion.lucaskanade import dense_lucaskanade
@@ -155,7 +149,7 @@ def test_motion_interface():
 
 
 def test_noise_interface():
-    """ Test the noise module interface"""
+    """Test the noise module interface."""
 
     from pysteps.noise.fftgenerators import (initialize_param_2d_fft_filter,
                                              generate_noise_2d_fft_filter,
@@ -185,7 +179,7 @@ def test_noise_interface():
 
 
 def test_nowcasts_interface():
-    """ Test the nowcasts module interface"""
+    """Test the nowcasts module interface."""
 
     from pysteps.nowcasts import steps
     from pysteps.nowcasts import extrapolation
@@ -208,7 +202,7 @@ def test_nowcasts_interface():
 
 
 def test_utils_interface():
-    """ Test utils module interface"""
+    """Test utils module interface."""
 
     from pysteps.utils import conversion
     from pysteps.utils import transformation
