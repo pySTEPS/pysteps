@@ -11,6 +11,7 @@ _importer_methods['knmi_hdf5'] = importers.import_knmi_hdf5
 
 _exporter_methods = dict()
 _exporter_methods['netcdf'] = exporters.initialize_forecast_exporter_netcdf
+_exporter_methods['kineros'] = exporters.initialize_forecast_exporter_kineros
 
 
 def get_method(name, method_type):
@@ -52,6 +53,11 @@ def get_method(name, method_type):
         +-------------+--------------------------------------------------------+
         |     Name    |              Description                               |
         +=============+========================================================+
+        | kineros     | KINEROS2 Rainfall file as specified in                 |
+        |             | https://www.tucson.ars.ag.gov/kineros/                 |
+        |             | Grid points are treated as individual rain gauges.     |
+        |             | A separate file is produced for each ensemble memeber. |
+        +-------------+--------------------------------------------------------+
         | netcdf      | NetCDF files conforming to the CF 1.7 specification    |
         +-------------+--------------------------------------------------------+
 

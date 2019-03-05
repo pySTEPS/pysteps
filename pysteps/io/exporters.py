@@ -54,15 +54,14 @@ implements the following interface:
   +---------------+-------------------+---------------------------------------+
 
   The return value is a dictionary containing an exporter object. This can be
-  used with export_forecast_dataset to write datasets into the netCDF file.
+  used with export_forecast_dataset to write datasets into the given file format.
 
 """
 
 from datetime import datetime
 import numpy as np
-
+import os
 from pysteps.exceptions import MissingOptionalDependency
-
 try:
     import netCDF4
     netcdf4_imported = True
@@ -74,10 +73,86 @@ try:
 except ImportError:
     pyproj_imported = False
 
-# TODO(exporters): This is a draft version of the exporter.
+# TODO(exporters): This is a draft version of the kineros exporter.
 # Revise the variable names and
 # the structure of the file if necessary.
 
+def initialize_forecast_exporter_kineros(filename, startdate, timestep,
+                                        n_timesteps, shape, n_ens_members,
+                                        metadata, incremental=None):
+    """Initialize a KINEROS2 Rainfall file as specified in:
+
+        https://www.tucson.ars.ag.gov/kineros/
+
+    Grid points are treated as individual rain gauges and a separate file is
+    produced for each ensemble memeber.
+
+    """
+
+    if incremental is not None:
+        raise ValueError("unknown option %s: incremental writing is not supported" % incremental)
+
+    exporter = {}
+
+    basefn, extfn = os.path.splitext(filename)
+    if extfn == "":
+        extfn = ".pre"
+
+    # one file for each member
+    n_ens_members = np.min((99, n_ens_members))
+    fns = []
+    for i in range(n_ens_members):
+        fn = "%s_N%02d%s" % (basefn, i, extfn)
+        with open(fn, "w") as fd:
+            # write header
+            fd.writelines("! pysteps-generated nowcast.\n")
+            fd.writelines("! created the %s.\n" % datetime.now().strftime("%c"))
+            # TODO(exporters): Add pySTEPS version here
+            fd.writelines("! Member = %02d.\n" % i)
+            fd.writelines("! Startdate = %s.\n" % startdate.strftime("%c"))
+            fns.append(fn)
+        fd.close()
+
+    h, w = shape
+
+    if metadata["unit"] == "mm/h":
+        var_name = "Intensity"
+        var_long_name = "Intensity in mm/hr"
+        var_unit = "mm/hr"
+    elif metadata["unit"] == "mm":
+        var_name = "Depth"
+        var_long_name = "Accumulated depth in mm"
+        var_unit = "mm"
+    else:
+        raise ValueError("unsupported unit %s" % metadata["unit"])
+
+    xr = np.linspace(metadata["x1"], metadata["x2"], w+1)[:-1]
+    xr += 0.5 * (xr[1] - xr[0])
+    yr = np.linspace(metadata["y1"], metadata["y2"], h+1)[:-1]
+    yr += 0.5 * (yr[1] - yr[0])
+    X, Y = np.meshgrid(xr, yr)
+    XY_coords = np.stack([X, Y])
+
+    exporter["method"] = "kineros"
+    exporter["ncfile"] = fns
+    exporter["XY_coords"] = XY_coords
+    exporter["var_name"] = var_name
+    exporter["var_long_name"] = var_long_name
+    exporter["var_unit"] = var_unit
+    exporter["startdate"] = startdate
+    exporter["timestep"] = timestep
+    exporter["metadata"] = metadata
+    exporter["incremental"] = incremental
+    exporter["num_timesteps"] = n_timesteps
+    exporter["num_ens_members"] = n_ens_members
+    exporter["shape"] = shape
+
+    return exporter
+
+
+# TODO(exporters): This is a draft version of the netcdf exporter.
+# Revise the variable names and
+# the structure of the file if necessary.
 
 def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
                                         n_timesteps, shape, n_ens_members,
@@ -262,7 +337,7 @@ def export_forecast_dataset(F, exporter):
         +-----------------+---------------------------------------------------+
 
     """
-    if not netcdf4_imported:
+    if exporter["method"] == "netcdf" and not netcdf4_imported:
         raise MissingOptionalDependency(
             "netCDF4 package is required for netcdf "
             "exporters but it is not installed")
@@ -285,6 +360,8 @@ def export_forecast_dataset(F, exporter):
 
     if exporter["method"] == "netcdf":
         _export_netcdf(F, exporter)
+    elif exporter["method"] == "kineros":
+        _export_kineros(F, exporter)
     else:
         raise ValueError("unknown exporter method %s" % exporter["method"])
 
@@ -302,7 +379,39 @@ def close_forecast_file(exporter):
         in this module.
 
     """
-    exporter["ncfile"].close()
+    if exporter["method"] == "kineros":
+        pass # no need to close the file
+    else:
+        exporter["ncfile"].close()
+
+
+def _export_kineros(F, exporter):
+
+    num_timesteps = exporter["num_timesteps"]
+    num_ens_members = exporter["num_ens_members"]
+    startdate = exporter["startdate"]
+    timestep = exporter["timestep"]
+    xgrid = exporter["XY_coords"][0, :, :].flatten()
+    ygrid = exporter["XY_coords"][1, :, :].flatten()
+
+    timemin = [(t + 1)*timestep for t in range(num_timesteps)]
+
+    for n in range(num_ens_members):
+        fn = exporter["ncfile"][n]
+        F_ = F[n, :, :, :].reshape((num_timesteps, -1))
+        if exporter["var_name"] == "Depth":
+            F_ = np.cumsum(F_, axis=0)
+        with open(fn, "a") as fd:
+            for m in range(F_.shape[1]):
+                fd.writelines("BEGIN RG%03d\n" % (m + 1))
+                fd.writelines("  X = %.2f, Y = %.2f\n" % (xgrid[m], ygrid[m]))
+                fd.writelines("  N = %i\n" % num_timesteps)
+                fd.writelines("  TIME        %s\n" % exporter["var_name"].upper())
+                fd.writelines("! (min)        (%s)\n" % exporter["var_unit"])
+                for t in range(num_timesteps):
+                    line_new = "{:6.1f}  {:11.2f}\n".format(timemin[t], F_[t, m])
+                    fd.writelines(line_new)
+                fd.writelines("END\n\n")
 
 
 def _export_netcdf(F, exporter):
@@ -319,12 +428,12 @@ def _export_netcdf(F, exporter):
         var_ens_num = exporter["var_time"]
         var_ens_num[len(var_ens_num)-1] = len(var_ens_num)
 
+
 # TODO(exporters): Write methods for converting Proj.4 projection definitions
 # into CF grid mapping attributes. Currently this has been implemented for
 # the stereographic projection.
 # The conversions implemented here are take from:
 # https://github.com/cf-convention/cf-convention.github.io/blob/master/wkt-proj-4.md
-
 
 def _convert_proj4_to_grid_mapping(proj4str):
     tokens = proj4str.split('+')
