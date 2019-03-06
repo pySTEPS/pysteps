@@ -52,5 +52,6 @@ setup(
         'Programming Language :: Python :: 3'],
     ext_modules=external_modules,
     setup_requires=requirements,
-    install_requires=requirements
+    install_requires=requirements,
+    zip_safe=False,
 )
