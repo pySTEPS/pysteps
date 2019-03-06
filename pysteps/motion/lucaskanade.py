@@ -12,6 +12,7 @@ except ImportError:
     cv2_imported = False
 import scipy.spatial
 import time
+import warnings
 
 def dense_lucaskanade(R, **kwargs):
     """`OpenCV`_ implementation of the local `Lucas-Kanade`_ method with
@@ -26,9 +27,9 @@ def dense_lucaskanade(R, **kwargs):
     ----------
     R : ndarray_ or MaskedArray_
         Array of shape (T,m,n) containing a sequence of T two-dimensional input
-        images of shape (m,n). 
+        images of shape (m,n).
         In case of an ndarray_, invalid values (Nans or infs) are masked.
-        The mask in the MaskedArray_ defines a region where velocity vectors are 
+        The mask in the MaskedArray_ defines a region where velocity vectors are
         not computed.
 
     Other Parameters
@@ -187,6 +188,10 @@ def dense_lucaskanade(R, **kwargs):
         prvs = R[n, :, :].copy()
         next = R[n + 1, :, :].copy()
 
+        # skip loop if no precip
+        if ~np.any(prvs > prvs.min()) or ~np.any(next > next.min()):
+            continue
+
         # scale between 0 and 255
         prvs = (prvs - prvs.min())/(prvs.max() - prvs.min())*255
         next = (next - next.min())/(next.max() - next.min())*255
@@ -200,7 +205,7 @@ def dense_lucaskanade(R, **kwargs):
         # the edges of the radar mask
         if buffer_mask > 0:
             mask_ = cv2.morphologyEx(mask_, cv2.MORPH_DILATE,
-                                     np.ones((int(buffer_mask), int(buffer_mask)), 
+                                     np.ones((int(buffer_mask), int(buffer_mask)),
                                      np.uint8))
 
         # remove small noise with a morphological operator (opening)
@@ -213,10 +218,16 @@ def dense_lucaskanade(R, **kwargs):
         mask_ = (-1*mask_ + 1).astype('uint8')
         p0 = _ShiTomasi_features_to_track(prvs, max_corners_ST, quality_level_ST,
                                           min_distance_ST, block_size_ST, mask_)
+        # skip loop if no features to track
+        if p0 is None:
+            continue
 
         # get sparse u, v vectors with Lucas-Kanade tracking
         x0, y0, u, v = _LucasKanade_features_tracking(prvs, next, p0, winsize_LK,
                                                      nr_levels_LK)
+        # skip loop if no vectors
+        if x0 is None:
+            continue
 
         # exclude outlier vectors
         vel = np.sqrt(u**2 + v**2) # [px/timesteps]
@@ -231,16 +242,25 @@ def dense_lucaskanade(R, **kwargs):
         x0 = x0[keep][:, None]
 
         # stack vectors within time window
-        y0Stack.append(y0)
         x0Stack.append(x0)
+        y0Stack.append(y0)
         uStack.append(u)
         vStack.append(v)
 
+    # return zero motion field is no sparse vectors are found
+    if len(x0Stack) == 0:
+        warnings.warn("Warning: detected no motion; "
+                      + "returning a zero motion field.")
+        return np.zeros((2, domain_size[0], domain_size[1]))
+
     # convert lists of arrays into single arrays
-    y0 = np.vstack(y0Stack)
     x0 = np.vstack(x0Stack)
+    y0 = np.vstack(y0Stack)
     u = np.vstack(uStack)
     v = np.vstack(vStack)
+
+    if verbose:
+        print("--- LK found %i sparse vectors ---" % x0.size)
 
     # decluster sparse motion vectors
     x, y, u, v = _declustering(x0, y0, u, v, decl_grid, min_nr_samples)
@@ -252,17 +272,24 @@ def dense_lucaskanade(R, **kwargs):
         u = np.concatenate((u, extra_vectors[:, 2]))
         v = np.concatenate((v, extra_vectors[:, 3]))
 
+    # return zero motion field is no sparse vectors are left for interpolation
+    if x.size == 0:
+        warnings.warn("Warning: there are no sparse vectors left for interpolation; "
+                      + "returning a zero motion field.")
+        return np.zeros((2, domain_size[0], domain_size[1]))
+
+    if verbose:
+        print("--- %i sparse vectors left for interpolation ---" % x.size)
+
     # kernel interpolation
-    if x.size > 0:
-        _, _, UV = _interpolate_sparse_vectors(x, y, u, v, domain_size, function=function,
-                                              k=k, epsilon=epsilon, nchunks=nchunks)
-    else:
-        UV = np.empty((2, domain_size[0], domain_size[1]))
+    _, _, UV = _interpolate_sparse_vectors(x, y, u, v, domain_size, function=function,
+                                           k=k, epsilon=epsilon, nchunks=nchunks)
 
     if verbose:
         print("--- %.2f seconds ---" % (time.time() - t0))
 
     return UV
+
 
 def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
                                  min_distance_ST, block_size_ST, mask):
@@ -316,10 +343,8 @@ def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
     # detect corners
     p0 = cv2.goodFeaturesToTrack(R, mask=mask, **ShiTomasi_params)
 
-    if p0 is None:
-        raise ValueError("Shi-Tomasi found no good feature to be tracked.")
-
     return p0
+
 
 def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
     """Call the Lucas-Kanade features tracking algorithm.
@@ -366,17 +391,21 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
 
     # keep only features that have been found
     st = st[:, 0] == 1
-    p1 = p1[st, :, :]
-    p0 = p0[st, :, :]
-    err = err[st, :]
+    if np.any(st):
+        p1 = p1[st, :, :]
+        p0 = p0[st, :, :]
+        err = err[st, :]
 
-    # extract vectors
-    x0 = p0[:, :, 0]
-    y0 = p0[:, :, 1]
-    u = np.array((p1 - p0)[:, :, 0])
-    v = np.array((p1 - p0)[:, :, 1])
+        # extract vectors
+        x0 = p0[:, :, 0]
+        y0 = p0[:, :, 1]
+        u = np.array((p1 - p0)[:, :, 0])
+        v = np.array((p1 - p0)[:, :, 1])
+    else:
+        x0 = y0 = u = v = None
 
     return x0, y0, u, v
+
 
 def _clean_image(R, n=3, thr=0):
     """Apply a binary morphological opening to filter small isolated echoes.
@@ -417,6 +446,7 @@ def _clean_image(R, n=3, thr=0):
     R[mask] = np.nanmin(R)
 
     return R
+
 
 def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     """Filter out outliers in a sparse motion field and get more representative
@@ -489,6 +519,7 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     v = np.array(vN)
 
     return x, y, u, v
+
 
 def _interpolate_sparse_vectors(x, y, u, v, domain_size, function="inverse",
                                k=20, epsilon=None, nchunks=5):
