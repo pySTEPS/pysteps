@@ -44,7 +44,7 @@ install:
   # ---------------
   - python setup.py install
   - python -c "import cartopy; print('Version ', cartopy.__version__)"
-  - python -c "import dask; print('Version ', dask._version__)"
+  - python -c "import dask; print('Version ', dask.__version__)"
   - python -c "import pysteps as stp;" 
 
 script:
