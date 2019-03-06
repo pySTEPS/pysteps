@@ -10,6 +10,7 @@ from pysteps import extrapolation
 from pysteps import utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+import pysteps.nowcasts.utils as nowcast_utils
 
 try:
     import dask
@@ -206,7 +207,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     # normalize the cascades and rearrange them into a four-dimensional array
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c, mu, sigma = _stack_cascades(R_d, n_cascade_levels)
+    R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
@@ -214,7 +215,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
         R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order + 1)])
         GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
 
-    _print_corrcoefs(GAMMA)
+    nowcast_utils.print_corrcoefs(GAMMA)
 
     if ar_order == 2:
         # adjust the lag-2 correlation coefficient to ensure that the AR(p)
@@ -228,7 +229,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     for i in range(n_cascade_levels):
         PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
 
-    _print_ar_params(PHI, False)
+    nowcast_utils.print_ar_params(PHI)
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
@@ -268,7 +269,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
             R_c[i, :, :, :] = \
                 autoregression.iterate_ar_model(R_c[i, :, :, :], PHI[i, :])
 
-        R_c_ = _recompose_cascade(R_c, mu, sigma)
+        R_c_ = nowcast_utils.recompose_cascade(R_c[:, -1, :, :], mu, sigma)
 
         MASK = _compute_sprog_mask(R_c_, war)
         R_c_[~MASK] = R_min
@@ -336,91 +337,3 @@ def _compute_sprog_mask(R, war):
     # determine a mask using the above threshold value to preserve the
     # wet-area ratio
     return R >= R_pct_thr
-
-
-def _print_ar_params(PHI, include_perturb_term):
-    print("****************************************")
-    print("* AR(p) parameters for cascade levels: *")
-    print("****************************************")
-
-    n = PHI.shape[1]
-
-    hline_str = "---------"
-    for k in range(n):
-        hline_str += "---------------"
-
-    print(hline_str)
-    title_str = "| Level |"
-    for k in range(n - 1):
-        title_str += "    Phi-%d     |" % (k + 1)
-    title_str += "    Phi-0     |"
-    print(title_str)
-    print(hline_str)
-
-    fmt_str = "| %-5d |"
-    for k in range(n):
-        fmt_str += " %-12.6f |"
-
-    for k in range(PHI.shape[0]):
-        print(fmt_str % ((k + 1,) + tuple(PHI[k, :])))
-        print(hline_str)
-
-
-def _print_corrcoefs(GAMMA):
-    print("************************************************")
-    print("* Correlation coefficients for cascade levels: *")
-    print("************************************************")
-
-    m = GAMMA.shape[0]
-    n = GAMMA.shape[1]
-
-    hline_str = "---------"
-    for k in range(n):
-        hline_str += "----------------"
-
-    print(hline_str)
-    title_str = "| Level |"
-    for k in range(n):
-        title_str += "     Lag-%d     |" % (k + 1)
-    print(title_str)
-    print(hline_str)
-
-    fmt_str = "| %-5d |"
-    for k in range(n):
-        fmt_str += " %-13.6f |"
-
-    for k in range(m):
-        print(fmt_str % ((k + 1,) + tuple(GAMMA[k, :])))
-        print(hline_str)
-
-
-def _stack_cascades(R_d, n_levels, donorm=True):
-    R_c = []
-    mu = np.empty(n_levels)
-    sigma = np.empty(n_levels)
-
-    n_inputs = len(R_d)
-
-    for i in range(n_levels):
-        R_ = []
-        mu_ = 0
-        sigma_ = 1
-        for j in range(n_inputs):
-            if donorm:
-                mu_ = R_d[j]["means"][i]
-                sigma_ = R_d[j]["stds"][i]
-            if j == n_inputs - 1:
-                mu[i] = mu_
-                sigma[i] = sigma_
-            R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
-            R_.append(R__)
-        R_c.append(np.stack(R_))
-
-    return np.stack(R_c), mu, sigma
-
-
-def _recompose_cascade(R, mu, sigma):
-    R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
-    R_rc = np.sum(np.stack(R_rc), axis=0)
-
-    return R_rc
