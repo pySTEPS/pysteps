@@ -1,0 +1,57 @@
+language: python
+
+env:
+    matrix:
+        - PYTHON_VERSION=3.6
+          PACKAGES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
+
+sudo: false
+
+install:
+  # Install miniconda
+  # -----------------
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+
+  # Create the basic testing environment
+  # ------------------------------------
+  - conda config --set always_yes yes --set changeps1 no --set show_channel_urls yes
+  - conda config --add channels conda-forge
+  - conda config --add channels conda-forge/label/testing
+  - ENV_NAME="test-environment"
+  - conda create -n $ENV_NAME python=$PYTHON_VERSION
+  - source activate $ENV_NAME
+
+  # Customise the testing environment
+  # ---------------------------------
+  - PACKAGES="$PACKAGES dask pyfftw cartopy basemap h5py"
+  - PACKAGES="$PACKAGES pytest pytest-cov coveralls";
+  - export CYTHON_COVERAGE=1;
+  - conda install --quiet $PACKAGES
+
+  # Conda debug
+  # -----------
+  # - conda list -n $ENV_NAME
+  # - conda list -n $ENV_NAME --explicit
+  # - conda info -a
+
+  # - MPL_CONFIG_DIR=~/.config/matplotlib
+  # - mkdir -p $MPL_CONFIG_DIR
+  # - echo "backend" ":" "agg" > $MPL_CONFIG_DIR/matplotlibrc
+
+  # Install pySTEPS
+  # ---------------
+  - python setup.py install
+  - cd ~
+  - python -c "import cartopy; print('Version ', cartopy.__version__)"
+  - python -c "import dask; print('Version ', dask.__version__)"
+  - python -c "import pysteps as stp;" 
+
+script:
+- cd ~ 
+- pytest --pyargs pysteps --cov=pysteps -ra;
+
+after_success:
+  - coveralls
+
