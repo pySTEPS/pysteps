@@ -43,9 +43,11 @@ install:
   # Install pySTEPS
   # ---------------
   - python setup.py install
+  - cd ~
   - python -c "import cartopy; print('Version ', cartopy.__version__)"
   - python -c "import dask; print('Version ', dask.__version__)"
   - python -c "import pysteps as stp;" 
 
 script:
+- cd ~ 
 - pytest --pyargs pysteps
