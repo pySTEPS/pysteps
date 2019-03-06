@@ -2,15 +2,46 @@
 
 import numpy as np
 
+def CRPS(X_f, X_o):
+    """Compute the average continuous ranked probability score (CRPS).
+
+    Parameters
+    ----------
+    X_f : array_like
+      Array of shape (k,m,n,...) containing the values from an ensemble
+      forecast of k members with shape (m,n,...).
+    X_o : array_like
+      Array of shape (m,n,...) containing the observed values corresponding
+      to the forecast.
+
+    Returns
+    -------
+    out : float
+      The computed CRPS.
+
+    References
+    ----------
+    :cite:`Her2000`
+
+    """
+
+    X_f = X_f.copy()
+    X_o = X_o.copy()
+    crps = CRPS_init()
+    CRPS_accum(crps, X_f, X_o)
+    return CRPS_compute(crps)
+
+
 def CRPS_init():
     """Initialize a CRPS object.
-    
+
     Returns
     -------
     out : dict
       The CRPS object.
     """
     return {"CRPS_sum": 0.0, "n": 0.0}
+
 
 def CRPS_accum(CRPS, X_f, X_o):
     """Compute the average continuous ranked probability score (CRPS) for a set
@@ -75,6 +106,7 @@ def CRPS_accum(CRPS, X_f, X_o):
     CRPS["CRPS_sum"] += np.sum(res)
     CRPS["n"] += len(res)
 
+
 def CRPS_compute(CRPS):
     """Compute the averaged values from the given CRPS object.
 
@@ -89,6 +121,39 @@ def CRPS_compute(CRPS):
       The computed CRPS.
     """
     return 1.0*CRPS["CRPS_sum"] / CRPS["n"]
+
+
+def reldiag(P_f, X_o, X_min, n_bins=10, min_count=10):
+    """Compute the x- and y- coordinates of the points in the reliability diagram.
+
+    Parameters
+    ----------
+    P_f : array-like
+      Forecast probabilities for exceeding the intensity threshold specified
+      in the reliability diagram object.
+    X_o : array-like
+      Observed values.
+    X_min : float
+      Precipitation intensity threshold for yes/no prediction.
+    n_bins : int
+        Number of bins to use in the reliability diagram.
+    min_count : int
+      Minimum number of samples required for each bin. A zero value is assigned
+      if the number of samples in a bin is smaller than bin_count.
+
+    Returns
+    -------
+    out : tuple
+      Two-element tuple containing the x- and y-coordinates of the points in
+      the reliability diagram.
+    """
+
+    P_f = P_f.copy()
+    X_o = X_o.copy()
+    rdiag = reldiag_init(X_min, n_bins, min_count)
+    reldiag_accum(rdiag, P_f, X_o)
+    return reldiag_compute(rdiag)
+
 
 def reldiag_init(X_min, n_bins=10, min_count=10):
     """Initialize a reliability diagram object.
@@ -125,6 +190,7 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
     reldiag["min_count"]   = min_count
 
     return reldiag
+
 
 def reldiag_accum(reldiag, P_f, X_o):
     """Accumulate the given probability-observation pairs into the reliability
@@ -172,6 +238,7 @@ def reldiag_accum(reldiag, P_f, X_o):
     reldiag["num_idx"]     += np.array(num_idx, dtype=int)
     reldiag["sample_size"] += ss
 
+
 def reldiag_compute(reldiag):
     """Compute the x- and y- coordinates of the points in the reliability diagram.
 
@@ -190,6 +257,42 @@ def reldiag_compute(reldiag):
     r = 1.0 * reldiag["X_sum"] / reldiag["num_idx"]
 
     return r,f
+
+
+def ROC_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
+    """Compute the ROC curve and its area from the given ROC object.
+
+    Parameters
+    ----------
+    P_f : array_like
+      Forecasted probabilities for exceeding the threshold specified in the ROC
+      object. Non-finite values are ignored.
+    X_o : array_like
+      Observed values. Non-finite values are ignored.
+    X_min : float
+      Precipitation intensity threshold for yes/no prediction.
+    n_prob_thrs : int
+      The number of probability thresholds to use. The interval [0,1] is divided
+      into n_prob_thrs evenly spaced values.
+    compute_area : bool
+      If True, compute the area under the ROC curve (between 0.5 and 1).
+
+    Returns
+    -------
+    out : tuple
+      A two-element tuple containing the probability of detection (POD) and
+      probability of false detection (POFD) for the probability thresholds
+      specified in the ROC curve object. If compute_area is True, return the
+      area under the ROC curve as the third element of the tuple.
+
+    """
+
+    P_f = P_f.copy()
+    X_o = X_o.copy()
+    roc = ROC_curve_init(X_min, n_prob_thrs)
+    ROC_curve_accum(roc, P_f, X_o)
+    return ROC_curve_compute(roc, compute_area)
+
 
 def ROC_curve_init(X_min, n_prob_thrs=10):
     """Initialize a ROC curve object.
@@ -218,6 +321,7 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
     ROC["prob_thrs"]    = np.linspace(0.0, 1.0, n_prob_thrs)
 
     return ROC
+
 
 def ROC_curve_accum(ROC, P_f, X_o):
     """Accumulate the given probability-observation pairs into the given ROC
@@ -248,6 +352,7 @@ def ROC_curve_accum(ROC, P_f, X_o):
         ROC["false_alarms"][i] += np.sum(mask.astype(int))
         mask = np.logical_and(P_f <  p, X_o <  ROC["X_min"])
         ROC["corr_neg"][i]     += np.sum(mask.astype(int))
+
 
 def ROC_curve_compute(ROC, compute_area=False):
     """Compute the ROC curve and its area from the given ROC object.

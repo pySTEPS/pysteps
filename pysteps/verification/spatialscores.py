@@ -9,12 +9,57 @@ except ImportError:
     pywt_imported = False
 
 
+def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
+    """Compute an intensity-scale verification score.
+
+    Parameters
+    ----------
+    X_f : array_like
+        Array of shape (n,m) containing the forecast field.
+    X_o : array_like
+        Array of shape (n,m) containing the verification observation field.
+    name : string
+        A string indicating the name of the spatial verification score
+        to be used:
+
+        +------------+--------------------------------------------------------+
+        | Name       | Description                                            |
+        +============+========================================================+
+        |  FSS       | Fractions skill score                                  |
+        +------------+--------------------------------------------------------+
+        |  BMSE      | Binary mean squared error                              |
+        +------------+--------------------------------------------------------+
+
+    thrs : sequence
+        A sequence of intensity thresholds for which to compute the
+        verification.
+    scales : sequence
+        A sequence of spatial scales in pixels to be used in the FSS.
+    wavelet : str
+        The name of the wavelet function to use in the BMSE.
+        Defaults to the Haar wavelet, as described in Casati et al. 2004.
+        See the documentation of PyWavelets for a list of available options.
+
+    Returns
+    -------
+    out : array_like
+        The two-dimensional array containing the intensity-scale skill scores
+        for each spatial scale and intensity threshold.
+    """
+
+    X_f = X_f.copy()
+    X_o = X_o.copy()
+    intscale = intensity_scale_init(name, thrs, scales, wavelet)
+    intensity_scale_accum(intscale, X_f, X_o)
+    return intensity_scale_compute(intscale)
+
+
 def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
     """Initialize an intensty-scale verification object.
 
     Parameters
     ----------
-    score_names : string
+    name : string
         A string indicating the name of the spatial verification score
         to be used:
 
@@ -39,69 +84,42 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
 
     Returns
     -------
-    iss : dict
+    out : dict
         The intensity-scale object.
 
     """
-    iss = {}
-    iss["name"] = name
-    iss["SS"] = None
-    iss["thrs"] = thrs[:]
-    iss["scales"] = scales
-    iss["wavelet"] = wavelet
-    iss["n"] = None
-    iss["shape"] = None
+    intscale = {}
+    intscale["name"] = name
+    intscale["SS"] = None
+    intscale["thrs"] = thrs[:]
+    intscale["scales"] = scales
+    intscale["wavelet"] = wavelet
+    intscale["n"] = None
+    intscale["shape"] = None
     if name.lower() == "fss":
-        iss["label"] = "Fractions skill score"
-        del iss["wavelet"]
+        intscale["label"] = "Fractions skill score"
+        del intscale["wavelet"]
     if name.lower() == "bmse":
-        iss["label"] = "Binary MSE skill score"
-        iss["scales"] = None
+        intscale["label"] = "Binary MSE skill score"
+        intscale["scales"] = None
     if name.lower() == "fss" and scales is None:
         message = "a sequence of scales must be provided for the FSS,"
         message += " but %s was passed" % scales
         raise ValueError(message)
-    return iss
+    return intscale
 
 
-def intensity_scale_accum(iss, X_f, X_o):
+def intensity_scale_accum(intscale, X_f, X_o):
     """Compute and update the intensity-scale verification scores.
 
     Parameters
     ----------
-    iss : dict
-        An intensity-scale object created with intensity_scale_init.
+    intscale : dict
+        The intensity-scale object.
     X_f : array_like
         Array of shape (n,m) containing the forecast field.
     X_o : array_like
         Array of shape (n,m) containing the verification observation field.
-
-    Returns
-    -------
-    iss : dict
-        A dictionary with the following key-value pairs:
-
-        +--------------+------------------------------------------------------+
-        |       Key    |                Value                                 |
-        +==============+======================================================+
-        |  name        | the name of the intensity-scale skill score          |
-        +--------------+------------------------------------------------------+
-        |  SS          | two-dimensional array containing the intensity-scale |
-        |              | skill scores for each spatial scale and intensity    |
-        |              | threshold                                            |
-        +--------------+------------------------------------------------------+
-        |  scales      | the spatial scales,                                  |
-        |              | corresponds to the first index of SS                 |
-        +--------------+------------------------------------------------------+
-        |  thrs        | the used intensity thresholds in increasing order,   |
-        |              | corresponds to the second index of SS                |
-        +--------------+------------------------------------------------------+
-        |  n           | the number of verified fct-obs pairs that were       |
-        |              | averaged                                             |
-        +--------------+------------------------------------------------------+
-        |  shape       | the shape of the fct-obs fields                      |
-        +--------------+------------------------------------------------------+
-
     """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
         message = "X_f and X_o must be two-dimensional arrays"
@@ -109,15 +127,15 @@ def intensity_scale_accum(iss, X_f, X_o):
         message += "X_f = %s and X_o = %s" % (str(X_f.shape), str(X_o.shape))
         raise ValueError(message)
 
-    if iss["shape"] is not None and X_f.shape != iss["shape"]:
+    if intscale["shape"] is not None and X_f.shape != intscale["shape"]:
         message = "X_f and X_o shapes do not match the shape"
         message += " of the intensity-scale object"
         raise ValueError(message)
 
-    if iss["shape"] is None:
-        iss["shape"] = X_f.shape
+    if intscale["shape"] is None:
+        intscale["shape"] = X_f.shape
 
-    thrs = iss["thrs"]
+    thrs = intscale["thrs"]
     thr_min = np.min(thrs)
     n_thrs = len(thrs)
 
@@ -126,36 +144,53 @@ def intensity_scale_accum(iss, X_f, X_o):
     X_o = X_o.copy()
     X_o[~np.isfinite(X_o)] = thr_min - 1
 
-    if iss["name"].lower() == "bmse":
+    if intscale["name"].lower() == "bmse":
         SS = None
         n_thrs = len(thrs)
         for i in range(n_thrs):
-            SS_, scales = binary_mse(X_f, X_o, thrs[i], iss["wavelet"])
+            SS_, scales = binary_mse(X_f, X_o, thrs[i], intscale["wavelet"])
             if SS is None:
                 SS = np.empty((SS_.size, n_thrs))
             SS[:, i] = SS_
-        if iss["scales"] is None:
-            iss["scales"] = scales
-    elif iss["name"].lower() == "fss":
-        scales = iss["scales"]
+        if intscale["scales"] is None:
+            intscale["scales"] = scales
+    elif intscale["name"].lower() == "fss":
+        scales = intscale["scales"]
         n_scales = len(scales)
         SS = np.empty((n_scales, n_thrs))
         for i in range(n_thrs):
             for j in range(n_scales):
                 SS[j, i] = fss(X_f, X_o, thrs[i], scales[j])
     else:
-        raise ValueError("unknown method %s" % iss["name"])
+        raise ValueError("unknown method %s" % intscale["name"])
 
     # update scores
-    if iss["n"] is None:
-        iss["n"] = np.ones(SS.shape, dtype=int)
-    iss["n"] += (~np.isnan(SS)).astype(int)
+    if intscale["n"] is None:
+        intscale["n"] = np.ones(SS.shape, dtype=int)
+    intscale["n"] += (~np.isnan(SS)).astype(int)
 
-    if iss["SS"] is None:
-        iss["SS"] = SS
+    if intscale["SS"] is None:
+        intscale["SS"] = SS
     else:
-        iss["SS"] += np.nansum((SS, -1*iss["SS"]), axis=0)/iss["n"]
-    return iss
+        intscale["SS"] += np.nansum((SS, -1*intscale["SS"]), axis=0)/intscale["n"]
+
+
+def intensity_scale_compute(intscale):
+    """Return the intensity scale matrix.
+
+    Parameters
+    ----------
+    intscale : dict
+        The intensity-scale object.
+
+    Returns
+    -------
+    out : array_like
+        The two-dimensional array containing the intensity-scale skill scores
+        for each given spatial scale and intensity threshold.
+
+    """
+    return intscale["SS"]
 
 
 def binary_mse(X_f, X_o, thr, wavelet="haar"):

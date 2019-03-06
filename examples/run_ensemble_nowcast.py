@@ -52,7 +52,7 @@ n_ens_members       = 3
 n_cascade_levels    = 6
 ar_order            = 2
 r_threshold         = 0.1               # rain/no-rain threshold [mm/h]
-adjust_noise        = 'auto'
+adjust_noise        = "auto"
 mask_method         = "incremental"     # sprog, obs or incremental
 conditional         = False
 unit                = "mm/h"            # mm/h or dBZ
@@ -164,8 +164,7 @@ metadata_obs["threshold"] = r_threshold
 ## compute the average continuous ranked probability score (CRPS)
 scores = np.zeros(n_lead_times)*np.nan
 for i in range(n_lead_times):
-    scores[i] = stp.vf.CRPS(R_fct[:,i,:,:].reshape((n_ens_members, -1)).transpose(),
-                            R_obs[i,:,:].flatten())
+    scores[i] = stp.verification.CRPS(R_fct[:,i,:,:], R_obs[i,:,:])
 
 ## if already exists, load the figure object to append the new verification results
 filename = "%s/%s" % (stp.rcparams.outputs.path_outputs, "verif_ensemble_nwc_example")

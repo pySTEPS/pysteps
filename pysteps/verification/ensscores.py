@@ -59,6 +59,7 @@ def ensemble_skill(X_f, X_o, metric, **kwargs):
 
     return np.mean(skill)
 
+
 def ensemble_spread(X_f, metric, **kwargs):
     """Compute mean ensemble spread for a given skill metric.
 
@@ -112,6 +113,33 @@ def ensemble_spread(X_f, metric, **kwargs):
 
     return np.mean(skill)
 
+
+def rankhist(X_f, X_o, num_ens_members, X_min=None, normalize=True):
+    """Compute a rank histogram counts and optionally normalize the histogram.
+
+    Parameters
+    ----------
+    X_f : array-like
+        Array of shape (k,m,n,...) containing the values from an ensemble
+        forecast of k members with shape (m,n,...).
+    X_o : array_like
+        Array of shape (m,n,...) containing the observed values corresponding
+        to the forecast.
+    X_min : {float,None}
+        Threshold for minimum intensity. Forecast-observation pairs, where all
+        ensemble members and verifying observations are below X_min, are not
+        counted in the rank histogram. If set to None, thresholding is not used.
+
+    """
+
+    X_f = X_f.copy()
+    X_o = X_o.copy()
+    num_ens_members = X_f.shape[0]
+    rhist = rankhist_init(num_ens_members, X_min)
+    rankhist_accum(rhist, X_f, X_o)
+    return rankhist_compute(rhist, normalize)
+
+
 def rankhist_init(num_ens_members, X_min=None):
     """Initialize a rank histogram object.
 
@@ -139,16 +167,19 @@ def rankhist_init(num_ens_members, X_min=None):
 
     return rankhist
 
+
 def rankhist_accum(rankhist, X_f, X_o):
     """Accumulate forecast-observation pairs to the given rank histogram.
 
     Parameters
     ----------
+    rankhist : dict
+      The rank histogram object.
     X_f : array-like
-        Array of shape (k,m,n,...) containing the values from an ensemble 
+        Array of shape (k,m,n,...) containing the values from an ensemble
         forecast of k members with shape (m,n,...).
     X_o : array_like
-        Array of shape (m,n,...) containing the observed values corresponding 
+        Array of shape (m,n,...) containing the observed values corresponding
         to the forecast.
 
     """
@@ -199,6 +230,7 @@ def rankhist_accum(rankhist, X_f, X_o):
 
     for bi in bin_idx:
         rankhist["n"][bi] += 1
+
 
 def rankhist_compute(rankhist, normalize=True):
     """Return the rank histogram counts and optionally normalize the histogram.
