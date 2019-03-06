@@ -42,8 +42,8 @@ install:
 
   # Install pySTEPS
   # ---------------
-  - python setup.py install
+  - python setup.py install --user
   - python -c "import pysteps; import cartopy; print('Version ', cartopy.__version__)"
 
 script:
-- pytest
+- pytest --pyargs pysteps
