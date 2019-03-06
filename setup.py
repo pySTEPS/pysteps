@@ -15,7 +15,6 @@ _vet_extension_arguments = dict(extra_compile_args=['-fopenmp'],
                                 include_dirs=[numpy.get_include()],
                                 language='c',
                                 extra_link_args=['-fopenmp'])
-print("_vet extension arguments: ", _vet_extension_arguments)
 
 try:
     from Cython.Build.Dependencies import cythonize
@@ -25,7 +24,6 @@ try:
                                    **_vet_extension_arguments)
 
     external_modules = cythonize([_vet_lib_extension])
-    print("External Modules Cython: ", external_modules)
 
 except ImportError:
     raise RuntimeError(
@@ -57,5 +55,4 @@ setup(
     ext_modules=external_modules,
     setup_requires=requirements,
     install_requires=requirements,
-    zip_safe=False,
 )
