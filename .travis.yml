@@ -32,9 +32,9 @@ install:
 
   # Conda debug
   # -----------
-  - conda list -n $ENV_NAME
-  - conda list -n $ENV_NAME --explicit
-  - conda info -a
+  # - conda list -n $ENV_NAME
+  # - conda list -n $ENV_NAME --explicit
+  # - conda info -a
 
   # - MPL_CONFIG_DIR=~/.config/matplotlib
   # - mkdir -p $MPL_CONFIG_DIR
@@ -42,7 +42,7 @@ install:
 
   # Install pySTEPS
   # ---------------
-  - python setup.py install --user
+  - python setup.py install
   - python -c "import pysteps; import cartopy; print('Version ', cartopy.__version__)"
 
 script:
