@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.com/pySTEPS/pysteps.svg?branch=master)](https://travis-ci.com/pySTEPS/pysteps)
+.. image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
+    :target: https://travis-ci.com/pySTEPS/pysteps
 
 =======
 pySTEPS
