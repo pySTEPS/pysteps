@@ -26,6 +26,8 @@ try:
     external_modules = cythonize([_vet_lib_extension])
 
 except ImportError:
+    raise RuntimeError(
+        "Cython Cythonize required to run pysteps")
     _vet_lib_extension = Extension(str(str("pysteps.motion._vet")),
                                    sources=[str('pysteps/motion/_vet.c')],
                                    **_vet_extension_arguments)
