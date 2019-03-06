@@ -42,7 +42,7 @@ install:
 
   # Install pySTEPS
   # ---------------
-  - python setup.py 
+  - python setup.py install;
 
 script:
 - pytest -n 4 --pyargs pysteps;
