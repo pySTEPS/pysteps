@@ -50,4 +50,8 @@ install:
 
 script:
 - cd ~ 
-- pytest --pyargs pysteps
+- pytest --pyargs pysteps --cov=pysteps -ra;
+
+after_success:
+  - coveralls
+
