@@ -18,12 +18,13 @@ four-dimensional array of shape (num_ensemble_members,num_timesteps,m,n).
 The time step of the output is taken from the inputs.
 """
 from pysteps.extrapolation.interface import eulerian_persistence
-from pysteps.nowcasts import steps, sseps, extrapolation
+from pysteps.nowcasts import sprog, steps, sseps, extrapolation
 
 _nowcast_methods = dict()
 _nowcast_methods["eulerian"] = eulerian_persistence
 _nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["extrapolation"] = extrapolation.forecast
+_nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["steps"] = steps.forecast
 _nowcast_methods["sseps"] = sseps.forecast
 
@@ -37,22 +38,24 @@ def get_method(name):
 
     Implemented methods:
 
-    +-------------------+-----------------------------------------------------+
-    |     Name          |              Description                            |
-    +===================+=====================================================+
-    |  eulerian         | this approach keeps the last observation frozen     |
-    |                   | (Eulerian persistence)                              |
-    +-------------------+-----------------------------------------------------+
-    |  lagrangian or    | this approach extrapolates the last observation     |
-    |  extrapolation    | using the motion field (Lagrangian persistence)     |
-    +-------------------+-----------------------------------------------------+
-    |  steps            | implementation of the STEPS stochastic nowcasting   |
-    |                   | method described in :cite:`Seed2003`,               |
-    |                   | :cite:`BPS2006` and :cite:`SPN2013`                 |
-    +-------------------+-----------------------------------------------------+
-    |  sseps            | short-space ensemble prediction system (SSEPS).     |
-    |                   | Essentially, this is a localization of STEPS.       |
-    +-------------------+-----------------------------------------------------+
+    +-------------------+-------------------------------------------------------+
+    |     Name          |              Description                              |
+    +===================+=======================================================+
+    |  eulerian         | this approach keeps the last observation frozen       |
+    |                   | (Eulerian persistence)                                |
+    +-------------------+-------------------------------------------------------+
+    |  lagrangian or    | this approach extrapolates the last observation       |
+    |  extrapolation    | using the motion field (Lagrangian persistence)       |
+    +-------------------+-------------------------------------------------------+
+    |  sprog            | the S-PROG method described in :cite:`Seed2003`       |
+    +-------------------+-------------------------------------------------------+
+    |  steps            | the STEPS stochastic nowcasting method described in   |
+    |                   | :cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013` |              |
+    |                   |                                                       |
+    +-------------------+-------------------------------------------------------+
+    |  sseps            | short-space ensemble prediction system (SSEPS).       |
+    |                   | Essentially, this is a localization of STEPS.         |
+    +-------------------+-------------------------------------------------------+
 
     steps and sseps produce stochastic nowcasts, and the other methods are
     deterministic.
