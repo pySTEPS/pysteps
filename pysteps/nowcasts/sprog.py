@@ -10,7 +10,7 @@ from pysteps import extrapolation
 from pysteps import utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-import pysteps.nowcasts.utils as nowcast_utils
+from pysteps.nowcasts import utils as nowcast_utils
 
 try:
     import dask
