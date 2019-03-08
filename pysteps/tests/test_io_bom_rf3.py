@@ -17,7 +17,7 @@ test_metadata_bom = [
     ('transform', None),
     ('zerovalue', 0.0),
     ('projection',
-     '+proj=aea  +lon_0=144.752 +lat_0=-37.852 +lat_1=-18.0 +lat_2=-36.0'),
+     '+proj=aea  +lon_0=144.752 +lat_0=-37.852 +lat_1=-18.000 +lat_2=-36.000'),
     ('unit', 'mm'),
     ('accutime', 6),
     ('x1', -128000.0),
@@ -42,7 +42,7 @@ def test_io_import_bom_rf3_metadata(variable, expected):
 
 test_geodata_bom = [
     ('projection',
-     '+proj=aea  +lon_0=144.752 +lat_0=-37.852 +lat_1=-18.0 +lat_2=-36.0'),
+     '+proj=aea  +lon_0=144.752 +lat_0=-37.852 +lat_1=-18.000 +lat_2=-36.000'),
     ('unit', 'mm'),
     ('accutime', 6),
     ('x1', -128000.0),
