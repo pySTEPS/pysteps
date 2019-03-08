@@ -158,14 +158,14 @@ def _import_bom_rf3_geodata(filename):
             projdef = "+proj=aea "
             lon_0 = getattr(projection,
                             'longitude_of_central_meridian')
-            projdef += " +lon_0=" + str(lon_0)
+            projdef += " +lon_0=" + f'{lon_0:.3f}'
             lat_0 = getattr(projection,
                             'latitude_of_projection_origin')
-            projdef += " +lat_0=" + str(lat_0)
+            projdef += " +lat_0=" + f'{lat_0:.3f}'
             standard_parallels = getattr(projection,
                                          'standard_parallel')
-            projdef += " +lat_1=" + str(standard_parallels[0])
-            projdef += " +lat_2=" + str(standard_parallels[1])
+            projdef += " +lat_1=" + f'{standard_parallels[0]:.3f}'
+            projdef += " +lat_2=" + f'{standard_parallels[1]:.3f}'
         else:
             projdef = None
     geodata["projection"] = projdef
