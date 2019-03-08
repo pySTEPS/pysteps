@@ -9,52 +9,52 @@ implements the following interface:
   initialize_forecast_exporter_xxx(filename, startdate, timestep,
   num_timesteps, shape, num_ens_members, metadata, incremental=None)
 
-  where xxx describes the file format.
-  This function creates the file and writes the metadata.
-  The datasets are written by calling export_forecast_dataset, and
-  the file is closed by calling close_forecast_file.
+where xxx describes the file format.
+This function creates the file and writes the metadata.
+The datasets are written by calling export_forecast_dataset, and
+the file is closed by calling close_forecast_file.
 
-  The arguments in the above are defined as follows:
+The arguments in the above are defined as follows:
 
-  .. tabularcolumns:: |p{2.3cm}|p{2.5cm}|L|
+.. tabularcolumns:: |p{2cm}|p{2cm}|L|
 
-  +---------------+-------------------+---------------------------------------+
-  |   Argument    | Type/values       |             Description               |
-  +===============+===================+=======================================+
-  |   filename    | str               | name of the output file               |
-  +---------------+-------------------+---------------------------------------+
-  | startdate     | datetime.datetime | start date of the forecast            |
-  +---------------+-------------------+---------------------------------------+
-  | timestep      | int               | time step of the forecast (minutes)   |
-  +---------------+-------------------+---------------------------------------+
-  | n_timesteps   | int               | number of time steps in the forecast  |
-  |               |                   | this argument is ignored if           |
-  |               |                   | incremental is set to 'timestep'.     |
-  +---------------+-------------------+---------------------------------------+
-  | shape         | tuple             | two-element tuple defining the shape  |
-  |               |                   | (height,width) of the forecast grids  |
-  +---------------+-------------------+---------------------------------------+
-  | n_ens_members | int               | number of ensemble members in the     |
-  |               |                   | forecast. This argument is ignored if |
-  |               |                   | incremental is set to 'member'        |
-  +-----------------+-------------------+-------------------------------------+
-  | metadata      | dict              | metadata dictionary containing the    |
-  |               |                   | projection,x1,x2,y1,y2 and unit       |
-  |               |                   | attributes described in the           |
-  |               |                   | documentation of pysteps.io.importers |
-  +---------------+-------------------+---------------------------------------+
-  | incremental   | {'timestep',      | Allow incremental writing of datasets |
-  |               | 'member'}         | into the netCDF file                  |
-  |               |                   | the available options are:            |
-  |               |                   | 'timestep' = write a forecast or a    |
-  |               |                   | forecast ensemble for a given         |
-  |               |                   | time step                             |
-  |               |                   | 'member' = write a forecast sequence  |
-  |               |                   | for a given ensemble member           |
-  +---------------+-------------------+---------------------------------------+
++---------------+-------------------+-----------------------------------------+
+|   Argument    | Type/values       |             Description                 |
++===============+===================+=========================================+
+|   filename    | str               | name of the output file                 |
++---------------+-------------------+-----------------------------------------+
+| startdate     | datetime.datetime | start date of the forecast              |
++---------------+-------------------+-----------------------------------------+
+| timestep      | int               | time step of the forecast (minutes)     |
++---------------+-------------------+-----------------------------------------+
+| n_timesteps   | int               | number of time steps in the forecast    |
+|               |                   | this argument is ignored if             |
+|               |                   | incremental is set to 'timestep'.       |
++---------------+-------------------+-----------------------------------------+
+| shape         | tuple             | two-element tuple defining the shape    |
+|               |                   | (height,width) of the forecast grids    |
++---------------+-------------------+-----------------------------------------+
+| n_ens_members | int               | number of ensemble members in the       |
+|               |                   | forecast. This argument is ignored if   |
+|               |                   | incremental is set to 'member'          |
++-----------------+-------------------+---------------------------------------+
+| metadata      | dict              | metadata dictionary containing the      |
+|               |                   | projection,x1,x2,y1,y2 and unit         |
+|               |                   | attributes described in the             |
+|               |                   | documentation of pysteps.io.importers   |
++---------------+-------------------+-----------------------------------------+
+| incremental   | {'timestep',      | Allow incremental writing of datasets   |
+|               | 'member'}         | into the netCDF file                    |
+|               |                   | the available options are:              |
+|               |                   | 'timestep' = write a forecast or a      |
+|               |                   | forecast ensemble for a given           |
+|               |                   | time step                               |
+|               |                   | 'member' = write a forecast sequence    |
+|               |                   | for a given ensemble member             |
++---------------+-------------------+-----------------------------------------+
 
-  The return value is a dictionary containing an exporter object. This can be
-  used with export_forecast_dataset to write datasets into the given file format.
+The return value is a dictionary containing an exporter object. This can be
+used with export_forecast_dataset to write datasets into the given file format.
 
 """
 
@@ -80,9 +80,8 @@ except ImportError:
 def initialize_forecast_exporter_kineros(filename, startdate, timestep,
                                         n_timesteps, shape, n_ens_members,
                                         metadata, incremental=None):
-    """Initialize a KINEROS2 Rainfall file as specified in:
-
-        https://www.tucson.ars.ag.gov/kineros/
+    """Initialize a KINEROS2 Rainfall file as specified 
+    in https://www.tucson.ars.ag.gov/kineros/
 
     Grid points are treated as individual rain gauges and a separate file is
     produced for each ensemble memeber.
