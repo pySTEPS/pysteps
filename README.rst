@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
+    :target: https://travis-ci.com/pySTEPS/pysteps
+
 =======
 pySTEPS
 =======

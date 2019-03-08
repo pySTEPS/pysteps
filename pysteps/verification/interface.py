@@ -127,33 +127,33 @@ def get_method(name, type="deterministic"):
             return binary_mse
         elif name in ["fss"]:
             return fss
+            
         else:
             raise ValueError("unknown deterministic method %s" % name)
 
     elif type in ["ensemble"]:
 
-        from .ensscores import ensemble_skill, ensemble_spread, rankhist_init, \
-          rankhist_accum, rankhist_compute
+        from .ensscores import ensemble_skill, ensemble_spread, rankhist
 
         if name in ["ens_skill"]:
             return ensemble_skill
         elif name in ["ens_spread"]:
             return ensemble_spread
         elif name in ["rankhist"]:
-            return rankhist_init, rankhist_accum, rankhist_compute
+            return rankhist
         else:
             raise ValueError("unknown ensemble method %s" % name)
 
     elif type in ["probabilistic"]:
 
-        from .probscores import CRPS, reldiag_init, reldiag_accum, reldiag_compute, ROC_curve_init, ROC_curve_accum, ROC_curve_compute
+        from .probscores import CRPS, reldiag, ROC_curve
 
         if name in ["crps"]:
             return CRPS
         elif name in ["reldiag"]:
-            return reldiag_init, reldiag_accum, reldiag_compute
+            return reldiag
         elif name in ["roc"]:
-            return ROC_curve_init, ROC_curve_accum, ROC_curve_compute
+            return ROC_curve
         else:
             raise ValueError("unknown probabilistic method %s" % name)
 

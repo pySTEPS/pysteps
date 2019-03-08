@@ -56,11 +56,11 @@ def get_method(name, **kwargs):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
-    |  numpy_fft        | numpy.fft                                              |
+    |  numpy            | numpy.fft                                              |
     +-------------------+--------------------------------------------------------+
-    |  scipy_fft        | scipy.fftpack                                          |
+    |  scipy            | scipy.fftpack                                          |
     +-------------------+--------------------------------------------------------+
-    |  pyfftw_fft       | pyfftw.interfaces.numpy_fft                            |
+    |  pyfftw           | pyfftw.interfaces.numpy_fft                            |
     +-------------------+--------------------------------------------------------+
 
     Additional keyword arguments are passed to the initializer of the FFT 

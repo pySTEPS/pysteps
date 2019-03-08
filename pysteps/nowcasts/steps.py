@@ -12,6 +12,7 @@ from pysteps import noise
 from pysteps import utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.nowcasts import utils as nowcast_utils
 
 try:
     import dask
@@ -25,14 +26,12 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              R_thr=None, kmperpixel=None, timestep=None,
              extrap_method="semilagrangian", decomp_method="fft",
              bandpass_filter_method="gaussian", noise_method="nonparametric",
-             noise_stddev_adj=None, ar_order=2,
-             vel_pert_method="bps", conditional=False,
-             probmatching_method="cdf",
+             noise_stddev_adj=None, ar_order=2, vel_pert_method="bps",
+             conditional=False, probmatching_method="cdf",
              mask_method="incremental", callback=None, return_output=True,
              seed=None, num_workers=1, fft_method="numpy", extrap_kwargs=None,
              filter_kwargs=None, noise_kwargs=None, vel_pert_kwargs=None,
-             mask_kwargs=None,
-             measure_time=False):
+             mask_kwargs=None, measure_time=False):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
 
@@ -40,8 +39,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     ----------
     R : array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
-      ordered by timestamp from oldest to newest. The time steps between the inputs
-      are assumed to be regular, and the inputs are required to have finite values.
+      ordered by timestamp from oldest to newest. The time steps between the
+      inputs are assumed to be regular, and the inputs are required to have
+      finite values.
     V : array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
@@ -305,7 +305,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
-    if vel_pert_method is "bps":
+    if vel_pert_method == "bps":
         vp_par = vel_pert_kwargs.get("p_par", noise.motion.get_default_params_bps_par())
         vp_perp = vel_pert_kwargs.get("p_perp", noise.motion.get_default_params_bps_perp())
         print("velocity perturbations, parallel:      %g,%g,%g" % \
@@ -407,7 +407,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     # normalize the cascades and rearrange them into a four-dimensional array
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c, mu, sigma = _stack_cascades(R_d, n_cascade_levels)
+    R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
     R_d = None
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
@@ -417,7 +417,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
     R_c_ = None
 
-    _print_corrcoefs(GAMMA)
+    nowcast_utils.print_corrcoefs(GAMMA)
 
     if ar_order == 2:
         # adjust the lag-2 correlation coefficient to ensure that the AR(p)
@@ -431,7 +431,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     for i in range(n_cascade_levels):
         PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
 
-    _print_ar_params(PHI, False)
+    nowcast_utils.print_ar_params(PHI)
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
@@ -525,7 +525,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                 R_m[i, :, :, :] = \
                     autoregression.iterate_ar_model(R_m[i, :, :, :], PHI[i, :])
 
-            R_m_ = _recompose_cascade(R_m, mu, sigma)
+            R_m_ = nowcast_utils.recompose_cascade(R_m[:, -1, :, :], mu, sigma)
 
             if mask_method == "sprog":
                 MASK_prec = _compute_sprog_mask(R_m_, war)
@@ -564,7 +564,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
             # compute the recomposed precipitation field(s) from the cascades
             # obtained from the AR(p) model(s)
-            R_c_ = _recompose_cascade(R_c[j, :, :, :], mu, sigma)
+            R_c_ = nowcast_utils.recompose_cascade(R_c[j, :, -1, :, :], mu, sigma)
 
             if mask_method is not None:
                 # apply the precipitation mask to prevent generation of new
@@ -693,90 +693,3 @@ def _compute_sprog_mask(R, war):
     # determine a mask using the above threshold value to preserve the
     # wet-area ratio
     return R >= R_pct_thr
-
-def _print_ar_params(PHI, include_perturb_term):
-    print("****************************************")
-    print("* AR(p) parameters for cascade levels: *")
-    print("****************************************")
-
-    n = PHI.shape[1]
-
-    hline_str = "---------"
-    for k in range(n):
-        hline_str += "---------------"
-
-    print(hline_str)
-    title_str = "| Level |"
-    for k in range(n - 1):
-        title_str += "    Phi-%d     |" % (k + 1)
-    title_str += "    Phi-0     |"
-    print(title_str)
-    print(hline_str)
-
-    fmt_str = "| %-5d |"
-    for k in range(n):
-        fmt_str += " %-12.6f |"
-
-    for k in range(PHI.shape[0]):
-        print(fmt_str % ((k + 1,) + tuple(PHI[k, :])))
-        print(hline_str)
-
-
-def _print_corrcoefs(GAMMA):
-    print("************************************************")
-    print("* Correlation coefficients for cascade levels: *")
-    print("************************************************")
-
-    m = GAMMA.shape[0]
-    n = GAMMA.shape[1]
-
-    hline_str = "---------"
-    for k in range(n):
-        hline_str += "----------------"
-
-    print(hline_str)
-    title_str = "| Level |"
-    for k in range(n):
-        title_str += "     Lag-%d     |" % (k + 1)
-    print(title_str)
-    print(hline_str)
-
-    fmt_str = "| %-5d |"
-    for k in range(n):
-        fmt_str += " %-13.6f |"
-
-    for k in range(m):
-        print(fmt_str % ((k + 1,) + tuple(GAMMA[k, :])))
-        print(hline_str)
-
-
-def _stack_cascades(R_d, n_levels, donorm=True):
-    R_c = []
-    mu = np.empty(n_levels)
-    sigma = np.empty(n_levels)
-
-    n_inputs = len(R_d)
-
-    for i in range(n_levels):
-        R_ = []
-        mu_ = 0
-        sigma_ = 1
-        for j in range(n_inputs):
-            if donorm:
-                mu_ = R_d[j]["means"][i]
-                sigma_ = R_d[j]["stds"][i]
-            if j == n_inputs - 1:
-                mu[i] = mu_
-                sigma[i] = sigma_
-            R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
-            R_.append(R__)
-        R_c.append(np.stack(R_))
-
-    return np.stack(R_c), mu, sigma
-
-
-def _recompose_cascade(R, mu, sigma):
-    R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
-    R_rc = np.sum(np.stack(R_rc), axis=0)
-
-    return R_rc
