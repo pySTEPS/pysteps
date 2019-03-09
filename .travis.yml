@@ -10,7 +10,7 @@ sudo: false
 install:
   # Install miniconda
   # -----------------
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  - travis_retry wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
 
@@ -20,7 +20,7 @@ install:
   - conda config --add channels conda-forge
   - conda config --add channels conda-forge/label/testing
   - ENV_NAME="test-environment"
-  - conda create -n $ENV_NAME python=$PYTHON_VERSION
+  - travis_retry conda create -n $ENV_NAME python=$PYTHON_VERSION
   - source activate $ENV_NAME
 
   # Customise the testing environment
@@ -28,7 +28,7 @@ install:
   - PACKAGES="$PACKAGES dask pyfftw cartopy basemap h5py"
   - PACKAGES="$PACKAGES pytest pytest-cov coveralls";
   - export CYTHON_COVERAGE=1;
-  - conda install --quiet $PACKAGES
+  - travis_retry conda install --quiet $PACKAGES
 
   # Conda debug
   # -----------
