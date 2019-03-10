@@ -12,9 +12,9 @@ def det_cat_fcst(pred, obs, thr, scores):
         predictions
     obs : array_like
         verifying observations
-    scores : list
-        a list containing the names of the scores to be computed, the full list
-        is:
+    score : string or list of strings
+        a string or list of strings specifying the name of the scores.
+        The list of possible score names is:
 
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
