@@ -46,6 +46,19 @@ def det_cat_fcst(pred, obs, thr, scores):
         the verification results
 
     """
+    # checks
+    pred = np.asarray(pred)
+    obs = np.asarray(obs)
+
+    def get_iterable(x):
+        import collections
+        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+            return x
+        else:
+            return (x,)
+
+    scores = get_iterable(scores)
+
     # flatten array if 2D
     pred = pred.flatten()
     obs = obs.flatten()
@@ -68,6 +81,9 @@ def det_cat_fcst(pred, obs, thr, scores):
 
     result = []
     for score in scores:
+
+        if score is None:
+            continue
 
         score = score.lower()
 
