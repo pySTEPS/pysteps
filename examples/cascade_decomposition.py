@@ -36,7 +36,7 @@ import pysteps as stp
 
 ## input data (copy/paste values from table above)
 startdate_str = "201701311030"
-data_source   = "mch"
+data_source   = "mch_hdf5"
 
 ## parameters
 r_threshold         = 0.1 # [mm/h]
@@ -116,9 +116,9 @@ for k in range(num_cascade_levels):
 ax.set_xlim(1, L/2)
 ax.set_ylim(0, 1)
 ax.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
-xt = np.hstack([[1.0], filter["central_freqs"][1:]])
+xt = np.hstack([[1.0], filter["central_wavenumbers"][1:]])
 ax.set_xticks(xt)
-ax.set_xticklabels(["%.2f" % cf for cf in filter["central_freqs"]])
+ax.set_xticklabels(["%.2f" % cf for cf in filter["central_wavenumbers"]])
 ax.set_xlabel("Radial wavenumber $|\mathbf{k}|$")
 ax.set_ylabel("Normalized weight")
 ax.set_title("Bandpass filter weights")
@@ -146,8 +146,8 @@ for k in range(num_cascade_levels+1):
         cb.set_label("Rainfall rate (dBR)")
         plt.xticks([])
         plt.yticks([])
-        if filter["central_freqs"][k-1]==0:
+        if filter["central_wavenumbers"][k-1]==0:
             plt.title("Normalized cascade level %d (%i km)" % (k, L*grid_res_km))
         else:
-            plt.title("Normalized cascade level %d (%i km)" % (k, L*1./filter["central_freqs"][k-1]*grid_res_km))
+            plt.title("Normalized cascade level %d (%i km)" % (k, L*1./filter["central_wavenumbers"][k-1]*grid_res_km))
 plt.show()
