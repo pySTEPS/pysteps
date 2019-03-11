@@ -4,7 +4,7 @@ import numpy as np
 
 def adjust_lag2_corrcoef1(gamma_1, gamma_2):
     """A simple adjustment of lag-2 temporal autocorrelation coefficient to
-    ensure that the resulting AR(2) process is stationary when the parameters 
+    ensure that the resulting AR(2) process is stationary when the parameters
     are estimated from the Yule-Walker equations.
 
     Parameters
@@ -26,8 +26,8 @@ def adjust_lag2_corrcoef1(gamma_1, gamma_2):
     return gamma_2
 
 def adjust_lag2_corrcoef2(gamma_1, gamma_2):
-    """A more advanced adjustment of lag-2 temporal autocorrelation coefficient 
-    to ensure that the resulting AR(2) process is stationary when the parameters 
+    """A more advanced adjustment of lag-2 temporal autocorrelation coefficient
+    to ensure that the resulting AR(2) process is stationary when the parameters
     are estimated from the Yule-Walker equations.
 
     Parameters
@@ -45,7 +45,7 @@ def adjust_lag2_corrcoef2(gamma_1, gamma_2):
     """
     gamma_2 = max(gamma_2, 2*gamma_1*gamma_2-1)
     gamma_2 = max(gamma_2, (3*gamma_1**2-2+2*(1-gamma_1**2)**1.5) / gamma_1**2)
-    
+
     return gamma_2
 
 def estimate_ar_params_yw(gamma):
@@ -137,3 +137,38 @@ def iterate_ar_model(X, phi, EPS=None):
         X_new += phi[-1] * EPS
 
     return np.stack(list(X[1:, :, :]) + [X_new])
+
+def ar_acf(gamma, n=None):
+    """Compute theoretical autocorrelation function (ACF) from the AR(p) model
+    with lag-l, l=1,2,...,p temporal autocorrelation coefficients.
+
+    Parameters
+    ----------
+    gamma : array-like
+      Array of length p containing the lag-l, l=1,2,...p, temporal autocorrelation
+      coefficients. The correlation coefficients are assumed to be in ascending
+      order with respect to time lag.
+    n : int
+      Desired length of ACF array. Must be greater than len(gamma).
+
+    Returns
+    -------
+    out : array-like
+      Array containing the ACF values.
+
+    """
+    ar_order = len(gamma)
+    if n == ar_order or n is None:
+        return gamma
+    elif n < ar_order:
+        raise ValueError("n=%i, but must be larger than the order of the AR process %i" % (n,ar_order))
+
+    phi = estimate_ar_params_yw(gamma)[:-1]
+
+    acf = gamma.copy()
+    for t in range(0, n - ar_order):
+        rhos = acf[t:t + ar_order]
+        rho = np.sum(rhos*phi)
+        acf.append(rho)
+
+    return acf
