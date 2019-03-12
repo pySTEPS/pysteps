@@ -167,8 +167,10 @@ def ar_acf(gamma, n=None):
 
     acf = gamma.copy()
     for t in range(0, n - ar_order):
-        rhos = acf[t:t + ar_order]
-        rho = np.sum(rhos*phi)
-        acf.append(rho)
+        # Retrieve gammas (in reverse order)
+        gammas = acf[t:t + ar_order][::-1]
+        # Compute next gamma
+        gamma_ = np.sum(gammas*phi)
+        acf.append(gamma_)
 
     return acf
