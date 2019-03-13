@@ -3,8 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXPATH    = /usr/share/sphinx/scripts/python3
-SPHINXBUILD   = ${SPHINXPATH}/sphinx-build
+SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = pysteps
 SOURCEDIR     = .
 BUILDDIR      = _build
