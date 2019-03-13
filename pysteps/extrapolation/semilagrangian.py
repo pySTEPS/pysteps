@@ -1,4 +1,5 @@
-"""Implementation of the semi-Lagrangian method of Germann et al (2002)."""
+"""Implementation of the semi-Lagrangian method of Germann et al (2002).
+:cite:`GZ2002`"""
 
 import time
 
@@ -51,19 +52,20 @@ def extrapolate(precip, velocity, num_timesteps,
         Default : True
     return_displacement : bool
         If True, return the total advection velocity (displacement) between the
-        initial input field and the advected one integrated along the trajectory.
-        Default : False
+        initial input field and the advected one integrated along
+        the trajectory. Default : False
 
     Returns
     -------
     out : array or tuple
-        If return_displacement=False, return a time series extrapolated fields of
-        shape (num_timesteps,m,n). Otherwise, return a tuple containing the
-        extrapolated fields and the total displacement along the advection trajectory.
+        If return_displacement=False, return a time series extrapolated fields
+        of shape (num_timesteps,m,n). Otherwise, return a tuple containing the
+        extrapolated fields and the total displacement along the advection
+        trajectory.
 
     References
     ----------
-    :cite:`GZ2002`
+    :cite:`GZ2002` Germann et al (2002)
 
     """
     if len(precip.shape) != 2:

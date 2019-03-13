@@ -1,14 +1,15 @@
 """
 The methods in the extrapolation module implement the following interface:
 
-    extrapolate(extrap, precip, velocity, num_timesteps, outval=np.nan, **keywords)
+    ``extrapolate(extrap, precip, velocity, num_timesteps,
+    outval=np.nan, **keywords)``
 
-where extrap is an extrapolator object returned by the initialize function,
-precip is a (m,n) array with input precipitation field to be advected and
-velocity is a (2,m,n) array containing  the x- and y-components of
+where *extrap* is an extrapolator object returned by the initialize function,
+*precip* is a (m,n) array with input precipitation field to be advected and
+*velocity* is a (2,m,n) array containing  the x- and y-components of
 the m x n advection field.
 num_timesteps is an integer specifying the number of time steps to extrapolate.
-The optional argument outval specifies the value for pixels advected
+The optional argument *outval* specifies the value for pixels advected
 from outside the domain.
 Optional keyword arguments that are specific to a given extrapolation
 method are passed as a dictionary.
@@ -71,7 +72,7 @@ def get_method(name):
     |                 | precipitation field (Eulerian persistence)             |
     +-------------------+------------------------------------------------------+
     | semilagrangian  | implementation of the semi-Lagrangian method of        |
-    |                 | Germann et al. (2002)                                  |
+    |                 | Germann et al. (2002) :cite:`GZ2002`                   |
     +-----------------+--------------------------------------------------------+
 
     """

@@ -9,7 +9,7 @@ _cascade_methods['uniform'] = bandpass_filters.filter_uniform
 def get_method(name):
     """
     Return a callable function for the bandpass filter or decomposition method
-    corresponding to the given name.\n
+    corresponding to the given name.
 
     Filter methods:
 

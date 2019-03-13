@@ -3,7 +3,7 @@ images in the frequency domain.
 
 The methods in this module implement the following interface:
 
-    filter_xxx(shape, n, optional arguments)
+    ``filter_xxx(shape, n, optional arguments)``
 
 where shape is the shape of the input field, respectively, and n is the number
 of frequency bands to use.
