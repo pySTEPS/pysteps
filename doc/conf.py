@@ -54,8 +54,8 @@ master_doc = 'source/index'
 
 # General information about the project.
 project = u'pysteps'
-copyright = u'2018-2019, PySteps collaborators'
-author = u'PySteps collaborators'
+copyright = u'2018-2019, PySteps developers'
+author = u'PySteps developers'
 
 
 # The version info for the project you're documenting, acts as replacement for
