@@ -25,4 +25,5 @@ package the reader must consult the :ref:`developer-reference`.
 
     user_reference/index
     developer_reference/index
+    zz_bibliography
 

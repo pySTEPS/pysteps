@@ -1,4 +1,4 @@
-.. _developer-reference:
+    .. _developer-reference:
 
 ===================
 Developer reference
@@ -14,10 +14,10 @@ functions and objects included in pysteps.
     :maxdepth: 2
     :caption: Pysteps modules
 
-    extrapolation
     cascade
+    extrapolation
     io
-
+    motion
 
 
 .. only:: html
@@ -34,5 +34,4 @@ functions and objects included in pysteps.
     Bibliography
     ------------
 
-.. bibliography:: ../references.bib
-    :style: plain
+    * :ref:`bibliography`
