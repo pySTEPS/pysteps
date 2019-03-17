@@ -1,3 +1,15 @@
+"""
+pysteps.io.interface
+====================
+
+Interface for the io module.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_method
+"""
+
 from pysteps.io import importers, exporters
 
 _importer_methods = dict()

@@ -1,5 +1,16 @@
-"""Implementation of the semi-Lagrangian method of Germann et al (2002).
-:cite:`GZ2002`"""
+"""
+pysteps.extrapolation.semilagrangian
+====================================
+
+Implementation of the semi-Lagrangian method of Germann et al (2002).
+:cite:`GZ2002`
+
+.. autosummary::
+    :toctree: ../generated/
+
+    extrapolate
+
+"""
 
 import time
 

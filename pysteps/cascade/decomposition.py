@@ -1,8 +1,12 @@
-"""Methods for decomposing two-dimensional images into multiple spatial scales.
+"""
+pysteps.cascade.decomposition
+=============================
 
-The methods in this module implement the following interface:
+Methods for decomposing two-dimensional images into multiple spatial scales.
 
-    ``decomposition_xxx(X, filter, **kwargs)``
+The methods in this module implement the following interface::
+
+    decomposition_xxx(X, filter, **kwargs)
 
 where X is the input field and filter is a dictionary returned by a filter
 method implemented in :py:mod:`pysteps.cascade.bandpass_filters`.
@@ -21,6 +25,14 @@ following key-value pairs:
 +-------------------+----------------------------------------------------------+
 |  stds             | list of standard deviations for each cascade level       |
 +-------------------+----------------------------------------------------------+
+
+Available methods
+-----------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    decomposition_fft
 """
 
 import numpy as np

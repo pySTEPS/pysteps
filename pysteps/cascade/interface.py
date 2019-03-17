@@ -1,3 +1,15 @@
+"""
+pysteps.cascade.interface
+=========================
+
+Interface for the cascade module.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_method
+"""
+
 from pysteps.cascade import decomposition, bandpass_filters
 
 _cascade_methods = dict()

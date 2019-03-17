@@ -1,8 +1,11 @@
 """
-The methods in the extrapolation module implement the following interface:
+pysteps.extrapolation.interface
+===============================
 
-    ``extrapolate(extrap, precip, velocity, num_timesteps,
-    outval=np.nan, **keywords)``
+The functions in the extrapolation module implement the following interface::
+
+    extrapolate(extrap, precip, velocity, num_timesteps,
+                outval=np.nan, **keywords)
 
 where *extrap* is an extrapolator object returned by the initialize function,
 *precip* is a (m,n) array with input precipitation field to be advected and
@@ -15,7 +18,14 @@ Optional keyword arguments that are specific to a given extrapolation
 method are passed as a dictionary.
 
 The output of each method is an array R_e that includes the time series of
-extrapolated fields of shape (num_timesteps, m, n)."""
+extrapolated fields of shape (num_timesteps, m, n).
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_method
+    eulerian_persistence
+"""
 
 import numpy as np
 
