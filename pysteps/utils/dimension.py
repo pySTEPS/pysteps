@@ -1,4 +1,18 @@
-''' Functions to manipulate array dimensions.'''
+"""
+pysteps.utils.dimension
+=======================
+
+Functions to manipulate array dimensions.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    aggregate_fields_time
+    aggregate_fields_space
+    aggregate_fields
+    clip_domain
+    square_domain
+"""
 
 import numpy as np
 

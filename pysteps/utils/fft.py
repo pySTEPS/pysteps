@@ -1,4 +1,16 @@
-"""Interface module for different FFT methods."""
+"""
+pysteps.utils.fft
+=================
+
+Interface module for different FFT methods.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_numpy
+    get_scipy
+    get_pyfftw
+"""
 
 from pysteps.exceptions import MissingOptionalDependency
 from types import SimpleNamespace

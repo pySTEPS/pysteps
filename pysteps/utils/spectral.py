@@ -1,5 +1,16 @@
-"""Methods for processing and analyzing precipitation fields in the Fourier 
-domain."""
+"""
+pysteps.utils.spectral
+======================
+
+Utility methods for processing and analyzing precipitation fields in the
+Fourier domain.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    rapsd
+    remove_rain_norain_discontinuity
+"""
 
 import numpy as np
 from . import arrays

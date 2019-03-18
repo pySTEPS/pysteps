@@ -1,4 +1,14 @@
-"""Utility methods for creating and processing arrays."""
+"""
+pysteps.utils.arrays
+====================
+
+Utility methods for creating and processing arrays.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    compute_centred_coord_array
+"""
 
 import numpy as np
 
