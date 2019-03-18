@@ -1,4 +1,8 @@
-"""Methods for generating perturbations of two-dimensional motion fields.
+"""
+pysteps.noise.motion
+====================
+
+Methods for generating perturbations of two-dimensional motion fields.
 
 The methods in this module implement the following interface for initialization:
 
@@ -19,7 +23,16 @@ random generator can be specified with the randstate and seed arguments,
 respectively.
 The output of each generator method is an array of shape (2,m,n) containing the
 x- and y-components of the motion vector perturbations, where m and n are
-determined from the perturbator."""
+determined from the perturbator.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_default_params_bps_par
+    get_default_params_bps_perp
+    initialize_bps
+    generate_bps
+"""
 
 import numpy as np
 from scipy import linalg

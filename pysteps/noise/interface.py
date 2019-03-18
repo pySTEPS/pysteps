@@ -1,3 +1,15 @@
+"""
+pysteps.noise.interface
+=======================
+
+Interface for the noise module.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_method
+"""
+
 from pysteps.noise.fftgenerators import (initialize_param_2d_fft_filter,
                                          generate_noise_2d_fft_filter,
                                          initialize_nonparam_2d_fft_filter,

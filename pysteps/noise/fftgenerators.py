@@ -1,4 +1,8 @@
-"""Methods for noise generators based on FFT filtering of white noise.
+"""
+pysteps.noise.fftgenerators
+===========================
+
+Methods for noise generators based on FFT filtering of white noise.
 
 The methods in this module implement the following interface for filter
 initialization depending on their parametric or nonparametric nature:
@@ -9,8 +13,8 @@ initialization depending on their parametric or nonparametric nature:
 
   initialize_nonparam_2d_xxx_filter(X, **kwargs)
 
-where X is an array of shape (m, n) that defines the target field and optional
-parameters are supplied as keyword arguments.
+where X is an array of shape (m, n) or (t, m, n) that defines the target field 
+and optional parameters are supplied as keyword arguments.
 
 The output of each initialization method is a dictionary containing the keys F
 and input_shape. The first is a two-dimensional array of shape (m, int(n/2)+1)
@@ -27,7 +31,18 @@ and randstate and seed can be used to set the random generator and its seed.
 Additional keyword arguments can be included as a dictionary.
 
 The output of each generator method is a two-dimensional array containing the
-field of correlated noise cN of shape (m, n)."""
+field of correlated noise cN of shape (m, n).
+
+.. autosummary::
+    :toctree: ../generated/
+
+    initialize_param_2d_fft_filter
+    initialize_nonparam_2d_fft_filter
+    initialize_nonparam_2d_nested_filter
+    initialize_nonparam_2d_ssft_filter
+    generate_noise_2d_fft_filter
+    generate_noise_2d_ssft_filter
+"""
 
 import numpy as np
 from scipy import optimize
