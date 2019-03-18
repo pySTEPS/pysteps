@@ -4,7 +4,5 @@
 Blibliography
 =============
 
-Bibliography
-    ------------
 
 .. bibliography:: ./references.bib
