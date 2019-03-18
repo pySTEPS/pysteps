@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-#
-# Licensed under the BSD-3-Clause license
-# Copyright (c) 2018, Andres A. Perez Hortal
 """
-Variational Echo Tracking (VET) Module
+pysteps.motion.vet
+==================
 
+Variational Echo Tracking (VET) Module
 
 This module implements the VET algorithm presented
 by `Laroche and Zawadzki (1995)`_ and used in the
@@ -20,6 +19,19 @@ in `Germann and Zawadzki (2002)`_.
 
 The morphing and the cost functions are implemented in Cython and parallelized
 for performance.
+
+.. currentmodule:: pysteps.motion.vet
+
+.. autosummary::
+    :toctree: ../generated/
+
+    vet
+    vet_cost_function
+    vet_cost_function_gradient
+    morph
+    round_int
+    ceil_int
+    get_padding
 """
 
 import numpy
@@ -118,9 +130,8 @@ def morph(image, displacement, gradient=False):
         Displacement field to be applied (Warping). The first dimension
         corresponds to the coordinate to displace.
 
-        The dimensions are:
-        displacement [ i/x (0) or j/y (1) ,
-                      i index of pixel, j index of pixel ]
+        The dimensions are: displacement [ i/x (0) or j/y (1) ,
+        i index of pixel, j index of pixel ]
 
 
     gradient : bool, optional
@@ -156,6 +167,9 @@ def morph(image, displacement, gradient=False):
 
 
 def vet_cost_function_gradient(*args, **kwargs):
+    """Compute the vet cost function gradient.
+    See :py:func:`vet_cost_function` for more information.
+    """
     kwargs["gradient"] = True
     return vet_cost_function(*args, **kwargs)
 
@@ -168,20 +182,20 @@ def vet_cost_function(sector_displacement_1d,
                       debug=False,
                       gradient=False):
     """
+    .. _`scipy minimization`: \
+    https://docs.scipy.org/doc/scipy-0.18.1/reference/generated/scipy.optimize.minimize.html
+    
     Variational Echo Tracking Cost Function.
 
-    .. _`scipy.optimize.minimize` :\
-    https://docs.scipy.org/doc/scipy-0.18.1/reference/\
-    generated/scipy.optimize.minimize.html
-
-    This function is designed to be used with the `scipy.optimize.minimize`_
-
+    This function is designed to be used with the `scipy minimization`_.
     The function first argument is the variable to be used in the
     minimization procedure.
 
     The sector displacement must be a flat array compatible with the
     dimensions of the input image and sectors shape (see parameters section
     below for more details).
+
+
 
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
@@ -347,6 +361,8 @@ def vet(input_images,
     Ribiere, a variant of the Fletcher-Reeves method described in
     Nocedal and Wright (2006), pp. 120-122.
 
+    .. _`scipy minimization`: \
+    https://docs.scipy.org/doc/scipy-0.18.1/reference/generated/scipy.optimize.minimize.html
 
     .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
         maskedarray.baseclass.html#numpy.ma.MaskedArray
@@ -376,7 +392,7 @@ def vet(input_images,
     smooth_gain : float, optional
         Smooth gain factor
 
-    first_guess : ndarray_, optional_
+    first_guess : ndarray_, optional
         The shape of the first guess should have the same shape as the initial
         sectors shapes used in the scaling procedure.
         If first_guess is not present zeros are used as first guess.
@@ -408,7 +424,7 @@ def vet(input_images,
         A dictionary of solver options.
         See `scipy minimization`_ function for more details.
 
-    .. _`scipy minimization` : https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
+    .. _`scipy minimization`: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
 
     Returns
     -------

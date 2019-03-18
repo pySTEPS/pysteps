@@ -4,17 +4,18 @@ pysteps.noise.motion
 
 Methods for generating perturbations of two-dimensional motion fields.
 
-The methods in this module implement the following interface for initialization:
+The methods in this module implement the following interface for
+initialization::
 
   inizialize_xxx(V, pixelsperkm, timestep, optional arguments)
 
 where V (2,m,n) is the motion field and pixelsperkm and timestep describe the
 spatial and temporal resolution of the motion vectors.
-The output of each initialization method is a dictionary containing the perturbator
-that can be supplied to generate_xxx.
+The output of each initialization method is a dictionary containing the
+perturbator that can be supplied to generate_xxx.
 
 The methods in this module implement the following interface for the generation
-of a motion perturbation field:
+of a motion perturbation field::
 
   generate_xxx(perturbator, t, randstate=np.random, seed=None)
 
@@ -48,7 +49,7 @@ def get_default_params_bps_perp():
     return (5.76,0.31,-2.72)
 
 def initialize_bps(V, pixelsperkm, timestep, p_par=None, p_perp=None,
-                   randstate=np.random, seed=None):
+                   randstate=None, seed=None):
     """Initialize the motion field perturbator described in :cite:`BPS2006`.
     For simplicity, the bias adjustment procedure described there has not been
     implemented. The perturbator generates a field whose magnitude increases
@@ -104,6 +105,8 @@ def initialize_bps(V, pixelsperkm, timestep, p_par=None, p_perp=None,
         p_perp = get_default_params_bps_perp()
 
     perturbator = {}
+    if randstate is None:
+        randstate = np.random
 
     if seed is not None:
         randstate.seed(seed)

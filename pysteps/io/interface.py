@@ -4,6 +4,8 @@ pysteps.io.interface
 
 Interface for the io module.
 
+.. currentmodule:: pysteps.io.interface
+
 .. autosummary::
     :toctree: ../generated/
 
@@ -39,15 +41,15 @@ def get_method(name, method_type):
         .. tabularcolumns:: |p{2cm}|L|
 
         +--------------+-------------------------------------------------------+
-        | Name         |             Description                               |
+        |     Name     |              Description                              |
         +==============+=======================================================+
-        | bom_rf3      | NetCDF files in the Bureau of Meterology (BoM)        |
-        |              | archive containing precipitation intensity            |
-        |              | composites.                                           |
-        +--------------+-------------------------------------------------------|
-        | fmi_pgm      | PGM files in the Finnish Meteorological Institute     |
-        |              | (FMI) archive containing reflectivity composites      |
-        |              | (dBZ).                                                |
+        | bom_rf3      |  NefCDF files used in the Boreau of Meterorology      |
+        |              |  archive containing precipitation intensity           |
+        |              |  composites.                                          |
+        +--------------+-------------------------------------------------------+
+        | fmi_pgm      |  PGM files used in the Finnish Meteorological         |
+        |              |  Institute (FMI) archive, containing reflectivity     |
+        |              |  composites (dBZ).                                    |
         +--------------+-------------------------------------------------------+
         | mch_gif      | GIF files in the MeteoSwiss (MCH) archive containing  |
         |              | precipitation composites.                             |
@@ -70,7 +72,7 @@ def get_method(name, method_type):
         | kineros     | KINEROS2 Rainfall file as specified in                 |
         |             | https://www.tucson.ars.ag.gov/kineros/.                |
         |             | Grid points are treated as individual rain gauges.     |
-        |             | A separate file is produced for each ensemble memeber. |
+        |             | A separate file is produced for each ensemble member.  |
         +-------------+--------------------------------------------------------+
         | netcdf      | NetCDF files conforming to the CF 1.7 specification.   |
         +-------------+--------------------------------------------------------+

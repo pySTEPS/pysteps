@@ -1,5 +1,16 @@
-"""OpenCV implementation of the Lucas-Kanade method with interpolated motion
-vectors for areas with no precipitation."""
+"""
+pysteps.motion.lucaskanade
+==========================
+
+OpenCV implementation of the Lucas-Kanade method with interpolated motion
+vectors for areas with no precipitation.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    dense_lucaskanade
+
+"""
 
 import numpy as np
 from numpy.ma.core import MaskedArray
@@ -15,13 +26,21 @@ import time
 import warnings
 
 def dense_lucaskanade(R, **kwargs):
-    """`OpenCV`_ implementation of the local `Lucas-Kanade`_ method with
-    interpolation of the sparse motion vectors to fill the whole grid.
-
-    .. _`OpenCV`: https://opencv.org/
+    """
+    .. _opencv: https://opencv.org/
 
     .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/\
-        group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
+    group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
+
+    OpenCV_ implementation of the local `Lucas-Kanade`_ method with
+    interpolation of the sparse motion vectors to fill the whole grid.
+
+    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
+        maskedarray.baseclass.html#numpy.ma.MaskedArray
+
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
 
     Parameters
     ----------
@@ -123,13 +142,6 @@ def dense_lucaskanade(R, **kwargs):
         Three-dimensional array (2,H,W) containing the dense x- and y-components
         of the motion field.
         Return an empty array when no motion vectors are found.
-
-    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
-        maskedarray.baseclass.html#numpy.ma.MaskedArray
-
-    .. _ndarray:\
-    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
-
     """
 
     if len(R.shape) != 3:

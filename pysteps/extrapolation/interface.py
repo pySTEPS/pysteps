@@ -20,6 +20,8 @@ method are passed as a dictionary.
 The output of each method is an array R_e that includes the time series of
 extrapolated fields of shape (num_timesteps, m, n).
 
+.. currentmodule:: pysteps.extrapolation.interface
+
 .. autosummary::
     :toctree: ../generated/
 

@@ -21,6 +21,8 @@ def forecast(precip, velocity, num_timesteps,
     """Generate a nowcast by applying a simple advection-based extrapolation to
     the given precipitation field.
 
+    .. _ndarray: http://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
     Parameters
     ----------
     precip : array-like
@@ -52,9 +54,9 @@ def forecast(precip, velocity, num_timesteps,
 
     See also
     --------
+
     pysteps.extrapolation.interface
 
-    .. _ndarray: http://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
 
     """
     _check_inputs(precip, velocity)

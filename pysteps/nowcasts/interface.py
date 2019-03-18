@@ -7,7 +7,7 @@ nowcasts.
 
 The methods in the nowcasts module implement the following interface:
 
-    forecast(precip, velocity, num_timesteps, **keywords)
+    ``forecast(precip, velocity, num_timesteps, **keywords)``
 
 where precip is a (m,n) array with input precipitation field to be advected and
 velocity is a (2,m,n) array containing  the x- and y-components of

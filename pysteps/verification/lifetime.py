@@ -19,12 +19,13 @@ import numpy as np
 from scipy.integrate import simps
 
 def lifetime(X_s, X_t, rule='1/e'):
-    """Compute the average lifetime by integrating the correlation function
-        as a function of lead time. When not using the 1/e rule, the correlation
-        function must be long enough to converge to 0, otherwise the lifetime is
-        underestimated. The correlation function can be either empirical or
-        theoretical, e.g. derived using the function 'ar_acf'
-        in timeseries/autoregression.py.
+    """
+    Compute the average lifetime by integrating the correlation function
+    as a function of lead time. When not using the 1/e rule, the correlation
+    function must be long enough to converge to 0, otherwise the lifetime is
+    underestimated. The correlation function can be either empirical or
+    theoretical, e.g. derived using the function 'ar_acf'
+    in timeseries/autoregression.py.
 
     Parameters
     ----------
@@ -90,8 +91,9 @@ def lifetime_init(rule='1/e'):
 
 
 def lifetime_accum(lifetime, X_s, X_t):
-    """ Compute the lifetime by integrating the correlation function
-        and accumulate the result into the given lifetime object.
+    """
+    Compute the lifetime by integrating the correlation function
+    and accumulate the result into the given lifetime object.
 
     Parameters
     ----------

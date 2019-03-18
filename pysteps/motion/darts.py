@@ -1,4 +1,14 @@
-"""Implementation of the DARTS algorithm."""
+"""
+pysteps.motion.darts
+====================
+
+Implementation of the DARTS algorithm.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    DARTS
+"""
 
 import numpy as np
 from numpy.linalg import lstsq, svd
@@ -8,7 +18,7 @@ from .. import utils
 
 def DARTS(Z, **kwargs):
     """Compute the advection field from a sequence of input images by using the
-    DARTS method.
+    DARTS method. :cite:`RCW2011`
 
     Parameters
     ----------
@@ -52,11 +62,8 @@ def DARTS(Z, **kwargs):
         Three-dimensional array (2,H,W) containing the dense x- and y-components
         of the motion field.
 
-    References
-    ----------
-    :cite:`RCW2011`
-
     """
+
     N_x = kwargs.get("N_x", 50)
     N_y = kwargs.get("N_y", 50)
     N_t = kwargs.get("N_t", 4)
