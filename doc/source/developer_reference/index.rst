@@ -20,6 +20,7 @@ functions and objects included in pysteps.
     motion
     noise
     nowcasts
+    timeseries
     utils
     verification
     visualization
