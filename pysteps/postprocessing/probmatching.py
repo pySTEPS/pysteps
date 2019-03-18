@@ -1,4 +1,18 @@
-"""Methods for matching the empirical probability distribution of two data sets."""
+"""
+pysteps.postprocessing.probmatching
+===================================
+
+Methods for matching the probability distribution of two data sets.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    compute_empirical_cdf
+    nonparam_match_empirical_cdf
+    pmm_init
+    pmm_compute
+    shift_scale
+"""
 
 import numpy as np
 from scipy import interpolate as sip
@@ -32,6 +46,7 @@ def compute_empirical_cdf(bin_edges, hist):
     cdf = np.array(cdf) / xs
 
     return cdf
+
 
 def nonparam_match_empirical_cdf(R, R_trg):
     """Matches the empirical CDF of the initial array with the empirical CDF
@@ -101,6 +116,7 @@ def nonparam_match_empirical_cdf(R, R_trg):
 
     return R
 
+
 # TODO: A more detailed explanation of the PMM method + references.
 def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
     """Initialize a probability matching method (PMM) object from binned
@@ -128,6 +144,7 @@ def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
 
     return pmm
 
+
 def pmm_compute(pmm, x):
     """For a given PMM object and x-coordinate, compute the probability matched
     value (i.e. the x-coordinate for which the target CDF has the same value as
@@ -149,11 +166,12 @@ def pmm_compute(pmm, x):
 
     return result
 
+
 def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     """Find shift and scale that is needed to return the required second_moment
     and rain area. The optimization is performed with the Nelder-Mead algorithm
     available in scipy.
-    It ssumes a forward transformation ln_rain = ln(rain)-ln(min_rain) if
+    It assumes a forward transformation ln_rain = ln(rain)-ln(min_rain) if
     rain > min_rain, else 0.
 
     Parameters

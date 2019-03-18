@@ -1,3 +1,15 @@
+"""
+pysteps.postprocessing.ensemblestats
+====================================
+
+Methods for the computation of ensemble statistics.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    mean
+    excprob
+"""
 
 import numpy as np
 
