@@ -1,4 +1,15 @@
-"""Functions to plot motion fields."""
+"""
+pysteps.visualization.motionfields
+==================================
+
+Functions to plot motion fields.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    quiver
+    streamplot
+"""
 
 import matplotlib.pylab as plt
 import matplotlib.colors as colors

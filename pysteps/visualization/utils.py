@@ -1,4 +1,16 @@
-"""Miscellaneous utility functions."""
+"""
+pysteps.visualization.utils
+===========================
+
+Miscellaneous utility functions for the visualization module.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    parse_proj4_string
+    proj4_to_basemap
+    proj4_to_cartopy
+"""
 from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 try:

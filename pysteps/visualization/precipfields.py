@@ -1,4 +1,16 @@
-"""Methods for plotting precipitation fields."""
+"""
+pysteps.visualization.precipfields
+==================================
+
+Methods for plotting precipitation fields.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    plot_precip_field
+    get_colormap
+"""
+
 import matplotlib.pylab as plt
 from matplotlib import cm, colors, gridspec
 import numpy as np

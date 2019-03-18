@@ -1,18 +1,32 @@
-"""Methods for plotting Fourier spectra."""
+"""
+pysteps.visualization.spectral
+==============================
+
+Methods for plotting Fourier spectra.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    plot_spectrum1d
+"""
 
 import matplotlib.pylab as plt
 import numpy as np
 
-def plot_spectrum1d(fft_freq, fft_power, x_units=None, y_units=None, wavelength_ticks=None, color='k', lw=1.0, label=None, ax=None, **kwargs):
+def plot_spectrum1d(fft_freq, fft_power, x_units=None, y_units=None, 
+                    wavelength_ticks=None, color='k', lw=1.0, label=None, 
+                    ax=None, **kwargs):
     """
     Function to plot in log-log a radially averaged Fourier spectrum.
     
     Parameters
     ---------- 
     fft_freq: array-like
-        1d array containing the Fourier frequencies computed by the function 'rapsd' in utils/spectral.py
+        1d array containing the Fourier frequencies computed by the function 
+        'rapsd' in utils/spectral.py
     fft_power: array-like
-        1d array containing the radially averaged Fourier power spectrum computed by the function 'rapsd' in utils/spectral.py
+        1d array containing the radially averaged Fourier power spectrum 
+        computed by the function 'rapsd' in utils/spectral.py
     x_units: str
         Units of the X variable (distance, e.g. km)
     y_units: str

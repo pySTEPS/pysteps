@@ -21,7 +21,7 @@ functions and objects included in pysteps.
     noise
     nowcasts
     utils
-
+    visualization
 
 .. only:: html
 

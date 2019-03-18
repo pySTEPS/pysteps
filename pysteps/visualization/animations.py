@@ -1,4 +1,14 @@
-"""Functions to produce animations for pysteps."""
+"""
+pysteps.visualization.animations
+================================
+
+Functions to produce animations for pysteps.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    animate
+"""
 
 import matplotlib.pylab as plt
 import numpy as np
