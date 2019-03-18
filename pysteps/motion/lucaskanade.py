@@ -12,7 +12,6 @@ except ImportError:
     cv2_imported = False
 import scipy.spatial
 import time
-import warnings
 
 def dense_lucaskanade(R, **kwargs):
     """`OpenCV`_ implementation of the local `Lucas-Kanade`_ method with
@@ -249,8 +248,6 @@ def dense_lucaskanade(R, **kwargs):
 
     # return zero motion field is no sparse vectors are found
     if len(x0Stack) == 0:
-        warnings.warn("Warning: detected no motion; "
-                      + "returning a zero motion field.")
         return np.zeros((2, domain_size[0], domain_size[1]))
 
     # convert lists of arrays into single arrays
@@ -274,8 +271,6 @@ def dense_lucaskanade(R, **kwargs):
 
     # return zero motion field is no sparse vectors are left for interpolation
     if x.size == 0:
-        warnings.warn("Warning: there are no sparse vectors left for interpolation; "
-                      + "returning a zero motion field.")
         return np.zeros((2, domain_size[0], domain_size[1]))
 
     if verbose:
