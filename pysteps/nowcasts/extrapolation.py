@@ -1,4 +1,14 @@
-"""Implementations of deterministic nowcasting methods."""
+"""
+pysteps.nowcasts.extrapolation
+==============================
+
+Implementation of extrapolation-based nowcasting methods.
+
+.. autosummary::
+    :toctree: ../generated/
+    
+    forecast
+"""
 
 import time
 

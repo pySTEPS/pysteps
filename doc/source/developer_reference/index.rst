@@ -18,6 +18,7 @@ functions and objects included in pysteps.
     extrapolation
     io
     motion
+    nowcasts
 
 
 .. only:: html

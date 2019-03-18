@@ -1,4 +1,14 @@
-"""Implementation of the STEPS method."""
+"""
+pysteps.nowcasts.sprog
+======================
+
+Implementation of the S-PROG method described in :cite:`Seed2003`
+
+.. autosummary::
+    :toctree: ../generated/
+    
+    forecast
+"""
 
 import sys
 import time

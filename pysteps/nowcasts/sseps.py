@@ -1,4 +1,7 @@
 """
+pysteps.nowcasts.sseps
+======================
+
 Implementation of the Short-space ensemble prediction system (SSEPS) method.
 Essentially, SSEPS is a localized version of STEPS.
 
@@ -8,6 +11,11 @@ The short-space approach used in :cite:`NBSG2017` is generalized to
 the whole nowcasting system. This essenially boils down to a moving window
 localization of the nowcasting procedure, whereby all parameters are estimated
 over a subdomain of prescribed size.
+
+.. autosummary::
+    :toctree: ../generated/
+    
+    forecast
 """
 
 import sys

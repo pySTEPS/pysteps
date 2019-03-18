@@ -1,7 +1,4 @@
-"""Implementations of nowcasting methods.
-
-Currently the module contains a
-deterministic advection extrapolation method and STEPS.
+"""Implementations of deterministic and ensemble nowcasting methods.
 """
 
 from pysteps.nowcasts.interface import get_method

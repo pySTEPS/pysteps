@@ -1,4 +1,15 @@
-"""Implementation of the STEPS method."""
+"""
+pysteps.nowcasts.steps
+======================
+
+Implementation of the STEPS stochastic nowcasting method as described in  
+:cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013`.
+
+.. autosummary::
+    :toctree: ../generated/
+    
+    forecast
+"""
 
 import sys
 import time
