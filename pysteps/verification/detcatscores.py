@@ -1,4 +1,14 @@
-"""Forecast evaluation and skill scores for deterministic categorial forecasts."""
+"""
+pysteps.verification.detcatscores
+=================================
+
+Forecast evaluation and skill scores for deterministic categorial forecasts.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    det_cat_fcst
+"""
 
 import numpy as np
 

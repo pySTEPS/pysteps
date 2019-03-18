@@ -1,4 +1,19 @@
-"""Evaluation and skill scores for ensemble forecasts."""
+"""
+pysteps.verification.ensscores
+==============================
+
+Evaluation and skill scores for ensemble forecasts.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    ensemble_skill
+    ensemble_spread
+    rankhist
+    rankhist_init
+    rankhist_accum
+    rankhist_compute
+"""
 
 import numpy as np
 from .interface import get_method
