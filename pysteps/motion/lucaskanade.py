@@ -652,6 +652,9 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, rbfunction="inverse",
             else:
                 raise ValueError("unknown radial fucntion %s" % rbfunction)
 
+            if not np.all(np.sum(w, axis=1)):
+                w[np.sum(w, axis=1) == 0, :] = 1.
+
             U[i0:(i0 + idelta)] = np.sum(w*u.ravel()[inds], axis=1)/np.sum(w, axis=1)
             V[i0:(i0 + idelta)] = np.sum(w*v.ravel()[inds], axis=1)/np.sum(w, axis=1)
 
