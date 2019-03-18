@@ -29,7 +29,8 @@ _exporter_methods['kineros'] = exporters.initialize_forecast_exporter_kineros
 
 
 def get_method(name, method_type):
-    """Return a callable function for the method corresponding to the given name.
+    """Return a callable function for the method corresponding to the given 
+    name.
 
     Parameters
     ----------

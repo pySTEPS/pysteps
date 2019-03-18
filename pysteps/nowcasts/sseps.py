@@ -28,6 +28,7 @@ import scipy.ndimage
 from .. import cascade
 from .. import extrapolation
 from .. import noise
+from ..nowcasts import utils as nowcast_utils
 from ..postprocessing import probmatching
 from ..timeseries import autoregression, correlation
 
@@ -61,7 +62,24 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         ordered by timestamp from oldest to newest. The time steps between the inputs
         are assumed to be regular, and the inputs are required to have finite values.
     metadata : dict
-        The metadata dictionary contains all information related to R.
+        Dictionary containing metadata related to R.
+        These are the keys that are actually needed:
+
+        +---------------+-----------------------------------------------------+
+        |       Key     |                Value                                |
+        +===============+=====================================================+
+        | accutime      | The accumulation time in minutes of the data, float |
+        +---------------+-----------------------------------------------------+
+        | xpixelsize    | Grid resolution in x-direction (meters).            |
+        |               | It assumes that it is the same in the y-direction.  |
+        +---------------+-----------------------------------------------------+
+        | threshold     | The rain/no rain threshold with the same unit,      |
+        |               | transformation and accutime of the data.            |
+        +---------------+-----------------------------------------------------+
+        | zerovalue     | The value assigned to the no rain pixels with the   |
+        |               | same unit, transformation and accutime of the data. |
+        +---------------+-----------------------------------------------------+
+
     V : array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
         field. The velocities are assumed to represent one time step between the
@@ -313,7 +331,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
         # normalize the cascades and rearrange them into a four-dimensional array
         # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-        R_c, mu, sigma = _stack_cascades(R_d, n_cascade_levels)
+        R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
         R_d = None
         pars["mu"] = mu;
         pars["sigma"] = sigma
@@ -657,31 +675,6 @@ def _compute_incremental_mask(Rbin, kr, r):
         Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
         mask += Rd
     return mask
-
-
-def _stack_cascades(R_d, n_levels, donorm=True):
-    R_c = []
-    mu = np.empty(n_levels)
-    sigma = np.empty(n_levels)
-
-    n_inputs = len(R_d)
-
-    for i in range(n_levels):
-        R_ = []
-        mu_ = 0
-        sigma_ = 1
-        for j in range(n_inputs):
-            if donorm:
-                mu_ = R_d[j]["means"][i]
-                sigma_ = R_d[j]["stds"][i]
-            if j == n_inputs - 1:
-                mu[i] = mu_
-                sigma[i] = sigma_
-            R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
-            R_.append(R__)
-        R_c.append(np.stack(R_))
-
-    return np.stack(R_c), mu, sigma
 
 
 def _recompose_cascade(R, mu, sigma):
