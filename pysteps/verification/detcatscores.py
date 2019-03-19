@@ -214,37 +214,45 @@ def det_cat_fcst_compute(contab, scores):
         score = score.lower()
 
         # simple scores
-        POD = H/(H + M)              # probability of detection
-        FAR = F/(H + F)              # false alarm ratio
-        FA = F/(F + R)               # false alarm rate = prob of false detection
-        s = (H + M)/(H + M + F + R)  # base rate = freq of observed events
+        POD = H/(H + M)
+        FAR = F/(H + F)
+        FA = F/(F + R)
+        s = (H + M)/(H + M + F + R)
 
         if score == 'pod':
+            # probability of detection
             result.append(POD)
         if score == 'far':
+            # false alarm ratio
             result.append(FAR)
         if score == 'fa':
+            # false alarm rate (prob of false detection)
             result.append(FA)
         if score == 'acc':
-            ACC = (H+R)/(H+M+F+R)  # accuracy (fraction correct)
+            # accuracy (fraction correct)
+            ACC = (H + R)/(H + M + F + R)
             result.append(ACC)
         if score == 'csi':
-            CSI = H/(H+M+F)        # critical success index
+            # critical success index
+            CSI = H/(H + M + F)
             result.append(CSI)
-        if score == 'bias':        # frequency bias
+        if score == 'bias':
+            # frequency bias
             B = (H + F) / (H + M)
             result.append(B)
 
         # skill scores
         if score == 'hss':
             # Heidke Skill Score (-1 < HSS < 1) < 0 implies no skill
-            HSS = 2*(H*R-F*M)/((H+M)*(M+R)+(H+F)*(F+R))
+            HSS = 2*(H*R - F*M)/((H + M)*(M + R) + (H + F)*(F + R))
             result.append(HSS)
         if score == 'hk':
-            HK = POD - FA  # Hanssen-Kuipers Discriminant
+            # Hanssen-Kuipers Discriminant
+            HK = POD - FA
             result.append(HK)
         if score == 'gss':
-            GSS = (POD-FA)/((1-s*POD)/(1-s)+FA*(1-s)/s)  # Gilbert Skill Score
+            # Gilbert Skill Score
+            GSS = (POD - FA)/((1 - s*POD)/(1 - s) + FA*(1 - s)/s)
             result.append(GSS)
         if score == 'ets':
             # Equitable Threat Score
@@ -257,10 +265,8 @@ def det_cat_fcst_compute(contab, scores):
             result.append(ETS)
         if score == 'sedi':
             # Symmetric extremal dependence index
-            SEDI = (np.log(FA)-np.log(POD)+np.log(1-POD)-np.log(1-FA))/(np.log(FA)
-                    +np.log(POD)+np.log(1-POD)+np.log(1-FA))
+            SEDI = (np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA))\
+                  /(np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA))
             result.append(SEDI)
 
     return result
-
-
