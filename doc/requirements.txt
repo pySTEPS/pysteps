@@ -1,6 +1,15 @@
-
-#python>=3.6
 sphinx
+cython
 numpydoc
 sphinxcontrib.bibtex
 sphinx_rtd_theme
+numpy
+opencv-python
+pillow
+pyproj
+scipy
+matplotlib
+attrdict
+jsmin
+jsonschema
+netCDF4

@@ -20,24 +20,7 @@ import sys
 #
 import os
 
-sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(1, os.path.abspath('../../'))
-
-print("-----------------------------------------")
-print("-----------------------------------------")
-print("-----------------------------------------")
-print("-----------------------------------------")
-print(".", os.path.abspath('.'))
-print("../", os.path.abspath('../'))
-print("../../", os.path.abspath('../../'))
-print("../../../", os.path.abspath('../../../'))
-print("-----------------------------------------")
-print(". contents", os.listdir('.'))
-print("../ contents", os.listdir('../'))
-print("../../ contents", os.listdir('../../'))
-print("-----------------------------------------")
-print("-----------------------------------------")
-print("-----------------------------------------")
 
 # -- General configuration ------------------------------------------------
 
