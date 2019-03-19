@@ -1,4 +1,14 @@
-"""Implementations of deterministic nowcasting methods."""
+"""
+pysteps.nowcasts.extrapolation
+==============================
+
+Implementation of extrapolation-based nowcasting methods.
+
+.. autosummary::
+    :toctree: ../generated/
+    
+    forecast
+"""
 
 import time
 
@@ -10,6 +20,8 @@ def forecast(precip, velocity, num_timesteps,
              measure_time=False):
     """Generate a nowcast by applying a simple advection-based extrapolation to
     the given precipitation field.
+
+    .. _ndarray: http://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
 
     Parameters
     ----------
@@ -42,9 +54,9 @@ def forecast(precip, velocity, num_timesteps,
 
     See also
     --------
+
     pysteps.extrapolation.interface
 
-    .. _ndarray: http://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
 
     """
     _check_inputs(precip, velocity)

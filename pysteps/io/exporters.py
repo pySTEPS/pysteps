@@ -1,18 +1,22 @@
-"""Methods for exporting forecasts.
+"""
+pysteps.io.exporter
+===================
 
-Methods for writing forecasts of 2d precipitation fields into various file
+Methods for exporting forecasts of 2d precipitation fields into various file
 formats.
 
 Each exporter method in this module has its own initialization function that
-implements the following interface:
+implements the following interface::
 
   initialize_forecast_exporter_xxx(filename, startdate, timestep,
-  num_timesteps, shape, num_ens_members, metadata, incremental=None)
+                                   num_timesteps, shape, num_ens_members,
+                                   metadata, incremental=None)
 
-where xxx describes the file format.
-This function creates the file and writes the metadata.
-The datasets are written by calling export_forecast_dataset, and
-the file is closed by calling close_forecast_file.
+where xxx is the name (or abbreviation) of the file format.
+
+This function creates the file and writes the metadata. The datasets are written
+by calling :py:func:`pysteps.exporters.export_forecast_dataset`, and
+the file is closed by calling :py:func:`pysteps.exporters.close_forecast_file`.
 
 The arguments in the above are defined as follows:
 
@@ -37,7 +41,7 @@ The arguments in the above are defined as follows:
 | n_ens_members | int               | number of ensemble members in the       |
 |               |                   | forecast. This argument is ignored if   |
 |               |                   | incremental is set to 'member'          |
-+-----------------+-------------------+---------------------------------------+
++---------------+-------------------+-----------------------------------------+
 | metadata      | dict              | metadata dictionary containing the      |
 |               |                   | projection,x1,x2,y1,y2 and unit         |
 |               |                   | attributes described in the             |
@@ -56,6 +60,23 @@ The arguments in the above are defined as follows:
 The return value is a dictionary containing an exporter object. This can be
 used with export_forecast_dataset to write datasets into the given file format.
 
+Available Exporters
+-------------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    initialize_forecast_exporter_kineros
+    initialize_forecast_exporter_netcdf
+
+Generic functions
+-----------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    export_forecast_dataset
+    close_forecast_file
 """
 
 from datetime import datetime
@@ -80,8 +101,8 @@ except ImportError:
 def initialize_forecast_exporter_kineros(filename, startdate, timestep,
                                         n_timesteps, shape, n_ens_members,
                                         metadata, incremental=None):
-    """Initialize a KINEROS2 Rainfall file as specified 
-    in https://www.tucson.ars.ag.gov/kineros/
+    """Initialize a KINEROS2 Rainfall .pre file as specified
+    in https://www.tucson.ars.ag.gov/kineros/.
 
     Grid points are treated as individual rain gauges and a separate file is
     produced for each ensemble memeber.

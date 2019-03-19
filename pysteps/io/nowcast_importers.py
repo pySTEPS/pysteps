@@ -1,6 +1,10 @@
-"""Methods for importing nowcast files.
+"""
+pysteps.io.nowcast_importers
+============================
 
-The methods in this module implement the following interface:
+Methods for importing nowcast files.
+
+The methods in this module implement the following interface::
 
   import_xxx(filename, optional arguments)
 
@@ -58,6 +62,13 @@ The metadata dictionary contains the following mandatory key-value pairs:
 |                   | same unit, transformation and accutime of the data.      |
 +-------------------+----------------------------------------------------------+
 
+Available Nowcast Importers
+---------------------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    import_netcdf_pysteps
 """
 
 import numpy as np

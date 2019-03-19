@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
 """
+pysteps.nowcasts.sseps
+======================
+
 Implementation of the Short-space ensemble prediction system (SSEPS) method.
 Essentially, SSEPS is a localized version of STEPS.
 
@@ -8,6 +12,11 @@ The short-space approach used in :cite:`NBSG2017` is generalized to
 the whole nowcasting system. This essenially boils down to a moving window
 localization of the nowcasting procedure, whereby all parameters are estimated
 over a subdomain of prescribed size.
+
+.. autosummary::
+    :toctree: ../generated/
+    
+    forecast
 """
 
 import sys
@@ -19,6 +28,7 @@ import scipy.ndimage
 from .. import cascade
 from .. import extrapolation
 from .. import noise
+from ..nowcasts import utils as nowcast_utils
 from ..postprocessing import probmatching
 from ..timeseries import autoregression, correlation
 
@@ -37,9 +47,10 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              ar_order=2, vel_pert_method=None, probmatching_method="cdf",
              mask_method="incremental", callback=None, fft_method="numpy",
              return_output=True, seed=None, num_workers=1, extrap_kwargs={},
-             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={}, mask_kwargs={},
-             measure_time=True):
-    """Generate a nowcast ensemble by using the Short-space ensemble prediction
+             filter_kwargs={}, noise_kwargs={}, vel_pert_kwargs={},
+             mask_kwargs={}, measure_time=True):
+    """
+    Generate a nowcast ensemble by using the Short-space ensemble prediction
     system (SSEPS) method.
     This is an experimental version of STEPS which allows for localization
     by means of a window function.
@@ -51,7 +62,24 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         ordered by timestamp from oldest to newest. The time steps between the inputs
         are assumed to be regular, and the inputs are required to have finite values.
     metadata : dict
-        The metadata dictionary contains all information related to R.
+        Dictionary containing metadata related to R.
+        These are the keys that are actually needed:
+
+        +---------------+-----------------------------------------------------+
+        |       Key     |                Value                                |
+        +===============+=====================================================+
+        | accutime      | The accumulation time in minutes of the data, float |
+        +---------------+-----------------------------------------------------+
+        | xpixelsize    | Grid resolution in x-direction (meters).            |
+        |               | It assumes that it is the same in the y-direction.  |
+        +---------------+-----------------------------------------------------+
+        | threshold     | The rain/no rain threshold with the same unit,      |
+        |               | transformation and accutime of the data.            |
+        +---------------+-----------------------------------------------------+
+        | zerovalue     | The value assigned to the no rain pixels with the   |
+        |               | same unit, transformation and accutime of the data. |
+        +---------------+-----------------------------------------------------+
+
     V : array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
         field. The velocities are assumed to represent one time step between the
@@ -70,8 +98,6 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     n_cascade_levels : int
         The number of cascade levels to use.
 
-    Other Parameters
-    ----------------
     extrap_method : {'semilagrangian'}
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
@@ -79,26 +105,27 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         Name of the cascade decomposition method to use. See the documentation
         of pysteps.cascade.interface.
     bandpass_filter_method : {'gaussian', 'uniform'}
-        Name of the bandpass filter method to use with the cascade decomposition.
+        Name of the bandpass filter method to use with the cascade
+        decomposition.
     noise_method : {'parametric','nonparametric','ssft','nested',None}
         Name of the noise generator to use for perturbating the precipitation
         field. See the documentation of pysteps.noise.interface. If set to None,
         no noise is generated.
-    ar_order : int
+    ar_order: int
         The order of the autoregressive model to use. Must be >= 1.
-    vel_pert_method : {'bps',None}
-        Name of the noise generator to use for perturbing the advection field. See
-        the documentation of pysteps.noise.interface. If set to None, the advection
-        field is not perturbed.
+    vel_pert_method: {'bps',None}
+        Name of the noise generator to use for perturbing the advection field.
+        See the documentation of pysteps.noise.interface. If set to None,
+        the advection field is not perturbed.
     mask_method : {'incremental', None}
-        The method to use for masking no precipitation areas in the forecast field.
-        The masked pixels are set to the minimum value of the observations.
-        'incremental' = iteratively buffer the mask with a certain rate
-        (currently it is 1 km/min), None=no masking.
+        The method to use for masking no precipitation areas in the forecast
+        field. The masked pixels are set to the minimum value of the
+        observations. 'incremental' = iteratively buffer the mask with a
+        certain rate (currently it is 1 km/min), None=no masking.
     probmatching_method : {'cdf', None}
         Method for matching the statistics of the forecast field with those of
-        the most recently observed one. 'cdf'=map the forecast CDF to the observed
-        one, None=no matching applied. Using 'mean' requires
+        the most recently observed one. 'cdf'=map the forecast CDF to the
+        observed one, None=no matching applied. Using 'mean' requires
         that mask_method is not None.
     callback : function
         Optional function that is called after computation of each time step of
@@ -108,16 +135,16 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         writing the outputs into files.
     return_output : bool
         Set to False to disable returning the outputs as numpy arrays. This can
-        save memory if the intermediate results are written to output files using
-        the callback function.
+        save memory if the intermediate results are written to output files
+        using the callback function.
     seed : int
         Optional seed number for the random generators.
     num_workers : int
-        The number of workers to use for parallel computation. Applicable if dask
-        is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
-        is advisable to disable OpenMP by setting the environment variable
-        OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
-        threads.
+        The number of workers to use for parallel computation. Applicable if
+        dask is enabled or pyFFTW is used for computing the FFT.
+        When num_workers>1, it is advisable to disable OpenMP by setting the
+        environment variable OMP_NUM_THREADS to 1.
+        This avoids slowdown caused by too many simultaneous threads.
     fft_method : str
         A string defining the FFT method to use (see utils.fft.get_method).
         Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
@@ -130,24 +157,25 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         See the documentation of pysteps.cascade.bandpass_filters.py.
     noise_kwargs : dict
         Optional dictionary containing keyword arguments for the initializer of
-        the noise generator. See the documentation of pysteps.noise.fftgenerators.
+        the noise generator. See the documentation of
+        pysteps.noise.fftgenerators.
     vel_pert_kwargs : dict
         Optional dictionary containing keyword arguments "p_pert_par" and
         "p_pert_perp" for the initializer of the velocity perturbator.
         See the documentation of pysteps.noise.motion.
     mask_kwargs : dict
-      Optional dictionary containing mask keyword arguments 'mask_f' and
-      'mask_rim', the factor defining the the mask increment and the rim size,
-      respectively.
-      The mask increment is defined as mask_f*timestep/kmperpixel.
+        Optional dictionary containing mask keyword arguments 'mask_f' and
+        'mask_rim', the factor defining the the mask increment and the rim size,
+        respectively.
+        The mask increment is defined as mask_f*timestep/kmperpixel.
     measure_time : bool
-      If set to True, measure, print and return the computation time.
+        If set to True, measure, print and return the computation time.
 
     Returns
     -------
     out : ndarray
         If return_output is True, a four-dimensional array of shape
-          (n_ens_members,n_timesteps,m,n) containing a time series of forecast
+        (n_ens_members,n_timesteps,m,n) containing a time series of forecast
         precipitation fields for each ensemble member. Otherwise, a None value
         is returned. The time series starts from t0+timestep, where timestep is
         taken from the input precipitation fields R.
@@ -303,7 +331,7 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
         # normalize the cascades and rearrange them into a four-dimensional array
         # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-        R_c, mu, sigma = _stack_cascades(R_d, n_cascade_levels)
+        R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
         R_d = None
         pars["mu"] = mu;
         pars["sigma"] = sigma
@@ -647,31 +675,6 @@ def _compute_incremental_mask(Rbin, kr, r):
         Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
         mask += Rd
     return mask
-
-
-def _stack_cascades(R_d, n_levels, donorm=True):
-    R_c = []
-    mu = np.empty(n_levels)
-    sigma = np.empty(n_levels)
-
-    n_inputs = len(R_d)
-
-    for i in range(n_levels):
-        R_ = []
-        mu_ = 0
-        sigma_ = 1
-        for j in range(n_inputs):
-            if donorm:
-                mu_ = R_d[j]["means"][i]
-                sigma_ = R_d[j]["stds"][i]
-            if j == n_inputs - 1:
-                mu[i] = mu_
-                sigma[i] = sigma_
-            R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
-            R_.append(R__)
-        R_c.append(np.stack(R_))
-
-    return np.stack(R_c), mu, sigma
 
 
 def _recompose_cascade(R, mu, sigma):

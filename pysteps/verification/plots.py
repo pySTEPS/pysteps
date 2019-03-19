@@ -1,3 +1,17 @@
+"""
+pysteps.verification.plots
+==========================
+
+Methods for plotting verification results.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    plot_intensityscale
+    plot_rankhist
+    plot_reldiag
+    plot_ROC
+"""
 
 from matplotlib import cm
 import matplotlib.pylab as plt

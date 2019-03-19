@@ -1,3 +1,14 @@
+"""
+pysteps.utils.interface
+=======================
+
+Interface for the utils module.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_method
+"""
 
 from . import conversion
 from . import transformation

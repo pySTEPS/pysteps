@@ -1,4 +1,17 @@
-# This is a placeholder for common utilities used by S-PROG and STEPS.
+"""
+pysteps.nowcasts.utils
+======================
+
+Module with common utilities used by nowcasts methods.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    print_ar_params
+    print_corrcoefs
+    stack_cascades
+    recompose_cascade
+"""
 
 import numpy as np
 

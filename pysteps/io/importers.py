@@ -1,11 +1,15 @@
-"""Methods for importing files containing 2d precipitation fields.
+"""
+pysteps.io.importers
+====================
 
-The methods in this module implement the following interface:
+Methods for importing files containing 2d precipitation fields.
 
-  import_xxx(filename, optional arguments)
+The methods in this module implement the following interface::
 
-where xxx is the name (or abbreviation) of the file format and filename is the
-name of the input file.
+    import_xxx(filename, optional arguments)
+
+where **xxx** is the name (or abbreviation) of the file format and filename
+is the name of the input file.
 
 The output of each method is a three-element tuple containing a two-dimensional
 precipitation field, the corresponding quality field and a metadata dictionary.
@@ -59,7 +63,22 @@ The metadata dictionary contains the following mandatory key-value pairs:
 |    zerovalue     | the value assigned to the no rain pixels with the same   |
 |                  | unit, transformation and accutime of the data.           |
 +------------------+----------------------------------------------------------+
+
+Available Importers
+-------------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    import_bom_rf3
+    import_fmi_pgm
+    import_mch_gif
+    import_mch_hdf5
+    import_mch_metranet
+    import_odim_hdf5
+    import_knmi_hdf5
 """
+
 
 import datetime
 import gzip
@@ -817,7 +836,7 @@ def import_odim_hdf5(filename, **kwargs):
     if np.any(np.isfinite(R)):
         thr = np.nanmin(R[R>np.nanmin(R)])
     else:
-        thr = nan
+        thr = np.nan
 
     metadata = {"projection":proj4str,
                 "ll_lon":LL_lon,

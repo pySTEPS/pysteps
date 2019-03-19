@@ -1,16 +1,20 @@
-"""Methods for noise generators based on FFT filtering of white noise.
+"""
+pysteps.noise.fftgenerators
+===========================
+
+Methods for noise generators based on FFT filtering of white noise.
 
 The methods in this module implement the following interface for filter
-initialization depending on their parametric or nonparametric nature:
+initialization depending on their parametric or nonparametric nature::
 
   initialize_param_2d_xxx_filter(X, **kwargs)
 
-  or
+or::
 
   initialize_nonparam_2d_xxx_filter(X, **kwargs)
 
-where X is an array of shape (m, n) that defines the target field and optional
-parameters are supplied as keyword arguments.
+where X is an array of shape (m, n) or (t, m, n) that defines the target field 
+and optional parameters are supplied as keyword arguments.
 
 The output of each initialization method is a dictionary containing the keys F
 and input_shape. The first is a two-dimensional array of shape (m, int(n/2)+1)
@@ -18,16 +22,27 @@ that defines the filter. The second one is the shape of the input field for the
 filter.
 
 The methods in this module implement the following interface for the generation
-of correlated noise:
+of correlated noise::
 
   generate_noise_2d_xxx_filter(F, randstate=np.random, seed=None, **kwargs)
 
-where F (m, n) is a filter returned from the correspondign initialization method,
-and randstate and seed can be used to set the random generator and its seed.
-Additional keyword arguments can be included as a dictionary.
+where F (m, n) is a filter returned from the corresponding initialization
+method, and randstate and seed can be used to set the random generator and
+its seed. Additional keyword arguments can be included as a dictionary.
 
 The output of each generator method is a two-dimensional array containing the
-field of correlated noise cN of shape (m, n)."""
+field of correlated noise cN of shape (m, n).
+
+.. autosummary::
+    :toctree: ../generated/
+
+    initialize_param_2d_fft_filter
+    initialize_nonparam_2d_fft_filter
+    initialize_nonparam_2d_nested_filter
+    initialize_nonparam_2d_ssft_filter
+    generate_noise_2d_fft_filter
+    generate_noise_2d_ssft_filter
+"""
 
 import numpy as np
 from scipy import optimize
@@ -258,7 +273,8 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
 
     return {"F":np.abs(F), "input_shape":X.shape[1:], "use_full_fft":use_full_fft}
 
-def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None, fft_method=None):
+def generate_noise_2d_fft_filter(F, randstate=None, seed=None,
+                                 fft_method=None):
     """Produces a field of correlated noise using global Fourier filtering.
 
     Parameters
@@ -288,6 +304,9 @@ def generate_noise_2d_fft_filter(F, randstate=np.random, seed=None, fft_method=N
         raise ValueError("F is not two-dimensional array")
     if np.any(~np.isfinite(F)):
       raise ValueError("F contains non-finite values")
+
+    if randstate is None:
+        ranstate = np.random
 
     # set the seed
     if seed is not None:
@@ -573,7 +592,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     return {"F":F, "input_shape":X.shape[1:], "use_full_fft":True}
 
-def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
+def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     """Function to compute the locally correlated noise using a nested approach.
 
     Parameters
@@ -621,6 +640,9 @@ def generate_noise_2d_ssft_filter(F, randstate=np.random, seed=None, **kwargs):
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
         fft = utils.get_method(fft, shape=input_shape)
+
+    if randstate is None:
+        randstate = np.random
 
     # set the seed
     if seed is not None:

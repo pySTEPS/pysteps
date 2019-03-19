@@ -1,7 +1,11 @@
-"""Bandpass filters for separating different spatial scales from two-dimensional
+"""
+pysteps.cascade.bandpass_filters
+================================
+
+Bandpass filters for separating different spatial scales from two-dimensional
 images in the frequency domain.
 
-The methods in this module implement the following interface:
+The methods in this module implement the following interface::
 
     filter_xxx(shape, n, optional arguments)
 
@@ -31,6 +35,14 @@ where r = int(max(N, M)/2)+1
 The filter weights are assumed to be normalized so that for any Fourier
 wavenumber they sum to one.
 
+Available filters
+-----------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    filter_uniform
+    filter_gaussian
 """
 
 import numpy as np

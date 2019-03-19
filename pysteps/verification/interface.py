@@ -1,3 +1,14 @@
+"""
+pysteps.verification.interface
+==============================
+
+Interface for the verification module.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_method
+"""
 
 def get_method(name, type="deterministic"):
     """Return a callable function for the method corresponding to the given

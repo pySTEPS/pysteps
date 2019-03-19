@@ -1,5 +1,15 @@
-"""Methods for computing spatial and temporal correlation of time series of
-two-dimensional fields."""
+"""
+pysteps.timeseries.correlation
+==============================
+
+Methods for computing spatial and temporal correlation of time series of
+two-dimensional fields.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    temporal_autocorrelation
+"""
 
 import numpy as np
 

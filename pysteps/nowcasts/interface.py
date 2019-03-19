@@ -1,8 +1,13 @@
-"""Return a callable function for computing nowcasts.
+"""
+pysteps.nowcasts.interface
+==========================
+
+Interface for the nowcasts module. It returns a callable function for computing
+nowcasts.
 
 The methods in the nowcasts module implement the following interface:
 
-    forecast(precip, velocity, num_timesteps, **keywords)
+    ``forecast(precip, velocity, num_timesteps, **keywords)``
 
 where precip is a (m,n) array with input precipitation field to be advected and
 velocity is a (2,m,n) array containing  the x- and y-components of
@@ -16,7 +21,13 @@ For deterministic methods, the output is a three-dimensional array of shape
 For stochastic methods that produce an ensemble, the output is a
 four-dimensional array of shape (num_ensemble_members,num_timesteps,m,n).
 The time step of the output is taken from the inputs.
+
+.. autosummary::
+    :toctree: ../generated/
+    
+    get_method
 """
+
 from pysteps.extrapolation.interface import eulerian_persistence
 from pysteps.nowcasts import sprog, steps, sseps, extrapolation
 
@@ -50,7 +61,7 @@ def get_method(name):
     |  sprog            | the S-PROG method described in :cite:`Seed2003`       |
     +-------------------+-------------------------------------------------------+
     |  steps            | the STEPS stochastic nowcasting method described in   |
-    |                   | :cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013` |              |
+    |                   | :cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013` |
     |                   |                                                       |
     +-------------------+-------------------------------------------------------+
     |  sseps            | short-space ensemble prediction system (SSEPS).       |
