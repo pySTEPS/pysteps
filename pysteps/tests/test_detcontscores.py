@@ -17,6 +17,8 @@ test_data = [
     ([0.], [0.], None, []),
     # test unknown score
     ([1., 3.], [2., 5.], ('lolo'), []),
+    # Mean Absolute Error (Additive) as string
+    (fct_data, obs_data, 'MAE_ADD', [2.8]),
     # Mean Absolute Error (Additive)
     (fct_data, obs_data, ('MAE_ADD'), [2.8]),
     # Mean Absolute Error (Multiplicative)
