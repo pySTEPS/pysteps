@@ -159,7 +159,7 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
 
         # beta (linear regression slope)
         if score == 'beta':
-            beta = s_o/s_pred*corr_p
+            beta = s_o/s_pred*pearsonr(pred, obs)[0]
             result.append(beta)
 
         # scatter
