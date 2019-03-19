@@ -1,4 +1,14 @@
-"""Functions to produce animations for pysteps."""
+"""
+pysteps.visualization.animations
+================================
+
+Functions to produce animations for pysteps.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    animate
+"""
 
 import matplotlib.pylab as plt
 import numpy as np
@@ -58,8 +68,10 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         |                 | element in the data raster w.r.t. y-axis:          |
         |                 | 'upper' = upper border, 'lower' = lower border     |
         +-----------------+----------------------------------------------------+
+
     map : str
-        Optional method for plotting a map. See pysteps.visualization.precipifields.plot_precip.field.
+        Optional method for plotting a map.
+        See pysteps.visualization.precipifields.plot_precip.field.
     units : str
         Units of the input array (mm/h or dBZ)
     colorscale : str
@@ -86,14 +98,13 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         matplotlib.pyplot.savefig. Applicable if savefig is True.
     path_outputs : string
         Path to folder where to save the frames.
-    **kwargs : dict
+    kwargs : dict
         Optional keyword arguments that are supplied to plot_precip_field.
 
     Returns
     -------
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-
     """
     if timestamps is not None:
         startdate_str = timestamps[-1].strftime("%Y%m%d%H%M")

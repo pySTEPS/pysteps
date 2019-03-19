@@ -1,4 +1,13 @@
-"""Methods for reading files.
+"""
+pysteps.io.readers
+==================
+
+Module with the reader functions.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    read_timeseries
 """
 
 import numpy as np

@@ -1,4 +1,18 @@
-"""Methods for transforming data values."""
+"""
+pysteps.utils.transformation
+============================
+
+Methods for transforming data values.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    boxcox_transform
+    boxcox_transform_test_lambdas
+    dB_transform
+    NQ_transform
+    sqrt_transform
+"""
 
 import numpy as np
 import scipy.stats as scipy_stats

@@ -1,4 +1,19 @@
-"""Skill scores for spatial forecasts."""
+"""
+pysteps.verification.spatialscores
+==================================
+
+Skill scores for spatial forecasts.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    intensity_scale
+    intensity_scale_init
+    intensity_scale_accum
+    intensity_scale_compute
+    binary_mse
+    fss
+"""
 
 import numpy as np
 from scipy.ndimage.filters import uniform_filter

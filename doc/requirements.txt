@@ -1,0 +1,6 @@
+
+python>=3.6
+sphinx
+numpydoc
+sphinxcontrib.bibtex
+sphinx_rtd_theme

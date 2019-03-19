@@ -1,9 +1,30 @@
-"""Evaluation and skill scores for probabilistic forecasts."""
+"""
+pysteps.verification.probscores
+===============================
+
+Evaluation and skill scores for probabilistic forecasts.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    CRPS
+    CRPS_init
+    CRPS_accum
+    CRPS_compute
+    reldiag
+    reldiag_init
+    reldiag_accum
+    reldiag_compute
+    ROC_curve
+    ROC_curve_init
+    ROC_curve_accum
+    ROC_curve_compute
+"""
 
 import numpy as np
 
 def CRPS(X_f, X_o):
-    """Compute the average continuous ranked probability score (CRPS).
+    """Compute the continuous ranked probability score (CRPS).
 
     Parameters
     ----------

@@ -1,4 +1,16 @@
-""" Methods for converting physical units."""
+"""
+pysteps.utils.conversion
+========================
+
+Methods for converting physical units.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    to_rainrate
+    to_raindepth
+    to_reflectivity
+"""
 
 import numpy as np
 import warnings

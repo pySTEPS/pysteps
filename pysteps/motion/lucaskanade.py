@@ -1,5 +1,16 @@
-"""OpenCV implementation of the Lucas-Kanade method with interpolation of the
-sparse motion vectors to fill the whole grid."""
+"""
+pysteps.motion.lucaskanade
+==========================
+
+OpenCV implementation of the Lucas-Kanade method with interpolated motion
+vectors for areas with no precipitation.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    dense_lucaskanade
+
+"""
 
 import numpy as np
 from numpy.ma.core import MaskedArray
@@ -14,9 +25,24 @@ import scipy.spatial
 import time
 
 def dense_lucaskanade(R, **kwargs):
-    """`OpenCV`_ implementation of the local `Lucas-Kanade`_ method with
+    """
+    .. _opencv: https://opencv.org/
+
+    .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/\
+    group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
+
+    OpenCV_ implementation of the local `Lucas-Kanade`_ method with
     interpolation of the sparse motion vectors to fill the whole grid.
 
+    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
+        maskedarray.baseclass.html#numpy.ma.MaskedArray
+
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+    
+    .. _Shi-Tomasi: https://docs.opencv.org/3.4.1/dd/d1a/group__\
+        imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+        
     Parameters
     ----------
     R : ndarray_ or MaskedArray_
@@ -125,24 +151,9 @@ def dense_lucaskanade(R, **kwargs):
     Returns
     -------
     out : ndarray_
-        Three-dimensional array (2,m,n) containing the dense x- and y-components
-        of the motion field. It returns a zero array when no motion is detected
-        (e.g. input fields are all zeros).
-
-    .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/\
-        group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
-
-    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
-        maskedarray.baseclass.html#numpy.ma.MaskedArray
-
-    .. _ndarray:\
-        https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
-
-    .. _`OpenCV`: https://opencv.org/
-
-    .. _Shi-Tomasi: https://docs.opencv.org/3.4.1/dd/d1a/group__\
-        imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
-
+        Three-dimensional array (2,H,W) containing the dense x- and y-components
+        of the motion field.
+        Return an empty array when no motion vectors are found.
     """
 
     if len(R.shape) != 3:

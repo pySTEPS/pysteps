@@ -1,4 +1,14 @@
-"""Miscellaneous utility functions related to generation of stochastic perturbations."""
+"""
+pysteps.noise.utils
+===================
+
+Miscellaneous utility functions related to generation of stochastic perturbations.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    compute_noise_stddev_adjs
+"""
 
 import numpy as np
 try:

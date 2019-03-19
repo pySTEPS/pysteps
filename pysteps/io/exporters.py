@@ -1,13 +1,16 @@
-"""Methods for exporting forecasts.
+"""
+pysteps.io.exporter
+===================
 
-Methods for writing forecasts of 2d precipitation fields into various file
+Methods for exporting forecasts of 2d precipitation fields into various file
 formats.
 
 Each exporter method in this module has its own initialization function that
-implements the following interface:
+implements the following interface::
 
   initialize_forecast_exporter_xxx(filename, startdate, timestep,
-  num_timesteps, shape, num_ens_members, metadata, incremental=None)
+                                   num_timesteps, shape, num_ens_members,
+                                   metadata, incremental=None)
 
 where xxx is the name (or abbreviation) of the file format.
 
@@ -57,6 +60,23 @@ The arguments in the above are defined as follows:
 The return value is a dictionary containing an exporter object. This can be
 used with export_forecast_dataset to write datasets into the given file format.
 
+Available Exporters
+-------------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    initialize_forecast_exporter_kineros
+    initialize_forecast_exporter_netcdf
+
+Generic functions
+-----------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    export_forecast_dataset
+    close_forecast_file
 """
 
 from datetime import datetime

@@ -1,4 +1,14 @@
-"""Utilities for finding archived files that match the given criteria."""
+"""
+pysteps.io.archive
+==================
+
+Utilities for finding archived files that match the given criteria.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    find_by_date
+"""
 
 from datetime import datetime, timedelta
 import fnmatch

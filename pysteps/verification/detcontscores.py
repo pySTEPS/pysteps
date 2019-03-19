@@ -1,4 +1,14 @@
-"""Forecast evaluation and skill scores for deterministic continuous forecasts."""
+"""
+pysteps.verification.detcontscores
+==================================
+
+Forecast evaluation and skill scores for deterministic continuous forecasts.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    det_cont_fcst
+"""
 
 import numpy as np
 from scipy.stats import spearmanr, pearsonr

@@ -1,4 +1,16 @@
-"""Methods for plotting precipitation fields."""
+"""
+pysteps.visualization.precipfields
+==================================
+
+Methods for plotting precipitation fields.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    plot_precip_field
+    get_colormap
+"""
+
 import matplotlib.pylab as plt
 from matplotlib import cm, colors, gridspec
 import numpy as np
@@ -31,6 +43,14 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     """
     Function to plot a precipitation intensity or probability field with a
     colorbar.
+
+    .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
+
+    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
+
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
+
+    .. _mpl_toolkits.basemap: https://matplotlib.org/basemap
 
     Parameters
     ----------
@@ -120,13 +140,6 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     ax : fig Axes_
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
-    .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
-
-    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
-
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
-
-    .. _mpl_toolkits.basemap: https://matplotlib.org/basemap
     """
     if type not in ["intensity", "depth", "prob"]:
         raise ValueError("invalid type '%s', must be 'intensity', 'depth' or 'prob'" % type)
