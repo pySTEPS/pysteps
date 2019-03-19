@@ -2,19 +2,24 @@
 pysteps.verification.detcatscores
 =================================
 
-Forecast evaluation and skill scores for deterministic categorial forecasts.
+Forecast evaluation and skill scores for deterministic categorial (dichotomous)
+forecasts.
 
 .. autosummary::
     :toctree: ../generated/
 
     det_cat_fcst
+    det_cat_fcst_init
+    det_cat_fcst_accum
+    det_cat_fcst_compute
 """
 
 import numpy as np
 
 
 def det_cat_fcst(pred, obs, thr, scores):
-    """Calculate simple and skill scores for deterministic categorical forecasts.
+    """Calculate simple and skill scores for deterministic categorical
+    (dichotomous) forecasts.
 
     Parameters
     ----------
@@ -22,6 +27,9 @@ def det_cat_fcst(pred, obs, thr, scores):
         predictions
     obs : array_like
         verifying observations
+    thr : float
+        threshold that is applied to predictions and observations in order
+        to define events vs no events (yes/no).
     score : string or list of strings
         a string or list of strings specifying the name of the scores.
         The list of possible score names is:
@@ -56,9 +64,132 @@ def det_cat_fcst(pred, obs, thr, scores):
         the verification results
 
     """
+
+    contab = det_cat_fcst_init(thr)
+    det_cat_fcst_accum(contab, pred, obs)
+    return det_cat_fcst_compute(contab, scores)
+
+
+def det_cat_fcst_init(thr):
+    """Initialize a contingency table object.
+
+    Parameters
+    ----------
+    thr : float
+        threshold that is applied to predictions and observations in order
+        to define events vs no events (yes/no).
+
+    Returns
+    -------
+    out : dict
+      The contingency table object.
+
+    """
+
+    contab = {}
+
+    contab["thr"] = thr
+    contab["hits"] = 0
+    contab["false_alarms"] = 0
+    contab["misses"] = 0
+    contab["correct_negatives"] = 0
+
+    return contab
+
+
+def det_cat_fcst_accum(contab, pred, obs):
+    """Accumulate the frequency of "yes" and "no" forecasts and observations
+    in the contingency table.
+
+    Parameters
+    ----------
+    contab : dict
+      A contingency table object initialized with
+      pysteps.verification.detcatscores.det_cat_fcst_init.
+    pred : array_like
+        predictions
+    obs : array_like
+        verifying observations
+
+    """
+
+    pred = pred.copy()
+    obs = obs.copy()
+
     # checks
     pred = np.asarray(pred)
     obs = np.asarray(obs)
+
+    # flatten array if 2D
+    pred = pred.flatten()
+    obs = obs.flatten()
+
+    # apply threshold
+    predb = pred > contab["thr"]
+    obsb = obs > contab["thr"]
+
+    # calculate hits, misses, false positives, correct rejects
+    H_idx = np.logical_and(predb == 1, obsb == 1)  # correctly predicted precip
+    F_idx = np.logical_and(predb == 1, obsb == 0)  # predicted precip even though none there
+    M_idx = np.logical_and(predb == 0, obsb == 1)  # predicted no precip even though there was
+    R_idx = np.logical_and(predb == 0, obsb == 0)  # correctly predicted no precip
+
+    # accumulate in the contingency table
+    contab["hits"] += sum(H_idx.astype(int))
+    contab["misses"] += sum(M_idx.astype(int))
+    contab["false_alarms"] += sum(F_idx.astype(int))
+    contab["correct_negatives"] += sum(R_idx.astype(int))
+
+
+def det_cat_fcst_compute(contab, scores):
+    """Compute the x- and y- coordinates of the points in the reliability diagram.
+
+    Parameters
+    ----------
+    contab : dict
+      A contingency table object initialized with
+      pysteps.verification.detcatscores.det_cat_fcst_init and populated with
+      pysteps.verification.detcatscores.det_cat_fcst_accum.
+
+    score : string or list of strings
+        a string or list of strings specifying the name of the scores.
+        The list of possible score names is:
+
+        +------------+--------------------------------------------------------+
+        | Name       | Description                                            |
+        +============+========================================================+
+        |  ACC       | accuracy (proportion correct)                          |
+        +------------+--------------------------------------------------------+
+        |  BIAS      | frequency bias                                         |
+        +------------+--------------------------------------------------------+
+        |  CSI       | critical success index (threat score)                  |
+        +------------+--------------------------------------------------------+
+        |  FA        | false alarm rate (prob. of false detection)            |
+        +------------+--------------------------------------------------------+
+        |  FAR       | false alarm ratio                                      |
+        +------------+--------------------------------------------------------+
+        |  GSS       | Gilbert skill score (equitable threat score)           |
+        +------------+--------------------------------------------------------+
+        |  HK        | Hanssen-Kuipers discriminant (Pierce skill score)      |
+        +------------+--------------------------------------------------------+
+        |  HSS       | Heidke skill score                                     |
+        +------------+--------------------------------------------------------+
+        |  POD       | probability of detection (hit rate)                    |
+        +------------+--------------------------------------------------------+
+        |  SEDI      | symmetric extremal dependency index                    |
+        +------------+--------------------------------------------------------+
+
+    Returns
+    -------
+    result : list
+        the verification results
+
+    Returns
+    -------
+    result : list
+        the verification results
+
+    """
 
     # catch case of single score passed as string
     def get_iterable(x):
@@ -69,25 +200,10 @@ def det_cat_fcst(pred, obs, thr, scores):
             return (x,)
     scores = get_iterable(scores)
 
-    # flatten array if 2D
-    pred = pred.flatten()
-    obs = obs.flatten()
-
-    # apply threshold
-    predb = pred > thr
-    obsb = obs > thr
-
-    # calculate hits, misses, false positives, correct rejects
-
-    H_idx = np.logical_and(predb == 1, obsb == 1)  # correctly predicted precip
-    F_idx = np.logical_and(predb == 1, obsb == 0)  # predicted precip even though none there
-    M_idx = np.logical_and(predb == 0, obsb == 1)  # predicted no precip even though there was
-    R_idx = np.logical_and(predb == 0, obsb == 0)  # correctly predicted no precip
-
-    H = sum(H_idx.astype(int))  # hits
-    M = sum(M_idx.astype(int))  # misses
-    F = sum(F_idx.astype(int))  # false alarms
-    R = sum(R_idx.astype(int))  # correct rejections
+    H = 1.*contab["hits"]
+    M = 1.*contab["misses"]
+    F = 1.*contab["false_alarms"]
+    R = 1.*contab["correct_negatives"]
 
     result = []
     for score in scores:
@@ -98,10 +214,10 @@ def det_cat_fcst(pred, obs, thr, scores):
         score = score.lower()
 
         # simple scores
-        POD = H/float(H+M)        # probability of detection
-        FAR = F/float(H+F)        # false alarm ratio
-        FA = F/float(F+R)         # false alarm rate = prob of false detection
-        s = (H+M)/float(H+M+F+R)  # base rate = freq of observed events
+        POD = H/(H + M)              # probability of detection
+        FAR = F/(H + F)              # false alarm ratio
+        FA = F/(F + R)               # false alarm rate = prob of false detection
+        s = (H + M)/(H + M + F + R)  # base rate = freq of observed events
 
         if score == 'pod':
             result.append(POD)
@@ -113,9 +229,9 @@ def det_cat_fcst(pred, obs, thr, scores):
             ACC = (H+R)/(H+M+F+R)  # accuracy (fraction correct)
             result.append(ACC)
         if score == 'csi':
-            CSI = H/(H+M+F)       # critical success index
+            CSI = H/(H+M+F)        # critical success index
             result.append(CSI)
-        if score == 'bias':       # frequency bias
+        if score == 'bias':        # frequency bias
             B = (H + F) / (H + M)
             result.append(B)
 
@@ -146,3 +262,5 @@ def det_cat_fcst(pred, obs, thr, scores):
             result.append(SEDI)
 
     return result
+
+
