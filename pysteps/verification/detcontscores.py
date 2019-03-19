@@ -13,6 +13,7 @@ Forecast evaluation and skill scores for deterministic continuous forecasts.
 import numpy as np
 from scipy.stats import spearmanr, pearsonr
 
+
 def det_cont_fcst(pred, obs, scores, **kwargs):
     """Calculate simple and skill scores for deterministic continuous forecasts
 
@@ -22,44 +23,45 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
         predictions
     obs : array_like
         verifying observations
-    scores : list
-        a list containing the names of the scores to be computed, the full list
-        is:
+    scores : string or list of strings
+        a string or list of strings containing the names of the scores
+        to be computed, the full list is:
 
-        +------------+----------------------------------------------------------------+
-        | Name       | Description                                                    |
-        +============+================================================================+
-        |  beta      | linear regression slope (conditional bias)                     |
-        +------------+----------------------------------------------------------------+
-        |  corr_p    | pearson's correleation coefficien (linear correlation)         |
-        +------------+----------------------------------------------------------------+
-        |  corr_s    | spearman's correlation coefficient (rank correlation)          |
-        +------------+----------------------------------------------------------------+
-        |  MAE_add   | mean absolute error of additive residuals                      |
-        +------------+----------------------------------------------------------------+
-        |  MAE_mul   | mean absolute error of multiplicative residuals                |
-        +------------+----------------------------------------------------------------+
-        |  ME_add    | mean error or bias of additive residuals                       |
-        +------------+----------------------------------------------------------------+
-        |  ME_mult   | mean error or bias of multiplicative residuals                 |
-        +------------+----------------------------------------------------------------+
-        |  RMSE_add  | root mean squared additive error                               |
-        +------------+----------------------------------------------------------------+
-        |  RMSE_mult | root mean squared multiplicative error                         |
-        +------------+----------------------------------------------------------------+
-        |  RV_add    | reduction of variance (Brier Score, Nash-Sutcliffe Efficiency) |
-        +------------+----------------------------------------------------------------+
-        |  RV_mult   | reduction of variance in multiplicative space                  |
-        +------------+----------------------------------------------------------------+
-        |  scatter   | half the distance between the 16% and 84% percentiles of the   |
-        |            | error distribution                                             |
-        +------------+----------------------------------------------------------------+
+        +------------+--------------------------------------------------------+
+        | Name       | Description                                            |
+        +============+========================================================+
+        |  beta      | linear regression slope (conditional bias)             |
+        +------------+--------------------------------------------------------+
+        |  corr_p    | pearson's correleation coefficien (linear correlation) |
+        +------------+--------------------------------------------------------+
+        |  corr_s    | spearman's correlation coefficient (rank correlation)  |
+        +------------+--------------------------------------------------------+
+        |  MAE_add   | mean absolute error of additive residuals              |
+        +------------+--------------------------------------------------------+
+        |  MAE_mul   | mean absolute error of multiplicative residuals        |
+        +------------+--------------------------------------------------------+
+        |  ME_add    | mean error or bias of additive residuals               |
+        +------------+--------------------------------------------------------+
+        |  ME_mult   | mean error or bias of multiplicative residuals         |
+        +------------+--------------------------------------------------------+
+        |  RMSE_add  | root mean squared additive error                       |
+        +------------+--------------------------------------------------------+
+        |  RMSE_mult | root mean squared multiplicative error                 |
+        +------------+--------------------------------------------------------+
+        |  RV_add    | reduction of variance                                  |
+        |            | (Brier Score, Nash-Sutcliffe Efficiency)               |
+        +------------+--------------------------------------------------------+
+        |  RV_mult   | reduction of variance in multiplicative space          |
+        +------------+--------------------------------------------------------+
+        |  scatter   | half the distance between the 16% and 84% percentiles  |
+        |            | of the error distribution                              |
+        +------------+--------------------------------------------------------+
 
     Other Parameters
     ----------------
     offset : float
-        an offset that is added to both prediction and observation to avoid 0 division
-        when computing multiplicative residuals. Default is 0.01.
+        an offset that is added to both prediction and observation to avoid
+        zero division when computing multiplicative residuals. Default is 0.01.
 
     Returns
     -------
@@ -67,20 +69,33 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
         list containing the verification results
 
     """
+    # checks
+    pred = np.asarray(pred)
+    obs = np.asarray(obs)
+
+    # catch case of single score passed as string
+    def get_iterable(x):
+        import collections
+        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+            return x
+        else:
+            return (x,)
+    scores = get_iterable(scores)
 
     offset = kwargs.get("offset", 0.01)
 
     # flatten array if 2D
-    pred  = pred.flatten()
-    obs   = obs.flatten()
+    pred = pred.flatten()
+    obs = obs.flatten()
 
     isNaN = np.logical_or(np.isnan(pred), np.isnan(obs))
-    pred  = pred[~isNaN]
-    obs   = obs[~isNaN]
+    pred = pred[~isNaN]
+    obs = obs[~isNaN]
 
-    N     = len(obs)
-    s_o   = np.sqrt(1.0/N*sum((obs - obs.mean())**2))
-    s_pred = np.sqrt(1.0/N*sum((pred - pred.mean())**2)) # sample standard deviation of prediction
+    N = len(obs)
+    s_o = np.sqrt(1.0/N*sum((obs - obs.mean())**2))
+    # sample standard deviation of prediction
+    s_pred = np.sqrt(1.0/N*sum((pred - pred.mean())**2))
 
     # compute additive and multiplicative residuals
     add_res = pred - obs
@@ -88,6 +103,9 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
 
     result = []
     for score in scores:
+        # catch None passed as score
+        if score is None:
+            continue
 
         score = score.lower()
 
@@ -131,22 +149,24 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
 
         # spearman corr (rank correlation)
         if score == 'corr_s':
-            corr_s = spearmanr(pred,obs)[0]
+            corr_s = spearmanr(pred, obs)[0]
             result.append(corr_s)
 
         # pearson corr
         if score == 'corr_p':
-            corr_p = pearsonr(pred,obs)[0]
+            corr_p = pearsonr(pred, obs)[0]
             result.append(corr_p)
 
         # beta (linear regression slope)
         if score == 'beta':
-            beta = s_o/s_pred*corr_p
+            beta = s_o/s_pred*pearsonr(pred, obs)[0]
             result.append(beta)
 
         # scatter
         if score == 'scatter':
-            scatter = 0.5*(np.nanpercentile(mult_res, 84) - np.nanpercentile(mult_res, 16))
+            scatter = 0.5 * (np.nanpercentile(mult_res, 84) -
+                             np.nanpercentile(mult_res, 16)
+                             )
             result.append(scatter)
 
     return result
