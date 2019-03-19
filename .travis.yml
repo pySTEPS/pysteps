@@ -26,7 +26,7 @@ install:
   # Customise the testing environment
   # ---------------------------------
   - PACKAGES="$PACKAGES dask pyfftw cartopy basemap h5py"
-  - PACKAGES="$PACKAGES pytest pytest-cov coveralls";
+  - PACKAGES="$PACKAGES pytest pytest-cov coveralls codecov";
   - export CYTHON_COVERAGE=1;
   - travis_retry conda install --quiet $PACKAGES
 
@@ -54,4 +54,5 @@ script:
 
 after_success:
   - coveralls
+  - codecov
 
