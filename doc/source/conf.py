@@ -20,7 +20,9 @@ import sys
 #
 import os
 
-sys.path.insert(1, os.path.abspath('../../'))
+print(os.environ['READTHEDOCS'])
+print(os.environ['READTHEDOCS'])
+#sys.path.insert(1, os.path.abspath('../../'))
 
 # -- General configuration ------------------------------------------------
 
