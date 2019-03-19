@@ -20,7 +20,10 @@ import sys
 #
 import os
 
-sys.path.insert(0, os.path.abspath('../'))
+try:
+    import pysteps
+except ImportError:
+    sys.path.insert(0, os.path.abspath('../'))
 
 # -- General configuration ------------------------------------------------
 
