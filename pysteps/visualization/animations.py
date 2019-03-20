@@ -163,6 +163,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         if timestamps is not None:
                             title = "%s +%02d min" % (timestamps[-1].strftime("%Y-%m-%d %H:%M"),
                                     (1 + i - n_obs)*timestep_min)
+                            title += "\n (Forecast Rainfall)"
                         else:
                             title = "+%02d min" % ((1 + i - n_obs)*timestep_min)
     
