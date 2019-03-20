@@ -488,7 +488,7 @@ def import_mch_gif(filename, **kwargs):
 
 
 def import_mch_hdf5(filename, **kwargs):
-    """Read a precipitation field (and optionally the quality field) from a HDF5
+    """Import a precipitation field (and optionally the quality field) from a HDF5
     file conforming to the ODIM specification.
 
     Parameters
@@ -606,6 +606,7 @@ def import_mch_hdf5(filename, **kwargs):
 
     return R,Q,metadata
 
+
 def import_mch_metranet(filename, **kwargs):
     """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
     archive.
@@ -670,6 +671,7 @@ def import_mch_metranet(filename, **kwargs):
 
     return R,None,metadata
 
+
 def _import_mch_geodata():
     """Swiss radar domain CCS4
     These are all hard-coded because the georeferencing is missing from the gif files.
@@ -703,9 +705,10 @@ def _import_mch_geodata():
 
     return geodata
 
+
 def import_odim_hdf5(filename, **kwargs):
-    """Read a precipitation field (and optionally the quality field) from a HDF5
-    file conforming to the ODIM specification.
+    """Import a precipitation field (and optionally the quality field) from a
+    HDF5 file conforming to the ODIM specification.
 
     Parameters
     ----------
@@ -861,6 +864,7 @@ def import_odim_hdf5(filename, **kwargs):
 
     return R,Q,metadata
 
+
 def _read_mch_hdf5_what_group(whatgrp):
 
     qty      = whatgrp.attrs["quantity"] if "quantity" in whatgrp.attrs.keys() else "RATE"
@@ -870,6 +874,7 @@ def _read_mch_hdf5_what_group(whatgrp):
     undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else -1.0
 
     return qty,gain,offset,nodata,undetect
+
 
 def _read_odim_hdf5_what_group(whatgrp):
 
@@ -881,10 +886,10 @@ def _read_odim_hdf5_what_group(whatgrp):
 
     return qty,gain,offset,nodata,undetect
 
+
 def import_knmi_hdf5(filename, **kwargs):
-    """Read a precipitation field (and optionally the quality field) from a HDF5
-    file conforming to the KNMI Data Centre specification. TO DO: Add quality
-    field.
+    """Import a precipitation field (and optionally the quality field) from a
+    HDF5 file conforming to the KNMI Data Centre specification.
 
     Parameters
     ----------
@@ -906,6 +911,9 @@ def import_knmi_hdf5(filename, **kwargs):
         field is currently set to None.
 
     """
+    
+    # TODO: Add quality field.
+    
     if not h5py_imported:
         raise Exception("h5py not imported")
 

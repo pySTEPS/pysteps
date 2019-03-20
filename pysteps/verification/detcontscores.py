@@ -27,6 +27,8 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
         a string or list of strings containing the names of the scores
         to be computed, the full list is:
 
+        .. tabularcolumns:: |p{2cm}|L|
+
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
@@ -59,7 +61,7 @@ def det_cont_fcst(pred, obs, scores, **kwargs):
 
     Other Parameters
     ----------------
-    offset : float
+    offset : float, optional
         an offset that is added to both prediction and observation to avoid
         zero division when computing multiplicative residuals. Default is 0.01.
 

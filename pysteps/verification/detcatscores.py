@@ -25,7 +25,9 @@ def det_cat_fcst(pred, obs, thr, scores):
     score : string or list of strings
         a string or list of strings specifying the name of the scores.
         The list of possible score names is:
-
+        
+        .. tabularcolumns:: |p{2cm}|L|
+        
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+

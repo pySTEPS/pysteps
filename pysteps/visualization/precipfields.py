@@ -57,21 +57,18 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     R : array-like
         Two-dimensional array containing the input precipitation field or an
         exceedance probability map.
-
-    Other parameters
-    ----------------
-    type : str
+    type : {'intensity', 'depth', 'prob'}, optional
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
-
-    map : str
+    map : {'basemap', 'cartopy'}, optional
         Optional method for plotting a map: 'basemap' or 'cartopy'. The former
         uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
-
-    geodata : dictionary
+    geodata : dictionary, optional
         Optional dictionary containing geographical information about the field.
         If geodata is not None, it must contain the following key-value pairs:
+        
+        .. tabularcolumns:: |p{1.5cm}|L|
 
         +-----------------+----------------------------------------------------+
         |        Key      |                  Value                             |
@@ -94,43 +91,32 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         |                 | element in the data raster w.r.t. y-axis:          |
         |                 | 'upper' = upper border, 'lower' = lower border     |
         +-----------------+----------------------------------------------------+
-    units : str
-        Units of the input array (mm/h, mm, dBZ). If type is 'prob',
-        this specifies the unit of the intensity threshold.
-
-    colorscale : str
-        Which colorscale to use (pysteps, STEPS-BE). Applicable if units is
-        'mm/h', 'mm' or 'dBZ'.
-
-    probthr : float
+    units : {'mm/h', 'mm', 'dBZ'}, optional
+        Units of the input array. If type is 'prob', this specifies the unit of 
+        the intensity threshold.
+    colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
+        Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
+    probthr : float, optional
       Intensity threshold to show in the color bar of the exceedance probability
       map. Required if type is "prob" and colorbar is True.
-
-    title : str
+    title : str, optional
         If not None, print the title on top of the plot.
-
-    colorbar : bool
+    colorbar : bool, optional
         If set to True, add a colorbar on the right side of the plot.
-
-    drawlonlatlines : bool
+    drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
-
-    basemap_resolution : str
+    basemap_resolution : str, optional
         The resolution of the basemap, see the documentation of
         `mpl_toolkits.basemap`_.
         Applicable if map is 'basemap'.
-
-    cartopy_scale : str
+    cartopy_scale : {'10m', '50m', '110m'}, optional
         The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'. Applicable if map is 'cartopy'.
-
-    lw: float
+    lw: float, optional
         Linewidth of the map (administrative boundaries and coastlines).
-
-    cartopy_subplot : tuple or SubplotSpec_ instance
+    cartopy_subplot : tuple or SubplotSpec_ instance, optional
         Cartopy subplot. Applicable if map is 'cartopy'.
-
     cax : Axes_ object, optional
         Axes into which the colorbar will be drawn. If no axes is provided
         the colorbar axes are created next to the plot.
@@ -344,15 +330,15 @@ def get_colormap(type, units='mm/h', colorscale='pysteps'):
 
     Parameters
     ----------
-    type : str
+    type : {'intensity', 'depth', 'prob'}, optional
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
-    units : str
-        Units of the input array (mm/h, mm or dBZ).
-    colorscale : str
-        Which colorscale to use (BOM-RF3, pysteps, STEPS-BE). Applicable if units is
-        'mm/h', 'mm' or 'dBZ'.
+    units : {'mm/h', 'mm', 'dBZ'}, optional
+        Units of the input array. If type is 'prob', this specifies the unit of 
+        the intensity threshold.
+    colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
+        Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
 
     Returns
     -------

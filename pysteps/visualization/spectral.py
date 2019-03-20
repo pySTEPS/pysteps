@@ -27,19 +27,19 @@ def plot_spectrum1d(fft_freq, fft_power, x_units=None, y_units=None,
     fft_power: array-like
         1d array containing the radially averaged Fourier power spectrum 
         computed by the function 'rapsd' in utils/spectral.py
-    x_units: str
+    x_units: str, optional
         Units of the X variable (distance, e.g. km)
-    y_units: str
+    y_units: str, optional
         Units of the Y variable (amplitude, e.g. dBR)
-    wavelength_ticks_ array-like
+    wavelength_ticks: array-like, optional
         List of wavelengths where to show xticklabels
-    color: str
+    color: str, optional
         Line color
-    lw: float
+    lw: float, optional
         Line width
-    label: str
+    label: str, optional
         Label (for legend)
-    ax: Axes
+    ax: Axes, optional
         Plot axes
         
     Returns
