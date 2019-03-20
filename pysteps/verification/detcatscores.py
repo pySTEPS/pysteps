@@ -14,10 +14,12 @@ forecasts.
     det_cat_fcst_compute
 """
 
+import collections
 import numpy as np
 
 
-def det_cat_fcst(pred, obs, thr, scores):
+def det_cat_fcst(pred, obs, thr, scores, axis=None):
+
     """Calculate simple and skill scores for deterministic categorical
     (dichotomous) forecasts.
 
@@ -33,6 +35,8 @@ def det_cat_fcst(pred, obs, thr, scores):
     score : string or list of strings
         a string or list of strings specifying the name of the scores.
         The list of possible score names is:
+
+        .. tabularcolumns:: |p{2cm}|L|
 
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
@@ -58,6 +62,14 @@ def det_cat_fcst(pred, obs, thr, scores):
         |  SEDI      | symmetric extremal dependency index                    |
         +------------+--------------------------------------------------------+
 
+    axis : None or int or tuple of ints, optional
+        Axis or axes along which a score is integrated. The default, axis=None,
+        will integrate all of the elements of the input arrays.\n
+        If axis is -1 (or any negative integer), the integration is not performed
+        and scores are computed on all of the elements in the input arrays.\n
+        If axis is a tuple of ints, the integration is performed on all of the
+        axes specified in the tuple.
+
     Returns
     -------
     result : list
@@ -70,7 +82,7 @@ def det_cat_fcst(pred, obs, thr, scores):
     return det_cat_fcst_compute(contab, scores)
 
 
-def det_cat_fcst_init(thr):
+def det_cat_fcst_init(thr, axis=None):
     """Initialize a contingency table object.
 
     Parameters
@@ -78,6 +90,13 @@ def det_cat_fcst_init(thr):
     thr : float
         threshold that is applied to predictions and observations in order
         to define events vs no events (yes/no).
+    axis : None or int or tuple of ints, optional
+        Axis or axes along which a score is integrated. The default, axis=None,
+        will integrate all of the elements of the input arrays.\n
+        If axis is -1 (or any negative integer), the integration is not performed
+        and scores are computed on all of the elements in the input arrays.\n
+        If axis is a tuple of ints, the integration is performed on all of the
+        axes specified in the tuple.
 
     Returns
     -------
@@ -88,11 +107,20 @@ def det_cat_fcst_init(thr):
 
     contab = {}
 
+    # catch case of axis passed as integer
+    def get_iterable(x):
+        if x is None or \
+            (isinstance(x, collections.Iterable) and not isinstance(x, int)):
+            return x
+        else:
+            return (x,)
+
     contab["thr"] = thr
-    contab["hits"] = 0
-    contab["false_alarms"] = 0
-    contab["misses"] = 0
-    contab["correct_negatives"] = 0
+    contab["axis"] = get_iterable(axis)
+    contab["hits"] = None
+    contab["false_alarms"] = None
+    contab["misses"] = None
+    contab["correct_negatives"] = None
 
     return contab
 
@@ -113,16 +141,41 @@ def det_cat_fcst_accum(contab, pred, obs):
 
     """
 
-    pred = pred.copy()
-    obs = obs.copy()
+    pred = np.asarray(pred.copy())
+    obs = np.asarray(obs.copy())
+    axis = tuple(range(pred.ndim)) if contab["axis"] is None else contab["axis"]
 
     # checks
-    pred = np.asarray(pred)
-    obs = np.asarray(obs)
+    if pred.shape != obs.shape:
+        raise ValueError("the shape of pred does not match the shape of obs %s!=%s"
+                         % (pred.shape, obs.shape))
 
-    # flatten array if 2D
-    pred = pred.flatten()
-    obs = obs.flatten()
+    if pred.ndim <= np.max(axis):
+        raise ValueError("axis %d is out of bounds for array of dimension %d"
+                         % (np.max(axis), len(pred.shape)))
+
+    idims = [dim not in axis for dim in range(pred.ndim)]
+    nshape = tuple(np.array(pred.shape)[np.array(idims)])
+    if contab["hits"] is None:
+        # initialize the count arrays in the contingency table
+        contab["hits"] = np.zeros(nshape)
+        contab["false_alarms"] = np.zeros(nshape)
+        contab["misses"] = np.zeros(nshape)
+        contab["correct_negatives"] = np.zeros(nshape)
+
+    else:
+        # check dimensions
+        if contab["hits"].shape != nshape:
+            raise ValueError(
+                "the shape of the input arrays does not match the shape of the "
+                + "contingency table %s!=%s" % (nshape, contab["hits"].shape))
+
+    # add dummy axis in case integration is not required
+    if np.max(axis) < 0:
+        pred = pred[None, :]
+        obs = obs[None, :]
+        axis = (0,)
+    axis = tuple([a for a in axis if a >= 0])
 
     # apply threshold
     predb = pred > contab["thr"]
@@ -135,10 +188,10 @@ def det_cat_fcst_accum(contab, pred, obs):
     R_idx = np.logical_and(predb == 0, obsb == 0)  # correctly predicted no precip
 
     # accumulate in the contingency table
-    contab["hits"] += sum(H_idx.astype(int))
-    contab["misses"] += sum(M_idx.astype(int))
-    contab["false_alarms"] += sum(F_idx.astype(int))
-    contab["correct_negatives"] += sum(R_idx.astype(int))
+    contab["hits"] += np.sum(H_idx.astype(int), axis=axis)
+    contab["misses"] += np.sum(M_idx.astype(int), axis=axis)
+    contab["false_alarms"] += np.sum(F_idx.astype(int), axis=axis)
+    contab["correct_negatives"] += np.sum(R_idx.astype(int), axis=axis)
 
 
 def det_cat_fcst_compute(contab, scores):
@@ -154,6 +207,8 @@ def det_cat_fcst_compute(contab, scores):
     score : string or list of strings
         a string or list of strings specifying the name of the scores.
         The list of possible score names is:
+
+        .. tabularcolumns:: |p{2cm}|L|
 
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
@@ -193,7 +248,6 @@ def det_cat_fcst_compute(contab, scores):
 
     # catch case of single score passed as string
     def get_iterable(x):
-        import collections
         if isinstance(x, collections.Iterable) and not isinstance(x, str):
             return x
         else:
