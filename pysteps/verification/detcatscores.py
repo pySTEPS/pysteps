@@ -239,11 +239,6 @@ def det_cat_fcst_compute(contab, scores):
     result : list
         the verification results
 
-    Returns
-    -------
-    result : list
-        the verification results
-
     """
 
     # catch case of single score passed as string
