@@ -224,12 +224,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     pysteps.extrapolation.interface, pysteps.cascade.interface,
     pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
 
-    Notes
-    -----
-    If noise_method and vel_pert_method are None, n_ens_members is 1,
-    mask_method is 'sprog' and probmatching_method is 'mean', the deterministic
-    S-PROG nowcast is generated, see :cite:`Seed2003`.
-
     References
     ----------
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`

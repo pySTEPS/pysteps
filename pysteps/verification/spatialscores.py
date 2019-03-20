@@ -48,9 +48,9 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
     thrs : sequence
         A sequence of intensity thresholds for which to compute the
         verification.
-    scales : sequence
+    scales : sequence, optional
         A sequence of spatial scales in pixels to be used in the FSS.
-    wavelet : str
+    wavelet : str, optional
         The name of the wavelet function to use in the BMSE.
         Defaults to the Haar wavelet, as described in Casati et al. 2004.
         See the documentation of PyWavelets for a list of available options.
@@ -89,9 +89,9 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
     thrs : sequence
         A sequence of intensity thresholds for which to compute the
         verification.
-    scales : sequence
+    scales : sequence, optional
         A sequence of spatial scales in pixels to be used in the FSS.
-    wavelet : str
+    wavelet : str, optional
         The name of the wavelet function to use in the BMSE.
         Defaults to the Haar wavelet, as described in
         Casati et al. 2004. See the documentation of
@@ -222,7 +222,7 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
         Array of shape (n,m) containing the verification observation field.
     thr : sequence
         The intensity threshold for which to compute the verification.
-    wavelet : str
+    wavelet : str, optional
         The name of the wavelet function to use. Defaults to the Haar wavelet,
         as described in Casati et al. 2004. See the documentation of PyWavelets
         for a list of available options.
@@ -272,8 +272,7 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
 
 
 def fss(X_f, X_o, thr, scale):
-    """Compute the fractions skill score (FSS).
-
+    """
     Compute the fractions skill score (FSS) for a deterministic forecast
     field and the corresponding observation.
 

@@ -62,31 +62,31 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
     Other Parameters
     ----------------
-    win_type : string
-        Optional tapering function to be applied to X.
-        Default : flat-hanning
-    model : string
-        The parametric model to be used to fit the power spectrum of X.
-        Default : power-law
+    win_type : {'hanning', 'flat-hanning'}
+        Optional tapering function to be applied to X, generated with
+        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
+        (default 'flat-hanning').
+    model : {'power-law'}
+        The name of the parametric model to be used to fit the power spectrum of 
+        X (default 'power-law').
     weighted : bool
-        Whether or not to apply the sqrt(power) as weight in the polyfit() function.
-        Default : True
+        Whether or not to apply sqrt(power) as weight in the numpy.polyfit() 
+        function (default True).
     rm_rdisc : bool
-        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
-        pixels are assigned with lowest value.
-        Default : True
-    doplot : bool
-        Plot the fit.
-        Default : False
+        Whether or not to remove the rain/no-rain disconituity (default True). 
+        It assumes no-rain pixels are assigned with lowest value.
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
-        (see utils.fft.get_method). Defaults to "numpy".
+        (see :py:func:`pysteps.utils.fft.get_method`). Defaults to "numpy".
+    doplot : bool
+        Whether or not to plot the fit (default False).
 
     Returns
     -------
     F : array-like
-      A two-dimensional array containing the parametric filter.
-      It can be passed to generate_noise_2d_fft_filter().
+      A two-dimensional array containing the parametric filter. This can be passed 
+      to :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter` to
+      generate noise fields.
     """
 
     if len(X.shape) < 2 or len(X.shape) > 3:
@@ -198,24 +198,26 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
 
     Other Parameters
     ----------------
-    win_type : string
-       Optional tapering function to be applied to X.
-       Default : flat-hanning
+    win_type : {'hanning', 'flat-hanning'}
+        Optional tapering function to be applied to X, generated with
+        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
+        (default 'flat-hanning').
     donorm : bool
        Option to normalize the real and imaginary parts.
        Default : False
     rm_rdisc : bool
-        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
-        pixels are assigned with lowest value.
+        Whether or not to remove the rain/no-rain disconituity (default True). 
+        It assumes no-rain pixels are assigned with lowest value.
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
-        (see utils.fft.get_method). Defaults to "numpy".
+        (see :py:func:`pysteps.utils.fft.get_method`). Defaults to "numpy".
 
     Returns
     -------
     F : array-like
       A two-dimensional array containing the non-parametric filter.
-      It can be passed to generate_noise_2d_fft_filter().
+      It can be passed to 
+      :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter`.
     """
     if len(X.shape) < 2 or len(X.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
@@ -280,16 +282,17 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None,
     Parameters
     ----------
     F : dict
-        A filter object returned by initialize_param_2d_fft_filter or
-        initialize_nonparam_2d_fft_filter. All values in the filter array are
-        required to be finite.
+        A filter object returned by 
+        :py:func:`pysteps.noise.fftgenerators.initialize_param_2d_fft_filter` or
+        :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_fft_filter`. 
+        All values in the filter array are required to be finite.
     randstate : mtrand.RandomState
         Optional random generator to use. If set to None, use numpy.random.
     seed : int
         Value to set a seed for the generator. None will not set the seed.
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
-        (see utils.fft.get_method). Defaults to "numpy".
+        (see :py:func:`pysteps.utils.fft.get_method`). Defaults to "numpy".
 
     Returns
     -------
@@ -352,29 +355,31 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     Other Parameters
     ----------------
     win_size : int or two-element tuple of ints
-        Size-length of the window to compute the SSFT.
-        Default : (128, 128)
-    win_type : string ['hanning', 'flat-hanning']
-        Type of window used for localization.
-        Default : flat-hanning
+        Size-length of the window to compute the SSFT (default (128, 128)).
+    win_type : {'hanning', 'flat-hanning'}
+        Optional tapering function to be applied to X, generated with
+        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
+        (default 'flat-hanning').
     overlap : float [0,1[
-        The proportion of overlap to be applied between successive windows.
-        Default : 0.3
+        The proportion of overlap to be applied between successive windows 
+        (default 0.3).
     war_thr : float [0,1]
-        Threshold for the minimum fraction of rain needed for computing the FFT.
-        Default : 0.1
+        Threshold for the minimum fraction of rain needed for computing the FFT
+        (default 0.1).
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
-        (see utils.fft.get_method). Defaults to "numpy".
+        (see :py:func:`pysteps.utils.fft.get_method`). Defaults to "numpy".
 
     Returns
     -------
     F : array-like
         Four-dimensional array containing the 2d fourier filters distributed over
-        a 2d spatial grid.
+        a 2d spatial grid. 
+        It can be passed to 
+        :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter`.
 
     References
     ----------
@@ -475,26 +480,29 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     Other Parameters
     ----------------
     max_level : int
-        Localization parameter. 0: global noise, >0: increasing degree of localization.
-        Default : 3
-    win_type : string ['hanning', 'flat-hanning']
-        Type of window used for localization.
-        Default : flat-hanning
+        Localization parameter. 0: global noise, >0: increasing degree of 
+        localization (default 3).
+    win_type : {'hanning', 'flat-hanning'}
+        Optional tapering function to be applied to X, generated with
+        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
+        (default 'flat-hanning').
     war_thr : float [0;1]
-        Threshold for the minimum fraction of rain needed for computing the FFT.
-        Default : 0.1
+        Threshold for the minimum fraction of rain needed for computing the FFT
+        (default 0.1).
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
-        (see utils.fft.get_method). Defaults to "numpy".
+        (see :py:func:`pysteps.utils.fft.get_method`). Defaults to "numpy".
 
     Returns
     -------
     F : array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
+        It can be passed to 
+        :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter`.
     """
 
     if len(X.shape) < 2 or len(X.shape) > 3:
@@ -598,10 +606,11 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     Parameters
     ----------
     F : array-like
-        A filter object returned by initialize_nonparam_2d_nested_filter or
-        initialize_nonparam_2d_ssft_filter. The filter is a four-dimensional
-        array containing the 2d fourier filters distributed over a 2d spatial
-        grid.
+        A filter object returned by 
+        :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_ssft_filter` or
+        :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_nested_filter`. 
+        The filter is a four-dimensional array containing the 2d fourier filters 
+        distributed over a 2d spatial grid.
     randstate : mtrand.RandomState
         Optional random generator to use. If set to None, use numpy.random.
     seed : int
@@ -610,14 +619,14 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     Other Parameters
     ----------------
     overlap : float
-        Percentage overlap [0-1] between successive windows.
-        Default : 0.2
-    win_type : string ['hanning', 'flat-hanning']
-        Type of window used for localization.
-        Default : flat-hanning
+        Percentage overlap [0-1] between successive windows (default 0.2).
+    win_type : {'hanning', 'flat-hanning'}
+        Optional tapering function to be applied to X, generated with
+        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
+        (default 'flat-hanning').
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
-        (see utils.fft.get_method). Defaults to "numpy".
+        (see :py:func:`pysteps.utils.fft.get_method`). Defaults to "numpy".
 
     Returns
     -------
@@ -702,8 +711,8 @@ def build_2D_tapering_function(win_size, win_type='flat-hanning'):
     ----------
     win_size : tuple of int
         Size of the tapering window as two-element tuple of integers.
-    win_type : str
-        Name of the tapering window type (hanning, flat-hanning)
+    win_type : {'hanning', 'flat-hanning'}
+        Name of the tapering window type 
 
     Returns
     -------

@@ -59,7 +59,7 @@ def DARTS(Z, **kwargs):
     Returns
     -------
     out : ndarray
-        Three-dimensional array (2,H,W) containing the dense x- and y-components
+        Three-dimensional array (2,m,n) containing the dense x- and y-components
         of the motion field.
 
     """

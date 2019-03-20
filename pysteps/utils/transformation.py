@@ -30,7 +30,9 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
     R : array-like
         Array of any shape to be transformed.
     metadata : dict
-        The metadata dictionary contains all data-related information.
+        Metadata dictionary containing the transform, zerovalue and threshold
+        attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     Lambda : float
         Parameter lambda of the Box-Cox transformation.
         Default : 0
@@ -52,7 +54,7 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
     """
 
     R = R.copy()
-    
+
     if metadata is None:
         if inverse:
             metadata = {"transform": "BoxCox"}
@@ -167,7 +169,7 @@ def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
     print("Saved: box-cox-transform-test-lambdas.png")
 
     plt.close()
-    
+
 def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
     """Methods to transform precipitation intensities to/from dB units.
 
@@ -176,7 +178,9 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
     R : array-like
         Array of any shape to be (back-)transformed.
     metadata : dict
-        The metadata dictionary contains all data-related information.
+        Metadata dictionary containing the transform, zerovalue and threshold
+        attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     threshold : float
         Optional value that is used for thresholding with the same units as R.
         If None, the threshold contained in metadata is used.
@@ -241,11 +245,11 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
             threshold = metadata.get("threshold", -10.)
         if zerovalue is None:
             zerovalue = 0.0
-            
+
         R = 10.0**(R/10.0)
         threshold = 10.0**(threshold/10.0)
         R[R < threshold] = zerovalue
-        
+
         metadata["transform"] = None
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
@@ -253,7 +257,7 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
         return R, metadata
 
 def NQ_transform(R, metadata=None, inverse=False, **kwargs):
-    """The normal quantile transformation. 
+    """The normal quantile transformation.
     Zero rain vales are set to zero in norm space.
 
     Parameters
@@ -261,14 +265,16 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     R : array-like
         Array of any shape to be transformed.
     metadata : dict
-        The metadata dictionary contains all data-related information.
+        Metadata dictionary containing the transform, zerovalue and threshold
+        attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     inverse : bool
         Optional, if set to True, it performs the inverse transform
-        
+
     Other Parameters
     ----------------
-    a : float
-        Optional offset fraction to be used; typically in (0,1).
+    a : float, optional
+        The offset fraction to be used; typically in (0,1).
         Default : 0., i.e. it spaces the points evenly in the uniform distribution
 
     Returns
@@ -279,10 +285,10 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
         The metadata with updated attributes.
 
     """
-    
+
     # defaults
     a = kwargs.get('a', 0.)
-    
+
     R = R.copy()
     shape0 = R.shape
     R = R.ravel()
@@ -300,40 +306,40 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
         metadata = metadata.copy()
 
     if not inverse:
-    
+
         # Plotting positions
         # https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot#Plotting_position
         n   = R_.size
-        a   = 0 # 
+        a   = 0 #
         Rpp = ((np.arange(n) + 1 - a)/(n + 1 - 2*a)).reshape(R_.shape)
-        
+
         # NQ transform
         Rqn = scipy_stats.norm.ppf(Rpp)
         R__ = np.interp(R_, R_[np.argsort(R_)], Rqn)
-        
+
         # set zero rain to 0 in norm space
         R__[R[~idxNan] == metadata["zerovalue"]] = 0
-        
+
         # build inverse transform
-        metadata["inqt"] = interp1d(Rqn, R_[np.argsort(R_)], bounds_error=False, 
+        metadata["inqt"] = interp1d(Rqn, R_[np.argsort(R_)], bounds_error=False,
                                      fill_value=(R_.min(), R_.max()))
-                                
+
         metadata["transform"] = "NQT"
         metadata["zerovalue"] = 0
         metadata["threshold"] = R__[R__ > 0].min()
-        
+
     else:
-     
+
         f   = metadata.pop("inqt")
         R__ = f(R_)
         metadata["transform"] = None
         metadata["zerovalue"] = R__.min()
         metadata["threshold"] = R__[R__ > R__.min()].min()
-        
+
     R[~idxNan] = R__
-    
+
     return R.reshape(shape0), metadata
-    
+
 def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
     """Square-root transform.
 
@@ -342,10 +348,12 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
     R : array-like
         Array of any shape to be transformed.
     metadata : dict
-        The metadata dictionary contains all data-related information.
+        Metadata dictionary containing the transform, zerovalue and threshold
+        attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     inverse : bool
         Optional, if set to True, it performs the inverse transform
-        
+
     Returns
     -------
     R : array-like
@@ -354,9 +362,9 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
         The metadata with updated attributes.
 
     """
-    
+
     R = R.copy()
-    
+
     if metadata is None:
         if inverse:
             metadata = {"transform": "sqrt"}
@@ -369,16 +377,16 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
         metadata = metadata.copy()
 
     if not inverse:
-    
+
         # sqrt transform
         R = np.sqrt(R)
 
         metadata["transform"] = "sqrt"
         metadata["zerovalue"] = np.sqrt(metadata["zerovalue"])
         metadata["threshold"] = np.sqrt(metadata["threshold"])
-        
+
     else:
-    
+
         # inverse sqrt transform
         R = R**2
 

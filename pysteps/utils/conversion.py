@@ -30,9 +30,14 @@ def to_rainrate(R, metadata, a=None, b=None):
     R : array-like
         Array of any shape to be (back-)transformed.
     metadata : dict
-        The metadata dictionary contains all data-related information.
-    a,b : float
-        Optional, the a and b coefficients of the Z-R relationship.
+        Metadata dictionary containing the accutime, transform, unit, threshold
+        and zerovalue attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
+
+        Additionally, in case of conversion to/from reflectivity units, the
+        zr_a and zr_b attributes are also required, but only if a=b=None.
+    a,b : float, optional
+        The a and b coefficients of the Z-R relationship.
 
     Returns
     -------
@@ -55,11 +60,11 @@ def to_rainrate(R, metadata, a=None, b=None):
         elif metadata["transform"] in  ["BoxCox", "log"]:
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
-            
+
         elif metadata["transform"] is "NQT":
 
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
-            
+
         elif metadata["transform"] is "sqrt":
 
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
@@ -119,9 +124,14 @@ def to_raindepth(R, metadata, a=None, b=None):
     R : array-like
         Array of any shape to be (back-)transformed.
     metadata : dict
-        The metadata dictionary contains all data-related information.
-    a,b : float
-        Optional, the a and b coefficients of the Z-R relationship.
+        Metadata dictionary containing the accutime, transform, unit, threshold
+        and zerovalue attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
+
+        Additionally, in case of conversion to/from reflectivity units, the
+        zr_a and zr_b attributes are also required, but only if a=b=None.
+    a,b : float, optional
+        The a and b coefficients of the Z-R relationship.
 
     Returns
     -------
@@ -144,11 +154,11 @@ def to_raindepth(R, metadata, a=None, b=None):
         elif metadata["transform"] in ["BoxCox", "log"]:
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
-            
+
         elif metadata["transform"] is "NQT":
 
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
-            
+
         elif metadata["transform"] is "sqrt":
 
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
@@ -206,9 +216,14 @@ def to_reflectivity(R, metadata, a=None, b=None):
     R : array-like
         Array of any shape to be (back-)transformed.
     metadata : dict
-        The metadata dictionary contains all data-related information.
-    a,b : float
-        Optional, the a and b coefficients of the Z-R relationship.
+        Metadata dictionary containing the accutime, transform, unit, threshold
+        and zerovalue attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
+
+        Additionally, in case of conversion to/from reflectivity units, the
+        zr_a and zr_b attributes are also required, but only if a=b=None.
+    a,b : float, optional
+        The a and b coefficients of the Z-R relationship.
 
     Returns
     -------
@@ -231,11 +246,11 @@ def to_reflectivity(R, metadata, a=None, b=None):
         elif metadata["transform"] in ["BoxCox", "log"]:
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
-            
+
         elif metadata["transform"] is "NQT":
 
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
-            
+
         elif metadata["transform"] is "sqrt":
 
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)

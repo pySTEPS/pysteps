@@ -1,5 +1,10 @@
-.. image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
+|travis| |readthedocs|
+
+.. |travis| image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
     :target: https://travis-ci.com/pySTEPS/pysteps
+
+.. |readthedocs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
+    :target: https://pysteps.readthedocs.io/en/latest/?badge=latest
 
 =======
 pySTEPS

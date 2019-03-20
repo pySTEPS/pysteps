@@ -424,8 +424,6 @@ def vet(input_images,
         A dictionary of solver options.
         See `scipy minimization`_ function for more details.
 
-    .. _`scipy minimization`: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
-
     Returns
     -------
 

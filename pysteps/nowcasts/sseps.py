@@ -62,24 +62,9 @@ def forecast(R, metadata, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         ordered by timestamp from oldest to newest. The time steps between the inputs
         are assumed to be regular, and the inputs are required to have finite values.
     metadata : dict
-        Dictionary containing metadata related to R.
-        These are the keys that are actually needed:
-
-        +---------------+-----------------------------------------------------+
-        |       Key     |                Value                                |
-        +===============+=====================================================+
-        | accutime      | The accumulation time in minutes of the data, float |
-        +---------------+-----------------------------------------------------+
-        | xpixelsize    | Grid resolution in x-direction (meters).            |
-        |               | It assumes that it is the same in the y-direction.  |
-        +---------------+-----------------------------------------------------+
-        | threshold     | The rain/no rain threshold with the same unit,      |
-        |               | transformation and accutime of the data.            |
-        +---------------+-----------------------------------------------------+
-        | zerovalue     | The value assigned to the no rain pixels with the   |
-        |               | same unit, transformation and accutime of the data. |
-        +---------------+-----------------------------------------------------+
-
+        Metadata dictionary containing the accutime, xpixelsize, threshold and
+        zerovalue attributes as described in the documentation of 
+        :py:mod:`pysteps.io.importers`.
     V : array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
         field. The velocities are assumed to represent one time step between the

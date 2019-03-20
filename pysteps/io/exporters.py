@@ -15,8 +15,8 @@ implements the following interface::
 where xxx is the name (or abbreviation) of the file format.
 
 This function creates the file and writes the metadata. The datasets are written
-by calling :py:func:`pysteps.exporters.export_forecast_dataset`, and
-the file is closed by calling :py:func:`pysteps.exporters.close_forecast_file`.
+by calling :py:func:`pysteps.io.exporters.export_forecast_dataset`, and
+the file is closed by calling :py:func:`pysteps.io.exporters.close_forecast_file`.
 
 The arguments in the above are defined as follows:
 
@@ -25,7 +25,7 @@ The arguments in the above are defined as follows:
 +---------------+-------------------+-----------------------------------------+
 |   Argument    | Type/values       |             Description                 |
 +===============+===================+=========================================+
-|   filename    | str               | name of the output file                 |
+| filename      | str               | name of the output file                 |
 +---------------+-------------------+-----------------------------------------+
 | startdate     | datetime.datetime | start date of the forecast              |
 +---------------+-------------------+-----------------------------------------+
@@ -47,7 +47,7 @@ The arguments in the above are defined as follows:
 |               |                   | attributes described in the             |
 |               |                   | documentation of pysteps.io.importers   |
 +---------------+-------------------+-----------------------------------------+
-| incremental   | {'timestep',      | Allow incremental writing of datasets   |
+| incremental   | {None, 'timestep',| Allow incremental writing of datasets   |
 |               | 'member'}         | into the netCDF file                    |
 |               |                   | the available options are:              |
 |               |                   | 'timestep' = write a forecast or a      |
@@ -58,7 +58,8 @@ The arguments in the above are defined as follows:
 +---------------+-------------------+-----------------------------------------+
 
 The return value is a dictionary containing an exporter object. This can be
-used with export_forecast_dataset to write datasets into the given file format.
+used with :py:func:`pysteps.io.exporters.export_forecast_dataset` to write 
+datasets into the given file format.
 
 Available Exporters
 -------------------
@@ -106,7 +107,45 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
 
     Grid points are treated as individual rain gauges and a separate file is
     produced for each ensemble memeber.
+    
+    Parameters
+    ----------
+    filename : str
+        Name of the output file.
+        
+    startdate : datetime.datetime
+        Start date of the forecast as datetime object.
+        
+    timestep : int
+        Time step of the forecast (minutes).
+        
+    n_timesteps : int
+        Number of time steps in the forecast this argument is ignored if         
+        incremental is set to 'timestep'.
+        
+    shape : tuple of int
+        Two-element tuple defining the shape (height,width) of the forecast 
+        grids.
+        
+    n_ens_members : int
+        Number of ensemble members in the forecast. This argument is ignored if
+        incremental is set to 'member'.
+        
+    metadata: dict
+        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit      
+        attributes described in the documentation of 
+        :py:mod:`pysteps.io.importers`.
+        
+    incremental : {None}, optional
+        Currently not implemented for this method.
 
+    Returns
+    -------
+    exporter : dict
+        The return value is a dictionary containing an exporter object. This c
+        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset` 
+        to write datasets into the given file format.
+    
     """
 
     if incremental is not None:
@@ -177,7 +216,51 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
 def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
                                         n_timesteps, shape, n_ens_members,
                                         metadata, incremental=None):
-    """Initialize a netCDF forecast exporter."""
+    """Initialize a netCDF forecast exporter.
+    
+    Parameters
+    ----------
+    filename : str
+        Name of the output file.
+        
+    startdate : datetime.datetime
+        Start date of the forecast as datetime object.
+        
+    timestep : int
+        Time step of the forecast (minutes).
+        
+    n_timesteps : int
+        Number of time steps in the forecast this argument is ignored if         
+        incremental is set to 'timestep'.
+        
+    shape : tuple of int
+        Two-element tuple defining the shape (height,width) of the forecast 
+        grids.
+        
+    n_ens_members : int
+        Number of ensemble members in the forecast. This argument is ignored if
+        incremental is set to 'member'.
+        
+    metadata: dict
+        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit      
+        attributes described in the documentation of 
+        :py:mod:`pysteps.io.importers`.
+        
+    incremental : {None,'timestep','member'}, optional
+        Allow incremental writing of datasets into the netCDF file.\n
+        The available options are: 'timestep' = write a forecast or a forecast 
+        ensemble for  a given time step; 'member' = write a forecast sequence 
+        for a given ensemble member. If set to None, incremental writing is 
+        disabled.
+
+    Returns
+    -------
+    exporter : dict
+        The return value is a dictionary containing an exporter object. This c
+        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset` 
+        to write datasets into the given file format.
+    
+    """
     if not netcdf4_imported:
         raise MissingOptionalDependency(
             "netCDF4 package is required for netcdf "
@@ -341,7 +424,7 @@ def export_forecast_dataset(F, exporter):
     ----------
     exporter : dict
         An exporter object created with any initialization method implemented
-        in this module.
+        in :py:mod:`pysteps.io.exporters`.
     F : array_like
         The array to write. The required shape depends on the choice of the
         'incremental' parameter the exporter was initialized with:
@@ -396,7 +479,7 @@ def close_forecast_file(exporter):
     ----------
     exporter : dict
         An exporter object created with any initialization method implemented
-        in this module.
+        in :py:mod:`pysteps.io.exporters`.
 
     """
     if exporter["method"] == "kineros":

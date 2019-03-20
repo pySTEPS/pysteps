@@ -36,7 +36,43 @@ from pysteps.extrapolation import semilagrangian
 
 def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan,
                          **kwargs):
-    """Eulerian persistence."""
+    """A dummy extrapolation method to apply Eulerian persistence to a
+    two-dimensional precipitation field. The method returns the a sequence
+    of the same initial field with no extrapolation applied (i.e. Eulerian
+    persistence).
+
+    Parameters
+    ----------
+    precip : array-like
+        Array of shape (m,n) containing the input precipitation field. All
+        values are required to be finite.
+    velocity : array-like
+        Not used by the method. 
+    num_timesteps : int
+        Number of time steps.
+    outval : float, optional
+        Not used by the method. 
+
+    Other Parameters
+    ----------------
+
+    return_displacement : bool
+        If True, return the total advection velocity (displacement) between the
+        initial input field and the advected one integrated along
+        the trajectory. Default : False
+
+    Returns
+    -------
+    out : array or tuple
+        If return_displacement=False, return a sequence of the same initial field
+        of shape (num_timesteps,m,n). Otherwise, return a tuple containing the
+        replicated fields and a (2,m,n) array of zeros.
+
+    References
+    ----------
+    :cite:`GZ2002` Germann et al (2002)
+
+    """
     del velocity, outval  # Unused by _eulerian_persistence
     return_displacement = kwargs.get("return_displacement", False)
 
@@ -82,7 +118,7 @@ def get_method(name):
     +-----------------+--------------------------------------------------------+
     |  eulerian       | this methods does not apply any advection to the input |
     |                 | precipitation field (Eulerian persistence)             |
-    +-------------------+------------------------------------------------------+
+    +-----------------+--------------------------------------------------------+
     | semilagrangian  | implementation of the semi-Lagrangian method of        |
     |                 | Germann et al. (2002) :cite:`GZ2002`                   |
     +-----------------+--------------------------------------------------------+

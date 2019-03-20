@@ -151,9 +151,21 @@ def dense_lucaskanade(R, **kwargs):
     Returns
     -------
     out : ndarray_
-        Three-dimensional array (2,H,W) containing the dense x- and y-components
+        Three-dimensional array (2,m,n) containing the dense x- and y-components
         of the motion field.
         Return an empty array when no motion vectors are found.
+        
+    References
+    ----------
+    
+    Bouguet,  J.-Y.:  Pyramidal  implementation  of  the  affine  Lucas Kanade 
+    feature tracker description of the algorithm, Intel Corp., 5, 4, 
+    https://doi.org/10.1109/HPDC.2004.1323531, 2001
+
+    Lucas, B. D. and Kanade, T.: An iterative image registration technique with 
+    an application to stereo vision, in: Proceedings of the 1981 DARPA Imaging 
+    Understanding Workshop, pp. 121–130, 1981.
+    
     """
 
     if len(R.shape) != 3:
