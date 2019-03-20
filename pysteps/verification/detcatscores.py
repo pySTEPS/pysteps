@@ -195,7 +195,8 @@ def det_cat_fcst_accum(contab, pred, obs):
 
 
 def det_cat_fcst_compute(contab, scores):
-    """Compute the x- and y- coordinates of the points in the reliability diagram.
+    """Compute simple and skill scores for deterministic categorical
+    (dichotomous) forecasts from a contingency table object.
 
     Parameters
     ----------
