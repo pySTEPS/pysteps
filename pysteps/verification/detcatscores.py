@@ -26,14 +26,14 @@ def det_cat_fcst(pred, obs, thr, scores, axis=None):
     Parameters
     ----------
     pred : array_like
-        predictions
+        Array of predictions. NaNs are ignored.
     obs : array_like
-        verifying observations
+        Array of verifying observations. NaNs are ignored.
     thr : float
-        threshold that is applied to predictions and observations in order
+        The threshold that is applied to predictions and observations in order
         to define events vs no events (yes/no).
     score : string or list of strings
-        a string or list of strings specifying the name of the scores.
+        The name(s) of the scores.
         The list of possible score names is:
 
         .. tabularcolumns:: |p{2cm}|L|
@@ -135,9 +135,9 @@ def det_cat_fcst_accum(contab, pred, obs):
       A contingency table object initialized with
       pysteps.verification.detcatscores.det_cat_fcst_init.
     pred : array_like
-        predictions
+        Array of predictions. NaNs are ignored.
     obs : array_like
-        verifying observations
+        Array of verifying observations. NaNs are ignored.
 
     """
 
@@ -182,16 +182,16 @@ def det_cat_fcst_accum(contab, pred, obs):
     obsb = obs > contab["thr"]
 
     # calculate hits, misses, false positives, correct rejects
-    H_idx = np.logical_and(predb == 1, obsb == 1)  # correctly predicted precip
-    F_idx = np.logical_and(predb == 1, obsb == 0)  # predicted precip even though none there
-    M_idx = np.logical_and(predb == 0, obsb == 1)  # predicted no precip even though there was
-    R_idx = np.logical_and(predb == 0, obsb == 0)  # correctly predicted no precip
+    H_idx = np.logical_and(predb == 1, obsb == 1)
+    F_idx = np.logical_and(predb == 1, obsb == 0)
+    M_idx = np.logical_and(predb == 0, obsb == 1)
+    R_idx = np.logical_and(predb == 0, obsb == 0)
 
     # accumulate in the contingency table
-    contab["hits"] += np.sum(H_idx.astype(int), axis=axis)
-    contab["misses"] += np.sum(M_idx.astype(int), axis=axis)
-    contab["false_alarms"] += np.sum(F_idx.astype(int), axis=axis)
-    contab["correct_negatives"] += np.sum(R_idx.astype(int), axis=axis)
+    contab["hits"] += np.nansum(H_idx.astype(int), axis=axis)
+    contab["misses"] += np.nansum(M_idx.astype(int), axis=axis)
+    contab["false_alarms"] += np.nansum(F_idx.astype(int), axis=axis)
+    contab["correct_negatives"] += np.nansum(R_idx.astype(int), axis=axis)
 
 
 def det_cat_fcst_compute(contab, scores):
