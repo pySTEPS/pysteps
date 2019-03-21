@@ -18,6 +18,13 @@ matrix:
 sudo: false
 
 before_install:
+  # Install gcc for MacOS
+  # -----------------
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update      ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CC=gcc-8  ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX=g++-8 ; fi
+
   # Install miniconda
   # -----------------
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -47,6 +54,9 @@ before_install:
   - travis_retry conda install --quiet $PACKAGES
 
 install:
+  # check GCC installation
+  - which gcc-8
+  - which gcc
   # Install pySTEPS
   # ---------------
   - python setup.py install
