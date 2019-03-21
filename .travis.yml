@@ -30,7 +30,6 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then which gcc ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then gcc-8 --version ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then gcc --version ; fi
-xcode-select --install
   # Install miniconda
   # -----------------
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
