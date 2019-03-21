@@ -20,10 +20,14 @@ sudo: false
 before_install:
   # Install gcc for MacOS
   # -----------------
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update      ; fi
+  # - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update      ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CC=gcc-8  ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX=g++-8 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then which gcc-8 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then which gcc ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then gcc-8 --version ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then gcc --version ; fi
 
   # Install miniconda
   # -----------------
@@ -55,8 +59,9 @@ before_install:
 
 install:
   # check GCC installation
-  - which gcc-8
-  - which gcc
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then which gcc-8 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then which gcc ; fi
+
   # Install pySTEPS
   # ---------------
   - python setup.py install
