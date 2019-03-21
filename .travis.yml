@@ -8,7 +8,6 @@ matrix:
         - PYTHON_VERSION=3.6
         - TOXENV=py36
         - PACKAGES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
-  allow_failures:
     - os: osx
       language: generic
       env: 
