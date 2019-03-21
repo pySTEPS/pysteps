@@ -15,7 +15,7 @@ import matplotlib.pylab as plt
 from matplotlib import cm, colors, gridspec
 import numpy as np
 
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 try:
     from mpl_toolkits.basemap import Basemap
