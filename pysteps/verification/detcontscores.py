@@ -192,6 +192,9 @@ def det_cont_fcst_accum(err, pred, obs):
     Formulae and a Pairwise Algorithm for Computing Sample Variances.",
     Technical Report STAN-CS-79-773, Department of Computer Science,
     Stanford University.
+    
+    Schubert, Erich; Gertz, Michael (2018-07-09). "Numerically stable parallel 
+    computation of (co-)variance". ACM: 10. doi:10.1145/3221269.3223036. 
 
     """
 
