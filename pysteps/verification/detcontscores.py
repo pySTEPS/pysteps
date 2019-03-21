@@ -31,7 +31,7 @@ def det_cont_fcst(pred, obs, scores):
         The name(s) of the scores. The list of possible score names is:
 
         .. tabularcolumns:: |p{2cm}|L|
-        
+
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
@@ -58,19 +58,19 @@ def det_cont_fcst(pred, obs, scores):
     -------
     result : list
         list containing the verification results
-        
+
     Note
     ----
-    Score names denoted by * can only be computed offline. 
-    
+    Score names denoted by * can only be computed offline.
+
     Multiplicative scores can be computed by passing log-tranformed values.
-    
+
     See also
     --------
     pysteps.verification.detcatscores
-        
+
     """
-    
+
     # catch case of single score passed as string
     def get_iterable(x):
         if isinstance(x, collections.Iterable) and not isinstance(x, str):
@@ -78,22 +78,22 @@ def det_cont_fcst(pred, obs, scores):
         else:
             return (x,)
     scores = get_iterable(scores)
-    
-    # split between online and offline scores 
+
+    # split between online and offline scores
     loffline = ["scatter", "corr_s"]
     onscores = [score for score in scores if str(score).lower() not in loffline]
     offscores = [score for score in scores if str(score).lower() in loffline]
-    
+
     onresult = []
     if any(onscores):
-    
+
         err = det_cont_fcst_init()
         det_cont_fcst_accum(err, pred, obs)
         onresult = det_cont_fcst_compute(err, onscores)
 
     offresult = []
     if any(offscores):
-    
+
         pred = np.asarray(pred.copy())
         obs = np.asarray(obs.copy())
 
@@ -110,22 +110,22 @@ def det_cont_fcst(pred, obs, scores):
         isNaN = np.logical_or(np.isnan(pred), np.isnan(obs))
         pred = pred[~isNaN]
         obs = obs[~isNaN]
-        
+
         for score in offscores:
             # catch None passed as score
             if score is None:
                 continue
-            
+
             score = score.lower()
-            
+
             # spearman corr (rank correlation)
             if score in ["corr_s", "spearmanr"]:
                 corr_s = spearmanr(pred, obs)[0]
                 offresult.append(corr_s)
-                
+
             # scatter
             if score in ["scatter"]:
-                q = 10*np.log10(pred/obs) 
+                q = 10*np.log10(pred/obs)
                 xs = np.sort(q)
                 ixs = np.argsort(q)
                 xs = np.insert(xs, 0, xs[0])
@@ -135,7 +135,7 @@ def det_cont_fcst(pred, obs, scores):
                 xint = np.interp([0.16, 0.50, 0.84], wsc, xs)
                 scatter = (xint[2] - xint[0])/2.
                 offresult.append(scatter)
-    
+
     # pool online and offline results together
     result = []
     for score in scores:
@@ -148,7 +148,7 @@ def det_cont_fcst(pred, obs, scores):
 
     return result
 
-    
+
 def det_cont_fcst_init():
     """Initialize a verification error object.
 
@@ -373,5 +373,8 @@ def _parallel_cov(cov_a, avg_xa, avg_ya, count_a,
                   cov_b, avg_xb, avg_yb, count_b):
     deltax = avg_xb - avg_xa
     deltay = avg_yb - avg_ya
-    return cov_a + cov_b + deltax*deltay*count_a*count_b/(count_a + count_b)
+    c_a = cov_a*count_a
+    c_b = cov_b*count_b
+    C2 = c_a + c_b + deltax*deltay*count_a*count_b/(count_a + count_b)
+    return C2/(count_a + count_b)
 
