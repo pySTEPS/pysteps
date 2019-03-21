@@ -490,7 +490,7 @@ def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,
     if coastlinecolor is not None:
         bm.drawcoastlines(color=coastlinecolor, linewidth=lw, zorder=0.1)
     if countrycolor is not None:
-        bm.drawcountries(countrycolor, linewidth=lw, zorder=0.2)
+        bm.drawcountries(color=countrycolor, linewidth=lw, zorder=0.2)
     if rivercolor is not None:
         bm.drawrivers(zorder=0.2, color=rivercolor)
     if continentcolor is not None:
