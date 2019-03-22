@@ -34,9 +34,7 @@ test_data = [
     # Beta
     (fct_data, obs_data, ('Beta'), [0.70528]),
     # reduction of variance
-    (fct_data, obs_data, ('rv'), [0.668874]),
-    # scatter
-    (fct_data[1:], obs_data[1:], ('scatter'), [0.769423]),
+    (fct_data, obs_data, ('rv'), [0.668874])
     ]
 
 

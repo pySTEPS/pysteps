@@ -18,7 +18,7 @@ import numpy as np
 from scipy.stats import spearmanr
 
 
-def det_cont_fcst(pred, obs, scores):
+def det_cont_fcst(pred, obs, scores, axis=None):
     """Calculate simple and skill scores for deterministic continuous forecasts.
 
     Parameters
@@ -50,9 +50,14 @@ def det_cont_fcst(pred, obs, scores):
         |  RV        | reduction of variance                                  |
         |            | (Brier Score, Nash-Sutcliffe Efficiency)               |
         +------------+--------------------------------------------------------+
-        |  scatter*  | half the distance between the 16% and 84% percentiles  |
-        |            | of the weighted error distribution                     |
-        +------------+--------------------------------------------------------+
+
+    axis : None or int or tuple of ints, optional
+        Axis or axes along which a score is integrated. The default, axis=None,
+        will integrate all of the elements of the input arrays.\n
+        If axis is -1 (or any negative integer), the integration is not performed
+        and scores are computed on all of the elements in the input arrays.\n
+        If axis is a tuple of ints, the integration is performed on all of the
+        axes specified in the tuple.
 
     Returns
     -------
@@ -84,32 +89,25 @@ def det_cont_fcst(pred, obs, scores):
     onscores = [score for score in scores if str(score).lower() not in loffline]
     offscores = [score for score in scores if str(score).lower() in loffline]
 
+    # online scores
     onresult = []
     if any(onscores):
 
-        err = det_cont_fcst_init()
+        err = det_cont_fcst_init(axis=axis)
         det_cont_fcst_accum(err, pred, obs)
         onresult = det_cont_fcst_compute(err, onscores)
 
+    # offline scores
     offresult = []
     if any(offscores):
 
         pred = np.asarray(pred.copy())
         obs = np.asarray(obs.copy())
 
-        # checks
         if pred.shape != obs.shape:
             raise ValueError(
                 "the shape of pred does not match the shape of obs %s!=%s"
                  % (pred.shape, obs.shape))
-
-        # flatten array if 2D
-        pred = pred.flatten()
-        obs = obs.flatten()
-
-        isNaN = np.logical_or(np.isnan(pred), np.isnan(obs))
-        pred = pred[~isNaN]
-        obs = obs[~isNaN]
 
         for score in offscores:
             # catch None passed as score
@@ -120,23 +118,10 @@ def det_cont_fcst(pred, obs, scores):
 
             # spearman corr (rank correlation)
             if score in ["corr_s", "spearmanr"]:
-                corr_s = spearmanr(pred, obs)[0]
+                corr_s = spearmanr(pred, obs, axis=axis, nan_policy="omit")[0]
                 offresult.append(corr_s)
 
-            # scatter
-            if score in ["scatter"]:
-                q = 10*np.log10(pred/obs)
-                xs = np.sort(q)
-                ixs = np.argsort(q)
-                xs = np.insert(xs, 0, xs[0])
-                ws = obs[ixs]
-                ws = np.insert(ws, 0, 0)
-                wsc = np.cumsum(ws)/np.sum(ws)
-                xint = np.interp([0.16, 0.50, 0.84], wsc, xs)
-                scatter = (xint[2] - xint[0])/2.
-                offresult.append(scatter)
-
-    # pool online and offline results together
+    # pool online and offline results together in the original order
     result = []
     for score in scores:
         if score is None:
@@ -149,8 +134,18 @@ def det_cont_fcst(pred, obs, scores):
     return result
 
 
-def det_cont_fcst_init():
+def det_cont_fcst_init(axis=None):
     """Initialize a verification error object.
+
+    Parameters
+    ----------
+    axis : None or int or tuple of ints, optional
+        Axis or axes along which a score is integrated. The default, axis=None,
+        will integrate all of the elements of the input arrays.\n
+        If axis is -1 (or any negative integer), the integration is not performed
+        and scores are computed on all of the elements in the input arrays.\n
+        If axis is a tuple of ints, the integration is performed on all of the
+        axes specified in the tuple.
 
     Returns
     -------
@@ -160,15 +155,24 @@ def det_cont_fcst_init():
 
     err = {}
 
-    err["cov"] = 0
-    err["vobs"] = 0
-    err["vpred"] = 0
-    err["mobs"] = 0
-    err["mpred"] = 0
-    err["me"] = 0
-    err["mse"] = 0
-    err["mae"] = 0
-    err["n"] = 0
+    # catch case of axis passed as integer
+    def get_iterable(x):
+        if x is None or \
+            (isinstance(x, collections.Iterable) and not isinstance(x, int)):
+            return x
+        else:
+            return (x,)
+
+    err["axis"] = get_iterable(axis)
+    err["cov"] = None
+    err["vobs"] = None
+    err["vpred"] = None
+    err["mobs"] = None
+    err["mpred"] = None
+    err["me"] = None
+    err["mse"] = None
+    err["mae"] = None
+    err["n"] = None
 
     return err
 
@@ -192,45 +196,68 @@ def det_cont_fcst_accum(err, pred, obs):
     Formulae and a Pairwise Algorithm for Computing Sample Variances.",
     Technical Report STAN-CS-79-773, Department of Computer Science,
     Stanford University.
-    
-    Schubert, Erich; Gertz, Michael (2018-07-09). "Numerically stable parallel 
-    computation of (co-)variance". ACM: 10. doi:10.1145/3221269.3223036. 
+
+    Schubert, Erich; Gertz, Michael (2018-07-09). "Numerically stable parallel
+    computation of (co-)variance". ACM: 10. doi:10.1145/3221269.3223036.
 
     """
 
     pred = np.asarray(pred.copy())
     obs = np.asarray(obs.copy())
+    axis = tuple(range(pred.ndim)) if err["axis"] is None else err["axis"]
 
     # checks
     if pred.shape != obs.shape:
-        raise ValueError(
-            "the shape of pred does not match the shape of obs %s!=%s"
-             % (pred.shape, obs.shape))
+        raise ValueError("the shape of pred does not match the shape of obs %s!=%s"
+                         % (pred.shape, obs.shape))
 
-    # flatten array if 2D
-    pred = pred.flatten()
-    obs = obs.flatten()
+    if pred.ndim <= np.max(axis):
+        raise ValueError("axis %d is out of bounds for array of dimension %d"
+                         % (np.max(axis), len(pred.shape)))
 
-    isNaN = np.logical_or(np.isnan(pred), np.isnan(obs))
-    pred = pred[~isNaN]
-    obs = obs[~isNaN]
+    idims = [dim not in axis for dim in range(pred.ndim)]
+    nshape = tuple(np.array(pred.shape)[np.array(idims)])
+    if err["cov"] is None:
+        # initialize the error arrays in the verification object
+        err["cov"] = np.zeros(nshape)
+        err["vobs"] = np.zeros(nshape)
+        err["vpred"] = np.zeros(nshape)
+        err["mobs"] = np.zeros(nshape)
+        err["mpred"] = np.zeros(nshape)
+        err["me"] = np.zeros(nshape)
+        err["mse"] = np.zeros(nshape)
+        err["mae"] = np.zeros(nshape)
+        err["n"] = np.zeros(nshape)
+
+    else:
+        # check dimensions
+        if err["cov"].shape != nshape:
+            raise ValueError(
+                "the shape of the input arrays does not match the shape of the "
+                + "verification object %s!=%s" % (nshape, err["cov"].shape))
+
+    # add dummy axis in case integration is not required
+    if np.max(axis) < 0:
+        pred = pred[None, :]
+        obs = obs[None, :]
+        axis = (0,)
+    axis = tuple([a for a in axis if a >= 0])
 
     # compute residuals
     res = pred - obs
-    n = len(res)
+    n = np.sum(np.isfinite(res), axis=axis)
 
     # new means
-    mobs = np.mean(obs)
-    mpred = np.mean(pred)
-    me = np.mean(res)
-    mse = np.mean(res**2)
-    mae = np.mean(np.abs(res))
+    mobs = np.nanmean(obs, axis=axis)
+    mpred = np.nanmean(pred, axis=axis)
+    me = np.nanmean(res, axis=axis)
+    mse = np.nanmean(res**2, axis=axis)
+    mae = np.nanmean(np.abs(res), axis=axis)
 
     # new cov matrix
-    covm = np.cov(obs, pred, ddof=0)
-    cov = covm[0,1]
-    vobs = covm[0,0]
-    vpred = covm[1,1]
+    cov = np.nanmean((obs - mobs)*(pred - mpred), axis=axis)
+    vobs = np.nanmean(np.abs(obs - mobs)**2, axis=axis)
+    vpred = np.nanmean(np.abs(pred - mpred)**2, axis=axis)
 
     # update variances
     err["vobs"] = _parallel_var(
@@ -380,4 +407,3 @@ def _parallel_cov(cov_a, avg_xa, avg_ya, count_a,
     c_b = cov_b*count_b
     C2 = c_a + c_b + deltax*deltay*count_a*count_b/(count_a + count_b)
     return C2/(count_a + count_b)
-
