@@ -32,8 +32,8 @@ key-value pairs:
 
 where r = int(max(N, M)/2)+1
 
-The filter weights are assumed to be normalized so that for any Fourier
-wavenumber they sum to one.
+By default, the filter weights are normalized so that for any Fourier wavenumber
+they sum to one.
 
 Available filters
 -----------------
@@ -76,7 +76,8 @@ def filter_uniform(shape, n):
 
     return result
 
-def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0):
+def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0,
+                    normalize=True):
     """Implements a set of Gaussian bandpass filters in logarithmic frequency
     scale.
 
@@ -98,6 +99,9 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0):
         the first frequency band.
     d : scalar, optional
         Sample spacing (inverse of the sampling rate). Defaults to 1.
+    normalize : bool
+        If True, normalize the weights so that for any given wavenumber they sum
+        to one.
 
     Returns
     -------
@@ -143,15 +147,16 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0):
         w[i, :] = wf(r)
         W[i, :, :] = wf(R)
 
-    w_sum = np.sum(w, axis=0)
-    W_sum = np.sum(W, axis=0)
-    for k in range(W.shape[0]):
-        w[k, :]    /= w_sum
-        W[k, :, :] /= W_sum
+    if normalize:
+        w_sum = np.sum(w, axis=0)
+        W_sum = np.sum(W, axis=0)
+        for k in range(W.shape[0]):
+            w[k, :]    /= w_sum
+            W[k, :, :] /= W_sum
 
     result = {}
-    result["weights_1d"]    = w
-    result["weights_2d"]    = W
+    result["weights_1d"] = w
+    result["weights_2d"] = W
     
     cwn = np.array(cwn)
     result["central_wavenumbers"] = cwn
