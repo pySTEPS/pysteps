@@ -41,11 +41,15 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
         +------------+--------------------------------------------------------+
         |  corr_s*   | spearman's correlation coefficient (rank correlation)  |
         +------------+--------------------------------------------------------+
-        |  MAE       | mean absolute error of additive residuals              |
+        |  DRMSE     | debiased root mean squared error                       |
         +------------+--------------------------------------------------------+
-        |  ME        | mean error or bias of additive residuals               |
+        |  MAE       | mean absolute error                                    |
         +------------+--------------------------------------------------------+
-        |  RMSE      | root mean squared additive error                       |
+        |  ME        | mean error or bias                                     |
+        +------------+--------------------------------------------------------+
+        |  MSE        | mean squared error                                    |
+        +------------+--------------------------------------------------------+
+        |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
         |            | (Brier Score, Nash-Sutcliffe Efficiency)               |
@@ -60,10 +64,10 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
         axes specified in the tuple.
 
     conditioning : {None, 'single', 'double'}, optional
-        The type of conditioning on zeros used for the verification. 
-        The default, conditioning=None, includes zero pairs. With 
-        conditioning='single', only pairs with either pred or obs > 0 are 
-        included. With conditioning='double', only pairs with both pred and 
+        The type of conditioning on zeros used for the verification.
+        The default, conditioning=None, includes zero pairs. With
+        conditioning='single', only pairs with either pred or obs > 0 are
+        included. With conditioning='double', only pairs with both pred and
         obs > 0 are included.
 
     Returns
@@ -166,10 +170,10 @@ def det_cont_fcst_init(axis=None, conditioning=None):
         axes specified in the tuple.
 
     conditioning : {None, 'single', 'double'}, optional
-        The type of conditioning on zeros used for the verification. 
-        The default, conditioning=None, includes zero pairs. With 
-        conditioning='single', only pairs with either pred or obs > 0 are 
-        included. With conditioning='double', only pairs with both pred and 
+        The type of conditioning on zeros used for the verification.
+        The default, conditioning=None, includes zero pairs. With
+        conditioning='single', only pairs with either pred or obs > 0 are
+        included. With conditioning='double', only pairs with both pred and
         obs > 0 are included.
 
     Returns
@@ -353,11 +357,15 @@ def det_cont_fcst_compute(err, scores):
         +------------+--------------------------------------------------------+
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
-        |  MAE       | mean absolute error of additive residuals              |
+        |  DRMSE     | debiased root mean squared error                       |
         +------------+--------------------------------------------------------+
-        |  ME        | mean error or bias of additive residuals               |
+        |  MAE       | mean absolute error                                    |
         +------------+--------------------------------------------------------+
-        |  RMSE      | root mean squared additive error                       |
+        |  ME        | mean error or bias                                     |
+        +------------+--------------------------------------------------------+
+        |  MSE        | mean squared error                                    |
+        +------------+--------------------------------------------------------+
+        |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
         |            | (Brier Score, Nash-Sutcliffe Efficiency)               |
@@ -395,6 +403,11 @@ def det_cont_fcst_compute(err, scores):
             MAE = err["mae"]
             result.append(MAE)
 
+        # mean squared error
+        if score in ["mse"]:
+            MAE = err["mse"]
+            result.append(MAE)
+
         # root mean squared error
         if score == 'rmse':
             RMSE = np.sqrt(err["mse"])
@@ -406,16 +419,17 @@ def det_cont_fcst_compute(err, scores):
             result.append(corr_p)
 
         # beta (linear regression slope)
-        if score == 'beta':
+        if score in ["beta"]:
             beta = err["cov"]/err["vpred"]
             result.append(beta)
 
         # debiased RMSE
-        if score == 'RMSE_d':
+        if score in ["drmse"]:
             RMSE_d = (err["mse"] - err["me"]**2)/err["vobs"]
             result.append(RMSE_d)
 
-        # reduction of variance (Brier Score, NSE)
+        # reduction of variance (Brier Score, Nash-Sutcliffe efficiency coefficient,
+        # MSE skill score)
         if score in ["rv", "brier_score", "nse"]:
             RV = 1.0 - err["mse"]/err["vobs"]
             result.append(RV)
