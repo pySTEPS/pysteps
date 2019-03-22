@@ -18,7 +18,7 @@ import numpy as np
 from scipy.stats import spearmanr
 
 
-def det_cont_fcst(pred, obs, scores, axis=None):
+def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
     """Calculate simple and skill scores for deterministic continuous forecasts.
 
     Parameters
@@ -59,6 +59,13 @@ def det_cont_fcst(pred, obs, scores, axis=None):
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
 
+    conditioning : {None, 'single', 'double'}, optional
+        The type of conditioning on zeros used for the verification. 
+        The default, conditioning=None, includes zero pairs. With 
+        conditioning='single', only pairs with either pred or obs > 0 are 
+        included. With conditioning='double', only pairs with both pred and 
+        obs > 0 are included.
+
     Returns
     -------
     result : list
@@ -93,7 +100,7 @@ def det_cont_fcst(pred, obs, scores, axis=None):
     onresult = []
     if any(onscores):
 
-        err = det_cont_fcst_init(axis=axis)
+        err = det_cont_fcst_init(axis=axis, conditioning=conditioning)
         det_cont_fcst_accum(err, pred, obs)
         onresult = det_cont_fcst_compute(err, onscores)
 
@@ -108,6 +115,17 @@ def det_cont_fcst(pred, obs, scores, axis=None):
             raise ValueError(
                 "the shape of pred does not match the shape of obs %s!=%s"
                  % (pred.shape, obs.shape))
+
+        # conditioning
+        if conditioning is not None:
+            if conditioning == "single":
+                idx = np.logical_or(obs > 0, pred > 0)
+            elif conditioning == "double":
+                idx = np.logical_and(obs > 0, pred > 0)
+            else:
+                raise ValueError("unkown conditioning %s" % err["conditioning"])
+            obs[~idx] = np.nan
+            pred[~idx] = np.nan
 
         for score in offscores:
             # catch None passed as score
@@ -134,7 +152,7 @@ def det_cont_fcst(pred, obs, scores, axis=None):
     return result
 
 
-def det_cont_fcst_init(axis=None):
+def det_cont_fcst_init(axis=None, conditioning=None):
     """Initialize a verification error object.
 
     Parameters
@@ -146,6 +164,13 @@ def det_cont_fcst_init(axis=None):
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
+
+    conditioning : {None, 'single', 'double'}, optional
+        The type of conditioning on zeros used for the verification. 
+        The default, conditioning=None, includes zero pairs. With 
+        conditioning='single', only pairs with either pred or obs > 0 are 
+        included. With conditioning='double', only pairs with both pred and 
+        obs > 0 are included.
 
     Returns
     -------
@@ -164,6 +189,7 @@ def det_cont_fcst_init(axis=None):
             return (x,)
 
     err["axis"] = get_iterable(axis)
+    err["conditioning"] = conditioning
     err["cov"] = None
     err["vobs"] = None
     err["vpred"] = None
@@ -235,6 +261,17 @@ def det_cont_fcst_accum(err, pred, obs):
             raise ValueError(
                 "the shape of the input arrays does not match the shape of the "
                 + "verification object %s!=%s" % (nshape, err["cov"].shape))
+
+    # conditioning
+    if err["conditioning"] is not None:
+        if err["conditioning"] == "single":
+            idx = np.logical_or(obs > 0, pred > 0)
+        elif err["conditioning"] == "double":
+            idx = np.logical_and(obs > 0, pred > 0)
+        else:
+            raise ValueError("unkown conditioning %s" % err["conditioning"])
+        obs[~idx] = np.nan
+        pred[~idx] = np.nan
 
     # add dummy axis in case integration is not required
     if np.max(axis) < 0:
