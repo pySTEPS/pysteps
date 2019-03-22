@@ -15,7 +15,7 @@ import matplotlib.pylab as plt
 from matplotlib import cm, colors, gridspec
 import numpy as np
 
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 try:
     from mpl_toolkits.basemap import Basemap
@@ -39,7 +39,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                       colorscale='pysteps', probthr=None, title=None,
                       colorbar=True, drawlonlatlines=False, basemap_resolution='l',
                       cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1),
-                      cax=None):
+                      axis="on", cax=None, **kwargs):
     """
     Function to plot a precipitation intensity or probability field with a
     colorbar.
@@ -117,6 +117,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         Linewidth of the map (administrative boundaries and coastlines).
     cartopy_subplot : tuple or SubplotSpec_ instance, optional
         Cartopy subplot. Applicable if map is 'cartopy'.
+    axis : {'off','on'}, optional
+        Whether to turn off or on the x and y axis.
     cax : Axes_ object, optional
         Axes into which the colorbar will be drawn. If no axes is provided
         the colorbar axes are created next to the plot.
@@ -259,19 +261,11 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             cbar.set_label("Precipitation depth")
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
-
-    if map is None:
-        axes = plt.gca()
-        if geodata is None:
-            axes.xaxis.set_ticks([])
-            axes.xaxis.set_ticklabels([])
-            axes.yaxis.set_ticks([])
-            axes.yaxis.set_ticklabels([])
-
-    if map is None:
-        return axes
-    else:
-        return bm
+    
+    if geodata is None or axis == "off":
+        plt.axis("off")
+                        
+    return plt.gca()
 
 def _plot_field(R, ax, type, units, colorscale, geodata, extent):
     R = R.copy()
@@ -492,11 +486,11 @@ def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,
                   lakecolor=(0.65,0.75,0.9), rivercolor=(0.65,0.75,0.9),
                   mapboundarycolor=(0.65,0.75,0.9), lw=0.5):
     bm = Basemap(**bm_params)
-
+    
     if coastlinecolor is not None:
         bm.drawcoastlines(color=coastlinecolor, linewidth=lw, zorder=0.1)
     if countrycolor is not None:
-        bm.drawcountries(countrycolor, linewidth=lw, zorder=0.2)
+        bm.drawcountries(color=countrycolor, linewidth=lw, zorder=0.2)
     if rivercolor is not None:
         bm.drawrivers(zorder=0.2, color=rivercolor)
     if continentcolor is not None:

@@ -99,7 +99,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     path_outputs : string
         Path to folder where to save the frames.
     kwargs : dict
-        Optional keyword arguments that are supplied to plot_precip_field.
+        Optional keyword arguments that are supplied to plot_precip_field
+        and quiver/streamplot.
 
     Returns
     -------
@@ -123,7 +124,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         n_members = 1
 
     n_obs = R_obs.shape[0]
-
+    
     loop = 0
     while loop < nloops:
         
@@ -139,7 +140,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
     
                         if timestamps is not None:
                             title = timestamps[i].strftime("%Y-%m-%d %H:%M")
-                            title += "\n (Observed Rainfall)"
+                            title += "\n Observed Rainfall"
                         else:
                             title = None
     
@@ -148,9 +149,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                             title=title, colorbar=colorbar, **kwargs)
                         if UV is not None and motion_plot is not None:
                             if motion_plot.lower() == "quiver":
-                                st.plt.quiver(UV, ax=ax, geodata=geodata)
+                                st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
                             elif motion_plot.lower() == "streamplot":
-                                st.plt.streamplot(UV, ax=ax, geodata=geodata)
+                                st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d.%s" % \
                                 (path_outputs, startdate_str, i, fig_format)
@@ -161,9 +162,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     elif i >= n_obs and R_fct is not None:
     
                         if timestamps is not None:
-                            title = "%s +%02d min" % (timestamps[-1].strftime("%Y-%m-%d %H:%M"),
-                                    (1 + i - n_obs)*timestep_min)
-                            title += "\n (Forecast Rainfall)"
+                            title = timestamps[-1].strftime("%Y-%m-%d %H:%M")
+                            title += "\n Forecast Rainfall"
+                            leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
                         else:
                             title = "+%02d min" % ((1 + i - n_obs)*timestep_min)
     
@@ -174,12 +175,14 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                       geodata=geodata, units=units, title=title,
                                       colorscale=colorscale, colorbar=colorbar,
                                       **kwargs)
-    
+                        
+                        plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                        
                         if UV is not None and motion_plot is not None:
                             if motion_plot.lower() == "quiver":
-                                st.plt.quiver(UV, ax=ax, geodata=geodata)
+                                st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
                             elif motion_plot.lower() == "streamplot":
-                                st.plt.streamplot(UV, ax=ax, geodata=geodata)
+                                st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
                         if savefig & (loop == 0):
                             figname = "%s/%s_member_%02d_frame_%02d.%s" % \
                                 (path_outputs, startdate_str, (n+1), i, fig_format)
@@ -195,22 +198,26 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         else:
             for i in range(n_lead_times):
                 if timestamps is not None:
-                    title = "%s +%02d min" % (timestamps[-1].strftime("%Y-%m-%d %H:%M"),
-                                (1 + i)*timestep_min)
+                    title = timestamps[-1].strftime("%Y-%m-%d %H:%M")
+                    leadtime = "+%02d min" % ((1 + i)*timestep_min)
                 else:
                     title = "+%02d min" % ((1 + i)*timestep_min)
-
+                
+                # probability forecast
                 if probmaps:
                     if np.isscalar(probmap_thrs): probmap_thrs = [probmap_thrs]
                     P = st.postprocessing.ensemblestats.excprob(R_fct[:, i, :, :], probmap_thrs)
-
+                    
                     for j,thr in enumerate(probmap_thrs):
+                        title_ = title + "\n Forecast Probability"
+                        
                         plt.clf()
-                        st.plt.plot_precip_field(P[j, :, :], type="prob", map=map,
+                        ax = st.plt.plot_precip_field(P[j, :, :], type="prob", map=map,
                                                  geodata=geodata, units=units,
-                                                 probthr=thr, title=title,
+                                                 probthr=thr, title=title_,
                                                  **kwargs)
-
+                        plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                        
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_probmap_%.1f.%s" % \
                                 (path_outputs, startdate_str, i+n_obs, thr, fig_format)
@@ -219,19 +226,23 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
 
                         if plotanimation:
                             plt.pause(.2)
-
+                
+                # ensemble mean
                 if ensmeans:
+                    title += "\n Forecast Ensemble Mean"
+                    
                     EM = st.postprocessing.ensemblestats.mean(R_fct[:, i, :, :])
-
+                    
                     plt.clf()
                     ax = st.plt.plot_precip_field(EM, map=map, geodata=geodata, units=units,
                                              title=title, colorscale=colorscale,
                                              colorbar=colorbar, **kwargs)
-
+                    plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                    
                     if motion_plot.lower() == "quiver":
-                        st.plt.quiver(UV, ax=ax, geodata=geodata)
+                        st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
                     elif motion_plot.lower() == "streamplot":
-                        st.plt.streamplot(UV, ax=ax, geodata=geodata)
+                        st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
 
                     if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_ensmean.%s" % \
