@@ -54,6 +54,13 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
         |  RV        | reduction of variance                                  |
         |            | (Brier Score, Nash-Sutcliffe Efficiency)               |
         +------------+--------------------------------------------------------+
+        |  scatter*  | half the distance between the 16% and 84% percentiles  |
+        |            | of the weighted cumulative error distribution,         |
+        |            | where error = dB(pred/obs), as in                      |
+        |            | `Germann et al. (2006)`_                               |
+        +------------+--------------------------------------------------------+
+
+    .. _`Germann et al. (2006)`:https://doi.org/10.1256/qj.05.190
 
     axis : None or int or tuple of ints, optional
         Axis or axes along which a score is integrated. The default, axis=None,
@@ -100,6 +107,10 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
     onscores = [score for score in scores if str(score).lower() not in loffline]
     offscores = [score for score in scores if str(score).lower() in loffline]
 
+    # unique lists
+    onscores = _uniquelist(onscores)
+    offscores = _uniquelist(offscores)
+
     # online scores
     onresult = []
     if any(onscores):
@@ -142,6 +153,11 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
             if score in ["corr_s", "spearmanr"]:
                 corr_s = spearmanr(pred, obs, axis=axis, nan_policy="omit")[0]
                 offresult.append(corr_s)
+
+            # scatter
+            if score in ["scatter"]:
+                scatter = _scatter(pred, obs, axis=axis)
+                offresult.append(scatter)
 
     # pool online and offline results together in the original order
     result = []
@@ -458,3 +474,59 @@ def _parallel_cov(cov_a, avg_xa, avg_ya, count_a,
     c_b = cov_b*count_b
     C2 = c_a + c_b + deltax*deltay*count_a*count_b/(count_a + count_b)
     return C2/(count_a + count_b)
+
+
+def _uniquelist(mylist):
+    used = set()
+    return [x for x in mylist if x not in used and (used.add(x) or True)]
+
+def _scatter(pred, obs, axis=None):
+
+    pred = pred.copy()
+    obs = obs.copy()
+
+    # catch case of axis passed as integer
+    def get_iterable(x):
+        if x is None or \
+            (isinstance(x, collections.Iterable) and not isinstance(x, int)):
+            return x
+        else:
+            return (x,)
+    axis = get_iterable(axis)
+
+    # reshape arrays as 2d matrixs
+    # rows : samples; columns : points
+    axis = tuple(range(pred.ndim)) if axis is None else axis
+    axis = tuple(np.sort(axis))
+    for ax in axis:
+        pred = np.rollaxis(pred, ax, 0)
+        obs = np.rollaxis(obs, ax, 0)
+    shp_rows = pred.shape[:len(axis)]
+    shp_cols = pred.shape[len(axis):]
+    pred = np.reshape(pred, (np.prod(shp_rows), -1))
+    obs = np.reshape(obs, (np.prod(shp_rows), -1))
+
+    # compute errors and
+    q = 10*np.log10(pred/obs)
+
+    # set nans to zero weight
+    idkeep = np.logical_and(np.isfinite(q), np.isfinite(obs))
+    q[~idkeep] = -9999
+    obs[~idkeep] = 0
+
+    # compute scatter along rows
+    xs = np.sort(q, axis=0)
+    xs = np.vstack((xs[0, :], xs))
+    ixs = np.argsort(q, axis=0)
+    ws = np.take_along_axis(obs, ixs, axis=0)
+    ws = np.vstack((ws[0,:]*0., ws))
+    wsc = np.cumsum(ws, axis=0)/np.sum(ws, axis=0)
+    xint = np.zeros((2, xs.shape[1]))
+    for i in range(xint.shape[1]):
+        xint[:, i] = np.interp([0.16, 0.84], wsc[:, i], xs[:, i])
+    scatter = (xint[1, :] - xint[0, :])/2.
+
+    # reshape back
+    scatter = scatter.reshape(shp_cols)
+
+    return float(scatter) if scatter.size == 1 else scatter

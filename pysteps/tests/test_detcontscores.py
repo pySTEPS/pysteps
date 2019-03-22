@@ -21,7 +21,7 @@ test_data = [
     ([1., 3.], [2., 5.], ('lolo', None), []),
     # Mean Absolute Error as string
     (fct_data, obs_data, 'MAE', [2.8]),
-    # Mean Absolute Error 
+    # Mean Absolute Error
     (fct_data, obs_data, ('MAE'), [2.8]),
     # Root Mean Square Error
     (fct_data, obs_data, ('RMSE'), [3.162278]),
@@ -35,8 +35,11 @@ test_data = [
     (fct_data, obs_data, ('Beta'), [0.70528]),
     # reduction of variance
     (fct_data, obs_data, ('rv'), [0.668874])
+    # debiase RMSE
+    (fct_data, obs_data, ('DRMSE'), [0.309934])
+    # scatter
+    (fct_data, obs_data, ('scatter'), [0.769423])
     ]
-
 
 @pytest.mark.parametrize("pred, obs, scores, expected", test_data)
 def test_det_cont_fcst(pred, obs, scores, expected):
