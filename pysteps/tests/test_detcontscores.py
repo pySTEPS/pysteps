@@ -34,9 +34,9 @@ test_data = [
     # Beta
     (fct_data, obs_data, ('Beta'), [0.70528]),
     # reduction of variance
-    (fct_data, obs_data, ('rv'), [0.668874])
-    # debiase RMSE
-    (fct_data, obs_data, ('DRMSE'), [0.309934])
+    (fct_data, obs_data, ('rv'), [0.668874]),
+    # debiased RMSE
+    (fct_data, obs_data, ('DRMSE'), [0.309934]),
     # scatter
     (fct_data, obs_data, ('scatter'), [0.769423])
     ]
