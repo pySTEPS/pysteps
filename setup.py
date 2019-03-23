@@ -12,12 +12,10 @@ except ImportError:
         "Try installing it with:\n" +
         "$> pip install numpy")
 
+extra_link_args = ['-fopenmp']
+
 if sys.platform.startswith('darwin'):
-    extra_link_args = ['-fopenmp']
-else:
-    extra_link_args = ['-fopenmp',
-                       '-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/8/',
-                       ]
+    extra_link_args.append('-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/8/')
 
 _vet_extension_arguments = dict(extra_compile_args=['-fopenmp'],
                                 include_dirs=[numpy.get_include()],
