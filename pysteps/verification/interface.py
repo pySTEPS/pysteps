@@ -52,25 +52,23 @@ def get_method(name, type="deterministic"):
         +------------+----------------------------------------------------------+
         |  corr_s    | spearman's correlation coefficient (rank correlation)    |
         +------------+----------------------------------------------------------+
-        |  MAE_add   | mean absolute error of additive residuals                |
+        |  DRMSE     | debiased root mean squared error                         |
         +------------+----------------------------------------------------------+
-        |  MAE_mul   | mean absolute error of multiplicative residuals          |
+        |  MAE       | mean absolute error of residuals                         |
         +------------+----------------------------------------------------------+
-        |  ME_add    | mean error or bias of additive residuals                 |
+        |  ME        | mean error or bias of residuals                          |
         +------------+----------------------------------------------------------+
-        |  ME_mult   | mean error or bias of multiplicative residuals           |
+        |  MSE       | mean squared error                                       |
         +------------+----------------------------------------------------------+
-        |  RMSE_add  | root mean squared additive error                         |
+        |  RMSE      | root mean squared error                                  |
         +------------+----------------------------------------------------------+
-        |  RMSE_mult | root mean squared multiplicative error                   |
-        +------------+----------------------------------------------------------+
-        |  RV_add    | reduction of variance (Brier Score, Nash-Sutcliffe       |
+        |  RV        | reduction of variance (Brier Score, Nash-Sutcliffe       |
         |            | Efficiency)                                              |
         +------------+----------------------------------------------------------+
-        |  RV_mult   | reduction of variance in multiplicative space            |
-        +------------+----------------------------------------------------------+
-        |  scatter   | half the distance between the 16% and 84% percentiles of |
-        |            | the error distribution                                   |
+        |  scatter   | half the distance between the 16% and 84% percentiles    |
+        |            | of the weighted cumulative error distribution,           | 
+        |            | where error = dB(pred/obs), as in                        |
+        |            | `Germann et al. (2006)`_                                 |
         +------------+----------------------------------------------------------+
         |  binary_mse| binary MSE                                               |
         +------------+----------------------------------------------------------+
@@ -108,6 +106,8 @@ def get_method(name, type="deterministic"):
     type : str
         Type of the method. The available options are 'deterministic', 'ensemble'
         and 'probabilistic'.
+        
+    .. _`Germann et al. (2006)`:https://doi.org/10.1256/qj.05.190
 
     """
 
@@ -132,9 +132,8 @@ def get_method(name, type="deterministic"):
             return f
 
         # continuous
-        elif name in ["beta", "corr_p", "corr_s", "mae_add", "mae_mult",
-                      "me_add", "me_mult", "rmse_add", "rmse_mult", "rv_add",
-                      "rv_mult", "scatter"]:
+        elif name in ["beta", "corr_p", "corr_s", "mae", "mse",
+                      "me", "drmse", "rmse", "rv", "scatter"]:
             def f(fct, obs, **kwargs):
                 return det_cont_fcst(fct, obs, [name], **kwargs)
             return f
