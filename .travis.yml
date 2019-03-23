@@ -6,30 +6,27 @@ matrix:
       python: 3.6
       env: 
         - PYTHON_VERSION=3.6
-        - TOXENV=py36
         - PACKAGES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
     - os: osx
       language: generic
+      osx_image: xcode10.1
       env: 
         - PYTHON_VERSION=3.6
-        - TOXENV=py36
         - PACKAGES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
 
 sudo: false
-osx_image: xcode10.1
 
 before_install:
-  # Install gcc for MacOS
+  # Install gcc for MacOSX
   # -----------------
-  # - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update      ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CC=gcc-8  ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX=g++-8 ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX1X=g++-8 ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then which gcc-8 ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then which gcc ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then gcc-8 --version ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then gcc --version ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew install gcc ;
+      export CC=gcc-8  ;
+      export CXX=g++-8 ;
+      export CXX1X=g++-8 ;
+      which gcc-8 ;
+      gcc-8 --version ;
+    fi
   # Install miniconda
   # -----------------
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -59,10 +56,6 @@ before_install:
   - travis_retry conda install --quiet $PACKAGES
 
 install:
-  # check GCC installation
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then which gcc-8 ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then which gcc ; fi
-
   # Install pySTEPS
   # ---------------
   - python setup.py install
