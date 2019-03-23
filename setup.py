@@ -2,6 +2,7 @@
 
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
+import sys
 
 try:
     import numpy
@@ -11,10 +12,18 @@ except ImportError:
         "Try installing it with:\n" +
         "$> pip install numpy")
 
+if sys.platform.startswith('darwin'):
+    extra_link_args = ['-fopenmp']
+else:
+    extra_link_args = ['-fopenmp',
+                       '-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/8/',
+                       ]
+
 _vet_extension_arguments = dict(extra_compile_args=['-fopenmp'],
                                 include_dirs=[numpy.get_include()],
                                 language='c',
-                                extra_link_args=['-fopenmp'])
+                                extra_link_args=extra_link_args,
+                                )
 
 try:
     from Cython.Build.Dependencies import cythonize
