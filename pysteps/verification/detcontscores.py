@@ -421,8 +421,8 @@ def det_cont_fcst_compute(err, scores):
 
         # mean squared error
         if score in ["mse"]:
-            MAE = err["mse"]
-            result.append(MAE)
+            MSE = err["mse"]
+            result.append(MSE)
 
         # root mean squared error
         if score == 'rmse':
