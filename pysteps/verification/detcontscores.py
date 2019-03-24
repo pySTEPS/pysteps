@@ -18,17 +18,21 @@ import numpy as np
 from scipy.stats import spearmanr
 
 
-def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
+def det_cont_fcst(pred, obs, scores="", axis=None, conditioning=None):
     """Calculate simple and skill scores for deterministic continuous forecasts.
 
     Parameters
     ----------
     pred : array_like
         Array of predictions. NaNs are ignored.
+
     obs : array_like
         Array of verifying observations. NaNs are ignored.
-    scores : string or list of strings
-        The name(s) of the scores. The list of possible score names is:
+
+    scores : {string, list of strings}, optional
+        The name(s) of the scores. The default, scores="", will compute all
+        available scores.
+        The available score names are:
 
         .. tabularcolumns:: |p{2cm}|L|
 
@@ -79,8 +83,8 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
 
     Returns
     -------
-    result : list
-        List containing the verification results.
+    result : dict
+        Dictionary containing the verification results.
 
     Note
     ----
@@ -104,24 +108,24 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
 
     # split between online and offline scores
     loffline = ["scatter", "corr_s"]
-    onscores = [score for score in scores if str(score).lower() not in loffline]
-    offscores = [score for score in scores if str(score).lower() in loffline]
+    onscores = [score for score in scores if str(score).lower() not in loffline or score==""]
+    offscores = [score for score in scores if str(score).lower() in loffline or score==""]
 
     # unique lists
     onscores = _uniquelist(onscores)
     offscores = _uniquelist(offscores)
 
     # online scores
-    onresult = []
-    if any(onscores):
+    onresult = {}
+    if onscores:
 
         err = det_cont_fcst_init(axis=axis, conditioning=conditioning)
         det_cont_fcst_accum(err, pred, obs)
         onresult = det_cont_fcst_compute(err, onscores)
 
     # offline scores
-    offresult = []
-    if any(offscores):
+    offresult = {}
+    if offscores:
 
         pred = np.asarray(pred.copy())
         obs = np.asarray(obs.copy())
@@ -147,27 +151,21 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
             if score is None:
                 continue
 
-            score = score.lower()
+            score_ = score.lower()
 
             # spearman corr (rank correlation)
-            if score in ["corr_s", "spearmanr"]:
+            if score_ in ["corr_s", "spearmanr", ""]:
                 corr_s = spearmanr(pred, obs, axis=axis, nan_policy="omit")[0]
-                offresult.append(corr_s)
+                offresult["corr_s"] = corr_s
 
             # scatter
-            if score in ["scatter"]:
+            if score_ in ["scatter", ""]:
                 scatter = _scatter(pred, obs, axis=axis)
-                offresult.append(scatter)
+                offresult["scatter"] = scatter
 
-    # pool online and offline results together in the original order
-    result = []
-    for score in scores:
-        if score is None:
-            continue
-        elif score in onscores:
-            result += [b for a, b in zip(onscores, onresult) if a == score]
-        elif score in offscores:
-            result += [b for a, b in zip(offscores, offresult) if a == score]
+    # pull all results together
+    result = onresult
+    result.update(offresult)
 
     return result
 
@@ -231,8 +229,10 @@ def det_cont_fcst_accum(err, pred, obs):
     err : dict
         A verification error object initialized with
         :py:func:`pysteps.verification.detcontscores.det_cont_fcst_init`.
+
     pred : array_like
         Array of predictions. NaNs are ignored.
+
     obs : array_like
         Array of verifying observations. NaNs are ignored.
 
@@ -350,7 +350,7 @@ def det_cont_fcst_accum(err, pred, obs):
     err["n"] += n
 
 
-def det_cont_fcst_compute(err, scores):
+def det_cont_fcst_compute(err, scores=""):
     """Compute simple and skill scores for deterministic continuous forecasts
     from a verification error object.
 
@@ -361,8 +361,11 @@ def det_cont_fcst_compute(err, scores):
         :py:func:`pysteps.verification.detcontscores.det_cont_fcst_init` and
         populated with
         :py:func:`pysteps.verification.detcontscores.det_cont_fcst_accum`.
-    scores : string or list of strings
-        The name(s) of the scores. The list of possible score names is:
+
+    scores : {string, list of strings}, optional
+        The name(s) of the scores. The default, scores="", will compute all
+        available scores.
+        The available score names are:
 
         .. tabularcolumns:: |p{2cm}|L|
 
@@ -389,8 +392,8 @@ def det_cont_fcst_compute(err, scores):
 
     Returns
     -------
-    result : list
-        List containing the verification results.
+    result : dict
+        Dictionary containing the verification results.
     """
 
     # catch case of single score passed as string
@@ -401,54 +404,54 @@ def det_cont_fcst_compute(err, scores):
             return (x,)
     scores = get_iterable(scores)
 
-    result = []
+    result = {}
     for score in scores:
         # catch None passed as score
         if score is None:
             continue
 
-        score = score.lower()
+        score_ = score.lower()
 
         # bias (mean error, systematic error)
-        if score in ["bias", "me"]:
+        if score_ in ["bias", "me", ""]:
             bias = err["me"]
-            result.append(bias)
+            result["ME"] = bias
 
         # mean absolute error
-        if score in ["mae"]:
+        if score_ in ["mae", ""]:
             MAE = err["mae"]
-            result.append(MAE)
+            result["MAE"] = MAE
 
         # mean squared error
-        if score in ["mse"]:
+        if score_ in ["mse", ""]:
             MSE = err["mse"]
-            result.append(MSE)
+            result["MSE"] = MSE
 
         # root mean squared error
-        if score == "rmse":
+        if score_ in ["rmse", ""]:
             RMSE = np.sqrt(err["mse"])
-            result.append(RMSE)
+            result["RMSE"] = RMSE
 
         # linear correlation coeff (pearson corr)
-        if score in ["corr_p", "pearsonr"]:
+        if score_ in ["corr_p", "pearsonr", ""]:
             corr_p = err["cov"]/np.sqrt(err["vobs"])/np.sqrt(err["vpred"])
-            result.append(corr_p)
+            result["corr_p"] = corr_p
 
         # beta (linear regression slope)
-        if score in ["beta"]:
+        if score_ in ["beta", ""]:
             beta = err["cov"]/err["vpred"]
-            result.append(beta)
+            result["beta"] = beta
 
         # debiased RMSE
-        if score in ["drmse"]:
+        if score_ in ["drmse", ""]:
             RMSE_d = (err["mse"] - err["me"]**2)/err["vobs"]
-            result.append(RMSE_d)
+            result["DRMSE"] = RMSE_d
 
         # reduction of variance (Brier Score, Nash-Sutcliffe efficiency coefficient,
         # MSE skill score)
-        if score in ["rv", "brier_score", "nse"]:
+        if score_ in ["rv", "brier_score", "nse", ""]:
             RV = 1.0 - err["mse"]/err["vobs"]
-            result.append(RV)
+            result["RV"] = RV
 
     return result
 

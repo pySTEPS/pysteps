@@ -54,4 +54,5 @@ test_data = [
 @pytest.mark.parametrize("pred, obs, thr, scores, expected", test_data)
 def test_det_cat_fcst(pred, obs, thr, scores, expected):
     """Test the det_cat_fcst."""
-    assert_array_almost_equal(det_cat_fcst(pred, obs, thr, scores), expected)
+    assert_array_almost_equal(
+            list(det_cat_fcst(pred, obs, thr, scores).values()), expected)

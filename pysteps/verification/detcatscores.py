@@ -18,7 +18,7 @@ import collections
 import numpy as np
 
 
-def det_cat_fcst(pred, obs, thr, scores, axis=None):
+def det_cat_fcst(pred, obs, thr, scores="", axis=None):
 
     """Calculate simple and skill scores for deterministic categorical
     (dichotomous) forecasts.
@@ -27,14 +27,18 @@ def det_cat_fcst(pred, obs, thr, scores, axis=None):
     ----------
     pred : array_like
         Array of predictions. NaNs are ignored.
+
     obs : array_like
         Array of verifying observations. NaNs are ignored.
+
     thr : float
         The threshold that is applied to predictions and observations in order
         to define events vs no events (yes/no).
-    score : string or list of strings
-        The name(s) of the scores.
-        The list of possible score names is:
+
+    scores : {string, list of strings}, optional
+        The name(s) of the scores. The default, scores="", will compute all
+        available scores.
+        The available score names are:
 
         .. tabularcolumns:: |p{2cm}|L|
 
@@ -72,8 +76,8 @@ def det_cat_fcst(pred, obs, thr, scores, axis=None):
 
     Returns
     -------
-    result : list
-        the verification results
+    result : dict
+        Dictionary containing the verification results.
 
     """
 
@@ -90,6 +94,7 @@ def det_cat_fcst_init(thr, axis=None):
     thr : float
         threshold that is applied to predictions and observations in order
         to define events vs no events (yes/no).
+
     axis : None or int or tuple of ints, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
@@ -134,8 +139,10 @@ def det_cat_fcst_accum(contab, pred, obs):
     contab : dict
       A contingency table object initialized with
       pysteps.verification.detcatscores.det_cat_fcst_init.
+
     pred : array_like
         Array of predictions. NaNs are ignored.
+
     obs : array_like
         Array of verifying observations. NaNs are ignored.
 
@@ -194,7 +201,7 @@ def det_cat_fcst_accum(contab, pred, obs):
     contab["correct_negatives"] += np.nansum(R_idx.astype(int), axis=axis)
 
 
-def det_cat_fcst_compute(contab, scores):
+def det_cat_fcst_compute(contab, scores=""):
     """Compute simple and skill scores for deterministic categorical
     (dichotomous) forecasts from a contingency table object.
 
@@ -205,9 +212,10 @@ def det_cat_fcst_compute(contab, scores):
       pysteps.verification.detcatscores.det_cat_fcst_init and populated with
       pysteps.verification.detcatscores.det_cat_fcst_accum.
 
-    score : string or list of strings
-        a string or list of strings specifying the name of the scores.
-        The list of possible score names is:
+    scores : {string, list of strings}, optional
+        The name(s) of the scores. The default, scores="", will compute all
+        available scores.
+        The available score names a
 
         .. tabularcolumns:: |p{2cm}|L|
 
@@ -237,8 +245,8 @@ def det_cat_fcst_compute(contab, scores):
 
     Returns
     -------
-    result : list
-        the verification results
+    result : dict
+        Dictionary containing the verification results.
 
     """
 
@@ -255,13 +263,13 @@ def det_cat_fcst_compute(contab, scores):
     F = 1.*contab["false_alarms"]
     R = 1.*contab["correct_negatives"]
 
-    result = []
+    result = {}
     for score in scores:
         # catch None passed as score
         if score is None:
             continue
 
-        score = score.lower()
+        score_ = score.lower()
 
         # simple scores
         POD = H/(H + M)
@@ -269,42 +277,42 @@ def det_cat_fcst_compute(contab, scores):
         FA = F/(F + R)
         s = (H + M)/(H + M + F + R)
 
-        if score == 'pod':
+        if score_ in ["pod", ""]:
             # probability of detection
-            result.append(POD)
-        if score == 'far':
+            result["POD"] = POD
+        if score_ in ["far", ""]:
             # false alarm ratio
-            result.append(FAR)
-        if score == 'fa':
+            result["FAR"] = FAR
+        if score_ in ["fa", ""]:
             # false alarm rate (prob of false detection)
-            result.append(FA)
-        if score == 'acc':
+            result["FA"] = FA
+        if score_ in ["acc", ""]:
             # accuracy (fraction correct)
             ACC = (H + R)/(H + M + F + R)
-            result.append(ACC)
-        if score == 'csi':
+            result["ACC"] = ACC
+        if score_ in ["csi", ""]:
             # critical success index
             CSI = H/(H + M + F)
-            result.append(CSI)
-        if score == 'bias':
+            result["CSI"] = CSI
+        if score_ in ["bias", ""]:
             # frequency bias
             B = (H + F) / (H + M)
-            result.append(B)
+            result["BIAS"] = B
 
         # skill scores
-        if score == 'hss':
+        if score_ in ["hss", ""]:
             # Heidke Skill Score (-1 < HSS < 1) < 0 implies no skill
             HSS = 2*(H*R - F*M)/((H + M)*(M + R) + (H + F)*(F + R))
-            result.append(HSS)
-        if score == 'hk':
+            result["HSS"] = HSS
+        if score_ in ["hk", ""]:
             # Hanssen-Kuipers Discriminant
             HK = POD - FA
-            result.append(HK)
-        if score == 'gss':
+            result["HK"] = HK
+        if score_ in ["gss", ""]:
             # Gilbert Skill Score
             GSS = (POD - FA)/((1 - s*POD)/(1 - s) + FA*(1 - s)/s)
-            result.append(GSS)
-        if score == 'ets':
+            result["GSS"] = GSS
+        if score_ in ["ets", ""]:
             # Equitable Threat Score
             N = H + M + R + F
             HR = ((H + M)*(H + F)) / N
@@ -312,11 +320,11 @@ def det_cat_fcst_compute(contab, scores):
                 ETS = np.nan
             else:
                 ETS = (H - HR) / (H + M + F - HR)
-            result.append(ETS)
-        if score == 'sedi':
+            result["ETS"] = ETS
+        if score_ in ["sedi", ""]:
             # Symmetric extremal dependence index
             SEDI = (np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA))\
                   /(np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA))
-            result.append(SEDI)
+            result["SEDI"] = SEDI
 
     return result
