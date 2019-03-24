@@ -47,7 +47,7 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
         +------------+--------------------------------------------------------+
         |  ME        | mean error or bias                                     |
         +------------+--------------------------------------------------------+
-        |  MSE        | mean squared error                                    |
+        |  MSE       | mean squared error                                     |
         +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
@@ -62,7 +62,7 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
 
     .. _`Germann et al. (2006)`:https://doi.org/10.1256/qj.05.190
 
-    axis : None or int or tuple of ints, optional
+    axis : {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
         If axis is -1 (or any negative integer), the integration is not performed
@@ -80,7 +80,7 @@ def det_cont_fcst(pred, obs, scores, axis=None, conditioning=None):
     Returns
     -------
     result : list
-        list containing the verification results
+        List containing the verification results.
 
     Note
     ----
@@ -177,7 +177,7 @@ def det_cont_fcst_init(axis=None, conditioning=None):
 
     Parameters
     ----------
-    axis : None or int or tuple of ints, optional
+    axis : {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
         If axis is -1 (or any negative integer), the integration is not performed
@@ -379,7 +379,7 @@ def det_cont_fcst_compute(err, scores):
         +------------+--------------------------------------------------------+
         |  ME        | mean error or bias                                     |
         +------------+--------------------------------------------------------+
-        |  MSE        | mean squared error                                    |
+        |  MSE       | mean squared error                                     |
         +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
@@ -390,7 +390,7 @@ def det_cont_fcst_compute(err, scores):
     Returns
     -------
     result : list
-        list containing the verification results
+        List containing the verification results.
     """
 
     # catch case of single score passed as string
@@ -425,7 +425,7 @@ def det_cont_fcst_compute(err, scores):
             result.append(MSE)
 
         # root mean squared error
-        if score == 'rmse':
+        if score == "rmse":
             RMSE = np.sqrt(err["mse"])
             result.append(RMSE)
 
@@ -494,7 +494,7 @@ def _scatter(pred, obs, axis=None):
             return (x,)
     axis = get_iterable(axis)
 
-    # reshape arrays as 2d matrixs
+    # reshape arrays as 2d matrices
     # rows : samples; columns : points
     axis = tuple(range(pred.ndim)) if axis is None else axis
     axis = tuple(np.sort(axis))
@@ -506,10 +506,10 @@ def _scatter(pred, obs, axis=None):
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
-    # compute errors and
+    # compute multiplicative erros in dB
     q = 10*np.log10(pred/obs)
 
-    # set nans to zero weight
+    # set nans to -9999 with zero weight
     idkeep = np.logical_and(np.isfinite(q), np.isfinite(obs))
     q[~idkeep] = -9999
     obs[~idkeep] = 0
