@@ -168,6 +168,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                             leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
                         else:
                             title = "+%02d min" % ((1 + i - n_obs)*timestep_min)
+                            leadtime = None
 
                         ax = st.plt.plot_precip_field(R_fct[n, i - n_obs, :, :], map=map,
                                       geodata=geodata, units=units, title=title,
@@ -180,7 +181,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                             elif motion_plot.lower() == "streamplot":
                                 st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
                         
-                        plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                        if leadtime is not None:
+                            plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
                         if n_members > 1:
                             plt.text(0.01, 0.99, "m %02d" % (n+1), transform=ax.transAxes, ha="left", va="top")
                             
@@ -239,6 +241,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                             leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
                         else:
                             title = "+%02d min" % ((1 + i)*timestep_min)
+                            leadtime = None
                         
                         P = st.postprocessing.ensemblestats.excprob(R_fct[:, i - n_obs, :, :], probmap_thrs[j])
 
@@ -253,8 +256,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                 st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
                             elif motion_plot.lower() == "streamplot":
                                 st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
-                                
-                        plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                        
+                        if leadtime is not None:
+                            plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
                         
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_probmap_%.1f.%s" % \
@@ -304,6 +308,7 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
                     else:
                         title = "+%02d min" % ((1 + i - n_obs)*timestep_min)
+                        leadtime = None
                             
                     EM = st.postprocessing.ensemblestats.mean(R_fct[:, i - n_obs, :, :])
 
@@ -318,8 +323,9 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                             st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
                         elif motion_plot.lower() == "streamplot":
                             st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
-                            
-                    plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                    
+                    if leadtime is not None:
+                        plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
                     
                     if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_ensmean.%s" % \
