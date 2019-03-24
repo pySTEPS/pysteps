@@ -506,7 +506,7 @@ def _scatter(pred, obs, axis=None):
     axis = get_iterable(axis)
 
     # reshape arrays as 2d matrices
-    # rows : samples; columns : points
+    # rows : samples; columns : variables
     axis = tuple(range(pred.ndim)) if axis is None else axis
     axis = tuple(np.sort(axis))
     for ax in axis:
@@ -558,7 +558,7 @@ def _spearmanr(pred, obs, axis=None):
     axis = get_iterable(axis)
 
     # reshape arrays as 2d matrices
-    # rows : samples; columns : points
+    # rows : samples; columns : variables
     axis = tuple(range(pred.ndim)) if axis is None else axis
     axis = tuple(np.sort(axis))
     for ax in axis:
@@ -570,6 +570,7 @@ def _spearmanr(pred, obs, axis=None):
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
     corr_s = spearmanr(pred, obs, axis=0, nan_policy="omit")[0]
-    corr_s =  corr_s.reshape(shp_cols)
+    if corr_s.size > 1:
+        corr_s =  np.diag(corr_s, pred.shape[1]).reshape(shp_cols)
 
     return float(corr_s) if corr_s.size == 1 else corr_s
