@@ -155,7 +155,7 @@ def det_cont_fcst(pred, obs, scores="", axis=None, conditioning=None):
 
             # spearman corr (rank correlation)
             if score_ in ["corr_s", "spearmanr", ""]:
-                corr_s = spearmanr(pred, obs, axis=axis, nan_policy="omit")[0]
+                corr_s = _spearmanr(pred, obs, axis=axis)
                 offresult["corr_s"] = corr_s
 
             # scatter
@@ -541,3 +541,35 @@ def _scatter(pred, obs, axis=None):
     scatter = scatter.reshape(shp_cols)
 
     return float(scatter) if scatter.size == 1 else scatter
+
+
+def _spearmanr(pred, obs, axis=None):
+
+    pred = pred.copy()
+    obs = obs.copy()
+
+    # catch case of axis passed as integer
+    def get_iterable(x):
+        if x is None or \
+            (isinstance(x, collections.Iterable) and not isinstance(x, int)):
+            return x
+        else:
+            return (x,)
+    axis = get_iterable(axis)
+
+    # reshape arrays as 2d matrices
+    # rows : samples; columns : points
+    axis = tuple(range(pred.ndim)) if axis is None else axis
+    axis = tuple(np.sort(axis))
+    for ax in axis:
+        pred = np.rollaxis(pred, ax, 0)
+        obs = np.rollaxis(obs, ax, 0)
+    shp_rows = pred.shape[:len(axis)]
+    shp_cols = pred.shape[len(axis):]
+    pred = np.reshape(pred, (np.prod(shp_rows), -1))
+    obs = np.reshape(obs, (np.prod(shp_rows), -1))
+
+    corr_s = spearmanr(pred, obs, axis=0, nan_policy="omit")[0]
+    corr_s =  corr_s.reshape(shp_cols)
+
+    return float(corr_s) if corr_s.size == 1 else corr_s
