@@ -263,7 +263,12 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
     
     if geodata is None or axis == "off":
-        plt.axis("off")
+        #plt.axis("off")
+        axes = plt.gca()
+        axes.xaxis.set_ticks([])
+        axes.xaxis.set_ticklabels([])
+        axes.yaxis.set_ticks([])
+        axes.yaxis.set_ticklabels([])
                         
     return plt.gca()
 
