@@ -137,11 +137,10 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     # Observations
                     if i < n_obs and (plotanimation or n == 0):
 
+                        title = ""
                         if timestamps is not None:
-                            title = timestamps[i].strftime("%Y-%m-%d %H:%M")
-                            title += "\n Observed Rainfall"
-                        else:
-                            title = None
+                            title += timestamps[i].strftime("%Y-%m-%d %H:%M\n")
+                        title += "Observed Rainfall"
 
                         ax = st.plt.plot_precip_field(R_obs[i,:,:], map=map,
                             geodata=geodata, units=units, colorscale=colorscale,
@@ -162,13 +161,12 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                     # Forecasts
                     elif i >= n_obs and R_fct is not None:
 
+                        title = ""
                         if timestamps is not None:
-                            title = timestamps[-1].strftime("%Y-%m-%d %H:%M")
-                            title += "\n Forecast Rainfall"
-                            leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
-                        else:
-                            title = "+%02d min" % ((1 + i - n_obs)*timestep_min)
-                            leadtime = None
+                            title += timestamps[-1].strftime("%Y-%m-%d %H:%M\n")
+                        title += "Forecast Rainfall"
+
+                        leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
 
                         ax = st.plt.plot_precip_field(R_fct[n, i - n_obs, :, :], map=map,
                                       geodata=geodata, units=units, title=title,
@@ -182,9 +180,11 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                 st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
                         
                         if leadtime is not None:
-                            plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                            plt.text(0.99, 0.99, leadtime, transform=ax.transAxes,
+                                     ha="right", va="top")
                         if n_members > 1:
-                            plt.text(0.01, 0.99, "m %02d" % (n+1), transform=ax.transAxes, ha="left", va="top")
+                            plt.text(0.01, 0.99, "m %02d" % (n+1), transform=ax.transAxes,
+                                     ha="left", va="top")
                             
                         if savefig & (loop == 0):
                             figname = "%s/%s_member_%02d_frame_%02d.%s" % \
@@ -206,12 +206,12 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                 for i in range(n_obs + n_lead_times):                    
                     # observations (binary)
                     if i < n_obs:
+
+                        title = ""
                         if timestamps is not None:
-                            title = timestamps[i].strftime("%Y-%m-%d %H:%M")
-                            title += "\n Observed Probability"
-                        else:
-                            title = None
-                            
+                            title += timestamps[i].strftime("%Y-%m-%d %H:%M\n")
+                        title += "Observed Probability"
+
                         R_obs_ = R_obs[np.newaxis, ::]
                         P_obs = st.postprocessing.ensemblestats.excprob(R_obs_[:, i, :, :], probmap_thrs[j])
                         
@@ -235,14 +235,14 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
 
                     # forecast probs
                     elif i >= n_obs and R_fct is not None:
+
+                        title = ""
                         if timestamps is not None:
-                            title = timestamps[-1].strftime("%Y-%m-%d %H:%M")
-                            title += "\n Forecast Probability"
-                            leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
-                        else:
-                            title = "+%02d min" % ((1 + i)*timestep_min)
-                            leadtime = None
-                        
+                            title += timestamps[-1].strftime("%Y-%m-%d %H:%M\n")
+                        title += "Forecast Probability"
+
+                        leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
+
                         P = st.postprocessing.ensemblestats.excprob(R_fct[:, i - n_obs, :, :], probmap_thrs[j])
 
                         plt.clf()
@@ -258,7 +258,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                                 st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
                         
                         if leadtime is not None:
-                            plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                            plt.text(0.99, 0.99, leadtime, transform=ax.transAxes,
+                                     ha="right", va="top")
                         
                         if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_probmap_%.1f.%s" % \
@@ -277,11 +278,11 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
             for i in range(n_obs + n_lead_times):    
                 # observations
                 if i < n_obs:
+
+                    title = ""
                     if timestamps is not None:
-                        title = timestamps[i].strftime("%Y-%m-%d %H:%M")
-                        title += "\n Observed Rainfall"
-                    else:
-                        title = None
+                        title += timestamps[i].strftime("%Y-%m-%d %H:%M\n")
+                    title += "Observed Rainfall"
                     
                     plt.clf()
                     ax = st.plt.plot_precip_field(R_obs[i,:,:], map=map,
@@ -301,14 +302,14 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                         print(figname, 'saved.')
                 
                 # mean forecast
-                elif i >= n_obs and R_fct is not None:        
+                elif i >= n_obs and R_fct is not None:
+
+                    title = ""
                     if timestamps is not None:
-                        title = timestamps[-1].strftime("%Y-%m-%d %H:%M")
-                        title += "\n Forecast Ensemble Mean"
-                        leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
-                    else:
-                        title = "+%02d min" % ((1 + i - n_obs)*timestep_min)
-                        leadtime = None
+                        title += timestamps[-1].strftime("%Y-%m-%d %H:%M\n")
+                    title += "Forecast Ensemble Mean"
+
+                    leadtime = "+%02d min" % ((1 + i - n_obs)*timestep_min)
                             
                     EM = st.postprocessing.ensemblestats.mean(R_fct[:, i - n_obs, :, :])
 
@@ -325,7 +326,8 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
                             st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
                     
                     if leadtime is not None:
-                        plt.text(0.99, 0.99, leadtime, transform=ax.transAxes, ha="right", va="top")
+                        plt.text(0.99, 0.99, leadtime, transform=ax.transAxes,
+                                 ha="right", va="bottom")
                     
                     if savefig & (loop == 0):
                             figname = "%s/%s_frame_%02d_ensmean.%s" % \
