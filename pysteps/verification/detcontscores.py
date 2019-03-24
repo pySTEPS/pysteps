@@ -311,10 +311,18 @@ def det_cont_fcst_accum(err, pred, obs):
     mse = np.nanmean(res**2, axis=axis)
     mae = np.nanmean(np.abs(res), axis=axis)
 
+    # expand axes for broadcasting
+    for ax in sorted(axis):
+        mobs = np.expand_dims(mobs, ax)
+        mpred = np.expand_dims(mpred, ax)
+
     # new cov matrix
     cov = np.nanmean((obs - mobs)*(pred - mpred), axis=axis)
     vobs = np.nanmean(np.abs(obs - mobs)**2, axis=axis)
     vpred = np.nanmean(np.abs(pred - mpred)**2, axis=axis)
+
+    mobs = mobs.squeeze()
+    mpred = mpred.squeeze()
 
     # update variances
     err["vobs"] = _parallel_var(
