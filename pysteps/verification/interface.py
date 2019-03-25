@@ -111,17 +111,15 @@ def get_method(name, type="deterministic"):
 
     Multiplicative scores can be computed by passing log-tranformed values.
     Note that "scatter" is the only score that will be computed in dB units of
-    the multiplicative error, i.e.:
+    the multiplicative error, i.e.: 10log10(pred/obs).
 
-    .. math: 10\\log_10(x_p/x_o).
+    The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2)
 
-    The debiased RMSE is computed as follows:
+    The reduction of variance score is computed as RV = 1 - MSE/Var(obs)
 
-    .. math: DRMSE = \sqrt{RMSE - ME^2}
-
-    The reduction of variance score is computed as follows:
-
-    .. math: RV = 1 - \frac{MSE}{s^2_o}
+    Score names denoted by * can only be computed offline, meaning that the
+    these cannot be update using _init, _accum and _compute methods of this
+    module.
 
     Score names denoted by * can only be computed offline.
 
