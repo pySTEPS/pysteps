@@ -43,7 +43,7 @@ test_data = [
     # reduction of variance
     (fct_data, obs_data, ('RV'), None, None, [-0.054622]),
     # debiased RMSE
-    (fct_data, obs_data, ('DRMSE'), None, None, [1.004274]),
+    (fct_data, obs_data, ('DRMSE'), None, None, [7.815849]),
     # Pearson correlation
     (fct_data, obs_data, ('corr_p'), None, None, [0.542929]),
 

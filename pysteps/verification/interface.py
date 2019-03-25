@@ -52,7 +52,8 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  corr_s    | spearman's correlation coefficient (rank correlation)  |
         +------------+--------------------------------------------------------+
-        |  DRMSE     | debiased root mean squared error                       |
+        |  DRMSE     | debiased root mean squared error, i.e.                 |
+        |            | :math:`DRMSE = \\sqrt{RMSE - ME^2}`                    |
         +------------+--------------------------------------------------------+
         |  MAE       | mean absolute error of residuals                       |
         +------------+--------------------------------------------------------+
@@ -62,8 +63,9 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
-        |  RV        | reduction of variance (Brier Score, Nash-Sutcliffe     |
-        |            | Efficiency)                                            |
+        |  RV        | reduction of variance                                  |
+        |            | (Brier Score, Nash-Sutcliffe Efficiency), i.e.         |
+        |            | :math:`RV = 1 - \\frac{MSE}{s^2_o}`                    |
         +------------+--------------------------------------------------------+
         |  scatter*  | half the distance between the 16% and 84% percentiles  |
         |            | of the weighted cumulative error distribution,         |

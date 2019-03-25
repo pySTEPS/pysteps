@@ -45,7 +45,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         +------------+--------------------------------------------------------+
         |  corr_s*   | spearman's correlation coefficient (rank correlation)  |
         +------------+--------------------------------------------------------+
-        |  DRMSE     | debiased root mean squared error                       |
+        |  DRMSE     | debiased root mean squared error, i.e.                 |
+        |            | :math:`DRMSE = \\sqrt{RMSE - ME^2}`                    |
         +------------+--------------------------------------------------------+
         |  MAE       | mean absolute error                                    |
         +------------+--------------------------------------------------------+
@@ -56,7 +57,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
-        |            | (Brier Score, Nash-Sutcliffe Efficiency)               |
+        |            | (Brier Score, Nash-Sutcliffe Efficiency), i.e.         |
+        |            | :math:`RV = 1 - \\frac{MSE}{s^2_o}`                    |
         +------------+--------------------------------------------------------+
         |  scatter*  | half the distance between the 16% and 84% percentiles  |
         |            | of the weighted cumulative error distribution,         |
@@ -385,7 +387,8 @@ def det_cont_fct_compute(err, scores=""):
         +------------+--------------------------------------------------------+
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
-        |  DRMSE     | debiased root mean squared error                       |
+        |  DRMSE     | debiased root mean squared error, i.e.                 |
+        |            | :math:`DRMSE = \\sqrt{RMSE - ME^2}`                    |
         +------------+--------------------------------------------------------+
         |  MAE       | mean absolute error                                    |
         +------------+--------------------------------------------------------+
@@ -396,7 +399,8 @@ def det_cont_fct_compute(err, scores=""):
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
-        |            | (Brier Score, Nash-Sutcliffe Efficiency)               |
+        |            | (Brier Score, Nash-Sutcliffe Efficiency), i.e.         |
+        |            | :math:`RV = 1 - \\frac{MSE}{s^2_o}`                    |
         +------------+--------------------------------------------------------+
 
     Returns
@@ -453,7 +457,7 @@ def det_cont_fct_compute(err, scores=""):
 
         # debiased RMSE
         if score_ in ["drmse", ""]:
-            RMSE_d = (err["mse"] - err["me"]**2)/err["vobs"]
+            RMSE_d = np.sqrt(err["mse"] - err["me"]**2)
             result["DRMSE"] = RMSE_d
 
         # reduction of variance (Brier Score, Nash-Sutcliffe efficiency coefficient,
