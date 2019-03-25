@@ -54,7 +54,7 @@ test_data = [
     # Spearman correlation double conditional
     (fct_data, obs_data, ('corr_s'), None, "double", [0.917937]),
     # scatter
-    (fct_data, obs_data, ('scatter'), None, None, [8.263258]),
+    (fct_data, obs_data, ('scatter'), None, None, [0.808023]),
 
     # Mean Error along axis 0 as tuple
     (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'ME', (0), None,
@@ -74,16 +74,16 @@ test_data = [
 
     # scatter along axis 0 as tuple
     (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'scatter', (0), None,
-    [[8.263258, 8.263258]]),
+    [[0.808023, 0.808023]]),
     # scatter along axis 0
     (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'scatter', 0, None,
-    [[8.263258, 8.263258]]),
+    [[0.808023, 0.808023]]),
     # scatter along axis (1,2)
     (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'scatter', (0,1), None,
-    [8.327692]),
+    [0.804806]),
     # scatter along axis (2,1)
     (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'scatter', (1,0), None,
-    [8.327692]),
+    [0.804806]),
     ]
 
 

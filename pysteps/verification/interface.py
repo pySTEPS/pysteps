@@ -67,6 +67,7 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  scatter*  | half the distance between the 16% and 84% percentiles  |
         |            | of the weighted cumulative error distribution,         |
+        |            | where error = dB(pred/obs),                            |
         |            | as in `Germann et al. (2006)`_                         |
         +------------+--------------------------------------------------------+
         |  binary_mse| binary MSE                                             |

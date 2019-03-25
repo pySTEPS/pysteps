@@ -60,6 +60,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         +------------+--------------------------------------------------------+
         |  scatter*  | half the distance between the 16% and 84% percentiles  |
         |            | of the weighted cumulative error distribution,         |
+        |            | where error = dB(pred/obs),                            |
         |            | as in `Germann et al. (2006)`_                         |
         +------------+--------------------------------------------------------+
 
@@ -142,7 +143,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
             elif conditioning == "double":
                 idx = np.logical_and(obs > 0, pred > 0)
             else:
-                raise ValueError("unkown conditioning %s" % err["conditioning"])
+                raise ValueError("unkown conditioning %s" % conditioning)
             obs[~idx] = np.nan
             pred[~idx] = np.nan
 
@@ -491,6 +492,7 @@ def _uniquelist(mylist):
     used = set()
     return [x for x in mylist if x not in used and (used.add(x) or True)]
 
+
 def _scatter(pred, obs, axis=None):
 
     pred = pred.copy()
@@ -517,8 +519,8 @@ def _scatter(pred, obs, axis=None):
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
-    # compute erros
-    q = pred - obs
+    # compute multiplicative erros in dB
+    q = 10*np.log10(pred/obs)
 
     # nans are given zero weight and are set to -9999
     idkeep = np.isfinite(q)
