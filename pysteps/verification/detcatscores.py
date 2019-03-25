@@ -81,7 +81,7 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
 
     See also
     --------
-    pysteps.verification.detcontscores.det_cont_fct
+    pysteps.verification.detcontscores
 
 
     """

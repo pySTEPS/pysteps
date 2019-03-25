@@ -95,8 +95,6 @@ try:
 except ImportError:
     h5py_imported = False
 try:
-    import sys
-    sys.path.append('/store/mch/msrad/python/library/radar/io/') # path to metranet library
     import metranet
     metranet_imported = True
 except ImportError:
