@@ -105,25 +105,31 @@ def get_method(name, type="deterministic"):
 
     type : {'deterministic', 'ensemble', 'probabilistic'}, optional
         Type of the verification method.
-        
-    Note
-    ----
+
+    Notes
+    -----
+
     Multiplicative scores can be computed by passing log-tranformed values.
     Note that "scatter" is the only score that will be computed in dB units of
-    the multiplicative error, ie. :math:`10\\log_10(x_p/x_o).
+    the multiplicative error, i.e.:
 
-    The debiased RMSE is computed as :math:`DRMSE = \\sqrt{RMSE - ME^2}`.
+    .. math: 10\\log_10(x_p/x_o).
 
-    The reduction of variance score is computed as
-    :math:`RV = 1 - \\frac{MSE}{s^2_o}`.
+    The debiased RMSE is computed as follows:
+
+    .. math: DRMSE = \sqrt{RMSE - ME^2}
+
+    The reduction of variance score is computed as follows:
+
+    .. math: RV = 1 - \frac{MSE}{s^2_o}
 
     Score names denoted by * can only be computed offline.
 
     References
     ----------
-    
-    Germann, U. , Galli, G. , Boscacci, M. and Bolliger, M. (2006), Radar 
-    precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc., 
+
+    Germann, U. , Galli, G. , Boscacci, M. and Bolliger, M. (2006), Radar
+    precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc.,
     132: 1669-1692. doi:10.1256/qj.05.190
 
     """
