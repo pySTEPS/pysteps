@@ -45,7 +45,7 @@ adv_method      = "semilagrangian"   # semilagrangian, eulerian
 n_prvs_times    = 3                  # use at least 9 with DARTS
 n_lead_times    = 24
 unit            = "mm/h"             # mm/h or dBZ
-transformation  = "dB"               # None or dB 
+transformation  = "dB"               # None or dB
 r_threshold     = 0.1                # rain/no-rain threshold [mm/h]
 
 ## verification parameters
@@ -60,7 +60,7 @@ startdate  = datetime.datetime.strptime(startdate_str, "%Y%m%d%H%M")
 ds = stp.rcparams.data_sources[data_source]
 
 ## find radar field filenames
-input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
+input_files = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern,
                                  ds.fn_ext, ds.timestep, n_prvs_times, 0)
 
 ## read radar field files
@@ -72,7 +72,7 @@ print("The data array has size [nleadtimes,nrows,ncols] =", R.shape)
 # Prepare input files
 print("Prepare the data...")
 
-## if necessary, convert to rain rates [mm/h]    
+## if necessary, convert to rain rates [mm/h]
 converter = stp.utils.get_method("mm/h")
 R, metadata = converter(R, metadata)
 
@@ -93,10 +93,10 @@ R[~np.isfinite(R)] = metadata["zerovalue"]
 
 # Compute motion field
 oflow_method = stp.motion.get_method(oflow_method)
-UV = oflow_method(R) 
+UV = oflow_method(R)
 
 # Perform the advection of the radar field
-adv_method = stp.extrapolation.get_method(adv_method) 
+adv_method = stp.extrapolation.get_method(adv_method)
 R_fct = adv_method(R[-1,:,:], UV, n_lead_times, verbose=True)
 print("The forecast array has size [nleadtimes,nrows,ncols] =", R_fct.shape)
 
@@ -124,14 +124,14 @@ stp.plt.animate(R, nloops=2, timestamps=metadata["timestamps"],
 print("Forecast verification...")
 
 ## find the verifying observations
-input_files_verif = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern, 
+input_files_verif = stp.io.find_by_date(startdate, ds.root_path, ds.path_fmt, ds.fn_pattern,
                                         ds.fn_ext, ds.timestep, 0, n_lead_times)
 
 ## read observations
 R_obs, _, metadata_obs = stp.io.read_timeseries(input_files_verif, importer, **ds.importer_kwargs)
 R_obs = R_obs[1:,:,:]
 
-## if necessary, convert to rain rates [mm/h]    
+## if necessary, convert to rain rates [mm/h]
 R_obs, metadata_obs = converter(R_obs, metadata_obs)
 
 ## threshold the data
@@ -141,17 +141,17 @@ metadata_obs["threshold"] = r_threshold
 ## compute verification scores
 scores = np.zeros(n_lead_times)*np.nan
 for i in range(n_lead_times):
-    scores[i] = stp.vf.det_cat_fcst(R_fct[i,:,:], R_obs[i,:,:], 
-                                    v_threshold, [skill_score])[0]
+    scores[i] = stp.vf.det_cat_fct(R_fct[i,:,:], R_obs[i,:,:],
+                                    v_threshold)[skill_score]
 
 ## if already exists, load the figure object to append the new verification results
 filename = "%s/%s" % (stp.rcparams.outputs.path_outputs, "verif_deterministic_nwc_example")
 if os.path.exists("%s.dat" % filename):
     ax = pickle.load(open("%s.dat" % filename, "rb"))
-    print("Figure object loaded: %s.dat" % filename) 
+    print("Figure object loaded: %s.dat" % filename)
 else:
     fig, ax = plt.subplots()
-    
+
 ## plot the scores
 nplots = len(ax.lines)
 x = (np.arange(n_lead_times) + 1)*ds.timestep

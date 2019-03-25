@@ -2,7 +2,7 @@
 
 import pytest
 import numpy as np
-from pysteps.verification import det_cat_fcst
+from pysteps.verification import det_cat_fct
 from numpy.testing import assert_array_almost_equal
 
 # CREATE A LARGE DATASET TO MATCH
@@ -52,6 +52,7 @@ test_data = [
 
 
 @pytest.mark.parametrize("pred, obs, thr, scores, expected", test_data)
-def test_det_cat_fcst(pred, obs, thr, scores, expected):
-    """Test the det_cat_fcst."""
-    assert_array_almost_equal(det_cat_fcst(pred, obs, thr, scores), expected)
+def test_det_cat_fct(pred, obs, thr, scores, expected):
+    """Test the det_cat_fct."""
+    assert_array_almost_equal(
+            list(det_cat_fct(pred, obs, thr, scores).values()), expected)
