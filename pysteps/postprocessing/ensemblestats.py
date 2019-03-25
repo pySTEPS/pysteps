@@ -13,6 +13,7 @@ Methods for the computation of ensemble statistics.
 
 import numpy as np
 
+
 def mean(X, ignore_nan=False, X_thr=None):
     """Compute the mean value from a forecast ensemble field.
 
@@ -32,6 +33,16 @@ def mean(X, ignore_nan=False, X_thr=None):
     out : ndarray
         Array of shape (m,n) containing the ensemble mean.
     """
+
+    X = np.asanyarray(X)
+    X_ndim = X.ndim
+
+    if X_ndim > 3 or X_ndim <= 1:
+        raise Exception('Number of dimensions of X should be 2 or 3.' +
+                        'It was: {}'.format(X_ndim))
+    elif X.ndim == 2:
+        X = X[None, ...]
+
     if ignore_nan or X_thr is not None:
         if X_thr is not None:
             X = X.copy()
@@ -40,6 +51,7 @@ def mean(X, ignore_nan=False, X_thr=None):
         return np.nanmean(X, axis=0)
     else:
         return np.mean(X, axis=0)
+
 
 def excprob(X, X_thr, ignore_nan=False):
     """For a given forecast ensemble field, compute exceedance probabilities
@@ -59,10 +71,18 @@ def excprob(X, X_thr, ignore_nan=False):
     Returns
     -------
     out : ndarray
-        Array of shape (len(X_thr),m,n) containing the exceedance probabilities 
-        for the given intensity thresholds. If len(X_thr)=1, the first dimension 
-        is dropped.
+        Array of shape (len(X_thr),m,n) containing the exceedance probabilities
+        for the given intensity thresholds.
+        If len(X_thr)=1, the first dimension is dropped.
     """
+    #  Checks
+    X = np.asanyarray(X)
+    X_ndim = X.ndim
+
+    if X_ndim < 3:
+        raise Exception('Number of dimensions of X should be 3 or more.' +
+                        ' It was: {}'.format(X_ndim))
+
     P = []
 
     if np.isscalar(X_thr):
@@ -75,7 +95,7 @@ def excprob(X, X_thr, ignore_nan=False):
         X_ = X.copy()
 
         X_[X >= x] = 1.0
-        X_[X <  x] = 0.0
+        X_[X < x] = 0.0
 
         if ignore_nan:
             P.append(np.nanmean(X_, axis=0))
