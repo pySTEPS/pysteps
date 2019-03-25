@@ -45,8 +45,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         +------------+--------------------------------------------------------+
         |  corr_s*   | spearman's correlation coefficient (rank correlation)  |
         +------------+--------------------------------------------------------+
-        |  DRMSE     | debiased root mean squared error, i.e.                 |
-        |            | :math:`DRMSE = \\sqrt{RMSE - ME^2}`                    |
+        |  DRMSE     | debiased root mean squared error                       |
         +------------+--------------------------------------------------------+
         |  MAE       | mean absolute error                                    |
         +------------+--------------------------------------------------------+
@@ -57,8 +56,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
-        |            | (Brier Score, Nash-Sutcliffe Efficiency), i.e.         |
-        |            | :math:`RV = 1 - \\frac{MSE}{s^2_o}`                    |
+        |            | (Brier Score, Nash-Sutcliffe Efficiency)               |
         +------------+--------------------------------------------------------+
         |  scatter*  | half the distance between the 16% and 84% percentiles  |
         |            | of the weighted cumulative error distribution,         |
@@ -88,8 +86,17 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
 
     Note
     ----
-    Score names denoted by * can only be computed offline.\n
     Multiplicative scores can be computed by passing log-tranformed values.
+    Note that "scatter" is the only score that will be computed in dB units of
+    the multiplicative error, ie. :math:`10\\log_10(x_p/x_o).
+
+    The debiased RMSE is computed as :math:`DRMSE = \\sqrt{RMSE - ME^2}`.
+
+    The reduction of variance score is computed as
+    :math:`RV = 1 - \\frac{MSE}{s^2_o}`.
+
+    Score names denoted by * can only be computed offline.
+
 
     References
     ----------
