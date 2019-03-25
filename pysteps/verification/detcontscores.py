@@ -63,10 +63,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         |  scatter*  | half the distance between the 16% and 84% percentiles  |
         |            | of the weighted cumulative error distribution,         |
         |            | where error = dB(pred/obs),                            |
-        |            | as in `Germann et al. (2006)`_                         |
+        |            | as in Germann et al. (2006)                            |
         +------------+--------------------------------------------------------+
-
-    .. _`Germann et al. (2006)`:https://doi.org/10.1256/qj.05.190
 
     axis : {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
@@ -90,14 +88,19 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
 
     Note
     ----
-    Score names denoted by * can only be computed offline.
-
+    Score names denoted by * can only be computed offline.\n
     Multiplicative scores can be computed by passing log-tranformed values.
 
+    References
+    ----------
+
+    Germann, U. , Galli, G. , Boscacci, M. and Bolliger, M. (2006), Radar
+    precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc.,
+    132: 1669-1692. doi:10.1256/qj.05.190
 
     See also
     --------
-    pysteps.verification.detcatscores
+    pysteps.verification.detcatscores.det_cat_fct
 
     """
 

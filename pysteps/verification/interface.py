@@ -70,7 +70,7 @@ def get_method(name, type="deterministic"):
         |  scatter*  | half the distance between the 16% and 84% percentiles  |
         |            | of the weighted cumulative error distribution,         |
         |            | where error = dB(pred/obs),                            |
-        |            | as in `Germann et al. (2006)`_                         |
+        |            | as in Germann et al. (2006)                            |
         +------------+--------------------------------------------------------+
         |  binary_mse| binary MSE                                             |
         +------------+--------------------------------------------------------+
@@ -105,11 +105,15 @@ def get_method(name, type="deterministic"):
         |  ROC       | ROC curve                                              |
         +------------+--------------------------------------------------------+
 
-    type : str
-        Type of the method. The available options are 'deterministic', 'ensemble'
-        and 'probabilistic'.
+    type : {'deterministic', 'ensemble', 'probabilistic'}, optional
+        Type of the verification method.
 
-    .. _`Germann et al. (2006)`:https://doi.org/10.1256/qj.05.190
+    References
+    ----------
+    
+    Germann, U. , Galli, G. , Boscacci, M. and Bolliger, M. (2006), Radar 
+    precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc., 
+    132: 1669-1692. doi:10.1256/qj.05.190
 
     """
 
