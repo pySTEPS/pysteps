@@ -22,6 +22,9 @@ try:
     pywt_imported = True
 except ImportError:
     pywt_imported = False
+from .. import cascade
+from .. import utils
+from pysteps.noise.fftgenerators import build_2D_tapering_function
 
 
 def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
@@ -340,3 +343,118 @@ def _wavelet_decomp(X, w):
         X_out.append(X_k)
 
     return X_out
+
+    
+def scale_verification(X_f, X_o, tapering=True, skill_score=True, grid_res_km=1, **kwargs):
+
+    fft = kwargs.get("fft_method", "numpy")
+    if type(fft) == str:
+        fft = utils.get_method(fft, shape=X_f.shape)
+
+    X_f = X_f.copy()
+    X_o = X_o.copy()
+    
+    if np.any(X_f[X_f > X_f.min()]):
+        X_f = utils.remove_rain_norain_discontinuity(X_f)
+    else:
+        X_f -= X_f.min()
+        
+    if np.any(X_o[X_o > X_o.min()]):
+        X_o = utils.remove_rain_norain_discontinuity(X_o)
+    else:
+        X_o -= X_o.min()
+
+    fshape = X_f.shape
+    L = max(fshape)
+    if L % 2 == 0:
+        k = np.arange(0, int(L/2)+1)
+    else:
+        k = np.arange(0, int(L/2))
+    scales    = L*grid_res_km/k/2
+    scales[0] = L*grid_res_km
+
+    X_r = X_f - X_o
+
+    # tapering function
+    if tapering:
+        w = build_2D_tapering_function(fshape)
+        #def window(size, type="flat"):
+        #    if type=="flat":
+        #        T = size/4.0
+        #        W = size/2.0
+        #        B = np.linspace(-W, W, 2*W)
+        #        R = np.abs(B) - T
+        #        R[R < 0] = 0.
+        #        w = 0.5*(1.0 + np.cos(np.pi*R/T))
+        #        w[np.abs(B) > (2*T)] = 0.0
+        #        return w
+        #    else:
+        #        return np.hanning(size)
+        #
+        #for axis, axis_size in enumerate(fshape):
+        #    # set up shape for numpy broadcasting
+        #    filter_shape = [1, ] * X_r.ndim
+        #    filter_shape[axis] = axis_size
+        #    w = window(axis_size).reshape(filter_shape)
+        X_f *= w
+        X_o *= w
+        X_r *= w
+        
+
+    # Fourier tranform
+    if np.count_nonzero(X_r) > 0:
+        fftnerr = fft.fftshift(fft.fft2(X_r))
+        psdnerr = np.abs(fftnerr)**2/np.count_nonzero(X_r) #X_r.size
+        psd1err = utils.rapsd(psdnerr)
+    else:
+        psd1err = np.zeros(k.size)
+        
+    # Skill score
+    if skill_score:
+        
+        if np.count_nonzero(X_f) > 0:
+            fftnxf = fft.fftshift(fft.fft2(X_f))
+            psdnxf = np.abs(fftnxf)**2/np.count_nonzero(X_f)
+            psd1xf = utils.rapsd(psdnxf)
+        else:
+            psd1xf = np.zeros(k.size)
+            
+        if np.count_nonzero(X_o) > 0:
+            fftnxo = fft.fftshift(fft.fft2(X_o))
+            psdnxo = np.abs(fftnxo)**2/np.count_nonzero(X_o)
+            psd1xo = utils.rapsd(psdnxo)
+        else:
+            psd1xo = np.zeros(k.size)
+        
+        
+
+        return scales, psd1err, psd1xf, psd1xo
+
+    else:
+
+        return scales, psd1err
+
+
+def _extract_scales(X, num_scales, grid_res_km=1):
+
+    # construct the Gaussian bandpass filter
+    bandapass_filter = cascade.get_method("gaussian")
+    filter = bandapass_filter((M,N), num_scales, gauss_scale=0.5, gauss_scale_0=0.5)
+
+    # scale decomposition
+    L = max(N, M)
+    scales = []
+    Y  = []
+    for k in range(num_scales):
+
+        # scale
+        if k == 0:
+            scales.append(L*grid_res_km)
+        else:
+            scales.append(L*1./filter["central_freqs"][k]*grid_res_km)
+        # mean psd for given scale
+        W_k     = filter["weights_2d"][k, :, :]
+        X_    = np.sum(X*W_k)/W_k.sum()
+        Y.append(X_)
+
+    return Y, scales
