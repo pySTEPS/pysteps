@@ -60,8 +60,7 @@ def det_cont_fcst(pred, obs, scores="", axis=None, conditioning=None):
         +------------+--------------------------------------------------------+
         |  scatter*  | half the distance between the 16% and 84% percentiles  |
         |            | of the weighted cumulative error distribution,         |
-        |            | where error = dB(pred/obs), as in                      |
-        |            | `Germann et al. (2006)`_                               |
+        |            | as in `Germann et al. (2006)`_                         |
         +------------+--------------------------------------------------------+
 
     .. _`Germann et al. (2006)`:https://doi.org/10.1256/qj.05.190
@@ -91,6 +90,7 @@ def det_cont_fcst(pred, obs, scores="", axis=None, conditioning=None):
     Score names denoted by * can only be computed offline.
 
     Multiplicative scores can be computed by passing log-tranformed values.
+
 
     See also
     --------
@@ -517,11 +517,11 @@ def _scatter(pred, obs, axis=None):
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
-    # compute multiplicative erros in dB
-    q = 10*np.log10(pred/obs)
+    # compute erros
+    q = pred - obs
 
-    # set nans to -9999 with zero weight
-    idkeep = np.logical_and(np.isfinite(q), np.isfinite(obs))
+    # nans are given zero weight and are set to -9999
+    idkeep = np.isfinite(q)
     q[~idkeep] = -9999
     obs[~idkeep] = 0
 
