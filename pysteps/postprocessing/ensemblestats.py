@@ -71,10 +71,18 @@ def excprob(X, X_thr, ignore_nan=False):
     Returns
     -------
     out : ndarray
-        Array of shape (len(X_thr),m,n) containing the exceedance probabilities 
-        for the given intensity thresholds. If len(X_thr)=1, the first dimension 
-        is dropped.
+        Array of shape (len(X_thr),m,n) containing the exceedance probabilities
+        for the given intensity thresholds.
+        If len(X_thr)=1, the first dimension is dropped.
     """
+    #  Checks
+    X = np.asanyarray(X)
+    X_ndim = X.ndim
+
+    if X_ndim < 3:
+        raise Exception('Number of dimensions of X should be 3 or more.' +
+                        ' It was: {}'.format(X_ndim))
+
     P = []
 
     if np.isscalar(X_thr):
