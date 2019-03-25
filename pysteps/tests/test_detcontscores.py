@@ -2,7 +2,7 @@
 
 import pytest
 import numpy as np
-from pysteps.verification import det_cont_fcst
+from pysteps.verification import det_cont_fct
 from numpy.testing import assert_array_almost_equal
 
 # CREATE A DATASET TO MATCH
@@ -88,8 +88,8 @@ test_data = [
 
 
 @pytest.mark.parametrize("pred, obs, scores, axis, conditioning, expected", test_data)
-def test_det_cont_fcst(pred, obs, scores, axis, conditioning, expected):
-    """Test the det_cont_fcst."""
+def test_det_cont_fct(pred, obs, scores, axis, conditioning, expected):
+    """Test the det_cont_fct."""
     assert_array_almost_equal(
-        list(det_cont_fcst(pred, obs, scores, axis, conditioning).values()),
+        list(det_cont_fct(pred, obs, scores, axis, conditioning).values()),
         expected)

@@ -8,17 +8,17 @@ forecasts.
 .. autosummary::
     :toctree: ../generated/
 
-    det_cat_fcst
-    det_cat_fcst_init
-    det_cat_fcst_accum
-    det_cat_fcst_compute
+    det_cat_fct
+    det_cat_fct_init
+    det_cat_fct_accum
+    det_cat_fct_compute
 """
 
 import collections
 import numpy as np
 
 
-def det_cat_fcst(pred, obs, thr, scores="", axis=None):
+def det_cat_fct(pred, obs, thr, scores="", axis=None):
 
     """Calculate simple and skill scores for deterministic categorical
     (dichotomous) forecasts.
@@ -79,14 +79,19 @@ def det_cat_fcst(pred, obs, thr, scores="", axis=None):
     result : dict
         Dictionary containing the verification results.
 
+    See also
+    --------
+    pysteps.verification.detcontscores
+
+
     """
 
-    contab = det_cat_fcst_init(thr)
-    det_cat_fcst_accum(contab, pred, obs)
-    return det_cat_fcst_compute(contab, scores)
+    contab = det_cat_fct_init(thr)
+    det_cat_fct_accum(contab, pred, obs)
+    return det_cat_fct_compute(contab, scores)
 
 
-def det_cat_fcst_init(thr, axis=None):
+def det_cat_fct_init(thr, axis=None):
     """Initialize a contingency table object.
 
     Parameters
@@ -130,7 +135,7 @@ def det_cat_fcst_init(thr, axis=None):
     return contab
 
 
-def det_cat_fcst_accum(contab, pred, obs):
+def det_cat_fct_accum(contab, pred, obs):
     """Accumulate the frequency of "yes" and "no" forecasts and observations
     in the contingency table.
 
@@ -138,7 +143,7 @@ def det_cat_fcst_accum(contab, pred, obs):
     ----------
     contab : dict
       A contingency table object initialized with
-      pysteps.verification.detcatscores.det_cat_fcst_init.
+      pysteps.verification.detcatscores.det_cat_fct_init.
 
     pred : array_like
         Array of predictions. NaNs are ignored.
@@ -201,7 +206,7 @@ def det_cat_fcst_accum(contab, pred, obs):
     contab["correct_negatives"] += np.nansum(R_idx.astype(int), axis=axis)
 
 
-def det_cat_fcst_compute(contab, scores=""):
+def det_cat_fct_compute(contab, scores=""):
     """Compute simple and skill scores for deterministic categorical
     (dichotomous) forecasts from a contingency table object.
 
@@ -209,8 +214,8 @@ def det_cat_fcst_compute(contab, scores=""):
     ----------
     contab : dict
       A contingency table object initialized with
-      pysteps.verification.detcatscores.det_cat_fcst_init and populated with
-      pysteps.verification.detcatscores.det_cat_fcst_accum.
+      pysteps.verification.detcatscores.det_cat_fct_init and populated with
+      pysteps.verification.detcatscores.det_cat_fct_accum.
 
     scores : {string, list of strings}, optional
         The name(s) of the scores. The default, scores="", will compute all

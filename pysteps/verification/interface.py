@@ -20,9 +20,9 @@ def get_method(name, type="deterministic"):
         Name of the verification method. The available options are:\n\
 
         type: deterministic
-        
+
         .. tabularcolumns:: |p{2cm}|L|
-        
+
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
@@ -75,9 +75,9 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
 
         type: ensemble
-        
+
         .. tabularcolumns:: |p{2cm}|L|
-        
+
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
@@ -89,9 +89,9 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
 
         type: probabilistic
-        
+
         .. tabularcolumns:: |p{2cm}|L|
-        
+
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
@@ -105,7 +105,7 @@ def get_method(name, type="deterministic"):
     type : str
         Type of the method. The available options are 'deterministic', 'ensemble'
         and 'probabilistic'.
-        
+
     .. _`Germann et al. (2006)`:https://doi.org/10.1256/qj.05.190
 
     """
@@ -120,21 +120,21 @@ def get_method(name, type="deterministic"):
 
     if type in ["deterministic"]:
 
-        from .detcatscores import det_cat_fcst
-        from .detcontscores import det_cont_fcst
+        from .detcatscores import det_cat_fct
+        from .detcontscores import det_cont_fct
         from .spatialscores import fss, binary_mse
 
         # categorical
         if name in ["acc", "csi", "fa", "far", "gss", "hk", "hss", "pod", "sedi"]:
             def f(fct, obs, **kwargs):
-                return det_cat_fcst(fct, obs, kwargs.pop("thr"), [name])
+                return det_cat_fct(fct, obs, kwargs.pop("thr"), [name])
             return f
 
         # continuous
         elif name in ["beta", "corr_p", "corr_s", "mae", "mse",
                       "me", "drmse", "rmse", "rv", "scatter"]:
             def f(fct, obs, **kwargs):
-                return det_cont_fcst(fct, obs, [name], **kwargs)
+                return det_cont_fct(fct, obs, [name], **kwargs)
             return f
 
         # spatial
@@ -142,7 +142,7 @@ def get_method(name, type="deterministic"):
             return binary_mse
         elif name in ["fss"]:
             return fss
-            
+
         else:
             raise ValueError("unknown deterministic method %s" % name)
 

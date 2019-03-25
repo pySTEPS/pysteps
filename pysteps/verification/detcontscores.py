@@ -7,10 +7,10 @@ Forecast evaluation and skill scores for deterministic continuous forecasts.
 .. autosummary::
     :toctree: ../generated/
 
-    det_cont_fcst
-    det_cont_fcst_init
-    det_cont_fcst_accum
-    det_cont_fcst_compute
+    det_cont_fct
+    det_cont_fct_init
+    det_cont_fct_accum
+    det_cont_fct_compute
 """
 
 import collections
@@ -18,7 +18,7 @@ import numpy as np
 from scipy.stats import spearmanr
 
 
-def det_cont_fcst(pred, obs, scores="", axis=None, conditioning=None):
+def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
     """Calculate simple and skill scores for deterministic continuous forecasts.
 
     Parameters
@@ -119,9 +119,9 @@ def det_cont_fcst(pred, obs, scores="", axis=None, conditioning=None):
     onresult = {}
     if onscores:
 
-        err = det_cont_fcst_init(axis=axis, conditioning=conditioning)
-        det_cont_fcst_accum(err, pred, obs)
-        onresult = det_cont_fcst_compute(err, onscores)
+        err = det_cont_fct_init(axis=axis, conditioning=conditioning)
+        det_cont_fct_accum(err, pred, obs)
+        onresult = det_cont_fct_compute(err, onscores)
 
     # offline scores
     offresult = {}
@@ -170,7 +170,7 @@ def det_cont_fcst(pred, obs, scores="", axis=None, conditioning=None):
     return result
 
 
-def det_cont_fcst_init(axis=None, conditioning=None):
+def det_cont_fct_init(axis=None, conditioning=None):
     """Initialize a verification error object.
 
     Parameters
@@ -221,14 +221,14 @@ def det_cont_fcst_init(axis=None, conditioning=None):
     return err
 
 
-def det_cont_fcst_accum(err, pred, obs):
+def det_cont_fct_accum(err, pred, obs):
     """Accumulate the forecast error in the verification error object.
 
     Parameters
     ----------
     err : dict
         A verification error object initialized with
-        :py:func:`pysteps.verification.detcontscores.det_cont_fcst_init`.
+        :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`.
 
     pred : array_like
         Array of predictions. NaNs are ignored.
@@ -358,7 +358,7 @@ def det_cont_fcst_accum(err, pred, obs):
     err["n"] += n
 
 
-def det_cont_fcst_compute(err, scores=""):
+def det_cont_fct_compute(err, scores=""):
     """Compute simple and skill scores for deterministic continuous forecasts
     from a verification error object.
 
@@ -366,9 +366,9 @@ def det_cont_fcst_compute(err, scores=""):
     ----------
     err : dict
         A verification error object initialized with
-        :py:func:`pysteps.verification.detcontscores.det_cont_fcst_init` and
+        :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
         populated with
-        :py:func:`pysteps.verification.detcontscores.det_cont_fcst_accum`.
+        :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
 
     scores : {string, list of strings}, optional
         The name(s) of the scores. The default, scores="", will compute all
