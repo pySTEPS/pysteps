@@ -14,25 +14,7 @@ Methods for plotting precipitation fields.
 import matplotlib.pylab as plt
 from matplotlib import cm, colors, gridspec
 import numpy as np
-
-from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
-
-try:
-    from mpl_toolkits.basemap import Basemap
-    basemap_imported = True
-except ImportError:
-    basemap_imported = False
-try:
-    import cartopy.crs as ccrs
-    import cartopy.feature as cfeature
-    cartopy_imported = True
-except ImportError:
-    cartopy_imported = False
-try:
-    import pyproj
-    pyproj_imported = True
-except ImportError:
-    pyproj_imported = False
+   
 from . import basemaps
 from . import utils
 
@@ -138,20 +120,6 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         raise ValueError("type='prob' but probthr not specified")
     if map is not None and geodata is None:
         raise ValueError("map!=None but geodata=None")
-    if map is not None and map not in ["basemap", "cartopy"]:
-        raise ValueError("unknown map method %s: must be 'basemap' or 'cartopy'" % map)
-    if map == "basemap" and not basemap_imported:
-        raise MissingOptionalDependency(
-            "map='basemap' option passed to plot_precip_field function"
-            "but the basemap package is not installed")
-    if map == "cartopy" and not cartopy_imported:
-        raise MissingOptionalDependency(
-            "map='cartopy' option passed to plot_precip_field function"
-            "but the cartopy package is not installed")
-    if map is not None and not pyproj_imported:
-        raise MissingOptionalDependency(
-            "map!=None option passed to plot_precip_field function"
-            "but the pyproj package is not installed")
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
 
@@ -166,43 +134,11 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         extent = (0, R.shape[1]-1, 0, R.shape[0]-1)
         origin = "upper"
     
-    # plot basemap
+    # plot geography
     if map is not None:
-        if map == "basemap":
-            pr = pyproj.Proj(geodata["projection"])
-            ll_lon,ll_lat = pr(geodata["x1"], geodata["y1"], inverse=True)
-            ur_lon,ur_lat = pr(geodata["x2"], geodata["y2"], inverse=True)
-
-            bm_params = utils.proj4_to_basemap(geodata["projection"])
-
-            bm_params["llcrnrlon"]  = ll_lon
-            bm_params["llcrnrlat"]  = ll_lat
-            bm_params["urcrnrlon"]  = ur_lon
-            bm_params["urcrnrlat"]  = ur_lat
-            bm_params["resolution"] = basemap_resolution
-
-            bm = basemaps.plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw)
-
-            if geodata["yorigin"] == "upper":
-                origin = "upper"
-
-            extent = None
-            regular_grid = True
-        else:
-            try:
-                crs = utils.proj4_to_cartopy(geodata["projection"])
-                regular_grid = True
-            except UnsupportedSomercProjection:
-                # Necessary since cartopy doesn't support the Swiss projection
-                X, Y, extent, laeastr = utils.fallback_projection_grid(geodata["projection"], 
-                                        extent=extent, shape=R.shape)        
-                crs = utils.proj4_to_cartopy(laeastr)
-                regular_grid = False
-                
-            bm = basemaps.plot_map_cartopy(crs, extent, cartopy_scale,
-                                   drawlonlatlines=drawlonlatlines, lw=lw, subplot=cartopy_subplot)
-            origin = "upper"            
-        ax = bm
+        ax, origin, regular_grid = basemaps.plot_geography(map, geodata["projection"], 
+                        extent, drawlonlatlines, basemap_resolution, 
+                        cartopy_scale, lw, cartopy_subplot)
     else:
         regular_grid = True
         ax = plt
