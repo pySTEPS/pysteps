@@ -157,23 +157,24 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-
+    
+    # Extract extent for imshow function
+    if geodata is not None:
+        extent = np.array([geodata['x1'],geodata['x2'],
+                           geodata['y1'],geodata['y2']])
+        origin = geodata["yorigin"]
+    else:
+        extent = np.array([0, R.shape[1]-1, 0, R.shape[0]-1])
+        origin = "upper"
+    
     if map is None:
-        # Extract extent for imshow function
-        if geodata is not None:
-            extent = np.array([geodata['x1'],geodata['x2'],
-                               geodata['y1'],geodata['y2']])
-            origin = geodata["yorigin"]
-        else:
-            extent = np.array([0, R.shape[1]-1, 0, R.shape[0]-1])
-            origin = "upper"
-
         # Plot radar domain mask
         mask = np.ones(R.shape)
         mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
         plt.imshow(mask, cmap=colors.ListedColormap(['gray']),
                    extent=extent, origin=origin)
-
+        
+        # Plot rainfield
         im = _plot_field(R, plt.gca(), type, units, colorscale, geodata, extent=extent)
     else:
         if map == "basemap":
@@ -192,31 +193,32 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             bm = basemaps.plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw)
 
             if geodata["yorigin"] == "upper":
-                R = np.flipud(R)
+                origin = "upper"
+                print("flip field")
 
             extent = None
             regular_grid = True
         else:
-            x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
             try:
                 crs = utils.proj4_to_cartopy(geodata["projection"])
-                extent = (x1, x2, y1, y2)
                 regular_grid = True
             except UnsupportedSomercProjection:
                 # Necessary since cartopy doesn't support the Swiss projection
                 X, Y, extent, laeastr = utils.fallback_projection_grid(geodata["projection"], 
-                                        extent=(x1,x2,y1,y2), shape=R.shape)        
+                                        extent=extent, shape=R.shape)        
                 crs = utils.proj4_to_cartopy(laeastr)
                 regular_grid = False
-                x1,x2,y1,y2 = extent[0],extent[1],extent[2],extent[3],
+                
             bm = basemaps.plot_map_cartopy(crs, extent, cartopy_scale,
                                    drawlonlatlines=drawlonlatlines, lw=lw, subplot=cartopy_subplot)
-            extent = (x1, x2, y2, y1)            
+            origin = "upper"            
         
         if regular_grid:
-            im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent)
+            im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent, origin=origin)
         else:
-            im = _plot_field_pcolormesh(X, Y, np.flipud(R), bm, type, units, colorscale, geodata)
+            if origin == "upper":
+                Y = np.flipud(Y)
+            im = _plot_field_pcolormesh(X, Y, R, bm, type, units, colorscale, geodata)
 
         # Plot radar domain mask
         mask = np.ones(R.shape)
@@ -257,7 +259,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                         
     return plt.gca()
 
-def _plot_field(R, ax, type, units, colorscale, geodata, extent):
+def _plot_field(R, ax, type, units, colorscale, geodata, extent, origin=None):
     R = R.copy()
 
     # Get colormap and color levels
@@ -283,7 +285,7 @@ def _plot_field(R, ax, type, units, colorscale, geodata, extent):
     vmin,vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
     im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest',
-                   vmin=vmin, vmax=vmax, zorder=1)
+                   vmin=vmin, vmax=vmax, origin=origin, zorder=1)
 
     return im
 
