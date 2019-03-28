@@ -219,7 +219,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     mask = np.ones(R.shape)
     mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
     ax.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5,
-              zorder=1e6, extent=extent)
+              zorder=1e6, extent=extent, origin=origin)
+              
     # ax.pcolormesh(X, Y, np.flipud(mask), cmap=colors.ListedColormap(['gray']),
                     # alpha=0.5, zorder=1e6)
     # TODO: pcolormesh doesn't work properly with the alpha parameter
