@@ -116,7 +116,7 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
     
     # draw basemaps
     if map is not None:
-        ax,_,_ = basemaps.plot_geography(map, geodata["projection"], 
+        ax,_ = basemaps.plot_geography(map, geodata["projection"], 
                 extent, drawlonlatlines, basemap_resolution, 
                 cartopy_scale, lw, cartopy_subplot)
     else:
@@ -232,7 +232,7 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
     
     # draw basemaps
     if map is not None:
-        ax,_,_ = basemaps.plot_geography(map, geodata["projection"], 
+        ax,_ = basemaps.plot_geography(map, geodata["projection"], 
                         extent, drawlonlatlines, basemap_resolution, 
                         cartopy_scale, lw, cartopy_subplot)
     else:

@@ -71,8 +71,6 @@ def plot_geography(map="cartopy", proj4str=None, extent=None, drawlonlatlines=Fa
     -------
     ax : fig Axes_
         Cartopy or Basemap axes.
-    origin : {'upper', 'lower'}
-        The origin of the axes. Needed by plt.imshow as Cartopy changes the origin.
     regular_grid : bool
         Whether the projection allows plotting a regular grid.
         Returns False in case a fall-back projection is used.
@@ -108,11 +106,6 @@ def plot_geography(map="cartopy", proj4str=None, extent=None, drawlonlatlines=Fa
 
         ax = plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw)
 
-        if geodata["yorigin"] == "upper":
-            origin = "upper"
-        else:
-            origin = "lower"
-
         extent = None
         regular_grid = True
     else:    
@@ -128,9 +121,8 @@ def plot_geography(map="cartopy", proj4str=None, extent=None, drawlonlatlines=Fa
             
         ax = plot_map_cartopy(crs, extent, cartopy_scale,
                                drawlonlatlines=drawlonlatlines, lw=lw, subplot=cartopy_subplot)
-        origin = "upper"
     
-    return ax, origin, regular_grid
+    return ax, regular_grid
     
 def plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,0.3),
                     countrycolor=(0.3,0.3,0.3), continentcolor=(0.95,0.95,0.85),

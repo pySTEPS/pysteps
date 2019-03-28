@@ -136,7 +136,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     
     # plot geography
     if map is not None:
-        ax, origin, regular_grid = basemaps.plot_geography(map, geodata["projection"], 
+        ax, regular_grid = basemaps.plot_geography(map, geodata["projection"], 
                         extent, drawlonlatlines, basemap_resolution, 
                         cartopy_scale, lw, cartopy_subplot)
     else:
