@@ -197,37 +197,21 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             regular_grid = True
         else:
             x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
-
             try:
                 crs = utils.proj4_to_cartopy(geodata["projection"])
+                extent = (x1, x2, y1, y2)
                 regular_grid = True
-
             except UnsupportedSomercProjection:
                 # Necessary since cartopy doesn't support the Swiss projection
-                # TODO: remove once the somerc projection is supported in cartopy.
-
-                # Define fall-back projection (EPSG:3035)
-                laeastr = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-                laea = pyproj.Proj(laeastr)
+                X, Y, extent, laeastr = utils.fallback_projection_grid(geodata["projection"], 
+                                        extent=(x1,x2,y1,y2), shape=R.shape)        
                 crs = utils.proj4_to_cartopy(laeastr)
-
-                # Reproject swiss data on fall-back projection
-                # this will work reasonably well for Europe only.
-                pr = pyproj.Proj(geodata["projection"])
-                y_coord = np.linspace(y1, y2, R.shape[0] + 1)
-                x_coord = np.linspace(x1, x2, R.shape[1] + 1)
-                X, Y = np.meshgrid(x_coord, y_coord)
-                x1, y1 = pyproj.transform(pr, laea, x1, y1)
-                x2, y2 = pyproj.transform(pr, laea, x2, y2)
-                X, Y = pyproj.transform(pr, laea, X.flatten(), Y.flatten())
-                X = X.reshape((y_coord.size, x_coord.size))
-                Y = Y.reshape((y_coord.size, x_coord.size))
                 regular_grid = False
-
+                x1,x2,y1,y2 = extent[0],extent[1],extent[2],extent[3],
             bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale,
                                    drawlonlatlines=drawlonlatlines, lw=lw, subplot=cartopy_subplot)
-            extent = (x1, x2, y2, y1)
-
+            extent = (x1, x2, y2, y1)            
+        
         if regular_grid:
             im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent)
         else:
