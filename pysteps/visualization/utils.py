@@ -10,6 +10,7 @@ Miscellaneous utility functions for the visualization module.
     parse_proj4_string
     proj4_to_basemap
     proj4_to_cartopy
+    fallback_projection_grid
 """
 import numpy as np
 from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
