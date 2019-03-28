@@ -2,18 +2,19 @@
 pysteps.visualization.basemaps
 ==============================
 
-Methods for plotting basemaps using Cartopy or Basemap.
+Methods for plotting geographical maps using Cartopy or Basemap.
 
 .. autosummary::
     :toctree: ../generated/
-
+    
+    plot_geography
     plot_map_basemap
     plot_map_cartopy
 """
-
 from matplotlib import gridspec
 import matplotlib.pylab as plt
 import numpy as np
+from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 try:
     from mpl_toolkits.basemap import Basemap
@@ -26,6 +27,110 @@ try:
     cartopy_imported = True
 except ImportError:
     cartopy_imported = False
+try:
+    import pyproj
+    pyproj_imported = True
+except ImportError:
+    pyproj_imported = False
+    
+from . import utils
+    
+def plot_geography(map="cartopy", proj4str=None, extent=None, drawlonlatlines=False, 
+            basemap_resolution='l', cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1)):
+    """
+    Plot geographical map using either Cartopy or Basemap in a chosen projection.
+    
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
+
+    .. _mpl_toolkits.basemap: https://matplotlib.org/basemap
+    
+    Parameters
+    ----------
+    map : {'cartopy', 'basemap'}
+        The type of basemap.
+    proj4str : str
+        The PROJ.4-compatible projection string.
+    extent: scalars (left, right, bottom, top)
+        The bounding box in proj4str coordinates.
+    drawlonlatlines : bool, optional
+        If set to True, draw longitude and latitude lines. Applicable if map is
+        'basemap' or 'cartopy'.
+    basemap_resolution : str, optional
+        The resolution of the basemap, see the documentation of
+        `mpl_toolkits.basemap`_.
+        Applicable if map is 'basemap'.
+    cartopy_scale : {'10m', '50m', '110m'}, optional
+        The scale (resolution) of the map. The available options are '10m',
+        '50m', and '110m'. Applicable if map is 'cartopy'.
+    lw: float, optional
+        Linewidth of the map (administrative boundaries and coastlines).
+    cartopy_subplot : tuple or SubplotSpec_ instance, optional
+        Cartopy subplot. Applicable if map is 'cartopy'.    
+    
+    Returns
+    -------
+    ax : fig Axes_
+        Cartopy or Basemap axes.
+    origin : {'upper', 'lower'}
+        The origin of the axes. Needed by plt.imshow as Cartopy changes the origin.
+    regular_grid : bool
+        Whether the projection allows plotting a regular grid.
+        Returns False in case a fall-back projection is used.
+    """
+    if map is not None and map not in ["basemap", "cartopy"]:
+        raise ValueError("unknown map method %s: must be 'basemap' or 'cartopy'" % map)
+    if map == "basemap" and not basemap_imported:
+        raise MissingOptionalDependency(
+            "map='basemap' option passed to plot_precip_field function"
+            "but the basemap package is not installed")
+    if map == "cartopy" and not cartopy_imported:
+        raise MissingOptionalDependency(
+            "map='cartopy' option passed to plot_precip_field function"
+            "but the cartopy package is not installed")
+    if map is not None and not pyproj_imported:
+        raise MissingOptionalDependency(
+            "map!=None option passed to plot_precip_field function"
+            "but the pyproj package is not installed")
+            
+    if map == "basemap":
+        pr = pyproj.Proj(proj4str)
+        x1,x2,y1,y2 = extent[0],extent[1],extent[2],extent[3]
+        ll_lon,ll_lat = pr(x1, y1, inverse=True)
+        ur_lon,ur_lat = pr(x2, y2, inverse=True)
+
+        bm_params = utils.proj4_to_basemap(proj4str)
+
+        bm_params["llcrnrlon"]  = ll_lon
+        bm_params["llcrnrlat"]  = ll_lat
+        bm_params["urcrnrlon"]  = ur_lon
+        bm_params["urcrnrlat"]  = ur_lat
+        bm_params["resolution"] = basemap_resolution
+
+        ax = plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw)
+
+        if geodata["yorigin"] == "upper":
+            origin = "upper"
+        else:
+            origin = "lower"
+
+        extent = None
+        regular_grid = True
+    else:    
+        try:
+            crs = utils.proj4_to_cartopy(proj4str)
+            regular_grid = True
+        except UnsupportedSomercProjection:
+            # Necessary since cartopy doesn't support the Swiss projection
+            X, Y, extent, laeastr = utils.fallback_projection_grid(proj4str, 
+                                    extent=extent, shape=R.shape)        
+            crs = utils.proj4_to_cartopy(laeastr)
+            regular_grid = False
+            
+        ax = plot_map_cartopy(crs, extent, cartopy_scale,
+                               drawlonlatlines=drawlonlatlines, lw=lw, subplot=cartopy_subplot)
+        origin = "upper"
+    
+    return ax, origin, regular_grid
     
 def plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,0.3),
                     countrycolor=(0.3,0.3,0.3), continentcolor=(0.95,0.95,0.85),
