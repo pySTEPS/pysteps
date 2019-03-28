@@ -102,8 +102,9 @@ def plot_map_cartopy(crs, extent, scale, drawlonlatlines=False,
         The coordinates of the bounding box.
     drawlonlatlines : bool
         Whether to plot longitudes and latitudes.
-    scale : {'10m', '50m'}
-        Scale of the shapefile (generalization level).
+    scale : {'10m', '50m', '110m'}
+        The scale (resolution) of the map. The available options are '10m',
+        '50m', and '110m'.
     lw : float 
         Line width.
     subplot : scalars (nrows, ncols, index)
