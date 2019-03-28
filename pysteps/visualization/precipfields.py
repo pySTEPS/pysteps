@@ -155,28 +155,19 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
 
-    # Get colormap and color levels
+    # get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
     
-    # Extract extent for imshow function
+    # extract extent and origin
     if geodata is not None:
-        extent = np.array([geodata['x1'],geodata['x2'],
-                           geodata['y1'],geodata['y2']])
+        extent = (geodata['x1'],geodata['x2'], geodata['y1'],geodata['y2'])
         origin = geodata["yorigin"]
     else:
-        extent = np.array([0, R.shape[1]-1, 0, R.shape[0]-1])
+        extent = (0, R.shape[1]-1, 0, R.shape[0]-1)
         origin = "upper"
     
-    if map is None:
-        # Plot radar domain mask
-        mask = np.ones(R.shape)
-        mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
-        plt.imshow(mask, cmap=colors.ListedColormap(['gray']),
-                   extent=extent, origin=origin)
-        
-        # Plot rainfield
-        im = _plot_field(R, plt.gca(), type, units, colorscale, geodata, extent=extent)
-    else:
+    # plot basemap
+    if map is not None:
         if map == "basemap":
             pr = pyproj.Proj(geodata["projection"])
             ll_lon,ll_lat = pr(geodata["x1"], geodata["y1"], inverse=True)
@@ -194,7 +185,6 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
             if geodata["yorigin"] == "upper":
                 origin = "upper"
-                print("flip field")
 
             extent = None
             regular_grid = True
@@ -212,27 +202,32 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             bm = basemaps.plot_map_cartopy(crs, extent, cartopy_scale,
                                    drawlonlatlines=drawlonlatlines, lw=lw, subplot=cartopy_subplot)
             origin = "upper"            
-        
-        if regular_grid:
-            im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent, origin=origin)
-        else:
-            if origin == "upper":
-                Y = np.flipud(Y)
-            im = _plot_field_pcolormesh(X, Y, R, bm, type, units, colorscale, geodata)
+        ax = bm
+    else:
+        regular_grid = True
+        ax = plt
+    
+    # plot rainfield
+    if regular_grid:
+        im = _plot_field(R, ax, type, units, colorscale, geodata, extent=extent, origin=origin)
+    else:
+        if origin == "upper":
+            Y = np.flipud(Y)
+        im = _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata)
 
-        # Plot radar domain mask
-        mask = np.ones(R.shape)
-        mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
-        bm.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5,
-                  zorder=1e6, extent=extent)
-        # bm.pcolormesh(X, Y, np.flipud(mask), cmap=colors.ListedColormap(['gray']),
-                        # alpha=0.5, zorder=1e6)
-        # TODO: pcolormesh doesn't work properly with the alpha parameter
+    # plot radar domain mask
+    mask = np.ones(R.shape)
+    mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
+    ax.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5,
+              zorder=1e6, extent=extent)
+    # ax.pcolormesh(X, Y, np.flipud(mask), cmap=colors.ListedColormap(['gray']),
+                    # alpha=0.5, zorder=1e6)
+    # TODO: pcolormesh doesn't work properly with the alpha parameter
 
     if title is not None:
         plt.title(title)
 
-    # Add colorbar
+    # add colorbar
     if colorbar:
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm,
                 extend="max" if type in ["intensity", "depth"] else "neither",
@@ -250,7 +245,6 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
     
     if geodata is None or axis == "off":
-        #plt.axis("off")
         axes = plt.gca()
         axes.xaxis.set_ticks([])
         axes.xaxis.set_ticklabels([])
