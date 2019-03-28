@@ -11,6 +11,7 @@ Miscellaneous utility functions for the visualization module.
     proj4_to_basemap
     proj4_to_cartopy
 """
+import numpy as np
 from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 try:
@@ -184,3 +185,66 @@ def proj4_to_cartopy(proj4str):
         kw_proj.pop("false_northing", None)
 
     return cl(globe=globe, **kw_proj)
+
+def fallback_projection_grid(s_proj4str, t_proj4str=None, extent=None, shape=None):
+    """
+    Generate a grid mesh in a fall-back projection according to image extent 
+    and dimensions.
+    
+    Parameters
+    ----------
+    s_proj4str: str
+        The source PROJ.4-compatible projection string.
+    t_proj4str: str
+        The target PROJ.4-compatible projection string (fall-back).
+    extent: scalars (left, right, bottom, top)
+        The source bounding box in s_proj4str coordinates of the image.
+    shape: scalars (n_rows, n_cols)
+        The dimensions of the image.
+    
+    Returns
+    -------
+    X: ndarray
+        2D array with the projected X coordinates.
+    Y: ndarray
+        2D array with the projected Y coordinates.
+    t_extent: scalars (left, right, bottom, top)
+        The target bounding box in t_proj4str coordinates of the image.
+    t_proj4str: str
+        The target PROJ.4-compatible projection string (fall-back).
+        It returns the default LambertAzimuthalEqualArea if not passed as input.
+    """
+    if not pyproj_imported:
+        raise MissingOptionalDependency(
+            "pyproj package is required for fallback_projection_grid function utility "
+            "but it is not installed")
+    
+    s_srs = pyproj.Proj(s_proj4str)
+    if t_proj4str is None:
+        # Define default fall-back projection for Swiss data(EPSG:3035)
+        # This will work reasonably well for Europe only.
+        t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+    
+    t_srs = pyproj.Proj(t_proj4str)
+    
+    x1 = extent[0]
+    x2 = extent[1]
+    y1 = extent[2]
+    y2 = extent[3]
+    
+    # Define input grid with source projection
+    y_coord = np.linspace(y1, y2, shape[0] + 1)
+    x_coord = np.linspace(x1, x2, shape[1] + 1)
+    X, Y = np.meshgrid(x_coord, y_coord)
+    
+    # Reproject data on fall-back projection
+    x1, y1 = pyproj.transform(s_srs, t_srs, x1, y1)
+    x2, y2 = pyproj.transform(s_srs, t_srs, x2, y2)
+    t_extent = [x1, x2, y1, y2]
+    
+    X, Y = pyproj.transform(s_srs, t_srs, X.flatten(), Y.flatten())
+    
+    X = X.reshape((y_coord.size, x_coord.size))
+    Y = Y.reshape((y_coord.size, x_coord.size))
+    
+    return X, Y, t_extent, t_proj4str
