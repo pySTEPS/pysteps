@@ -14,7 +14,8 @@ Methods for plotting precipitation fields.
 import matplotlib.pylab as plt
 from matplotlib import cm, colors, gridspec
 import numpy as np
-   
+from pysteps.exceptions import UnsupportedSomercProjection
+
 from . import basemaps
 from . import utils
 
@@ -136,20 +137,34 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     
     # plot geography
     if map is not None:
-        ax, regular_grid = basemaps.plot_geography(map, geodata["projection"], 
-                        extent, drawlonlatlines, basemap_resolution, 
-                        cartopy_scale, lw, cartopy_subplot)
+        try:
+            ax = basemaps.plot_geography(map, geodata["projection"], 
+                            extent, R.shape, drawlonlatlines, basemap_resolution, 
+                            cartopy_scale, lw, cartopy_subplot)
+            regular_grid = True
+        except UnsupportedSomercProjection:        
+            # Define default fall-back projection for Swiss data(EPSG:3035)
+            # This will work reasonably well for Europe only.
+            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+            geodata = utils.reproject_geodata(geodata, t_proj4str, return_grid="quadmesh")
+            extent = (geodata['x1'], geodata['x2'], geodata['y1'], geodata['y2'])
+            X, Y = geodata["X_grid"], geodata["Y_grid"]
+            regular_grid = geodata["regular_grid"]
+            
+            ax = basemaps.plot_geography(map, geodata["projection"], 
+                            extent, R.shape, drawlonlatlines, basemap_resolution, 
+                            cartopy_scale, lw, cartopy_subplot)            
     else:
         regular_grid = True
-        ax = plt
+        ax = plt.gca()
     
     # plot rainfield
     if regular_grid:
-        im = _plot_field(R, ax, type, units, colorscale, geodata, extent=extent, origin=origin)
+        im = _plot_field(R, ax, type, units, colorscale, extent=extent, origin=origin)
     else:
         if origin == "upper":
             Y = np.flipud(Y)
-        im = _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata)
+        im = _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale)
 
     # plot radar domain mask
     mask = np.ones(R.shape)
@@ -187,21 +202,14 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         axes.xaxis.set_ticklabels([])
         axes.yaxis.set_ticks([])
         axes.yaxis.set_ticklabels([])
-                        
+
     return plt.gca()
 
-def _plot_field(R, ax, type, units, colorscale, geodata, extent, origin=None):
+def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
     R = R.copy()
 
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-
-    # Extract extent for imshow function
-#    if geodata is not None:
-#        extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
-#                           geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]])
-#    else:
-#        extent = np.array([0, R.shape[1], 0, R.shape[0]])
 
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
@@ -220,7 +228,7 @@ def _plot_field(R, ax, type, units, colorscale, geodata, extent, origin=None):
 
     return im
 
-def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
+def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale):
     R = R.copy()
 
     # Get colormap and color levels
@@ -238,7 +246,7 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
 
     vmin,vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
-    im = plt.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
+    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
 
     return im
 
