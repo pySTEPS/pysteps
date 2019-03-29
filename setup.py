@@ -45,7 +45,7 @@ requirements = ["numpy",
 setup(
     name="pysteps",
     version="1.0.0",
-    author="PySteps developers"
+    author="PySteps developers",
     packages=find_packages(),
     license="LICENSE",
     include_package_data=True,
