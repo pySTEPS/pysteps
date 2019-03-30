@@ -119,12 +119,17 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
             return x
         else:
             return (x,)
+
     scores = get_iterable(scores)
 
     # split between online and offline scores
     loffline = ["scatter", "corr_s"]
-    onscores = [score for score in scores if str(score).lower() not in loffline or score==""]
-    offscores = [score for score in scores if str(score).lower() in loffline or score==""]
+    onscores = [
+        score for score in scores if str(score).lower() not in loffline or score == ""
+    ]
+    offscores = [
+        score for score in scores if str(score).lower() in loffline or score == ""
+    ]
 
     # unique lists
     onscores = _uniquelist(onscores)
@@ -148,7 +153,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         if pred.shape != obs.shape:
             raise ValueError(
                 "the shape of pred does not match the shape of obs %s!=%s"
-                 % (pred.shape, obs.shape))
+                % (pred.shape, obs.shape)
+            )
 
         # conditioning
         if conditioning is not None:
@@ -215,8 +221,9 @@ def det_cont_fct_init(axis=None, conditioning=None):
 
     # catch case of axis passed as integer
     def get_iterable(x):
-        if x is None or \
-            (isinstance(x, collections.Iterable) and not isinstance(x, int)):
+        if x is None or (
+            isinstance(x, collections.Iterable) and not isinstance(x, int)
+        ):
             return x
         else:
             return (x,)
@@ -269,12 +276,16 @@ def det_cont_fct_accum(err, pred, obs):
 
     # checks
     if pred.shape != obs.shape:
-        raise ValueError("the shape of pred does not match the shape of obs %s!=%s"
-                         % (pred.shape, obs.shape))
+        raise ValueError(
+            "the shape of pred does not match the shape of obs %s!=%s"
+            % (pred.shape, obs.shape)
+        )
 
     if pred.ndim <= np.max(axis):
-        raise ValueError("axis %d is out of bounds for array of dimension %d"
-                         % (np.max(axis), len(pred.shape)))
+        raise ValueError(
+            "axis %d is out of bounds for array of dimension %d"
+            % (np.max(axis), len(pred.shape))
+        )
 
     idims = [dim not in axis for dim in range(pred.ndim)]
     nshape = tuple(np.array(pred.shape)[np.array(idims)])
@@ -295,7 +306,8 @@ def det_cont_fct_accum(err, pred, obs):
         if err["cov"].shape != nshape:
             raise ValueError(
                 "the shape of the input arrays does not match the shape of the "
-                + "verification object %s!=%s" % (nshape, err["cov"].shape))
+                + "verification object %s!=%s" % (nshape, err["cov"].shape)
+            )
 
     # conditioning
     if err["conditioning"] is not None:
@@ -323,7 +335,7 @@ def det_cont_fct_accum(err, pred, obs):
     mobs = np.nanmean(obs, axis=axis)
     mpred = np.nanmean(pred, axis=axis)
     me = np.nanmean(res, axis=axis)
-    mse = np.nanmean(res**2, axis=axis)
+    mse = np.nanmean(res ** 2, axis=axis)
     mae = np.nanmean(np.abs(res), axis=axis)
 
     # expand axes for broadcasting
@@ -332,42 +344,28 @@ def det_cont_fct_accum(err, pred, obs):
         mpred = np.expand_dims(mpred, ax)
 
     # new cov matrix
-    cov = np.nanmean((obs - mobs)*(pred - mpred), axis=axis)
-    vobs = np.nanmean(np.abs(obs - mobs)**2, axis=axis)
-    vpred = np.nanmean(np.abs(pred - mpred)**2, axis=axis)
+    cov = np.nanmean((obs - mobs) * (pred - mpred), axis=axis)
+    vobs = np.nanmean(np.abs(obs - mobs) ** 2, axis=axis)
+    vpred = np.nanmean(np.abs(pred - mpred) ** 2, axis=axis)
 
     mobs = mobs.squeeze()
     mpred = mpred.squeeze()
 
     # update variances
-    err["vobs"] = _parallel_var(
-                    err["mobs"], err["n"], err["vobs"],
-                    mobs, n, vobs)
-    err["vpred"] = _parallel_var(
-                    err["mpred"], err["n"], err["vpred"],
-                    mpred, n, vpred)
+    err["vobs"] = _parallel_var(err["mobs"], err["n"], err["vobs"], mobs, n, vobs)
+    err["vpred"] = _parallel_var(err["mpred"], err["n"], err["vpred"], mpred, n, vpred)
 
     # update covariance
     err["cov"] = _parallel_cov(
-                    err["cov"], err["mobs"], err["mpred"], err["n"],
-                    cov, mobs, mpred, n)
+        err["cov"], err["mobs"], err["mpred"], err["n"], cov, mobs, mpred, n
+    )
 
     # update means
-    err["mobs"] = _parallel_mean(
-                    err["mobs"], err["n"],
-                    mobs, n)
-    err["mpred"] = _parallel_mean(
-                    err["mpred"], err["n"],
-                    mpred, n)
-    err["me"] = _parallel_mean(
-                    err["me"], err["n"],
-                    me, n)
-    err["mse"] = _parallel_mean(
-                    err["mse"], err["n"],
-                    mse, n)
-    err["mae"] = _parallel_mean(
-                    err["mae"], err["n"],
-                    mae, n)
+    err["mobs"] = _parallel_mean(err["mobs"], err["n"], mobs, n)
+    err["mpred"] = _parallel_mean(err["mpred"], err["n"], mpred, n)
+    err["me"] = _parallel_mean(err["me"], err["n"], me, n)
+    err["mse"] = _parallel_mean(err["mse"], err["n"], mse, n)
+    err["mae"] = _parallel_mean(err["mae"], err["n"], mae, n)
 
     # update number of samples
     err["n"] += n
@@ -427,6 +425,7 @@ def det_cont_fct_compute(err, scores=""):
             return x
         else:
             return (x,)
+
     scores = get_iterable(scores)
 
     result = {}
@@ -459,49 +458,48 @@ def det_cont_fct_compute(err, scores=""):
 
         # linear correlation coeff (pearson corr)
         if score_ in ["corr_p", "pearsonr", ""]:
-            corr_p = err["cov"]/np.sqrt(err["vobs"])/np.sqrt(err["vpred"])
+            corr_p = err["cov"] / np.sqrt(err["vobs"]) / np.sqrt(err["vpred"])
             result["corr_p"] = corr_p
 
         # beta (linear regression slope)
         if score_ in ["beta", ""]:
-            beta = err["cov"]/err["vpred"]
+            beta = err["cov"] / err["vpred"]
             result["beta"] = beta
 
         # debiased RMSE
         if score_ in ["drmse", ""]:
-            RMSE_d = np.sqrt(err["mse"] - err["me"]**2)
+            RMSE_d = np.sqrt(err["mse"] - err["me"] ** 2)
             result["DRMSE"] = RMSE_d
 
         # reduction of variance (Brier Score, Nash-Sutcliffe efficiency coefficient,
         # MSE skill score)
         if score_ in ["rv", "brier_score", "nse", ""]:
-            RV = 1.0 - err["mse"]/err["vobs"]
+            RV = 1.0 - err["mse"] / err["vobs"]
             result["RV"] = RV
 
     return result
 
 
 def _parallel_mean(avg_a, count_a, avg_b, count_b):
-    return (count_a*avg_a + count_b*avg_b)/(count_a + count_b)
+    return (count_a * avg_a + count_b * avg_b) / (count_a + count_b)
 
 
 def _parallel_var(avg_a, count_a, var_a, avg_b, count_b, var_b):
     # source: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
     delta = avg_b - avg_a
-    m_a = var_a*count_a
-    m_b = var_b*count_b
-    M2 = m_a + m_b + delta**2*count_a*count_b/(count_a + count_b)
-    return M2/(count_a + count_b)
+    m_a = var_a * count_a
+    m_b = var_b * count_b
+    M2 = m_a + m_b + delta ** 2 * count_a * count_b / (count_a + count_b)
+    return M2 / (count_a + count_b)
 
 
-def _parallel_cov(cov_a, avg_xa, avg_ya, count_a,
-                  cov_b, avg_xb, avg_yb, count_b):
+def _parallel_cov(cov_a, avg_xa, avg_ya, count_a, cov_b, avg_xb, avg_yb, count_b):
     deltax = avg_xb - avg_xa
     deltay = avg_yb - avg_ya
-    c_a = cov_a*count_a
-    c_b = cov_b*count_b
-    C2 = c_a + c_b + deltax*deltay*count_a*count_b/(count_a + count_b)
-    return C2/(count_a + count_b)
+    c_a = cov_a * count_a
+    c_b = cov_b * count_b
+    C2 = c_a + c_b + deltax * deltay * count_a * count_b / (count_a + count_b)
+    return C2 / (count_a + count_b)
 
 
 def _uniquelist(mylist):
@@ -516,11 +514,13 @@ def _scatter(pred, obs, axis=None):
 
     # catch case of axis passed as integer
     def get_iterable(x):
-        if x is None or \
-            (isinstance(x, collections.Iterable) and not isinstance(x, int)):
+        if x is None or (
+            isinstance(x, collections.Iterable) and not isinstance(x, int)
+        ):
             return x
         else:
             return (x,)
+
     axis = get_iterable(axis)
 
     # reshape arrays as 2d matrices
@@ -530,13 +530,13 @@ def _scatter(pred, obs, axis=None):
     for ax in axis:
         pred = np.rollaxis(pred, ax, 0)
         obs = np.rollaxis(obs, ax, 0)
-    shp_rows = pred.shape[:len(axis)]
-    shp_cols = pred.shape[len(axis):]
+    shp_rows = pred.shape[: len(axis)]
+    shp_cols = pred.shape[len(axis) :]
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
     # compute multiplicative erros in dB
-    q = 10*np.log10(pred/obs)
+    q = 10 * np.log10(pred / obs)
 
     # nans are given zero weight and are set to -9999
     idkeep = np.isfinite(q)
@@ -548,12 +548,12 @@ def _scatter(pred, obs, axis=None):
     xs = np.vstack((xs[0, :], xs))
     ixs = np.argsort(q, axis=0)
     ws = np.take_along_axis(obs, ixs, axis=0)
-    ws = np.vstack((ws[0,:]*0., ws))
-    wsc = np.cumsum(ws, axis=0)/np.sum(ws, axis=0)
+    ws = np.vstack((ws[0, :] * 0.0, ws))
+    wsc = np.cumsum(ws, axis=0) / np.sum(ws, axis=0)
     xint = np.zeros((2, xs.shape[1]))
     for i in range(xint.shape[1]):
         xint[:, i] = np.interp([0.16, 0.84], wsc[:, i], xs[:, i])
-    scatter = (xint[1, :] - xint[0, :])/2.
+    scatter = (xint[1, :] - xint[0, :]) / 2.0
 
     # reshape back
     scatter = scatter.reshape(shp_cols)
@@ -568,11 +568,13 @@ def _spearmanr(pred, obs, axis=None):
 
     # catch case of axis passed as integer
     def get_iterable(x):
-        if x is None or \
-            (isinstance(x, collections.Iterable) and not isinstance(x, int)):
+        if x is None or (
+            isinstance(x, collections.Iterable) and not isinstance(x, int)
+        ):
             return x
         else:
             return (x,)
+
     axis = get_iterable(axis)
 
     # reshape arrays as 2d matrices
@@ -582,13 +584,13 @@ def _spearmanr(pred, obs, axis=None):
     for ax in axis:
         pred = np.rollaxis(pred, ax, 0)
         obs = np.rollaxis(obs, ax, 0)
-    shp_rows = pred.shape[:len(axis)]
-    shp_cols = pred.shape[len(axis):]
+    shp_rows = pred.shape[: len(axis)]
+    shp_cols = pred.shape[len(axis) :]
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
     corr_s = spearmanr(pred, obs, axis=0, nan_policy="omit")[0]
     if corr_s.size > 1:
-        corr_s =  np.diag(corr_s, pred.shape[1]).reshape(shp_cols)
+        corr_s = np.diag(corr_s, pred.shape[1]).reshape(shp_cols)
 
     return float(corr_s) if corr_s.size == 1 else corr_s
