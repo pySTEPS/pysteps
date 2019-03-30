@@ -1,14 +1,14 @@
-    .. _developer-reference:
+.. _pysteps-reference:
 
-===================
-Developer reference
-===================
+=================
+pySTEPS reference
+=================
 
 :Release: |version|
 :Date: |today|
 
-This developer reference manual gives a detailed description of the modules,
-functions and objects included in pysteps.
+This page gives an comprehensive description of all the modules and functions
+available in pySTEPS.
 
 .. toctree::
     :maxdepth: 2
