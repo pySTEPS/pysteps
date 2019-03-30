@@ -42,6 +42,6 @@ Contents
 
     user_guide/index
     pysteps_reference/index
-    contributors_guides/index
+    developer_guide/index
     zz_bibliography
 
