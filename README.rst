@@ -1,17 +1,55 @@
-|travis| |readthedocs|
-
-.. |travis| image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
-    :target: https://travis-ci.com/pySTEPS/pysteps
-
-.. |readthedocs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
-    :target: https://pysteps.readthedocs.io/en/latest/?badge=latest
-
 =======
 pySTEPS
 =======
 
+.. start-badges
+
+.. list-table::
+    :stub-columns: 1
+    :widths: 10 90
+
+    * - docs
+      - |docs|
+    * - tests
+      - |travis| |requires| |codecov| |coveralls| 
+    * - package
+      - |github|
+    * - license
+      - |License|
+
+.. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
+    :alt: Documentation Status
+    :target: https://travis-ci.com/pySTEPS/pysteps
+
+.. |travis| image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
+    :alt: Travis
+    :target: https://travis-ci.com/pySTEPS/pysteps
+
+.. |coveralls| image:: https://coveralls.io/repos/github/pySTEPS/pysteps/badge.svg?branch=master
+    :alt: Coverage
+    :target: https://coveralls.io/github/pySTEPS/pysteps?branch=master
+
+.. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/master/graph/badge.svg
+    :alt: Coverage
+    :target: https://codecov.io/gh/pySTEPS/pysteps
+    
+.. |requires| image:: https://requires.io/github/pySTEPS/pysteps/requirements.svg?branch=master
+     :target: https://requires.io/github/pySTEPS/pysteps/requirements/?branch=master
+     :alt: Requirements Status
+
+.. |github| image:: https://img.shields.io/github/release/pySTEPS/pysteps.svg
+    :target: https://github.com/pySTEPS/pysteps/releases/latest
+    :alt: Latest github release
+    
+.. |license| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
+    :alt: License
+    :target: https://opensource.org/licenses/BSD-3-Clause
+
+
+.. end-badges
+
 pySTEPS is a community-driven initiative for developing and maintaining an easy 
-to use, modular, free and open source Python framework for short-term ensemble 
+to use, modular, free and open-source Python framework for short-term ensemble 
 prediction systems.
 
 The focus is on probabilistic nowcasting of radar precipitation fields,
