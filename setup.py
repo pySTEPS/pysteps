@@ -58,7 +58,7 @@ setup(
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Atmospheric Science",
-        "License :: OSI Approved :: The 3-Clause BSD License (BSD-3-Clause)",
+        "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent"],
     ext_modules=external_modules,
