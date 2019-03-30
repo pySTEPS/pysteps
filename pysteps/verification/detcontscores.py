@@ -400,7 +400,7 @@ def det_cont_fct_compute(err, scores=""):
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
         |  DRMSE     | debiased root mean squared error, i.e.                 |
-        |            | :math:`DRMSE = \\sqrt{RMSE - ME^2}`                    |
+        |            | :math:`DRMSE = \\sqrt{RMSE - ME^2}`                     |
         +------------+--------------------------------------------------------+
         |  MAE       | mean absolute error                                    |
         +------------+--------------------------------------------------------+
@@ -412,7 +412,7 @@ def det_cont_fct_compute(err, scores=""):
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
         |            | (Brier Score, Nash-Sutcliffe Efficiency), i.e.         |
-        |            | :math:`RV = 1 - \\frac{MSE}{s^2_o}`                    |
+        |            | :math:`RV = 1 - \\frac{MSE}{s^2_o}`                     |
         +------------+--------------------------------------------------------+
 
     Returns
