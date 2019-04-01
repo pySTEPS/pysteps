@@ -14,25 +14,9 @@ Methods for plotting precipitation fields.
 import matplotlib.pylab as plt
 from matplotlib import cm, colors, gridspec
 import numpy as np
+from pysteps.exceptions import UnsupportedSomercProjection
 
-from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
-
-try:
-    from mpl_toolkits.basemap import Basemap
-    basemap_imported = True
-except ImportError:
-    basemap_imported = False
-try:
-    import cartopy.crs as ccrs
-    import cartopy.feature as cfeature
-    cartopy_imported = True
-except ImportError:
-    cartopy_imported = False
-try:
-    import pyproj
-    pyproj_imported = True
-except ImportError:
-    pyproj_imported = False
+from . import basemaps
 from . import utils
 
 def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
@@ -137,115 +121,65 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         raise ValueError("type='prob' but probthr not specified")
     if map is not None and geodata is None:
         raise ValueError("map!=None but geodata=None")
-    if map is not None and map not in ["basemap", "cartopy"]:
-        raise ValueError("unknown map method %s: must be 'basemap' or 'cartopy'" % map)
-    if map == "basemap" and not basemap_imported:
-        raise MissingOptionalDependency(
-            "map='basemap' option passed to plot_precip_field function"
-            "but the basemap package is not installed")
-    if map == "cartopy" and not cartopy_imported:
-        raise MissingOptionalDependency(
-            "map='cartopy' option passed to plot_precip_field function"
-            "but the cartopy package is not installed")
-    if map is not None and not pyproj_imported:
-        raise MissingOptionalDependency(
-            "map!=None option passed to plot_precip_field function"
-            "but the pyproj package is not installed")
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
 
-    # Get colormap and color levels
+    # get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-
-    if map is None:
-        # Extract extent for imshow function
-        if geodata is not None:
-            extent = np.array([geodata['x1'],geodata['x2'],
-                               geodata['y1'],geodata['y2']])
-            origin = geodata["yorigin"]
-        else:
-            extent = np.array([0, R.shape[1]-1, 0, R.shape[0]-1])
-            origin = "upper"
-
-        # Plot radar domain mask
-        mask = np.ones(R.shape)
-        mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
-        plt.imshow(mask, cmap=colors.ListedColormap(['gray']),
-                   extent=extent, origin=origin)
-
-        im = _plot_field(R, plt.gca(), type, units, colorscale, geodata, extent=extent)
+    
+    # extract extent and origin
+    if geodata is not None:
+        extent = (geodata['x1'],geodata['x2'], geodata['y1'],geodata['y2'])
+        origin = geodata["yorigin"]
     else:
-        if map == "basemap":
-            pr = pyproj.Proj(geodata["projection"])
-            ll_lon,ll_lat = pr(geodata["x1"], geodata["y1"], inverse=True)
-            ur_lon,ur_lat = pr(geodata["x2"], geodata["y2"], inverse=True)
-
-            bm_params = utils.proj4_to_basemap(geodata["projection"])
-
-            bm_params["llcrnrlon"]  = ll_lon
-            bm_params["llcrnrlat"]  = ll_lat
-            bm_params["urcrnrlon"]  = ur_lon
-            bm_params["urcrnrlat"]  = ur_lat
-            bm_params["resolution"] = basemap_resolution
-
-            bm = _plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw)
-
-            if geodata["yorigin"] == "upper":
-                R = np.flipud(R)
-
-            extent = None
+        extent = (0, R.shape[1]-1, 0, R.shape[0]-1)
+        origin = "upper"
+    
+    # plot geography
+    if map is not None:
+        try:
+            ax = basemaps.plot_geography(map, geodata["projection"], 
+                            extent, R.shape, drawlonlatlines, basemap_resolution, 
+                            cartopy_scale, lw, cartopy_subplot)
             regular_grid = True
-        else:
-            x1,y1,x2,y2 = geodata["x1"],geodata["y1"],geodata["x2"],geodata["y2"]
+        except UnsupportedSomercProjection:        
+            # Define default fall-back projection for Swiss data(EPSG:3035)
+            # This will work reasonably well for Europe only.
+            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+            geodata = utils.reproject_geodata(geodata, t_proj4str, return_grid="quadmesh")
+            extent = (geodata['x1'], geodata['x2'], geodata['y1'], geodata['y2'])
+            X, Y = geodata["X_grid"], geodata["Y_grid"]
+            regular_grid = geodata["regular_grid"]
+            
+            ax = basemaps.plot_geography(map, geodata["projection"], 
+                            extent, R.shape, drawlonlatlines, basemap_resolution, 
+                            cartopy_scale, lw, cartopy_subplot)            
+    else:
+        regular_grid = True
+        ax = plt.gca()
+    
+    # plot rainfield
+    if regular_grid:
+        im = _plot_field(R, ax, type, units, colorscale, extent=extent, origin=origin)
+    else:
+        if origin == "upper":
+            Y = np.flipud(Y)
+        im = _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale)
 
-            try:
-                crs = utils.proj4_to_cartopy(geodata["projection"])
-                regular_grid = True
-
-            except UnsupportedSomercProjection:
-                # Necessary since cartopy doesn't support the Swiss projection
-                # TODO: remove once the somerc projection is supported in cartopy.
-
-                # Define fall-back projection (EPSG:3035)
-                laeastr = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-                laea = pyproj.Proj(laeastr)
-                crs = utils.proj4_to_cartopy(laeastr)
-
-                # Reproject swiss data on fall-back projection
-                # this will work reasonably well for Europe only.
-                pr = pyproj.Proj(geodata["projection"])
-                y_coord = np.linspace(y1, y2, R.shape[0] + 1)
-                x_coord = np.linspace(x1, x2, R.shape[1] + 1)
-                X, Y = np.meshgrid(x_coord, y_coord)
-                x1, y1 = pyproj.transform(pr, laea, x1, y1)
-                x2, y2 = pyproj.transform(pr, laea, x2, y2)
-                X, Y = pyproj.transform(pr, laea, X.flatten(), Y.flatten())
-                X = X.reshape((y_coord.size, x_coord.size))
-                Y = Y.reshape((y_coord.size, x_coord.size))
-                regular_grid = False
-
-            bm = _plot_map_cartopy(crs, x1, y1, x2, y2, cartopy_scale,
-                                   drawlonlatlines=drawlonlatlines, lw=lw, subplot=cartopy_subplot)
-            extent = (x1, x2, y2, y1)
-
-        if regular_grid:
-            im = _plot_field(R, bm, type, units, colorscale, geodata, extent=extent)
-        else:
-            im = _plot_field_pcolormesh(X, Y, np.flipud(R), bm, type, units, colorscale, geodata)
-
-        # Plot radar domain mask
-        mask = np.ones(R.shape)
-        mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
-        bm.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5,
-                  zorder=1e6, extent=extent)
-        # bm.pcolormesh(X, Y, np.flipud(mask), cmap=colors.ListedColormap(['gray']),
-                        # alpha=0.5, zorder=1e6)
-        # TODO: pcolormesh doesn't work properly with the alpha parameter
+    # plot radar domain mask
+    mask = np.ones(R.shape)
+    mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
+    ax.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5,
+              zorder=1e6, extent=extent, origin=origin)
+              
+    # ax.pcolormesh(X, Y, np.flipud(mask), cmap=colors.ListedColormap(['gray']),
+                    # alpha=0.5, zorder=1e6)
+    # TODO: pcolormesh doesn't work properly with the alpha parameter
 
     if title is not None:
         plt.title(title)
 
-    # Add colorbar
+    # add colorbar
     if colorbar:
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm,
                 extend="max" if type in ["intensity", "depth"] else "neither",
@@ -263,22 +197,19 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
     
     if geodata is None or axis == "off":
-        plt.axis("off")
-                        
+        axes = plt.gca()
+        axes.xaxis.set_ticks([])
+        axes.xaxis.set_ticklabels([])
+        axes.yaxis.set_ticks([])
+        axes.yaxis.set_ticklabels([])
+
     return plt.gca()
 
-def _plot_field(R, ax, type, units, colorscale, geodata, extent):
+def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
     R = R.copy()
 
     # Get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-
-    # Extract extent for imshow function
-#    if geodata is not None:
-#        extent = np.array([geodata['x1']/geodata["xpixelsize"],geodata['x2']/geodata["xpixelsize"],
-#                           geodata['y1']/geodata["ypixelsize"],geodata['y2']/geodata["ypixelsize"]])
-#    else:
-#        extent = np.array([0, R.shape[1], 0, R.shape[0]])
 
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
@@ -293,11 +224,11 @@ def _plot_field(R, ax, type, units, colorscale, geodata, extent):
     vmin,vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
     im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest',
-                   vmin=vmin, vmax=vmax, zorder=1)
+                   vmin=vmin, vmax=vmax, origin=origin, zorder=1)
 
     return im
 
-def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
+def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale):
     R = R.copy()
 
     # Get colormap and color levels
@@ -315,7 +246,7 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale, geodata):
 
     vmin,vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
-    im = plt.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
+    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
 
     return im
 
@@ -480,58 +411,3 @@ def _dynamic_formatting_floats(floatArray, colorscale='pysteps'):
             labels.append(str(int(label)))
 
     return labels
-
-def _plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,0.3),
-                  countrycolor=(0.3,0.3,0.3), continentcolor=(0.95,0.95,0.85),
-                  lakecolor=(0.65,0.75,0.9), rivercolor=(0.65,0.75,0.9),
-                  mapboundarycolor=(0.65,0.75,0.9), lw=0.5):
-    bm = Basemap(**bm_params)
-    
-    if coastlinecolor is not None:
-        bm.drawcoastlines(color=coastlinecolor, linewidth=lw, zorder=0.1)
-    if countrycolor is not None:
-        bm.drawcountries(color=countrycolor, linewidth=lw, zorder=0.2)
-    if rivercolor is not None:
-        bm.drawrivers(zorder=0.2, color=rivercolor)
-    if continentcolor is not None:
-        bm.fillcontinents(color=continentcolor, lake_color=lakecolor, zorder=0)
-    if mapboundarycolor is not None:
-        bm.drawmapboundary(fill_color=mapboundarycolor, zorder=-1)
-    if drawlonlatlines:
-        bm.drawmeridians(np.linspace(bm.llcrnrlon, bm.urcrnrlon, 10),
-                         color=(0.5,0.5,0.5), linewidth=0.25, labels=[1,0,0,1],
-                         fmt="%.1f", fontsize=6)
-        bm.drawparallels(np.linspace(bm.llcrnrlat, bm.urcrnrlat, 10),
-                         color=(0.5,0.5,0.5), linewidth=0.25, labels=[1,0,0,1],
-                         fmt="%.1f", fontsize=6)
-
-    return bm
-
-def _plot_map_cartopy(crs, x1, y1, x2, y2, scale, drawlonlatlines=False,
-                      lw=0.5, subplot=(1,1,1)):
-
-    if isinstance(subplot, gridspec.SubplotSpec):
-        ax = plt.subplot(subplot, projection=crs)
-    else:
-        ax = plt.subplot(subplot[0], subplot[1], subplot[2], projection=crs)
-
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "ocean", scale = "50m" if scale is "10m" else scale,
-        edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])), zorder=0)
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "land",
-       scale=scale, edgecolor="none", facecolor=np.array([0.9375, 0.9375, 0.859375])), zorder=0)
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "coastline", scale=scale,
-        edgecolor="black", facecolor="none", linewidth=lw), zorder=2)
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "lakes", scale=scale,
-        edgecolor="none", facecolor=np.array([0.59375, 0.71484375, 0.8828125])), zorder=0)
-    ax.add_feature(cfeature.NaturalEarthFeature("physical", "rivers_lake_centerlines",
-        scale=scale, edgecolor=np.array([ 0.59375, 0.71484375, 0.8828125]),
-        facecolor="none"), zorder=0)
-    ax.add_feature(cfeature.NaturalEarthFeature("cultural", "admin_0_boundary_lines_land",
-        scale=scale, edgecolor="black", facecolor="none", linewidth=lw), zorder=2)
-
-    if drawlonlatlines:
-        ax.gridlines(crs=ccrs.PlateCarree())
-
-    ax.set_extent([x1, x2, y1, y2], crs)
-
-    return ax
