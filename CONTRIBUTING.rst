@@ -140,10 +140,12 @@ once the Pull Requests (PRs) are accepted and merged.
 Core developer guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _`Squash and merge`: https://github.com/blog/2141-squash-your-commits
+
 Core developers should follow these rules when processing pull requests:
 
 * Always wait for tests to pass before merging PRs.
-* Use "[Squash and merge](https://github.com/blog/2141-squash-your-commits)"
+* Use "`Squash and merge`_"
   to merge PRs.
 * Delete branches for merged PRs (by core devs pushing to the main repo).
 * Edit the final commit message before merging to conform to the following
