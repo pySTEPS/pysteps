@@ -11,7 +11,7 @@ pySTEPS
     * - docs
       - |docs|
     * - tests
-      - |travis| |requires| |codecov| |coveralls| 
+      - |travis| |requires| |codecov|
     * - package
       - |github|
     * - license
@@ -24,10 +24,6 @@ pySTEPS
 .. |travis| image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
     :alt: Travis
     :target: https://travis-ci.com/pySTEPS/pysteps
-
-.. |coveralls| image:: https://coveralls.io/repos/github/pySTEPS/pysteps/badge.svg?branch=master
-    :alt: Coverage
-    :target: https://coveralls.io/github/pySTEPS/pysteps?branch=master
 
 .. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/master/graph/badge.svg
     :alt: Coverage
