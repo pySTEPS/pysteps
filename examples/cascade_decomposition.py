@@ -36,7 +36,7 @@ import pysteps as stp
 
 ## input data (copy/paste values from table above)
 startdate_str = "201701311030"
-data_source   = "mch_hdf5"
+data_source   = "mch"
 
 ## parameters
 r_threshold         = 0.1 # [mm/h]
