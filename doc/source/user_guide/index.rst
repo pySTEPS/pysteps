@@ -16,4 +16,5 @@ the package see the :ref:`pysteps-reference`.
     :maxdepth: 1
 
     install_pysteps
+    ../auto_examples/index
 

@@ -10,9 +10,9 @@ import os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-
-if 'READTHEDOCS' not in os.environ:
-    sys.path.insert(1, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../pysteps/'))
+#if 'READTHEDOCS' not in os.environ:
+#    sys.path.insert(1, os.path.abspath('../../'))
 
 # -- General configuration ------------------------------------------------
 
@@ -29,7 +29,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'numpydoc',
-              'sphinxcontrib.bibtex'
+              'sphinxcontrib.bibtex',
+              'sphinx_gallery.gen_gallery',
               ]
 # numpydoc_show_class_members = False
 # Add any paths that contain templates here, relative to this directory.
@@ -196,3 +197,12 @@ texinfo_documents = [
      author, 'pysteps', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+# -- Options for Sphinx-Gallery -------------------------------------------
+
+# The configuration dictionary for Sphinx-Gallery
+
+sphinx_gallery_conf = {
+     'examples_dirs': '../../examples',   # path to your example scripts
+     'gallery_dirs': 'auto_examples',  # path where to save gallery generated examples
+}
