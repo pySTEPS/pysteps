@@ -62,18 +62,18 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
     Other Parameters
     ----------------
-    win_type : {'hanning', 'flat-hanning'}
+    win_type : {'hanning', 'flat-hanning' or None}
         Optional tapering function to be applied to X, generated with
         :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
-        (default 'flat-hanning').
+        (default None).
     model : {'power-law'}
         The name of the parametric model to be used to fit the power spectrum of 
         X (default 'power-law').
     weighted : bool
-        Whether or not to apply sqrt(power) as weight in the numpy.polyfit() 
-        function (default True).
+        Whether or not to apply 1/sqrt(power) as weight in the numpy.polyfit() 
+        function (default False).
     rm_rdisc : bool
-        Whether or not to remove the rain/no-rain disconituity (default True). 
+        Whether or not to remove the rain/no-rain disconituity (default False). 
         It assumes no-rain pixels are assigned with lowest value.
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
@@ -99,10 +99,10 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         raise ValueError("X contains non-finite values")
 
     # defaults
-    win_type = kwargs.get('win_type', 'flat-hanning')
+    win_type = kwargs.get('win_type', None)
     model    = kwargs.get('model', 'power-law')
-    weighted = kwargs.get('weighted', True)
-    rm_rdisc = kwargs.get('rm_disc', True)
+    weighted = kwargs.get('weighted', False)
+    rm_rdisc = kwargs.get('rm_rdisc', False)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
         fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
