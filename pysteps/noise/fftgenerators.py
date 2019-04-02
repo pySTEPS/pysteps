@@ -240,8 +240,11 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
 
     Returns
     -------
-    F : array-like
-      A two-dimensional array containing the non-parametric filter.
+    out : dict
+      A dictionary containing the keys F and input_shape. The first is a 
+      two-dimensional array of shape (m, int(n/2)+1) that defines the filter. 
+      The second one is the shape of the input field for the filter.
+      
       It can be passed to 
       :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter`.
     """
