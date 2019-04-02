@@ -114,11 +114,11 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     nr_fields   = X.shape[0]
     M,N = X.shape[1:]
 
-    # make sure non-rainy pixels are set to zero
-    X -= X.min(axis=(1,2))[:,None,None]
-
     if win_type is not None:
         tapering = build_2D_tapering_function((M, N), win_type)
+
+        # make sure non-rainy pixels are set to zero
+        X -= X.min(axis=(1,2))[:,None,None]
     else:
         tapering = np.ones((M,N))
 
