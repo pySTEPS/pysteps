@@ -5,6 +5,7 @@ Cascade decomposition
 
 This example script shows how to compute and plot the cascade decompositon of 
 a single radar precipitation field in pysteps.
+
 """
 
 from matplotlib import cm, pyplot
@@ -13,7 +14,8 @@ from pprint import pprint
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps import io
 from pysteps.cascade.decomposition import decomposition_fft
-from pysteps.utils import transformation
+from pysteps.utils import conversion, transformation
+from pysteps.visualization import plot_precip_field
 
 ###############################################################################
 # Read precipitation field
@@ -26,11 +28,17 @@ from pysteps.utils import transformation
 fn = "sample_mch_radar_composite_00.gif"
 R, _, metadata = io.import_mch_gif(fn)
 
+# Convert to mm/h
+R, metadata = conversion.to_rainrate(R, metadata)
+
+# Nicely print the metadata
+pprint(metadata)
+
+# Plot the rainfall field
+plot_precip_field(R, geodata=metadata)
+
 # Log-transform the data
 R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
-
-# nicely print the metadata
-pprint(metadata)
 
 ###############################################################################
 # 2D Fourier spectrum
@@ -100,7 +108,7 @@ for i in range(num_cascade_levels):
 
 fig, ax = pyplot.subplots(nrows=2, ncols=4)
 
-ax[0, 0].imshow(R, cmap=cm.RdBu_r, vmin=-10, vmax=10)
+ax[0, 0].imshow(R, cmap=cm.RdBu_r, vmin=-3, vmax=3)
 ax[0, 1].imshow(decomp["cascade_levels"][0], cmap=cm.RdBu_r, vmin=-3, vmax=3)
 ax[0, 2].imshow(decomp["cascade_levels"][1], cmap=cm.RdBu_r, vmin=-3, vmax=3)
 ax[0, 3].imshow(decomp["cascade_levels"][2], cmap=cm.RdBu_r, vmin=-3, vmax=3)
@@ -123,3 +131,5 @@ for i in range(2):
         ax[i, j].set_xticks([])
         ax[i, j].set_yticks([])
 pyplot.tight_layout()
+
+# sphinx_gallery_thumbnail_number = 4
