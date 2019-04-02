@@ -81,10 +81,15 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
     Returns
     -------
-    F : array-like
-      A two-dimensional array containing the parametric filter. This can be passed 
-      to :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter` to
-      generate noise fields.
+    out : dict
+        A a dictionary containing the keys F and input_shap.
+        The first is a two-dimensional array of shape (m, int(n/2)+1) that 
+        defines the filter. The second one is the shape of the input field for 
+        the filter. 
+
+        This dictionary can be passed to 
+        :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter` to
+        generate noise fields.
     """
 
     if len(X.shape) < 2 or len(X.shape) > 3:
