@@ -129,7 +129,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         for i in range(nr_fields):
             F += fft.fftshift(fft.fft2(X[i, :, :]*tapering))
         F /= nr_fields
-        F = abs(F)**2
+        F = abs(F)**2/F.size
 
         # compute radially averaged 1D PSD
         psd = utils.spectral.rapsd(F)
