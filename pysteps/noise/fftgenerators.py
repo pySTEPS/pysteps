@@ -78,8 +78,6 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see :py:func:`pysteps.utils.fft.get_method`). Defaults to "numpy".
-    doplot : bool
-        Whether or not to plot the fit (default False).
 
     Returns
     -------
@@ -99,7 +97,6 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     model    = kwargs.get('model', 'power-law')
     weighted = kwargs.get('weighted', True)
     rm_rdisc = kwargs.get('rm_disc', True)
-    doplot   = kwargs.get('doplot', False)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
         fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
@@ -172,12 +169,6 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         p[2]=p[2]/2; p[3]=p[3]/2
         F = np.exp(piecewise_linear(np.log(R), *p))
         F[~np.isfinite(F)] = 1
-
-        if doplot:
-            import matplotlib.pylab as plt
-            plt.loglog(wn[1:], psd[1:], "-k")
-            plt.plot(wn[1:], np.exp(piecewise_linear(np.log(wn[1:]), *p)))
-            plt.show()
 
     else:
         raise ValueError("unknown parametric model %s" % model)
