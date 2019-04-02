@@ -82,10 +82,11 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     Returns
     -------
     out : dict
-        A a dictionary containing the keys F and input_shap.
+        A a dictionary containing the keys F, input_shape, model and pars.
         The first is a two-dimensional array of shape (m, int(n/2)+1) that 
         defines the filter. The second one is the shape of the input field for 
-        the filter. 
+        the filter. The last two are the model and fitted parameters, 
+        respectively.
 
         This dictionary can be passed to 
         :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter` to
@@ -154,10 +155,11 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         beta = p0[0]
 
         # create the piecewise function with two spectral slopes beta1 and beta2
+        # and scaling break x0
         def piecewise_linear(x, x0, y0, beta1, beta2):
             return np.piecewise(x, [x < x0, x >= x0], [lambda x:beta1*x + y0-beta1*x0, lambda x:beta2*x + y0-beta2*x0])
 
-        # fit the two betas and the scale breaking point
+        # fit the two betas and the scaling break
         p0 = [2., 0, beta, beta] # first guess
         bounds=([2., 0, -4, -4], [5., 20, -1., -1.]) # TODO: provide better bounds
         if weighted:
@@ -171,14 +173,18 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         YC, XC = utils.arrays.compute_centred_coord_array(M, N)
         R = np.sqrt(XC*XC + YC*YC)
         R = fft.fftshift(R)
-        p[2]=p[2]/2; p[3]=p[3]/2
-        F = np.exp(piecewise_linear(np.log(R), *p))
+        pf = p.copy()
+        pf[2:] = pf[2:]/2
+        F = np.exp(piecewise_linear(np.log(R), *pf))
         F[~np.isfinite(F)] = 1
+        
+        f = piecewise_linear
 
     else:
         raise ValueError("unknown parametric model %s" % model)
 
-    return {"F":F, "input_shape":X.shape[1:], "use_full_fft":True}
+    return {"F":F, "input_shape":X.shape[1:], "use_full_fft":True,
+            "model": f, "pars": p}
 
 def initialize_nonparam_2d_fft_filter(X, **kwargs):
     """Takes one ore more 2d input fields and produces one non-paramtric, global
