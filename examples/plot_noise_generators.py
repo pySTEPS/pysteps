@@ -31,7 +31,7 @@ from pysteps.visualization import plot_precip_field, plot_spectrum1d
 # produce the fields of spatially correlated noise.
 
 # Import the example radar composite
-fn = "sample_mch_radar_composite_00.gif"
+fn = "data/sample_mch_radar_composite_00.gif"
 R, _, metadata = io.import_mch_gif(fn)
 
 # Convert to mm/h
@@ -101,8 +101,7 @@ plot_spectrum1d(
 )
 pyplot.legend()
 ax.set_title(
-    r"1D spatial power spectra"
-    "\n"
+    "Radially averaged log-power spectrum of R\n"
     r"$\omega_0=%.0f km, \beta_1=%.1f, \beta_2=%.1f$" % (w0, b1, b2)
 )
 

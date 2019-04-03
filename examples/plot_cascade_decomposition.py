@@ -25,7 +25,7 @@ from pysteps.visualization import plot_precip_field
 # of dB.
 
 # Import the example radar composite
-fn = "sample_mch_radar_composite_00.gif"
+fn = "data/sample_mch_radar_composite_00.gif"
 R, _, metadata = io.import_mch_gif(fn)
 
 # Convert to mm/h
@@ -108,7 +108,7 @@ for i in range(num_cascade_levels):
 
 fig, ax = pyplot.subplots(nrows=2, ncols=4)
 
-ax[0, 0].imshow(R, cmap=cm.RdBu_r, vmin=-3, vmax=3)
+ax[0, 0].imshow(R, cmap=cm.RdBu_r, vmin=-5, vmax=5)
 ax[0, 1].imshow(decomp["cascade_levels"][0], cmap=cm.RdBu_r, vmin=-3, vmax=3)
 ax[0, 2].imshow(decomp["cascade_levels"][1], cmap=cm.RdBu_r, vmin=-3, vmax=3)
 ax[0, 3].imshow(decomp["cascade_levels"][2], cmap=cm.RdBu_r, vmin=-3, vmax=3)
