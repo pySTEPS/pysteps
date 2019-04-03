@@ -153,3 +153,18 @@ for i in range(2):
 pyplot.tight_layout()
 
 # sphinx_gallery_thumbnail_number = 3
+
+###############################################################################
+# The above figure highlights the main limitation of the parametric approach
+# (top row), that is, the assumption of an isotropic power law scaling 
+# relationship, eaning that anisotropic structures such as rainfall bands 
+# cannot be represented. 
+#
+# Conversely, the nonparametric approach (bottom row)  allows generating 
+# perturbation fields with anisotropic  structures.  On the other hand, this 
+# approach requires a larger sample size and is sensitive to the quality
+# of the input data, e.g. the presence of residual clutter in the radar image.
+#
+# In  addition, both techniques assume spatial stationarity of the covariance 
+# structure of the field.
+
