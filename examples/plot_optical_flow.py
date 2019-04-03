@@ -61,7 +61,6 @@ V1 = oflow_method(R)
 # Plot the motion field
 plot_precip_field(R[0, :, :], geodata=metadata, title="Lucas-Kanade")
 quiver(V1, geodata=metadata, step=25)
-pyplot.show()
 
 ###############################################################################
 # Variational echo tracking (VET)
@@ -80,10 +79,9 @@ V2 = oflow_method(R)
 # Plot the motion field
 plot_precip_field(R[0, :, :], geodata=metadata, title="Variational echo tracking")
 quiver(V2, geodata=metadata, step=25)
-pyplot.show()
 
 ###############################################################################
 # Dynamic and adaptive radar tracking of storms (DARTS)
 # -----------------------------------------------------
 #
-# ** Under development **
+# **Under development**
