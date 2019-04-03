@@ -19,7 +19,7 @@ pySTEPS
 
 .. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
-    :target: https://travis-ci.com/pySTEPS/pysteps
+    :target: https://pysteps.readthedocs.io/
 
 .. |travis| image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
     :alt: Travis
