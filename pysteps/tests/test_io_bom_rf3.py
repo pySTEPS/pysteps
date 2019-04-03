@@ -7,10 +7,10 @@ import pysteps
 
 def test_io_import_bom_rf3_shape():
     """Test the importer Bom RF3."""
+    rootpath = pysteps.io.get_pysteps_data_rootpath()
     relpath = os.path.join("radar", "bom", "prcp-cscn", "2", "2018", "06", "16")
-    fn = "2_20180616_100000.prcp-cscn.nc"
-    fullpath = pysteps.io.get_pysteps_data_file(os.path.join(relpath, fn))
-    R, _, _ = pysteps.io.import_bom_rf3(fullpath)
+    filename = os.path.join(rootpath, relpath, "2_20180616_100000.prcp-cscn.nc")
+    R, _, _ = pysteps.io.import_bom_rf3(filename)
     assert R.shape == (512, 512)
 
 
@@ -35,10 +35,10 @@ test_metadata_bom = [
 @pytest.mark.parametrize("variable,expected", test_metadata_bom)
 def test_io_import_bom_rf3_metadata(variable, expected):
     """Test the importer Bom RF3."""
+    rootpath = pysteps.io.get_pysteps_data_rootpath()
     relpath = os.path.join("radar", "bom", "prcp-cscn", "2", "2018", "06", "16")
-    fn = "2_20180616_100000.prcp-cscn.nc"
-    fullpath = pysteps.io.get_pysteps_data_file(os.path.join(relpath, fn))
-    _, _, metadata = pysteps.io.import_bom_rf3(fullpath)
+    filename = os.path.join(rootpath, relpath, "2_20180616_100000.prcp-cscn.nc")
+    _, _, metadata = pysteps.io.import_bom_rf3(filename)
     assert metadata[variable] == expected
 
 
@@ -61,8 +61,8 @@ test_geodata_bom = [
 @pytest.mark.parametrize("variable,expected", test_geodata_bom)
 def test_io_import_bom_rf3_geodata(variable, expected):
     """Test the importer Bom RF3."""
+    rootpath = pysteps.io.get_pysteps_data_rootpath()
     relpath = os.path.join("radar", "bom", "prcp-cscn", "2", "2018", "06", "16")
-    fn = "2_20180616_100000.prcp-cscn.nc"
-    fullpath = pysteps.io.get_pysteps_data_file(os.path.join(relpath, fn))
-    geodata = pysteps.io.importers._import_bom_rf3_geodata(fullpath)
+    filename = os.path.join(rootpath, relpath, "2_20180616_100000.prcp-cscn.nc")
+    geodata = pysteps.io.importers._import_bom_rf3_geodata(filename)
     assert geodata[variable] == expected
