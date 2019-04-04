@@ -61,6 +61,9 @@ install:
   - export PYSTEPS_BUILD_DIR="$( pwd )"
   - git clone https://github.com/pySTEPS/pysteps-data.git $PYSTEPS_BUILD_DIR/pysteps-data
   - export PYSTEPS_DATA=$PYSTEPS_BUILD_DIR/pysteps-data
+  - python travis.py
+  - export PYSTEPSRC=$PYSTEPS_BUILD_DIR/pystepsrc.travis
+
   
   # Install pysteps
   # ---------------
