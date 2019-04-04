@@ -20,11 +20,7 @@ from pysteps.visualization import plot_precip_field, quiver
 # Read the radar input images
 # ---------------------------
 #
-# As a first thing, the sequence of radar composites is imported.
-
-# Import the example radar composite
-fn = "data/sample_mch_radar_composite_00.gif"
-R, _, metadata = io.import_mch_gif(fn)
+# First thing, the sequence of radar composites is imported.
 
 # Import the example radar composites
 fns = (
@@ -42,8 +38,13 @@ R = np.stack(R)
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)
 
+
+# Log-transform the data
+R_, metadata_ = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+
+
 # Nicely print the metadata
-pprint(metadata)
+pprint(metadata_)
 
 ###############################################################################
 # Lucas-Kanade (LK)
@@ -56,7 +57,7 @@ pprint(metadata)
 # field of motion vectors.
 
 oflow_method = motion.get_method("LK")
-V1 = oflow_method(R)
+V1 = oflow_method(R_)
 
 # Plot the motion field
 plot_precip_field(R[0, :, :], geodata=metadata, title="Lucas-Kanade")
@@ -74,7 +75,7 @@ quiver(V1, geodata=metadata, step=25)
 # at minimizing a cost function between the displaced and the reference image. 
 
 oflow_method = motion.get_method("VET")
-V2 = oflow_method(R)
+V2 = oflow_method(R_)
 
 # Plot the motion field
 plot_precip_field(R[0, :, :], geodata=metadata, title="Variational echo tracking")
