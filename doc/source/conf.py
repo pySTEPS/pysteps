@@ -3,9 +3,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import os
+import subprocess
 import sys
 
-import os
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -49,8 +50,7 @@ master_doc = 'index'
 project = u'pysteps'
 copyright = u'2018-2019, PySteps developers'
 author = u'PySteps developers'
-
-
+  
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
@@ -92,6 +92,12 @@ pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
+
+# -- Read the Docs build --------------------------------------------------
+
+read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
+if read_the_docs_build:
+    subprocess.check_call(["./scripts/read_the_docs.sh"])
 
 # -- Options for HTML output ----------------------------------------------
 
