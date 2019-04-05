@@ -7,9 +7,9 @@ import pysteps
 
 def test_io_import_bom_rf3_shape():
     """Test the importer Bom RF3."""
-    rootpath = pysteps.io.get_pysteps_data_rootpath()
-    relpath = os.path.join("radar", "bom", "prcp-cscn", "2", "2018", "06", "16")
-    filename = os.path.join(rootpath, relpath, "2_20180616_100000.prcp-cscn.nc")
+    root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
+    rel_path = os.path.join("radar", "bom", "prcp-cscn", "2", "2018", "06", "16")
+    filename = os.path.join(root_path, rel_path, "2_20180616_100000.prcp-cscn.nc")
     R, _, _ = pysteps.io.import_bom_rf3(filename)
     assert R.shape == (512, 512)
 
