@@ -591,13 +591,14 @@ def import_mch_hdf5(filename, **kwargs):
     where = f["where"]
     proj4str = where.attrs["projdef"].decode()  # is emtpy ...
 
-    geodata = _import_mch_geodata()  # TODO: use those from the hdf5 file instead
+    geodata = _import_mch_geodata()  
     metadata = geodata
 
-    xpixelsize = where.attrs["xscale"] * 1000.0
-    ypixelsize = where.attrs["yscale"] * 1000.0
-    xsize = where.attrs["xsize"]
-    ysize = where.attrs["ysize"]
+    # TODO: use those from the hdf5 file instead
+    # xpixelsize = where.attrs["xscale"] * 1000.0
+    # ypixelsize = where.attrs["yscale"] * 1000.0
+    # xsize = where.attrs["xsize"]
+    # ysize = where.attrs["ysize"]
 
     if qty == "ACRR":
         unit = "mm"
