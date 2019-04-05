@@ -99,7 +99,7 @@ todo_include_todos = False
 # -- Read the Docs build --------------------------------------------------
 
 def set_root():
-
+    print(os.getcwd())
     with open(os.path.join("pysteps", "pystepsrc"), "r") as f:
         rcparams = json.loads(jsmin(f.read()))
 
