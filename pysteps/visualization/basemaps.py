@@ -34,9 +34,10 @@ except ImportError:
     pyproj_imported = False
     
 from . import utils
-    
-def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None, drawlonlatlines=False, 
-            basemap_resolution='l', cartopy_scale="50m", lw=0.5,cartopy_subplot=(1,1,1)):
+
+def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None,
+  drawlonlatlines=False, basemap_resolution='l', basemap_scale_args=None,
+  cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1)):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
     
@@ -62,6 +63,9 @@ def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None, drawlo
     basemap_resolution : str, optional
         The resolution of the basemap_. See the documentation.
         Applicable if map is 'basemap'.
+    basemap_scale_args : list, optional
+        If not None, a map scale bar is drawn with basemap_scale_args supplied
+        to mpl_toolkits.basemap.Basemap.drawmapscale.
     cartopy_scale : {'10m', '50m', '110m'}, optional
         The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'. Applicable if map is 'cartopy'.
@@ -109,6 +113,9 @@ def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None, drawlo
         bm_params["resolution"] = basemap_resolution
 
         ax = plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw)
+
+        if basemap_scale_args is not None:
+            ax.drawmapscale(*basemap_scale_args, fontsize=6)
     else:    
         crs = utils.proj4_to_cartopy(proj4str)
             

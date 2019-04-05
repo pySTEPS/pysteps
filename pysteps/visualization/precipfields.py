@@ -22,8 +22,8 @@ from . import utils
 def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                       colorscale='pysteps', probthr=None, title=None,
                       colorbar=True, drawlonlatlines=False, basemap_resolution='l',
-                      cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1),
-                      axis="on", cax=None, **kwargs):
+                      basemap_scale_args=None, cartopy_scale="50m", lw=0.5,
+                      cartopy_subplot=(1,1,1), axis="on", cax=None, **kwargs):
     """
     Function to plot a precipitation intensity or probability field with a
     colorbar.
@@ -94,6 +94,9 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         The resolution of the basemap, see the documentation of
         `mpl_toolkits.basemap`_.
         Applicable if map is 'basemap'.
+    basemap_scale_args : list, optional
+        If not None, a map scale bar is drawn with basemap_scale_args supplied
+        to mpl_toolkits.basemap.Basemap.drawmapscale.
     cartopy_scale : {'10m', '50m', '110m'}, optional
         The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'. Applicable if map is 'cartopy'.
@@ -140,7 +143,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         try:
             ax = basemaps.plot_geography(map, geodata["projection"], 
                             extent, R.shape, drawlonlatlines, basemap_resolution, 
-                            cartopy_scale, lw, cartopy_subplot)
+                            basemap_scale_args, cartopy_scale, lw, cartopy_subplot)
             regular_grid = True
         except UnsupportedSomercProjection:        
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -151,9 +154,9 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             X, Y = geodata["X_grid"], geodata["Y_grid"]
             regular_grid = geodata["regular_grid"]
             
-            ax = basemaps.plot_geography(map, geodata["projection"], 
-                            extent, R.shape, drawlonlatlines, basemap_resolution, 
-                            cartopy_scale, lw, cartopy_subplot)            
+            ax = basemaps.plot_geography(map, geodata["projection"],
+                            extent, R.shape, drawlonlatlines, basemap_resolution,
+                            basemap_scale_args, cartopy_scale, lw, cartopy_subplot)
     else:
         regular_grid = True
         ax = plt.gca()
