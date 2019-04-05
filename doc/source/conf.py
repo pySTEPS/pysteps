@@ -119,7 +119,7 @@ if read_the_docs_build:
     dir = os.path.join(os.getcwd(), "..", "..", "pysteps-data")
     subprocess.check_call(["git", "clone", repourl, dir])
     set_root()
-    os.putenv("PYSTEPSRC", os.path.join("..", "..", "pystepsrc.rtd"))
+    os.environ['PYSTEPSRC'] = os.path.join("..", "..", "pystepsrc.rtd")
 
 # -- Options for HTML output ----------------------------------------------
 
