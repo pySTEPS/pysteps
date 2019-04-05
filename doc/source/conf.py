@@ -14,7 +14,6 @@ from jsmin import jsmin
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('../../pysteps/'))
 if 'READTHEDOCS' not in os.environ:
     sys.path.insert(1, os.path.abspath('../../'))
 
@@ -115,8 +114,7 @@ def set_root():
     with open(fn, "w") as f:
         json.dump(rcparams, f, indent=4)
 
-read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
-if read_the_docs_build:
+if 'READTHEDOCS' in os.environ:
     repourl = "https://github.com/pySTEPS/pysteps-data.git"
     dir = os.path.join(os.getcwd(), "..", "..", "pysteps-data")
     dir = os.path.abspath(dir)
