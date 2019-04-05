@@ -220,21 +220,25 @@ def _import_bom_rf3_geodata(filename):
     geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
 
     # get the accumulation period
+    valid_time = None
+
     if "valid_time" in ds_rainfall.variables.keys():
         valid_time = datetime.datetime.utcfromtimestamp(
             ds_rainfall.variables["valid_time"][:]
         )
-    else:
-        valid_time = None
+    
+    start_time = None
     if "start_time" in ds_rainfall.variables.keys():
         start_time = datetime.datetime.utcfromtimestamp(
             ds_rainfall.variables["start_time"][:]
         )
-    else:
-        start_time = None
+    
+    time_step = None
+
     if start_time is not None:
         if valid_time is not None:
             time_step = (valid_time - start_time).seconds // 60
+
     geodata["accutime"] = time_step
 
     # get the unit of precipitation
