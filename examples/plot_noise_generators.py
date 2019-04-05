@@ -31,8 +31,9 @@ from pysteps.visualization import plot_precip_field, plot_spectrum1d
 # produce the fields of spatially correlated noise.
 
 # Import the example radar composite
-fn = "data/sample_mch_radar_composite_00.gif"
-R, _, metadata = io.import_mch_gif(fn, product="AQC", unit="mm", accutime=5.0)
+root_path = rcparams.data_sources["mch"]["root_path"]
+filename = os.path.join(root_path, "20160711", "AQC161932100V_00005.801.gif")
+R, _, metadata = io.import_fmi_pgm(filename, product="AQC", unit="mm", accutime=5.0)
 
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)
