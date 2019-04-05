@@ -19,7 +19,7 @@ import pysteps as stp
 filenames = ("sample_mch_radar_composite_00.gif","sample_mch_radar_composite_01.gif")
 R = []
 for fn in filenames:
-    R_, _, metadata = stp.io.import_mch_gif(fn)
+    R_, _, metadata = stp.io.import_mch_gif(fn, product="AQC", unit="mm", accutime=5.)
     R.append(R_)
     R_ = None
 R = np.stack(R)

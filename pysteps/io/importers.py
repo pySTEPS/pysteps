@@ -375,7 +375,7 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     return metadata
 
 
-def import_mch_gif(filename, **kwargs):
+def import_mch_gif(filename, product, unit, accutime):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
 
@@ -384,10 +384,9 @@ def import_mch_gif(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-    product : string
-        The name of the MeteoSwiss QPE product:
+    product : {"AQC", "CPC", "RZC", "AZC"}
+        The name of the MeteoSwiss QPE product.\n
+        Currently supported prducts:
 
         +------+----------------------------+
         | Name |          Product           |
@@ -401,8 +400,9 @@ def import_mch_gif(filename, **kwargs):
         | AZC  |     RZC accumulation       |
         +------+----------------------------+
 
-    unit : string
-        the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
+    unit : {"mm/h", "mm", "dBZ"}
+        the physical unit of the data
+
     accutime : float
         the accumulation time in minutes of the data
 
@@ -420,10 +420,6 @@ def import_mch_gif(filename, **kwargs):
             "radar reflectivity composite from MeteoSwiss"
             "but it is not installed"
         )
-
-    product = kwargs.get("product", "AQC")
-    unit = kwargs.get("unit", "mm")
-    accutime = kwargs.get("accutime", 5.0)
 
     geodata = _import_mch_geodata()
 
@@ -632,7 +628,7 @@ def import_mch_hdf5(filename, **kwargs):
     return R, Q, metadata
 
 
-def import_mch_metranet(filename, **kwargs):
+def import_mch_metranet(filename, product, unit, accutime):
     """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
     archive.
 
@@ -641,22 +637,25 @@ def import_mch_metranet(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-    product : string
-        The name of the MeteoSwiss QPE product:
+    product : {"AQC", "CPC", "RZC", "AZC"}
+        The name of the MeteoSwiss QPE product.\n
+        Currently supported prducts:
 
         +------+----------------------------+
         | Name |          Product           |
         +======+============================+
-        | AQC  |         Acquire            |
+        | AQC  |     Acquire                |
         +------+----------------------------+
-        | CPC  |         CombiPrecip        |
+        | CPC  |     CombiPrecip            |
         +------+----------------------------+
-        | RZC  |         Precip             |
+        | RZC  |     Precip                 |
         +------+----------------------------+
-    unit : string
-        the physical unit of the data: 'mm/h', 'mm' or 'dBZ'
+        | AZC  |     RZC accumulation       |
+        +------+----------------------------+
+
+    unit : {"mm/h", "mm", "dBZ"}
+        the physical unit of the data
+
     accutime : float
         the accumulation time in minutes of the data
 
@@ -673,10 +672,6 @@ def import_mch_metranet(filename, **kwargs):
             "metranet package needed for importing MeteoSwiss "
             "radar composites but it is not installed"
         )
-
-    product = kwargs.get("product", "AQC")
-    unit = kwargs.get("unit", "mm")
-    accutime = kwargs.get("accutime", 5.0)
 
     ret = metranet.read_file(filename, physic_value=True, verbose=False)
     R = ret.data
