@@ -13,6 +13,7 @@ import numpy as np
 from pprint import pprint
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps import io
+from pysteps import rcparams
 from pysteps.cascade.decomposition import decomposition_fft
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
@@ -25,7 +26,7 @@ from pysteps.visualization import plot_precip_field
 # of dB.
 
 # Import the example radar composite
-root_path = pysteps.rcparams.data_sources["fmi"]["root_path"]
+root_path = rcparams.data_sources["fmi"]["root_path"]
 filename = os.path.join(
     root_path, "20160928", "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz"
 )
