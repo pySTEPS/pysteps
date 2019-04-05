@@ -105,7 +105,7 @@ def set_root():
     for key, value in rcparams["data_sources"].items():
         original_path = value["root_path"]
 
-        new_path = os.path.join("pysteps-data", value["root_path"])
+        new_path = os.path.join("..", "..", "pysteps-data", value["root_path"])
         new_path = os.path.abspath(new_path)
 
         value["root_path"] = new_path
