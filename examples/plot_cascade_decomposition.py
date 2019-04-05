@@ -25,8 +25,11 @@ from pysteps.visualization import plot_precip_field
 # of dB.
 
 # Import the example radar composite
-fn = "data/sample_mch_radar_composite_00.gif"
-R, _, metadata = io.import_mch_gif(fn)
+root_path = pysteps.rcparams.data_sources["fmi"]["root_path"]
+filename = os.path.join(
+    root_path, "20160928", "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz"
+)
+R, _, metadata = io.import_fmi_pgm(filename, gzipped=True)
 
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)
