@@ -10,7 +10,9 @@ Implementation of the STEPS stochastic blending method as described in
     
     calculate_ratios
     calculate_weights
-    blender
+    blend_cascades
+    blend_means_sigmas
+    recompose_cascade
 
 """
 
@@ -106,6 +108,37 @@ def blend_cascades(cascades_norm,weights):
     print(combined_cascade.shape)
     # combined_cascade [scale, ...]
     return combined_cascade
+
+
+def blend_means_sigmas(means,sigmas,weights):
+    #means component, scales, ....
+    #sigmas component, scales, ....
+    #weights component, scales, ....
+    total_weights = np.sum(weights,axis=0)
+    factors = weights / total_weights
+    diff_dims = factors.ndim - means.ndim
+    if diff_dims:
+        for i in range(diff_dims):
+            means = np.expand_dims(means, axis=means.ndim)
+    diff_dims = factors.ndim - sigmas.ndim
+    if diff_dims:
+        for i in range(diff_dims):
+            sigmas = np.expand_dims(sigmas, axis=sigmas.ndim)
+    weighted_means = np.sum((factors * means),axis=0)
+    weighted_sigmas = np.sum((factors * sigmas),axis=0)
+
+    # to do: substract covarainces to weigthed sigmas
+  
+    return weighted_means, weighted_sigmas
+
+    
+def recompose_cascade(w_cascade, w_mean,w_sigma):
+    renorm = (w_cascade * w_sigma) + w_mean
+    # print(renorm.shape)
+    out = np.sum(renorm,axis=0)
+    # print(out.shape)
+    return out
+
 
 
 
