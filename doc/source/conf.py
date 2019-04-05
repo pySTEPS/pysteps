@@ -97,7 +97,7 @@ todo_include_todos = False
 
 read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
 if read_the_docs_build:
-    subprocess.check_call(["./scripts/read_the_docs.sh"])
+    subprocess.check_call(["./scripts/read_the_docs.sh"], shell=True)
 
 # -- Options for HTML output ----------------------------------------------
 
