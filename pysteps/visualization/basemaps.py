@@ -115,7 +115,7 @@ def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None,
         ax = plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw)
 
         if basemap_scale_args is not None:
-            ax.drawmapscale(*basemap_scale_args, fontsize=6)
+            ax.drawmapscale(*basemap_scale_args, fontsize=6, yoffset=10000)
     else:    
         crs = utils.proj4_to_cartopy(proj4str)
             
