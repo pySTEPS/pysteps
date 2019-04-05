@@ -13,6 +13,7 @@ field.
 
 from matplotlib import cm, pyplot
 import numpy as np
+import os
 from pprint import pprint
 from pysteps import io, rcparams
 from pysteps.noise.fftgenerators import initialize_param_2d_fft_filter
@@ -25,7 +26,7 @@ from pysteps.visualization import plot_precip_field, plot_spectrum1d
 # Read precipitation field
 # ------------------------
 #
-# As a first thing, the radar composite is imported and transformed in units
+# First thing,  the radar composite is imported and transformed in units
 # of dB.
 # This image will be used to train the Fourier filters that are necessary to
 # produce the fields of spatially correlated noise.
@@ -35,7 +36,7 @@ root_path = rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(
     root_path, "20160711", "AQC161932100V_00005.801.gif"
 )
-R, _, metadata = io.import_fmi_pgm(filename, product="AQC", unit="mm", accutime=5.0)
+R, _, metadata = io.import_mch_gif(filename, product="AQC", unit="mm", accutime=5.0)
 
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)

@@ -22,7 +22,7 @@ from pysteps.visualization import plot_precip_field
 # Read precipitation field
 # ------------------------
 #
-# As a first thing, the radar composite is imported and transformed in units
+# First thing,  the radar composite is imported and transformed in units
 # of dB.
 
 # Import the example radar composite
