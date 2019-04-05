@@ -659,7 +659,8 @@ def _compute_incremental_mask(Rbin, kr, r):
     for n in range(r):
         Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
         mask += Rd
-    return mask
+    # normalize between 0 and 1
+    return mask / mask.max()
 
 
 def _recompose_cascade(R, mu, sigma):

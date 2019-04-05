@@ -676,7 +676,7 @@ def _compute_incremental_mask(Rbin, kr, r):
         Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
         mask += Rd
     # normalize between 0 and 1
-    return mask / (r + 1)
+    return mask / mask.max()
 
 
 def _compute_sprog_mask(R, war):
