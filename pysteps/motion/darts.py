@@ -10,10 +10,10 @@ Implementation of the DARTS algorithm.
     DARTS
 """
 
-import numpy as np
-from numpy.linalg import lstsq, svd
 import sys
 import time
+import numpy as np
+from numpy.linalg import lstsq, svd
 from .. import utils
 
 def DARTS(Z, **kwargs):
@@ -44,6 +44,10 @@ def DARTS(Z, **kwargs):
     fft_method : str
         A string defining the FFT method to use, see utils.fft.get_method.
         Defaults to 'numpy'.
+    output_type : {"spatial", "spectral"}
+        The type of the output: "spatial"=apply the inverse FFT to obtain the
+        spatial representation of the advection field, "spectral"=return the
+        (truncated) DFT representation.
     n_threads : int
         Number of threads to use for the FFT computation. Applicable if
         fft_method is 'pyfftw'.
@@ -70,12 +74,16 @@ def DARTS(Z, **kwargs):
     M_x = kwargs.get("M_x", 2)
     M_y = kwargs.get("M_y", 2)
     fft_method = kwargs.get("fft_method", "numpy")
+    output_type = kwargs.get("output_type", "spatial")
     print_info = kwargs.get("print_info", False)
     lsq_method = kwargs.get("lsq_method", 2)
-    verbose             = kwargs.get("verbose", True)
+    verbose = kwargs.get("verbose", True)
 
     if N_t >= Z.shape[0]:
         raise ValueError("N_t = %d >= %d = T, but N_t < T required" % (N_t, Z.shape[0]))
+
+    if output_type not in ["spatial", "spectral"]:
+        raise ValueError("invalid output_type=%s, must be 'spatial' or 'spectral'" % output_type)
 
     if verbose:
         print("Computing the motion field with the DARTS method.")
@@ -83,7 +91,7 @@ def DARTS(Z, **kwargs):
 
     Z = np.moveaxis(Z, (0, 1, 2), (2, 0, 1))
 
-    fft = utils.get_method(fft_method, shape=Z.shape[:2], fftn_shape=Z.shape, 
+    fft = utils.get_method(fft_method, shape=Z.shape[:2], fftn_shape=Z.shape,
                            **kwargs)
 
     T_x = Z.shape[1]
@@ -113,7 +121,7 @@ def DARTS(Z, **kwargs):
 
     y = np.zeros(m, dtype=complex)
 
-    k_t,k_y,k_x = np.unravel_index(np.arange(m), (2*N_t+1, 2*N_y+1, 2*N_x+1))
+    k_t, k_y, k_x = np.unravel_index(np.arange(m), (2*N_t+1, 2*N_y+1, 2*N_x+1))
 
     for i in range(m):
         k_x_ = k_x[i] - N_x
@@ -137,12 +145,12 @@ def DARTS(Z, **kwargs):
 
     c1 = -1.0*T_t / (T_x * T_y)
 
-    kp_y,kp_x = np.unravel_index(np.arange(n), (2*M_y+1, 2*M_x+1))
+    kp_y, kp_x = np.unravel_index(np.arange(n), (2*M_y+1, 2*M_x+1))
 
     for i in range(m):
-        k_x_  = k_x[i] - N_x
-        k_y_  = k_y[i] - N_y
-        k_t_  = k_t[i] - N_t
+        k_x_ = k_x[i] - N_x
+        k_y_ = k_y[i] - N_y
+        k_t_ = k_t[i] - N_t
 
         kp_x_ = kp_x[:] - M_x
         kp_y_ = kp_y[:] - M_y
@@ -173,26 +181,25 @@ def DARTS(Z, **kwargs):
     if print_info:
         print("Done in %.2f seconds." % (time.time() - starttime))
 
-    h,w = 2*M_y+1,2*M_x+1
+    h, w = 2*M_y+1, 2*M_x+1
 
     U = np.zeros((h, w), dtype=complex)
     V = np.zeros((h, w), dtype=complex)
 
-    i,j = np.unravel_index(np.arange(h*w), (h, w))
+    i, j = np.unravel_index(np.arange(h*w), (h, w))
 
     V[i, j] = x[0:h*w]
     U[i, j] = x[h*w:2*h*w]
 
-    k_x,k_y = np.meshgrid(np.arange(-M_x, M_x+1), np.arange(-M_y, M_y+1))
+    k_x, k_y = np.meshgrid(np.arange(-M_x, M_x+1), np.arange(-M_y, M_y+1))
 
-    U = np.real(fft.ifft2(_fill(U, Z.shape[0], Z.shape[1], k_x, k_y)))
-    V = np.real(fft.ifft2(_fill(V, Z.shape[0], Z.shape[1], k_x, k_y)))
+    if output_type == "spatial":
+        U = np.real(fft.ifft2(_fill(U, Z.shape[0], Z.shape[1], k_x, k_y)))
+        V = np.real(fft.ifft2(_fill(V, Z.shape[0], Z.shape[1], k_x, k_y)))
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
 
-    # TODO: Sometimes the sign of the advection field is wrong. This appears to
-    # depend on N_t...
     return np.stack([U, V])
 
 def _leastsq(A, B, y):
@@ -202,7 +209,7 @@ def _leastsq(A, B, y):
 
     M = None
 
-    U,s,V = svd(MM, full_matrices=False)
+    U, s, V = svd(MM, full_matrices=False)
     MM = None
     mask = s > 0.01*s[0]
     s = 1.0 / s[mask]
