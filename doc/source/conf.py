@@ -99,7 +99,8 @@ todo_include_todos = False
 # -- Read the Docs build --------------------------------------------------
 
 def set_root():
-    with open(os.path.join("..", "..", "pysteps", "pystepsrc"), "r") as f:
+    fn = os.path.abspath(os.path.join("..", "..", "pysteps", "pystepsrc"))
+    with open(fn, "r") as f:
         rcparams = json.loads(jsmin(f.read()))
 
     for key, value in rcparams["data_sources"].items():
@@ -110,16 +111,20 @@ def set_root():
 
         value["root_path"] = new_path
 
-    with open(os.path.join("..", "..", "pystepsrc.rtd"), "w") as f:
+    fn = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
+    with open(fn, "w") as f:
         json.dump(rcparams, f, indent=4)
 
 read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
 if read_the_docs_build:
     repourl = "https://github.com/pySTEPS/pysteps-data.git"
     dir = os.path.join(os.getcwd(), "..", "..", "pysteps-data")
+    dir = os.path.abspath(dir)
+    subprocess.check_call(['rm', '-rf', dir])
     subprocess.check_call(["git", "clone", repourl, dir])
     set_root()
-    os.environ['PYSTEPSRC'] = os.path.join("..", "..", "pystepsrc.rtd")
+    pystepsrc = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
+    os.environ['PYSTEPSRC'] = pystepsrc
 
 # -- Options for HTML output ----------------------------------------------
 
