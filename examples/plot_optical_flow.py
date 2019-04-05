@@ -9,10 +9,11 @@ sequence of radar images.
 
 """
 
+from datetime import datetime
 from matplotlib import pyplot
 import numpy as np
 from pprint import pprint
-from pysteps import io, motion
+from pysteps import io, motion, rcparams
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field, quiver
 
@@ -22,29 +23,35 @@ from pysteps.visualization import plot_precip_field, quiver
 #
 # First thing, the sequence of radar composites is imported.
 
-# Import the example radar composites
-fns = (
-    "data/sample_mch_radar_composite_00.gif", 
-    "data/sample_mch_radar_composite_01.gif",
-    )
+date = datetime.strptime("201505151630", "%Y%m%d%H%M")
+data_source = "mch"
+root_path = rcparams.data_sources[data_source]["root_path"]
+path_fmt = rcparams.data_sources[data_source]["path_fmt"]
+fn_pattern = rcparams.data_sources[data_source]["fn_pattern"]
+fn_ext = rcparams.data_sources[data_source]["fn_ext"]
+importer_name = rcparams.data_sources[data_source]["importer"]
+importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
 
-R = []
-for fn in fns:
-    R_, _, metadata = io.import_mch_gif(fn, product="AQC", unit="mm", accutime=5.)
-    R.append(R_)
-    R_ = None
-R = np.stack(R)
+# Import the example radar composites
+
+# Find the input files from the archive
+fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_prev_files=9)
+
+# Read the radar composites
+importer = io.get_method(importer_name, "importer")
+R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)
 
+# Store the last frame for polotting it later later
+R_ = R[-1, : , :].copy()
 
 # Log-transform the data
-R_, metadata_ = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
-
+R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
 
 # Nicely print the metadata
-pprint(metadata_)
+pprint(metadata)
 
 ###############################################################################
 # Lucas-Kanade (LK)
@@ -57,10 +64,10 @@ pprint(metadata_)
 # field of motion vectors.
 
 oflow_method = motion.get_method("LK")
-V1 = oflow_method(R_)
+V1 = oflow_method(R[-3:, :, :])
 
 # Plot the motion field
-plot_precip_field(R[0, :, :], geodata=metadata, title="Lucas-Kanade")
+plot_precip_field(R_, geodata=metadata, title="Lucas-Kanade")
 quiver(V1, geodata=metadata, step=25)
 
 ###############################################################################
@@ -75,16 +82,29 @@ quiver(V1, geodata=metadata, step=25)
 # at minimizing a cost function between the displaced and the reference image. 
 
 oflow_method = motion.get_method("VET")
-V2 = oflow_method(R_)
+V2 = oflow_method(R[-3:, :, :])
 
 # Plot the motion field
-plot_precip_field(R[0, :, :], geodata=metadata, title="Variational echo tracking")
+plot_precip_field(R_, geodata=metadata, title="Variational echo tracking")
 quiver(V2, geodata=metadata, step=25)
 
 ###############################################################################
 # Dynamic and adaptive radar tracking of storms (DARTS)
 # -----------------------------------------------------
 #
-# **Under development**
+# DARTS uses a spectral approach to optical flow that is based on the discrete
+# Fourier transform (DFT) of a temporal sequence of radar fields. 
+# The level of truncation of the DFT coefficients controls the degree of 
+# smoothness of the estimated motion field, allowing for an efficient 
+# motion estimation. DARTS requires a longer sequence of radar fields for 
+# estimating the motion, here we are going to use all the available 10 fields.
+
+oflow_method = motion.get_method("DARTS")
+R[~np.isfinite(R)] = metadata["zerovalue"]
+V3 = oflow_method(R) # needs longer training sequence
+
+# Plot the motion field
+plot_precip_field(R_, geodata=metadata, title="DARTS")
+quiver(V3, geodata=metadata, step=25)
 
 # sphinx_gallery_thumbnail_number = 2
