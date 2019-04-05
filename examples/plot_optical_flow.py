@@ -35,7 +35,9 @@ importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
 # Import the example radar composites
 
 # Find the input files from the archive
-fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_prev_files=9)
+fns = io.archive.find_by_date(
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_prev_files=9
+)
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
@@ -45,7 +47,7 @@ R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 R, metadata = conversion.to_rainrate(R, metadata)
 
 # Store the last frame for polotting it later later
-R_ = R[-1, : , :].copy()
+R_ = R[-1, :, :].copy()
 
 # Log-transform the data
 R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
@@ -60,7 +62,7 @@ pprint(metadata)
 # The Lucas-Kanade optical flow method implemented in pysteps is a local
 # tracking apporach that relies on the OpenCV package.
 # Local features are tracked in a sequence of two or more radar images. The
-# scheme includes a final interpolation step in order to produce a smooth 
+# scheme includes a final interpolation step in order to produce a smooth
 # field of motion vectors.
 
 oflow_method = motion.get_method("LK")
@@ -74,12 +76,12 @@ quiver(V1, geodata=metadata, step=25)
 # Variational echo tracking (VET)
 # -------------------------------
 #
-# This module implements the VET algorithm presented 
-# by Laroche and Zawadzki (1995) and used in the McGill Algorithm for 
-# Prediction by Lagrangian Extrapolation (MAPLE) described in 
+# This module implements the VET algorithm presented
+# by Laroche and Zawadzki (1995) and used in the McGill Algorithm for
+# Prediction by Lagrangian Extrapolation (MAPLE) described in
 # Germann and Zawadzki (2002).
 # The approach essentially consists of a global optimization routine that seeks
-# at minimizing a cost function between the displaced and the reference image. 
+# at minimizing a cost function between the displaced and the reference image.
 
 oflow_method = motion.get_method("VET")
 V2 = oflow_method(R[-3:, :, :])
@@ -93,15 +95,15 @@ quiver(V2, geodata=metadata, step=25)
 # -----------------------------------------------------
 #
 # DARTS uses a spectral approach to optical flow that is based on the discrete
-# Fourier transform (DFT) of a temporal sequence of radar fields. 
-# The level of truncation of the DFT coefficients controls the degree of 
-# smoothness of the estimated motion field, allowing for an efficient 
-# motion estimation. DARTS requires a longer sequence of radar fields for 
+# Fourier transform (DFT) of a temporal sequence of radar fields.
+# The level of truncation of the DFT coefficients controls the degree of
+# smoothness of the estimated motion field, allowing for an efficient
+# motion estimation. DARTS requires a longer sequence of radar fields for
 # estimating the motion, here we are going to use all the available 10 fields.
 
 oflow_method = motion.get_method("DARTS")
 R[~np.isfinite(R)] = metadata["zerovalue"]
-V3 = oflow_method(R) # needs longer training sequence
+V3 = oflow_method(R)  # needs longer training sequence
 
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="DARTS")
