@@ -13,8 +13,7 @@ import numpy as np
 import os
 from pprint import pprint
 from pysteps.cascade.bandpass_filters import filter_gaussian
-from pysteps import io
-from pysteps import rcparams
+from pysteps import io, rcparams
 from pysteps.cascade.decomposition import decomposition_fft
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
@@ -34,7 +33,7 @@ filename = os.path.join(
 R, _, metadata = io.import_fmi_pgm(filename, gzipped=True)
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+R, metadata = conversion.to_rainrate(R, metadata, 223.0, 1.53)
 
 # Nicely print the metadata
 pprint(metadata)
