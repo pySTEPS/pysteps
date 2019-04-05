@@ -77,9 +77,11 @@ from pysteps.exceptions import MissingOptionalDependency, DataModelError
 
 try:
     import netCDF4
+
     netcdf4_imported = True
 except ImportError:
     netcdf4_imported = False
+
 
 def import_netcdf_pysteps(filename, **kwargs):
     """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the
@@ -87,31 +89,32 @@ def import_netcdf_pysteps(filename, **kwargs):
     if not netcdf4_imported:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import pysteps netcdf "
-            "nowcasts but it is not installed")
+            "nowcasts but it is not installed"
+        )
     try:
-        ds = netCDF4.Dataset(filename, 'r')
+        ds = netCDF4.Dataset(filename, "r")
 
         var_names = list(ds.variables.keys())
 
         if "precip_intensity" in var_names:
-            R         = ds.variables["precip_intensity"]
-            unit      = "mm/h" 
-            accutime  = None
+            R = ds.variables["precip_intensity"]
+            unit = "mm/h"
+            accutime = None
             transform = None
         elif "precip_accum" in var_names:
-            R         = ds.variables["precip_accum"]
-            unit      = "mm"
-            accutime  = None
+            R = ds.variables["precip_accum"]
+            unit = "mm"
+            accutime = None
             transform = None
         elif "hourly_precip_accum" in var_names:
-            R         = ds.variables["hourly_precip_accum"]
-            unit      = "mm"
-            accutime  = 60.
+            R = ds.variables["hourly_precip_accum"]
+            unit = "mm"
+            accutime = 60.0
             transform = None
         elif "reflectivity" in var_names:
-            R         = ds.variables["reflectivity"]
-            unit      = "dBZ"
-            accutime  = None
+            R = ds.variables["reflectivity"]
+            unit = "dBZ"
+            accutime = None
             transform = "dB"
         else:
             raise DataModelError(
@@ -119,14 +122,15 @@ def import_netcdf_pysteps(filename, **kwargs):
                 "the netCDF file does not contain any supported variable name.\n"
                 "Supported names: 'precip_intensity', 'hourly_precip_accum', "
                 "or 'reflectivity'\n"
-                "file: "+filename)
+                "file: " + filename
+            )
 
         R = R[...].squeeze().astype(float)
 
         metadata = {}
-        
-        time_var = ds.variables['time']
-        leadtimes = time_var[:]/60. # minutes leadtime
+
+        time_var = ds.variables["time"]
+        leadtimes = time_var[:] / 60.0  # minutes leadtime
         metadata["leadtimes"] = leadtimes
         timestamps = netCDF4.num2date(time_var[:], time_var.units)
         metadata["timestamps"] = timestamps
@@ -141,15 +145,15 @@ def import_netcdf_pysteps(filename, **kwargs):
 
             proj_str = _convert_grid_mapping_to_proj4(attr_dict)
             metadata["projection"] = proj_str
-            
+
         # geodata
-        metadata["xpixelsize"] = abs(ds.variables['xc'][1] - ds.variables['xc'][0])
-        metadata["ypixelsize"] = abs(ds.variables['yc'][1] - ds.variables['yc'][0])
-        
-        xmin = np.min(ds.variables['xc']) - 0.5*metadata["xpixelsize"]
-        xmax = np.max(ds.variables['xc']) + 0.5*metadata["xpixelsize"]
-        ymin = np.min(ds.variables['yc']) - 0.5*metadata["ypixelsize"]
-        ymax = np.max(ds.variables['yc']) + 0.5*metadata["ypixelsize"]
+        metadata["xpixelsize"] = abs(ds.variables["xc"][1] - ds.variables["xc"][0])
+        metadata["ypixelsize"] = abs(ds.variables["yc"][1] - ds.variables["yc"][0])
+
+        xmin = np.min(ds.variables["xc"]) - 0.5 * metadata["xpixelsize"]
+        xmax = np.max(ds.variables["xc"]) + 0.5 * metadata["xpixelsize"]
+        ymin = np.min(ds.variables["yc"]) - 0.5 * metadata["ypixelsize"]
+        ymax = np.max(ds.variables["yc"]) + 0.5 * metadata["ypixelsize"]
 
         # TODO: this is only a quick solution
         metadata["x1"] = xmin
@@ -157,7 +161,7 @@ def import_netcdf_pysteps(filename, **kwargs):
         metadata["x2"] = xmax
         metadata["y2"] = ymax
 
-        metadata["yorigin"] = "upper" # TODO: check this
+        metadata["yorigin"] = "upper"  # TODO: check this
 
         # TODO: Read the metadata to the dictionary.
         if accutime is None:
@@ -166,13 +170,13 @@ def import_netcdf_pysteps(filename, **kwargs):
         metadata["unit"] = unit
         metadata["transform"] = transform
         metadata["zerovalue"] = np.nanmin(R)
-        metadata["threshold"] = np.nanmin(R[R>np.nanmin(R)])
+        metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
 
         ds.close()
 
         return R, metadata
     except Exception as er:
-        print('There was an error processing the file', er)
+        print("There was an error processing the file", er)
         return None, None
 
 

@@ -17,11 +17,16 @@ Skill scores for spatial forecasts.
 
 import numpy as np
 from scipy.ndimage.filters import uniform_filter
+
 try:
     import pywt
+
     pywt_imported = True
 except ImportError:
     pywt_imported = False
+from .. import cascade
+from .. import utils
+from pysteps.noise.fftgenerators import build_2D_tapering_function
 
 
 def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
@@ -187,7 +192,7 @@ def intensity_scale_accum(intscale, X_f, X_o):
     if intscale["SS"] is None:
         intscale["SS"] = SS
     else:
-        intscale["SS"] += np.nansum((SS, -1*intscale["SS"]), axis=0)/intscale["n"]
+        intscale["SS"] += np.nansum((SS, -1 * intscale["SS"]), axis=0) / intscale["n"]
 
 
 def intensity_scale_compute(intscale):
@@ -258,12 +263,12 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
     E_decomp = _wavelet_decomp(I_f - I_o, w)
     n_scales = len(E_decomp)
 
-    eps = 1.0*np.sum((X_o >= thr).astype(int)) / np.size(X_o)
+    eps = 1.0 * np.sum((X_o >= thr).astype(int)) / np.size(X_o)
 
     SS = np.empty((n_scales))
     for j in range(n_scales):
-        mse = np.mean(E_decomp[j]**2)
-        SS[j] = 1 - mse / (2*eps*(1-eps) / n_scales)
+        mse = np.mean(E_decomp[j] ** 2)
+        SS[j] = 1 - mse / (2 * eps * (1 - eps) / n_scales)
     SS[~np.isfinite(SS)] = np.nan
 
     scales = pow(2, np.arange(SS.size))[::-1]
@@ -321,9 +326,9 @@ def fss(X_f, X_o, thr, scale):
 
     # Compute the numerator
     n = X_f.size
-    N = 1.0*np.sum((S_o - S_f)**2) / n
+    N = 1.0 * np.sum((S_o - S_f) ** 2) / n
     # Compute the denominator
-    D = 1.0*(np.sum(S_o**2) + np.nansum(S_f**2)) / n
+    D = 1.0 * (np.sum(S_o ** 2) + np.nansum(S_f ** 2)) / n
 
     return 1 - N / D
 
