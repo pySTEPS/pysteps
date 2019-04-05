@@ -7,6 +7,9 @@ import os
 import subprocess
 import sys
 
+import json
+from jsmin import jsmin
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -95,9 +98,29 @@ todo_include_todos = False
 
 # -- Read the Docs build --------------------------------------------------
 
+def set_root():
+
+    with open(os.path.join("pysteps", "pystepsrc"), "r") as f:
+        rcparams = json.loads(jsmin(f.read()))
+
+    for key, value in rcparams["data_sources"].items():
+        original_path = value["root_path"]
+
+        new_path = os.path.join("pysteps-data", value["root_path"])
+        new_path = os.path.abspath(new_path)
+
+        value["root_path"] = new_path
+
+    with open("pystepsrc.rtd", "w") as f:
+        json.dump(rcparams, f, indent=4)
+
 read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
 if read_the_docs_build:
-    subprocess.check_call(["./scripts/read_the_docs.sh"], shell=True)
+    repourl = "https://github.com/pySTEPS/pysteps-data.git"
+    dir = os.path.join(os.getcwd(), "pysteps-data")
+    subprocess.check_call(["git", "clone", repourl, dir])
+    set_root()
+    os.putenv("PYSTEPSRC", os.path.join(os.getcwd(), "pystepsrc.rtd"))
 
 # -- Options for HTML output ----------------------------------------------
 
