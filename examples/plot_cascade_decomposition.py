@@ -10,6 +10,7 @@ a single radar precipitation field in pysteps.
 
 from matplotlib import cm, pyplot
 import numpy as np
+import os
 from pprint import pprint
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps import io

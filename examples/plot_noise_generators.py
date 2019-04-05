@@ -32,7 +32,7 @@ from pysteps.visualization import plot_precip_field, plot_spectrum1d
 
 # Import the example radar composite
 fn = "data/sample_mch_radar_composite_00.gif"
-R, _, metadata = io.import_mch_gif(fn)
+R, _, metadata = io.import_mch_gif(fn, product="AQC", unit="mm", accutime=5.)
 
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)
@@ -152,8 +152,6 @@ for i in range(2):
         ax[i, j].set_yticks([])
 pyplot.tight_layout()
 
-# sphinx_gallery_thumbnail_number = 3
-
 ###############################################################################
 # The above figure highlights the main limitation of the parametric approach
 # (top row), that is, the assumption of an isotropic power law scaling 
@@ -168,3 +166,4 @@ pyplot.tight_layout()
 # In addition, both techniques assume spatial stationarity of the covariance 
 # structure of the field.
 
+# sphinx_gallery_thumbnail_number = 3

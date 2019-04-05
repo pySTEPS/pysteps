@@ -30,7 +30,7 @@ fns = (
 
 R = []
 for fn in fns:
-    R_, _, metadata = io.import_mch_gif(fn)
+    R_, _, metadata = io.import_mch_gif(fn, product="AQC", unit="mm", accutime=5.)
     R.append(R_)
     R_ = None
 R = np.stack(R)
@@ -86,3 +86,5 @@ quiver(V2, geodata=metadata, step=25)
 # -----------------------------------------------------
 #
 # **Under development**
+
+# sphinx_gallery_thumbnail_number = 2
