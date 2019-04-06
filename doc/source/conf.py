@@ -3,14 +3,17 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import os
+import subprocess
 import sys
 
-import os
+import json
+from jsmin import jsmin
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-
 if 'READTHEDOCS' not in os.environ:
     sys.path.insert(1, os.path.abspath('../../'))
 
@@ -29,7 +32,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'numpydoc',
-              'sphinxcontrib.bibtex'
+              'sphinxcontrib.bibtex',
+              'sphinx_gallery.gen_gallery',
               ]
 # numpydoc_show_class_members = False
 # Add any paths that contain templates here, relative to this directory.
@@ -48,8 +52,7 @@ master_doc = 'index'
 project = u'pysteps'
 copyright = u'2018-2019, PySteps developers'
 author = u'PySteps developers'
-
-
+  
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
@@ -91,6 +94,35 @@ pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
+
+# -- Read the Docs build --------------------------------------------------
+
+def set_root():
+    fn = os.path.abspath(os.path.join("..", "..", "pysteps", "pystepsrc"))
+    with open(fn, "r") as f:
+        rcparams = json.loads(jsmin(f.read()))
+
+    for key, value in rcparams["data_sources"].items():
+        original_path = value["root_path"]
+
+        new_path = os.path.join("..", "..", "pysteps-data", value["root_path"])
+        new_path = os.path.abspath(new_path)
+
+        value["root_path"] = new_path
+
+    fn = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
+    with open(fn, "w") as f:
+        json.dump(rcparams, f, indent=4)
+
+if 'READTHEDOCS' in os.environ:
+    repourl = "https://github.com/pySTEPS/pysteps-data.git"
+    dir = os.path.join(os.getcwd(), "..", "..", "pysteps-data")
+    dir = os.path.abspath(dir)
+    subprocess.check_call(['rm', '-rf', dir])
+    subprocess.check_call(["git", "clone", repourl, dir])
+    set_root()
+    pystepsrc = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
+    os.environ['PYSTEPSRC'] = pystepsrc
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -196,3 +228,12 @@ texinfo_documents = [
      author, 'pysteps', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+# -- Options for Sphinx-Gallery -------------------------------------------
+
+# The configuration dictionary for Sphinx-Gallery
+
+sphinx_gallery_conf = {
+     'examples_dirs': '../../examples',   # path to your example scripts
+     'gallery_dirs': 'auto_examples',  # path where to save gallery generated examples
+}
