@@ -46,7 +46,6 @@ def test_io_import_fmi_pmg_metadata(variable, expected):
     filename = os.path.join(root_path, "20160928",
                             "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz")
     metadata = pysteps.io.importers._import_fmi_pgm_metadata(filename, gzipped=True)
-    print(metadata)
     assert metadata[variable] == expected
 
 
