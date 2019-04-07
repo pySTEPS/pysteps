@@ -57,6 +57,9 @@ R, metadata = conversion.to_rainrate(R, metadata)
 # Upscale data to 2 km to limit memory usage
 R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
 
+# Plot the rainfall field
+plot_precip_field(R, geodata=metadata)
+
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h
 R = transformation.dB_transform(R, threshold=0.1, zerovalue=-15.0)[0]
 
@@ -93,8 +96,7 @@ R_f = nowcast_method(
 R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
 
 # Plot the S-PROG forecast
-figure()
-bm = plot_precip_field(R_f[-1, :, :], geodata=metadata, title="S-PROG")
+plot_precip_field(R_f[-1, :, :], geodata=metadata, title="S-PROG")
 
 ###############################################################################
 # As we can see from the figure above, the forecast produced by S-PROG is a
@@ -120,11 +122,11 @@ R_f = nowcast_method(
     R[-3:, :, :],
     V,
     n_leadtimes,
-    n_ens_members=n_ens_members,
+    n_ens_members,
     n_cascade_levels=6,
     R_thr=-10.0,
-    kmperpixel=1.0,
-    timestep=5,
+    kmperpixel=2.0,
+    timestep=timestep,
     decomp_method="fft",
     bandpass_filter_method="gaussian",
     noise_method="nonparametric",
@@ -139,34 +141,34 @@ R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
 
 # Plot the ensemble mean
 R_f_mean = np.mean(R_f[:, -1, :, :], axis=0)
-figure()
-bm = plot_precip_field(R_f_mean, geodata=metadata, title="Ensemble mean")
+plot_precip_field(R_f_mean, geodata=metadata, title="Ensemble mean")
 
 ###############################################################################
 # The mean of the ensemble displays similar properties as the S-PROG
 # forecast seen above, although the degree of smoothing strongly depends on
 # the ensemble size. In this sense, the S-PROG forecast can be seen as
-# the mean forecast from an ensemble of infinite size.
+# the mean of an ensemble of infinite size.
 
 # Plot the first two realizations
 fig = figure()
 for i in range(2):
     ax = fig.add_subplot(121 + i)
     ax.set_title("Member %02d" % i)
-    bm = plot_precip_field(R_f[i, -1, :, :], geodata=metadata)
+    plot_precip_field(R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off")
 tight_layout()
 
 ###############################################################################
 # As we can see from these two members of the ensemble, the stochastic forecast
 # mantains the same variance as in the observed rainfall field.
+
+###############################################################################
 # Finally, it is possible to derive probabilities from our ensemble forecast.
 
 # Compute exceedence probabilities for a 0.5 mm/h threshold
 P = excprob(R_f[:, -1, :, :], 0.5)
 
 # Plot the field of probabilities
-figure()
-bm = plot_precip_field(
+plot_precip_field(
     P,
     geodata=metadata,
     drawlonlatlines=False,
@@ -176,4 +178,4 @@ bm = plot_precip_field(
     title="Exceedence probability",
 )
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 5

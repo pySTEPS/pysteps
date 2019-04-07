@@ -46,7 +46,10 @@ importer = io.get_method(importer_name, "importer")
 Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to rain rate using the finnish Z-R relationship
-R = conversion.to_rainrate(Z, metadata, 223.0, 1.53)[0]
+R, metadata = conversion.to_rainrate(Z, metadata, 223.0, 1.53)
+
+# Plot the rainfall field
+plot_precip_field(R, geodata=metadata)
 
 # Store the last frame for polotting it later later
 R_ = R[-1, :, :].copy()
@@ -80,7 +83,7 @@ R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
 
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata)
-quiver(V, geodata=metadata)
+quiver(V, geodata=metadata, step=50)
 
 ###############################################################################
 # Verify with FSS
