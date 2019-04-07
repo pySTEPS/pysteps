@@ -51,10 +51,11 @@ R, metadata = conversion.to_rainrate(Z, metadata, 223.0, 1.53)
 # Plot the rainfall field
 plot_precip_field(R[-1, :, :], geodata=metadata)
 
-# Store the last frame for polotting it later later
+# Store the last frame for plotting it later later
 R_ = R[-1, :, :].copy()
 
-# Log-transform the data
+# Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
+# set the fill value to -15 dBR
 R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
 
 # Nicely print the metadata
@@ -111,12 +112,12 @@ R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o, 223.0, 1.53)
 # Compute fractions skill score (FSS) for all lead times, a set of scales and 1 mm/h
 fss = verification.get_method("FSS")
 scales = [2, 4, 8, 16, 32, 64, 128, 256, 512]
-threshold = 1.0
+thr = 1.0
 score = []
 for i in range(n_leadtimes):
     score_ = []
     for scale in scales:
-        score_.append(fss(R_f[i, :, :], R_o[i + 1, :, :], threshold, scale))
+        score_.append(fss(R_f[i, :, :], R_o[i + 1, :, :], thr, scale))
     score.append(score_)
 
 figure()
@@ -126,5 +127,5 @@ legend(scales, title="Scale [km]")
 xlabel("Lead time [min]")
 ylabel("FSS ( > 1.0 mm/h ) ")
 title("Fractions skill score")
-show()
-# sphinx_gallery_thumbnail_number = 2
+
+# sphinx_gallery_thumbnail_number = 3
