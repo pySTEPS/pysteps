@@ -148,22 +148,22 @@ P_f = ensemblestats.excprob(R_f[:, -1, :, :], 0.1, ignore_nan=True)
 # compute and plot the ROC curve
 roc = verification.ROC_curve_init(0.1, n_prob_thrs=10)
 verification.ROC_curve_accum(roc, P_f, R_o[-1, :, :])
-fig = figure()
-verification.plot_ROC(roc, ax=fig.gca(), opt_prob_thr=True)
-title("ROC curve (+ %i min)" % (n_leadtimes * timestep))
+fig, ax = subplots()
+verification.plot_ROC(roc, ax, opt_prob_thr=True)
+ax.set_title("ROC curve (+ %i min)" % (n_leadtimes * timestep))
 
 # compute and plot the reliability diagram
 reldiag = verification.reldiag_init(0.1)
 verification.reldiag_accum(reldiag, P_f, R_o[-1, :, :])
-fig = figure()
-verification.plot_reldiag(reldiag, ax=fig.gca())
-title("Reliability diagram (+ %i min)" % (n_leadtimes * timestep))
+fig, ax = subplots()
+verification.plot_reldiag(reldiag, ax)
+ax.set_title("Reliability diagram (+ %i min)" % (n_leadtimes * timestep))
 
 # compute and plot the rank histogram
 rankhist = verification.rankhist_init(R_f.shape[0], 0.1)
 verification.rankhist_accum(rankhist, R_f[:, -1, :, :], R_o[-1, :, :])
-fig = figure()
-verification.plot_rankhist(rankhist, ax=fig.gca())
-title("Rank histogram (+ %i min)" % (n_leadtimes * timestep))
+fig, ax = subplots()
+verification.plot_rankhist(rankhist, ax)
+ax.set_title("Rank histogram (+ %i min)" % (n_leadtimes * timestep))
 
 # sphinx_gallery_thumbnail_number = 5
