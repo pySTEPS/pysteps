@@ -49,7 +49,7 @@ Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 R, metadata = conversion.to_rainrate(Z, metadata, 223.0, 1.53)
 
 # Plot the rainfall field
-plot_precip_field(R, geodata=metadata)
+plot_precip_field(R[-1, :, :], geodata=metadata)
 
 # Store the last frame for polotting it later later
 R_ = R[-1, :, :].copy()
@@ -126,5 +126,5 @@ legend(scales, title="Scale [km]")
 xlabel("Lead time [min]")
 ylabel("FSS ( > 1.0 mm/h ) ")
 title("Fractions skill score")
-
+show()
 # sphinx_gallery_thumbnail_number = 2

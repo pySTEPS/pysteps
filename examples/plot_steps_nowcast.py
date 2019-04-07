@@ -58,7 +58,7 @@ R, metadata = conversion.to_rainrate(R, metadata)
 R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
 
 # Plot the rainfall field
-plot_precip_field(R, geodata=metadata)
+plot_precip_field(R[-1, :, :], geodata=metadata)
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h
 R = transformation.dB_transform(R, threshold=0.1, zerovalue=-15.0)[0]
