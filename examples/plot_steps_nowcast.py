@@ -3,18 +3,15 @@
 STEPS nowcast
 =============
 
-This tutorial shows how to compute and plot an ensemble nowcast using Finnish
+This tutorial shows how to compute and plot an ensemble nowcast using Swiss
 radar data.
 
 """
 
 from pylab import *
 from datetime import datetime
-from pysteps.io.archive import find_by_date
-from pysteps.io.importers import import_fmi_pgm
-from pysteps.io.readers import read_timeseries
+from pysteps import io, nowcasts, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
-from pysteps import nowcasts, rcparams
 from pysteps.postprocessing.ensemblestats import excprob
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
@@ -28,11 +25,13 @@ seed = 24
 # Read precipitation field
 # ------------------------
 #
-# First thing, the sequence of Finnish radar composites is imported, converted and
+# First thing, the sequence of Swiss radar composites is imported, converted and
 # transformed into units of dBR.
 
-date = datetime.strptime("201609281600", "%Y%m%d%H%M")
-data_source = "fmi"
+
+
+date = datetime.strptime("201701311200", "%Y%m%d%H%M")
+data_source = "mch"
 
 # Load data source config
 root_path = rcparams.data_sources[data_source]["root_path"]
@@ -44,15 +43,16 @@ importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
 timestep = rcparams.data_sources[data_source]["timestep"]
 
 # Find the radar files in the archive
-inputfns = find_by_date(
-    date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_prev_files=9
+fns = io.find_by_date(
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_prev_files=2,
 )
 
 # Read the data from the archive
-Z, _, metadata = read_timeseries(inputfns, import_fmi_pgm, gzipped=True)
+importer = io.get_method(importer_name, "importer")
+R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Convert to rain rate using the finnish Z-R relationship
-R = conversion.to_rainrate(Z, metadata, 223.0, 1.53)[0]
+# Convert to rain rate
+R, metadata = conversion.to_rainrate(R, metadata)
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h
 R = transformation.dB_transform(R, threshold=0.1, zerovalue=-15.0)[0]
