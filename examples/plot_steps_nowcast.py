@@ -18,7 +18,7 @@ from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 
 # Set nowcast parameters
-n_ens_members = 12
+n_ens_members = 20
 n_leadtimes = 6
 seed = 24
 
@@ -160,7 +160,7 @@ plot_precip_field(
 # the ensemble size. In this sense, the S-PROG forecast can be seen as
 # the mean of an ensemble of infinite size.
 
-# Plot the first two realizations
+# Plot some of the realizations
 fig = figure()
 for i in range(4):
     ax = fig.add_subplot(221 + i)
