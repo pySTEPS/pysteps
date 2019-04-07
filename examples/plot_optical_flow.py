@@ -1,4 +1,3 @@
-#!/bin/env python
 """
 Optical flow
 ============
@@ -6,18 +5,18 @@ Optical flow
 This tutorial offers a short overview to the optical flow routines available in 
 pysteps and it will cover how to compute and plot the motion field from a 
 sequence of radar images.
-
 """
 
 from datetime import datetime
-from matplotlib import pyplot
-import numpy as np
 from pprint import pprint
+
+import numpy as np
+
 from pysteps import io, motion, rcparams
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field, quiver
 
-###############################################################################
+################################################################################
 # Read the radar input images
 # ---------------------------
 #
@@ -34,7 +33,8 @@ importer_name = rcparams.data_sources[data_source]["importer"]
 importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
 
 # Find the input files from the archive
-fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_prev_files=9)
+fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext,
+                              timestep=5, num_prev_files=9)
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
@@ -43,21 +43,22 @@ R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)
 
-# Store the last frame for polotting it later later
-R_ = R[-1, : , :].copy()
+# Store the last frame for plotting it later later
+R_ = R[-1, :, :].copy()
 
 # Log-transform the data
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+R, metadata = transformation.dB_transform(R, metadata,
+                                          threshold=0.1, zerovalue=-15.0)
 
 # Nicely print the metadata
 pprint(metadata)
 
-###############################################################################
+################################################################################
 # Lucas-Kanade (LK)
 # -----------------
 #
 # The Lucas-Kanade optical flow method implemented in pysteps is a local
-# tracking apporach that relies on the OpenCV package.
+# tracking approach that relies on the OpenCV package.
 # Local features are tracked in a sequence of two or more radar images. The
 # scheme includes a final interpolation step in order to produce a smooth 
 # field of motion vectors.
@@ -69,7 +70,7 @@ V1 = oflow_method(R[-3:, :, :])
 plot_precip_field(R_, geodata=metadata, title="Lucas-Kanade")
 quiver(V1, geodata=metadata, step=25)
 
-###############################################################################
+################################################################################
 # Variational echo tracking (VET)
 # -------------------------------
 #
@@ -87,7 +88,7 @@ V2 = oflow_method(R[-3:, :, :])
 plot_precip_field(R_, geodata=metadata, title="Variational echo tracking")
 quiver(V2, geodata=metadata, step=25)
 
-###############################################################################
+################################################################################
 # Dynamic and adaptive radar tracking of storms (DARTS)
 # -----------------------------------------------------
 #
@@ -100,7 +101,7 @@ quiver(V2, geodata=metadata, step=25)
 
 oflow_method = motion.get_method("DARTS")
 R[~np.isfinite(R)] = metadata["zerovalue"]
-V3 = oflow_method(R) # needs longer training sequence
+V3 = oflow_method(R)  # needs longer training sequence
 
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="DARTS")
