@@ -17,15 +17,24 @@ Also, they will fail if any modification on the code decrease the quality of
 the retrieval.
 """
 
-from datetime import datetime
-
 import numpy as np
 import pytest
 from scipy.ndimage import uniform_filter
 
 import pysteps as stp
-from pysteps import motion, io, rcparams
+from pysteps import motion
 from pysteps.motion.vet import morph
+# Relative RMSE = Rel_RMSE = sqrt(Relative MSE)
+#
+# - Rel_RMSE = 0%: no error
+# - Rel_RMSE = 100%: The retrieved motion field has an average error equal in
+#   magnitude to the motion field.
+#
+# Relative RMSE is computed only un a region surrounding the precipitation
+# field, were we have enough information to retrieve the motion field.
+# The precipitation region includes the precipitation pattern plus a margin of
+# approximately 20 grid points.
+from pysteps.tests.helpers import get_precipitation_fields
 
 
 ################################################################################
@@ -38,18 +47,6 @@ from pysteps.motion.vet import morph
 # To evaluate the accuracy of the computed_motion vectors, we will use
 # a relative RMSE measure.
 # Relative MSE = <(expected_motion - computed_motion)^2> / <expected_motion^2>
-
-# Relative RMSE = Rel_RMSE = sqrt(Relative MSE)
-#
-# - Rel_RMSE = 0%: no error
-# - Rel_RMSE = 100%: The retrieved motion field has an average error equal in
-#   magnitude to the motion field.
-#
-# Relative RMSE is computed only un a region surrounding the precipitation
-# field, were we have enough information to retrieve the motion field.
-# The precipitation region includes the precipitation pattern plus a margin of
-# approximately 20 grid points.
-from pysteps.tests.helpers import get_precipitation_fields
 
 
 def _create_motion_field(input_precip, motion_type):
