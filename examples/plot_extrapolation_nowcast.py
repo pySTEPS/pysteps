@@ -123,3 +123,5 @@ legend(scales, title="Scale [km]")
 xlabel("Lead time [min]")
 ylabel("FSS ( > 1.0 mm/h ) ")
 title("Fractions skill score")
+
+# sphinx_gallery_thumbnail_number = 2
