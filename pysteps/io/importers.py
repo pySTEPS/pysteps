@@ -1012,10 +1012,10 @@ def import_knmi_hdf5(filename, **kwargs):
     y1 = max(UL_y, UR_y)
 
     # Fill in the metadata
-    metadata["x1"] = x1
-    metadata["y1"] = y1
-    metadata["x2"] = x2
-    metadata["y2"] = y2
+    metadata["x1"] = x1 * 1000.
+    metadata["y1"] = y1 * 1000.
+    metadata["x2"] = x2 * 1000.
+    metadata["y2"] = y2 * 1000.
 
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
