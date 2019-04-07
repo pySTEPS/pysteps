@@ -33,9 +33,7 @@ from pysteps.visualization import plot_precip_field, plot_spectrum1d
 
 # Import the example radar composite
 root_path = rcparams.data_sources["mch"]["root_path"]
-filename = os.path.join(
-    root_path, "20160711", "AQC161932100V_00005.801.gif"
-)
+filename = os.path.join(root_path, "20160711", "AQC161932100V_00005.801.gif")
 R, _, metadata = io.import_mch_gif(filename, product="AQC", unit="mm", accutime=5.0)
 
 # Convert to mm/h
@@ -158,16 +156,16 @@ pyplot.tight_layout()
 
 ###############################################################################
 # The above figure highlights the main limitation of the parametric approach
-# (top row), that is, the assumption of an isotropic power law scaling 
-# relationship, meaning that anisotropic structures such as rainfall bands 
-# cannot be represented. 
+# (top row), that is, the assumption of an isotropic power law scaling
+# relationship, meaning that anisotropic structures such as rainfall bands
+# cannot be represented.
 #
-# Instead, the nonparametric approach (bottom row) allows generating 
-# perturbation fields with anisotropic  structures, but it also requires a 
-# larger sample size and is sensitive to the quality of the input data, e.g. 
+# Instead, the nonparametric approach (bottom row) allows generating
+# perturbation fields with anisotropic  structures, but it also requires a
+# larger sample size and is sensitive to the quality of the input data, e.g.
 # the presence of residual clutter in the radar image.
 #
-# In addition, both techniques assume spatial stationarity of the covariance 
+# In addition, both techniques assume spatial stationarity of the covariance
 # structure of the field.
 
 # sphinx_gallery_thumbnail_number = 3

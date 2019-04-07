@@ -20,23 +20,28 @@ from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
 
 # Set nowcast parameters
-date = datetime.strptime("201609281600", "%Y%m%d%H%M")
 n_ens_members = 12
+n_leadtimes = 12
 seed = 24
 
 ###############################################################################
 # Read precipitation field
 # ------------------------
 #
-# First thing, the sequence of Finnish radar composites is imported, converted and 
+# First thing, the sequence of Finnish radar composites is imported, converted and
 # transformed into units of dBR.
 
+date = datetime.strptime("201701311200", "%Y%m%d%H%M")
+data_source = "mch"
+
 # Load data source config
-root_path = rcparams.data_sources["fmi"]["root_path"]
-path_fmt = rcparams.data_sources["fmi"]["path_fmt"]
-fn_pattern = rcparams.data_sources["fmi"]["fn_pattern"]
-fn_ext = rcparams.data_sources["fmi"]["fn_ext"]
-timestep = rcparams.data_sources["fmi"]["timestep"]
+root_path = rcparams.data_sources[data_source]["root_path"]
+path_fmt = rcparams.data_sources[data_source]["path_fmt"]
+fn_pattern = rcparams.data_sources[data_source]["fn_pattern"]
+fn_ext = rcparams.data_sources[data_source]["fn_ext"]
+importer_name = rcparams.data_sources[data_source]["importer"]
+importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
+timestep = rcparams.data_sources[data_source]["timestep"]
 
 # Find the radar files in the archive
 inputfns = find_by_date(
@@ -73,7 +78,7 @@ nowcast_method = nowcasts.get_method("sprog")
 R_f = nowcast_method(
     R[-3:, :, :],
     V,
-    12,
+    n_leadtimes,
     n_cascade_levels=8,
     R_thr=-10.0,
     decomp_method="fft",
@@ -86,15 +91,7 @@ R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
 
 # Plot the S-PROG forecast
 figure()
-bm = plot_precip_field(
-    R_f[-1, :, :],
-    map="basemap",
-    geodata=metadata,
-    drawlonlatlines=False,
-    basemap_resolution="h",
-    basemap_scale_args=[30.0, 58.5, 30.2, 58.5, 120],
-    title="S-PROG",
-)
+bm = plot_precip_field(R_f[-1, :, :], geodata=metadata, title="S-PROG")
 
 ###############################################################################
 # As we can see from the figure above, the forecast produced by S-PROG is a
@@ -140,20 +137,12 @@ R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
 # Plot the ensemble mean
 R_f_mean = np.mean(R_f[:, -1, :, :], axis=0)
 figure()
-bm = plot_precip_field(
-    R_f_mean,
-    map="basemap",
-    geodata=metadata,
-    drawlonlatlines=False,
-    basemap_resolution="h",
-    basemap_scale_args=[30.0, 58.5, 30.2, 58.5, 120],
-    title="Ensemble mean",
-)
+bm = plot_precip_field(R_f_mean, geodata=metadata, title="Ensemble mean")
 
 ###############################################################################
 # The mean of the ensemble displays similar properties as the S-PROG
 # forecast seen above, although the degree of smoothing strongly depends on
-# the ensemble size. In this sense, the S-PROG forecast can be seen as 
+# the ensemble size. In this sense, the S-PROG forecast can be seen as
 # the mean forecast from an ensemble of infinite size.
 
 # Plot the first two realizations
@@ -161,14 +150,7 @@ fig = figure()
 for i in range(2):
     ax = fig.add_subplot(121 + i)
     ax.set_title("Member %02d" % i)
-    bm = plot_precip_field(
-        R_f[i, -1, :, :],
-        map="basemap",
-        geodata=metadata,
-        drawlonlatlines=False,
-        basemap_resolution="h",
-        basemap_scale_args=[30.0, 58.5, 30.2, 58.5, 120],
-    )
+    bm = plot_precip_field(R_f[i, -1, :, :], geodata=metadata)
 tight_layout()
 
 ###############################################################################
@@ -183,11 +165,8 @@ P = excprob(R_f[:, -1, :, :], 0.5)
 figure()
 bm = plot_precip_field(
     P,
-    map="basemap",
     geodata=metadata,
     drawlonlatlines=False,
-    basemap_resolution="h",
-    basemap_scale_args=[30.0, 58.5, 30.2, 58.5, 120],
     type="prob",
     units="mm/h",
     probthr=0.5,
