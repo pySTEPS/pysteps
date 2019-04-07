@@ -13,12 +13,12 @@ from datetime import datetime
 from pysteps import io, nowcasts, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob
-from pysteps.utils import conversion, transformation
+from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 
 # Set nowcast parameters
 n_ens_members = 12
-n_leadtimes = 12
+n_leadtimes = 6
 seed = 24
 
 ###############################################################################
@@ -53,6 +53,9 @@ R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to rain rate
 R, metadata = conversion.to_rainrate(R, metadata)
+
+# Upscale data to 2 km to limit memory usage
+R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h
 R = transformation.dB_transform(R, threshold=0.1, zerovalue=-15.0)[0]
@@ -116,9 +119,9 @@ nowcast_method = nowcasts.get_method("steps")
 R_f = nowcast_method(
     R[-3:, :, :],
     V,
-    12,
+    n_leadtimes,
     n_ens_members=n_ens_members,
-    n_cascade_levels=8,
+    n_cascade_levels=6,
     R_thr=-10.0,
     kmperpixel=1.0,
     timestep=5,
