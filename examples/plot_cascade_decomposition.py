@@ -32,7 +32,7 @@ filename = os.path.join(
 )
 R, _, metadata = io.import_fmi_pgm(filename, gzipped=True)
 
-# Convert to mm/h
+# Convert to rain rate using the finnish Z-R relationship
 R, metadata = conversion.to_rainrate(R, metadata, 223.0, 1.53)
 
 # Nicely print the metadata

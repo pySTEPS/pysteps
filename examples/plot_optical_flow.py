@@ -106,4 +106,4 @@ V3 = oflow_method(R) # needs longer training sequence
 plot_precip_field(R_, geodata=metadata, title="DARTS")
 quiver(V3, geodata=metadata, step=25)
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 1
