@@ -23,8 +23,8 @@ from pysteps.visualization import plot_precip_field, quiver
 # First thing, the sequence of radar composites is imported, converted and
 # transformed into units of dBR.
 
-date = datetime.strptime("201705091100", "%Y%m%d%H%M")
-data_source = "fmi"
+date = datetime.strptime("201701311200", "%Y%m%d%H%M")
+data_source = "mch"
 n_leadtimes = 12
 
 # Load data source config
@@ -45,8 +45,8 @@ fns = io.archive.find_by_date(
 importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Convert to rain rate using the finnish Z-R relationship
-R, metadata = conversion.to_rainrate(R, metadata, 223.0, 1.53)
+# Convert to rain rate
+R, metadata = conversion.to_rainrate(R, metadata)
 
 # Store the last frame for polotting it later later
 R_ = R[-1, :, :].copy()
@@ -103,7 +103,7 @@ fns = io.archive.find_by_date(
 )
 # Read the radar composites
 R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
-R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o, 223.0, 1.53)
+R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o)
 
 # Compute fractions skill score (FSS) for all lead times, a set of scales and 1 mm/h
 fss = verification.get_method("FSS")

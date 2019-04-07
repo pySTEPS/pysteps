@@ -31,8 +31,8 @@ seed = 24
 # First thing, the sequence of Finnish radar composites is imported, converted and
 # transformed into units of dBR.
 
-date = datetime.strptime("201701311200", "%Y%m%d%H%M")
-data_source = "mch"
+date = datetime.strptime("201609281600", "%Y%m%d%H%M")
+data_source = "fmi"
 
 # Load data source config
 root_path = rcparams.data_sources[data_source]["root_path"]
