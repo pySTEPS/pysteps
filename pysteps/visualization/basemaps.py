@@ -35,8 +35,8 @@ except ImportError:
     
 from . import utils
 
-def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None,
-                   lw=0.5, drawlonlatlines=False, **kwargs):
+def plot_geography(map, proj4str, extent, shape=None, lw=0.5, drawlonlatlines=False,
+                   **kwargs):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
     
