@@ -13,7 +13,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     * - tests
       - |travis| |requires| |codecov|
     * - package
-      - |github| |pypi|
+      - |github| |conda| |pypi|
     * - license
       - |License|
 
@@ -36,6 +36,10 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 .. |github| image:: https://img.shields.io/github/release/pySTEPS/pysteps.svg
     :target: https://github.com/pySTEPS/pysteps/releases/latest
     :alt: Latest github release
+    
+.. |conda| image:: https://anaconda.org/conda-forge/pysteps/badges/version.svg   
+    :target: https://anaconda.org/conda-forge/pysteps
+    :alt: Anaconda Cloud
     
 .. |pypi| image:: https://badge.fury.io/py/pysteps.svg
     :target: https://pypi.org/project/pysteps/
