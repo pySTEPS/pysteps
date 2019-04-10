@@ -7,7 +7,9 @@ import numpy as np
 from pysteps.tests.helpers import smart_assert
 from numpy.testing import assert_array_almost_equal
 from pysteps.cascade.bandpass_filters import filter_gaussian
+from pysteps.cascade.bandpass_filters import filter_uniform
 from pysteps.cascade.decomposition import decomposition_fft
+from pysteps.tests.helpers import smart_assert
 
 
 def test_decompose_recompose():
@@ -37,4 +39,23 @@ def test_decompose_recompose():
     # Assert
     assert_array_almost_equal(recomposed.squeeze(), R)
 
+
+
+test_metadata_filter = [
+    ('central_freqs', None, None),
+    ('central_wavenumbers', None, None),
+    ]
+
+@pytest.mark.parametrize("variable, expected, tolerance", test_metadata_filter)
+def test_filter_uniform(variable, expected, tolerance):
+    filter = filter_uniform((8,8), 1)    
+    smart_assert(filter[variable], expected, tolerance)
+
+def test_filter_uniform_weights_1d():
+    filter = filter_uniform((8,8), 1)    
+    assert_array_almost_equal(filter['weights_1d'], np.ones((1,5)))
+
+def test_filter_uniform_weights_2d():
+    filter = filter_uniform((8,8), 1)    
+    assert_array_almost_equal(filter['weights_2d'], np.ones((1,8,5)))
 
