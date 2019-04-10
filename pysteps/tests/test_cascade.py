@@ -9,7 +9,6 @@ from numpy.testing import assert_array_almost_equal
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps.cascade.bandpass_filters import filter_uniform
 from pysteps.cascade.decomposition import decomposition_fft
-from pysteps.tests.helpers import smart_assert
 
 
 def test_decompose_recompose():
