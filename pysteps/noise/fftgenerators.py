@@ -307,7 +307,8 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     return {"field": np.abs(F), "input_shape": X.shape[1:], "use_full_fft": use_full_fft}
 
 
-def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None):
+def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
+                                 domain="spatial"):
     """Produces a field of correlated noise using global Fourier filtering.
 
     Parameters
@@ -325,7 +326,12 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None):
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
-
+    domain : {"spatial", "spectral"}
+        The domain for the computations: If 'spatial', the noise is generated
+        in the spatial domain and transformed back to spatial domain after the
+        Fourier filtering. If 'spectral', all computations and the output are
+        done in the spectral domain.
+        
     Returns
     -------
     N : array-like
@@ -356,19 +362,40 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None):
             fft = fft_method
 
     # produce fields of white noise
-    N = randstate.randn(input_shape[0], input_shape[1])
+    if domain == "spatial":
+        N = randstate.randn(input_shape[0], input_shape[1])
+    else:
+        if use_full_fft:
+            size = (input_shape[0], input_shape[1])
+        else:
+            size = (input_shape[0], int(input_shape[1]/2)+1)
+        theta = randstate.uniform(low=0.0, high=2.0*np.pi, size=size)
+        if input_shape[0] % 2 == 0:
+            theta[int(input_shape[0]/2)+1:, 0] = -theta[1:int(input_shape[0]/2), 0][::-1]
+        else:
+            theta[int(input_shape[0]/2)+1:, 0] = -theta[1:int(input_shape[0]/2)+1, 0][::-1]
+        N = np.cos(theta) + 1.j * np.sin(theta)
 
     # apply the global Fourier filter to impose a correlation structure
-    if use_full_fft:
-        fN = fft.fft2(N)
+    if domain == "spatial":
+        if use_full_fft:
+            fN = fft.fft2(N)
+        else:
+            fN = fft.rfft2(N)
     else:
-        fN = fft.rfft2(N)
+        fN = N
     fN *= F
-    if use_full_fft:
-        N = np.array(fft.ifft2(fN).real)
+    if domain == "spatial":
+      if use_full_fft:
+          N = np.array(fft.ifft2(fN).real)
+      else:
+          N = np.array(fft.irfft2(fN))
+      N = (N - N.mean()) / N.std()
     else:
-        N = np.array(fft.irfft2(fN))
-    N = (N - N.mean()) / N.std()
+      N[0, 0] = 0.0
+      var = np.sum(np.abs(N**2)) + np.sum(np.abs(N[:, 1:]**2))
+      var /= input_shape[0]**2 * input_shape[1]**2
+      N /= np.sqrt(var)
 
     return N
 
