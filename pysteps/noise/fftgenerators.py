@@ -243,16 +243,15 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     Returns
     -------
     out : dict
-<<<<<<< HEAD
-      A dictionary containing the keys field and input_shape. The first is a
-=======
-      A dictionary containing the keys F and input_shape. The first is a
->>>>>>> Add check for the domain argument
-      two-dimensional array of shape (m, int(n/2)+1) that defines the filter.
-      The second one is the shape of the input field for the filter.
+        A dictionary containing the keys field, input_shape, model and pars.
+        The first is a two-dimensional array of shape (m, int(n/2)+1) that
+        defines the filter. The second one is the shape of the input field for
+        the filter. The last two are the model and fitted parameters,
+        respectively.
 
-      It can be passed to
-      :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter`.
+        This dictionary can be passed to
+        :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter` to
+        generate noise fields.
     """
     if len(X.shape) < 2 or len(X.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
@@ -331,16 +330,11 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
     domain : {"spatial", "spectral"}
-<<<<<<< HEAD
         The domain for the computations: If 'spatial', the noise is generated
         in the spatial domain and transformed back to spatial domain after the
         Fourier filtering. If 'spectral', all computations and the output are
         done in the spectral domain.
-        
-=======
 
-
->>>>>>> Add check for the domain argument
     Returns
     -------
     N : array-like
