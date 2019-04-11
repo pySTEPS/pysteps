@@ -40,9 +40,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              noise_stddev_adj=None, ar_order=2, vel_pert_method="bps",
              conditional=False, probmatching_method="cdf",
              mask_method="incremental", callback=None, return_output=True,
-             seed=None, num_workers=1, fft_method="numpy", extrap_kwargs=None,
-             filter_kwargs=None, noise_kwargs=None, vel_pert_kwargs=None,
-             mask_kwargs=None, measure_time=False):
+             seed=None, num_workers=1, fft_method="numpy", domain="spectral",
+             extrap_kwargs=None, filter_kwargs=None, noise_kwargs=None,
+             vel_pert_kwargs=None, mask_kwargs=None, measure_time=False):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
 
@@ -137,6 +137,11 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
+    domain : {"spatial", "spectral"}
+      If "spatial", all computations are done in the spatial domain (the
+      classical STEPS model). If "spectral", the AR(2) models and stochastic
+      perturbations are applied directly in the spectral domain to reduce
+      memory footprint and improve performance.
     extrap_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
