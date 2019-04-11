@@ -1,10 +1,12 @@
 import numpy as np
 
+from pysteps.motion.constant import constant
 from pysteps.motion.darts import DARTS
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.motion.vet import vet
 
 _methods = dict()
+_methods['constant'] = constant
 _methods['lk'] = dense_lucaskanade
 _methods['lucaskanade'] = dense_lucaskanade
 _methods['darts'] = DARTS
@@ -24,6 +26,9 @@ def get_method(name):
     |     Name          |              Description                             |
     +===================+======================================================+
     |  None             | Returns a zero motion field                          |
+    +-------------------+------------------------------------------------------+
+    |  constant         | Constant advection field estimated by maximizing the |
+    |                   | correlation between two images.                      |
     +-------------------+------------------------------------------------------+
     |  lucaskanade      | OpenCV implementation of the Lucas-Kanade method     |
     |                   | with interpolated motion vectors for areas with no   |
