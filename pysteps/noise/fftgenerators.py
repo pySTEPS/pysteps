@@ -324,7 +324,10 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see :py:func:`pysteps.utils.fft.get_method`). Defaults to "numpy".
     domain : {"spatial", "spectral"}
-
+        The domain for the computations: If 'spatial', the noise is generated
+        in the spatial domain and transformed back to spatial domain after the
+        Fourier filtering. If 'spectral', all computations and the output are
+        done in the spectral domain.
 
     Returns
     -------
