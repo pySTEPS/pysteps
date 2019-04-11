@@ -34,7 +34,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
              extrap_method="semilagrangian", decomp_method="fft",
              bandpass_filter_method="gaussian", ar_order=2, conditional=False,
              probmatching_method="mean", num_workers=1, fft_method="numpy",
-             extrap_kwargs=None, filter_kwargs=None, measure_time=False):
+             domain="spectral", extrap_kwargs=None, filter_kwargs=None,
+             measure_time=False):
     """Generate a nowcast by using the Spectral Prognosis (S-PROG) method.
 
     Parameters
@@ -86,6 +87,11 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
+    domain : {"spatial", "spectral"}
+      If "spatial", all computations are done in the spatial domain (the
+      classical S-PROG model). If "spectral", the AR(2) models are applied
+      directly in the spectral domain to reduce memory footprint and improve
+      performance.
     extrap_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
