@@ -104,7 +104,6 @@ def recompose_cascade_spatial(R, mu, sigma):
     return R_rc
 
 
-# TODO: Update the docstring.
 def recompose_cascade_spectral(R, R_shape, mu, sigma, filter, fft):
     """Recompose a cascade in the spectral domain by summing the cascade levels
     and transforming the result to spatial domain.
@@ -124,7 +123,7 @@ def recompose_cascade_spectral(R, R_shape, mu, sigma, filter, fft):
 #    
 #    return R_rc
     #
-    
+
     R_rc = np.zeros(filter["masks"][0].shape, dtype=complex)
 
     for i in range(len(mu)):
@@ -135,23 +134,21 @@ def recompose_cascade_spectral(R, R_shape, mu, sigma, filter, fft):
 
 def stack_cascades(R_d, n_levels, donorm=True):
     """Stack the given cascades into a larger array.
-
     Parameters
     ----------
     R_d : list
-        List of cascades obtained by calling a method implemented in
-        pysteps.cascade.decomposition.
+      List of cascades obtained by calling a method implemented in
+      pysteps.cascade.decomposition.
     n_levels : int
-        Number of cascade levels.
+      Number of cascade levels.
     donorm : bool
-        If True, normalize the cascade levels before stacking.
-
+      If True, normalize the cascade levels before stacking.
     Returns
     -------
     out : tuple
-        A three-element tuple containing a four-dimensional array of stacked
-        cascade levels and lists of mean values and standard deviations for each
-        cascade level (taken from the last cascade).
+      A three-element tuple containing a four-dimensional array of stacked
+      cascade levels and lists of mean values and standard deviations for each
+      cascade level (taken from the last cascade).
     """
     R_c = []
     mu = np.empty(n_levels)
