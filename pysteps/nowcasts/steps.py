@@ -503,7 +503,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         elif mask_method == "sprog":
             # compute the wet area ratio and the precipitation mask
             war = 1.0 * np.sum(MASK_prec) / (R.shape[1] * R.shape[2])
-            R_m = [R_c[0][i][:, :, :].copy() for i in range(n_cascade_levels)]
+            R_m = [R_c[0][i].copy() for i in range(n_cascade_levels)]
         elif mask_method == "incremental":
             # get mask parameters
             mask_rim = mask_kwargs.get("mask_rim", 10)
@@ -518,7 +518,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
 
     if noise_method is None:
-        R_m = [R_c[0][i][:, :, :].copy() for i in range(n_cascade_levels)]
+        R_m = [R_c[0][i].copy() for i in range(n_cascade_levels)]
 
     fft_objs = []
     for i in range(n_ens_members):
@@ -587,7 +587,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                 else:
                     # use the deterministic AR(p) model computed above if
                     # perturbations are disabled
-                    R_c[j][i][:, :, :] = R_m[i, :, :, :]
+                    R_c[j][i] = R_m[i, :, :, :]
 
             EPS = None
             EPS_ = None
