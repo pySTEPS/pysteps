@@ -68,6 +68,10 @@ def decomposition_fft(X, filter, **kwargs):
         If "spatial", the output cascade levels are transformed back to the
         spatial domain by using the inverse FFT. If "spectral", the cascade is
         kept in the spectral domain.
+    compute_stats : bool
+        If True, the output dictionary contains the keys "means" and "stds"
+        for the mean and standard deviation of each output cascade level.
+        Setting this to True requires that output_domain is "spatial".
 
     Returns
     -------
@@ -82,6 +86,7 @@ def decomposition_fft(X, filter, **kwargs):
         fft = utils.get_method(fft, shape=X.shape)
     input_domain = kwargs.get("input_domain", "spatial")
     output_domain = kwargs.get("output_domain", "spatial")
+    compute_stats = kwargs.get("compute_stats", True)
 
     MASK = kwargs.get("MASK", None)
 
@@ -131,11 +136,14 @@ def decomposition_fft(X, filter, **kwargs):
         if output_domain == "spatial":
             if MASK is not None:
                 X__ = X_[MASK]
+
+        if compute_stats:
             means.append(np.mean(X__))
             stds.append(np.std(X__))
 
     result["cascade_levels"] = np.stack(X_decomp)
-    result["means"] = means
-    result["stds"] = stds
+    if compute_stats:
+        result["means"] = means
+        result["stds"] = stds
 
     return result
