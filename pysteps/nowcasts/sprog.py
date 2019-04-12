@@ -231,11 +231,11 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
-        R_c_ = np.stack([R_c[i][j, :, :] for j in range(ar_order + 1)])
-        # TODO: Don't use this when domain="spectral". The correlation coefficients
-        # need to be computed in the spectral domain because the inverse FFT
-        # has not been applied to the cascade levels.
-        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
+        if domain == "spatial":
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], MASK=MASK_thr)
+        else:
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], 
+                domain="spectral", X_shape=R.shape[1:])
 
     nowcast_utils.print_corrcoefs(GAMMA)
 
