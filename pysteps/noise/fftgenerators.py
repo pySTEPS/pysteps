@@ -392,10 +392,11 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
           N = np.array(fft.irfft2(fN))
       N = (N - N.mean()) / N.std()
     else:
+      N = fN
       N[0, 0] = 0.0
-      var = np.sum(np.abs(N**2)) + np.sum(np.abs(N[:, 1:]**2))
-      var /= input_shape[0]**2 * input_shape[1]**2
-      N /= np.sqrt(var)
+      #var = np.sum(np.abs(N**2)) + np.sum(np.abs(N[:, 1:]**2))
+      #var /= input_shape[0]**2 * input_shape[1]**2
+      #N /= np.sqrt(var)
 
     return N
 
