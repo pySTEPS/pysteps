@@ -104,7 +104,10 @@ def decomposition_fft(X, filter, **kwargs):
             + "filter['weights_2d'].shape[1]"
               "=%d" % filter["weights_2d"].shape[1])
 
-    if int(X.shape[1] / 2) + 1 != filter["weights_2d"].shape[2]:
+    if (input_domain == "spatial" and \
+       int(X.shape[1] / 2) + 1 != filter["weights_2d"].shape[2]) or \
+       (input_domain == "spectral" and \
+       X.shape[1] != filter["weights_2d"].shape[2]) :
         raise ValueError(
             "Dimension mismatch between X and filter: "
             "int(X.shape[1]/2)+1=%d , " % (int(X.shape[1] / 2) + 1)
