@@ -149,6 +149,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
             stds.append(np.std(field__))
 
     result["cascade_levels"] = np.stack(field_decomp)
+
     if compute_stats:
         result["means"] = means
         result["stds"] = stds
