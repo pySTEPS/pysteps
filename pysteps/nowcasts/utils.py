@@ -88,8 +88,9 @@ def print_corrcoefs(GAMMA):
         print(hline_str)
 
 
-def stack_cascades(R_d, n_levels, donorm=True, stack_output=True):
-    """Stack the given cascades into a larger array.
+def rearrange_cascades(R_d, n_levels, donorm=True):
+    """Rearrange the given list of cascades so that they are indexed by the
+    cascade level.
     
     Parameters
     ----------
@@ -97,19 +98,17 @@ def stack_cascades(R_d, n_levels, donorm=True, stack_output=True):
       List of cascades obtained by calling a method implemented in
       pysteps.cascade.decomposition.
     n_levels : int
-      Number of cascade levels.
+      The number of cascade levels.
     donorm : bool
-      If True, normalize the cascade levels before stacking.
-    stack_output : bool
-      If True, stack the output into one four-dimensional array. Otherwise,
-      the output is a list of three-dimensional arrays.
+      If True, normalize the cascade levels.
     
     Returns
     -------
     out : tuple
-      A three-element tuple containing a four-dimensional array of stacked
-      cascade levels and lists of mean values and standard deviations for each
-      cascade level (taken from the last cascade).
+      A three-element tuple containing 1) a list of three-dimensional arrays
+      containing the rearranged cascade levels and 2) lists of mean values and
+      3) standard deviations for each cascade level (taken from the last element
+      in R_d).
     """
     R_c = []
     mu = np.empty(n_levels)
@@ -132,10 +131,7 @@ def stack_cascades(R_d, n_levels, donorm=True, stack_output=True):
             R_.append(R__)
         R_c.append(np.stack(R_))
 
-    if stack_output:
-        return np.stack(R_c), mu, sigma
-    else:
-        return R_c, mu, sigma
+    return R_c, mu, sigma
 
 
 def recompose_cascade(R, mu, sigma):
