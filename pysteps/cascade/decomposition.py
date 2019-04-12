@@ -61,10 +61,13 @@ def decomposition_fft(X, filter, **kwargs):
     MASK : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with MASK==False are excluded from the computations.
-    domain : {"spatial", "spectral"}
-        If "spatial", the cascade levels are transformed back to the spatial
-        domain by using the inverse FFT. If "spectral", the cascade is kept
-        in the spectral domain.
+    input_domain : {"spatial", "spectral"}
+        The domain of the inputs. If "spectral", the FFT is assumed to be
+        applied to the inputs.
+    output_domain : {"spatial", "spectral"}
+        If "spatial", the output cascade levels are transformed back to the
+        spatial domain by using the inverse FFT. If "spectral", the cascade is
+        kept in the spectral domain.
 
     Returns
     -------
@@ -77,7 +80,8 @@ def decomposition_fft(X, filter, **kwargs):
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
         fft = utils.get_method(fft, shape=X.shape)
-    domain = kwargs.get("domain", "spatial")
+    input_domain = kwargs.get("input_domain", "spatial")
+    output_domain = kwargs.get("output_domain", "spatial")
 
     MASK = kwargs.get("MASK", None)
 
@@ -110,23 +114,25 @@ def decomposition_fft(X, filter, **kwargs):
     means = []
     stds = []
 
-    F = fft.rfft2(X)
+    if input_domain == "spatial":
+        F = fft.rfft2(X)
+    else:
+        F = X
     X_decomp = []
     for k in range(len(filter["weights_1d"])):
         W_k = filter["weights_2d"][k, :, :]
         X_ = F * W_k
-        X__ = fft.irfft2(X_)
-        if domain == "spatial":
+        if output_domain == "spatial":
+            X__ = fft.irfft2(X_)
             X_decomp.append(X__)
         else:
             X_decomp.append(X_)
 
-        if domain == "spatial" and MASK is not None:
-            X__ = X_[MASK]
-        # TODO: Mean and std. dev can be computed directly in the spectral
-        # domain without the inverse FFT.
-        means.append(np.mean(X__))
-        stds.append(np.std(X__))
+        if output_domain == "spatial":
+            if MASK is not None:
+                X__ = X_[MASK]
+            means.append(np.mean(X__))
+            stds.append(np.std(X__))
 
     result["cascade_levels"] = np.stack(X_decomp)
     result["means"] = means
