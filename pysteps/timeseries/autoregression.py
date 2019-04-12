@@ -186,9 +186,9 @@ def iterate_ar_model(X, phi, EPS=None):
     p = len(phi) - 1
 
     for i in range(p):
-        X_new += phi[i] * X[-(i+1), :, :]
+        X_new += phi[i] * X[-(i+1), :]
 
     if EPS is not None:
         X_new += phi[-1] * EPS
 
-    return np.stack(list(X[1:, :, :]) + [X_new])
+    return np.stack(list(X[1:, :]) + [X_new])
