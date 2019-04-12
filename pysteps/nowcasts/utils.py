@@ -88,7 +88,7 @@ def print_corrcoefs(GAMMA):
         print(hline_str)
 
 
-def stack_cascades(R_d, n_levels, donorm=True):
+def stack_cascades(R_d, n_levels, donorm=True, stack_output=True):
     """Stack the given cascades into a larger array.
     
     Parameters
@@ -100,6 +100,9 @@ def stack_cascades(R_d, n_levels, donorm=True):
       Number of cascade levels.
     donorm : bool
       If True, normalize the cascade levels before stacking.
+    stack_output : bool
+      If True, stack the output into one four-dimensional array. Otherwise,
+      the output is a list of three-dimensional arrays.
     
     Returns
     -------
@@ -129,7 +132,10 @@ def stack_cascades(R_d, n_levels, donorm=True):
             R_.append(R__)
         R_c.append(np.stack(R_))
 
-    return np.stack(R_c), mu, sigma
+    if stack_output:
+        return np.stack(R_c), mu, sigma
+    else:
+        return R_c, mu, sigma
 
 
 def recompose_cascade(R, mu, sigma):
