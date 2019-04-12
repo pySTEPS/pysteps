@@ -171,36 +171,3 @@ def stack_cascades(R_d, n_levels, donorm=True):
         R_c.append(np.stack(R_))
 
     return np.stack(R_c), mu, sigma
-
-
-def recompose_cascade_spatial(R, mu, sigma):
-    """Recompose a cascade by inverting the normalization and summing the
-    cascade levels.
-    
-    Parameters
-    ----------
-    R : array_like
-      
-    """
-    R_rc = [(R[i, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
-    R_rc = np.sum(np.stack(R_rc), axis=0)
-
-    return R_rc
-
-# TODO: Update the docstring.
-def recompose_cascade_spectral(R, mu, sigma, filter, fft_method):
-    """Recompose a cascade by inverting the normalization and summing the
-    cascade levels.
-    
-    Parameters
-    ----------
-    R : array_like
-        ...
-    """
-    R_rc = np.zeros(filter["masks"][0].shape, dtype=complex)
-
-    for i in range(len(mu)):
-        R_rc[filter["masks"][i]] += filter["weights_masked"][i] * R[i] * sigma[i] + mu[i]
-
-    return fft_method.irfft2(R_rc)
->>>>>>> First version of S-PROG in the spectral domain
