@@ -71,7 +71,6 @@ def decomposition_fft(X, filter, **kwargs):
     compute_stats : bool
         If True, the output dictionary contains the keys "means" and "stds"
         for the mean and standard deviation of each output cascade level.
-        Setting this to True requires that output_domain is "spatial".
 
     Returns
     -------
@@ -127,8 +126,9 @@ def decomposition_fft(X, filter, **kwargs):
     for k in range(len(filter["weights_1d"])):
         W_k = filter["weights_2d"][k, :, :]
         X_ = F * W_k
-        if output_domain == "spatial":
+        if output_domain == "spatial" or compute_stats:
             X__ = fft.irfft2(X_)
+        if output_domain == "spatial":
             X_decomp.append(X__)
         else:
             X_decomp.append(X_)
