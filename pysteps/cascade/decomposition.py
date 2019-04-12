@@ -119,13 +119,6 @@ def decomposition_fft(field, bp_filter, **kwargs):
             + "filter['weights_2d'].shape[2]"
               "=%d" % bp_filter["weights_2d"].shape[2])
 
-    if int(field.shape[1] / 2) + 1 != bp_filter["weights_2d"].shape[2]:
-        raise ValueError(
-            "Dimension mismatch between field and bp_filter: "
-            "int(field.shape[1]/2)+1=%d , " % (int(field.shape[1] / 2) + 1)
-            + "filter['weights_2d'].shape[2]"
-              "=%d" % bp_filter["weights_2d"].shape[2])
-
     if np.any(~np.isfinite(field)):
         raise ValueError("field contains non-finite values")
 
