@@ -115,7 +115,9 @@ def decomposition_fft(X, filter, **kwargs):
     for k in range(len(filter["weights_1d"])):
         W_k = filter["weights_2d"][k, :, :]
         X_ = F * W_k
-        X__ = fft.irfft2(X_)
+        # TODO: irfft2 seems to change the input. This is certainly a bug in
+        # the fft module.
+        X__ = fft.irfft2(X_.copy())
         if domain == "spatial":
             X_decomp.append(X__)
         else:
