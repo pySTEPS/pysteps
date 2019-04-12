@@ -224,12 +224,17 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     # normalize the cascades and rearrange them into a four-dimensional array
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c, mu, sigma = nowcast_utils.rearrange_cascades(R_d, n_cascade_levels)
+    donorm = True if domain == "spatial" else False
+    R_c, mu, sigma = nowcast_utils.rearrange_cascades(R_d, n_cascade_levels,
+                                                      donorm=donorm)
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
         R_c_ = np.stack([R_c[i][j, :, :] for j in range(ar_order + 1)])
+        # TODO: Don't use this when domain="spectral". The correlation coefficients
+        # need to be computed in the spectral domain because the inverse FFT
+        # has not been applied to the cascade levels.
         GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
 
     nowcast_utils.print_corrcoefs(GAMMA)
@@ -261,6 +266,9 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
         for i in range(n_cascade_levels):
             fb_mask = filter["weights_2d"][i, :, :] > 1e-3
+            # TESTING
+            #fb_mask = np.ones(fb_mask.shape, dtype=bool)
+            #
             filter["weights_masked"].append(filter["weights_2d"][i, fb_mask])
             filter["masks"].append(fb_mask)
             R_c__ = []
@@ -305,8 +313,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
             R_c_last = np.stack(R_c_last)
             R_c_ = nowcast_utils.recompose_cascade_spatial(R_c_last, mu, sigma)
         else:
-            R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_last, mu, sigma,
-                                                            filter, fft)
+            R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_last, R.shape,
+                                                            mu, sigma, filter, fft)
 
         MASK = _compute_sprog_mask(R_c_, war)
         R_c_[~MASK] = R_min

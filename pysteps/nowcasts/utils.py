@@ -149,7 +149,7 @@ def recompose_cascade_spatial(R, mu, sigma):
     return R_rc
 
 # TODO: Update the docstring.
-def recompose_cascade_spectral(R, mu, sigma, filter, fft_method):
+def recompose_cascade_spectral(R, R_shape, mu, sigma, filter, fft):
     """Recompose a cascade by inverting the normalization and summing the
     cascade levels.
     
@@ -158,9 +158,19 @@ def recompose_cascade_spectral(R, mu, sigma, filter, fft_method):
     R : array_like
         ...
     """
+    # TESTING
+#    R_rc = np.zeros(R_shape)
+#    for i in range(len(mu)):
+#        R_i = np.zeros((1226, 381), dtype=complex)
+#        R_i[filter["masks"][i]] = R[i]
+#        R_rc += fft.irfft2(R_i) * sigma[i] + mu[i]
+#    
+#    return R_rc
+    #
+    
     R_rc = np.zeros(filter["masks"][0].shape, dtype=complex)
 
     for i in range(len(mu)):
-        R_rc[filter["masks"][i]] += filter["weights_masked"][i] * R[i] * sigma[i] + mu[i]
+        R_rc[filter["masks"][i]] += R[i]
 
-    return fft_method.irfft2(R_rc)
+    return fft.irfft2(R_rc)
