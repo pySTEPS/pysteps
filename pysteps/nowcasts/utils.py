@@ -88,25 +88,70 @@ def print_corrcoefs(GAMMA):
         print(hline_str)
 
 
+def recompose_cascade_spatial(R, mu, sigma):
+    """Recompose a cascade in the spatial domain by inverting the normalization
+    and summing the cascade levels.
+
+    Parameters
+    ----------
+    R : array_like
+        A three-dimensional array of shape (k,m,n) containing the cascade with
+        k levels.
+    """
+    R_rc = [(R[i, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
+    R_rc = np.sum(np.stack(R_rc), axis=0)
+
+    return R_rc
+
+
+# TODO: Update the docstring.
+def recompose_cascade_spectral(R, R_shape, mu, sigma, filter, fft):
+    """Recompose a cascade in the spectral domain by summing the cascade levels
+    and transforming the result to spatial domain.
+
+    Parameters
+    ----------
+    R : array_like
+        A three-dimensional array of shape (k,m,n) containing the cascade with
+        k levels.
+    """
+    # TESTING
+#    R_rc = np.zeros(R_shape)
+#    for i in range(len(mu)):
+#        R_i = np.zeros((1226, 381), dtype=complex)
+#        R_i[filter["masks"][i]] = R[i]
+#        R_rc += fft.irfft2(R_i) * sigma[i] + mu[i]
+#    
+#    return R_rc
+    #
+    
+    R_rc = np.zeros(filter["masks"][0].shape, dtype=complex)
+
+    for i in range(len(mu)):
+        R_rc[filter["masks"][i]] += R[i]
+
+    return fft.irfft2(R_rc)
+
+
 def stack_cascades(R_d, n_levels, donorm=True):
     """Stack the given cascades into a larger array.
 
     Parameters
     ----------
     R_d : list
-      List of cascades obtained by calling a method implemented in
-      pysteps.cascade.decomposition.
+        List of cascades obtained by calling a method implemented in
+        pysteps.cascade.decomposition.
     n_levels : int
-      Number of cascade levels.
+        Number of cascade levels.
     donorm : bool
-      If True, normalize the cascade levels before stacking.
+        If True, normalize the cascade levels before stacking.
 
     Returns
     -------
     out : tuple
-      A three-element tuple containing a four-dimensional array of stacked
-      cascade levels and lists of mean values and standard deviations for each
-      cascade level (taken from the last cascade).
+        A three-element tuple containing a four-dimensional array of stacked
+        cascade levels and lists of mean values and standard deviations for each
+        cascade level (taken from the last cascade).
     """
     R_c = []
     mu = np.empty(n_levels)
@@ -129,18 +174,3 @@ def stack_cascades(R_d, n_levels, donorm=True):
         R_c.append(np.stack(R_))
 
     return np.stack(R_c), mu, sigma
-
-
-def recompose_cascade(R, mu, sigma):
-    """Recompose a cascade by inverting the normalization and summing the
-    cascade levels.
-
-    Parameters
-    ----------
-    R : array_like
-
-    """
-    R_rc = [(R[i, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
-    R_rc = np.sum(np.stack(R_rc), axis=0)
-
-    return R_rc
