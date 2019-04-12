@@ -261,15 +261,10 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
         # additionally mask Fourier frequencies outside each band if the
         # computations are done in the spectral domain
         R_c_ = []
-        filter["weights_masked"] = []
         filter["masks"] = []
 
         for i in range(n_cascade_levels):
             fb_mask = filter["weights_2d"][i, :, :] > 1e-3
-            # TESTING
-            #fb_mask = np.ones(fb_mask.shape, dtype=bool)
-            #
-            filter["weights_masked"].append(filter["weights_2d"][i, fb_mask])
             filter["masks"].append(fb_mask)
             R_c__ = []
             for j in range(ar_order):
