@@ -412,20 +412,19 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
     for i in range(ar_order + 1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft)
+        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft,
+                           output_domain=domain)
         R_d.append(R_)
 
     # normalize the cascades and rearrange them into a four-dimensional array
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
+    R_c, mu, sigma = nowcast_utils.rearrange_cascades(R_d, n_cascade_levels)
     R_d = None
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
-        R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order + 1)])
-        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
-    R_c_ = None
+        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], MASK=MASK_thr)
 
     nowcast_utils.print_corrcoefs(GAMMA)
 
@@ -445,11 +444,25 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
-    R_c = R_c[:, -ar_order:, :, :]
+    if domain == "spatial":
+        R_c = [R_c[i][-ar_order:, :, :] for i in range(n_cascade_levels)]
+    else:
+        # additionally mask Fourier frequencies outside each band if the
+        # computations are done in the spectral domain
+        R_c_ = []
+        filter["masks"] = []
 
-    # stack the cascades into a five-dimensional array containing all ensemble
-    # members
-    R_c = np.stack([R_c.copy() for i in range(n_ens_members)])
+        for i in range(n_cascade_levels):
+            fb_mask = filter["weights_2d"][i, :, :] > 1e-3
+            filter["masks"].append(fb_mask)
+            R_c__ = []
+            for j in range(ar_order):
+                R_c__.append(R_c[i][-ar_order+j, :, :][fb_mask])
+            R_c_.append(np.stack(R_c__))
+        R_c = R_c_
+
+    # stack the cascades into a list containing all ensemble members
+    R_c = [[R_c[j].copy() for j in range(n_cascade_levels)] for i in range(n_ens_members)]
 
     # initialize the random generators
     if noise_method is not None:
@@ -490,7 +503,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         elif mask_method == "sprog":
             # compute the wet area ratio and the precipitation mask
             war = 1.0 * np.sum(MASK_prec) / (R.shape[1] * R.shape[2])
-            R_m = R_c[0, :, :, :].copy()
+            R_m = [R_c[0][i][:, :, :].copy() for i in range(n_cascade_levels)]
         elif mask_method == "incremental":
             # get mask parameters
             mask_rim = mask_kwargs.get("mask_rim", 10)
@@ -505,7 +518,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
 
     if noise_method is None:
-        R_m = R_c[0, :, :, :].copy()
+        R_m = [R_c[0][i][:, :, :].copy() for i in range(n_cascade_levels)]
 
     fft_objs = []
     for i in range(n_ens_members):
@@ -545,9 +558,12 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             if noise_method is not None:
                 # generate noise field
                 EPS = generate_noise(pp, randstate=randgen_prec[j],
-                                     fft_method=fft_objs[j])
+                                     fft_method=fft_objs[j], domain=domain)
                 # decompose the noise field into a cascade
-                EPS = decomp_method(EPS, filter, fft_method=fft_objs[j])
+                compute_stats = True if domain == "spatial" else False
+                EPS = decomp_method(EPS, filter, fft_method=fft_objs[j],
+                                    input_domain=domain, output_domain=domain,
+                                    compute_stats=compute_stats)
             else:
                 EPS = None
 
@@ -555,26 +571,37 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             for i in range(n_cascade_levels):
                 # normalize the noise cascade
                 if EPS is not None:
-                    EPS_ = (EPS["cascade_levels"][i, :, :] - EPS["means"][i]) / EPS["stds"][i]
+                    EPS_ = EPS["cascade_levels"][i, :, :]
+                    if domain == "spatial":
+                        EPS_ = (EPS_ - EPS["means"][i]) / EPS["stds"][i]
+                    else:
+                        EPS_ = EPS_[filter["masks"][i]]
                     EPS_ *= noise_std_coeffs[i]
                 else:
                     EPS_ = None
                 # apply AR(p) process to cascade level
                 if EPS is not None or vel_pert_method is not None:
-                    R_c[j, i, :, :, :] = \
-                        autoregression.iterate_ar_model(R_c[j, i, :, :, :],
-                                                        PHI[i, :], EPS=EPS_)
+                    R_c[j][i] = \
+                        autoregression.iterate_ar_model(R_c[j][i], PHI[i, :],
+                                                        EPS=EPS_)
                 else:
                     # use the deterministic AR(p) model computed above if
                     # perturbations are disabled
-                    R_c[j, i, :, :, :] = R_m[i, :, :, :]
+                    R_c[j][i][:, :, :] = R_m[i, :, :, :]
 
             EPS = None
             EPS_ = None
 
             # compute the recomposed precipitation field(s) from the cascades
             # obtained from the AR(p) model(s)
-            R_c_ = nowcast_utils.recompose_cascade(R_c[j, :, -1, :, :], mu, sigma)
+            R_c_ = [R_c[j][i][-1, :] for i in range(n_cascade_levels)]
+            if domain == "spatial":
+                R_c_ = np.stack(R_c_)
+                R_c_ = nowcast_utils.recompose_cascade_spatial(R_c_, mu, sigma)
+            else:
+                R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_, R.shape,
+                                                                mu, sigma, filter,
+                                                                fft)
 
             if mask_method is not None:
                 # apply the precipitation mask to prevent generation of new
