@@ -217,7 +217,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     R_d = []
     for i in range(ar_order + 1):
         R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft,
-                           domain=domain)
+                           output_domain=domain)
         R_d.append(R_)
 
     # normalize the cascades and rearrange them into a four-dimensional array
