@@ -183,7 +183,7 @@ def iterate_ar_model(X, phi, EPS=None):
     if X.shape[0] != len(phi)-1:
         raise ValueError("dimension mismatch between X and phi: X.shape[0]=%d, len(phi)=%d" % (X.shape[0], len(phi)))
 
-    if EPS is not None and EPS.shape != (X.shape[1], X.shape[2]):
+    if EPS is not None and EPS.shape != X.shape[1:]:
         raise ValueError("dimension mismatch between X and EPS: X.shape=%s, EPS.shape=%s" % (str(X.shape), str(EPS.shape)))
 
     X_new = 0.0
