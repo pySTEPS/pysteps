@@ -2,7 +2,7 @@
 Optical flow
 ============
 
-This tutorial offers a short overview to the optical flow routines available in 
+This tutorial offers a short overview of the optical flow routines available in 
 pysteps and it will cover how to compute and plot the motion field from a 
 sequence of radar images.
 """
@@ -20,17 +20,20 @@ from pysteps.visualization import plot_precip_field, quiver
 # Read the radar input images
 # ---------------------------
 #
-# First thing, the sequence of radar composites is imported, converted and 
+# First thing, the sequence of radar composites is imported, converted and
 # transformed into units of dBR.
 
 date = datetime.strptime("201505151630", "%Y%m%d%H%M")
 data_source = "mch"
+
+# Load data source config
 root_path = rcparams.data_sources[data_source]["root_path"]
 path_fmt = rcparams.data_sources[data_source]["path_fmt"]
 fn_pattern = rcparams.data_sources[data_source]["fn_pattern"]
 fn_ext = rcparams.data_sources[data_source]["fn_ext"]
 importer_name = rcparams.data_sources[data_source]["importer"]
 importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
+timestep = rcparams.data_sources[data_source]["timestep"]
 
 # Find the input files from the archive
 fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext,
@@ -60,32 +63,32 @@ pprint(metadata)
 # The Lucas-Kanade optical flow method implemented in pysteps is a local
 # tracking approach that relies on the OpenCV package.
 # Local features are tracked in a sequence of two or more radar images. The
-# scheme includes a final interpolation step in order to produce a smooth 
+# scheme includes a final interpolation step in order to produce a smooth
 # field of motion vectors.
 
 oflow_method = motion.get_method("LK")
 V1 = oflow_method(R[-3:, :, :])
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata, title="Lucas-Kanade")
+plot_precip_field(R_, geodata=metadata, title="LK")
 quiver(V1, geodata=metadata, step=25)
 
 ################################################################################
 # Variational echo tracking (VET)
 # -------------------------------
 #
-# This module implements the VET algorithm presented 
-# by Laroche and Zawadzki (1995) and used in the McGill Algorithm for 
-# Prediction by Lagrangian Extrapolation (MAPLE) described in 
+# This module implements the VET algorithm presented
+# by Laroche and Zawadzki (1995) and used in the McGill Algorithm for
+# Prediction by Lagrangian Extrapolation (MAPLE) described in
 # Germann and Zawadzki (2002).
 # The approach essentially consists of a global optimization routine that seeks
-# at minimizing a cost function between the displaced and the reference image. 
+# at minimizing a cost function between the displaced and the reference image.
 
 oflow_method = motion.get_method("VET")
 V2 = oflow_method(R[-3:, :, :])
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata, title="Variational echo tracking")
+plot_precip_field(R_, geodata=metadata, title="VET")
 quiver(V2, geodata=metadata, step=25)
 
 ################################################################################
@@ -93,10 +96,10 @@ quiver(V2, geodata=metadata, step=25)
 # -----------------------------------------------------
 #
 # DARTS uses a spectral approach to optical flow that is based on the discrete
-# Fourier transform (DFT) of a temporal sequence of radar fields. 
-# The level of truncation of the DFT coefficients controls the degree of 
-# smoothness of the estimated motion field, allowing for an efficient 
-# motion estimation. DARTS requires a longer sequence of radar fields for 
+# Fourier transform (DFT) of a temporal sequence of radar fields.
+# The level of truncation of the DFT coefficients controls the degree of
+# smoothness of the estimated motion field, allowing for an efficient
+# motion estimation. DARTS requires a longer sequence of radar fields for
 # estimating the motion, here we are going to use all the available 10 fields.
 
 oflow_method = motion.get_method("DARTS")
@@ -107,4 +110,4 @@ V3 = oflow_method(R)  # needs longer training sequence
 plot_precip_field(R_, geodata=metadata, title="DARTS")
 quiver(V3, geodata=metadata, step=25)
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 1

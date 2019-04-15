@@ -1,6 +1,6 @@
-=======
-pySTEPS
-=======
+=====================================================================
+pySTEPS - Python framework for short-term ensemble prediction systems
+=====================================================================
 
 .. start-badges
 
@@ -13,7 +13,7 @@ pySTEPS
     * - tests
       - |travis| |requires| |codecov|
     * - package
-      - |github|
+      - |github| |conda| |pypi|
     * - license
       - |License|
 
@@ -37,10 +37,17 @@ pySTEPS
     :target: https://github.com/pySTEPS/pysteps/releases/latest
     :alt: Latest github release
     
+.. |conda| image:: https://anaconda.org/conda-forge/pysteps/badges/version.svg   
+    :target: https://anaconda.org/conda-forge/pysteps
+    :alt: Anaconda Cloud
+    
+.. |pypi| image:: https://badge.fury.io/py/pysteps.svg
+    :target: https://pypi.org/project/pysteps/
+    :alt: Latest PyPI version
+    
 .. |license| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
     :alt: License
     :target: https://opensource.org/licenses/BSD-3-Clause
-
 
 .. end-badges
 

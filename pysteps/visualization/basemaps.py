@@ -35,9 +35,8 @@ except ImportError:
     
 from . import utils
 
-def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None,
-  drawlonlatlines=False, basemap_resolution='l', basemap_scale_args=None,
-  cartopy_scale="50m", lw=0.5, cartopy_subplot=(1,1,1)):
+def plot_geography(map, proj4str, extent, shape=None, lw=0.5, drawlonlatlines=False,
+                   **kwargs):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
     
@@ -57,23 +56,28 @@ def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None,
         The bounding box in proj4str coordinates.
     shape: scalars (n_rows, n_cols)
         The dimensions of the image. Only used if needing a fallback projection.
+    lw: float, optional
+        Linewidth of the map (administrative boundaries and coastlines).
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
-    basemap_resolution : str, optional
-        The resolution of the basemap_. See the documentation.
-        Applicable if map is 'basemap'.
-    basemap_scale_args : list, optional
+
+    Other parameters
+    ----------------
+    resolution : str, optional
+        The resolution of the map, see the documentation of `mpl_toolkits.basemap`_.
+        Applicable if map is 'basemap'. Default ``'l'``.
+    scale_args : list, optional
         If not None, a map scale bar is drawn with basemap_scale_args supplied
-        to mpl_toolkits.basemap.Basemap.drawmapscale.
-    cartopy_scale : {'10m', '50m', '110m'}, optional
+        to mpl_toolkits.basemap.Basemap.drawmapscale. Applicable if map is
+        'basemap'. Default ``None``.
+    scale : {'10m', '50m', '110m'}, optional
         The scale (resolution) of the map. The available options are '10m',
-        '50m', and '110m'. Applicable if map is 'cartopy'.
-    lw: float, optional
-        Linewidth of the map (administrative boundaries and coastlines).
-    cartopy_subplot : tuple or SubplotSpec_ instance, optional
-        Cartopy subplot. Applicable if map is 'cartopy'.    
-    
+        '50m', and '110m'. Applicable if map is 'cartopy'. Default ``'50m'``
+    subplot : tuple or SubplotSpec_ instance, optional
+        The cartopy subplot to plot into. Applicable if map is 'cartopy'.
+        Default ``'(1, 1, 1)'``
+
     Returns
     -------
     ax : fig Axes_
@@ -96,6 +100,13 @@ def plot_geography(map="cartopy", proj4str=None, extent=None, shape=None,
         raise MissingOptionalDependency(
             "map!=None option passed to plot_geography function"
             "but the pyproj package is not installed")
+
+    if map == "basemap":
+        basemap_resolution = kwargs.get("resolution", "l")
+        basemap_scale_args = kwargs.get("scale_args", None)
+    if map == "cartopy":
+        cartopy_scale = kwargs.get("scale", "50m")
+        cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
     
     X,Y = None,None
     
@@ -205,7 +216,7 @@ def plot_map_cartopy(crs, extent, scale, drawlonlatlines=False,
     lw : float 
         Line width.
     subplot : scalars (nrows, ncols, index)
-        Subplot dimensions (n_ros, n_cols) and subplot number (index).
+        Subplot dimensions (n_rows, n_cols) and subplot number (index).
     
     Returns
     -------

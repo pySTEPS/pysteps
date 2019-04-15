@@ -21,9 +21,8 @@ from . import utils
 
 def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                       colorscale='pysteps', probthr=None, title=None,
-                      colorbar=True, drawlonlatlines=False, basemap_resolution='l',
-                      basemap_scale_args=None, cartopy_scale="50m", lw=0.5,
-                      cartopy_subplot=(1,1,1), axis="on", cax=None, **kwargs):
+                      colorbar=True, drawlonlatlines=False, lw=0.5, axis="on",
+                      cax=None, **kwargs):
     """
     Function to plot a precipitation intensity or probability field with a
     colorbar.
@@ -76,13 +75,13 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         |                 | 'upper' = upper border, 'lower' = lower border     |
         +-----------------+----------------------------------------------------+
     units : {'mm/h', 'mm', 'dBZ'}, optional
-        Units of the input array. If type is 'prob', this specifies the unit of 
+        Units of the input array. If type is 'prob', this specifies the unit of
         the intensity threshold.
     colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
     probthr : float, optional
-      Intensity threshold to show in the color bar of the exceedance probability
-      map. Required if type is "prob" and colorbar is True.
+        Intensity threshold to show in the color bar of the exceedance probability
+        map. Required if type is "prob" and colorbar is True.
     title : str, optional
         If not None, print the title on top of the plot.
     colorbar : bool, optional
@@ -90,25 +89,17 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
-    basemap_resolution : str, optional
-        The resolution of the basemap, see the documentation of
-        `mpl_toolkits.basemap`_.
-        Applicable if map is 'basemap'.
-    basemap_scale_args : list, optional
-        If not None, a map scale bar is drawn with basemap_scale_args supplied
-        to mpl_toolkits.basemap.Basemap.drawmapscale.
-    cartopy_scale : {'10m', '50m', '110m'}, optional
-        The scale (resolution) of the map. The available options are '10m',
-        '50m', and '110m'. Applicable if map is 'cartopy'.
     lw: float, optional
         Linewidth of the map (administrative boundaries and coastlines).
-    cartopy_subplot : tuple or SubplotSpec_ instance, optional
-        Cartopy subplot. Applicable if map is 'cartopy'.
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
     cax : Axes_ object, optional
         Axes into which the colorbar will be drawn. If no axes is provided
         the colorbar axes are created next to the plot.
+
+    Other parameters
+    ----------------
+    Optional parameters are contained in **kwargs. See basemaps.plot_geography.
 
     Returns
     -------
@@ -129,7 +120,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
     # get colormap and color levels
     cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
-    
+
     # extract extent and origin
     if geodata is not None:
         extent = (geodata['x1'],geodata['x2'], geodata['y1'],geodata['y2'])
@@ -141,9 +132,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     # plot geography
     if map is not None:
         try:
-            ax = basemaps.plot_geography(map, geodata["projection"], 
-                            extent, R.shape, drawlonlatlines, basemap_resolution, 
-                            basemap_scale_args, cartopy_scale, lw, cartopy_subplot)
+            ax = basemaps.plot_geography(map, geodata["projection"],
+                            extent, R.shape, lw, drawlonlatlines, **kwargs)
             regular_grid = True
         except UnsupportedSomercProjection:        
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -155,8 +145,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             regular_grid = geodata["regular_grid"]
             
             ax = basemaps.plot_geography(map, geodata["projection"],
-                            extent, R.shape, drawlonlatlines, basemap_resolution,
-                            basemap_scale_args, cartopy_scale, lw, cartopy_subplot)
+                            extent, R.shape, lw, drawlonlatlines, **kwargs)
     else:
         regular_grid = True
         ax = plt.gca()
