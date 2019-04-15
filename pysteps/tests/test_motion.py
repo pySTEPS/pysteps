@@ -24,29 +24,9 @@ from scipy.ndimage import uniform_filter
 import pysteps as stp
 from pysteps import motion
 from pysteps.motion.vet import morph
-# Relative RMSE = Rel_RMSE = sqrt(Relative MSE)
-#
-# - Rel_RMSE = 0%: no error
-# - Rel_RMSE = 100%: The retrieved motion field has an average error equal in
-#   magnitude to the motion field.
-#
-# Relative RMSE is computed only un a region surrounding the precipitation
-# field, were we have enough information to retrieve the motion field.
-# The precipitation region includes the precipitation pattern plus a margin of
-# approximately 20 grid points.
-from pysteps.tests.helpers import get_precipitation_fields
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
-
-################################################################################
-# Synthetic precipitation observations
-# ------------------------------------
-#
-# Here we create a series of precipitation fields by applying the ideal
-# motion field to the reference precipitation field "n" times.
-#
-# To evaluate the accuracy of the computed_motion vectors, we will use
-# a relative RMSE measure.
-# Relative MSE = <(expected_motion - computed_motion)^2> / <expected_motion^2>
+reference_field = get_precipitation_fields(num_prev_files=0)
 
 
 def _create_motion_field(input_precip, motion_type):
@@ -73,10 +53,6 @@ def _create_motion_field(input_precip, motion_type):
     # Create an imaginary grid on the image and create a motion field to be
     # applied to the image.
     ny, nx = input_precip.shape
-
-    x_pos = np.arange(nx)
-    y_pos = np.arange(ny)
-    x, y = np.meshgrid(x_pos, y_pos, indexing='ij')
 
     ideal_motion = np.zeros((2, nx, ny))
 
@@ -143,7 +119,8 @@ def _create_observations(input_precip, motion_type, num_times=9):
         morphed_field = np.ma.MaskedArray(morphed_field[np.newaxis, :],
                                           mask=mask[np.newaxis, :])
 
-        synthetic_observations = np.ma.concatenate([synthetic_observations, morphed_field],
+        synthetic_observations = np.ma.concatenate([synthetic_observations,
+                                                    morphed_field],
                                                    axis=0)
 
     # Swap  back to (lat, lon)
@@ -156,23 +133,23 @@ def _create_observations(input_precip, motion_type, num_times=9):
     return ideal_motion, synthetic_observations
 
 
-reference_field = get_precipitation_fields(num_prev_files=0)
-arg_values = [(reference_field, 'lk', 'linear_x', 2, 0.1),
-              (reference_field, 'lk', 'linear_y', 2, 0.1),
-              (reference_field, 'lk', 'linear_x', 3, 0.1),
-              (reference_field, 'lk', 'linear_y', 3, 0.1),
-              (reference_field, 'vet', 'linear_x', 2, 6),
-              (reference_field, 'vet', 'linear_y', 2, 6),
-              (reference_field, 'vet', 'linear_x', 3, 5),
-              (reference_field, 'vet', 'linear_y', 3, 5),
-              (reference_field, 'darts', 'linear_x', 9, 25),
-              (reference_field, 'darts', 'linear_y', 9, 25)]
+convergence_arg_names = ("input_precip, optflow_method_name, motion_type, "
+                         "num_times, max_rel_rmse")
 
-arg_names = ("input_precip, optflow_method_name, "
-             "motion_type, num_times, max_rel_rmse")
+convergence_arg_values = [(reference_field, 'lk', 'linear_x', 2, 0.1),
+                          (reference_field, 'lk', 'linear_y', 2, 0.1),
+                          (reference_field, 'lk', 'linear_x', 3, 0.1),
+                          (reference_field, 'lk', 'linear_y', 3, 0.1),
+                          (reference_field, 'vet', 'linear_x', 2, 7),
+                          (reference_field, 'vet', 'linear_x', 2, 7),
+                          (reference_field, 'vet', 'linear_y', 2, 7),
+                          (reference_field, 'vet', 'linear_x', 3, 7),
+                          (reference_field, 'vet', 'linear_y', 3, 7),
+                          (reference_field, 'darts', 'linear_x', 9, 25),
+                          (reference_field, 'darts', 'linear_y', 9, 25)]
 
 
-@pytest.mark.parametrize(arg_names, arg_values)
+@pytest.mark.parametrize(convergence_arg_names, convergence_arg_values)
 def test_optflow_method_convergence(input_precip,
                                     optflow_method_name,
                                     motion_type,
@@ -180,6 +157,19 @@ def test_optflow_method_convergence(input_precip,
                                     max_rel_rmse):
     """
     Test the convergence to the actual solution of the optical flow method used.
+
+    We measure the error in the retrieved field by using the
+    Relative RMSE = Rel_RMSE = sqrt(Relative MSE)
+
+        - Rel_RMSE = 0%: no error
+        - Rel_RMSE = 100%: The retrieved motion field has an average error
+          equal in magnitude to the motion field.
+
+    Relative RMSE is computed only un a region surrounding the precipitation
+    field, were we have enough information to retrieve the motion field.
+    The precipitation region includes the precipitation pattern plus a margin
+    of approximately 20 grid points.
+
 
     Parameters
     ----------
@@ -225,3 +215,35 @@ def test_optflow_method_convergence(input_precip,
           f"motion:{motion_type} ; times: {num_times} ; "
           f"rel_rmse:{rel_rmse}%")
     assert rel_rmse < max_rel_rmse
+
+
+no_precip_args_names = ("optflow_method_name, num_times")
+no_precip_args_values = [('lk', 2), ('lk', 3),
+                         ('vet', 2), ('vet', 3),
+                         ('darts', 9)]
+
+
+@pytest.mark.parametrize(no_precip_args_names, no_precip_args_values)
+def test_no_precipitation(optflow_method_name, num_times):
+    """
+    Test that the motion methods work well with a zero precipitation in the
+    domain.
+
+    The expected result is a zero motion vector.
+
+    Parameters
+    ----------
+
+    optflow_method_name: str
+        Optical flow method name
+
+    num_times : int
+        Number of precipitation frames (times) used as input for the optical
+        flow methods.
+    """
+    zero_precip = np.zeros((num_times,) + reference_field.shape)
+
+    motion_method = motion.get_method(optflow_method_name)
+    uv_motion = motion_method(zero_precip, verbose=False)
+
+    assert np.abs(uv_motion).max() < 0.01
