@@ -55,11 +55,11 @@ fn_ext = data_source["fn_ext"]
 importer_name = data_source["importer"]
 importer_kwargs = data_source["importer_kwargs"]
 
-# Find the input files from the archive
+# Find the reference field in the archive
 fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext,
                               timestep=5, num_prev_files=0)
 
-# Read the radar composites
+# Read the reference radar composite
 importer = io.get_method(importer_name, "importer")
 reference_field, quality, metadata = io.read_timeseries(fns, importer,
                                                         **importer_kwargs)
