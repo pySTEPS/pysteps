@@ -196,7 +196,15 @@ and configuration.
 The configuration parameters used by default are loaded from a user-defined
 JSON_ file and then stored in the **pysteps.rcparams** AttrDict_.
 
-For a detailed description on how to set-up the user-defined configuration file
-see :ref:`pystepsrc`.
+.. toctree::
+    :maxdepth: 1
 
-For an example pystepsrc see :ref:`pystepsrc_example`
+    Set-up the user-defined configuration file <set_pystepsrc>
+    Example pystepsrc file <pystepsrc_example>
+
+
+
+
+
+
+

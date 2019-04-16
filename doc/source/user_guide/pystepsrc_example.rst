@@ -1,9 +1,5 @@
 .. _pystepsrc_example:
 
-:orphan:
-
-
-
 Example of pystepsrc file
 =========================
 

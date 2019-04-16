@@ -1,7 +1,7 @@
 .. _pystepsrc:
 
-pystepsrc: The pySTEPS configuration file
-=========================================
+The pySTEPS configuration file (pystepsrc)
+==========================================
 
 .. _JSON: https://en.wikipedia.org/wiki/JSON
 .. _AttrDict: https://pypi.org/project/attrdict/
@@ -129,7 +129,10 @@ Finally, check that the new updated file is being loaded by the library::
 
 
 
-Example pysteprc file
----------------------
+More
+----
 
-For an example pystepsrc see :ref:`pystepsrc_example`
+.. toctree::
+    :maxdepth: 1
+
+    Example pystepsrc file <pystepsrc_example>

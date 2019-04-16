@@ -1,7 +1,7 @@
 .. _example_data:
 
-Example data
-============
+Installing the Example data
+===========================
 
 The examples scripts in the user guide as well as the pySTEPS build-in tests
 use the example radar data available in a separate repository:
@@ -16,7 +16,6 @@ First, download the data from the repository by
 Unzip the data into a folder of your preference. Once the data is unzip, the
 directory structure looks like this::
 
-The data downloaded::
 
     pysteps-data
     |

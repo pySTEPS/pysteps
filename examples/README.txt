@@ -1,4 +1,4 @@
-.. _example_gallery
+.. _example_gallery:
 
 pySTEPS Example gallery
 =======================
