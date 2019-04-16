@@ -8,6 +8,13 @@ package is needed. To install it, in a terminal run::
 
    pip install pytest
 
+
+Example data
+============
+
+The pySTEPS build-in tests require the pySTEPS example data installed.
+See the installation instructions in the :ref:`example_data` section.
+
 Test an installed package
 =========================
 
