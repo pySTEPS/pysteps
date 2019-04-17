@@ -94,15 +94,16 @@ def initialize_bps(V, pixelsperkm, timestep, p_par=None, p_perp=None,
         raise ValueError("V is not a three-dimensional array")
     if V.shape[0] != 2:
         raise ValueError("the first dimension of V is not 2")
-    if len(p_par) != 3:
-        raise ValueError("the length of p_par is not 3")
-    if len(p_perp) != 3:
-        raise ValueError("the length of p_perp is not 3")
 
     if p_par is None:
         p_par = get_default_params_bps_par()
     if p_perp is None:
         p_perp = get_default_params_bps_perp()
+
+    if len(p_par) != 3:
+        raise ValueError("the length of p_par is not 3")
+    if len(p_perp) != 3:
+        raise ValueError("the length of p_perp is not 3")
 
     perturbator = {}
     if randstate is None:
