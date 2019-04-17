@@ -270,8 +270,9 @@ def plot_optflow_method_convergence(input_precip,
 
     computed_motion = oflow_method(precip_obs, verbose=False)
 
-    precip_data, _ = stp.utils.dB_transform(precip_obs.max(axis=0),
-                                            inverse=True)
+precip_obs, _ = stp.utils.dB_transform(precip_obs, inverse=True)
+
+    precip_data = precip_obs.max(axis=0)
     precip_data.data[precip_data.mask] = 0
 
     precip_mask = ((uniform_filter(precip_data, size=20) > 0.1)
@@ -284,11 +285,11 @@ def plot_optflow_method_convergence(input_precip,
     # Compare retrieved motion field with the ideal one
     plt.figure(figsize=(9, 4))
     plt.subplot(1, 2, 1)
-    ax = plot_precip_field(input_precip, title="Reference motion")
+    ax = plot_precip_field(precip_obs[0], title="Reference motion")
     quiver(ideal_motion, step=25, ax=ax)
 
     plt.subplot(1, 2, 2)
-    ax = plot_precip_field(input_precip, title="Retrieved motion")
+    ax = plot_precip_field(precip_obs[0], title="Retrieved motion")
     quiver(computed_motion, step=25, ax=ax)
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
