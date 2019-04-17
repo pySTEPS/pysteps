@@ -270,7 +270,7 @@ def plot_optflow_method_convergence(input_precip,
 
     computed_motion = oflow_method(precip_obs, verbose=False)
 
-precip_obs, _ = stp.utils.dB_transform(precip_obs, inverse=True)
+    precip_obs, _ = stp.utils.dB_transform(precip_obs, inverse=True)
 
     precip_data = precip_obs.max(axis=0)
     precip_data.data[precip_data.mask] = 0
