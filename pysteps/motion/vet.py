@@ -508,7 +508,7 @@ def vet(input_images,
         input_images = numpy.ma.masked_invalid(input_images)
         mask = numpy.ma.getmaskarray(input_images)
 
-    input_images[mask] = 0  # Remove any Nan from the raw data
+    input_images.data[mask] = 0  # Remove any Nan from the raw data
 
     # Create a 2D mask with the right data type for _vet
     mask = numpy.asarray(numpy.any(mask, axis=0), dtype='int8')
