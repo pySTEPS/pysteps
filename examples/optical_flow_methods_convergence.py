@@ -17,10 +17,8 @@ To test the convergence, using an example precipitation field we will:
 
 Let's first load the libraries that we will use.
 """
-import sys
 from datetime import datetime
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -78,6 +76,10 @@ reference_field, metadata = stp.utils.to_rainrate(reference_field, metadata)
 # Mask invalid values
 reference_field = np.ma.masked_invalid(reference_field)
 
+# Plot the reference precipitation
+plot_precip_field(reference_field, geodata=metadata, title="Reference field")
+plt.show()
+
 # Log-transform the data [dBR]
 reference_field, metadata = stp.utils.dB_transform(reference_field,
                                                    metadata,
@@ -88,9 +90,6 @@ print("Precip. pattern shape: " + str(reference_field.shape))
 
 # This suppress nan conversion warnings in plot functions
 reference_field.data[reference_field.mask] = np.nan
-
-plot_precip_field(reference_field, geodata=metadata, title="Reference field")
-plt.show()
 
 
 ################################################################################
@@ -110,9 +109,9 @@ plt.show()
 # - Rel_RMSE = 100%: The retrieved motion field has an average error equal in
 #   magnitude to the motion field.
 #
-# Relative RMSE is computed only un a region surrounding the precipitation
-# field, were we have enough information to retrieve the motion field.
-# The precipitation region includes the precipitation pattern plus a margin of
+# Relative RMSE is computed over a region surrounding the precipitation
+# field, were there is enough information to retrieve the motion field.
+# The "precipitation region" includes the precipitation pattern plus a margin of
 # approximately 20 grid points.
 
 ################################################################################
@@ -258,7 +257,7 @@ def plot_optflow_method_convergence(input_precip,
             - rotor: rotor field
     """
 
-    if optflow_method_name != "DARTS":
+    if optflow_method_name.lower() != "darts":
         num_times = 2
     else:
         num_times = 9
@@ -284,14 +283,14 @@ def plot_optflow_method_convergence(input_precip,
 
     # Compare retrieved motion field with the ideal one
     plt.figure(figsize=(9, 4))
+    plt.subplot(1, 2, 1)
     ax = plot_precip_field(input_precip, geodata=metadata,
-                           title="Reference motion",
-                           cartopy_subplot=(1, 2, 1), map='cartopy')
+                           title="Reference motion")
     quiver(ideal_motion, geodata=metadata, step=25, ax=ax)
 
+    plt.subplot(1, 2, 2)
     ax = plot_precip_field(input_precip, geodata=metadata,
-                           title="Retrieved motion",
-                           cartopy_subplot=(1, 2, 2), map='cartopy')
+                           title="Retrieved motion")
     quiver(computed_motion, geodata=metadata, step=25, ax=ax)
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
@@ -302,7 +301,8 @@ def plot_optflow_method_convergence(input_precip,
     mse = ((ideal_motion - computed_motion)[:, precip_mask] ** 2).mean()
 
     rel_mse = mse / (ideal_motion[:, precip_mask] ** 2).mean()
-    plt.suptitle(f"{optflow_method_name} Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%")
+    plt.suptitle(f"{optflow_method_name} "
+                 f"Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%")
     plt.show()
 
 
