@@ -140,21 +140,17 @@ convergence_arg_values = [(reference_field, 'lk', 'linear_x', 2, 0.1),
                           (reference_field, 'lk', 'linear_y', 2, 0.1),
                           (reference_field, 'lk', 'linear_x', 3, 0.1),
                           (reference_field, 'lk', 'linear_y', 3, 0.1),
-                          (reference_field, 'vet', 'linear_x', 2, 7),
-                          (reference_field, 'vet', 'linear_x', 2, 7),
-                          (reference_field, 'vet', 'linear_y', 2, 7),
-                          (reference_field, 'vet', 'linear_x', 3, 7),
-                          (reference_field, 'vet', 'linear_y', 3, 7),
+                          (reference_field, 'vet', 'linear_x', 2, 9),
+                          (reference_field, 'vet', 'linear_y', 2, 9),
+                          (reference_field, 'vet', 'linear_x', 3, 9),
+                          (reference_field, 'vet', 'linear_y', 3, 9),
                           (reference_field, 'darts', 'linear_x', 9, 25),
                           (reference_field, 'darts', 'linear_y', 9, 25)]
 
 
 @pytest.mark.parametrize(convergence_arg_names, convergence_arg_values)
-def test_optflow_method_convergence(input_precip,
-                                    optflow_method_name,
-                                    motion_type,
-                                    num_times,
-                                    max_rel_rmse):
+def test_optflow_method_convergence(input_precip, optflow_method_name,
+                                    motion_type, num_times, max_rel_rmse):
     """
     Test the convergence to the actual solution of the optical flow method used.
 
@@ -193,7 +189,16 @@ def test_optflow_method_convergence(input_precip,
 
     oflow_method = motion.get_method(optflow_method_name)
 
-    computed_motion = oflow_method(precip_obs, verbose=False)
+    if optflow_method_name == 'vet':
+        # By default, the maximum number of iteration in the VET minimization
+        # is maxiter=100.
+        # To increase the stability of the tests to we increase this value to
+        # maxiter=150.
+        computed_motion = oflow_method(precip_obs, verbose=False,
+                                       options=dict(maxiter=150))
+    else:
+
+        computed_motion = oflow_method(precip_obs, verbose=False)
 
     precip_data, _ = stp.utils.dB_transform(precip_obs.max(axis=0),
                                             inverse=True)
@@ -213,7 +218,7 @@ def test_optflow_method_convergence(input_precip,
     rel_rmse = np.sqrt(rel_mse) * 100
     print(f"method:{optflow_method_name} ; "
           f"motion:{motion_type} ; times: {num_times} ; "
-          f"rel_rmse:{rel_rmse}%")
+          f"rel_rmse:{rel_rmse:.2f}%")
     assert rel_rmse < max_rel_rmse
 
 
@@ -242,7 +247,6 @@ def test_no_precipitation(optflow_method_name, num_times):
         flow methods.
     """
     zero_precip = np.zeros((num_times,) + reference_field.shape)
-
     motion_method = motion.get_method(optflow_method_name)
     uv_motion = motion_method(zero_precip, verbose=False)
 
