@@ -77,7 +77,7 @@ reference_field, metadata = stp.utils.to_rainrate(reference_field, metadata)
 reference_field = np.ma.masked_invalid(reference_field)
 
 # Plot the reference precipitation
-plot_precip_field(reference_field, geodata=metadata, title="Reference field")
+plot_precip_field(reference_field, title="Reference field")
 plt.show()
 
 # Log-transform the data [dBR]
@@ -284,14 +284,12 @@ def plot_optflow_method_convergence(input_precip,
     # Compare retrieved motion field with the ideal one
     plt.figure(figsize=(9, 4))
     plt.subplot(1, 2, 1)
-    ax = plot_precip_field(input_precip, geodata=metadata,
-                           title="Reference motion")
-    quiver(ideal_motion, geodata=metadata, step=25, ax=ax)
+    ax = plot_precip_field(input_precip, title="Reference motion")
+    quiver(ideal_motion, step=25, ax=ax)
 
     plt.subplot(1, 2, 2)
-    ax = plot_precip_field(input_precip, geodata=metadata,
-                           title="Retrieved motion")
-    quiver(computed_motion, geodata=metadata, step=25, ax=ax)
+    ax = plot_precip_field(input_precip, title="Retrieved motion")
+    quiver(computed_motion, step=25, ax=ax)
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
     # a relative RMSE measure.
