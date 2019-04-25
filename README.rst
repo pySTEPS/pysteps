@@ -51,9 +51,50 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 
 .. end-badges
 
-pySTEPS is a community-driven initiative for developing and maintaining an easy 
-to use, modular, free and open-source Python framework for short-term ensemble 
-prediction systems.
+What is pysteps?
+================
 
-The focus is on probabilistic nowcasting of radar precipitation fields,
-but pySTEPS is designed to allow a wider range of uses.
+Pysteps is an open-source and community-driven Python library for probabilistic precipitation nowcasting, i.e. very-short range forecasting (0-6 h).
+
+The aim of pysteps is to serve two different needs. The first is to provide a modular and well-documented framework for researchers interested in developing new methods for nowcasting and stochastic space-time simulation of precipitation. The second aim is to offer a highly configurable and easily accessible platform for practitioners ranging from weather forecasters to hydrologists.
+
+The pysteps library supports standard input/output file formats and implements several optical flow methods as well as advanced stochastic generators to produce ensemble nowcasts. In addition, it includes tools for visualizing and post-processing the nowcasts and methods for deterministic, probabilistic, and neighbourhood forecast verification.
+
+Installation
+============
+
+To install pysteps please have a look at the `pysteps user guide`__.
+
+__ https://pysteps.readthedocs.io/en/latest/user_guide/index.html
+
+Use
+===
+
+You can have a look at the `gallery of examples`__ to get a better idea of how the library can be used.
+ 
+__ https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
+
+For a more detailed description of the implemented functions, check the `pysteps reference page`__.
+
+__ https://pysteps.readthedocs.io/en/latest/pysteps_reference/index.html
+
+Example data
+============
+
+A set of example radar data is available in a separate repository: `pysteps-data`__. More information on how to download and install them are available here__.
+
+__ https://github.com/pySTEPS/pysteps-data
+__ https://pysteps.readthedocs.io/en/latest/user_guide/example_data.html#example-data
+
+Contributions
+==========
+
+We welcome contributions, feedback, suggestions for developments and bug reports.
+
+Feedback, suggestions for developments and bug reports can use the dedicated `Issues page`__.
+
+__ https://github.com/pySTEPS/pysteps/issues
+
+More information dedicated to developers are available in the `developer guide`__.
+
+__ https://pysteps.readthedocs.io/en/latest/developer_guide/index.html
