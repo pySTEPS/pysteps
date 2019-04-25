@@ -54,7 +54,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 What is pysteps?
 ================
 
-Pysteps is an open-source and community-driven Python library for probabilistic precipitation nowcasting, i.e. very-short range forecasting (0-6 h).
+Pysteps is an open-source and community-driven Python library for probabilistic precipitation nowcasting, i.e. short-term ensemble prediction systems.
 
 The aim of pysteps is to serve two different needs. The first is to provide a modular and well-documented framework for researchers interested in developing new methods for nowcasting and stochastic space-time simulation of precipitation. The second aim is to offer a highly configurable and easily accessible platform for practitioners ranging from weather forecasters to hydrologists.
 
@@ -95,6 +95,6 @@ Feedback, suggestions for developments and bug reports can use the dedicated `Is
 
 __ https://github.com/pySTEPS/pysteps/issues
 
-More information dedicated to developers are available in the `developer guide`__.
+More information dedicated to developers is available in the `developer guide`__.
 
 __ https://pysteps.readthedocs.io/en/latest/developer_guide/index.html
