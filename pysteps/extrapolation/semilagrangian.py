@@ -18,8 +18,8 @@ import numpy as np
 import scipy.ndimage.interpolation as ip
 
 
-def extrapolate(precip, velocity, num_timesteps,
-                outval=np.nan, xy_coords=None, **kwargs):
+def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
+                allow_nonfinite_values=False, **kwargs):
     """Apply semi-Lagrangian extrapolation to a two-dimensional precipitation
     field.
 
@@ -27,10 +27,10 @@ def extrapolate(precip, velocity, num_timesteps,
     ----------
     precip : array-like
         Array of shape (m,n) containing the input precipitation field. All
-        values are required to be finite.
+        values are required to be finite by default.
     velocity : array-like
         Array of shape (2,m,n) containing the x- and y-components of the m*n
-        advection field. All values are required to be finite.
+        advection field. All values are required to be finite by default.
     num_timesteps : int
         Number of time steps to extrapolate.
     outval : float, optional
@@ -45,7 +45,10 @@ def extrapolate(precip, velocity, num_timesteps,
         * xy_coords[1] : y coordinates
 
         By default, the *xy_coords* are computed for each extrapolation.
-
+    allow_nonfinite_values : bool, optional
+        If True, allow non-finite values in the precipitation and advection
+        fields. This option is useful if the input fields contain a radar mask
+        (i.e. pixels with no observations are set to nan).
 
     Other Parameters
     ----------------
@@ -85,11 +88,12 @@ def extrapolate(precip, velocity, num_timesteps,
     if len(velocity.shape) != 3:
         raise ValueError("velocity must be a three-dimensional array")
 
-    if np.any(~np.isfinite(precip)):
-        raise ValueError("precip contains non-finite values")
-
-    if np.any(~np.isfinite(velocity)):
-        raise ValueError("velocity contains non-finite values")
+    if not allow_nonfinite_values:
+        if np.any(~np.isfinite(precip)):
+            raise ValueError("precip contains non-finite values")
+    
+        if np.any(~np.isfinite(velocity)):
+            raise ValueError("velocity contains non-finite values")
 
     # defaults
     verbose = kwargs.get("verbose", False)
@@ -127,10 +131,10 @@ def extrapolate(precip, velocity, num_timesteps,
                 XYW = xy_coords + D - V_inc / 2.0
                 XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-                VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest", order=0,
-                                         prefilter=False)
-                VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest", order=0,
-                                         prefilter=False)
+                VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
+                                         order=0, prefilter=False)
+                VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
+                                         order=0, prefilter=False)
             else:
                 VWX = velocity[0, :, :]
                 VWY = velocity[1, :, :]
