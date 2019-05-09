@@ -179,7 +179,7 @@ def dense_lucaskanade(R, **kwargs):
     quality_level_ST = kwargs.get("quality_level_ST", 0.1)
     min_distance_ST = kwargs.get("min_distance_ST", 3)
     block_size_ST = kwargs.get("block_size_ST", 15)
-    winsize_LK = kwargs.get("winsize_LK5", (50, 50))
+    winsize_LK = kwargs.get("winsize_LK", (50, 50))
     nr_levels_LK = kwargs.get("nr_levels_LK", 3)
     nr_IQR_outlier = kwargs.get("nr_IQR_outlier", 3)
     size_opening = kwargs.get("size_opening", 3)
