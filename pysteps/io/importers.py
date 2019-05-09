@@ -80,7 +80,6 @@ Available Importers
 """
 
 
-import datetime
 import gzip
 from matplotlib.pyplot import imread
 import numpy as np
@@ -202,37 +201,50 @@ def _import_bom_rf3_geodata(filename):
         ymin = min(ds_rainfall.variables["y"])
         ymax = max(ds_rainfall.variables["y"])
 
-    if "units" in ds_rainfall.variables["x"].ncattrs():
-        if getattr(ds_rainfall.variables["x"], "units") == "km":
-            geodata["x1"] = xmin * 1000
-            geodata["y1"] = ymin * 1000
-            geodata["x2"] = xmax * 1000
-            geodata["y2"] = ymax * 1000
-
     xpixelsize = (
-        abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0]) * 1000.0
+        abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
     )
     ypixelsize = (
-        abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0]) * 1000
+        abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
     )
-    geodata["xpixelsize"] = xpixelsize
-    geodata["ypixelsize"] = ypixelsize
+    factor_scale = 1.0
+    if "units" in ds_rainfall.variables["x"].ncattrs():
+        if getattr(ds_rainfall.variables["x"], "units") == "km":
+            factor_scale = 1000.
+
+    geodata["x1"] = xmin * factor_scale
+    geodata["y1"] = ymin * factor_scale
+    geodata["x2"] = xmax * factor_scale
+    geodata["y2"] = ymax * factor_scale
+    geodata["xpixelsize"] = xpixelsize * factor_scale
+    geodata["ypixelsize"] = ypixelsize * factor_scale
     geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
 
     # get the accumulation period
     valid_time = None
 
     if "valid_time" in ds_rainfall.variables.keys():
-        valid_time = datetime.datetime.utcfromtimestamp(
-            ds_rainfall.variables["valid_time"][:]
-        )
-    
+        times = ds_rainfall.variables["valid_time"]
+        print(times)
+        calendar = 'standard'
+        if 'calendar' in times.ncattrs():
+            calendar = times.calendar
+        valid_time = netCDF4.num2date(times[:],
+                                      units=times.units,
+                                      calendar=calendar,
+                                      )
+
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
-        start_time = datetime.datetime.utcfromtimestamp(
-            ds_rainfall.variables["start_time"][:]
-        )
-    
+        times = ds_rainfall.variables["start_time"]
+        calendar = 'standard'
+        if 'calendar' in times.ncattrs():
+            calendar = times.calendar
+        start_time = netCDF4.num2date(times[:],
+                                      units=times.units,
+                                      calendar=calendar,
+                                      )
+
     time_step = None
 
     if start_time is not None:
@@ -285,7 +297,7 @@ def import_fmi_pgm(filename, **kwargs):
 
     pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
 
-    if gzipped == False:
+    if gzipped is False:
         R = imread(filename)
     else:
         R = imread(gzip.open(filename, "r"))
