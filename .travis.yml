@@ -21,11 +21,11 @@ before_install:
   # -----------------
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew install gcc ;
-      export CC=gcc-8  ;
-      export CXX=g++-8 ;
-      export CXX1X=g++-8 ;
-      which gcc-8 ;
-      gcc-8 --version ;
+      export CC=gcc-9  ;
+      export CXX=g++-9 ;
+      export CXX1X=g++-9 ;
+      which gcc-9 ;
+      gcc-9 --version ;
     fi
   # Install miniconda
   # -----------------
