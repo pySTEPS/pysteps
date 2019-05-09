@@ -225,7 +225,6 @@ def _import_bom_rf3_geodata(filename):
 
     if "valid_time" in ds_rainfall.variables.keys():
         times = ds_rainfall.variables["valid_time"]
-        print(times)
         calendar = 'standard'
         if 'calendar' in times.ncattrs():
             calendar = times.calendar
