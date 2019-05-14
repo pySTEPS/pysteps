@@ -578,7 +578,7 @@ def vet(input_images,
         sector_shape = (_input_images.shape[1] // sectors_in_i,
                         _input_images.shape[2] // sectors_in_j)
 
-        debug_print("original image shape: " + str(_input_images.shape))
+        debug_print("original image shape: " + str(input_images.shape))
         debug_print("padded image shape: " + str(_input_images.shape))
         debug_print("padded template_image image shape: "
                     + str(_input_images.shape))
