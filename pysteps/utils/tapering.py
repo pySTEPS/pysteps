@@ -3,6 +3,11 @@ pysteps.utils.tapering
 ======================
 
 Implementations of window functions for computing of the FFT.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    compute_window_function
 """
 
 import numpy as np
