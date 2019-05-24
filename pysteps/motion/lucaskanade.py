@@ -55,6 +55,13 @@ def dense_lucaskanade(R, **kwargs):
 
     Other Parameters
     ----------------
+    dense : bool, optional
+        If True (the default), it returns the three-dimensional array (2,m,n)
+        containing the dense x- and y-components of the motion field. If false,
+        it returns the sparse motion vectors as 1D arrays x, y, u, v, where
+        x, y define the vector locations, u, v define the x and y direction
+        components of the vectors.
+
     buffer_mask : int, optional
         A mask buffer width in pixels. This extends the input mask (if any)
         to help avoiding the erroneous interpretation of velocities near the
@@ -151,10 +158,13 @@ def dense_lucaskanade(R, **kwargs):
     Returns
     -------
     out : ndarray_
-        Three-dimensional array (2,m,n) containing the dense x- and y-components
-        of the motion field.
+        If dense=True (the default), it returns the three-dimensional array (2,m,n)
+        containing the dense x- and y-components of the motion field.
+        If dense=False, it returns a tuple containing the one-dimensional arrays
+        x, y, u, v, where x, y define the vector locations, u, v define the x
+        and y direction components of the vectors.
         Return an empty array when no motion vectors are found.
-        
+
     References
     ----------
     
@@ -175,6 +185,7 @@ def dense_lucaskanade(R, **kwargs):
         raise ValueError("R has %i frame, but at least two frames are expected" % R.shape[0])
 
     # defaults
+    dense = kwargs.get("dense", True)
     max_corners_ST = kwargs.get("max_corners_ST", 500)
     quality_level_ST = kwargs.get("quality_level_ST", 0.1)
     min_distance_ST = kwargs.get("min_distance_ST", 3)
@@ -286,7 +297,11 @@ def dense_lucaskanade(R, **kwargs):
 
     # return zero motion field is no sparse vectors are found
     if len(x0Stack) == 0:
-        return np.zeros((2, domain_size[0], domain_size[1]))
+        if dense:
+            return np.zeros((2, domain_size[0], domain_size[1]))
+        else:
+            rzero = np.array([0])
+            return rzero, rzero, rzero, rzero
 
     # convert lists of arrays into single arrays
     x = np.vstack(x0Stack)
@@ -296,6 +311,10 @@ def dense_lucaskanade(R, **kwargs):
 
     if verbose:
         print("--- LK found %i sparse vectors ---" % x0.size)
+
+    # return sparse vectors if required
+    if not dense:
+        return x, y, u, v
 
     # decluster sparse motion vectors
     if decl_grid > 1:
@@ -308,7 +327,7 @@ def dense_lucaskanade(R, **kwargs):
         u = np.concatenate((u, extra_vectors[:, 2]))
         v = np.concatenate((v, extra_vectors[:, 3]))
 
-    # return zero motion field is no sparse vectors are left for interpolation
+    # return zero motion field if no sparse vectors are left for interpolation
     if x.size == 0:
         return np.zeros((2, domain_size[0], domain_size[1]))
 
