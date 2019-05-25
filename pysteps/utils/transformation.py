@@ -98,18 +98,18 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
 
     elif inverse:
 
-        if metadata["transform"] is not "BoxCox":
+        if metadata["transform"] not in ["BoxCox", "log"]:
             return R, metadata
 
         if Lambda is None:
-            Lambda = metadata.pop('BoxCox_lambda')
+            Lambda = metadata.pop('BoxCox_lambda', 0)
         if threshold is None:
             threshold = metadata.get("threshold", -10.)
         if zerovalue is None:
             zerovalue = 0.0
 
         # Apply inverse Box-Cox transform
-        if Lambda==0:
+        if Lambda == 0:
             R = np.exp(R)
             threshold = np.exp(threshold)
 
@@ -144,8 +144,6 @@ def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
         data.append(R_)
         labels.append('{0:.1f}'.format(Lambda))
         sk.append(scipy_stats.skew(R_)) # skewness
-
-    fig = plt.figure()
 
     bp = plt.boxplot(data, labels=labels)
 
