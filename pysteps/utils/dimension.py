@@ -457,7 +457,7 @@ def square_domain(R, metadata, method="pad", inverse=False):
         shape = metadata.pop("orig_domain")
 
         if R.shape[2] == shape[0] and R.shape[3] == shape[1]:
-            return R.squeeze()
+            return R.squeeze(),metadata
 
         R_ = np.zeros((R.shape[0], R.shape[1], shape[0], shape[1]))
 
