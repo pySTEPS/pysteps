@@ -16,6 +16,7 @@ Skill scores for spatial forecasts.
 """
 
 import numpy as np
+from pysteps.exceptions import MissingOptionalDependency
 from scipy.ndimage.filters import uniform_filter
 
 try:
@@ -243,6 +244,11 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
     :cite:`CRS2004`
 
     """
+    if not pywt_imported:
+        raise MissingOptionalDependency(
+            "PyWavelets package is required for the binary MSE spatial "
+            "verification method but it is not installed")
+
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
         message = "X_f and X_o must be two-dimensional arrays"
         message += " having the same shape"
