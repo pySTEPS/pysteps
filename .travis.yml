@@ -50,7 +50,7 @@ before_install:
 
   # Customise the testing environment
   # ---------------------------------
-  - PACKAGES="$PACKAGES dask pyfftw cartopy basemap h5py"
+  - PACKAGES="$PACKAGES dask pyfftw cartopy basemap h5py PyWavelets"
   - PACKAGES="$PACKAGES pytest pytest-cov codecov";
   - export CYTHON_COVERAGE=1;
   - travis_retry conda install --quiet $PACKAGES
