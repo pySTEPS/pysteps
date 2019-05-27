@@ -393,7 +393,6 @@ def test_aggregate_fields_time(R, metadata, time_window_min, ignore_nan, expecte
 
 
 # aggregate_fields_space
-timestamps = [dt.datetime.now() + dt.timedelta(minutes=t) for t in range(10)]
 test_data = [
     (
         np.ones((1, 10, 10)),
@@ -418,4 +417,126 @@ def test_aggregate_fields_space(R, metadata, space_window_m, ignore_nan, expecte
     assert_array_equal(
         dimension.aggregate_fields_space(R, metadata, space_window_m, ignore_nan)[0],
         expected,
+    )
+
+
+# clip_domain
+R = np.zeros((4, 4))
+R[:2, :] = 1
+test_data = [
+    (
+        R,
+        {
+            "x1": 0,
+            "x2": 4,
+            "y1": 0,
+            "y2": 4,
+            "xpixelsize": 1,
+            "ypixelsize": 1,
+            "zerovalue": 0,
+            "yorigin": "upper",
+        },
+        None,
+        R,
+    ),
+    (
+        R,
+        {
+            "x1": 0,
+            "x2": 4,
+            "y1": 0,
+            "y2": 4,
+            "xpixelsize": 1,
+            "ypixelsize": 1,
+            "zerovalue": 0,
+            "yorigin": "lower",
+        },
+        (2, 4, 2, 4),
+        np.zeros((2, 2)),
+    ),
+    (
+        R,
+        {
+            "x1": 0,
+            "x2": 4,
+            "y1": 0,
+            "y2": 4,
+            "xpixelsize": 1,
+            "ypixelsize": 1,
+            "zerovalue": 0,
+            "yorigin": "upper",
+        },
+        (2, 4, 2, 4),
+        np.ones((2, 2)),
+    ),
+]
+
+
+@pytest.mark.parametrize("R, metadata, extent, expected", test_data)
+def test_clip_domain(R, metadata, extent, expected):
+    """Test the clip_domain."""
+    assert_array_equal(dimension.clip_domain(R, metadata, extent)[0], expected)
+
+
+# square_domain
+R = np.zeros((4, 2))
+test_data = [
+    # square by padding
+    (
+        R,
+        {"x1": 0, "x2": 2, "y1": 0, "y2": 4, "xpixelsize": 1, "ypixelsize": 1},
+        "pad",
+        False,
+        np.zeros((4, 4)),
+    ),
+    # square by cropping
+    (
+        R,
+        {"x1": 0, "x2": 2, "y1": 0, "y2": 4, "xpixelsize": 1, "ypixelsize": 1},
+        "crop",
+        False,
+        np.zeros((2, 2)),
+    ),
+    # inverse square by padding
+    (
+        np.zeros((4, 4)),
+        {
+            "x1": -1,
+            "x2": 3,
+            "y1": 0,
+            "y2": 4,
+            "xpixelsize": 1,
+            "ypixelsize": 1,
+            "orig_domain": (4, 2),
+            "square_method": "pad",
+        },
+        "pad",
+        True,
+        R,
+    ),
+    # inverse square by cropping
+    (
+        np.zeros((2, 2)),
+        {
+            "x1": 0,
+            "x2": 2,
+            "y1": 1,
+            "y2": 3,
+            "xpixelsize": 1,
+            "ypixelsize": 1,
+            "orig_domain": (4, 2),
+            "square_method": "crop",
+        },
+        "crop",
+        True,
+        R,
+    ),
+]
+
+
+@pytest.mark.parametrize("R, metadata, method, inverse, expected", test_data)
+def test_square_domain(R, metadata, method, inverse, expected):
+    """Test the square_domain."""
+    assert_array_equal(
+        dimension.square_domain(R, metadata, method, inverse)[0], expected
     )
