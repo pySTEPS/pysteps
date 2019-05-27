@@ -18,10 +18,15 @@ import numpy as np
 import scipy.stats as scipy_stats
 from scipy.interpolate import interp1d
 import warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning) # To deactivate warnings for comparison operators with NaNs
 
-def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
-                     zerovalue=None, inverse=False):
+warnings.filterwarnings(
+    "ignore", category=RuntimeWarning
+)  # To deactivate warnings for comparison operators with NaNs
+
+
+def boxcox_transform(
+    R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False
+):  
     """The one-parameter Box-Cox transformation.
     Default parameters will produce a log transform (i.e. Lambda=0).
 
@@ -29,20 +34,22 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
     ----------
     R : array-like
         Array of any shape to be transformed.
-    metadata : dict
+    metadata : dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    Lambda : float
-        Parameter lambda of the Box-Cox transformation.
-        Default : 0
-    threshold : float
-        Optional value that is used for thresholding with the same units as R.
-        If None, the threshold contained in metadata is used.
-    zerovalue : float
-        Optional value to be assigned to no rain pixels as defined by the threshold.
-    inverse : bool
-        Optional, if set to True, it performs the inverse transform
+    Lambda : float, optional
+        Parameter lambda of the Box-Cox transformation. It is 0 by default, which
+        produces the log transformation.
+    threshold : float, optional
+        The value that is used for thresholding with the same units as R.
+        If None, the threshold contained in metadata is used. If no threshold is
+        found in the metadata, a value of 0.1 is used as default.
+    zerovalue : float, optional
+        The value to be assigned to no rain pixels as defined by the threshold.
+        It is equal to the threshold - 1 by default.
+    inverse : bool, optional
+        If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
@@ -59,7 +66,7 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
         if inverse:
             metadata = {"transform": "BoxCox"}
         else:
-            metadata = {"transform" : None}
+            metadata = {"transform": None}
 
     else:
         metadata = metadata.copy()
@@ -70,7 +77,7 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
             return R, metadata
 
         if Lambda is None:
-            Lambda = metadata.get("BoxCox_lambda", 0)
+            Lambda = metadata.get("BoxCox_lambda", 0.0)
 
         if threshold is None:
             threshold = metadata.get("threshold", 0.1)
@@ -78,17 +85,17 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
         zeros = R < threshold
 
         # Apply Box-Cox transform
-        if Lambda==0:
+        if Lambda == 0.0:
             R[~zeros] = np.log(R[~zeros])
             threshold = np.log(threshold)
 
         else:
-            R[~zeros] = (R[~zeros]**Lambda - 1)/Lambda
-            threshold = (threshold**Lambda - 1)/Lambda
+            R[~zeros] = (R[~zeros] ** Lambda - 1) / Lambda
+            threshold = (threshold ** Lambda - 1) / Lambda
 
         # Set value for zeros
         if zerovalue is None:
-            zerovalue = threshold - 1 # TODO: set to a more meaningful value
+            zerovalue = threshold - 1  # TODO: set to a more meaningful value
         R[zeros] = zerovalue
 
         metadata["transform"] = "BoxCox"
@@ -102,20 +109,20 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
             return R, metadata
 
         if Lambda is None:
-            Lambda = metadata.pop('BoxCox_lambda', 0)
+            Lambda = metadata.pop("BoxCox_lambda", 0.0)
         if threshold is None:
-            threshold = metadata.get("threshold", -10.)
+            threshold = metadata.get("threshold", -10.0)
         if zerovalue is None:
             zerovalue = 0.0
 
         # Apply inverse Box-Cox transform
-        if Lambda == 0:
+        if Lambda == 0.0:
             R = np.exp(R)
             threshold = np.exp(threshold)
 
         else:
-            R = np.exp(np.log(Lambda*R + 1)/Lambda)
-            threshold = np.exp(np.log(Lambda*threshold + 1)/Lambda)
+            R = np.exp(np.log(Lambda * R + 1) / Lambda)
+            threshold = np.exp(np.log(Lambda * threshold + 1) / Lambda)
 
         R[R < threshold] = zerovalue
 
@@ -125,48 +132,52 @@ def boxcox_transform(R, metadata=None, Lambda=None, threshold=None,
 
     return R, metadata
 
+
 def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
     """Test and plot various lambdas for the Box-Cox transformation."""
 
     import matplotlib.pyplot as plt
 
-    R = R[R>threshold].flatten()
+    R = R[R > threshold].flatten()
 
     if Lambdas is None:
-        Lambdas = np.linspace(-1,1,11)
+        Lambdas = np.linspace(-1, 1, 11)
 
     data = []
-    labels=[]
-    sk=[]
+    labels = []
+    sk = []
     for i, Lambda in enumerate(Lambdas):
-        R_, _ = boxcox_transform(R, {"transform":None}, Lambda, threshold)
-        R_ = (R_ - np.mean(R_))/np.std(R_)
+        R_, _ = boxcox_transform(R, {"transform": None}, Lambda, threshold)
+        R_ = (R_ - np.mean(R_)) / np.std(R_)
         data.append(R_)
-        labels.append('{0:.1f}'.format(Lambda))
-        sk.append(scipy_stats.skew(R_)) # skewness
+        labels.append("{0:.1f}".format(Lambda))
+        sk.append(scipy_stats.skew(R_))  # skewness
+
+    plt.figure()
 
     bp = plt.boxplot(data, labels=labels)
 
-    ylims = np.percentile(data,0.99)
-    plt.title('Box-Cox transform')
-    plt.xlabel(r'Lambda, $\lambda$ []')
+    ylims = np.percentile(data, 0.99)
+    plt.title("Box-Cox transform")
+    plt.xlabel(r"Lambda, $\lambda$ []")
 
     ymax = np.zeros(len(data))
     for i in range(len(data)):
         y = sk[i]
-        x = i+1
-        plt.plot(x, y, 'ok', ms=5, markeredgecolor='k') # plot skewness
-        fliers = bp['fliers'][i].get_ydata()
-        if len(fliers>0):
+        x = i + 1
+        plt.plot(x, y, "ok", ms=5, markeredgecolor="k")  # plot skewness
+        fliers = bp["fliers"][i].get_ydata()
+        if len(fliers > 0):
             ymax[i] = np.max(fliers)
-    ylims = np.percentile(ymax,60)
-    plt.ylim((-1*ylims,ylims))
-    plt.ylabel(r'Standardized values [$\sigma]$')
+    ylims = np.percentile(ymax, 60)
+    plt.ylim((-1 * ylims, ylims))
+    plt.ylabel(r"Standardized values [$\sigma]$")
 
     plt.savefig("box-cox-transform-test-lambdas.png", bbox_inches="tight")
     print("Saved: box-cox-transform-test-lambdas.png")
 
     plt.close()
+
 
 def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
     """Methods to transform precipitation intensities to/from dB units.
@@ -175,17 +186,19 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
     ----------
     R : array-like
         Array of any shape to be (back-)transformed.
-    metadata : dict
+    metadata : dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    threshold : float
+    threshold : float, optional
         Optional value that is used for thresholding with the same units as R.
-        If None, the threshold contained in metadata is used.
-    zerovalue : float
-        Optional value to be assigned to no rain pixels as defined by the threshold.
-    inverse : bool
-        Optional, if set to True, it performs the inverse transform
+        If None, the threshold contained in metadata is used. If no threshold is
+        found in the metadata, a value of 0.1 is used as default.
+    zerovalue : float, optional
+        The value to be assigned to no rain pixels as defined by the threshold.
+        It is equal to the threshold - 1 by default.
+    inverse : bool, optional
+        If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
@@ -202,7 +215,7 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
         if inverse:
             metadata = {"transform": "dB"}
         else:
-            metadata = {"transform" : None}
+            metadata = {"transform": None}
 
     else:
         metadata = metadata.copy()
@@ -219,12 +232,12 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
         zeros = R < threshold
 
         # Convert to dB
-        R[~zeros] = 10.0*np.log10(R[~zeros])
-        threshold = 10.0*np.log10(threshold)
+        R[~zeros] = 10.0 * np.log10(R[~zeros])
+        threshold = 10.0 * np.log10(threshold)
 
         # Set value for zeros
         if zerovalue is None:
-            zerovalue = threshold - 5 # TODO: set to a more meaningful value
+            zerovalue = threshold - 5  # TODO: set to a more meaningful value
         R[zeros] = zerovalue
 
         metadata["transform"] = "dB"
@@ -240,12 +253,12 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
             return R, metadata
 
         if threshold is None:
-            threshold = metadata.get("threshold", -10.)
+            threshold = metadata.get("threshold", -10.0)
         if zerovalue is None:
             zerovalue = 0.0
 
-        R = 10.0**(R/10.0)
-        threshold = 10.0**(threshold/10.0)
+        R = 10.0 ** (R / 10.0)
+        threshold = 10.0 ** (threshold / 10.0)
         R[R < threshold] = zerovalue
 
         metadata["transform"] = None
@@ -253,6 +266,7 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
         metadata["zerovalue"] = zerovalue
 
         return R, metadata
+
 
 def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     """The normal quantile transformation.
@@ -262,18 +276,19 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     ----------
     R : array-like
         Array of any shape to be transformed.
-    metadata : dict
+    metadata : dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    inverse : bool
-        Optional, if set to True, it performs the inverse transform
+    inverse : bool, optional
+        If set to True, it performs the inverse transform. False by default.
 
     Other Parameters
     ----------------
     a : float, optional
-        The offset fraction to be used; typically in (0,1).
-        Default : 0., i.e. it spaces the points evenly in the uniform distribution
+        The offset fraction to be used for plotting positions; typically in (0,1).
+        The default is 0., that is, it spaces the points evenly in the uniform 
+        distribution.
 
     Returns
     -------
@@ -285,7 +300,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     """
 
     # defaults
-    a = kwargs.get('a', 0.)
+    a = kwargs.get("a", 0.0)
 
     R = R.copy()
     shape0 = R.shape
@@ -297,7 +312,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
         if inverse:
             metadata = {"transform": "NQT"}
         else:
-            metadata = {"transform" : None}
+            metadata = {"transform": None}
         metadata["zerovalue"] = np.min(R_)
 
     else:
@@ -307,8 +322,8 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
         # Plotting positions
         # https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot#Plotting_position
-        n   = R_.size
-        Rpp = ((np.arange(n) + 1 - a)/(n + 1 - 2*a)).reshape(R_.shape)
+        n = R_.size
+        Rpp = ((np.arange(n) + 1 - a) / (n + 1 - 2 * a)).reshape(R_.shape)
 
         # NQ transform
         Rqn = scipy_stats.norm.ppf(Rpp)
@@ -318,8 +333,9 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
         R__[R[~idxNan] == metadata["zerovalue"]] = 0
 
         # build inverse transform
-        metadata["inqt"] = interp1d(Rqn, R_[np.argsort(R_)], bounds_error=False,
-                                     fill_value=(R_.min(), R_.max()))
+        metadata["inqt"] = interp1d(
+            Rqn, R_[np.argsort(R_)], bounds_error=False, fill_value=(R_.min(), R_.max())
+        )
 
         metadata["transform"] = "NQT"
         metadata["zerovalue"] = 0
@@ -327,7 +343,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     else:
 
-        f   = metadata.pop("inqt")
+        f = metadata.pop("inqt")
         R__ = f(R_)
         metadata["transform"] = None
         metadata["zerovalue"] = R__.min()
@@ -337,6 +353,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     return R.reshape(shape0), metadata
 
+
 def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
     """Square-root transform.
 
@@ -344,12 +361,12 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
     ----------
     R : array-like
         Array of any shape to be transformed.
-    metadata : dict
+    metadata : dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    inverse : bool
-        Optional, if set to True, it performs the inverse transform
+    inverse : bool, optional
+        If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
@@ -366,7 +383,7 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
         if inverse:
             metadata = {"transform": "sqrt"}
         else:
-            metadata = {"transform" : None}
+            metadata = {"transform": None}
         metadata["zerovalue"] = np.nan
         metadata["threshold"] = np.nan
 
@@ -385,10 +402,10 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
     else:
 
         # inverse sqrt transform
-        R = R**2
+        R = R ** 2
 
         metadata["transform"] = None
-        metadata["zerovalue"] = metadata["zerovalue"]**2
-        metadata["threshold"] = metadata["threshold"]**2
+        metadata["zerovalue"] = metadata["zerovalue"] ** 2
+        metadata["threshold"] = metadata["threshold"] ** 2
 
     return R, metadata
