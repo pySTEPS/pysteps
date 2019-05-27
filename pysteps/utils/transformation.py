@@ -304,7 +304,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     R = R.copy()
     shape0 = R.shape
-    R = R.ravel()
+    R = R.ravel().astype(float)
     idxNan = np.isnan(R)
     R_ = R[~idxNan]
 
