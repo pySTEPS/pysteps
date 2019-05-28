@@ -31,16 +31,7 @@ def ensemble_skill(X_f, X_o, metric, **kwargs):
         the forecast.
     metric : str
         The deterministic skill metric to be used (list available in
-        :func:`~pysteps.verification.interface.get_method`)
-
-    Other Parameters
-    ----------------
-    thr : float
-        Intensity threshold for categorical scores.
-    scale : int
-        The spatial scale to verify in px. In practice it represents the size of
-        the moving window that it is used to compute the fraction of pixels above
-        the threshold for the FSS.
+        :func:`~pysteps.verification.interface.get_method`).
 
     Returns
     -------
@@ -61,15 +52,15 @@ def ensemble_skill(X_f, X_o, metric, **kwargs):
         raise ValueError("the shape of X_f does not match the shape of X_o (%d,%d)!=(%d,%d)"
                          % (X_f.shape[1], X_f.shape[2], X_o.shape[0], X_o.shape[1]))
 
-    thr = kwargs.get("thr", None)
-    scale = kwargs.get("scale", None)
 
     compute_skill = get_method(metric, type="deterministic")
 
     l = X_f.shape[0]
     skill = []
     for member in range(l):
-        skill_ = compute_skill(X_f[member, :, :], X_o, thr=thr, scale=scale)
+        skill_ = compute_skill(X_f[member, :, :], X_o, **kwargs)
+        if isinstance(skill_, dict):
+            skill_ = skill_[metric]
         skill.append(skill_)
 
     return np.mean(skill)
@@ -84,16 +75,8 @@ def ensemble_spread(X_f, metric, **kwargs):
         Array of shape (l,m,n) containing the forecast fields of shape (m,n)
         from l ensemble members.
     metric : str
-        The skill metric to be used, the list includes:
-
-    Other Parameters
-    ----------------
-    thr : float
-        Intensity threshold for categorical scores.
-    scale : int
-        The spatial scale to verify in px. In practice it represents the size of
-        the moving window that it is used to compute the fraction of pixels above
-        the threshold for the FSS.
+        The deterministic skill metric to be used (list available in
+        :func:`~pysteps.verification.interface.get_method`).
 
     Returns
     -------
@@ -114,22 +97,21 @@ def ensemble_spread(X_f, metric, **kwargs):
         raise ValueError("the number of members in X_f must be greater than 1, but %i members were passed"
                          % X_f.shape[0])
 
-    thr = kwargs.get("thr", None)
-    scale = kwargs.get("scale", None)
-
-    compute_skill = get_method(metric, type="deterministic")
+    compute_spread = get_method(metric, type="deterministic")
 
     l = X_f.shape[0]
-    skill = []
+    spread = []
     for member in range(l):
         for othermember in range(member + 1, l):
-            skill_ = compute_skill(X_f[member, :, :], X_f[othermember, :, :], thr=thr, scale=scale)
-            skill.append(skill_)
+            spread_ = compute_spread(X_f[member, :, :], X_f[othermember, :, :], **kwargs)
+            if isinstance(spread_, dict):
+                spread_ = spread_[metric]
+            spread.append(spread_)
 
-    return np.mean(skill)
+    return np.mean(spread)
 
 
-def rankhist(X_f, X_o, num_ens_members, X_min=None, normalize=True):
+def rankhist(X_f, X_o, X_min=None, normalize=True):
     """Compute a rank histogram counts and optionally normalize the histogram.
 
     Parameters
@@ -144,6 +126,8 @@ def rankhist(X_f, X_o, num_ens_members, X_min=None, normalize=True):
         Threshold for minimum intensity. Forecast-observation pairs, where all
         ensemble members and verifying observations are below X_min, are not
         counted in the rank histogram. If set to None, thresholding is not used.
+    normalize : {bool, True}
+        If True, normalize the rank histogram so that the bin counts sum to one.
 
     """
 
