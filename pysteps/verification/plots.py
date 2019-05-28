@@ -109,7 +109,7 @@ def plot_reldiag(reldiag, ax=None):
     Parameters
     ----------
     reldiag : dict
-        A ROC curve object created by probscores.reldiag_init.
+        A reldiag object created by probscores.reldiag_init.
     ax : axis handle, optional
         Axis handle for the figure. If set to None, the handle is taken from
         the current figure (matplotlib.pylab.gca()).
