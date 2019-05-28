@@ -9,7 +9,7 @@ sequence of radar images.
 
 from datetime import datetime
 from pprint import pprint
-
+import matplotlib.pyplot as plt
 import numpy as np
 
 from pysteps import io, motion, rcparams
@@ -20,38 +20,49 @@ from pysteps.visualization import plot_precip_field, quiver
 # Read the radar input images
 # ---------------------------
 #
-# First thing, the sequence of radar composites is imported, converted and
-# transformed into units of dBR.
+# First, we will import the sequence of radar composites.
+# You need the pysteps-data archive downloaded and the pystepsrc file
+# configured with the data_source paths pointing to data folders.
 
+# Selected case
 date = datetime.strptime("201505151630", "%Y%m%d%H%M")
-data_source = "mch"
+data_source = rcparams.data_sources["mch"]
 
-# Load data source config
-root_path = rcparams.data_sources[data_source]["root_path"]
-path_fmt = rcparams.data_sources[data_source]["path_fmt"]
-fn_pattern = rcparams.data_sources[data_source]["fn_pattern"]
-fn_ext = rcparams.data_sources[data_source]["fn_ext"]
-importer_name = rcparams.data_sources[data_source]["importer"]
-importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
-timestep = rcparams.data_sources[data_source]["timestep"]
+###############################################################################
+# Load the data from the archive
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+root_path = data_source["root_path"]
+path_fmt = data_source["path_fmt"]
+fn_pattern = data_source["fn_pattern"]
+fn_ext = data_source["fn_ext"]
+importer_name = data_source["importer"]
+importer_kwargs = data_source["importer_kwargs"]
+timestep = data_source["timestep"]
 
 # Find the input files from the archive
-fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext,
-                              timestep=5, num_prev_files=9)
+fns = io.archive.find_by_date(
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_prev_files=9
+)
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+R, quality, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+
+del quality  # Not used
+
+###############################################################################
+# Preprocess the data
+# ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)
 
-# Store the last frame for plotting it later later
+# Store the reference frame
 R_ = R[-1, :, :].copy()
 
-# Log-transform the data
-R, metadata = transformation.dB_transform(R, metadata,
-                                          threshold=0.1, zerovalue=-15.0)
+# Log-transform the data [dBR]
+R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
 
 # Nicely print the metadata
 pprint(metadata)
@@ -69,9 +80,10 @@ pprint(metadata)
 oflow_method = motion.get_method("LK")
 V1 = oflow_method(R[-3:, :, :])
 
-# Plot the motion field
+# Plot the motion field on top of the reference frame
 plot_precip_field(R_, geodata=metadata, title="LK")
 quiver(V1, geodata=metadata, step=25)
+plt.show()
 
 ################################################################################
 # Variational echo tracking (VET)
@@ -90,6 +102,7 @@ V2 = oflow_method(R[-3:, :, :])
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="VET")
 quiver(V2, geodata=metadata, step=25)
+plt.show()
 
 ################################################################################
 # Dynamic and adaptive radar tracking of storms (DARTS)
@@ -109,5 +122,6 @@ V3 = oflow_method(R)  # needs longer training sequence
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="DARTS")
 quiver(V3, geodata=metadata, step=25)
+plt.show()
 
 # sphinx_gallery_thumbnail_number = 1
