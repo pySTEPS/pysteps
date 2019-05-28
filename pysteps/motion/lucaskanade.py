@@ -18,11 +18,13 @@ from pysteps.exceptions import MissingOptionalDependency
 
 try:
     import cv2
+
     cv2_imported = True
 except ImportError:
     cv2_imported = False
 import scipy.spatial
 import time
+
 
 def dense_lucaskanade(R, **kwargs):
     """
@@ -179,10 +181,15 @@ def dense_lucaskanade(R, **kwargs):
     """
 
     if len(R.shape) != 3:
-        raise ValueError("R has %i dimensions, but a three-dimensional array is expected" % len(R.shape))
+        raise ValueError(
+            "R has %i dimensions, but a three-dimensional array is expected"
+            % len(R.shape)
+        )
 
     if R.shape[0] < 2:
-        raise ValueError("R has %i frame, but at least two frames are expected" % R.shape[0])
+        raise ValueError(
+            "R has %i frame, but at least two frames are expected" % R.shape[0]
+        )
 
     # defaults
     dense = kwargs.get("dense", True)
@@ -203,11 +210,15 @@ def dense_lucaskanade(R, **kwargs):
     extra_vectors = kwargs.get("extra_vectors", None)
     if extra_vectors is not None:
         if len(extra_vectors.shape) != 2:
-            raise ValueError("extra_vectors has %i dimensions, but 2 dimensions are expected"
-                            % len(extra_vectors.shape))
+            raise ValueError(
+                "extra_vectors has %i dimensions, but 2 dimensions are expected"
+                % len(extra_vectors.shape)
+            )
         if extra_vectors.shape[1] != 4:
-            raise ValueError("extra_vectors has %i columns, but 4 columns are expected"
-                               % extra_vectors.shape[1])
+            raise ValueError(
+                "extra_vectors has %i columns, but 4 columns are expected"
+                % extra_vectors.shape[1]
+            )
     verbose = kwargs.get("verbose", True)
     buffer_mask = kwargs.get("buffer_mask", 0)
 
@@ -240,8 +251,8 @@ def dense_lucaskanade(R, **kwargs):
             continue
 
         # scale between 0 and 255
-        prvs = (prvs - prvs.min())/(prvs.max() - prvs.min())*255
-        next = (next - next.min())/(next.max() - next.min())*255
+        prvs = (prvs - prvs.min()) / (prvs.max() - prvs.min()) * 255
+        next = (next - next.min()) / (next.max() - next.min()) * 255
 
         # convert to 8-bit
         prvs = np.ndarray.astype(prvs, "uint8")
@@ -251,9 +262,11 @@ def dense_lucaskanade(R, **kwargs):
         # buffer the quality mask to ensure that no vectors are computed nearby
         # the edges of the radar mask
         if buffer_mask > 0:
-            mask_ = cv2.morphologyEx(mask_, cv2.MORPH_DILATE,
-                                     np.ones((int(buffer_mask), int(buffer_mask)),
-                                     np.uint8))
+            mask_ = cv2.morphologyEx(
+                mask_,
+                cv2.MORPH_DILATE,
+                np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
+            )
 
         # remove small noise with a morphological operator (opening)
         if size_opening > 0:
@@ -262,26 +275,33 @@ def dense_lucaskanade(R, **kwargs):
 
         # Shi-Tomasi good features to track
         # TODO: implement different feature detection algorithms (e.g. Harris)
-        mask_ = (-1*mask_ + 1).astype('uint8')
-        p0 = _ShiTomasi_features_to_track(prvs, max_corners_ST, quality_level_ST,
-                                          min_distance_ST, block_size_ST, mask_)
+        mask_ = (-1 * mask_ + 1).astype("uint8")
+        p0 = _ShiTomasi_features_to_track(
+            prvs,
+            max_corners_ST,
+            quality_level_ST,
+            min_distance_ST,
+            block_size_ST,
+            mask_,
+        )
 
         # skip loop if no features to track
         if p0 is None:
             continue
 
         # get sparse u, v vectors with Lucas-Kanade tracking
-        x0, y0, u, v = _LucasKanade_features_tracking(prvs, next, p0, winsize_LK,
-                                                     nr_levels_LK)
+        x0, y0, u, v = _LucasKanade_features_tracking(
+            prvs, next, p0, winsize_LK, nr_levels_LK
+        )
         # skip loop if no vectors
         if x0 is None:
             continue
 
         # exclude outlier vectors
-        vel = np.sqrt(u**2 + v**2) # [px/timesteps]
+        vel = np.sqrt(u ** 2 + v ** 2)  # [px/timesteps]
         q1, q2 = np.percentile(vel, [25, 75])
-        min_speed_thr = np.max((0, q1 - nr_IQR_outlier*(q2 - q1)))
-        max_speed_thr = q2 + nr_IQR_outlier*(q2 - q1)
+        min_speed_thr = np.max((0, q1 - nr_IQR_outlier * (q2 - q1)))
+        max_speed_thr = q2 + nr_IQR_outlier * (q2 - q1)
         keep = np.logical_and(vel < max_speed_thr, vel > min_speed_thr)
 
         u = u[keep][:, None]
@@ -335,9 +355,17 @@ def dense_lucaskanade(R, **kwargs):
         print("--- %i sparse vectors left for interpolation ---" % x.size)
 
     # kernel interpolation
-    _, _, UV = _interpolate_sparse_vectors(x, y, u, v, domain_size, rbfunction=rbfunction,
-                                           k=k, epsilon=epsilon, nchunks=nchunks)
-
+    _, _, UV = _interpolate_sparse_vectors(
+        x,
+        y,
+        u,
+        v,
+        domain_size,
+        rbfunction=rbfunction,
+        k=k,
+        epsilon=epsilon,
+        nchunks=nchunks,
+    )
 
     if verbose:
         print("--- %.2f seconds ---" % (time.time() - t0))
@@ -345,8 +373,9 @@ def dense_lucaskanade(R, **kwargs):
     return UV
 
 
-def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
-                                 min_distance_ST, block_size_ST, mask):
+def _ShiTomasi_features_to_track(
+    R, max_corners_ST, quality_level_ST, min_distance_ST, block_size_ST, mask
+):
     """Call the Shi-Tomasi corner detection algorithm.
 
     Parameters
@@ -383,7 +412,8 @@ def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
     if not cv2_imported:
         raise MissingOptionalDependency(
             "opencv package is required for the Lucas-Kanade "
-            "optical flow method but it is not installed")
+            "optical flow method but it is not installed"
+        )
 
     if len(R.shape) != 2:
         raise ValueError("R must be a two-dimensional array")
@@ -391,8 +421,12 @@ def _ShiTomasi_features_to_track(R, max_corners_ST, quality_level_ST,
         raise ValueError("R must be passed as 8-bit image")
 
     # ShiTomasi corner detection parameters
-    ShiTomasi_params = dict(maxCorners=max_corners_ST, qualityLevel=quality_level_ST,
-                            minDistance=min_distance_ST, blockSize=block_size_ST)
+    ShiTomasi_params = dict(
+        maxCorners=max_corners_ST,
+        qualityLevel=quality_level_ST,
+        minDistance=min_distance_ST,
+        blockSize=block_size_ST,
+    )
 
     # detect corners
     p0 = cv2.goodFeaturesToTrack(R, mask=mask, **ShiTomasi_params)
@@ -434,11 +468,15 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
     if not cv2_imported:
         raise MissingOptionalDependency(
             "opencv package is required for the Lucas-Kanade method "
-            "optical flow method but it is not installed")
+            "optical flow method but it is not installed"
+        )
 
     # LK parameters
-    lk_params = dict(winSize=winsize_LK, maxLevel=nr_levels_LK,
-                     criteria=(cv2.TERM_CRITERIA_EPS|cv2.TERM_CRITERIA_COUNT, 10, 0))
+    lk_params = dict(
+        winSize=winsize_LK,
+        maxLevel=nr_levels_LK,
+        criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
+    )
 
     # Lucas-Kande
     p1, st, err = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **lk_params)
@@ -482,10 +520,11 @@ def _clean_image(R, n=3, thr=0):
     if not cv2_imported:
         raise MissingOptionalDependency(
             "opencv package is required for the Lucas-Kanade method "
-            "optical flow method but it is not installed")
+            "optical flow method but it is not installed"
+        )
 
     # convert to binary image (rain/no rain)
-    field_bin = np.ndarray.astype(R > thr,"uint8")
+    field_bin = np.ndarray.astype(R > thr, "uint8")
 
     # build a structuring element of size (nx)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
@@ -541,22 +580,27 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
         return np.array([]), np.array([]), np.array([]), np.array([])
 
     # discretize coordinates into declustering grid
-    xT = x/float(decl_grid)
-    yT = y/float(decl_grid)
+    xT = x / float(decl_grid)
+    yT = y / float(decl_grid)
 
     # round coordinates to low integer
     xT = np.floor(xT)
     yT = np.floor(yT)
 
     # keep only unique combinations of coordinates
-    xy = np.concatenate((xT,yT), axis=1)
-    xyb = np.ascontiguousarray(xy).view(np.dtype((np.void, xy.dtype.itemsize*xy.shape[1])))
-    _,idx = np.unique(xyb, return_index=True)
+    xy = np.concatenate((xT, yT), axis=1)
+    xyb = np.ascontiguousarray(xy).view(
+        np.dtype((np.void, xy.dtype.itemsize * xy.shape[1]))
+    )
+    _, idx = np.unique(xyb, return_index=True)
     uxy = xy[idx]
 
     # now loop through these unique values and average vectors which belong to
     # the same declustering grid cell
-    xN = []; yN = []; uN = []; vN = []
+    xN = []
+    yN = []
+    uN = []
+    vN = []
     for i in range(uxy.shape[0]):
         idx = np.logical_and(xT == uxy[i, 0], yT == uxy[i, 1])
         npoints = np.sum(idx)
@@ -575,8 +619,9 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     return x, y, u, v
 
 
-def _interpolate_sparse_vectors(x, y, u, v, domain_size, rbfunction="inverse",
-                               k=20, epsilon=None, nchunks=5):
+def _interpolate_sparse_vectors(
+    x, y, u, v, domain_size, rbfunction="inverse", k=20, epsilon=None, nchunks=5
+):
 
     """Interpolation of sparse motion vectors to produce a dense field of motion
     vectors.
@@ -626,10 +671,10 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, rbfunction="inverse",
     y = np.atleast_1d(np.array(y).squeeze())[:, None]
     u = np.atleast_1d(np.array(u).squeeze())[:, None]
     v = np.atleast_1d(np.array(v).squeeze())[:, None]
-    points  = np.concatenate((x, y), axis=1)
+    points = np.concatenate((x, y), axis=1)
     npoints = points.shape[0]
 
-    if len(domain_size)==1:
+    if len(domain_size) == 1:
         domain_size = (domain_size, domain_size)
 
     # generate the grid
@@ -654,8 +699,8 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, rbfunction="inverse",
         subgrids = [grid]
 
     # loop subgrids
-    i0=0
-    for i,subgrid in enumerate(subgrids):
+    i0 = 0
+    for i, subgrid in enumerate(subgrids):
 
         idelta = subgrid.shape[0]
 
@@ -663,13 +708,17 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, rbfunction="inverse",
             # find indices of the nearest neighbors
             _, inds = tree.query(subgrid, k=1)
 
-            U[i0:(i0 + idelta)] = u.ravel()[inds]
-            V[i0:(i0 + idelta)] = v.ravel()[inds]
+            U[i0 : (i0 + idelta)] = u.ravel()[inds]
+            V[i0 : (i0 + idelta)] = v.ravel()[inds]
 
         else:
             if k <= 0:
-                d = scipy.spatial.distance.cdist(points, subgrid, "euclidean").transpose()
-                inds = np.arange(u.size)[None, :]*np.ones((subgrid.shape[0],u.size)).astype(int)
+                d = scipy.spatial.distance.cdist(
+                    points, subgrid, "euclidean"
+                ).transpose()
+                inds = np.arange(u.size)[None, :] * np.ones(
+                    (subgrid.shape[0], u.size)
+                ).astype(int)
 
             else:
                 # find indices of the k-nearest neighbors
@@ -677,7 +726,7 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, rbfunction="inverse",
 
             if inds.ndim == 1:
                 inds = inds[:, None]
-                d    = d[:, None]
+                d = d[:, None]
 
             # the bandwidth
             if epsilon is None:
@@ -688,17 +737,21 @@ def _interpolate_sparse_vectors(x, y, u, v, domain_size, rbfunction="inverse",
 
             # the interpolation weights
             if rbfunction.lower() == "inverse":
-                w = 1.0/np.sqrt((d/epsilon)**2 + 1)
+                w = 1.0 / np.sqrt((d / epsilon) ** 2 + 1)
             elif rbfunction.lower() == "gaussian":
-                w = np.exp(-0.5*(d/epsilon)**2)
+                w = np.exp(-0.5 * (d / epsilon) ** 2)
             else:
                 raise ValueError("unknown radial fucntion %s" % rbfunction)
 
             if not np.all(np.sum(w, axis=1)):
-                w[np.sum(w, axis=1) == 0, :] = 1.
+                w[np.sum(w, axis=1) == 0, :] = 1.0
 
-            U[i0:(i0 + idelta)] = np.sum(w*u.ravel()[inds], axis=1)/np.sum(w, axis=1)
-            V[i0:(i0 + idelta)] = np.sum(w*v.ravel()[inds], axis=1)/np.sum(w, axis=1)
+            U[i0 : (i0 + idelta)] = np.sum(w * u.ravel()[inds], axis=1) / np.sum(
+                w, axis=1
+            )
+            V[i0 : (i0 + idelta)] = np.sum(w * v.ravel()[inds], axis=1) / np.sum(
+                w, axis=1
+            )
 
         i0 += idelta
 
