@@ -106,7 +106,7 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
     in https://www.tucson.ars.ag.gov/kineros/.
 
     Grid points are treated as individual rain gauges and a separate file is
-    produced for each ensemble memeber.
+    produced for each ensemble member.
     
     Parameters
     ----------
