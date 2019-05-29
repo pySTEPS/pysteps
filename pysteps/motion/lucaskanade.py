@@ -206,7 +206,7 @@ def dense_lucaskanade(R, **kwargs):
     decl_grid = kwargs.get("decl_grid", 20)
     min_nr_samples = kwargs.get("min_nr_samples", 2)
     rbfunction = kwargs.get("rbfunction", "inverse")
-    k = kwargs.get("k", 20)
+    k = kwargs.get("k", 50)
     epsilon = kwargs.get("epsilon", None)
     nchunks = kwargs.get("nchunks", 5)
     extra_vectors = kwargs.get("extra_vectors", None)
@@ -264,10 +264,8 @@ def dense_lucaskanade(R, **kwargs):
         # buffer the quality mask to ensure that no vectors are computed nearby
         # the edges of the radar mask
         if buffer_mask > 0:
-            mask_ = cv2.morphologyEx(
-                mask_,
-                cv2.MORPH_DILATE,
-                np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
+            mask_ = cv2.dilate(
+                mask_, np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
             )
 
         # remove small noise with a morphological operator (opening)
