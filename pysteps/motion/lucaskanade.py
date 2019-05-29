@@ -191,6 +191,8 @@ def dense_lucaskanade(R, **kwargs):
             "R has %i frame, but at least two frames are expected" % R.shape[0]
         )
 
+    R = R.copy()
+
     # defaults
     dense = kwargs.get("dense", True)
     max_corners_ST = kwargs.get("max_corners_ST", 500)
