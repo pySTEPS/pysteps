@@ -95,10 +95,10 @@ plt.show()
 # Sparse Lucas-Kanade
 # -------------------
 #
-# By setting the optional argument dense=False, the LK algorithm returns the motion 
-# vectors detected by the Lucas-Kanade scheme without interpolating them on the 
-# grid. This allows us to better identify the presence of wrongly detected 
-# stationary motion in areas where precipitation is leaving the domain (look 
+# By setting the optional argument dense=False, the LK algorithm returns the motion
+# vectors detected by the Lucas-Kanade scheme without interpolating them on the
+# grid. This allows us to better identify the presence of wrongly detected
+# stationary motion in areas where precipitation is leaving the domain (look
 # for the red dots within the blue circle in the figure below).
 
 # get Lucas-Kanade optical flow method
@@ -115,8 +115,16 @@ plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(x, y, u, v, color="red", angles="xy", scale_units="xy", scale=0.2)
 circle = plt.Circle((620, 245), 100, color="b", clip_on=False, fill=False)
 plt.gca().add_artist(circle)
-plt.title("buffer_mask = 0")
+plt.title("buffer_mask = 0 (default)")
 plt.show()
+
+################################################################################
+# By default, the LK algorithm considers missing values as no precipitation, i.e.,
+# no-data are the same as no-echoes. As a result, the sharp boundaries produced
+# by precipitation in contact with no-data areas are interpreted as stationary motion.
+# One way to mitigate this effect of the boundaries is to introduce a slight buffer of the no-data
+# mask so that the algorithm will ignore all the portions of the radar domain
+# that are nearby no-data areas.
 
 # with buffer
 x, y, u, v = LK_optflow(R, dense=False, buffer_mask=20, quality_level_ST=0.2)
