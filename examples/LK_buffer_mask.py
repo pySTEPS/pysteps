@@ -95,11 +95,11 @@ plt.show()
 # Sparse Lucas-Kanade
 # -------------------
 #
-# By setting the dense=False, the LK algorithm returns the motion vectors detected
+# By setting the optional argument dense=False, the LK algorithm returns the motion vectors detected
 # by the Lucas-Kanade scheme without interpolating them on the grid. This allows
 # us to better identify the presence of wrongly detected stationary motion in
-# ares where precipitation is leaving the domain (look for the red dots within
-# the blue circle in the left panel of the figure below).
+# areas where precipitation is leaving the domain (look for the red dots within
+# the blue circle in the upper panel of the figure below).
 
 # get Lucas-Kanade optical flow method
 LK_optflow = motion.get_method("LK")
@@ -110,7 +110,7 @@ R.data[R.mask] = np.nan
 
 # Use default settings (i.e., no buffering of the radar mask)
 x, y, u, v = LK_optflow(R, dense=False, buffer_mask=0, quality_level_ST=0.1)
-plt.subplot(121)
+plt.subplot(211)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(x, y, u, v, color="red", angles="xy", scale_units="xy", scale=0.2)
@@ -120,7 +120,7 @@ plt.title("buffer_mask = 0")
 
 # with buffer
 x, y, u, v = LK_optflow(R, dense=False, buffer_mask=20, quality_level_ST=0.2)
-plt.subplot(122)
+plt.subplot(212)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(x, y, u, v, color="red", angles="xy", scale_units="xy", scale=0.2)
@@ -135,9 +135,9 @@ plt.show()
 # Dense Lucas-Kanade
 # ------------------
 #
-# The above displacement vectors produced by the Lucas-Kanade method are
+# The above displacement vectors produced by the Lucas-Kanade method are now
 # interpolated to produce a full field of motion (i.e., dense=True).
-# By comparing the x- and y-components of the motion field, we can easily notice
+# By comparing the velocity of the motion fields, we can easily notice
 # the negative bias that is introduced by the the erroneous interpretation of
 # velocities near the maximum range of the radars.
 
@@ -153,7 +153,7 @@ plt.title("Relative difference in motion speed")
 plt.show()
 
 ################################################################################
-# Notice that the original motion field is significantly slower (more than 10%
+# Notice that the default motion field can be significantly slower (more than 10%
 # slower) because of the presence of wrong stationary motion vectors at the edges.
 #
 # Forecast skill
@@ -198,5 +198,9 @@ plt.title("Spearman correlation")
 
 plt.tight_layout()
 plt.show()
+
+################################################################################
+# As expected, the corrected motion field produces better forecast skill already
+# within the first hour into the nowcast.
 
 # sphinx_gallery_thumbnail_number = 2
