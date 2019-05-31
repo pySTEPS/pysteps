@@ -95,11 +95,11 @@ plt.show()
 # Sparse Lucas-Kanade
 # -------------------
 #
-# By setting the optional argument dense=False, the LK algorithm returns the motion vectors detected
-# by the Lucas-Kanade scheme without interpolating them on the grid. This allows
-# us to better identify the presence of wrongly detected stationary motion in
-# areas where precipitation is leaving the domain (look for the red dots within
-# the blue circle in the upper panel of the figure below).
+# By setting the optional argument dense=False, the LK algorithm returns the motion 
+# vectors detected by the Lucas-Kanade scheme without interpolating them on the 
+# grid. This allows us to better identify the presence of wrongly detected 
+# stationary motion in areas where precipitation is leaving the domain (look 
+# for the red dots within the blue circle in the figure below).
 
 # get Lucas-Kanade optical flow method
 LK_optflow = motion.get_method("LK")
@@ -110,25 +110,22 @@ R.data[R.mask] = np.nan
 
 # Use default settings (i.e., no buffering of the radar mask)
 x, y, u, v = LK_optflow(R, dense=False, buffer_mask=0, quality_level_ST=0.1)
-plt.subplot(211)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(x, y, u, v, color="red", angles="xy", scale_units="xy", scale=0.2)
 circle = plt.Circle((620, 245), 100, color="b", clip_on=False, fill=False)
 plt.gca().add_artist(circle)
 plt.title("buffer_mask = 0")
+plt.show()
 
 # with buffer
 x, y, u, v = LK_optflow(R, dense=False, buffer_mask=20, quality_level_ST=0.2)
-plt.subplot(212)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(x, y, u, v, color="red", angles="xy", scale_units="xy", scale=0.2)
 circle = plt.Circle((620, 245), 100, color="b", clip_on=False, fill=False)
 plt.gca().add_artist(circle)
 plt.title("buffer_mask = 20")
-
-plt.tight_layout()
 plt.show()
 
 ################################################################################
