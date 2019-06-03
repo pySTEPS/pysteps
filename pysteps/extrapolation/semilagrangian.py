@@ -20,8 +20,8 @@ import scipy.ndimage.interpolation as ip
 
 def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
                 allow_nonfinite_values=False, **kwargs):
-    """Apply semi-Lagrangian extrapolation to a two-dimensional precipitation
-    field.
+    """Apply semi-Lagrangian backward extrapolation to a two-dimensional
+    precipitation field.
 
     Parameters
     ----------
@@ -64,10 +64,6 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         the midpoint rule requires an additional interpolation step and can thus
         be significantly slower.
         Default : 0
-    inverse : bool
-        If True, the extrapolation trajectory is computed backward along the
-        flow (default), forward otherwise.
-        Default : True
     return_displacement : bool
         If True, return the total advection velocity (displacement) between the
         initial input field and the advected one integrated along
@@ -103,7 +99,6 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
     verbose = kwargs.get("verbose", False)
     D_prev = kwargs.get("D_prev", None)
     n_iter = kwargs.get("n_iter", 0)
-    inverse = kwargs.get("inverse", True)
     return_displacement = kwargs.get("return_displacement", False)
 
     if verbose:
@@ -112,8 +107,6 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
 
     if outval == "min":
         outval = np.nanmin(precip)
-
-    coeff = 1.0 if not inverse else -1.0
 
     if xy_coords is None:
         x_values, y_values = np.meshgrid(np.arange(precip.shape[1]),
@@ -128,21 +121,26 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         D = D_prev.copy()
 
     for t in range(num_timesteps):
-        V_inc = velocity.copy() / n_iter
+        V_inc = velocity.copy()
 
-        for k in range(n_iter):
-            XYW = xy_coords + D + coeff * V_inc / 2.0
-            XYW = [XYW[1, :, :], XYW[0, :, :]]
+        if n_iter > 0:
+            V_inc /= n_iter
 
-            VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
-                                     order=0, prefilter=False)
-            VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
-                                     order=0, prefilter=False)
+            for k in range(n_iter):
+                XYW = xy_coords + D - V_inc / 2.0
+                XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-            V_inc[0, :, :] = VWX / n_iter
-            V_inc[1, :, :] = VWY / n_iter
+                VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
+                                         order=0, prefilter=False)
+                VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
+                                         order=0, prefilter=False)
 
-            D += coeff * V_inc
+                V_inc[0, :, :] = VWX / n_iter
+                V_inc[1, :, :] = VWY / n_iter
+
+                D -= V_inc
+        else:
+            D -= V_inc
 
         XYW = xy_coords + D
         XYW = [XYW[1, :, :], XYW[0, :, :]]
