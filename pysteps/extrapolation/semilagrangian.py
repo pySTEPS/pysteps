@@ -120,12 +120,10 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
     else:
         D = D_prev.copy()
 
+    V_inc = velocity.copy()
+
     for t in range(num_timesteps):
-        V_inc = velocity.copy()
-
         if n_iter > 0:
-            V_inc /= n_iter
-
             for k in range(n_iter):
                 XYW = xy_coords + D - V_inc / 2.0
                 XYW = [XYW[1, :, :], XYW[0, :, :]]
@@ -140,6 +138,17 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
 
                 D -= V_inc
         else:
+            XYW = xy_coords + D
+            XYW = [XYW[1, :, :], XYW[0, :, :]]
+
+            VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
+                                     order=0, prefilter=False)
+            VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
+                                     order=0, prefilter=False)
+
+            V_inc[0, :, :] = VWX
+            V_inc[1, :, :] = VWY
+
             D -= V_inc
 
         XYW = xy_coords + D
