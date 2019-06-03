@@ -63,7 +63,7 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         vectors are taken from the starting point of each interval. Note that
         the midpoint rule requires an additional interpolation step and can thus
         be significantly slower.
-        Default : 0
+        Default : 1
     return_displacement : bool
         If True, return the total advection velocity (displacement) between the
         initial input field and the advected one integrated along
@@ -98,7 +98,7 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
     # defaults
     verbose = kwargs.get("verbose", False)
     D_prev = kwargs.get("D_prev", None)
-    n_iter = kwargs.get("n_iter", 0)
+    n_iter = kwargs.get("n_iter", 1)
     return_displacement = kwargs.get("return_displacement", False)
 
     if verbose:
