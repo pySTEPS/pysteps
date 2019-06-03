@@ -58,8 +58,12 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         extrapolation.
         Default : None
     n_iter : int
-        Number of inner iterations in the semi-Lagrangian scheme.
-        Default : 3
+        Number of inner iterations in the semi-Lagrangian scheme. If n_iter > 0,
+        the integration is done using the midpoint rule. Otherwise, the advection
+        vectors are taken from the starting point of each interval. Note that
+        the midpoint rule requires an additional interpolation step and can thus
+        be significantly slower.
+        Default : 0
     inverse : bool
         If True, the extrapolation trajectory is computed backward along the
         flow (default), forward otherwise.
@@ -98,7 +102,7 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
     # defaults
     verbose = kwargs.get("verbose", False)
     D_prev = kwargs.get("D_prev", None)
-    n_iter = kwargs.get("n_iter", 3)
+    n_iter = kwargs.get("n_iter", 0)
     inverse = kwargs.get("inverse", True)
     return_displacement = kwargs.get("return_displacement", False)
 
@@ -124,20 +128,16 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         D = D_prev.copy()
 
     for t in range(num_timesteps):
-        V_inc = np.zeros(D.shape)
+        V_inc = velocity.copy() / n_iter
 
         for k in range(n_iter):
-            if t > 0 or k > 0 or D_prev is not None:
-                XYW = xy_coords + D - V_inc / 2.0
-                XYW = [XYW[1, :, :], XYW[0, :, :]]
+            XYW = xy_coords + D + coeff * V_inc / 2.0
+            XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-                VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
-                                         order=0, prefilter=False)
-                VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
-                                         order=0, prefilter=False)
-            else:
-                VWX = velocity[0, :, :]
-                VWY = velocity[1, :, :]
+            VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
+                                     order=0, prefilter=False)
+            VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
+                                     order=0, prefilter=False)
 
             V_inc[0, :, :] = VWX / n_iter
             V_inc[1, :, :] = VWY / n_iter
@@ -147,8 +147,8 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         XYW = xy_coords + D
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-        IW = ip.map_coordinates(precip, XYW, mode="constant", cval=outval, order=0,
-                                prefilter=False)
+        IW = ip.map_coordinates(precip, XYW, mode="constant", cval=outval,
+                                order=0, prefilter=False)
         R_e.append(np.reshape(IW, precip.shape))
 
     if verbose:
