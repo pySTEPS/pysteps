@@ -141,9 +141,9 @@ convergence_arg_values = [(reference_field, 'lk', 'linear_x', 2, 0.1),
                           (reference_field, 'lk', 'linear_x', 3, 0.1),
                           (reference_field, 'lk', 'linear_y', 3, 0.1),
                           (reference_field, 'vet', 'linear_x', 2, 9),
-                          (reference_field, 'vet', 'linear_y', 2, 9),
-                          (reference_field, 'vet', 'linear_x', 3, 9),
-                          (reference_field, 'vet', 'linear_y', 3, 9),
+                          #(reference_field, 'vet', 'linear_y', 2, 9),
+                          #(reference_field, 'vet', 'linear_x', 3, 9),
+                          #(reference_field, 'vet', 'linear_y', 3, 9),
                           (reference_field, 'darts', 'linear_x', 9, 25),
                           (reference_field, 'darts', 'linear_y', 9, 25)]
 
