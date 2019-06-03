@@ -60,9 +60,7 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
     n_iter : int
         Number of inner iterations in the semi-Lagrangian scheme. If n_iter > 0,
         the integration is done using the midpoint rule. Otherwise, the advection
-        vectors are taken from the starting point of each interval. Note that
-        the midpoint rule requires an additional interpolation step and can thus
-        be significantly slower.
+        vectors are taken from the starting point of each interval.
         Default : 1
     return_displacement : bool
         If True, return the total advection velocity (displacement) between the
@@ -122,32 +120,33 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
 
     V_inc = velocity.copy()
 
+    def interpolate_motion(XYW, V_inc):
+        VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
+                                 order=0, prefilter=False)
+        VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
+                                 order=0, prefilter=False)
+
+        V_inc[0, :, :] = VWX
+        V_inc[1, :, :] = VWY
+
+        if n_iter > 0:
+            V_inc /= n_iter
+
     for t in range(num_timesteps):
         if n_iter > 0:
             for k in range(n_iter):
                 XYW = xy_coords + D - V_inc / 2.0
                 XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-                VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
-                                         order=0, prefilter=False)
-                VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
-                                         order=0, prefilter=False)
-
-                V_inc[0, :, :] = VWX / n_iter
-                V_inc[1, :, :] = VWY / n_iter
-
+                interpolate_motion(XYW, V_inc)
                 D -= V_inc
+                interpolate_motion(xy_coords + D, V_inc)
         else:
-            XYW = xy_coords + D
-            XYW = [XYW[1, :, :], XYW[0, :, :]]
+            if t > 0 or D_prev is not None:
+                XYW = xy_coords + D
+                XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-            VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
-                                     order=0, prefilter=False)
-            VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
-                                     order=0, prefilter=False)
-
-            V_inc[0, :, :] = VWX
-            V_inc[1, :, :] = VWY
+                interpolate_motion(XYW, V_inc)
 
             D -= V_inc
 
