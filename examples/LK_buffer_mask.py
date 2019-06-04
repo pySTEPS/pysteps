@@ -5,12 +5,12 @@ Handling of no-data in Lucas-Kanade
 Areas of missing data in radar images are typically caused by visibility limits
 such as beam blockage and the radar coverage itself. These artifacts can mislead 
 the echo tracking algorithms. For instance, precipitation leaving the domain
-might be erroneously detected as nearly stationary velocities.
+might be erroneously detected as having nearly stationary velocity.
 
 This example shows how the Lucas-Kanade algorithm can be tuned to avoid the 
 erroneous interpretation of velocities near the maximum range of the radars by 
 buffering the no-data mask in the radar image in order to exclude all vectors 
-detected nearby nodata areas.
+detected nearby no-data areas.
 """
 
 from datetime import datetime
@@ -48,7 +48,7 @@ importer_name = data_source["importer"]
 importer_kwargs = data_source["importer_kwargs"]
 timestep = data_source["timestep"]
 
-# Find the input files from the archive
+# Find the two input files from the archive
 fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_prev_files=1
 )
@@ -95,9 +95,10 @@ plt.show()
 # Sparse Lucas-Kanade
 # -------------------
 #
-# By setting the optional argument dense=False, the LK algorithm returns the motion
-# vectors detected by the Lucas-Kanade scheme without interpolating them on the
-# grid. This allows us to better identify the presence of wrongly detected
+# By setting the optional argument 'dense=False' in 'x,y,u,v = LK_optflow(.....)',
+# the LK algorithm returns the motion vectors detected by the Lucas-Kanade scheme
+# without interpolating them on the grid.
+# This allows us to better identify the presence of wrongly detected
 # stationary motion in areas where precipitation is leaving the domain (look
 # for the red dots within the blue circle in the figure below).
 
@@ -120,11 +121,13 @@ plt.show()
 
 ################################################################################
 # By default, the LK algorithm considers missing values as no precipitation, i.e.,
-# no-data are the same as no-echoes. As a result, the sharp boundaries produced
+# no-data are the same as no-echoes. As a result, the fixed boundaries produced
 # by precipitation in contact with no-data areas are interpreted as stationary motion.
-# One way to mitigate this effect of the boundaries is to introduce a slight buffer of the no-data
-# mask so that the algorithm will ignore all the portions of the radar domain
-# that are nearby no-data areas.
+# One way to mitigate this effect of the boundaries is to introduce a slight buffer
+# of the no-data mask so that the algorithm will ignore all the portions of the
+# radar domain that are nearby no-data areas.
+# This is achieved by setting the keyword argument 'buffer_mask = 20' in
+# 'x,y,u,v = LK_optflow(.....)'.
 
 # with buffer
 x, y, u, v = LK_optflow(R, dense=False, buffer_mask=20, quality_level_ST=0.2)
@@ -141,7 +144,7 @@ plt.show()
 # ------------------
 #
 # The above displacement vectors produced by the Lucas-Kanade method are now
-# interpolated to produce a full field of motion (i.e., dense=True).
+# interpolated to produce a full field of motion (i.e., 'dense=True').
 # By comparing the velocity of the motion fields, we can easily notice
 # the negative bias that is introduced by the the erroneous interpretation of
 # velocities near the maximum range of the radars.
@@ -166,7 +169,11 @@ plt.show()
 #
 # We are now going to evaluate the benefit of buffering the radar mask by computing
 # the forecast skill in terms of the Spearman correlation coefficient.
+# The extrapolation forecasts are computed using the dense UV motion fields
+# estimted above.
 
+# Get the advection routine and extrapolate the last radar frame by 12 time steps
+# (i.e., 1 hour lead time)
 extrapolate = nowcasts.get_method("extrapolation")
 R[~np.isfinite(R)] = metadata["zerovalue"]
 R_f1 = extrapolate(R[-1], UV1, 12)
@@ -176,7 +183,7 @@ R_f2 = extrapolate(R[-1], UV2, 12)
 R_f1 = transformation.dB_transform(R_f1, threshold=-10.0, inverse=True)[0]
 R_f2 = transformation.dB_transform(R_f2, threshold=-10.0, inverse=True)[0]
 
-# Find the input files from the archive
+# Find the veriyfing observations in the archive
 fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_next_files=12
 )
