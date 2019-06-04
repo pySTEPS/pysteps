@@ -112,15 +112,10 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
 
         xy_coords = np.stack([x_values, y_values])
 
-    R_e = []
-    if D_prev is None:
-        D = np.zeros((2, velocity.shape[1], velocity.shape[2]))
-    else:
-        D = D_prev.copy()
+    def interpolate_motion(D, V_inc):
+        XYW = xy_coords + D
+        XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-    V_inc = velocity.copy()
-
-    def interpolate_motion(XYW, V_inc):
         VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
                                  order=0, prefilter=False)
         VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
@@ -129,24 +124,27 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         V_inc[0, :, :] = VWX
         V_inc[1, :, :] = VWY
 
-        if n_iter > 0:
+        if n_iter > 1:
             V_inc /= n_iter
+
+    R_e = []
+    if D_prev is None:
+        D = np.zeros((2, velocity.shape[1], velocity.shape[2]))
+        V_inc = velocity.copy()
+    else:
+        D = D_prev.copy()
+        V_inc = np.empty(velocity.shape)
+        interpolate_motion(D, V_inc)
 
     for t in range(num_timesteps):
         if n_iter > 0:
             for k in range(n_iter):
-                XYW = xy_coords + D - V_inc / 2.0
-                XYW = [XYW[1, :, :], XYW[0, :, :]]
-
-                interpolate_motion(XYW, V_inc)
+                interpolate_motion(D - V_inc / 2.0, V_inc)
                 D -= V_inc
-                interpolate_motion(xy_coords + D, V_inc)
+                interpolate_motion(D, V_inc)
         else:
             if t > 0 or D_prev is not None:
-                XYW = xy_coords + D
-                XYW = [XYW[1, :, :], XYW[0, :, :]]
-
-                interpolate_motion(XYW, V_inc)
+                interpolate_motion(D, V_inc)
 
             D -= V_inc
 
