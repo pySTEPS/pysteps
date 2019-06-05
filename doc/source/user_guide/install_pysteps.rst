@@ -8,7 +8,7 @@ Dependencies
 
 The pysteps package needs the following dependencies
 
-* `python >=3.6 <http://www.python.org/>`_
+* `python >=3.6 (Need F-string support) <http://www.python.org/>`_
 * `attrdict <https://pypi.org/project/attrdict/>`_
 * `jsmin <https://pypi.org/project/jsmin/>`_
 * `jsonschema <https://pypi.org/project/jsonschema/>`_
