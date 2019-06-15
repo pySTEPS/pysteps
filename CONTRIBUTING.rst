@@ -132,10 +132,28 @@ feature branch.
 
 Do not squash your commits after you have submitted a pull request, as this
 erases context during the review.
-The commits will be squashed commits when the pull request is merged.
+The commits will be squashed when the pull request is merged.
 
 To keep you forked repository clean, we suggest deleting branches for
 once the Pull Requests (PRs) are accepted and merged.
+
+Once you've created a pull request, you can push commits from your topic branch
+to add them to your existing pull request.
+These commits will appear in chronological order within your pull request and
+the changes will be visible in the "Files changed" tab.
+
+Other contributors can review your proposed changes, add review comments,
+contribute to the pull request discussion, and even add commits to the pull
+request.
+
+**Important:** each PR should should only address a single objective
+(e.g. fix a bug, improve documentation, etc).
+Pushing changes to an open PR that are outside its objective are highly
+discouraged.
+Under this circumstances, the recommended way to proceed is creating a new PR
+for changes, clearly explaining their goal.
+
+
 
 Core developer guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -210,6 +228,7 @@ open source projects:
   `License <https://github.com/ARM-DOE/pyart/blob/master/LICENSE.txt>`_.
 * mypy_: Copyright (c) 2015-2016 Jukka Lehtosalo and contributors.
   `MIT License <https://github.com/python/mypy/blob/master/LICENSE>`_.
+* Official github documentation (https://help.github.com)
 
 .. _Py-Art: https://github.com/ARM-DOE/pyart
 .. _mypy: https://github.com/python/mypy
