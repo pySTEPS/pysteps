@@ -298,22 +298,13 @@ def dense_lucaskanade(R, **kwargs):
             continue
 
         # exclude outlier vectors
-        vel = np.sqrt(u ** 2 + v ** 2)  # [px/timesteps]
-        q1, q2 = np.percentile(vel, [25, 75])
-        min_speed_thr = np.max((0, q1 - nr_IQR_outlier * (q2 - q1)))
-        max_speed_thr = q2 + nr_IQR_outlier * (q2 - q1)
-        keep = np.logical_and(vel < max_speed_thr, vel > min_speed_thr)
+        x0, y0, u, v = _outlier_removal(x0, y0, u, v, nr_IQR_outlier)
 
-        u = u[keep][:, None]
-        v = v[keep][:, None]
-        y0 = y0[keep][:, None]
-        x0 = x0[keep][:, None]
-
-        # stack vectors within time window
-        x0Stack.append(x0)
-        y0Stack.append(y0)
-        uStack.append(u)
-        vStack.append(v)
+        # stack vectors within time window as column vectors
+        x0Stack.append(x0[:, None])
+        y0Stack.append(y0[:, None])
+        uStack.append(u[:, None])
+        vStack.append(v[:, None])
 
     # return zero motion field is no sparse vectors are found
     if len(x0Stack) == 0:
@@ -330,7 +321,7 @@ def dense_lucaskanade(R, **kwargs):
     v = np.vstack(vStack)
 
     if verbose:
-        print("--- LK found %i sparse vectors ---" % x0.size)
+        print("--- LK found %i sparse vectors ---" % x.size)
 
     # return sparse vectors if required
     if not dense:
@@ -539,6 +530,38 @@ def _clean_image(R, n=3, thr=0):
     R[mask] = np.nanmin(R)
 
     return R
+
+
+def _outlier_removal(x, y, u, v, thr):
+
+    """Outlier removal.
+    
+    Parameters
+    ----------
+    x : array_like
+        X-coordinates of the origins of the velocity vectors.
+    y : array_like
+        Y-coordinates of the origins of the velocity vectors.
+    u : array_like
+        X-components of the velocities.
+    v : array_like
+        Y-components of the velocities.
+    thr : float
+        Threshold for outlier detection defined as measure of deviation from
+        the mean/median of the velocity distribution.
+
+    Returns
+    -------
+    A four-element tuple (x,y,u,v) containing the x- and y-coordinates and
+    velocity components of the motion vectors.
+    """
+    vel = np.sqrt(u ** 2 + v ** 2)  # [px/timesteps]
+    q1, q2 = np.percentile(vel, [25, 75])
+    min_speed_thr = np.max((0, q1 - thr * (q2 - q1)))
+    max_speed_thr = q2 + thr * (q2 - q1)
+    keep = np.logical_and(vel < max_speed_thr, vel > min_speed_thr)
+
+    return x[keep], y[keep], u[keep], v[keep]
 
 
 def _declustering(x, y, u, v, decl_grid, min_nr_samples):
