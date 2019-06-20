@@ -24,6 +24,7 @@ except ImportError:
     cv2_imported = False
 import scipy.spatial
 import time
+import warnings
 
 
 def dense_lucaskanade(R, **kwargs):
@@ -101,11 +102,21 @@ def dense_lucaskanade(R, **kwargs):
         It represents the 0-based maximal pyramid level number, by default this
         is set to 3.
 
-    nr_IQR_outlier : int, optional
-        Maximum acceptable deviation from the median velocity value in terms of
-        number of inter quantile ranges (IQR). Any velocity that is larger than
-        this value is flagged as outlier and excldued from the interpolation.
+    nr_std_outlier : int, optional
+        Maximum acceptable deviation from the mean/median in terms of
+        number of standard deviations. Any anomaly larger than
+        this value is flagged as outlier and excluded from the interpolation.
         By default this is set to 3.
+        
+    multivariate_outlier : bool, optional
+        If true (the default), the outlier detection is computed in terms of
+        the Mahalanobis distance. If false, the outlier detection is simply 
+        computed in terms of velocity.
+        
+    k_outlier : int, optinal
+        The number of nearest neighbours used to localize the outlier detection.
+        If set equal to 0, it employs all the data points.
+        The default is 30.
 
     size_opening : int, optional
         The size of the structuring element kernel in pixels. This is used to
@@ -133,8 +144,8 @@ def dense_lucaskanade(R, **kwargs):
         "gaussian".
 
     k : int, optional
-        The number of nearest neighbors used for fast interpolation, by default
-        this is set to 20. If set equal to zero, it employs all the neighbors.
+        The number of nearest neighbours used for fast interpolation, by default
+        this is set to 20. If set equal to zero, it employs all the neighbours.
 
     epsilon : float, optional
         The adjustable constant used in the gaussian and inverse radial basis
@@ -201,7 +212,17 @@ def dense_lucaskanade(R, **kwargs):
     block_size_ST = kwargs.get("block_size_ST", 15)
     winsize_LK = kwargs.get("winsize_LK", (50, 50))
     nr_levels_LK = kwargs.get("nr_levels_LK", 3)
-    nr_IQR_outlier = kwargs.get("nr_IQR_outlier", 3)
+    nr_std_outlier = kwargs.get("nr_std_outlier", 3)
+    nr_IQR_outlier = kwargs.get("nr_IQR_outlier", None)
+    if nr_IQR_outlier is not None:
+        nr_std_outlier = nr_IQR_outlier
+        warnings.warn(
+            "the 'nr_IQR_outlier' argument will be deprecated in the next release; "
+            + "use 'nr_std_outlier' instead.",
+            category=FutureWarning,
+        )
+    multivariate_outlier = kwargs.get("multivariate_outlier", True)
+    k_outlier = kwargs.get("k_outlier", 30)
     size_opening = kwargs.get("size_opening", 3)
     decl_grid = kwargs.get("decl_grid", 20)
     min_nr_samples = kwargs.get("min_nr_samples", 2)
@@ -297,14 +318,11 @@ def dense_lucaskanade(R, **kwargs):
         if x0 is None:
             continue
 
-        # exclude outlier vectors
-        x0, y0, u, v = _outlier_removal(x0, y0, u, v, nr_IQR_outlier)
-
         # stack vectors within time window as column vectors
-        x0Stack.append(x0[:, None])
-        y0Stack.append(y0[:, None])
-        uStack.append(u[:, None])
-        vStack.append(v[:, None])
+        x0Stack.append(x0.flatten()[:, None])
+        y0Stack.append(y0.flatten()[:, None])
+        uStack.append(u.flatten()[:, None])
+        vStack.append(v.flatten()[:, None])
 
     # return zero motion field is no sparse vectors are found
     if len(x0Stack) == 0:
@@ -319,6 +337,11 @@ def dense_lucaskanade(R, **kwargs):
     y = np.vstack(y0Stack)
     u = np.vstack(uStack)
     v = np.vstack(vStack)
+
+    # exclude outlier vectors
+    x, y, u, v = _outlier_removal(
+        x, y, u, v, nr_std_outlier, multivariate_outlier, k_outlier, verbose
+    )
 
     if verbose:
         print("--- LK found %i sparse vectors ---" % x.size)
@@ -532,7 +555,7 @@ def _clean_image(R, n=3, thr=0):
     return R
 
 
-def _outlier_removal(x, y, u, v, thr):
+def _outlier_removal(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
 
     """Outlier removal.
     
@@ -548,20 +571,92 @@ def _outlier_removal(x, y, u, v, thr):
         Y-components of the velocities.
     thr : float
         Threshold for outlier detection defined as measure of deviation from
-        the mean/median of the velocity distribution.
+        the mean/median in terms of standard deviations.
+    multivariate : bool, optional
+        If true (the default), the outlier detection is computed in terms of
+        the Mahalanobis distance. If false, the outlier detection is simply 
+        computed in terms of velocity.
+    k : int, optinal
+        The number of nearest neighbours used to localize the outlier detection.
+        If set equal to 0, it employs all the data points.
+        The default is 30.
 
     Returns
     -------
-    A four-element tuple (x,y,u,v) containing the x- and y-coordinates and
-    velocity components of the motion vectors.
+        A four-element tuple (x,y,u,v) containing the x- and y-coordinates and
+        velocity components of the motion vectors.
     """
-    vel = np.sqrt(u ** 2 + v ** 2)  # [px/timesteps]
-    q1, q2 = np.percentile(vel, [25, 75])
-    min_speed_thr = np.max((0, q1 - thr * (q2 - q1)))
-    max_speed_thr = q2 + thr * (q2 - q1)
-    keep = np.logical_and(vel < max_speed_thr, vel > min_speed_thr)
 
-    return x[keep], y[keep], u[keep], v[keep]
+    if multivariate:
+        data = np.concatenate((u, v), axis=1)
+
+    # globally
+    if k <= 0:
+
+        if not multivariate:
+
+            # in terms of velocity
+
+            vel = np.sqrt(u ** 2 + v ** 2)  # [px/timesteps]
+            q1, q2, q3 = np.percentile(vel, [16, 50, 84])
+            min_speed_thr = np.max((0, q2 - thr * (q3 - q1) / 2))
+            max_speed_thr = q2 + thr * (q3 - q1) / 2
+            keep = np.logical_and(vel < max_speed_thr, vel >= min_speed_thr)
+
+        else:
+
+            # mahalanobis distance
+
+            data = data - np.mean(data, axis=0)
+            V = np.cov(data.T)
+            VI = np.linalg.inv(V)
+            MD = np.sqrt(np.dot(np.dot(data, VI), data.T).diagonal())
+            keep = MD < thr
+
+    # locally
+    else:
+
+        points = np.concatenate((x, y), axis=1)
+        tree = scipy.spatial.cKDTree(points)
+        _, inds = tree.query(points, k=k + 1)
+        keep = []
+        for i in range(inds.shape[0]):
+
+            if not multivariate:
+
+                # in terms of velocity
+
+                thisvel = np.sqrt(u[i] ** 2 + v[i] ** 2)  # [px/timesteps]
+                neighboursvel = np.sqrt(u[inds[i, 1:]] ** 2 + v[inds[i, 1:]] ** 2)
+                q1, q2, q3 = np.percentile(neighboursvel, [16, 50, 84])
+                min_speed_thr = np.max((0, q2 - thr * (q3 - q1) / 2))
+                max_speed_thr = q2 + thr * (q3 - q1) / 2
+                keep.append(thisvel < max_speed_thr and thisvel > min_speed_thr)
+
+            else:
+
+                # mahalanobis distance
+
+                thisdata = data[i, :]
+                neighbours = data[inds[i, 1:], :].copy()
+                thisdata = thisdata - np.mean(neighbours, axis=0)
+                neighbours = neighbours - np.mean(neighbours, axis=0)
+                V = np.cov(neighbours.T)
+                VI = np.linalg.inv(V)
+                MD = np.sqrt(np.dot(np.dot(thisdata, VI), thisdata.T))
+                keep.append(MD < thr)
+
+        keep = np.array(keep)
+
+    if verbose:
+        print("--- %i outliers removed ---" % np.sum(~keep))
+
+    x = x[keep]
+    y = y[keep]
+    u = u[keep]
+    v = v[keep]
+
+    return x, y, u, v
 
 
 def _declustering(x, y, u, v, decl_grid, min_nr_samples):
@@ -666,7 +761,7 @@ def _interpolate_sparse_vectors(
         default : inverse
         available : nearest, inverse, gaussian
     k : int or "all"
-        the number of nearest neighbors used to speed-up the interpolation
+        the number of nearest neighbours used to speed-up the interpolation
         If set equal to "all", it employs all the sparse vectors
         default : 20
     epsilon : float
@@ -728,7 +823,7 @@ def _interpolate_sparse_vectors(
         idelta = subgrid.shape[0]
 
         if rbfunction.lower() == "nearest":
-            # find indices of the nearest neighbors
+            # find indices of the nearest neighbours
             _, inds = tree.query(subgrid, k=1)
 
             U[i0 : (i0 + idelta)] = u.ravel()[inds]
@@ -744,7 +839,7 @@ def _interpolate_sparse_vectors(
                 ).astype(int)
 
             else:
-                # find indices of the k-nearest neighbors
+                # find indices of the k-nearest neighbours
                 d, inds = tree.query(subgrid, k=k)
 
             if inds.ndim == 1:
