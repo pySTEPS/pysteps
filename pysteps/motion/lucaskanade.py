@@ -688,10 +688,10 @@ def _declustering(x, y, u, v, decl_grid, min_nr_samples):
     """
 
     # make sure these are all numpy vertical arrays
-    x = np.atleast_1d(np.array(x).squeeze())[:, None]
-    y = np.atleast_1d(np.array(y).squeeze())[:, None]
-    u = np.atleast_1d(np.array(u).squeeze())[:, None]
-    v = np.atleast_1d(np.array(v).squeeze())[:, None]
+    x = np.array(x).flatten()[:, None]
+    y = np.array(y).flatten()[:, None]
+    u = np.array(u).flatten()[:, None]
+    v = np.array(v).flatten()[:, None]
 
     # return empty arrays if the number of sparse vectors is < min_nr_samples
     if x.size < min_nr_samples:
@@ -785,10 +785,10 @@ def _interpolate_sparse_vectors(
     """
 
     # make sure these are vertical arrays
-    x = np.atleast_1d(np.array(x).squeeze())[:, None]
-    y = np.atleast_1d(np.array(y).squeeze())[:, None]
-    u = np.atleast_1d(np.array(u).squeeze())[:, None]
-    v = np.atleast_1d(np.array(v).squeeze())[:, None]
+    x = np.array(x).flatten()[:, None]
+    y = np.array(y).flatten()[:, None]
+    u = np.array(u).flatten()[:, None]
+    v = np.array(v).flatten()[:, None]
     points = np.concatenate((x, y), axis=1)
     npoints = points.shape[0]
 
