@@ -8,8 +8,8 @@ Finnish radar data.
 
 """
 
-from pylab import *
 from datetime import datetime
+import matplotlib.pyplot as plt
 import numpy as np
 from pprint import pprint
 from pysteps import io, motion, nowcasts, rcparams, verification
@@ -20,21 +20,26 @@ from pysteps.visualization import plot_precip_field, quiver
 # Read the radar input images
 # ---------------------------
 #
-# First thing, the sequence of radar composites is imported, converted and
-# transformed into units of dBR.
+# First, we will import the sequence of radar composites.
+# You need the pysteps-data archive downloaded and the pystepsrc file
+# configured with the data_source paths pointing to data folders.
 
+# Selected case
 date = datetime.strptime("201609281600", "%Y%m%d%H%M")
-data_source = "fmi"
+data_source = rcparams.data_sources["fmi"]
 n_leadtimes = 12
 
-# Load data source config
-root_path = rcparams.data_sources[data_source]["root_path"]
-path_fmt = rcparams.data_sources[data_source]["path_fmt"]
-fn_pattern = rcparams.data_sources[data_source]["fn_pattern"]
-fn_ext = rcparams.data_sources[data_source]["fn_ext"]
-importer_name = rcparams.data_sources[data_source]["importer"]
-importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
-timestep = rcparams.data_sources[data_source]["timestep"]
+###############################################################################
+# Load the data from the archive
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+root_path = data_source["root_path"]
+path_fmt = data_source["path_fmt"]
+fn_pattern = data_source["fn_pattern"]
+fn_ext = data_source["fn_ext"]
+importer_name = data_source["importer"]
+importer_kwargs = data_source["importer_kwargs"]
+timestep = data_source["timestep"]
 
 # Find the input files from the archive
 fns = io.archive.find_by_date(
@@ -50,6 +55,7 @@ R, metadata = conversion.to_rainrate(Z, metadata, 223.0, 1.53)
 
 # Plot the rainfall field
 plot_precip_field(R[-1, :, :], geodata=metadata)
+plt.show()
 
 # Store the last frame for plotting it later later
 R_ = R[-1, :, :].copy()
@@ -66,7 +72,7 @@ pprint(metadata)
 # -------------------
 #
 # The extrapolation nowcast is based on the estimation of the motion field,
-# which is here performed using a local tacking approach (Lucas-Kanade).
+# which is here performed using a local tracking approach (Lucas-Kanade).
 # The most recent radar rainfall field is then simply advected along this motion
 # field in oder to produce an extrapolation forecast.
 
@@ -85,6 +91,7 @@ R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata)
 quiver(V, geodata=metadata, step=50)
+plt.show()
 
 ###############################################################################
 # Verify with FSS
@@ -120,12 +127,13 @@ for i in range(n_leadtimes):
         score_.append(fss(R_f[i, :, :], R_o[i + 1, :, :], thr, scale))
     score.append(score_)
 
-figure()
+plt.figure()
 x = np.arange(1, n_leadtimes + 1) * timestep
-plot(x, score)
-legend(scales, title="Scale [km]")
-xlabel("Lead time [min]")
-ylabel("FSS ( > 1.0 mm/h ) ")
-title("Fractions skill score")
+plt.plot(x, score)
+plt.legend(scales, title="Scale [km]")
+plt.xlabel("Lead time [min]")
+plt.ylabel("FSS ( > 1.0 mm/h ) ")
+plt.title("Fractions skill score")
+plt.show()
 
 # sphinx_gallery_thumbnail_number = 3

@@ -4,12 +4,13 @@ Ensemble verification
 =====================
 
 This tutorial shows how to compute and plot an extrapolation nowcast using 
-Finnish radar data.
+MeteoSwiss radar data.
 
 """
 
-from pylab import *
 from datetime import datetime
+import matplotlib.pyplot as plt
+import numpy as np
 from pprint import pprint
 from pysteps import io, nowcasts, rcparams, verification
 from pysteps.motion.lucaskanade import dense_lucaskanade
@@ -17,29 +18,33 @@ from pysteps.postprocessing import ensemblestats
 from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 
-# Set nowcast parameters
-n_ens_members = 20
-n_leadtimes = 6
-seed = 24
 
 ###############################################################################
 # Read precipitation field
 # ------------------------
 #
-# First thing, the sequence of Swiss radar composites is imported, converted and
-# transformed into units of dBR.
+# First, we will import the sequence of MeteoSwiss ("mch") radar composites.
+# You need the pysteps-data archive downloaded and the pystepsrc file
+# configured with the data_source paths pointing to data folders.
 
+# Selected case
 date = datetime.strptime("201607112100", "%Y%m%d%H%M")
-data_source = "mch"
+data_source = rcparams.data_sources["mch"]
+n_ens_members = 20
+n_leadtimes = 6
+seed = 24
 
-# Load data source config
-root_path = rcparams.data_sources[data_source]["root_path"]
-path_fmt = rcparams.data_sources[data_source]["path_fmt"]
-fn_pattern = rcparams.data_sources[data_source]["fn_pattern"]
-fn_ext = rcparams.data_sources[data_source]["fn_ext"]
-importer_name = rcparams.data_sources[data_source]["importer"]
-importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
-timestep = rcparams.data_sources[data_source]["timestep"]
+###############################################################################
+# Load the data from the archive
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+root_path = data_source["root_path"]
+path_fmt = data_source["path_fmt"]
+fn_pattern = data_source["fn_pattern"]
+fn_ext = data_source["fn_ext"]
+importer_name = data_source["importer"]
+importer_kwargs = data_source["importer_kwargs"]
+timestep = data_source["timestep"]
 
 # Find the radar files in the archive
 fns = io.find_by_date(
@@ -58,6 +63,7 @@ R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
 
 # Plot the rainfall field
 plot_precip_field(R[-1, :, :], geodata=metadata)
+plt.show()
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
 # set the fill value to -15 dBR
@@ -101,12 +107,13 @@ R_f = nowcast_method(
 R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
 
 # Plot some of the realizations
-fig = figure()
+fig = plt.figure()
 for i in range(4):
     ax = fig.add_subplot(221 + i)
     ax.set_title("Member %02d" % i)
     plot_precip_field(R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off")
-tight_layout()
+plt.tight_layout()
+plt.show()
 
 ###############################################################################
 # Verification
@@ -145,25 +152,37 @@ R_o, metadata_o = dimension.aggregate_fields_space(R_o, metadata_o, 2000)
 # compute the exceedance probability of 0.1 mm/h from the ensemble
 P_f = ensemblestats.excprob(R_f[:, -1, :, :], 0.1, ignore_nan=True)
 
-# compute and plot the ROC curve
+###############################################################################
+# ROC curve
+# ~~~~~~~~~
+
 roc = verification.ROC_curve_init(0.1, n_prob_thrs=10)
 verification.ROC_curve_accum(roc, P_f, R_o[-1, :, :])
-fig, ax = subplots()
+fig, ax = plt.subplots()
 verification.plot_ROC(roc, ax, opt_prob_thr=True)
 ax.set_title("ROC curve (+ %i min)" % (n_leadtimes * timestep))
+plt.show()
 
-# compute and plot the reliability diagram
+###############################################################################
+# Reliability diagram
+# ~~~~~~~~~~~~~~~~~~~
+
 reldiag = verification.reldiag_init(0.1)
 verification.reldiag_accum(reldiag, P_f, R_o[-1, :, :])
-fig, ax = subplots()
+fig, ax = plt.subplots()
 verification.plot_reldiag(reldiag, ax)
 ax.set_title("Reliability diagram (+ %i min)" % (n_leadtimes * timestep))
+plt.show()
 
-# compute and plot the rank histogram
+###############################################################################
+# Rank histogram
+# ~~~~~~~~~~~~~~
+
 rankhist = verification.rankhist_init(R_f.shape[0], 0.1)
 verification.rankhist_accum(rankhist, R_f[:, -1, :, :], R_o[-1, :, :])
-fig, ax = subplots()
+fig, ax = plt.subplots()
 verification.plot_rankhist(rankhist, ax)
 ax.set_title("Rank histogram (+ %i min)" % (n_leadtimes * timestep))
+plt.show()
 
 # sphinx_gallery_thumbnail_number = 5

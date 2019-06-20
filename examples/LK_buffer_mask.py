@@ -14,7 +14,6 @@ detected nearby no-data areas.
 """
 
 from datetime import datetime
-from pprint import pprint
 from matplotlib import cm, colors
 
 import matplotlib.pyplot as plt
