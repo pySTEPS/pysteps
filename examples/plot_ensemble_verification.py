@@ -3,8 +3,8 @@
 Ensemble verification
 =====================
 
-This tutorial shows how to compute and plot an extrapolation nowcast using 
-MeteoSwiss radar data.
+In this tutorial we perform a verification of a probabilistic extrapolation nowcast 
+using MeteoSwiss radar data.
 
 """
 
@@ -37,6 +37,9 @@ seed = 24
 ###############################################################################
 # Load the data from the archive
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# The data are upscaled to 2 km resolution to limit the memory usage and thus
+# be able to afford a larger number of ensemble members.
 
 root_path = data_source["root_path"]
 path_fmt = data_source["path_fmt"]
@@ -58,7 +61,7 @@ R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 # Convert to rain rate
 R, metadata = conversion.to_rainrate(R, metadata)
 
-# Upscale data to 2 km to limit memory usage
+# Upscale data to 2 km
 R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
 
 # Plot the rainfall field
@@ -84,7 +87,7 @@ pprint(metadata)
 # Estimate the motion field
 V = dense_lucaskanade(R)
 
-# The STEPES nowcast
+# Perform the ensemble nowcast with STEPS
 nowcast_method = nowcasts.get_method("steps")
 R_f = nowcast_method(
     R[-3:, :, :],
@@ -119,10 +122,10 @@ plt.show()
 # Verification
 # ------------
 #
-# Pysteps includes a number of verification metrics to help users to analyze 
-# the general characteristics of the nowcasts in terms of consistency and 
-# quality (or goodness). 
-# Here, we will verify our probabilistic forecasts using the ROC curve, 
+# Pysteps includes a number of verification metrics to help users to analyze
+# the general characteristics of the nowcasts in terms of consistency and
+# quality (or goodness).
+# Here, we will verify our probabilistic forecasts using the ROC curve,
 # reliability diagrams, and rank histograms, as implemented in the verification
 # module of pysteps.
 
@@ -160,7 +163,7 @@ roc = verification.ROC_curve_init(0.1, n_prob_thrs=10)
 verification.ROC_curve_accum(roc, P_f, R_o[-1, :, :])
 fig, ax = plt.subplots()
 verification.plot_ROC(roc, ax, opt_prob_thr=True)
-ax.set_title("ROC curve (+ %i min)" % (n_leadtimes * timestep))
+ax.set_title("ROC curve (+%i min)" % (n_leadtimes * timestep))
 plt.show()
 
 ###############################################################################
@@ -171,7 +174,7 @@ reldiag = verification.reldiag_init(0.1)
 verification.reldiag_accum(reldiag, P_f, R_o[-1, :, :])
 fig, ax = plt.subplots()
 verification.plot_reldiag(reldiag, ax)
-ax.set_title("Reliability diagram (+ %i min)" % (n_leadtimes * timestep))
+ax.set_title("Reliability diagram (+%i min)" % (n_leadtimes * timestep))
 plt.show()
 
 ###############################################################################
@@ -182,7 +185,7 @@ rankhist = verification.rankhist_init(R_f.shape[0], 0.1)
 verification.rankhist_accum(rankhist, R_f[:, -1, :, :], R_o[-1, :, :])
 fig, ax = plt.subplots()
 verification.plot_rankhist(rankhist, ax)
-ax.set_title("Rank histogram (+ %i min)" % (n_leadtimes * timestep))
+ax.set_title("Rank histogram (+%i min)" % (n_leadtimes * timestep))
 plt.show()
 
 # sphinx_gallery_thumbnail_number = 5

@@ -113,7 +113,7 @@ def dense_lucaskanade(R, **kwargs):
         the Mahalanobis distance. If false, the outlier detection is simply 
         computed in terms of velocity.
         
-    k_outlier : int, optinal
+    k_outlier : int, optional
         The number of nearest neighbours used to localize the outlier detection.
         If set equal to 0, it employs all the data points.
         The default is 30.
@@ -366,7 +366,7 @@ def dense_lucaskanade(R, **kwargs):
         return np.zeros((2, domain_size[0], domain_size[1]))
 
     if verbose:
-        print("--- %i sparse vectors left for interpolation ---" % x.size)
+        print("--- %i sparse vectors left after declustering ---" % x.size)
 
     # kernel interpolation
     _, _, UV = _interpolate_sparse_vectors(
