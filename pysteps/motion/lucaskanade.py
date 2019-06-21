@@ -618,7 +618,7 @@ def _outlier_removal(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
 
         points = np.concatenate((x, y), axis=1)
         tree = scipy.spatial.cKDTree(points)
-        _, inds = tree.query(points, k=k + 1)
+        _, inds = tree.query(points, k=np.min((k + 1, points.shape[0])))
         keep = []
         for i in range(inds.shape[0]):
 
