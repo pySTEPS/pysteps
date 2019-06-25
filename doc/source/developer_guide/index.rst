@@ -15,6 +15,6 @@ contributing to the pySTEPS project.
     ../user_guide/install_pysteps
     test_pysteps
     pypi
-    create_conda_package
+    update_conda_forge
 
 

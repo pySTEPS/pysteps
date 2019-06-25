@@ -1,3 +1,5 @@
+.. _pypi_relase:
+
 =============================
 Packaging the PySteps project
 =============================
