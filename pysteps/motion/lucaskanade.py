@@ -172,7 +172,8 @@ def dense_lucaskanade(R, **kwargs):
     -------
     out : ndarray_
         If dense=True (the default), it returns the three-dimensional array (2,m,n)
-        containing the dense x- and y-components of the motion field.
+        containing the dense x- and y-components of the motion field in units of
+        pixels / timestep as given by the input array R.
         If dense=False, it returns a tuple containing the one-dimensional arrays
         x, y, u, v, where x, y define the vector locations, u, v define the x
         and y direction components of the vectors.

@@ -64,7 +64,8 @@ def DARTS(R, **kwargs):
     -------
     out : ndarray
         Three-dimensional array (2,m,n) containing the dense x- and y-components
-        of the motion field.
+        of the motion field in units of pixels / timestep as given by the input
+        array R.
 
     """
 

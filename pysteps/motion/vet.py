@@ -431,7 +431,8 @@ def vet(input_images,
         Displacement Field (2D array representing the transformation) that
         warps the template image into the input image.
         The dimensions are (2,ni,nj), where the first
-        dimension indicates the displacement along x (0) or y (1).
+        dimension indicates the displacement along x (0) or y (1) in units of
+        pixels / timestep as given by the input_images array.
 
     intermediate_steps : list of ndarray_
         List with the first guesses obtained during the scaling procedure.
