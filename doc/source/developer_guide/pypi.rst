@@ -80,15 +80,38 @@ Test the uploaded package
 
 Before uploading the package to the official `Python Package
 Index <https://pypi.org/>`_, test that the package can be installed
-using pip by running::
+using pip.
 
-   pip install --index-url https://test.pypi.org/simple/ pysteps
+For that we will create a new conda environment using the
+`environment_test.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_test.yml>`_ file in the
+pysteps repository::
+
+    conda create -f environment_test.yml
+
+Then we activate the environment::
+
+    source activate pysteps_test
+
+or::
+
+    conda activate pysteps_test
+
+If the environment pysteps_test was already created, remove any version of pysteps already installed::
+
+    pip uninstall pysteps
+
+Now, install the pysteps package from test.pypi.org::
+
+    pip install --index-url https://test.pypi.org/simple/ pysteps
+
 
 To test that the installation was successful, from a folder different
-than the pysteps source, run the `pysteps’s test
-suite <https://github.com/pySTEPS/pysteps/wiki/Testing-pysteps>`_::
+than the pysteps source, run::
 
-   pytest --pyargs pysteps
+    pytest --pyargs pysteps
+
+
+If any test didn't pass, check the sources or consider creating a new release fixing those bugs.
 
 Uploaded package to the Official PyPi
 -------------------------------------
@@ -103,3 +126,6 @@ repository with::
 Now, **pysteps** can be installed by simply running::
 
    pip install pysteps
+
+As an extra sanity measure, it is recommended to test the pysteps package installed from the Official PyPi repository
+(instead of the test PyPi).
