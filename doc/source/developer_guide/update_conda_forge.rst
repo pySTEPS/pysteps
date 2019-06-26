@@ -42,7 +42,7 @@ The actual pySTEPS feedstock is https://github.com/conda-forge/pysteps-feedstock
 A feedstock is made up of a conda recipe (the instructions on what and how to build the package) and the
 necessary configurations for automatic building using freely available continuous integration services.
 
-See the official `conda-forge documentation<http://conda-forge.org/docs/user/00_intro.html>`_ for more details.
+See the official `conda-forge documentation <http://conda-forge.org/docs/user/00_intro.html>`_ for more details.
 
 
 Maintain pysteps conda-forge package
@@ -81,7 +81,8 @@ The mandatory steps to update the pysteps-feedstock_ are:
 
         git clone https://github.com/<your-github-id>/pysteps-feedstock
 
-#. Syncing your fork with the pysteps feedstock
+#. Syncing your fork with the pysteps feedstock. This step is only needed if your local repostiory is not up to date
+   the pysteps-feedstock_. If you just cloned the forked pysteps-feedstock_, you can ignore this step.
 
     * Make sure you are on the master branch::
 
@@ -89,7 +90,7 @@ The mandatory steps to update the pysteps-feedstock_ are:
 
     * Register conda-forge’s feedstock with::
 
-        git remote add upstream https://github.com/conda-forge/<feedstock>
+        git remote add upstream https://github.com/conda-forge/pysteps-feedstock
 
     * Fetch the latest updates with git fetch upstream::
 

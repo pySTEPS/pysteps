@@ -4,21 +4,21 @@
 Packaging the PySteps project
 =============================
 
-The `Python Package Index <https://pypi.org/>`__ (PyPI) is a software
+The `Python Package Index <https://pypi.org/>`_ (PyPI) is a software
 repository for the Python programming language. PyPI helps you find and
 install software developed and shared by the Python community.
 
 The following guide to package PySteps was adapted from the
-`PyPI <https://packaging.python.org/tutorials/packaging-projects/#generating-distribution-archives>`__
+`PyPI <https://packaging.python.org/tutorials/packaging-projects/#generating-distribution-archives>`_
 official documentation.
 
 Generating the source distribution
 ==================================
 
 The first step is to generate a `source distribution
-(sdist) <https://packaging.python.org/glossary/#term-source-distribution-or-sdist>`__
+(sdist) <https://packaging.python.org/glossary/#term-source-distribution-or-sdist>`_
 for the PySTEPS library. These are archives that are uploaded to the
-`Package Index <https://pypi.org/>`__ and can be installed by pip.
+`Package Index <https://pypi.org/>`_ and can be installed by pip.
 
 To create the the sdist package we need the **setuptools** package
 installed.
@@ -37,12 +37,12 @@ Uploading the source distribution to the archive
 ================================================
 
 The last step is to upload your package to the `Python Package
-Index <https://pypi.org/>`__.
+Index <https://pypi.org/>`_.
 
 **Important**
 
 Before we actually upload the distribution to the Python Index, we will
-test it in `Test PyPI <https://test.pypi.org/>`__. Test PyPI is a
+test it in `Test PyPI <https://test.pypi.org/>`_. Test PyPI is a
 separate instance of the package index that allows us to try the
 distribution without affecting the real index (PyPi). Because TestPyPI
 has a separate database from the actual PyPI, you’ll need a separate
@@ -50,7 +50,7 @@ user account for specifically for TestPyPI. You can register your
 account in https://test.pypi.org/account/register/.
 
 Once you are registered, you can use
-`twine <https://twine.readthedocs.io/en/latest/#twine-user-documentation>`__
+`twine <https://twine.readthedocs.io/en/latest/#twine-user-documentation>`_
 to upload the distribution packages. Alternatively, the package can be
 uploaded manually from the **Test PyPI** page.
 
@@ -79,14 +79,14 @@ Test the uploaded package
 -------------------------
 
 Before uploading the package to the official `Python Package
-Index <https://pypi.org/>`__, test that the package can be installed
+Index <https://pypi.org/>`_, test that the package can be installed
 using pip by running::
 
    pip install --index-url https://test.pypi.org/simple/ pysteps
 
 To test that the installation was successful, from a folder different
 than the pysteps source, run the `pysteps’s test
-suite <https://github.com/pySTEPS/pysteps/wiki/Testing-pysteps>`__::
+suite <https://github.com/pySTEPS/pysteps/wiki/Testing-pysteps>`_::
 
    pytest --pyargs pysteps
 
@@ -94,11 +94,11 @@ Uploaded package to the Official PyPi
 -------------------------------------
 
 Once the
-`sdist <https://packaging.python.org/glossary/#term-source-distribution-or-sdist>`__
+`sdist <https://packaging.python.org/glossary/#term-source-distribution-or-sdist>`_
 package was tested, we can safely upload it to the Official PyPi
 repository with::
 
-   twine upload dist/pysteps-1.0.0.tar.gz
+   twine upload dist/pysteps-#.#.#.tar.gz
 
 Now, **pysteps** can be installed by simply running::
 
