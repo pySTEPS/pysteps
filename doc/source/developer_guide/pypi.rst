@@ -31,7 +31,7 @@ Once this command is completed, it should generate a tar.gz (source
 archive) file the **dist** directory::
 
    dist/
-     pysteps-1.0.0.tar.gz
+     pysteps-a.b.c.tar.gz
 
 Uploading the source distribution to the archive
 ================================================
@@ -58,9 +58,11 @@ If Twine is not installed, you can install it by running
 ``pip install twine`` or ``conda install twine``.
 
 To upload the recently created source distribution
-(**dist/pysteps-1.0.0.tar.gz**) under the **dist** directory run::
+(**dist/pysteps-a.b.c.tar.gz**) under the **dist** directory run::
 
-   twine upload --repository-url https://test.pypi.org/legacy/ dist/pysteps-1.0.0.tar.gz
+   twine upload --repository-url https://test.pypi.org/legacy/ dist/pysteps-a.b.c.tar.gz
+
+where a.b.c denote the version number.
 
 You will be prompted for the username and password you registered with
 Test PyPI. After the command completes, you should see output similar to
@@ -69,7 +71,7 @@ this::
    Uploading distributions to https://test.pypi.org/legacy/
    Enter your username: [your username]
    Enter your password:
-   Uploading pysteps-1.0.0.tar.gz
+   Uploading pysteps-a.b.c.tar.gz
    100%|█████████████████████| 4.25k/4.25k [00:01<00:00, 3.05kB/s]
 
 Once uploaded your package should be viewable on TestPyPI, for example,
@@ -121,7 +123,7 @@ Once the
 package was tested, we can safely upload it to the Official PyPi
 repository with::
 
-   twine upload dist/pysteps-#.#.#.tar.gz
+   twine upload dist/pysteps-a.b.c.tar.gz
 
 Now, **pysteps** can be installed by simply running::
 

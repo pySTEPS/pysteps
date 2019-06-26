@@ -152,7 +152,9 @@ Recipe fixing
 -------------
 
 In case that the recipe must be updated but the source code for the package has not changed the **build_number** in
-the the conda recipe in **pysteps-feedstock/recipe/meta.yaml* needs to be increased by 1.
+the the conda recipe in
+`pysteps-feedstock/recipe/meta.yaml <https://github.com/conda-forge/pysteps-feedstock/blob/master/recipe/meta.yaml>`_
+needs to be increased by 1.
 
 Some examples for needing to increase the build number are:
 
