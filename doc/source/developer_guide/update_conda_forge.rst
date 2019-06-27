@@ -1,6 +1,8 @@
-====================================
-Update conda-forge pysteps-feedstock
-====================================
+.. _update_conda_feedstock:
+
+==========================================
+Updating the conda-forge pysteps-feedstock
+==========================================
 
 
 .. _pysteps-feedstock: https://github.com/conda-forge/pysteps-feedstock

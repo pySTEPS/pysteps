@@ -158,6 +158,9 @@ for changes, clearly explaining their goal.
 Core developer guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Processing pull requests
+^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. _`Squash and merge`: https://github.com/blog/2141-squash-your-commits
 
 Core developers should follow these rules when processing pull requests:
@@ -188,6 +191,28 @@ Core developers should follow these rules when processing pull requests:
 
     * If the PR fixes an issue, make sure something like "Fixes #xxx." occurs
       in the body of the message (not in the subject).
+
+
+Preparing a new release
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Core developers should follow the steps to prepare a new release (version):
+
+1. Before creating the actual release in GitHub, be sure that every item in the following checklist was followed:
+
+    * In the file setup.py, update the **version="X.X.X"** keyword in the setup function.
+    * Update the version in PKG-INFO file.
+    * If new dependencies were added to pysteps since the last release, add them to the
+      **environment.yml, requirements.txt**, and **requirements_dev.txt** files.
+
+#. Create a new release in GitHub following `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
+   Include a detailed changelog in the release.
+
+#. Generating the source distribution for new pysteps version and upload it to the
+   `Python Package Index <https://pypi.org/>`_ (PyPI).
+   See :ref:`pypi_relase` for a detailed description of this process.
+
+#. Update the conda-forge pysteps-feedstock following this guidelines: :ref:`update_conda_feedstock`
 
 
 
