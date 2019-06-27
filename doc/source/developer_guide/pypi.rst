@@ -1,14 +1,14 @@
 .. _pypi_relase:
 
 =============================
-Packaging the PySteps project
+Packaging the pysteps project
 =============================
 
 The `Python Package Index <https://pypi.org/>`_ (PyPI) is a software
 repository for the Python programming language. PyPI helps you find and
 install software developed and shared by the Python community.
 
-The following guide to package PySteps was adapted from the
+The following guide to package pysteps was adapted from the
 `PyPI <https://packaging.python.org/tutorials/packaging-projects/#generating-distribution-archives>`_
 official documentation.
 
@@ -17,13 +17,13 @@ Generating the source distribution
 
 The first step is to generate a `source distribution
 (sdist) <https://packaging.python.org/glossary/#term-source-distribution-or-sdist>`_
-for the PySTEPS library. These are archives that are uploaded to the
+for the pysteps library. These are archives that are uploaded to the
 `Package Index <https://pypi.org/>`_ and can be installed by pip.
 
-To create the the sdist package we need the **setuptools** package
+To create the sdist package we need the **setuptools** package
 installed.
 
-Then, from the root folder of the PySTEPS source run::
+Then, from the root folder of the pysteps source run::
 
    python setup.py sdist
 
@@ -32,6 +32,8 @@ archive) file the **dist** directory::
 
    dist/
      pysteps-a.b.c.tar.gz
+
+where a.b.c denote the version number.
 
 Uploading the source distribution to the archive
 ================================================
