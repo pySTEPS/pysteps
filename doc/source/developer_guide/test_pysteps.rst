@@ -35,3 +35,4 @@ Now, the package sources can be tested in-place using the **pytest**
 command on the root of the pysteps source directory. E.g.::
 
    pytest -v --tb=line
+
