@@ -61,6 +61,8 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
         +------------+--------------------------------------------------------+
         |  HSS       | Heidke skill score                                     |
         +------------+--------------------------------------------------------+
+        |  MCC       | Matthews correlation coefficient                       |
+        +------------+--------------------------------------------------------+
         |  POD       | probability of detection (hit rate)                    |
         +------------+--------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                    |
@@ -243,6 +245,8 @@ def det_cat_fct_compute(contab, scores=""):
         +------------+--------------------------------------------------------+
         |  HSS       | Heidke skill score                                     |
         +------------+--------------------------------------------------------+
+        |  MCC       | Matthews correlation coefficient                       |
+        +------------+--------------------------------------------------------+
         |  POD       | probability of detection (hit rate)                    |
         +------------+--------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                    |
@@ -263,10 +267,10 @@ def det_cat_fct_compute(contab, scores=""):
             return (x,)
     scores = get_iterable(scores)
 
-    H = 1.*contab["hits"]
-    M = 1.*contab["misses"]
-    F = 1.*contab["false_alarms"]
-    R = 1.*contab["correct_negatives"]
+    H = 1.*contab["hits"] # true positives
+    M = 1.*contab["misses"] # false negatives
+    F = 1.*contab["false_alarms"] # false positives
+    R = 1.*contab["correct_negatives"] # true negatives
 
     result = {}
     for score in scores:
@@ -331,5 +335,9 @@ def det_cat_fct_compute(contab, scores=""):
             SEDI = (np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA))\
                   /(np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA))
             result["SEDI"] = SEDI
+        if score_ in ["mcc", ""]:
+            # Matthews correlation coefficient
+            MCC = (H*R - F*M)/np.sqrt((H + F)*(H + M)*(R + F)*(R + M))
+            result["MCC"] = MCC
 
     return result

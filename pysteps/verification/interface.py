@@ -42,6 +42,8 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  HSS       | Heidke skill score                                     |
         +------------+--------------------------------------------------------+
+        |  MCC       | Matthews correlation coefficient                       |
+        +------------+--------------------------------------------------------+
         |  POD       | probability of detection (hit rate)                    |
         +------------+--------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                    |
@@ -147,7 +149,7 @@ def get_method(name, type="deterministic"):
         from .spatialscores import fss, binary_mse
 
         # categorical
-        if name in ["acc", "csi", "fa", "far", "gss", "hk", "hss", "pod", "sedi"]:
+        if name in ["acc", "csi", "fa", "far", "gss", "hk", "hss", "mcc", "pod", "sedi"]:
             def f(fct, obs, **kwargs):
                 return det_cat_fct(fct, obs, kwargs.pop("thr"), [name])
             return f
