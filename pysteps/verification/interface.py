@@ -10,6 +10,7 @@ Interface for the verification module.
     get_method
 """
 
+
 def get_method(name, type="deterministic"):
     """Return a callable function for the method corresponding to the given
     verification score.
@@ -139,9 +140,9 @@ def get_method(name, type="deterministic"):
     """
 
     if name is None:
-        name = 'none'
+        name = "none"
     if type is None:
-        type = 'none'
+        type = "none"
 
     name = name.lower()
     type = type.lower()
@@ -153,16 +154,42 @@ def get_method(name, type="deterministic"):
         from .spatialscores import fss, binary_mse
 
         # categorical
-        if name in ["acc", "csi", "fa", "far", "gss", "hk", "hss", "mcc", "pod", "sedi"]:
+        if name in [
+            "acc",
+            "csi",
+            "f1",
+            "fa",
+            "far",
+            "gss",
+            "hk",
+            "hss",
+            "mcc",
+            "pod",
+            "sedi",
+        ]:
+
             def f(fct, obs, **kwargs):
                 return det_cat_fct(fct, obs, kwargs.pop("thr"), [name])
+
             return f
 
         # continuous
-        elif name in ["beta", "corr_p", "corr_s", "mae", "mse",
-                      "me", "drmse", "rmse", "rv", "scatter"]:
+        elif name in [
+            "beta",
+            "corr_p",
+            "corr_s",
+            "mae",
+            "mse",
+            "me",
+            "drmse",
+            "rmse",
+            "rv",
+            "scatter",
+        ]:
+
             def f(fct, obs, **kwargs):
                 return det_cont_fct(fct, obs, [name], **kwargs)
+
             return f
 
         # spatial
