@@ -125,8 +125,9 @@ def det_cat_fct_init(thr, axis=None):
 
     # catch case of axis passed as integer
     def get_iterable(x):
-        if x is None or \
-            (isinstance(x, collections.Iterable) and not isinstance(x, int)):
+        if x is None or (
+            isinstance(x, collections.Iterable) and not isinstance(x, int)
+        ):
             return x
         else:
             return (x,)
@@ -165,12 +166,16 @@ def det_cat_fct_accum(contab, pred, obs):
 
     # checks
     if pred.shape != obs.shape:
-        raise ValueError("the shape of pred does not match the shape of obs %s!=%s"
-                         % (pred.shape, obs.shape))
+        raise ValueError(
+            "the shape of pred does not match the shape of obs %s!=%s"
+            % (pred.shape, obs.shape)
+        )
 
     if pred.ndim <= np.max(axis):
-        raise ValueError("axis %d is out of bounds for array of dimension %d"
-                         % (np.max(axis), len(pred.shape)))
+        raise ValueError(
+            "axis %d is out of bounds for array of dimension %d"
+            % (np.max(axis), len(pred.shape))
+        )
 
     idims = [dim not in axis for dim in range(pred.ndim)]
     nshape = tuple(np.array(pred.shape)[np.array(idims)])
@@ -186,7 +191,8 @@ def det_cat_fct_accum(contab, pred, obs):
         if contab["hits"].shape != nshape:
             raise ValueError(
                 "the shape of the input arrays does not match the shape of the "
-                + "contingency table %s!=%s" % (nshape, contab["hits"].shape))
+                + "contingency table %s!=%s" % (nshape, contab["hits"].shape)
+            )
 
     # add dummy axis in case integration is not required
     if np.max(axis) < 0:
@@ -273,12 +279,13 @@ def det_cat_fct_compute(contab, scores=""):
             return x
         else:
             return (x,)
+
     scores = get_iterable(scores)
 
-    H = 1.*contab["hits"] # true positives
-    M = 1.*contab["misses"] # false negatives
-    F = 1.*contab["false_alarms"] # false positives
-    R = 1.*contab["correct_negatives"] # true negatives
+    H = 1.0 * contab["hits"]  # true positives
+    M = 1.0 * contab["misses"]  # false negatives
+    F = 1.0 * contab["false_alarms"]  # false positives
+    R = 1.0 * contab["correct_negatives"]  # true negatives
 
     result = {}
     for score in scores:
@@ -289,10 +296,10 @@ def det_cat_fct_compute(contab, scores=""):
         score_ = score.lower()
 
         # simple scores
-        POD = H/(H + M)
-        FAR = F/(H + F)
-        FA = F/(F + R)
-        s = (H + M)/(H + M + F + R)
+        POD = H / (H + M)
+        FAR = F / (H + F)
+        FA = F / (F + R)
+        s = (H + M) / (H + M + F + R)
 
         if score_ in ["pod", ""]:
             # probability of detection
@@ -305,11 +312,11 @@ def det_cat_fct_compute(contab, scores=""):
             result["FA"] = FA
         if score_ in ["acc", ""]:
             # accuracy (fraction correct)
-            ACC = (H + R)/(H + M + F + R)
+            ACC = (H + R) / (H + M + F + R)
             result["ACC"] = ACC
         if score_ in ["csi", ""]:
             # critical success index
-            CSI = H/(H + M + F)
+            CSI = H / (H + M + F)
             result["CSI"] = CSI
         if score_ in ["bias", ""]:
             # frequency bias
@@ -319,7 +326,7 @@ def det_cat_fct_compute(contab, scores=""):
         # skill scores
         if score_ in ["hss", ""]:
             # Heidke Skill Score (-1 < HSS < 1) < 0 implies no skill
-            HSS = 2*(H*R - F*M)/((H + M)*(M + R) + (H + F)*(F + R))
+            HSS = 2 * (H * R - F * M) / ((H + M) * (M + R) + (H + F) * (F + R))
             result["HSS"] = HSS
         if score_ in ["hk", ""]:
             # Hanssen-Kuipers Discriminant
@@ -327,12 +334,12 @@ def det_cat_fct_compute(contab, scores=""):
             result["HK"] = HK
         if score_ in ["gss", ""]:
             # Gilbert Skill Score
-            GSS = (POD - FA)/((1 - s*POD)/(1 - s) + FA*(1 - s)/s)
+            GSS = (POD - FA) / ((1 - s * POD) / (1 - s) + FA * (1 - s) / s)
             result["GSS"] = GSS
         if score_ in ["ets", ""]:
             # Equitable Threat Score
             N = H + M + R + F
-            HR = ((H + M)*(H + F)) / N
+            HR = ((H + M) * (H + F)) / N
             if (H + M + F - HR) == 0:
                 ETS = np.nan
             else:
@@ -340,16 +347,17 @@ def det_cat_fct_compute(contab, scores=""):
             result["ETS"] = ETS
         if score_ in ["sedi", ""]:
             # Symmetric extremal dependence index
-            SEDI = (np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA))\
-                  /(np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA))
+            SEDI = (np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA)) / (
+                np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA)
+            )
             result["SEDI"] = SEDI
         if score_ in ["mcc", ""]:
             # Matthews correlation coefficient
-            MCC = (H*R - F*M)/np.sqrt((H + F)*(H + M)*(R + F)*(R + M))
+            MCC = (H * R - F * M) / np.sqrt((H + F) * (H + M) * (R + F) * (R + M))
             result["MCC"] = MCC
         if score_ in ["f1", "f1-score", ""]:
             # F1 score
-            F1 = 2*H/(2*H + F + M)
+            F1 = 2 * H / (2 * H + F + M)
             result["F1"] = F1
 
     return result
