@@ -48,6 +48,10 @@ test_data = [
     (fct_data, obs_data, 0.0, ('ETS'), [0.437682]),
     # Symmetric extremal dependence index
     (fct_data, obs_data, 0.0, ('SEDI'), [0.789308]),
+    # Matthews correlation coefficient
+    (fct_data, obs_data, 0.0, ('MCC'), [0.611707]),
+    # F1-score
+    (fct_data, obs_data, 0.0, ('F1'), [0.728889]),
     ]
 
 
