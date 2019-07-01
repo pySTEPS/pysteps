@@ -92,7 +92,7 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
 
     """
 
-    contab = det_cat_fct_init(thr)
+    contab = det_cat_fct_init(thr, axis)
     det_cat_fct_accum(contab, pred, obs)
     return det_cat_fct_compute(contab, scores)
 
