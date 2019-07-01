@@ -51,6 +51,8 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
+        |  F1        | the harmonic mean of precision and sensitivity         |
+        +------------+--------------------------------------------------------+
         |  FA        | false alarm rate (prob. of false detection, fall-out,  |
         |            | false positive rate)                                   |
         +------------+--------------------------------------------------------+
@@ -237,6 +239,8 @@ def det_cat_fct_compute(contab, scores=""):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
+        |  F1        | the harmonic mean of precision and sensitivity         |
+        +------------+--------------------------------------------------------+
         |  FA        | false alarm rate (prob. of false detection, fall-out,  |
         |            | false positive rate)                                   |
         +------------+--------------------------------------------------------+
@@ -343,5 +347,9 @@ def det_cat_fct_compute(contab, scores=""):
             # Matthews correlation coefficient
             MCC = (H*R - F*M)/np.sqrt((H + F)*(H + M)*(R + F)*(R + M))
             result["MCC"] = MCC
+        if score_ in ["f1", "f1-score", ""]:
+            # F1 score
+            F1 = 2*H/(2*H + F + M)
+            result["F1"] = F1
 
     return result
