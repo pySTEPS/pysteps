@@ -51,9 +51,10 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
-        |  FA        | false alarm rate (prob. of false detection)            |
+        |  FA        | false alarm rate (prob. of false detection, fall-out,  |
+        |            | false positive rate)                                   |
         +------------+--------------------------------------------------------+
-        |  FAR       | false alarm ratio                                      |
+        |  FAR       | false alarm ratio (false discovery rate)               |
         +------------+--------------------------------------------------------+
         |  GSS       | Gilbert skill score (equitable threat score)           |
         +------------+--------------------------------------------------------+
@@ -63,7 +64,8 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
         +------------+--------------------------------------------------------+
         |  MCC       | Matthews correlation coefficient                       |
         +------------+--------------------------------------------------------+
-        |  POD       | probability of detection (hit rate)                    |
+        |  POD       | probability of detection (hit rate, sensitivity,       |
+        |            | recall, true positive rate)                            |
         +------------+--------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                    |
         +------------+--------------------------------------------------------+
@@ -235,9 +237,10 @@ def det_cat_fct_compute(contab, scores=""):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
-        |  FA        | false alarm rate (prob. of false detection)            |
+        |  FA        | false alarm rate (prob. of false detection, fall-out,  |
+        |            | false positive rate)                                   |
         +------------+--------------------------------------------------------+
-        |  FAR       | false alarm ratio                                      |
+        |  FAR       | false alarm ratio (false discovery rate)               |
         +------------+--------------------------------------------------------+
         |  GSS       | Gilbert skill score (equitable threat score)           |
         +------------+--------------------------------------------------------+
@@ -247,7 +250,8 @@ def det_cat_fct_compute(contab, scores=""):
         +------------+--------------------------------------------------------+
         |  MCC       | Matthews correlation coefficient                       |
         +------------+--------------------------------------------------------+
-        |  POD       | probability of detection (hit rate)                    |
+        |  POD       | probability of detection (hit rate, sensitivity,       |
+        |            | recall, true positive rate)                            |
         +------------+--------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                    |
         +------------+--------------------------------------------------------+

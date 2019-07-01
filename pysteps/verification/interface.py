@@ -32,9 +32,10 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
-        |  FA        | false alarm rate (prob. of false detection)            |
+        |  FA        | false alarm rate (prob. of false detection, fall-out,  |
+        |            | false positive rate)                                   |
         +------------+--------------------------------------------------------+
-        |  FAR       | false alarm ratio                                      |
+        |  FAR       | false alarm ratio (false discovery rate)               |
         +------------+--------------------------------------------------------+
         |  GSS       | Gilbert skill score (equitable threat score)           |
         +------------+--------------------------------------------------------+
@@ -44,7 +45,8 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  MCC       | Matthews correlation coefficient                       |
         +------------+--------------------------------------------------------+
-        |  POD       | probability of detection (hit rate)                    |
+        |  POD       | probability of detection (hit rate, sensitivity,       |
+        |            | recall, true positive rate)                            |
         +------------+--------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                    |
         +------------+--------------------------------------------------------+
