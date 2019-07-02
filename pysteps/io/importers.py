@@ -48,8 +48,6 @@ The metadata dictionary contains the following mandatory key-value pairs:
 +------------------+----------------------------------------------------------+
 |    institution   | name of the institution who provides the data            |
 +------------------+----------------------------------------------------------+
-|    timestep      | time step of the input data (minutes)                    |
-+------------------+----------------------------------------------------------+
 |    unit          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
 +------------------+----------------------------------------------------------+
 |    transform     | the transformation of the data: None, 'dB', 'Box-Cox' or |
