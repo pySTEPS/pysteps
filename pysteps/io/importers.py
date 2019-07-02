@@ -74,7 +74,7 @@ Available Importers
     import_mch_gif
     import_mch_hdf5
     import_mch_metranet
-    import_odim_hdf5
+    import_opera_hdf5
     import_knmi_hdf5
 """
 
@@ -581,8 +581,8 @@ def import_mch_gif(filename, product, unit, accutime):
 
 
 def import_mch_hdf5(filename, **kwargs):
-    """Import a precipitation field (and optionally the quality field) from a HDF5
-    file conforming to the ODIM specification.
+    """Import a precipitation field (and optionally the quality field) from a
+    MeteoSwiss HDF5 file conforming to the ODIM specification.
 
     Parameters
     ----------
@@ -811,9 +811,9 @@ def _import_mch_geodata():
     return geodata
 
 
-def import_odim_hdf5(filename, **kwargs):
-    """Import a precipitation field (and optionally the quality field) from a
-    HDF5 file conforming to the ODIM specification.
+def import_opera_hdf5(filename, **kwargs):
+    """Import a precipitation field (and optionally the quality field) from an
+    OPERA HDF5 file conforming to the ODIM specification.
 
     Parameters
     ----------
@@ -861,7 +861,7 @@ def import_odim_hdf5(filename, **kwargs):
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
-                qty_, gain, offset, nodata, undetect = _read_odim_hdf5_what_group(
+                qty_, gain, offset, nodata, undetect = _read_opera_hdf5_what_group(
                     dsg[1]["what"]
                 )
                 what_grp_found = True
@@ -870,7 +870,7 @@ def import_odim_hdf5(filename, **kwargs):
                 if dg[0][0:4] == "data":
                     # check if the "what" group is in the "data" group
                     if "what" in list(dg[1].keys()):
-                        qty_, gain, offset, nodata, undetect = _read_odim_hdf5_what_group(
+                        qty_, gain, offset, nodata, undetect = _read_opera_hdf5_what_group(
                             dg[1]["what"]
                         )
                     elif not what_grp_found:
@@ -995,7 +995,7 @@ def _read_mch_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
-def _read_odim_hdf5_what_group(whatgrp):
+def _read_opera_hdf5_what_group(whatgrp):
 
     qty = whatgrp.attrs["quantity"]
     gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
