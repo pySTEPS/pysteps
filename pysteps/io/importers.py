@@ -69,6 +69,7 @@ Available Importers
     :toctree: ../generated/
 
     import_bom_rf3
+    import_fmi_geotiff
     import_fmi_pgm
     import_mch_gif
     import_mch_hdf5
@@ -86,6 +87,13 @@ import os
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
 
+try:
+    import gdalconst
+    from osgeo import gdal, osr
+
+    gdal_imported = True
+except ImportError:
+    gdal_imported = False
 try:
     import h5py
 
@@ -260,6 +268,69 @@ def _import_bom_rf3_geodata(filename):
     ds_rainfall.close()
 
     return geodata
+
+
+def import_fmi_geotiff(filename, **kwargs):
+    """Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+
+    Returns
+    -------
+    out : tuple
+        A three-element tuple containing the precipitation field, the associated
+        quality field and metadata. The quality field is currently set to None.
+
+    """
+    if not gdal_imported:
+        raise MissingOptionalDependency(
+            "gdal package is required to import "
+            "FMI's radar reflectivity composite in GeoTIFF format "
+            "but it is not installed"
+        )
+
+    f = gdal.Open(filename, gdalconst.GA_ReadOnly)
+
+    rb = f.GetRasterBand(1)
+    R = rb.ReadAsArray()
+    MASK = R == 255
+    R = R.astype(float) * rb.GetScale() + rb.GetOffset()
+    R = (R - 64.0) / 2.0
+    R[MASK] = np.nan
+
+    sr = osr.SpatialReference()
+    pr = f.GetProjection()
+    sr.ImportFromWkt(pr)
+
+    projdef = sr.ExportToProj4()
+
+    gt = f.GetGeoTransform()
+
+    metadata = {}
+
+    metadata["projection"] = projdef
+    metadata["x1"] = gt[0]
+    metadata["y1"] = gt[3] + gt[5]*f.RasterYSize
+    metadata["x2"] = metadata["x1"] + gt[1]*f.RasterXSize
+    metadata["y2"] = gt[3]
+    metadata["xpixelsize"] = abs(gt[1])
+    metadata["ypixelsize"] = abs(gt[5])
+    if gt[5] < 0:
+        metadata["yorigin"] = "upper"
+    else:
+        metadata["yorigin"] = "lower"
+    metadata["institution"] = "Finnish Meteorological Institute"
+    metadata["unit"] = rb.GetUnitType()
+    metadata["transform"] = None
+    metadata["accutime"] = 5.0
+    R_min = np.nanmin(R)
+    metadata["threshold"] = np.nanmin(R[R > R_min])
+    metadata["zerovalue"] = R_min
+
+    return R, None, metadata
 
 
 def import_fmi_pgm(filename, **kwargs):
@@ -598,9 +669,9 @@ def import_mch_hdf5(filename, **kwargs):
         raise IOError("requested quantity %s not found" % qty)
 
     where = f["where"]
-    proj4str = where.attrs["projdef"].decode()  # is emtpy ...
+    proj4str = where.attrs["projdef"].decode()  # is empty ...
 
-    geodata = _import_mch_geodata()  
+    geodata = _import_mch_geodata()
     metadata = geodata
 
     # TODO: use those from the hdf5 file instead
