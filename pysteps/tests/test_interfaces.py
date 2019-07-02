@@ -77,6 +77,7 @@ def test_io_interface():
     """Test the io module interface."""
 
     from pysteps.io import import_bom_rf3
+    from pysteps.io import import_fmi_geotiff
     from pysteps.io import import_fmi_pgm
     from pysteps.io import import_mch_gif
     from pysteps.io import import_mch_hdf5
@@ -86,6 +87,7 @@ def test_io_interface():
 
     # Test importers
     valid_names_func_pair = [('bom_rf3', import_bom_rf3),
+                             ('fmi_geotiff', import_fmi_geotiff),
                              ('fmi_pgm', import_fmi_pgm),
                              ('mch_gif', import_mch_gif),
                              ('mch_hdf5', import_mch_hdf5),

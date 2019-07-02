@@ -16,6 +16,7 @@ from pysteps.io import importers, exporters
 
 _importer_methods = dict()
 _importer_methods['bom_rf3'] = importers.import_bom_rf3
+_importer_methods['fmi_geotiff'] = importers.import_fmi_geotiff
 _importer_methods['fmi_pgm'] = importers.import_fmi_pgm
 _importer_methods['mch_gif'] = importers.import_mch_gif
 _importer_methods['mch_hdf5'] = importers.import_mch_hdf5
@@ -47,6 +48,10 @@ def get_method(name, method_type):
         | bom_rf3      |  NefCDF files used in the Boreau of Meterorology      |
         |              |  archive containing precipitation intensity           |
         |              |  composites.                                          |
+        +--------------+-------------------------------------------------------+
+        | fmi_geotiff  |  GeoTIFF files used in the Finnish Meteorological     |
+        |              |  Institute (FMI) archive, containing reflectivity     |
+        |              |  composites (dBZ).                                    |
         +--------------+-------------------------------------------------------+
         | fmi_pgm      |  PGM files used in the Finnish Meteorological         |
         |              |  Institute (FMI) archive, containing reflectivity     |
