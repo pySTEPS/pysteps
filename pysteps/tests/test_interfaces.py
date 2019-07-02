@@ -81,7 +81,7 @@ def test_io_interface():
     from pysteps.io import import_mch_gif
     from pysteps.io import import_mch_hdf5
     from pysteps.io import import_mch_metranet
-    from pysteps.io import import_odim_hdf5
+    from pysteps.io import import_opera_hdf5
     from pysteps.io import initialize_forecast_exporter_netcdf
 
     # Test importers
@@ -90,7 +90,7 @@ def test_io_interface():
                              ('mch_gif', import_mch_gif),
                              ('mch_hdf5', import_mch_hdf5),
                              ('mch_metranet', import_mch_metranet),
-                             ('odim_hdf5', import_odim_hdf5),
+                             ('opera_hdf5', import_opera_hdf5),
                              ('mch_gif', import_mch_gif),
                              ('mch_gif', import_mch_gif),
                              ('mch_gif', import_mch_gif), ]
@@ -98,7 +98,7 @@ def test_io_interface():
     def method_getter(name):
         return pysteps.io.interface.get_method(name, 'importer')
 
-    invalid_names = ['odim', 'mch', 'fmi']
+    invalid_names = ['opera', 'mch', 'fmi']
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
     # Test exporters

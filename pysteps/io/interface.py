@@ -20,7 +20,7 @@ _importer_methods['fmi_pgm'] = importers.import_fmi_pgm
 _importer_methods['mch_gif'] = importers.import_mch_gif
 _importer_methods['mch_hdf5'] = importers.import_mch_hdf5
 _importer_methods['mch_metranet'] = importers.import_mch_metranet
-_importer_methods['odim_hdf5'] = importers.import_odim_hdf5
+_importer_methods['opera_hdf5'] = importers.import_opera_hdf5
 _importer_methods['knmi_hdf5'] = importers.import_knmi_hdf5
 
 _exporter_methods = dict()
@@ -60,7 +60,7 @@ def get_method(name, method_type):
         | mch_metranet | metranet files in the MeteoSwiss (MCH) archive        |
         |              | containing precipitation composites.                  |
         +--------------+-------------------------------------------------------+
-        | odim_hdf5    | ODIM HDF5 file format used by Eumetnet/OPERA.         |
+        | opera_hdf5   | ODIM HDF5 file format used by Eumetnet/OPERA.         |
         +--------------+-------------------------------------------------------+
         | knmi_hdf5    |  HDF5 file format used by KNMI.                       |
         +--------------+-------------------------------------------------------+
