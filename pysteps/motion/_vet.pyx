@@ -372,7 +372,7 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
         np.zeros([2, x_image_size, y_image_size], dtype=np.float64))
 
     cdef intp  i, j, xy, l, m, ll, mm, i_sec, j_sec
-    cdef intp l0, m0, l1, m1, i_shift, j_shift
+    cdef intp l0, m0, l1, m1, i_shift, j_shift, axis
 
     i_shift = (x_sector_size // 2)
     j_shift = (y_sector_size // 2)
@@ -563,11 +563,11 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
 
     if smooth_gain > 0.:
 
-        for axis in range(2):
+        for axis in prange(2, schedule='dynamic', nogil=True):
 
             inloop_smoothness_penalty = 0
 
-            for l in prange(1, x_sectors - 1, schedule='dynamic', nogil=True):
+            for l in range(1, x_sectors - 1):
 
                 for m in range(1, y_sectors - 1):
                     df_dx2 = (sector_displacement[axis, l + 1, m]
