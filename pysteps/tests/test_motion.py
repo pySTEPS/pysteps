@@ -194,7 +194,7 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
         # To increase the stability of the tests to we increase this value to
         # maxiter=150.
         computed_motion = oflow_method(precip_obs, verbose=False,
-                                       options=dict(maxiter=150))
+                                       options=dict(maxiter=150, method='BFGS'))
     else:
 
         computed_motion = oflow_method(precip_obs, verbose=False)
