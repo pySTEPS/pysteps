@@ -417,8 +417,7 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
 
 
 
-    # for i in prange(x_image_size, schedule='dynamic', nogil=True):
-    for i in range(x_image_size):
+    for i in prange(x_image_size, schedule='dynamic', nogil=True):
 
         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
         l0 = int_max(l0, 0)

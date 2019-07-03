@@ -5138,469 +5138,532 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
   __pyx_v_j_max = ((PyArrayObject *)__pyx_t_2);
   __pyx_t_2 = 0;
 
-  /* "pysteps/motion/_vet.pyx":421
+  /* "pysteps/motion/_vet.pyx":420
  * 
- *     # for i in prange(x_image_size, schedule='dynamic', nogil=True):
- *     for i in range(x_image_size):             # <<<<<<<<<<<<<<
+ * 
+ *     for i in prange(x_image_size, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
  * 
  *         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
  */
-  __pyx_t_23 = __pyx_v_x_image_size;
-  __pyx_t_24 = __pyx_t_23;
-  for (__pyx_t_25 = 0; __pyx_t_25 < __pyx_t_24; __pyx_t_25+=1) {
-    __pyx_v_i = __pyx_t_25;
+  {
+      #ifdef WITH_THREAD
+      PyThreadState *_save;
+      Py_UNBLOCK_THREADS
+      __Pyx_FastGIL_Remember();
+      #endif
+      /*try:*/ {
+        __pyx_t_23 = __pyx_v_x_image_size;
+        if (1 == 0) abort();
+        {
+            #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
+                #undef likely
+                #undef unlikely
+                #define likely(x)   (x)
+                #define unlikely(x) (x)
+            #endif
+            __pyx_t_25 = (__pyx_t_23 - 0 + 1 - 1/abs(1)) / 1;
+            if (__pyx_t_25 > 0)
+            {
+                #ifdef _OPENMP
+                #pragma omp parallel private(__pyx_t_100, __pyx_t_101, __pyx_t_102, __pyx_t_103, __pyx_t_104, __pyx_t_105, __pyx_t_106, __pyx_t_26, __pyx_t_27, __pyx_t_28, __pyx_t_29, __pyx_t_30, __pyx_t_31, __pyx_t_32, __pyx_t_33, __pyx_t_34, __pyx_t_35, __pyx_t_36, __pyx_t_37, __pyx_t_38, __pyx_t_39, __pyx_t_40, __pyx_t_41, __pyx_t_42, __pyx_t_43, __pyx_t_44, __pyx_t_45, __pyx_t_46, __pyx_t_47, __pyx_t_48, __pyx_t_49, __pyx_t_50, __pyx_t_51, __pyx_t_52, __pyx_t_53, __pyx_t_54, __pyx_t_55, __pyx_t_56, __pyx_t_57, __pyx_t_58, __pyx_t_59, __pyx_t_60, __pyx_t_61, __pyx_t_62, __pyx_t_63, __pyx_t_64, __pyx_t_65, __pyx_t_66, __pyx_t_67, __pyx_t_68, __pyx_t_69, __pyx_t_70, __pyx_t_71, __pyx_t_72, __pyx_t_73, __pyx_t_74, __pyx_t_75, __pyx_t_76, __pyx_t_77, __pyx_t_78, __pyx_t_79, __pyx_t_80, __pyx_t_81, __pyx_t_82, __pyx_t_83, __pyx_t_84, __pyx_t_85, __pyx_t_86, __pyx_t_87, __pyx_t_88, __pyx_t_89, __pyx_t_90, __pyx_t_91, __pyx_t_92, __pyx_t_93, __pyx_t_94, __pyx_t_95, __pyx_t_96, __pyx_t_97, __pyx_t_98, __pyx_t_99)
+                #endif /* _OPENMP */
+                {
+                    #ifdef _OPENMP
+                    #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) lastprivate(__pyx_v_j) lastprivate(__pyx_v_l0) lastprivate(__pyx_v_l1) lastprivate(__pyx_v_m0) lastprivate(__pyx_v_m1) lastprivate(__pyx_v_sector_area) lastprivate(__pyx_v_xy) schedule(dynamic)
+                    #endif /* _OPENMP */
+                    for (__pyx_t_24 = 0; __pyx_t_24 < __pyx_t_25; __pyx_t_24++){
+                        {
+                            __pyx_v_i = (__pyx_t_7pysteps_6motion_4_vet_intp)(0 + 1 * __pyx_t_24);
+                            /* Initialize private variables to invalid values */
+                            __pyx_v_j = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
+                            __pyx_v_l0 = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
+                            __pyx_v_l1 = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
+                            __pyx_v_m0 = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
+                            __pyx_v_m1 = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
+                            __pyx_v_sector_area = ((__pyx_t_7pysteps_6motion_4_vet_float64)__PYX_NAN());
+                            __pyx_v_xy = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
 
-    /* "pysteps/motion/_vet.pyx":423
- *     for i in range(x_image_size):
+                            /* "pysteps/motion/_vet.pyx":422
+ *     for i in prange(x_image_size, schedule='dynamic', nogil=True):
  * 
  *         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)             # <<<<<<<<<<<<<<
  *         l0 = int_max(l0, 0)
  *         l1 = l0 + 1
  */
-    __pyx_v_l0 = __pyx_f_7pysteps_6motion_4_vet_int_min(((__pyx_v_i - __pyx_v_i_shift) / __pyx_v_x_sector_size), (__pyx_v_x_sectors - 2));
+                            __pyx_v_l0 = __pyx_f_7pysteps_6motion_4_vet_int_min(((__pyx_v_i - __pyx_v_i_shift) / __pyx_v_x_sector_size), (__pyx_v_x_sectors - 2));
 
-    /* "pysteps/motion/_vet.pyx":424
+                            /* "pysteps/motion/_vet.pyx":423
  * 
  *         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
  *         l0 = int_max(l0, 0)             # <<<<<<<<<<<<<<
  *         l1 = l0 + 1
  * 
  */
-    __pyx_v_l0 = __pyx_f_7pysteps_6motion_4_vet_int_max(__pyx_v_l0, 0);
+                            __pyx_v_l0 = __pyx_f_7pysteps_6motion_4_vet_int_max(__pyx_v_l0, 0);
 
-    /* "pysteps/motion/_vet.pyx":425
+                            /* "pysteps/motion/_vet.pyx":424
  *         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
  *         l0 = int_max(l0, 0)
  *         l1 = l0 + 1             # <<<<<<<<<<<<<<
  * 
  *         l_i[i] = l0
  */
-    __pyx_v_l1 = (__pyx_v_l0 + 1);
+                            __pyx_v_l1 = (__pyx_v_l0 + 1);
 
-    /* "pysteps/motion/_vet.pyx":427
+                            /* "pysteps/motion/_vet.pyx":426
  *         l1 = l0 + 1
  * 
  *         l_i[i] = l0             # <<<<<<<<<<<<<<
  * 
  *         for j in range(y_image_size):
  */
-    __pyx_t_26 = __pyx_v_i;
-    *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_l_i.rcbuffer->pybuffer.buf, __pyx_t_26, __pyx_pybuffernd_l_i.diminfo[0].strides) = __pyx_v_l0;
+                            __pyx_t_26 = __pyx_v_i;
+                            *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_l_i.rcbuffer->pybuffer.buf, __pyx_t_26, __pyx_pybuffernd_l_i.diminfo[0].strides) = __pyx_v_l0;
 
-    /* "pysteps/motion/_vet.pyx":429
+                            /* "pysteps/motion/_vet.pyx":428
  *         l_i[i] = l0
  * 
  *         for j in range(y_image_size):             # <<<<<<<<<<<<<<
  *             m0 = int_min((j - j_shift) // y_sector_size, y_sectors - 2)
  *             m0 = int_max(m0, 0)
  */
-    __pyx_t_27 = __pyx_v_y_image_size;
-    __pyx_t_28 = __pyx_t_27;
-    for (__pyx_t_29 = 0; __pyx_t_29 < __pyx_t_28; __pyx_t_29+=1) {
-      __pyx_v_j = __pyx_t_29;
+                            __pyx_t_27 = __pyx_v_y_image_size;
+                            __pyx_t_28 = __pyx_t_27;
+                            for (__pyx_t_29 = 0; __pyx_t_29 < __pyx_t_28; __pyx_t_29+=1) {
+                              __pyx_v_j = __pyx_t_29;
 
-      /* "pysteps/motion/_vet.pyx":430
+                              /* "pysteps/motion/_vet.pyx":429
  * 
  *         for j in range(y_image_size):
  *             m0 = int_min((j - j_shift) // y_sector_size, y_sectors - 2)             # <<<<<<<<<<<<<<
  *             m0 = int_max(m0, 0)
  *             m1 = m0 + 1
  */
-      __pyx_v_m0 = __pyx_f_7pysteps_6motion_4_vet_int_min(((__pyx_v_j - __pyx_v_j_shift) / __pyx_v_y_sector_size), (__pyx_v_y_sectors - 2));
+                              __pyx_v_m0 = __pyx_f_7pysteps_6motion_4_vet_int_min(((__pyx_v_j - __pyx_v_j_shift) / __pyx_v_y_sector_size), (__pyx_v_y_sectors - 2));
 
-      /* "pysteps/motion/_vet.pyx":431
+                              /* "pysteps/motion/_vet.pyx":430
  *         for j in range(y_image_size):
  *             m0 = int_min((j - j_shift) // y_sector_size, y_sectors - 2)
  *             m0 = int_max(m0, 0)             # <<<<<<<<<<<<<<
  *             m1 = m0 + 1
  * 
  */
-      __pyx_v_m0 = __pyx_f_7pysteps_6motion_4_vet_int_max(__pyx_v_m0, 0);
+                              __pyx_v_m0 = __pyx_f_7pysteps_6motion_4_vet_int_max(__pyx_v_m0, 0);
 
-      /* "pysteps/motion/_vet.pyx":432
+                              /* "pysteps/motion/_vet.pyx":431
  *             m0 = int_min((j - j_shift) // y_sector_size, y_sectors - 2)
  *             m0 = int_max(m0, 0)
  *             m1 = m0 + 1             # <<<<<<<<<<<<<<
  * 
  *             m_j[j] = m0
  */
-      __pyx_v_m1 = (__pyx_v_m0 + 1);
+                              __pyx_v_m1 = (__pyx_v_m0 + 1);
 
-      /* "pysteps/motion/_vet.pyx":434
+                              /* "pysteps/motion/_vet.pyx":433
  *             m1 = m0 + 1
  * 
  *             m_j[j] = m0             # <<<<<<<<<<<<<<
  * 
  * 
  */
-      __pyx_t_30 = __pyx_v_j;
-      *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_m_j.rcbuffer->pybuffer.buf, __pyx_t_30, __pyx_pybuffernd_m_j.diminfo[0].strides) = __pyx_v_m0;
+                              __pyx_t_30 = __pyx_v_j;
+                              *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_m_j.rcbuffer->pybuffer.buf, __pyx_t_30, __pyx_pybuffernd_m_j.diminfo[0].strides) = __pyx_v_m0;
 
-      /* "pysteps/motion/_vet.pyx":437
+                              /* "pysteps/motion/_vet.pyx":436
  * 
  * 
  *             sector_area = (x_guess[l1] - x_guess[l0]) * (y_guess[m1] - y_guess[m0])             # <<<<<<<<<<<<<<
  * 
  *             interp_coef[0, i, j] = (x_guess[l1] * y_guess[m1]
  */
-      __pyx_t_31 = __pyx_v_l1;
-      __pyx_t_32 = __pyx_v_l0;
-      __pyx_t_33 = __pyx_v_m1;
-      __pyx_t_34 = __pyx_v_m0;
-      __pyx_v_sector_area = (((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_31, __pyx_pybuffernd_x_guess.diminfo[0].strides)) - (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_32, __pyx_pybuffernd_x_guess.diminfo[0].strides))) * ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_33, __pyx_pybuffernd_y_guess.diminfo[0].strides)) - (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_34, __pyx_pybuffernd_y_guess.diminfo[0].strides))));
+                              __pyx_t_31 = __pyx_v_l1;
+                              __pyx_t_32 = __pyx_v_l0;
+                              __pyx_t_33 = __pyx_v_m1;
+                              __pyx_t_34 = __pyx_v_m0;
+                              __pyx_v_sector_area = (((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_31, __pyx_pybuffernd_x_guess.diminfo[0].strides)) - (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_32, __pyx_pybuffernd_x_guess.diminfo[0].strides))) * ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_33, __pyx_pybuffernd_y_guess.diminfo[0].strides)) - (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_34, __pyx_pybuffernd_y_guess.diminfo[0].strides))));
 
-      /* "pysteps/motion/_vet.pyx":439
+                              /* "pysteps/motion/_vet.pyx":438
  *             sector_area = (x_guess[l1] - x_guess[l0]) * (y_guess[m1] - y_guess[m0])
  * 
  *             interp_coef[0, i, j] = (x_guess[l1] * y_guess[m1]             # <<<<<<<<<<<<<<
  *                                     - x[i] * y_guess[m1]
  *                                     - x_guess[l1] * y[j]
  */
-      __pyx_t_35 = __pyx_v_l1;
-      __pyx_t_36 = __pyx_v_m1;
+                              __pyx_t_35 = __pyx_v_l1;
+                              __pyx_t_36 = __pyx_v_m1;
 
-      /* "pysteps/motion/_vet.pyx":440
+                              /* "pysteps/motion/_vet.pyx":439
  * 
  *             interp_coef[0, i, j] = (x_guess[l1] * y_guess[m1]
  *                                     - x[i] * y_guess[m1]             # <<<<<<<<<<<<<<
  *                                     - x_guess[l1] * y[j]
  *                                     + x[i] * y[j]) / sector_area
  */
-      __pyx_t_37 = __pyx_v_i;
-      __pyx_t_38 = __pyx_v_m1;
+                              __pyx_t_37 = __pyx_v_i;
+                              __pyx_t_38 = __pyx_v_m1;
 
-      /* "pysteps/motion/_vet.pyx":441
+                              /* "pysteps/motion/_vet.pyx":440
  *             interp_coef[0, i, j] = (x_guess[l1] * y_guess[m1]
  *                                     - x[i] * y_guess[m1]
  *                                     - x_guess[l1] * y[j]             # <<<<<<<<<<<<<<
  *                                     + x[i] * y[j]) / sector_area
  * 
  */
-      __pyx_t_39 = __pyx_v_l1;
-      __pyx_t_40 = __pyx_v_j;
+                              __pyx_t_39 = __pyx_v_l1;
+                              __pyx_t_40 = __pyx_v_j;
 
-      /* "pysteps/motion/_vet.pyx":442
+                              /* "pysteps/motion/_vet.pyx":441
  *                                     - x[i] * y_guess[m1]
  *                                     - x_guess[l1] * y[j]
  *                                     + x[i] * y[j]) / sector_area             # <<<<<<<<<<<<<<
  * 
  *             interp_coef[1, i, j] = (-x_guess[l1] * y_guess[m0]
  */
-      __pyx_t_41 = __pyx_v_i;
-      __pyx_t_42 = __pyx_v_j;
+                              __pyx_t_41 = __pyx_v_i;
+                              __pyx_t_42 = __pyx_v_j;
 
-      /* "pysteps/motion/_vet.pyx":439
+                              /* "pysteps/motion/_vet.pyx":438
  *             sector_area = (x_guess[l1] - x_guess[l0]) * (y_guess[m1] - y_guess[m0])
  * 
  *             interp_coef[0, i, j] = (x_guess[l1] * y_guess[m1]             # <<<<<<<<<<<<<<
  *                                     - x[i] * y_guess[m1]
  *                                     - x_guess[l1] * y[j]
  */
-      __pyx_t_43 = 0;
-      __pyx_t_44 = __pyx_v_i;
-      __pyx_t_45 = __pyx_v_j;
-      *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_43, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_44, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_45, __pyx_pybuffernd_interp_coef.diminfo[2].strides) = ((((((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_35, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_36, __pyx_pybuffernd_y_guess.diminfo[0].strides))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_37, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_38, __pyx_pybuffernd_y_guess.diminfo[0].strides)))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_39, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_40, __pyx_pybuffernd_y.diminfo[0].strides)))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_41, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_42, __pyx_pybuffernd_y.diminfo[0].strides)))) / __pyx_v_sector_area);
+                              __pyx_t_43 = 0;
+                              __pyx_t_44 = __pyx_v_i;
+                              __pyx_t_45 = __pyx_v_j;
+                              *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_43, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_44, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_45, __pyx_pybuffernd_interp_coef.diminfo[2].strides) = ((((((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_35, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_36, __pyx_pybuffernd_y_guess.diminfo[0].strides))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_37, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_38, __pyx_pybuffernd_y_guess.diminfo[0].strides)))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_39, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_40, __pyx_pybuffernd_y.diminfo[0].strides)))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_41, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_42, __pyx_pybuffernd_y.diminfo[0].strides)))) / __pyx_v_sector_area);
 
-      /* "pysteps/motion/_vet.pyx":444
+                              /* "pysteps/motion/_vet.pyx":443
  *                                     + x[i] * y[j]) / sector_area
  * 
  *             interp_coef[1, i, j] = (-x_guess[l1] * y_guess[m0]             # <<<<<<<<<<<<<<
  *                                     + x[i] * y_guess[m0]
  *                                     + x_guess[l1] * y[j]
  */
-      __pyx_t_46 = __pyx_v_l1;
-      __pyx_t_47 = __pyx_v_m0;
+                              __pyx_t_46 = __pyx_v_l1;
+                              __pyx_t_47 = __pyx_v_m0;
 
-      /* "pysteps/motion/_vet.pyx":445
+                              /* "pysteps/motion/_vet.pyx":444
  * 
  *             interp_coef[1, i, j] = (-x_guess[l1] * y_guess[m0]
  *                                     + x[i] * y_guess[m0]             # <<<<<<<<<<<<<<
  *                                     + x_guess[l1] * y[j]
  *                                     - x[i] * y[j]) / sector_area
  */
-      __pyx_t_48 = __pyx_v_i;
-      __pyx_t_49 = __pyx_v_m0;
+                              __pyx_t_48 = __pyx_v_i;
+                              __pyx_t_49 = __pyx_v_m0;
 
-      /* "pysteps/motion/_vet.pyx":446
+                              /* "pysteps/motion/_vet.pyx":445
  *             interp_coef[1, i, j] = (-x_guess[l1] * y_guess[m0]
  *                                     + x[i] * y_guess[m0]
  *                                     + x_guess[l1] * y[j]             # <<<<<<<<<<<<<<
  *                                     - x[i] * y[j]) / sector_area
  * 
  */
-      __pyx_t_50 = __pyx_v_l1;
-      __pyx_t_51 = __pyx_v_j;
+                              __pyx_t_50 = __pyx_v_l1;
+                              __pyx_t_51 = __pyx_v_j;
 
-      /* "pysteps/motion/_vet.pyx":447
+                              /* "pysteps/motion/_vet.pyx":446
  *                                     + x[i] * y_guess[m0]
  *                                     + x_guess[l1] * y[j]
  *                                     - x[i] * y[j]) / sector_area             # <<<<<<<<<<<<<<
  * 
  *             interp_coef[2, i, j] = (-x_guess[l0] * y_guess[m1]
  */
-      __pyx_t_52 = __pyx_v_i;
-      __pyx_t_53 = __pyx_v_j;
+                              __pyx_t_52 = __pyx_v_i;
+                              __pyx_t_53 = __pyx_v_j;
 
-      /* "pysteps/motion/_vet.pyx":444
+                              /* "pysteps/motion/_vet.pyx":443
  *                                     + x[i] * y[j]) / sector_area
  * 
  *             interp_coef[1, i, j] = (-x_guess[l1] * y_guess[m0]             # <<<<<<<<<<<<<<
  *                                     + x[i] * y_guess[m0]
  *                                     + x_guess[l1] * y[j]
  */
-      __pyx_t_54 = 1;
-      __pyx_t_55 = __pyx_v_i;
-      __pyx_t_56 = __pyx_v_j;
-      *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_54, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_55, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_56, __pyx_pybuffernd_interp_coef.diminfo[2].strides) = ((((((-(*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_46, __pyx_pybuffernd_x_guess.diminfo[0].strides))) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_47, __pyx_pybuffernd_y_guess.diminfo[0].strides))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_48, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_49, __pyx_pybuffernd_y_guess.diminfo[0].strides)))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_50, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_51, __pyx_pybuffernd_y.diminfo[0].strides)))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_52, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_53, __pyx_pybuffernd_y.diminfo[0].strides)))) / __pyx_v_sector_area);
+                              __pyx_t_54 = 1;
+                              __pyx_t_55 = __pyx_v_i;
+                              __pyx_t_56 = __pyx_v_j;
+                              *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_54, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_55, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_56, __pyx_pybuffernd_interp_coef.diminfo[2].strides) = ((((((-(*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_46, __pyx_pybuffernd_x_guess.diminfo[0].strides))) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_47, __pyx_pybuffernd_y_guess.diminfo[0].strides))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_48, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_49, __pyx_pybuffernd_y_guess.diminfo[0].strides)))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_50, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_51, __pyx_pybuffernd_y.diminfo[0].strides)))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_52, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_53, __pyx_pybuffernd_y.diminfo[0].strides)))) / __pyx_v_sector_area);
 
-      /* "pysteps/motion/_vet.pyx":449
+                              /* "pysteps/motion/_vet.pyx":448
  *                                     - x[i] * y[j]) / sector_area
  * 
  *             interp_coef[2, i, j] = (-x_guess[l0] * y_guess[m1]             # <<<<<<<<<<<<<<
  *                                     + x[i] * y_guess[m1]
  *                                     + x_guess[l0] * y[j]
  */
-      __pyx_t_57 = __pyx_v_l0;
-      __pyx_t_58 = __pyx_v_m1;
+                              __pyx_t_57 = __pyx_v_l0;
+                              __pyx_t_58 = __pyx_v_m1;
 
-      /* "pysteps/motion/_vet.pyx":450
+                              /* "pysteps/motion/_vet.pyx":449
  * 
  *             interp_coef[2, i, j] = (-x_guess[l0] * y_guess[m1]
  *                                     + x[i] * y_guess[m1]             # <<<<<<<<<<<<<<
  *                                     + x_guess[l0] * y[j]
  *                                     - x[i] * y[j]) / sector_area
  */
-      __pyx_t_59 = __pyx_v_i;
-      __pyx_t_60 = __pyx_v_m1;
+                              __pyx_t_59 = __pyx_v_i;
+                              __pyx_t_60 = __pyx_v_m1;
 
-      /* "pysteps/motion/_vet.pyx":451
+                              /* "pysteps/motion/_vet.pyx":450
  *             interp_coef[2, i, j] = (-x_guess[l0] * y_guess[m1]
  *                                     + x[i] * y_guess[m1]
  *                                     + x_guess[l0] * y[j]             # <<<<<<<<<<<<<<
  *                                     - x[i] * y[j]) / sector_area
  * 
  */
-      __pyx_t_61 = __pyx_v_l0;
-      __pyx_t_62 = __pyx_v_j;
+                              __pyx_t_61 = __pyx_v_l0;
+                              __pyx_t_62 = __pyx_v_j;
 
-      /* "pysteps/motion/_vet.pyx":452
+                              /* "pysteps/motion/_vet.pyx":451
  *                                     + x[i] * y_guess[m1]
  *                                     + x_guess[l0] * y[j]
  *                                     - x[i] * y[j]) / sector_area             # <<<<<<<<<<<<<<
  * 
  *             interp_coef[3, i, j] = (x_guess[l0] * y_guess[m0]
  */
-      __pyx_t_63 = __pyx_v_i;
-      __pyx_t_64 = __pyx_v_j;
+                              __pyx_t_63 = __pyx_v_i;
+                              __pyx_t_64 = __pyx_v_j;
 
-      /* "pysteps/motion/_vet.pyx":449
+                              /* "pysteps/motion/_vet.pyx":448
  *                                     - x[i] * y[j]) / sector_area
  * 
  *             interp_coef[2, i, j] = (-x_guess[l0] * y_guess[m1]             # <<<<<<<<<<<<<<
  *                                     + x[i] * y_guess[m1]
  *                                     + x_guess[l0] * y[j]
  */
-      __pyx_t_65 = 2;
-      __pyx_t_66 = __pyx_v_i;
-      __pyx_t_67 = __pyx_v_j;
-      *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_65, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_66, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_67, __pyx_pybuffernd_interp_coef.diminfo[2].strides) = ((((((-(*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_57, __pyx_pybuffernd_x_guess.diminfo[0].strides))) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_58, __pyx_pybuffernd_y_guess.diminfo[0].strides))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_59, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_60, __pyx_pybuffernd_y_guess.diminfo[0].strides)))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_61, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_62, __pyx_pybuffernd_y.diminfo[0].strides)))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_63, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_64, __pyx_pybuffernd_y.diminfo[0].strides)))) / __pyx_v_sector_area);
+                              __pyx_t_65 = 2;
+                              __pyx_t_66 = __pyx_v_i;
+                              __pyx_t_67 = __pyx_v_j;
+                              *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_65, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_66, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_67, __pyx_pybuffernd_interp_coef.diminfo[2].strides) = ((((((-(*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_57, __pyx_pybuffernd_x_guess.diminfo[0].strides))) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_58, __pyx_pybuffernd_y_guess.diminfo[0].strides))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_59, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_60, __pyx_pybuffernd_y_guess.diminfo[0].strides)))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_61, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_62, __pyx_pybuffernd_y.diminfo[0].strides)))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_63, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_64, __pyx_pybuffernd_y.diminfo[0].strides)))) / __pyx_v_sector_area);
 
-      /* "pysteps/motion/_vet.pyx":454
+                              /* "pysteps/motion/_vet.pyx":453
  *                                     - x[i] * y[j]) / sector_area
  * 
  *             interp_coef[3, i, j] = (x_guess[l0] * y_guess[m0]             # <<<<<<<<<<<<<<
  *                                     - x[i] * y_guess[m0]
  *                                     - x_guess[l0] * y[j]
  */
-      __pyx_t_68 = __pyx_v_l0;
-      __pyx_t_69 = __pyx_v_m0;
+                              __pyx_t_68 = __pyx_v_l0;
+                              __pyx_t_69 = __pyx_v_m0;
 
-      /* "pysteps/motion/_vet.pyx":455
+                              /* "pysteps/motion/_vet.pyx":454
  * 
  *             interp_coef[3, i, j] = (x_guess[l0] * y_guess[m0]
  *                                     - x[i] * y_guess[m0]             # <<<<<<<<<<<<<<
  *                                     - x_guess[l0] * y[j]
  *                                     + x[i] * y[j]) / sector_area
  */
-      __pyx_t_70 = __pyx_v_i;
-      __pyx_t_71 = __pyx_v_m0;
+                              __pyx_t_70 = __pyx_v_i;
+                              __pyx_t_71 = __pyx_v_m0;
 
-      /* "pysteps/motion/_vet.pyx":456
+                              /* "pysteps/motion/_vet.pyx":455
  *             interp_coef[3, i, j] = (x_guess[l0] * y_guess[m0]
  *                                     - x[i] * y_guess[m0]
  *                                     - x_guess[l0] * y[j]             # <<<<<<<<<<<<<<
  *                                     + x[i] * y[j]) / sector_area
  * 
  */
-      __pyx_t_72 = __pyx_v_l0;
-      __pyx_t_73 = __pyx_v_j;
+                              __pyx_t_72 = __pyx_v_l0;
+                              __pyx_t_73 = __pyx_v_j;
 
-      /* "pysteps/motion/_vet.pyx":457
+                              /* "pysteps/motion/_vet.pyx":456
  *                                     - x[i] * y_guess[m0]
  *                                     - x_guess[l0] * y[j]
  *                                     + x[i] * y[j]) / sector_area             # <<<<<<<<<<<<<<
  * 
  *             for xy in range(2):
  */
-      __pyx_t_74 = __pyx_v_i;
-      __pyx_t_75 = __pyx_v_j;
+                              __pyx_t_74 = __pyx_v_i;
+                              __pyx_t_75 = __pyx_v_j;
 
-      /* "pysteps/motion/_vet.pyx":454
+                              /* "pysteps/motion/_vet.pyx":453
  *                                     - x[i] * y[j]) / sector_area
  * 
  *             interp_coef[3, i, j] = (x_guess[l0] * y_guess[m0]             # <<<<<<<<<<<<<<
  *                                     - x[i] * y_guess[m0]
  *                                     - x_guess[l0] * y[j]
  */
-      __pyx_t_76 = 3;
-      __pyx_t_77 = __pyx_v_i;
-      __pyx_t_78 = __pyx_v_j;
-      *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_76, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_77, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_78, __pyx_pybuffernd_interp_coef.diminfo[2].strides) = ((((((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_68, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_69, __pyx_pybuffernd_y_guess.diminfo[0].strides))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_70, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_71, __pyx_pybuffernd_y_guess.diminfo[0].strides)))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_72, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_73, __pyx_pybuffernd_y.diminfo[0].strides)))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_74, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_75, __pyx_pybuffernd_y.diminfo[0].strides)))) / __pyx_v_sector_area);
+                              __pyx_t_76 = 3;
+                              __pyx_t_77 = __pyx_v_i;
+                              __pyx_t_78 = __pyx_v_j;
+                              *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_76, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_77, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_78, __pyx_pybuffernd_interp_coef.diminfo[2].strides) = ((((((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_68, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_69, __pyx_pybuffernd_y_guess.diminfo[0].strides))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_70, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y_guess.rcbuffer->pybuffer.buf, __pyx_t_71, __pyx_pybuffernd_y_guess.diminfo[0].strides)))) - ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x_guess.rcbuffer->pybuffer.buf, __pyx_t_72, __pyx_pybuffernd_x_guess.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_73, __pyx_pybuffernd_y.diminfo[0].strides)))) + ((*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_x.rcbuffer->pybuffer.buf, __pyx_t_74, __pyx_pybuffernd_x.diminfo[0].strides)) * (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_y.rcbuffer->pybuffer.buf, __pyx_t_75, __pyx_pybuffernd_y.diminfo[0].strides)))) / __pyx_v_sector_area);
 
-      /* "pysteps/motion/_vet.pyx":459
+                              /* "pysteps/motion/_vet.pyx":458
  *                                     + x[i] * y[j]) / sector_area
  * 
  *             for xy in range(2):             # <<<<<<<<<<<<<<
  *                 displacement[xy, i, j] = (
  *                         sector_displacement[xy, l0, m0] * interp_coef[0, i, j]
  */
-      for (__pyx_t_79 = 0; __pyx_t_79 < 2; __pyx_t_79+=1) {
-        __pyx_v_xy = __pyx_t_79;
+                              for (__pyx_t_79 = 0; __pyx_t_79 < 2; __pyx_t_79+=1) {
+                                __pyx_v_xy = __pyx_t_79;
 
-        /* "pysteps/motion/_vet.pyx":461
+                                /* "pysteps/motion/_vet.pyx":460
  *             for xy in range(2):
  *                 displacement[xy, i, j] = (
  *                         sector_displacement[xy, l0, m0] * interp_coef[0, i, j]             # <<<<<<<<<<<<<<
  *                         + sector_displacement[xy, l0, m1] * interp_coef[1, i, j]
  *                         + sector_displacement[xy, l1, m0] * interp_coef[2, i, j]
  */
-        __pyx_t_80 = __pyx_v_xy;
-        __pyx_t_81 = __pyx_v_l0;
-        __pyx_t_82 = __pyx_v_m0;
-        __pyx_t_83 = 0;
-        __pyx_t_84 = __pyx_v_i;
-        __pyx_t_85 = __pyx_v_j;
+                                __pyx_t_80 = __pyx_v_xy;
+                                __pyx_t_81 = __pyx_v_l0;
+                                __pyx_t_82 = __pyx_v_m0;
+                                __pyx_t_83 = 0;
+                                __pyx_t_84 = __pyx_v_i;
+                                __pyx_t_85 = __pyx_v_j;
 
-        /* "pysteps/motion/_vet.pyx":462
+                                /* "pysteps/motion/_vet.pyx":461
  *                 displacement[xy, i, j] = (
  *                         sector_displacement[xy, l0, m0] * interp_coef[0, i, j]
  *                         + sector_displacement[xy, l0, m1] * interp_coef[1, i, j]             # <<<<<<<<<<<<<<
  *                         + sector_displacement[xy, l1, m0] * interp_coef[2, i, j]
  *                         + sector_displacement[xy, l1, m1] * interp_coef[3, i, j]
  */
-        __pyx_t_86 = __pyx_v_xy;
-        __pyx_t_87 = __pyx_v_l0;
-        __pyx_t_88 = __pyx_v_m1;
-        __pyx_t_89 = 1;
-        __pyx_t_90 = __pyx_v_i;
-        __pyx_t_91 = __pyx_v_j;
+                                __pyx_t_86 = __pyx_v_xy;
+                                __pyx_t_87 = __pyx_v_l0;
+                                __pyx_t_88 = __pyx_v_m1;
+                                __pyx_t_89 = 1;
+                                __pyx_t_90 = __pyx_v_i;
+                                __pyx_t_91 = __pyx_v_j;
 
-        /* "pysteps/motion/_vet.pyx":463
+                                /* "pysteps/motion/_vet.pyx":462
  *                         sector_displacement[xy, l0, m0] * interp_coef[0, i, j]
  *                         + sector_displacement[xy, l0, m1] * interp_coef[1, i, j]
  *                         + sector_displacement[xy, l1, m0] * interp_coef[2, i, j]             # <<<<<<<<<<<<<<
  *                         + sector_displacement[xy, l1, m1] * interp_coef[3, i, j]
  *                 )
  */
-        __pyx_t_92 = __pyx_v_xy;
-        __pyx_t_93 = __pyx_v_l1;
-        __pyx_t_94 = __pyx_v_m0;
-        __pyx_t_95 = 2;
-        __pyx_t_96 = __pyx_v_i;
-        __pyx_t_97 = __pyx_v_j;
+                                __pyx_t_92 = __pyx_v_xy;
+                                __pyx_t_93 = __pyx_v_l1;
+                                __pyx_t_94 = __pyx_v_m0;
+                                __pyx_t_95 = 2;
+                                __pyx_t_96 = __pyx_v_i;
+                                __pyx_t_97 = __pyx_v_j;
 
-        /* "pysteps/motion/_vet.pyx":464
+                                /* "pysteps/motion/_vet.pyx":463
  *                         + sector_displacement[xy, l0, m1] * interp_coef[1, i, j]
  *                         + sector_displacement[xy, l1, m0] * interp_coef[2, i, j]
  *                         + sector_displacement[xy, l1, m1] * interp_coef[3, i, j]             # <<<<<<<<<<<<<<
  *                 )
  * 
  */
-        __pyx_t_98 = __pyx_v_xy;
-        __pyx_t_99 = __pyx_v_l1;
-        __pyx_t_100 = __pyx_v_m1;
-        __pyx_t_101 = 3;
-        __pyx_t_102 = __pyx_v_i;
-        __pyx_t_103 = __pyx_v_j;
+                                __pyx_t_98 = __pyx_v_xy;
+                                __pyx_t_99 = __pyx_v_l1;
+                                __pyx_t_100 = __pyx_v_m1;
+                                __pyx_t_101 = 3;
+                                __pyx_t_102 = __pyx_v_i;
+                                __pyx_t_103 = __pyx_v_j;
 
-        /* "pysteps/motion/_vet.pyx":460
+                                /* "pysteps/motion/_vet.pyx":459
  * 
  *             for xy in range(2):
  *                 displacement[xy, i, j] = (             # <<<<<<<<<<<<<<
  *                         sector_displacement[xy, l0, m0] * interp_coef[0, i, j]
  *                         + sector_displacement[xy, l0, m1] * interp_coef[1, i, j]
  */
-        __pyx_t_104 = __pyx_v_xy;
-        __pyx_t_105 = __pyx_v_i;
-        __pyx_t_106 = __pyx_v_j;
-        *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_displacement.rcbuffer->pybuffer.buf, __pyx_t_104, __pyx_pybuffernd_displacement.diminfo[0].strides, __pyx_t_105, __pyx_pybuffernd_displacement.diminfo[1].strides, __pyx_t_106, __pyx_pybuffernd_displacement.diminfo[2].strides) = (((((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_80, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_81, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_82, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_83, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_84, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_85, __pyx_pybuffernd_interp_coef.diminfo[2].strides))) + ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_86, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_87, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_88, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_89, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_90, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_91, __pyx_pybuffernd_interp_coef.diminfo[2].strides)))) + ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_92, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_93, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_94, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_95, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_96, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_97, __pyx_pybuffernd_interp_coef.diminfo[2].strides)))) + ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_98, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_99, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_100, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_101, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_102, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_103, __pyx_pybuffernd_interp_coef.diminfo[2].strides))));
+                                __pyx_t_104 = __pyx_v_xy;
+                                __pyx_t_105 = __pyx_v_i;
+                                __pyx_t_106 = __pyx_v_j;
+                                *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_displacement.rcbuffer->pybuffer.buf, __pyx_t_104, __pyx_pybuffernd_displacement.diminfo[0].strides, __pyx_t_105, __pyx_pybuffernd_displacement.diminfo[1].strides, __pyx_t_106, __pyx_pybuffernd_displacement.diminfo[2].strides) = (((((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_80, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_81, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_82, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_83, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_84, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_85, __pyx_pybuffernd_interp_coef.diminfo[2].strides))) + ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_86, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_87, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_88, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_89, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_90, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_91, __pyx_pybuffernd_interp_coef.diminfo[2].strides)))) + ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_92, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_93, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_94, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_95, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_96, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_97, __pyx_pybuffernd_interp_coef.diminfo[2].strides)))) + ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_98, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_99, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_100, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_101, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_102, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_103, __pyx_pybuffernd_interp_coef.diminfo[2].strides))));
+                              }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
+            #undef likely
+            #undef unlikely
+            #define likely(x)   __builtin_expect(!!(x), 1)
+            #define unlikely(x) __builtin_expect(!!(x), 0)
+        #endif
       }
-    }
+
+      /* "pysteps/motion/_vet.pyx":420
+ * 
+ * 
+ *     for i in prange(x_image_size, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
+ * 
+ *         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
+ */
+      /*finally:*/ {
+        /*normal exit:*/{
+          #ifdef WITH_THREAD
+          __Pyx_FastGIL_Forget();
+          Py_BLOCK_THREADS
+          #endif
+          goto __pyx_L7;
+        }
+        __pyx_L7:;
+      }
   }
 
-  /* "pysteps/motion/_vet.pyx":467
+  /* "pysteps/motion/_vet.pyx":466
  *                 )
  * 
  *     for l, i, counts in zip(*np.unique(l_i,             # <<<<<<<<<<<<<<
  *                                        return_index=True,
  *                                        return_counts=True)):
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 467, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 466, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_unique); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 467, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_unique); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 466, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 467, __pyx_L1_error)
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 466, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(((PyObject *)__pyx_v_l_i));
   __Pyx_GIVEREF(((PyObject *)__pyx_v_l_i));
   PyTuple_SET_ITEM(__pyx_t_2, 0, ((PyObject *)__pyx_v_l_i));
 
-  /* "pysteps/motion/_vet.pyx":468
+  /* "pysteps/motion/_vet.pyx":467
  * 
  *     for l, i, counts in zip(*np.unique(l_i,
  *                                        return_index=True,             # <<<<<<<<<<<<<<
  *                                        return_counts=True)):
  *         i_min[l] = i
  */
-  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 468, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 467, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_return_index, Py_True) < 0) __PYX_ERR(0, 468, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_return_index, Py_True) < 0) __PYX_ERR(0, 467, __pyx_L1_error)
 
-  /* "pysteps/motion/_vet.pyx":469
+  /* "pysteps/motion/_vet.pyx":468
  *     for l, i, counts in zip(*np.unique(l_i,
  *                                        return_index=True,
  *                                        return_counts=True)):             # <<<<<<<<<<<<<<
  *         i_min[l] = i
  *         i_max[l] = i + counts - 1
  */
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_return_counts, Py_True) < 0) __PYX_ERR(0, 468, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_return_counts, Py_True) < 0) __PYX_ERR(0, 467, __pyx_L1_error)
 
-  /* "pysteps/motion/_vet.pyx":467
+  /* "pysteps/motion/_vet.pyx":466
  *                 )
  * 
  *     for l, i, counts in zip(*np.unique(l_i,             # <<<<<<<<<<<<<<
  *                                        return_index=True,
  *                                        return_counts=True)):
  */
-  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 467, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 466, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PySequence_Tuple(__pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 467, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PySequence_Tuple(__pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 466, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_builtin_zip, __pyx_t_3, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 467, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_builtin_zip, __pyx_t_3, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 466, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   if (likely(PyList_CheckExact(__pyx_t_4)) || PyTuple_CheckExact(__pyx_t_4)) {
     __pyx_t_3 = __pyx_t_4; __Pyx_INCREF(__pyx_t_3); __pyx_t_107 = 0;
     __pyx_t_108 = NULL;
   } else {
-    __pyx_t_107 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 467, __pyx_L1_error)
+    __pyx_t_107 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 466, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_108 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_108)) __PYX_ERR(0, 467, __pyx_L1_error)
+    __pyx_t_108 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_108)) __PYX_ERR(0, 466, __pyx_L1_error)
   }
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   for (;;) {
@@ -5608,17 +5671,17 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       if (likely(PyList_CheckExact(__pyx_t_3))) {
         if (__pyx_t_107 >= PyList_GET_SIZE(__pyx_t_3)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_4 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_107); __Pyx_INCREF(__pyx_t_4); __pyx_t_107++; if (unlikely(0 < 0)) __PYX_ERR(0, 467, __pyx_L1_error)
+        __pyx_t_4 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_107); __Pyx_INCREF(__pyx_t_4); __pyx_t_107++; if (unlikely(0 < 0)) __PYX_ERR(0, 466, __pyx_L1_error)
         #else
-        __pyx_t_4 = PySequence_ITEM(__pyx_t_3, __pyx_t_107); __pyx_t_107++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 467, __pyx_L1_error)
+        __pyx_t_4 = PySequence_ITEM(__pyx_t_3, __pyx_t_107); __pyx_t_107++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 466, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
         #endif
       } else {
         if (__pyx_t_107 >= PyTuple_GET_SIZE(__pyx_t_3)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_4 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_107); __Pyx_INCREF(__pyx_t_4); __pyx_t_107++; if (unlikely(0 < 0)) __PYX_ERR(0, 467, __pyx_L1_error)
+        __pyx_t_4 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_107); __Pyx_INCREF(__pyx_t_4); __pyx_t_107++; if (unlikely(0 < 0)) __PYX_ERR(0, 466, __pyx_L1_error)
         #else
-        __pyx_t_4 = PySequence_ITEM(__pyx_t_3, __pyx_t_107); __pyx_t_107++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 467, __pyx_L1_error)
+        __pyx_t_4 = PySequence_ITEM(__pyx_t_3, __pyx_t_107); __pyx_t_107++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 466, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
         #endif
       }
@@ -5628,7 +5691,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
           if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 467, __pyx_L1_error)
+          else __PYX_ERR(0, 466, __pyx_L1_error)
         }
         break;
       }
@@ -5640,7 +5703,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       if (unlikely(size != 3)) {
         if (size > 3) __Pyx_RaiseTooManyValuesError(3);
         else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-        __PYX_ERR(0, 467, __pyx_L1_error)
+        __PYX_ERR(0, 466, __pyx_L1_error)
       }
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
       if (likely(PyTuple_CheckExact(sequence))) {
@@ -5656,47 +5719,47 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       __Pyx_INCREF(__pyx_t_5);
       __Pyx_INCREF(__pyx_t_6);
       #else
-      __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 467, __pyx_L1_error)
+      __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 466, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 467, __pyx_L1_error)
+      __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 466, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = PySequence_ITEM(sequence, 2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 467, __pyx_L1_error)
+      __pyx_t_6 = PySequence_ITEM(sequence, 2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 466, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
       #endif
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     } else {
       Py_ssize_t index = -1;
-      __pyx_t_109 = PyObject_GetIter(__pyx_t_4); if (unlikely(!__pyx_t_109)) __PYX_ERR(0, 467, __pyx_L1_error)
+      __pyx_t_109 = PyObject_GetIter(__pyx_t_4); if (unlikely(!__pyx_t_109)) __PYX_ERR(0, 466, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_109);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __pyx_t_110 = Py_TYPE(__pyx_t_109)->tp_iternext;
-      index = 0; __pyx_t_2 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_2)) goto __pyx_L13_unpacking_failed;
+      index = 0; __pyx_t_2 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_2)) goto __pyx_L20_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_2);
-      index = 1; __pyx_t_5 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_5)) goto __pyx_L13_unpacking_failed;
+      index = 1; __pyx_t_5 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_5)) goto __pyx_L20_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_5);
-      index = 2; __pyx_t_6 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_6)) goto __pyx_L13_unpacking_failed;
+      index = 2; __pyx_t_6 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_6)) goto __pyx_L20_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_6);
-      if (__Pyx_IternextUnpackEndCheck(__pyx_t_110(__pyx_t_109), 3) < 0) __PYX_ERR(0, 467, __pyx_L1_error)
+      if (__Pyx_IternextUnpackEndCheck(__pyx_t_110(__pyx_t_109), 3) < 0) __PYX_ERR(0, 466, __pyx_L1_error)
       __pyx_t_110 = NULL;
       __Pyx_DECREF(__pyx_t_109); __pyx_t_109 = 0;
-      goto __pyx_L14_unpacking_done;
-      __pyx_L13_unpacking_failed:;
+      goto __pyx_L21_unpacking_done;
+      __pyx_L20_unpacking_failed:;
       __Pyx_DECREF(__pyx_t_109); __pyx_t_109 = 0;
       __pyx_t_110 = NULL;
       if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-      __PYX_ERR(0, 467, __pyx_L1_error)
-      __pyx_L14_unpacking_done:;
+      __PYX_ERR(0, 466, __pyx_L1_error)
+      __pyx_L21_unpacking_done:;
     }
-    __pyx_t_23 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_2); if (unlikely((__pyx_t_23 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 467, __pyx_L1_error)
+    __pyx_t_25 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_2); if (unlikely((__pyx_t_25 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 466, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_24 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_5); if (unlikely((__pyx_t_24 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 467, __pyx_L1_error)
+    __pyx_t_24 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_5); if (unlikely((__pyx_t_24 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 466, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_v_l = __pyx_t_23;
+    __pyx_v_l = __pyx_t_25;
     __pyx_v_i = __pyx_t_24;
     __Pyx_XDECREF_SET(__pyx_v_counts, __pyx_t_6);
     __pyx_t_6 = 0;
 
-    /* "pysteps/motion/_vet.pyx":470
+    /* "pysteps/motion/_vet.pyx":469
  *                                        return_index=True,
  *                                        return_counts=True)):
  *         i_min[l] = i             # <<<<<<<<<<<<<<
@@ -5706,27 +5769,27 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
     __pyx_t_111 = __pyx_v_l;
     *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_i_min.rcbuffer->pybuffer.buf, __pyx_t_111, __pyx_pybuffernd_i_min.diminfo[0].strides) = __pyx_v_i;
 
-    /* "pysteps/motion/_vet.pyx":471
+    /* "pysteps/motion/_vet.pyx":470
  *                                        return_counts=True)):
  *         i_min[l] = i
  *         i_max[l] = i + counts - 1             # <<<<<<<<<<<<<<
  * 
  *     for m, j, counts in zip(*np.unique(m_j,
  */
-    __pyx_t_4 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_i); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 471, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_i); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 470, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_6 = PyNumber_Add(__pyx_t_4, __pyx_v_counts); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 471, __pyx_L1_error)
+    __pyx_t_6 = PyNumber_Add(__pyx_t_4, __pyx_v_counts); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 470, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __pyx_t_4 = __Pyx_PyInt_SubtractObjC(__pyx_t_6, __pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 471, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyInt_SubtractObjC(__pyx_t_6, __pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 470, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    __pyx_t_24 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_4); if (unlikely((__pyx_t_24 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 471, __pyx_L1_error)
+    __pyx_t_24 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_4); if (unlikely((__pyx_t_24 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 470, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_t_112 = __pyx_v_l;
     *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_i_max.rcbuffer->pybuffer.buf, __pyx_t_112, __pyx_pybuffernd_i_max.diminfo[0].strides) = __pyx_t_24;
 
-    /* "pysteps/motion/_vet.pyx":467
+    /* "pysteps/motion/_vet.pyx":466
  *                 )
  * 
  *     for l, i, counts in zip(*np.unique(l_i,             # <<<<<<<<<<<<<<
@@ -5736,69 +5799,69 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "pysteps/motion/_vet.pyx":473
+  /* "pysteps/motion/_vet.pyx":472
  *         i_max[l] = i + counts - 1
  * 
  *     for m, j, counts in zip(*np.unique(m_j,             # <<<<<<<<<<<<<<
  *                                        return_index=True,
  *                                        return_counts=True)):
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 473, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 472, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_unique); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 473, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_unique); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 472, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 473, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 472, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_INCREF(((PyObject *)__pyx_v_m_j));
   __Pyx_GIVEREF(((PyObject *)__pyx_v_m_j));
   PyTuple_SET_ITEM(__pyx_t_3, 0, ((PyObject *)__pyx_v_m_j));
 
-  /* "pysteps/motion/_vet.pyx":474
+  /* "pysteps/motion/_vet.pyx":473
  * 
  *     for m, j, counts in zip(*np.unique(m_j,
  *                                        return_index=True,             # <<<<<<<<<<<<<<
  *                                        return_counts=True)):
  *         j_min[m] = j
  */
-  __pyx_t_6 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 474, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 473, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
-  if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_return_index, Py_True) < 0) __PYX_ERR(0, 474, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_return_index, Py_True) < 0) __PYX_ERR(0, 473, __pyx_L1_error)
 
-  /* "pysteps/motion/_vet.pyx":475
+  /* "pysteps/motion/_vet.pyx":474
  *     for m, j, counts in zip(*np.unique(m_j,
  *                                        return_index=True,
  *                                        return_counts=True)):             # <<<<<<<<<<<<<<
  *         j_min[m] = j
  *         j_max[m] = j + counts
  */
-  if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_return_counts, Py_True) < 0) __PYX_ERR(0, 474, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_return_counts, Py_True) < 0) __PYX_ERR(0, 473, __pyx_L1_error)
 
-  /* "pysteps/motion/_vet.pyx":473
+  /* "pysteps/motion/_vet.pyx":472
  *         i_max[l] = i + counts - 1
  * 
  *     for m, j, counts in zip(*np.unique(m_j,             # <<<<<<<<<<<<<<
  *                                        return_index=True,
  *                                        return_counts=True)):
  */
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_3, __pyx_t_6); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 473, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_3, __pyx_t_6); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 472, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  __pyx_t_6 = __Pyx_PySequence_Tuple(__pyx_t_5); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 473, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PySequence_Tuple(__pyx_t_5); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 472, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_zip, __pyx_t_6, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 473, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_zip, __pyx_t_6, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 472, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
   if (likely(PyList_CheckExact(__pyx_t_5)) || PyTuple_CheckExact(__pyx_t_5)) {
     __pyx_t_6 = __pyx_t_5; __Pyx_INCREF(__pyx_t_6); __pyx_t_107 = 0;
     __pyx_t_108 = NULL;
   } else {
-    __pyx_t_107 = -1; __pyx_t_6 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 473, __pyx_L1_error)
+    __pyx_t_107 = -1; __pyx_t_6 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 472, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_108 = Py_TYPE(__pyx_t_6)->tp_iternext; if (unlikely(!__pyx_t_108)) __PYX_ERR(0, 473, __pyx_L1_error)
+    __pyx_t_108 = Py_TYPE(__pyx_t_6)->tp_iternext; if (unlikely(!__pyx_t_108)) __PYX_ERR(0, 472, __pyx_L1_error)
   }
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   for (;;) {
@@ -5806,17 +5869,17 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       if (likely(PyList_CheckExact(__pyx_t_6))) {
         if (__pyx_t_107 >= PyList_GET_SIZE(__pyx_t_6)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_5 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_107); __Pyx_INCREF(__pyx_t_5); __pyx_t_107++; if (unlikely(0 < 0)) __PYX_ERR(0, 473, __pyx_L1_error)
+        __pyx_t_5 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_107); __Pyx_INCREF(__pyx_t_5); __pyx_t_107++; if (unlikely(0 < 0)) __PYX_ERR(0, 472, __pyx_L1_error)
         #else
-        __pyx_t_5 = PySequence_ITEM(__pyx_t_6, __pyx_t_107); __pyx_t_107++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 473, __pyx_L1_error)
+        __pyx_t_5 = PySequence_ITEM(__pyx_t_6, __pyx_t_107); __pyx_t_107++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 472, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_5);
         #endif
       } else {
         if (__pyx_t_107 >= PyTuple_GET_SIZE(__pyx_t_6)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_5 = PyTuple_GET_ITEM(__pyx_t_6, __pyx_t_107); __Pyx_INCREF(__pyx_t_5); __pyx_t_107++; if (unlikely(0 < 0)) __PYX_ERR(0, 473, __pyx_L1_error)
+        __pyx_t_5 = PyTuple_GET_ITEM(__pyx_t_6, __pyx_t_107); __Pyx_INCREF(__pyx_t_5); __pyx_t_107++; if (unlikely(0 < 0)) __PYX_ERR(0, 472, __pyx_L1_error)
         #else
-        __pyx_t_5 = PySequence_ITEM(__pyx_t_6, __pyx_t_107); __pyx_t_107++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 473, __pyx_L1_error)
+        __pyx_t_5 = PySequence_ITEM(__pyx_t_6, __pyx_t_107); __pyx_t_107++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 472, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_5);
         #endif
       }
@@ -5826,7 +5889,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
           if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 473, __pyx_L1_error)
+          else __PYX_ERR(0, 472, __pyx_L1_error)
         }
         break;
       }
@@ -5838,7 +5901,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       if (unlikely(size != 3)) {
         if (size > 3) __Pyx_RaiseTooManyValuesError(3);
         else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-        __PYX_ERR(0, 473, __pyx_L1_error)
+        __PYX_ERR(0, 472, __pyx_L1_error)
       }
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
       if (likely(PyTuple_CheckExact(sequence))) {
@@ -5854,47 +5917,47 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       __Pyx_INCREF(__pyx_t_4);
       __Pyx_INCREF(__pyx_t_2);
       #else
-      __pyx_t_3 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 473, __pyx_L1_error)
+      __pyx_t_3 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 472, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_4 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 473, __pyx_L1_error)
+      __pyx_t_4 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 472, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_2 = PySequence_ITEM(sequence, 2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 473, __pyx_L1_error)
+      __pyx_t_2 = PySequence_ITEM(sequence, 2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 472, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
       #endif
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     } else {
       Py_ssize_t index = -1;
-      __pyx_t_109 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_109)) __PYX_ERR(0, 473, __pyx_L1_error)
+      __pyx_t_109 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_109)) __PYX_ERR(0, 472, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_109);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __pyx_t_110 = Py_TYPE(__pyx_t_109)->tp_iternext;
-      index = 0; __pyx_t_3 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_3)) goto __pyx_L17_unpacking_failed;
+      index = 0; __pyx_t_3 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_3)) goto __pyx_L24_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_3);
-      index = 1; __pyx_t_4 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_4)) goto __pyx_L17_unpacking_failed;
+      index = 1; __pyx_t_4 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_4)) goto __pyx_L24_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_4);
-      index = 2; __pyx_t_2 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_2)) goto __pyx_L17_unpacking_failed;
+      index = 2; __pyx_t_2 = __pyx_t_110(__pyx_t_109); if (unlikely(!__pyx_t_2)) goto __pyx_L24_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_2);
-      if (__Pyx_IternextUnpackEndCheck(__pyx_t_110(__pyx_t_109), 3) < 0) __PYX_ERR(0, 473, __pyx_L1_error)
+      if (__Pyx_IternextUnpackEndCheck(__pyx_t_110(__pyx_t_109), 3) < 0) __PYX_ERR(0, 472, __pyx_L1_error)
       __pyx_t_110 = NULL;
       __Pyx_DECREF(__pyx_t_109); __pyx_t_109 = 0;
-      goto __pyx_L18_unpacking_done;
-      __pyx_L17_unpacking_failed:;
+      goto __pyx_L25_unpacking_done;
+      __pyx_L24_unpacking_failed:;
       __Pyx_DECREF(__pyx_t_109); __pyx_t_109 = 0;
       __pyx_t_110 = NULL;
       if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-      __PYX_ERR(0, 473, __pyx_L1_error)
-      __pyx_L18_unpacking_done:;
+      __PYX_ERR(0, 472, __pyx_L1_error)
+      __pyx_L25_unpacking_done:;
     }
-    __pyx_t_24 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_3); if (unlikely((__pyx_t_24 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 473, __pyx_L1_error)
+    __pyx_t_24 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_3); if (unlikely((__pyx_t_24 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 472, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_23 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_4); if (unlikely((__pyx_t_23 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 473, __pyx_L1_error)
+    __pyx_t_25 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_4); if (unlikely((__pyx_t_25 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 472, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_v_m = __pyx_t_24;
-    __pyx_v_j = __pyx_t_23;
+    __pyx_v_j = __pyx_t_25;
     __Pyx_XDECREF_SET(__pyx_v_counts, __pyx_t_2);
     __pyx_t_2 = 0;
 
-    /* "pysteps/motion/_vet.pyx":476
+    /* "pysteps/motion/_vet.pyx":475
  *                                        return_index=True,
  *                                        return_counts=True)):
  *         j_min[m] = j             # <<<<<<<<<<<<<<
@@ -5904,24 +5967,24 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
     __pyx_t_113 = __pyx_v_m;
     *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_j_min.rcbuffer->pybuffer.buf, __pyx_t_113, __pyx_pybuffernd_j_min.diminfo[0].strides) = __pyx_v_j;
 
-    /* "pysteps/motion/_vet.pyx":477
+    /* "pysteps/motion/_vet.pyx":476
  *                                        return_counts=True)):
  *         j_min[m] = j
  *         j_max[m] = j + counts             # <<<<<<<<<<<<<<
  * 
  *     cdef np.ndarray[float64, ndim = 2] morphed_image
  */
-    __pyx_t_5 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_j); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 477, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_j); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 476, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_2 = PyNumber_Add(__pyx_t_5, __pyx_v_counts); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 477, __pyx_L1_error)
+    __pyx_t_2 = PyNumber_Add(__pyx_t_5, __pyx_v_counts); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 476, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_23 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_2); if (unlikely((__pyx_t_23 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 477, __pyx_L1_error)
+    __pyx_t_25 = __Pyx_PyInt_As_Py_intptr_t(__pyx_t_2); if (unlikely((__pyx_t_25 == ((npy_intp)-1)) && PyErr_Occurred())) __PYX_ERR(0, 476, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __pyx_t_114 = __pyx_v_m;
-    *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_j_max.rcbuffer->pybuffer.buf, __pyx_t_114, __pyx_pybuffernd_j_max.diminfo[0].strides) = __pyx_t_23;
+    *__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_j_max.rcbuffer->pybuffer.buf, __pyx_t_114, __pyx_pybuffernd_j_max.diminfo[0].strides) = __pyx_t_25;
 
-    /* "pysteps/motion/_vet.pyx":473
+    /* "pysteps/motion/_vet.pyx":472
  *         i_max[l] = i + counts - 1
  * 
  *     for m, j, counts in zip(*np.unique(m_j,             # <<<<<<<<<<<<<<
@@ -5931,23 +5994,23 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
   }
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-  /* "pysteps/motion/_vet.pyx":486
+  /* "pysteps/motion/_vet.pyx":485
  * 
  *     cdef np.ndarray[float64, ndim = 2] buffer = \
  *         np.zeros([x_image_size, y_image_size], dtype=np.float64)             # <<<<<<<<<<<<<<
  * 
  *     cdef float64 residuals = 0
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  __pyx_t_6 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_x_image_size); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_x_image_size); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_5 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_y_image_size); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_y_image_size); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_4 = PyList_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_4 = PyList_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_GIVEREF(__pyx_t_6);
   PyList_SET_ITEM(__pyx_t_4, 0, __pyx_t_6);
@@ -5955,32 +6018,32 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
   PyList_SET_ITEM(__pyx_t_4, 1, __pyx_t_5);
   __pyx_t_6 = 0;
   __pyx_t_5 = 0;
-  __pyx_t_5 = PyTuple_New(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_5 = PyTuple_New(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_GIVEREF(__pyx_t_4);
   PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_4);
   __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_float64); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_float64); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_dtype, __pyx_t_3) < 0) __PYX_ERR(0, 486, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_dtype, __pyx_t_3) < 0) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 486, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 485, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 486, __pyx_L1_error)
+  if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 485, __pyx_L1_error)
   __pyx_t_115 = ((PyArrayObject *)__pyx_t_3);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
     if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_buffer.rcbuffer->pybuffer, (PyObject*)__pyx_t_115, &__Pyx_TypeInfo_nn___pyx_t_7pysteps_6motion_4_vet_float64, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) {
       __pyx_v_buffer = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_buffer.rcbuffer->pybuffer.buf = NULL;
-      __PYX_ERR(0, 485, __pyx_L1_error)
+      __PYX_ERR(0, 484, __pyx_L1_error)
     } else {__pyx_pybuffernd_buffer.diminfo[0].strides = __pyx_pybuffernd_buffer.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_buffer.diminfo[0].shape = __pyx_pybuffernd_buffer.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_buffer.diminfo[1].strides = __pyx_pybuffernd_buffer.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_buffer.diminfo[1].shape = __pyx_pybuffernd_buffer.rcbuffer->pybuffer.shape[1];
     }
   }
@@ -5988,7 +6051,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
   __pyx_v_buffer = ((PyArrayObject *)__pyx_t_3);
   __pyx_t_3 = 0;
 
-  /* "pysteps/motion/_vet.pyx":488
+  /* "pysteps/motion/_vet.pyx":487
  *         np.zeros([x_image_size, y_image_size], dtype=np.float64)
  * 
  *     cdef float64 residuals = 0             # <<<<<<<<<<<<<<
@@ -5997,7 +6060,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
   __pyx_v_residuals = 0.0;
 
-  /* "pysteps/motion/_vet.pyx":491
+  /* "pysteps/motion/_vet.pyx":490
  * 
  *     # Compute residual part of the cost function
  *     if gradient:             # <<<<<<<<<<<<<<
@@ -6007,23 +6070,23 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
   __pyx_t_1 = (__pyx_v_gradient != 0);
   if (__pyx_t_1) {
 
-    /* "pysteps/motion/_vet.pyx":493
+    /* "pysteps/motion/_vet.pyx":492
  *     if gradient:
  * 
  *         grad_smooth = np.zeros([2, x_sectors, y_sectors],             # <<<<<<<<<<<<<<
  *                                dtype=np.float64)
  * 
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 492, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_zeros); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_zeros); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 492, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_x_sectors); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_x_sectors); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 492, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_5 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_y_sectors); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_y_sectors); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 492, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_2 = PyList_New(3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_2 = PyList_New(3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 492, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_INCREF(__pyx_int_2);
     __Pyx_GIVEREF(__pyx_int_2);
@@ -6034,42 +6097,42 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
     PyList_SET_ITEM(__pyx_t_2, 2, __pyx_t_5);
     __pyx_t_3 = 0;
     __pyx_t_5 = 0;
-    __pyx_t_5 = PyTuple_New(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_5 = PyTuple_New(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 492, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_GIVEREF(__pyx_t_2);
     PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_2);
     __pyx_t_2 = 0;
 
-    /* "pysteps/motion/_vet.pyx":494
+    /* "pysteps/motion/_vet.pyx":493
  * 
  *         grad_smooth = np.zeros([2, x_sectors, y_sectors],
  *                                dtype=np.float64)             # <<<<<<<<<<<<<<
  * 
  *         grad_residuals = np.zeros([2, x_sectors, y_sectors],
  */
-    __pyx_t_2 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 494, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 493, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 494, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 493, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_float64); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 494, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_float64); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 493, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_dtype, __pyx_t_6) < 0) __PYX_ERR(0, 494, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_dtype, __pyx_t_6) < 0) __PYX_ERR(0, 493, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-    /* "pysteps/motion/_vet.pyx":493
+    /* "pysteps/motion/_vet.pyx":492
  *     if gradient:
  * 
  *         grad_smooth = np.zeros([2, x_sectors, y_sectors],             # <<<<<<<<<<<<<<
  *                                dtype=np.float64)
  * 
  */
-    __pyx_t_6 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_5, __pyx_t_2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 493, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_5, __pyx_t_2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 492, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (!(likely(((__pyx_t_6) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_6, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 493, __pyx_L1_error)
+    if (!(likely(((__pyx_t_6) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_6, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 492, __pyx_L1_error)
     __pyx_t_116 = ((PyArrayObject *)__pyx_t_6);
     {
       __Pyx_BufFmt_StackElem __pyx_stack[1];
@@ -6086,29 +6149,29 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_12 = __pyx_t_11 = __pyx_t_10 = 0;
       }
       __pyx_pybuffernd_grad_smooth.diminfo[0].strides = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_grad_smooth.diminfo[0].shape = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_grad_smooth.diminfo[1].strides = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_grad_smooth.diminfo[1].shape = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.shape[1]; __pyx_pybuffernd_grad_smooth.diminfo[2].strides = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.strides[2]; __pyx_pybuffernd_grad_smooth.diminfo[2].shape = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.shape[2];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 493, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 492, __pyx_L1_error)
     }
     __pyx_t_116 = 0;
     __pyx_v_grad_smooth = ((PyArrayObject *)__pyx_t_6);
     __pyx_t_6 = 0;
 
-    /* "pysteps/motion/_vet.pyx":496
+    /* "pysteps/motion/_vet.pyx":495
  *                                dtype=np.float64)
  * 
  *         grad_residuals = np.zeros([2, x_sectors, y_sectors],             # <<<<<<<<<<<<<<
  *                                   dtype=np.float64)
  * 
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 496, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 495, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 496, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 495, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    __pyx_t_6 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_x_sectors); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 496, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_x_sectors); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 495, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_5 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_y_sectors); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 496, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyInt_From_Py_intptr_t(__pyx_v_y_sectors); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 495, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_4 = PyList_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 496, __pyx_L1_error)
+    __pyx_t_4 = PyList_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 495, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_INCREF(__pyx_int_2);
     __Pyx_GIVEREF(__pyx_int_2);
@@ -6119,42 +6182,42 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
     PyList_SET_ITEM(__pyx_t_4, 2, __pyx_t_5);
     __pyx_t_6 = 0;
     __pyx_t_5 = 0;
-    __pyx_t_5 = PyTuple_New(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 496, __pyx_L1_error)
+    __pyx_t_5 = PyTuple_New(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 495, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_GIVEREF(__pyx_t_4);
     PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "pysteps/motion/_vet.pyx":497
+    /* "pysteps/motion/_vet.pyx":496
  * 
  *         grad_residuals = np.zeros([2, x_sectors, y_sectors],
  *                                   dtype=np.float64)             # <<<<<<<<<<<<<<
  * 
  *         morphed_image, morph_mask, _gradient_data = _warp(template_image,
  */
-    __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 497, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 496, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 497, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 496, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_float64); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 497, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_float64); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 496, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_dtype, __pyx_t_3) < 0) __PYX_ERR(0, 497, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_dtype, __pyx_t_3) < 0) __PYX_ERR(0, 496, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-    /* "pysteps/motion/_vet.pyx":496
+    /* "pysteps/motion/_vet.pyx":495
  *                                dtype=np.float64)
  * 
  *         grad_residuals = np.zeros([2, x_sectors, y_sectors],             # <<<<<<<<<<<<<<
  *                                   dtype=np.float64)
  * 
  */
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 496, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 495, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 496, __pyx_L1_error)
+    if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 495, __pyx_L1_error)
     __pyx_t_117 = ((PyArrayObject *)__pyx_t_3);
     {
       __Pyx_BufFmt_StackElem __pyx_stack[1];
@@ -6171,30 +6234,30 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_10 = __pyx_t_11 = __pyx_t_12 = 0;
       }
       __pyx_pybuffernd_grad_residuals.diminfo[0].strides = __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_grad_residuals.diminfo[0].shape = __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_grad_residuals.diminfo[1].strides = __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_grad_residuals.diminfo[1].shape = __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.shape[1]; __pyx_pybuffernd_grad_residuals.diminfo[2].strides = __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.strides[2]; __pyx_pybuffernd_grad_residuals.diminfo[2].shape = __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.shape[2];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 496, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 495, __pyx_L1_error)
     }
     __pyx_t_117 = 0;
     __pyx_v_grad_residuals = ((PyArrayObject *)__pyx_t_3);
     __pyx_t_3 = 0;
 
-    /* "pysteps/motion/_vet.pyx":499
+    /* "pysteps/motion/_vet.pyx":498
  *                                   dtype=np.float64)
  * 
  *         morphed_image, morph_mask, _gradient_data = _warp(template_image,             # <<<<<<<<<<<<<<
  *                                                           mask,
  *                                                           displacement,
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_warp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 499, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_warp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 498, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
 
-    /* "pysteps/motion/_vet.pyx":501
+    /* "pysteps/motion/_vet.pyx":500
  *         morphed_image, morph_mask, _gradient_data = _warp(template_image,
  *                                                           mask,
  *                                                           displacement,             # <<<<<<<<<<<<<<
  *                                                           gradient=True)
  * 
  */
-    __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 499, __pyx_L1_error)
+    __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 498, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_INCREF(((PyObject *)__pyx_v_template_image));
     __Pyx_GIVEREF(((PyObject *)__pyx_v_template_image));
@@ -6206,25 +6269,25 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
     __Pyx_GIVEREF(((PyObject *)__pyx_v_displacement));
     PyTuple_SET_ITEM(__pyx_t_4, 2, ((PyObject *)__pyx_v_displacement));
 
-    /* "pysteps/motion/_vet.pyx":502
+    /* "pysteps/motion/_vet.pyx":501
  *                                                           mask,
  *                                                           displacement,
  *                                                           gradient=True)             # <<<<<<<<<<<<<<
  * 
  *         morph_mask[mask > 0] = 1
  */
-    __pyx_t_5 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 502, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 501, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_gradient, Py_True) < 0) __PYX_ERR(0, 502, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_gradient, Py_True) < 0) __PYX_ERR(0, 501, __pyx_L1_error)
 
-    /* "pysteps/motion/_vet.pyx":499
+    /* "pysteps/motion/_vet.pyx":498
  *                                   dtype=np.float64)
  * 
  *         morphed_image, morph_mask, _gradient_data = _warp(template_image,             # <<<<<<<<<<<<<<
  *                                                           mask,
  *                                                           displacement,
  */
-    __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 499, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 498, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
@@ -6235,7 +6298,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       if (unlikely(size != 3)) {
         if (size > 3) __Pyx_RaiseTooManyValuesError(3);
         else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-        __PYX_ERR(0, 499, __pyx_L1_error)
+        __PYX_ERR(0, 498, __pyx_L1_error)
       }
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
       if (likely(PyTuple_CheckExact(sequence))) {
@@ -6251,40 +6314,40 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       __Pyx_INCREF(__pyx_t_4);
       __Pyx_INCREF(__pyx_t_3);
       #else
-      __pyx_t_5 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 499, __pyx_L1_error)
+      __pyx_t_5 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 498, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_4 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 499, __pyx_L1_error)
+      __pyx_t_4 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 498, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_3 = PySequence_ITEM(sequence, 2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 499, __pyx_L1_error)
+      __pyx_t_3 = PySequence_ITEM(sequence, 2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 498, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       #endif
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     } else {
       Py_ssize_t index = -1;
-      __pyx_t_6 = PyObject_GetIter(__pyx_t_2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 499, __pyx_L1_error)
+      __pyx_t_6 = PyObject_GetIter(__pyx_t_2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 498, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
       __pyx_t_110 = Py_TYPE(__pyx_t_6)->tp_iternext;
-      index = 0; __pyx_t_5 = __pyx_t_110(__pyx_t_6); if (unlikely(!__pyx_t_5)) goto __pyx_L20_unpacking_failed;
+      index = 0; __pyx_t_5 = __pyx_t_110(__pyx_t_6); if (unlikely(!__pyx_t_5)) goto __pyx_L27_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_5);
-      index = 1; __pyx_t_4 = __pyx_t_110(__pyx_t_6); if (unlikely(!__pyx_t_4)) goto __pyx_L20_unpacking_failed;
+      index = 1; __pyx_t_4 = __pyx_t_110(__pyx_t_6); if (unlikely(!__pyx_t_4)) goto __pyx_L27_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_4);
-      index = 2; __pyx_t_3 = __pyx_t_110(__pyx_t_6); if (unlikely(!__pyx_t_3)) goto __pyx_L20_unpacking_failed;
+      index = 2; __pyx_t_3 = __pyx_t_110(__pyx_t_6); if (unlikely(!__pyx_t_3)) goto __pyx_L27_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_3);
-      if (__Pyx_IternextUnpackEndCheck(__pyx_t_110(__pyx_t_6), 3) < 0) __PYX_ERR(0, 499, __pyx_L1_error)
+      if (__Pyx_IternextUnpackEndCheck(__pyx_t_110(__pyx_t_6), 3) < 0) __PYX_ERR(0, 498, __pyx_L1_error)
       __pyx_t_110 = NULL;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      goto __pyx_L21_unpacking_done;
-      __pyx_L20_unpacking_failed:;
+      goto __pyx_L28_unpacking_done;
+      __pyx_L27_unpacking_failed:;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       __pyx_t_110 = NULL;
       if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-      __PYX_ERR(0, 499, __pyx_L1_error)
-      __pyx_L21_unpacking_done:;
+      __PYX_ERR(0, 498, __pyx_L1_error)
+      __pyx_L28_unpacking_done:;
     }
-    if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 499, __pyx_L1_error)
-    if (!(likely(((__pyx_t_4) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_4, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 499, __pyx_L1_error)
-    if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 499, __pyx_L1_error)
+    if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 498, __pyx_L1_error)
+    if (!(likely(((__pyx_t_4) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_4, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 498, __pyx_L1_error)
+    if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 498, __pyx_L1_error)
     __pyx_t_118 = ((PyArrayObject *)__pyx_t_5);
     {
       __Pyx_BufFmt_StackElem __pyx_stack[1];
@@ -6301,7 +6364,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_12 = __pyx_t_11 = __pyx_t_10 = 0;
       }
       __pyx_pybuffernd_morphed_image.diminfo[0].strides = __pyx_pybuffernd_morphed_image.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_morphed_image.diminfo[0].shape = __pyx_pybuffernd_morphed_image.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_morphed_image.diminfo[1].strides = __pyx_pybuffernd_morphed_image.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_morphed_image.diminfo[1].shape = __pyx_pybuffernd_morphed_image.rcbuffer->pybuffer.shape[1];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 499, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 498, __pyx_L1_error)
     }
     __pyx_t_118 = 0;
     __pyx_v_morphed_image = ((PyArrayObject *)__pyx_t_5);
@@ -6322,7 +6385,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_10 = __pyx_t_11 = __pyx_t_12 = 0;
       }
       __pyx_pybuffernd_morph_mask.diminfo[0].strides = __pyx_pybuffernd_morph_mask.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_morph_mask.diminfo[0].shape = __pyx_pybuffernd_morph_mask.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_morph_mask.diminfo[1].strides = __pyx_pybuffernd_morph_mask.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_morph_mask.diminfo[1].shape = __pyx_pybuffernd_morph_mask.rcbuffer->pybuffer.shape[1];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 499, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 498, __pyx_L1_error)
     }
     __pyx_t_119 = 0;
     __pyx_v_morph_mask = ((PyArrayObject *)__pyx_t_4);
@@ -6343,36 +6406,36 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_12 = __pyx_t_11 = __pyx_t_10 = 0;
       }
       __pyx_pybuffernd__gradient_data.diminfo[0].strides = __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd__gradient_data.diminfo[0].shape = __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd__gradient_data.diminfo[1].strides = __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd__gradient_data.diminfo[1].shape = __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.shape[1]; __pyx_pybuffernd__gradient_data.diminfo[2].strides = __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.strides[2]; __pyx_pybuffernd__gradient_data.diminfo[2].shape = __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.shape[2];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 499, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 498, __pyx_L1_error)
     }
     __pyx_t_120 = 0;
     __pyx_v__gradient_data = ((PyArrayObject *)__pyx_t_3);
     __pyx_t_3 = 0;
 
-    /* "pysteps/motion/_vet.pyx":504
+    /* "pysteps/motion/_vet.pyx":503
  *                                                           gradient=True)
  * 
  *         morph_mask[mask > 0] = 1             # <<<<<<<<<<<<<<
  * 
  *         buffer = (2 * (input_image - morphed_image))
  */
-    __pyx_t_2 = PyObject_RichCompare(((PyObject *)__pyx_v_mask), __pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 504, __pyx_L1_error)
-    if (unlikely(PyObject_SetItem(((PyObject *)__pyx_v_morph_mask), __pyx_t_2, __pyx_int_1) < 0)) __PYX_ERR(0, 504, __pyx_L1_error)
+    __pyx_t_2 = PyObject_RichCompare(((PyObject *)__pyx_v_mask), __pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 503, __pyx_L1_error)
+    if (unlikely(PyObject_SetItem(((PyObject *)__pyx_v_morph_mask), __pyx_t_2, __pyx_int_1) < 0)) __PYX_ERR(0, 503, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-    /* "pysteps/motion/_vet.pyx":506
+    /* "pysteps/motion/_vet.pyx":505
  *         morph_mask[mask > 0] = 1
  * 
  *         buffer = (2 * (input_image - morphed_image))             # <<<<<<<<<<<<<<
  *         buffer[morph_mask == 1] = 0
  * 
  */
-    __pyx_t_2 = PyNumber_Subtract(((PyObject *)__pyx_v_input_image), ((PyObject *)__pyx_v_morphed_image)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 506, __pyx_L1_error)
+    __pyx_t_2 = PyNumber_Subtract(((PyObject *)__pyx_v_input_image), ((PyObject *)__pyx_v_morphed_image)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 505, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_3 = PyNumber_Multiply(__pyx_int_2, __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 506, __pyx_L1_error)
+    __pyx_t_3 = PyNumber_Multiply(__pyx_int_2, __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 505, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 506, __pyx_L1_error)
+    if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 505, __pyx_L1_error)
     __pyx_t_115 = ((PyArrayObject *)__pyx_t_3);
     {
       __Pyx_BufFmt_StackElem __pyx_stack[1];
@@ -6389,24 +6452,24 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_10 = __pyx_t_11 = __pyx_t_12 = 0;
       }
       __pyx_pybuffernd_buffer.diminfo[0].strides = __pyx_pybuffernd_buffer.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_buffer.diminfo[0].shape = __pyx_pybuffernd_buffer.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_buffer.diminfo[1].strides = __pyx_pybuffernd_buffer.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_buffer.diminfo[1].shape = __pyx_pybuffernd_buffer.rcbuffer->pybuffer.shape[1];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 506, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 505, __pyx_L1_error)
     }
     __pyx_t_115 = 0;
     __Pyx_DECREF_SET(__pyx_v_buffer, ((PyArrayObject *)__pyx_t_3));
     __pyx_t_3 = 0;
 
-    /* "pysteps/motion/_vet.pyx":507
+    /* "pysteps/motion/_vet.pyx":506
  * 
  *         buffer = (2 * (input_image - morphed_image))
  *         buffer[morph_mask == 1] = 0             # <<<<<<<<<<<<<<
  * 
  *         for i in prange(x_image_size, schedule='dynamic', nogil=True):
  */
-    __pyx_t_3 = PyObject_RichCompare(((PyObject *)__pyx_v_morph_mask), __pyx_int_1, Py_EQ); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 507, __pyx_L1_error)
-    if (unlikely(PyObject_SetItem(((PyObject *)__pyx_v_buffer), __pyx_t_3, __pyx_int_0) < 0)) __PYX_ERR(0, 507, __pyx_L1_error)
+    __pyx_t_3 = PyObject_RichCompare(((PyObject *)__pyx_v_morph_mask), __pyx_int_1, Py_EQ); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 506, __pyx_L1_error)
+    if (unlikely(PyObject_SetItem(((PyObject *)__pyx_v_buffer), __pyx_t_3, __pyx_int_0) < 0)) __PYX_ERR(0, 506, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-    /* "pysteps/motion/_vet.pyx":509
+    /* "pysteps/motion/_vet.pyx":508
  *         buffer[morph_mask == 1] = 0
  * 
  *         for i in prange(x_image_size, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
@@ -6420,7 +6483,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __Pyx_FastGIL_Remember();
         #endif
         /*try:*/ {
-          __pyx_t_23 = __pyx_v_x_image_size;
+          __pyx_t_25 = __pyx_v_x_image_size;
           if (1 == 0) abort();
           {
               #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
@@ -6429,8 +6492,8 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                   #define likely(x)   (x)
                   #define unlikely(x) (x)
               #endif
-              __pyx_t_25 = (__pyx_t_23 - 0 + 1 - 1/abs(1)) / 1;
-              if (__pyx_t_25 > 0)
+              __pyx_t_23 = (__pyx_t_25 - 0 + 1 - 1/abs(1)) / 1;
+              if (__pyx_t_23 > 0)
               {
                   #ifdef _OPENMP
                   #pragma omp parallel private(__pyx_t_121, __pyx_t_122, __pyx_t_123, __pyx_t_124, __pyx_t_125, __pyx_t_126, __pyx_t_127, __pyx_t_128, __pyx_t_129, __pyx_t_130, __pyx_t_27, __pyx_t_28, __pyx_t_29)
@@ -6439,13 +6502,13 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                       #ifdef _OPENMP
                       #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) lastprivate(__pyx_v_j) schedule(dynamic)
                       #endif /* _OPENMP */
-                      for (__pyx_t_24 = 0; __pyx_t_24 < __pyx_t_25; __pyx_t_24++){
+                      for (__pyx_t_24 = 0; __pyx_t_24 < __pyx_t_23; __pyx_t_24++){
                           {
                               __pyx_v_i = (__pyx_t_7pysteps_6motion_4_vet_intp)(0 + 1 * __pyx_t_24);
                               /* Initialize private variables to invalid values */
                               __pyx_v_j = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
 
-                              /* "pysteps/motion/_vet.pyx":510
+                              /* "pysteps/motion/_vet.pyx":509
  * 
  *         for i in prange(x_image_size, schedule='dynamic', nogil=True):
  *             for j in range(y_image_size):             # <<<<<<<<<<<<<<
@@ -6457,7 +6520,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                               for (__pyx_t_29 = 0; __pyx_t_29 < __pyx_t_28; __pyx_t_29+=1) {
                                 __pyx_v_j = __pyx_t_29;
 
-                                /* "pysteps/motion/_vet.pyx":511
+                                /* "pysteps/motion/_vet.pyx":510
  *         for i in prange(x_image_size, schedule='dynamic', nogil=True):
  *             for j in range(y_image_size):
  *                 _gradient_data[0, i, j] *= buffer[i, j]             # <<<<<<<<<<<<<<
@@ -6471,7 +6534,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                 __pyx_t_125 = __pyx_v_j;
                                 *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.buf, __pyx_t_123, __pyx_pybuffernd__gradient_data.diminfo[0].strides, __pyx_t_124, __pyx_pybuffernd__gradient_data.diminfo[1].strides, __pyx_t_125, __pyx_pybuffernd__gradient_data.diminfo[2].strides) *= (*__Pyx_BufPtrStrided2d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_buffer.rcbuffer->pybuffer.buf, __pyx_t_121, __pyx_pybuffernd_buffer.diminfo[0].strides, __pyx_t_122, __pyx_pybuffernd_buffer.diminfo[1].strides));
 
-                                /* "pysteps/motion/_vet.pyx":512
+                                /* "pysteps/motion/_vet.pyx":511
  *             for j in range(y_image_size):
  *                 _gradient_data[0, i, j] *= buffer[i, j]
  *                 _gradient_data[1, i, j] *= buffer[i, j]             # <<<<<<<<<<<<<<
@@ -6498,7 +6561,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
           #endif
         }
 
-        /* "pysteps/motion/_vet.pyx":509
+        /* "pysteps/motion/_vet.pyx":508
  *         buffer[morph_mask == 1] = 0
  * 
  *         for i in prange(x_image_size, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
@@ -6511,13 +6574,13 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
             __Pyx_FastGIL_Forget();
             Py_BLOCK_THREADS
             #endif
-            goto __pyx_L24;
+            goto __pyx_L31;
           }
-          __pyx_L24:;
+          __pyx_L31:;
         }
     }
 
-    /* "pysteps/motion/_vet.pyx":514
+    /* "pysteps/motion/_vet.pyx":513
  *                 _gradient_data[1, i, j] *= buffer[i, j]
  * 
  *         for l in prange(x_sectors, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
@@ -6531,7 +6594,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __Pyx_FastGIL_Remember();
         #endif
         /*try:*/ {
-          __pyx_t_25 = __pyx_v_x_sectors;
+          __pyx_t_23 = __pyx_v_x_sectors;
           if (1 == 0) abort();
           {
               #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
@@ -6540,8 +6603,8 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                   #define likely(x)   (x)
                   #define unlikely(x) (x)
               #endif
-              __pyx_t_23 = (__pyx_t_25 - 0 + 1 - 1/abs(1)) / 1;
-              if (__pyx_t_23 > 0)
+              __pyx_t_25 = (__pyx_t_23 - 0 + 1 - 1/abs(1)) / 1;
+              if (__pyx_t_25 > 0)
               {
                   #ifdef _OPENMP
                   #pragma omp parallel private(__pyx_t_131, __pyx_t_132, __pyx_t_133, __pyx_t_134, __pyx_t_135, __pyx_t_136, __pyx_t_137, __pyx_t_138, __pyx_t_139, __pyx_t_140, __pyx_t_141, __pyx_t_142, __pyx_t_143, __pyx_t_144, __pyx_t_145, __pyx_t_146, __pyx_t_147, __pyx_t_148, __pyx_t_149, __pyx_t_150, __pyx_t_151, __pyx_t_152, __pyx_t_153, __pyx_t_154, __pyx_t_155, __pyx_t_156, __pyx_t_157, __pyx_t_158, __pyx_t_159, __pyx_t_160, __pyx_t_161, __pyx_t_162, __pyx_t_163, __pyx_t_164, __pyx_t_165, __pyx_t_166, __pyx_t_167, __pyx_t_168, __pyx_t_169, __pyx_t_170, __pyx_t_171, __pyx_t_172, __pyx_t_173, __pyx_t_174, __pyx_t_175, __pyx_t_176, __pyx_t_177, __pyx_t_178, __pyx_t_179, __pyx_t_27, __pyx_t_28, __pyx_t_29, __pyx_t_79)
@@ -6550,7 +6613,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                       #ifdef _OPENMP
                       #pragma omp for lastprivate(__pyx_v_i) lastprivate(__pyx_v_j) firstprivate(__pyx_v_l) lastprivate(__pyx_v_l) lastprivate(__pyx_v_m) schedule(dynamic)
                       #endif /* _OPENMP */
-                      for (__pyx_t_24 = 0; __pyx_t_24 < __pyx_t_23; __pyx_t_24++){
+                      for (__pyx_t_24 = 0; __pyx_t_24 < __pyx_t_25; __pyx_t_24++){
                           {
                               __pyx_v_l = (__pyx_t_7pysteps_6motion_4_vet_intp)(0 + 1 * __pyx_t_24);
                               /* Initialize private variables to invalid values */
@@ -6558,7 +6621,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                               __pyx_v_j = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
                               __pyx_v_m = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
 
-                              /* "pysteps/motion/_vet.pyx":515
+                              /* "pysteps/motion/_vet.pyx":514
  * 
  *         for l in prange(x_sectors, schedule='dynamic', nogil=True):
  *             for m in range(y_sectors):             # <<<<<<<<<<<<<<
@@ -6570,7 +6633,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                               for (__pyx_t_29 = 0; __pyx_t_29 < __pyx_t_28; __pyx_t_29+=1) {
                                 __pyx_v_m = __pyx_t_29;
 
-                                /* "pysteps/motion/_vet.pyx":516
+                                /* "pysteps/motion/_vet.pyx":515
  *         for l in prange(x_sectors, schedule='dynamic', nogil=True):
  *             for m in range(y_sectors):
  *                 for i in range(i_min[l], i_max[l]):             # <<<<<<<<<<<<<<
@@ -6584,7 +6647,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                 for (__pyx_t_134 = (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_i_min.rcbuffer->pybuffer.buf, __pyx_t_132, __pyx_pybuffernd_i_min.diminfo[0].strides)); __pyx_t_134 < __pyx_t_133; __pyx_t_134+=1) {
                                   __pyx_v_i = __pyx_t_134;
 
-                                  /* "pysteps/motion/_vet.pyx":517
+                                  /* "pysteps/motion/_vet.pyx":516
  *             for m in range(y_sectors):
  *                 for i in range(i_min[l], i_max[l]):
  *                     for j in range(j_min[m], j_max[m]):             # <<<<<<<<<<<<<<
@@ -6598,7 +6661,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   for (__pyx_t_139 = (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_j_min.rcbuffer->pybuffer.buf, __pyx_t_137, __pyx_pybuffernd_j_min.diminfo[0].strides)); __pyx_t_139 < __pyx_t_138; __pyx_t_139+=1) {
                                     __pyx_v_j = __pyx_t_139;
 
-                                    /* "pysteps/motion/_vet.pyx":518
+                                    /* "pysteps/motion/_vet.pyx":517
  *                 for i in range(i_min[l], i_max[l]):
  *                     for j in range(j_min[m], j_max[m]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -6609,7 +6672,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_141 = __pyx_v_i;
                                     __pyx_t_142 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":519
+                                    /* "pysteps/motion/_vet.pyx":518
  *                     for j in range(j_min[m], j_max[m]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[0, i, j])             # <<<<<<<<<<<<<<
@@ -6620,7 +6683,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_144 = __pyx_v_i;
                                     __pyx_t_145 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":518
+                                    /* "pysteps/motion/_vet.pyx":517
  *                 for i in range(i_min[l], i_max[l]):
  *                     for j in range(j_min[m], j_max[m]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -6632,7 +6695,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_148 = __pyx_v_m;
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.buf, __pyx_t_146, __pyx_pybuffernd_grad_residuals.diminfo[0].strides, __pyx_t_147, __pyx_pybuffernd_grad_residuals.diminfo[1].strides, __pyx_t_148, __pyx_pybuffernd_grad_residuals.diminfo[2].strides) += ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.buf, __pyx_t_140, __pyx_pybuffernd__gradient_data.diminfo[0].strides, __pyx_t_141, __pyx_pybuffernd__gradient_data.diminfo[1].strides, __pyx_t_142, __pyx_pybuffernd__gradient_data.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_143, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_144, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_145, __pyx_pybuffernd_interp_coef.diminfo[2].strides)));
 
-                                    /* "pysteps/motion/_vet.pyx":521
+                                    /* "pysteps/motion/_vet.pyx":520
  *                                                     * interp_coef[0, i, j])
  * 
  *                         grad_residuals[1, l, m] *= (_gradient_data[1, i, j]             # <<<<<<<<<<<<<<
@@ -6643,7 +6706,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_150 = __pyx_v_i;
                                     __pyx_t_151 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":522
+                                    /* "pysteps/motion/_vet.pyx":521
  * 
  *                         grad_residuals[1, l, m] *= (_gradient_data[1, i, j]
  *                                                     * interp_coef[0, i, j])             # <<<<<<<<<<<<<<
@@ -6654,7 +6717,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_153 = __pyx_v_i;
                                     __pyx_t_154 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":521
+                                    /* "pysteps/motion/_vet.pyx":520
  *                                                     * interp_coef[0, i, j])
  * 
  *                         grad_residuals[1, l, m] *= (_gradient_data[1, i, j]             # <<<<<<<<<<<<<<
@@ -6669,7 +6732,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                 }
                               }
 
-                              /* "pysteps/motion/_vet.pyx":524
+                              /* "pysteps/motion/_vet.pyx":523
  *                                                     * interp_coef[0, i, j])
  * 
  *             for m in range(1, y_sectors):             # <<<<<<<<<<<<<<
@@ -6681,7 +6744,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                               for (__pyx_t_29 = 1; __pyx_t_29 < __pyx_t_28; __pyx_t_29+=1) {
                                 __pyx_v_m = __pyx_t_29;
 
-                                /* "pysteps/motion/_vet.pyx":525
+                                /* "pysteps/motion/_vet.pyx":524
  * 
  *             for m in range(1, y_sectors):
  *                 for i in range(i_min[l], i_max[l]):             # <<<<<<<<<<<<<<
@@ -6695,7 +6758,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                 for (__pyx_t_134 = (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_i_min.rcbuffer->pybuffer.buf, __pyx_t_159, __pyx_pybuffernd_i_min.diminfo[0].strides)); __pyx_t_134 < __pyx_t_133; __pyx_t_134+=1) {
                                   __pyx_v_i = __pyx_t_134;
 
-                                  /* "pysteps/motion/_vet.pyx":526
+                                  /* "pysteps/motion/_vet.pyx":525
  *             for m in range(1, y_sectors):
  *                 for i in range(i_min[l], i_max[l]):
  *                     for j in range(j_min[m - 1], j_max[m - 1]):             # <<<<<<<<<<<<<<
@@ -6709,7 +6772,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   for (__pyx_t_139 = (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_j_min.rcbuffer->pybuffer.buf, __pyx_t_161, __pyx_pybuffernd_j_min.diminfo[0].strides)); __pyx_t_139 < __pyx_t_138; __pyx_t_139+=1) {
                                     __pyx_v_j = __pyx_t_139;
 
-                                    /* "pysteps/motion/_vet.pyx":527
+                                    /* "pysteps/motion/_vet.pyx":526
  *                 for i in range(i_min[l], i_max[l]):
  *                     for j in range(j_min[m - 1], j_max[m - 1]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -6720,7 +6783,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_163 = __pyx_v_i;
                                     __pyx_t_164 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":528
+                                    /* "pysteps/motion/_vet.pyx":527
  *                     for j in range(j_min[m - 1], j_max[m - 1]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[1, i, j])             # <<<<<<<<<<<<<<
@@ -6731,7 +6794,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_166 = __pyx_v_i;
                                     __pyx_t_167 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":527
+                                    /* "pysteps/motion/_vet.pyx":526
  *                 for i in range(i_min[l], i_max[l]):
  *                     for j in range(j_min[m - 1], j_max[m - 1]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -6743,7 +6806,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_170 = __pyx_v_m;
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.buf, __pyx_t_168, __pyx_pybuffernd_grad_residuals.diminfo[0].strides, __pyx_t_169, __pyx_pybuffernd_grad_residuals.diminfo[1].strides, __pyx_t_170, __pyx_pybuffernd_grad_residuals.diminfo[2].strides) += ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.buf, __pyx_t_162, __pyx_pybuffernd__gradient_data.diminfo[0].strides, __pyx_t_163, __pyx_pybuffernd__gradient_data.diminfo[1].strides, __pyx_t_164, __pyx_pybuffernd__gradient_data.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_165, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_166, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_167, __pyx_pybuffernd_interp_coef.diminfo[2].strides)));
 
-                                    /* "pysteps/motion/_vet.pyx":530
+                                    /* "pysteps/motion/_vet.pyx":529
  *                                                     * interp_coef[1, i, j])
  * 
  *                         grad_residuals[1, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -6754,7 +6817,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_172 = __pyx_v_i;
                                     __pyx_t_173 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":531
+                                    /* "pysteps/motion/_vet.pyx":530
  * 
  *                         grad_residuals[1, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[1, i, j])             # <<<<<<<<<<<<<<
@@ -6765,7 +6828,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_175 = __pyx_v_i;
                                     __pyx_t_176 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":530
+                                    /* "pysteps/motion/_vet.pyx":529
  *                                                     * interp_coef[1, i, j])
  * 
  *                         grad_residuals[1, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -6792,7 +6855,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
           #endif
         }
 
-        /* "pysteps/motion/_vet.pyx":514
+        /* "pysteps/motion/_vet.pyx":513
  *                 _gradient_data[1, i, j] *= buffer[i, j]
  * 
  *         for l in prange(x_sectors, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
@@ -6805,13 +6868,13 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
             __Pyx_FastGIL_Forget();
             Py_BLOCK_THREADS
             #endif
-            goto __pyx_L35;
+            goto __pyx_L42;
           }
-          __pyx_L35:;
+          __pyx_L42:;
         }
     }
 
-    /* "pysteps/motion/_vet.pyx":533
+    /* "pysteps/motion/_vet.pyx":532
  *                                                     * interp_coef[1, i, j])
  * 
  *         for l in prange(1, x_sectors, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
@@ -6825,7 +6888,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __Pyx_FastGIL_Remember();
         #endif
         /*try:*/ {
-          __pyx_t_23 = __pyx_v_x_sectors;
+          __pyx_t_25 = __pyx_v_x_sectors;
           if (1 == 0) abort();
           {
               #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
@@ -6834,11 +6897,11 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                   #define likely(x)   (x)
                   #define unlikely(x) (x)
               #endif
-              __pyx_t_181 = (__pyx_t_23 - 1 + 1 - 1/abs(1)) / 1;
+              __pyx_t_181 = (__pyx_t_25 - 1 + 1 - 1/abs(1)) / 1;
               if (__pyx_t_181 > 0)
               {
                   #ifdef _OPENMP
-                  #pragma omp parallel private(__pyx_t_133, __pyx_t_134, __pyx_t_136, __pyx_t_182, __pyx_t_183, __pyx_t_184, __pyx_t_185, __pyx_t_186, __pyx_t_187, __pyx_t_188, __pyx_t_189, __pyx_t_190, __pyx_t_191, __pyx_t_192, __pyx_t_193, __pyx_t_194, __pyx_t_195, __pyx_t_196, __pyx_t_197, __pyx_t_198, __pyx_t_199, __pyx_t_200, __pyx_t_201, __pyx_t_202, __pyx_t_203, __pyx_t_204, __pyx_t_205, __pyx_t_206, __pyx_t_207, __pyx_t_208, __pyx_t_209, __pyx_t_210, __pyx_t_211, __pyx_t_212, __pyx_t_213, __pyx_t_214, __pyx_t_215, __pyx_t_216, __pyx_t_217, __pyx_t_218, __pyx_t_219, __pyx_t_220, __pyx_t_221, __pyx_t_222, __pyx_t_223, __pyx_t_224, __pyx_t_225, __pyx_t_24, __pyx_t_25, __pyx_t_27, __pyx_t_28, __pyx_t_29, __pyx_t_79)
+                  #pragma omp parallel private(__pyx_t_133, __pyx_t_134, __pyx_t_136, __pyx_t_182, __pyx_t_183, __pyx_t_184, __pyx_t_185, __pyx_t_186, __pyx_t_187, __pyx_t_188, __pyx_t_189, __pyx_t_190, __pyx_t_191, __pyx_t_192, __pyx_t_193, __pyx_t_194, __pyx_t_195, __pyx_t_196, __pyx_t_197, __pyx_t_198, __pyx_t_199, __pyx_t_200, __pyx_t_201, __pyx_t_202, __pyx_t_203, __pyx_t_204, __pyx_t_205, __pyx_t_206, __pyx_t_207, __pyx_t_208, __pyx_t_209, __pyx_t_210, __pyx_t_211, __pyx_t_212, __pyx_t_213, __pyx_t_214, __pyx_t_215, __pyx_t_216, __pyx_t_217, __pyx_t_218, __pyx_t_219, __pyx_t_220, __pyx_t_221, __pyx_t_222, __pyx_t_223, __pyx_t_224, __pyx_t_225, __pyx_t_23, __pyx_t_24, __pyx_t_27, __pyx_t_28, __pyx_t_29, __pyx_t_79)
                   #endif /* _OPENMP */
                   {
                       #ifdef _OPENMP
@@ -6852,7 +6915,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                               __pyx_v_j = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
                               __pyx_v_m = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
 
-                              /* "pysteps/motion/_vet.pyx":534
+                              /* "pysteps/motion/_vet.pyx":533
  * 
  *         for l in prange(1, x_sectors, schedule='dynamic', nogil=True):
  *             for m in range(y_sectors):             # <<<<<<<<<<<<<<
@@ -6860,11 +6923,11 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  *                     for j in range(j_min[m], j_max[m]):
  */
                               __pyx_t_24 = __pyx_v_y_sectors;
-                              __pyx_t_25 = __pyx_t_24;
-                              for (__pyx_t_27 = 0; __pyx_t_27 < __pyx_t_25; __pyx_t_27+=1) {
+                              __pyx_t_23 = __pyx_t_24;
+                              for (__pyx_t_27 = 0; __pyx_t_27 < __pyx_t_23; __pyx_t_27+=1) {
                                 __pyx_v_m = __pyx_t_27;
 
-                                /* "pysteps/motion/_vet.pyx":535
+                                /* "pysteps/motion/_vet.pyx":534
  *         for l in prange(1, x_sectors, schedule='dynamic', nogil=True):
  *             for m in range(y_sectors):
  *                 for i in range(i_min[l - 1], i_max[l - 1]):             # <<<<<<<<<<<<<<
@@ -6878,7 +6941,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                 for (__pyx_t_79 = (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_i_min.rcbuffer->pybuffer.buf, __pyx_t_183, __pyx_pybuffernd_i_min.diminfo[0].strides)); __pyx_t_79 < __pyx_t_29; __pyx_t_79+=1) {
                                   __pyx_v_i = __pyx_t_79;
 
-                                  /* "pysteps/motion/_vet.pyx":536
+                                  /* "pysteps/motion/_vet.pyx":535
  *             for m in range(y_sectors):
  *                 for i in range(i_min[l - 1], i_max[l - 1]):
  *                     for j in range(j_min[m], j_max[m]):             # <<<<<<<<<<<<<<
@@ -6892,7 +6955,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   for (__pyx_t_136 = (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_j_min.rcbuffer->pybuffer.buf, __pyx_t_185, __pyx_pybuffernd_j_min.diminfo[0].strides)); __pyx_t_136 < __pyx_t_134; __pyx_t_136+=1) {
                                     __pyx_v_j = __pyx_t_136;
 
-                                    /* "pysteps/motion/_vet.pyx":537
+                                    /* "pysteps/motion/_vet.pyx":536
  *                 for i in range(i_min[l - 1], i_max[l - 1]):
  *                     for j in range(j_min[m], j_max[m]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -6903,7 +6966,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_187 = __pyx_v_i;
                                     __pyx_t_188 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":538
+                                    /* "pysteps/motion/_vet.pyx":537
  *                     for j in range(j_min[m], j_max[m]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[2, i, j])             # <<<<<<<<<<<<<<
@@ -6914,7 +6977,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_190 = __pyx_v_i;
                                     __pyx_t_191 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":537
+                                    /* "pysteps/motion/_vet.pyx":536
  *                 for i in range(i_min[l - 1], i_max[l - 1]):
  *                     for j in range(j_min[m], j_max[m]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -6926,7 +6989,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_194 = __pyx_v_m;
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.buf, __pyx_t_192, __pyx_pybuffernd_grad_residuals.diminfo[0].strides, __pyx_t_193, __pyx_pybuffernd_grad_residuals.diminfo[1].strides, __pyx_t_194, __pyx_pybuffernd_grad_residuals.diminfo[2].strides) += ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.buf, __pyx_t_186, __pyx_pybuffernd__gradient_data.diminfo[0].strides, __pyx_t_187, __pyx_pybuffernd__gradient_data.diminfo[1].strides, __pyx_t_188, __pyx_pybuffernd__gradient_data.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_189, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_190, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_191, __pyx_pybuffernd_interp_coef.diminfo[2].strides)));
 
-                                    /* "pysteps/motion/_vet.pyx":539
+                                    /* "pysteps/motion/_vet.pyx":538
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[2, i, j])
  *                         grad_residuals[1, l, m] += (_gradient_data[1, i, j]             # <<<<<<<<<<<<<<
@@ -6937,7 +7000,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_196 = __pyx_v_i;
                                     __pyx_t_197 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":540
+                                    /* "pysteps/motion/_vet.pyx":539
  *                                                     * interp_coef[2, i, j])
  *                         grad_residuals[1, l, m] += (_gradient_data[1, i, j]
  *                                                     * interp_coef[2, i, j])             # <<<<<<<<<<<<<<
@@ -6948,7 +7011,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_199 = __pyx_v_i;
                                     __pyx_t_200 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":539
+                                    /* "pysteps/motion/_vet.pyx":538
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[2, i, j])
  *                         grad_residuals[1, l, m] += (_gradient_data[1, i, j]             # <<<<<<<<<<<<<<
@@ -6963,7 +7026,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                 }
                               }
 
-                              /* "pysteps/motion/_vet.pyx":542
+                              /* "pysteps/motion/_vet.pyx":541
  *                                                     * interp_coef[2, i, j])
  * 
  *             for m in range(1, y_sectors):             # <<<<<<<<<<<<<<
@@ -6971,11 +7034,11 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  *                     for j in range(j_min[m - 1], j_max[m - 1]):
  */
                               __pyx_t_24 = __pyx_v_y_sectors;
-                              __pyx_t_25 = __pyx_t_24;
-                              for (__pyx_t_27 = 1; __pyx_t_27 < __pyx_t_25; __pyx_t_27+=1) {
+                              __pyx_t_23 = __pyx_t_24;
+                              for (__pyx_t_27 = 1; __pyx_t_27 < __pyx_t_23; __pyx_t_27+=1) {
                                 __pyx_v_m = __pyx_t_27;
 
-                                /* "pysteps/motion/_vet.pyx":543
+                                /* "pysteps/motion/_vet.pyx":542
  * 
  *             for m in range(1, y_sectors):
  *                 for i in range(i_min[l - 1], i_max[l - 1]):             # <<<<<<<<<<<<<<
@@ -6989,7 +7052,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                 for (__pyx_t_79 = (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_i_min.rcbuffer->pybuffer.buf, __pyx_t_205, __pyx_pybuffernd_i_min.diminfo[0].strides)); __pyx_t_79 < __pyx_t_29; __pyx_t_79+=1) {
                                   __pyx_v_i = __pyx_t_79;
 
-                                  /* "pysteps/motion/_vet.pyx":544
+                                  /* "pysteps/motion/_vet.pyx":543
  *             for m in range(1, y_sectors):
  *                 for i in range(i_min[l - 1], i_max[l - 1]):
  *                     for j in range(j_min[m - 1], j_max[m - 1]):             # <<<<<<<<<<<<<<
@@ -7003,7 +7066,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   for (__pyx_t_136 = (*__Pyx_BufPtrStrided1d(__pyx_t_7pysteps_6motion_4_vet_intp *, __pyx_pybuffernd_j_min.rcbuffer->pybuffer.buf, __pyx_t_207, __pyx_pybuffernd_j_min.diminfo[0].strides)); __pyx_t_136 < __pyx_t_134; __pyx_t_136+=1) {
                                     __pyx_v_j = __pyx_t_136;
 
-                                    /* "pysteps/motion/_vet.pyx":545
+                                    /* "pysteps/motion/_vet.pyx":544
  *                 for i in range(i_min[l - 1], i_max[l - 1]):
  *                     for j in range(j_min[m - 1], j_max[m - 1]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -7014,7 +7077,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_209 = __pyx_v_i;
                                     __pyx_t_210 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":546
+                                    /* "pysteps/motion/_vet.pyx":545
  *                     for j in range(j_min[m - 1], j_max[m - 1]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[3, i, j])             # <<<<<<<<<<<<<<
@@ -7025,7 +7088,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_212 = __pyx_v_i;
                                     __pyx_t_213 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":545
+                                    /* "pysteps/motion/_vet.pyx":544
  *                 for i in range(i_min[l - 1], i_max[l - 1]):
  *                     for j in range(j_min[m - 1], j_max[m - 1]):
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]             # <<<<<<<<<<<<<<
@@ -7037,7 +7100,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_216 = __pyx_v_m;
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_residuals.rcbuffer->pybuffer.buf, __pyx_t_214, __pyx_pybuffernd_grad_residuals.diminfo[0].strides, __pyx_t_215, __pyx_pybuffernd_grad_residuals.diminfo[1].strides, __pyx_t_216, __pyx_pybuffernd_grad_residuals.diminfo[2].strides) += ((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd__gradient_data.rcbuffer->pybuffer.buf, __pyx_t_208, __pyx_pybuffernd__gradient_data.diminfo[0].strides, __pyx_t_209, __pyx_pybuffernd__gradient_data.diminfo[1].strides, __pyx_t_210, __pyx_pybuffernd__gradient_data.diminfo[2].strides)) * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_interp_coef.rcbuffer->pybuffer.buf, __pyx_t_211, __pyx_pybuffernd_interp_coef.diminfo[0].strides, __pyx_t_212, __pyx_pybuffernd_interp_coef.diminfo[1].strides, __pyx_t_213, __pyx_pybuffernd_interp_coef.diminfo[2].strides)));
 
-                                    /* "pysteps/motion/_vet.pyx":547
+                                    /* "pysteps/motion/_vet.pyx":546
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[3, i, j])
  *                         grad_residuals[1, l, m] += (_gradient_data[1, i, j]             # <<<<<<<<<<<<<<
@@ -7048,7 +7111,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_218 = __pyx_v_i;
                                     __pyx_t_219 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":548
+                                    /* "pysteps/motion/_vet.pyx":547
  *                                                     * interp_coef[3, i, j])
  *                         grad_residuals[1, l, m] += (_gradient_data[1, i, j]
  *                                                     * interp_coef[3, i, j])             # <<<<<<<<<<<<<<
@@ -7059,7 +7122,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_221 = __pyx_v_i;
                                     __pyx_t_222 = __pyx_v_j;
 
-                                    /* "pysteps/motion/_vet.pyx":547
+                                    /* "pysteps/motion/_vet.pyx":546
  *                         grad_residuals[0, l, m] += (_gradient_data[0, i, j]
  *                                                     * interp_coef[3, i, j])
  *                         grad_residuals[1, l, m] += (_gradient_data[1, i, j]             # <<<<<<<<<<<<<<
@@ -7086,7 +7149,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
           #endif
         }
 
-        /* "pysteps/motion/_vet.pyx":533
+        /* "pysteps/motion/_vet.pyx":532
  *                                                     * interp_coef[1, i, j])
  * 
  *         for l in prange(1, x_sectors, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
@@ -7099,23 +7162,23 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
             __Pyx_FastGIL_Forget();
             Py_BLOCK_THREADS
             #endif
-            goto __pyx_L56;
+            goto __pyx_L63;
           }
-          __pyx_L56:;
+          __pyx_L63:;
         }
     }
 
-    /* "pysteps/motion/_vet.pyx":491
+    /* "pysteps/motion/_vet.pyx":490
  * 
  *     # Compute residual part of the cost function
  *     if gradient:             # <<<<<<<<<<<<<<
  * 
  *         grad_smooth = np.zeros([2, x_sectors, y_sectors],
  */
-    goto __pyx_L19;
+    goto __pyx_L26;
   }
 
-  /* "pysteps/motion/_vet.pyx":553
+  /* "pysteps/motion/_vet.pyx":552
  *     else:
  * 
  *         morphed_image, morph_mask = _warp(template_image,             # <<<<<<<<<<<<<<
@@ -7123,17 +7186,17 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  *                                           displacement,
  */
   /*else*/ {
-    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_warp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 553, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_warp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 552, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
 
-    /* "pysteps/motion/_vet.pyx":555
+    /* "pysteps/motion/_vet.pyx":554
  *         morphed_image, morph_mask = _warp(template_image,
  *                                           mask,
  *                                           displacement,             # <<<<<<<<<<<<<<
  *                                           gradient=False)
  *         morph_mask[mask > 0] = 1
  */
-    __pyx_t_2 = PyTuple_New(3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 553, __pyx_L1_error)
+    __pyx_t_2 = PyTuple_New(3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 552, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_INCREF(((PyObject *)__pyx_v_template_image));
     __Pyx_GIVEREF(((PyObject *)__pyx_v_template_image));
@@ -7145,25 +7208,25 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
     __Pyx_GIVEREF(((PyObject *)__pyx_v_displacement));
     PyTuple_SET_ITEM(__pyx_t_2, 2, ((PyObject *)__pyx_v_displacement));
 
-    /* "pysteps/motion/_vet.pyx":556
+    /* "pysteps/motion/_vet.pyx":555
  *                                           mask,
  *                                           displacement,
  *                                           gradient=False)             # <<<<<<<<<<<<<<
  *         morph_mask[mask > 0] = 1
  *         residuals = np.sum((morphed_image - input_image)[morph_mask == 0] ** 2)
  */
-    __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 556, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 555, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_gradient, Py_False) < 0) __PYX_ERR(0, 556, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_gradient, Py_False) < 0) __PYX_ERR(0, 555, __pyx_L1_error)
 
-    /* "pysteps/motion/_vet.pyx":553
+    /* "pysteps/motion/_vet.pyx":552
  *     else:
  * 
  *         morphed_image, morph_mask = _warp(template_image,             # <<<<<<<<<<<<<<
  *                                           mask,
  *                                           displacement,
  */
-    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_2, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 553, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_2, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 552, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -7174,7 +7237,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       if (unlikely(size != 2)) {
         if (size > 2) __Pyx_RaiseTooManyValuesError(2);
         else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-        __PYX_ERR(0, 553, __pyx_L1_error)
+        __PYX_ERR(0, 552, __pyx_L1_error)
       }
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
       if (likely(PyTuple_CheckExact(sequence))) {
@@ -7187,35 +7250,35 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
       __Pyx_INCREF(__pyx_t_4);
       __Pyx_INCREF(__pyx_t_2);
       #else
-      __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 553, __pyx_L1_error)
+      __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 552, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_2 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 553, __pyx_L1_error)
+      __pyx_t_2 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 552, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
       #endif
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     } else {
       Py_ssize_t index = -1;
-      __pyx_t_3 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 553, __pyx_L1_error)
+      __pyx_t_3 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 552, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __pyx_t_110 = Py_TYPE(__pyx_t_3)->tp_iternext;
-      index = 0; __pyx_t_4 = __pyx_t_110(__pyx_t_3); if (unlikely(!__pyx_t_4)) goto __pyx_L75_unpacking_failed;
+      index = 0; __pyx_t_4 = __pyx_t_110(__pyx_t_3); if (unlikely(!__pyx_t_4)) goto __pyx_L82_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_4);
-      index = 1; __pyx_t_2 = __pyx_t_110(__pyx_t_3); if (unlikely(!__pyx_t_2)) goto __pyx_L75_unpacking_failed;
+      index = 1; __pyx_t_2 = __pyx_t_110(__pyx_t_3); if (unlikely(!__pyx_t_2)) goto __pyx_L82_unpacking_failed;
       __Pyx_GOTREF(__pyx_t_2);
-      if (__Pyx_IternextUnpackEndCheck(__pyx_t_110(__pyx_t_3), 2) < 0) __PYX_ERR(0, 553, __pyx_L1_error)
+      if (__Pyx_IternextUnpackEndCheck(__pyx_t_110(__pyx_t_3), 2) < 0) __PYX_ERR(0, 552, __pyx_L1_error)
       __pyx_t_110 = NULL;
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      goto __pyx_L76_unpacking_done;
-      __pyx_L75_unpacking_failed:;
+      goto __pyx_L83_unpacking_done;
+      __pyx_L82_unpacking_failed:;
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __pyx_t_110 = NULL;
       if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-      __PYX_ERR(0, 553, __pyx_L1_error)
-      __pyx_L76_unpacking_done:;
+      __PYX_ERR(0, 552, __pyx_L1_error)
+      __pyx_L83_unpacking_done:;
     }
-    if (!(likely(((__pyx_t_4) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_4, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 553, __pyx_L1_error)
-    if (!(likely(((__pyx_t_2) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_2, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 553, __pyx_L1_error)
+    if (!(likely(((__pyx_t_4) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_4, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 552, __pyx_L1_error)
+    if (!(likely(((__pyx_t_2) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_2, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 552, __pyx_L1_error)
     __pyx_t_118 = ((PyArrayObject *)__pyx_t_4);
     {
       __Pyx_BufFmt_StackElem __pyx_stack[1];
@@ -7232,7 +7295,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_12 = __pyx_t_11 = __pyx_t_10 = 0;
       }
       __pyx_pybuffernd_morphed_image.diminfo[0].strides = __pyx_pybuffernd_morphed_image.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_morphed_image.diminfo[0].shape = __pyx_pybuffernd_morphed_image.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_morphed_image.diminfo[1].strides = __pyx_pybuffernd_morphed_image.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_morphed_image.diminfo[1].shape = __pyx_pybuffernd_morphed_image.rcbuffer->pybuffer.shape[1];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 553, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 552, __pyx_L1_error)
     }
     __pyx_t_118 = 0;
     __pyx_v_morphed_image = ((PyArrayObject *)__pyx_t_4);
@@ -7253,43 +7316,43 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_10 = __pyx_t_11 = __pyx_t_12 = 0;
       }
       __pyx_pybuffernd_morph_mask.diminfo[0].strides = __pyx_pybuffernd_morph_mask.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_morph_mask.diminfo[0].shape = __pyx_pybuffernd_morph_mask.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_morph_mask.diminfo[1].strides = __pyx_pybuffernd_morph_mask.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_morph_mask.diminfo[1].shape = __pyx_pybuffernd_morph_mask.rcbuffer->pybuffer.shape[1];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 553, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 552, __pyx_L1_error)
     }
     __pyx_t_119 = 0;
     __pyx_v_morph_mask = ((PyArrayObject *)__pyx_t_2);
     __pyx_t_2 = 0;
 
-    /* "pysteps/motion/_vet.pyx":557
+    /* "pysteps/motion/_vet.pyx":556
  *                                           displacement,
  *                                           gradient=False)
  *         morph_mask[mask > 0] = 1             # <<<<<<<<<<<<<<
  *         residuals = np.sum((morphed_image - input_image)[morph_mask == 0] ** 2)
  * 
  */
-    __pyx_t_5 = PyObject_RichCompare(((PyObject *)__pyx_v_mask), __pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 557, __pyx_L1_error)
-    if (unlikely(PyObject_SetItem(((PyObject *)__pyx_v_morph_mask), __pyx_t_5, __pyx_int_1) < 0)) __PYX_ERR(0, 557, __pyx_L1_error)
+    __pyx_t_5 = PyObject_RichCompare(((PyObject *)__pyx_v_mask), __pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 556, __pyx_L1_error)
+    if (unlikely(PyObject_SetItem(((PyObject *)__pyx_v_morph_mask), __pyx_t_5, __pyx_int_1) < 0)) __PYX_ERR(0, 556, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-    /* "pysteps/motion/_vet.pyx":558
+    /* "pysteps/motion/_vet.pyx":557
  *                                           gradient=False)
  *         morph_mask[mask > 0] = 1
  *         residuals = np.sum((morphed_image - input_image)[morph_mask == 0] ** 2)             # <<<<<<<<<<<<<<
  * 
  *     # Compute smoothness constraint part of the cost function
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 558, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 557, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_sum); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 558, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_sum); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 557, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_2 = PyNumber_Subtract(((PyObject *)__pyx_v_morphed_image), ((PyObject *)__pyx_v_input_image)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 558, __pyx_L1_error)
+    __pyx_t_2 = PyNumber_Subtract(((PyObject *)__pyx_v_morphed_image), ((PyObject *)__pyx_v_input_image)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 557, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_3 = PyObject_RichCompare(((PyObject *)__pyx_v_morph_mask), __pyx_int_0, Py_EQ); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 558, __pyx_L1_error)
-    __pyx_t_6 = __Pyx_PyObject_GetItem(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 558, __pyx_L1_error)
+    __pyx_t_3 = PyObject_RichCompare(((PyObject *)__pyx_v_morph_mask), __pyx_int_0, Py_EQ); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 557, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyObject_GetItem(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 557, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = PyNumber_Power(__pyx_t_6, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 558, __pyx_L1_error)
+    __pyx_t_3 = PyNumber_Power(__pyx_t_6, __pyx_int_2, Py_None); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 557, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     __pyx_t_6 = NULL;
@@ -7305,16 +7368,16 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
     __pyx_t_5 = (__pyx_t_6) ? __Pyx_PyObject_Call2Args(__pyx_t_4, __pyx_t_6, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_3);
     __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 558, __pyx_L1_error)
+    if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 557, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __pyx_t_226 = __pyx_PyFloat_AsDouble(__pyx_t_5); if (unlikely((__pyx_t_226 == ((npy_float64)-1)) && PyErr_Occurred())) __PYX_ERR(0, 558, __pyx_L1_error)
+    __pyx_t_226 = __pyx_PyFloat_AsDouble(__pyx_t_5); if (unlikely((__pyx_t_226 == ((npy_float64)-1)) && PyErr_Occurred())) __PYX_ERR(0, 557, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __pyx_v_residuals = __pyx_t_226;
   }
-  __pyx_L19:;
+  __pyx_L26:;
 
-  /* "pysteps/motion/_vet.pyx":561
+  /* "pysteps/motion/_vet.pyx":560
  * 
  *     # Compute smoothness constraint part of the cost function
  *     cdef float64 smoothness_penalty = 0             # <<<<<<<<<<<<<<
@@ -7323,7 +7386,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
   __pyx_v_smoothness_penalty = 0.0;
 
-  /* "pysteps/motion/_vet.pyx":563
+  /* "pysteps/motion/_vet.pyx":562
  *     cdef float64 smoothness_penalty = 0
  * 
  *     cdef float64 df_dx2 = 0             # <<<<<<<<<<<<<<
@@ -7332,7 +7395,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
   __pyx_v_df_dx2 = 0.0;
 
-  /* "pysteps/motion/_vet.pyx":564
+  /* "pysteps/motion/_vet.pyx":563
  * 
  *     cdef float64 df_dx2 = 0
  *     cdef float64 df_dxdy = 0             # <<<<<<<<<<<<<<
@@ -7341,7 +7404,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
   __pyx_v_df_dxdy = 0.0;
 
-  /* "pysteps/motion/_vet.pyx":565
+  /* "pysteps/motion/_vet.pyx":564
  *     cdef float64 df_dx2 = 0
  *     cdef float64 df_dxdy = 0
  *     cdef float64 df_dy2 = 0             # <<<<<<<<<<<<<<
@@ -7350,7 +7413,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
   __pyx_v_df_dy2 = 0.0;
 
-  /* "pysteps/motion/_vet.pyx":569
+  /* "pysteps/motion/_vet.pyx":568
  *     cdef float64 inloop_smoothness_penalty
  * 
  *     if smooth_gain > 0.:             # <<<<<<<<<<<<<<
@@ -7360,7 +7423,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
   __pyx_t_1 = ((__pyx_v_smooth_gain > 0.) != 0);
   if (__pyx_t_1) {
 
-    /* "pysteps/motion/_vet.pyx":571
+    /* "pysteps/motion/_vet.pyx":570
  *     if smooth_gain > 0.:
  * 
  *         for axis in prange(2, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
@@ -7386,7 +7449,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
               if (__pyx_t_180 > 0)
               {
                   #ifdef _OPENMP
-                  #pragma omp parallel reduction(+:__pyx_v_smoothness_penalty) private(__pyx_t_1, __pyx_t_227, __pyx_t_228, __pyx_t_229, __pyx_t_23, __pyx_t_230, __pyx_t_231, __pyx_t_232, __pyx_t_233, __pyx_t_234, __pyx_t_235, __pyx_t_236, __pyx_t_237, __pyx_t_238, __pyx_t_239, __pyx_t_24, __pyx_t_240, __pyx_t_241, __pyx_t_242, __pyx_t_243, __pyx_t_244, __pyx_t_245, __pyx_t_246, __pyx_t_247, __pyx_t_248, __pyx_t_249, __pyx_t_250, __pyx_t_251, __pyx_t_252, __pyx_t_253, __pyx_t_254, __pyx_t_255, __pyx_t_256, __pyx_t_257, __pyx_t_258, __pyx_t_259, __pyx_t_260, __pyx_t_261, __pyx_t_262, __pyx_t_263, __pyx_t_264, __pyx_t_265, __pyx_t_266, __pyx_t_267, __pyx_t_268, __pyx_t_269, __pyx_t_270, __pyx_t_271, __pyx_t_272, __pyx_t_273, __pyx_t_274, __pyx_t_275, __pyx_t_276, __pyx_t_277, __pyx_t_278, __pyx_t_279, __pyx_t_280, __pyx_t_281, __pyx_t_282, __pyx_t_283, __pyx_t_284, __pyx_t_285, __pyx_t_286, __pyx_t_287, __pyx_t_288, __pyx_t_289, __pyx_t_290)
+                  #pragma omp parallel reduction(+:__pyx_v_smoothness_penalty) private(__pyx_t_1, __pyx_t_227, __pyx_t_228, __pyx_t_229, __pyx_t_230, __pyx_t_231, __pyx_t_232, __pyx_t_233, __pyx_t_234, __pyx_t_235, __pyx_t_236, __pyx_t_237, __pyx_t_238, __pyx_t_239, __pyx_t_24, __pyx_t_240, __pyx_t_241, __pyx_t_242, __pyx_t_243, __pyx_t_244, __pyx_t_245, __pyx_t_246, __pyx_t_247, __pyx_t_248, __pyx_t_249, __pyx_t_25, __pyx_t_250, __pyx_t_251, __pyx_t_252, __pyx_t_253, __pyx_t_254, __pyx_t_255, __pyx_t_256, __pyx_t_257, __pyx_t_258, __pyx_t_259, __pyx_t_260, __pyx_t_261, __pyx_t_262, __pyx_t_263, __pyx_t_264, __pyx_t_265, __pyx_t_266, __pyx_t_267, __pyx_t_268, __pyx_t_269, __pyx_t_270, __pyx_t_271, __pyx_t_272, __pyx_t_273, __pyx_t_274, __pyx_t_275, __pyx_t_276, __pyx_t_277, __pyx_t_278, __pyx_t_279, __pyx_t_280, __pyx_t_281, __pyx_t_282, __pyx_t_283, __pyx_t_284, __pyx_t_285, __pyx_t_286, __pyx_t_287, __pyx_t_288, __pyx_t_289, __pyx_t_290)
                   #endif /* _OPENMP */
                   {
                       #ifdef _OPENMP
@@ -7403,7 +7466,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                               __pyx_v_l = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
                               __pyx_v_m = ((__pyx_t_7pysteps_6motion_4_vet_intp)0xbad0bad0);
 
-                              /* "pysteps/motion/_vet.pyx":573
+                              /* "pysteps/motion/_vet.pyx":572
  *         for axis in prange(2, schedule='dynamic', nogil=True):
  * 
  *             inloop_smoothness_penalty = 0             # <<<<<<<<<<<<<<
@@ -7412,7 +7475,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
                               __pyx_v_inloop_smoothness_penalty = 0.0;
 
-                              /* "pysteps/motion/_vet.pyx":575
+                              /* "pysteps/motion/_vet.pyx":574
  *             inloop_smoothness_penalty = 0
  * 
  *             for l in range(1, x_sectors - 1):             # <<<<<<<<<<<<<<
@@ -7421,10 +7484,10 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
                               __pyx_t_227 = (__pyx_v_x_sectors - 1);
                               __pyx_t_228 = __pyx_t_227;
-                              for (__pyx_t_23 = 1; __pyx_t_23 < __pyx_t_228; __pyx_t_23+=1) {
-                                __pyx_v_l = __pyx_t_23;
+                              for (__pyx_t_25 = 1; __pyx_t_25 < __pyx_t_228; __pyx_t_25+=1) {
+                                __pyx_v_l = __pyx_t_25;
 
-                                /* "pysteps/motion/_vet.pyx":577
+                                /* "pysteps/motion/_vet.pyx":576
  *             for l in range(1, x_sectors - 1):
  * 
  *                 for m in range(1, y_sectors - 1):             # <<<<<<<<<<<<<<
@@ -7436,7 +7499,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                 for (__pyx_t_24 = 1; __pyx_t_24 < __pyx_t_230; __pyx_t_24+=1) {
                                   __pyx_v_m = __pyx_t_24;
 
-                                  /* "pysteps/motion/_vet.pyx":578
+                                  /* "pysteps/motion/_vet.pyx":577
  * 
  *                 for m in range(1, y_sectors - 1):
  *                     df_dx2 = (sector_displacement[axis, l + 1, m]             # <<<<<<<<<<<<<<
@@ -7447,7 +7510,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_232 = (__pyx_v_l + 1);
                                   __pyx_t_233 = __pyx_v_m;
 
-                                  /* "pysteps/motion/_vet.pyx":579
+                                  /* "pysteps/motion/_vet.pyx":578
  *                 for m in range(1, y_sectors - 1):
  *                     df_dx2 = (sector_displacement[axis, l + 1, m]
  *                               - 2 * sector_displacement[axis, l, m]             # <<<<<<<<<<<<<<
@@ -7458,7 +7521,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_235 = __pyx_v_l;
                                   __pyx_t_236 = __pyx_v_m;
 
-                                  /* "pysteps/motion/_vet.pyx":580
+                                  /* "pysteps/motion/_vet.pyx":579
  *                     df_dx2 = (sector_displacement[axis, l + 1, m]
  *                               - 2 * sector_displacement[axis, l, m]
  *                               + sector_displacement[axis, l - 1, m])             # <<<<<<<<<<<<<<
@@ -7470,7 +7533,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_239 = __pyx_v_m;
                                   __pyx_v_df_dx2 = (((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_231, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_232, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_233, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) - (2.0 * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_234, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_235, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_236, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)))) + (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_237, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_238, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_239, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)));
 
-                                  /* "pysteps/motion/_vet.pyx":582
+                                  /* "pysteps/motion/_vet.pyx":581
  *                               + sector_displacement[axis, l - 1, m])
  * 
  *                     df_dx2 = df_dx2 / (x_sector_size * x_sector_size)             # <<<<<<<<<<<<<<
@@ -7479,7 +7542,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
                                   __pyx_v_df_dx2 = (__pyx_v_df_dx2 / (__pyx_v_x_sector_size * __pyx_v_x_sector_size));
 
-                                  /* "pysteps/motion/_vet.pyx":584
+                                  /* "pysteps/motion/_vet.pyx":583
  *                     df_dx2 = df_dx2 / (x_sector_size * x_sector_size)
  * 
  *                     df_dy2 = (sector_displacement[axis, l, m + 1]             # <<<<<<<<<<<<<<
@@ -7490,7 +7553,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_241 = __pyx_v_l;
                                   __pyx_t_242 = (__pyx_v_m + 1);
 
-                                  /* "pysteps/motion/_vet.pyx":585
+                                  /* "pysteps/motion/_vet.pyx":584
  * 
  *                     df_dy2 = (sector_displacement[axis, l, m + 1]
  *                               - 2 * sector_displacement[axis, l, m]             # <<<<<<<<<<<<<<
@@ -7501,7 +7564,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_244 = __pyx_v_l;
                                   __pyx_t_245 = __pyx_v_m;
 
-                                  /* "pysteps/motion/_vet.pyx":586
+                                  /* "pysteps/motion/_vet.pyx":585
  *                     df_dy2 = (sector_displacement[axis, l, m + 1]
  *                               - 2 * sector_displacement[axis, l, m]
  *                               + sector_displacement[axis, l, m - 1])             # <<<<<<<<<<<<<<
@@ -7513,7 +7576,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_248 = (__pyx_v_m - 1);
                                   __pyx_v_df_dy2 = (((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_240, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_241, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_242, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) - (2.0 * (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_243, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_244, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_245, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)))) + (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_246, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_247, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_248, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)));
 
-                                  /* "pysteps/motion/_vet.pyx":588
+                                  /* "pysteps/motion/_vet.pyx":587
  *                               + sector_displacement[axis, l, m - 1])
  * 
  *                     df_dy2 = df_dy2 / (y_sector_size * y_sector_size)             # <<<<<<<<<<<<<<
@@ -7522,7 +7585,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
                                   __pyx_v_df_dy2 = (__pyx_v_df_dy2 / (__pyx_v_y_sector_size * __pyx_v_y_sector_size));
 
-                                  /* "pysteps/motion/_vet.pyx":590
+                                  /* "pysteps/motion/_vet.pyx":589
  *                     df_dy2 = df_dy2 / (y_sector_size * y_sector_size)
  * 
  *                     df_dxdy = (sector_displacement[axis, l + 1, m + 1]             # <<<<<<<<<<<<<<
@@ -7533,7 +7596,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_250 = (__pyx_v_l + 1);
                                   __pyx_t_251 = (__pyx_v_m + 1);
 
-                                  /* "pysteps/motion/_vet.pyx":591
+                                  /* "pysteps/motion/_vet.pyx":590
  * 
  *                     df_dxdy = (sector_displacement[axis, l + 1, m + 1]
  *                                - sector_displacement[axis, l + 1, m - 1]             # <<<<<<<<<<<<<<
@@ -7544,7 +7607,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_253 = (__pyx_v_l + 1);
                                   __pyx_t_254 = (__pyx_v_m - 1);
 
-                                  /* "pysteps/motion/_vet.pyx":592
+                                  /* "pysteps/motion/_vet.pyx":591
  *                     df_dxdy = (sector_displacement[axis, l + 1, m + 1]
  *                                - sector_displacement[axis, l + 1, m - 1]
  *                                - sector_displacement[axis, l - 1, m + 1]             # <<<<<<<<<<<<<<
@@ -7555,7 +7618,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_256 = (__pyx_v_l - 1);
                                   __pyx_t_257 = (__pyx_v_m + 1);
 
-                                  /* "pysteps/motion/_vet.pyx":593
+                                  /* "pysteps/motion/_vet.pyx":592
  *                                - sector_displacement[axis, l + 1, m - 1]
  *                                - sector_displacement[axis, l - 1, m + 1]
  *                                + sector_displacement[axis, l - 1, m - 1])             # <<<<<<<<<<<<<<
@@ -7567,7 +7630,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_260 = (__pyx_v_m - 1);
                                   __pyx_v_df_dxdy = ((((*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_249, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_250, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_251, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)) - (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_252, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_253, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_254, __pyx_pybuffernd_sector_displacement.diminfo[2].strides))) - (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_255, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_256, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_257, __pyx_pybuffernd_sector_displacement.diminfo[2].strides))) + (*__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_sector_displacement.rcbuffer->pybuffer.buf, __pyx_t_258, __pyx_pybuffernd_sector_displacement.diminfo[0].strides, __pyx_t_259, __pyx_pybuffernd_sector_displacement.diminfo[1].strides, __pyx_t_260, __pyx_pybuffernd_sector_displacement.diminfo[2].strides)));
 
-                                  /* "pysteps/motion/_vet.pyx":594
+                                  /* "pysteps/motion/_vet.pyx":593
  *                                - sector_displacement[axis, l - 1, m + 1]
  *                                + sector_displacement[axis, l - 1, m - 1])
  *                     df_dxdy = df_dxdy / (4 * x_sector_size * y_sector_size)             # <<<<<<<<<<<<<<
@@ -7576,7 +7639,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
                                   __pyx_v_df_dxdy = (__pyx_v_df_dxdy / ((4 * __pyx_v_x_sector_size) * __pyx_v_y_sector_size));
 
-                                  /* "pysteps/motion/_vet.pyx":596
+                                  /* "pysteps/motion/_vet.pyx":595
  *                     df_dxdy = df_dxdy / (4 * x_sector_size * y_sector_size)
  * 
  *                     if gradient:             # <<<<<<<<<<<<<<
@@ -7586,7 +7649,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                   __pyx_t_1 = (__pyx_v_gradient != 0);
                                   if (__pyx_t_1) {
 
-                                    /* "pysteps/motion/_vet.pyx":597
+                                    /* "pysteps/motion/_vet.pyx":596
  * 
  *                     if gradient:
  *                         grad_smooth[axis, l, m] -= 2 * df_dx2             # <<<<<<<<<<<<<<
@@ -7598,7 +7661,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_263 = __pyx_v_m;
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_261, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_262, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_263, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) -= (2.0 * __pyx_v_df_dx2);
 
-                                    /* "pysteps/motion/_vet.pyx":598
+                                    /* "pysteps/motion/_vet.pyx":597
  *                     if gradient:
  *                         grad_smooth[axis, l, m] -= 2 * df_dx2
  *                         grad_smooth[axis, l + 1, m] += df_dx2             # <<<<<<<<<<<<<<
@@ -7610,7 +7673,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_266 = __pyx_v_m;
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_264, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_265, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_266, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) += __pyx_v_df_dx2;
 
-                                    /* "pysteps/motion/_vet.pyx":599
+                                    /* "pysteps/motion/_vet.pyx":598
  *                         grad_smooth[axis, l, m] -= 2 * df_dx2
  *                         grad_smooth[axis, l + 1, m] += df_dx2
  *                         grad_smooth[axis, l - 1, m] += df_dx2             # <<<<<<<<<<<<<<
@@ -7622,7 +7685,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_269 = __pyx_v_m;
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_267, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_268, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_269, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) += __pyx_v_df_dx2;
 
-                                    /* "pysteps/motion/_vet.pyx":601
+                                    /* "pysteps/motion/_vet.pyx":600
  *                         grad_smooth[axis, l - 1, m] += df_dx2
  * 
  *                         grad_smooth[axis, l, m] -= 2 * df_dy2             # <<<<<<<<<<<<<<
@@ -7634,7 +7697,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_272 = __pyx_v_m;
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_270, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_271, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_272, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) -= (2.0 * __pyx_v_df_dy2);
 
-                                    /* "pysteps/motion/_vet.pyx":602
+                                    /* "pysteps/motion/_vet.pyx":601
  * 
  *                         grad_smooth[axis, l, m] -= 2 * df_dy2
  *                         grad_smooth[axis, l, m - 1] += df_dy2             # <<<<<<<<<<<<<<
@@ -7646,7 +7709,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_275 = (__pyx_v_m - 1);
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_273, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_274, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_275, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) += __pyx_v_df_dy2;
 
-                                    /* "pysteps/motion/_vet.pyx":603
+                                    /* "pysteps/motion/_vet.pyx":602
  *                         grad_smooth[axis, l, m] -= 2 * df_dy2
  *                         grad_smooth[axis, l, m - 1] += df_dy2
  *                         grad_smooth[axis, l, m + 1] += df_dy2             # <<<<<<<<<<<<<<
@@ -7658,7 +7721,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_278 = (__pyx_v_m + 1);
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_276, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_277, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_278, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) += __pyx_v_df_dy2;
 
-                                    /* "pysteps/motion/_vet.pyx":605
+                                    /* "pysteps/motion/_vet.pyx":604
  *                         grad_smooth[axis, l, m + 1] += df_dy2
  * 
  *                         grad_smooth[axis, l - 1, m - 1] += df_dxdy             # <<<<<<<<<<<<<<
@@ -7670,7 +7733,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_281 = (__pyx_v_m - 1);
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_279, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_280, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_281, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) += __pyx_v_df_dxdy;
 
-                                    /* "pysteps/motion/_vet.pyx":606
+                                    /* "pysteps/motion/_vet.pyx":605
  * 
  *                         grad_smooth[axis, l - 1, m - 1] += df_dxdy
  *                         grad_smooth[axis, l - 1, m + 1] -= df_dxdy             # <<<<<<<<<<<<<<
@@ -7682,7 +7745,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_284 = (__pyx_v_m + 1);
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_282, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_283, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_284, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) -= __pyx_v_df_dxdy;
 
-                                    /* "pysteps/motion/_vet.pyx":607
+                                    /* "pysteps/motion/_vet.pyx":606
  *                         grad_smooth[axis, l - 1, m - 1] += df_dxdy
  *                         grad_smooth[axis, l - 1, m + 1] -= df_dxdy
  *                         grad_smooth[axis, l + 1, m - 1] -= df_dxdy             # <<<<<<<<<<<<<<
@@ -7694,7 +7757,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_287 = (__pyx_v_m - 1);
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_285, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_286, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_287, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) -= __pyx_v_df_dxdy;
 
-                                    /* "pysteps/motion/_vet.pyx":608
+                                    /* "pysteps/motion/_vet.pyx":607
  *                         grad_smooth[axis, l - 1, m + 1] -= df_dxdy
  *                         grad_smooth[axis, l + 1, m - 1] -= df_dxdy
  *                         grad_smooth[axis, l + 1, m + 1] += df_dxdy             # <<<<<<<<<<<<<<
@@ -7706,7 +7769,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
                                     __pyx_t_290 = (__pyx_v_m + 1);
                                     *__Pyx_BufPtrStrided3d(__pyx_t_7pysteps_6motion_4_vet_float64 *, __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.buf, __pyx_t_288, __pyx_pybuffernd_grad_smooth.diminfo[0].strides, __pyx_t_289, __pyx_pybuffernd_grad_smooth.diminfo[1].strides, __pyx_t_290, __pyx_pybuffernd_grad_smooth.diminfo[2].strides) += __pyx_v_df_dxdy;
 
-                                    /* "pysteps/motion/_vet.pyx":596
+                                    /* "pysteps/motion/_vet.pyx":595
  *                     df_dxdy = df_dxdy / (4 * x_sector_size * y_sector_size)
  * 
  *                     if gradient:             # <<<<<<<<<<<<<<
@@ -7715,7 +7778,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
                                   }
 
-                                  /* "pysteps/motion/_vet.pyx":612
+                                  /* "pysteps/motion/_vet.pyx":611
  *                     inloop_smoothness_penalty = (df_dx2 * df_dx2
  *                                                  + 2 * df_dxdy * df_dxdy
  *                                                  + df_dy2 * df_dy2)             # <<<<<<<<<<<<<<
@@ -7724,7 +7787,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
                                   __pyx_v_inloop_smoothness_penalty = (((__pyx_v_df_dx2 * __pyx_v_df_dx2) + ((2.0 * __pyx_v_df_dxdy) * __pyx_v_df_dxdy)) + (__pyx_v_df_dy2 * __pyx_v_df_dy2));
 
-                                  /* "pysteps/motion/_vet.pyx":614
+                                  /* "pysteps/motion/_vet.pyx":613
  *                                                  + df_dy2 * df_dy2)
  * 
  *                     smoothness_penalty += inloop_smoothness_penalty             # <<<<<<<<<<<<<<
@@ -7747,7 +7810,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
           #endif
         }
 
-        /* "pysteps/motion/_vet.pyx":571
+        /* "pysteps/motion/_vet.pyx":570
  *     if smooth_gain > 0.:
  * 
  *         for axis in prange(2, schedule='dynamic', nogil=True):             # <<<<<<<<<<<<<<
@@ -7760,13 +7823,13 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
             __Pyx_FastGIL_Forget();
             Py_BLOCK_THREADS
             #endif
-            goto __pyx_L80;
+            goto __pyx_L87;
           }
-          __pyx_L80:;
+          __pyx_L87:;
         }
     }
 
-    /* "pysteps/motion/_vet.pyx":616
+    /* "pysteps/motion/_vet.pyx":615
  *                     smoothness_penalty += inloop_smoothness_penalty
  * 
  *         smoothness_penalty *= smooth_gain  #* x_sector_size * y_sector_size             # <<<<<<<<<<<<<<
@@ -7775,7 +7838,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
     __pyx_v_smoothness_penalty = (__pyx_v_smoothness_penalty * __pyx_v_smooth_gain);
 
-    /* "pysteps/motion/_vet.pyx":569
+    /* "pysteps/motion/_vet.pyx":568
  *     cdef float64 inloop_smoothness_penalty
  * 
  *     if smooth_gain > 0.:             # <<<<<<<<<<<<<<
@@ -7784,7 +7847,7 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
   }
 
-  /* "pysteps/motion/_vet.pyx":618
+  /* "pysteps/motion/_vet.pyx":617
  *         smoothness_penalty *= smooth_gain  #* x_sector_size * y_sector_size
  * 
  *     if gradient:             # <<<<<<<<<<<<<<
@@ -7794,19 +7857,19 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
   __pyx_t_1 = (__pyx_v_gradient != 0);
   if (__pyx_t_1) {
 
-    /* "pysteps/motion/_vet.pyx":619
+    /* "pysteps/motion/_vet.pyx":618
  * 
  *     if gradient:
  *         grad_smooth *= 2 * smooth_gain  #* x_sector_size * y_sector_size             # <<<<<<<<<<<<<<
  * 
  *         return grad_residuals + grad_smooth
  */
-    __pyx_t_5 = PyFloat_FromDouble((2.0 * __pyx_v_smooth_gain)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 619, __pyx_L1_error)
+    __pyx_t_5 = PyFloat_FromDouble((2.0 * __pyx_v_smooth_gain)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 618, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_4 = PyNumber_InPlaceMultiply(((PyObject *)__pyx_v_grad_smooth), __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 619, __pyx_L1_error)
+    __pyx_t_4 = PyNumber_InPlaceMultiply(((PyObject *)__pyx_v_grad_smooth), __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 618, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    if (!(likely(((__pyx_t_4) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_4, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 619, __pyx_L1_error)
+    if (!(likely(((__pyx_t_4) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_4, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 618, __pyx_L1_error)
     __pyx_t_116 = ((PyArrayObject *)__pyx_t_4);
     {
       __Pyx_BufFmt_StackElem __pyx_stack[1];
@@ -7823,13 +7886,13 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
         __pyx_t_12 = __pyx_t_11 = __pyx_t_10 = 0;
       }
       __pyx_pybuffernd_grad_smooth.diminfo[0].strides = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_grad_smooth.diminfo[0].shape = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_grad_smooth.diminfo[1].strides = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_grad_smooth.diminfo[1].shape = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.shape[1]; __pyx_pybuffernd_grad_smooth.diminfo[2].strides = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.strides[2]; __pyx_pybuffernd_grad_smooth.diminfo[2].shape = __pyx_pybuffernd_grad_smooth.rcbuffer->pybuffer.shape[2];
-      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 619, __pyx_L1_error)
+      if (unlikely(__pyx_t_9 < 0)) __PYX_ERR(0, 618, __pyx_L1_error)
     }
     __pyx_t_116 = 0;
     __Pyx_XDECREF_SET(__pyx_v_grad_smooth, ((PyArrayObject *)__pyx_t_4));
     __pyx_t_4 = 0;
 
-    /* "pysteps/motion/_vet.pyx":621
+    /* "pysteps/motion/_vet.pyx":620
  *         grad_smooth *= 2 * smooth_gain  #* x_sector_size * y_sector_size
  * 
  *         return grad_residuals + grad_smooth             # <<<<<<<<<<<<<<
@@ -7837,13 +7900,13 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  *         return residuals, smoothness_penalty
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_4 = PyNumber_Add(((PyObject *)__pyx_v_grad_residuals), ((PyObject *)__pyx_v_grad_smooth)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 621, __pyx_L1_error)
+    __pyx_t_4 = PyNumber_Add(((PyObject *)__pyx_v_grad_residuals), ((PyObject *)__pyx_v_grad_smooth)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 620, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __pyx_r = __pyx_t_4;
     __pyx_t_4 = 0;
     goto __pyx_L0;
 
-    /* "pysteps/motion/_vet.pyx":618
+    /* "pysteps/motion/_vet.pyx":617
  *         smoothness_penalty *= smooth_gain  #* x_sector_size * y_sector_size
  * 
  *     if gradient:             # <<<<<<<<<<<<<<
@@ -7852,18 +7915,18 @@ static PyObject *__pyx_pf_7pysteps_6motion_4_vet_2_cost_function(CYTHON_UNUSED P
  */
   }
 
-  /* "pysteps/motion/_vet.pyx":623
+  /* "pysteps/motion/_vet.pyx":622
  *         return grad_residuals + grad_smooth
  *     else:
  *         return residuals, smoothness_penalty             # <<<<<<<<<<<<<<
  */
   /*else*/ {
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_4 = PyFloat_FromDouble(__pyx_v_residuals); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 623, __pyx_L1_error)
+    __pyx_t_4 = PyFloat_FromDouble(__pyx_v_residuals); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 622, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_5 = PyFloat_FromDouble(__pyx_v_smoothness_penalty); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 623, __pyx_L1_error)
+    __pyx_t_5 = PyFloat_FromDouble(__pyx_v_smoothness_penalty); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 622, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 623, __pyx_L1_error)
+    __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 622, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_GIVEREF(__pyx_t_4);
     PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_4);
@@ -10557,7 +10620,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 162, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(0, 356, __pyx_L1_error)
-  __pyx_builtin_zip = __Pyx_GetBuiltinName(__pyx_n_s_zip); if (!__pyx_builtin_zip) __PYX_ERR(0, 467, __pyx_L1_error)
+  __pyx_builtin_zip = __Pyx_GetBuiltinName(__pyx_n_s_zip); if (!__pyx_builtin_zip) __PYX_ERR(0, 466, __pyx_L1_error)
   __pyx_builtin_RuntimeError = __Pyx_GetBuiltinName(__pyx_n_s_RuntimeError); if (!__pyx_builtin_RuntimeError) __PYX_ERR(1, 856, __pyx_L1_error)
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(1, 1038, __pyx_L1_error)
   return 0;
