@@ -24,7 +24,7 @@ from scipy.ndimage import uniform_filter
 import pysteps as stp
 from pysteps import motion
 from pysteps.motion.vet import morph
-from pysteps.tests.helpers import get_precipitation_fields, smart_assert
+from pysteps.tests.helpers import get_precipitation_fields
 
 reference_field = get_precipitation_fields(num_prev_files=0)
 
@@ -43,7 +43,6 @@ def _create_motion_field(input_precip, motion_type):
 
             - linear_x: (u=2, v=0)
             - linear_y: (u=0, v=2)
-            - rotor: rotor field
 
     Returns
     -------
@@ -141,9 +140,9 @@ convergence_arg_values = [(reference_field, 'lk', 'linear_x', 2, 0.1),
                           (reference_field, 'lk', 'linear_x', 3, 0.1),
                           (reference_field, 'lk', 'linear_y', 3, 0.1),
                           (reference_field, 'vet', 'linear_x', 2, 9),
-                          #(reference_field, 'vet', 'linear_y', 2, 9),
-                          #(reference_field, 'vet', 'linear_x', 3, 9),
-                          #(reference_field, 'vet', 'linear_y', 3, 9),
+                          # (reference_field, 'vet', 'linear_y', 2, 9),
+                          # (reference_field, 'vet', 'linear_x', 3, 9),
+                          # (reference_field, 'vet', 'linear_y', 3, 9),
                           (reference_field, 'darts', 'linear_x', 9, 25),
                           (reference_field, 'darts', 'linear_y', 9, 25)]
 
@@ -251,3 +250,34 @@ def test_no_precipitation(optflow_method_name, num_times):
     uv_motion = motion_method(zero_precip, verbose=False)
 
     assert np.abs(uv_motion).max() < 0.01
+
+
+def test_vet_cost_function():
+    """
+    Test that the vet cost_function computation gives always the same result with the same input.
+
+    Useful to test if the parallelization in VET produce undesired results.
+    """
+
+    from pysteps.motion import vet
+
+    ideal_motion, precip_obs = _create_observations(reference_field.copy(),
+                                                    'linear_y',
+                                                    num_times=2)
+
+    mask_2d = np.ma.getmaskarray(precip_obs).any(axis=0).astype('int8')
+
+    returned_values = np.zeros(20)
+
+    for i in range(20):
+        returned_values[i] = vet.vet_cost_function(ideal_motion.ravel(),  # sector_displacement_1d
+                                                   precip_obs.data,  # input_images
+                                                   ideal_motion.shape[1:],  # blocks_shape (same as 2D grid)
+                                                   mask_2d,  # Mask
+                                                   1e6,  # smooth_gain
+                                                   debug=False)
+
+    tolerance = 1e-12
+    errors = np.abs(returned_values - returned_values[0])
+    # errors should contain all zeros
+    assert (errors < tolerance).any()
