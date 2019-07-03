@@ -415,7 +415,10 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                                                     y_image_size,
                                                     dtype=np.intp)
 
-    for i in prange(x_image_size, schedule='dynamic', nogil=True):
+
+
+    # for i in prange(x_image_size, schedule='dynamic', nogil=True):
+    for i in range(x_image_size):
 
         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
         l0 = int_max(l0, 0)
@@ -430,7 +433,9 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
 
             m_j[j] = m0
 
-            sector_area = (x_guess[m1] - x_guess[m0]) * (y_guess[m1] - y_guess[m0])
+
+            sector_area = (x_guess[l1] - x_guess[l0]) * (y_guess[m1] - y_guess[m0])
+
             interp_coef[0, i, j] = (x_guess[l1] * y_guess[m1]
                                     - x[i] * y_guess[m1]
                                     - x_guess[l1] * y[j]
