@@ -277,7 +277,9 @@ def test_vet_cost_function():
                                                    1e6,  # smooth_gain
                                                    debug=False)
 
+    print(returned_values)
     tolerance = 1e-12
     errors = np.abs(returned_values - returned_values[0])
     # errors should contain all zeros
     assert (errors < tolerance).any()
+    assert (returned_values[0]-1548250.87627097) < 0.001
