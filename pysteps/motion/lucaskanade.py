@@ -643,8 +643,13 @@ def _outlier_removal(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
                 thisdata = thisdata - np.mean(neighbours, axis=0)
                 neighbours = neighbours - np.mean(neighbours, axis=0)
                 V = np.cov(neighbours.T)
-                VI = np.linalg.inv(V)
-                MD = np.sqrt(np.dot(np.dot(thisdata, VI), thisdata.T))
+                try:
+                    VI = np.linalg.inv(V)
+                    MD = np.sqrt(np.dot(np.dot(thisdata, VI), thisdata.T))
+
+                except np.linalg.LinAlgError:
+                    MD = 0
+
                 keep.append(MD < thr)
 
         keep = np.array(keep)
