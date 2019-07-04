@@ -524,7 +524,7 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                                                    * interp_coef[1, i, j])
 
                         grad_residuals[1, l, m] = grad_residuals[1, l, m] + \
-                                                  (_gradient_data[0, i, j]  # TODO: Check this line!
+                                                  (_gradient_data[1, i, j]  # TODO: Check this line!
                                                    * interp_coef[1, i, j])
 
         for l in range(1, x_sectors):  #, schedule='dynamic', nogil=True):
