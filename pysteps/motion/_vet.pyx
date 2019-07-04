@@ -159,6 +159,7 @@ def _warp(np.ndarray[float64, ndim=2] image,
     cdef float64 f00, f10, f01, f11
 
     for x in prange(nx, schedule='dynamic', nogil=True):
+
         for y in range(ny):
 
             x_float = (<float64> x) - displacement[0, x, y]
@@ -372,7 +373,7 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
         np.zeros([2, x_image_size, y_image_size], dtype=np.float64))
 
     cdef intp  i, j, xy, l, m, ll, mm, i_sec, j_sec
-    cdef intp l0, m0, l1, m1, i_shift, j_shift
+    cdef intp l0, m0, l1, m1, i_shift, j_shift, axis
 
     i_shift = (x_sector_size // 2)
     j_shift = (y_sector_size // 2)
@@ -430,7 +431,8 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
 
             m_j[j] = m0
 
-            sector_area = (x_guess[m1] - x_guess[m0]) * (y_guess[m1] - y_guess[m0])
+            sector_area = (x_guess[l1] - x_guess[l0]) * (y_guess[m1] - y_guess[m0])
+
             interp_coef[0, i, j] = (x_guess[l1] * y_guess[m1]
                                     - x[i] * y_guess[m1]
                                     - x_guess[l1] * y[j]
@@ -480,16 +482,14 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
     cdef np.ndarray[float64, ndim = 2] buffer = \
         np.zeros([x_image_size, y_image_size], dtype=np.float64)
 
+    grad_smooth = np.zeros([2, x_sectors, y_sectors], dtype=np.float64)
+
+    grad_residuals = np.zeros([2, x_sectors, y_sectors], dtype=np.float64)
+
     cdef float64 residuals = 0
 
     # Compute residual part of the cost function
     if gradient:
-
-        grad_smooth = np.zeros([2, x_sectors, y_sectors],
-                               dtype=np.float64)
-
-        grad_residuals = np.zeros([2, x_sectors, y_sectors],
-                                  dtype=np.float64)
 
         morphed_image, morph_mask, _gradient_data = _warp(template_image,
                                                           mask,
@@ -501,31 +501,33 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
         buffer = (2 * (input_image - morphed_image))
         buffer[morph_mask == 1] = 0
 
-        for i in prange(x_image_size, schedule='dynamic', nogil=True):
-            for j in range(y_image_size):
-                _gradient_data[0, i, j] *= buffer[i, j]
-                _gradient_data[1, i, j] *= buffer[i, j]
+        _gradient_data[0, :] *= buffer
+        _gradient_data[1, :] *= buffer
 
-        for l in prange(x_sectors, schedule='dynamic', nogil=True):
+        for l in range(x_sectors):  # schedule='dynamic', nogil=True):
             for m in range(y_sectors):
                 for i in range(i_min[l], i_max[l]):
                     for j in range(j_min[m], j_max[m]):
-                        grad_residuals[0, l, m] += (_gradient_data[0, i, j]
-                                                    * interp_coef[0, i, j])
+                        grad_residuals[0, l, m] = grad_residuals[0, l, m] + \
+                                                  (_gradient_data[0, i, j]
+                                                   * interp_coef[0, i, j])
 
-                        grad_residuals[1, l, m] *= (_gradient_data[1, i, j]
-                                                    * interp_coef[0, i, j])
+                        grad_residuals[1, l, m] = grad_residuals[1, l, m] + \
+                                                  (_gradient_data[1, i, j]
+                                                   * interp_coef[0, i, j])
 
             for m in range(1, y_sectors):
                 for i in range(i_min[l], i_max[l]):
                     for j in range(j_min[m - 1], j_max[m - 1]):
-                        grad_residuals[0, l, m] += (_gradient_data[0, i, j]
-                                                    * interp_coef[1, i, j])
+                        grad_residuals[0, l, m] = grad_residuals[0, l, m] + \
+                                                  (_gradient_data[0, i, j]
+                                                   * interp_coef[1, i, j])
 
-                        grad_residuals[1, l, m] += (_gradient_data[0, i, j]
-                                                    * interp_coef[1, i, j])
+                        grad_residuals[1, l, m] = grad_residuals[1, l, m] + \
+                                                  (_gradient_data[1, i, j]  # TODO: Check this line!
+                                                   * interp_coef[1, i, j])
 
-        for l in prange(1, x_sectors, schedule='dynamic', nogil=True):
+        for l in range(1, x_sectors):  #, schedule='dynamic', nogil=True):
             for m in range(y_sectors):
                 for i in range(i_min[l - 1], i_max[l - 1]):
                     for j in range(j_min[m], j_max[m]):
@@ -563,11 +565,11 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
 
     if smooth_gain > 0.:
 
-        for axis in range(2):
+        for axis in range(2):  #, schedule='dynamic', nogil=True):
 
             inloop_smoothness_penalty = 0
 
-            for l in prange(1, x_sectors - 1, schedule='dynamic', nogil=True):
+            for l in range(1, x_sectors - 1):
 
                 for m in range(1, y_sectors - 1):
                     df_dx2 = (sector_displacement[axis, l + 1, m]

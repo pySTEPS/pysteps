@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import sys
+
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
-import sys
 
 try:
     import numpy
@@ -30,7 +31,9 @@ try:
                                    sources=[str("pysteps/motion/_vet.pyx")],
                                    **_vet_extension_arguments)
 
-    external_modules = cythonize([_vet_lib_extension])
+    external_modules = cythonize([_vet_lib_extension],
+                                 force=True,
+                                 language_level=3)
 
 except ImportError:
     _vet_lib_extension = Extension(str(str("pysteps.motion._vet")),
