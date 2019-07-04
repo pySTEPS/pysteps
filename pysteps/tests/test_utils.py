@@ -411,11 +411,11 @@ test_data = [
 ]
 
 
-@pytest.mark.parametrize("R, metadata, space_window_m, ignore_nan, expected", test_data)
-def test_aggregate_fields_space(R, metadata, space_window_m, ignore_nan, expected):
+@pytest.mark.parametrize("R, metadata, space_window, ignore_nan, expected", test_data)
+def test_aggregate_fields_space(R, metadata, space_window, ignore_nan, expected):
     """Test the aggregate_fields_space."""
     assert_array_equal(
-        dimension.aggregate_fields_space(R, metadata, space_window_m, ignore_nan)[0],
+        dimension.aggregate_fields_space(R, metadata, space_window, ignore_nan)[0],
         expected,
     )
 
