@@ -25,7 +25,18 @@ _vet_extension_arguments = dict(extra_compile_args=["-fopenmp"],
                                 )
 
 try:
-    from Cython.Build.Dependencies import cythonize
+    from Cython.Build import cythonize
+    from Cython.Build.Dependencies import default_create_extension
+
+
+    def my_create_extension(template, kwds):
+        """
+        Remove local include and dependecies paths from the Cython metadata
+        """
+        del kwds['depends']
+        del kwds['include_dirs']
+        return default_create_extension(template, kwds)
+
 
     _vet_lib_extension = Extension(str("pysteps.motion._vet"),
                                    sources=[str("pysteps/motion/_vet.pyx")],
@@ -33,7 +44,9 @@ try:
 
     external_modules = cythonize([_vet_lib_extension],
                                  force=True,
-                                 language_level=3)
+                                 language_level=3,
+                                 create_extension=my_create_extension)
+
 
 except ImportError:
     _vet_lib_extension = Extension(str(str("pysteps.motion._vet")),
