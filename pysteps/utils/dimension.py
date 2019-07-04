@@ -148,8 +148,6 @@ def aggregate_fields_space(R, metadata, space_window_m, ignore_nan=False):
     unit       = metadata["unit"]
     ypixelsize = metadata["ypixelsize"]
     xpixelsize = metadata["xpixelsize"]
-    if "leadtimes" in metadata:
-        leadtimes = metadata["leadtimes"]
 
     if len(R.shape) < 2:
         raise ValueError("The number of dimensions must be >= 2")
