@@ -31,7 +31,9 @@ try:
                                    sources=[str("pysteps/motion/_vet.pyx")],
                                    **_vet_extension_arguments)
 
-    external_modules = cythonize([_vet_lib_extension], force=True)
+    external_modules = cythonize([_vet_lib_extension],
+                                 force=True,
+                                 language_level=3)
 
 except ImportError:
     _vet_lib_extension = Extension(str(str("pysteps.motion._vet")),
