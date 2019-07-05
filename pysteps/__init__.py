@@ -146,7 +146,7 @@ if params_file is not None:
     with open(params_file, 'r') as f:
         rcparams = json.loads(jsmin(f.read()))
 
-    if not rcparams.get("silent", False):
+    if not rcparams.get("silent_import", False):
         print("Pysteps configuration file found at: " + params_file
               + "\n")
 
