@@ -8,3 +8,5 @@ attrdict
 jsmin
 jsonschema
 netCDF4
+dask
+xarray

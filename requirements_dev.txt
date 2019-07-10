@@ -17,6 +17,7 @@ pyfftw
 cartopy
 basemap
 h5py
+xarray
 
 # Testing
 pytest
