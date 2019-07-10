@@ -16,4 +16,5 @@ dependencies:
   - scipy
   - pytest
   - pywavelets
-
+  - xarray
+  - dask

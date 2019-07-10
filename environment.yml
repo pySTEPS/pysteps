@@ -14,3 +14,5 @@ dependencies:
   - pillow
   - pyproj
   - scipy
+  - xarray
+  - dask
