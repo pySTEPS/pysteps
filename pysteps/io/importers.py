@@ -125,6 +125,12 @@ try:
 except ImportError:
     pyproj_imported = False
 
+try:
+    import xarray as xr
+    xarray_imported = True
+except ImportError:
+    xarray_imported = False
+
 
 def import_bom_rf3(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the BoM Rainfields3.
@@ -147,6 +153,11 @@ def import_bom_rf3(filename, **kwargs):
             "netCDF4 package is required to import BoM Rainfields3 products "
             "but it is not installed"
         )
+    if not xarray_imported:
+        raise MissingOptionalDependency(
+            "xarray package is required to import BoM Rainfields3 products "
+            "but it is not installed"
+        )
 
     R = _import_bom_rf3_data(filename)
 
@@ -165,13 +176,13 @@ def import_bom_rf3(filename, **kwargs):
 
 
 def _import_bom_rf3_data(filename):
-    ds_rainfall = netCDF4.Dataset(filename)
-    if "precipitation" in ds_rainfall.variables.keys():
-        precipitation = ds_rainfall.variables["precipitation"][:]
+    ds_rainfall = open_RF3_dataset(filename)
+    if ds_rainfall is None:
+        return None
+    if "precipitation" in ds_rainfall.data_vars:
+        precipitation = ds_rainfall.precipitation.values
     else:
         precipitation = None
-    ds_rainfall.close()
-
     return precipitation
 
 
@@ -179,11 +190,16 @@ def _import_bom_rf3_geodata(filename):
 
     geodata = {}
 
-    ds_rainfall = netCDF4.Dataset(filename)
+    ds_rainfall = open_RF3_dataset(filename)
 
-    if "proj" in ds_rainfall.variables.keys():
-        projection = ds_rainfall.variables["proj"]
-        if getattr(projection, "grid_mapping_name") == "albers_conical_equal_area":
+    if ds_rainfall is None:
+        return geodata
+
+    # find projection information
+    if "proj" in ds_rainfall.data_vars:
+        projection = ds_rainfall.proj
+        if (projection.attrs['grid_mapping_name'] ==
+                "albers_conical_equal_area"):
             projdef = "+proj=aea "
             lon_0 = getattr(projection, "longitude_of_central_meridian")
             projdef += " +lon_0=" + f"{lon_0:.3f}"
@@ -196,78 +212,77 @@ def _import_bom_rf3_geodata(filename):
             projdef = None
     geodata["projection"] = projdef
 
-    if "valid_min" in ds_rainfall.variables["x"].ncattrs():
-        xmin = getattr(ds_rainfall.variables["x"], "valid_min")
-        xmax = getattr(ds_rainfall.variables["x"], "valid_max")
-        ymin = getattr(ds_rainfall.variables["y"], "valid_min")
-        ymax = getattr(ds_rainfall.variables["y"], "valid_max")
-    else:
-        xmin = min(ds_rainfall.variables["x"])
-        xmax = max(ds_rainfall.variables["x"])
-        ymin = min(ds_rainfall.variables["y"])
-        ymax = max(ds_rainfall.variables["y"])
+    # find extents and pixel sizes
+    xmin = ds_rainfall.x.min().values
+    xmax = ds_rainfall.x.max().values
+    ymin = ds_rainfall.y.min().values
+    ymax = ds_rainfall.y.max().values
 
     xpixelsize = (
-        abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
+        abs(ds_rainfall.x.values[1] - ds_rainfall.x.values[0])
     )
     ypixelsize = (
-        abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
+        abs(ds_rainfall.y.values[1] - ds_rainfall.y.values[0])
     )
-    factor_scale = 1.0
-    if "units" in ds_rainfall.variables["x"].ncattrs():
-        if getattr(ds_rainfall.variables["x"], "units") == "km":
-            factor_scale = 1000.
 
-    geodata["x1"] = xmin * factor_scale
-    geodata["y1"] = ymin * factor_scale
-    geodata["x2"] = xmax * factor_scale
-    geodata["y2"] = ymax * factor_scale
-    geodata["xpixelsize"] = xpixelsize * factor_scale
-    geodata["ypixelsize"] = ypixelsize * factor_scale
-    geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
+    geodata["x1"] = xmin
+    geodata["y1"] = ymin
+    geodata["x2"] = xmax
+    geodata["y2"] = ymax
+    geodata["xpixelsize"] = xpixelsize
+    geodata["ypixelsize"] = ypixelsize
+    geodata["yorigin"] = "upper"
 
-    # get the accumulation period
-    valid_time = None
-
-    if "valid_time" in ds_rainfall.variables.keys():
-        times = ds_rainfall.variables["valid_time"]
-        calendar = 'standard'
-        if 'calendar' in times.ncattrs():
-            calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar,
-                                      )
-
-    start_time = None
-    if "start_time" in ds_rainfall.variables.keys():
-        times = ds_rainfall.variables["start_time"]
-        calendar = 'standard'
-        if 'calendar' in times.ncattrs():
-            calendar = times.calendar
-        start_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar,
-                                      )
-
-    time_step = None
-
-    if start_time is not None:
-        if valid_time is not None:
-            time_step = (valid_time - start_time).seconds // 60
-
+    # Find the accumulation period
+    try:
+        time_step = ds_rainfall.valid_time - ds_rainfall.start_time
+        time_step = time_step / np.timedelta64(60, 's')  # to minutes
+        time_step = np.asscalar(time_step)
+    except Exception as err:
+        print("time step cannot be defined ", err)
+        time_step = None
     geodata["accutime"] = time_step
 
-    # get the unit of precipitation
-    if "units" in ds_rainfall.variables["precipitation"].ncattrs():
-        units = getattr(ds_rainfall.variables["precipitation"], "units")
+    # Get units of precipitation
+    if "units" in ds_rainfall.precipitation.attrs:
+        units = ds_rainfall.precipitation.units
         if units in ("kg m-2", "mm"):
             geodata["unit"] = "mm"
 
+    # Add institution info
     geodata["institution"] = "Commonwealth of Australia, Bureau of Meteorology"
-    ds_rainfall.close()
-
     return geodata
+
+
+def transform_coords_from_km_to_m(ds):
+    if ds is not None:
+        if 'x' in ds.coords:
+            if 'units' in ds.x.attrs:
+                if ds.x.units == 'km':
+                    ds['x'] = ds.x*1000.
+                    ds.x.attrs.update({'units':'m'})
+                    ds.x.attrs.update({'standard_name':'projection_x_coordinate'})
+                    if 'history' in ds.attrs:
+                        ds.attrs['history'] += '; Original coords x transformed to m from km'
+                    else:
+                        ds.attrs['history'] = '; Original coords x transformed to m from km'
+                if ds.y.units == 'km':
+                    ds['y'] = ds.y*1000.
+                    ds.y.attrs.update({'units':'m'})
+                    ds.y.attrs.update({'standard_name':'projection_y_coordinate'})
+                    ds.attrs['history'] += '; Original coords y transformed to m from km'
+    return ds
+
+
+def open_RF3_dataset(fname, **kwargs):
+    try:
+        ds = xr.open_mfdataset(fname,
+                               preprocess=transform_coords_from_km_to_m,
+                               **kwargs)
+        return ds
+    except Exception as err:
+        print(err)
+        return None
 
 
 def import_fmi_geotiff(filename, **kwargs):
