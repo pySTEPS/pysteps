@@ -4,11 +4,10 @@
 Cython module for morphing and cost functions implementations used in
 in the Variation Echo Tracking Algorithm
 """
-from cython.parallel import prange, parallel
+#from cython.parallel import prange, parallel
 import numpy as np
 
 cimport cython
-cimport numpy as np
 
 ctypedef np.float64_t float64
 ctypedef np.int8_t int8
@@ -158,7 +157,8 @@ def _warp(np.ndarray[float64, ndim=2] image,
 
     cdef float64 f00, f10, f01, f11
 
-    for x in prange(nx, schedule='dynamic', nogil=True):
+    #for x in prange(nx, schedule='dynamic', nogil=True):
+    for x in range(nx):
 
         for y in range(ny):
 
@@ -416,7 +416,8 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                                                     y_image_size,
                                                     dtype=np.intp)
 
-    for i in prange(x_image_size, schedule='dynamic', nogil=True):
+    #for i in prange(x_image_size, schedule='dynamic', nogil=True):
+    for i in range(x_image_size):
 
         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
         l0 = int_max(l0, 0)
