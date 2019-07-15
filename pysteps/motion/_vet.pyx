@@ -4,8 +4,11 @@
 Cython module for morphing and cost functions implementations used in
 in the Variation Echo Tracking Algorithm
 """
-#from cython.parallel import prange, parallel
+from cython.parallel import prange, parallel
+import time
+
 import numpy as np
+cimport numpy as np
 
 cimport cython
 
@@ -15,7 +18,31 @@ ctypedef np.intp_t intp
 
 from libc.math cimport floor, round
 
-cimport numpy as np
+
+
+class Profiler(object):
+
+    def __init__(self):
+        self.checkpoint_times = list()
+        self.checkpoint_messages = list()
+        self.add("Init")
+
+    def add(self, message_str):
+        self.checkpoint_times.append(time.perf_counter())
+        self.checkpoint_messages.append(message_str)
+
+    def print_results(self):
+
+        times = np.asarray(self.checkpoint_times)
+        total_time = self.checkpoint_times[-1]-self.checkpoint_times[0]
+        durations = np.diff(times)
+        messages = self.checkpoint_messages[1:]
+
+        # for message, duration in zip(messages,durations ):
+        #     if len(message)>2:
+        #         print(f'{message}: {duration*100/total_time:.1f} %  : {duration*10:.2f} [x10]')
+        # print("Total time [x10]:", total_time)
+
 
 cdef inline float64 float_abs(float64 a) nogil: return a if a > 0. else -a
 """ Return the absolute value of a float """
@@ -158,7 +185,8 @@ def _warp(np.ndarray[float64, ndim=2] image,
     cdef float64 f00, f10, f01, f11
 
     #for x in prange(nx, schedule='dynamic', nogil=True):
-    for x in range(nx):
+    for x in prange(nx, schedule='static', nogil=True):
+    #for x in range(nx):
 
         for y in range(ny):
 
@@ -347,6 +375,8 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
     
     """
 
+    profile = Profiler()
+
     cdef intp x_sectors = <intp> sector_displacement.shape[1]
     cdef intp y_sectors = <intp> sector_displacement.shape[2]
 
@@ -416,8 +446,13 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                                                     y_image_size,
                                                     dtype=np.intp)
 
+    ####################################
+    # Compute interpolation coefficients
+    profile.add("Compute interpolation coefficients")
+
     #for i in prange(x_image_size, schedule='dynamic', nogil=True):
-    for i in range(x_image_size):
+    for i in prange(x_image_size, schedule='static', nogil=True):
+    #for i in range(x_image_size):
 
         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
         l0 = int_max(l0, 0)
@@ -461,7 +496,12 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                         + sector_displacement[xy, l1, m0] * interp_coef[2, i, j]
                         + sector_displacement[xy, l1, m1] * interp_coef[3, i, j]
                 )
+    end_time = intermediate_time = time.perf_counter()
 
+
+    ##############################################
+    # Compute limits used in gradient computations
+    profile.add("Compute limits used in gradient computations")
     for l, i, counts in zip(*np.unique(l_i,
                                        return_index=True,
                                        return_counts=True)):
@@ -490,12 +530,14 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
     cdef float64 residuals = 0
 
     # Compute residual part of the cost function
+    profile.add("")
     if gradient:
-
+        profile.add("Before Warp")
         morphed_image, morph_mask, _gradient_data = _warp(template_image,
                                                           mask,
                                                           displacement,
                                                           gradient=True)
+        profile.add("Warp")
 
         morph_mask[mask > 0] = 1
 
@@ -544,6 +586,7 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                                                     * interp_coef[3, i, j])
                         grad_residuals[1, l, m] += (_gradient_data[1, i, j]
                                                     * interp_coef[3, i, j])
+        profile.add("Residuals gradient")
 
 
     else:
@@ -554,6 +597,7 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                                           gradient=False)
         morph_mask[mask > 0] = 1
         residuals = np.sum((morphed_image - input_image)[morph_mask == 0] ** 2)
+        profile.add("Residuals cost")
 
     # Compute smoothness constraint part of the cost function
     cdef float64 smoothness_penalty = 0
@@ -563,6 +607,7 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
     cdef float64 df_dy2 = 0
 
     cdef float64 inloop_smoothness_penalty
+
 
     if smooth_gain > 0.:
 
@@ -612,7 +657,9 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                     smoothness_penalty += inloop_smoothness_penalty
 
         smoothness_penalty *= smooth_gain  #* x_sector_size * y_sector_size
+        profile.add("smoothness penalty/gradient")
 
+    profile.print_results()
     if gradient:
         grad_smooth *= 2 * smooth_gain  #* x_sector_size * y_sector_size
 
