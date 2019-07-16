@@ -24,10 +24,11 @@ from pysteps.visualization import plot_precip_field, quiver
 # You need the pysteps-data archive downloaded and the pystepsrc file
 # configured with the data_source paths pointing to data folders.
 
-# Selected case
-date = datetime.strptime("201609281600", "%Y%m%d%H%M")
-data_source = rcparams.data_sources["fmi"]
+# crri
+date = datetime.strptime("201806011800", "%Y%m%d%H%M")
+data_source = rcparams.data_sources["crri"]
 n_leadtimes = 12
+map_method = 'basemap'  # None, 'cartopy", 'basemap'
 
 ###############################################################################
 # Load the data from the archive
@@ -48,14 +49,12 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
-
-# Convert to rain rate using the finnish Z-R relationship
-R, metadata = conversion.to_rainrate(Z, metadata, 223.0, 1.53)
+R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata)
-plt.show()
+ax = plot_precip_field(R[-1, :, :], geodata=metadata, title="LK", map=map_method)
+plt.savefig('plot_extrapolation_nowcast_obs.pdf')
+plt.close('all')
 
 # Store the last frame for plotting it later later
 R_ = R[-1, :, :].copy()
@@ -89,9 +88,9 @@ R_f = extrapolate(R[-1, :, :], V, n_leadtimes)
 R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata)
-quiver(V, geodata=metadata, step=50)
-plt.show()
+ax = plot_precip_field(R_f[-1, :, :], geodata=metadata, title="Extrapolted LK", map=map_method)
+plt.savefig('plot_extrapolation_nowcast_extrap.pdf')
+plt.close('all')
 
 ###############################################################################
 # Verify with FSS
@@ -114,12 +113,11 @@ fns = io.archive.find_by_date(
 )
 # Read the radar composites
 R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
-R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o, 223.0, 1.53)
 
 # Compute fractions skill score (FSS) for all lead times, a set of scales and 1 mm/h
 fss = verification.get_method("FSS")
 scales = [2, 4, 8, 16, 32, 64, 128, 256, 512]
-thr = 1.0
+thr = 5.0
 score = []
 for i in range(n_leadtimes):
     score_ = []
@@ -127,13 +125,14 @@ for i in range(n_leadtimes):
         score_.append(fss(R_f[i, :, :], R_o[i + 1, :, :], thr, scale))
     score.append(score_)
 
-plt.figure()
 x = np.arange(1, n_leadtimes + 1) * timestep
+plt.figure(figsize=(8,5))
 plt.plot(x, score)
 plt.legend(scales, title="Scale [km]")
 plt.xlabel("Lead time [min]")
-plt.ylabel("FSS ( > 1.0 mm/h ) ")
+plt.ylabel("FSS ( > 5.0 mm/h ) ")
 plt.title("Fractions skill score")
-plt.show()
+plt.savefig('plot_extrapolation_nowcast_fss.pdf')
+plt.close('all')
 
 # sphinx_gallery_thumbnail_number = 3

@@ -3,17 +3,18 @@
 Generation of stochastic noise
 ==============================
 
-This example script shows how to run the stochastic noise field generators 
+This example script shows how to run the stochastic noise field generators
 included in pysteps.
 
 These noise fields are used as perturbation terms during an extrapolation
-nowcast in order to represent the uncertainty in the evolution of the rainfall 
+nowcast in order to represent the uncertainty in the evolution of the rainfall
 field.
 """
 
+from datetime import datetime
+import matplotlib.pyplot as plt
 from matplotlib import cm, pyplot
 import numpy as np
-import os
 from pprint import pprint
 from pysteps import io, rcparams
 from pysteps.noise.fftgenerators import initialize_param_2d_fft_filter
@@ -23,29 +24,50 @@ from pysteps.utils import conversion, rapsd, transformation
 from pysteps.visualization import plot_precip_field, plot_spectrum1d
 
 ###############################################################################
-# Read precipitation field
-# ------------------------
+# Read the radar input images
+# ---------------------------
 #
-# First thing,  the radar composite is imported and transformed in units
-# of dB.
-# This image will be used to train the Fourier filters that are necessary to
-# produce the fields of spatially correlated noise.
+# First, we will import the sequence of radar composites.
+# You need the pysteps-data archive downloaded and the pystepsrc file
+# configured with the data_source paths pointing to data folders.
 
-# Import the example radar composite
-root_path = rcparams.data_sources["mch"]["root_path"]
-filename = os.path.join(root_path, "20160711", "AQC161932100V_00005.801.gif")
-R, _, metadata = io.import_mch_gif(filename, product="AQC", unit="mm", accutime=5.0)
+# crri
+date = datetime.strptime("201806011800", "%Y%m%d%H%M")
+data_source = rcparams.data_sources["crri"]
+map_method = 'basemap'  # None, 'cartopy", 'basemap'
 
-# Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+###############################################################################
+# Load the data from the archive
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+root_path = data_source["root_path"]
+path_fmt = data_source["path_fmt"]
+fn_pattern = data_source["fn_pattern"]
+fn_ext = data_source["fn_ext"]
+importer_name = data_source["importer"]
+importer_kwargs = data_source["importer_kwargs"]
+timestep = data_source["timestep"]
+
+# Find the input files from the archive
+fns = io.archive.find_by_date(
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_prev_files=0
+)
+
+# Read the radar composites
+importer = io.get_method(importer_name, "importer")
+R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Nicely print the metadata
 pprint(metadata)
 
 # Plot the rainfall field
-plot_precip_field(R, geodata=metadata)
+title = "CRR intensity " + metadata['timestamps'][0].strftime("%d/%m/%Y, %H:%M:%S")
+ax = plot_precip_field(R[0, :, :], geodata=metadata, title=title, map=map_method)
+plt.savefig('plot_noise_generators_plot.pdf')
+plt.close('all')
 
 # Log-transform the data
+R = R[0, :, :]
 R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
 
 # Assign the fill value to all the Nans
@@ -79,7 +101,7 @@ b1 = Fp["pars"][2]
 b2 = Fp["pars"][3]
 
 # Plot the observed power spectrum and the model
-fig, ax = pyplot.subplots()
+fig, ax = pyplot.subplots(figsize=(8,5))
 plot_scales = [512, 256, 128, 64, 32, 16, 8, 4]
 plot_spectrum1d(
     freq,
@@ -106,6 +128,8 @@ ax.set_title(
     "Radially averaged log-power spectrum of R\n"
     r"$\omega_0=%.0f km, \beta_1=%.1f, \beta_2=%.1f$" % (w0, b1, b2)
 )
+plt.savefig('plot_noise_generators_spectrum.pdf')
+plt.close('all')
 
 ###############################################################################
 # Nonparametric filter
@@ -135,7 +159,6 @@ for k in range(num_realizations):
     Nnp.append(generate_noise_2d_fft_filter(Fnp, seed=seed + k))
 
 # Plot the generated noise fields
-
 fig, ax = pyplot.subplots(nrows=2, ncols=3)
 
 # parametric noise
@@ -153,6 +176,8 @@ for i in range(2):
         ax[i, j].set_xticks([])
         ax[i, j].set_yticks([])
 pyplot.tight_layout()
+plt.savefig('plot_noise_generators_noises.pdf')
+plt.close('all')
 
 ###############################################################################
 # The above figure highlights the main limitation of the parametric approach

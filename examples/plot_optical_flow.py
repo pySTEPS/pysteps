@@ -2,8 +2,8 @@
 Optical flow
 ============
 
-This tutorial offers a short overview of the optical flow routines available in 
-pysteps and it will cover how to compute and plot the motion field from a 
+This tutorial offers a short overview of the optical flow routines available in
+pysteps and it will cover how to compute and plot the motion field from a
 sequence of radar images.
 """
 
@@ -11,7 +11,6 @@ from datetime import datetime
 from pprint import pprint
 import matplotlib.pyplot as plt
 import numpy as np
-
 from pysteps import io, motion, rcparams
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field, quiver
@@ -24,9 +23,10 @@ from pysteps.visualization import plot_precip_field, quiver
 # You need the pysteps-data archive downloaded and the pystepsrc file
 # configured with the data_source paths pointing to data folders.
 
-# Selected case
-date = datetime.strptime("201505151630", "%Y%m%d%H%M")
-data_source = rcparams.data_sources["mch"]
+# crri
+date = datetime.strptime("201806011800", "%Y%m%d%H%M")
+data_source = rcparams.data_sources["crri"]
+map_method = 'basemap'  # None, 'cartopy', 'basemap'
 
 ###############################################################################
 # Load the data from the archive
@@ -42,7 +42,7 @@ timestep = data_source["timestep"]
 
 # Find the input files from the archive
 fns = io.archive.find_by_date(
-    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_prev_files=9
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=timestep, num_prev_files=9
 )
 
 # Read the radar composites
@@ -80,10 +80,12 @@ pprint(metadata)
 oflow_method = motion.get_method("LK")
 V1 = oflow_method(R[-3:, :, :])
 
-# Plot the motion field on top of the reference frame
-plot_precip_field(R_, geodata=metadata, title="LK")
-quiver(V1, geodata=metadata, step=25)
-plt.show()
+# Plot the motion field on top of the reference frames
+# quiver(V1, geodata=metadata, step=25, map=map_method)
+ax = plot_precip_field(R_, geodata=metadata, title="LK", map=map_method)
+quiver(V1, geodata=metadata, step=25, ax=ax, map=map_method)
+plt.savefig('plot_optical_flow_LK.pdf')
+plt.close('all')
 
 ################################################################################
 # Variational echo tracking (VET)
@@ -100,9 +102,10 @@ oflow_method = motion.get_method("VET")
 V2 = oflow_method(R[-3:, :, :])
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata, title="VET")
-quiver(V2, geodata=metadata, step=25)
-plt.show()
+ax = plot_precip_field(R_, geodata=metadata, title="VET", map=map_method)
+quiver(V2, geodata=metadata, step=25, ax=ax)
+plt.savefig('plot_optical_flow_VET.pdf')
+plt.close('all')
 
 ################################################################################
 # Dynamic and adaptive radar tracking of storms (DARTS)
@@ -120,8 +123,8 @@ R[~np.isfinite(R)] = metadata["zerovalue"]
 V3 = oflow_method(R)  # needs longer training sequence
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata, title="DARTS")
-quiver(V3, geodata=metadata, step=25)
-plt.show()
+ax = plot_precip_field(R_, geodata=metadata, title="DARTS", map=map_method)
+quiver(V2, geodata=metadata, step=25, ax=ax)
+plt.savefig('plot_optical_flow_DARTS.pdf')
 
 # sphinx_gallery_thumbnail_number = 1

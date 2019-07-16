@@ -8,6 +8,7 @@ radar data.
 
 """
 
+import matplotlib.pyplot as plt
 from pylab import *
 from datetime import datetime
 from pprint import pprint
@@ -29,36 +30,36 @@ seed = 24
 # First thing, the sequence of Swiss radar composites is imported, converted and
 # transformed into units of dBR.
 
+# crri
+date = datetime.strptime("201806011800", "%Y%m%d%H%M")
+data_source = rcparams.data_sources["crri"]
+map_method = 'basemap'  # None, 'cartopy', 'basemap'
 
-date = datetime.strptime("201701311200", "%Y%m%d%H%M")
-data_source = "mch"
+###############################################################################
+# Load the data from the archive
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Load data source config
-root_path = rcparams.data_sources[data_source]["root_path"]
-path_fmt = rcparams.data_sources[data_source]["path_fmt"]
-fn_pattern = rcparams.data_sources[data_source]["fn_pattern"]
-fn_ext = rcparams.data_sources[data_source]["fn_ext"]
-importer_name = rcparams.data_sources[data_source]["importer"]
-importer_kwargs = rcparams.data_sources[data_source]["importer_kwargs"]
-timestep = rcparams.data_sources[data_source]["timestep"]
+root_path = data_source["root_path"]
+path_fmt = data_source["path_fmt"]
+fn_pattern = data_source["fn_pattern"]
+fn_ext = data_source["fn_ext"]
+importer_name = data_source["importer"]
+importer_kwargs = data_source["importer_kwargs"]
+timestep = data_source["timestep"]
 
-# Find the radar files in the archive
-fns = io.find_by_date(
-    date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_prev_files=2
+# Find the input files from the archive
+fns = io.archive.find_by_date(
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=timestep, num_prev_files=9
 )
 
-# Read the data from the archive
+# Read the radar composites
 importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Convert to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
-
-# Upscale data to 2 km to limit memory usage
-R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
-
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata)
+ax = plot_precip_field(R[-1, :, :], geodata=metadata, title="LK", map=map_method)
+plt.savefig('plot_steps_nowcast_crri.pdf')
+plt.close('all')
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
 # set the fill value to -15 dBR
@@ -104,7 +105,10 @@ plot_precip_field(
     R_f[-1, :, :],
     geodata=metadata,
     title="S-PROG (+ %i min)" % (n_leadtimes * timestep),
+    map=map_method
 )
+plt.savefig('plot_steps_nowcast_deterministic_sprog.pdf')
+plt.close('all')
 
 ###############################################################################
 # As we can see from the figure above, the forecast produced by S-PROG is a
@@ -152,7 +156,10 @@ plot_precip_field(
     R_f_mean,
     geodata=metadata,
     title="Ensemble mean (+ %i min)" % (n_leadtimes * timestep),
+    map=map_method
 )
+plt.savefig('plot_steps_nowcast_stochastic.pdf')
+plt.close('all')
 
 ###############################################################################
 # The mean of the ensemble displays similar properties as the S-PROG
@@ -165,8 +172,10 @@ fig = figure()
 for i in range(4):
     ax = fig.add_subplot(221 + i)
     ax.set_title("Member %02d" % i)
-    plot_precip_field(R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off")
+    plot_precip_field(R_f[i, -1, :, :], geodata=metadata, map=map_method, colorbar=False, axis="off")
 tight_layout()
+plt.savefig('plot_steps_nowcast_stochastic_some_members.pdf')
+plt.close('all')
 
 ###############################################################################
 # As we can see from these two members of the ensemble, the stochastic forecast
@@ -187,8 +196,12 @@ plot_precip_field(
     drawlonlatlines=False,
     type="prob",
     units="mm/h",
-    probthr=0.5,
+    probthr=5.0,
     title="Exceedence probability (+ %i min)" % (n_leadtimes * timestep),
+    map=map_method
 )
+plt.savefig('plot_steps_nowcast_probability.pdf')
+plt.close('all')
 
 # sphinx_gallery_thumbnail_number = 5
+

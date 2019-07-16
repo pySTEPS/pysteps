@@ -8,6 +8,7 @@ a single radar precipitation field in pysteps.
 
 """
 
+import matplotlib.pyplot as plt
 from matplotlib import cm, pyplot
 import numpy as np
 import os
@@ -26,20 +27,20 @@ from pysteps.visualization import plot_precip_field
 # of dB.
 
 # Import the example radar composite
-root_path = rcparams.data_sources["fmi"]["root_path"]
+root_path = rcparams.data_sources["crri"]["root_path"]
 filename = os.path.join(
-    root_path, "20160928", "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz"
+    root_path, "20180601/CRR", "S_NWC_CRR_MSG4_Europe-VISIR_20180601T180000Z.nc"
 )
-R, _, metadata = io.import_fmi_pgm(filename, gzipped=True)
-
-# Convert to rain rate using the finnish Z-R relationship
-R, metadata = conversion.to_rainrate(R, metadata, 223.0, 1.53)
+R, _, metadata = io.import_crri_eu(filename, gzipped=False)
 
 # Nicely print the metadata
 pprint(metadata)
 
 # Plot the rainfall field
-plot_precip_field(R, geodata=metadata)
+title = "CRR intensity 2018-06-01 18:00"
+ax = plot_precip_field(R, geodata=metadata, title=title, map="basemap")
+plt.savefig('plot_cascade_decomposition_plot.pdf')
+plt.close('all')
 
 # Log-transform the data
 R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
@@ -58,7 +59,7 @@ F = abs(np.fft.fftshift(np.fft.fft2(R)))
 
 # Plot the power spectrum
 M, N = F.shape
-fig, ax = pyplot.subplots()
+fig, ax = pyplot.subplots(figsize=(8,5))
 im = ax.imshow(
     np.log(F ** 2), vmin=4, vmax=24, cmap=cm.jet, extent=(-N / 2, N / 2, -M / 2, M / 2)
 )
@@ -66,6 +67,8 @@ cb = fig.colorbar(im)
 ax.set_xlabel("Wavenumber $k_x$")
 ax.set_ylabel("Wavenumber $k_y$")
 ax.set_title("Log-power spectrum of R")
+plt.savefig("plot_cascade_decomposition_fft.pdf")
+plt.close("all")
 
 ###############################################################################
 # Cascade decomposition
@@ -81,7 +84,7 @@ filter = filter_gaussian(R.shape, num_cascade_levels)
 
 # Plot the bandpass filter weights
 L = max(N, M)
-fig, ax = pyplot.subplots()
+fig, ax = pyplot.subplots(figsize=(8,5))
 for k in range(num_cascade_levels):
     ax.semilogx(
         np.linspace(0, L / 2, len(filter["weights_1d"][k, :])),
@@ -97,6 +100,8 @@ ax.set_xticklabels(["%.2f" % cf for cf in filter["central_wavenumbers"]])
 ax.set_xlabel("Radial wavenumber $|\mathbf{k}|$")
 ax.set_ylabel("Normalized weight")
 ax.set_title("Bandpass filter weights")
+plt.savefig("plot_cascade_decomposition_band.pdf")
+plt.close("all")
 
 ###############################################################################
 # Finally, apply the 2D Gaussian filters to decompose the radar rainfall field
@@ -135,5 +140,7 @@ for i in range(2):
         ax[i, j].set_xticks([])
         ax[i, j].set_yticks([])
 pyplot.tight_layout()
+plt.savefig("plot_cascade_decomposition_cascade.pdf")
+plt.close("all")
 
 # sphinx_gallery_thumbnail_number = 4
