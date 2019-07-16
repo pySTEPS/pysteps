@@ -48,6 +48,4 @@ def test_io_import_knmi_hdf5_metadata(variable, expected, tolerance):
     filename = os.path.join(root_path, "2010/08",
                             "RAD_NL25_RAP_5min_201008260000.h5")
     _, _, metadata = pysteps.io.import_knmi_hdf5(filename)
-    print(metadata)
-    # assert metadata[variable] == expected
     smart_assert(metadata[variable], expected, tolerance)
