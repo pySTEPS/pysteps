@@ -28,9 +28,8 @@ from pysteps.visualization import plot_precip_field
 # configured with the data_source paths pointing to data folders.
 
 # Selected case
-date = datetime.strptime("201806011800", "%Y%m%d%H%M")
-data_source = rcparams.data_sources["crri"]
-map_method = 'basemap'  # None, 'cartopy", 'basemap'
+date = datetime.strptime("201607112100", "%Y%m%d%H%M")
+data_source = rcparams.data_sources["mch"]
 n_ens_members = 20
 n_leadtimes = 6
 seed = 24
@@ -59,10 +58,15 @@ fns = io.find_by_date(
 importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
+# Convert to rain rate
+R, metadata = conversion.to_rainrate(R, metadata)
+
+# Upscale data to 2 km
+R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
+
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata, map=map_method)
-plt.savefig('plot_ensemble_verification_crr.pdf')
-plt.close('all')
+plot_precip_field(R[-1, :, :], geodata=metadata)
+plt.show()
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
 # set the fill value to -15 dBR
@@ -112,8 +116,7 @@ for i in range(4):
     ax.set_title("Member %02d" % i)
     plot_precip_field(R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off")
 plt.tight_layout()
-plt.savefig('plot_ensemble_verification_some_realizations.pdf')
-plt.close('all')
+plt.show()
 
 ###############################################################################
 # Verification
@@ -141,6 +144,12 @@ fns = io.archive.find_by_date(
 # Read the observations
 R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
 
+# Convert to mm/h
+R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o)
+
+# Upscale data to 2 km
+R_o, metadata_o = dimension.aggregate_fields_space(R_o, metadata_o, 2000)
+
 # Compute the verification for the last lead time
 
 # compute the exceedance probability of 0.1 mm/h from the ensemble
@@ -150,13 +159,12 @@ P_f = ensemblestats.excprob(R_f[:, -1, :, :], 0.1, ignore_nan=True)
 # ROC curve
 # ~~~~~~~~~
 
-roc = verification.ROC_curve_init(0.1, n_prob_thrs=20)
+roc = verification.ROC_curve_init(0.1, n_prob_thrs=10)
 verification.ROC_curve_accum(roc, P_f, R_o[-1, :, :])
-fig, ax = plt.subplots(figsize=(8,5))
+fig, ax = plt.subplots()
 verification.plot_ROC(roc, ax, opt_prob_thr=True)
 ax.set_title("ROC curve (+%i min)" % (n_leadtimes * timestep))
-plt.savefig('plot_ensemble_verification_roc.pdf')
-plt.close('all')
+plt.show()
 
 ###############################################################################
 # Reliability diagram
@@ -164,11 +172,10 @@ plt.close('all')
 
 reldiag = verification.reldiag_init(0.1)
 verification.reldiag_accum(reldiag, P_f, R_o[-1, :, :])
-fig, ax = plt.subplots(figsize=(8,5))
+fig, ax = plt.subplots()
 verification.plot_reldiag(reldiag, ax)
 ax.set_title("Reliability diagram (+%i min)" % (n_leadtimes * timestep))
-plt.savefig('plot_ensemble_verification_rd.pdf')
-plt.close('all')
+plt.show()
 
 ###############################################################################
 # Rank histogram
@@ -176,10 +183,9 @@ plt.close('all')
 
 rankhist = verification.rankhist_init(R_f.shape[0], 0.1)
 verification.rankhist_accum(rankhist, R_f[:, -1, :, :], R_o[-1, :, :])
-fig, ax = plt.subplots(figsize=(8,5))
+fig, ax = plt.subplots()
 verification.plot_rankhist(rankhist, ax)
 ax.set_title("Rank histogram (+%i min)" % (n_leadtimes * timestep))
-plt.savefig('plot_ensemble_verification_rh.pdf')
-plt.close('all')
+plt.show()
 
 # sphinx_gallery_thumbnail_number = 5
