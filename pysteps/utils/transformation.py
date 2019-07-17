@@ -26,7 +26,7 @@ warnings.filterwarnings(
 
 def boxcox_transform(
     R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False
-):  
+):
     """The one-parameter Box-Cox transformation.
     Default parameters will produce a log transform (i.e. Lambda=0).
 
@@ -223,8 +223,11 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
 
 
 def NQ_transform(R, metadata=None, inverse=False, **kwargs):
-    """The normal quantile transformation.
+    """The normal quantile transformation as in `Bogner et al (2012)`_.
     Zero rain vales are set to zero in norm space.
+
+    .. _`Bogner et al (2012)`:\
+    http://dx.doi.org/10.5194/hess-16-1085-2012
 
     Parameters
     ----------
