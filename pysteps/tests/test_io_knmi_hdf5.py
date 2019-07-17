@@ -25,19 +25,19 @@ expected_proj1 = ('+proj=stere +lat_0=90 +lon_0=0.0 '
 
 test_metadata = [
     ('projection', expected_proj1, None),
-    ('x1', 0.0, 1e-20),
-    ('y1', -3649950.360247753, 1e-20),
-    ('x2', 699984.2646331593, 1e-20),
-    ('y2', -4415038.179210632, 1e-20),
-    ('xpixelsize', 1000.0, 1e-20),
-    ('xpixelsize', 1000.0, 1e-20),
-    ('accutime', 5.0, 1e-20),
+    ('x1', 0.0, 1e-10),
+    ('y1', -3649950.360247753, 1e-10),
+    ('x2', 699984.2646331593, 1e-10),
+    ('y2', -4415038.179210632, 1e-10),
+    ('xpixelsize', 1000.0, 1e-10),
+    ('xpixelsize', 1000.0, 1e-10),
+    ('accutime', 5.0, 1e-10),
     ('yorigin', 'upper', None),
     ('unit', 'mm', None),
     ('institution', 'KNMI - Royal Netherlands Meteorological Institute', None),
     ('transform', None, None),
-    ('zerovalue', 0.0, 1e-20),
-    ('threshold', 0.01, 1e-20),
+    ('zerovalue', 0.0, 1e-10),
+    ('threshold', 0.01, 1e-10),
 ]
 
 
