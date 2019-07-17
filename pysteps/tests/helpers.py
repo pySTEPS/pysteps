@@ -68,4 +68,8 @@ def smart_assert(actual_value, expected, tolerance=None):
         assert actual_value == expected
     else:
         # Compare numbers up to a certain precision
-        assert actual_value == pytest.approx(expected, 1e-6)
+        assert actual_value == pytest.approx(expected,
+                                             rel=tolerance,
+                                             abs=tolerance,
+                                             nan_ok=True,
+                                             )
