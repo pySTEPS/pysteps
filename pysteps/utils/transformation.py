@@ -8,7 +8,6 @@ Methods for transforming data values.
     :toctree: ../generated/
 
     boxcox_transform
-    boxcox_transform_test_lambdas
     dB_transform
     NQ_transform
     sqrt_transform
