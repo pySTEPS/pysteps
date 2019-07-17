@@ -83,14 +83,13 @@ def plot_distribution(data, labels, skw):
     ax2 = ax1.twinx()
 
     ax2.plot(np.arange(N + 2), np.zeros(N + 2), ":r")
-    ax1.boxplot(data, labels=labels, sym=",", medianprops={"color": "k"})
+    ax1.boxplot(data, labels=labels, sym="", medianprops={"color": "k"})
 
     ymax = []
     for i in range(N):
         y = skw[i]
         x = i + 1
-        # ax2.plot(x, y, "*r", ms=10, markeredgecolor="k")
-        ax2.plot(x, y, "-r")
+        ax2.plot(x, y, "*r", ms=10, markeredgecolor="k")
         ymax.append(np.max(data[i]))
 
     # ylims
@@ -103,8 +102,6 @@ def plot_distribution(data, labels, skw):
     ax1.set_ylabel(r"Standardized values [$\sigma$]")
     ax2.set_ylabel(r"Skewness []", color="r")
     ax2.tick_params(axis="y", labelcolor="r")
-    plt.xlabel(r"Lambda, $\lambda$ []")
-
 
 ###############################################################################
 # Box-Cox transform
@@ -118,7 +115,7 @@ data = []
 labels = []
 skw = []
 
-# test a range of values for the transformation parameter Lambda
+# Test a range of values for the transformation parameter Lambda
 Lambdas = np.linspace(-0.4, 0.4, 11)
 for i, Lambda in enumerate(Lambdas):
     R_, _ = transformation.boxcox_transform(R, metadata, Lambda)
@@ -127,8 +124,8 @@ for i, Lambda in enumerate(Lambdas):
     labels.append("{0:.2f}".format(Lambda))
     skw.append(skew(R_))  # skewness
 
+# Plot the transformed data distribution as a function of lambda   
 plot_distribution(data, labels, skw)
-plt.xlabel(r"Lambda, $\lambda$ []")
 plt.title("Box-Cox transform")
 plt.tight_layout()
 plt.show()
@@ -189,7 +186,7 @@ skw.append(skew(R_))
 ###############################################################################
 # Normal quantile transform
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
-# At last, we apply the empirical normal quantile transform.
+# At last, we apply the empirical normal quantile (NQ) transform.
 
 R_, _ = transformation.NQ_transform(R, metadata)
 data.append((R_ - np.mean(R_)) / np.std(R_))
