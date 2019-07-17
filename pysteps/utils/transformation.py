@@ -133,52 +133,6 @@ def boxcox_transform(
     return R, metadata
 
 
-def boxcox_transform_test_lambdas(R, Lambdas=None, threshold=0.1):
-    """Test and plot various lambdas for the Box-Cox transformation."""
-
-    import matplotlib.pyplot as plt
-
-    R = R[R > threshold].flatten()
-
-    if Lambdas is None:
-        Lambdas = np.linspace(-1, 1, 11)
-
-    data = []
-    labels = []
-    sk = []
-    for i, Lambda in enumerate(Lambdas):
-        R_, _ = boxcox_transform(R, {"transform": None}, Lambda, threshold)
-        R_ = (R_ - np.mean(R_)) / np.std(R_)
-        data.append(R_)
-        labels.append("{0:.1f}".format(Lambda))
-        sk.append(scipy_stats.skew(R_))  # skewness
-
-    plt.figure()
-
-    bp = plt.boxplot(data, labels=labels)
-
-    ylims = np.percentile(data, 0.99)
-    plt.title("Box-Cox transform")
-    plt.xlabel(r"Lambda, $\lambda$ []")
-
-    ymax = np.zeros(len(data))
-    for i in range(len(data)):
-        y = sk[i]
-        x = i + 1
-        plt.plot(x, y, "ok", ms=5, markeredgecolor="k")  # plot skewness
-        fliers = bp["fliers"][i].get_ydata()
-        if len(fliers > 0):
-            ymax[i] = np.max(fliers)
-    ylims = np.percentile(ymax, 60)
-    plt.ylim((-1 * ylims, ylims))
-    plt.ylabel(r"Standardized values [$\sigma]$")
-
-    plt.savefig("box-cox-transform-test-lambdas.png", bbox_inches="tight")
-    print("Saved: box-cox-transform-test-lambdas.png")
-
-    plt.close()
-
-
 def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
     """Methods to transform precipitation intensities to/from dB units.
 
