@@ -83,13 +83,14 @@ def plot_distribution(data, labels, skw):
     ax2 = ax1.twinx()
 
     ax2.plot(np.arange(N + 2), np.zeros(N + 2), ":r")
-    ax1.boxplot(data, labels=labels, sym="", medianprops={"color": "k"})
+    ax1.boxplot(data, labels=labels, sym=",", medianprops={"color": "k"})
 
     ymax = []
     for i in range(N):
         y = skw[i]
         x = i + 1
-        ax2.plot(x, y, "*r", ms=10, markeredgecolor="k")
+        # ax2.plot(x, y, "*r", ms=10, markeredgecolor="k")
+        ax2.plot(x, y, "-r")
         ymax.append(np.max(data[i]))
 
     # ylims
@@ -146,6 +147,7 @@ data = []
 labels = []
 skw = []
 
+###############################################################################
 # Rain rates
 # ~~~~~~~~~~
 # First, let's have a look at the original rain rate values.
@@ -154,6 +156,7 @@ data.append((R - np.mean(R)) / np.std(R))
 labels.append("R")
 skw.append(skew(R))
 
+###############################################################################
 # dB transform
 # ~~~~~~~~~~~~
 # We transform the rainfall data into dB units: 10*log(R)
@@ -163,6 +166,7 @@ data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("dB")
 skw.append(skew(R_))
 
+###############################################################################
 # Square-root transform
 # ~~~~~~~~~~~~~~~~~~~~~
 # Transform the data using the square-root: sqrt(R)
@@ -172,6 +176,7 @@ data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("sqrt")
 skw.append(skew(R_))
 
+###############################################################################
 # Box-Cox transform
 # ~~~~~~~~~~~~~~~~~
 # We now apply the Box-Cox transform using the best parameter lambda found above.
@@ -181,6 +186,7 @@ data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("Box-Cox\n($\lambda=$%.2f)" % Lambda)
 skw.append(skew(R_))
 
+###############################################################################
 # Normal quantile transform
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 # At last, we apply the empirical normal quantile transform.
