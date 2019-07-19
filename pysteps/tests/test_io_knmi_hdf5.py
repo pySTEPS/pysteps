@@ -6,10 +6,7 @@ import pytest
 import pysteps
 from pysteps.tests.helpers import smart_assert
 
-try:
-    import h5py
-except ImportError:
-    pytest.skip("io_import_knmi_hdf5 tests. h5py library not present", allow_module_level=True)
+h5py = pytest.importorskip('h5py')
 
 
 def test_io_import_knmi_hdf5_shape():
