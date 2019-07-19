@@ -10,7 +10,7 @@ from pysteps.tests.helpers import smart_assert
 try:
     import h5py
 except ImportError:
-    pytest.skip("io_import_knmi_hdf5 tests. h5py library not present", allow_module_level=True)
+    pytest.skip("test_io_opera_hdf5 tests. h5py library not present", allow_module_level=True)
 
 
 def test_io_import_opera_hdf5_shape():
