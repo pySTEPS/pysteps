@@ -18,6 +18,12 @@ extra_link_args = ['-fopenmp']
 if sys.platform.startswith("darwin"):
     extra_link_args.append("-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/")
 
+_proesmans_extension_arguments = dict(extra_compile_args=["-O3", "-ffast-math", "-fopenmp"],
+                                      include_dirs=[numpy.get_include()],
+                                      language="c",
+                                      extra_link_args=extra_link_args,
+                                      )
+
 _vet_extension_arguments = dict(extra_compile_args=["-fopenmp"],
                                 include_dirs=[numpy.get_include()],
                                 language="c",
@@ -27,19 +33,26 @@ _vet_extension_arguments = dict(extra_compile_args=["-fopenmp"],
 try:
     from Cython.Build.Dependencies import cythonize
 
+    _proesmans_lib_extension = Extension(str("pysteps.motion._proesmans"),
+                                        sources=[str("pysteps/motion/_proesmans.pyx")],
+                                        **_proesmans_extension_arguments)
+
     _vet_lib_extension = Extension(str("pysteps.motion._vet"),
                                    sources=[str("pysteps/motion/_vet.pyx")],
                                    **_vet_extension_arguments)
 
-    external_modules = cythonize([_vet_lib_extension],
+    external_modules = cythonize([_proesmans_lib_extension, _vet_lib_extension],
                                  force=True,
                                  language_level=3)
-
 except ImportError:
-    _vet_lib_extension = Extension(str(str("pysteps.motion._vet")),
+    _proesmans_lib_extension = Extension(str("pysteps.motion._proesmans"),
+                                         sources=[str("pysteps/motion/_proesmans.c")],
+                                         **_proesmans_extension_arguments)
+
+    _vet_lib_extension = Extension(str("pysteps.motion._vet"),
                                    sources=[str("pysteps/motion/_vet.c")],
                                    **_vet_extension_arguments)
-    external_modules = [_vet_lib_extension]
+    external_modules = [_proesmans_lib_extension, _vet_lib_extension]
 
 requirements = ["numpy",
                 "attrdict", "jsmin", "scipy", "matplotlib",
