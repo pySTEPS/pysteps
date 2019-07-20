@@ -32,6 +32,14 @@ def proesmans(input_images, lam=50.0, num_iter=100, num_levels=6, filter_std=0.0
         Standard deviation of an optional Gaussian filter that is applied before
         computing the optical flow.
 
+    Returns
+    -------
+    out : ndarray
+        The advection field having shape (2, m, n), where out[0, :, :] contains
+        the x-components of the motion vectors and out[1, :, :] contains the
+        y-components. The velocities are in units of pixels / timestep, where
+        timestep is the time difference between the two input images.
+
     References
     ----------
     :cite:`PGPO1994`
