@@ -1,26 +1,47 @@
+"""
+pysteps.motion.proesmans
+========================
+
+Implementation of the anisotropic diffusion method by Proesmans et al. (1994).
+
+.. autosummary::
+    :toctree: ../generated/
+
+    proesmans
+"""
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from pysteps.motion._proesmans import _compute_advection_field
 
 def proesmans(input_images, lam=50.0, num_iter=100, num_levels=6, filter_std=0.0):
-    """The anisotropic diffusion method by Proesmans et al.
-    
+    """Implementation of the anisotropic diffusion method by Proesmans et al. (1994).
+
     Parameters
     ----------
     input_images : array_like
-        Array of shape (2,m,n) containing the two input images.
+        Array of shape (2, m, n) containing the first and second input image.
     lam : float
         Multiplier of the smoothness term. Smaller values give smoother motion
         field.
     num_iter : float
-        Number of iterations to use.
+        The number of iterations to use.
     num_levels : int
-        Number of image pyramid levels to use.
+        The number of image pyramid levels to use.
     filter_std : float
-        Standard deviation of optional Gaussian filter that is applied before
+        Standard deviation of an optional Gaussian filter that is applied before
         computing the optical flow.
+
+    References
+    ----------
+    :cite:`PGPO1994`
+
     """
+    if (input_images.ndim != 3) or input_images.shape[0] != 2:
+        raise ValueError("input_images dimension mismatch.\n" +
+                         "input_images.shape: " + str(input_images.shape) +
+                         "\n(2, m, n) expected")
+    
     im1 = input_images[-2, :, :].copy()
     im2 = input_images[-1, :, :].copy()
 
