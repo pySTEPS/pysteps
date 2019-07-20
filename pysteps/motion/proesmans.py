@@ -2,7 +2,7 @@
 pysteps.motion.proesmans
 ========================
 
-Implementation of the anisotropic diffusion method by Proesmans et al. (1994).
+Implementation of the anisotropic diffusion method of Proesmans et al. (1994).
 
 .. autosummary::
     :toctree: ../generated/
@@ -15,14 +15,15 @@ from scipy.ndimage import gaussian_filter
 from pysteps.motion._proesmans import _compute_advection_field
 
 def proesmans(input_images, lam=50.0, num_iter=100, num_levels=6, filter_std=0.0):
-    """Implementation of the anisotropic diffusion method by Proesmans et al. (1994).
+    """Implementation of the anisotropic diffusion method of Proesmans et al.
+    (1994).
 
     Parameters
     ----------
     input_images : array_like
         Array of shape (2, m, n) containing the first and second input image.
     lam : float
-        Multiplier of the smoothness term. Smaller values give smoother motion
+        Multiplier of the smoothness term. Smaller values give a smoother motion
         field.
     num_iter : float
         The number of iterations to use.
