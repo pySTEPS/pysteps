@@ -40,8 +40,8 @@ For further instructions please refer to their official documentation.
 - https://pycodestyle.readthedocs.io/en/latest/
 - https://www.pylint.org/
 
-Good coding practices in a nutshell
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Coding style summary
+~~~~~~~~~~~~~~~~~~~~
 
 For quick reference, these are the most important good coding practices
 to follow:
@@ -52,6 +52,8 @@ to follow:
    explanatory. Avoid using abbreviations that are ambiguous or unfamiliar to
    readers outside your project, and do not abbreviate by deleting letters
    within a word.
+   Avoid single letter variables if possible and use more verbose names for
+   clarity. An exception for this are indexes in loops (*i, j, k, etc*).
 
    The following table summarizes the conventions:
 
@@ -184,6 +186,49 @@ For a detailed description of a pythonic code style check these guidelines:
 - `The Hitchhiker's Guide to Python <https://docs.python-guide.org/writing/style/>`_
 - `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_
 - `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
+
+Docstrings
+~~~~~~~~~~
+
+Every module, function, or class must have a docstring that describe its
+purpose and how to use it, following the conventions described in the
+`PEP 257 <https://www.python.org/dev/peps/pep-0257/#multi-line-docstrings>`_
+and the
+`Numpy's docstrings format <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
+
+Here is a summary of the most important rules:
+
+- One-line docstrings Triple quotes are used even though the string fits on one line.
+  This makes it easy to later expand it.
+
+- A one-line docstring is a phrase ending in a period.
+
+- All docstrings should be written in imperative ("""Return some value.""")
+  mood rather than descriptive mood ("""Returns some value.""").
+
+Here is an example of a docstring::
+
+    def adjust_lag2_corrcoef1(gamma_1, gamma_2):
+        """A simple adjustment of lag-2 temporal autocorrelation coefficient to
+        ensure that the resulting AR(2) process is stationary when the parameters
+        are estimated from the Yule-Walker equations.
+
+        Parameters
+        ----------
+
+        gamma_1 : float
+          Lag-1 temporal autocorrelation coeffient.
+
+        gamma_2 : float
+          Lag-2 temporal autocorrelation coeffient.
+
+        Returns
+        -------
+
+        out : float
+          The adjusted lag-2 correlation coefficient.
+        """
+
 
 
 Discussion
