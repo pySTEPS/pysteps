@@ -46,6 +46,18 @@ Coding style summary
 For quick reference, these are the most important good coding practices
 to follow:
 
+
+- Always use 4 spaces for indentation (don’t use tabs).
+- Write UTF-8 (add # -*- coding: utf-8 -*- at the top of each file).
+- Max line-length: 79 characters.
+- Always indent wrapped code for readability.
+- Avoid extraneous whitespace.
+- Don’t use whitespace to line up assignment operators (=, :).
+- Spaces around = for assignment.
+- No spaces around = for default parameter values (keywords).
+- Spaces around mathematical operators, but group them sensibly.
+- No multiple statements on the same line.
+
 - Naming conventions:
 
    Function names, variable names, and filenames should be descriptive and self
