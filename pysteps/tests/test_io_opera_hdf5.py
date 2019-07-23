@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 import pytest
 
 import pysteps
 from pysteps.tests.helpers import smart_assert
 
-try:
-    import h5py
-except ImportError:
-    pytest.skip("test_io_opera_hdf5 tests. h5py library not present", allow_module_level=True)
+h5py = pytest.importorskip("h5py")
 
 
 def test_io_import_opera_hdf5_shape():
     """Test the importer OPERA HDF5."""
+
     root_path = pysteps.rcparams.data_sources["opera"]["root_path"]
     filename = os.path.join(root_path, "20180824",
                             "T_PAAH21_C_EUOC_20180824180000.hdf")
