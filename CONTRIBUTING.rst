@@ -40,6 +40,26 @@ For further instructions please refer to their official documentation.
 - https://pycodestyle.readthedocs.io/en/latest/
 - https://www.pylint.org/
 
+Auto-formatters
+~~~~~~~~~~~~~~~
+
+Formatting code to PEP8 style is a time consuming process.
+Instead of manually formatting code before a commit to to PEP8 style, you can use auto-format packages which
+automatically formats Python code to conform to the PEP 8 style guide.
+
+If your development environment does not include auto-formatting capabilities, we recommend using
+`black <https://black.readthedocs.io/en/stable/>`_, which can be installed by any of the following options::
+
+    conda install black
+
+    #For the latest version:
+    conda install -c conda-forge black
+
+    pip install black
+
+Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`_
+for more information.
+
 Coding style summary
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -322,7 +342,7 @@ the **pysteps** repository.
 To include the contributions for collaborators, we use the usual
 `GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
 In their simplest form, pull requests are a mechanism for
-a collaborator to notify to the pysteps project about completed a feature.
+a collaborator to notify to the pysteps project about a completed feature".
 
 Once your proposed changes are ready, you need to create a pull request via
 your GitHub account. Afterward, the core developers review the code and merge
