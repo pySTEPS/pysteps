@@ -124,4 +124,21 @@ plot_precip_field(R_, geodata=metadata, title="DARTS")
 quiver(V3, geodata=metadata, step=25)
 plt.show()
 
+################################################################################
+# Anisotropic diffusion method (Proesmans et al 1994)
+# ---------------------------------------------------
+#
+# This module implements the anisotropic diffusion method presented in Proesmans 
+# et al. (1994), a robust optical flow technique which employs the notion of 
+# inconsitency during the solution of the optical flow equations. 
+
+oflow_method = motion.get_method("proesmans")
+R[~np.isfinite(R)] = metadata["zerovalue"]
+V4 = oflow_method(R[-2:, :, :])
+
+# Plot the motion field
+plot_precip_field(R_, geodata=metadata, title="Proesmans")
+quiver(V4, geodata=metadata, step=25)
+plt.show()
+
 # sphinx_gallery_thumbnail_number = 1
