@@ -6,7 +6,7 @@ import pytest
 import pysteps
 from pysteps.tests.helpers import smart_assert
 
-h5py = pytest.importorskip('h5py')
+pytest.importorskip('h5py')
 
 
 def test_io_import_knmi_hdf5_shape():
