@@ -319,7 +319,6 @@ def fss(X_f, X_o, thr, scale):
     X_f[~np.isfinite(X_f)] = thr - 1
     X_o = X_o.copy()
     X_o[~np.isfinite(X_o)] = thr - 1
-    X_f.size
 
     # Convert to binary fields with the given intensity threshold
     I_f = (X_f >= thr).astype(float)
