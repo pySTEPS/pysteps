@@ -284,21 +284,21 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
 
 def fss(X_f, X_o, thr, scale):
     """
-    Compute the fractions skill score (FSS) for a deterministic forecast
-    field and the corresponding observation.
+    Compute the fractions skill score (FSS) for a deterministic forecast field
+    field and the corresponding observation field.
 
     Parameters
     ----------
     X_f : array_like
-        Array of shape (n,m) containing the forecast field.
+        Array of shape (n, m) containing the forecast field.
     X_o : array_like
-        Array of shape (n,m) containing the reference field (observation).
+        Array of shape (n, m) containing the observation field.
     thr : float
         Intensity threshold.
     scale : int
-        The spatial scale  in px. In practice they represent the size of the
-        moving window that it is used to compute the fraction of pixels above
-        the threshold.
+        The spatial scale in pixels. In practice, the scale represents the size
+        of the moving window that it is used to compute the fraction of pixels
+        above the threshold.
 
     Returns
     -------
@@ -321,14 +321,14 @@ def fss(X_f, X_o, thr, scale):
     X_o[~np.isfinite(X_o)] = thr - 1
     X_f.size
 
-    # Convert to binary fields with the intensity threshold
+    # Convert to binary fields with the given intensity threshold
     I_f = (X_f >= thr).astype(float)
     I_o = (X_o >= thr).astype(float)
 
     # Compute fractions of pixels above the threshold within a square
     # neighboring area by applying a 2D moving average to the binary fields
-    S_f = uniform_filter(I_f, size=int(scale), mode="constant", cval=0.0)
-    S_o = uniform_filter(I_o, size=int(scale), mode="constant", cval=0.0)
+    S_f = uniform_filter(I_f, size=scale, mode="constant", cval=0.0)
+    S_o = uniform_filter(I_o, size=scale, mode="constant", cval=0.0)
 
     # Compute the numerator
     n = X_f.size
