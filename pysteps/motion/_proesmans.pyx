@@ -98,8 +98,8 @@ cdef _proesmans(float64 [:, :, :] R, float64 [:, :, :, :] V, intp num_iter,
     G[1, :, :, :] = _compute_gradients(R[1, :, :])
 
     cdef np.ndarray[float64, ndim=3] GAMMA = np.zeros((2, R.shape[1], R.shape[2]))
-    cdef float64 vAvg_1, vAvg_2
-    cdef float64 vNext_1, vNext_2
+    cdef float64 v_avg_1, v_avg_2
+    cdef float64 v_next_1, v_next_2
 
     cdef float64 [:, :] R_j_1
     cdef float64 [:, :] R_j_2
@@ -122,11 +122,11 @@ cdef _proesmans(float64 [:, :, :] R, float64 [:, :, :, :] V, intp num_iter,
             #for y in range(1, m-1):
             for y in prange(1, m - 1, schedule='static', nogil=True):
                 for x in range(1, n-1):
-                    vAvg_1 = _compute_avg(GAMMA_j, V_j, x, y, 0)
-                    vAvg_2 = _compute_avg(GAMMA_j, V_j, x, y, 1)
+                    v_avg_1 = _compute_laplacian(GAMMA_j, V_j, x, y, 0)
+                    v_avg_2 = _compute_laplacian(GAMMA_j, V_j, x, y, 1)
 
-                    xd = x + vAvg_1
-                    yd = y + vAvg_2
+                    xd = x + v_avg_1
+                    yd = y + v_avg_2
 
                     if xd >= 0 and xd < n - 1 and yd >= 0 and yd < m - 1:
                         It = (_linear_interpolate(R_j_2, xd, yd) - \
@@ -134,16 +134,16 @@ cdef _proesmans(float64 [:, :, :] R, float64 [:, :, :, :] V, intp num_iter,
                         gx = G_j_1[y, x]
                         gy = G_j_2[y, x]
                         ic = lam * It / (1.0 + lam * (gx * gx + gy * gy))
-                        vNext_1 = vAvg_1 - gx * ic
-                        vNext_2 = vAvg_2 - gy * ic
+                        v_next_1 = v_avg_1 - gx * ic
+                        v_next_2 = v_avg_2 - gy * ic
                     else:
-                        # use consistency-weighted average as the next value 
+                        # use consistency-weighted average as the next value
                         # if (xd,yd) is outside the image
-                        vNext_1 = vAvg_1
-                        vNext_2 = vAvg_2
+                        v_next_1 = v_avg_1
+                        v_next_2 = v_avg_2
 
-                    V_j[0, y, x] = vNext_1
-                    V_j[1, y, x] = vNext_2
+                    V_j[0, y, x] = v_next_1
+                    V_j[1, y, x] = v_next_2
 
             _fill_edges(V[j, :, :, :])
 
@@ -151,32 +151,8 @@ cdef _proesmans(float64 [:, :, :] R, float64 [:, :, :, :] V, intp num_iter,
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cdef float64 _compute_avg_(float64 [:, :, :] gi, float64 [:, :, :, :] Vi, intp x,
-                          intp y, intp i, intp j) nogil:
-    cdef float64 v
-    cdef float64 sumWeights = (gi[i, y-1, x] + gi[i, y, x-1] + \
-                              gi[i, y, x+1] + gi[i, y+1, x]) / 6.0 + \
-                              (gi[i, y-1, x-1] + gi[i, y-1, x+1] + \
-                              gi[i, y+1, x-1] + gi[i, y+1, x+1]) / 12.0
-    
-    if sumWeights > 1e-8:
-        v = (gi[i, y-1, x] * Vi[i, j, y-1, x] + gi[i, y, x-1] * Vi[i, j, y, x-1] + \
-                gi[i, y, x+1] * Vi[i, j, y, x+1] + gi[i, y+1, x] * Vi[i, j, y+1, x]) / 6.0 + \
-                (gi[i, y-1, x-1] * Vi[i, j, y-1, x-1] + gi[i, y-1, x+1] * Vi[i, j, y-1, x+1] + \
-                gi[i, y+1, x-1] * Vi[i, j, y+1, x-1] + gi[i, y+1, x+1] * Vi[i, j, y+1, x+1]) / 12.0
-
-        return v / sumWeights
-    else:
-        # use the previous value if the weight sum is too small to give accurate
-        # results
-        return Vi[i, j, y, x]
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(True)
-cdef float64 _compute_avg(float64 [:, :] gi, float64 [:, :, :] Vi, intp x,
-                          intp y, intp j) nogil:
+cdef float64 _compute_laplacian(float64 [:, :] gi, float64 [:, :, :] Vi, intp x,
+                                intp y, intp j) nogil:
     cdef float64 v
     cdef float64 sumWeights = (gi[y-1, x] + gi[y, x-1] + \
                               gi[y, x+1] + gi[y+1, x]) / 6.0 + \
@@ -200,7 +176,7 @@ cdef float64 _compute_avg(float64 [:, :] gi, float64 [:, :, :] Vi, intp x,
 @cython.nonecheck(False)
 @cython.cdivision(True)
 cdef void _compute_consistency_maps(float64 [:, :, :, :] V,
-                               float64 [:, :, :] GAMMA):
+                                    float64 [:, :, :] GAMMA):
     cdef intp x, y
     cdef intp i
     cdef intp m, n
@@ -208,8 +184,8 @@ cdef void _compute_consistency_maps(float64 [:, :, :, :] V,
     cdef float64 ub, vb
     cdef float64 uDiff, vDiff
     cdef float64 c
-    cdef float64 CSum
-    cdef intp CCount
+    cdef float64 c_sum
+    cdef intp c_count
     cdef float64 K
     cdef float64 g
 
@@ -219,8 +195,8 @@ cdef void _compute_consistency_maps(float64 [:, :, :, :] V,
     n = V.shape[3]
 
     for i in range(2):
-        CSum = 0.0
-        CCount = 0
+        c_sum = 0.0
+        c_count = 0
 
         V11 = V[i, 0, :, :]
         V12 = V[i, 1, :, :]
@@ -243,13 +219,13 @@ cdef void _compute_consistency_maps(float64 [:, :, :, :] V,
                     c = sqrt(uDiff * uDiff + vDiff * vDiff)
 
                     GAMMA[i, y, x] = c
-                    CSum += c
-                    CCount += 1
+                    c_sum += c
+                    c_count += 1
                 else:
                     GAMMA[i, y, x] = -1.0
 
-        if CCount > 0:
-            K = 0.9 * CSum / CCount
+        if c_count > 0:
+            K = 0.9 * c_sum / c_count
 
             if K > 0.0:
                 for y in prange(m, schedule='guided', nogil=True):
