@@ -20,8 +20,8 @@ Code Style
 ----------
 
 Although it is not strictly enforced yet, we strongly suggest to follow the
-`pep8 coding standards <https://www.python.org/dev/peps/pep-0008/>`_.
-Two popular modules used to check pep8 are
+`PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`_.
+Two popular modules used to check pep8 compliance are
 `pycodestyle <https://pypi.org/project/pycodestyle/>`_ and
 `pylint <https://pypi.org/project/pylint/>`_.
 
@@ -40,6 +40,228 @@ For further instructions please refer to their official documentation.
 - https://pycodestyle.readthedocs.io/en/latest/
 - https://www.pylint.org/
 
+Auto-formatters
+~~~~~~~~~~~~~~~
+
+Formatting code to PEP8 style is a time consuming process.
+Instead of manually formatting code before a commit to to PEP8 style, you can use auto-format packages which
+automatically formats Python code to conform to the PEP 8 style guide.
+
+If your development environment does not include auto-formatting capabilities, we recommend using
+`black <https://black.readthedocs.io/en/stable/>`_, which can be installed by any of the following options::
+
+    conda install black
+
+    #For the latest version:
+    conda install -c conda-forge black
+
+    pip install black
+
+Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`_
+for more information.
+
+Coding style summary
+~~~~~~~~~~~~~~~~~~~~
+
+For quick reference, these are the most important good coding practices
+to follow:
+
+
+- Always use 4 spaces for indentation (don’t use tabs).
+- Write UTF-8 (add # -*- coding: utf-8 -*- at the top of each file).
+- Max line-length: 79 characters.
+- Always indent wrapped code for readability.
+- Avoid extraneous whitespace.
+- Don’t use whitespace to line up assignment operators (=, :).
+- Spaces around = for assignment.
+- No spaces around = for default parameter values (keywords).
+- Spaces around mathematical operators, but group them sensibly.
+- No multiple statements on the same line.
+
+- Naming conventions:
+
+   Function names, variable names, and filenames should be descriptive and self
+   explanatory. Avoid using abbreviations that are ambiguous or unfamiliar to
+   readers outside your project, and do not abbreviate by deleting letters
+   within a word.
+   Avoid single letter variables if possible and use more verbose names for
+   clarity. An exception for this are indexes in loops (*i, j, k, etc*).
+
+   The following table summarizes the conventions:
+
+    .. raw:: html
+
+        <table rules="all" border="1" cellspacing="2" cellpadding="2">
+
+          <tr>
+            <th>Type</th>
+            <th>Public</th>
+            <th>Internal</th>
+          </tr>
+
+          <tr>
+            <td>Packages</td>
+            <td><code>lower_with_under</code></td>
+            <td></td>
+          </tr>
+
+          <tr>
+            <td>Modules</td>
+            <td><code>lower_with_under</code></td>
+            <td><code>_lower_with_under</code></td>
+          </tr>
+
+          <tr>
+            <td>Classes</td>
+            <td><code>CapWords</code></td>
+            <td><code>_CapWords</code></td>
+          </tr>
+
+          <tr>
+            <td>Exceptions</td>
+            <td><code>CapWords</code></td>
+            <td></td>
+          </tr>
+
+          <tr>
+            <td>Functions</td>
+            <td><code>lower_with_under()</code></td>
+            <td><code>_lower_with_under()</code></td>
+          </tr>
+
+          <tr>
+            <td>Global/Class Constants</td>
+            <td><code>CAPS_WITH_UNDER</code></td>
+            <td><code>_CAPS_WITH_UNDER</code></td>
+          </tr>
+
+          <tr>
+            <td>Global/Class Variables</td>
+            <td><code>lower_with_under</code></td>
+            <td><code>_lower_with_under</code></td>
+          </tr>
+
+          <tr>
+            <td>Instance Variables</td>
+            <td><code>lower_with_under</code></td>
+            <td><code>_lower_with_under</code> (protected)</td>
+          </tr>
+
+          <tr>
+            <td>Method Names</td>
+            <td><code>lower_with_under()</code></td>
+            <td><code>_lower_with_under()</code> (protected)</td>
+          </tr>
+
+          <tr>
+            <td>Function/Method Parameters</td>
+            <td><code>lower_with_under</code></td>
+            <td></td>
+          </tr>
+
+          <tr>
+            <td>Local Variables</td>
+            <td><code>lower_with_under</code></td>
+            <td></td>
+          </tr>
+
+        </table>
+
+    Source: `Google's python style guide
+    <http://google.github.io/styleguide/pyguide.html>`_
+
+- Create an ignored variable:
+
+  If you need to assign something (for instance, in Unpacking) but will not
+  need that variable, use __ (double underscore)::
+
+    precip, __, metadata = import_bom_rf3('example_file.bom')
+
+  Many Python style guides recommend the use of a single underscore "_" rather
+  than the double underscore "__" recommended here. The issue is that "_" is
+  commonly used as an alias for the
+  `gettext() <https://docs.python.org/3/library/gettext.html>`_ function, and
+  is also used at the interactive prompt to hold the value of the last
+  operation. Using a double underscore instead is just as clear and eliminates
+  the risk of accidentally interfering with either of these other use cases.
+  (Source: https://docs.python-guide.org/writing/style/)
+
+
+- Zen of Python (PEP 20), the guiding principles for Python’s
+  design::
+
+    >>> import this
+    The Zen of Python, by Tim Peters
+
+    Beautiful is better than ugly.
+    Explicit is better than implicit.
+    Simple is better than complex.
+    Complex is better than complicated.
+    Flat is better than nested.
+    Sparse is better than dense.
+    Readability counts.
+    Special cases aren't special enough to break the rules.
+    Although practicality beats purity.
+    Errors should never pass silently.
+    Unless explicitly silenced.
+    In the face of ambiguity, refuse the temptation to guess.
+    There should be one-- and preferably only one --obvious way to do it.
+    Although that way may not be obvious at first unless you're Dutch.
+    Now is better than never.
+    Although never is often better than *right* now.
+    If the implementation is hard to explain, it's a bad idea.
+    If the implementation is easy to explain, it may be a good idea.
+    Namespaces are one honking great idea -- let's do more of those!
+
+For a detailed description of a pythonic code style check these guidelines:
+
+- `The Hitchhiker's Guide to Python <https://docs.python-guide.org/writing/style/>`_
+- `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_
+- `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
+
+Docstrings
+~~~~~~~~~~
+
+Every module, function, or class must have a docstring that describe its
+purpose and how to use it, following the conventions described in the
+`PEP 257 <https://www.python.org/dev/peps/pep-0257/#multi-line-docstrings>`_
+and the
+`Numpy's docstrings format <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
+
+Here is a summary of the most important rules:
+
+- One-line docstrings Triple quotes are used even though the string fits on one line.
+  This makes it easy to later expand it.
+
+- A one-line docstring is a phrase ending in a period.
+
+- All docstrings should be written in imperative ("""Return some value.""")
+  mood rather than descriptive mood ("""Returns some value.""").
+
+Here is an example of a docstring::
+
+    def adjust_lag2_corrcoef1(gamma_1, gamma_2):
+        """A simple adjustment of lag-2 temporal autocorrelation coefficient to
+        ensure that the resulting AR(2) process is stationary when the parameters
+        are estimated from the Yule-Walker equations.
+
+        Parameters
+        ----------
+
+        gamma_1 : float
+          Lag-1 temporal autocorrelation coeffient.
+
+        gamma_2 : float
+          Lag-2 temporal autocorrelation coeffient.
+
+        Returns
+        -------
+
+        out : float
+          The adjusted lag-2 correlation coefficient.
+        """
+
+
 
 Discussion
 ----------
@@ -48,7 +270,6 @@ You are welcome to start a discussion in the project's
 `GitHub issue tracker <https://github.com/python/mypy/issues>`_ if you
 have run into behavior in pysteps that you don't understand or
 you have found a bug or would like make a feature request.
-
 
 
 Contributions workflow
@@ -62,8 +283,9 @@ or a new feature. If your new feature will take a lot of work,
 we recommend creating an issue with the **enhancement** tag to encourage
 discussions.
 
-We use the usual GitHub pull-request flow, which may be familiar to
-you if you've contributed to other projects on GitHub.
+We use the usual
+`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_,
+which may be familiar to you if you've contributed to other projects on GitHub.
 
 
 First Time Contributors
@@ -117,9 +339,10 @@ Core Contributors are developers that actively work and maintain the repository.
 They are the only ones who accept pull requests and push commits directly to
 the **pysteps** repository.
 
-To include the contributions for collaborators, we use the usual GitHub
-pull-request flow. In their simplest form, pull requests are a mechanism for
-a collaborator to notify to the pysteps project about completed a feature.
+To include the contributions for collaborators, we use the usual
+`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
+In their simplest form, pull requests are a mechanism for
+a collaborator to notify to the pysteps project about a completed feature".
 
 Once your proposed changes are ready, you need to create a pull request via
 your GitHub account. Afterward, the core developers review the code and merge
@@ -154,9 +377,46 @@ Under this circumstances, the recommended way to proceed is creating a new PR
 for changes, clearly explaining their goal.
 
 
-
 Core developer guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Suggested workflow
+^^^^^^^^^^^^^^^^^^
+
+Working directly on the master branch is discouraged and is reserved only
+for small changes and updates that do not compromise the stability of the code.
+The *master* branch is a production branch that is ready to be deployed
+(cloned, installed, and ready to use).
+In consequence, this master branch is meant to be stable.
+
+The pysteps repository uses a Travis CI, a Continuous Integration service that
+automatically runs a series of tests every time you commit to GitHub.
+In that way, your modifications along with the entire package is tested.
+
+Pushing untested or work-in-progress changes to the master branch can potentially
+introduce bugs or brake the stability of the package.
+Since the tests takes around 10 minutes and the are run after the commit was
+pushed, any errors introduced in that commit will be noticed after the stable
+in the master branch was compromised.
+In addition, other developers start working on a new feature from master,
+they may start a potentially broken state.
+
+Instead, it is recommended to work on each new feature in its own branch,
+which can be pushed to the central repository for backup/collaboration.
+When you’re done with the development work on the feature, then you can merge
+the feature branch into the master or submit a Pull Request.
+This approach has two main advantages:
+
+- Every commit on the feature branch is tested using Travis CI.
+  If the tests fail, they do not affect the **master** branch.
+
+- Once the new feature, improvement, or bug correction is finished and the all
+  tests passed, the commits history can be squashed into a single commit and
+  then merged into the master branch.
+
+This helps approach helps to keep the commits history clean and allows
+experimentation in the branch without compromising the stability of the package.
+
 
 Processing pull requests
 ^^^^^^^^^^^^^^^^^^^^^^^^
