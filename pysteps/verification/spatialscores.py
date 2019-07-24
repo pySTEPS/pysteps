@@ -332,9 +332,9 @@ def fss(X_f, X_o, thr, scale):
 
     # Compute the numerator
     n = X_f.size
-    N = 1.0 * np.sum((S_o - S_f) ** 2) / n
+    N = 1.0 * np.nansum((S_o - S_f) ** 2) / n
     # Compute the denominator
-    D = 1.0 * (np.sum(S_o ** 2) + np.nansum(S_f ** 2)) / n
+    D = 1.0 * (np.nansum(S_o ** 2) + np.nansum(S_f ** 2)) / n
 
     return 1 - N / D
 
