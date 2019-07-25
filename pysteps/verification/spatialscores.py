@@ -13,6 +13,9 @@ Skill scores for spatial forecasts.
     intensity_scale_compute
     binary_mse
     fss
+    fss_init
+    fss_accum
+    fss_compute
 """
 
 import numpy as np
@@ -285,7 +288,7 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
 def fss(X_f, X_o, thr, scale):
     """
     Compute the fractions skill score (FSS) for a deterministic forecast field
-    field and the corresponding observation field.
+    and the corresponding observation field.
 
     Parameters
     ----------
@@ -310,32 +313,10 @@ def fss(X_f, X_o, thr, scale):
     :cite:`RL2008`, :cite:`EWWM2013`
 
     """
-    if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
-        message = "X_f and X_o must be two-dimensional arrays"
-        message += " having the same shape"
-        raise ValueError(message)
 
-    X_f = X_f.copy()
-    X_f[~np.isfinite(X_f)] = thr - 1
-    X_o = X_o.copy()
-    X_o[~np.isfinite(X_o)] = thr - 1
-
-    # Convert to binary fields with the given intensity threshold
-    I_f = (X_f >= thr).astype(float)
-    I_o = (X_o >= thr).astype(float)
-
-    # Compute fractions of pixels above the threshold within a square
-    # neighboring area by applying a 2D moving average to the binary fields
-    S_f = uniform_filter(I_f, size=scale, mode="constant", cval=0.0)
-    S_o = uniform_filter(I_o, size=scale, mode="constant", cval=0.0)
-
-    # Compute the numerator
-    n = X_f.size
-    N = 1.0 * np.nansum((S_o - S_f) ** 2) / n
-    # Compute the denominator
-    D = 1.0 * (np.nansum(S_o ** 2) + np.nansum(S_f ** 2)) / n
-
-    return 1 - N / D
+    fss = fss_init(thr, scale)
+    fss_accum(fss, X_f, X_o)
+    return fss_compute(fss)
 
 def fss_init(thr, scale):
     """Initialize a fractions skill score (FSS) verification object.
@@ -371,6 +352,11 @@ def fss_accum(fss, X_f, X_o):
     X_o : array_like
         Array of shape (m, n) containing the observation field.
     """
+    if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
+        message = "X_f and X_o must be two-dimensional arrays"
+        message += " having the same shape"
+        raise ValueError(message)
+
     X_f = X_f.copy()
     X_f[~np.isfinite(X_f)] = fss["thr"] - 1
     X_o = X_o.copy()
