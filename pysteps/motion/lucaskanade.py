@@ -1,23 +1,30 @@
 """
 
-pysteps.motion.lucaskanade
+pysteps.motion.track_features
 ==========================
 
 The Lucas-Kanade (LK) Module.
 
 This module implements the interface to the local Lucas-Kanade routine available
-in OpenCV, as well as methods to interpolate the LK vectors over a grid.
+in OpenCV, as well as other auxiliary methods such as the interpolation of the
+LK vectors over a grid.
 
+.. _`goodFeaturesToTrack()`:\
+    https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+
+
+.. _`calcOpticalFlowPyrLK()`:\
+   https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
 .. autosummary::
     :toctree: ../generated/
 
     dense_lucaskanade
-    features_to_track
-    lucaskanade
+    detect_features
+    track_features
     morph_opening
     remove_outliers
-    declustering
+    decluster_vectors
     interpolate_sparse_vectors
 """
 
@@ -314,7 +321,7 @@ def dense_lucaskanade(input_images, **kwargs):
             minDistance=min_distance_ST,
             blockSize=block_size_ST,
         )
-        p0 = features_to_track(prvs, mask_, gf_params)
+        p0 = detect_features(prvs, mask_, gf_params, False)
 
         # skip loop if no features to track
         if p0 is None:
@@ -326,7 +333,7 @@ def dense_lucaskanade(input_images, **kwargs):
             maxLevel=nr_levels_LK,
             criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
         )
-        x0, y0, u, v = lucaskanade(prvs, next, p0, lk_params)
+        x0, y0, u, v = track_features(prvs, next, p0, lk_params, False)
         # skip loop if no vectors
         if x0 is None:
             continue
@@ -365,7 +372,7 @@ def dense_lucaskanade(input_images, **kwargs):
 
     # decluster sparse motion vectors
     if decl_grid > 1:
-        x, y, u, v = declustering(x, y, u, v, decl_grid, min_nr_samples)
+        x, y, u, v = decluster_vectors(x, y, u, v, decl_grid, min_nr_samples, verbose)
 
     # append extra vectors if provided
     if extra_vectors is not None:
@@ -377,9 +384,6 @@ def dense_lucaskanade(input_images, **kwargs):
     # return zero motion field if no sparse vectors are left for interpolation
     if x.size == 0:
         return np.zeros((2, domain_size[0], domain_size[1]))
-
-    if verbose:
-        print("--- %i sparse vectors left after declustering ---" % x.size)
 
     # kernel interpolation
     xgrid = np.arange(domain_size[1])
@@ -398,18 +402,18 @@ def dense_lucaskanade(input_images, **kwargs):
     )
 
     if verbose:
-        print("--- %.2f seconds ---" % (time.time() - t0))
+        print("--- total time: %.2f seconds ---" % (time.time() - t0))
 
     return UV
 
 
-def features_to_track(input_image, mask, params):
+def detect_features(input_image, mask, params, verbose=False):
     """
     Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners 
     on an image. 
 
-    .. _`goodFeaturesToTrack()`: https://docs.opencv.org/3.4.1/dd/d1a/group__\
-        imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+    .. _`goodFeaturesToTrack()`:\
+        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
     Parameters
     ----------
@@ -421,6 +425,8 @@ def features_to_track(input_image, mask, params):
     params : dict
         Any additional parameter to the original routine as described in the
         corresponding documentation.
+    verbose : bool, optional
+        Print the number of features detected.
 
     Returns
     -------
@@ -441,15 +447,18 @@ def features_to_track(input_image, mask, params):
 
     p0 = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
 
+    if verbose:
+        print("--- %i good features to track detected ---" % len(p0))
+
     return p0
 
 
-def lucaskanade(prvs, next, p0, params):
+def track_features(prvs, next, p0, params, verbose=False):
     """
     Interface to the OpenCV `calcOpticalFlowPyrLK()`_ features tracking algorithm.
 
-    .. _`calcOpticalFlowPyrLK()`: https://docs.opencv.org/3.4/dc/d6b/\
-    group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
+    .. _`calcOpticalFlowPyrLK()`:\
+       https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
     Parameters
     ----------
@@ -463,6 +472,8 @@ def lucaskanade(prvs, next, p0, params):
     params : dict
         Any additional parameter to the original routine as described in the
         corresponding documentation.
+    verbose : bool, optional
+        Print the number of vectors that have been found.
 
     Returns
     -------
@@ -499,6 +510,9 @@ def lucaskanade(prvs, next, p0, params):
         v = np.array((p1 - p0)[:, :, 1])
     else:
         x = y = u = v = None
+
+    if verbose:
+        print("--- %i sparse vectors found ---" % x.size)
 
     return x, y, u, v
 
@@ -658,7 +672,7 @@ def remove_outliers(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
     return x, y, u, v
 
 
-def declustering(x, y, u, v, decl_grid, min_nr_samples):
+def decluster_vectors(x, y, u, v, decl_grid, min_nr_samples, verbose=False):
     """Decluster a set of sparse vectors by aggregating (taking the median value)
     the initial data points over a coarser grid.
 
@@ -677,6 +691,8 @@ def declustering(x, y, u, v, decl_grid, min_nr_samples):
     min_nr_samples : int
         The minimum number of samples for computing the median within a given
         declustering cell.
+    verbose : bool, optional
+        Print the number of vectors after declustering.
 
     Returns
     -------
@@ -728,6 +744,9 @@ def declustering(x, y, u, v, decl_grid, min_nr_samples):
     y = np.array(yN)
     u = np.array(uN)
     v = np.array(vN)
+
+    if verbose:
+        print("--- %i sparse vectors left after declustering ---" % x.size)
 
     return x, y, u, v
 
