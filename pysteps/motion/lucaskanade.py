@@ -305,24 +305,27 @@ def dense_lucaskanade(input_images, **kwargs):
             prvs = morph_opening(prvs, n=size_opening)
             next = morph_opening(next, n=size_opening)
 
-        # Shi-Tomasi good features to track
-        # TODO: implement different feature detection algorithms (e.g. Harris)
+        # Find good features to track
         mask_ = (-1 * mask_ + 1).astype("uint8")
-        p0 = features_to_track(
-            prvs,
-            max_corners_ST,
-            quality_level_ST,
-            min_distance_ST,
-            block_size_ST,
-            mask_,
+        gf_params = dict(
+            maxCorners=max_corners_ST,
+            qualityLevel=quality_level_ST,
+            minDistance=min_distance_ST,
+            blockSize=block_size_ST,
         )
+        p0 = features_to_track(prvs, mask_, gf_params)
 
         # skip loop if no features to track
         if p0 is None:
             continue
 
         # get sparse u, v vectors with Lucas-Kanade tracking
-        x0, y0, u, v = lucaskanade(prvs, next, p0, winsize_LK, nr_levels_LK)
+        lk_params = dict(
+            winSize=winsize_LK,
+            maxLevel=nr_levels_LK,
+            criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
+        )
+        x0, y0, u, v = lucaskanade(prvs, next, p0, lk_params)
         # skip loop if no vectors
         if x0 is None:
             continue
@@ -399,36 +402,21 @@ def dense_lucaskanade(input_images, **kwargs):
     return UV
 
 
-def features_to_track(
-    input_image, max_corners_ST, quality_level_ST, min_distance_ST, block_size_ST, mask
-):
+def features_to_track(input_image, mask, params):
     """
-    .. _Shi-Tomasi: https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature\
-                    .html#ga1d6bb77486c8f92d79c8793ad995d541
-    .. _ndarray:\
-    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
-
-    Interface to the OpenCV goodFeaturesToTrack method to detect strong corners 
+    Interface to the OpenCV goodFeaturesToTrack() method to detect strong corners 
     on an image. 
 
     Parameters
     ----------
     input_image : ndarray_
         Array of shape (m, n) containing the input 8-bit image.
-    max_corners_ST : int
-        Maximum number of corners to return. If there are more corners than are
-        found, the strongest of them is returned.
-    quality_level_ST : float
-        Parameter characterizing the minimal accepted quality of image corners.
-        See original documentation for more details (https://docs.opencv.org).
-    min_distance_ST : int
-        Minimum possible Euclidean distance between the returned corners [px].
-    block_size_ST : int
-        Size of an average block for computing a derivative covariation matrix
-        over each pixel neighborhood.
     mask : ndarray_
-        Array of shape (m,n). It specifies the region in which the corners are
-        detected.
+        Array of shape (m,n). It specifies the image region in which the corners
+        can be detected.
+    params : dict
+        Any additional parameter to the original routine as described in the
+        corresponding documentation.
 
     Returns
     -------
@@ -447,27 +435,14 @@ def features_to_track(
     if input_image.dtype != "uint8":
         raise ValueError("input_image must be passed as 8-bit image")
 
-    # ShiTomasi corner detection parameters
-    ShiTomasi_params = dict(
-        maxCorners=max_corners_ST,
-        qualityLevel=quality_level_ST,
-        minDistance=min_distance_ST,
-        blockSize=block_size_ST,
-    )
-
-    # detect corners
-    p0 = cv2.goodFeaturesToTrack(input_image, mask=mask, **ShiTomasi_params)
+    p0 = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
 
     return p0
 
 
-def lucaskanade(prvs, next, p0, winsize_LK, nr_levels_LK):
+def lucaskanade(prvs, next, p0, params):
     """
-    .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/group__video__track\
-                        .html#ga473e4b886d0bcc6b65831eb88ed93323
-
-    Interface to the `Lucas-Kanade`_ features tracking algorithm implemented
-    in OpenCV.
+    Interface to the OpenCV `Lucas-Kanade`_ features tracking algorithm.
 
     Parameters
     ----------
@@ -478,12 +453,9 @@ def lucaskanade(prvs, next, p0, winsize_LK, nr_levels_LK):
     p0 : list
         Vector of 2D points for which the flow needs to be found.
         Point coordinates must be single-precision floating-point numbers.
-    winsize_LK : tuple
-        Size of the search window at each pyramid level.
-        Small windows (e.g. 10) lead to unrealistic motion.
-    nr_levels_LK : int
-        0-based maximal pyramid level number.
-        Not very sensitive parameter.
+    params : dict
+        Any additional parameter to the original routine as described in the
+        corresponding documentation.
 
     Returns
     -------
@@ -503,15 +475,8 @@ def lucaskanade(prvs, next, p0, winsize_LK, nr_levels_LK):
             "optical flow method but it is not installed"
         )
 
-    # LK parameters
-    lk_params = dict(
-        winSize=winsize_LK,
-        maxLevel=nr_levels_LK,
-        criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
-    )
-
     # Lucas-Kanade
-    p1, st, err = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **lk_params)
+    p1, st, err = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **params)
 
     # keep only features that have been found
     st = st[:, 0] == 1
