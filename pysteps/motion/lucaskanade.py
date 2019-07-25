@@ -405,8 +405,11 @@ def dense_lucaskanade(input_images, **kwargs):
 
 def features_to_track(input_image, mask, params):
     """
-    Interface to the OpenCV goodFeaturesToTrack() method to detect strong corners 
+    Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners 
     on an image. 
+
+    .. _`goodFeaturesToTrack()`: https://docs.opencv.org/3.4.1/dd/d1a/group__\
+        imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
     Parameters
     ----------
@@ -443,7 +446,10 @@ def features_to_track(input_image, mask, params):
 
 def lucaskanade(prvs, next, p0, params):
     """
-    Interface to the OpenCV calcOpticalFlowPyrLK() features tracking algorithm.
+    Interface to the OpenCV `calcOpticalFlowPyrLK()`_ features tracking algorithm.
+
+    .. _`calcOpticalFlowPyrLK()`: https://docs.opencv.org/3.4/dc/d6b/\
+    group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
     Parameters
     ----------
@@ -498,21 +504,22 @@ def lucaskanade(prvs, next, p0, params):
 
 
 def morph_opening(input_image, n=3, thr=0):
-    """Apply a binary morphological opening to filter out small scale noise.
+    """Filter out small scale noise on the image by applying a binary morphological
+    opening (i.e., erosion then dilation).
 
     Parameters
     ----------
     input_image : array-like
-        Array of shape (m, n) containing the input images.
+        Array of shape (m, n) containing the input image.
     n : int
-        The structuring element size [px].
+        The structuring element size [pixels].
     thr : float
-        The rain/no-rain threshold to convert the image into a binary image.
+        The threshold used to convert the image into a binary image.
 
     Returns
     -------
     input_image : array
-        Array of shape (m,n) containing the cleaned precipitation field.
+        Array of shape (m,n) containing the resulting image 
 
     """
     if not cv2_imported:
@@ -521,19 +528,19 @@ def morph_opening(input_image, n=3, thr=0):
             "routine but it is not installed"
         )
 
-    # convert to binary image (rain/no rain)
+    # Convert to binary image
     field_bin = np.ndarray.astype(input_image > thr, "uint8")
 
-    # build a structuring element of size (nx)
+    # Build a structuring element of size n
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
 
-    # apply morphological opening (i.e. erosion then dilation)
+    # Apply morphological opening (i.e. erosion then dilation)
     field_bin_out = cv2.morphologyEx(field_bin, cv2.MORPH_OPEN, kernel)
 
-    # build mask to be applied on the original image
+    # Build mask to be applied on the original image
     mask = (field_bin - field_bin_out) > 0
 
-    # filter out small isolated echoes based on mask
+    # Filter out small isolated pixels based on mask
     input_image[mask] = np.nanmin(input_image)
 
     return input_image
