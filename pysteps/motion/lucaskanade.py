@@ -426,8 +426,8 @@ def features_to_track(input_image, mask, params):
     """
     if not cv2_imported:
         raise MissingOptionalDependency(
-            "opencv package is required for the Shi-Tomasi "
-            "corner detection method but it is not installed"
+            "opencv package is required for the goodFeaturesToTrack() "
+            "routine but it is not installed"
         )
 
     if input_image.ndim != 2:
@@ -442,7 +442,7 @@ def features_to_track(input_image, mask, params):
 
 def lucaskanade(prvs, next, p0, params):
     """
-    Interface to the OpenCV `Lucas-Kanade`_ features tracking algorithm.
+    Interface to the OpenCV calcOpticalFlowPyrLK() features tracking algorithm.
 
     Parameters
     ----------
@@ -471,8 +471,8 @@ def lucaskanade(prvs, next, p0, params):
     """
     if not cv2_imported:
         raise MissingOptionalDependency(
-            "opencv package is required for the Lucas-Kanade "
-            "optical flow method but it is not installed"
+            "opencv package is required for the calcOpticalFlowPyrLK() "
+            "routine but it is not installed"
         )
 
     # Lucas-Kanade
@@ -516,8 +516,8 @@ def morph_opening(input_image, n=3, thr=0):
     """
     if not cv2_imported:
         raise MissingOptionalDependency(
-            "opencv package is required for the morphological opening "
-            "method but it is not installed"
+            "opencv package is required for the morphologyEx "
+            "routine but it is not installed"
         )
 
     # convert to binary image (rain/no rain)
