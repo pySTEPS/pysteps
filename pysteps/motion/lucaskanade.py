@@ -6,7 +6,7 @@ pysteps.motion.lucaskanade
 The Lucas-Kanade (LK) Module.
 
 This module implements the interface to the local Lucas-Kanade routine available
-in OpenCV, as well as methods to interpolate the sparse vectors over a grid.
+in OpenCV, as well as methods to interpolate the LK vectors over a grid.
 
 
 .. autosummary::
@@ -54,8 +54,9 @@ def dense_lucaskanade(input_images, **kwargs):
         imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
     Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical 
-    flow method, including the `Shi-Tomasi`_ corner detection routine and the 
-    final interpolation of the sparse motion vectors to fill the whole grid.
+    flow method applied in combination to the `Shi-Tomasi`_ corner detection 
+    routine. The sparse motion vectors are finally interpolated to return the whole
+    motion field.
 
     Parameters
     ----------
