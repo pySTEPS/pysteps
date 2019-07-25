@@ -3,16 +3,19 @@
 pysteps.motion.lucaskanade
 ==========================
 
-Methods that make use of Lucas-Kanade method as implemented in OpenCV to estimate
-the advection field in a sequence of two or more images.
+The Lucas-Kanade (LK) Module.
+
+This module implements the interface to the local Lucas-Kanade routine available
+in OpenCV, as well as methods to interpolate the sparse vectors over a grid.
+
 
 .. autosummary::
     :toctree: ../generated/
 
     dense_lucaskanade
     features_to_track
-    features_tracking
-    clean_image
+    lucaskanade
+    morph_opening
     remove_outliers
     declustering
     interpolate_sparse_vectors
@@ -34,7 +37,8 @@ import warnings
 
 
 def dense_lucaskanade(input_images, **kwargs):
-    """
+    """Run the Lucas-Kanade optical flow and interpolate the motion vectors.
+
     .. _opencv: https://opencv.org/
 
     .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/\
@@ -298,8 +302,8 @@ def dense_lucaskanade(input_images, **kwargs):
 
         # remove small noise with a morphological operator (opening)
         if size_opening > 0:
-            prvs = clean_image(prvs, n=size_opening)
-            next = clean_image(next, n=size_opening)
+            prvs = morph_opening(prvs, n=size_opening)
+            next = morph_opening(next, n=size_opening)
 
         # Shi-Tomasi good features to track
         # TODO: implement different feature detection algorithms (e.g. Harris)
@@ -318,7 +322,7 @@ def dense_lucaskanade(input_images, **kwargs):
             continue
 
         # get sparse u, v vectors with Lucas-Kanade tracking
-        x0, y0, u, v = features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK)
+        x0, y0, u, v = lucaskanade(prvs, next, p0, winsize_LK, nr_levels_LK)
         # skip loop if no vectors
         if x0 is None:
             continue
@@ -457,7 +461,7 @@ def features_to_track(
     return p0
 
 
-def features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
+def lucaskanade(prvs, next, p0, winsize_LK, nr_levels_LK):
     """
     .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/group__video__track\
                         .html#ga473e4b886d0bcc6b65831eb88ed93323
@@ -527,7 +531,7 @@ def features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
     return x, y, u, v
 
 
-def clean_image(input_image, n=3, thr=0):
+def morph_opening(input_image, n=3, thr=0):
     """Apply a binary morphological opening to filter out small scale noise.
 
     Parameters
