@@ -1,4 +1,5 @@
 """
+
 pysteps.motion.lucaskanade
 ==========================
 
@@ -50,7 +51,9 @@ def dense_lucaskanade(R, **kwargs):
     ----------
     R : ndarray_ or MaskedArray_
         Array of shape (T,m,n) containing a sequence of T two-dimensional input
-        images of shape (m,n).
+        images of shape (m,n). T = 2 is the minimum required number of images.
+        With T > 2, the sparse vectors detected by Lucas-Kanade are pooled
+        together prior to the final interpolation.
 
         In case of an ndarray_, invalid values (Nans or infs) are masked.
         The mask in the MaskedArray_ defines a region where velocity vectors are
