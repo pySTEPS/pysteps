@@ -3,14 +3,19 @@
 pysteps.motion.lucaskanade
 ==========================
 
-OpenCV implementation of the Lucas-Kanade method with interpolated motion
-vectors for areas with no precipitation.
+Methods that make use of Lucas-Kanade method as implemented in OpenCV to estimate
+the advection field in a sequence of two or more images.
 
 .. autosummary::
     :toctree: ../generated/
 
     dense_lucaskanade
-
+    features_to_track
+    features_tracking
+    clean_image
+    remove_outliers
+    declustering
+    interpolate_sparse_vectors
 """
 
 import numpy as np
@@ -35,9 +40,6 @@ def dense_lucaskanade(input_images, **kwargs):
     .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/\
     group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
-    OpenCV_ implementation of the local `Lucas-Kanade`_ method with
-    interpolation of the sparse motion vectors to fill the whole grid.
-
     .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
         maskedarray.baseclass.html#numpy.ma.MaskedArray
 
@@ -46,6 +48,10 @@ def dense_lucaskanade(input_images, **kwargs):
 
     .. _Shi-Tomasi: https://docs.opencv.org/3.4.1/dd/d1a/group__\
         imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+
+    Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical 
+    flow method, including the `Shi-Tomasi`_ corner detection routine and the 
+    final interpolation of the sparse motion vectors to fill the whole grid.
 
     Parameters
     ----------
@@ -398,8 +404,8 @@ def features_to_track(
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
 
-    Interface to the `Shi-Tomasi`_ 'Good features to track' corner detection
-    algorithm implemented in OpenCV.
+    Interface to the OpenCV goodFeaturesToTrack method to detect strong corners 
+    on an image. 
 
     Parameters
     ----------
