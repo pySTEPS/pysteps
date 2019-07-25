@@ -28,7 +28,7 @@ import time
 import warnings
 
 
-def dense_lucaskanade(R, **kwargs):
+def dense_lucaskanade(input_images, **kwargs):
     """
     .. _opencv: https://opencv.org/
 
@@ -49,9 +49,9 @@ def dense_lucaskanade(R, **kwargs):
         
     Parameters
     ----------
-    R : ndarray_ or MaskedArray_
-        Array of shape (T,m,n) containing a sequence of T two-dimensional input
-        images of shape (m,n). T = 2 is the minimum required number of images.
+    input_images : ndarray_ or MaskedArray_
+        Array of shape (T, m, n) containing a sequence of T two-dimensional input
+        images of shape (m, n). T = 2 is the minimum required number of images.
         With T > 2, the sparse vectors detected by Lucas-Kanade are pooled
         together prior to the final interpolation.
 
@@ -165,7 +165,7 @@ def dense_lucaskanade(R, **kwargs):
         nbr. of vectors) to be integrated with the sparse vectors from the
         Lucas-Kanade local tracking.
         x and y must be in pixel coordinates, with (0,0) being the upper-left
-        corner of the field R. u and v must be in pixel units. By default this
+        corner of the field input_images. u and v must be in pixel units. By default this
         is set to None.
 
     verbose : bool, optional
@@ -176,7 +176,7 @@ def dense_lucaskanade(R, **kwargs):
     out : ndarray_
         If dense=True (the default), it returns the three-dimensional array (2,m,n)
         containing the dense x- and y-components of the motion field in units of
-        pixels / timestep as given by the input array R.
+        pixels / timestep as given by the input array input_images.
         If dense=False, it returns a tuple containing the one-dimensional arrays
         x, y, u, v, where x, y define the vector locations, u, v define the x
         and y direction components of the vectors.
@@ -195,18 +195,12 @@ def dense_lucaskanade(R, **kwargs):
     
     """
 
-    if len(R.shape) != 3:
-        raise ValueError(
-            "R has %i dimensions, but a three-dimensional array is expected"
-            % len(R.shape)
-        )
+    if (input_images.ndim != 3) or input_images.shape[0] < 2:
+        raise ValueError("input_images dimension mismatch.\n" +
+                         "input_images.shape: " + str(input_images.shape) +
+                         "\n(>1, m, n) expected")
 
-    if R.shape[0] < 2:
-        raise ValueError(
-            "R has %i frame, but at least two frames are expected" % R.shape[0]
-        )
-
-    R = R.copy()
+    input_images = input_images.copy()
 
     # defaults
     dense = kwargs.get("dense", True)
@@ -254,15 +248,15 @@ def dense_lucaskanade(R, **kwargs):
         t0 = time.time()
 
     # Get mask
-    if isinstance(R, MaskedArray):
-        mask = np.ma.getmaskarray(R).copy()
+    if isinstance(input_images, MaskedArray):
+        mask = np.ma.getmaskarray(input_images).copy()
     else:
-        R = np.ma.masked_invalid(R)
-        mask = np.ma.getmaskarray(R).copy()
-    R[mask] = np.nanmin(R)  # Remove any Nan from the raw data
+        input_images = np.ma.masked_invalid(input_images)
+        mask = np.ma.getmaskarray(input_images).copy()
+    input_images[mask] = np.nanmin(input_images)  # Remove any Nan from the raw data
 
-    nr_fields = R.shape[0]
-    domain_size = (R.shape[1], R.shape[2])
+    nr_fields = input_images.shape[0]
+    domain_size = (input_images.shape[1], input_images.shape[2])
     y0Stack = []
     x0Stack = []
     uStack = []
@@ -270,8 +264,8 @@ def dense_lucaskanade(R, **kwargs):
     for n in range(nr_fields - 1):
 
         # extract consecutive images
-        prvs = R[n, :, :].copy()
-        next = R[n + 1, :, :].copy()
+        prvs = input_images[n, :, :].copy()
+        next = input_images[n + 1, :, :].copy()
 
         # skip loop if no precip
         if ~np.any(prvs > prvs.min()) or ~np.any(next > next.min()):
@@ -392,14 +386,14 @@ def dense_lucaskanade(R, **kwargs):
 
 
 def _ShiTomasi_features_to_track(
-    R, max_corners_ST, quality_level_ST, min_distance_ST, block_size_ST, mask
+    input_image, max_corners_ST, quality_level_ST, min_distance_ST, block_size_ST, mask
 ):
     """Call the Shi-Tomasi corner detection algorithm.
 
     Parameters
     ----------
-    R : array-like
-        Array of shape (m,n) containing the input precipitation field passed as
+    input_image : array-like
+        Array of shape (m, n) containing the input precipitation field passed as
         8-bit image.
 
     max_corners_ST : int
@@ -433,10 +427,10 @@ def _ShiTomasi_features_to_track(
             "optical flow method but it is not installed"
         )
 
-    if len(R.shape) != 2:
-        raise ValueError("R must be a two-dimensional array")
-    if R.dtype != "uint8":
-        raise ValueError("R must be passed as 8-bit image")
+    if len(input_image.shape) != 2:
+        raise ValueError("input_image must be a two-dimensional array")
+    if input_image.dtype != "uint8":
+        raise ValueError("input_image must be passed as 8-bit image")
 
     # ShiTomasi corner detection parameters
     ShiTomasi_params = dict(
@@ -447,7 +441,7 @@ def _ShiTomasi_features_to_track(
     )
 
     # detect corners
-    p0 = cv2.goodFeaturesToTrack(R, mask=mask, **ShiTomasi_params)
+    p0 = cv2.goodFeaturesToTrack(input_image, mask=mask, **ShiTomasi_params)
 
     return p0
 
@@ -458,9 +452,9 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
     Parameters
     ----------
     prvs : array-like
-        Array of shape (m,n) containing the first 8-bit input image.
+        Array of shape (m, n) containing the first 8-bit input image.
     next : array-like
-        Array of shape (m,n) containing the successive 8-bit input image.
+        Array of shape (m, n) containing the successive 8-bit input image.
     p0 : list
         Vector of 2D points for which the flow needs to be found.
         Point coordinates must be single-precision floating-point numbers.
@@ -517,13 +511,13 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
     return x0, y0, u, v
 
 
-def _clean_image(R, n=3, thr=0):
+def _clean_image(input_image, n=3, thr=0):
     """Apply a binary morphological opening to filter small isolated echoes.
 
     Parameters
     ----------
-    R : array-like
-        Array of shape (m,n) containing the input precipitation field.
+    input_image : array-like
+        Array of shape (m, n) containing the input precipitation field.
     n : int
         The structuring element size [px].
     thr : float
@@ -531,7 +525,7 @@ def _clean_image(R, n=3, thr=0):
 
     Returns
     -------
-    R : array
+    input_image : array
         Array of shape (m,n) containing the cleaned precipitation field.
 
     """
@@ -542,7 +536,7 @@ def _clean_image(R, n=3, thr=0):
         )
 
     # convert to binary image (rain/no rain)
-    field_bin = np.ndarray.astype(R > thr, "uint8")
+    field_bin = np.ndarray.astype(input_image > thr, "uint8")
 
     # build a structuring element of size (nx)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
@@ -554,9 +548,9 @@ def _clean_image(R, n=3, thr=0):
     mask = (field_bin - field_bin_out) > 0
 
     # filter out small isolated echoes based on mask
-    R[mask] = np.nanmin(R)
+    input_image[mask] = np.nanmin(input_image)
 
-    return R
+    return input_image
 
 
 def _outlier_removal(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
