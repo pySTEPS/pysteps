@@ -16,7 +16,7 @@ precipitation field, the corresponding quality field and a metadata dictionary.
 If the file contains no quality information, the quality field is set to None.
 Pixels containing missing data are set to nan.
 
-The metadata dictionary contains the following mandatory key-value pairs:
+The metadata dictionary contains the following recommended key-value pairs:
 
 .. tabularcolumns:: |p{2cm}|L|
 
