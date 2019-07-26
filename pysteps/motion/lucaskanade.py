@@ -238,11 +238,11 @@ def dense_lucaskanade(input_images, **kwargs):
     decl_grid = kwargs.get("decl_grid", 20)
     min_nr_samples = kwargs.get("min_nr_samples", 2)
     rbfunction = kwargs.get("rbfunction", "inverse")
-    k = kwargs.get("k", 50)
+    k = kwargs.get("k", 100)
     epsilon = kwargs.get("epsilon", None)
     nchunks = kwargs.get("nchunks", 5)
     verbose = kwargs.get("verbose", True)
-    buffer_mask = kwargs.get("buffer_mask", 0)
+    buffer_mask = kwargs.get("buffer_mask", 10)
 
     if verbose:
         print("Computing the motion field with the Lucas-Kanade method.")
@@ -267,25 +267,17 @@ def dense_lucaskanade(input_images, **kwargs):
         # extract consecutive images
         prvs = input_images[n, :, :].copy()
         next = input_images[n + 1, :, :].copy()
+        mask_ = mask[n, :, :].copy()
 
         # skip loop if no precip
         if ~np.any(prvs > prvs.min()) or ~np.any(next > next.min()):
             continue
 
-        # scale between 0 and 255
-        prvs = (prvs - prvs.min()) / (prvs.max() - prvs.min()) * 255
-        next = (next - next.min()) / (next.max() - next.min()) * 255
-
-        # convert to 8-bit
-        prvs = np.ndarray.astype(prvs, "uint8")
-        next = np.ndarray.astype(next, "uint8")
-        mask_ = np.ndarray.astype(mask[n, :, :], "uint8")
-
         # buffer the quality mask to ensure that no vectors are computed nearby
         # the edges of the radar mask
         if buffer_mask > 0:
             mask_ = cv2.dilate(
-                mask_, np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
+                mask_.astype("uint8"), np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
             )
 
         # remove small noise with a morphological operator (opening)
@@ -391,7 +383,7 @@ def detect_features(input_image, mask, params, verbose=False):
     Parameters
     ----------
     input_image : ndarray_
-        Array of shape (m, n) containing the input 8-bit image.
+        Array of shape (m, n) containing the input image.
     mask : ndarray_
         Array of shape (m,n). It specifies the image region in which the corners
         can be detected.
@@ -415,8 +407,17 @@ def detect_features(input_image, mask, params, verbose=False):
 
     if input_image.ndim != 2:
         raise ValueError("input_image must be a two-dimensional array")
-    if input_image.dtype != "uint8":
-        raise ValueError("input_image must be passed as 8-bit image")
+
+    # scale image between 0 and 255
+    input_image = (
+        (input_image - input_image.min())
+        / (input_image.max() - input_image.min())
+        * 255
+    )
+
+    # convert to 8-bit
+    input_image = np.ndarray.astype(input_image, "uint8")
+    mask = np.ndarray.astype(mask, "uint8")
 
     p0 = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
 
@@ -436,9 +437,9 @@ def track_features(prvs, next, p0, params, verbose=False):
     Parameters
     ----------
     prvs : array-like
-        Array of shape (m, n) containing the initial 8-bit input image.
+        Array of shape (m, n) containing the initial image.
     next : array-like
-        Array of shape (m, n) containing the successive 8-bit input image.
+        Array of shape (m, n) containing the successive image.
     p0 : list
         Vector of 2D points for which the flow needs to be found.
         Point coordinates must be single-precision floating-point numbers.
@@ -465,6 +466,14 @@ def track_features(prvs, next, p0, params, verbose=False):
             "opencv package is required for the calcOpticalFlowPyrLK() "
             "routine but it is not installed"
         )
+
+    # scale between 0 and 255
+    prvs = (prvs - prvs.min()) / (prvs.max() - prvs.min()) * 255
+    next = (next - next.min()) / (next.max() - next.min()) * 255
+
+    # convert to 8-bit
+    prvs = np.ndarray.astype(prvs, "uint8")
+    next = np.ndarray.astype(next, "uint8")
 
     # Lucas-Kanade
     # TODO: use the error returned by the OpenCV routine
