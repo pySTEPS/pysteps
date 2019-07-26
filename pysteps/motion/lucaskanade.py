@@ -178,14 +178,6 @@ def dense_lucaskanade(input_images, **kwargs):
         interpolation. By default this is set to 5, if set to 1 the interpolation
         is computed with the whole grid.
 
-    extra_vectors : ndarray_, optional
-        Additional sparse motion vectors as 2d array (columns: x,y,u,v; rows:
-        nbr. of vectors) to be integrated with the sparse vectors from the
-        Lucas-Kanade local tracking.
-        x and y must be in pixel coordinates, with (0,0) being the upper-left
-        corner of the field input_images. u and v must be in pixel units. By default this
-        is set to None.
-
     verbose : bool, optional
         If set to True, it prints information about the program (True by default).
 
@@ -249,18 +241,6 @@ def dense_lucaskanade(input_images, **kwargs):
     k = kwargs.get("k", 50)
     epsilon = kwargs.get("epsilon", None)
     nchunks = kwargs.get("nchunks", 5)
-    extra_vectors = kwargs.get("extra_vectors", None)
-    if extra_vectors is not None:
-        if len(extra_vectors.shape) != 2:
-            raise ValueError(
-                "extra_vectors has %i dimensions, but 2 dimensions are expected"
-                % len(extra_vectors.shape)
-            )
-        if extra_vectors.shape[1] != 4:
-            raise ValueError(
-                "extra_vectors has %i columns, but 4 columns are expected"
-                % extra_vectors.shape[1]
-            )
     verbose = kwargs.get("verbose", True)
     buffer_mask = kwargs.get("buffer_mask", 0)
 
@@ -373,13 +353,6 @@ def dense_lucaskanade(input_images, **kwargs):
     # decluster sparse motion vectors
     if decl_grid > 1:
         x, y, u, v = decluster_vectors(x, y, u, v, decl_grid, min_nr_samples, verbose)
-
-    # append extra vectors if provided
-    if extra_vectors is not None:
-        x = np.concatenate((x, extra_vectors[:, 0]))
-        y = np.concatenate((y, extra_vectors[:, 1]))
-        u = np.concatenate((u, extra_vectors[:, 2]))
-        v = np.concatenate((v, extra_vectors[:, 3]))
 
     # return zero motion field if no sparse vectors are left for interpolation
     if x.size == 0:
