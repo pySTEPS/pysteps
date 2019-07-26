@@ -30,11 +30,9 @@ def boxcox_transform(
     """The one-parameter Box-Cox transformation.
 
     The Box-Cox transform is a well-known power transformation introduced by
-    `Box and Cox (1964)`_. In its one-parameter version, the Box-Cox transform
+    Box and Cox (1964). In its one-parameter version, the Box-Cox transform
     takes the form T(x) = ln(x) for Lambda = 0, or T(x) = (x**Lambda - 1)/Lambda
     otherwise.
-
-    .. _`Box and Cox (1964)`:https://doi.org/10.1111/j.2517-6161.1964.tb00553.x
 
     Default parameters will produce a log transform (i.e. Lambda=0).
 
@@ -73,6 +71,12 @@ def boxcox_transform(
         Array of any shape containing the (back-)transformed units.
     metadata : dict
         The metadata with updated attributes.
+
+    References
+    ----------
+    Box, G. E. and Cox, D. R. (1964), An Analysis of Transformations. Journal
+    of the Royal Statistical Society: Series B (Methodological), 26: 211-243.
+    doi:10.1111/j.2517-6161.1964.tb00553.x
 
     """
 
@@ -239,11 +243,8 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
 
 
 def NQ_transform(R, metadata=None, inverse=False, **kwargs):
-    """The normal quantile transformation as in `Bogner et al (2012)`_.
+    """The normal quantile transformation as in Bogner et al (2012).
     Zero rain vales are set to zero in norm space.
-
-    .. _`Bogner et al (2012)`:\
-    http://dx.doi.org/10.5194/hess-16-1085-2012
 
     Parameters
     ----------
@@ -269,6 +270,14 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
         Array of any shape containing the (back-)transformed units.
     metadata : dict
         The metadata with updated attributes.
+
+    References
+    ----------
+    Bogner, K., Pappenberger, F., and Cloke, H. L.: Technical Note: The normal
+    quantile transformation and its application in a flood forecasting system,
+    Hydrol. Earth Syst. Sci., 16, 1085-1094,
+    https://doi.org/10.5194/hess-16-1085-2012, 2012.
+
 
     """
 
