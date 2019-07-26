@@ -36,7 +36,9 @@ def to_rainrate(R, metadata, a=None, b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if a=b=None.
+        zr_a and zr_b attributes are also required, but only if a = b = None.
+        If missing, it defaults to Marshall–Palmer relation, that is, zr_a = 200.0
+        and zr_b = 1.6.
     a,b : float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
@@ -97,9 +99,9 @@ def to_rainrate(R, metadata, a=None, b=None):
 
         # Z to R
         if a is None:
-            a = metadata.get("zr_a", 316.0)
+            a = metadata.get("zr_a", 200.0) # default to Marshall–Palmer
         if b is None:
-            b = metadata.get("zr_b", 1.5)
+            b = metadata.get("zr_b", 1.6) # default to Marshall–Palmer
         R = (R / a) ** (1.0 / b)
         threshold = (threshold / a) ** (1.0 / b)
         zerovalue = (zerovalue / a) ** (1.0 / b)
@@ -133,7 +135,9 @@ def to_raindepth(R, metadata, a=None, b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if a=b=None.
+        zr_a and zr_b attributes are also required, but only if a = b = None.
+        If missing, it defaults to Marshall–Palmer relation, that is, zr_a = 200.0
+        and zr_b = 1.6.
     a,b : float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
@@ -193,9 +197,9 @@ def to_raindepth(R, metadata, a=None, b=None):
 
         # Z to R
         if a is None:
-            a = metadata.get("zr_a", 316.0)
+            a = metadata.get("zr_a", 200.0) # Default to Marshall–Palmer
         if b is None:
-            b = metadata.get("zr_b", 1.5)
+            b = metadata.get("zr_b", 1.6) # Default to Marshall–Palmer
         R = (R / a) ** (1.0 / b) / 60.0 * metadata["accutime"]
         threshold = (threshold / a) ** (1.0 / b) / 60.0 * metadata["accutime"]
         zerovalue = (zerovalue / a) ** (1.0 / b) / 60.0 * metadata["accutime"]
@@ -229,7 +233,9 @@ def to_reflectivity(R, metadata, a=None, b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if a=b=None.
+        zr_a and zr_b attributes are also required, but only if a = b = None.
+        If missing, it defaults to Marshall–Palmer relation, that is, zr_a = 200.0
+        and zr_b = 1.6.
     a,b : float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
@@ -269,15 +275,17 @@ def to_reflectivity(R, metadata, a=None, b=None):
 
     if metadata["unit"] == "mm/h":
 
-        # R to Z
+        # Z to R
         if a is None:
-            a = metadata.get("zr_a", 316.0)
+            a = metadata.get("zr_a", 200.0) # Default to Marshall–Palmer
         if b is None:
-            b = metadata.get("zr_b", 1.5)
+            b = metadata.get("zr_b", 1.6) # Default to Marshall–Palmer
 
         R = a * R ** b
         metadata["threshold"] = a * metadata["threshold"] ** b
         metadata["zerovalue"] = a * metadata["zerovalue"] ** b
+        metadata["zr_a"] = a
+        metadata["zr_b"] = b
 
         # Z to dBZ
         R, metadata = transformation.dB_transform(R, metadata)
@@ -287,14 +295,16 @@ def to_reflectivity(R, metadata, a=None, b=None):
         # depth to rate
         R, metadata = to_rainrate(R, metadata)
 
-        # R to Z
+        # Z to R
         if a is None:
-            a = metadata.get("zr_a", 316.0)
+            a = metadata.get("zr_a", 200.0) # Default to Marshall-Palmer
         if b is None:
-            b = metadata.get("zr_b", 1.5)
+            b = metadata.get("zr_b", 1.6) # Default to Marshall-Palmer
         R = a * R ** b
         metadata["threshold"] = a * metadata["threshold"] ** b
         metadata["zerovalue"] = a * metadata["zerovalue"] ** b
+        metadata["zr_a"] = a
+        metadata["zr_b"] = b
 
         # Z to dBZ
         R, metadata = transformation.dB_transform(R, metadata)
