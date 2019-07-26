@@ -1,6 +1,6 @@
 """
 
-pysteps.motion.track_features
+pysteps.motion.lucaskanade
 ==========================
 
 The Lucas-Kanade (LK) Module.
@@ -60,8 +60,8 @@ def dense_lucaskanade(input_images, **kwargs):
     .. _Shi-Tomasi: https://docs.opencv.org/3.4.1/dd/d1a/group__\
         imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
-    Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical 
-    flow method applied in combination to the `Shi-Tomasi`_ corner detection 
+    Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical
+    flow method applied in combination to the `Shi-Tomasi`_ corner detection
     routine. The sparse motion vectors are finally interpolated to return the whole
     motion field.
 
@@ -334,29 +334,29 @@ def dense_lucaskanade(input_images, **kwargs):
             criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
         )
         x0, y0, u, v = track_features(prvs, next, p0, lk_params, False)
+
         # skip loop if no vectors
         if x0 is None:
             continue
 
-        # stack vectors within time window as column vectors
-        x0Stack.append(x0.flatten()[:, None])
-        y0Stack.append(y0.flatten()[:, None])
-        uStack.append(u.flatten()[:, None])
-        vStack.append(v.flatten()[:, None])
+        # stack vectors
+        x0Stack.append(x0)
+        y0Stack.append(y0)
+        uStack.append(u)
+        vStack.append(v)
 
     # return zero motion field is no sparse vectors are found
     if len(x0Stack) == 0:
         if dense:
             return np.zeros((2, domain_size[0], domain_size[1]))
         else:
-            rzero = np.array([0])
-            return rzero, rzero, rzero, rzero
+            return np.array([]), np.array([]), np.array([]), np.array([])
 
     # convert lists of arrays into single arrays
-    x = np.vstack(x0Stack)
-    y = np.vstack(y0Stack)
-    u = np.vstack(uStack)
-    v = np.vstack(vStack)
+    x = np.concatenate(x0Stack)
+    y = np.concatenate(y0Stack)
+    u = np.concatenate(uStack)
+    v = np.concatenate(vStack)
 
     # exclude outlier vectors
     x, y, u, v = remove_outliers(
@@ -409,8 +409,8 @@ def dense_lucaskanade(input_images, **kwargs):
 
 def detect_features(input_image, mask, params, verbose=False):
     """
-    Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners 
-    on an image. 
+    Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners
+    on an image.
 
     .. _`goodFeaturesToTrack()`:\
         https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
@@ -450,7 +450,7 @@ def detect_features(input_image, mask, params, verbose=False):
     if verbose:
         print("--- %i good features to track detected ---" % len(p0))
 
-    return p0
+    return p0.squeeze()
 
 
 def track_features(prvs, next, p0, params, verbose=False):
@@ -494,20 +494,20 @@ def track_features(prvs, next, p0, params, verbose=False):
         )
 
     # Lucas-Kanade
-    p1, st, err = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **params)
+    # TODO: use the error returned by the OpenCV routine
+    p1, st, __ = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **params)
 
     # keep only features that have been found
-    st = st[:, 0] == 1
+    st = st.squeeze() == 1
     if np.any(st):
-        p1 = p1[st, :, :]
-        p0 = p0[st, :, :]
-        err = err[st, :]
+        p1 = p1[st, :]
+        p0 = p0[st, :]
 
         # extract vectors
-        x = p0[:, :, 0]
-        y = p0[:, :, 1]
-        u = np.array((p1 - p0)[:, :, 0])
-        v = np.array((p1 - p0)[:, :, 1])
+        x = p0[:, 0]
+        y = p0[:, 1]
+        u = np.array((p1 - p0)[:, 0])
+        v = np.array((p1 - p0)[:, 1])
     else:
         x = y = u = v = None
 
@@ -533,7 +533,7 @@ def morph_opening(input_image, n=3, thr=0):
     Returns
     -------
     input_image : array
-        Array of shape (m,n) containing the resulting image 
+        Array of shape (m,n) containing the resulting image
 
     """
     if not cv2_imported:
@@ -564,23 +564,27 @@ def remove_outliers(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
 
     """Remove the motion vectors that are identified as outliers.
 
+    Assume a (multivariate) Gaussian distribution of the motion vectors and
+    defines outliers based on their deviation from the (local) sample mean.
+
     Parameters
     ----------
     x : array_like
-        X-coordinates of the origins of the velocity vectors.
+        Array of shape (n) containing the x-coordinates of the origins of the
+        velocity vectors.
     y : array_like
-        Y-coordinates of the origins of the velocity vectors.
+        Array of shape (n) containing the y-coordinates of the origins of the
+        velocity vectors.
     u : array_like
-        X-components of the velocities.
+        Array of shape (n) containing the x-components of the velocities.
     v : array_like
-        Y-components of the velocities.
+        Array of shape (n) containing the y-components of the velocities.
     thr : float
-        Threshold to detect the outliers, defined in terms of number of
-        standard deviation from the mean (median).
+        Threshold in number of standard deviation from the mean.
     multivariate : bool, optional
         If true (the default), the outlier detection is computed in terms of
         the Mahalanobis distance. If false, the outlier detection is computed
-        with respect to the velocity of the motion vectors.
+        with respect to the magnitude of the motion vectors.
     k : int, optional
         The number of nearest neighbours used to localize the outlier detection.
         If set equal to 0, it employs all the data points.
@@ -596,7 +600,7 @@ def remove_outliers(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
     """
 
     if multivariate:
-        data = np.concatenate((u, v), axis=1)
+        data = np.stack((u, v)).T
 
     # globally
     if k <= 0:
@@ -624,7 +628,7 @@ def remove_outliers(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
     # locally
     else:
 
-        points = np.concatenate((x, y), axis=1)
+        points = np.stack((x, y)).T
         tree = scipy.spatial.cKDTree(points)
         __, inds = tree.query(points, k=np.min((k + 1, points.shape[0])))
         keep = []
@@ -679,13 +683,15 @@ def decluster_vectors(x, y, u, v, decl_grid, min_nr_samples, verbose=False):
     Parameters
     ----------
     x : array_like
-        X-coordinates of the origins of the velocity vectors.
+        Array of shape (n) containing the x-coordinates of the origins of the
+        velocity vectors.
     y : array_like
-        Y-coordinates of the origins of the velocity vectors.
+        Array of shape (n) containing the y-coordinates of the origins of the
+        velocity vectors.
     u : array_like
-        X-components of the velocities.
+        Array of shape (n) containing the x-components of the velocities.
     v : array_like
-        Y-components of the velocities.
+        Array of shape (n) containing the y-components of the velocities.
     decl_grid : float
         The size of the declustering grid in the same units as the input.
     min_nr_samples : int
