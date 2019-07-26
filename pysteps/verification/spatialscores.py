@@ -368,8 +368,12 @@ def fss_accum(fss, X_f, X_o):
 
     # Compute fractions of pixels above the threshold within a square
     # neighboring area by applying a 2D moving average to the binary fields
-    S_f = uniform_filter(I_f, size=fss["scale"], mode="constant", cval=0.0)
-    S_o = uniform_filter(I_o, size=fss["scale"], mode="constant", cval=0.0)
+    if fss["scale"] > 1:
+        S_f = uniform_filter(I_f, size=fss["scale"], mode="constant", cval=0.0)
+        S_o = uniform_filter(I_o, size=fss["scale"], mode="constant", cval=0.0)
+    else:
+        S_f = I_f
+        S_o = I_o
 
     fss["sum_obs_sq"] += np.nansum(S_o**2)
     fss["sum_fct_obs"] += np.nansum(S_f*S_o)
