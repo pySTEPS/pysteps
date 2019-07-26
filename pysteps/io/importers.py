@@ -580,6 +580,8 @@ def import_mch_gif(filename, product, unit, accutime):
         metadata["threshold"] = np.nan
     metadata["institution"] = "MeteoSwiss"
     metadata["product"] = product
+    metadata["zr_a"] = 316.0
+    metadata["zr_b"] = 1.5
 
     return R, None, metadata
 
@@ -708,6 +710,8 @@ def import_mch_hdf5(filename, **kwargs):
             "transform": transform,
             "zerovalue": np.nanmin(R),
             "threshold": thr,
+            "zr_a": 316.0,
+            "zr_b": 1.5,
         }
     )
 
@@ -777,6 +781,8 @@ def import_mch_metranet(filename, product, unit, accutime):
         metadata["threshold"] = np.nan
     else:
         metadata["threshold"] = np.nanmin(R[R > metadata["zerovalue"]])
+    metadata["zr_a"] = 316.0
+    metadata["zr_b"] = 1.5
 
     return R, None, metadata
 
