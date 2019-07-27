@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Work from the pysteps build directory
+cd $PYSTEPS_BUILD_DIR
+
 # Load pysteps-data
 # -----------------
 echo "Download pysteps example data"
