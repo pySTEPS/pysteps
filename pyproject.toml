@@ -15,3 +15,13 @@ build-backend = "setuptools.build_meta:__legacy__"
 # https://black.readthedocs.io/en/stable/pyproject_toml.html#configuration-format
 [tool.black]
 line-length = 79
+target-version = ['py36']
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | _build
+  | build
+  | dist
+)/
+'''
