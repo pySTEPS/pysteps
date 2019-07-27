@@ -34,13 +34,6 @@ matrix:
         - PYTHON_VERSION=3.6
         - RUN_TESTS=true
 
-    - os: osx
-      language: generic
-      osx_image: xcode10.1
-      env:
-        - PYTHON_VERSION=3.6
-        - RUN_TESTS=false
-
 sudo: false
 
 before_install:
