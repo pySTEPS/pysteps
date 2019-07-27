@@ -80,7 +80,7 @@ before_install:
   # ---------------------------------
   - export CYTHON_COVERAGE=1;
   - if [[ "RUN_TESTS" == true ]]; then
-    PACKAGES=""$MINIMAL_DEPENDENCIES $OPTIONAL_DEPENDENCIES $TEST_DEPENDENCIES";
+    PACKAGES="$MINIMAL_DEPENDENCIES $OPTIONAL_DEPENDENCIES $TEST_DEPENDENCIES";
     travis_retry conda install --quiet $PACKAGES ;
     fi;
 
