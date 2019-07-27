@@ -18,6 +18,7 @@ To test the convergence, using an example precipitation field we will:
 Let's first load the libraries that we will use.
 """
 from datetime import datetime
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -266,9 +267,15 @@ def plot_optflow_method_convergence(input_precip,
                                                    motion_type,
                                                    num_times=num_times)
 
+
     oflow_method = motion.get_method(optflow_method_name)
 
+    elapsed_time = time.perf_counter()
+
     computed_motion = oflow_method(precip_obs, verbose=False)
+
+    print(f"{optflow_method_name} computation time: "
+          f"{(time.perf_counter() - elapsed_time):.1f} [s]")
 
     precip_obs, _ = stp.utils.dB_transform(precip_obs, inverse=True)
 
