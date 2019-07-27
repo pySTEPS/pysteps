@@ -78,12 +78,6 @@ before_install:
     fi;
 
 install:
-  # Load pysteps-data
-  # -----------------
-  - export PYSTEPS_BUILD_DIR="$( pwd )"
-  - git clone https://github.com/pySTEPS/pysteps-data.git $PYSTEPS_BUILD_DIR/pysteps-data
-  - python scripts/travis.py
-  - export PYSTEPSRC=$PYSTEPS_BUILD_DIR/pystepsrc.travis
 
   # Install pysteps
   # ---------------
@@ -94,9 +88,8 @@ install:
   - python -c "import pysteps; print(pysteps.__file__)"
 
 script:
-  - cd ~
   - if [[ "RUN_TESTS" == true ]]; then
-    pytest --pyargs pysteps --cov=pysteps -ra;
+    bash ci/run_tests.sh;
     fi
 
 after_success:
