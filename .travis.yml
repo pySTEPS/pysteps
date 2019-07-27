@@ -72,7 +72,7 @@ before_install:
   # Customise the testing environment
   # ---------------------------------
   - export CYTHON_COVERAGE=1;
-  - if [[ "RUN_TESTS" == true ]]; then
+  - if [[ "$RUN_TESTS" == true ]]; then
     PACKAGES="$MINIMAL_DEPENDENCIES $OPTIONAL_DEPENDENCIES $TEST_DEPENDENCIES";
     travis_retry conda install --quiet $PACKAGES ;
     fi;
@@ -84,14 +84,21 @@ install:
   - pip install .
   - cd ~
 
-  # Test that the package can be imported
+  # Check that the pysteps package can be imported
   - python -c "import pysteps; print(pysteps.__file__)"
+  # Check the compiled modules
+  - python -c "from pysteps import motion"
+  - python -c "from pysteps.motion import vet"
+  - python -c "from pysteps.motion import proesmans"
+
+from pysteps import motion
+from pysteps.motion.vet import morph
 
 script:
-  - if [[ "RUN_TESTS" == true ]]; then
+  - if [[ "$RUN_TESTS" == true ]]; then
     bash ci/run_tests.sh;
     fi
 
 after_success:
-  - if [[ "RUN_TESTS" == true ]]; then codecov; fi
+  - if [[ "$RUN_TESTS" == true ]]; then codecov; fi
 
