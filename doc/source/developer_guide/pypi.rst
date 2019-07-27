@@ -86,11 +86,11 @@ Before uploading the package to the official `Python Package
 Index <https://pypi.org/>`_, test that the package can be installed
 using pip.
 
-For that we will create a new conda environment using the
-`environment_test.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_test.yml>`_ file in the
-pysteps repository::
+To do that, create a copy of the basic development environment using the
+`environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
+file in the root folder of the pysteps project::
 
-    conda create -f environment_test.yml
+    conda create -f environment_dev.yml -n pysteps_test
 
 Then we activate the environment::
 
