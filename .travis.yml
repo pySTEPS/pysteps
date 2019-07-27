@@ -81,6 +81,7 @@ install:
 
   # Install pysteps
   # ---------------
+  - export PYSTEPS_BUILD_DIR="$( pwd )"
   - pip install .
   - cd ~
 
