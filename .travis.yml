@@ -95,7 +95,7 @@ install:
 
 script:
   - if [[ "$RUN_TESTS" == true ]]; then
-    bash ci/run_tests.sh;
+    bash $PYSTEPS_BUILD_DIR/ci/run_tests.sh;
     fi
 
 after_success:
