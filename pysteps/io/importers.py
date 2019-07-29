@@ -390,6 +390,8 @@ def import_fmi_pgm(filename, **kwargs):
         metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
     else:
         metadata["threshold"] = np.nan
+    metadata["zr_a"] = 223.0
+    metadata["zr_b"] = 1.53
 
     return R, None, metadata
 
