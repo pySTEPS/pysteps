@@ -18,7 +18,7 @@ extra_link_args = ['-fopenmp']
 if sys.platform.startswith("darwin"):
     extra_link_args.append("-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/")
 
-_proesmans_extension_arguments = dict(extra_compile_args=["-O3", "-ffast-math", "-fopenmp"],
+_proesmans_extension_arguments = dict(extra_compile_args=["-O3", "-ffast-math"],
                                       include_dirs=[numpy.get_include()],
                                       language="c",
                                       extra_link_args=extra_link_args,
