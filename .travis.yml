@@ -1,0 +1,80 @@
+language: python
+
+matrix:
+  include:
+    - os: linux
+      python: 3.6
+      env: 
+        - PYTHON_VERSION=3.6
+        - PACKAGES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
+    - os: osx
+      language: generic
+      osx_image: xcode10.1
+      env: 
+        - PYTHON_VERSION=3.6
+        - PACKAGES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
+
+sudo: false
+
+before_install:
+  # Install gcc for MacOSX
+  # -----------------
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew install gcc ;
+      export CC=gcc-9  ;
+      export CXX=g++-9 ;
+      export CXX1X=g++-9 ;
+      which gcc-9 ;
+      gcc-9 --version ;
+    fi
+  # Install miniconda
+  # -----------------
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    travis_retry wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    travis_retry wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+    fi
+
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+
+  # Create the basic testing environment
+  # ------------------------------------
+  - conda config --set always_yes yes --set changeps1 no --set show_channel_urls yes
+  - conda config --add channels conda-forge
+  - conda config --add channels conda-forge/label/testing
+  - ENV_NAME="test-environment"
+  - travis_retry conda create -n $ENV_NAME python=$PYTHON_VERSION
+  - source activate $ENV_NAME
+
+  # Customise the testing environment
+  # ---------------------------------
+  - PACKAGES="$PACKAGES dask pyfftw cartopy basemap h5py PyWavelets cython"
+  - PACKAGES="$PACKAGES pytest pytest-cov codecov";
+  - export CYTHON_COVERAGE=1;
+  - travis_retry conda install --quiet $PACKAGES
+
+install:
+  # Load pysteps-data
+  # -----------------
+  - export PYSTEPS_BUILD_DIR="$( pwd )"
+  - git clone https://github.com/pySTEPS/pysteps-data.git $PYSTEPS_BUILD_DIR/pysteps-data
+  - python scripts/travis.py
+  - export PYSTEPSRC=$PYSTEPS_BUILD_DIR/pystepsrc.travis
+
+  # Install pysteps
+  # ---------------
+  - python setup.py install
+  - cd ~
+  - python -c "import cartopy; print('Version ', cartopy.__version__)"
+  - python -c "import dask; print('Version ', dask.__version__)"
+  - python -c "import pysteps as stp;" 
+
+script:
+- cd ~ 
+- pytest --pyargs pysteps --cov=pysteps -ra;
+
+after_success:
+  - codecov
+

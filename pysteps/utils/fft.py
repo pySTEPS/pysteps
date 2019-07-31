@@ -1,4 +1,16 @@
-"""Interface module for different FFT methods."""
+"""
+pysteps.utils.fft
+=================
+
+Interface module for different FFT methods.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_numpy
+    get_scipy
+    get_pyfftw
+"""
 
 from pysteps.exceptions import MissingOptionalDependency
 from types import SimpleNamespace
@@ -78,10 +90,10 @@ def get_pyfftw(shape, fftn_shape=None, n_threads=1, **kwargs):
                             direction="FFTW_BACKWARD", axes=(0, 1),
                             threads=n_threads)
 
-    f = {"fft2":lambda X: fft_obj(input_array=X).copy(),
-         "ifft2":lambda X: ifft_obj(input_array=X).copy(),
-         "rfft2":lambda X: rfft_obj(input_array=X).copy(),
-         "irfft2":lambda X: irfft_obj(input_array=X).copy(),
+    f = {"fft2":lambda X: fft_obj(input_array=X.copy()).copy(),
+         "ifft2":lambda X: ifft_obj(input_array=X.copy()).copy(),
+         "rfft2":lambda X: rfft_obj(input_array=X.copy()).copy(),
+         "irfft2":lambda X: irfft_obj(input_array=X.copy()).copy(),
          "fftshift":pyfftw_fft.fftshift,
          "ifftshift":pyfftw_fft.ifftshift,
          "fftfreq":pyfftw_fft.fftfreq}

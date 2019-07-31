@@ -1,20 +1,50 @@
-"""Skill scores for spatial forecasts."""
+"""
+pysteps.verification.spatialscores
+==================================
+
+Skill scores for spatial forecasts.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    intensity_scale
+    intensity_scale_init
+    intensity_scale_accum
+    intensity_scale_compute
+    binary_mse
+    fss
+    fss_init
+    fss_accum
+    fss_compute
+"""
 
 import numpy as np
+from pysteps.exceptions import MissingOptionalDependency
 from scipy.ndimage.filters import uniform_filter
-try:
-  import pywt
-  pywt_imported = True
-except ImportError:
-  pywt_imported = False
 
-def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
-    """Initialize an intensty-scale verification object.
+try:
+    import pywt
+
+    pywt_imported = True
+except ImportError:
+    pywt_imported = False
+from .. import cascade
+from .. import utils
+from pysteps.noise.fftgenerators import build_2D_tapering_function
+
+
+def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
+    """Compute an intensity-scale verification score.
 
     Parameters
     ----------
-    score_names : string
-        A string indicating the name of the spatial verification score to be used:
+    X_f : array_like
+        Array of shape (m, n) containing the forecast field.
+    X_o : array_like
+        Array of shape (m, n) containing the verification observation field.
+    name : string
+        A string indicating the name of the spatial verification score
+        to be used:
 
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
@@ -25,89 +55,111 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
         +------------+--------------------------------------------------------+
 
     thrs : sequence
-        A sequence of intensity thresholds for which to compute the verification.
-    scales : sequence
+        A sequence of intensity thresholds for which to compute the
+        verification.
+    scales : sequence, optional
         A sequence of spatial scales in pixels to be used in the FSS.
-    wavelet : str
-        The name of the wavelet function to use in the BMSE. Defaults to the Haar
-        wavelet, as described in Casati et al. 2004. See the documentation of
+    wavelet : str, optional
+        The name of the wavelet function to use in the BMSE.
+        Defaults to the Haar wavelet, as described in Casati et al. 2004.
+        See the documentation of PyWavelets for a list of available options.
+
+    Returns
+    -------
+    out : array_like
+        The two-dimensional array containing the intensity-scale skill scores
+        for each spatial scale and intensity threshold.
+    """
+
+    X_f = X_f.copy()
+    X_o = X_o.copy()
+    intscale = intensity_scale_init(name, thrs, scales, wavelet)
+    intensity_scale_accum(intscale, X_f, X_o)
+    return intensity_scale_compute(intscale)
+
+
+def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
+    """Initialize an intensity-scale verification object.
+
+    Parameters
+    ----------
+    name : string
+        A string indicating the name of the spatial verification score
+        to be used:
+
+        +------------+--------------------------------------------------------+
+        | Name       | Description                                            |
+        +============+========================================================+
+        |  FSS       | Fractions skill score                                  |
+        +------------+--------------------------------------------------------+
+        |  BMSE      | Binary mean squared error                              |
+        +------------+--------------------------------------------------------+
+
+    thrs : sequence
+        A sequence of intensity thresholds for which to compute the
+        verification.
+    scales : sequence, optional
+        A sequence of spatial scales in pixels to be used in the FSS.
+    wavelet : str, optional
+        The name of the wavelet function to use in the BMSE.
+        Defaults to the Haar wavelet, as described in
+        Casati et al. 2004. See the documentation of
         PyWavelets for a list of available options.
 
     Returns
     -------
-    iss : dict
+    out : dict
         The intensity-scale object.
 
     """
-
-    iss = {}
-    iss["name"]    = name
-    iss["SS"]      = None
-    iss["thrs"]    = thrs[:]
-    iss["scales"]  = scales
-    iss["wavelet"] = wavelet
-    iss["n"]       = None
-    iss["shape"]   = None
+    intscale = {}
+    intscale["name"] = name
+    intscale["SS"] = None
+    intscale["thrs"] = thrs[:]
+    intscale["scales"] = scales
+    intscale["wavelet"] = wavelet
+    intscale["n"] = None
+    intscale["shape"] = None
     if name.lower() == "fss":
-        iss["label"]   = "Fractions skill score"
-        del iss["wavelet"]
+        intscale["label"] = "Fractions skill score"
+        del intscale["wavelet"]
     if name.lower() == "bmse":
-        iss["label"]  = "Binary MSE skill score"
-        iss["scales"] = None
+        intscale["label"] = "Binary MSE skill score"
+        intscale["scales"] = None
     if name.lower() == "fss" and scales is None:
-        raise ValueError("a sequence of scales must be provided for the FSS, but %s was passed" % scales)
+        message = "a sequence of scales must be provided for the FSS,"
+        message += " but %s was passed" % scales
+        raise ValueError(message)
+    return intscale
 
-    return iss
 
-def intensity_scale_accum(iss, X_f, X_o):
+def intensity_scale_accum(intscale, X_f, X_o):
     """Compute and update the intensity-scale verification scores.
 
     Parameters
     ----------
-    iss : dict
-        An intensity-scale object created with intensity_scale_init.
+    intscale : dict
+        The intensity-scale object.
     X_f : array_like
-        Array of shape (n,m) containing the forecast field.
+        Array of shape (m, n) containing the forecast field.
     X_o : array_like
-        Array of shape (n,m) containing the verification observation field.
-
-    Returns
-    -------
-    iss : dict
-        A dictionary with the following key-value pairs:
-
-        +--------------+------------------------------------------------------+
-        |       Key    |                Value                                 |
-        +==============+======================================================+
-        |  name        | the name of the intensity-scale skill score          |
-        +--------------+------------------------------------------------------+
-        |  SS          | two-dimensional array containing the intensity-scale |
-        |              | skill scores for each spatial scale and intensity    |
-        |              | threshold                                            |
-        +--------------+------------------------------------------------------+
-        |  scales      | the spatial scales,                                  |
-        |              | corresponds to the first index of SS                 |
-        +--------------+------------------------------------------------------+
-        |  thrs        | the used intensity thresholds in increasing order,   |
-        |              | corresponds to the second index of SS                |
-        +--------------+------------------------------------------------------+
-        |  n           | the number of verified fct-obs pairs that were       |
-        |              | averaged                                             |
-        +--------------+------------------------------------------------------+
-        |  shape       | the shape of the fct-obs fields                      |
-        +--------------+------------------------------------------------------+
+        Array of shape (m, n) containing the verification observation field.
     """
-
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
-        raise ValueError("X_f and X_o must be two-dimensional arrays having the same shape, but X_f = %s amd X_o = %s" % (str(X_f.shape), str(X_o.shape)))
+        message = "X_f and X_o must be two-dimensional arrays"
+        message += " having the same shape, but "
+        message += "X_f = %s and X_o = %s" % (str(X_f.shape), str(X_o.shape))
+        raise ValueError(message)
 
-    if iss["shape"] is not None and X_f.shape != iss["shape"]:
-        raise ValueError("X_f and X_o shapes do not match the shape of the intensity-scale object")
+    if intscale["shape"] is not None and X_f.shape != intscale["shape"]:
+        message = "X_f and X_o shapes do not match the shape"
+        message += " of the intensity-scale object"
+        raise ValueError(message)
 
-    if iss["shape"] is None:
-        iss["shape"] = X_f.shape
+    if intscale["shape"] is None:
+        intscale["shape"] = X_f.shape
 
-    thrs = iss["thrs"]
+    thrs = intscale["thrs"]
     thr_min = np.min(thrs)
     n_thrs = len(thrs)
 
@@ -116,56 +168,70 @@ def intensity_scale_accum(iss, X_f, X_o):
     X_o = X_o.copy()
     X_o[~np.isfinite(X_o)] = thr_min - 1
 
-    if iss["name"].lower() == "bmse":
-
+    if intscale["name"].lower() == "bmse":
         SS = None
         n_thrs = len(thrs)
         for i in range(n_thrs):
-            SS_, scales = binary_mse(X_f, X_o, thrs[i], iss["wavelet"])
+            SS_, scales = binary_mse(X_f, X_o, thrs[i], intscale["wavelet"])
             if SS is None:
                 SS = np.empty((SS_.size, n_thrs))
             SS[:, i] = SS_
-
-        if iss["scales"] is None:
-            iss["scales"] = scales
-
-    elif iss["name"].lower() == "fss":
-        scales = iss["scales"]
+        if intscale["scales"] is None:
+            intscale["scales"] = scales
+    elif intscale["name"].lower() == "fss":
+        scales = intscale["scales"]
         n_scales = len(scales)
         SS = np.empty((n_scales, n_thrs))
         for i in range(n_thrs):
             for j in range(n_scales):
                 SS[j, i] = fss(X_f, X_o, thrs[i], scales[j])
-
     else:
-        raise ValueError("unknown method %s" % iss["name"])
+        raise ValueError("unknown method %s" % intscale["name"])
 
     # update scores
-    if iss["n"] is None:
-        iss["n"] = np.ones(SS.shape, dtype=int)
-    iss["n"] += (~np.isnan(SS)).astype(int)
+    if intscale["n"] is None:
+        intscale["n"] = np.ones(SS.shape, dtype=int)
+    intscale["n"] += (~np.isnan(SS)).astype(int)
 
-    if iss["SS"] is None:
-        iss["SS"] = SS
+    if intscale["SS"] is None:
+        intscale["SS"] = SS
     else:
-        iss["SS"] += np.nansum((SS, -1*iss["SS"]), axis=0)/iss["n"]
+        intscale["SS"] += np.nansum((SS, -1 * intscale["SS"]), axis=0) / intscale["n"]
 
-    return iss
+
+def intensity_scale_compute(intscale):
+    """Return the intensity scale matrix.
+
+    Parameters
+    ----------
+    intscale : dict
+        The intensity-scale object.
+
+    Returns
+    -------
+    out : array_like
+        The two-dimensional array containing the intensity-scale skill scores
+        for each given spatial scale and intensity threshold.
+
+    """
+    return intscale["SS"]
+
 
 def binary_mse(X_f, X_o, thr, wavelet="haar"):
     """Compute an intensity-scale verification as the MSE of the binary error.
+
     This method uses PyWavelets for decomposing the error field between the
     forecasts and observations into multiple spatial scales.
 
     Parameters
     ----------
     X_f : array_like
-        Array of shape (n,m) containing the forecast field.
+        Array of shape (m, n) containing the forecast field.
     X_o : array_like
-        Array of shape (n,m) containing the verification observation field.
+        Array of shape (m, n) containing the verification observation field.
     thr : sequence
         The intensity threshold for which to compute the verification.
-    wavelet : str
+    wavelet : str, optional
         The name of the wavelet function to use. Defaults to the Haar wavelet,
         as described in Casati et al. 2004. See the documentation of PyWavelets
         for a list of available options.
@@ -181,8 +247,15 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
     :cite:`CRS2004`
 
     """
+    if not pywt_imported:
+        raise MissingOptionalDependency(
+            "PyWavelets package is required for the binary MSE spatial "
+            "verification method but it is not installed")
+
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
-        raise ValueError("X_f and X_o must be two-dimensional arrays having the same shape")
+        message = "X_f and X_o must be two-dimensional arrays"
+        message += " having the same shape"
+        raise ValueError(message)
 
     X_f = X_f.copy()
     X_f[~np.isfinite(X_f)] = thr - 1
@@ -199,34 +272,36 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
     E_decomp = _wavelet_decomp(I_f - I_o, w)
     n_scales = len(E_decomp)
 
-    eps = 1.0*np.sum((X_o >= thr).astype(int)) / np.size(X_o)
+    eps = 1.0 * np.sum((X_o >= thr).astype(int)) / np.size(X_o)
 
     SS = np.empty((n_scales))
     for j in range(n_scales):
-        mse = np.mean(E_decomp[j]**2)
-        SS[j] = 1 - mse / (2*eps*(1-eps) / n_scales)
-    SS[~np.isfinite(SS)] = np.nan 
+        mse = np.mean(E_decomp[j] ** 2)
+        SS[j] = 1 - mse / (2 * eps * (1 - eps) / n_scales)
+    SS[~np.isfinite(SS)] = np.nan
 
     scales = pow(2, np.arange(SS.size))[::-1]
 
     return SS, scales
 
+
 def fss(X_f, X_o, thr, scale):
-    """Compute the fractions skill score (FSS) for a deterministic forecast
-    field and the corresponding observation.
+    """
+    Compute the fractions skill score (FSS) for a deterministic forecast field
+    and the corresponding observation field.
 
     Parameters
     ----------
     X_f : array_like
-        Array of shape (n,m) containing the forecast field.
+        Array of shape (m, n) containing the forecast field.
     X_o : array_like
-        Array of shape (n,m) containing the reference field (observation).
+        Array of shape (m, n) containing the observation field.
     thr : float
-        Intensity threshold.
+        The intensity threshold.
     scale : int
-        The spatial scale  in px. In practice they represent the size of the
-        moving window that it is used to compute the fraction of pixels above
-        the threshold.
+        The spatial scale in pixels. In practice, the scale represents the size
+        of the moving window that it is used to compute the fraction of pixels
+        above the threshold.
 
     Returns
     -------
@@ -238,31 +313,89 @@ def fss(X_f, X_o, thr, scale):
     :cite:`RL2008`, :cite:`EWWM2013`
 
     """
+
+    fss = fss_init(thr, scale)
+    fss_accum(fss, X_f, X_o)
+    return fss_compute(fss)
+
+def fss_init(thr, scale):
+    """Initialize a fractions skill score (FSS) verification object.
+
+    Parameters
+    ----------
+    thr : float
+        The intensity threshold.
+    scale : float
+        The spatial scale in pixels. In practice, the scale represents the size
+        of the moving window that it is used to compute the fraction of pixels
+        above the threshold.
+    """
+    fss = {}
+
+    fss["thr"] = thr
+    fss["scale"] = scale
+    fss["sum_fct_sq"] = 0.0
+    fss["sum_fct_obs"] = 0.0
+    fss["sum_obs_sq"] = 0.0
+
+    return fss
+
+def fss_accum(fss, X_f, X_o):
+    """Accumulate forecast-observation pairs to an FSS object.
+    
+    Parameters
+    -----------
+    fss : dict
+        The FSS object initialized with fss_init.
+    X_f : array_like
+        Array of shape (m, n) containing the forecast field.
+    X_o : array_like
+        Array of shape (m, n) containing the observation field.
+    """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
-        raise ValueError("X_f and X_o must be two-dimensional arrays having the same shape")
+        message = "X_f and X_o must be two-dimensional arrays"
+        message += " having the same shape"
+        raise ValueError(message)
 
     X_f = X_f.copy()
-    X_f[~np.isfinite(X_f)] = thr - 1
+    X_f[~np.isfinite(X_f)] = fss["thr"] - 1
     X_o = X_o.copy()
-    X_o[~np.isfinite(X_o)] = thr - 1
-    X_f.size
+    X_o[~np.isfinite(X_o)] = fss["thr"] - 1
 
-    # Convert to binary fields with the intensity threshold
-    I_f = (X_f >= thr).astype(float)
-    I_o = (X_o >= thr).astype(float)
+    # Convert to binary fields with the given intensity threshold
+    I_f = (X_f >= fss["thr"]).astype(float)
+    I_o = (X_o >= fss["thr"]).astype(float)
 
-    # Compute fractions of pixels above the threshold within a square neighboring
-    # area by applying a 2D moving average to the binary fields
-    S_f = uniform_filter(I_f, size=int(scale), mode="constant", cval=0.0)
-    S_o = uniform_filter(I_o, size=int(scale), mode="constant", cval=0.0)
+    # Compute fractions of pixels above the threshold within a square
+    # neighboring area by applying a 2D moving average to the binary fields
+    if fss["scale"] > 1:
+        S_f = uniform_filter(I_f, size=fss["scale"], mode="constant", cval=0.0)
+        S_o = uniform_filter(I_o, size=fss["scale"], mode="constant", cval=0.0)
+    else:
+        S_f = I_f
+        S_o = I_o
 
-    # Compute the numerator
-    n = X_f.size
-    N = 1.0*np.sum((S_o - S_f)**2) / n
-    # Compute the denominator
-    D = 1.0*(np.sum(S_o**2) + np.nansum(S_f**2)) / n
+    fss["sum_obs_sq"] += np.nansum(S_o**2)
+    fss["sum_fct_obs"] += np.nansum(S_f*S_o)
+    fss["sum_fct_sq"] += np.nansum(S_f**2)
 
-    return 1 - N / D
+def fss_compute(fss):
+    """Compute the FSS.
+    
+    Parameters
+    ----------
+    fss : dict
+       An FSS object initialized with fss_init and accumulated with fss_accum.
+    
+    Returns
+    -------
+    out : float
+        The computed FSS value.
+    """
+    numer = (fss["sum_fct_sq"] - 2.0*fss["sum_fct_obs"] + fss["sum_obs_sq"])
+    denom = fss["sum_fct_sq"] + fss["sum_obs_sq"]
+
+    return 1.0 - numer / denom
 
 def _wavelet_decomp(X, w):
     c = pywt.wavedec2(X, w)

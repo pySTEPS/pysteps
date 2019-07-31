@@ -1,12 +1,33 @@
+"""
+pysteps.utils.interface
+=======================
 
+Interface for the utils module.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_method
+"""
+
+from . import arrays
 from . import conversion
 from . import transformation
 from . import dimension
 from . import fft
+from . import spectral
 
 def get_method(name, **kwargs):
     """Return a callable function for the utility method corresponding to the
     given name.\n\
+
+    Arrays methods:
+
+    +-------------------+--------------------------------------------------------+
+    |     Name          |              Description                               |
+    +===================+========================================================+
+    | centred_coord     | compute a 2D coordinate array                          |
+    +-------------------+--------------------------------------------------------+
 
     Conversion methods:
 
@@ -56,15 +77,25 @@ def get_method(name, **kwargs):
     +-------------------+--------------------------------------------------------+
     |     Name          |              Description                               |
     +===================+========================================================+
-    |  numpy_fft        | numpy.fft                                              |
+    |  numpy            | numpy.fft                                              |
     +-------------------+--------------------------------------------------------+
-    |  scipy_fft        | scipy.fftpack                                          |
+    |  scipy            | scipy.fftpack                                          |
     +-------------------+--------------------------------------------------------+
-    |  pyfftw_fft       | pyfftw.interfaces.numpy_fft                            |
+    |  pyfftw           | pyfftw.interfaces.numpy_fft                            |
     +-------------------+--------------------------------------------------------+
 
-    Additional keyword arguments are passed to the initializer of the FFT 
+    Additional keyword arguments are passed to the initializer of the FFT
     methods, see utils.fft.
+
+    Spectral methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    |  rapsd            | Compute radially averaged power spectral density    |
+    +-------------------+-----------------------------------------------------+
+    |  rm_rdisc         | remove the rain / no-rain discontinuity             |
+    +-------------------+-----------------------------------------------------+
 
     """
 
@@ -76,28 +107,30 @@ def get_method(name, **kwargs):
     def donothing(R, metadata=None, *args, **kwargs):
         return R.copy(), {} if metadata is None else metadata.copy()
 
-    methods_objects                 = dict()
-    methods_objects["none"]         = donothing
+    methods_objects                  = dict()
+    methods_objects["none"]          = donothing
+    # arrays methods
+    methods_objects["centred_coord"] = arrays.compute_centred_coord_array
     # conversion methods
-    methods_objects["mm/h"]         = conversion.to_rainrate
-    methods_objects["rainrate"]     = conversion.to_rainrate
-    methods_objects["mm"]           = conversion.to_raindepth
-    methods_objects["raindepth"]    = conversion.to_raindepth
-    methods_objects["dbz"]          = conversion.to_reflectivity
-    methods_objects["reflectivity"] = conversion.to_reflectivity
+    methods_objects["mm/h"]          = conversion.to_rainrate
+    methods_objects["rainrate"]      = conversion.to_rainrate
+    methods_objects["mm"]            = conversion.to_raindepth
+    methods_objects["raindepth"]     = conversion.to_raindepth
+    methods_objects["dbz"]           = conversion.to_reflectivity
+    methods_objects["reflectivity"]  = conversion.to_reflectivity
     # transformation methods
-    methods_objects["boxcox"]       = transformation.boxcox_transform
-    methods_objects["box-cox"]      = transformation.boxcox_transform
-    methods_objects["db"]           = transformation.dB_transform
-    methods_objects["decibel"]      = transformation.dB_transform
-    methods_objects["log"]          = transformation.boxcox_transform
-    methods_objects["nqt"]          = transformation.NQ_transform
-    methods_objects["sqrt"]         = transformation.sqrt_transform
+    methods_objects["boxcox"]        = transformation.boxcox_transform
+    methods_objects["box-cox"]       = transformation.boxcox_transform
+    methods_objects["db"]            = transformation.dB_transform
+    methods_objects["decibel"]       = transformation.dB_transform
+    methods_objects["log"]           = transformation.boxcox_transform
+    methods_objects["nqt"]           = transformation.NQ_transform
+    methods_objects["sqrt"]          = transformation.sqrt_transform
     # dimension methods
-    methods_objects["accumulate"]   = dimension.aggregate_fields_time
-    methods_objects["clip"]         = dimension.clip_domain
-    methods_objects["square"]       = dimension.square_domain
-    methods_objects["upscale"]      = dimension.aggregate_fields_space
+    methods_objects["accumulate"]    = dimension.aggregate_fields_time
+    methods_objects["clip"]          = dimension.clip_domain
+    methods_objects["square"]        = dimension.square_domain
+    methods_objects["upscale"]       = dimension.aggregate_fields_space
     # FFT methods
     if name in ["numpy", "pyfftw", "scipy"]:
         if "shape" not in kwargs.keys():
@@ -109,6 +142,9 @@ def get_method(name, **kwargs):
         except KeyError as e:
             raise ValueError("Unknown method %s\n" % e +
                              "Supported methods:%s" % str(methods_objects.keys()))
+    # spectral methods
+    methods_objects["rapsd"]        = spectral.rapsd
+    methods_objects["rm_rdisc"]     = spectral.remove_rain_norain_discontinuity
 
 def _get_fft_method(name, **kwargs):
     kwargs = kwargs.copy()
@@ -122,4 +158,6 @@ def _get_fft_method(name, **kwargs):
     elif name == "pyfftw":
         return fft.get_pyfftw(shape, **kwargs)
     else:
-        raise ValueError("unknown method %s, the available methods are 'numpy', 'scipy' and 'pyfftw'" % name)
+        raise ValueError("Unknown method {}\n".format(name)
+                         + "The available methods are:"
+                         + str(["numpy", "pyfftw", "scipy"])) from None

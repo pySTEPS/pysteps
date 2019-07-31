@@ -1,5 +1,19 @@
-"""Miscellaneous utility functions."""
-from pysteps.exceptions import MissingOptionalDependency
+"""
+pysteps.visualization.utils
+===========================
+
+Miscellaneous utility functions for the visualization module.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    parse_proj4_string
+    proj4_to_basemap
+    proj4_to_cartopy
+    reproject_geodata
+"""
+import numpy as np
+from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 try:
     import cartopy.crs as ccrs
@@ -148,6 +162,10 @@ def proj4_to_cartopy(proj4str):
                 cl = ccrs.UTM
             elif v == "stere":
                 cl = ccrs.Stereographic
+            elif v == "aea":
+                cl = ccrs.AlbersEqualArea
+            elif v == "somerc":
+                raise UnsupportedSomercProjection("unsupported projection: somerc")
             else:
                 raise ValueError("unsupported projection: %s" % v)
         elif k in km_proj:
@@ -168,3 +186,84 @@ def proj4_to_cartopy(proj4str):
         kw_proj.pop("false_northing", None)
 
     return cl(globe=globe, **kw_proj)
+
+def reproject_geodata(geodata, t_proj4str, return_grid=None):
+    """
+    Reproject geodata and optionally create a grid in a new projection.
+    
+    Parameters
+    ----------
+    geodata : dictionary
+        Dictionary containing geographical information about the field.
+        It must contain the attributes projection, x1, x2, y1, y2, xpixelsize, 
+        ypixelsize, as defined in the documentation of pysteps.io.importers.
+    t_proj4str: str
+        The target PROJ.4-compatible projection string (fallback).
+    return_grid : {None, 'coords', 'quadmesh'}, optional
+        Whether to return the coordinates of the projected grid.
+        The default return_grid=None does not compute the grid,
+        return_grid='coords' returns the centers of projected grid points,
+        return_grid='quadmesh' returns the coordinates of the quadrilaterals
+        (e.g. to be used by pcolormesh).
+    
+    Returns
+    -------
+    geodata : dictionary
+        Dictionary containing the reprojected geographical information 
+        and optionally the required X_grid and Y_grid. \n
+        It also includes a fixed boolean attribute regular_grid=False to indicate
+        that the reprojected grid has no regular spacing.
+    """
+    if not pyproj_imported:
+        raise MissingOptionalDependency(
+            "pyproj package is required for reproject_geodata function utility "
+            "but it is not installed")
+    
+    geodata = geodata.copy()
+    s_proj4str = geodata["projection"]
+    extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
+    shape = (int((geodata["y2"]-geodata["y1"])/geodata["ypixelsize"]),
+            int((geodata["x2"]-geodata["x1"])/geodata["xpixelsize"]))
+    
+    s_srs = pyproj.Proj(s_proj4str)
+    t_srs = pyproj.Proj(t_proj4str)
+    
+    x1 = extent[0]
+    x2 = extent[1]
+    y1 = extent[2]
+    y2 = extent[3]
+    
+    # Reproject grid on fall-back projection
+    if return_grid is not None:
+        if return_grid == "coords":
+            y_coord = np.linspace(y1, y2, shape[0]) + geodata["ypixelsize"]/2.0
+            x_coord = np.linspace(x1, x2, shape[1]) + geodata["xpixelsize"]/2.0
+        elif return_grid == "quadmesh":
+            y_coord = np.linspace(y1, y2, shape[0] + 1)
+            x_coord = np.linspace(x1, x2, shape[1] + 1)
+        else:
+            raise ValueError("unknown return_grid value %s" % return_grid)
+            
+        X, Y = np.meshgrid(x_coord, y_coord)
+        
+        X, Y = pyproj.transform(s_srs, t_srs, X.flatten(), Y.flatten())    
+        X = X.reshape((y_coord.size, x_coord.size))
+        Y = Y.reshape((y_coord.size, x_coord.size))
+    
+    # Reproject extent on fall-back projection
+    x1, y1 = pyproj.transform(s_srs, t_srs, x1, y1)
+    x2, y2 = pyproj.transform(s_srs, t_srs, x2, y2)
+    
+    # update geodata
+    geodata["projection"] = t_proj4str
+    geodata["x1"] = x1
+    geodata["x2"] = x2
+    geodata["y1"] = y1
+    geodata["y2"] = y2
+    geodata["regular_grid"] = False
+    geodata["xpixelsize"] = None
+    geodata["ypixelsize"] = None
+    geodata["X_grid"] = X
+    geodata["Y_grid"] = Y
+    
+    return geodata

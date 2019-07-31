@@ -1,8 +1,19 @@
-"""Utilities for finding archived files that match the given criteria."""
+"""
+pysteps.io.archive
+==================
+
+Utilities for finding archived files that match the given criteria.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    find_by_date
+"""
 
 from datetime import datetime, timedelta
 import fnmatch
 import os
+
 
 def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
                  num_prev_files=0, num_next_files=0):
@@ -41,11 +52,11 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         assigned if a file name corresponding to a given timestamp is not found.
 
     """
-    filenames  = []
+    filenames = []
     timestamps = []
 
-    for i in range(num_prev_files+num_next_files+1):
-        curdate = date + timedelta(minutes=num_next_files*timestep) - timedelta(minutes=i*timestep)
+    for i in range(num_prev_files + num_next_files + 1):
+        curdate = date + timedelta(minutes=num_next_files * timestep) - timedelta(minutes=i * timestep)
         fn = _find_matching_filename(curdate, root_path, path_fmt, fn_pattern, fn_ext)
         filenames.append(fn)
 
@@ -54,10 +65,11 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
     if all(filename is None for filename in filenames):
         raise IOError("no input data found in %s" % root_path)
 
-    if (num_prev_files+num_next_files) > 0:
+    if (num_prev_files + num_next_files) > 0:
         return (filenames[::-1], timestamps[::-1])
     else:
         return (filenames, timestamps)
+
 
 def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext):
     path = _generate_path(date, root_path, path_fmt)
@@ -76,16 +88,25 @@ def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext):
                         break
 
         fn = os.path.join(path, fn)
-        fn = fn if os.path.exists(fn) else None
+
+        if os.path.exists(fn):
+            fn = fn
+        else:
+            print('filename for date %s not found in %s' % (date, path))
+            fn = None
+    else:
+        print('path', path, 'not found.')
 
     return fn
 
-def _generate_path(date, root_path, path_fmt):
-    f = lambda t: datetime.strftime(date, t) if t[0] == '%' else t
-    if path_fmt != "":
-        tokens = [f(t) for t in path_fmt.split('/')]
-        subpath = os.path.join(*tokens)
 
-        return os.path.join(root_path, subpath)
+def _generate_path(date, root_path, path_format):
+    """Generate file path."""
+    if not isinstance(date, datetime):
+        raise TypeError("The input 'date' argument must be a datetime object")
+
+    if path_format != "":
+        sub_path = date.strftime(path_format)
+        return os.path.join(root_path, sub_path)
     else:
         return root_path

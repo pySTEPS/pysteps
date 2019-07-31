@@ -1,7 +1,11 @@
-"""Bandpass filters for separating different spatial scales from two-dimensional
+"""
+pysteps.cascade.bandpass_filters
+================================
+
+Bandpass filters for separating different spatial scales from two-dimensional
 images in the frequency domain.
 
-The methods in this module implement the following interface:
+The methods in this module implement the following interface::
 
     filter_xxx(shape, n, optional arguments)
 
@@ -28,9 +32,17 @@ key-value pairs:
 
 where r = int(max(N, M)/2)+1
 
-The filter weights are assumed to be normalized so that for any Fourier
-wavenumber they sum to one.
+By default, the filter weights are normalized so that for any Fourier wavenumber
+they sum to one.
 
+Available filters
+-----------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    filter_uniform
+    filter_gaussian
 """
 
 import numpy as np
@@ -60,10 +72,12 @@ def filter_uniform(shape, n):
     result["weights_1d"]    = np.ones((1, r_max))
     result["weights_2d"]    = np.ones((1, M, int(N/2)+1))
     result["central_freqs"] = None
+    result["central_wavenumbers"] = None
 
     return result
 
-def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
+def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0,
+                    normalize=True):
     """Implements a set of Gaussian bandpass filters in logarithmic frequency
     scale.
 
@@ -83,6 +97,11 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     gauss_scale_0 : float
         Optional scaling parameter for the Gaussian function corresponding to
         the first frequency band.
+    d : scalar, optional
+        Sample spacing (inverse of the sampling rate). Defaults to 1.
+    normalize : bool
+        If True, normalize the weights so that for any given wavenumber they sum
+        to one.
 
     Returns
     -------
@@ -118,7 +137,7 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     r_max = int(L/2)+1
     r = np.arange(r_max)
 
-    wfs,cfs = _gaussweights_1d(L, n, l_0=l_0, gauss_scale=gauss_scale,
+    wfs,cwn = _gaussweights_1d(L, n, l_0=l_0, gauss_scale=gauss_scale,
                                gauss_scale_0=gauss_scale_0)
 
     w = np.empty((n, r_max))
@@ -128,16 +147,26 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
         w[i, :] = wf(r)
         W[i, :, :] = wf(R)
 
-    w_sum = np.sum(w, axis=0)
-    W_sum = np.sum(W, axis=0)
-    for k in range(W.shape[0]):
-        w[k, :]    /= w_sum
-        W[k, :, :] /= W_sum
+    if normalize:
+        w_sum = np.sum(w, axis=0)
+        W_sum = np.sum(W, axis=0)
+        for k in range(W.shape[0]):
+            w[k, :]    /= w_sum
+            W[k, :, :] /= W_sum
 
     result = {}
-    result["weights_1d"]    = w
-    result["weights_2d"]    = W
-    result["central_freqs"] = np.array(cfs)
+    result["weights_1d"] = w
+    result["weights_2d"] = W
+    
+    cwn = np.array(cwn)
+    result["central_wavenumbers"] = cwn
+    
+    # Compute frequencies
+    central_freqs = 1.0*cwn/L
+    central_freqs[0] = 1.0/L
+    central_freqs[-1] = 0.5 # Nyquist freq
+    central_freqs = 1.0*d*central_freqs
+    result["central_freqs"] = central_freqs
 
     return result
 
@@ -169,7 +198,7 @@ def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
             return f(log_e(x) - self.c, self.s)
 
     weight_funcs  = []
-    central_freqs = [0.0]
+    central_wavenumbers = [0.0]
 
     s = gauss_scale
     weight_funcs.append(gaussfunc(0.0, gauss_scale_0))
@@ -177,7 +206,7 @@ def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
     for i,ri in enumerate(r):
         rc = log_e(ri[0])
         weight_funcs.append(gaussfunc(rc, s))
-        central_freqs.append(ri[0])
+        central_wavenumbers.append(ri[0])
 
     gf = gaussfunc(log_e(l/2), s)
     def g(x):
@@ -188,6 +217,6 @@ def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
         return res
 
     weight_funcs.append(g)
-    central_freqs.append(l/2)
+    central_wavenumbers.append(l/2)
 
-    return weight_funcs, central_freqs
+    return weight_funcs, central_wavenumbers

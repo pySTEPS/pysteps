@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy
-
 import pytest
 
 import pysteps
@@ -13,7 +12,8 @@ def _generic_interface_test(method_getter,
     for name, expected_function in valid_names_func_pair:
         error_message = "Error getting '{}' function.".format(name)
         assert method_getter(name) == expected_function, error_message
-        assert method_getter(name.upper()) == expected_function, error_message
+        if isinstance(name, str):
+            assert method_getter(name.upper()) == expected_function, error_message
 
     # test invalid names
     for invalid_name in invalid_names:
@@ -22,7 +22,7 @@ def _generic_interface_test(method_getter,
 
 
 def test_cascade_interface():
-    """ Test the cascade module interface"""
+    """Test the cascade module interface."""
 
     from pysteps.cascade import decomposition, bandpass_filters
 
@@ -37,14 +37,25 @@ def test_cascade_interface():
 
 
 def test_extrapolation_interface():
-    """ Test the extrapolation module interface"""
+    """Test the extrapolation module interface."""
 
     from pysteps import extrapolation
     from pysteps.extrapolation import semilagrangian
 
+    from pysteps.extrapolation.interface import eulerian_persistence as eulerian
+    from pysteps.extrapolation.interface import _do_nothing as do_nothing
+    from pysteps.extrapolation.interface import _return_none
+
     method_getter = extrapolation.interface.get_method
 
-    valid_names_func_pair = [('semilagrangian', semilagrangian.extrapolate)]
+    valid_returned_objs = dict()
+    valid_returned_objs['semilagrangian'] = semilagrangian.extrapolate
+    valid_returned_objs['eulerian'] = eulerian
+    valid_returned_objs[None] = do_nothing
+    valid_returned_objs['None'] = do_nothing
+
+    valid_names_func_pair = list(valid_returned_objs.items())
+
     invalid_names = ['euler', 'LAGRANGIAN']
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
@@ -53,31 +64,35 @@ def test_extrapolation_interface():
     velocity = numpy.random.rand(100, 100)
     num_timesteps = 10
     for name in ["eulerian", "EULERIAN"]:
-        forecast = method_getter(name)(precip, velocity, num_timesteps)
+        forecaster = method_getter(name)
+        forecast = forecaster(precip, velocity, num_timesteps)
         for i in range(num_timesteps):
             assert numpy.all(forecast[i] == precip)
 
-    assert method_getter(None)(precip, velocity, num_timesteps) is None
+    forecaster = method_getter(None)
+    assert forecaster(precip, velocity, num_timesteps) is None
 
 
 def test_io_interface():
-    """ Test the io module interface"""
+    """Test the io module interface."""
 
     from pysteps.io import import_bom_rf3
+    from pysteps.io import import_fmi_geotiff
     from pysteps.io import import_fmi_pgm
     from pysteps.io import import_mch_gif
     from pysteps.io import import_mch_hdf5
     from pysteps.io import import_mch_metranet
-    from pysteps.io import import_odim_hdf5
+    from pysteps.io import import_opera_hdf5
     from pysteps.io import initialize_forecast_exporter_netcdf
 
     # Test importers
     valid_names_func_pair = [('bom_rf3', import_bom_rf3),
+                             ('fmi_geotiff', import_fmi_geotiff),
                              ('fmi_pgm', import_fmi_pgm),
                              ('mch_gif', import_mch_gif),
                              ('mch_hdf5', import_mch_hdf5),
                              ('mch_metranet', import_mch_metranet),
-                             ('odim_hdf5', import_odim_hdf5),
+                             ('opera_hdf5', import_opera_hdf5),
                              ('mch_gif', import_mch_gif),
                              ('mch_gif', import_mch_gif),
                              ('mch_gif', import_mch_gif), ]
@@ -85,7 +100,7 @@ def test_io_interface():
     def method_getter(name):
         return pysteps.io.interface.get_method(name, 'importer')
 
-    invalid_names = ['odim', 'mch', 'fmi']
+    invalid_names = ['opera', 'mch', 'fmi']
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
     # Test exporters
@@ -108,7 +123,7 @@ def test_io_interface():
 
 
 def test_motion_interface():
-    """ Test the motion module interface"""
+    """Test the motion module interface."""
 
     from pysteps.motion.darts import DARTS
     from pysteps.motion.lucaskanade import dense_lucaskanade
@@ -136,7 +151,7 @@ def test_motion_interface():
 
 
 def test_noise_interface():
-    """ Test the noise module interface"""
+    """Test the noise module interface."""
 
     from pysteps.noise.fftgenerators import (initialize_param_2d_fft_filter,
                                              generate_noise_2d_fft_filter,
@@ -166,7 +181,7 @@ def test_noise_interface():
 
 
 def test_nowcasts_interface():
-    """ Test the nowcasts module interface"""
+    """Test the nowcasts module interface."""
 
     from pysteps.nowcasts import steps
     from pysteps.nowcasts import extrapolation
@@ -189,7 +204,7 @@ def test_nowcasts_interface():
 
 
 def test_utils_interface():
-    """ Test utils module interface"""
+    """Test utils module interface."""
 
     from pysteps.utils import conversion
     from pysteps.utils import transformation
@@ -219,4 +234,3 @@ def test_utils_interface():
 
     invalid_names = ['random', 'invalid']
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
-

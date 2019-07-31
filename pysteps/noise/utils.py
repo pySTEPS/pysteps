@@ -1,4 +1,14 @@
-"""Miscellaneous utility functions related to generation of stochastic perturbations."""
+"""
+pysteps.noise.utils
+===================
+
+Miscellaneous utility functions related to generation of stochastic perturbations.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    compute_noise_stddev_adjs
+"""
 
 import numpy as np
 try:
@@ -6,24 +16,10 @@ try:
     dask_imported = True
 except ImportError:
     dask_imported = False
-# Use the pyfftw interface if it is installed. If not, fall back to the fftpack
-# interface provided by SciPy, and finally to numpy if SciPy is not installed.
-try:
-    import pyfftw.interfaces.numpy_fft as fft
-    import pyfftw
-    # TODO: Caching and multithreading currently disabled because they give a
-    # segfault with dask.
-    #pyfftw.interfaces.cache.enable()
-    fft_kwargs = {"threads":1, "planner_effort":"FFTW_ESTIMATE"}
-except ImportError:
-    import scipy.fftpack as fft
-    fft_kwargs = {}
-except ImportError:
-    import numpy.fft as fft
-    fft_kwargs = {}
 
-def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
-                              conditional=True, num_workers=None):
+def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
+                              noise_filter, noise_generator, num_iter,
+                              conditional=True, num_workers=1, seed=None):
     """Apply a scale-dependent adjustment factor to the noise fields used in STEPS.
 
     Simulates the effect of applying a precipitation mask to a Gaussian noise
@@ -58,8 +54,10 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
         If set to True, compute the statistics conditionally by excluding areas
         of no precipitation.
     num_workers : int
-        The number of workers to use for parallel computation. Set to None to
-        use all available CPUs. Applicable if dask is enabled.
+        The number of workers to use for parallel computation. Applicable if
+        dask is installed.
+    seed : int
+        Optional seed number for the random generators.
 
     Returns
     -------
@@ -75,18 +73,18 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
     R[~np.isfinite(R)] = R_thr_2
     R[~MASK] = R_thr_2
     if not conditional:
-        mu,sigma = np.mean(R),np.std(R)
+        mu, sigma = np.mean(R),np.std(R)
     else:
-        mu,sigma = np.mean(R[MASK]),np.std(R[MASK])
+        mu, sigma = np.mean(R[MASK]),np.std(R[MASK])
     R -= mu
 
     MASK_ = MASK if conditional else None
     decomp_R = decomp_method(R, F, MASK=MASK_)
 
-    if not dask_imported:
-        N_stds = []
-    else:
+    if dask_imported and num_workers > 1:
         res = []
+    else:
+        N_stds = []
 
     randstates = []
     seed = None
@@ -94,14 +92,12 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
         randstates.append(np.random.RandomState(seed=seed))
         seed = np.random.randint(0, high=1e9)
 
-    R_fft = abs(fft.fft2(R))
-
     for k in range(num_iter):
         def worker():
-            # generate Gaussian white noise field, multiply it with the standard
-            # deviation of the observed field and apply the precipitation mask
-            N = randstates[k].randn(R.shape[0], R.shape[1])
-            N = np.real(fft.ifft2(fft.fft2(N) * R_fft))
+            # generate Gaussian white noise field, filter it using the chosen
+            # method, multiply it with the standard deviation of the observed
+            # field and apply the precipitation mask
+            N = noise_generator(noise_filter, randstate=randstates[k], seed=seed)
             N = N / np.std(N) * sigma + mu
             N[~MASK] = R_thr_2
 
@@ -112,12 +108,12 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method, num_iter,
 
             return decomp_N["stds"]
 
-        if dask_imported:
+        if dask_imported and num_workers > 1:
             res.append(dask.delayed(worker)())
         else:
             N_stds.append(worker())
 
-    if dask_imported:
+    if dask_imported and num_workers > 1:
         N_stds = dask.compute(*res, num_workers=num_workers)
 
     # for each cascade level, compare the standard deviations between the

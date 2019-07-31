@@ -1,10 +1,21 @@
-"""Methods for processing and analyzing precipitation fields in the Fourier 
-domain."""
+"""
+pysteps.utils.spectral
+======================
+
+Utility methods for processing and analyzing precipitation fields in the
+Fourier domain.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    rapsd
+    remove_rain_norain_discontinuity
+"""
 
 import numpy as np
 from . import arrays
 
-def rapsd(Z, fft_method=None, return_freq=False, **fft_kwargs):
+def rapsd(Z, fft_method=None, return_freq=False, d=1.0, **fft_kwargs):
     """Compute radially averaged power spectral density (RAPSD) from the given 
     2D input field.
     
@@ -19,6 +30,9 @@ def rapsd(Z, fft_method=None, return_freq=False, **fft_kwargs):
       the center of the array (see numpy.fft.fftshift or scipy.fftpack.fftshift).
     return_freq: bool
       Whether to also return the Fourier frequencies.
+    d: scalar
+      Sample spacing (inverse of the sampling rate). Defaults to 1.
+      Applicable if return_freq is 'True'.
     
     Returns
     -------
@@ -37,7 +51,10 @@ def rapsd(Z, fft_method=None, return_freq=False, **fft_kwargs):
     if len(Z.shape) != 2:
         raise ValueError("%i dimensions are found, but the number of dimensions should be 2" % \
                          len(Z.shape))
-
+    
+    if np.sum(np.isnan(Z)) > 0:
+        raise ValueError('input array Z should not contain nans')
+    
     M,N = Z.shape
 
     YC,XC = arrays.compute_centred_coord_array(M, N)
@@ -62,8 +79,31 @@ def rapsd(Z, fft_method=None, return_freq=False, **fft_kwargs):
         result.append(np.mean(F_vals))
     
     if return_freq:
-        freq = np.fft.fftfreq(L)
+        freq = np.fft.fftfreq(L, d=d)
         freq = freq[r_range]
         return np.array(result), freq
     else:
         return np.array(result)
+        
+def remove_rain_norain_discontinuity(R):
+    """Function to remove the rain/no-rain discontinuity.
+    It can be used before computing Fourier filters to reduce 
+    the artificial increase of power at high frequencies caused by the discontinuity.
+
+    Parameters
+    ----------
+    R : array-like
+        Array of any shape to be transformed.
+        
+    Returns
+    -------
+    R : array-like
+        Array of any shape containing the transformed data.
+    """
+    R = R.copy()
+    zerovalue = np.nanmin(R)
+    threshold = np.nanmin(R[R > zerovalue])
+    R[R > zerovalue] -= (threshold - zerovalue)
+    R -= np.nanmin(R)
+    
+    return R

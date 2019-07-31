@@ -145,8 +145,10 @@ params_file = config_fname()
 if params_file is not None:
     with open(params_file, 'r') as f:
         rcparams = json.loads(jsmin(f.read()))
-    print("Pysteps configuration file found at: " + params_file
-          + "\n")
+
+    if not rcparams.get("silent_import", False):
+        print("Pysteps configuration file found at: " + params_file
+              + "\n")
 
     with open(_get_config_file_schema(), 'r') as f:
         schema = json.loads(jsmin(f.read()))

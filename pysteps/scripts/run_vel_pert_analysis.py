@@ -4,8 +4,8 @@ For a description of the method, see :cite:`BPS2006`."""
 
 import argparse
 from datetime import datetime, timedelta
-import numpy as np
 import pickle
+import numpy as np
 from scipy import linalg as la
 from pysteps import io, motion
 from pysteps import rcparams
@@ -33,7 +33,7 @@ args = argparser.parse_args()
 datasource = rcparams["data_sources"][args.datasource]
 
 startdate = datetime.strptime(args.startdate, "%Y%m%d%H%M")
-enddate = datetime.strptime(args.enddate,   "%Y%m%d%H%M")
+enddate = datetime.strptime(args.enddate, "%Y%m%d%H%M")
 
 importer = io.get_method(datasource["importer"], "importer")
 
@@ -87,7 +87,13 @@ while curdate <= enddate:
     else:
         R_ = R
 
+    # TODO: Allow the user to supply parameters for the optical flow.
     V = oflow(R_) * vsf
+    # discard the motion field if the mean velocity is abnormally large
+    if np.nanmean(np.linalg.norm(V, axis=0)) > 0.5*R.shape[1]:
+        curdate += timedelta(minutes=datasource["timestep"])
+        continue
+
     if use_precip_mask:
         V[0, :, :][MASK] = np.nan
         V[1, :, :][MASK] = np.nan

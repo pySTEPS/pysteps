@@ -1,20 +1,37 @@
+"""
+pysteps.io.interface
+====================
+
+Interface for the io module.
+
+.. currentmodule:: pysteps.io.interface
+
+.. autosummary::
+    :toctree: ../generated/
+
+    get_method
+"""
+
 from pysteps.io import importers, exporters
 
 _importer_methods = dict()
 _importer_methods['bom_rf3'] = importers.import_bom_rf3
+_importer_methods['fmi_geotiff'] = importers.import_fmi_geotiff
 _importer_methods['fmi_pgm'] = importers.import_fmi_pgm
 _importer_methods['mch_gif'] = importers.import_mch_gif
 _importer_methods['mch_hdf5'] = importers.import_mch_hdf5
 _importer_methods['mch_metranet'] = importers.import_mch_metranet
-_importer_methods['odim_hdf5'] = importers.import_odim_hdf5
+_importer_methods['opera_hdf5'] = importers.import_opera_hdf5
 _importer_methods['knmi_hdf5'] = importers.import_knmi_hdf5
 
 _exporter_methods = dict()
 _exporter_methods['netcdf'] = exporters.initialize_forecast_exporter_netcdf
+_exporter_methods['kineros'] = exporters.initialize_forecast_exporter_kineros
 
 
 def get_method(name, method_type):
-    """Return a callable function for the method corresponding to the given name.
+    """Return a callable function for the method corresponding to the given 
+    name.
 
     Parameters
     ----------
@@ -26,33 +43,46 @@ def get_method(name, method_type):
         .. tabularcolumns:: |p{2cm}|L|
 
         +--------------+-------------------------------------------------------+
-        | Name         |             Description                               |
+        |     Name     |              Description                              |
         +==============+=======================================================+
-        |   bom_rf3    | NetCDF files in the Bureau of Meterology (BoM)        |
-        |              | archive containing precipitation intensity composites |
-        +--------------+-------------------------------------------------------|
-        |   fmi_pgm    | PGM files in the Finnish Meteorological Institute     |
-        |              | (FMI) archive containing reflectivity composites (dBZ)|
+        | bom_rf3      |  NefCDF files used in the Boreau of Meterorology      |
+        |              |  archive containing precipitation intensity           |
+        |              |  composites.                                          |
         +--------------+-------------------------------------------------------+
-        |   mch_gif    | GIF files in the MeteoSwiss archive containing        |
-        |              | precipitation composites                              |
+        | fmi_geotiff  |  GeoTIFF files used in the Finnish Meteorological     |
+        |              |  Institute (FMI) archive, containing reflectivity     |
+        |              |  composites (dBZ).                                    |
         +--------------+-------------------------------------------------------+
-        |   mch_hdf5   | HDF5 file format used by MeteoSiss                    |
+        | fmi_pgm      |  PGM files used in the Finnish Meteorological         |
+        |              |  Institute (FMI) archive, containing reflectivity     |
+        |              |  composites (dBZ).                                    |
         +--------------+-------------------------------------------------------+
-        | mch_metranet | metranet files in the MeteoSwiss archive containing   |
-        |              | precipitation composites                              |
+        | mch_gif      | GIF files in the MeteoSwiss (MCH) archive containing  |
+        |              | precipitation composites.                             |
         +--------------+-------------------------------------------------------+
-        |   odim_hdf5  | ODIM HDF5 file format used by Eumetnet/OPERA          |
+        | mch_hdf5     | HDF5 file format used by MeteoSiss (MCH).             |
         +--------------+-------------------------------------------------------+
-        |   knmi_hdf5  |  HDF5 file format used by KNMI                        |
+        | mch_metranet | metranet files in the MeteoSwiss (MCH) archive        |
+        |              | containing precipitation composites.                  |
+        +--------------+-------------------------------------------------------+
+        | opera_hdf5   | ODIM HDF5 file format used by Eumetnet/OPERA.         |
+        +--------------+-------------------------------------------------------+
+        | knmi_hdf5    |  HDF5 file format used by KNMI.                       |
         +--------------+-------------------------------------------------------+
 
         Exporters:
+        
+        .. tabularcolumns:: |p{2cm}|L|
 
         +-------------+--------------------------------------------------------+
         |     Name    |              Description                               |
         +=============+========================================================+
-        | netcdf      | NetCDF files conforming to the CF 1.7 specification    |
+        | kineros     | KINEROS2 Rainfall file as specified in                 |
+        |             | https://www.tucson.ars.ag.gov/kineros/.                |
+        |             | Grid points are treated as individual rain gauges.     |
+        |             | A separate file is produced for each ensemble member.  |
+        +-------------+--------------------------------------------------------+
+        | netcdf      | NetCDF files conforming to the CF 1.7 specification.   |
         +-------------+--------------------------------------------------------+
 
     method_type : str

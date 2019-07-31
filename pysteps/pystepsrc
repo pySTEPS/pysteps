@@ -1,5 +1,7 @@
 // pysteps configuration
 {
+    // "silent_import" : whether to suppress the initial pysteps message
+    "silent_import": false,
     "outputs": {
         // path_outputs : path where to save results (figures, forecasts, etc)
         "path_outputs": "./"
@@ -7,8 +9,8 @@
     "plot": {
         // "motion_plot" : "streamplot" or "quiver"
         "motion_plot": "quiver",
-        // "colorscale" :  "MeteoSwiss" or "STEPS-BE"
-        "colorscale": "MeteoSwiss"
+        // "colorscale" :  "BOM-RF3", "pysteps" or "STEPS-BE"
+        "colorscale": "pysteps"
     },
     "data_sources": {
         "bom": {

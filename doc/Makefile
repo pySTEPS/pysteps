@@ -3,10 +3,9 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXPATH    = /usr/share/sphinx/scripts/python3
-SPHINXBUILD   = ${SPHINXPATH}/sphinx-build
+SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = pysteps
-SOURCEDIR     = .
+SOURCEDIR     = source
 BUILDDIR      = _build
 
 # Put it first so that "make" without argument is like "make help".

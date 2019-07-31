@@ -1,6 +1,6 @@
 Metadata-Version: 1.2
 Name: pySteps
-Version: 0.2
+Version: 1.0.1
 Summary: Python framework for short-term ensemble prediction systems
 Home-page: http://pypi.python.org/pypi/pySteps/
 License: LICENSE
@@ -8,7 +8,7 @@ Description: =======
 pySteps
 =======
 The pySTEPS initiative is a community that develops and maintains an easy to
-use, modular, free and open source python framework for short-term ensemble
+use, modular, free and open-source python framework for short-term ensemble
 prediction systems.
 
 The focus is on probabilistic nowcasting of radar precipitation fields,

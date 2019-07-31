@@ -1,6 +1,10 @@
-"""Methods for importing nowcast files.
+"""
+pysteps.io.nowcast_importers
+============================
 
-The methods in this module implement the following interface:
+Methods for importing nowcast files.
+
+The methods in this module implement the following interface::
 
   import_xxx(filename, optional arguments)
 
@@ -58,6 +62,13 @@ The metadata dictionary contains the following mandatory key-value pairs:
 |                   | same unit, transformation and accutime of the data.      |
 +-------------------+----------------------------------------------------------+
 
+Available Nowcast Importers
+---------------------------
+
+.. autosummary::
+    :toctree: ../generated/
+
+    import_netcdf_pysteps
 """
 
 import numpy as np
@@ -66,9 +77,11 @@ from pysteps.exceptions import MissingOptionalDependency, DataModelError
 
 try:
     import netCDF4
+
     netcdf4_imported = True
 except ImportError:
     netcdf4_imported = False
+
 
 def import_netcdf_pysteps(filename, **kwargs):
     """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the
@@ -76,90 +89,96 @@ def import_netcdf_pysteps(filename, **kwargs):
     if not netcdf4_imported:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import pysteps netcdf "
-            "nowcasts but it is not installed")
+            "nowcasts but it is not installed"
+        )
+    try:
+        ds = netCDF4.Dataset(filename, "r")
 
-    ds = netCDF4.Dataset(filename, 'r')
+        var_names = list(ds.variables.keys())
 
-    var_names = list(ds.variables.keys())
+        if "precip_intensity" in var_names:
+            R = ds.variables["precip_intensity"]
+            unit = "mm/h"
+            accutime = None
+            transform = None
+        elif "precip_accum" in var_names:
+            R = ds.variables["precip_accum"]
+            unit = "mm"
+            accutime = None
+            transform = None
+        elif "hourly_precip_accum" in var_names:
+            R = ds.variables["hourly_precip_accum"]
+            unit = "mm"
+            accutime = 60.0
+            transform = None
+        elif "reflectivity" in var_names:
+            R = ds.variables["reflectivity"]
+            unit = "dBZ"
+            accutime = None
+            transform = "dB"
+        else:
+            raise DataModelError(
+                "Non CF compilant file: "
+                "the netCDF file does not contain any supported variable name.\n"
+                "Supported names: 'precip_intensity', 'hourly_precip_accum', "
+                "or 'reflectivity'\n"
+                "file: " + filename
+            )
 
-    if "precip_intensity" in var_names:
-        R         = ds.variables["precip_intensity"]
-        unit      = "mm/h" 
-        accutime  = None
-        transform = None
-    elif "precip_accum" in var_names:
-        R         = ds.variables["precip_accum"]
-        unit      = "mm"
-        accutime  = None
-        transform = None
-    elif "hourly_precip_accum" in var_names:
-        R         = ds.variables["hourly_precip_accum"]
-        unit      = "mm"
-        accutime  = 60.
-        transform = None
-    elif "reflectivity" in var_names:
-        R         = ds.variables["reflectivity"]
-        unit      = "dBZ"
-        accutime  = None
-        transform = "dB"
-    else:
-        raise DataModelError(
-            "Non CF compilant file: "
-            "the netCDF file does not contain any supported variable name.\n"
-            "Supported names: 'precip_intensity', 'hourly_precip_accum', "
-            "or 'reflectivity'\n"
-            "file: "+filename)
+        R = R[...].squeeze().astype(float)
 
-    R = R[...].squeeze().astype(float)
+        metadata = {}
 
-    metadata = {}
-    
-    time_var = ds.variables['time']
-    leadtimes = time_var[:]/60. # minutes leadtime
-    metadata["leadtimes"] = leadtimes
-    timestamps = netCDF4.num2date(time_var[:], time_var.units)
-    metadata["timestamps"] = timestamps
+        time_var = ds.variables["time"]
+        leadtimes = time_var[:] / 60.0  # minutes leadtime
+        metadata["leadtimes"] = leadtimes
+        timestamps = netCDF4.num2date(time_var[:], time_var.units)
+        metadata["timestamps"] = timestamps
 
-    projdef = ""
-    if "polar_stereographic" in var_names:
-        vn = "polar_stereographic"
+        projdef = ""
+        if "polar_stereographic" in var_names:
+            vn = "polar_stereographic"
 
-        attr_dict = {}
-        for attr_name in ds.variables[vn].ncattrs():
-            attr_dict[attr_name] = ds[vn].getncattr(attr_name)
+            attr_dict = {}
+            for attr_name in ds.variables[vn].ncattrs():
+                attr_dict[attr_name] = ds[vn].getncattr(attr_name)
 
-        proj_str = _convert_grid_mapping_to_proj4(attr_dict)
-        metadata["projection"] = proj_str
-        
-    # geodata
-    metadata["xpixelsize"] = abs(ds.variables['xc'][1] - ds.variables['xc'][0])
-    metadata["ypixelsize"] = abs(ds.variables['yc'][1] - ds.variables['yc'][0])
-    
-    xmin = np.min(ds.variables['xc']) - 0.5*metadata["xpixelsize"]
-    xmax = np.max(ds.variables['xc']) + 0.5*metadata["xpixelsize"]
-    ymin = np.min(ds.variables['yc']) - 0.5*metadata["ypixelsize"]
-    ymax = np.max(ds.variables['yc']) + 0.5*metadata["ypixelsize"]
+            proj_str = _convert_grid_mapping_to_proj4(attr_dict)
+            metadata["projection"] = proj_str
 
-    # TODO: this is only a quick solution
-    metadata["x1"] = xmin
-    metadata["y1"] = ymin
-    metadata["x2"] = xmax
-    metadata["y2"] = ymax
+        # geodata
+        metadata["xpixelsize"] = abs(ds.variables["xc"][1] - ds.variables["xc"][0])
+        metadata["ypixelsize"] = abs(ds.variables["yc"][1] - ds.variables["yc"][0])
 
-    metadata["yorigin"] = "upper" # TODO: check this
+        xmin = np.min(ds.variables["xc"]) - 0.5 * metadata["xpixelsize"]
+        xmax = np.max(ds.variables["xc"]) + 0.5 * metadata["xpixelsize"]
+        ymin = np.min(ds.variables["yc"]) - 0.5 * metadata["ypixelsize"]
+        ymax = np.max(ds.variables["yc"]) + 0.5 * metadata["ypixelsize"]
 
-    # TODO: Read the metadata to the dictionary.
-    if accutime is None:
-        accutime = leadtimes[1] - leadtimes[0]
-    metadata["accutime"]    = accutime
-    metadata["unit"]        = unit
-    metadata["transform"]   = transform
-    metadata["zerovalue"]   = np.nanmin(R)
-    metadata["threshold"]   = np.nanmin(R[R>np.nanmin(R)])
+        # TODO: this is only a quick solution
+        metadata["x1"] = xmin
+        metadata["y1"] = ymin
+        metadata["x2"] = xmax
+        metadata["y2"] = ymax
 
-    ds.close()
+        metadata["yorigin"] = "upper"  # TODO: check this
 
-    return R,metadata
+        # TODO: Read the metadata to the dictionary.
+        if accutime is None:
+            accutime = leadtimes[1] - leadtimes[0]
+        metadata["accutime"] = accutime
+        metadata["unit"] = unit
+        metadata["transform"] = transform
+        metadata["zerovalue"] = np.nanmin(R)
+        metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
+
+        ds.close()
+
+        return R, metadata
+    except Exception as er:
+        print("There was an error processing the file", er)
+        return None, None
+
 
 def _convert_grid_mapping_to_proj4(grid_mapping):
     gm_keys = list(grid_mapping.keys())

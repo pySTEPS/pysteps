@@ -1,19 +1,46 @@
-"""Forecast evaluation and skill scores for deterministic categorial forecasts."""
+"""
+pysteps.verification.detcatscores
+=================================
 
+Forecast evaluation and skill scores for deterministic categorial (dichotomous)
+forecasts.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    det_cat_fct
+    det_cat_fct_init
+    det_cat_fct_accum
+    det_cat_fct_compute
+"""
+
+import collections
 import numpy as np
 
-def det_cat_fcst(pred, obs, thr, scores):
-    """Calculate simple and skill scores for deterministic categorical forecasts.
+
+def det_cat_fct(pred, obs, thr, scores="", axis=None):
+
+    """Calculate simple and skill scores for deterministic categorical
+    (dichotomous) forecasts.
 
     Parameters
     ----------
     pred : array_like
-        predictions
+        Array of predictions. NaNs are ignored.
+
     obs : array_like
-        verifying observations
-    scores : list
-        a list containing the names of the scores to be computed, the full list
-        is:
+        Array of verifying observations. NaNs are ignored.
+
+    thr : float
+        The threshold that is applied to predictions and observations in order
+        to define events vs no events (yes/no).
+
+    scores : {string, list of strings}, optional
+        The name(s) of the scores. The default, scores="", will compute all
+        available scores.
+        The available score names are:
+
+        .. tabularcolumns:: |p{2cm}|L|
 
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
@@ -24,9 +51,12 @@ def det_cat_fcst(pred, obs, thr, scores):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
-        |  FA        | false alarm rate (prob. of false detection)            |
+        |  F1        | the harmonic mean of precision and sensitivity         |
         +------------+--------------------------------------------------------+
-        |  FAR       | false alarm ratio                                      |
+        |  FA        | false alarm rate (prob. of false detection, fall-out,  |
+        |            | false positive rate)                                   |
+        +------------+--------------------------------------------------------+
+        |  FAR       | false alarm ratio (false discovery rate)               |
         +------------+--------------------------------------------------------+
         |  GSS       | Gilbert skill score (equitable threat score)           |
         +------------+--------------------------------------------------------+
@@ -34,78 +64,300 @@ def det_cat_fcst(pred, obs, thr, scores):
         +------------+--------------------------------------------------------+
         |  HSS       | Heidke skill score                                     |
         +------------+--------------------------------------------------------+
-        |  POD       | probability of detection (hit rate)                    |
+        |  MCC       | Matthews correlation coefficient                       |
+        +------------+--------------------------------------------------------+
+        |  POD       | probability of detection (hit rate, sensitivity,       |
+        |            | recall, true positive rate)                            |
+        +------------+--------------------------------------------------------+
+        |  SEDI      | symmetric extremal dependency index                    |
+        +------------+--------------------------------------------------------+
+
+    axis : None or int or tuple of ints, optional
+        Axis or axes along which a score is integrated. The default, axis=None,
+        will integrate all of the elements of the input arrays.\n
+        If axis is -1 (or any negative integer), the integration is not performed
+        and scores are computed on all of the elements in the input arrays.\n
+        If axis is a tuple of ints, the integration is performed on all of the
+        axes specified in the tuple.
+
+    Returns
+    -------
+    result : dict
+        Dictionary containing the verification results.
+
+    See also
+    --------
+    pysteps.verification.detcontscores.det_cont_fct
+
+
+    """
+
+    contab = det_cat_fct_init(thr, axis)
+    det_cat_fct_accum(contab, pred, obs)
+    return det_cat_fct_compute(contab, scores)
+
+
+def det_cat_fct_init(thr, axis=None):
+    """Initialize a contingency table object.
+
+    Parameters
+    ----------
+    thr : float
+        threshold that is applied to predictions and observations in order
+        to define events vs no events (yes/no).
+
+    axis : None or int or tuple of ints, optional
+        Axis or axes along which a score is integrated. The default, axis=None,
+        will integrate all of the elements of the input arrays.\n
+        If axis is -1 (or any negative integer), the integration is not performed
+        and scores are computed on all of the elements in the input arrays.\n
+        If axis is a tuple of ints, the integration is performed on all of the
+        axes specified in the tuple.
+
+    Returns
+    -------
+    out : dict
+      The contingency table object.
+
+    """
+
+    contab = {}
+
+    # catch case of axis passed as integer
+    def get_iterable(x):
+        if x is None or (
+            isinstance(x, collections.Iterable) and not isinstance(x, int)
+        ):
+            return x
+        else:
+            return (x,)
+
+    contab["thr"] = thr
+    contab["axis"] = get_iterable(axis)
+    contab["hits"] = None
+    contab["false_alarms"] = None
+    contab["misses"] = None
+    contab["correct_negatives"] = None
+
+    return contab
+
+
+def det_cat_fct_accum(contab, pred, obs):
+    """Accumulate the frequency of "yes" and "no" forecasts and observations
+    in the contingency table.
+
+    Parameters
+    ----------
+    contab : dict
+      A contingency table object initialized with
+      pysteps.verification.detcatscores.det_cat_fct_init.
+
+    pred : array_like
+        Array of predictions. NaNs are ignored.
+
+    obs : array_like
+        Array of verifying observations. NaNs are ignored.
+
+    """
+
+    pred = np.asarray(pred.copy())
+    obs = np.asarray(obs.copy())
+    axis = tuple(range(pred.ndim)) if contab["axis"] is None else contab["axis"]
+
+    # checks
+    if pred.shape != obs.shape:
+        raise ValueError(
+            "the shape of pred does not match the shape of obs %s!=%s"
+            % (pred.shape, obs.shape)
+        )
+
+    if pred.ndim <= np.max(axis):
+        raise ValueError(
+            "axis %d is out of bounds for array of dimension %d"
+            % (np.max(axis), len(pred.shape))
+        )
+
+    idims = [dim not in axis for dim in range(pred.ndim)]
+    nshape = tuple(np.array(pred.shape)[np.array(idims)])
+    if contab["hits"] is None:
+        # initialize the count arrays in the contingency table
+        contab["hits"] = np.zeros(nshape)
+        contab["false_alarms"] = np.zeros(nshape)
+        contab["misses"] = np.zeros(nshape)
+        contab["correct_negatives"] = np.zeros(nshape)
+
+    else:
+        # check dimensions
+        if contab["hits"].shape != nshape:
+            raise ValueError(
+                "the shape of the input arrays does not match the shape of the "
+                + "contingency table %s!=%s" % (nshape, contab["hits"].shape)
+            )
+
+    # add dummy axis in case integration is not required
+    if np.max(axis) < 0:
+        pred = pred[None, :]
+        obs = obs[None, :]
+        axis = (0,)
+    axis = tuple([a for a in axis if a >= 0])
+
+    # apply threshold
+    predb = pred > contab["thr"]
+    obsb = obs > contab["thr"]
+
+    # calculate hits, misses, false positives, correct rejects
+    H_idx = np.logical_and(predb == 1, obsb == 1)
+    F_idx = np.logical_and(predb == 1, obsb == 0)
+    M_idx = np.logical_and(predb == 0, obsb == 1)
+    R_idx = np.logical_and(predb == 0, obsb == 0)
+
+    # accumulate in the contingency table
+    contab["hits"] += np.nansum(H_idx.astype(int), axis=axis)
+    contab["misses"] += np.nansum(M_idx.astype(int), axis=axis)
+    contab["false_alarms"] += np.nansum(F_idx.astype(int), axis=axis)
+    contab["correct_negatives"] += np.nansum(R_idx.astype(int), axis=axis)
+
+
+def det_cat_fct_compute(contab, scores=""):
+    """Compute simple and skill scores for deterministic categorical
+    (dichotomous) forecasts from a contingency table object.
+
+    Parameters
+    ----------
+    contab : dict
+      A contingency table object initialized with
+      pysteps.verification.detcatscores.det_cat_fct_init and populated with
+      pysteps.verification.detcatscores.det_cat_fct_accum.
+
+    scores : {string, list of strings}, optional
+        The name(s) of the scores. The default, scores="", will compute all
+        available scores.
+        The available score names a
+
+        .. tabularcolumns:: |p{2cm}|L|
+
+        +------------+--------------------------------------------------------+
+        | Name       | Description                                            |
+        +============+========================================================+
+        |  ACC       | accuracy (proportion correct)                          |
+        +------------+--------------------------------------------------------+
+        |  BIAS      | frequency bias                                         |
+        +------------+--------------------------------------------------------+
+        |  CSI       | critical success index (threat score)                  |
+        +------------+--------------------------------------------------------+
+        |  F1        | the harmonic mean of precision and sensitivity         |
+        +------------+--------------------------------------------------------+
+        |  FA        | false alarm rate (prob. of false detection, fall-out,  |
+        |            | false positive rate)                                   |
+        +------------+--------------------------------------------------------+
+        |  FAR       | false alarm ratio (false discovery rate)               |
+        +------------+--------------------------------------------------------+
+        |  GSS       | Gilbert skill score (equitable threat score)           |
+        +------------+--------------------------------------------------------+
+        |  HK        | Hanssen-Kuipers discriminant (Pierce skill score)      |
+        +------------+--------------------------------------------------------+
+        |  HSS       | Heidke skill score                                     |
+        +------------+--------------------------------------------------------+
+        |  MCC       | Matthews correlation coefficient                       |
+        +------------+--------------------------------------------------------+
+        |  POD       | probability of detection (hit rate, sensitivity,       |
+        |            | recall, true positive rate)                            |
         +------------+--------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                    |
         +------------+--------------------------------------------------------+
 
     Returns
     -------
-    result : list
-        the verification results
+    result : dict
+        Dictionary containing the verification results.
 
     """
 
-    # flatten array if 2D
-    pred = pred.flatten()
-    obs = obs.flatten()
+    # catch case of single score passed as string
+    def get_iterable(x):
+        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+            return x
+        else:
+            return (x,)
 
-    # apply threshold
-    predb = pred > thr
-    obsb  = obs > thr
+    scores = get_iterable(scores)
 
-    # calculate hits, misses, false positives, correct rejects
-    H_idx = np.logical_and(predb==1, obsb==1) # correctly predicted precip
-    F_idx = np.logical_and(predb==1, obsb==0) # predicted precip even though none there
-    M_idx = np.logical_and(predb==0, obsb==1) # predicted no precip even though there was
-    R_idx = np.logical_and(predb==0, obsb==0) # correctly predicted no precip
+    H = 1.0 * contab["hits"]  # true positives
+    M = 1.0 * contab["misses"]  # false negatives
+    F = 1.0 * contab["false_alarms"]  # false positives
+    R = 1.0 * contab["correct_negatives"]  # true negatives
 
-    H = sum(H_idx.astype(int)) # hits
-    M = sum(M_idx.astype(int)) # misses
-    F = sum(F_idx.astype(int)) # false alarms
-    R = sum(R_idx.astype(int)) # correct rejections
-
-    result = []
+    result = {}
     for score in scores:
+        # catch None passed as score
+        if score is None:
+            continue
 
-        score = score.lower()
+        score_ = score.lower()
 
         # simple scores
-        POD = H/float(H+M)       # probability of detection
-        FAR = F/float(H+F)       # false alarm ratio
-        FA  = F/float(F+R)        # false alarm rate = prob of false detection
-        s   = (H+M)/float(H+M+F+R) # base rate = freq of observed events
+        POD = H / (H + M)
+        FAR = F / (H + F)
+        FA = F / (F + R)
+        s = (H + M) / (H + M + F + R)
 
-        if score == 'pod':
-            result.append(POD)
-        if score == 'far':
-            result.append(FAR)
-        if score == 'fa':
-            result.append(FA)
-        if score == 'acc':
-            ACC = (H+R)/(H+M+F+R) # accuracy (fraction correct)
-            result.append(ACC)
-        if score == 'csi':
-            CSI = H/(H+M+F)       # critical success index
-            result.append(CSI)
-        if score == 'bias': # frequency bias
+        if score_ in ["pod", ""]:
+            # probability of detection
+            result["POD"] = POD
+        if score_ in ["far", ""]:
+            # false alarm ratio
+            result["FAR"] = FAR
+        if score_ in ["fa", ""]:
+            # false alarm rate (prob of false detection)
+            result["FA"] = FA
+        if score_ in ["acc", ""]:
+            # accuracy (fraction correct)
+            ACC = (H + R) / (H + M + F + R)
+            result["ACC"] = ACC
+        if score_ in ["csi", ""]:
+            # critical success index
+            CSI = H / (H + M + F)
+            result["CSI"] = CSI
+        if score_ in ["bias", ""]:
+            # frequency bias
             B = (H + F) / (H + M)
-            result.append(B)
+            result["BIAS"] = B
 
         # skill scores
-        if score == 'hss':
-            HSS = 2*(H*R-F*M)/((H+M)*(M+R)+(H+F)*(F+R)) # Heidke Skill Score (-1 < HSS < 1) < 0 implies no skill
-            result.append(HSS)
-        if score == 'hk':
-            HK = POD-FA # Hanssen-Kuipers Discriminant
-            result.append(HK)
-        if score == 'gss':
-            GSS = (POD-FA)/((1-s*POD)/(1-s)+FA*(1-s)/s) # Gilbert Skill Score
-            result.append(GSS)
-        if score == 'sedi':
+        if score_ in ["hss", ""]:
+            # Heidke Skill Score (-1 < HSS < 1) < 0 implies no skill
+            HSS = 2 * (H * R - F * M) / ((H + M) * (M + R) + (H + F) * (F + R))
+            result["HSS"] = HSS
+        if score_ in ["hk", ""]:
+            # Hanssen-Kuipers Discriminant
+            HK = POD - FA
+            result["HK"] = HK
+        if score_ in ["gss", ""]:
+            # Gilbert Skill Score
+            GSS = (POD - FA) / ((1 - s * POD) / (1 - s) + FA * (1 - s) / s)
+            result["GSS"] = GSS
+        if score_ in ["ets", ""]:
+            # Equitable Threat Score
+            N = H + M + R + F
+            HR = ((H + M) * (H + F)) / N
+            if (H + M + F - HR) == 0:
+                ETS = np.nan
+            else:
+                ETS = (H - HR) / (H + M + F - HR)
+            result["ETS"] = ETS
+        if score_ in ["sedi", ""]:
             # Symmetric extremal dependence index
-            SEDI = (np.log(FA)-np.log(POD)+np.log(1-POD)-np.log(1-FA))/(np.log(FA)
-                    +np.log(POD)+np.log(1-POD)+np.log(1-FA))
-            result.append(SEDI)
+            SEDI = (np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA)) / (
+                np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA)
+            )
+            result["SEDI"] = SEDI
+        if score_ in ["mcc", ""]:
+            # Matthews correlation coefficient
+            MCC = (H * R - F * M) / np.sqrt((H + F) * (H + M) * (R + F) * (R + M))
+            result["MCC"] = MCC
+        if score_ in ["f1", "f1-score", ""]:
+            # F1 score
+            F1 = 2 * H / (2 * H + F + M)
+            result["F1"] = F1
 
     return result

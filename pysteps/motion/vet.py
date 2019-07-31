@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-#
-# Licensed under the BSD-3-Clause license
-# Copyright (c) 2018, Andres A. Perez Hortal
 """
-Variational Echo Tracking (VET) Module
+pysteps.motion.vet
+==================
 
+Variational Echo Tracking (VET) Module
 
 This module implements the VET algorithm presented
 by `Laroche and Zawadzki (1995)`_ and used in the
@@ -20,6 +19,19 @@ in `Germann and Zawadzki (2002)`_.
 
 The morphing and the cost functions are implemented in Cython and parallelized
 for performance.
+
+.. currentmodule:: pysteps.motion.vet
+
+.. autosummary::
+    :toctree: ../generated/
+
+    vet
+    vet_cost_function
+    vet_cost_function_gradient
+    morph
+    round_int
+    ceil_int
+    get_padding
 """
 
 import numpy
@@ -118,9 +130,8 @@ def morph(image, displacement, gradient=False):
         Displacement field to be applied (Warping). The first dimension
         corresponds to the coordinate to displace.
 
-        The dimensions are:
-        displacement [ i/x (0) or j/y (1) ,
-                      i index of pixel, j index of pixel ]
+        The dimensions are: displacement [ i/x (0) or j/y (1) ,
+        i index of pixel, j index of pixel ]
 
 
     gradient : bool, optional
@@ -147,7 +158,8 @@ def morph(image, displacement, gradient=False):
         _mask = numpy.zeros_like(image, dtype='int8')
     else:
         _mask = numpy.asarray(numpy.ma.getmaskarray(image),
-                              dtype='int8')
+                              dtype='int8',
+                              order='C')
 
     _image = numpy.asarray(image, dtype='float64', order='C')
     _displacement = numpy.asarray(displacement, dtype='float64', order='C')
@@ -156,6 +168,9 @@ def morph(image, displacement, gradient=False):
 
 
 def vet_cost_function_gradient(*args, **kwargs):
+    """Compute the vet cost function gradient.
+    See :py:func:`vet_cost_function` for more information.
+    """
     kwargs["gradient"] = True
     return vet_cost_function(*args, **kwargs)
 
@@ -168,20 +183,20 @@ def vet_cost_function(sector_displacement_1d,
                       debug=False,
                       gradient=False):
     """
+    .. _`scipy minimization`: \
+    https://docs.scipy.org/doc/scipy-0.18.1/reference/generated/scipy.optimize.minimize.html
+    
     Variational Echo Tracking Cost Function.
 
-    .. _`scipy.optimize.minimize` :\
-    https://docs.scipy.org/doc/scipy-0.18.1/reference/\
-    generated/scipy.optimize.minimize.html
-
-    This function is designed to be used with the `scipy.optimize.minimize`_
-
+    This function is designed to be used with the `scipy minimization`_.
     The function first argument is the variable to be used in the
     minimization procedure.
 
     The sector displacement must be a flat array compatible with the
     dimensions of the input image and sectors shape (see parameters section
     below for more details).
+
+
 
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
@@ -347,6 +362,8 @@ def vet(input_images,
     Ribiere, a variant of the Fletcher-Reeves method described in
     Nocedal and Wright (2006), pp. 120-122.
 
+    .. _`scipy minimization`: \
+    https://docs.scipy.org/doc/scipy-0.18.1/reference/generated/scipy.optimize.minimize.html
 
     .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
         maskedarray.baseclass.html#numpy.ma.MaskedArray
@@ -376,7 +393,7 @@ def vet(input_images,
     smooth_gain : float, optional
         Smooth gain factor
 
-    first_guess : ndarray_, optional_
+    first_guess : ndarray_, optional
         The shape of the first guess should have the same shape as the initial
         sectors shapes used in the scaling procedure.
         If first_guess is not present zeros are used as first guess.
@@ -408,8 +425,6 @@ def vet(input_images,
         A dictionary of solver options.
         See `scipy minimization`_ function for more details.
 
-    .. _`scipy minimization` : https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
-
     Returns
     -------
 
@@ -417,7 +432,8 @@ def vet(input_images,
         Displacement Field (2D array representing the transformation) that
         warps the template image into the input image.
         The dimensions are (2,ni,nj), where the first
-        dimension indicates the displacement along x (0) or y (1).
+        dimension indicates the displacement along x (0) or y (1) in units of
+        pixels / timestep as given by the input_images array.
 
     intermediate_steps : list of ndarray_
         List with the first guesses obtained during the scaling procedure.
@@ -494,19 +510,19 @@ def vet(input_images,
         input_images = numpy.ma.masked_invalid(input_images)
         mask = numpy.ma.getmaskarray(input_images)
 
-    input_images[mask] = 0  # Remove any Nan from the raw data
+    input_images.data[mask] = 0  # Remove any Nan from the raw data
 
     # Create a 2D mask with the right data type for _vet
-    mask = numpy.asarray(numpy.any(mask, axis=0), dtype='int8')
+    mask = numpy.asarray(numpy.any(mask, axis=0), dtype='int8', order='C')
 
-    input_images = numpy.asarray(input_images.data, dtype='float64')
+    input_images = numpy.asarray(input_images.data, dtype='float64', order='C')
 
     # Check that the sectors divide the domain
-    sectors = numpy.asarray(sectors, dtype="int")
+    sectors = numpy.asarray(sectors, dtype="int", order='C')
 
     if sectors.ndim == 1:
 
-        new_sectors = (numpy.zeros((2,) + sectors.shape, dtype='int')
+        new_sectors = (numpy.zeros((2,) + sectors.shape, dtype='int', order='C')
                        + sectors.reshape((1, sectors.shape[0]))
                        )
         sectors = new_sectors
@@ -554,9 +570,13 @@ def vet(input_images,
             _mask = numpy.pad(mask, (pad_i, pad_j),
                               'constant',
                               constant_values=1)
-
+            _mask = numpy.ascontiguousarray(_mask)
             if first_guess is None:
-                first_guess = numpy.pad(first_guess, ((0, 0), pad_i, pad_j), 'edge')
+                first_guess = numpy.pad(first_guess,
+                                        ((0, 0), pad_i, pad_j),
+                                        'edge')
+                first_guess = numpy.ascontiguousarray(first_guess)
+
         else:
             _input_images = input_images
             _mask = mask
@@ -564,7 +584,7 @@ def vet(input_images,
         sector_shape = (_input_images.shape[1] // sectors_in_i,
                         _input_images.shape[2] // sectors_in_j)
 
-        debug_print("original image shape: " + str(_input_images.shape))
+        debug_print("original image shape: " + str(input_images.shape))
         debug_print("padded image shape: " + str(_input_images.shape))
         debug_print("padded template_image image shape: "
                     + str(_input_images.shape))
@@ -616,6 +636,7 @@ def vet(input_images,
                         _input_images.shape[2] / sectors_in_j),
                        order=1, mode='nearest')
 
+    first_guess = numpy.ascontiguousarray(first_guess)
     # Remove the extra padding if any
     ni = _input_images.shape[1]
     nj = _input_images.shape[2]

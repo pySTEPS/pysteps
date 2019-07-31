@@ -1,4 +1,18 @@
-"""Methods for matching the empirical probability distribution of two data sets."""
+"""
+pysteps.postprocessing.probmatching
+===================================
+
+Methods for matching the probability distribution of two data sets.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    compute_empirical_cdf
+    nonparam_match_empirical_cdf
+    pmm_init
+    pmm_compute
+    shift_scale
+"""
 
 import numpy as np
 from scipy import interpolate as sip
@@ -33,45 +47,48 @@ def compute_empirical_cdf(bin_edges, hist):
 
     return cdf
 
+
 def nonparam_match_empirical_cdf(R, R_trg):
     """Matches the empirical CDF of the initial array with the empirical CDF
     of a target array. Initial ranks are conserved, but empirical distribution
-    matches the target one. Zero-pixels in initial array are conserved.
+    matches the target one. Zero-pixels (i.e. pixels having the minimum value)
+    in the initial array are conserved.
 
     Parameters
     ----------
     R : array_like
-        The initial array whose CDF is to be changed.
+        The initial array whose CDF is to be matched with the target.
     R_trg : array_like
-        The target array whose CDF is to be matched.
+        The target array.
 
     Returns
     -------
     out : array_like
-        The new array.
+        The matched array.
 
     """
-    if R.size != R_trg.size:
-        raise ValueError("the input arrays must have the same size")
+
     if np.any(~np.isfinite(R)):
         raise ValueError("initial array contains non-finite values")
     if np.any(~np.isfinite(R_trg)):
         raise ValueError("target array contains non-finite values")
+    if R.size != R_trg.size:
+      raise ValueError("dimension mismatch between R and R_trg: R.shape=%s, R_trg.shape=%s" % \
+        (str(R.shape), str(R_trg.shape)))
 
-    # zeros in initial image
+    # zeros in initial array
     zvalue = R.min()
     idxzeros = R == zvalue
 
-    # zeros in target image
+    # zeros in the target array
     zvalue_trg = R_trg.min()
-    idxzeros_trg = R_trg == zvalue
 
+    # adjust the fraction of rain in target distribution if the number of
+    # nonzeros is greater than in the initial array
     if np.sum(R_trg > zvalue_trg) > np.sum(R > zvalue):
-        # adjust the fraction of rain in target distribution if the number of zeros
-        # is greater than in the initial array
-        # TODO: this needs more testing
         war = np.sum(R > zvalue)/R.size
         p = np.percentile(R_trg, 100*(1 - war))
+        R_trg = R_trg.copy()
         R_trg[R_trg < p] = zvalue_trg
 
     # flatten the arrays
@@ -88,20 +105,17 @@ def nonparam_match_empirical_cdf(R, R_trg):
     ranks = np.empty(len(R), int)
     ranks[orderin] = np.arange(len(R))
 
-    # get ranked values from target and rearrange with inital order
+    # get ranked values from target and rearrange with the initial order
     R = ranked[ranks]
 
-    # reshape as original array
+    # reshape to the original array dimensions
     R = R.reshape(arrayshape)
 
-    # readding original zeros
+    # readd original zeros
     R[idxzeros] = zvalue_trg
 
     return R
 
-# TODO: What is this?
-def nonparam_match_empirical_cdf_masked():
-    pass
 
 # TODO: A more detailed explanation of the PMM method + references.
 def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
@@ -130,6 +144,7 @@ def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
 
     return pmm
 
+
 def pmm_compute(pmm, x):
     """For a given PMM object and x-coordinate, compute the probability matched
     value (i.e. the x-coordinate for which the target CDF has the same value as
@@ -151,11 +166,12 @@ def pmm_compute(pmm, x):
 
     return result
 
+
 def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     """Find shift and scale that is needed to return the required second_moment
     and rain area. The optimization is performed with the Nelder-Mead algorithm
     available in scipy.
-    It ssumes a forward transformation ln_rain = ln(rain)-ln(min_rain) if
+    It assumes a forward transformation ln_rain = ln(rain)-ln(min_rain) if
     rain > min_rain, else 0.
 
     Parameters
@@ -218,7 +234,7 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
 
     # Nelder-Mead optimisation
     nm_scale = sop.minimize(_get_error, scale, method="Nelder-Mead", tol=tol,
-                options={"disp":False,"maxiter":max_iterations})
+                            options={"disp":False,"maxiter":max_iterations})
     scale = nm_scale["x"][0]
 
     R[idx_wet]  = f((R[idx_wet] - shift)*scale)
