@@ -1,25 +1,17 @@
 """
 pysteps.io.importers
 ====================
-
 Methods for importing files containing 2d precipitation fields.
-
 The methods in this module implement the following interface::
-
     import_xxx(filename, optional arguments)
-
 where **xxx** is the name (or abbreviation) of the file format and filename
 is the name of the input file.
-
 The output of each method is a three-element tuple containing a two-dimensional
 precipitation field, the corresponding quality field and a metadata dictionary.
 If the file contains no quality information, the quality field is set to None.
 Pixels containing missing data are set to nan.
-
-The metadata dictionary contains the following mandatory key-value pairs:
-
+The metadata dictionary contains the following recommended key-value pairs:
 .. tabularcolumns:: |p{2cm}|L|
-
 +------------------+----------------------------------------------------------+
 |       Key        |                Value                                     |
 +==================+==========================================================+
@@ -61,13 +53,14 @@ The metadata dictionary contains the following mandatory key-value pairs:
 |    zerovalue     | the value assigned to the no rain pixels with the same   |
 |                  | unit, transformation and accutime of the data.           |
 +------------------+----------------------------------------------------------+
-
+|    zr_a          | the Z-R constant a in Z = a*R**b                         |
++------------------+----------------------------------------------------------+
+|    zr_b          | the Z-R exponent b in Z = a*R**b                         |
++------------------+----------------------------------------------------------+
 Available Importers
 -------------------
-
 .. autosummary::
     :toctree: ../generated/
-
     import_bom_rf3
     import_fmi_geotiff
     import_fmi_pgm
@@ -128,19 +121,16 @@ except ImportError:
 
 def import_bom_rf3(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the BoM Rainfields3.
-
     Parameters
     ----------
     filename : str
         Name of the file to import.
-
     Returns
     -------
     out : tuple
         A three-element tuple containing the rainfall field in mm/h imported
         from the Bureau RF3 netcdf, the quality field and the metadata. The
         quality field is currently set to None.
-
     """
     if not netcdf4_imported:
         raise MissingOptionalDependency(
@@ -272,18 +262,15 @@ def _import_bom_rf3_geodata(filename):
 
 def import_fmi_geotiff(filename, **kwargs):
     """Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
-
     Parameters
     ----------
     filename : str
         Name of the file to import.
-
     Returns
     -------
     out : tuple
         A three-element tuple containing the precipitation field, the associated
         quality field and metadata. The quality field is currently set to None.
-
     """
     if not gdal_imported:
         raise MissingOptionalDependency(
@@ -335,24 +322,20 @@ def import_fmi_geotiff(filename, **kwargs):
 
 def import_fmi_pgm(filename, **kwargs):
     """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
-
     Parameters
     ----------
     filename : str
         Name of the file to import.
-
     Other Parameters
     ----------------
     gzipped : bool
         If True, the input file is treated as a compressed gzip file.
-
     Returns
     -------
     out : tuple
         A three-element tuple containing the reflectivity composite in dBZ
         and the associated quality field and metadata. The quality field is
         currently set to None.
-
     """
     if not pyproj_imported:
         raise MissingOptionalDependency(
@@ -386,6 +369,8 @@ def import_fmi_pgm(filename, **kwargs):
         metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
     else:
         metadata["threshold"] = np.nan
+    metadata["zr_a"] = 223.0
+    metadata["zr_b"] = 1.53
 
     return R, None, metadata
 
@@ -462,16 +447,13 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
 def import_mch_gif(filename, product, unit, accutime):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
-
     Parameters
     ----------
     filename : str
         Name of the file to import.
-
     product : {"AQC", "CPC", "RZC", "AZC"}
         The name of the MeteoSwiss QPE product.\n
         Currently supported prducts:
-
         +------+----------------------------+
         | Name |          Product           |
         +======+============================+
@@ -483,20 +465,16 @@ def import_mch_gif(filename, product, unit, accutime):
         +------+----------------------------+
         | AZC  |     RZC accumulation       |
         +------+----------------------------+
-
     unit : {"mm/h", "mm", "dBZ"}
         the physical unit of the data
-
     accutime : float
         the accumulation time in minutes of the data
-
     Returns
     -------
     out : tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
-
     """
     if not pil_imported:
         raise MissingOptionalDependency(
@@ -576,6 +554,8 @@ def import_mch_gif(filename, product, unit, accutime):
         metadata["threshold"] = np.nan
     metadata["institution"] = "MeteoSwiss"
     metadata["product"] = product
+    metadata["zr_a"] = 316.0
+    metadata["zr_b"] = 1.5
 
     return R, None, metadata
 
@@ -583,12 +563,10 @@ def import_mch_gif(filename, product, unit, accutime):
 def import_mch_hdf5(filename, **kwargs):
     """Import a precipitation field (and optionally the quality field) from a
     MeteoSwiss HDF5 file conforming to the ODIM specification.
-
     Parameters
     ----------
     filename : str
         Name of the file to import.
-
     Other Parameters
     ----------------
     qty : {'RATE', 'ACRR', 'DBZH'}
@@ -596,7 +574,6 @@ def import_mch_hdf5(filename, **kwargs):
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
-
     Returns
     -------
     out : tuple
@@ -604,7 +581,6 @@ def import_mch_hdf5(filename, **kwargs):
         quantity and the associated quality field and metadata. The quality
         field is read from the file if it contains a dataset whose quantity
         identifier is 'QIND'.
-
     """
     if not h5py_imported:
         raise MissingOptionalDependency(
@@ -704,6 +680,8 @@ def import_mch_hdf5(filename, **kwargs):
             "transform": transform,
             "zerovalue": np.nanmin(R),
             "threshold": thr,
+            "zr_a": 316.0,
+            "zr_b": 1.5,
         }
     )
 
@@ -715,16 +693,13 @@ def import_mch_hdf5(filename, **kwargs):
 def import_mch_metranet(filename, product, unit, accutime):
     """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
     archive.
-
     Parameters
     ----------
     filename : str
         Name of the file to import.
-
     product : {"AQC", "CPC", "RZC", "AZC"}
         The name of the MeteoSwiss QPE product.\n
         Currently supported prducts:
-
         +------+----------------------------+
         | Name |          Product           |
         +======+============================+
@@ -736,20 +711,16 @@ def import_mch_metranet(filename, product, unit, accutime):
         +------+----------------------------+
         | AZC  |     RZC accumulation       |
         +------+----------------------------+
-
     unit : {"mm/h", "mm", "dBZ"}
         the physical unit of the data
-
     accutime : float
         the accumulation time in minutes of the data
-
     Returns
     -------
     out : tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
-
     """
     if not metranet_imported:
         raise MissingOptionalDependency(
@@ -773,6 +744,8 @@ def import_mch_metranet(filename, product, unit, accutime):
         metadata["threshold"] = np.nan
     else:
         metadata["threshold"] = np.nanmin(R[R > metadata["zerovalue"]])
+    metadata["zr_a"] = 316.0
+    metadata["zr_b"] = 1.5
 
     return R, None, metadata
 
@@ -814,12 +787,10 @@ def _import_mch_geodata():
 def import_opera_hdf5(filename, **kwargs):
     """Import a precipitation field (and optionally the quality field) from an
     OPERA HDF5 file conforming to the ODIM specification.
-
     Parameters
     ----------
     filename : str
         Name of the file to import.
-
     Other Parameters
     ----------------
     qty : {'RATE', 'ACRR', 'DBZH'}
@@ -827,7 +798,6 @@ def import_opera_hdf5(filename, **kwargs):
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
-
     Returns
     -------
     out : tuple
@@ -835,7 +805,6 @@ def import_opera_hdf5(filename, **kwargs):
         quantity and the associated quality field and metadata. The quality
         field is read from the file if it contains a dataset whose quantity
         identifier is 'QIND'.
-
     """
     if not h5py_imported:
         raise MissingOptionalDependency(
