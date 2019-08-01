@@ -71,8 +71,8 @@ def get_padding(dimension_size, sectors):
     sectors : int
         number of sectors over which the the image will be divided.
 
-    Return
-    ------
+    Returns
+    -------
 
     pad_before , pad_after: int, int
         Padding at each side of the image for the corresponding dimension.
