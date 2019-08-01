@@ -1,9 +1,11 @@
-name: pysteps_test
+# pysteps development environment
+name: pysteps_dev
 channels:
 - conda-forge
 - defaults
 dependencies:
   - python=3.6
+  - pip
   - attrdict
   - jsmin
   - jsonschema
@@ -16,4 +18,11 @@ dependencies:
   - scipy
   - pytest
   - pywavelets
+  - cython
+  - dask
+  - pyfftw
+  - h5py
+  - PyWavelets
+  - pytest-cov
+  - codecov
 

@@ -10,6 +10,8 @@ The lines starting with "//" are comments and they are ignored.
 
     // pysteps configuration
     {
+        // "silent_import" : whether to suppress the initial pysteps message
+        "silent_import": false,
         "outputs": {
             // path_outputs : path where to save results (figures, forecasts, etc)
             "path_outputs": "./"

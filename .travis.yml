@@ -1,24 +1,44 @@
 language: python
 
+env:
+  global:
+    - MINIMAL_DEPENDENCIES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
+    - OPTIONAL_DEPENDENCIES="dask pyfftw cartopy basemap h5py PyWavelets"
+    - TEST_DEPENDENCIES="pytest pytest-cov codecov"
+
 matrix:
   include:
     - os: linux
       python: 3.6
+      env:
+        - PYTHON_VERSION=3.6
+        - RUN_TESTS=false
+
+    - os: linux
+      python: 3.6
       env: 
         - PYTHON_VERSION=3.6
-        - PACKAGES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
+        - RUN_TESTS=true
+
+    - os: osx
+      language: generic
+      osx_image: xcode10.1
+      env:
+        - PYTHON_VERSION=3.6
+        - RUN_TESTS=false
+
     - os: osx
       language: generic
       osx_image: xcode10.1
       env: 
         - PYTHON_VERSION=3.6
-        - PACKAGES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
+        - RUN_TESTS=true
 
 sudo: false
 
 before_install:
   # Install gcc for MacOSX
-  # -----------------
+  # ----------------------
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew install gcc ;
       export CC=gcc-9  ;
@@ -27,6 +47,7 @@ before_install:
       which gcc-9 ;
       gcc-9 --version ;
     fi
+
   # Install miniconda
   # -----------------
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -50,31 +71,33 @@ before_install:
 
   # Customise the testing environment
   # ---------------------------------
-  - PACKAGES="$PACKAGES dask pyfftw cartopy basemap h5py PyWavelets cython"
-  - PACKAGES="$PACKAGES pytest pytest-cov codecov";
   - export CYTHON_COVERAGE=1;
-  - travis_retry conda install --quiet $PACKAGES
+  - if [[ "$RUN_TESTS" == true ]]; then
+    PACKAGES="$MINIMAL_DEPENDENCIES $OPTIONAL_DEPENDENCIES $TEST_DEPENDENCIES";
+    travis_retry conda install --quiet $PACKAGES ;
+    fi;
 
 install:
-  # Load pysteps-data
-  # -----------------
-  - export PYSTEPS_BUILD_DIR="$( pwd )"
-  - git clone https://github.com/pySTEPS/pysteps-data.git $PYSTEPS_BUILD_DIR/pysteps-data
-  - python scripts/travis.py
-  - export PYSTEPSRC=$PYSTEPS_BUILD_DIR/pystepsrc.travis
 
   # Install pysteps
   # ---------------
-  - python setup.py install
+  - export PYSTEPS_BUILD_DIR="$( pwd )"
+  - pip install .
   - cd ~
-  - python -c "import cartopy; print('Version ', cartopy.__version__)"
-  - python -c "import dask; print('Version ', dask.__version__)"
-  - python -c "import pysteps as stp;" 
+
+  # Check that the pysteps package can be imported
+  - python -c "import pysteps; print(pysteps.__file__)"
+  # Check the compiled modules
+  - python -c "from pysteps import motion"
+  - python -c "from pysteps.motion import vet"
+  - python -c "from pysteps.motion import proesmans"
+
 
 script:
-- cd ~ 
-- pytest --pyargs pysteps --cov=pysteps -ra;
+  - if [[ "$RUN_TESTS" == true ]]; then
+    bash $PYSTEPS_BUILD_DIR/ci/run_tests.sh;
+    fi
 
 after_success:
-  - codecov
+  - if [[ "$RUN_TESTS" == true ]]; then codecov; fi
 

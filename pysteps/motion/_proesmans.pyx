@@ -4,7 +4,7 @@
 Cython module for the Proesmans optical flow algorithm
 """
 
-from cython.parallel import parallel, prange
+#from cython.parallel import parallel, prange
 import numpy as np
 from scipy.ndimage import convolve
 
@@ -119,8 +119,8 @@ cdef _proesmans(float64 [:, :, :] R, float64 [:, :, :, :] V, intp num_iter,
             V_j = V[j, :, :, :]
             GAMMA_j = GAMMA[j, :, :]
 
-            #for y in range(1, m-1):
-            for y in prange(1, m - 1, schedule='static', nogil=True):
+            for y in range(1, m-1):
+            #for y in prange(1, m - 1, schedule='static', nogil=True):
                 for x in range(1, n-1):
                     v_avg_1 = _compute_laplacian(GAMMA_j, V_j, x, y, 0)
                     v_avg_2 = _compute_laplacian(GAMMA_j, V_j, x, y, 1)
@@ -152,7 +152,7 @@ cdef _proesmans(float64 [:, :, :] R, float64 [:, :, :, :] V, intp num_iter,
 @cython.nonecheck(False)
 @cython.cdivision(True)
 cdef float64 _compute_laplacian(float64 [:, :] gi, float64 [:, :, :] Vi, intp x,
-                                intp y, intp j) nogil:
+                                intp y, intp j): #nogil:
     cdef float64 v
     cdef float64 sumWeights = (gi[y-1, x] + gi[y, x-1] + \
                               gi[y, x+1] + gi[y+1, x]) / 6.0 + \
@@ -203,8 +203,8 @@ cdef void _compute_consistency_maps(float64 [:, :, :, :] V,
         V21 = V[1-i, 0, :, :]
         V22 = V[1-i, 1, :, :]
 
-        for y in prange(m, schedule='guided', nogil=True):
-        #for y in range(m):
+        #for y in prange(m, schedule='guided', nogil=True):
+        for y in range(m):
             for x in range(n):
                 xd = x + V[i, 0, y, x]
                 yd = y + V[i, 1, y, x]
@@ -228,8 +228,8 @@ cdef void _compute_consistency_maps(float64 [:, :, :, :] V,
             K = 0.9 * c_sum / c_count
 
             if K > 0.0:
-                for y in prange(m, schedule='guided', nogil=True):
-                #for y in range(m):
+                #for y in prange(m, schedule='guided', nogil=True):
+                for y in range(m):
                     for x in range(n):
                         g = GAMMA[i, y, x]
                         if g >= 0.0:
@@ -273,7 +273,7 @@ cdef np.ndarray[float64, ndim=3] _compute_gradients(float64 [:, :]  I):
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cdef void _fill_edges(float64 [:, :, :] V) nogil:
+cdef void _fill_edges(float64 [:, :, :] V): #nogil:
     cdef intp x, y
     cdef intp i
 
@@ -351,7 +351,7 @@ cdef _initialize_next_level(float64 [:, :, :, :] V_prev,
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cdef float64 _linear_interpolate(float64 [:, :] I, float64 x, float64 y) nogil:
+cdef float64 _linear_interpolate(float64 [:, :] I, float64 x, float64 y): #nogil:
     cdef intp x0 = int(x)
     cdef intp x1 = x0 + 1
     cdef intp y0 = int(y)

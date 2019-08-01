@@ -6,57 +6,70 @@ from setuptools import setup, find_packages
 from setuptools.extension import Extension
 
 try:
+    from Cython.Build import cythonize
+except ImportError:
+    raise RuntimeError(
+        "Cython required to pior running the package installation\n"
+        + "Try installing it with:\n"
+        + "$> pip install cython"
+    )
+
+try:
     import numpy
 except ImportError:
     raise RuntimeError(
-        "Numpy required to pior running the package installation\n" +
-        "Try installing it with:\n" +
-        "$> pip install numpy")
+        "Numpy required to pior running the package installation\n"
+        + "Try installing it with:\n"
+        + "$> pip install numpy"
+    )
 
-extra_link_args = ['-fopenmp']
+# Define common arguments used to compile the extensions
+common_link_args = ["-fopenmp"]
+common_compile_args = ["-fopenmp", "-O3", "-ffast-math"]
+common_include = [numpy.get_include()]
 
 if sys.platform.startswith("darwin"):
-    extra_link_args.append("-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/")
+    common_link_args.append("-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/")
 
-_proesmans_extension_arguments = dict(extra_compile_args=["-O3", "-ffast-math", "-fopenmp"],
-                                      include_dirs=[numpy.get_include()],
-                                      language="c",
-                                      extra_link_args=extra_link_args,
-                                      )
+extensions_data = {
+    "pysteps.motion._proesmans": {
+        "sources": ["pysteps/motion/_proesmans.pyx"]
+    },
+    "pysteps.motion._vet": {"sources": ["pysteps/motion/_vet.pyx"]},
+}
 
-_vet_extension_arguments = dict(extra_compile_args=["-fopenmp"],
-                                include_dirs=[numpy.get_include()],
-                                language="c",
-                                extra_link_args=extra_link_args,
-                                )
+extensions = []
 
-try:
-    from Cython.Build.Dependencies import cythonize
+for name, data in extensions_data.items():
+    include = data.get("include", common_include)
 
-    _proesmans_lib_extension = Extension(str("pysteps.motion._proesmans"),
-                                        sources=[str("pysteps/motion/_proesmans.pyx")],
-                                        **_proesmans_extension_arguments)
+    extra_compile_args = data.get("extra_compile_args", common_compile_args)
 
-    _vet_lib_extension = Extension(str("pysteps.motion._vet"),
-                                   sources=[str("pysteps/motion/_vet.pyx")],
-                                   **_vet_extension_arguments)
+    extra_link_args = data.get("extra_link_args", common_link_args)
 
-    external_modules = cythonize([_proesmans_lib_extension, _vet_lib_extension],
-                                 force=True,
-                                 language_level=3)
-except ImportError:
-    _proesmans_lib_extension = Extension(str("pysteps.motion._proesmans"),
-                                         sources=[str("pysteps/motion/_proesmans.c")],
-                                         **_proesmans_extension_arguments)
+    pysteps_extension = Extension(
+        name,
+        sources=data["sources"],
+        depends=data.get("depends", []),
+        include_dirs=include,
+        language=data.get("language", "c"),
+        define_macros=data.get("macros", []),
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+    )
 
-    _vet_lib_extension = Extension(str("pysteps.motion._vet"),
-                                   sources=[str("pysteps/motion/_vet.c")],
-                                   **_vet_extension_arguments)
-    external_modules = [_proesmans_lib_extension, _vet_lib_extension]
+    extensions.append(pysteps_extension)
 
-requirements = ["numpy",
-                "attrdict", "jsmin", "scipy", "matplotlib",
-                "jsonschema"]
+external_modules = cythonize(extensions, force=True, language_level=3)
+
+requirements = [
+    "numpy",
+    "attrdict",
+    "jsmin",
+    "scipy",
+    "matplotlib",
+    "jsonschema",
+]
 
 setup(
     name="pysteps",
@@ -76,8 +89,9 @@ setup(
         "Topic :: Scientific/Engineering :: Atmospheric Science",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent"],
+        "Operating System :: OS Independent",
+    ],
     ext_modules=external_modules,
     setup_requires=requirements,
-    install_requires=requirements
+    install_requires=requirements,
 )
