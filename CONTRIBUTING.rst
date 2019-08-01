@@ -6,13 +6,39 @@ maintaining an easy to use, modular, free and open source Python
 framework for short-term ensemble prediction systems.
 
 
-Getting started, building, and testing
---------------------------------------
+Getting started
+---------------
 
 If you haven't already, take a look at the project's
-`README.rst file <README.rst>`_.
-and the `pysteps documentation <https://pysteps.github.io/>`_.
-There you will find all the necessary information to install pysteps.
+`README.rst file <README.rst>`_ and the
+`pysteps documentation <https://pysteps.github.io/>`_.
+
+
+Development environment
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The recommended way to setup up the developer environment is the Anaconda
+(commonly referred as Conda).
+Conda quickly installs, runs and updates packages and their dependencies.
+It also allows to easily create, save, load and switch between different
+environments on your local computer.
+
+The developer environment can be created using the
+`environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
+file in the project's root directory running the command::
+
+    conda env create -f environment_dev.yml
+
+This will create the **pysteps_dev** environment that can be activated using::
+
+    conda activate pysteps_dev
+
+
+Once the environment is created, the package can be installed in development
+mode, in such a way that the project appears to be installed,
+but yet is still editable from the source tree.
+See instructions in the :ref:`Installing pysteps <development_mode_install>`
+section.
 
 
 
@@ -23,9 +49,7 @@ Although it is not strictly enforced yet, we strongly suggest to follow the
 `PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`_.
 Two popular modules used to check pep8 compliance are
 `pycodestyle <https://pypi.org/project/pycodestyle/>`_ and
-`pylint <https://pypi.org/project/pylint/>`_.
-
-You can install them using pip::
+`pylint <https://pypi.org/project/pylint/>`_ that can be installed using pip::
 
     pip install pylint
     pip install pycodestyle
@@ -35,7 +59,8 @@ or using anaconda::
     conda install pylint
     conda install pycodestyle
 
-For further instructions please refer to their official documentation.
+For further information instructions, the reader is referred to their official
+documentation.
 
 - https://pycodestyle.readthedocs.io/en/latest/
 - https://www.pylint.org/
