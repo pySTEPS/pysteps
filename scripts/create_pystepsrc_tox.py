@@ -16,7 +16,8 @@ if not os.path.isdir(os.path.join(tox_test_data_dir, ".git")):
     Repo.clone_from(
         'https://github.com/pySTEPS/pysteps-data',
         tox_test_data_dir,
-        branch='test_data', depth=1
+        branch='master',
+        depth=1
     )
 else:
     test_data_repo = Repo(tox_test_data_dir)
