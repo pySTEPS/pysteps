@@ -13,6 +13,9 @@ Skill scores for spatial forecasts.
     intensity_scale_compute
     binary_mse
     fss
+    fss_init
+    fss_accum
+    fss_compute
 """
 
 import numpy as np
@@ -36,9 +39,9 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
     Parameters
     ----------
     X_f : array_like
-        Array of shape (n,m) containing the forecast field.
+        Array of shape (m, n) containing the forecast field.
     X_o : array_like
-        Array of shape (n,m) containing the verification observation field.
+        Array of shape (m, n) containing the verification observation field.
     name : string
         A string indicating the name of the spatial verification score
         to be used:
@@ -76,7 +79,7 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
 
 
 def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
-    """Initialize an intensty-scale verification object.
+    """Initialize an intensity-scale verification object.
 
     Parameters
     ----------
@@ -138,9 +141,9 @@ def intensity_scale_accum(intscale, X_f, X_o):
     intscale : dict
         The intensity-scale object.
     X_f : array_like
-        Array of shape (n,m) containing the forecast field.
+        Array of shape (m, n) containing the forecast field.
     X_o : array_like
-        Array of shape (n,m) containing the verification observation field.
+        Array of shape (m, n) containing the verification observation field.
     """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
         message = "X_f and X_o must be two-dimensional arrays"
@@ -223,9 +226,9 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
     Parameters
     ----------
     X_f : array_like
-        Array of shape (n,m) containing the forecast field.
+        Array of shape (m, n) containing the forecast field.
     X_o : array_like
-        Array of shape (n,m) containing the verification observation field.
+        Array of shape (m, n) containing the verification observation field.
     thr : sequence
         The intensity threshold for which to compute the verification.
     wavelet : str, optional
@@ -284,21 +287,21 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
 
 def fss(X_f, X_o, thr, scale):
     """
-    Compute the fractions skill score (FSS) for a deterministic forecast
-    field and the corresponding observation.
+    Compute the fractions skill score (FSS) for a deterministic forecast field
+    and the corresponding observation field.
 
     Parameters
     ----------
     X_f : array_like
-        Array of shape (n,m) containing the forecast field.
+        Array of shape (m, n) containing the forecast field.
     X_o : array_like
-        Array of shape (n,m) containing the reference field (observation).
+        Array of shape (m, n) containing the observation field.
     thr : float
-        Intensity threshold.
+        The intensity threshold.
     scale : int
-        The spatial scale  in px. In practice they represent the size of the
-        moving window that it is used to compute the fraction of pixels above
-        the threshold.
+        The spatial scale in pixels. In practice, the scale represents the size
+        of the moving window that it is used to compute the fraction of pixels
+        above the threshold.
 
     Returns
     -------
@@ -310,34 +313,89 @@ def fss(X_f, X_o, thr, scale):
     :cite:`RL2008`, :cite:`EWWM2013`
 
     """
+
+    fss = fss_init(thr, scale)
+    fss_accum(fss, X_f, X_o)
+    return fss_compute(fss)
+
+def fss_init(thr, scale):
+    """Initialize a fractions skill score (FSS) verification object.
+
+    Parameters
+    ----------
+    thr : float
+        The intensity threshold.
+    scale : float
+        The spatial scale in pixels. In practice, the scale represents the size
+        of the moving window that it is used to compute the fraction of pixels
+        above the threshold.
+    """
+    fss = {}
+
+    fss["thr"] = thr
+    fss["scale"] = scale
+    fss["sum_fct_sq"] = 0.0
+    fss["sum_fct_obs"] = 0.0
+    fss["sum_obs_sq"] = 0.0
+
+    return fss
+
+def fss_accum(fss, X_f, X_o):
+    """Accumulate forecast-observation pairs to an FSS object.
+    
+    Parameters
+    -----------
+    fss : dict
+        The FSS object initialized with fss_init.
+    X_f : array_like
+        Array of shape (m, n) containing the forecast field.
+    X_o : array_like
+        Array of shape (m, n) containing the observation field.
+    """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
         message = "X_f and X_o must be two-dimensional arrays"
         message += " having the same shape"
         raise ValueError(message)
 
     X_f = X_f.copy()
-    X_f[~np.isfinite(X_f)] = thr - 1
+    X_f[~np.isfinite(X_f)] = fss["thr"] - 1
     X_o = X_o.copy()
-    X_o[~np.isfinite(X_o)] = thr - 1
-    X_f.size
+    X_o[~np.isfinite(X_o)] = fss["thr"] - 1
 
-    # Convert to binary fields with the intensity threshold
-    I_f = (X_f >= thr).astype(float)
-    I_o = (X_o >= thr).astype(float)
+    # Convert to binary fields with the given intensity threshold
+    I_f = (X_f >= fss["thr"]).astype(float)
+    I_o = (X_o >= fss["thr"]).astype(float)
 
     # Compute fractions of pixels above the threshold within a square
     # neighboring area by applying a 2D moving average to the binary fields
-    S_f = uniform_filter(I_f, size=int(scale), mode="constant", cval=0.0)
-    S_o = uniform_filter(I_o, size=int(scale), mode="constant", cval=0.0)
+    if fss["scale"] > 1:
+        S_f = uniform_filter(I_f, size=fss["scale"], mode="constant", cval=0.0)
+        S_o = uniform_filter(I_o, size=fss["scale"], mode="constant", cval=0.0)
+    else:
+        S_f = I_f
+        S_o = I_o
 
-    # Compute the numerator
-    n = X_f.size
-    N = 1.0 * np.sum((S_o - S_f) ** 2) / n
-    # Compute the denominator
-    D = 1.0 * (np.sum(S_o ** 2) + np.nansum(S_f ** 2)) / n
+    fss["sum_obs_sq"] += np.nansum(S_o**2)
+    fss["sum_fct_obs"] += np.nansum(S_f*S_o)
+    fss["sum_fct_sq"] += np.nansum(S_f**2)
 
-    return 1 - N / D
+def fss_compute(fss):
+    """Compute the FSS.
+    
+    Parameters
+    ----------
+    fss : dict
+       An FSS object initialized with fss_init and accumulated with fss_accum.
+    
+    Returns
+    -------
+    out : float
+        The computed FSS value.
+    """
+    numer = (fss["sum_fct_sq"] - 2.0*fss["sum_fct_obs"] + fss["sum_obs_sq"])
+    denom = fss["sum_fct_sq"] + fss["sum_obs_sq"]
 
+    return 1.0 - numer / denom
 
 def _wavelet_decomp(X, w):
     c = pywt.wavedec2(X, w)

@@ -158,7 +158,8 @@ def morph(image, displacement, gradient=False):
         _mask = numpy.zeros_like(image, dtype='int8')
     else:
         _mask = numpy.asarray(numpy.ma.getmaskarray(image),
-                              dtype='int8')
+                              dtype='int8',
+                              order='C')
 
     _image = numpy.asarray(image, dtype='float64', order='C')
     _displacement = numpy.asarray(displacement, dtype='float64', order='C')
@@ -512,16 +513,16 @@ def vet(input_images,
     input_images.data[mask] = 0  # Remove any Nan from the raw data
 
     # Create a 2D mask with the right data type for _vet
-    mask = numpy.asarray(numpy.any(mask, axis=0), dtype='int8')
+    mask = numpy.asarray(numpy.any(mask, axis=0), dtype='int8', order='C')
 
-    input_images = numpy.asarray(input_images.data, dtype='float64')
+    input_images = numpy.asarray(input_images.data, dtype='float64', order='C')
 
     # Check that the sectors divide the domain
-    sectors = numpy.asarray(sectors, dtype="int")
+    sectors = numpy.asarray(sectors, dtype="int", order='C')
 
     if sectors.ndim == 1:
 
-        new_sectors = (numpy.zeros((2,) + sectors.shape, dtype='int')
+        new_sectors = (numpy.zeros((2,) + sectors.shape, dtype='int', order='C')
                        + sectors.reshape((1, sectors.shape[0]))
                        )
         sectors = new_sectors
@@ -569,9 +570,13 @@ def vet(input_images,
             _mask = numpy.pad(mask, (pad_i, pad_j),
                               'constant',
                               constant_values=1)
-
+            _mask = numpy.ascontiguousarray(_mask)
             if first_guess is None:
-                first_guess = numpy.pad(first_guess, ((0, 0), pad_i, pad_j), 'edge')
+                first_guess = numpy.pad(first_guess,
+                                        ((0, 0), pad_i, pad_j),
+                                        'edge')
+                first_guess = numpy.ascontiguousarray(first_guess)
+
         else:
             _input_images = input_images
             _mask = mask
@@ -631,6 +636,7 @@ def vet(input_images,
                         _input_images.shape[2] / sectors_in_j),
                        order=1, mode='nearest')
 
+    first_guess = numpy.ascontiguousarray(first_guess)
     # Remove the extra padding if any
     ni = _input_images.shape[1]
     nj = _input_images.shape[2]

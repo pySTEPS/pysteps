@@ -1,18 +1,21 @@
-#!/bin/env python
+# -*- coding: utf-8 -*-
 """
 Data transformations
 ====================
 
-The statistics of intermittent precipitation rates are particularly non-Gaussian 
-and display an asymmetric distribution bounded at zero. 
-Such properties restrict the usage of well-established stochastic models that 
-assume Gaussianity. 
+The statistics of intermittent precipitation rates are particularly non-Gaussian
+and display an asymmetric distribution bounded at zero.
+Such properties restrict the usage of well-established statistical methods that
+assume symmetric or Gaussian data.
 
-A common workaround is to introduce a suitable data transformation to approximate 
+A common workaround is to introduce a suitable data transformation to approximate
 a normal distribution.
 
 In this example, we test the data transformation methods available in pysteps
-in order to obtain a more symmetric data distribution. 
+in order to obtain a more symmetric distribution of the precipitation data
+(excluding the zeros).
+The currently available transformations include the Box-Cox, dB, square-root and
+normal quantile transforms.
 
 """
 
@@ -106,10 +109,17 @@ def plot_distribution(data, labels, skw):
 ###############################################################################
 # Box-Cox transform
 # ~~~~~~~~~~~~~~~~~
-# We will first test a range of values for the parameter lambda and select the
-# one that produces the most symmetric distribution, i.e., the lambda associated
-# with the value of skewness closest to zero.
-# To compare the results, the transformed data are standardized.
+# The Box-Cox transform is a well-known power transformation introduced by
+# `Box and Cox (1964)`_. In its one-parameter version, the Box-Cox transform
+# takes the form T(x) = ln(x) for lambda = 0, or T(x) = (x**lambda - 1)/lambda
+# otherwise.
+#
+# To find a suitable lambda, we will experiment with a range of values
+# and select the one that produces the most symmetric distribution, i.e., the
+# lambda associated with a value of skewness closest to zero.
+# To visually compare the results, the transformed data are standardized.
+#
+# .. _`Box and Cox (1964)`:https://doi.org/10.1111/j.2517-6161.1964.tb00553.x
 
 data = []
 labels = []
@@ -124,7 +134,7 @@ for i, Lambda in enumerate(Lambdas):
     labels.append("{0:.2f}".format(Lambda))
     skw.append(skew(R_))  # skewness
 
-# Plot the transformed data distribution as a function of lambda   
+# Plot the transformed data distribution as a function of lambda
 plot_distribution(data, labels, skw)
 plt.title("Box-Cox transform")
 plt.tight_layout()
@@ -186,7 +196,10 @@ skw.append(skew(R_))
 ###############################################################################
 # Normal quantile transform
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
-# At last, we apply the empirical normal quantile (NQ) transform.
+# At last, we apply the empirical normal quantile (NQ) transform as described in
+# `Bogner et al (2012)`_.
+#
+# .. _`Bogner et al (2012)`:http://dx.doi.org/10.5194/hess-16-1085-2012
 
 R_, _ = transformation.NQ_transform(R, metadata)
 data.append((R_ - np.mean(R_)) / np.std(R_))

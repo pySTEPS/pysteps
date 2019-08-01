@@ -5,18 +5,17 @@ Cython module for morphing and cost functions implementations used in
 in the Variation Echo Tracking Algorithm
 """
 from cython.parallel import prange, parallel
+
 import numpy as np
+cimport numpy as np
 
 cimport cython
-cimport numpy as np
 
 ctypedef np.float64_t float64
 ctypedef np.int8_t int8
 ctypedef np.intp_t intp
 
 from libc.math cimport floor, round
-
-cimport numpy as np
 
 cdef inline float64 float_abs(float64 a) nogil: return a if a > 0. else -a
 """ Return the absolute value of a float """
@@ -158,8 +157,7 @@ def _warp(np.ndarray[float64, ndim=2] image,
 
     cdef float64 f00, f10, f01, f11
 
-    for x in prange(nx, schedule='dynamic', nogil=True):
-
+    for x in prange(nx, schedule='static', nogil=True):
         for y in range(ny):
 
             x_float = (<float64> x) - displacement[0, x, y]
@@ -416,7 +414,9 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                                                     y_image_size,
                                                     dtype=np.intp)
 
-    for i in prange(x_image_size, schedule='dynamic', nogil=True):
+    ####################################
+    # Compute interpolation coefficients
+    for i in prange(x_image_size, schedule='static', nogil=True):
 
         l0 = int_min((i - i_shift) // x_sector_size, x_sectors - 2)
         l0 = int_max(l0, 0)
@@ -461,6 +461,8 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
                         + sector_displacement[xy, l1, m1] * interp_coef[3, i, j]
                 )
 
+    ##############################################
+    # Compute limits used in gradient computations
     for l, i, counts in zip(*np.unique(l_i,
                                        return_index=True,
                                        return_counts=True)):
@@ -490,7 +492,6 @@ def _cost_function(np.ndarray[float64, ndim=3] sector_displacement,
 
     # Compute residual part of the cost function
     if gradient:
-
         morphed_image, morph_mask, _gradient_data = _warp(template_image,
                                                           mask,
                                                           displacement,

@@ -191,7 +191,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
     return result
 
 
-def det_cont_fct_init(axis=None, conditioning=None):
+def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
     """Initialize a verification error object.
 
     Parameters
@@ -207,9 +207,12 @@ def det_cont_fct_init(axis=None, conditioning=None):
     conditioning : {None, 'single', 'double'}, optional
         The type of conditioning on zeros used for the verification.
         The default, conditioning=None, includes zero pairs. With
-        conditioning='single', only pairs with either pred or obs > 0 are
+        conditioning='single', only pairs with either pred or obs > thr are
         included. With conditioning='double', only pairs with both pred and
-        obs > 0 are included.
+        obs > thr are included.
+
+    thr : float
+        Optional threshold value for conditioning. Defaults to 0.
 
     Returns
     -------
@@ -230,6 +233,7 @@ def det_cont_fct_init(axis=None, conditioning=None):
 
     err["axis"] = get_iterable(axis)
     err["conditioning"] = conditioning
+    err["thr"] = thr
     err["cov"] = None
     err["vobs"] = None
     err["vpred"] = None
@@ -312,9 +316,9 @@ def det_cont_fct_accum(err, pred, obs):
     # conditioning
     if err["conditioning"] is not None:
         if err["conditioning"] == "single":
-            idx = np.logical_or(obs > 0, pred > 0)
+            idx = np.logical_or(obs > err["thr"], pred > err["thr"])
         elif err["conditioning"] == "double":
-            idx = np.logical_and(obs > 0, pred > 0)
+            idx = np.logical_and(obs > err["thr"], pred > err["thr"])
         else:
             raise ValueError("unkown conditioning %s" % err["conditioning"])
         obs[~idx] = np.nan
