@@ -333,10 +333,10 @@ cdef _initialize_next_level(float64 [:, :, :, :] V_prev,
                 vxb = _linear_interpolate(V_prev_3, xc, yc)
                 vyb = _linear_interpolate(V_prev_4, xc, yc)
             else:
-                if xc > n_prev - 1:
-                    xc = n_prev - 1
-                if yc > m_prev - 1:
-                    yc = m_prev - 1
+                if xci > n_prev - 1:
+                    xci = n_prev - 1
+                if yci > m_prev - 1:
+                    yci = m_prev - 1
                 vxf = V_prev[0, 0, yci, xci]
                 vyf = V_prev[0, 1, yci, xci]
                 vxb = V_prev[1, 0, yci, xci]
