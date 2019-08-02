@@ -212,16 +212,12 @@ def _import_bom_rf3_geodata(filename):
         ymin = min(ds_rainfall.variables["y"])
         ymax = max(ds_rainfall.variables["y"])
 
-    xpixelsize = (
-        abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
-    )
-    ypixelsize = (
-        abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
-    )
+    xpixelsize = abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
+    ypixelsize = abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
     factor_scale = 1.0
     if "units" in ds_rainfall.variables["x"].ncattrs():
         if getattr(ds_rainfall.variables["x"], "units") == "km":
-            factor_scale = 1000.
+            factor_scale = 1000.0
 
     geodata["x1"] = xmin * factor_scale
     geodata["y1"] = ymin * factor_scale
@@ -236,24 +232,18 @@ def _import_bom_rf3_geodata(filename):
 
     if "valid_time" in ds_rainfall.variables.keys():
         times = ds_rainfall.variables["valid_time"]
-        calendar = 'standard'
-        if 'calendar' in times.ncattrs():
+        calendar = "standard"
+        if "calendar" in times.ncattrs():
             calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar,
-                                      )
+        valid_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
         times = ds_rainfall.variables["start_time"]
-        calendar = 'standard'
-        if 'calendar' in times.ncattrs():
+        calendar = "standard"
+        if "calendar" in times.ncattrs():
             calendar = times.calendar
-        start_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar,
-                                      )
+        start_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     time_step = None
 
@@ -319,8 +309,8 @@ def import_fmi_geotiff(filename, **kwargs):
 
     metadata["projection"] = projdef
     metadata["x1"] = gt[0]
-    metadata["y1"] = gt[3] + gt[5]*f.RasterYSize
-    metadata["x2"] = metadata["x1"] + gt[1]*f.RasterXSize
+    metadata["y1"] = gt[3] + gt[5] * f.RasterYSize
+    metadata["x2"] = metadata["x1"] + gt[1] * f.RasterXSize
     metadata["y2"] = gt[3]
     metadata["xpixelsize"] = abs(gt[1])
     metadata["ypixelsize"] = abs(gt[5])
@@ -1069,11 +1059,11 @@ def import_knmi_hdf5(filename, **kwargs):
 
     if not h5py_imported:
         raise Exception("h5py not imported")
-    
+
     ###
     # Options for kwargs.get
     ###
-    
+
     # The unit in the 2D fields: either hourly rainfall accumulation (ACRR) or
     # reflectivity (DBZH)
     qty = kwargs.get("qty", "ACRR")
@@ -1083,16 +1073,12 @@ def import_knmi_hdf5(filename, **kwargs):
             "unknown quantity %s: the available options are 'ACRR' and 'DBZH' "
         )
 
-    # The time step. Generally, the 5 min. data is used, but also hourly, daily 
+    # The time step. Generally, the 5 min. data is used, but also hourly, daily
     # and monthly accumulations are present.
-    accutime = kwargs.get(
-            "accutime", 5.0
-    )
+    accutime = kwargs.get("accutime", 5.0)
     # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
     # 1.0 or 2.4 km datasets are available - give pixelsize in meters
-    pixelsize = kwargs.get(
-        "pixelsize", 1000.0
-    )  
+    pixelsize = kwargs.get("pixelsize", 1000.0)
 
     ####
     # Precipitation fields
@@ -1101,15 +1087,15 @@ def import_knmi_hdf5(filename, **kwargs):
     f = h5py.File(filename, "r")
     dset = f["image1"]["image_data"]
     R_intermediate = np.copy(dset)  # copy the content
-    
-    # In case R is a rainfall accumulation (ACRR), R is divided by 100.0, 
-    # because the data is saved as hundreds of mm (so, as integers). 65535 is 
+
+    # In case R is a rainfall accumulation (ACRR), R is divided by 100.0,
+    # because the data is saved as hundreds of mm (so, as integers). 65535 is
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
         R = np.where(R_intermediate == 65535, np.NaN, R_intermediate / 100.0)
 
     # In case reflectivities are imported, the no data value is 255. Values are
-    # saved as integers. The reflectivities are not directly saved in dBZ, but 
+    # saved as integers. The reflectivities are not directly saved in dBZ, but
     # as: dBZ = 0.5 * pixel_value - 31.5
     if qty == "DBZH":
         R = np.where(R_intermediate == 255, np.NaN, R_intermediate * 0.5 - 31.5)
@@ -1117,7 +1103,7 @@ def import_knmi_hdf5(filename, **kwargs):
     if R is None:
         raise IOError("requested quantity not found")
 
-    #TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
+    # TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
 
     ####
     # Meta data
@@ -1160,10 +1146,10 @@ def import_knmi_hdf5(filename, **kwargs):
     y1 = max(UL_y, UR_y)
 
     # Fill in the metadata
-    metadata["x1"] = x1 * 1000.
-    metadata["y1"] = y1 * 1000.
-    metadata["x2"] = x2 * 1000.
-    metadata["y2"] = y2 * 1000.
+    metadata["x1"] = x1 * 1000.0
+    metadata["y1"] = y1 * 1000.0
+    metadata["x2"] = x2 * 1000.0
+    metadata["y2"] = y2 * 1000.0
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
     metadata["yorigin"] = "upper"
@@ -1177,6 +1163,5 @@ def import_knmi_hdf5(filename, **kwargs):
     metadata["zr_b"] = 1.6
 
     f.close()
-
 
     return R, None, metadata
