@@ -1019,14 +1019,8 @@ def _read_opera_hdf5_what_group(whatgrp):
 
 
 def import_knmi_hdf5(filename, **kwargs):
-    """Import a precipitation or reflectivity field (and optionally the quality 
+    """Import a precipitation or reflectivity field (and optionally the quality
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
-
-    Note: don't forget to change the 'pystepsrc'-file in order to be able to 
-    import your data. Every KNMI data type has a slightly different naming 
-    convention. The standard setup is based on the accumulated rainfall product
-    on 1 km2 spatial and 5 min. temporal resolution. 
-    See "https://data.knmi.nl/datasets?q=radar" for all available radar data.
 
     Parameters
     ----------
@@ -1038,27 +1032,46 @@ def import_knmi_hdf5(filename, **kwargs):
     ----------------
 
     qty : {'ACRR', 'DBZH'}
-        The quantity to read from the file. The currently supported identitiers
-        are: 'ACRR'=hourly rainfall accumulation (mm) and 'DBZH'=max-reflectivity 
+        The quantity to read from the file. The currently supported identifiers
+        are: 'ACRR'=hourly rainfall accumulation (mm) and 'DBZH'=max-reflectivity
         (dBZ). The default value is 'ACRR'.
+
     accutime : float
-        The accumulation time of the dataset in minutes.
+        The accumulation time of the dataset in minutes. A 5 min accumulation
+        is used as default, but hourly, daily and monthly accumulations
+        are also available.
+
     pixelsize: float
-        The pixelsize of a raster cell in meters.
+        The pixel size of a raster cell in meters. The default value for the KNMI
+        datasets is 1000 m grid cell size, but datasets with 2400 m pixel size
+        are also available.
 
     Returns
     -------
 
     out : tuple
-        A three-element tuple containing precipitation accumulation [mm] / 
-        reflectivity [DBZ] of the KNMI product, the associated quality field 
+        A three-element tuple containing precipitation accumulation [mm] /
+        reflectivity [dBZ] of the KNMI product, the associated quality field
         and metadata. The quality field is currently set to None.
+
+    Notes
+    -----
+
+    Every KNMI data type has a slightly different naming convention. The
+    standard setup is based on the accumulated rainfall product on 1 km2 spatial
+    and 5 min temporal resolution.
+    See https://data.knmi.nl/datasets?q=radar for a list of all available KNMI
+    radar data.
     """
 
     # TODO: Add quality field.
 
     if not h5py_imported:
-        raise Exception("h5py not imported")
+        raise MissingOptionalDependency(
+            "h5py package is required to import "
+            "KNMI's radar datasets "
+            "but it is not installed"
+        )
 
     ###
     # Options for kwargs.get
@@ -1073,7 +1086,7 @@ def import_knmi_hdf5(filename, **kwargs):
             "unknown quantity %s: the available options are 'ACRR' and 'DBZH' "
         )
 
-    # The time step. Generally, the 5 min. data is used, but also hourly, daily
+    # The time step. Generally, the 5 min data is used, but also hourly, daily
     # and monthly accumulations are present.
     accutime = kwargs.get("accutime", 5.0)
     # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
