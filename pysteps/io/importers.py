@@ -16,7 +16,7 @@ radar mosaic, the corresponding quality field and a metadata dictionary. If the
 file contains no quality information, the quality field is set to None. Pixels
 containing missing data are set to nan.
 
-The metadata dictionary contains the following mandatory key-value pairs:
+The metadata dictionary contains the following recommended key-value pairs:
 
 .. tabularcolumns:: |p{2cm}|L|
 
@@ -60,6 +60,10 @@ The metadata dictionary contains the following mandatory key-value pairs:
 +------------------+----------------------------------------------------------+
 |    zerovalue     | the value assigned to the no rain pixels with the same   |
 |                  | unit, transformation and accutime of the data.           |
++------------------+----------------------------------------------------------+
+|    zr_a          | the Z-R constant a in Z = a*R**b                         |
++------------------+----------------------------------------------------------+
+|    zr_b          | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
 Available Importers
@@ -131,16 +135,17 @@ def import_bom_rf3(filename, **kwargs):
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the rainfall field in mm/h imported
         from the Bureau RF3 netcdf, the quality field and the metadata. The
         quality field is currently set to None.
-
     """
     if not netcdf4_imported:
         raise MissingOptionalDependency(
@@ -207,16 +212,12 @@ def _import_bom_rf3_geodata(filename):
         ymin = min(ds_rainfall.variables["y"])
         ymax = max(ds_rainfall.variables["y"])
 
-    xpixelsize = (
-        abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
-    )
-    ypixelsize = (
-        abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
-    )
+    xpixelsize = abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
+    ypixelsize = abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
     factor_scale = 1.0
     if "units" in ds_rainfall.variables["x"].ncattrs():
         if getattr(ds_rainfall.variables["x"], "units") == "km":
-            factor_scale = 1000.
+            factor_scale = 1000.0
 
     geodata["x1"] = xmin * factor_scale
     geodata["y1"] = ymin * factor_scale
@@ -231,24 +232,18 @@ def _import_bom_rf3_geodata(filename):
 
     if "valid_time" in ds_rainfall.variables.keys():
         times = ds_rainfall.variables["valid_time"]
-        calendar = 'standard'
-        if 'calendar' in times.ncattrs():
+        calendar = "standard"
+        if "calendar" in times.ncattrs():
             calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar,
-                                      )
+        valid_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
         times = ds_rainfall.variables["start_time"]
-        calendar = 'standard'
-        if 'calendar' in times.ncattrs():
+        calendar = "standard"
+        if "calendar" in times.ncattrs():
             calendar = times.calendar
-        start_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar,
-                                      )
+        start_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     time_step = None
 
@@ -275,15 +270,16 @@ def import_fmi_geotiff(filename, **kwargs):
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the precipitation field, the associated
         quality field and metadata. The quality field is currently set to None.
-
     """
     if not gdal_imported:
         raise MissingOptionalDependency(
@@ -313,8 +309,8 @@ def import_fmi_geotiff(filename, **kwargs):
 
     metadata["projection"] = projdef
     metadata["x1"] = gt[0]
-    metadata["y1"] = gt[3] + gt[5]*f.RasterYSize
-    metadata["x2"] = metadata["x1"] + gt[1]*f.RasterXSize
+    metadata["y1"] = gt[3] + gt[5] * f.RasterYSize
+    metadata["x2"] = metadata["x1"] + gt[1] * f.RasterXSize
     metadata["y2"] = gt[3]
     metadata["xpixelsize"] = abs(gt[1])
     metadata["ypixelsize"] = abs(gt[5])
@@ -338,21 +334,23 @@ def import_fmi_pgm(filename, **kwargs):
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
     Other Parameters
     ----------------
+
     gzipped : bool
         If True, the input file is treated as a compressed gzip file.
 
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the reflectivity composite in dBZ
         and the associated quality field and metadata. The quality field is
         currently set to None.
-
     """
     if not pyproj_imported:
         raise MissingOptionalDependency(
@@ -386,6 +384,8 @@ def import_fmi_pgm(filename, **kwargs):
         metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
     else:
         metadata["threshold"] = np.nan
+    metadata["zr_a"] = 223.0
+    metadata["zr_b"] = 1.53
 
     return R, None, metadata
 
@@ -465,6 +465,7 @@ def import_mch_gif(filename, product, unit, accutime):
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
@@ -492,11 +493,11 @@ def import_mch_gif(filename, product, unit, accutime):
 
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
-
     """
     if not pil_imported:
         raise MissingOptionalDependency(
@@ -576,6 +577,8 @@ def import_mch_gif(filename, product, unit, accutime):
         metadata["threshold"] = np.nan
     metadata["institution"] = "MeteoSwiss"
     metadata["product"] = product
+    metadata["zr_a"] = 316.0
+    metadata["zr_b"] = 1.5
 
     return R, None, metadata
 
@@ -586,11 +589,13 @@ def import_mch_hdf5(filename, **kwargs):
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
     Other Parameters
     ----------------
+
     qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
@@ -599,12 +604,12 @@ def import_mch_hdf5(filename, **kwargs):
 
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the OPERA product for the requested
         quantity and the associated quality field and metadata. The quality
         field is read from the file if it contains a dataset whose quantity
         identifier is 'QIND'.
-
     """
     if not h5py_imported:
         raise MissingOptionalDependency(
@@ -626,7 +631,7 @@ def import_mch_hdf5(filename, **kwargs):
     Q = None
 
     for dsg in f.items():
-        if dsg[0][0:7] == "dataset":
+        if dsg[0].startswith("dataset"):
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
@@ -704,6 +709,8 @@ def import_mch_hdf5(filename, **kwargs):
             "transform": transform,
             "zerovalue": np.nanmin(R),
             "threshold": thr,
+            "zr_a": 316.0,
+            "zr_b": 1.5,
         }
     )
 
@@ -718,6 +725,7 @@ def import_mch_metranet(filename, product, unit, accutime):
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
@@ -745,11 +753,11 @@ def import_mch_metranet(filename, product, unit, accutime):
 
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
-
     """
     if not metranet_imported:
         raise MissingOptionalDependency(
@@ -773,6 +781,8 @@ def import_mch_metranet(filename, product, unit, accutime):
         metadata["threshold"] = np.nan
     else:
         metadata["threshold"] = np.nanmin(R[R > metadata["zerovalue"]])
+    metadata["zr_a"] = 316.0
+    metadata["zr_b"] = 1.5
 
     return R, None, metadata
 
@@ -817,11 +827,13 @@ def import_opera_hdf5(filename, **kwargs):
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
     Other Parameters
     ----------------
+
     qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
@@ -830,12 +842,12 @@ def import_opera_hdf5(filename, **kwargs):
 
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the OPERA product for the requested
         quantity and the associated quality field and metadata. The quality
         field is read from the file if it contains a dataset whose quantity
         identifier is 'QIND'.
-
     """
     if not h5py_imported:
         raise MissingOptionalDependency(
@@ -857,7 +869,7 @@ def import_opera_hdf5(filename, **kwargs):
     Q = None
 
     for dsg in f.items():
-        if dsg[0][0:7] == "dataset":
+        if dsg[0].startswith("dataset"):
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
@@ -1007,41 +1019,79 @@ def _read_opera_hdf5_what_group(whatgrp):
 
 
 def import_knmi_hdf5(filename, **kwargs):
-    """Import a precipitation field (and optionally the quality field) from a
-    HDF5 file conforming to the KNMI Data Centre specification.
+    """Import a precipitation or reflectivity field (and optionally the quality
+    field) from a HDF5 file conforming to the KNMI Data Centre specification.
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
     Other Parameters
     ----------------
+
+    qty : {'ACRR', 'DBZH'}
+        The quantity to read from the file. The currently supported identifiers
+        are: 'ACRR'=hourly rainfall accumulation (mm) and 'DBZH'=max-reflectivity
+        (dBZ). The default value is 'ACRR'.
+
     accutime : float
-        The accumulation time of the dataset in minutes.
+        The accumulation time of the dataset in minutes. A 5 min accumulation
+        is used as default, but hourly, daily and monthly accumulations
+        are also available.
+
     pixelsize: float
-        The pixelsize of a raster cell in meters.
+        The pixel size of a raster cell in meters. The default value for the KNMI
+        datasets is 1000 m grid cell size, but datasets with 2400 m pixel size
+        are also available.
 
     Returns
     -------
-    out : tuple
-        A three-element tuple containing precipitation accumulation of the KNMI
-        product, the associated quality field and metadata. The quality
-        field is currently set to None.
 
+    out : tuple
+        A three-element tuple containing precipitation accumulation [mm] /
+        reflectivity [dBZ] of the KNMI product, the associated quality field
+        and metadata. The quality field is currently set to None.
+
+    Notes
+    -----
+
+    Every KNMI data type has a slightly different naming convention. The
+    standard setup is based on the accumulated rainfall product on 1 km2 spatial
+    and 5 min temporal resolution.
+    See https://data.knmi.nl/datasets?q=radar for a list of all available KNMI
+    radar data.
     """
 
     # TODO: Add quality field.
 
     if not h5py_imported:
-        raise Exception("h5py not imported")
+        raise MissingOptionalDependency(
+            "h5py package is required to import "
+            "KNMI's radar datasets "
+            "but it is not installed"
+        )
 
-    # Generally, the 5 min. data is used, but also hourly, daily and monthly
-    # accumulations are present.
+    ###
+    # Options for kwargs.get
+    ###
+
+    # The unit in the 2D fields: either hourly rainfall accumulation (ACRR) or
+    # reflectivity (DBZH)
+    qty = kwargs.get("qty", "ACRR")
+
+    if qty not in ["ACRR", "DBZH"]:
+        raise ValueError(
+            "unknown quantity %s: the available options are 'ACRR' and 'DBZH' "
+        )
+
+    # The time step. Generally, the 5 min data is used, but also hourly, daily
+    # and monthly accumulations are present.
     accutime = kwargs.get("accutime", 5.0)
-    pixelsize = kwargs.get(
-        "pixelsize", 1000.0
-    )  # 1.0 or 2.4 km datasets are available - give pixelsize in meters
+    # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
+    # 1.0 or 2.4 km datasets are available - give pixelsize in meters
+    pixelsize = kwargs.get("pixelsize", 1000.0)
 
     ####
     # Precipitation fields
@@ -1050,19 +1100,36 @@ def import_knmi_hdf5(filename, **kwargs):
     f = h5py.File(filename, "r")
     dset = f["image1"]["image_data"]
     R_intermediate = np.copy(dset)  # copy the content
-    R = np.where(R_intermediate == 65535, np.NaN, R_intermediate / 100.0)
-    # R is divided by 100.0, because the data is saved as hundreds of mm (so, as integers)
-    # 65535 is the no data value
-    # Precision of the data is two decimals (0.01 mm).
+
+    # In case R is a rainfall accumulation (ACRR), R is divided by 100.0,
+    # because the data is saved as hundreds of mm (so, as integers). 65535 is
+    # the no data value. The precision of the data is two decimals (0.01 mm).
+    if qty == "ACRR":
+        R = np.where(R_intermediate == 65535, np.NaN, R_intermediate / 100.0)
+
+    # In case reflectivities are imported, the no data value is 255. Values are
+    # saved as integers. The reflectivities are not directly saved in dBZ, but
+    # as: dBZ = 0.5 * pixel_value - 31.5
+    if qty == "DBZH":
+        R = np.where(R_intermediate == 255, np.NaN, R_intermediate * 0.5 - 31.5)
 
     if R is None:
-        raise IOError("requested quantity [mm] not found")
+        raise IOError("requested quantity not found")
+
+    # TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
 
     ####
     # Meta data
     ####
 
     metadata = {}
+
+    if qty == "ACRR":
+        unit = "mm"
+        transform = None
+    elif qty == "DBZH":
+        unit = "dBZ"
+        transform = "dB"
 
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
@@ -1092,21 +1159,21 @@ def import_knmi_hdf5(filename, **kwargs):
     y1 = max(UL_y, UR_y)
 
     # Fill in the metadata
-    metadata["x1"] = x1 * 1000.
-    metadata["y1"] = y1 * 1000.
-    metadata["x2"] = x2 * 1000.
-    metadata["y2"] = y2 * 1000.
-
+    metadata["x1"] = x1 * 1000.0
+    metadata["y1"] = y1 * 1000.0
+    metadata["x2"] = x2 * 1000.0
+    metadata["y2"] = y2 * 1000.0
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
-
     metadata["yorigin"] = "upper"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
-    metadata["unit"] = "mm"
-    metadata["transform"] = None
+    metadata["unit"] = unit
+    metadata["transform"] = transform
     metadata["zerovalue"] = 0.0
     metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
+    metadata["zr_a"] = 200.0
+    metadata["zr_b"] = 1.6
 
     f.close()
 

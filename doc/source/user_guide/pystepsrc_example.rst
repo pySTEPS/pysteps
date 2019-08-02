@@ -75,7 +75,9 @@ The lines starting with "//" are comments and they are ignored.
                 "importer": "knmi_hdf5",
                 "timestep": 5,
                 "importer_kwargs": {
-                    "accutime": 5
+                    "accutime": 5,
+                    "qty": "ACRR",
+                    "pixelsize": 1000.0
                 }
             }
         }

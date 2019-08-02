@@ -40,6 +40,8 @@ test_metadata = [
     ("threshold", 0.0009628129986471908, 1e-19),
     ("institution", "MeteoSwiss", None),
     ("product", "AQC", None),
+    ("zr_a", 316.0, None),
+    ("zr_b", 1.5, None),
 ]
 
 
