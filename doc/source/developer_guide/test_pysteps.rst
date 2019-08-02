@@ -1,3 +1,5 @@
+.. _testing_pysteps:
+
 ===============
 Testing pySTEPS
 ===============
