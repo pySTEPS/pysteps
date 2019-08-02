@@ -631,7 +631,7 @@ def import_mch_hdf5(filename, **kwargs):
     Q = None
 
     for dsg in f.items():
-        if dsg[0][0:7] == "dataset":
+        if dsg[0].startswith("dataset"):
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
@@ -869,7 +869,7 @@ def import_opera_hdf5(filename, **kwargs):
     Q = None
 
     for dsg in f.items():
-        if dsg[0][0:7] == "dataset":
+        if dsg[0].startswith("dataset"):
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
