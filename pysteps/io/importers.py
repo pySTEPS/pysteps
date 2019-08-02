@@ -1,17 +1,25 @@
 """
 pysteps.io.importers
 ====================
+
 Methods for importing files containing 2d precipitation fields.
+
 The methods in this module implement the following interface::
+
     import_xxx(filename, optional arguments)
+
 where **xxx** is the name (or abbreviation) of the file format and filename
 is the name of the input file.
+
 The output of each method is a three-element tuple containing a two-dimensional
 precipitation field, the corresponding quality field and a metadata dictionary.
 If the file contains no quality information, the quality field is set to None.
 Pixels containing missing data are set to nan.
+
 The metadata dictionary contains the following recommended key-value pairs:
+
 .. tabularcolumns:: |p{2cm}|L|
+
 +------------------+----------------------------------------------------------+
 |       Key        |                Value                                     |
 +==================+==========================================================+
@@ -57,10 +65,13 @@ The metadata dictionary contains the following recommended key-value pairs:
 +------------------+----------------------------------------------------------+
 |    zr_b          | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
+
 Available Importers
 -------------------
+
 .. autosummary::
     :toctree: ../generated/
+
     import_bom_rf3
     import_fmi_geotiff
     import_fmi_pgm
@@ -121,12 +132,16 @@ except ImportError:
 
 def import_bom_rf3(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the BoM Rainfields3.
+
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
+
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the rainfall field in mm/h imported
         from the Bureau RF3 netcdf, the quality field and the metadata. The
@@ -262,12 +277,16 @@ def _import_bom_rf3_geodata(filename):
 
 def import_fmi_geotiff(filename, **kwargs):
     """Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
+
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
+
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the precipitation field, the associated
         quality field and metadata. The quality field is currently set to None.
@@ -322,16 +341,22 @@ def import_fmi_geotiff(filename, **kwargs):
 
 def import_fmi_pgm(filename, **kwargs):
     """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
+
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
+
     Other Parameters
     ----------------
+
     gzipped : bool
         If True, the input file is treated as a compressed gzip file.
+
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the reflectivity composite in dBZ
         and the associated quality field and metadata. The quality field is
@@ -447,13 +472,17 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
 def import_mch_gif(filename, product, unit, accutime):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
+
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
+
     product : {"AQC", "CPC", "RZC", "AZC"}
         The name of the MeteoSwiss QPE product.\n
         Currently supported prducts:
+
         +------+----------------------------+
         | Name |          Product           |
         +======+============================+
@@ -465,12 +494,16 @@ def import_mch_gif(filename, product, unit, accutime):
         +------+----------------------------+
         | AZC  |     RZC accumulation       |
         +------+----------------------------+
+
     unit : {"mm/h", "mm", "dBZ"}
         the physical unit of the data
+
     accutime : float
         the accumulation time in minutes of the data
+
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
@@ -563,19 +596,25 @@ def import_mch_gif(filename, product, unit, accutime):
 def import_mch_hdf5(filename, **kwargs):
     """Import a precipitation field (and optionally the quality field) from a
     MeteoSwiss HDF5 file conforming to the ODIM specification.
+
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
+
     Other Parameters
     ----------------
+
     qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
+
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the OPERA product for the requested
         quantity and the associated quality field and metadata. The quality
@@ -693,13 +732,17 @@ def import_mch_hdf5(filename, **kwargs):
 def import_mch_metranet(filename, product, unit, accutime):
     """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
     archive.
+
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
+
     product : {"AQC", "CPC", "RZC", "AZC"}
         The name of the MeteoSwiss QPE product.\n
         Currently supported prducts:
+
         +------+----------------------------+
         | Name |          Product           |
         +======+============================+
@@ -711,12 +754,16 @@ def import_mch_metranet(filename, product, unit, accutime):
         +------+----------------------------+
         | AZC  |     RZC accumulation       |
         +------+----------------------------+
+
     unit : {"mm/h", "mm", "dBZ"}
         the physical unit of the data
+
     accutime : float
         the accumulation time in minutes of the data
+
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
@@ -787,19 +834,25 @@ def _import_mch_geodata():
 def import_opera_hdf5(filename, **kwargs):
     """Import a precipitation field (and optionally the quality field) from an
     OPERA HDF5 file conforming to the ODIM specification.
+
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
+
     Other Parameters
     ----------------
+
     qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
+
     Returns
     -------
+
     out : tuple
         A three-element tuple containing the OPERA product for the requested
         quantity and the associated quality field and metadata. The quality
@@ -978,6 +1031,7 @@ def _read_opera_hdf5_what_group(whatgrp):
 def import_knmi_hdf5(filename, **kwargs):
     """Import a precipitation or reflectivity field (and optionally the quality 
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
+
     Note: don't forget to change the 'pystepsrc'-file in order to be able to 
     import your data. Every KNMI data type has a slightly different naming 
     convention. The standard setup is based on the accumulated rainfall product
@@ -986,11 +1040,13 @@ def import_knmi_hdf5(filename, **kwargs):
 
     Parameters
     ----------
+
     filename : str
         Name of the file to import.
 
     Other Parameters
     ----------------
+
     qty : {'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'ACRR'=hourly rainfall accumulation (mm) and 'DBZH'=max-reflectivity 
@@ -1002,11 +1058,11 @@ def import_knmi_hdf5(filename, **kwargs):
 
     Returns
     -------
+
     out : tuple
         A three-element tuple containing precipitation accumulation [mm] / 
         reflectivity [DBZ] of the KNMI product, the associated quality field 
         and metadata. The quality field is currently set to None.
-
     """
 
     # TODO: Add quality field.
