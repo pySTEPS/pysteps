@@ -2,7 +2,7 @@
 pysteps.io.importers
 ====================
 
-Methods for importing files containing 2d precipitation fields.
+Methods for importing files containing two-dimensional radar mosaics.
 
 The methods in this module implement the following interface::
 
@@ -12,9 +12,9 @@ where **xxx** is the name (or abbreviation) of the file format and filename
 is the name of the input file.
 
 The output of each method is a three-element tuple containing a two-dimensional
-precipitation field, the corresponding quality field and a metadata dictionary.
-If the file contains no quality information, the quality field is set to None.
-Pixels containing missing data are set to nan.
+radar mosaic, the corresponding quality field and a metadata dictionary. If the
+file contains no quality information, the quality field is set to None. Pixels
+containing missing data are set to nan.
 
 The metadata dictionary contains the following mandatory key-value pairs:
 
