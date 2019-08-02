@@ -140,11 +140,13 @@ convergence_arg_values = [(reference_field, 'lk', 'linear_x', 2, 0.1),
                           (reference_field, 'lk', 'linear_x', 3, 0.1),
                           (reference_field, 'lk', 'linear_y', 3, 0.1),
                           (reference_field, 'vet', 'linear_x', 2, 0.1),
-                          #(reference_field, 'vet', 'linear_y', 2, 9),
-                          #(reference_field, 'vet', 'linear_x', 3, 9),
+                          # (reference_field, 'vet', 'linear_x', 3, 9),
+                          # (reference_field, 'vet', 'linear_y', 2, 9),
                           (reference_field, 'vet', 'linear_y', 3, 0.1),
-                          (reference_field, 'darts', 'linear_x', 9, 25),
-                          (reference_field, 'darts', 'linear_y', 9, 25)]
+                          (reference_field, 'proesmans', 'linear_x', 2, 0.45),
+                          (reference_field, 'proesmans', 'linear_y', 2, 0.45),
+                          (reference_field, 'darts', 'linear_x', 9, 20),
+                          (reference_field, 'darts', 'linear_y', 9, 20)]
 
 
 @pytest.mark.parametrize(convergence_arg_names, convergence_arg_values)
@@ -195,6 +197,8 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
         # maxiter=150.
         computed_motion = oflow_method(precip_obs, verbose=False,
                                        options=dict(maxiter=150, method='BFGS'))
+    elif optflow_method_name == 'proesmans':
+        computed_motion = oflow_method(precip_obs)
     else:
 
         computed_motion = oflow_method(precip_obs, verbose=False)
@@ -282,4 +286,4 @@ def test_vet_cost_function():
     errors = np.abs(returned_values - returned_values[0])
     # errors should contain all zeros
     assert (errors < tolerance).any()
-    assert (returned_values[0]-1548250.87627097) < 0.001
+    assert (returned_values[0] - 1548250.87627097) < 0.001
