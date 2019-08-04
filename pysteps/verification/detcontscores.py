@@ -18,11 +18,12 @@ import numpy as np
 from scipy.stats import spearmanr
 
 
-def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
+def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     """Calculate simple and skill scores for deterministic continuous forecasts.
 
     Parameters
     ----------
+
     pred : array_like
         Array of predictions. NaNs are ignored.
 
@@ -72,15 +73,19 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
 
-    conditioning : {None, 'single', 'double'}, optional
-        The type of conditioning on zeros used for the verification.
-        The default, conditioning=None, includes zero pairs. With
-        conditioning='single', only pairs with either pred or obs > 0 are
-        included. With conditioning='double', only pairs with both pred and
-        obs > 0 are included.
+    conditioning : {None, "single", "double"}, optional
+        The type of conditioning used for the verification.
+        The default, conditioning=None, includes all pairs. With
+        conditioning="single", only pairs with either pred or obs > thr are
+        included. With conditioning="double", only pairs with both pred and
+        obs > thr are included.
+        
+    thr : float
+        Optional threshold value for conditioning. Defaults to 0.
 
     Returns
     -------
+
     result : dict
         Dictionary containing the verification results.
 
@@ -109,8 +114,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
 
     See also
     --------
-    pysteps.verification.detcatscores.det_cat_fct
 
+    pysteps.verification.detcatscores.det_cat_fct
     """
 
     # catch case of single score passed as string
@@ -139,7 +144,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
     onresult = {}
     if onscores:
 
-        err = det_cont_fct_init(axis=axis, conditioning=conditioning)
+        err = det_cont_fct_init(axis=axis, conditioning=conditioning, thr=thr)
         det_cont_fct_accum(err, pred, obs)
         onresult = det_cont_fct_compute(err, onscores)
 
@@ -159,9 +164,9 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         # conditioning
         if conditioning is not None:
             if conditioning == "single":
-                idx = np.logical_or(obs > 0, pred > 0)
+                idx = np.logical_or(obs > thr, pred > thr)
             elif conditioning == "double":
-                idx = np.logical_and(obs > 0, pred > 0)
+                idx = np.logical_and(obs > thr, pred > thr)
             else:
                 raise ValueError("unkown conditioning %s" % conditioning)
             obs[~idx] = np.nan
@@ -196,6 +201,7 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
 
     Parameters
     ----------
+
     axis : {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
@@ -204,11 +210,11 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
 
-    conditioning : {None, 'single', 'double'}, optional
-        The type of conditioning on zeros used for the verification.
-        The default, conditioning=None, includes zero pairs. With
-        conditioning='single', only pairs with either pred or obs > thr are
-        included. With conditioning='double', only pairs with both pred and
+    conditioning : {None, "single", "double"}, optional
+        The type of conditioning used for the verification.
+        The default, conditioning=None, includes all pairs. With
+        conditioning="single", only pairs with either pred or obs > thr are
+        included. With conditioning="double", only pairs with both pred and
         obs > thr are included.
 
     thr : float
@@ -216,6 +222,7 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
 
     Returns
     -------
+
     out : dict
         The verification error object.
     """
@@ -252,6 +259,7 @@ def det_cont_fct_accum(err, pred, obs):
 
     Parameters
     ----------
+
     err : dict
         A verification error object initialized with
         :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`.
@@ -264,6 +272,7 @@ def det_cont_fct_accum(err, pred, obs):
 
     References
     ----------
+
     Chan, Tony F.; Golub, Gene H.; LeVeque, Randall J. (1979), "Updating
     Formulae and a Pairwise Algorithm for Computing Sample Variances.",
     Technical Report STAN-CS-79-773, Department of Computer Science,
@@ -271,7 +280,6 @@ def det_cont_fct_accum(err, pred, obs):
 
     Schubert, Erich; Gertz, Michael (2018-07-09). "Numerically stable parallel
     computation of (co-)variance". ACM: 10. doi:10.1145/3221269.3223036.
-
     """
 
     pred = np.asarray(pred.copy())
@@ -381,6 +389,7 @@ def det_cont_fct_compute(err, scores=""):
 
     Parameters
     ----------
+
     err : dict
         A verification error object initialized with
         :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
@@ -402,7 +411,7 @@ def det_cont_fct_compute(err, scores=""):
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
         |  DRMSE     | debiased root mean squared error, i.e.                 |
-        |            | :math:`DRMSE = \\sqrt{RMSE - ME^2}`                     |
+        |            | :math:`DRMSE = \\sqrt{RMSE - ME^2}`                    |
         +------------+--------------------------------------------------------+
         |  MAE       | mean absolute error                                    |
         +------------+--------------------------------------------------------+
@@ -414,11 +423,12 @@ def det_cont_fct_compute(err, scores=""):
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
         |            | (Brier Score, Nash-Sutcliffe Efficiency), i.e.         |
-        |            | :math:`RV = 1 - \\frac{MSE}{s^2_o}`                     |
+        |            | :math:`RV = 1 - \\frac{MSE}{s^2_o}`                    |
         +------------+--------------------------------------------------------+
 
     Returns
     -------
+
     result : dict
         Dictionary containing the verification results.
     """
