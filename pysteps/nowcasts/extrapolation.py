@@ -64,7 +64,8 @@ def forecast(precip, velocity, num_timesteps,
     if extrap_kwargs is None:
         extrap_kwargs = dict()
 
-    print("Computing extrapolation nowcast from a "
+    if measure_time:
+        print("Computing extrapolation nowcast from a "
           f"{precip.shape[0]:d}x{precip.shape[1]:d} input grid... ", end="")
 
     if measure_time:
