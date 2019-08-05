@@ -78,7 +78,7 @@ def get_method(name):
     +===================+======================================================+
     |  brox             | implementation of the variational method of          |
     |                   | Brox et al. (2004) from IPOL                         |
-    |                   |  (http://www.ipol.im/pub/art/2013/21)                |
+    |                   | (http://www.ipol.im/pub/art/2013/21)                 |
     +-------------------+------------------------------------------------------+
     |  clg              | implementation of the Combined Local-Global (CLG)    |
     |                   | method of Bruhn et al., 2005 from IPOL               |

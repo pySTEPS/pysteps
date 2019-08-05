@@ -83,7 +83,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([0.02513093]),
+        np.array([0.04210719]),
     ),
     (
         np.array([1]),
@@ -193,7 +193,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([0.00209424]),
+        np.array([0.00350893]),
     ),
     (
         np.array([1]),
@@ -259,7 +259,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([24.99687083]),
+        np.array([23.01029996]),
     ),
     (
         np.array([1]),
@@ -270,7 +270,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([41.18458952]),
+        np.array([40.27719989]),
     ),
     (
         np.array([1]),
@@ -281,7 +281,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([26.49687083]),
+        np.array([24.61029996]),
     ),
     (
         np.array([1]),
@@ -292,7 +292,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([42.68458952]),
+        np.array([41.87719989]),
     ),
     (
         np.array([1]),
@@ -314,7 +314,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([31.51128805]),
+        np.array([29.95901167]),
     ),
     (
         np.array([1.0]),
@@ -325,7 +325,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([47.69900675]),
+        np.array([47.2259116]),
     ),
     (
         np.array([1]),
@@ -336,7 +336,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([24.99687083]),
+        np.array([23.01029996]),
     ),
     (
         np.array([1.0]),
@@ -347,7 +347,7 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([41.18458952]),
+        np.array([40.27719989]),
     ),
 ]
 

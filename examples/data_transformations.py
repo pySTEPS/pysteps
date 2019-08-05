@@ -69,9 +69,8 @@ Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 # Keep only positive rainfall values
 Z = Z[Z > metadata["zerovalue"]].flatten()
 
-# Convert to rain rate using the finnish Z-R relationship
-# Z = 223*R^1.53
-R, metadata = conversion.to_rainrate(Z, metadata, 223.0, 1.53)
+# Convert to rain rate
+R, metadata = conversion.to_rainrate(Z, metadata)
 
 ###############################################################################
 # Test data transformations
