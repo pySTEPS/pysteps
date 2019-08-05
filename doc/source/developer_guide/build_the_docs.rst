@@ -9,6 +9,26 @@ The pysteps documentations is build using
 a tool that makes it easy to create intelligent and beautiful documentation
 
 The documentation is located in the **doc** folder in the pysteps repo.
+
+Automatic build
+---------------
+
+The simplest way to build the documentation is using tox and the tox-conda
+plugin (conda needed).
+To install these packages activate your conda development environment and run::
+
+    conda install -c conda-forge tox tox-conda
+
+Then, to build the documentation, from the repo's root run::
+
+    `tox -e docs`
+
+This will create a conda environment will all the necessary dependencies and the
+data needed to create the examples.
+
+
+Manual build
+------------
 To build the docs you need to need to satisfy a few more dependencies
 related to Sphinx that are specified in the doc/requirements.txt file:
 
