@@ -337,25 +337,30 @@ def vet(input_images,
 
     This algorithm computes the displacement field between two images
     ( the input_image with respect to the template image).
-    The displacement is sought by minimizing sum of the residuals of the
+    The displacement is sought by minimizing the sum of the residuals of the
     squared differences of the images pixels and the contribution of a
-    smoothness constrain.
+    smoothness constraint.
+    In the case that a MaskedArray is used as input, the residuals term in
+    the cost function is only computed over areas with non-masked values.
+    Otherwise, it is computed over the entire domain.
 
-    In order to find the minimum an scaling guess procedure is applied,
-    from larger scales
-    to a finer scale. This reduces the changes that the minimization procedure
-    converges to a local minimum. The scaling guess is defined by the scaling
-    sectors (see **sectors** keyword).
+    To find the minimum, a scaling guess procedure is applied,
+    from larger to smaller scales.
+    This reduces the chances that the minimization procedure
+    converges to a local minimum.
+    The first scaling guess is defined by the scaling sectors keyword.
 
     The smoothness of the returned displacement field is controlled by the
-    smoothness constrain gain (**smooth_gain** keyword).
+    smoothness constraint gain (**smooth_gain** keyword).
 
-    If a first guess is not given, zero displacements are used as first guess.
+    If a first guess is not given, zero displacements are used as the first
+    guess.
 
-    To minimize the cost function, the `scipy minimization`_ function is used
-    with the 'CG' method. This method proved to give the best results under
-    any different conditions and is the most similar one to the original VET
-    implementation in `Laroche and Zawadzki (1995)`_.
+    The cost function is minimized using the `scipy minimization`_ function,
+    with the 'CG' method by default.
+    This method proved to give the best results under many different conditions
+    and is the most similar one to the original VET implementation in
+    `Laroche and Zawadzki (1995)`_.
 
 
     The method CG uses a nonlinear conjugate gradient algorithm by Polak and
@@ -385,10 +390,10 @@ def vet(input_images,
         The expected dimensions are (2,ni,nj).
 
     sectors : list or array, optional
-        The number of sectors for each dimension used in the scaling procedure.
+        Number of sectors on each dimension used in the scaling procedure.
         If dimension is 1, the same sectors will be used both image dimensions
-        (x and y). If is 2D, the each row determines the sectors of the
-        each dimension.
+        (x and y). If **sectors** is a 1D array, the same number of sectors
+        is used in both dimensions.
 
     smooth_gain : float, optional
         Smooth gain factor
