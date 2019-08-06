@@ -635,8 +635,20 @@ def _spearmanr(pred, obs, axis=None):
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
-    corr_s = spearmanr(pred, obs, axis=0, nan_policy="omit")[0]
-    if corr_s.size > 1:
-        corr_s = np.diag(corr_s, pred.shape[1]).reshape(shp_cols)
+    # apply only with more than 2 valid samples
+    # although this does not seem to solve the error
+    # "ValueError: The input must have at least 3 entries!" ...
+    corr_s = np.zeros(pred.shape[1]) * np.nan
+    nsamp = np.sum(np.logical_and(np.isfinite(pred), np.isfinite(obs)), axis=0)
+    idx = nsamp > 2
+    if np.any(idx):
+        corr_s_ = spearmanr(
+            pred[:, idx], obs[:, idx], axis=0, nan_policy="omit"
+        )[0]
 
-    return float(corr_s) if corr_s.size == 1 else corr_s
+        if corr_s_.size > 1:
+            corr_s[idx] = np.diag(corr_s_, idx.sum())
+        else:
+            corr_s = corr_s_
+
+    return float(corr_s) if corr_s.size == 1 else corr_s.reshape(shp_cols)
