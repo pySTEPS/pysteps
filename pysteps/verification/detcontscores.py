@@ -79,7 +79,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
         conditioning="single", only pairs with either pred or obs > thr are
         included. With conditioning="double", only pairs with both pred and
         obs > thr are included.
-        
+
     thr : float
         Optional threshold value for conditioning. Defaults to 0.
 
@@ -130,10 +130,14 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     # split between online and offline scores
     loffline = ["scatter", "corr_s"]
     onscores = [
-        score for score in scores if str(score).lower() not in loffline or score == ""
+        score
+        for score in scores
+        if str(score).lower() not in loffline or score == ""
     ]
     offscores = [
-        score for score in scores if str(score).lower() in loffline or score == ""
+        score
+        for score in scores
+        if str(score).lower() in loffline or score == ""
     ]
 
     # unique lists
@@ -364,20 +368,20 @@ def det_cont_fct_accum(err, pred, obs):
     mpred = mpred.squeeze()
 
     # update variances
-    err["vobs"] = _parallel_var(err["mobs"], err["n"], err["vobs"], mobs, n, vobs)
-    err["vpred"] = _parallel_var(err["mpred"], err["n"], err["vpred"], mpred, n, vpred)
+    _parallel_var(err["mobs"], err["n"], err["vobs"], mobs, n, vobs)
+    _parallel_var(err["mpred"], err["n"], err["vpred"], mpred, n, vpred)
 
     # update covariance
-    err["cov"] = _parallel_cov(
+    _parallel_cov(
         err["cov"], err["mobs"], err["mpred"], err["n"], cov, mobs, mpred, n
     )
 
     # update means
-    err["mobs"] = _parallel_mean(err["mobs"], err["n"], mobs, n)
-    err["mpred"] = _parallel_mean(err["mpred"], err["n"], mpred, n)
-    err["me"] = _parallel_mean(err["me"], err["n"], me, n)
-    err["mse"] = _parallel_mean(err["mse"], err["n"], mse, n)
-    err["mae"] = _parallel_mean(err["mae"], err["n"], mae, n)
+    _parallel_mean(err["mobs"], err["n"], mobs, n)
+    _parallel_mean(err["mpred"], err["n"], mpred, n)
+    _parallel_mean(err["me"], err["n"], me, n)
+    _parallel_mean(err["mse"], err["n"], mse, n)
+    _parallel_mean(err["mae"], err["n"], mae, n)
 
     # update number of samples
     err["n"] += n
@@ -495,25 +499,53 @@ def det_cont_fct_compute(err, scores=""):
 
 
 def _parallel_mean(avg_a, count_a, avg_b, count_b):
-    return (count_a * avg_a + count_b * avg_b) / (count_a + count_b)
+    """Update avg_a with avg_b.
+    """
+    idx = count_b > 0
+    avg_a[idx] = (count_a[idx] * avg_a[idx] + count_b[idx] * avg_b[idx]) / (
+        count_a[idx] + count_b[idx]
+    )
 
 
 def _parallel_var(avg_a, count_a, var_a, avg_b, count_b, var_b):
-    # source: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    """Update var_a with var_b.
+    source: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    """
+    idx = count_b > 0
     delta = avg_b - avg_a
     m_a = var_a * count_a
     m_b = var_b * count_b
-    M2 = m_a + m_b + delta ** 2 * count_a * count_b / (count_a + count_b)
-    return M2 / (count_a + count_b)
+    var_a[idx] = (
+        m_a[idx]
+        + m_b[idx]
+        + delta[idx] ** 2
+        * count_a[idx]
+        * count_b[idx]
+        / (count_a[idx] + count_b[idx])
+    )
+    var_a[idx] = var_a[idx] / (count_a[idx] + count_b[idx])
 
 
-def _parallel_cov(cov_a, avg_xa, avg_ya, count_a, cov_b, avg_xb, avg_yb, count_b):
+def _parallel_cov(
+    cov_a, avg_xa, avg_ya, count_a, cov_b, avg_xb, avg_yb, count_b
+):
+    """Update cov_a with cov_b.
+    """
+    idx = count_b > 0
     deltax = avg_xb - avg_xa
     deltay = avg_yb - avg_ya
     c_a = cov_a * count_a
     c_b = cov_b * count_b
-    C2 = c_a + c_b + deltax * deltay * count_a * count_b / (count_a + count_b)
-    return C2 / (count_a + count_b)
+    cov_a[idx] = (
+        c_a[idx]
+        + c_b[idx]
+        + deltax[idx]
+        * deltay[idx]
+        * count_a[idx]
+        * count_b[idx]
+        / (count_a[idx] + count_b[idx])
+    )
+    cov_a[idx] = cov_a[idx] / (count_a[idx] + count_b[idx])
 
 
 def _uniquelist(mylist):
