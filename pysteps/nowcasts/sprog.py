@@ -51,9 +51,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
       Number of time steps to forecast.
     n_cascade_levels : int, optional
       The number of cascade levels to use.
-    R_thr : float, optional
-      Specifies the threshold value for minimum observable precipitation
-      intensity. Required if mask_method is not None or conditional is True.
+    R_thr : float
+      The threshold value for minimum observable precipitation intensity.
     extrap_method : str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
@@ -126,9 +125,6 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
 
-    if conditional and R_thr is None:
-        raise ValueError("conditional=True but R_thr is not set")
-
     print("Computing S-PROG nowcast:")
     print("-------------------------")
     print("")
@@ -154,9 +150,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
-
-    if conditional:
-        print("precip. intensity threshold: %g" % R_thr)
+    print("precip. intensity threshold: %g" % R_thr)
 
     if measure_time:
         starttime_init = time.time()
