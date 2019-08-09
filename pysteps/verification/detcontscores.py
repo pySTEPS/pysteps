@@ -54,6 +54,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
         +------------+--------------------------------------------------------+
         |  MSE       | mean squared error                                     |
         +------------+--------------------------------------------------------+
+        |  NMSE      | normalized mean squared error                          |
+        +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
@@ -94,14 +96,16 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
 
     Multiplicative scores can be computed by passing log-tranformed values.
     Note that "scatter" is the only score that will be computed in dB units of
-    the multiplicative error, i.e.: 10log10(pred/obs).
+    the multiplicative error, i.e.: 10*log10(pred/obs).
 
-    The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2)
+    The normalized MSE is computed as NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
 
-    The reduction of variance score is computed as RV = 1 - MSE/Var(obs)
+    The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2).
+
+    The reduction of variance score is computed as RV = 1 - MSE/Var(obs).
 
     Score names denoted by * can only be computed offline, meaning that the
-    these cannot be update using _init, _accum and _compute methods of this
+    these cannot be computed using _init, _accum and _compute methods of this
     module.
 
 
@@ -229,6 +233,7 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
 
     out : dict
         The verification error object.
+
     """
 
     err = {}
@@ -252,6 +257,7 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
     err["mpred"] = None
     err["me"] = None
     err["mse"] = None
+    err["mss"] = None # mean square sum, i.e. E[(pred + obs)^2]
     err["mae"] = None
     err["n"] = None
 
@@ -314,6 +320,7 @@ def det_cont_fct_accum(err, pred, obs):
         err["mpred"] = np.zeros(nshape)
         err["me"] = np.zeros(nshape)
         err["mse"] = np.zeros(nshape)
+        err["mss"] = np.zeros(nshape)
         err["mae"] = np.zeros(nshape)
         err["n"] = np.zeros(nshape)
 
@@ -345,6 +352,7 @@ def det_cont_fct_accum(err, pred, obs):
 
     # compute residuals
     res = pred - obs
+    sum = pred + obs
     n = np.sum(np.isfinite(res), axis=axis)
 
     # new means
@@ -352,6 +360,7 @@ def det_cont_fct_accum(err, pred, obs):
     mpred = np.nanmean(pred, axis=axis)
     me = np.nanmean(res, axis=axis)
     mse = np.nanmean(res ** 2, axis=axis)
+    mss = np.nanmean(sum ** 2, axis=axis)
     mae = np.nanmean(np.abs(res), axis=axis)
 
     # expand axes for broadcasting
@@ -381,6 +390,7 @@ def det_cont_fct_accum(err, pred, obs):
     _parallel_mean(err["mpred"], err["n"], mpred, n)
     _parallel_mean(err["me"], err["n"], me, n)
     _parallel_mean(err["mse"], err["n"], mse, n)
+    _parallel_mean(err["mss"], err["n"], mss, n)
     _parallel_mean(err["mae"], err["n"], mae, n)
 
     # update number of samples
@@ -422,6 +432,8 @@ def det_cont_fct_compute(err, scores=""):
         |  ME        | mean error or bias                                     |
         +------------+--------------------------------------------------------+
         |  MSE       | mean squared error                                     |
+        +------------+--------------------------------------------------------+
+        |  NMSE      | normalized mean squared error                          |
         +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
@@ -468,6 +480,11 @@ def det_cont_fct_compute(err, scores=""):
         if score_ in ["mse", ""]:
             MSE = err["mse"]
             result["MSE"] = MSE
+
+        # normalized mean squared error
+        if score_ in ["nmse", ""]:
+            NMSE = err["mse"] / err["mss"]
+            result["NMSE"] = NMSE
 
         # root mean squared error
         if score_ in ["rmse", ""]:

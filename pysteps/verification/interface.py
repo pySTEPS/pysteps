@@ -67,6 +67,8 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  MSE       | mean squared error                                     |
         +------------+--------------------------------------------------------+
+        |  NMSE      | normalized mean squared error                          |
+        +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
@@ -178,10 +180,11 @@ def get_method(name, type="deterministic"):
             "beta",
             "corr_p",
             "corr_s",
+            "drmse",
             "mae",
             "mse",
             "me",
-            "drmse",
+            "nrmse",
             "rmse",
             "rv",
             "scatter",

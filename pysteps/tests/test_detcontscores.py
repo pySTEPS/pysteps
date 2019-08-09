@@ -36,6 +36,8 @@ test_data = [
     (fct_data, obs_data, ('MAE'), None, None, [5.55]),
     # Mean Square Error
     (fct_data, obs_data, ('MSE'), None, None, [64.15]),
+    # Normalized Mean Square Error
+    (fct_data, obs_data, ('NMSE'), None, None, [0.113711]),
     # Root Mean Square Error
     (fct_data, obs_data, ('RMSE'), None, None, [8.009370]),
     # Beta
