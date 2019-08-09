@@ -585,10 +585,18 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
     """
 
     input = np.copy(input)
-    nvar = input.squeeze().ndim
 
     if np.any(~np.isfinite(input)):
         raise ValueError("input contains non-finite values")
+
+    if input.ndim == 1:
+        nvar = 1
+    elif input.ndim == 2:
+        nvar = input.shape[1]
+    else:
+        raise ValueError(
+            "input must have 1 (n) or 2 dimensions (n, m), but it has %i" % coord.ndim
+        )
 
     if coord is not None:
 
