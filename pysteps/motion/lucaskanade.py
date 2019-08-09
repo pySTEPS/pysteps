@@ -783,8 +783,8 @@ def decluster_data(input, coord, scale, min_samples, verbose=False):
         )
         npoints = np.sum(idx)
         if npoints >= min_samples:
-            dinput.append(mp.median(input[idx, :], axis=0))
-            dcoord.append(mp.median(coord[idx, :], axis=0))
+            dinput.append(np.median(input[idx, :], axis=0))
+            dcoord.append(np.median(coord[idx, :], axis=0))
     dinput = np.stack(dinput).squeeze()
     dcoord = np.stack(dcoord)
 
