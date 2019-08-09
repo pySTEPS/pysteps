@@ -271,7 +271,9 @@ def dense_lucaskanade(input_images, **kwargs):
         # the edges of the radar mask
         if buffer_mask > 0:
             mask_ = cv2.dilate(
-                mask_.astype("uint8"), np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
+                mask_.astype("uint8"),
+                np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
+                1,
             )
 
         # remove small noise with a morphological operator (opening)
@@ -542,7 +544,7 @@ def morph_opening(input_image, n=3, thr=0):
 
 def detect_outliers(input, thr, coord=None, k=None, verbose=False):
 
-    """Detect outliers.
+    """Detect outliers in a (multivariate and georeferenced) dataset.
 
     Assume a (multivariate) Gaussian distribution and detect outliers based on
     the number of standard deviations from the mean.
@@ -563,8 +565,8 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
         The number of standard deviations from the mean that defines an outlier.
 
     coord : array_like, optional
-        Array of shape (n, d) containing the coordinates the input data into a
-        space of d dimensions. Setting coord requires that k is not None.
+        Array of shape (n, d) containing the coordinates of the input data into
+        a space of d dimensions. Setting coord requires that k is not None.
 
     k : int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
@@ -572,39 +574,47 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
         detection). Setting k requires that coord is not None.
 
     verbose : bool, optional
-        Print information.
+        Print out information.
 
     Returns
     -------
 
     out : array_like
-        A boolean array of the same shape as the input, with True values
+        A boolean array of the same shape as the input array, with True values
         indicating the outliers detected in the input array.
     """
-
-    if np.any(~np.isfinite(input)):
-        raise ValueError("input contains non-finite values")
-
-    if k is not None and coord is None:
-        raise ValueError("k is set but coord=None")
-
-    if coord is not None:
-
-        if k is None:
-            raise ValueError("coord is set but k is None")
-
-        if coord.shape[0] != input.shape[0]:
-            raise ValueError(
-                "the number of samples of the input array does not match the "
-                + "number of coordinates %i!=%i" % (input.shape[0], coord.shape[0])
-            )
-
-        coord = np.copy(coord)
-        k = np.min((coord.shape[0], k + 1))
 
     input = np.copy(input)
     nvar = input.squeeze().ndim
 
+    if np.any(~np.isfinite(input)):
+        raise ValueError("input contains non-finite values")
+
+    if coord is not None:
+
+        coord = np.copy(coord)
+        if coord.ndim == 1:
+            coord = coord[:, None]
+
+        elif coord.ndim > 2:
+            raise ValueError(
+                "coord must have 2 dimensions (n, d), but it has %i" % coord.ndim
+            )
+
+        if coord.shape[0] != input.shape[0]:
+            raise ValueError(
+                "the number of samples in the input array does not match the "
+                + "number of coordinates %i!=%i" % (input.shape[0], coord.shape[0])
+            )
+
+        if k is None:
+            raise ValueError("coord is set but k is None")
+
+        k = np.min((coord.shape[0], k + 1))
+
+    else:
+        if k is not None:
+            raise ValueError("k is set but coord=None")
 
     # global
 
