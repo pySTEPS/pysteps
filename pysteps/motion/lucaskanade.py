@@ -124,19 +124,14 @@ def dense_lucaskanade(input_images, **kwargs):
         is set to 3.
 
     nr_std_outlier : int, optional
-        Maximum acceptable deviation from the mean/median in terms of
-        number of standard deviations. Any anomaly larger than
-        this value is flagged as outlier and excluded from the interpolation.
+        Maximum acceptable deviation from the mean in terms of number of 
+        standard deviations. Any anomaly larger than this value is flagged as 
+        outlier and excluded from the interpolation.
         By default this is set to 3.
 
-    multivariate_outlier : bool, optional
-        If true (the default), the outlier detection is computed in terms of
-        the Mahalanobis distance. If false, the outlier detection is simply
-        computed in terms of velocity.
-
-    k_outlier : int, optional
+    k_outlier : int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
-        If set equal to 0, it employs all the data points.
+        If set to None, it employs all the data points (global detection). 
         The default is 30.
 
     size_opening : int, optional
@@ -232,7 +227,6 @@ def dense_lucaskanade(input_images, **kwargs):
             + "use 'nr_std_outlier' instead.",
             category=FutureWarning,
         )
-    multivariate_outlier = kwargs.get("multivariate_outlier", True)
     k_outlier = kwargs.get("k_outlier", 30)
     size_opening = kwargs.get("size_opening", 3)
     decl_grid = kwargs.get("decl_grid", 20)
@@ -277,7 +271,9 @@ def dense_lucaskanade(input_images, **kwargs):
         # the edges of the radar mask
         if buffer_mask > 0:
             mask_ = cv2.dilate(
-                mask_.astype("uint8"), np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
+                mask_.astype("uint8"),
+                np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
+                1,
             )
 
         # remove small noise with a morphological operator (opening)
@@ -330,10 +326,14 @@ def dense_lucaskanade(input_images, **kwargs):
     u = np.concatenate(uStack)
     v = np.concatenate(vStack)
 
-    # exclude outlier vectors
-    x, y, u, v = remove_outliers(
-        x, y, u, v, nr_std_outlier, multivariate_outlier, k_outlier, verbose
+    # detect outlier vectors
+    outliers = detect_outliers(
+        np.stack((u, v)).T, nr_std_outlier, np.stack((u, v)).T, k_outlier, verbose
     )
+    x = x[~outliers]
+    y = y[~outliers]
+    u = u[~outliers]
+    v = v[~outliers]
 
     if verbose:
         print("--- LK found %i sparse vectors ---" % x.size)
@@ -542,120 +542,136 @@ def morph_opening(input_image, n=3, thr=0):
     return input_image
 
 
-def remove_outliers(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
+def detect_outliers(input, thr, coord=None, k=None, verbose=False):
 
-    """Remove the motion vectors that are identified as outliers.
+    """Detect outliers.
 
-    Assume a (multivariate) Gaussian distribution of the motion vectors and
-    defines outliers based on their deviation from the (local) sample mean.
+    Assume a (multivariate) Gaussian distribution and detect outliers based on
+    the number of standard deviations from the mean.
+
+    If spatial information is provided through coordinates, the outlier
+    detection can be localized by considering only the k-nearest neighbours
+    when computing the local mean and standard deviation.
 
     Parameters
     ----------
-    x : array_like
-        Array of shape (n) containing the x-coordinates of the origins of the
-        velocity vectors.
-    y : array_like
-        Array of shape (n) containing the y-coordinates of the origins of the
-        velocity vectors.
-    u : array_like
-        Array of shape (n) containing the x-components of the velocities.
-    v : array_like
-        Array of shape (n) containing the y-components of the velocities.
+
+    input : array_like
+        Array of shape (n) or (n, m), where n is the number of samples and m
+        the number of variables. If m > 1, it employs the Mahalanobis distance.
+        All values in the input array are required to have finite values.
+
     thr : float
-        Threshold in number of standard deviation from the mean.
-    multivariate : bool, optional
-        If true (the default), the outlier detection is computed in terms of
-        the Mahalanobis distance. If false, the outlier detection is computed
-        with respect to the magnitude of the motion vectors.
-    k : int, optional
+        The number of standard deviations from the mean that defines an outlier.
+
+    coord : array_like, optional
+        Array of shape (n, d) containing the coordinates the input data into a
+        space of d dimensions. Setting coord requires that k is not None.
+
+    k : int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
-        If set equal to 0, it employs all the data points.
-        The default is 30.
+        If set to None (the default), it employs all the data points (global
+        detection). Setting k requires that coord is not None.
+
     verbose : bool, optional
-        Print the number of vectors that have been removed.
+        Print information.
 
     Returns
     -------
-    out : tuple of ndarrays
-        A four-element tuple (x, y, u, v) containing the x- and y-coordinates,
-        and the x- and y- components of the motion vectors.
+
+    out : array_like
+        A boolean array of the same shape as the input, with True values
+        indicating the outliers detected in the input array.
     """
 
-    if multivariate:
-        data = np.stack((u, v)).T
+    if np.any(~np.isfinite(input)):
+        raise ValueError("input contains non-finite values")
 
-    # globally
-    if k <= 0:
+    if k is not None and coord is None:
+        raise ValueError("k is set but coord=None")
 
-        if not multivariate:
+    if coord is not None:
 
-            # in terms of velocity
+        if k is None:
+            raise ValueError("coord is set but k is None")
 
-            vel = np.sqrt(u ** 2 + v ** 2)  # [px/timesteps]
-            q1, q2, q3 = np.percentile(vel, [16, 50, 84])
-            min_speed_thr = np.max((0, q2 - thr * (q3 - q1) / 2))
-            max_speed_thr = q2 + thr * (q3 - q1) / 2
-            keep = np.logical_and(vel < max_speed_thr, vel >= min_speed_thr)
+        if coord.shape[0] != input.shape[0]:
+            raise ValueError(
+                "the number of samples of the input array does not match the "
+                + "number of coordinates %i!=%i" % (input.shape[0], coord.shape[0])
+            )
+
+        coord = np.copy(coord)
+        k = np.min((coord.shape[0], k + 1))
+
+    input = np.copy(input)
+    nvar = input.squeeze().ndim
+
+    # global
+
+    if k is None:
+
+        if nvar == 1:
+
+            # univariate
+
+            zdata = (input - np.mean(input)) / np.std(input)
+            outliers = zdata > thr
 
         else:
 
-            # mahalanobis distance
+            # multivariate (mahalanobis distance)
 
-            data = data - np.mean(data, axis=0)
-            V = np.cov(data.T)
+            zdata = input - np.mean(input, axis=0)
+            V = np.cov(zdata.T)
             VI = np.linalg.inv(V)
-            MD = np.sqrt(np.dot(np.dot(data, VI), data.T).diagonal())
-            keep = MD < thr
+            try:
+                VI = np.linalg.inv(V)
+                MD = np.sqrt(np.dot(np.dot(zdata, VI), zdata.T).diagonal())
+            except np.linalg.LinAlgError:
+                MD = np.zeros(input.shape)
+            outliers = MD > thr
 
-    # locally
+    # local
+
     else:
 
-        points = np.stack((x, y)).T
-        tree = scipy.spatial.cKDTree(points)
-        __, inds = tree.query(points, k=np.min((k + 1, points.shape[0])))
-        keep = []
+        tree = scipy.spatial.cKDTree(coord)
+        __, inds = tree.query(coord, k=k)
+        outliers = []
         for i in range(inds.shape[0]):
 
-            if not multivariate:
+            if nvar == 1:
 
                 # in terms of velocity
 
-                thisvel = np.sqrt(u[i] ** 2 + v[i] ** 2)  # [px/timesteps]
-                neighboursvel = np.sqrt(u[inds[i, 1:]] ** 2 + v[inds[i, 1:]] ** 2)
-                q1, q2, q3 = np.percentile(neighboursvel, [16, 50, 84])
-                min_speed_thr = np.max((0, q2 - thr * (q3 - q1) / 2))
-                max_speed_thr = q2 + thr * (q3 - q1) / 2
-                keep.append(thisvel < max_speed_thr and thisvel > min_speed_thr)
+                thisdata = input[i]
+                neighbours = input[inds[i, 1:]]
+                thiszdata = (thisdata - np.mean(neighbours)) / np.std(neighbours)
+                outliers.append(thiszdata > thr)
 
             else:
 
                 # mahalanobis distance
 
-                thisdata = data[i, :]
-                neighbours = data[inds[i, 1:], :].copy()
-                thisdata = thisdata - np.mean(neighbours, axis=0)
+                thisdata = input[i, :]
+                neighbours = input[inds[i, 1:], :].copy()
+                thiszdata = thisdata - np.mean(neighbours, axis=0)
                 neighbours = neighbours - np.mean(neighbours, axis=0)
                 V = np.cov(neighbours.T)
                 try:
                     VI = np.linalg.inv(V)
-                    MD = np.sqrt(np.dot(np.dot(thisdata, VI), thisdata.T))
-
+                    MD = np.sqrt(np.dot(np.dot(thiszdata, VI), thiszdata.T))
                 except np.linalg.LinAlgError:
                     MD = 0
+                outliers.append(MD > thr)
 
-                keep.append(MD < thr)
-
-        keep = np.array(keep)
+    outliers = np.array(outliers)
 
     if verbose:
-        print("--- %i outliers removed ---" % np.sum(~keep))
+        print("--- %i outliers removed ---" % np.sum(~outliers))
 
-    x = x[keep]
-    y = y[keep]
-    u = u[keep]
-    v = v[keep]
-
-    return x, y, u, v
+    return outliers
 
 
 def decluster_vectors(x, y, u, v, decl_grid, min_nr_samples, verbose=False):
