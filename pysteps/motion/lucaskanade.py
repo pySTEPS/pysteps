@@ -20,10 +20,10 @@ LK vectors over a grid.
     :toctree: ../generated/
 
     dense_lucaskanade
-    detect_features
+    features_to_track
     track_features
     morph_opening
-    remove_outliers
+    detect_outliers
     decluster_vectors
     interpolate_sparse_vectors
 """
@@ -124,14 +124,14 @@ def dense_lucaskanade(input_images, **kwargs):
         is set to 3.
 
     nr_std_outlier : int, optional
-        Maximum acceptable deviation from the mean in terms of number of 
-        standard deviations. Any anomaly larger than this value is flagged as 
+        Maximum acceptable deviation from the mean in terms of number of
+        standard deviations. Any anomaly larger than this value is flagged as
         outlier and excluded from the interpolation.
         By default this is set to 3.
 
     k_outlier : int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
-        If set to None, it employs all the data points (global detection). 
+        If set to None, it employs all the data points (global detection).
         The default is 30.
 
     size_opening : int, optional
@@ -271,9 +271,7 @@ def dense_lucaskanade(input_images, **kwargs):
         # the edges of the radar mask
         if buffer_mask > 0:
             mask_ = cv2.dilate(
-                mask_.astype("uint8"),
-                np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
-                1,
+                mask_.astype("uint8"), np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
             )
 
         # remove small noise with a morphological operator (opening)
@@ -289,7 +287,7 @@ def dense_lucaskanade(input_images, **kwargs):
             minDistance=min_distance_ST,
             blockSize=block_size_ST,
         )
-        p0 = detect_features(prvs, mask_, gf_params, False)
+        p0 = features_to_track(prvs, mask_, gf_params, False)
 
         # skip loop if no features to track
         if p0 is None:
@@ -372,7 +370,7 @@ def dense_lucaskanade(input_images, **kwargs):
     return UV
 
 
-def detect_features(input_image, mask, params, verbose=False):
+def features_to_track(input_image, mask, params, verbose=False):
     """
     Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners
     on an image.
@@ -606,6 +604,7 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
 
     input = np.copy(input)
     nvar = input.squeeze().ndim
+
 
     # global
 
