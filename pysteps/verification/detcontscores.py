@@ -40,7 +40,9 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
-        |  beta      | linear regression slope (conditional bias)             |
+        |  beta1     | linear regression slope (type 1 conditional bias)      |
+        +------------+--------------------------------------------------------+
+        |  beta2     | linear regression slope (type 2 conditional bias)      |
         +------------+--------------------------------------------------------+
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
@@ -98,6 +100,12 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     Note that "scatter" is the only score that will be computed in dB units of
     the multiplicative error, i.e.: 10*log10(pred/obs).
 
+    beta1 measures the degree of conditional bias of the observations given the
+    forecasts (type 1).
+
+    beta2 measures the degree of conditional bias of the forecasts given the
+    observations (type 2).
+
     The normalized MSE is computed as NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
 
     The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2).
@@ -115,6 +123,10 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     Germann, U. , Galli, G. , Boscacci, M. and Bolliger, M. (2006), Radar
     precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc.,
     132: 1669-1692. doi:10.1256/qj.05.190
+
+    Potts, J. (2012), Chapter 2 - Basic concepts. Forecast verification: a
+    practitioner’s guide in atmospheric sciences, I. T. Jolliffe, and D. B.
+    Stephenson, Eds., Wiley-Blackwell, 11–29.
 
     See also
     --------
@@ -420,7 +432,9 @@ def det_cont_fct_compute(err, scores=""):
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
-        |  beta      | linear regression slope (conditional bias)             |
+        |  beta1      | linear regression slope (type 1 conditional bias)     |
+        +------------+--------------------------------------------------------+
+        |  beta2      | linear regression slope (type 2 conditional bias)     |
         +------------+--------------------------------------------------------+
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
@@ -496,10 +510,15 @@ def det_cont_fct_compute(err, scores=""):
             corr_p = err["cov"] / np.sqrt(err["vobs"]) / np.sqrt(err["vpred"])
             result["corr_p"] = corr_p
 
-        # beta (linear regression slope)
-        if score_ in ["beta", ""]:
-            beta = err["cov"] / err["vpred"]
-            result["beta"] = beta
+        # beta1 (linear regression slope)
+        if score_ in ["beta", "beta1", ""]:
+            beta1 = err["cov"] / err["vpred"]
+            result["beta1"] = beta1
+
+        # beta2 (linear regression slope)
+        if score_ in ["beta2", ""]:
+            beta2 = err["cov"] / err["vobs"]
+            result["beta2"] = beta2
 
         # debiased RMSE
         if score_ in ["drmse", ""]:
