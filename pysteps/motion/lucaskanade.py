@@ -327,7 +327,7 @@ def dense_lucaskanade(input_images, **kwargs):
 
     # detect outlier vectors
     outliers = detect_outliers(
-        np.stack((u, v)).T, nr_std_outlier, np.stack((u, v)).T, k_outlier, verbose
+        np.stack((u, v)).T, nr_std_outlier, np.stack((x, y)).T, k_outlier, verbose
     )
     x = x[~outliers]
     y = y[~outliers]
