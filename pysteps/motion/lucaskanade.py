@@ -24,7 +24,7 @@ LK vectors over a grid.
     track_features
     morph_opening
     detect_outliers
-    decluster_vectors
+    decluster_data
     interpolate_sparse_vectors
 """
 
@@ -140,15 +140,14 @@ def dense_lucaskanade(input_images, **kwargs):
         filter isolated echoes due to clutter. By default this is set to 3.
         If set to zero, the fitlering is not perfomed.
 
-    decl_grid : int, optional
-        The cell size in pixels of the declustering grid that is used to filter
-        out outliers in a sparse motion field and get more representative data
-        points before the interpolation. This simply computes new sparse vectors
-        over a coarser grid by taking the median of all vectors within one cell.
+    decl_scale : int, optional
+        The scale declustering parameter in pixels used to reduce the number of
+        redundant sparse vectors before the interpolation.
+        Sparse vectors within this declustering scale are averaged together.
         By default this is set to 20 pixels. If set to less than 2 pixels, the
         declustering is not perfomed.
 
-    min_nr_samples : int, optional
+    min_decl_samples : int, optional
         The minimum number of samples necessary for computing the median vector
         within given declustering cell, otherwise all sparse vectors in that
         cell are discarded. By default this is set to 2.
@@ -229,8 +228,8 @@ def dense_lucaskanade(input_images, **kwargs):
         )
     k_outlier = kwargs.get("k_outlier", 30)
     size_opening = kwargs.get("size_opening", 3)
-    decl_grid = kwargs.get("decl_grid", 20)
-    min_nr_samples = kwargs.get("min_nr_samples", 2)
+    decl_scale = kwargs.get("decl_scale", 20)
+    min_decl_samples = kwargs.get("min_decl_samples", 2)
     rbfunction = kwargs.get("rbfunction", "inverse")
     k = kwargs.get("k", 100)
     epsilon = kwargs.get("epsilon", None)
@@ -343,8 +342,18 @@ def dense_lucaskanade(input_images, **kwargs):
         return x, y, u, v
 
     # decluster sparse motion vectors
-    if decl_grid > 1:
-        x, y, u, v = decluster_vectors(x, y, u, v, decl_grid, min_nr_samples, verbose)
+    if decl_scale > 1:
+        data, coord = decluster_data(
+            np.stack((u, v)).T,
+            np.stack((x, v)).T,
+            decl_scale,
+            min_decl_samples,
+            verbose,
+        )
+        u = data[:, 0]
+        v = data[:, 1]
+        x = coord[:, 0]
+        y = coord[:, 1]
 
     # return zero motion field if no sparse vectors are left for interpolation
     if x.size == 0:
@@ -543,7 +552,6 @@ def morph_opening(input_image, n=3, thr=0):
 
 
 def detect_outliers(input, thr, coord=None, k=None, verbose=False):
-
     """Detect outliers in a (multivariate and georeferenced) dataset.
 
     Assume a (multivariate) Gaussian distribution and detect outliers based on
@@ -691,85 +699,99 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
     return outliers
 
 
-def decluster_vectors(x, y, u, v, decl_grid, min_nr_samples, verbose=False):
-    """Decluster a set of sparse vectors by aggregating (taking the median value)
-    the initial data points over a coarser grid.
+def decluster_data(input, coord, scale, min_samples, verbose=False):
+    """Decluster a data set by aggregating (median value) over a coarse grid.
 
     Parameters
     ----------
-    x : array_like
-        Array of shape (n) containing the x-coordinates of the origins of the
-        velocity vectors.
-    y : array_like
-        Array of shape (n) containing the y-coordinates of the origins of the
-        velocity vectors.
-    u : array_like
-        Array of shape (n) containing the x-components of the velocities.
-    v : array_like
-        Array of shape (n) containing the y-components of the velocities.
-    decl_grid : float
-        The size of the declustering grid in the same units as the input.
-    min_nr_samples : int
+
+    input : array_like
+        Array of shape (n) or (n, m), where n is the number of samples and m
+        the number of variables.
+        All values in the input array are required to have finite values.
+
+    coord : array_like
+        Array of shape (n, 2) containing the coordinates of the input data into
+        a 2-dimensional space.
+
+    scale : float or array_like
+        The scale parameter in the same units of coord. Data points within this
+        declustering scale are averaged together.
+
+    min_samples : int
         The minimum number of samples for computing the median within a given
         declustering cell.
+
     verbose : bool, optional
-        Print the number of vectors after declustering.
+        Print out information.
 
     Returns
     -------
+
     out : tuple of ndarrays
-        A four-element tuple (x, y, u, v) containing the x- and y-coordinates,
-        and the x- and y- components of the declustered motion vectors.
+        A two-element tuple (dinput, dcoord) containing the declustered input
+        (d, m) and coordinates (d, 2), where d is the new number of samples
+        (d < n).
 
     """
 
-    # Return empty arrays if the number of sparse vectors is < min_nr_samples
-    if x.size < min_nr_samples:
-        return np.array([]), np.array([]), np.array([]), np.array([])
+    input = np.copy(input)
+    coord = np.copy(coord)
+    scale = np.float(scale)
 
-    # Make sure these are all numpy vertical arrays
-    x = np.array(x).flatten()[:, None]
-    y = np.array(y).flatten()[:, None]
-    u = np.array(u).flatten()[:, None]
-    v = np.array(v).flatten()[:, None]
+    # check inputs
+    if np.any(~np.isfinite(input)):
+        raise ValueError("input contains non-finite values")
 
-    # Discretize coordinates into declustering grid
-    xT = np.floor(x / float(decl_grid))
-    yT = np.floor(y / float(decl_grid))
+    if input.ndim == 1:
+        nvar = 1
+    elif input.ndim == 2:
+        nvar = input.shape[1]
+    else:
+        raise ValueError(
+            "input must have 1 (n) or 2 dimensions (n, m), but it has %i" % coord.ndim
+        )
 
-    # Keep only unique combinations of the reduced coordinates
-    xy = np.concatenate((xT, yT), axis=1)
-    xyb = np.ascontiguousarray(xy).view(
-        np.dtype((np.void, xy.dtype.itemsize * xy.shape[1]))
+    if coord.ndim != 2:
+        raise ValueError(
+            "coord must have 2 dimensions (n, 2), but it has %i" % coord.ndim
+        )
+
+    if coord.shape[0] != input.shape[0]:
+        raise ValueError(
+            "the number of samples in the input array does not match the "
+            + "number of coordinates %i!=%i" % (input.shape[0], coord.shape[0])
+        )
+
+    # reduce original coordinates
+    coord_ = np.floor(coord / scale)
+
+    # keep only unique pairs of the reduced coordinates
+    coordb_ = np.ascontiguousarray(coord_).view(
+        np.dtype((np.void, coord_.dtype.itemsize * coord_.shape[1]))
     )
-    __, idx = np.unique(xyb, return_index=True)
-    uxy = xy[idx]
+    __, idx = np.unique(coordb_, return_index=True)
+    ucoord_ = coord_[idx]
 
-    # Loop through these unique values and average vectors which belong to
+    # loop through these unique values and average vectors which belong to
     # the same declustering grid cell
-    xN = []
-    yN = []
-    uN = []
-    vN = []
-    for i in range(uxy.shape[0]):
-        idx = np.logical_and(xT == uxy[i, 0], yT == uxy[i, 1])
+    dinput = []
+    dcoord = []
+    for i in range(ucoord_.shape[0]):
+        idx = np.logical_and(
+            coord_[:, 0] == ucoord_[i, 0], coord_[:, 1] == ucoord_[i, 1]
+        )
         npoints = np.sum(idx)
-        if npoints >= min_nr_samples:
-            xN.append(np.median(x[idx]))
-            yN.append(np.median(y[idx]))
-            uN.append(np.median(u[idx]))
-            vN.append(np.median(v[idx]))
-
-    # Convert to numpy arrays
-    x = np.array(xN)
-    y = np.array(yN)
-    u = np.array(uN)
-    v = np.array(vN)
+        if npoints >= min_samples:
+            dinput.append(mp.median(input[idx, :], axis=0))
+            dcoord.append(mp.median(coord[idx, :], axis=0))
+    dinput = np.stack(dinput).squeeze()
+    dcoord = np.stack(dcoord)
 
     if verbose:
-        print("--- %i sparse vectors left after declustering ---" % x.size)
+        print("--- %i samples left after declustering ---" % dinput.shape[0])
 
-    return x, y, u, v
+    return dinput, dcoord
 
 
 def interpolate_sparse_vectors(
