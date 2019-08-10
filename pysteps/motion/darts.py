@@ -16,13 +16,13 @@ import numpy as np
 from numpy.linalg import lstsq, svd
 from .. import utils
 
-def DARTS(R, **kwargs):
+def DARTS(input_images, **kwargs):
     """Compute the advection field from a sequence of input images by using the
     DARTS method. :cite:`RCW2011`
 
     Parameters
     ----------
-    R : array-like
+    input_images : array-like
       Array of shape (T,m,n) containing a sequence of T two-dimensional input
       images of shape (m,n).
 
@@ -80,8 +80,15 @@ def DARTS(R, **kwargs):
     lsq_method = kwargs.get("lsq_method", 2)
     verbose = kwargs.get("verbose", True)
 
-    if N_t >= R.shape[0]:
-        raise ValueError("N_t = %d >= %d = T, but N_t < T required" % (N_t, R.shape[0]))
+    if input_images.ndim != 3:
+        raise ValueError(
+            "input_images dimension mismatch.\n"
+            f"input_images.shape: {str(input_images.shape)}\n"
+            "(t, x, y ) dimensions expected"
+        )
+
+    if N_t >= input_images.shape[0]:
+        raise ValueError("N_t = %d >= %d = T, but N_t < T required" % (N_t, input_images.shape[0]))
 
     if output_type not in ["spatial", "spectral"]:
         raise ValueError("invalid output_type=%s, must be 'spatial' or 'spectral'" % output_type)
@@ -90,14 +97,14 @@ def DARTS(R, **kwargs):
         print("Computing the motion field with the DARTS method.")
         t0 = time.time()
 
-    R = np.moveaxis(R, (0, 1, 2), (2, 0, 1))
+    input_images = np.moveaxis(input_images, (0, 1, 2), (2, 0, 1))
 
-    fft = utils.get_method(fft_method, shape=R.shape[:2], fftn_shape=R.shape,
+    fft = utils.get_method(fft_method, shape=input_images.shape[:2], fftn_shape=input_images.shape,
                            **kwargs)
 
-    T_x = R.shape[1]
-    T_y = R.shape[0]
-    T_t = R.shape[2]
+    T_x = input_images.shape[1]
+    T_y = input_images.shape[0]
+    T_t = input_images.shape[2]
 
     if print_info:
         print("-----")
@@ -108,7 +115,7 @@ def DARTS(R, **kwargs):
         sys.stdout.flush()
         starttime = time.time()
 
-    R = fft.fftn(R)
+    input_images = fft.fftn(input_images)
 
     if print_info:
         print("Done in %.2f seconds." % (time.time() - starttime))
@@ -129,7 +136,7 @@ def DARTS(R, **kwargs):
         k_y_ = k_y[i] - N_y
         k_t_ = k_t[i] - N_t
 
-        R_ = R[k_y_, k_x_, k_t_]
+        R_ = input_images[k_y_, k_x_, k_t_]
 
         y[i] = k_t_ * R_
 
@@ -159,7 +166,7 @@ def DARTS(R, **kwargs):
         i_ = k_y_ - kp_y_
         j_ = k_x_ - kp_x_
 
-        R_ = R[i_, j_, k_t_]
+        R_ = input_images[i_, j_, k_t_]
 
         c2 = c1 / T_y * i_
         A[i, :] = c2 * R_
@@ -195,8 +202,8 @@ def DARTS(R, **kwargs):
     k_x, k_y = np.meshgrid(np.arange(-M_x, M_x+1), np.arange(-M_y, M_y+1))
 
     if output_type == "spatial":
-        U = np.real(fft.ifft2(_fill(U, R.shape[0], R.shape[1], k_x, k_y)))
-        V = np.real(fft.ifft2(_fill(V, R.shape[0], R.shape[1], k_x, k_y)))
+        U = np.real(fft.ifft2(_fill(U, input_images.shape[0], input_images.shape[1], k_x, k_y)))
+        V = np.real(fft.ifft2(_fill(V, input_images.shape[0], input_images.shape[1], k_x, k_y)))
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))

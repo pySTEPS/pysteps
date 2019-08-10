@@ -30,19 +30,23 @@ LK vectors over a grid.
 
 import numpy as np
 from numpy.ma.core import MaskedArray
+
+from pysteps.decorators import check_input_frames
 from pysteps.exceptions import MissingOptionalDependency
 
 try:
     import cv2
 
-    cv2_imported = True
+    CV2_IMPORTED = True
 except ImportError:
-    cv2_imported = False
+    CV2_IMPORTED = False
+
 import scipy.spatial
 import time
 import warnings
 
 
+@check_input_frames(2)
 def dense_lucaskanade(input_images, **kwargs):
     """Run the Lucas-Kanade optical flow and interpolate the motion vectors.
 
@@ -198,14 +202,6 @@ def dense_lucaskanade(input_images, **kwargs):
     Understanding Workshop, pp. 121–130, 1981.
 
     """
-
-    if (input_images.ndim != 3) or input_images.shape[0] < 2:
-        raise ValueError(
-            "input_images dimension mismatch.\n"
-            + "input_images.shape: "
-            + str(input_images.shape)
-            + "\n(>1, m, n) expected"
-        )
 
     input_images = input_images.copy()
 
@@ -408,7 +404,7 @@ def features_to_track(input_image, mask, params, verbose=False):
         Output vector of detected corners.
 
     """
-    if not cv2_imported:
+    if not CV2_IMPORTED:
         raise MissingOptionalDependency(
             "opencv package is required for the goodFeaturesToTrack() "
             "routine but it is not installed"
@@ -419,9 +415,9 @@ def features_to_track(input_image, mask, params, verbose=False):
 
     # scale image between 0 and 255
     input_image = (
-        (input_image - input_image.min())
-        / (input_image.max() - input_image.min())
-        * 255
+            (input_image - input_image.min())
+            / (input_image.max() - input_image.min())
+            * 255
     )
 
     # convert to 8-bit
@@ -470,7 +466,7 @@ def track_features(prvs, next, p0, params, verbose=False):
         Output vector of v-components of detected point motions.
 
     """
-    if not cv2_imported:
+    if not CV2_IMPORTED:
         raise MissingOptionalDependency(
             "opencv package is required for the calcOpticalFlowPyrLK() "
             "routine but it is not installed"
@@ -527,7 +523,7 @@ def morph_opening(input_image, n=3, thr=0):
         Array of shape (m,n) containing the resulting image
 
     """
-    if not cv2_imported:
+    if not CV2_IMPORTED:
         raise MissingOptionalDependency(
             "opencv package is required for the morphologyEx "
             "routine but it is not installed"
@@ -795,9 +791,8 @@ def decluster_data(input, coord, scale, min_samples, verbose=False):
 
 
 def interpolate_sparse_vectors(
-    x, y, u, v, xgrid, ygrid, rbfunction="inverse", k=20, epsilon=None, nchunks=5
+        x, y, u, v, xgrid, ygrid, rbfunction="inverse", k=20, epsilon=None, nchunks=5
 ):
-
     """Interpolate a set of sparse motion vectors to produce a dense field of
     motion vectors.
 
@@ -874,8 +869,8 @@ def interpolate_sparse_vectors(
             # find indices of the nearest neighbours
             _, inds = tree.query(subgrid, k=1)
 
-            U[i0 : (i0 + idelta)] = u.ravel()[inds]
-            V[i0 : (i0 + idelta)] = v.ravel()[inds]
+            U[i0: (i0 + idelta)] = u.ravel()[inds]
+            V[i0: (i0 + idelta)] = v.ravel()[inds]
 
         else:
             if k <= 0:
@@ -912,10 +907,10 @@ def interpolate_sparse_vectors(
             if not np.all(np.sum(w, axis=1)):
                 w[np.sum(w, axis=1) == 0, :] = 1.0
 
-            U[i0 : (i0 + idelta)] = np.sum(w * u.ravel()[inds], axis=1) / np.sum(
+            U[i0: (i0 + idelta)] = np.sum(w * u.ravel()[inds], axis=1) / np.sum(
                 w, axis=1
             )
-            V[i0 : (i0 + idelta)] = np.sum(w * v.ravel()[inds], axis=1) / np.sum(
+            V[i0: (i0 + idelta)] = np.sum(w * v.ravel()[inds], axis=1) / np.sum(
                 w, axis=1
             )
 

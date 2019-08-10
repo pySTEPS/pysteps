@@ -12,9 +12,14 @@ Implementation of the anisotropic diffusion method of Proesmans et al. (1994).
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
+
+from pysteps.decorators import check_input_frames
 from pysteps.motion._proesmans import _compute_advection_field
 
-def proesmans(input_images, lam=50.0, num_iter=100, num_levels=6, filter_std=0.0):
+
+@check_input_frames(2, 2)
+def proesmans(input_images, lam=50.0, num_iter=100,
+              num_levels=6, filter_std=0.0, verbose=True, ):
     """Implementation of the anisotropic diffusion method of Proesmans et al.
     (1994).
 
@@ -32,6 +37,8 @@ def proesmans(input_images, lam=50.0, num_iter=100, num_levels=6, filter_std=0.0
     filter_std : float
         Standard deviation of an optional Gaussian filter that is applied before
         computing the optical flow.
+    verbose : bool, optional
+        Verbosity enabled if True (default).
 
     Returns
     -------
@@ -46,11 +53,8 @@ def proesmans(input_images, lam=50.0, num_iter=100, num_levels=6, filter_std=0.0
     :cite:`PGPO1994`
 
     """
-    if (input_images.ndim != 3) or input_images.shape[0] != 2:
-        raise ValueError("input_images dimension mismatch.\n" +
-                         "input_images.shape: " + str(input_images.shape) +
-                         "\n(2, m, n) expected")
-    
+    del verbose  # Not used
+
     im1 = input_images[-2, :, :].copy()
     im2 = input_images[-1, :, :].copy()
 
