@@ -14,7 +14,9 @@ the behavior of some functions in pysteps.
 import numpy as np
 
 
-def check_input_frames(minimum_input_frames, maximum_input_frames=np.inf):
+def check_input_frames(minimum_input_frames=2,
+                       maximum_input_frames=np.inf,
+                       just_ndim=False):
     """
     Check that the input_images used as inputs in the optical-flow
     methods has the correct shape (t, x, y ).
@@ -28,7 +30,6 @@ def check_input_frames(minimum_input_frames, maximum_input_frames=np.inf):
             """
 
             input_images = args[0]
-            print(input_images.ndim)
             if input_images.ndim != 3:
                 raise ValueError(
                     "input_images dimension mismatch.\n"
@@ -36,14 +37,15 @@ def check_input_frames(minimum_input_frames, maximum_input_frames=np.inf):
                     "(t, x, y ) dimensions expected"
                 )
 
-            num_of_frames = input_images.shape[0]
+            if not just_ndim:
+                num_of_frames = input_images.shape[0]
 
-            if minimum_input_frames < num_of_frames > maximum_input_frames:
-                raise ValueError(
-                    f"input_images frames {num_of_frames} mismatch.\n"
-                    f"Minimum frames: {minimum_input_frames}\n"
-                    f"Maximum frames: {maximum_input_frames}\n"
-                )
+                if minimum_input_frames < num_of_frames > maximum_input_frames:
+                    raise ValueError(
+                        f"input_images frames {num_of_frames} mismatch.\n"
+                        f"Minimum frames: {minimum_input_frames}\n"
+                        f"Maximum frames: {maximum_input_frames}\n"
+                    )
 
             return motion_method_func(*args, **kwargs)
 
