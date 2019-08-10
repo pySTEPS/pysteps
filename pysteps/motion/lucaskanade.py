@@ -1,15 +1,31 @@
 """
+
 pysteps.motion.lucaskanade
 ==========================
 
-OpenCV implementation of the Lucas-Kanade method with interpolated motion
-vectors for areas with no precipitation.
+The Lucas-Kanade (LK) Module.
+
+This module implements the interface to the local Lucas-Kanade routine available
+in OpenCV, as well as other auxiliary methods such as the interpolation of the
+LK vectors over a grid.
+
+.. _`goodFeaturesToTrack()`:\
+    https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+
+
+.. _`calcOpticalFlowPyrLK()`:\
+   https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
 .. autosummary::
     :toctree: ../generated/
 
     dense_lucaskanade
-
+    features_to_track
+    track_features
+    morph_opening
+    detect_outliers
+    decluster_data
+    interpolate_sparse_vectors
 """
 
 import numpy as np
@@ -27,30 +43,35 @@ import time
 import warnings
 
 
-def dense_lucaskanade(R, **kwargs):
-    """
+def dense_lucaskanade(input_images, **kwargs):
+    """Run the Lucas-Kanade optical flow and interpolate the motion vectors.
+
     .. _opencv: https://opencv.org/
 
     .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/\
     group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
-
-    OpenCV_ implementation of the local `Lucas-Kanade`_ method with
-    interpolation of the sparse motion vectors to fill the whole grid.
 
     .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
         maskedarray.baseclass.html#numpy.ma.MaskedArray
 
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
-    
+
     .. _Shi-Tomasi: https://docs.opencv.org/3.4.1/dd/d1a/group__\
         imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
-        
+
+    Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical
+    flow method applied in combination to the `Shi-Tomasi`_ corner detection
+    routine. The sparse motion vectors are finally interpolated to return the whole
+    motion field.
+
     Parameters
     ----------
-    R : ndarray_ or MaskedArray_
-        Array of shape (T,m,n) containing a sequence of T two-dimensional input
-        images of shape (m,n).
+    input_images : ndarray_ or MaskedArray_
+        Array of shape (T, m, n) containing a sequence of T two-dimensional input
+        images of shape (m, n). T = 2 is the minimum required number of images.
+        With T > 2, the sparse vectors detected by Lucas-Kanade are pooled
+        together prior to the final interpolation.
 
         In case of an ndarray_, invalid values (Nans or infs) are masked.
         The mask in the MaskedArray_ defines a region where velocity vectors are
@@ -103,19 +124,14 @@ def dense_lucaskanade(R, **kwargs):
         is set to 3.
 
     nr_std_outlier : int, optional
-        Maximum acceptable deviation from the mean/median in terms of
-        number of standard deviations. Any anomaly larger than
-        this value is flagged as outlier and excluded from the interpolation.
+        Maximum acceptable deviation from the mean in terms of number of
+        standard deviations. Any anomaly larger than this value is flagged as
+        outlier and excluded from the interpolation.
         By default this is set to 3.
-        
-    multivariate_outlier : bool, optional
-        If true (the default), the outlier detection is computed in terms of
-        the Mahalanobis distance. If false, the outlier detection is simply 
-        computed in terms of velocity.
-        
-    k_outlier : int, optional
+
+    k_outlier : int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
-        If set equal to 0, it employs all the data points.
+        If set to None, it employs all the data points (global detection).
         The default is 30.
 
     size_opening : int, optional
@@ -124,15 +140,14 @@ def dense_lucaskanade(R, **kwargs):
         filter isolated echoes due to clutter. By default this is set to 3.
         If set to zero, the fitlering is not perfomed.
 
-    decl_grid : int, optional
-        The cell size in pixels of the declustering grid that is used to filter
-        out outliers in a sparse motion field and get more representative data
-        points before the interpolation. This simply computes new sparse vectors
-        over a coarser grid by taking the median of all vectors within one cell.
+    decl_scale : int, optional
+        The scale declustering parameter in pixels used to reduce the number of
+        redundant sparse vectors before the interpolation.
+        Sparse vectors within this declustering scale are averaged together.
         By default this is set to 20 pixels. If set to less than 2 pixels, the
         declustering is not perfomed.
 
-    min_nr_samples : int, optional
+    min_decl_samples : int, optional
         The minimum number of samples necessary for computing the median vector
         within given declustering cell, otherwise all sparse vectors in that
         cell are discarded. By default this is set to 2.
@@ -157,14 +172,6 @@ def dense_lucaskanade(R, **kwargs):
         interpolation. By default this is set to 5, if set to 1 the interpolation
         is computed with the whole grid.
 
-    extra_vectors : ndarray_, optional
-        Additional sparse motion vectors as 2d array (columns: x,y,u,v; rows:
-        nbr. of vectors) to be integrated with the sparse vectors from the
-        Lucas-Kanade local tracking.
-        x and y must be in pixel coordinates, with (0,0) being the upper-left
-        corner of the field R. u and v must be in pixel units. By default this
-        is set to None.
-
     verbose : bool, optional
         If set to True, it prints information about the program (True by default).
 
@@ -173,7 +180,7 @@ def dense_lucaskanade(R, **kwargs):
     out : ndarray_
         If dense=True (the default), it returns the three-dimensional array (2,m,n)
         containing the dense x- and y-components of the motion field in units of
-        pixels / timestep as given by the input array R.
+        pixels / timestep as given by the input array input_images.
         If dense=False, it returns a tuple containing the one-dimensional arrays
         x, y, u, v, where x, y define the vector locations, u, v define the x
         and y direction components of the vectors.
@@ -181,29 +188,26 @@ def dense_lucaskanade(R, **kwargs):
 
     References
     ----------
-    
-    Bouguet,  J.-Y.:  Pyramidal  implementation  of  the  affine  Lucas Kanade 
-    feature tracker description of the algorithm, Intel Corp., 5, 4, 
+
+    Bouguet,  J.-Y.:  Pyramidal  implementation  of  the  affine  Lucas Kanade
+    feature tracker description of the algorithm, Intel Corp., 5, 4,
     https://doi.org/10.1109/HPDC.2004.1323531, 2001
 
-    Lucas, B. D. and Kanade, T.: An iterative image registration technique with 
-    an application to stereo vision, in: Proceedings of the 1981 DARPA Imaging 
+    Lucas, B. D. and Kanade, T.: An iterative image registration technique with
+    an application to stereo vision, in: Proceedings of the 1981 DARPA Imaging
     Understanding Workshop, pp. 121–130, 1981.
-    
+
     """
 
-    if len(R.shape) != 3:
+    if (input_images.ndim != 3) or input_images.shape[0] < 2:
         raise ValueError(
-            "R has %i dimensions, but a three-dimensional array is expected"
-            % len(R.shape)
+            "input_images dimension mismatch.\n"
+            + "input_images.shape: "
+            + str(input_images.shape)
+            + "\n(>1, m, n) expected"
         )
 
-    if R.shape[0] < 2:
-        raise ValueError(
-            "R has %i frame, but at least two frames are expected" % R.shape[0]
-        )
-
-    R = R.copy()
+    input_images = input_images.copy()
 
     # defaults
     dense = kwargs.get("dense", True)
@@ -222,44 +226,31 @@ def dense_lucaskanade(R, **kwargs):
             + "use 'nr_std_outlier' instead.",
             category=FutureWarning,
         )
-    multivariate_outlier = kwargs.get("multivariate_outlier", True)
     k_outlier = kwargs.get("k_outlier", 30)
     size_opening = kwargs.get("size_opening", 3)
-    decl_grid = kwargs.get("decl_grid", 20)
-    min_nr_samples = kwargs.get("min_nr_samples", 2)
+    decl_scale = kwargs.get("decl_scale", 20)
+    min_decl_samples = kwargs.get("min_decl_samples", 2)
     rbfunction = kwargs.get("rbfunction", "inverse")
-    k = kwargs.get("k", 50)
+    k = kwargs.get("k", 100)
     epsilon = kwargs.get("epsilon", None)
     nchunks = kwargs.get("nchunks", 5)
-    extra_vectors = kwargs.get("extra_vectors", None)
-    if extra_vectors is not None:
-        if len(extra_vectors.shape) != 2:
-            raise ValueError(
-                "extra_vectors has %i dimensions, but 2 dimensions are expected"
-                % len(extra_vectors.shape)
-            )
-        if extra_vectors.shape[1] != 4:
-            raise ValueError(
-                "extra_vectors has %i columns, but 4 columns are expected"
-                % extra_vectors.shape[1]
-            )
     verbose = kwargs.get("verbose", True)
-    buffer_mask = kwargs.get("buffer_mask", 0)
+    buffer_mask = kwargs.get("buffer_mask", 10)
 
     if verbose:
         print("Computing the motion field with the Lucas-Kanade method.")
         t0 = time.time()
 
     # Get mask
-    if isinstance(R, MaskedArray):
-        mask = np.ma.getmaskarray(R).copy()
+    if isinstance(input_images, MaskedArray):
+        mask = np.ma.getmaskarray(input_images).copy()
     else:
-        R = np.ma.masked_invalid(R)
-        mask = np.ma.getmaskarray(R).copy()
-    R[mask] = np.nanmin(R)  # Remove any Nan from the raw data
+        input_images = np.ma.masked_invalid(input_images)
+        mask = np.ma.getmaskarray(input_images).copy()
+    input_images[mask] = np.nanmin(input_images)  # Remove any Nan from the raw data
 
-    nr_fields = R.shape[0]
-    domain_size = (R.shape[1], R.shape[2])
+    nr_fields = input_images.shape[0]
+    domain_size = (input_images.shape[1], input_images.shape[2])
     y0Stack = []
     x0Stack = []
     uStack = []
@@ -267,82 +258,81 @@ def dense_lucaskanade(R, **kwargs):
     for n in range(nr_fields - 1):
 
         # extract consecutive images
-        prvs = R[n, :, :].copy()
-        next = R[n + 1, :, :].copy()
+        prvs = input_images[n, :, :].copy()
+        next = input_images[n + 1, :, :].copy()
+        mask_ = mask[n, :, :].copy()
 
         # skip loop if no precip
         if ~np.any(prvs > prvs.min()) or ~np.any(next > next.min()):
             continue
 
-        # scale between 0 and 255
-        prvs = (prvs - prvs.min()) / (prvs.max() - prvs.min()) * 255
-        next = (next - next.min()) / (next.max() - next.min()) * 255
-
-        # convert to 8-bit
-        prvs = np.ndarray.astype(prvs, "uint8")
-        next = np.ndarray.astype(next, "uint8")
-        mask_ = np.ndarray.astype(mask[n, :, :], "uint8")
-
         # buffer the quality mask to ensure that no vectors are computed nearby
         # the edges of the radar mask
         if buffer_mask > 0:
             mask_ = cv2.dilate(
-                mask_, np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
+                mask_.astype("uint8"),
+                np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
+                1,
             )
 
         # remove small noise with a morphological operator (opening)
         if size_opening > 0:
-            prvs = _clean_image(prvs, n=size_opening)
-            next = _clean_image(next, n=size_opening)
+            prvs = morph_opening(prvs, n=size_opening)
+            next = morph_opening(next, n=size_opening)
 
-        # Shi-Tomasi good features to track
-        # TODO: implement different feature detection algorithms (e.g. Harris)
+        # Find good features to track
         mask_ = (-1 * mask_ + 1).astype("uint8")
-        p0 = _ShiTomasi_features_to_track(
-            prvs,
-            max_corners_ST,
-            quality_level_ST,
-            min_distance_ST,
-            block_size_ST,
-            mask_,
+        gf_params = dict(
+            maxCorners=max_corners_ST,
+            qualityLevel=quality_level_ST,
+            minDistance=min_distance_ST,
+            blockSize=block_size_ST,
         )
+        p0 = features_to_track(prvs, mask_, gf_params, False)
 
         # skip loop if no features to track
         if p0 is None:
             continue
 
         # get sparse u, v vectors with Lucas-Kanade tracking
-        x0, y0, u, v = _LucasKanade_features_tracking(
-            prvs, next, p0, winsize_LK, nr_levels_LK
+        lk_params = dict(
+            winSize=winsize_LK,
+            maxLevel=nr_levels_LK,
+            criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
         )
+        x0, y0, u, v = track_features(prvs, next, p0, lk_params, False)
+
         # skip loop if no vectors
         if x0 is None:
             continue
 
-        # stack vectors within time window as column vectors
-        x0Stack.append(x0.flatten()[:, None])
-        y0Stack.append(y0.flatten()[:, None])
-        uStack.append(u.flatten()[:, None])
-        vStack.append(v.flatten()[:, None])
+        # stack vectors
+        x0Stack.append(x0)
+        y0Stack.append(y0)
+        uStack.append(u)
+        vStack.append(v)
 
     # return zero motion field is no sparse vectors are found
     if len(x0Stack) == 0:
         if dense:
             return np.zeros((2, domain_size[0], domain_size[1]))
         else:
-            rzero = np.array([0])
-            return rzero, rzero, rzero, rzero
+            return np.array([]), np.array([]), np.array([]), np.array([])
 
     # convert lists of arrays into single arrays
-    x = np.vstack(x0Stack)
-    y = np.vstack(y0Stack)
-    u = np.vstack(uStack)
-    v = np.vstack(vStack)
+    x = np.concatenate(x0Stack)
+    y = np.concatenate(y0Stack)
+    u = np.concatenate(uStack)
+    v = np.concatenate(vStack)
 
-    # exclude outlier vectors
-    x, y, u, v = _outlier_removal(
-        x, y, u, v, nr_std_outlier, multivariate_outlier, k_outlier, verbose
+    # detect outlier vectors
+    outliers = detect_outliers(
+        np.stack((u, v)).T, nr_std_outlier, np.stack((x, y)).T, k_outlier, verbose
     )
+    x = x[~outliers]
+    y = y[~outliers]
+    u = u[~outliers]
+    v = v[~outliers]
 
     if verbose:
         print("--- LK found %i sparse vectors ---" % x.size)
@@ -352,30 +342,33 @@ def dense_lucaskanade(R, **kwargs):
         return x, y, u, v
 
     # decluster sparse motion vectors
-    if decl_grid > 1:
-        x, y, u, v = _declustering(x, y, u, v, decl_grid, min_nr_samples)
-
-    # append extra vectors if provided
-    if extra_vectors is not None:
-        x = np.concatenate((x, extra_vectors[:, 0]))
-        y = np.concatenate((y, extra_vectors[:, 1]))
-        u = np.concatenate((u, extra_vectors[:, 2]))
-        v = np.concatenate((v, extra_vectors[:, 3]))
+    if decl_scale > 1:
+        data, coord = decluster_data(
+            np.stack((u, v)).T,
+            np.stack((x, v)).T,
+            decl_scale,
+            min_decl_samples,
+            verbose,
+        )
+        u = data[:, 0]
+        v = data[:, 1]
+        x = coord[:, 0]
+        y = coord[:, 1]
 
     # return zero motion field if no sparse vectors are left for interpolation
     if x.size == 0:
         return np.zeros((2, domain_size[0], domain_size[1]))
 
-    if verbose:
-        print("--- %i sparse vectors left after declustering ---" % x.size)
-
     # kernel interpolation
-    _, _, UV = _interpolate_sparse_vectors(
+    xgrid = np.arange(domain_size[1])
+    ygrid = np.arange(domain_size[0])
+    UV = interpolate_sparse_vectors(
         x,
         y,
         u,
         v,
-        domain_size,
+        xgrid,
+        ygrid,
         rbfunction=rbfunction,
         k=k,
         epsilon=epsilon,
@@ -383,40 +376,31 @@ def dense_lucaskanade(R, **kwargs):
     )
 
     if verbose:
-        print("--- %.2f seconds ---" % (time.time() - t0))
+        print("--- total time: %.2f seconds ---" % (time.time() - t0))
 
     return UV
 
 
-def _ShiTomasi_features_to_track(
-    R, max_corners_ST, quality_level_ST, min_distance_ST, block_size_ST, mask
-):
-    """Call the Shi-Tomasi corner detection algorithm.
+def features_to_track(input_image, mask, params, verbose=False):
+    """
+    Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners
+    on an image.
+
+    .. _`goodFeaturesToTrack()`:\
+        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
     Parameters
     ----------
-    R : array-like
-        Array of shape (m,n) containing the input precipitation field passed as
-        8-bit image.
-
-    max_corners_ST : int
-        Maximum number of corners to return. If there are more corners than are
-        found, the strongest of them is returned.
-
-    quality_level_ST : float
-        Parameter characterizing the minimal accepted quality of image corners.
-        See original documentation for more details (https://docs.opencv.org).
-
-    min_distance_ST : int
-        Minimum possible Euclidean distance between the returned corners [px].
-
-    block_size_ST : int
-        Size of an average block for computing a derivative covariation matrix
-        over each pixel neighborhood.
-
+    input_image : ndarray_
+        Array of shape (m, n) containing the input image.
     mask : ndarray_
-        Array of shape (m,n). It specifies the region in which the corners are
-        detected.
+        Array of shape (m,n). It specifies the image region in which the corners
+        can be detected.
+    params : dict
+        Any additional parameter to the original routine as described in the
+        corresponding documentation.
+    verbose : bool, optional
+        Print the number of features detected.
 
     Returns
     -------
@@ -426,47 +410,53 @@ def _ShiTomasi_features_to_track(
     """
     if not cv2_imported:
         raise MissingOptionalDependency(
-            "opencv package is required for the Lucas-Kanade "
-            "optical flow method but it is not installed"
+            "opencv package is required for the goodFeaturesToTrack() "
+            "routine but it is not installed"
         )
 
-    if len(R.shape) != 2:
-        raise ValueError("R must be a two-dimensional array")
-    if R.dtype != "uint8":
-        raise ValueError("R must be passed as 8-bit image")
+    if input_image.ndim != 2:
+        raise ValueError("input_image must be a two-dimensional array")
 
-    # ShiTomasi corner detection parameters
-    ShiTomasi_params = dict(
-        maxCorners=max_corners_ST,
-        qualityLevel=quality_level_ST,
-        minDistance=min_distance_ST,
-        blockSize=block_size_ST,
+    # scale image between 0 and 255
+    input_image = (
+        (input_image - input_image.min())
+        / (input_image.max() - input_image.min())
+        * 255
     )
 
-    # detect corners
-    p0 = cv2.goodFeaturesToTrack(R, mask=mask, **ShiTomasi_params)
+    # convert to 8-bit
+    input_image = np.ndarray.astype(input_image, "uint8")
+    mask = np.ndarray.astype(mask, "uint8")
 
-    return p0
+    p0 = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
+
+    if verbose:
+        print("--- %i good features to track detected ---" % len(p0))
+
+    return p0.squeeze()
 
 
-def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
-    """Call the Lucas-Kanade features tracking algorithm.
+def track_features(prvs, next, p0, params, verbose=False):
+    """
+    Interface to the OpenCV `calcOpticalFlowPyrLK()`_ features tracking algorithm.
+
+    .. _`calcOpticalFlowPyrLK()`:\
+       https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
     Parameters
     ----------
     prvs : array-like
-        Array of shape (m,n) containing the first 8-bit input image.
+        Array of shape (m, n) containing the initial image.
     next : array-like
-        Array of shape (m,n) containing the successive 8-bit input image.
+        Array of shape (m, n) containing the successive image.
     p0 : list
         Vector of 2D points for which the flow needs to be found.
         Point coordinates must be single-precision floating-point numbers.
-    winsize_LK : tuple
-        Size of the search window at each pyramid level.
-        Small windows (e.g. 10) lead to unrealistic motion.
-    nr_levels_LK : int
-        0-based maximal pyramid level number.
-        Not very sensitive parameter.
+    params : dict
+        Any additional parameter to the original routine as described in the
+        corresponding documentation.
+    verbose : bool, optional
+        Print the number of vectors that have been found.
 
     Returns
     -------
@@ -482,311 +472,368 @@ def _LucasKanade_features_tracking(prvs, next, p0, winsize_LK, nr_levels_LK):
     """
     if not cv2_imported:
         raise MissingOptionalDependency(
-            "opencv package is required for the Lucas-Kanade method "
-            "optical flow method but it is not installed"
+            "opencv package is required for the calcOpticalFlowPyrLK() "
+            "routine but it is not installed"
         )
 
-    # LK parameters
-    lk_params = dict(
-        winSize=winsize_LK,
-        maxLevel=nr_levels_LK,
-        criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
-    )
+    # scale between 0 and 255
+    prvs = (prvs - prvs.min()) / (prvs.max() - prvs.min()) * 255
+    next = (next - next.min()) / (next.max() - next.min()) * 255
 
-    # Lucas-Kande
-    p1, st, err = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **lk_params)
+    # convert to 8-bit
+    prvs = np.ndarray.astype(prvs, "uint8")
+    next = np.ndarray.astype(next, "uint8")
+
+    # Lucas-Kanade
+    # TODO: use the error returned by the OpenCV routine
+    p1, st, __ = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **params)
 
     # keep only features that have been found
-    st = st[:, 0] == 1
+    st = st.squeeze() == 1
     if np.any(st):
-        p1 = p1[st, :, :]
-        p0 = p0[st, :, :]
-        err = err[st, :]
+        p1 = p1[st, :]
+        p0 = p0[st, :]
 
         # extract vectors
-        x0 = p0[:, :, 0]
-        y0 = p0[:, :, 1]
-        u = np.array((p1 - p0)[:, :, 0])
-        v = np.array((p1 - p0)[:, :, 1])
+        x = p0[:, 0]
+        y = p0[:, 1]
+        u = np.array((p1 - p0)[:, 0])
+        v = np.array((p1 - p0)[:, 1])
     else:
-        x0 = y0 = u = v = None
+        x = y = u = v = None
 
-    return x0, y0, u, v
+    if verbose:
+        print("--- %i sparse vectors found ---" % x.size)
+
+    return x, y, u, v
 
 
-def _clean_image(R, n=3, thr=0):
-    """Apply a binary morphological opening to filter small isolated echoes.
+def morph_opening(input_image, n=3, thr=0):
+    """Filter out small scale noise on the image by applying a binary morphological
+    opening (i.e., erosion then dilation).
 
     Parameters
     ----------
-    R : array-like
-        Array of shape (m,n) containing the input precipitation field.
+    input_image : array-like
+        Array of shape (m, n) containing the input image.
     n : int
-        The structuring element size [px].
+        The structuring element size [pixels].
     thr : float
-        The rain/no-rain threshold to convert the image into a binary image.
+        The threshold used to convert the image into a binary image.
 
     Returns
     -------
-    R : array
-        Array of shape (m,n) containing the cleaned precipitation field.
+    input_image : array
+        Array of shape (m,n) containing the resulting image
 
     """
     if not cv2_imported:
         raise MissingOptionalDependency(
-            "opencv package is required for the Lucas-Kanade method "
-            "optical flow method but it is not installed"
+            "opencv package is required for the morphologyEx "
+            "routine but it is not installed"
         )
 
-    # convert to binary image (rain/no rain)
-    field_bin = np.ndarray.astype(R > thr, "uint8")
+    # Convert to binary image
+    field_bin = np.ndarray.astype(input_image > thr, "uint8")
 
-    # build a structuring element of size (nx)
+    # Build a structuring element of size n
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
 
-    # apply morphological opening (i.e. erosion then dilation)
+    # Apply morphological opening (i.e. erosion then dilation)
     field_bin_out = cv2.morphologyEx(field_bin, cv2.MORPH_OPEN, kernel)
 
-    # build mask to be applied on the original image
+    # Build mask to be applied on the original image
     mask = (field_bin - field_bin_out) > 0
 
-    # filter out small isolated echoes based on mask
-    R[mask] = np.nanmin(R)
+    # Filter out small isolated pixels based on mask
+    input_image[mask] = np.nanmin(input_image)
 
-    return R
+    return input_image
 
 
-def _outlier_removal(x, y, u, v, thr, multivariate=True, k=30, verbose=False):
+def detect_outliers(input, thr, coord=None, k=None, verbose=False):
+    """Detect outliers in a (multivariate and georeferenced) dataset.
 
-    """Outlier removal.
-    
+    Assume a (multivariate) Gaussian distribution and detect outliers based on
+    the number of standard deviations from the mean.
+
+    If spatial information is provided through coordinates, the outlier
+    detection can be localized by considering only the k-nearest neighbours
+    when computing the local mean and standard deviation.
+
     Parameters
     ----------
-    x : array_like
-        X-coordinates of the origins of the velocity vectors.
-    y : array_like
-        Y-coordinates of the origins of the velocity vectors.
-    u : array_like
-        X-components of the velocities.
-    v : array_like
-        Y-components of the velocities.
+
+    input : array_like
+        Array of shape (n) or (n, m), where n is the number of samples and m
+        the number of variables. If m > 1, it employs the Mahalanobis distance.
+        All values in the input array are required to have finite values.
+
     thr : float
-        Threshold for outlier detection defined as measure of deviation from
-        the mean/median in terms of standard deviations.
-    multivariate : bool, optional
-        If true (the default), the outlier detection is computed in terms of
-        the Mahalanobis distance. If false, the outlier detection is simply 
-        computed in terms of velocity.
-    k : int, optinal
+        The number of standard deviations from the mean that defines an outlier.
+
+    coord : array_like, optional
+        Array of shape (n, d) containing the coordinates of the input data into
+        a space of d dimensions. Setting coord requires that k is not None.
+
+    k : int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
-        If set equal to 0, it employs all the data points.
-        The default is 30.
+        If set to None (the default), it employs all the data points (global
+        detection). Setting k requires that coord is not None.
+
+    verbose : bool, optional
+        Print out information.
 
     Returns
     -------
-        A four-element tuple (x,y,u,v) containing the x- and y-coordinates and
-        velocity components of the motion vectors.
+
+    out : array_like
+        A boolean array of the same shape as the input array, with True values
+        indicating the outliers detected in the input array.
     """
 
-    if multivariate:
-        data = np.concatenate((u, v), axis=1)
+    input = np.copy(input)
 
-    # globally
-    if k <= 0:
+    if np.any(~np.isfinite(input)):
+        raise ValueError("input contains non-finite values")
 
-        if not multivariate:
+    if input.ndim == 1:
+        nvar = 1
+    elif input.ndim == 2:
+        nvar = input.shape[1]
+    else:
+        raise ValueError(
+            "input must have 1 (n) or 2 dimensions (n, m), but it has %i" % coord.ndim
+        )
 
-            # in terms of velocity
+    if coord is not None:
 
-            vel = np.sqrt(u ** 2 + v ** 2)  # [px/timesteps]
-            q1, q2, q3 = np.percentile(vel, [16, 50, 84])
-            min_speed_thr = np.max((0, q2 - thr * (q3 - q1) / 2))
-            max_speed_thr = q2 + thr * (q3 - q1) / 2
-            keep = np.logical_and(vel < max_speed_thr, vel >= min_speed_thr)
+        coord = np.copy(coord)
+        if coord.ndim == 1:
+            coord = coord[:, None]
+
+        elif coord.ndim > 2:
+            raise ValueError(
+                "coord must have 2 dimensions (n, d), but it has %i" % coord.ndim
+            )
+
+        if coord.shape[0] != input.shape[0]:
+            raise ValueError(
+                "the number of samples in the input array does not match the "
+                + "number of coordinates %i!=%i" % (input.shape[0], coord.shape[0])
+            )
+
+        if k is None:
+            raise ValueError("coord is set but k is None")
+
+        k = np.min((coord.shape[0], k + 1))
+
+    else:
+        if k is not None:
+            raise ValueError("k is set but coord=None")
+
+    # global
+
+    if k is None:
+
+        if nvar == 1:
+
+            # univariate
+
+            zdata = (input - np.mean(input)) / np.std(input)
+            outliers = zdata > thr
 
         else:
 
-            # mahalanobis distance
+            # multivariate (mahalanobis distance)
 
-            data = data - np.mean(data, axis=0)
-            V = np.cov(data.T)
+            zdata = input - np.mean(input, axis=0)
+            V = np.cov(zdata.T)
             VI = np.linalg.inv(V)
-            MD = np.sqrt(np.dot(np.dot(data, VI), data.T).diagonal())
-            keep = MD < thr
+            try:
+                VI = np.linalg.inv(V)
+                MD = np.sqrt(np.dot(np.dot(zdata, VI), zdata.T).diagonal())
+            except np.linalg.LinAlgError:
+                MD = np.zeros(input.shape)
+            outliers = MD > thr
 
-    # locally
+    # local
+
     else:
 
-        points = np.concatenate((x, y), axis=1)
-        tree = scipy.spatial.cKDTree(points)
-        _, inds = tree.query(points, k=np.min((k + 1, points.shape[0])))
-        keep = []
+        tree = scipy.spatial.cKDTree(coord)
+        __, inds = tree.query(coord, k=k)
+        outliers = []
         for i in range(inds.shape[0]):
 
-            if not multivariate:
+            if nvar == 1:
 
                 # in terms of velocity
 
-                thisvel = np.sqrt(u[i] ** 2 + v[i] ** 2)  # [px/timesteps]
-                neighboursvel = np.sqrt(u[inds[i, 1:]] ** 2 + v[inds[i, 1:]] ** 2)
-                q1, q2, q3 = np.percentile(neighboursvel, [16, 50, 84])
-                min_speed_thr = np.max((0, q2 - thr * (q3 - q1) / 2))
-                max_speed_thr = q2 + thr * (q3 - q1) / 2
-                keep.append(thisvel < max_speed_thr and thisvel > min_speed_thr)
+                thisdata = input[i]
+                neighbours = input[inds[i, 1:]]
+                thiszdata = (thisdata - np.mean(neighbours)) / np.std(neighbours)
+                outliers.append(thiszdata > thr)
 
             else:
 
                 # mahalanobis distance
 
-                thisdata = data[i, :]
-                neighbours = data[inds[i, 1:], :].copy()
-                thisdata = thisdata - np.mean(neighbours, axis=0)
+                thisdata = input[i, :]
+                neighbours = input[inds[i, 1:], :].copy()
+                thiszdata = thisdata - np.mean(neighbours, axis=0)
                 neighbours = neighbours - np.mean(neighbours, axis=0)
                 V = np.cov(neighbours.T)
                 try:
                     VI = np.linalg.inv(V)
-                    MD = np.sqrt(np.dot(np.dot(thisdata, VI), thisdata.T))
-
+                    MD = np.sqrt(np.dot(np.dot(thiszdata, VI), thiszdata.T))
                 except np.linalg.LinAlgError:
                     MD = 0
+                outliers.append(MD > thr)
 
-                keep.append(MD < thr)
-
-        keep = np.array(keep)
+    outliers = np.array(outliers)
 
     if verbose:
-        print("--- %i outliers removed ---" % np.sum(~keep))
+        print("--- %i outliers removed ---" % np.sum(~outliers))
 
-    x = x[keep]
-    y = y[keep]
-    u = u[keep]
-    v = v[keep]
-
-    return x, y, u, v
+    return outliers
 
 
-def _declustering(x, y, u, v, decl_grid, min_nr_samples):
-    """Filter out outliers in a sparse motion field and get more representative
-    data points. The method assigns data points to a (RxR) declustering grid
-    and then take the median of all values within one cell.
+def decluster_data(input, coord, scale, min_samples, verbose=False):
+    """Decluster a data set by aggregating (median value) over a coarse grid.
 
     Parameters
     ----------
-    x : array_like
-        X-coordinates of the origins of the velocity vectors.
-    y : array_like
-        Y-coordinates of the origins of the velocity vectors.
-    u : array_like
-        X-components of the velocities.
-    v : array_like
-        Y-components of the velocities.
-    decl_grid : int
-        Size of the declustering grid [px].
-    min_nr_samples : int
-        The minimum number of samples for computing the median within given
+
+    input : array_like
+        Array of shape (n) or (n, m), where n is the number of samples and m
+        the number of variables.
+        All values in the input array are required to have finite values.
+
+    coord : array_like
+        Array of shape (n, 2) containing the coordinates of the input data into
+        a 2-dimensional space.
+
+    scale : float or array_like
+        The scale parameter in the same units of coord. Data points within this
+        declustering scale are averaged together.
+
+    min_samples : int
+        The minimum number of samples for computing the median within a given
         declustering cell.
+
+    verbose : bool, optional
+        Print out information.
 
     Returns
     -------
-    A four-element tuple (x,y,u,v) containing the x- and y-coordinates and
-    velocity components of the declustered motion vectors.
+
+    out : tuple of ndarrays
+        A two-element tuple (dinput, dcoord) containing the declustered input
+        (d, m) and coordinates (d, 2), where d is the new number of samples
+        (d < n).
 
     """
 
-    # make sure these are all numpy vertical arrays
-    x = np.array(x).flatten()[:, None]
-    y = np.array(y).flatten()[:, None]
-    u = np.array(u).flatten()[:, None]
-    v = np.array(v).flatten()[:, None]
+    input = np.copy(input)
+    coord = np.copy(coord)
+    scale = np.float(scale)
 
-    # return empty arrays if the number of sparse vectors is < min_nr_samples
-    if x.size < min_nr_samples:
-        return np.array([]), np.array([]), np.array([]), np.array([])
+    # check inputs
+    if np.any(~np.isfinite(input)):
+        raise ValueError("input contains non-finite values")
 
-    # discretize coordinates into declustering grid
-    xT = x / float(decl_grid)
-    yT = y / float(decl_grid)
+    if input.ndim == 1:
+        nvar = 1
+    elif input.ndim == 2:
+        nvar = input.shape[1]
+    else:
+        raise ValueError(
+            "input must have 1 (n) or 2 dimensions (n, m), but it has %i" % coord.ndim
+        )
 
-    # round coordinates to low integer
-    xT = np.floor(xT)
-    yT = np.floor(yT)
+    if coord.ndim != 2:
+        raise ValueError(
+            "coord must have 2 dimensions (n, 2), but it has %i" % coord.ndim
+        )
 
-    # keep only unique combinations of coordinates
-    xy = np.concatenate((xT, yT), axis=1)
-    xyb = np.ascontiguousarray(xy).view(
-        np.dtype((np.void, xy.dtype.itemsize * xy.shape[1]))
+    if coord.shape[0] != input.shape[0]:
+        raise ValueError(
+            "the number of samples in the input array does not match the "
+            + "number of coordinates %i!=%i" % (input.shape[0], coord.shape[0])
+        )
+
+    # reduce original coordinates
+    coord_ = np.floor(coord / scale)
+
+    # keep only unique pairs of the reduced coordinates
+    coordb_ = np.ascontiguousarray(coord_).view(
+        np.dtype((np.void, coord_.dtype.itemsize * coord_.shape[1]))
     )
-    _, idx = np.unique(xyb, return_index=True)
-    uxy = xy[idx]
+    __, idx = np.unique(coordb_, return_index=True)
+    ucoord_ = coord_[idx]
 
-    # now loop through these unique values and average vectors which belong to
+    # loop through these unique values and average vectors which belong to
     # the same declustering grid cell
-    xN = []
-    yN = []
-    uN = []
-    vN = []
-    for i in range(uxy.shape[0]):
-        idx = np.logical_and(xT == uxy[i, 0], yT == uxy[i, 1])
+    dinput = []
+    dcoord = []
+    for i in range(ucoord_.shape[0]):
+        idx = np.logical_and(
+            coord_[:, 0] == ucoord_[i, 0], coord_[:, 1] == ucoord_[i, 1]
+        )
         npoints = np.sum(idx)
-        if npoints >= min_nr_samples:
-            xN.append(np.median(x[idx]))
-            yN.append(np.median(y[idx]))
-            uN.append(np.median(u[idx]))
-            vN.append(np.median(v[idx]))
+        if npoints >= min_samples:
+            dinput.append(np.median(input[idx, :], axis=0))
+            dcoord.append(np.median(coord[idx, :], axis=0))
+    dinput = np.stack(dinput).squeeze()
+    dcoord = np.stack(dcoord)
 
-    # convert to numpy arrays
-    x = np.array(xN)
-    y = np.array(yN)
-    u = np.array(uN)
-    v = np.array(vN)
+    if verbose:
+        print("--- %i samples left after declustering ---" % dinput.shape[0])
 
-    return x, y, u, v
+    return dinput, dcoord
 
 
-def _interpolate_sparse_vectors(
-    x, y, u, v, domain_size, rbfunction="inverse", k=20, epsilon=None, nchunks=5
+def interpolate_sparse_vectors(
+    x, y, u, v, xgrid, ygrid, rbfunction="inverse", k=20, epsilon=None, nchunks=5
 ):
 
-    """Interpolation of sparse motion vectors to produce a dense field of motion
-    vectors.
+    """Interpolate a set of sparse motion vectors to produce a dense field of
+    motion vectors.
 
     Parameters
     ----------
     x : array-like
-        x coordinates of the sparse motion vectors
+        The x-coordinates of the sparse motion vectors.
     y : array-like
-        y coordinates of the sparse motion vectors
+        The y-coordinates of the sparse motion vectors.
     u : array_like
-        u components of the sparse motion vectors
+        The x-components of the sparse motion vectors.
     v : array_like
-        v components of the sparse motion vectors
-    domain_size : tuple
-        size of the domain of the dense motion field [px]
-    rbfunction : string
-        the radial basis rbfunction, based on the Euclidian norm, d.
-        default : inverse
-        available : nearest, inverse, gaussian
-    k : int or "all"
-        the number of nearest neighbours used to speed-up the interpolation
-        If set equal to "all", it employs all the sparse vectors
-        default : 20
-    epsilon : float
-        adjustable constant for gaussian or inverse functions
-        default : median distance between sparse vectors
+        The y-components of the sparse motion vectors.
+    xgrid : array_like
+        Array of shape (n) containing the x-coordinates of the final grid.
+    ygrid : array_like
+        Array of shape (m) containing the y-coordinates of the final grid.
+    rbfunction : {"nearest", "inverse", "gaussian"}, optional
+        The radial basis rbfunction based on the Euclidian norm.
+    k : int or "all", optional
+        The number of nearest neighbours used to speed-up the interpolation.
+        If set equal to "all", it employs all the sparse vectors.
+    epsilon : float, optional
+        The adjustable constant for the gaussian and inverse radial basis rbfunction.
+        If set equal to None (the default), epsilon is estimated as the median
+        distance between the sparse vectors.
     nchunks : int
-        split the grid points in n chunks to limit the memory usage during the
-        interpolation
-        default : 5
+        The number of chunks in which the grid points are split to limit the
+        memory usage during the interpolation.
 
     Returns
     -------
-    X : array-like
-        grid
-    Y : array-like
-        grid
-    UV : array-like
-        Three-dimensional array (2,domain_size[0],domain_size[1])
-        containing the dense U, V motion fields.
+    out : ndarray
+        The interpolated advection field having shape (2, m, n), where out[0, :, :]
+        contains the x-components of the motion vectors and out[1, :, :] contains
+        the y-components. The units are given by the input sparse motion vectors.
 
     """
 
@@ -798,12 +845,7 @@ def _interpolate_sparse_vectors(
     points = np.concatenate((x, y), axis=1)
     npoints = points.shape[0]
 
-    if len(domain_size) == 1:
-        domain_size = (domain_size, domain_size)
-
-    # generate the grid
-    xgrid = np.arange(domain_size[1])
-    ygrid = np.arange(domain_size[0])
+    # generate the full grid
     X, Y = np.meshgrid(xgrid, ygrid)
     grid = np.column_stack((X.ravel(), Y.ravel()))
 
@@ -880,8 +922,7 @@ def _interpolate_sparse_vectors(
         i0 += idelta
 
     # reshape back to original size
-    U = U.reshape(domain_size[0], domain_size[1])
-    V = V.reshape(domain_size[0], domain_size[1])
-    UV = np.stack([U, V])
+    U = U.reshape(ygrid.size, xgrid.size)
+    V = V.reshape(ygrid.size, xgrid.size)
 
-    return X, Y, UV
+    return np.stack([U, V])
