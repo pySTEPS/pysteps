@@ -30,11 +30,11 @@ from pysteps.tests.helpers import get_precipitation_fields
 
 
 @contextmanager
-def not_raises(exception):
+def not_raises(_exception):
     try:
         yield
-    except exception:
-        raise pytest.fail("DID RAISE {0}".format(exception))
+    except _exception:
+        raise pytest.fail("DID RAISE {0}".format(_exception))
 
 
 reference_field = get_precipitation_fields(num_prev_files=0)
@@ -277,6 +277,7 @@ input_tests_args_names = ("optflow_method_name",
 input_tests_args_values = [
     ('lk', 2, np.inf),
     ('vet', 2, 3),
+    ('darts', 9, 9),
     # ('proesmans', 2,2),
 ]
 
@@ -285,6 +286,8 @@ input_tests_args_values = [
 def test_input_shape_checks(optflow_method_name,
                             minimum_input_frames,
                             maximum_input_frames):
+
+    image_size = 100
     motion_method = motion.get_method(optflow_method_name)
 
     if maximum_input_frames == np.inf:
@@ -292,15 +295,17 @@ def test_input_shape_checks(optflow_method_name,
 
     with not_raises(Exception):
         for frames in range(minimum_input_frames, maximum_input_frames + 1):
-            motion_method(np.ones((frames, 30, 10)), verbose=False)
+            motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
 
     with pytest.raises(ValueError):
         motion_method(np.zeros((2,)))
         motion_method(np.zeros((2, 2)))
         for frames in range(minimum_input_frames):
-            motion_method(np.zeros((frames, 30, 10)), verbose=False)
+            motion_method(np.zeros((frames, image_size, image_size)),
+                          verbose=False)
         for frames in range(maximum_input_frames + 1, maximum_input_frames + 4):
-            motion_method(np.zeros((frames, 30, 10)), verbose=False)
+            motion_method(np.zeros((frames, image_size, image_size)),
+                          verbose=False)
 
 
 def test_vet_cost_function():
@@ -329,7 +334,6 @@ def test_vet_cost_function():
                                                    1e6,  # smooth_gain
                                                    debug=False)
 
-    print(returned_values)
     tolerance = 1e-12
     errors = np.abs(returned_values - returned_values[0])
     # errors should contain all zeros
