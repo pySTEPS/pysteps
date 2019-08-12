@@ -25,7 +25,7 @@ LK vectors over a grid.
     morph_opening
     detect_outliers
     decluster_data
-    interpolate_sparse_vectors
+    rbfinterp2d
 """
 
 import numpy as np
@@ -156,20 +156,19 @@ def dense_lucaskanade(input_images, **kwargs):
         within given declustering cell, otherwise all sparse vectors in that
         cell are discarded. By default this is set to 2.
 
-    rbfunction : string, optional
-        The name of the radial basis function used for the interpolation of the
-        sparse vectors. This is based on the Euclidian norm d. By default this
-        is set to "inverse" and the available names are "nearest", "inverse",
-        "gaussian".
+    rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse
+        multiquadric", "bump"}, optional
+        The name of one of the available radial basis function based on the
+        Euclidean norm. "gaussian" by default.
 
-    k : int, optional
-        The number of nearest neighbours used for fast interpolation, by default
-        this is set to 20. If set equal to zero, it employs all the neighbours.
+    k : int or None, optional
+        The number of nearest neighbours used to speed-up the interpolation.
+        If set to None, it interpolates based on all the data points.
+        This is 50 by default.
 
     epsilon : float, optional
-        The adjustable constant used in the gaussian and inverse radial basis
-        functions. by default this is computed as the median distance between
-        the sparse vectors.
+        The shape parameter > 0 used to scale the input to the radial kernel.
+        It defaults to 1.0.
 
     nchunks : int, optional
         Split the grid points in n chunks to limit the memory usage during the
@@ -226,9 +225,9 @@ def dense_lucaskanade(input_images, **kwargs):
     size_opening = kwargs.get("size_opening", 3)
     decl_scale = kwargs.get("decl_scale", 20)
     min_decl_samples = kwargs.get("min_decl_samples", 2)
-    rbfunction = kwargs.get("rbfunction", "inverse")
-    k = kwargs.get("k", 100)
-    epsilon = kwargs.get("epsilon", None)
+    rbfunction = kwargs.get("rbfunction", "gaussian")
+    k = kwargs.get("k", 50)
+    epsilon = kwargs.get("epsilon", 1.0)
     nchunks = kwargs.get("nchunks", 5)
     verbose = kwargs.get("verbose", True)
     buffer_mask = kwargs.get("buffer_mask", 10)
@@ -364,17 +363,15 @@ def dense_lucaskanade(input_images, **kwargs):
     # kernel interpolation
     xgrid = np.arange(domain_size[1])
     ygrid = np.arange(domain_size[0])
-    UV = interpolate_sparse_vectors(
-        x,
-        y,
-        u,
-        v,
-        xgrid,
-        ygrid,
-        rbfunction=rbfunction,
-        k=k,
-        epsilon=epsilon,
-        nchunks=nchunks,
+    UV = rbfinterp2d(
+            np.stack((u, v)).T,
+            np.stack((x, v)).T,
+            xgrid,
+            ygrid,
+            rbfunction=rbfunction,
+            epsilon=epsilon,
+            k=k,
+            nchunks=nchunks,
     )
 
     if verbose:
@@ -701,7 +698,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     outliers = np.array(outliers)
 
     if verbose:
-        print("--- %i outliers removed ---" % np.sum(~outliers))
+        print("--- %i outliers detected ---" % np.sum(outliers))
 
     return outliers
 
@@ -803,143 +800,196 @@ def decluster_data(input_array, coord, scale, min_samples, verbose=False):
     return dinput, dcoord
 
 
-def interpolate_sparse_vectors(
-    x,
-    y,
-    u,
-    v,
+def rbfinterp2d(
+    input_array,
+    coord,
     xgrid,
     ygrid,
-    rbfunction="inverse",
-    k=20,
-    epsilon=None,
+    rbfunction="gaussian",
+    epsilon=1,
+    k=50,
     nchunks=5,
 ):
-    """Interpolate a set of sparse motion vectors to produce a dense field of
-    motion vectors.
+    """Fast interpolation of a (multivariate) array over a 2D grid.
 
     Parameters
     ----------
-    x : array-like
-        The x-coordinates of the sparse motion vectors.
-    y : array-like
-        The y-coordinates of the sparse motion vectors.
-    u : array_like
-        The x-components of the sparse motion vectors.
-    v : array_like
-        The y-components of the sparse motion vectors.
-    xgrid : array_like
-        Array of shape (n) containing the x-coordinates of the final grid.
-    ygrid : array_like
-        Array of shape (m) containing the y-coordinates of the final grid.
-    rbfunction : {"nearest", "inverse", "gaussian"}, optional
-        The radial basis rbfunction based on the Euclidian norm.
-    k : int or "all", optional
-        The number of nearest neighbours used to speed-up the interpolation.
-        If set equal to "all", it employs all the sparse vectors.
+
+    input_array : array_like
+        Array of shape (n) or (n, m), where n is the number of data points and
+        m the number of co-located variables.
+        All values in input_array are required to have finite values.
+
+    coord : array_like
+        Array of shape (n, 2) containing the coordinates of the data points into
+        a 2-dimensional space.
+
+    xgrid, ygrid : array_like
+        1D arrays representing the coordinates of the target grid.
+
+    rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse
+        multiquadric", "bump"}, optional
+        The name of one of the available radial basis function based on the Euclidian
+        norm. See section "Notes" below.
+
     epsilon : float, optional
-        The adjustable constant for the gaussian and inverse radial basis rbfunction.
-        If set equal to None (the default), epsilon is estimated as the median
-        distance between the sparse vectors.
-    nchunks : int
+        The shape parameter > 0 used to scale the input to the radial kernel.
+
+    k : int or None, optional
+        The number of nearest neighbours used to speed-up the interpolation.
+        If set to None, it interpolates based on all the data points.
+
+    nchunks : int, optional
         The number of chunks in which the grid points are split to limit the
         memory usage during the interpolation.
 
     Returns
     -------
-    out : ndarray
-        The interpolated advection field having shape (2, m, n), where out[0, :, :]
-        contains the x-components of the motion vectors and out[1, :, :] contains
-        the y-components. The units are given by the input sparse motion vectors.
 
+    output_array : array_like
+        The interpolated field(s) having shape (m, ygrid.size, xgrid.size).
+
+    Notes
+    -----
+
+    The input coordinates are normalized before computing the euclidean norms:
+
+        x = (x - median(x)) / MAD / 1.4826
+
+    where MAD = median(|x - median(x)|).
+
+    The definitions of the radial basis functions are taken from the following
+    wikipedia page: https://en.wikipedia.org/wiki/Radial_basis_function
     """
 
-    # make sure these are vertical arrays
-    x = np.array(x).flatten()[:, None]
-    y = np.array(y).flatten()[:, None]
-    u = np.array(u).flatten()[:, None]
-    v = np.array(v).flatten()[:, None]
-    points = np.concatenate((x, y), axis=1)
-    npoints = points.shape[0]
+    _rbfunctions = [
+        "nearest",
+        "gaussian",
+        "inverse quadratic",
+        "inverse multiquadric",
+        "bump",
+    ]
 
-    # generate the full grid
+    input_array = np.copy(input_array)
+
+    if np.any(~np.isfinite(input_array)):
+        raise ValueError("input_array contains non-finite values")
+
+    if input_array.ndim == 1:
+        nvar = 1
+        input_array = input_array[:, None]
+
+    elif input_array.ndim == 2:
+        nvar = input_array.shape[1]
+
+    else:
+        raise ValueError(
+            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
+            % input_array.ndim
+        )
+
+    npoints = input_array.shape[0]
+
+    coord = np.copy(coord)
+
+    if coord.ndim != 2:
+        raise ValueError(
+            "coord must have 2 dimensions (n, 2), but it has %i" % coord.ndim
+        )
+
+    if npoints != coord.shape[0]:
+        raise ValueError(
+            "the number of samples in the input_array does not match the "
+            + "number of coordinates %i!=%i" % (npoints, coord.shape[0])
+        )
+
+    # normalize coordinates
+    mcoord = np.median(coord, axis=0)
+    madcoord = 1.4826 * np.median(np.abs(coord - mcoord), axis=0)
+    coord = (coord - mcoord) / madcoord
+
+    rbfunction = rbfunction.lower()
+    if rbfunction not in _rbfunctions:
+        raise ValueError(
+            "Unknown rbfunction '{}'\n".format(rbfunction)
+            + "The available rbfunctions are: "
+            + str(_rbfunctions)
+        ) from None
+
+    # generate the final grid
     X, Y = np.meshgrid(xgrid, ygrid)
     grid = np.column_stack((X.ravel(), Y.ravel()))
+    grid = (grid - mcoord) / madcoord
 
-    U = np.zeros(grid.shape[0])
-    V = np.zeros(grid.shape[0])
+    # k-nearest interpolation
+    if k is not None and k > 0:
+        k = int(np.min((k, npoints)))
 
-    # create cKDTree object to represent source grid
-    if k > 0:
-        k = np.min((k, npoints))
-        tree = scipy.spatial.cKDTree(points)
+        # create cKDTree object to represent source grid
+        tree = scipy.spatial.cKDTree(coord)
+
+    else:
+        k = 0
 
     # split grid points in n chunks
     if nchunks > 1:
         subgrids = np.array_split(grid, nchunks, 0)
         subgrids = [x for x in subgrids if x.size > 0]
+
     else:
         subgrids = [grid]
 
     # loop subgrids
     i0 = 0
+    output_array = np.zeros((grid.shape[0], nvar))
     for i, subgrid in enumerate(subgrids):
-
         idelta = subgrid.shape[0]
 
-        if rbfunction.lower() == "nearest":
-            # find indices of the nearest neighbours
-            _, inds = tree.query(subgrid, k=1)
-
-            U[i0 : (i0 + idelta)] = u.ravel()[inds]
-            V[i0 : (i0 + idelta)] = v.ravel()[inds]
+        if k == 0:
+            # use all points
+            d = scipy.spatial.distance.cdist(
+                coord, subgrid, "euclidean"
+            ).transpose()
+            inds = np.arange(npoints)[None, :] * np.ones(
+                (subgrid.shape[0], npoints)
+            ).astype(int)
 
         else:
-            if k <= 0:
-                d = scipy.spatial.distance.cdist(
-                    points, subgrid, "euclidean"
-                ).transpose()
-                inds = np.arange(u.size)[None, :] * np.ones(
-                    (subgrid.shape[0], u.size)
-                ).astype(int)
+            # use k-nearest neighbours
+            d, inds = tree.query(subgrid, k=k)
 
-            else:
-                # find indices of the k-nearest neighbours
-                d, inds = tree.query(subgrid, k=k)
+        if k == 1:
+            # nearest neighbour
+            output_array[i0 : (i0 + idelta), :] = input_array[inds, :]
 
-            if inds.ndim == 1:
-                inds = inds[:, None]
-                d = d[:, None]
-
-            # the bandwidth
-            if epsilon is None:
-                epsilon = 1
-                if npoints > 1:
-                    dpoints = scipy.spatial.distance.pdist(points, "euclidean")
-                    epsilon = np.median(dpoints)
+        else:
 
             # the interpolation weights
-            if rbfunction.lower() == "inverse":
-                w = 1.0 / np.sqrt((d / epsilon) ** 2 + 1)
-            elif rbfunction.lower() == "gaussian":
-                w = np.exp(-0.5 * (d / epsilon) ** 2)
-            else:
-                raise ValueError("unknown radial fucntion %s" % rbfunction)
+            if rbfunction == "gaussian":
+                w = np.exp(-(d * epsilon) ** 2)
+
+            elif rbfunction == "inverse quadratic":
+                w = 1.0 / (1 + (epsilon * d) ** 2)
+
+            elif rbfunction == "inverse multiquadric":
+                w = 1.0 / np.sqrt(1 + (epsilon * d) ** 2)
+
+            elif rbfunction == "bump":
+                w = np.exp(-1.0 / (1 - (epsilon * d) ** 2))
+                w[d >= 1 / epsilon] = 0.0
 
             if not np.all(np.sum(w, axis=1)):
                 w[np.sum(w, axis=1) == 0, :] = 1.0
 
-            U[i0 : (i0 + idelta)] = np.sum(
-                w * u.ravel()[inds], axis=1
-            ) / np.sum(w, axis=1)
-            V[i0 : (i0 + idelta)] = np.sum(
-                w * v.ravel()[inds], axis=1
-            ) / np.sum(w, axis=1)
+            # interpolate
+            for j in range(nvar):
+                output_array[i0 : (i0 + idelta), j] = np.sum(
+                    w * input_array[inds, j], axis=1
+                ) / np.sum(w, axis=1)
 
         i0 += idelta
 
-    # reshape back to original size
-    U = U.reshape(ygrid.size, xgrid.size)
-    V = V.reshape(ygrid.size, xgrid.size)
+    # reshape to final grid size
+    output_array = output_array.reshape(ygrid.size, xgrid.size, nvar)
 
-    return np.stack([U, V])
+    return np.moveaxis(output_array, -1, 0).squeeze()
