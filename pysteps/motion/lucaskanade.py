@@ -327,7 +327,7 @@ def dense_lucaskanade(input_images, **kwargs):
 
     # decluster sparse motion vectors
     if decl_scale > 1:
-        uv, xy = decluster_data(uv, xy, decl_scale, min_decl_samples, verbose)
+        xy, uv = decluster_data(xy, uv, decl_scale, min_decl_samples, verbose)
 
     # return zero motion field if no sparse vectors are left for interpolation
     if xy.shape[0] == 0:
@@ -337,8 +337,8 @@ def dense_lucaskanade(input_images, **kwargs):
     xgrid = np.arange(domain_size[1])
     ygrid = np.arange(domain_size[0])
     UV = rbfinterp2d(
-        uv,
         xy,
+        uv,
         xgrid,
         ygrid,
         rbfunction=rbfunction,
@@ -651,7 +651,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
         tree = scipy.spatial.cKDTree(coord)
         __, inds = tree.query(coord, k=k)
-        outliers = []
+        outliers = np.empty(shape=0, dtype=bool)
         for i in range(inds.shape[0]):
 
             if nvar == 1:
@@ -663,7 +663,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                 thiszdata = (thisdata - np.mean(neighbours)) / np.std(
                     neighbours
                 )
-                outliers.append(thiszdata > thr)
+                outliers = np.append(outliers, thiszdata > thr)
 
             else:
 
@@ -679,9 +679,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                     MD = np.sqrt(np.dot(np.dot(thiszdata, VI), thiszdata.T))
                 except np.linalg.LinAlgError:
                     MD = 0
-                outliers.append(MD > thr)
-
-    outliers = np.array(outliers)
+                outliers = np.append(outliers, MD > thr)
 
     if verbose:
         print("--- %i outliers detected ---" % np.sum(outliers))
@@ -689,20 +687,20 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     return outliers
 
 
-def decluster_data(input_array, coord, scale, min_samples, verbose=False):
+def decluster_data(coord, input_array, scale, min_samples, verbose=False):
     """Decluster a data set by aggregating (median value) over a coarse grid.
 
     Parameters
     ----------
 
+    coord : array_like
+        Array of shape (n, 2) containing the coordinates of the input data into
+        a 2-dimensional space.
+
     input_array : array_like
         Array of shape (n) or (n, m), where n is the number of samples and m
         the number of variables.
         All values in input_array are required to have finite values.
-
-    coord : array_like
-        Array of shape (n, 2) containing the coordinates of the input data into
-        a 2-dimensional space.
 
     scale : float or array_like
         The scale parameter in the same units of coord. Data points within this
@@ -725,8 +723,8 @@ def decluster_data(input_array, coord, scale, min_samples, verbose=False):
 
     """
 
-    input_array = np.copy(input_array)
     coord = np.copy(coord)
+    input_array = np.copy(input_array)
     scale = np.float(scale)
 
     # check inputs
@@ -735,12 +733,13 @@ def decluster_data(input_array, coord, scale, min_samples, verbose=False):
 
     if input_array.ndim == 1:
         nvar = 1
+        input_array = input_array[:, None]
     elif input_array.ndim == 2:
         nvar = input_array.shape[1]
     else:
         raise ValueError(
             "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
-            % coord.ndim
+            % input_array.ndim
         )
 
     if coord.ndim != 2:
@@ -767,29 +766,30 @@ def decluster_data(input_array, coord, scale, min_samples, verbose=False):
 
     # loop through these unique values and average vectors which belong to
     # the same declustering grid cell
-    dinput = []
-    dcoord = []
+    dinput = np.empty(shape=(0, nvar))
+    dcoord = np.empty(shape=(0, 2))
     for i in range(ucoord_.shape[0]):
         idx = np.logical_and(
             coord_[:, 0] == ucoord_[i, 0], coord_[:, 1] == ucoord_[i, 1]
         )
         npoints = np.sum(idx)
         if npoints >= min_samples:
-            dinput.append(np.median(input_array[idx, :], axis=0))
-            dcoord.append(np.median(coord[idx, :], axis=0))
-    if len(dinput) > 0:
-        dinput = np.stack(dinput).squeeze()
-        dcoord = np.stack(dcoord)
+            dinput = np.append(
+                dinput, np.median(input_array[idx, :], axis=0)[None, :], axis=0
+            )
+            dcoord = np.append(
+                dcoord, np.median(coord[idx, :], axis=0)[None, :], axis=0
+            )
 
     if verbose:
         print("--- %i samples left after declustering ---" % dinput.shape[0])
 
-    return dinput, dcoord
+    return dcoord.squeeze(), dinput
 
 
 def rbfinterp2d(
-    input_array,
     coord,
+    input_array,
     xgrid,
     ygrid,
     rbfunction="gaussian",
@@ -802,14 +802,14 @@ def rbfinterp2d(
     Parameters
     ----------
 
+    coord : array_like
+        Array of shape (n, 2) containing the coordinates of the data points into
+        a 2-dimensional space.
+
     input_array : array_like
         Array of shape (n) or (n, m), where n is the number of data points and
         m the number of co-located variables.
         All values in input_array are required to have finite values.
-
-    coord : array_like
-        Array of shape (n, 2) containing the coordinates of the data points into
-        a 2-dimensional space.
 
     xgrid, ygrid : array_like
         1D arrays representing the coordinates of the target grid.
