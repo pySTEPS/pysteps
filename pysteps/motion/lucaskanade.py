@@ -243,7 +243,9 @@ def dense_lucaskanade(input_images, **kwargs):
     else:
         input_images = np.ma.masked_invalid(input_images)
         mask = np.ma.getmaskarray(input_images).copy()
-    input_images[mask] = np.nanmin(input_images)  # Remove any Nan from the raw data
+    input_images[mask] = np.nanmin(
+        input_images
+    )  # Remove any Nan from the raw data
 
     nr_fields = input_images.shape[0]
     domain_size = (input_images.shape[1], input_images.shape[2])
@@ -323,7 +325,11 @@ def dense_lucaskanade(input_images, **kwargs):
 
     # detect outlier vectors
     outliers = detect_outliers(
-        np.stack((u, v)).T, nr_std_outlier, np.stack((x, y)).T, k_outlier, verbose
+        np.stack((u, v)).T,
+        nr_std_outlier,
+        np.stack((x, y)).T,
+        k_outlier,
+        verbose,
     )
     x = x[~outliers]
     y = y[~outliers]
@@ -415,9 +421,9 @@ def features_to_track(input_image, mask, params, verbose=False):
 
     # scale image between 0 and 255
     input_image = (
-            (input_image - input_image.min())
-            / (input_image.max() - input_image.min())
-            * 255
+        (input_image - input_image.min())
+        / (input_image.max() - input_image.min())
+        * 255
     )
 
     # convert to 8-bit
@@ -547,7 +553,7 @@ def morph_opening(input_image, n=3, thr=0):
     return input_image
 
 
-def detect_outliers(input, thr, coord=None, k=None, verbose=False):
+def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     """Detect outliers in a (multivariate and georeferenced) dataset.
 
     Assume a (multivariate) Gaussian distribution and detect outliers based on
@@ -560,10 +566,10 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
     Parameters
     ----------
 
-    input : array_like
+    input_array : array_like
         Array of shape (n) or (n, m), where n is the number of samples and m
         the number of variables. If m > 1, it employs the Mahalanobis distance.
-        All values in the input array are required to have finite values.
+        All values in input_array are required to have finite values.
 
     thr : float
         The number of standard deviations from the mean that defines an outlier.
@@ -584,22 +590,23 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
     -------
 
     out : array_like
-        A boolean array of the same shape as the input array, with True values
+        A boolean array of the same shape as input_array, with True values
         indicating the outliers detected in the input array.
     """
 
-    input = np.copy(input)
+    input_array = np.copy(input_array)
 
-    if np.any(~np.isfinite(input)):
-        raise ValueError("input contains non-finite values")
+    if np.any(~np.isfinite(input_array)):
+        raise ValueError("input_array contains non-finite values")
 
-    if input.ndim == 1:
+    if input_array.ndim == 1:
         nvar = 1
-    elif input.ndim == 2:
-        nvar = input.shape[1]
+    elif input_array.ndim == 2:
+        nvar = input_array.shape[1]
     else:
         raise ValueError(
-            "input must have 1 (n) or 2 dimensions (n, m), but it has %i" % coord.ndim
+            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
+            % coord.ndim
         )
 
     if coord is not None:
@@ -610,13 +617,15 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
 
         elif coord.ndim > 2:
             raise ValueError(
-                "coord must have 2 dimensions (n, d), but it has %i" % coord.ndim
+                "coord must have 2 dimensions (n, d), but it has %i"
+                % coord.ndim
             )
 
-        if coord.shape[0] != input.shape[0]:
+        if coord.shape[0] != input_array.shape[0]:
             raise ValueError(
-                "the number of samples in the input array does not match the "
-                + "number of coordinates %i!=%i" % (input.shape[0], coord.shape[0])
+                "the number of samples in input_array does not match the "
+                + "number of coordinates %i!=%i"
+                % (input_array.shape[0], coord.shape[0])
             )
 
         if k is None:
@@ -636,21 +645,21 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
 
             # univariate
 
-            zdata = (input - np.mean(input)) / np.std(input)
+            zdata = (input_array - np.mean(input_array)) / np.std(input_array)
             outliers = zdata > thr
 
         else:
 
             # multivariate (mahalanobis distance)
 
-            zdata = input - np.mean(input, axis=0)
+            zdata = input_array - np.mean(input_array, axis=0)
             V = np.cov(zdata.T)
             VI = np.linalg.inv(V)
             try:
                 VI = np.linalg.inv(V)
                 MD = np.sqrt(np.dot(np.dot(zdata, VI), zdata.T).diagonal())
             except np.linalg.LinAlgError:
-                MD = np.zeros(input.shape)
+                MD = np.zeros(input_array.shape)
             outliers = MD > thr
 
     # local
@@ -666,17 +675,19 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
 
                 # in terms of velocity
 
-                thisdata = input[i]
-                neighbours = input[inds[i, 1:]]
-                thiszdata = (thisdata - np.mean(neighbours)) / np.std(neighbours)
+                thisdata = input_array[i]
+                neighbours = input_array[inds[i, 1:]]
+                thiszdata = (thisdata - np.mean(neighbours)) / np.std(
+                    neighbours
+                )
                 outliers.append(thiszdata > thr)
 
             else:
 
                 # mahalanobis distance
 
-                thisdata = input[i, :]
-                neighbours = input[inds[i, 1:], :].copy()
+                thisdata = input_array[i, :]
+                neighbours = input_array[inds[i, 1:], :].copy()
                 thiszdata = thisdata - np.mean(neighbours, axis=0)
                 neighbours = neighbours - np.mean(neighbours, axis=0)
                 V = np.cov(neighbours.T)
@@ -695,16 +706,16 @@ def detect_outliers(input, thr, coord=None, k=None, verbose=False):
     return outliers
 
 
-def decluster_data(input, coord, scale, min_samples, verbose=False):
+def decluster_data(input_array, coord, scale, min_samples, verbose=False):
     """Decluster a data set by aggregating (median value) over a coarse grid.
 
     Parameters
     ----------
 
-    input : array_like
+    input_array : array_like
         Array of shape (n) or (n, m), where n is the number of samples and m
         the number of variables.
-        All values in the input array are required to have finite values.
+        All values in input_array are required to have finite values.
 
     coord : array_like
         Array of shape (n, 2) containing the coordinates of the input data into
@@ -725,27 +736,28 @@ def decluster_data(input, coord, scale, min_samples, verbose=False):
     -------
 
     out : tuple of ndarrays
-        A two-element tuple (dinput, dcoord) containing the declustered input
+        A two-element tuple (dinput, dcoord) containing the declustered input_array
         (d, m) and coordinates (d, 2), where d is the new number of samples
         (d < n).
 
     """
 
-    input = np.copy(input)
+    input_array = np.copy(input_array)
     coord = np.copy(coord)
     scale = np.float(scale)
 
     # check inputs
-    if np.any(~np.isfinite(input)):
-        raise ValueError("input contains non-finite values")
+    if np.any(~np.isfinite(input_array)):
+        raise ValueError("input_array contains non-finite values")
 
-    if input.ndim == 1:
+    if input_array.ndim == 1:
         nvar = 1
-    elif input.ndim == 2:
-        nvar = input.shape[1]
+    elif input_array.ndim == 2:
+        nvar = input_array.shape[1]
     else:
         raise ValueError(
-            "input must have 1 (n) or 2 dimensions (n, m), but it has %i" % coord.ndim
+            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
+            % coord.ndim
         )
 
     if coord.ndim != 2:
@@ -753,10 +765,11 @@ def decluster_data(input, coord, scale, min_samples, verbose=False):
             "coord must have 2 dimensions (n, 2), but it has %i" % coord.ndim
         )
 
-    if coord.shape[0] != input.shape[0]:
+    if coord.shape[0] != input_array.shape[0]:
         raise ValueError(
-            "the number of samples in the input array does not match the "
-            + "number of coordinates %i!=%i" % (input.shape[0], coord.shape[0])
+            "the number of samples in the input_array does not match the "
+            + "number of coordinates %i!=%i"
+            % (input_array.shape[0], coord.shape[0])
         )
 
     # reduce original coordinates
@@ -779,7 +792,7 @@ def decluster_data(input, coord, scale, min_samples, verbose=False):
         )
         npoints = np.sum(idx)
         if npoints >= min_samples:
-            dinput.append(np.median(input[idx, :], axis=0))
+            dinput.append(np.median(input_array[idx, :], axis=0))
             dcoord.append(np.median(coord[idx, :], axis=0))
     dinput = np.stack(dinput).squeeze()
     dcoord = np.stack(dcoord)
@@ -791,7 +804,16 @@ def decluster_data(input, coord, scale, min_samples, verbose=False):
 
 
 def interpolate_sparse_vectors(
-        x, y, u, v, xgrid, ygrid, rbfunction="inverse", k=20, epsilon=None, nchunks=5
+    x,
+    y,
+    u,
+    v,
+    xgrid,
+    ygrid,
+    rbfunction="inverse",
+    k=20,
+    epsilon=None,
+    nchunks=5,
 ):
     """Interpolate a set of sparse motion vectors to produce a dense field of
     motion vectors.
@@ -869,8 +891,8 @@ def interpolate_sparse_vectors(
             # find indices of the nearest neighbours
             _, inds = tree.query(subgrid, k=1)
 
-            U[i0: (i0 + idelta)] = u.ravel()[inds]
-            V[i0: (i0 + idelta)] = v.ravel()[inds]
+            U[i0 : (i0 + idelta)] = u.ravel()[inds]
+            V[i0 : (i0 + idelta)] = v.ravel()[inds]
 
         else:
             if k <= 0:
@@ -907,12 +929,12 @@ def interpolate_sparse_vectors(
             if not np.all(np.sum(w, axis=1)):
                 w[np.sum(w, axis=1) == 0, :] = 1.0
 
-            U[i0: (i0 + idelta)] = np.sum(w * u.ravel()[inds], axis=1) / np.sum(
-                w, axis=1
-            )
-            V[i0: (i0 + idelta)] = np.sum(w * v.ravel()[inds], axis=1) / np.sum(
-                w, axis=1
-            )
+            U[i0 : (i0 + idelta)] = np.sum(
+                w * u.ravel()[inds], axis=1
+            ) / np.sum(w, axis=1)
+            V[i0 : (i0 + idelta)] = np.sum(
+                w * v.ravel()[inds], axis=1
+            ) / np.sum(w, axis=1)
 
         i0 += idelta
 
