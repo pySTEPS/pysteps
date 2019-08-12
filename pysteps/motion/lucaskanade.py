@@ -24,7 +24,7 @@ LK vectors over a grid.
     track_features
     morph_opening
     detect_outliers
-    decluster_data
+    decluster_sparse_data
 """
 
 import numpy as np
@@ -310,7 +310,7 @@ def dense_lucaskanade(input_images, **kwargs):
 
     # decluster sparse motion vectors
     if decl_scale > 1:
-        xy, uv = decluster_data(xy, uv, decl_scale, min_decl_samples, verbose)
+        xy, uv = decluster_sparse_data(xy, uv, decl_scale, min_decl_samples, verbose)
 
     # return zero motion field if no sparse vectors are left for interpolation
     if xy.shape[0] == 0:
@@ -707,8 +707,9 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     return outliers
 
 
-def decluster_data(coord, input_array, scale, min_samples, verbose=False):
-    """Decluster a data set by aggregating (median value) over a coarse grid.
+def decluster_sparse_data(coord, input_array, scale, min_samples, verbose=False):
+    """Decluster a set of sparse data points by aggregating (i.e., taking the
+    median value) all points within a certain distance (i.e., a cluster).
 
     Parameters
     ----------
@@ -728,7 +729,7 @@ def decluster_data(coord, input_array, scale, min_samples, verbose=False):
 
     min_samples : int
         The minimum number of samples for computing the median within a given
-        declustering cell.
+        cluster.
 
     verbose : bool, optional
         Print out information.
