@@ -248,10 +248,8 @@ def dense_lucaskanade(input_images, **kwargs):
 
     nr_fields = input_images.shape[0]
     domain_size = (input_images.shape[1], input_images.shape[2])
-    y0Stack = []
-    x0Stack = []
-    uStack = []
-    vStack = []
+    xy_stack = []
+    uv_stack = []
     for n in range(nr_fields - 1):
 
         # extract consecutive images
@@ -297,81 +295,59 @@ def dense_lucaskanade(input_images, **kwargs):
             maxLevel=nr_levels_LK,
             criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
         )
-        x0, y0, u, v = track_features(prvs, next, p0, lk_params, False)
+        xy, uv = track_features(prvs, next, p0, lk_params, False)
 
         # skip loop if no vectors
-        if x0 is None:
+        if xy is None:
             continue
 
         # stack vectors
-        x0Stack.append(x0)
-        y0Stack.append(y0)
-        uStack.append(u)
-        vStack.append(v)
+        xy_stack.append(xy)
+        uv_stack.append(uv)
 
     # return zero motion field is no sparse vectors are found
-    if len(x0Stack) == 0:
+    if len(xy_stack) == 0:
         if dense:
             return np.zeros((2, domain_size[0], domain_size[1]))
         else:
-            return np.array([]), np.array([]), np.array([]), np.array([])
+            return np.array([]), np.array([])
 
     # convert lists of arrays into single arrays
-    x = np.concatenate(x0Stack)
-    y = np.concatenate(y0Stack)
-    u = np.concatenate(uStack)
-    v = np.concatenate(vStack)
+    xy = np.concatenate(xy_stack)
+    uv = np.concatenate(uv_stack)
 
     # detect outlier vectors
-    outliers = detect_outliers(
-        np.stack((u, v)).T,
-        nr_std_outlier,
-        np.stack((x, y)).T,
-        k_outlier,
-        verbose,
-    )
-    x = x[~outliers]
-    y = y[~outliers]
-    u = u[~outliers]
-    v = v[~outliers]
+    outliers = detect_outliers(uv, nr_std_outlier, xy, k_outlier, verbose)
+    xy = xy[~outliers, :]
+    uv = uv[~outliers, :]
 
     if verbose:
-        print("--- LK found %i sparse vectors ---" % x.size)
+        print("--- LK found %i sparse vectors ---" % xy.shape[0])
 
     # return sparse vectors if required
     if not dense:
-        return x, y, u, v
+        return xy, uv
 
     # decluster sparse motion vectors
     if decl_scale > 1:
-        data, coord = decluster_data(
-            np.stack((u, v)).T,
-            np.stack((x, v)).T,
-            decl_scale,
-            min_decl_samples,
-            verbose,
-        )
-        u = data[:, 0]
-        v = data[:, 1]
-        x = coord[:, 0]
-        y = coord[:, 1]
+        uv, xy = decluster_data(uv, xy, decl_scale, min_decl_samples, verbose)
 
     # return zero motion field if no sparse vectors are left for interpolation
-    if x.size == 0:
+    if xy.shape[0] == 0:
         return np.zeros((2, domain_size[0], domain_size[1]))
 
     # kernel interpolation
     xgrid = np.arange(domain_size[1])
     ygrid = np.arange(domain_size[0])
     UV = rbfinterp2d(
-            np.stack((u, v)).T,
-            np.stack((x, v)).T,
-            xgrid,
-            ygrid,
-            rbfunction=rbfunction,
-            epsilon=epsilon,
-            k=k,
-            nchunks=nchunks,
+        uv,
+        xy,
+        xgrid,
+        ygrid,
+        rbfunction=rbfunction,
+        epsilon=epsilon,
+        k=k,
+        nchunks=nchunks,
     )
 
     if verbose:
@@ -390,28 +366,35 @@ def features_to_track(input_image, mask, params, verbose=False):
 
     Parameters
     ----------
-    input_image : ndarray_
+
+    input_image : array_like
         Array of shape (m, n) containing the input image.
-    mask : ndarray_
+        All values in input_image are required to have finite values.
+
+    mask : array_like
         Array of shape (m,n). It specifies the image region in which the corners
         can be detected.
+
     params : dict
         Any additional parameter to the original routine as described in the
         corresponding documentation.
+
     verbose : bool, optional
         Print the number of features detected.
 
     Returns
     -------
+
     p0 : list
         Output vector of detected corners.
-
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
             "opencv package is required for the goodFeaturesToTrack() "
             "routine but it is not installed"
         )
+
+    input_image = np.copy(input_image)
 
     if input_image.ndim != 2:
         raise ValueError("input_image must be a two-dimensional array")
@@ -435,7 +418,7 @@ def features_to_track(input_image, mask, params, verbose=False):
     return p0.squeeze()
 
 
-def track_features(prvs, next, p0, params, verbose=False):
+def track_features(prvs_image, next_image, points, params, verbose=False):
     """
     Interface to the OpenCV `calcOpticalFlowPyrLK()`_ features tracking algorithm.
 
@@ -444,36 +427,44 @@ def track_features(prvs, next, p0, params, verbose=False):
 
     Parameters
     ----------
-    prvs : array-like
+
+    prvs_image : array_like
         Array of shape (m, n) containing the initial image.
-    next : array-like
+        All values in prvs_image are required to have finite values.
+
+    next_image : array_like
         Array of shape (m, n) containing the successive image.
-    p0 : list
+        All values in next_image are required to have finite values.
+
+    points : list
         Vector of 2D points for which the flow needs to be found.
         Point coordinates must be single-precision floating-point numbers.
+
     params : dict
         Any additional parameter to the original routine as described in the
         corresponding documentation.
+
     verbose : bool, optional
         Print the number of vectors that have been found.
 
     Returns
     -------
-    x0 : array-like
-        Output vector of x-coordinates of detected point motions.
-    y0 : array-like
-        Output vector of y-coordinates of detected point motions.
-    u : array-like
-        Output vector of u-components of detected point motions.
-    v : array-like
-        Output vector of v-components of detected point motions.
 
+    xy : array_like
+        Output vector of x-coordinates of detected point motions.
+
+    uv : array_like
+        Output vector of u-components of detected point motions.
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
             "opencv package is required for the calcOpticalFlowPyrLK() "
             "routine but it is not installed"
         )
+
+    prvs = np.copy(prvs_image)
+    next = np.copy(next_image)
+    p0 = np.copy(points)
 
     # scale between 0 and 255
     prvs = (prvs - prvs.min()) / (prvs.max() - prvs.min()) * 255
@@ -494,17 +485,15 @@ def track_features(prvs, next, p0, params, verbose=False):
         p0 = p0[st, :]
 
         # extract vectors
-        x = p0[:, 0]
-        y = p0[:, 1]
-        u = np.array((p1 - p0)[:, 0])
-        v = np.array((p1 - p0)[:, 1])
+        xy = p0
+        uv = p1 - p0
     else:
-        x = y = u = v = None
+        xy = uv = None
 
     if verbose:
-        print("--- %i sparse vectors found ---" % x.size)
+        print("--- %i sparse vectors found ---" % xy.shape[0])
 
-    return x, y, u, v
+    return xy, uv
 
 
 def morph_opening(input_image, n=3, thr=0):
@@ -791,8 +780,9 @@ def decluster_data(input_array, coord, scale, min_samples, verbose=False):
         if npoints >= min_samples:
             dinput.append(np.median(input_array[idx, :], axis=0))
             dcoord.append(np.median(coord[idx, :], axis=0))
-    dinput = np.stack(dinput).squeeze()
-    dcoord = np.stack(dcoord)
+    if len(dinput) > 0:
+        dinput = np.stack(dinput).squeeze()
+        dcoord = np.stack(dcoord)
 
     if verbose:
         print("--- %i samples left after declustering ---" % dinput.shape[0])
