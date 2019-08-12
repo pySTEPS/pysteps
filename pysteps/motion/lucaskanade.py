@@ -58,9 +58,6 @@ def dense_lucaskanade(input_images, **kwargs):
     .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
         maskedarray.baseclass.html#numpy.ma.MaskedArray
 
-    .. _ndarray:\
-    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
-
     .. _Shi-Tomasi: https://docs.opencv.org/3.4.1/dd/d1a/group__\
         imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
@@ -71,13 +68,13 @@ def dense_lucaskanade(input_images, **kwargs):
 
     Parameters
     ----------
-    input_images : ndarray_ or MaskedArray_
+    input_images : array_like or MaskedArray_
         Array of shape (T, m, n) containing a sequence of T two-dimensional input
         images of shape (m, n). T = 2 is the minimum required number of images.
         With T > 2, the sparse vectors detected by Lucas-Kanade are pooled
         together prior to the final interpolation.
 
-        In case of an ndarray_, invalid values (Nans or infs) are masked.
+        In case of an array_like, invalid values (Nans or infs) are masked.
         The mask in the MaskedArray_ defines a region where velocity vectors are
         not computed.
 
@@ -180,14 +177,17 @@ def dense_lucaskanade(input_images, **kwargs):
 
     Returns
     -------
-    out : ndarray_
+
+    out : array_like or tuple
         If dense=True (the default), it returns the three-dimensional array (2,m,n)
         containing the dense x- and y-components of the motion field in units of
         pixels / timestep as given by the input array input_images.
-        If dense=False, it returns a tuple containing the one-dimensional arrays
-        x, y, u, v, where x, y define the vector locations, u, v define the x
+
+        If dense=False, it returns a tuple containing the 2-dimensional arrays
+        xy and uv, where x, y define the vector locations, u, v define the x
         and y direction components of the vectors.
-        Return an empty array when no motion vectors are found.
+
+        Return a zero motion field when no motion is detected.
 
     References
     ----------
@@ -199,7 +199,6 @@ def dense_lucaskanade(input_images, **kwargs):
     Lucas, B. D. and Kanade, T.: An iterative image registration technique with
     an application to stereo vision, in: Proceedings of the 1981 DARPA Imaging
     Understanding Workshop, pp. 121–130, 1981.
-
     """
 
     input_images = input_images.copy()
@@ -236,16 +235,6 @@ def dense_lucaskanade(input_images, **kwargs):
         print("Computing the motion field with the Lucas-Kanade method.")
         t0 = time.time()
 
-    # Get mask
-    if isinstance(input_images, MaskedArray):
-        mask = np.ma.getmaskarray(input_images).copy()
-    else:
-        input_images = np.ma.masked_invalid(input_images)
-        mask = np.ma.getmaskarray(input_images).copy()
-    input_images[mask] = np.nanmin(
-        input_images
-    )  # Remove any Nan from the raw data
-
     nr_fields = input_images.shape[0]
     domain_size = (input_images.shape[1], input_images.shape[2])
 
@@ -256,38 +245,31 @@ def dense_lucaskanade(input_images, **kwargs):
         # extract consecutive images
         prvs = input_images[n, :, :].copy()
         next = input_images[n + 1, :, :].copy()
-        mask_ = mask[n, :, :].copy()
 
-        # skip loop if no precip
-        if ~np.any(prvs > prvs.min()) or ~np.any(next > next.min()):
-            continue
+        if ~isinstance(prvs, MaskedArray):
+            prvs = np.ma.masked_invalid(prvs)
+        np.ma.set_fill_value(prvs, prvs.min())
 
-        # buffer the quality mask to ensure that no vectors are computed nearby
-        # the edges of the radar mask
-        if buffer_mask > 0:
-            mask_ = cv2.dilate(
-                mask_.astype("uint8"),
-                np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
-                1,
-            )
+        if ~isinstance(next, MaskedArray):
+            next = np.ma.masked_invalid(next)
+        np.ma.set_fill_value(next, next.min())
 
         # remove small noise with a morphological operator (opening)
         if size_opening > 0:
-            prvs = morph_opening(prvs, n=size_opening)
-            next = morph_opening(next, n=size_opening)
+            prvs = morph_opening(prvs, prvs.min(), size_opening)
+            next = morph_opening(next, next.min(), size_opening)
 
-        # Find good features to track
-        mask_ = (-1 * mask_ + 1).astype("uint8")
+        # find good features to track
         gf_params = dict(
             maxCorners=max_corners_ST,
             qualityLevel=quality_level_ST,
             minDistance=min_distance_ST,
             blockSize=block_size_ST,
         )
-        p0 = features_to_track(prvs, mask_, gf_params, False)
+        points = features_to_track(prvs, gf_params, buffer_mask, False)
 
         # skip loop if no features to track
-        if p0 is None:
+        if points.shape[0] == 0:
             continue
 
         # get sparse u, v vectors with Lucas-Kanade tracking
@@ -296,10 +278,10 @@ def dense_lucaskanade(input_images, **kwargs):
             maxLevel=nr_levels_LK,
             criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
         )
-        xy_, uv_ = track_features(prvs, next, p0, lk_params, False)
+        xy_, uv_ = track_features(prvs, next, points, lk_params, False)
 
         # skip loop if no vectors
-        if xy_ is None:
+        if xy_.shape[0] == 0:
             continue
 
         # stack vectors
@@ -353,7 +335,7 @@ def dense_lucaskanade(input_images, **kwargs):
     return UV
 
 
-def features_to_track(input_image, mask, params, verbose=False):
+def features_to_track(input_image, params, buffer_mask=0, verbose=False):
     """
     Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners
     on an image.
@@ -364,17 +346,21 @@ def features_to_track(input_image, mask, params, verbose=False):
     Parameters
     ----------
 
-    input_image : array_like
+    input_image : array_like or MaskedArray_
         Array of shape (m, n) containing the input image.
-        All values in input_image are required to have finite values.
+        In case of an array_like, invalid values (Nans or infs) define the mask
+        and the fill value is taken as the minimum of all valid pixels.
 
-    mask : array_like
-        Array of shape (m,n). It specifies the image region in which the corners
-        can be detected.
+        The mask defines a region where velocity vectors are not computed.
 
     params : dict
         Any additional parameter to the original routine as described in the
         corresponding documentation.
+
+    buffer_mask : int, optional
+        A mask buffer width in pixels. This extends the input mask (if any)
+        to help avoiding the erroneous interpretation of velocities near the
+        maximum range of the radars (0 by default).
 
     verbose : bool, optional
         Print the number of features detected.
@@ -382,8 +368,9 @@ def features_to_track(input_image, mask, params, verbose=False):
     Returns
     -------
 
-    p0 : list
-        Output vector of detected corners.
+    points : array_like
+        Array of shape (p, 2) indicating the pixel coordinates of p detected
+        corners.
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
@@ -396,23 +383,43 @@ def features_to_track(input_image, mask, params, verbose=False):
     if input_image.ndim != 2:
         raise ValueError("input_image must be a two-dimensional array")
 
+    # masked array
+    if ~isinstance(input_image, MaskedArray):
+        input_image = np.ma.masked_invalid(input_image)
+    np.ma.set_fill_value(input_image, input_image.min())
+
+    # buffer the quality mask to ensure that no vectors are computed nearby
+    # the edges of the radar mask
+    mask = np.ma.getmaskarray(input_image).astype("uint8")
+    if buffer_mask > 0:
+        mask = cv2.dilate(
+            mask,
+            np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
+            1,
+        )
+        input_image[mask] = np.ma.masked
+
     # scale image between 0 and 255
     input_image = (
-        (input_image - input_image.min())
+        (input_image.filled() - input_image.min())
         / (input_image.max() - input_image.min())
         * 255
     )
 
     # convert to 8-bit
     input_image = np.ndarray.astype(input_image, "uint8")
-    mask = np.ndarray.astype(mask, "uint8")
+    mask = (-1 * mask + 1).astype("uint8")
 
-    p0 = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
+    points = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
+    if points is None:
+        points = np.empty(shape=(0,2))
+    else:
+        points = p0.squeeze()
 
     if verbose:
-        print("--- %i good features to track detected ---" % len(p0))
+        print("--- %i good features to track detected ---" % points.shape[0])
 
-    return p0.squeeze()
+    return points
 
 
 def track_features(prvs_image, next_image, points, params, verbose=False):
@@ -425,17 +432,17 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
     Parameters
     ----------
 
-    prvs_image : array_like
-        Array of shape (m, n) containing the initial image.
-        All values in prvs_image are required to have finite values.
+    prvs_image : array_like or MaskedArray_
+        Array of shape (m, n) containing the first image.
+        Invalid values (Nans or infs) are filled using the min value.
 
-    next_image : array_like
+    next_image : array_like or MaskedArray_
         Array of shape (m, n) containing the successive image.
-        All values in next_image are required to have finite values.
+        Invalid values (Nans or infs) are filled using the min value.
 
-    points : list
-        Vector of 2D points for which the flow needs to be found.
-        Point coordinates must be single-precision floating-point numbers.
+    points : array_like
+        Array of shape (p, 2) indicating the (i, j) pixel coordinates of the
+        tracking points.
 
     params : dict
         Any additional parameter to the original routine as described in the
@@ -463,9 +470,17 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
     next = np.copy(next_image)
     p0 = np.copy(points)
 
+    if ~isinstance(prvs, MaskedArray):
+        prvs = np.ma.masked_invalid(prvs)
+    np.ma.set_fill_value(prvs, prvs.min())
+
+    if ~isinstance(next, MaskedArray):
+        next = np.ma.masked_invalid(next)
+    np.ma.set_fill_value(next, next.min())
+
     # scale between 0 and 255
-    prvs = (prvs - prvs.min()) / (prvs.max() - prvs.min()) * 255
-    next = (next - next.min()) / (next.max() - next.min()) * 255
+    prvs = (prvs.filled() - prvs.min()) / (prvs.max() - prvs.min()) * 255
+    next = (next.filled() - next.min()) / (next.max() - next.min()) * 255
 
     # convert to 8-bit
     prvs = np.ndarray.astype(prvs, "uint8")
@@ -484,8 +499,9 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
         # extract vectors
         xy = p0
         uv = p1 - p0
+
     else:
-        xy = uv = None
+        xy = uv = np.empty(shape=(0, 2))
 
     if verbose:
         print("--- %i sparse vectors found ---" % xy.shape[0])
@@ -493,24 +509,27 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
     return xy, uv
 
 
-def morph_opening(input_image, n=3, thr=0):
+def morph_opening(input_image, thr, n):
     """Filter out small scale noise on the image by applying a binary morphological
     opening (i.e., erosion then dilation).
 
     Parameters
     ----------
-    input_image : array-like
+
+    input_image : array_like
         Array of shape (m, n) containing the input image.
-    n : int
-        The structuring element size [pixels].
+
     thr : float
         The threshold used to convert the image into a binary image.
 
+    n : int
+        The structuring element size [pixels].
+
     Returns
     -------
-    input_image : array
-        Array of shape (m,n) containing the resulting image
 
+    input_image : array_like
+        Array of shape (m,n) containing the resulting image
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
@@ -797,7 +816,8 @@ def rbfinterp2d(
     k=50,
     nchunks=5,
 ):
-    """Fast interpolation of a (multivariate) array over a 2D grid.
+    """Fast kernel interpolation of a (multivariate) array over a 2D grid using
+    radial basis functions.
 
     Parameters
     ----------
@@ -817,7 +837,7 @@ def rbfinterp2d(
     rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse
         multiquadric", "bump"}, optional
         The name of one of the available radial basis function based on the Euclidian
-        norm. See section "Notes" below.
+        norm. See also the Notes section below.
 
     epsilon : float, optional
         The shape parameter > 0 used to scale the input to the radial kernel.
@@ -903,7 +923,7 @@ def rbfinterp2d(
             + str(_rbfunctions)
         ) from None
 
-    # generate the final grid
+    # generate the target grid
     X, Y = np.meshgrid(xgrid, ygrid)
     grid = np.column_stack((X.ravel(), Y.ravel()))
     grid = (grid - mcoord) / madcoord
