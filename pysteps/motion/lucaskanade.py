@@ -248,8 +248,9 @@ def dense_lucaskanade(input_images, **kwargs):
 
     nr_fields = input_images.shape[0]
     domain_size = (input_images.shape[1], input_images.shape[2])
-    xy_stack = []
-    uv_stack = []
+
+    xy = np.empty(shape=(0, 2))
+    uv = np.empty(shape=(0, 2))
     for n in range(nr_fields - 1):
 
         # extract consecutive images
@@ -295,28 +296,24 @@ def dense_lucaskanade(input_images, **kwargs):
             maxLevel=nr_levels_LK,
             criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0),
         )
-        xy, uv = track_features(prvs, next, p0, lk_params, False)
+        xy_, uv_ = track_features(prvs, next, p0, lk_params, False)
 
         # skip loop if no vectors
-        if xy is None:
+        if xy_ is None:
             continue
 
         # stack vectors
-        xy_stack.append(xy)
-        uv_stack.append(uv)
+        xy = np.append(xy, xy_, axis=0)
+        uv = np.append(uv, uv_, axis=0)
 
     # return zero motion field is no sparse vectors are found
-    if len(xy_stack) == 0:
+    if xy.shape[0] == 0:
         if dense:
             return np.zeros((2, domain_size[0], domain_size[1]))
         else:
-            return np.array([]), np.array([])
+            return xy, uv
 
-    # convert lists of arrays into single arrays
-    xy = np.concatenate(xy_stack)
-    uv = np.concatenate(uv_stack)
-
-    # detect outlier vectors
+    # detect and remove outliers
     outliers = detect_outliers(uv, nr_std_outlier, xy, k_outlier, verbose)
     xy = xy[~outliers, :]
     uv = uv[~outliers, :]
