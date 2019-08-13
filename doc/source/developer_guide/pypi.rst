@@ -59,6 +59,8 @@ uploaded manually from the **Test PyPI** page.
 If Twine is not installed, you can install it by running
 ``pip install twine`` or ``conda install twine``.
 
+Test PyPI
+^^^^^^^^^
 To upload the recently created source distribution
 (**dist/pysteps-a.b.c.tar.gz**) under the **dist** directory run::
 
@@ -86,10 +88,29 @@ Before uploading the package to the official `Python Package
 Index <https://pypi.org/>`_, test that the package can be installed
 using pip.
 
-To do that, create a copy of the basic development environment using the
+Automatic test
+^^^^^^^^^^^^^^
+
+The simplest way to hat the package can be installed using pip is using tox
+and the tox-conda plugin (conda needed).
+To install these packages activate your conda development environment and run::
+
+    conda install -c conda-forge tox tox-conda
+
+Then, to test the installation in a minimal and an environment with all the
+dependencies (full env), run::
+
+    tox -r -e pypi_test        # Test the installation in a minimal env
+    tox -r -e pypi_test_full   # Test the installation in an full env
+
+
+Manual test
+^^^^^^^^^^^
+
+To manually test the installation on new environment,
+create a copy of the basic development environment using the
 `environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
 file in the root folder of the pysteps project::
-
     conda create -f environment_dev.yml -n pysteps_test
 
 Then we activate the environment::
@@ -100,7 +121,8 @@ or::
 
     conda activate pysteps_test
 
-If the environment pysteps_test was already created, remove any version of pysteps already installed::
+If the environment pysteps_test was already created, remove any version of
+pysteps already installed::
 
     pip uninstall pysteps
 
@@ -108,17 +130,18 @@ Now, install the pysteps package from test.pypi.org::
 
     pip install --index-url https://test.pypi.org/simple/ pysteps
 
-
 To test that the installation was successful, from a folder different
 than the pysteps source, run::
 
     pytest --pyargs pysteps
 
 
-If any test didn't pass, check the sources or consider creating a new release fixing those bugs.
+If any test didn't pass, check the sources or consider creating a new release
+fixing those bugs.
 
-Uploaded package to the Official PyPi
--------------------------------------
+
+Upload package to PyPi
+----------------------
 
 Once the
 `sdist <https://packaging.python.org/glossary/#term-source-distribution-or-sdist>`_
@@ -131,5 +154,20 @@ Now, **pysteps** can be installed by simply running::
 
    pip install pysteps
 
-As an extra sanity measure, it is recommended to test the pysteps package installed from the Official PyPi repository
+As an extra sanity measure, it is recommended to test the pysteps package
+installed from the Official PyPi repository
 (instead of the test PyPi).
+
+Automatic test
+^^^^^^^^^^^^^^
+
+Similarly to the :ref:`Test the uploaded package` section, to test the
+installation from PyPI in a clean environment, run::
+
+    tox -r -e pypi
+
+Manual test
+^^^^^^^^^^^
+
+Follow test instructions in :ref:`Test PyPI` section.
+
