@@ -10,6 +10,7 @@ the behavior of some functions in pysteps.
 
     check_motion_input_image
 """
+from functools import wraps
 
 import numpy as np
 
@@ -23,6 +24,7 @@ def check_input_frames(minimum_input_frames=2,
     """
 
     def _check_input_frames(motion_method_func):
+        @wraps(motion_method_func)
         def new_function(*args, **kwargs):
             """
             Return new function with the checks prepended to the
