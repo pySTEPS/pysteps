@@ -97,11 +97,6 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
     points : array_like
         Array of shape (p, 2) indicating the pixel coordinates of p detected
         corners.
-
-    See also
-    --------
-
-    pysteps.motion.lucaskanade.track_features
     
     References
     ----------

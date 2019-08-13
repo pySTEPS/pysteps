@@ -3,25 +3,21 @@
 pysteps.motion.lucaskanade
 ==========================
 
-The Lucas-Kanade (LK) Module.
+The Lucas-Kanade (LK) local feature tracking module.
 
-This module implements the interface to the local Lucas-Kanade routine available
-in OpenCV, as well as other auxiliary methods such as the interpolation of the
-LK vectors over a grid.
+This module implements the interface to the local `Lucas-Kanade`_ routine available
+in OpenCV_, including the interpolation of the sparse vectors over a regular grid.
 
-.. _`goodFeaturesToTrack()`:\
-    https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+.. _OpenCV: https://opencv.org/
 
-
-.. _`calcOpticalFlowPyrLK()`:\
-   https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
+.. _`Lucas-Kanade`:\
+    https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
 .. autosummary::
     :toctree: ../generated/
 
     dense_lucaskanade
     track_features
-
 """
 
 import numpy as np
@@ -62,16 +58,16 @@ def dense_lucaskanade(
 ):
     """Run the Lucas-Kanade optical flow and interpolate the motion vectors.
 
-    .. _opencv: https://opencv.org/
+    .. _OpenCV: https://opencv.org/
 
-    .. _`Lucas-Kanade`: https://docs.opencv.org/3.4/dc/d6b/\
-    group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
+    .. _`Lucas-Kanade`:\
+        https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
-    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
-        maskedarray.baseclass.html#numpy.ma.MaskedArray
+    .. _MaskedArray:\
+        https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
 
-    .. _Shi-Tomasi: https://docs.opencv.org/3.4.1/dd/d1a/group__\
-        imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+    .. _`Shi-Tomasi`:\
+        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
     Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical
     flow method applied in combination to the `Shi-Tomasi`_ corner detection
@@ -84,16 +80,16 @@ def dense_lucaskanade(
     input_images : array_like or MaskedArray_
         Array of shape (T, m, n) containing a sequence of T two-dimensional input
         images of shape (m, n). T = 2 is the minimum required number of images.
-        With T > 2, the sparse vectors detected by Lucas-Kanade are pooled
-        together prior to the final interpolation.
+        With T > 2, all the sparse vectors detected are pooled together before
+        the final interpolation on a regular grid.
 
         In case of an array_like, invalid values (Nans or infs) are masked.
         The mask in the MaskedArray_ defines a region where velocity vectors are
         not computed.
 
     lk_kwargs : dict, optional
-        Optional dictionary containing keyword arguments for the Lucas-Kanade
-        features tracking algorithm. See the documentation of 
+        Optional dictionary containing keyword arguments for the `Lucas-Kanade`_
+        features tracking algorithm. See the documentation of
         pysteps.motion.lucaskanade.track_features.
 
     fd_method : {"ShiTomasi"}, optional
@@ -102,7 +98,7 @@ def dense_lucaskanade(
 
     fd_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the features detection
-        algorithm. See the documentation of pysteps.utils.iamges.corner_detection.
+        algorithm. See the documentation of pysteps.utils.images.corner_detection.
 
     interp_method : {"rbfinterp2d"}, optional
       Name of the interpolation method to use. See the documentation
@@ -113,10 +109,10 @@ def dense_lucaskanade(
         algorithm. See the documentation of pysteps.utils.interpolate.
 
     dense : bool, optional
-        If True (the default), it returns the three-dimensional array (2,m,n)
-        containing the dense x- and y-components of the motion field. If false,
-        it returns the sparse motion vectors as 1D arrays x, y, u, v, where
-        x, y define the vector locations, u, v define the x and y direction
+        If True, it returns the three-dimensional array (2,m,n) containing the
+        dense x- and y-components of the motion field.
+        If false, it returns the sparse motion vectors as 2-D xy and uv arrays,
+        where xy defines the vector locations, uv defines the x and y direction
         components of the vectors.
 
     nr_std_outlier : int, optional
@@ -160,6 +156,11 @@ def dense_lucaskanade(
 
         Return a zero motion field when no motion is detected.
 
+    See also
+    --------
+
+    pysteps.motion.lucaskanade.track_features
+
     References
     ----------
 
@@ -174,15 +175,6 @@ def dense_lucaskanade(
 
     input_images = input_images.copy()
 
-    if fd_kwargs is None:
-        fd_kwargs = dict()
-
-    if lk_kwargs is None:
-        lk_kwargs = dict()
-
-    if interp_kwargs is None:
-        interp_kwargs = dict()
-
     if verbose:
         print("Computing the motion field with the Lucas-Kanade method.")
         t0 = time.time()
@@ -192,6 +184,15 @@ def dense_lucaskanade(
 
     feature_detection_method = utils.get_method(fd_method)
     interpolation_method = utils.get_method(interp_method)
+
+    if fd_kwargs is None:
+        fd_kwargs = dict()
+
+    if lk_kwargs is None:
+        lk_kwargs = dict()
+
+    if interp_kwargs is None:
+        interp_kwargs = dict()
 
     xy = np.empty(shape=(0, 2))
     uv = np.empty(shape=(0, 2))
@@ -282,7 +283,8 @@ def track_features(
     verbose=False,
 ):
     """
-    Interface to the OpenCV calcOpticalFlowPyrLK_ features tracking algorithm.
+    Interface to the OpenCV calcOpticalFlowPyrLK_ Lucas-Kanade features tracking
+    algorithm.
 
     .. _calcOpticalFlowPyrLK:\
        https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
@@ -341,7 +343,7 @@ def track_features(
     Notes
     -----
 
-    The tracking points can be obtained with the pysteps.utils.images.corner_detection
+    The tracking points can be obtained with the pysteps.utils.images.ShiTomasi_detection
     routine.
     """
     if not CV2_IMPORTED:
