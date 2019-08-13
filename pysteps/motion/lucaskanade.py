@@ -33,7 +33,7 @@ from numpy.ma.core import MaskedArray
 from pysteps.decorators import check_input_frames
 from pysteps.exceptions import MissingOptionalDependency
 
-from pysteps.postprocessing.interpolate import (
+from pysteps.utils.interpolate import (
     decluster_sparse_data,
     rbfinterp2d,
 )
