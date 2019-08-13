@@ -112,7 +112,8 @@ R = np.ma.masked_invalid(R)
 R.data[R.mask] = np.nan
 
 # Use default settings (i.e., no buffering of the radar mask)
-xy, uv = LK_optflow(R, dense=False, buffer_mask=0, quality_level_ST=0.1)
+fd_kwargs1 = {"buffer_mask":0, "quality_level_ST":0.1}
+xy, uv = LK_optflow(R, dense=False, fd_kwargs=fd_kwargs1)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(
@@ -141,7 +142,8 @@ plt.show()
 # 'x,y,u,v = LK_optflow(.....)'.
 
 # with buffer
-xy, uv = LK_optflow(R, dense=False, buffer_mask=20, quality_level_ST=0.2)
+fd_kwargs2 = {"buffer_mask":20, "quality_level_ST":0.2}
+xy, uv = LK_optflow(R, dense=False, fd_kwargs=fd_kwargs2)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(
@@ -169,8 +171,8 @@ plt.show()
 # the negative bias that is introduced by the the erroneous interpretation of
 # velocities near the maximum range of the radars.
 
-UV1 = LK_optflow(R, dense=True, buffer_mask=0, quality_level_ST=0.1)
-UV2 = LK_optflow(R, dense=True, buffer_mask=20, quality_level_ST=0.2)
+UV1 = LK_optflow(R, dense=True, fd_kwargs=fd_kwargs1)
+UV2 = LK_optflow(R, dense=True, fd_kwargs=fd_kwargs2)
 
 V1 = np.sqrt(UV1[0] ** 2 + UV1[1] ** 2)
 V2 = np.sqrt(UV2[0] ** 2 + UV2[1] ** 2)

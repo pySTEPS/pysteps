@@ -8,7 +8,7 @@ Image processing routines for pysteps.
 .. autosummary::
     :toctree: ../generated/
     
-    corner_detection
+    ShiTomasi_detection
     morph_opening
 """
 
@@ -23,18 +23,29 @@ except ImportError:
     CV2_IMPORTED = False
 
 
-def corner_detection(input_image, params, buffer_mask=0, verbose=False):
+def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
+                        min_distance=3, block_size=15, buffer_mask=0, 
+                        use_harris = False, k = 0.04,
+                        verbose=False, 
+                        **kwargs):
     """
-    Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect corners
-    on an image.
+    Interface to the OpenCV `Shi-Tomasi`_ features detection method to detect 
+    corners in the image.
 
     Corners are used for local tracking methods.
 
-    .. _`goodFeaturesToTrack()`:\
+    .. _`Shi-Tomasi`:\
         https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
-    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
-        maskedarray.baseclass.html#numpy.ma.MaskedArray
+    .. _MaskedArray:\
+        https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
+        
+    .. _`Harris detector`:\
+        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#gac1fc3598018010880e370e2f709b4345
+
+    .. _cornerMinEigenVal:\
+        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga3dbce297c1feb859ee36707e1003e0a8
+
 
     Parameters
     ----------
@@ -47,14 +58,35 @@ def corner_detection(input_image, params, buffer_mask=0, verbose=False):
         computed. The corresponding fill value is taken as the minimum of all
         valid pixels.
 
-    params : dict
-        Any additional parameter to the original routine as described in the
-        `goodFeaturesToTrack()`_ documentation.
+    max_corners : int, optional
+        The maxCorners parameter in the `Shi-Tomasi`_ corner detection method.
+        It represents the maximum number of points to be tracked (corners).
+        If set to zero, all detected corners are used.
+
+    quality_level : float, optional
+        The qualityLevel parameter in the `Shi-Tomasi`_ corner detection method.
+        It represents the minimal accepted quality for the points to be tracked
+        (corners).
+
+    min_distance : int, optional
+        The minDistance parameter in the `Shi-Tomasi`_ corner detection method.
+        It represents minimum possible Euclidean distance in pixels between corners.
+
+    block_size : int, optional
+        The blockSize parameter in the `Shi-Tomasi`_ corner detection method.
+        It represents the window size in pixels used for computing a derivative
+        covariation matrix over each pixel neighborhood.
+        
+    use_harris : bool, optional
+        Whether to use a `Harris detector`_  or cornerMinEigenVal_.
+        
+    k : float, optional
+        Free parameter of the Harris detector.
 
     buffer_mask : int, optional
         A mask buffer width in pixels. This extends the input mask (if any)
         to help avoiding the erroneous interpretation of velocities near the
-        maximum range of the radars (0 by default).
+        maximum range of the radars.
 
     verbose : bool, optional
         Print the number of features detected.
@@ -70,6 +102,13 @@ def corner_detection(input_image, params, buffer_mask=0, verbose=False):
     --------
 
     pysteps.motion.lucaskanade.track_features
+    
+    References
+    ----------
+    
+    Jianbo Shi and Carlo Tomasi. Good features to track. In Computer Vision and
+    Pattern Recognition, 1994. Proceedings CVPR'94., 1994 IEEE Computer Society
+    Conference on, pages 593–600. IEEE, 1994.
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
@@ -106,7 +145,14 @@ def corner_detection(input_image, params, buffer_mask=0, verbose=False):
     # convert to 8-bit
     input_image = np.ndarray.astype(input_image, "uint8")
     mask = (-1 * mask + 1).astype("uint8")
-
+    
+    params = dict(
+        maxCorners=max_corners,
+        qualityLevel=quality_level,
+        minDistance=min_distance,
+        useHarrisDetector=use_harris,
+        k=k,
+    )
     points = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
     if points is None:
         points = np.empty(shape=(0, 2))

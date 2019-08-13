@@ -87,7 +87,7 @@ def get_method(name, **kwargs):
     +-------------------+-----------------------------------------------------+
     |     Name          |              Description                            |
     +===================+=====================================================+
-    |  corner_detection | detect corners on an image                          |
+    |  ShiTomasi        | Shi-Tomasi corner detection on an image             |
     +-------------------+-----------------------------------------------------+
     |  morph_opening    | filter small scale noise on an image                |
     +-------------------+-----------------------------------------------------+
@@ -165,7 +165,7 @@ def get_method(name, **kwargs):
     methods_objects["upscale"] = dimension.aggregate_fields_space
 
     # image processing methods
-    methods_objects["corner_detection"] = images.corner_detection
+    methods_objects["shitomasi"] = images.ShiTomasi_detection
     methods_objects["morph_opening"] = images.morph_opening
 
     # interpolation methods

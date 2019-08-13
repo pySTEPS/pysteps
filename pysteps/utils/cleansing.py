@@ -16,7 +16,7 @@ import numpy as np
 import scipy.spatial
 
 
-def decluster(coord, input_array, scale, min_samples, verbose=False):
+def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     """Decluster a set of sparse data points by aggregating (i.e., taking the
     median value) all points within a certain distance (i.e., a cluster).
 
@@ -36,7 +36,7 @@ def decluster(coord, input_array, scale, min_samples, verbose=False):
         The scale parameter in the same units of coord. Data points within this
         declustering scale are averaged together.
 
-    min_samples : int
+    min_samples : int, optional
         The minimum number of samples for computing the median within a given
         cluster.
 

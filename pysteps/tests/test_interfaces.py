@@ -230,7 +230,7 @@ def test_utils_interface():
                              ('clip', dimension.clip_domain),
                              ('square', dimension.square_domain),
                              ('upscale', dimension.aggregate_fields_space),
-                             ('corner_detection', images.corner_detection),
+                             ('shitomasi', images.ShiTomasi_detection),
                              ('morph_opening', images.morph_opening),
                              ('rbfinterp2d', interpolate.rbfinterp2d),
                              ('rapsd', spectral.rapsd),
