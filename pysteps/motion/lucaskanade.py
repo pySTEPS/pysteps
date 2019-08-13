@@ -24,7 +24,7 @@ LK vectors over a grid.
     track_features
     morph_opening
     detect_outliers
-    
+
 """
 
 import numpy as np
@@ -33,7 +33,10 @@ from numpy.ma.core import MaskedArray
 from pysteps.decorators import check_input_frames
 from pysteps.exceptions import MissingOptionalDependency
 
-from pysteps.postprocessing.interpolate import decluster_sparse_data, rbfinterp2d
+from pysteps.postprocessing.interpolate import (
+    decluster_sparse_data,
+    rbfinterp2d,
+)
 
 try:
     import cv2
@@ -310,7 +313,9 @@ def dense_lucaskanade(input_images, **kwargs):
 
     # decluster sparse motion vectors
     if decl_scale > 1:
-        xy, uv = decluster_sparse_data(xy, uv, decl_scale, min_decl_samples, verbose)
+        xy, uv = decluster_sparse_data(
+            xy, uv, decl_scale, min_decl_samples, verbose
+        )
 
     # return zero motion field if no sparse vectors are left for interpolation
     if xy.shape[0] == 0:
@@ -341,22 +346,28 @@ def features_to_track(input_image, params, buffer_mask=0, verbose=False):
     Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners
     on an image.
 
+    Corners are used for local tracking methods.
+
     .. _`goodFeaturesToTrack()`:\
         https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+
+    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
+        maskedarray.baseclass.html#numpy.ma.MaskedArray
 
     Parameters
     ----------
 
     input_image : array_like or MaskedArray_
         Array of shape (m, n) containing the input image.
-        In case of an array_like, invalid values (Nans or infs) define the mask
-        and the fill value is taken as the minimum of all valid pixels.
 
-        The mask defines a region where velocity vectors are not computed.
+        In case of an array_like, invalid values (Nans or infs) define a
+        validity mask, which represents the region where velocity vectors are not
+        computed. The corresponding fill value is taken as the minimum of all
+        valid pixels.
 
     params : dict
         Any additional parameter to the original routine as described in the
-        corresponding documentation.
+        `goodFeaturesToTrack()`_ documentation.
 
     buffer_mask : int, optional
         A mask buffer width in pixels. This extends the input mask (if any)
@@ -372,6 +383,11 @@ def features_to_track(input_image, params, buffer_mask=0, verbose=False):
     points : array_like
         Array of shape (p, 2) indicating the pixel coordinates of p detected
         corners.
+
+    See also
+    --------
+
+    pysteps.motion.lucaskanade.track_features
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
@@ -394,9 +410,7 @@ def features_to_track(input_image, params, buffer_mask=0, verbose=False):
     mask = np.ma.getmaskarray(input_image).astype("uint8")
     if buffer_mask > 0:
         mask = cv2.dilate(
-            mask,
-            np.ones((int(buffer_mask), int(buffer_mask)), np.uint8),
-            1,
+            mask, np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
         )
         input_image[mask] = np.ma.masked
 
@@ -413,7 +427,7 @@ def features_to_track(input_image, params, buffer_mask=0, verbose=False):
 
     points = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
     if points is None:
-        points = np.empty(shape=(0,2))
+        points = np.empty(shape=(0, 2))
     else:
         points = points.squeeze()
 
@@ -430,6 +444,9 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
     .. _`calcOpticalFlowPyrLK()`:\
        https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
+    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
+        maskedarray.baseclass.html#numpy.ma.MaskedArray
+
     Parameters
     ----------
 
@@ -442,12 +459,12 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
         Invalid values (Nans or infs) are filled using the min value.
 
     points : array_like
-        Array of shape (p, 2) indicating the (i, j) pixel coordinates of the
-        tracking points.
+        Array of shape (p, 2) indicating the pixel coordinates of the
+        tracking points (corners).
 
     params : dict
         Any additional parameter to the original routine as described in the
-        corresponding documentation.
+        `calcOpticalFlowPyrLK()`_ documentation.
 
     verbose : bool, optional
         Print the number of vectors that have been found.
@@ -456,10 +473,17 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
     -------
 
     xy : array_like
-        Output vector of x-coordinates of detected point motions.
+        Array of shape (d, 2) with the x- and y-coordinates of d <= p detected
+        sparse motion vectors.
 
     uv : array_like
-        Output vector of u-components of detected point motions.
+        Array of shape (d, 2) with the u- and v-components of d <= p detected
+        sparse motion vectors.
+
+    See also
+    --------
+
+    pysteps.motion.lucaskanade.features_to_track
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
@@ -530,7 +554,7 @@ def morph_opening(input_image, thr, n):
     -------
 
     input_image : array_like
-        Array of shape (m,n) containing the resulting image
+        Array of shape (m,n) containing the filtered image.
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
@@ -571,7 +595,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
     input_array : array_like
         Array of shape (n) or (n, m), where n is the number of samples and m
-        the number of variables. If m > 1, it employs the Mahalanobis distance.
+        the number of variables. If m > 1, the Mahalanobis distance is used.
         All values in input_array are required to have finite values.
 
     thr : float
@@ -594,7 +618,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
     out : array_like
         A boolean array of the same shape as input_array, with True values
-        indicating the outliers detected in the input array.
+        indicating the outliers detected in input_array.
     """
 
     input_array = np.copy(input_array)
@@ -705,4 +729,3 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         print("--- %i outliers detected ---" % np.sum(outliers))
 
     return outliers
-
