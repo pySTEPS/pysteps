@@ -32,7 +32,7 @@ def get_method(name, **kwargs):
     +===================+=====================================================+
     | centred_coord     | compute a 2D coordinate array                       |
     +-------------------+-----------------------------------------------------+
-    
+
     Cleansing methods:
 
     +-------------------+-----------------------------------------------------+
@@ -81,7 +81,7 @@ def get_method(name, **kwargs):
     +-------------------+-----------------------------------------------------+
     |  pyfftw           | pyfftw.interfaces.numpy_fft                         |
     +-------------------+-----------------------------------------------------+
-    
+
     Image processing methods:
 
     +-------------------+-----------------------------------------------------+
@@ -146,6 +146,10 @@ def get_method(name, **kwargs):
     # arrays methods
     methods_objects["centred_coord"] = arrays.compute_centred_coord_array
 
+    # cleansing methods
+    methods_objects["decluster"] = cleansing.decluster
+    methods_objects["detect_outliers"] = cleansing.detect_outliers
+
     # conversion methods
     methods_objects["mm/h"] = conversion.to_rainrate
     methods_objects["rainrate"] = conversion.to_rainrate
@@ -154,15 +158,31 @@ def get_method(name, **kwargs):
     methods_objects["dbz"] = conversion.to_reflectivity
     methods_objects["reflectivity"] = conversion.to_reflectivity
 
-    # cleansing methods
-    methods_objects["decluster"] = cleansing.decluster
-    methods_objects["detect_outliers"] = cleansing.detect_outliers
-
     # dimension methods
     methods_objects["accumulate"] = dimension.aggregate_fields_time
     methods_objects["clip"] = dimension.clip_domain
     methods_objects["square"] = dimension.square_domain
     methods_objects["upscale"] = dimension.aggregate_fields_space
+
+    # image processing methods
+    methods_objects["corner_detection"] = images.corner_detection
+    methods_objects["morph_opening"] = images.morph_opening
+
+    # interpolation methods
+    methods_objects["rbfinterp2d"] = interpolate.rbfinterp2d
+
+    # spectral methods
+    methods_objects["rapsd"] = spectral.rapsd
+    methods_objects["rm_rdisc"] = spectral.remove_rain_norain_discontinuity
+
+    # transformation methods
+    methods_objects["boxcox"] = transformation.boxcox_transform
+    methods_objects["box-cox"] = transformation.boxcox_transform
+    methods_objects["db"] = transformation.dB_transform
+    methods_objects["decibel"] = transformation.dB_transform
+    methods_objects["log"] = transformation.boxcox_transform
+    methods_objects["nqt"] = transformation.NQ_transform
+    methods_objects["sqrt"] = transformation.sqrt_transform
 
     # FFT methods
     if name in ["numpy", "pyfftw", "scipy"]:
@@ -177,26 +197,6 @@ def get_method(name, **kwargs):
                 "Unknown method %s\n" % e
                 + "Supported methods:%s" % str(methods_objects.keys())
             )
-
-    # image processing methods
-    methods_objects["corner_detection"] = images.corner_detection
-    methods_objects["morph_opening"] = images.morph_opening
-
-    # interpolation methods
-    methods_objects["rapsd"] = interpolate.rbfinterp2d
-
-    # spectral methods
-    methods_objects["rapsd"] = spectral.rapsd
-    methods_objects["rm_rdisc"] = spectral.remove_rain_norain_discontinuity
-
-    # transformation methods
-    methods_objects["boxcox"] = transformation.boxcox_transform
-    methods_objects["box-cox"] = transformation.boxcox_transform
-    methods_objects["db"] = transformation.dB_transform
-    methods_objects["decibel"] = transformation.dB_transform
-    methods_objects["log"] = transformation.boxcox_transform
-    methods_objects["nqt"] = transformation.NQ_transform
-    methods_objects["sqrt"] = transformation.sqrt_transform
 
 
 def _get_fft_method(name, **kwargs):

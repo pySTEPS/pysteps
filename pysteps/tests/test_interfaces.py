@@ -206,19 +206,35 @@ def test_nowcasts_interface():
 def test_utils_interface():
     """Test utils module interface."""
 
+    from pysteps.utils import arrays
+    from pysteps.utils import cleansing
     from pysteps.utils import conversion
-    from pysteps.utils import transformation
     from pysteps.utils import dimension
+    from pysteps.utils import images
+    from pysteps.utils import interpolate
+    from pysteps.utils import spectral
+    from pysteps.utils import transformation
 
     method_getter = pysteps.utils.interface.get_method
 
-    valid_names_func_pair = [('mm/h', conversion.to_rainrate),
+    valid_names_func_pair = [('centred_coord', arrays.compute_centred_coord_array),
+                             ('decluster', cleansing.decluster),
+                             ('detect_outliers', cleansing.detect_outliers),
+                             ('mm/h', conversion.to_rainrate),
                              ('rainrate', conversion.to_rainrate),
                              ('mm', conversion.to_raindepth),
                              ('raindepth', conversion.to_raindepth),
                              ('dbz', conversion.to_reflectivity),
                              ('reflectivity', conversion.to_reflectivity),
-                             ('rainrate', conversion.to_rainrate),
+                             ('accumulate', dimension.aggregate_fields_time),
+                             ('clip', dimension.clip_domain),
+                             ('square', dimension.square_domain),
+                             ('upscale', dimension.aggregate_fields_space),
+                             ('corner_detection', images.corner_detection),
+                             ('morph_opening', images.morph_opening),
+                             ('rbfinterp2d', interpolate.rbfinterp2d),
+                             ('rapsd', spectral.rapsd),
+                             ('rm_rdisc', spectral.remove_rain_norain_discontinuity),
                              ('boxcox', transformation.boxcox_transform),
                              ('box-cox', transformation.boxcox_transform),
                              ('db', transformation.dB_transform),
@@ -226,10 +242,6 @@ def test_utils_interface():
                              ('log', transformation.boxcox_transform),
                              ('nqt', transformation.NQ_transform),
                              ('sqrt', transformation.sqrt_transform),
-                             ('accumulate', dimension.aggregate_fields_time),
-                             ('clip', dimension.clip_domain),
-                             ('square', dimension.square_domain),
-                             ('upscale', dimension.aggregate_fields_space),
                              ]
 
     invalid_names = ['random', 'invalid']
