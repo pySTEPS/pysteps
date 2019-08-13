@@ -22,8 +22,6 @@ LK vectors over a grid.
     dense_lucaskanade
     features_to_track
     track_features
-    morph_opening
-    detect_outliers
 
 """
 
@@ -33,10 +31,9 @@ from numpy.ma.core import MaskedArray
 from pysteps.decorators import check_input_frames
 from pysteps.exceptions import MissingOptionalDependency
 
-from pysteps.utils.interpolate import (
-    decluster_sparse_data,
-    rbfinterp2d,
-)
+from pysteps.utils.cleansing import decluster, detect_outliers
+from pysteps.utils.interpolate import rbfinterp2d
+from pysteps.utils.images import corner_detection, morph_opening
 
 try:
     import cv2
@@ -45,7 +42,6 @@ try:
 except ImportError:
     CV2_IMPORTED = False
 
-import scipy.spatial
 import time
 import warnings
 
@@ -270,7 +266,7 @@ def dense_lucaskanade(input_images, **kwargs):
             minDistance=min_distance_ST,
             blockSize=block_size_ST,
         )
-        points = features_to_track(prvs, gf_params, buffer_mask, False)
+        points = corner_detection(prvs, gf_params, buffer_mask, False)
 
         # skip loop if no features to track
         if points.shape[0] == 0:
@@ -313,9 +309,7 @@ def dense_lucaskanade(input_images, **kwargs):
 
     # decluster sparse motion vectors
     if decl_scale > 1:
-        xy, uv = decluster_sparse_data(
-            xy, uv, decl_scale, min_decl_samples, verbose
-        )
+        xy, uv = decluster(xy, uv, decl_scale, min_decl_samples, verbose)
 
     # return zero motion field if no sparse vectors are left for interpolation
     if xy.shape[0] == 0:
@@ -339,102 +333,6 @@ def dense_lucaskanade(input_images, **kwargs):
         print("--- total time: %.2f seconds ---" % (time.time() - t0))
 
     return UV
-
-
-def features_to_track(input_image, params, buffer_mask=0, verbose=False):
-    """
-    Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect strong corners
-    on an image.
-
-    Corners are used for local tracking methods.
-
-    .. _`goodFeaturesToTrack()`:\
-        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
-
-    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
-        maskedarray.baseclass.html#numpy.ma.MaskedArray
-
-    Parameters
-    ----------
-
-    input_image : array_like or MaskedArray_
-        Array of shape (m, n) containing the input image.
-
-        In case of an array_like, invalid values (Nans or infs) define a
-        validity mask, which represents the region where velocity vectors are not
-        computed. The corresponding fill value is taken as the minimum of all
-        valid pixels.
-
-    params : dict
-        Any additional parameter to the original routine as described in the
-        `goodFeaturesToTrack()`_ documentation.
-
-    buffer_mask : int, optional
-        A mask buffer width in pixels. This extends the input mask (if any)
-        to help avoiding the erroneous interpretation of velocities near the
-        maximum range of the radars (0 by default).
-
-    verbose : bool, optional
-        Print the number of features detected.
-
-    Returns
-    -------
-
-    points : array_like
-        Array of shape (p, 2) indicating the pixel coordinates of p detected
-        corners.
-
-    See also
-    --------
-
-    pysteps.motion.lucaskanade.track_features
-    """
-    if not CV2_IMPORTED:
-        raise MissingOptionalDependency(
-            "opencv package is required for the goodFeaturesToTrack() "
-            "routine but it is not installed"
-        )
-
-    input_image = np.copy(input_image)
-
-    if input_image.ndim != 2:
-        raise ValueError("input_image must be a two-dimensional array")
-
-    # masked array
-    if ~isinstance(input_image, MaskedArray):
-        input_image = np.ma.masked_invalid(input_image)
-    np.ma.set_fill_value(input_image, input_image.min())
-
-    # buffer the quality mask to ensure that no vectors are computed nearby
-    # the edges of the radar mask
-    mask = np.ma.getmaskarray(input_image).astype("uint8")
-    if buffer_mask > 0:
-        mask = cv2.dilate(
-            mask, np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
-        )
-        input_image[mask] = np.ma.masked
-
-    # scale image between 0 and 255
-    input_image = (
-        (input_image.filled() - input_image.min())
-        / (input_image.max() - input_image.min())
-        * 255
-    )
-
-    # convert to 8-bit
-    input_image = np.ndarray.astype(input_image, "uint8")
-    mask = (-1 * mask + 1).astype("uint8")
-
-    points = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
-    if points is None:
-        points = np.empty(shape=(0, 2))
-    else:
-        points = points.squeeze()
-
-    if verbose:
-        print("--- %i good features to track detected ---" % points.shape[0])
-
-    return points
 
 
 def track_features(prvs_image, next_image, points, params, verbose=False):
@@ -480,10 +378,11 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
         Array of shape (d, 2) with the u- and v-components of d <= p detected
         sparse motion vectors.
 
-    See also
-    --------
+    Notes
+    -----
 
-    pysteps.motion.lucaskanade.features_to_track
+    The tracking points can be obtained with the pysteps.utils.images.corner_detection
+    routine.
     """
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
@@ -532,200 +431,3 @@ def track_features(prvs_image, next_image, points, params, verbose=False):
         print("--- %i sparse vectors found ---" % xy.shape[0])
 
     return xy, uv
-
-
-def morph_opening(input_image, thr, n):
-    """Filter out small scale noise on the image by applying a binary morphological
-    opening (i.e., erosion then dilation).
-
-    Parameters
-    ----------
-
-    input_image : array_like
-        Array of shape (m, n) containing the input image.
-
-    thr : float
-        The threshold used to convert the image into a binary image.
-
-    n : int
-        The structuring element size [pixels].
-
-    Returns
-    -------
-
-    input_image : array_like
-        Array of shape (m,n) containing the filtered image.
-    """
-    if not CV2_IMPORTED:
-        raise MissingOptionalDependency(
-            "opencv package is required for the morphologyEx "
-            "routine but it is not installed"
-        )
-
-    # Convert to binary image
-    field_bin = np.ndarray.astype(input_image > thr, "uint8")
-
-    # Build a structuring element of size n
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
-
-    # Apply morphological opening (i.e. erosion then dilation)
-    field_bin_out = cv2.morphologyEx(field_bin, cv2.MORPH_OPEN, kernel)
-
-    # Build mask to be applied on the original image
-    mask = (field_bin - field_bin_out) > 0
-
-    # Filter out small isolated pixels based on mask
-    input_image[mask] = np.nanmin(input_image)
-
-    return input_image
-
-
-def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
-    """Detect outliers in a (multivariate and georeferenced) dataset.
-
-    Assume a (multivariate) Gaussian distribution and detect outliers based on
-    the number of standard deviations from the mean.
-
-    If spatial information is provided through coordinates, the outlier
-    detection can be localized by considering only the k-nearest neighbours
-    when computing the local mean and standard deviation.
-
-    Parameters
-    ----------
-
-    input_array : array_like
-        Array of shape (n) or (n, m), where n is the number of samples and m
-        the number of variables. If m > 1, the Mahalanobis distance is used.
-        All values in input_array are required to have finite values.
-
-    thr : float
-        The number of standard deviations from the mean that defines an outlier.
-
-    coord : array_like, optional
-        Array of shape (n, d) containing the coordinates of the input data into
-        a space of d dimensions. Setting coord requires that k is not None.
-
-    k : int or None, optional
-        The number of nearest neighbours used to localize the outlier detection.
-        If set to None (the default), it employs all the data points (global
-        detection). Setting k requires that coord is not None.
-
-    verbose : bool, optional
-        Print out information.
-
-    Returns
-    -------
-
-    out : array_like
-        A boolean array of the same shape as input_array, with True values
-        indicating the outliers detected in input_array.
-    """
-
-    input_array = np.copy(input_array)
-
-    if np.any(~np.isfinite(input_array)):
-        raise ValueError("input_array contains non-finite values")
-
-    if input_array.ndim == 1:
-        nvar = 1
-    elif input_array.ndim == 2:
-        nvar = input_array.shape[1]
-    else:
-        raise ValueError(
-            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
-            % coord.ndim
-        )
-
-    if coord is not None:
-
-        coord = np.copy(coord)
-        if coord.ndim == 1:
-            coord = coord[:, None]
-
-        elif coord.ndim > 2:
-            raise ValueError(
-                "coord must have 2 dimensions (n, d), but it has %i"
-                % coord.ndim
-            )
-
-        if coord.shape[0] != input_array.shape[0]:
-            raise ValueError(
-                "the number of samples in input_array does not match the "
-                + "number of coordinates %i!=%i"
-                % (input_array.shape[0], coord.shape[0])
-            )
-
-        if k is None:
-            raise ValueError("coord is set but k is None")
-
-        k = np.min((coord.shape[0], k + 1))
-
-    else:
-        if k is not None:
-            raise ValueError("k is set but coord=None")
-
-    # global
-
-    if k is None:
-
-        if nvar == 1:
-
-            # univariate
-
-            zdata = (input_array - np.mean(input_array)) / np.std(input_array)
-            outliers = zdata > thr
-
-        else:
-
-            # multivariate (mahalanobis distance)
-
-            zdata = input_array - np.mean(input_array, axis=0)
-            V = np.cov(zdata.T)
-            VI = np.linalg.inv(V)
-            try:
-                VI = np.linalg.inv(V)
-                MD = np.sqrt(np.dot(np.dot(zdata, VI), zdata.T).diagonal())
-            except np.linalg.LinAlgError:
-                MD = np.zeros(input_array.shape)
-            outliers = MD > thr
-
-    # local
-
-    else:
-
-        tree = scipy.spatial.cKDTree(coord)
-        __, inds = tree.query(coord, k=k)
-        outliers = np.empty(shape=0, dtype=bool)
-        for i in range(inds.shape[0]):
-
-            if nvar == 1:
-
-                # in terms of velocity
-
-                thisdata = input_array[i]
-                neighbours = input_array[inds[i, 1:]]
-                thiszdata = (thisdata - np.mean(neighbours)) / np.std(
-                    neighbours
-                )
-                outliers = np.append(outliers, thiszdata > thr)
-
-            else:
-
-                # mahalanobis distance
-
-                thisdata = input_array[i, :]
-                neighbours = input_array[inds[i, 1:], :].copy()
-                thiszdata = thisdata - np.mean(neighbours, axis=0)
-                neighbours = neighbours - np.mean(neighbours, axis=0)
-                V = np.cov(neighbours.T)
-                try:
-                    VI = np.linalg.inv(V)
-                    MD = np.sqrt(np.dot(np.dot(thiszdata, VI), thiszdata.T))
-                except np.linalg.LinAlgError:
-                    MD = 0
-                outliers = np.append(outliers, MD > thr)
-
-    if verbose:
-        print("--- %i outliers detected ---" % np.sum(outliers))
-
-    return outliers

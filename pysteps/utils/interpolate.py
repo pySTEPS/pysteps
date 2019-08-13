@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-pysteps.postprocessing.interpolate
-==================================
+pysteps.utils.interpolate
+=========================
 
 Interpolation routines for pysteps.
 
 .. autosummary::
     :toctree: ../generated/
 
-    decluster_sparse_data
     rbfinterp2d
 
 """
@@ -16,105 +15,6 @@ Interpolation routines for pysteps.
 import numpy as np
 import scipy.spatial
 
-def decluster_sparse_data(coord, input_array, scale, min_samples, verbose=False):
-    """Decluster a set of sparse data points by aggregating (i.e., taking the
-    median value) all points within a certain distance (i.e., a cluster).
-
-    Parameters
-    ----------
-
-    coord : array_like
-        Array of shape (n, 2) containing the coordinates of the input data into
-        a 2-dimensional space.
-
-    input_array : array_like
-        Array of shape (n) or (n, m), where n is the number of samples and m
-        the number of variables.
-        All values in input_array are required to have finite values.
-
-    scale : float or array_like
-        The scale parameter in the same units of coord. Data points within this
-        declustering scale are averaged together.
-
-    min_samples : int
-        The minimum number of samples for computing the median within a given
-        cluster.
-
-    verbose : bool, optional
-        Print out information.
-
-    Returns
-    -------
-
-    out : tuple of ndarrays
-        A two-element tuple (dinput, dcoord) containing the declustered input_array
-        (d, m) and coordinates (d, 2), where d is the new number of samples
-        (d < n).
-
-    """
-
-    coord = np.copy(coord)
-    input_array = np.copy(input_array)
-    scale = np.float(scale)
-
-    # check inputs
-    if np.any(~np.isfinite(input_array)):
-        raise ValueError("input_array contains non-finite values")
-
-    if input_array.ndim == 1:
-        nvar = 1
-        input_array = input_array[:, None]
-    elif input_array.ndim == 2:
-        nvar = input_array.shape[1]
-    else:
-        raise ValueError(
-            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
-            % input_array.ndim
-        )
-
-    if coord.ndim != 2:
-        raise ValueError(
-            "coord must have 2 dimensions (n, 2), but it has %i" % coord.ndim
-        )
-
-    if coord.shape[0] != input_array.shape[0]:
-        raise ValueError(
-            "the number of samples in the input_array does not match the "
-            + "number of coordinates %i!=%i"
-            % (input_array.shape[0], coord.shape[0])
-        )
-
-    # reduce original coordinates
-    coord_ = np.floor(coord / scale)
-
-    # keep only unique pairs of the reduced coordinates
-    coordb_ = np.ascontiguousarray(coord_).view(
-        np.dtype((np.void, coord_.dtype.itemsize * coord_.shape[1]))
-    )
-    __, idx = np.unique(coordb_, return_index=True)
-    ucoord_ = coord_[idx]
-
-    # loop through these unique values and average vectors which belong to
-    # the same declustering grid cell
-    dinput = np.empty(shape=(0, nvar))
-    dcoord = np.empty(shape=(0, 2))
-    for i in range(ucoord_.shape[0]):
-        idx = np.logical_and(
-            coord_[:, 0] == ucoord_[i, 0], coord_[:, 1] == ucoord_[i, 1]
-        )
-        npoints = np.sum(idx)
-        if npoints >= min_samples:
-            dinput = np.append(
-                dinput, np.median(input_array[idx, :], axis=0)[None, :], axis=0
-            )
-            dcoord = np.append(
-                dcoord, np.median(coord[idx, :], axis=0)[None, :], axis=0
-            )
-
-    if verbose:
-        print("--- %i samples left after declustering ---" % dinput.shape[0])
-
-    return dcoord.squeeze(), dinput
 
 def rbfinterp2d(
     coord,

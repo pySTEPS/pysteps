@@ -1,0 +1,165 @@
+# -*- coding: utf-8 -*-
+"""
+pysteps.utils.images
+====================
+
+Image processing routines for pysteps.
+
+.. autosummary::
+    :toctree: ../generated/
+    
+    corner_detection
+    morph_opening
+"""
+
+import numpy as np
+from numpy.ma.core import MaskedArray
+
+try:
+    import cv2
+
+    CV2_IMPORTED = True
+except ImportError:
+    CV2_IMPORTED = False
+
+
+def corner_detection(input_image, params, buffer_mask=0, verbose=False):
+    """
+    Interface to the OpenCV `goodFeaturesToTrack()`_ method to detect corners
+    on an image.
+
+    Corners are used for local tracking methods.
+
+    .. _`goodFeaturesToTrack()`:\
+        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+
+    .. _MaskedArray: https://docs.scipy.org/doc/numpy/reference/\
+        maskedarray.baseclass.html#numpy.ma.MaskedArray
+
+    Parameters
+    ----------
+
+    input_image : array_like or MaskedArray_
+        Array of shape (m, n) containing the input image.
+
+        In case of an array_like, invalid values (Nans or infs) define a
+        validity mask, which represents the region where velocity vectors are not
+        computed. The corresponding fill value is taken as the minimum of all
+        valid pixels.
+
+    params : dict
+        Any additional parameter to the original routine as described in the
+        `goodFeaturesToTrack()`_ documentation.
+
+    buffer_mask : int, optional
+        A mask buffer width in pixels. This extends the input mask (if any)
+        to help avoiding the erroneous interpretation of velocities near the
+        maximum range of the radars (0 by default).
+
+    verbose : bool, optional
+        Print the number of features detected.
+
+    Returns
+    -------
+
+    points : array_like
+        Array of shape (p, 2) indicating the pixel coordinates of p detected
+        corners.
+
+    See also
+    --------
+
+    pysteps.motion.lucaskanade.track_features
+    """
+    if not CV2_IMPORTED:
+        raise MissingOptionalDependency(
+            "opencv package is required for the goodFeaturesToTrack() "
+            "routine but it is not installed"
+        )
+
+    input_image = np.copy(input_image)
+
+    if input_image.ndim != 2:
+        raise ValueError("input_image must be a two-dimensional array")
+
+    # masked array
+    if ~isinstance(input_image, MaskedArray):
+        input_image = np.ma.masked_invalid(input_image)
+    np.ma.set_fill_value(input_image, input_image.min())
+
+    # buffer the quality mask to ensure that no vectors are computed nearby
+    # the edges of the radar mask
+    mask = np.ma.getmaskarray(input_image).astype("uint8")
+    if buffer_mask > 0:
+        mask = cv2.dilate(
+            mask, np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
+        )
+        input_image[mask] = np.ma.masked
+
+    # scale image between 0 and 255
+    input_image = (
+        (input_image.filled() - input_image.min())
+        / (input_image.max() - input_image.min())
+        * 255
+    )
+
+    # convert to 8-bit
+    input_image = np.ndarray.astype(input_image, "uint8")
+    mask = (-1 * mask + 1).astype("uint8")
+
+    points = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
+    if points is None:
+        points = np.empty(shape=(0, 2))
+    else:
+        points = points.squeeze()
+
+    if verbose:
+        print("--- %i good features to track detected ---" % points.shape[0])
+
+    return points
+
+
+def morph_opening(input_image, thr, n):
+    """Filter out small scale noise on the image by applying a binary morphological
+    opening (i.e., erosion then dilation).
+
+    Parameters
+    ----------
+
+    input_image : array_like
+        Array of shape (m, n) containing the input image.
+
+    thr : float
+        The threshold used to convert the image into a binary image.
+
+    n : int
+        The structuring element size [pixels].
+
+    Returns
+    -------
+
+    input_image : array_like
+        Array of shape (m,n) containing the filtered image.
+    """
+    if not CV2_IMPORTED:
+        raise MissingOptionalDependency(
+            "opencv package is required for the morphologyEx "
+            "routine but it is not installed"
+        )
+
+    # Convert to binary image
+    field_bin = np.ndarray.astype(input_image > thr, "uint8")
+
+    # Build a structuring element of size n
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
+
+    # Apply morphological opening (i.e. erosion then dilation)
+    field_bin_out = cv2.morphologyEx(field_bin, cv2.MORPH_OPEN, kernel)
+
+    # Build mask to be applied on the original image
+    mask = (field_bin - field_bin_out) > 0
+
+    # Filter out small isolated pixels based on mask
+    input_image[mask] = np.nanmin(input_image)
+
+    return input_image
