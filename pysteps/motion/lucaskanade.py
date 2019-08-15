@@ -5,8 +5,9 @@ pysteps.motion.lucaskanade
 
 The Lucas-Kanade (LK) local feature tracking module.
 
-This module implements the interface to the local `Lucas-Kanade`_ routine available
-in OpenCV_, including the interpolation of the sparse vectors over a regular grid.
+This module implements the interface to the local `Lucas-Kanade`_ routine
+available in OpenCV_, including the interpolation of the sparse vectors over a
+regular grid.
 
 .. _OpenCV: https://opencv.org/
 
@@ -42,20 +43,18 @@ import warnings
 
 
 @check_input_frames(2)
-def dense_lucaskanade(
-    input_images,
-    lk_kwargs=None,
-    fd_method="ShiTomasi",
-    fd_kwargs=None,
-    interp_method="rbfinterp2d",
-    interp_kwargs=None,
-    dense=True,
-    nr_std_outlier=3,
-    k_outlier=30,
-    size_opening=3,
-    decl_scale=10,
-    verbose=False
-):
+def dense_lucaskanade(input_images,
+                      lk_kwargs=None,
+                      fd_method="ShiTomasi",
+                      fd_kwargs=None,
+                      interp_method="rbfinterp2d",
+                      interp_kwargs=None,
+                      dense=True,
+                      nr_std_outlier=3,
+                      k_outlier=30,
+                      size_opening=3,
+                      decl_scale=10,
+                      verbose=False):
     """Run the Lucas-Kanade optical flow and interpolate the motion vectors.
 
     .. _OpenCV: https://opencv.org/
@@ -71,15 +70,16 @@ def dense_lucaskanade(
 
     Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical
     flow method applied in combination to the `Shi-Tomasi`_ corner detection
-    routine. The sparse motion vectors are finally interpolated to return the whole
-    motion field.
+    routine. The sparse motion vectors are finally interpolated to return the
+    whole motion field.
 
     Parameters
     ----------
 
     input_images : array_like or MaskedArray_
-        Array of shape (T, m, n) containing a sequence of T two-dimensional input
-        images of shape (m, n). T = 2 is the minimum required number of images.
+        Array of shape (T, m, n) containing a sequence of T two-dimensional
+        input images of shape (m, n). T = 2 is the minimum required number of
+        images.
         With T > 2, all the sparse vectors detected are pooled together before
         the final interpolation on a regular grid.
 
@@ -97,8 +97,9 @@ def dense_lucaskanade(
       of pysteps.utils.interpolate.
 
     fd_kwargs : dict, optional
-        Optional dictionary containing keyword arguments for the features detection
-        algorithm. See the documentation of pysteps.utils.images.corner_detection.
+        Optional dictionary containing keyword arguments for the features
+        detection algorithm.
+        See the documentation of pysteps.utils.images.corner_detection.
 
     interp_method : {"rbfinterp2d"}, optional
       Name of the interpolation method to use. See the documentation
@@ -146,9 +147,9 @@ def dense_lucaskanade(
     -------
 
     out : array_like or tuple
-        If dense=True (the default), it returns the three-dimensional array (2,m,n)
-        containing the dense x- and y-components of the motion field in units of
-        pixels / timestep as given by the input array input_images.
+        If dense=True (the default), it returns the three-dimensional array
+        (2,m,n) containing the dense x- and y-components of the motion field in
+        units of pixels / timestep as given by the input array input_images.
 
         If dense=False, it returns a tuple containing the 2-dimensional arrays
         xy and uv, where x, y define the vector locations, u, v define the x
@@ -199,31 +200,31 @@ def dense_lucaskanade(
     for n in range(nr_fields - 1):
 
         # extract consecutive images
-        prvs = input_images[n, :, :].copy()
-        next = input_images[n + 1, :, :].copy()
+        prvs_img = input_images[n, :, :].copy()
+        next_img = input_images[n + 1, :, :].copy()
 
-        if ~isinstance(prvs, MaskedArray):
-            prvs = np.ma.masked_invalid(prvs)
-        np.ma.set_fill_value(prvs, prvs.min())
+        if ~isinstance(prvs_img, MaskedArray):
+            prvs_img = np.ma.masked_invalid(prvs_img)
+        np.ma.set_fill_value(prvs_img, prvs_img.min())
 
-        if ~isinstance(next, MaskedArray):
-            next = np.ma.masked_invalid(next)
-        np.ma.set_fill_value(next, next.min())
+        if ~isinstance(next_img, MaskedArray):
+            next_img = np.ma.masked_invalid(next_img)
+        np.ma.set_fill_value(next_img, next_img.min())
 
         # remove small noise with a morphological operator (opening)
         if size_opening > 0:
-            prvs = morph_opening(prvs, prvs.min(), size_opening)
-            next = morph_opening(next, next.min(), size_opening)
+            prvs_img = morph_opening(prvs_img, prvs_img.min(), size_opening)
+            next_img = morph_opening(next_img, next_img.min(), size_opening)
 
         # features detection
-        points = feature_detection_method(prvs, **fd_kwargs)
+        points = feature_detection_method(prvs_img, **fd_kwargs)
 
         # skip loop if no features to track
         if points.shape[0] == 0:
             continue
 
         # get sparse u, v vectors with Lucas-Kanade tracking
-        xy_, uv_ = track_features(prvs, next, points, **lk_kwargs)
+        xy_, uv_ = track_features(prvs_img, next_img, points, **lk_kwargs)
 
         # skip loop if no vectors
         if xy_.shape[0] == 0:
@@ -272,15 +273,15 @@ def dense_lucaskanade(
 
 
 def track_features(
-    prvs_image,
-    next_image,
-    points,
-    winsize=(50, 50),
-    nr_levels=3,
-    criteria=(3, 10, 0),
-    flags=0,
-    min_eig_thr=1e-4,
-    verbose=False,
+        prvs_image,
+        next_image,
+        points,
+        winsize=(50, 50),
+        nr_levels=3,
+        criteria=(3, 10, 0),
+        flags=0,
+        min_eig_thr=1e-4,
+        verbose=False,
 ):
     """
     Interface to the OpenCV calcOpticalFlowPyrLK_ Lucas-Kanade features tracking
@@ -318,7 +319,8 @@ def track_features(
 
     criteria : tuple of int, optional
         The TermCriteria parameter in calcOpticalFlowPyrLK_ ,
-        which specifies the termination criteria of the iterative search algorithm
+        which specifies the termination criteria of the iterative search 
+        algorithm.
 
     flags : int, optional
         Operation flags, see documentation calcOpticalFlowPyrLK_.
@@ -352,25 +354,28 @@ def track_features(
             "routine but it is not installed"
         )
 
-    prvs = np.copy(prvs_image)
-    next = np.copy(next_image)
+    prvs_img = np.copy(prvs_image)
+    next_img = np.copy(next_image)
     p0 = np.copy(points)
 
-    if ~isinstance(prvs, MaskedArray):
-        prvs = np.ma.masked_invalid(prvs)
-    np.ma.set_fill_value(prvs, prvs.min())
+    if ~isinstance(prvs_img, MaskedArray):
+        prvs_img = np.ma.masked_invalid(prvs_img)
+    np.ma.set_fill_value(prvs_img, prvs_img.min())
 
-    if ~isinstance(next, MaskedArray):
-        next = np.ma.masked_invalid(next)
-    np.ma.set_fill_value(next, next.min())
+    if ~isinstance(next_img, MaskedArray):
+        next_img = np.ma.masked_invalid(next_img)
+    np.ma.set_fill_value(next_img, next_img.min())
 
     # scale between 0 and 255
-    prvs = (prvs.filled() - prvs.min()) / (prvs.max() - prvs.min()) * 255
-    next = (next.filled() - next.min()) / (next.max() - next.min()) * 255
+    prvs_img = ((prvs_img.filled() - prvs_img.min()) /
+                (prvs_img.max() - prvs_img.min()) * 255)
+
+    next_img = ((next_img.filled() - next_img.min()) /
+                (next_img.max() - next_img.min()) * 255)
 
     # convert to 8-bit
-    prvs = np.ndarray.astype(prvs, "uint8")
-    next = np.ndarray.astype(next, "uint8")
+    prvs_img = np.ndarray.astype(prvs_img, "uint8")
+    next_img = np.ndarray.astype(next_img, "uint8")
 
     # Lucas-Kanade
     # TODO: use the error returned by the OpenCV routine
@@ -381,7 +386,8 @@ def track_features(
         flags=flags,
         minEigThreshold=min_eig_thr,
     )
-    p1, st, __ = cv2.calcOpticalFlowPyrLK(prvs, next, p0, None, **params)
+    p1, st, __ = cv2.calcOpticalFlowPyrLK(prvs_img, next_img,
+                                          p0, None, **params)
 
     # keep only features that have been found
     st = st.squeeze() == 1
