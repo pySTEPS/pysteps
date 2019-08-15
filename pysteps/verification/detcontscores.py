@@ -410,7 +410,7 @@ def det_cont_fct_accum(err, pred, obs):
     err["n"] += n
 
 
-def det_cat_fct_merge(err_1, err_2):
+def det_cont_fct_merge(err_1, err_2):
     """Merge two verification error objects.
 
     Parameters
