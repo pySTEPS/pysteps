@@ -384,16 +384,13 @@ def det_cat_fct_compute(contab, scores=""):
             # Hanssen-Kuipers Discriminant
             HK = POD - FA
             result["HK"] = HK
-        if score_ in ["gss", ""]:
+        if score_ in ["gss", "ets", ""]:
             # Gilbert Skill Score
             GSS = (POD - FA) / ((1 - s * POD) / (1 - s) + FA * (1 - s) / s)
-            result["GSS"] = GSS
-        if score_ in ["ets", ""]:
-            # Equitable Threat Score
-            N = H + M + R + F
-            HR = ((H + M) * (H + F)) / N
-            ETS = (H - HR) / (H + M + F - HR)
-            result["ETS"] = ETS
+            if score_ == "ets":
+                result["ETS"] = GSS
+            else:
+                result["GSS"] = GSS
         if score_ in ["sedi", ""]:
             # Symmetric extremal dependence index
             SEDI = (
@@ -406,7 +403,7 @@ def det_cat_fct_compute(contab, scores=""):
                 (H + F) * (H + M) * (R + F) * (R + M)
             )
             result["MCC"] = MCC
-        if score_ in ["f1", "f1-score", ""]:
+        if score_ in ["f1", ""]:
             # F1 score
             F1 = 2 * H / (2 * H + F + M)
             result["F1"] = F1
