@@ -5,9 +5,13 @@ pysteps.utils.images
 
 Image processing routines for pysteps.
 
+.. _`Shi-Tomasi`:\
+    https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+
+
 .. autosummary::
     :toctree: ../generated/
-    
+
     ShiTomasi_detection
     morph_opening
 """
@@ -24,13 +28,13 @@ except ImportError:
 
 
 def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
-                        min_distance=3, block_size=15, buffer_mask=0, 
+                        min_distance=3, block_size=15, buffer_mask=0,
                         use_harris = False, k = 0.04,
-                        verbose=False, 
+                        verbose=False,
                         **kwargs):
     """
-    Interface to the OpenCV `Shi-Tomasi`_ features detection method to detect 
-    corners in the image.
+    Interface to the OpenCV `Shi-Tomasi`_ features detection method to detect
+    corners in an image.
 
     Corners are used for local tracking methods.
 
@@ -39,7 +43,7 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
 
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
-        
+
     .. _`Harris detector`:\
         https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#gac1fc3598018010880e370e2f709b4345
 
@@ -53,40 +57,44 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
     input_image : array_like or MaskedArray_
         Array of shape (m, n) containing the input image.
 
-        In case of an array_like, invalid values (Nans or infs) define a
-        validity mask, which represents the region where velocity vectors are not
-        computed. The corresponding fill value is taken as the minimum of all
+        In case of array_like, invalid values (Nans or infs) are masked,
+        otherwise the mask of the MaskedArray_ is used. Such mask defines a
+        region where features are not detected.
+
+        The fill value for the masked pixels is taken as the minimum of all
         valid pixels.
 
     max_corners : int, optional
-        The maxCorners parameter in the `Shi-Tomasi`_ corner detection method.
+        The **maxCorners** parameter in the `Shi-Tomasi`_ corner detection
+        method.
         It represents the maximum number of points to be tracked (corners).
         If set to zero, all detected corners are used.
 
     quality_level : float, optional
-        The qualityLevel parameter in the `Shi-Tomasi`_ corner detection method.
-        It represents the minimal accepted quality for the points to be tracked
-        (corners).
+        The **qualityLevel** parameter in the `Shi-Tomasi`_ corner detection
+        method.
+        It represents the minimal accepted quality for the image corners.
 
     min_distance : int, optional
-        The minDistance parameter in the `Shi-Tomasi`_ corner detection method.
-        It represents minimum possible Euclidean distance in pixels between corners.
+        The **minDistance** parameter in the `Shi-Tomasi`_ corner detection
+        method.
+        It represents minimum possible Euclidean distance in pixels between
+        corners.
 
     block_size : int, optional
-        The blockSize parameter in the `Shi-Tomasi`_ corner detection method.
+        The **blockSize** parameter in the `Shi-Tomasi`_ corner detection method.
         It represents the window size in pixels used for computing a derivative
         covariation matrix over each pixel neighborhood.
-        
+
     use_harris : bool, optional
         Whether to use a `Harris detector`_  or cornerMinEigenVal_.
-        
+
     k : float, optional
         Free parameter of the Harris detector.
 
     buffer_mask : int, optional
         A mask buffer width in pixels. This extends the input mask (if any)
-        to help avoiding the erroneous interpretation of velocities near the
-        maximum range of the radars.
+        to limit edge effects.
 
     verbose : bool, optional
         Print the number of features detected.
@@ -95,12 +103,12 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
     -------
 
     points : array_like
-        Array of shape (p, 2) indicating the pixel coordinates of p detected
+        Array of shape (p, 2) indicating the pixel coordinates of *p* detected
         corners.
-    
+
     References
     ----------
-    
+
     Jianbo Shi and Carlo Tomasi. Good features to track. In Computer Vision and
     Pattern Recognition, 1994. Proceedings CVPR'94., 1994 IEEE Computer Society
     Conference on, pages 593–600. IEEE, 1994.
@@ -140,7 +148,7 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
     # convert to 8-bit
     input_image = np.ndarray.astype(input_image, "uint8")
     mask = (-1 * mask + 1).astype("uint8")
-    
+
     params = dict(
         maxCorners=max_corners,
         qualityLevel=quality_level,
@@ -161,8 +169,8 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
 
 
 def morph_opening(input_image, thr, n):
-    """Filter out small scale noise on the image by applying a binary morphological
-    opening (i.e., erosion then dilation).
+    """Filter out small scale noise on the image by applying a binary
+    morphological opening, that is, erosion followed by dilation.
 
     Parameters
     ----------

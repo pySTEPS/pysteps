@@ -37,20 +37,21 @@ def rbfinterp2d(
         a 2-dimensional space.
 
     input_array : array_like
-        Array of shape (n) or (n, m), where n is the number of data points and
+        Array of shape (n) or (n, m), where *n* is the number of data points and
         m the number of co-located variables.
-        All values in input_array are required to have finite values.
+        All values in **input_array** are required to have finite values.
 
     xgrid, ygrid : array_like
         1D arrays representing the coordinates of the target grid.
 
-    rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse
-        multiquadric", "bump"}, optional
-        The name of one of the available radial basis function based on the Euclidian
-        norm. See also the Notes section below.
+    rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
+        The name of one of the available radial basis function based on the
+        Euclidian norm. See also the Notes section below.
 
     epsilon : float, optional
-        The shape parameter > 0 used to scale the input to the radial kernel.
+        The shape parameter used to scale the input to the radial kernel.
+
+        A larger value for **epsilon** produces a smoother interpolation.
 
     k : int or None, optional
         The number of nearest neighbours used to speed-up the interpolation.
@@ -73,7 +74,7 @@ def rbfinterp2d(
 
         x = (x - median(x)) / MAD / 1.4826
 
-    where MAD = median(|x - median(x)|).
+    where MAD = median(abs(x - median(x))).
 
     The definitions of the radial basis functions are taken from the following
     wikipedia page: https://en.wikipedia.org/wiki/Radial_basis_function

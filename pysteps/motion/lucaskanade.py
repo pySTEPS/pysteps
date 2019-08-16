@@ -78,12 +78,12 @@ def dense_lucaskanade(input_images,
     ----------
 
     input_images : array_like or MaskedArray_
-        Array of shape (T, m, n) containing a sequence of T two-dimensional
-        input images of shape (m, n). The indexing order in input_images is
+        Array of shape (T, m, n) containing a sequence of *T* two-dimensional
+        input images of shape (m, n). The indexing order in **input_images** is
         assumed to be (time, latitude, longitude).
 
-        T = 2 is the minimum required number of images.
-        With T > 2, all the resulting sparse vectors are pooled together for
+        *T* = 2 is the minimum required number of images.
+        With *T* > 2, all the resulting sparse vectors are pooled together for
         the final interpolation on a regular grid.
 
         In case of array_like, invalid values (Nans or infs) are masked,
@@ -113,11 +113,11 @@ def dense_lucaskanade(input_images,
         algorithm. See the documentation of :py:mod:`pysteps.utils.interpolate`.
 
     dense : bool, optional
-        If True, it returns the three-dimensional array (2,m,n) containing the
-        dense x- and y-components of the motion field.
-        If false, it returns the sparse motion vectors as 2-D xy and uv arrays,
-        where xy defines the vector positions, uv defines the x and y direction
-        components of the vectors.
+        If True, it returns the three-dimensional array (2, m, n) containing
+        the dense x- and y-components of the motion field.
+        If false, it returns the sparse motion vectors as 2-D **xy** and **uv**
+        arrays, where **xy** defines the vector positions, **uv** defines the
+        x and y direction components of the vectors.
 
     nr_std_outlier : int, optional
         Maximum acceptable deviation from the mean in terms of number of
@@ -136,7 +136,8 @@ def dense_lucaskanade(input_images,
     size_opening : int, optional
         The size of the structuring element kernel in pixels. This is used to
         perform a binary morphological opening on the input fields in order to
-        filter isolated echoes due to clutter. If set to zero, the filtering is not perfomed.
+        filter isolated echoes due to clutter. If set to zero, the filtering
+        is not perfomed.
         See the documentation of
         :py:func:`pysteps.utils.images.morph_opening`.
 
@@ -162,11 +163,9 @@ def dense_lucaskanade(input_images,
         detected.
 
         If **dense=False**, it returns a tuple containing the 2-dimensional
-        arrays xy and uv, where x, y define the vector locations, u, v define
-        the x and y direction components of the vectors.
+        arrays **xy** and **uv**, where x, y define the vector locations,
+        u, v define the x and y direction components of the vectors.
         Return two empty arrays when no motion is detected.
-
-
 
     See also
     --------
@@ -350,12 +349,12 @@ def track_features(
     -------
 
     xy : array_like
-        Array of shape (d, 2) with the x- and y-coordinates of d <= p detected
-        sparse motion vectors.
+        Array of shape (d, 2) with the x- and y-coordinates of *d* <= *p*
+        detected sparse motion vectors.
 
     uv : array_like
-        Array of shape (d, 2) with the u- and v-components of d <= p detected
-        sparse motion vectors.
+        Array of shape (d, 2) with the u- and v-components of *d* <= *p*
+        detected sparse motion vectors.
 
     Notes
     -----
