@@ -61,7 +61,8 @@ def proesmans(input_images, lam=50.0, num_iter=100,
     im = np.stack([im1, im2])
     im_min = np.min(im)
     im_max = np.max(im)
-    im = (im - im_min) / (im_max - im_min) * 255.0
+    if im_max - im_min > 1e-8:
+        im = (im - im_min) / (im_max - im_min) * 255.0
 
     if filter_std > 0.0:
         im[0, :, :] = gaussian_filter(im[0, :, :], filter_std)
