@@ -35,7 +35,7 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
 
     scale : float or array_like
         The **scale** parameter in the same units of **coord**.
-        It can be a scalar or an array of shape (d).
+        It can be a scalar or an array_like of shape (d).
         Data points within the declustering **scale** are aggregated.
 
     min_samples : int, optional
@@ -51,7 +51,7 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     out : tuple of ndarrays
         A two-element tuple (**out_coord**, **output_array**) containing the
         declustered coordinates (l, d) and **input_array** (l, m), where *l* is
-        the new number of samples with (l <= n).
+        the new number of samples with *l* <= *n*.
     """
 
     coord = np.copy(coord)

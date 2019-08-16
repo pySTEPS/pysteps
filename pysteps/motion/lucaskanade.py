@@ -96,7 +96,7 @@ def dense_lucaskanade(input_images,
         :py:func:`pysteps.motion.lucaskanade.track_features`.
 
     fd_method : {"ShiTomasi"}, optional
-      Name of the feature detection routine. See the available methods in
+      Name of the feature detection routine. See feature detection methods in
       :py:mod:`pysteps.utils.images`.
 
     fd_kwargs : dict, optional
@@ -105,7 +105,7 @@ def dense_lucaskanade(input_images,
         See the documentation of :py:mod:`pysteps.utils.images`.
 
     interp_method : {"rbfinterp2d"}, optional
-      Name of the interpolation method to use. See the available methods in
+      Name of the interpolation method to use. See interpolation methods in
       :py:mod:`pysteps.utils.interpolate`.
 
     interp_kwargs : dict, optional
@@ -113,9 +113,10 @@ def dense_lucaskanade(input_images,
         algorithm. See the documentation of :py:mod:`pysteps.utils.interpolate`.
 
     dense : bool, optional
-        If True, it returns the three-dimensional array (2, m, n) containing
+        If True, return the three-dimensional array (2, m, n) containing
         the dense x- and y-components of the motion field.
-        If false, it returns the sparse motion vectors as 2-D **xy** and **uv**
+
+        If False, return the sparse motion vectors as 2-D **xy** and **uv**
         arrays, where **xy** defines the vector positions, **uv** defines the
         x and y direction components of the vectors.
 
@@ -150,7 +151,7 @@ def dense_lucaskanade(input_images,
         :py:func:`pysteps.cleansing.cleansing.decluster`.
 
     verbose : bool, optional
-        If set to True, it prints information about the program.
+        If set to True, print some information about the program.
 
     Returns
     -------

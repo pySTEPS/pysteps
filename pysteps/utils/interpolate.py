@@ -38,7 +38,7 @@ def rbfinterp2d(
 
     input_array : array_like
         Array of shape (n) or (n, m), where *n* is the number of data points and
-        m the number of co-located variables.
+        *m* the number of co-located variables.
         All values in **input_array** are required to have finite values.
 
     xgrid, ygrid : array_like
