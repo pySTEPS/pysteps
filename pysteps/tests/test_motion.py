@@ -278,7 +278,7 @@ input_tests_args_values = [
     ('lk', 2, np.inf),
     ('vet', 2, 3),
     ('darts', 9, 9),
-    # ('proesmans', 2,2),
+    ('proesmans', 2, 2),
 ]
 
 
@@ -286,7 +286,6 @@ input_tests_args_values = [
 def test_input_shape_checks(optflow_method_name,
                             minimum_input_frames,
                             maximum_input_frames):
-
     image_size = 100
     motion_method = motion.get_method(optflow_method_name)
 
