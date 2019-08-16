@@ -106,6 +106,7 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
         np.dtype((np.void, coord_.dtype.itemsize * coord_.shape[1]))
     )
     __, idx = np.unique(coordb_, return_index=True)
+    ucoord_ = coord_[idx]
     # TODO: why not simply using np.unique(coord_, axis=0) ?
 
     # loop through these unique values and average data points which belong to
