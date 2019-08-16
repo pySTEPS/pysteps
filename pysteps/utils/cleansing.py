@@ -17,24 +17,26 @@ import scipy.spatial
 
 
 def decluster(coord, input_array, scale, min_samples=1, verbose=False):
-    """Decluster a set of sparse data points by aggregating (i.e., taking the
-    median value) all points within a certain distance (i.e., a cluster).
+    """Decluster a set of sparse data points by aggregating, that is, taking
+    the median value of all values lying within a certain distance (i.e., a
+    cluster).
 
     Parameters
     ----------
 
     coord : array_like
-        Array of shape (n, 2) containing the coordinates of the input data into
-        a 2-dimensional space.
+        Array of shape (n, d) containing the coordinates of the input data into
+        a space of *d* dimensions.
 
     input_array : array_like
-        Array of shape (n) or (n, m), where n is the number of samples and m
-        the number of variables.
-        All values in input_array are required to have finite values.
+        Array of shape (n) or (n, m), where *n* is the number of samples and
+        *m* the number of variables.
+        All values in **input_array** are required to have finite values.
 
     scale : float or array_like
-        The scale parameter in the same units of coord. Data points within this
-        declustering scale are averaged together.
+        The **scale** parameter in the same units of **coord**.
+        It can be a scalar or an array of shape (d).
+        Data points within the declustering **scale** are aggregated.
 
     min_samples : int, optional
         The minimum number of samples for computing the median within a given
@@ -47,15 +49,13 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     -------
 
     out : tuple of ndarrays
-        A two-element tuple (dinput, dcoord) containing the declustered input_array
-        (d, m) and coordinates (d, 2), where d is the new number of samples
-        (d < n).
-
+        A two-element tuple (**out_coord**, **output_array**) containing the
+        declustered coordinates (l, d) and **input_array** (l, m), where *l* is
+        the new number of samples with (l <= n).
     """
 
     coord = np.copy(coord)
     input_array = np.copy(input_array)
-    scale = np.float(scale)
 
     # check inputs
     if np.any(~np.isfinite(input_array)):
@@ -74,15 +74,29 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
 
     if coord.ndim != 2:
         raise ValueError(
-            "coord must have 2 dimensions (n, 2), but it has %i" % coord.ndim
+            "coord must have 2 dimensions (n, d), but it has %i" % coord.ndim
         )
-
     if coord.shape[0] != input_array.shape[0]:
         raise ValueError(
             "the number of samples in the input_array does not match the "
             + "number of coordinates %i!=%i"
             % (input_array.shape[0], coord.shape[0])
         )
+
+    if np.isscalar(scale):
+        scale = np.float(scale)
+    else:
+        scale = np.copy(scale)
+        if scale.ndim != 1:
+            raise ValueError(
+                "scale must have 1 dimension (d), but it has %i" % scale.ndim
+            )
+        if scale.shape[0] != coord.shape[1]:
+            raise ValueError(
+                "scale must have %i elements, but it has %i"
+                % (coord.shape[1], scale.shape[0])
+            )
+        scale = scale[None, :]
 
     # reduce original coordinates
     coord_ = np.floor(coord / scale)
@@ -92,16 +106,14 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
         np.dtype((np.void, coord_.dtype.itemsize * coord_.shape[1]))
     )
     __, idx = np.unique(coordb_, return_index=True)
-    ucoord_ = coord_[idx]
+    # TODO: why not simply using np.unique(coord_, axis=0) ?
 
-    # loop through these unique values and average vectors which belong to
-    # the same declustering grid cell
+    # loop through these unique values and average data points which belong to
+    # the same cluster
     dinput = np.empty(shape=(0, nvar))
-    dcoord = np.empty(shape=(0, 2))
+    dcoord = np.empty(shape=(0, coord.shape[1]))
     for i in range(ucoord_.shape[0]):
-        idx = np.logical_and(
-            coord_[:, 0] == ucoord_[i, 0], coord_[:, 1] == ucoord_[i, 1]
-        )
+        idx = np.all(coord_ == ucoord_[i, :], axis=1)
         npoints = np.sum(idx)
         if npoints >= min_samples:
             dinput = np.append(
@@ -131,21 +143,23 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     ----------
 
     input_array : array_like
-        Array of shape (n) or (n, m), where n is the number of samples and m
-        the number of variables. If m > 1, the Mahalanobis distance is used.
-        All values in input_array are required to have finite values.
+        Array of shape (n) or (n, m), where *n* is the number of samples and
+        *m* the number of variables. If *m* > 1, the Mahalanobis distance
+        is used.
+        All values in **input_array** are required to have finite values.
 
     thr : float
         The number of standard deviations from the mean that defines an outlier.
 
     coord : array_like, optional
         Array of shape (n, d) containing the coordinates of the input data into
-        a space of d dimensions. Setting coord requires that k is not None.
+        a space of *d* dimensions.
+        Passing **coord** requires that **k** is not None.
 
     k : int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
         If set to None (the default), it employs all the data points (global
-        detection). Setting k requires that coord is not None.
+        detection). Setting **k** requires that **coord** is not None.
 
     verbose : bool, optional
         Print out information.
@@ -154,8 +168,8 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     -------
 
     out : array_like
-        A boolean array of the same shape as input_array, with True values
-        indicating the outliers detected in input_array.
+        A boolean array of the same shape as **input_array**, with True values
+        indicating the outliers detected in **input_array**.
     """
 
     input_array = np.copy(input_array)
@@ -237,7 +251,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
             if nvar == 1:
 
-                # in terms of velocity
+                # univariate
 
                 thisdata = input_array[i]
                 neighbours = input_array[inds[i, 1:]]
@@ -248,7 +262,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
             else:
 
-                # mahalanobis distance
+                # multivariate (mahalanobis distance)
 
                 thisdata = input_array[i, :]
                 neighbours = input_array[inds[i, 1:], :].copy()
