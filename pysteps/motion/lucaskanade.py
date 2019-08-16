@@ -6,8 +6,10 @@ pysteps.motion.lucaskanade
 The Lucas-Kanade (LK) local feature tracking module.
 
 This module implements the interface to the local `Lucas-Kanade`_ routine
-available in OpenCV_, including the interpolation of the sparse vectors over a
-regular grid.
+available in OpenCV_.
+
+For its dense method, it additionally interpolates the sparse vectors over a
+regular grid to return a motion field.
 
 .. _OpenCV: https://opencv.org/
 
@@ -55,7 +57,8 @@ def dense_lucaskanade(input_images,
                       size_opening=3,
                       decl_scale=10,
                       verbose=False):
-    """Run the Lucas-Kanade optical flow and interpolate the motion vectors.
+    """Run the Lucas-Kanade optical flow routine and interpolate the motion
+    vectors.
 
     .. _OpenCV: https://opencv.org/
 
@@ -65,80 +68,85 @@ def dense_lucaskanade(input_images,
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
 
-    .. _`Shi-Tomasi`:\
-        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
-
     Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical
-    flow method applied in combination to the `Shi-Tomasi`_ corner detection
-    routine. The sparse motion vectors are finally interpolated to return the
-    whole motion field.
+    flow method applied in combination to a feature detection routine.
+
+    The sparse motion vectors are finally interpolated to return the whole
+    motion field.
 
     Parameters
     ----------
 
     input_images : array_like or MaskedArray_
         Array of shape (T, m, n) containing a sequence of T two-dimensional
-        input images of shape (m, n). T = 2 is the minimum required number of
-        images.
-        With T > 2, all the sparse vectors detected are pooled together before
+        input images of shape (m, n). The indexing order in input_images is
+        assumed to be (time, latitude, longitude).
+
+        T = 2 is the minimum required number of images.
+        With T > 2, all the resulting sparse vectors are pooled together for
         the final interpolation on a regular grid.
 
-        In case of an array_like, invalid values (Nans or infs) are masked.
-        The mask in the MaskedArray_ defines a region where velocity vectors are
-        not computed.
+        In case of array_like, invalid values (Nans or infs) are masked,
+        otherwise the mask of the MaskedArray_ is used. Such mask defines a
+        region where features are not detected for the tracking algorithm.
 
     lk_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the `Lucas-Kanade`_
         features tracking algorithm. See the documentation of
-        pysteps.motion.lucaskanade.track_features.
+        :py:func:`pysteps.motion.lucaskanade.track_features`.
 
     fd_method : {"ShiTomasi"}, optional
-      Name of the feature detection method to use. See the documentation
-      of pysteps.utils.interpolate.
+      Name of the feature detection routine. See the available methods in
+      :py:mod:`pysteps.utils.images`.
 
     fd_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the features
         detection algorithm.
-        See the documentation of pysteps.utils.images.corner_detection.
+        See the documentation of :py:mod:`pysteps.utils.images`.
 
     interp_method : {"rbfinterp2d"}, optional
-      Name of the interpolation method to use. See the documentation
-      of pysteps.utils.interpolate.
+      Name of the interpolation method to use. See the available methods in
+      :py:mod:`pysteps.utils.interpolate`.
 
     interp_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the interpolation
-        algorithm. See the documentation of pysteps.utils.interpolate.
+        algorithm. See the documentation of :py:mod:`pysteps.utils.interpolate`.
 
     dense : bool, optional
         If True, it returns the three-dimensional array (2,m,n) containing the
         dense x- and y-components of the motion field.
         If false, it returns the sparse motion vectors as 2-D xy and uv arrays,
-        where xy defines the vector locations, uv defines the x and y direction
+        where xy defines the vector positions, uv defines the x and y direction
         components of the vectors.
 
     nr_std_outlier : int, optional
         Maximum acceptable deviation from the mean in terms of number of
-        standard deviations. Any anomaly larger than this value is flagged as
-        outlier and excluded from the interpolation.
+        standard deviations. Any sparse vector with a deviation larger than
+        this threshold is flagged as outlier and excluded from the
+        interpolation.
+        See the documentation of
+        :py:func:`pysteps.utils.cleansing.detect_outliers`.
 
     k_outlier : int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
-
         If set to None, it employs all the data points (global detection).
+        See the documentation of
+        :py:func:`pysteps.utils.cleansing.detect_outliers`.
 
     size_opening : int, optional
         The size of the structuring element kernel in pixels. This is used to
         perform a binary morphological opening on the input fields in order to
-        filter isolated echoes due to clutter.
-
-        If set to zero, the fitlering is not perfomed.
+        filter isolated echoes due to clutter. If set to zero, the filtering is not perfomed.
+        See the documentation of
+        :py:func:`pysteps.utils.images.morph_opening`.
 
     decl_scale : int, optional
         The scale declustering parameter in pixels used to reduce the number of
         redundant sparse vectors before the interpolation.
         Sparse vectors within this declustering scale are averaged together.
-
         If set to less than 2 pixels, the declustering is not perfomed.
+        See the documentation of
+        :py:func:`pysteps.cleansing.cleansing.decluster`.
 
     verbose : bool, optional
         If set to True, it prints information about the program.
@@ -147,15 +155,18 @@ def dense_lucaskanade(input_images,
     -------
 
     out : array_like or tuple
-        If dense=True (the default), it returns the three-dimensional array
-        (2,m,n) containing the dense x- and y-components of the motion field in
-        units of pixels / timestep as given by the input array input_images.
+        If **dense=True** (the default), it returns the three-dimensional array
+        (2, m, n) containing the dense x- and y-components of the motion field
+        in units of [pixels/timestep] as given by the input array input_images.
+        Return a zero motion field of shape (2, m, n) when no motion is
+        detected.
 
-        If dense=False, it returns a tuple containing the 2-dimensional arrays
-        xy and uv, where x, y define the vector locations, u, v define the x
-        and y direction components of the vectors.
+        If **dense=False**, it returns a tuple containing the 2-dimensional
+        arrays xy and uv, where x, y define the vector locations, u, v define
+        the x and y direction components of the vectors.
+        Return two empty arrays when no motion is detected.
 
-        Return a zero motion field when no motion is detected.
+
 
     See also
     --------
@@ -284,11 +295,15 @@ def track_features(
         verbose=False,
 ):
     """
-    Interface to the OpenCV calcOpticalFlowPyrLK_ Lucas-Kanade features tracking
-    algorithm.
+    Interface to the OpenCV `Lucas-Kanade`_ features tracking algorithm
+    (cv.calcOpticalFlowPyrLK).
+
+    .. _`Lucas-Kanade`:\
+       https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
 
     .. _calcOpticalFlowPyrLK:\
        https://docs.opencv.org/3.4/dc/d6b/group__video__track.html#ga473e4b886d0bcc6b65831eb88ed93323
+
 
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
@@ -309,24 +324,24 @@ def track_features(
         tracking points (corners).
 
     winsize : tuple of int, optional
-        The winSize parameter in calcOpticalFlowPyrLK_.
+        The **winSize** parameter in calcOpticalFlowPyrLK_.
         It represents the size of the search window that it is used at each
         pyramid level.
 
     nr_levels : int, optional
-        The maxLevel parameter in calcOpticalFlowPyrLK_.
+        The **maxLevel** parameter in calcOpticalFlowPyrLK_.
         It represents the 0-based maximal pyramid level number.
 
     criteria : tuple of int, optional
-        The TermCriteria parameter in calcOpticalFlowPyrLK_ ,
-        which specifies the termination criteria of the iterative search 
+        The **TermCriteria** parameter in calcOpticalFlowPyrLK_ ,
+        which specifies the termination criteria of the iterative search
         algorithm.
 
     flags : int, optional
         Operation flags, see documentation calcOpticalFlowPyrLK_.
 
     min_eig_thr : float, optional
-        The minEigThreshold parameter in calcOpticalFlowPyrLK_.
+        The **minEigThreshold** parameter in calcOpticalFlowPyrLK_.
 
     verbose : bool, optional
         Print the number of vectors that have been found.
@@ -345,9 +360,26 @@ def track_features(
     Notes
     -----
 
-    The tracking points can be obtained with the pysteps.utils.images.ShiTomasi_detection
-    routine.
+    The tracking points can be obtained with the
+    :py:func:`pysteps.utils.images.ShiTomasi_detection` routine.
+
+    See also
+    --------
+
+    pysteps.motion.lucaskanade.dense_lucaskanade
+
+    References
+    ----------
+
+    Bouguet,  J.-Y.:  Pyramidal  implementation  of  the  affine  Lucas Kanade
+    feature tracker description of the algorithm, Intel Corp., 5, 4,
+    https://doi.org/10.1109/HPDC.2004.1323531, 2001
+
+    Lucas, B. D. and Kanade, T.: An iterative image registration technique with
+    an application to stereo vision, in: Proceedings of the 1981 DARPA Imaging
+    Understanding Workshop, pp. 121–130, 1981.
     """
+
     if not CV2_IMPORTED:
         raise MissingOptionalDependency(
             "opencv package is required for the calcOpticalFlowPyrLK() "
