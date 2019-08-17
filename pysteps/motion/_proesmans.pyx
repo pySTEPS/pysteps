@@ -127,7 +127,6 @@ cdef _proesmans(float64 [:, :, :] R, float64 [:, :, :, :] V, intp num_iter,
 
                     xd = x + v_avg_1
                     yd = y + v_avg_2
-
                     if xd >= 0 and xd < n - 1 and yd >= 0 and yd < m - 1:
                         It = (_linear_interpolate(R_j_2, xd, yd) - \
                             R_j_1[y, x]) * _INTENSITY_SCALE
@@ -158,7 +157,7 @@ cdef float64 _compute_laplacian(float64 [:, :] gi, float64 [:, :, :] Vi, intp x,
                               gi[y, x+1] + gi[y+1, x]) / 6.0 + \
                               (gi[y-1, x-1] + gi[y-1, x+1] + \
                               gi[y+1, x-1] + gi[y+1, x+1]) / 12.0
-    
+
     if sumWeights > 1e-8:
         v = (gi[y-1, x] * Vi[j, y-1, x] + gi[y, x-1] * Vi[j, y, x-1] + \
                 gi[y, x+1] * Vi[j, y, x+1] + gi[y+1, x] * Vi[j, y+1, x]) / 6.0 + \
@@ -167,9 +166,7 @@ cdef float64 _compute_laplacian(float64 [:, :] gi, float64 [:, :, :] Vi, intp x,
 
         return v / sumWeights
     else:
-        # use the previous value if the weight sum is too small to give accurate
-        # results
-        return Vi[j, y, x]
+        return 0.0
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -226,16 +223,20 @@ cdef void _compute_consistency_maps(float64 [:, :, :, :] V,
 
         if c_count > 0:
             K = 0.9 * c_sum / c_count
+        else:
+            K = 0.0
 
-            if K > 0.0:
-                #for y in prange(m, schedule='guided', nogil=True):
-                for y in range(m):
-                    for x in range(n):
+        #for y in prange(m, schedule='guided', nogil=True):
+        for y in range(m):
+            for x in range(n):
+                if K > 1e-8:
+                    if GAMMA[i, y, x] >= 0.0:
                         g = GAMMA[i, y, x]
-                        if g >= 0.0:
-                            GAMMA[i, y, x] = 1.0 / (1.0 + (g / K) * (g / K))
-                        else:
-                            GAMMA[i, y, x] = 0.0
+                        GAMMA[i, y, x] = 1.0 / (1.0 + (g / K) * (g / K))
+                    else:
+                        GAMMA[i, y, x] = 1.0
+                else:
+                    GAMMA[i, y, x] = 1.0
 
 cdef np.ndarray[float64, ndim=3] _compute_gradients(float64 [:, :]  I):
     # use 3x3 Sobel kernels for computing partial derivatives
