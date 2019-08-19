@@ -76,7 +76,7 @@ def rbfinterp2d(
 
     The coordinates are normalized before computing the Euclidean norms:
 
-        x = (x - min(x)) / max[max(x) - min(x), max(y) - min(y)],
+        x = (x - min(x)) / max[max(x) - min(x), max(y) - min(y)],\n
         y = (y - min(y)) / max[max(x) - min(x), max(y) - min(y)],
 
     where the min and max values are taken as the 2nd and 98th percentiles.

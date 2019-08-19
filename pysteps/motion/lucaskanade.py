@@ -148,7 +148,7 @@ def dense_lucaskanade(input_images,
         Sparse vectors within this declustering scale are averaged together.
         If set to less than 2 pixels, the declustering is not perfomed.
         See the documentation of
-        :py:func:`pysteps.cleansing.cleansing.decluster`.
+        :py:func:`pysteps.utils.cleansing.decluster`.
 
     verbose : bool, optional
         If set to True, print some information about the program.
@@ -157,9 +157,11 @@ def dense_lucaskanade(input_images,
     -------
 
     out : array_like or tuple
-        If **dense=True** (the default), it returns the three-dimensional array
-        (2, m, n) containing the dense x- and y-components of the motion field
-        in units of [pixels/timestep] as given by the input array input_images.
+        If **dense=True** (the default), return the advection field having shape
+        (2, m, n), where out[0, :, :] contains the x-components of the motion
+        vectors and out[1, :, :] contains the y-components.
+        The velocities are in units of pixels / timestep, where timestep is the
+        time difference between the two input images.
         Return a zero motion field of shape (2, m, n) when no motion is
         detected.
 

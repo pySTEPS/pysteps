@@ -97,7 +97,7 @@ plt.show()
 # Sparse Lucas-Kanade
 # -------------------
 #
-# By setting the optional argument 'dense=False' in 'x,y,u,v = LK_optflow(.....)',
+# By setting the optional argument 'dense=False' in 'xy, uv = LK_optflow(.....)',
 # the LK algorithm returns the motion vectors detected by the Lucas-Kanade scheme
 # without interpolating them on the grid.
 # This allows us to better identify the presence of wrongly detected
@@ -138,8 +138,8 @@ plt.show()
 # One way to mitigate this effect of the boundaries is to introduce a slight buffer
 # of the no-data mask so that the algorithm will ignore all the portions of the
 # radar domain that are nearby no-data areas.
-# This is achieved by setting the keyword argument 'buffer_mask = 20' in
-# 'x,y,u,v = LK_optflow(.....)'.
+# This is achieved by passing the keyword argument 'buffer_mask = 10' within the
+# feature detection optional arguments 'fd_kwargs'.
 
 # with buffer
 buffer = 10
