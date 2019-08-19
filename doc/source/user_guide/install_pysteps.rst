@@ -37,12 +37,7 @@ Other optional dependencies include:
 * `h5py <https://www.h5py.org/>`_ (for importing HDF5 data)
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
-* `cython <https://cython.org/>`_ (for compiling the variational echo tracking
-  method)
 
-Note that cython also requires a C compiler.
-See https://cython.readthedocs.io/en/latest/src/quickstart/install.html for
-instructions.
 
 
 Anaconda install (recommended)
@@ -88,7 +83,11 @@ Finally, to install pySTEPS and all its dependencies run::
 Install from source
 -------------------
 
-**IMPORTANT**: installing from source requires numpy to be installed.
+The recommended way to install pysteps from source is using `pip`
+to adhere to the [PEP517 standards](https://www.python.org/dev/peps/pep-0517/).
+Using `pip` instead of `setup.py` guarantees that all the package dependencies
+are properly handled during the installation process.
+
 
 OSX users
 ~~~~~~~~~
@@ -135,54 +134,30 @@ Then, you can continue with the normal installation procedure described next.
 Installation
 ~~~~~~~~~~~~
 
-The installer needs numpy to compile the Cython extensions.
-If numpy is not installed you can install it by running in a terminal::
-
-    pip install numpy
-
 The latest pysteps version in the repository can be installed using pip by
 simply running in a terminal::
 
     pip install git+https://github.com/pySTEPS/pysteps
 
-Or, to install it using setup.py run (global installation)::
+Or, from a local copy of the repo (global installation)::
 
     git clone https://github.com/pySTEPS/pysteps
     cd pysteps
-    python setup.py install
+    pip install .
 
-For `user installation`_::
+The above commands will install the latest version of the **master** branch,
+which is constantly under development.
 
-    python setup.py install --user
+.. _development_mode_install:
 
-.. _user installation: \
-    https://docs.python.org/2/install/#alternate-installation-the-user-scheme
+Development mode
+################
 
-If you want to install the package in a specific directory run::
+The latest version can also be installed in Development Mode, i.e.,
+in such a way that the project appears to be installed,
+but yet is still editable from the source tree::
 
-    python setup.py install --prefix=/path/to/local/dir
-
-Troubleshooting
-~~~~~~~~~~~~~~~
-
-The installation using **setup.py** will try to to install the minimum
-dependencies needed to run the program correctly.
-If you are not using the recommended conda environment (defined in
-environment.yml) or you are working with a minimal python distribution,
-you may get the following error during the installation::
-
-    ModuleNotFoundError: No module named 'Cython'
-
-This means that Cython is not installed, which is needed to build some of the
-dependencies of pySTEPS.
-
-For non-anaconda users, you can install Cython using::
-
-    pip install Cython
-
-Anaconda users can install Cython using::
-
-    conda install cython
+    pip install -e <path to local pysteps repo>
 
 
 Setting up the user-defined configuration file

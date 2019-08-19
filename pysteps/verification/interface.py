@@ -53,7 +53,9 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  SEDI      | symmetric extremal dependency index                    |
         +------------+--------------------------------------------------------+
-        |  beta      | linear regression slope (conditional bias)             |
+        |  beta1     | linear regression slope (type 1 conditional bias)      |
+        +------------+--------------------------------------------------------+
+        |  beta2     | linear regression slope (type 2 conditional bias)      |
         +------------+--------------------------------------------------------+
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
@@ -66,6 +68,8 @@ def get_method(name, type="deterministic"):
         |  ME        | mean error or bias of residuals                        |
         +------------+--------------------------------------------------------+
         |  MSE       | mean squared error                                     |
+        +------------+--------------------------------------------------------+
+        |  NMSE      | normalized mean squared error                          |
         +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
@@ -118,17 +122,23 @@ def get_method(name, type="deterministic"):
 
     Multiplicative scores can be computed by passing log-tranformed values.
     Note that "scatter" is the only score that will be computed in dB units of
-    the multiplicative error, i.e.: 10log10(pred/obs).
+    the multiplicative error, i.e.: 10*log10(pred/obs).
 
-    The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2)
+    beta1 measures the degree of conditional bias of the observations given the
+    forecasts (type 1).
 
-    The reduction of variance score is computed as RV = 1 - MSE/Var(obs)
+    beta2 measures the degree of conditional bias of the forecasts given the
+    observations (type 2).
+
+    The normalized MSE is computed as NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
+
+    The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2).
+
+    The reduction of variance score is computed as RV = 1 - MSE/Var(obs).
 
     Score names denoted by * can only be computed offline, meaning that the
-    these cannot be update using _init, _accum and _compute methods of this
+    these cannot be computed using _init, _accum and _compute methods of this
     module.
-
-    Score names denoted by * can only be computed offline.
 
     References
     ----------
@@ -136,6 +146,10 @@ def get_method(name, type="deterministic"):
     Germann, U. , Galli, G. , Boscacci, M. and Bolliger, M. (2006), Radar
     precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc.,
     132: 1669-1692. doi:10.1256/qj.05.190
+
+    Potts, J. (2012), Chapter 2 - Basic concepts. Forecast verification: a
+    practitioner’s guide in atmospheric sciences, I. T. Jolliffe, and D. B.
+    Stephenson, Eds., Wiley-Blackwell, 11–29.
 
     """
 
@@ -176,12 +190,15 @@ def get_method(name, type="deterministic"):
         # continuous
         elif name in [
             "beta",
+            "beta1",
+            "beta2",
             "corr_p",
             "corr_s",
+            "drmse",
             "mae",
             "mse",
             "me",
-            "drmse",
+            "nrmse",
             "rmse",
             "rv",
             "scatter",

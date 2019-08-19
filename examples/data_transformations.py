@@ -69,9 +69,8 @@ Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 # Keep only positive rainfall values
 Z = Z[Z > metadata["zerovalue"]].flatten()
 
-# Convert to rain rate using the finnish Z-R relationship
-# Z = 223*R^1.53
-R, metadata = conversion.to_rainrate(Z, metadata, 223.0, 1.53)
+# Convert to rain rate
+R, metadata = conversion.to_rainrate(Z, metadata)
 
 ###############################################################################
 # Test data transformations
@@ -119,7 +118,7 @@ def plot_distribution(data, labels, skw):
 # lambda associated with a value of skewness closest to zero.
 # To visually compare the results, the transformed data are standardized.
 #
-# .. _`Box and Cox (1964)`:https://doi.org/10.1111/j.2517-6161.1964.tb00553.x
+# .. _`Box and Cox (1964)`: https://doi.org/10.1111/j.2517-6161.1964.tb00553.x
 
 data = []
 labels = []
@@ -199,7 +198,7 @@ skw.append(skew(R_))
 # At last, we apply the empirical normal quantile (NQ) transform as described in
 # `Bogner et al (2012)`_.
 #
-# .. _`Bogner et al (2012)`:http://dx.doi.org/10.5194/hess-16-1085-2012
+# .. _`Bogner et al (2012)`: http://dx.doi.org/10.5194/hess-16-1085-2012
 
 R_, _ = transformation.NQ_transform(R, metadata)
 data.append((R_ - np.mean(R_)) / np.std(R_))

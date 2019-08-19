@@ -6,26 +6,122 @@ maintaining an easy to use, modular, free and open source Python
 framework for short-term ensemble prediction systems.
 
 
-Getting started, building, and testing
---------------------------------------
-
 If you haven't already, take a look at the project's
-`README.rst file <README.rst>`_.
-and the `pysteps documentation <https://pysteps.github.io/>`_.
-There you will find all the necessary information to install pysteps.
+`README.rst file <README.rst>`_ and the
+`pysteps documentation <https://pysteps.github.io/>`_.
 
+There are many ways to contribute to pysteps:
+
+- contributing bug reports and feature requests
+- contributing documentation
+- code contributions new features or bug fixes
+- contribute with usage examples
+
+Our main forum for discussion is the project's
+`GitHub issue tracker <https://github.com/python/mypy/issues>`_.
+This is the right place to start a discussion, report a bug, or request a new
+feature.
+
+
+Workflow for code contributions
+-------------------------------
+
+We welcome all kind of contributions, from documentation updates, a bug fix,
+or a new feature.
+If your new feature will take a lot of work,
+we recommend creating an issue with the **enhancement** tag to encourage
+discussions.
+
+We use the usual
+`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_,
+which may be familiar to you if you've contributed to other projects on GitHub.
+
+**First Time Contributors**
+
+If you are interested in helping to improve pysteps,
+the best way to get started is by looking for "Good First Issue" in the
+`issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
+
+In a nutshell, the main steps to follow for contributing to pysteps are:
+
+- Setup the development environment
+- Fork the repository
+- Create a new branch for each contribution
+- Read the Code Style guide
+- Work on your changes
+- Test your changes
+- Push to your fork repository and create a new PR in GitHub.
+
+
+Setup the Development environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The recommended way to setup up the developer environment is the Anaconda
+(commonly referred as Conda).
+Conda quickly installs, runs and updates packages and their dependencies.
+It also allows to easily create, save, load and switch between different
+environments on your local computer.
+
+The developer environment can be created using the
+`environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
+file in the project's root directory running the command::
+
+    conda env create -f environment_dev.yml
+
+This will create the **pysteps_dev** environment that can be activated using::
+
+    conda activate pysteps_dev
+
+Once the environment is created, the package can be installed in development
+mode, in such a way that the project appears to be installed,
+but yet is still editable from the source tree.
+See instructions in the :ref:`Installing pysteps <development_mode_install>`
+section.
+
+
+Fork the repository
+~~~~~~~~~~~~~~~~~~~
+
+Once you have set the development environment, the next step is creating your
+local copy of the repository where you will commit your modifications.
+The steps to follow are:
+
+1. Set up Git in your computer.
+2. Create a GitHub account (if you don't have one).
+3. Fork the repository in your GitHub.
+4. Clone local copy of your fork. For example::
+
+    git clone https://github.com/<your-account>/pysteps.git
+
+Done!, now you have a local copy of pysteps git repository.
+If you are new to GitHub, below you can find a list of useful tutorials:
+
+- http://rogerdudler.github.io/git-guide/index.html
+- https://www.atlassian.com/git/tutorials
+
+
+Create a new branch
+~~~~~~~~~~~~~~~~~~~
+
+As a collaborator, all the new contributions that you want should be done in a
+new branch under your forked repository.
+Working on the master branch is reserved for Core Contributors only.
+Core Contributors are developers that actively work and maintain the repository.
+They are the only ones who accept pull requests and push commits directly to
+the pysteps repository.
+
+For more information on how to create and work with branches, see
+`"Branches in a Nutshell" <https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`_ in the Git documentation
 
 
 Code Style
-----------
+~~~~~~~~~~
 
 Although it is not strictly enforced yet, we strongly suggest to follow the
 `PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`_.
 Two popular modules used to check pep8 compliance are
 `pycodestyle <https://pypi.org/project/pycodestyle/>`_ and
-`pylint <https://pypi.org/project/pylint/>`_.
-
-You can install them using pip::
+`pylint <https://pypi.org/project/pylint/>`_ that can be installed using pip::
 
     pip install pylint
     pip install pycodestyle
@@ -35,40 +131,22 @@ or using anaconda::
     conda install pylint
     conda install pycodestyle
 
-For further instructions please refer to their official documentation.
+For further information instructions, the reader is referred to their official
+documentation.
 
 - https://pycodestyle.readthedocs.io/en/latest/
 - https://www.pylint.org/
 
-Auto-formatters
-~~~~~~~~~~~~~~~
-
-Formatting code to PEP8 style is a time consuming process.
-Instead of manually formatting code before a commit to to PEP8 style, you can use auto-format packages which
-automatically formats Python code to conform to the PEP 8 style guide.
-
-If your development environment does not include auto-formatting capabilities, we recommend using
-`black <https://black.readthedocs.io/en/stable/>`_, which can be installed by any of the following options::
-
-    conda install black
-
-    #For the latest version:
-    conda install -c conda-forge black
-
-    pip install black
-
-Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`_
-for more information.
 
 Coding style summary
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 For quick reference, these are the most important good coding practices
 to follow:
 
 
 - Always use 4 spaces for indentation (don’t use tabs).
-- Write UTF-8 (add # -*- coding: utf-8 -*- at the top of each file).
+- Write UTF-8 (add **# -*- coding: utf-8 -*-** at the top of each file).
 - Max line-length: 79 characters.
 - Always indent wrapped code for readability.
 - Avoid extraneous whitespace.
@@ -219,8 +297,28 @@ For a detailed description of a pythonic code style check these guidelines:
 - `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_
 - `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
 
-Docstrings
-~~~~~~~~~~
+
+**Auto-formatters**
+
+Formatting code to PEP8 style is a time consuming process.
+Instead of manually formatting code before a commit to to PEP8 style, you can use auto-format packages which
+automatically formats Python code to conform to the PEP 8 style guide.
+
+If your development environment does not include auto-formatting capabilities, we recommend using
+`black <https://black.readthedocs.io/en/stable/>`_, which can be installed by any of the following options::
+
+    conda install black
+
+    #For the latest version:
+    conda install -c conda-forge black
+
+    pip install black
+
+Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`_
+for more information.
+
+
+**Docstrings**
 
 Every module, function, or class must have a docstring that describe its
 purpose and how to use it, following the conventions described in the
@@ -262,62 +360,8 @@ Here is an example of a docstring::
         """
 
 
-
-Discussion
-----------
-
-You are welcome to start a discussion in the project's
-`GitHub issue tracker <https://github.com/python/mypy/issues>`_ if you
-have run into behavior in pysteps that you don't understand or
-you have found a bug or would like make a feature request.
-
-
-Contributions workflow
-----------------------
-
-Submitting Changes
+Working on changes
 ~~~~~~~~~~~~~~~~~~
-
-We welcome all kind of contributions, from documentation updates, a bug fix,
-or a new feature. If your new feature will take a lot of work,
-we recommend creating an issue with the **enhancement** tag to encourage
-discussions.
-
-We use the usual
-`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_,
-which may be familiar to you if you've contributed to other projects on GitHub.
-
-
-First Time Contributors
-~~~~~~~~~~~~~~~~~~~~~~~
-
-If you are interested in helping to improve pysteps,
-the best way to get started is by looking for "Good First Issue" in the
-`issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
-
-
-Fork the repository
-~~~~~~~~~~~~~~~~~~~
-
-The first step is creating your local copy of the repository where you will
-commit your modifications. The steps to follow are:
-
-1. Set up Git in your computer.
-2. Create a GitHub account (if you don't have one).
-3. Fork the repository in your GitHub.
-4. Clone local copy of your fork. For example::
-
-    git clone https://github.com/<your-account>/pysteps.git
-
-Done!, now you have a local copy of pysteps git repository.
-If you are new to GitHub, below you can find a list of useful tutorials:
-
-- http://rogerdudler.github.io/git-guide/index.html
-- https://www.atlassian.com/git/tutorials
-
-
-Preparing Changes
-~~~~~~~~~~~~~~~~~
 
 
 **IMPORTANT**
@@ -329,8 +373,7 @@ contributors disagree with what you would like to do or have ideas
 that will help you do it.
 
 
-Collaborators guidelines
-~~~~~~~~~~~~~~~~~~~~~~~~
+**Collaborators guidelines**
 
 As a collaborator, all the new contributions that you want should be done in a
 new branch under your forked repository.
@@ -377,11 +420,34 @@ Under this circumstances, the recommended way to proceed is creating a new PR
 for changes, clearly explaining their goal.
 
 
-Core developer guidelines
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Testing your changes
+~~~~~~~~~~~~~~~~~~~~
 
-Suggested workflow
-^^^^^^^^^^^^^^^^^^
+Before committing changes or creating pull requests, check that the all the
+tests in the pysteps suite pass.
+See the :ref:`testing_pysteps` for the instruction to run the tests.
+
+
+Although it is not strictly needed, we suggest creating minimal tests for
+new contributions to ensure that it achieves the desired behavior.
+Pysteps uses the pytest framework, that it is easy to use and also
+supports complex functional testing for applications and libraries.
+Check the
+`pytests official documentation <https://docs.pytest.org/en/latest/index.html>`_
+for more information.
+
+The tests should be placed under the
+`pysteps.tests <https://github.com/pySTEPS/pysteps/tree/master/pysteps/tests>`_
+module.
+The file should follow the **test_*.py** naming convention and have a
+descriptive name.
+
+A quick way to get familiar with the pytest syntax and the testing procedures
+is checking the python scripts present in the pysteps test module.
+
+
+Core developer guidelines
+-------------------------
 
 Working directly on the master branch is discouraged and is reserved only
 for small changes and updates that do not compromise the stability of the code.
@@ -419,7 +485,7 @@ experimentation in the branch without compromising the stability of the package.
 
 
 Processing pull requests
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _`Squash and merge`: https://github.com/blog/2141-squash-your-commits
 
@@ -454,53 +520,30 @@ Core developers should follow these rules when processing pull requests:
 
 
 Preparing a new release
-^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Core developers should follow the steps to prepare a new release (version):
 
-1. Before creating the actual release in GitHub, be sure that every item in the following checklist was followed:
+1. Before creating the actual release in GitHub, be sure that every item in the
+   following checklist was followed:
 
-    * In the file setup.py, update the **version="X.X.X"** keyword in the setup function.
+    * In the file setup.py, update the **version="X.X.X"** keyword in the setup
+      function.
     * Update the version in PKG-INFO file.
-    * If new dependencies were added to pysteps since the last release, add them to the
-      **environment.yml, requirements.txt**, and **requirements_dev.txt** files.
+    * If new dependencies were added to pysteps since the last release, add
+      them to the **environment.yml, requirements.txt**, and
+      **requirements_dev.txt** files.
 
-#. Create a new release in GitHub following `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
+#. Create a new release in GitHub following
+   `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
 
-#. Generating the source distribution for new pysteps version and upload it to the
-   `Python Package Index <https://pypi.org/>`_ (PyPI).
+#. Generating the source distribution for new pysteps version and upload it to
+   the `Python Package Index <https://pypi.org/>`_ (PyPI).
    See :ref:`pypi_relase` for a detailed description of this process.
 
-#. Update the conda-forge pysteps-feedstock following this guidelines: :ref:`update_conda_feedstock`
-
-
-
-Testing your changes
-~~~~~~~~~~~~~~~~~~~~
-
-Before committing changes or creating pull requests, check that the build-in
-tests passed.
-See the `Test wiki <https://github.com/pySTEPS/pysteps/wiki/Testing-pysteps>`_
-for the instruction to run the tests.
-
-
-Although it is not strictly needed, we suggest creating minimal tests for
-new contributions to ensure that it achieves the desired behavior.
-Pysteps uses the pytest framework, that it is easy to use and also
-supports complex functional testing for applications and libraries.
-Check the
-`pytests official documentation <https://docs.pytest.org/en/latest/index.html>`_
-for more information.
-
-The tests should be placed under the
-`pysteps.tests <https://github.com/pySTEPS/pysteps/tree/master/pysteps/tests>`_
-module.
-The file should follow the **test_*.py** naming convention and have a
-descriptive name.
-
-A quick way to get familiar with the pytest syntax and the testing procedures
-is checking the python scripts present in the pysteps test module.
+#. Update the conda-forge pysteps-feedstock following this guidelines:
+   :ref:`update_conda_feedstock`
 
 
 Credits

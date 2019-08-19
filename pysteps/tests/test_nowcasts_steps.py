@@ -64,11 +64,11 @@ steps_arg_names = (
 )
 
 steps_arg_values = [
-    (5, 6, 2, None, None, 1.51),
-    (5, 6, 2, "incremental", None, 6.38),
-    (5, 6, 2, "sprog", None, 7.35),
-    (5, 6, 2, "obs", None, 7.36),
-    (5, 6, 2, None, "cdf", 0.66),
+    (5, 6, 2, None, None, 1.55),
+    (5, 6, 2, "incremental", None, 6.65),
+    (5, 6, 2, "sprog", None, 7.65),
+    (5, 6, 2, "obs", None, 7.65),
+    (5, 6, 2, None, "cdf", 0.70),
     (5, 6, 2, None, "mean", 1.55),
 ]
 

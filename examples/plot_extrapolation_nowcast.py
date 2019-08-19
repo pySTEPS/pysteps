@@ -50,8 +50,8 @@ fns = io.archive.find_by_date(
 importer = io.get_method(importer_name, "importer")
 Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Convert to rain rate using the finnish Z-R relationship
-R, metadata = conversion.to_rainrate(Z, metadata, 223.0, 1.53)
+# Convert to rain rate
+R, metadata = conversion.to_rainrate(Z, metadata)
 
 # Plot the rainfall field
 plot_precip_field(R[-1, :, :], geodata=metadata)

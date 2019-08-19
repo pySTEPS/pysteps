@@ -1,16 +1,6 @@
+# Additional requeriments related to the documentation build only
 sphinx
 numpydoc
 sphinxcontrib.bibtex
 sphinx_rtd_theme
 sphinx_gallery
-
-numpy
-opencv-python
-pillow
-pyproj
-scipy
-matplotlib
-attrdict
-jsmin
-jsonschema
-netCDF4

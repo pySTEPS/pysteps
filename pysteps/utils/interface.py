@@ -11,11 +11,15 @@ Interface for the utils module.
 """
 
 from . import arrays
+from . import cleansing
 from . import conversion
-from . import transformation
 from . import dimension
 from . import fft
+from . import images
+from . import interpolate
 from . import spectral
+from . import transformation
+
 
 def get_method(name, **kwargs):
     """Return a callable function for the utility method corresponding to the
@@ -23,66 +27,79 @@ def get_method(name, **kwargs):
 
     Arrays methods:
 
-    +-------------------+--------------------------------------------------------+
-    |     Name          |              Description                               |
-    +===================+========================================================+
-    | centred_coord     | compute a 2D coordinate array                          |
-    +-------------------+--------------------------------------------------------+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    | centred_coord     | compute a 2D coordinate array                       |
+    +-------------------+-----------------------------------------------------+
+
+    Cleansing methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    | decluster         | decluster a set of sparse data points               |
+    +-------------------+-----------------------------------------------------+
+    | detect_outliers   | detect outliers in a dataset                        |
+    +-------------------+-----------------------------------------------------+
 
     Conversion methods:
 
-    +-------------------+--------------------------------------------------------+
-    |     Name          |              Description                               |
-    +===================+========================================================+
-    | mm/h or rainrate  | convert to rain rate [mm/h]                            |
-    +-------------------+--------------------------------------------------------+
-    | mm or raindepth   | convert to rain depth [mm]                             |
-    +-------------------+--------------------------------------------------------+
-    | dbz or            | convert to reflectivity [dBZ]                          |
-    | reflectivity      |                                                        |
-    +-------------------+--------------------------------------------------------+
-
-    Transformation methods:
-
-    +-------------------+--------------------------------------------------------+
-    |     Name          |              Description                               |
-    +===================+========================================================+
-    | boxcox or box-cox | one-parameter Box-Cox transform                        |
-    +-------------------+--------------------------------------------------------+
-    | db or decibel     | transform to units of decibel                          |
-    +-------------------+--------------------------------------------------------+
-    | log               | log transform                                          |
-    +-------------------+--------------------------------------------------------+
-    | nqt               | Normal Quantile Transform                              |
-    +-------------------+--------------------------------------------------------+
-    | sqrt              | square-root transform                                  |
-    +-------------------+--------------------------------------------------------+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    | mm/h or rainrate  | convert to rain rate [mm/h]                         |
+    +-------------------+-----------------------------------------------------+
+    | mm or raindepth   | convert to rain depth [mm]                          |
+    +-------------------+-----------------------------------------------------+
+    | dbz or            | convert to reflectivity [dBZ]                       |
+    | reflectivity      |                                                     |
+    +-------------------+-----------------------------------------------------+
 
     Dimension methods:
 
-    +-------------------+--------------------------------------------------------+
-    |     Name          |              Description                               |
-    +===================+========================================================+
-    |  accumulate       | aggregate fields in time                               |
-    +-------------------+--------------------------------------------------------+
-    |  clip             | resize the field domain by geographical coordinates    |
-    +-------------------+--------------------------------------------------------+
-    |  square           | either pad or crop the data to get a square domain     |
-    +-------------------+--------------------------------------------------------+
-    |  upscale          | upscale the field                                      |
-    +-------------------+--------------------------------------------------------+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    |  accumulate       | aggregate fields in time                            |
+    +-------------------+-----------------------------------------------------+
+    |  clip             | resize the field domain by geographical coordinates |
+    +-------------------+-----------------------------------------------------+
+    |  square           | either pad or crop the data to get a square domain  |
+    +-------------------+-----------------------------------------------------+
+    |  upscale          | upscale the field                                   |
+    +-------------------+-----------------------------------------------------+
 
     FFT methods (wrappers to different implementations):
 
-    +-------------------+--------------------------------------------------------+
-    |     Name          |              Description                               |
-    +===================+========================================================+
-    |  numpy            | numpy.fft                                              |
-    +-------------------+--------------------------------------------------------+
-    |  scipy            | scipy.fftpack                                          |
-    +-------------------+--------------------------------------------------------+
-    |  pyfftw           | pyfftw.interfaces.numpy_fft                            |
-    +-------------------+--------------------------------------------------------+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    |  numpy            | numpy.fft                                           |
+    +-------------------+-----------------------------------------------------+
+    |  scipy            | scipy.fftpack                                       |
+    +-------------------+-----------------------------------------------------+
+    |  pyfftw           | pyfftw.interfaces.numpy_fft                         |
+    +-------------------+-----------------------------------------------------+
+
+    Image processing methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    |  ShiTomasi        | Shi-Tomasi corner detection on an image             |
+    +-------------------+-----------------------------------------------------+
+    |  morph_opening    | filter small scale noise on an image                |
+    +-------------------+-----------------------------------------------------+
+
+    Interpolation methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    |  rbfinterp2d      | fast kernel interpolation of a (multivariate) array |
+    |                   | over a 2D grid using a radial basis function        |
+    +-------------------+-----------------------------------------------------+
 
     Additional keyword arguments are passed to the initializer of the FFT
     methods, see utils.fft.
@@ -97,6 +114,22 @@ def get_method(name, **kwargs):
     |  rm_rdisc         | remove the rain / no-rain discontinuity             |
     +-------------------+-----------------------------------------------------+
 
+    Transformation methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    | boxcox or box-cox | one-parameter Box-Cox transform                     |
+    +-------------------+-----------------------------------------------------+
+    | db or decibel     | transform to units of decibel                       |
+    +-------------------+-----------------------------------------------------+
+    | log               | log transform                                       |
+    +-------------------+-----------------------------------------------------+
+    | nqt               | Normal Quantile Transform                           |
+    +-------------------+-----------------------------------------------------+
+    | sqrt              | square-root transform                               |
+    +-------------------+-----------------------------------------------------+
+
     """
 
     if name is None:
@@ -107,30 +140,50 @@ def get_method(name, **kwargs):
     def donothing(R, metadata=None, *args, **kwargs):
         return R.copy(), {} if metadata is None else metadata.copy()
 
-    methods_objects                  = dict()
-    methods_objects["none"]          = donothing
+    methods_objects = dict()
+    methods_objects["none"] = donothing
+
     # arrays methods
     methods_objects["centred_coord"] = arrays.compute_centred_coord_array
+
+    # cleansing methods
+    methods_objects["decluster"] = cleansing.decluster
+    methods_objects["detect_outliers"] = cleansing.detect_outliers
+
     # conversion methods
-    methods_objects["mm/h"]          = conversion.to_rainrate
-    methods_objects["rainrate"]      = conversion.to_rainrate
-    methods_objects["mm"]            = conversion.to_raindepth
-    methods_objects["raindepth"]     = conversion.to_raindepth
-    methods_objects["dbz"]           = conversion.to_reflectivity
-    methods_objects["reflectivity"]  = conversion.to_reflectivity
-    # transformation methods
-    methods_objects["boxcox"]        = transformation.boxcox_transform
-    methods_objects["box-cox"]       = transformation.boxcox_transform
-    methods_objects["db"]            = transformation.dB_transform
-    methods_objects["decibel"]       = transformation.dB_transform
-    methods_objects["log"]           = transformation.boxcox_transform
-    methods_objects["nqt"]           = transformation.NQ_transform
-    methods_objects["sqrt"]          = transformation.sqrt_transform
+    methods_objects["mm/h"] = conversion.to_rainrate
+    methods_objects["rainrate"] = conversion.to_rainrate
+    methods_objects["mm"] = conversion.to_raindepth
+    methods_objects["raindepth"] = conversion.to_raindepth
+    methods_objects["dbz"] = conversion.to_reflectivity
+    methods_objects["reflectivity"] = conversion.to_reflectivity
+
     # dimension methods
-    methods_objects["accumulate"]    = dimension.aggregate_fields_time
-    methods_objects["clip"]          = dimension.clip_domain
-    methods_objects["square"]        = dimension.square_domain
-    methods_objects["upscale"]       = dimension.aggregate_fields_space
+    methods_objects["accumulate"] = dimension.aggregate_fields_time
+    methods_objects["clip"] = dimension.clip_domain
+    methods_objects["square"] = dimension.square_domain
+    methods_objects["upscale"] = dimension.aggregate_fields_space
+
+    # image processing methods
+    methods_objects["shitomasi"] = images.ShiTomasi_detection
+    methods_objects["morph_opening"] = images.morph_opening
+
+    # interpolation methods
+    methods_objects["rbfinterp2d"] = interpolate.rbfinterp2d
+
+    # spectral methods
+    methods_objects["rapsd"] = spectral.rapsd
+    methods_objects["rm_rdisc"] = spectral.remove_rain_norain_discontinuity
+
+    # transformation methods
+    methods_objects["boxcox"] = transformation.boxcox_transform
+    methods_objects["box-cox"] = transformation.boxcox_transform
+    methods_objects["db"] = transformation.dB_transform
+    methods_objects["decibel"] = transformation.dB_transform
+    methods_objects["log"] = transformation.boxcox_transform
+    methods_objects["nqt"] = transformation.NQ_transform
+    methods_objects["sqrt"] = transformation.sqrt_transform
+
     # FFT methods
     if name in ["numpy", "pyfftw", "scipy"]:
         if "shape" not in kwargs.keys():
@@ -140,11 +193,11 @@ def get_method(name, **kwargs):
         try:
             return methods_objects[name]
         except KeyError as e:
-            raise ValueError("Unknown method %s\n" % e +
-                             "Supported methods:%s" % str(methods_objects.keys()))
-    # spectral methods
-    methods_objects["rapsd"]        = spectral.rapsd
-    methods_objects["rm_rdisc"]     = spectral.remove_rain_norain_discontinuity
+            raise ValueError(
+                "Unknown method %s\n" % e
+                + "Supported methods:%s" % str(methods_objects.keys())
+            )
+
 
 def _get_fft_method(name, **kwargs):
     kwargs = kwargs.copy()
@@ -158,6 +211,8 @@ def _get_fft_method(name, **kwargs):
     elif name == "pyfftw":
         return fft.get_pyfftw(shape, **kwargs)
     else:
-        raise ValueError("Unknown method {}\n".format(name)
-                         + "The available methods are:"
-                         + str(["numpy", "pyfftw", "scipy"])) from None
+        raise ValueError(
+            "Unknown method {}\n".format(name)
+            + "The available methods are:"
+            + str(["numpy", "pyfftw", "scipy"])
+        ) from None

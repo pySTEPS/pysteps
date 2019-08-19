@@ -63,7 +63,7 @@ The lines starting with "//" are comments and they are ignored.
                 "path_fmt": "%Y%m%d",
                 "fn_pattern": "T_PAAH21_C_EUOC_%Y%m%d%H%M%S",
                 "fn_ext": "hdf",
-                "importer": "odim_hdf5",
+                "importer": "opera_hdf5",
                 "timestep": 15,
                 "importer_kwargs": {}
             },
@@ -75,7 +75,9 @@ The lines starting with "//" are comments and they are ignored.
                 "importer": "knmi_hdf5",
                 "timestep": 5,
                 "importer_kwargs": {
-                    "accutime": 5
+                    "accutime": 5,
+                    "qty": "ACRR",
+                    "pixelsize": 1000.0
                 }
             }
         }

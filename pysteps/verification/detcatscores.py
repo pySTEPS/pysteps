@@ -340,10 +340,7 @@ def det_cat_fct_compute(contab, scores=""):
             # Equitable Threat Score
             N = H + M + R + F
             HR = ((H + M) * (H + F)) / N
-            if (H + M + F - HR) == 0:
-                ETS = np.nan
-            else:
-                ETS = (H - HR) / (H + M + F - HR)
+            ETS = (H - HR) / (H + M + F - HR)
             result["ETS"] = ETS
         if score_ in ["sedi", ""]:
             # Symmetric extremal dependence index

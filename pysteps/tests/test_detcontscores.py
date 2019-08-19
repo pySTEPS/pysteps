@@ -36,10 +36,14 @@ test_data = [
     (fct_data, obs_data, ('MAE'), None, None, [5.55]),
     # Mean Square Error
     (fct_data, obs_data, ('MSE'), None, None, [64.15]),
+    # Normalized Mean Square Error
+    (fct_data, obs_data, ('NMSE'), None, None, [0.113711]),
     # Root Mean Square Error
     (fct_data, obs_data, ('RMSE'), None, None, [8.009370]),
-    # Beta
-    (fct_data, obs_data, ('beta'), None, None, [0.498200]),
+    # Beta1
+    (fct_data, obs_data, ('beta1'), None, None, [0.498200]),
+    # Beta2
+    (fct_data, obs_data, ('beta2'), None, None, [0.591673]),
     # reduction of variance
     (fct_data, obs_data, ('RV'), None, None, [-0.054622]),
     # debiased RMSE
