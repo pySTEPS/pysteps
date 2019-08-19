@@ -112,7 +112,7 @@ R = np.ma.masked_invalid(R)
 R.data[R.mask] = np.nan
 
 # Use default settings (i.e., no buffering of the radar mask)
-fd_kwargs1 = {"buffer_mask":0, "quality_level_ST":0.1}
+fd_kwargs1 = {"buffer_mask":0}
 xy, uv = LK_optflow(R, dense=False, fd_kwargs=fd_kwargs1)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
@@ -142,7 +142,8 @@ plt.show()
 # 'x,y,u,v = LK_optflow(.....)'.
 
 # with buffer
-fd_kwargs2 = {"buffer_mask":20, "quality_level_ST":0.2}
+buffer = 10
+fd_kwargs2 = {"buffer_mask":buffer}
 xy, uv = LK_optflow(R, dense=False, fd_kwargs=fd_kwargs2)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
@@ -158,7 +159,7 @@ plt.quiver(
 )
 circle = plt.Circle((620, 245), 100, color="b", clip_on=False, fill=False)
 plt.gca().add_artist(circle)
-plt.title("buffer_mask = 20")
+plt.title("buffer_mask = %i" % buffer)
 plt.show()
 
 ################################################################################
@@ -229,8 +230,8 @@ for i in range(12):
     score_2.append(skill(R_f2[i, :, :], R_o[i + 1, :, :])["corr_s"])
 
 x = (np.arange(12) + 1) * 5  # [min]
-plt.plot(x, score_1, label="no mask buffer")
-plt.plot(x, score_2, label="with mask buffer")
+plt.plot(x, score_1, label="buffer_mask = 0")
+plt.plot(x, score_2, label="buffer_mask = %i" % buffer)
 plt.legend()
 plt.xlabel("Lead time [min]")
 plt.ylabel("Corr. coeff. []")
