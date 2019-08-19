@@ -44,7 +44,7 @@ test_metadata = [
     ('zerovalue', 0.0, 1e-10),
     ('threshold', 0.01, 1e-10),
     ('zr_a',200.0,None),
-    ('zr_b',1.5,None)
+    ('zr_b',1.6,None)
 ]
 
 
