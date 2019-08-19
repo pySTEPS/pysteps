@@ -17,6 +17,8 @@ Also, they will fail if any modification on the code decrease the quality of
 the retrieval.
 """
 
+from contextlib import contextmanager
+
 import numpy as np
 import pytest
 from scipy.ndimage import uniform_filter
@@ -25,6 +27,15 @@ import pysteps as stp
 from pysteps import motion
 from pysteps.motion.vet import morph
 from pysteps.tests.helpers import get_precipitation_fields
+
+
+@contextmanager
+def not_raises(_exception):
+    try:
+        yield
+    except _exception:
+        raise pytest.fail("DID RAISE {0}".format(_exception))
+
 
 reference_field = get_precipitation_fields(num_prev_files=0)
 
@@ -226,9 +237,13 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
 
 
 no_precip_args_names = ("optflow_method_name, num_times")
-no_precip_args_values = [('lk', 2), ('lk', 3),
-                         ('vet', 2), ('vet', 3),
-                         ('darts', 9)]
+no_precip_args_values = [('lk', 2),
+                         ('lk', 3),
+                         ('vet', 2),
+                         ('vet', 3),
+                         ('darts', 9),
+                         ('proesmans', 2)
+                         ]
 
 
 @pytest.mark.parametrize(no_precip_args_names, no_precip_args_values)
@@ -256,9 +271,46 @@ def test_no_precipitation(optflow_method_name, num_times):
     assert np.abs(uv_motion).max() < 0.01
 
 
+input_tests_args_names = ("optflow_method_name",
+                          "minimum_input_frames",
+                          "maximum_input_frames")
+input_tests_args_values = [
+    ('lk', 2, np.inf),
+    ('vet', 2, 3),
+    ('darts', 9, 9),
+    ('proesmans', 2, 2),
+]
+
+
+@pytest.mark.parametrize(input_tests_args_names, input_tests_args_values)
+def test_input_shape_checks(optflow_method_name,
+                            minimum_input_frames,
+                            maximum_input_frames):
+    image_size = 100
+    motion_method = motion.get_method(optflow_method_name)
+
+    if maximum_input_frames == np.inf:
+        maximum_input_frames = minimum_input_frames + 10
+
+    with not_raises(Exception):
+        for frames in range(minimum_input_frames, maximum_input_frames + 1):
+            motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
+
+    with pytest.raises(ValueError):
+        motion_method(np.zeros((2,)))
+        motion_method(np.zeros((2, 2)))
+        for frames in range(minimum_input_frames):
+            motion_method(np.zeros((frames, image_size, image_size)),
+                          verbose=False)
+        for frames in range(maximum_input_frames + 1, maximum_input_frames + 4):
+            motion_method(np.zeros((frames, image_size, image_size)),
+                          verbose=False)
+
+
 def test_vet_cost_function():
     """
-    Test that the vet cost_function computation gives always the same result with the same input.
+    Test that the vet cost_function computation gives always the same result
+    with the same input.
 
     Useful to test if the parallelization in VET produce undesired results.
     """
@@ -281,7 +333,6 @@ def test_vet_cost_function():
                                                    1e6,  # smooth_gain
                                                    debug=False)
 
-    print(returned_values)
     tolerance = 1e-12
     errors = np.abs(returned_values - returned_values[0])
     # errors should contain all zeros

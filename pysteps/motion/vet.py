@@ -39,6 +39,7 @@ from numpy.ma.core import MaskedArray
 from scipy.ndimage.interpolation import zoom
 from scipy.optimize import minimize
 
+from pysteps.decorators import check_input_frames
 from pysteps.motion._vet import _warp, _cost_function
 
 
@@ -314,6 +315,7 @@ def vet_cost_function(sector_displacement_1d,
         return residuals + smoothness_penalty
 
 
+@check_input_frames(2, 3)
 def vet(input_images,
         sectors=((32, 16, 4, 2), (32, 16, 4, 2)),
         smooth_gain=1e6,
@@ -488,15 +490,10 @@ def vet(input_images,
 
     debug_print("Running VET algorithm")
 
-    if (input_images.ndim != 3) or (1 < input_images.shape[0] > 3):
-        raise ValueError("input_images dimension mismatch.\n" +
-                         "input_images.shape: " + str(input_images.shape) +
-                         "\n(2, x, y ) or (2, x, y ) dimensions expected")
-
     valid_indexing = ['yx', 'xy', 'ij']
 
     if indexing not in valid_indexing:
-        raise ValueError("Invalid indexing valus: {0}\n".format(indexing)
+        raise ValueError("Invalid indexing values: {0}\n".format(indexing)
                          + "Supported values: {0}".format(str(valid_indexing)))
 
     # Get mask
@@ -570,7 +567,8 @@ def vet(input_images,
 
         if (pad_i != (0, 0)) or (pad_j != (0, 0)):
 
-            _input_images = numpy.pad(input_images, ((0, 0), pad_i, pad_j), 'edge')
+            _input_images = numpy.pad(input_images, ((0, 0), pad_i, pad_j),
+                                      'edge')
 
             _mask = numpy.pad(mask, (pad_i, pad_j),
                               'constant',

@@ -11,18 +11,23 @@ Implementation of the DARTS algorithm.
 """
 
 import sys
-import time
-import numpy as np
-from numpy.linalg import lstsq, svd
-from .. import utils
 
-def DARTS(R, **kwargs):
+import numpy as np
+import time
+from numpy.linalg import lstsq, svd
+
+from pysteps import utils
+from pysteps.decorators import check_input_frames
+
+
+@check_input_frames(just_ndim=True)
+def DARTS(input_images, **kwargs):
     """Compute the advection field from a sequence of input images by using the
     DARTS method. :cite:`RCW2011`
 
     Parameters
     ----------
-    R : array-like
+    input_images : array-like
       Array of shape (T,m,n) containing a sequence of T two-dimensional input
       images of shape (m,n).
 
@@ -51,7 +56,7 @@ def DARTS(R, **kwargs):
     n_threads : int
         Number of threads to use for the FFT computation. Applicable if
         fft_method is 'pyfftw'.
-    print_info : bool
+    verbose : bool
         If True, print information messages.
     lsq_method : {1, 2}
         The method to use for solving the linear equations in the least squares
@@ -76,12 +81,11 @@ def DARTS(R, **kwargs):
     M_y = kwargs.get("M_y", 2)
     fft_method = kwargs.get("fft_method", "numpy")
     output_type = kwargs.get("output_type", "spatial")
-    print_info = kwargs.get("print_info", False)
     lsq_method = kwargs.get("lsq_method", 2)
     verbose = kwargs.get("verbose", True)
 
-    if N_t >= R.shape[0]:
-        raise ValueError("N_t = %d >= %d = T, but N_t < T required" % (N_t, R.shape[0]))
+    if N_t >= input_images.shape[0]:
+        raise ValueError("N_t = %d >= %d = T, but N_t < T required" % (N_t, input_images.shape[0]))
 
     if output_type not in ["spatial", "spectral"]:
         raise ValueError("invalid output_type=%s, must be 'spatial' or 'spectral'" % output_type)
@@ -90,16 +94,16 @@ def DARTS(R, **kwargs):
         print("Computing the motion field with the DARTS method.")
         t0 = time.time()
 
-    R = np.moveaxis(R, (0, 1, 2), (2, 0, 1))
+    input_images = np.moveaxis(input_images, (0, 1, 2), (2, 0, 1))
 
-    fft = utils.get_method(fft_method, shape=R.shape[:2], fftn_shape=R.shape,
+    fft = utils.get_method(fft_method, shape=input_images.shape[:2], fftn_shape=input_images.shape,
                            **kwargs)
 
-    T_x = R.shape[1]
-    T_y = R.shape[0]
-    T_t = R.shape[2]
+    T_x = input_images.shape[1]
+    T_y = input_images.shape[0]
+    T_t = input_images.shape[2]
 
-    if print_info:
+    if verbose:
         print("-----")
         print("DARTS")
         print("-----")
@@ -108,45 +112,43 @@ def DARTS(R, **kwargs):
         sys.stdout.flush()
         starttime = time.time()
 
-    R = fft.fftn(R)
+    input_images = fft.fftn(input_images)
 
-    if print_info:
+    if verbose:
         print("Done in %.2f seconds." % (time.time() - starttime))
 
         print("  Constructing the y-vector..."),
         sys.stdout.flush()
         starttime = time.time()
 
-    m = (2*N_x+1)*(2*N_y+1)*(2*N_t+1)
-    n = (2*M_x+1)*(2*M_y+1)
+    m = (2 * N_x + 1) * (2 * N_y + 1) * (2 * N_t + 1)
+    n = (2 * M_x + 1) * (2 * M_y + 1)
 
     y = np.zeros(m, dtype=complex)
 
-    k_t, k_y, k_x = np.unravel_index(np.arange(m), (2*N_t+1, 2*N_y+1, 2*N_x+1))
+    k_t, k_y, k_x = np.unravel_index(np.arange(m), (2 * N_t + 1, 2 * N_y + 1, 2 * N_x + 1))
 
     for i in range(m):
         k_x_ = k_x[i] - N_x
         k_y_ = k_y[i] - N_y
         k_t_ = k_t[i] - N_t
 
-        R_ = R[k_y_, k_x_, k_t_]
+        y[i] = k_t_ * input_images[k_y_, k_x_, k_t_]
 
-        y[i] = k_t_ * R_
-
-    if print_info:
+    if verbose:
         print("Done in %.2f seconds." % (time.time() - starttime))
 
     A = np.zeros((m, n), dtype=complex)
     B = np.zeros((m, n), dtype=complex)
 
-    if print_info:
+    if verbose:
         print("  Constructing the H-matrix..."),
         sys.stdout.flush()
         starttime = time.time()
 
-    c1 = -1.0*T_t / (T_x * T_y)
+    c1 = -1.0 * T_t / (T_x * T_y)
 
-    kp_y, kp_x = np.unravel_index(np.arange(n), (2*M_y+1, 2*M_x+1))
+    kp_y, kp_x = np.unravel_index(np.arange(n), (2 * M_y + 1, 2 * M_x + 1))
 
     for i in range(m):
         k_x_ = k_x[i] - N_x
@@ -159,7 +161,7 @@ def DARTS(R, **kwargs):
         i_ = k_y_ - kp_y_
         j_ = k_x_ - kp_x_
 
-        R_ = R[i_, j_, k_t_]
+        R_ = input_images[i_, j_, k_t_]
 
         c2 = c1 / T_y * i_
         A[i, :] = c2 * R_
@@ -167,7 +169,7 @@ def DARTS(R, **kwargs):
         c2 = c1 / T_x * j_
         B[i, :] = c2 * R_
 
-    if print_info:
+    if verbose:
         print("Done in %.2f seconds." % (time.time() - starttime))
 
         print("  Solving the linear systems..."),
@@ -179,46 +181,46 @@ def DARTS(R, **kwargs):
     else:
         x = _leastsq(A, B, y)
 
-    if print_info:
+    if verbose:
         print("Done in %.2f seconds." % (time.time() - starttime))
 
-    h, w = 2*M_y+1, 2*M_x+1
+    h, w = 2 * M_y + 1, 2 * M_x + 1
 
     U = np.zeros((h, w), dtype=complex)
     V = np.zeros((h, w), dtype=complex)
 
-    i, j = np.unravel_index(np.arange(h*w), (h, w))
+    i, j = np.unravel_index(np.arange(h * w), (h, w))
 
-    V[i, j] = x[0:h*w]
-    U[i, j] = x[h*w:2*h*w]
+    V[i, j] = x[0:h * w]
+    U[i, j] = x[h * w:2 * h * w]
 
-    k_x, k_y = np.meshgrid(np.arange(-M_x, M_x+1), np.arange(-M_y, M_y+1))
+    k_x, k_y = np.meshgrid(np.arange(-M_x, M_x + 1), np.arange(-M_y, M_y + 1))
 
     if output_type == "spatial":
-        U = np.real(fft.ifft2(_fill(U, R.shape[0], R.shape[1], k_x, k_y)))
-        V = np.real(fft.ifft2(_fill(V, R.shape[0], R.shape[1], k_x, k_y)))
+        U = np.real(fft.ifft2(_fill(U, input_images.shape[0], input_images.shape[1], k_x, k_y)))
+        V = np.real(fft.ifft2(_fill(V, input_images.shape[0], input_images.shape[1], k_x, k_y)))
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
 
     return np.stack([U, V])
 
+
 def _leastsq(A, B, y):
     M = np.hstack([A, B])
     M_ct = M.conjugate().T
     MM = np.dot(M_ct, M)
 
-    M = None
-
     U, s, V = svd(MM, full_matrices=False)
-    MM = None
-    mask = s > 0.01*s[0]
+
+    mask = s > 0.01 * s[0]
     s = 1.0 / s[mask]
 
     MM_inv = np.dot(np.dot(V[:len(s), :].conjugate().T, np.diag(s)),
                     U[:, :len(s)].conjugate().T)
 
     return np.dot(MM_inv, np.dot(M_ct, y))
+
 
 def _fill(X, h, w, k_x, k_y):
     X_f = np.zeros((h, w), dtype=complex)
