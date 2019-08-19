@@ -22,12 +22,12 @@ def rbfinterp2d(
     xgrid,
     ygrid,
     rbfunction="gaussian",
-    epsilon=1,
+    epsilon=5,
     k=50,
     nchunks=5,
 ):
-    """Fast kernel interpolation of a (multivariate) array over a 2D grid using
-    a radial basis function.
+    """Fast 2-D grid interpolation of a sparse (multivariate) array using a
+    radial basis function.
 
     Parameters
     ----------
@@ -37,16 +37,19 @@ def rbfinterp2d(
         a 2-dimensional space.
 
     input_array : array_like
-        Array of shape (n) or (n, m), where *n* is the number of data points and
-        *m* the number of co-located variables.
+        Array of shape (n) or (n, m) containing the values of the data points,
+        where *n* is the number of data points and *m* the number of co-located
+        variables.
         All values in **input_array** are required to have finite values.
 
     xgrid, ygrid : array_like
-        1D arrays representing the coordinates of the target grid.
+        1D arrays representing the coordinates of the 2-D output grid.
 
     rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
-        The name of one of the available radial basis function based on the
-        Euclidian norm. See also the Notes section below.
+        The name of one of the available radial basis function based on a
+        normalized Euclidian norm.
+
+        See also the Notes section below.
 
     epsilon : float, optional
         The shape parameter used to scale the input to the radial kernel.
@@ -70,11 +73,12 @@ def rbfinterp2d(
     Notes
     -----
 
-    The input coordinates are normalized before computing the euclidean norms:
+    The coordinates are normalized before computing the Euclidean norms:
 
-        x = (x - median(x)) / MAD / 1.4826
+        x = (x - min(x)) / max[max(x) - min(x), max(y) - min(y)],
+        y = (y - min(y)) / max[max(x) - min(x), max(y) - min(y)],
 
-    where MAD = median(abs(x - median(x))).
+    where the min and max values are taken as the 2nd and 98th percentiles.
 
     The definitions of the radial basis functions are taken from the following
     wikipedia page: https://en.wikipedia.org/wiki/Radial_basis_function
@@ -122,9 +126,9 @@ def rbfinterp2d(
         )
 
     # normalize coordinates
-    mcoord = np.median(coord, axis=0)
-    madcoord = 1.4826 * np.median(np.abs(coord - mcoord), axis=0)
-    coord = (coord - mcoord) / madcoord
+    qcoord = np.percentile(coord, [2, 98], axis=0)
+    dextent = np.max(np.diff(qcoord, axis=0))
+    coord = ( coord - qcoord[0, :] ) / dextent
 
     rbfunction = rbfunction.lower()
     if rbfunction not in _rbfunctions:
@@ -137,7 +141,8 @@ def rbfinterp2d(
     # generate the target grid
     X, Y = np.meshgrid(xgrid, ygrid)
     grid = np.column_stack((X.ravel(), Y.ravel()))
-    grid = (grid - mcoord) / madcoord
+    # normalize the grid coordinates
+    grid = (grid - qcoord[0, :] ) / dextent
 
     # k-nearest interpolation
     if k is not None and k > 0:
