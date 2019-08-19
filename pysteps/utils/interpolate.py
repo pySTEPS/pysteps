@@ -54,7 +54,8 @@ def rbfinterp2d(
     epsilon : float, optional
         The shape parameter used to scale the input to the radial kernel.
 
-        A larger value for **epsilon** produces a smoother interpolation.
+        A smaller value for **epsilon** produces a smoother interpolation. More
+        details provided in the wikipedia reference page.
 
     k : int or None, optional
         The number of nearest neighbours used to speed-up the interpolation.
@@ -80,8 +81,12 @@ def rbfinterp2d(
 
     where the min and max values are taken as the 2nd and 98th percentiles.
 
-    The definitions of the radial basis functions are taken from the following
-    wikipedia page: https://en.wikipedia.org/wiki/Radial_basis_function
+    References
+    ----------
+
+    Wikipedia contributors, "Radial basis function," Wikipedia, The Free Encyclopedia,
+    https://en.wikipedia.org/w/index.php?title=Radial_basis_function&oldid=906155047
+    (accessed August 19, 2019).
     """
 
     _rbfunctions = [
