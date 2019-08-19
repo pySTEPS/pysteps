@@ -19,6 +19,8 @@ Image processing routines for pysteps.
 import numpy as np
 from numpy.ma.core import MaskedArray
 
+from pysteps.exceptions import MissingOptionalDependency
+
 try:
     import cv2
 
