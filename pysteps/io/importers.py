@@ -1109,9 +1109,9 @@ def import_knmi_hdf5(filename, **kwargs):
 
     # In case reflectivities are imported, the no data value is 255. Values are
     # saved as integers. The reflectivities are not directly saved in dBZ, but
-    # as: dBZ = 0.5 * pixel_value - 31.5
+    # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
     if qty == "DBZH":
-        R = np.where(R_intermediate == 255, np.NaN, R_intermediate * 0.5 - 31.5)
+        R = np.where(R_intermediate == 255, np.NaN, R_intermediate * 0.5 - 32.0)
 
     if R is None:
         raise IOError("requested quantity not found")
