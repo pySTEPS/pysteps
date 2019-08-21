@@ -13,6 +13,9 @@ Skill scores for spatial forecasts.
     intensity_scale_accum
     intensity_scale_compute
     binary_mse
+    binary_mse_init
+    binary_mse_accum
+    binary_mse_compute
     fss
     fss_init
     fss_accum
@@ -39,10 +42,13 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
 
     Parameters
     ----------
+
     X_f : array_like
         Array of shape (m, n) containing the forecast field.
+
     X_o : array_like
         Array of shape (m, n) containing the verification observation field.
+
     name : string
         A string indicating the name of the spatial verification score
         to be used:
@@ -58,8 +64,10 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
     thrs : sequence
         A sequence of intensity thresholds for which to compute the
         verification.
+
     scales : sequence, optional
         A sequence of spatial scales in pixels to be used in the FSS.
+
     wavelet : str, optional
         The name of the wavelet function to use in the BMSE.
         Defaults to the Haar wavelet, as described in Casati et al. 2004.
@@ -67,13 +75,24 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
 
     Returns
     -------
+
     out : array_like
         The two-dimensional array containing the intensity-scale skill scores
         for each spatial scale and intensity threshold.
+
+    References
+    ----------
+
+    :cite:`CRS2004`, :cite:`RL2008`, :cite:`EWWM2013`
+
+    See also
+    --------
+
+    pysteps.verification.spatialscores.binary_mse,
+    pysteps.verification.spatialscores.fss
+
     """
 
-    X_f = X_f.copy()
-    X_o = X_o.copy()
     intscale = intensity_scale_init(name, thrs, scales, wavelet)
     intensity_scale_accum(intscale, X_f, X_o)
     return intensity_scale_compute(intscale)
@@ -84,6 +103,7 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
 
     Parameters
     ----------
+
     name : string
         A string indicating the name of the spatial verification score
         to be used:
@@ -99,8 +119,10 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
     thrs : sequence
         A sequence of intensity thresholds for which to compute the
         verification.
+
     scales : sequence, optional
         A sequence of spatial scales in pixels to be used in the FSS.
+
     wavelet : str, optional
         The name of the wavelet function to use in the BMSE.
         Defaults to the Haar wavelet, as described in
@@ -109,6 +131,7 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
 
     Returns
     -------
+
     out : dict
         The intensity-scale object.
 
@@ -139,10 +162,14 @@ def intensity_scale_accum(intscale, X_f, X_o):
 
     Parameters
     ----------
+
     intscale : dict
-        The intensity-scale object.
+        The intensity-scale object initialized with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_init`.
+
     X_f : array_like
         Array of shape (m, n) containing the forecast field.
+
     X_o : array_like
         Array of shape (m, n) containing the verification observation field.
     """
@@ -211,11 +238,16 @@ def intensity_scale_compute(intscale):
 
     Parameters
     ----------
+
     intscale : dict
-        The intensity-scale object.
+        The intensity-scale object initialized with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_init`
+        and accumulated with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_accum`.
 
     Returns
     -------
+
     out : array_like
         The two-dimensional array containing the intensity-scale skill scores
         for each given spatial scale and intensity threshold.
@@ -224,20 +256,63 @@ def intensity_scale_compute(intscale):
     return intscale["SS"]
 
 
-def binary_mse(X_f, X_o, thr, wavelet="haar"):
-    """Compute an intensity-scale verification as the MSE of the binary error.
+def binary_mse(X_f, X_o, thr, wavelet="haar", return_scales=True):
+    """Compute the MSE of the binary error as a function of spatial scale.
 
     This method uses PyWavelets for decomposing the error field between the
     forecasts and observations into multiple spatial scales.
 
     Parameters
     ----------
+
     X_f : array_like
         Array of shape (m, n) containing the forecast field.
+
     X_o : array_like
         Array of shape (m, n) containing the verification observation field.
+
     thr : sequence
         The intensity threshold for which to compute the verification.
+
+    wavelet : str, optional
+        The name of the wavelet function to use. Defaults to the Haar wavelet,
+        as described in Casati et al. 2004. See the documentation of PyWavelets
+        for a list of available options.
+
+    return_scales : bool, optional
+        Whether to return the spatial scales resulting from the wavelet
+        decomposition.
+
+    Returns
+    -------
+
+    SS : array
+        One-dimensional array containing the binary MSE for each spatial scale.
+
+    scales : list, optional
+        If *return_scales*=True, return the spatial scales in pixels resulting
+        from the wavelet decomposition.
+
+    References
+    ----------
+
+    :cite:`CRS2004`
+    """
+
+    bmse = binary_mse_init(thr, wavelet)
+    binary_mse_accum(bmse, X_f, X_o)
+    return binary_mse_compute(bmse, return_scales)
+
+
+def binary_mse_init(thr, wavelet="haar"):
+    """Initialize a binary MSE (BMSE) verification object.
+
+    Parameters
+    ----------
+
+    thr : float
+        The intensity threshold.
+
     wavelet : str, optional
         The name of the wavelet function to use. Defaults to the Haar wavelet,
         as described in Casati et al. 2004. See the documentation of PyWavelets
@@ -245,14 +320,38 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
 
     Returns
     -------
-    SS : array
-        One-dimensional array containing the binary MSE for each spatial scale.
-    spatial_scale : list
+    bmse : dict
+        The initialized BMSE verification object.
+    """
 
-    References
-    ----------
-    :cite:`CRS2004`
+    bmse = {}
 
+    bmse["thr"] = thr
+    bmse["wavelet"] = wavelet
+    bmse["scales"] = None
+
+    bmse["mse"] = None
+    bmse["eps"] = 0
+    bmse["n"] = 0
+
+    return bmse
+
+
+def binary_mse_accum(bmse, X_f, X_o):
+    """Accumulate forecast-observation pairs to an BMSE object.
+
+    Parameters
+    -----------
+
+    bmse : dict
+        The BMSE object initialized with
+        :py:func:`pysteps.verification.spatialscores.binary_mse_init`.
+
+    X_f : array_like
+        Array of shape (m, n) containing the forecast field.
+
+    X_o : array_like
+        Array of shape (m, n) containing the observation field.
     """
     if not pywt_imported:
         raise MissingOptionalDependency(
@@ -265,6 +364,9 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
         message += " having the same shape"
         raise ValueError(message)
 
+    thr = bmse["thr"]
+    wavelet = bmse["wavelet"]
+
     X_f = X_f.copy()
     X_f[~np.isfinite(X_f)] = thr - 1
     X_o = X_o.copy()
@@ -272,25 +374,71 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
 
     w = pywt.Wavelet(wavelet)
 
-    SS = None
-
     I_f = (X_f >= thr).astype(float)
     I_o = (X_o >= thr).astype(float)
 
     E_decomp = _wavelet_decomp(I_f - I_o, w)
+
     n_scales = len(E_decomp)
+    if bmse["scales"] is None:
+        bmse["scales"] = pow(2, np.arange(n_scales))[::-1]
+        bmse["mse"] = np.zeros(n_scales)
 
-    eps = 1.0 * np.sum((X_o >= thr).astype(int)) / np.size(X_o)
+    # update eps
+    eps = 1.0 * np.sum((X_o >= thr).astype(int)) / X_o.size
+    if np.isfinite(eps):
+        bmse["eps"] = (bmse["eps"] * bmse["n"] + eps) / (bmse["n"] + 1)
 
-    SS = np.empty((n_scales))
+    # update mse
     for j in range(n_scales):
         mse = np.mean(E_decomp[j] ** 2)
-        SS[j] = 1 - mse / (2 * eps * (1 - eps) / n_scales)
-    SS[~np.isfinite(SS)] = np.nan
+        if np.isfinite(mse):
+            bmse["mse"][j] = (bmse["mse"][j] * bmse["n"] + mse) / (
+                bmse["n"] + 1
+            )
 
-    scales = pow(2, np.arange(SS.size))[::-1]
 
-    return SS, scales
+def binary_mse_compute(bmse, return_scales=True):
+    """Compute the BMSE.
+
+    Parameters
+    ----------
+
+    bmse : dict
+        The BMSE object initialized with
+        :py:func:`pysteps.verification.spatialscores.binary_mse_init` and accumulated
+        with :py:func:`pysteps.verification.spatialscores.binary_mse_accum`.
+
+    return_scales : bool, optional
+        Whether to return the spatial scales resulting from the wavelet
+        decomposition.
+
+    Returns
+    -------
+
+    BMSE : array_like
+        One-dimensional array containing the binary MSE for each spatial scale.
+
+    scales : list, optional
+        If *return_scales*=True, return the spatial scales in pixels resulting
+        from the wavelet decomposition.
+    """
+
+    scales = bmse["scales"]
+    n_scales = len(scales)
+    eps = bmse["eps"]
+
+    BMSE = np.zeros(n_scales)
+    for j in range(n_scales):
+        mse = bmse["mse"][j]
+        BMSE[j] = 1 - mse / (2 * eps * (1 - eps) / n_scales)
+
+    BMSE[~np.isfinite(BMSE)] = np.nan
+
+    if return_scales:
+        return BMSE, scales
+    else:
+        return BMSE
 
 
 def fss(X_f, X_o, thr, scale):
@@ -300,12 +448,16 @@ def fss(X_f, X_o, thr, scale):
 
     Parameters
     ----------
+
     X_f : array_like
         Array of shape (m, n) containing the forecast field.
+
     X_o : array_like
         Array of shape (m, n) containing the observation field.
+
     thr : float
         The intensity threshold.
+
     scale : int
         The spatial scale in pixels. In practice, the scale represents the size
         of the moving window that it is used to compute the fraction of pixels
@@ -313,11 +465,13 @@ def fss(X_f, X_o, thr, scale):
 
     Returns
     -------
+
     out : float
         The fractions skill score between 0 and 1.
 
     References
     ----------
+
     :cite:`RL2008`, :cite:`EWWM2013`
 
     """
@@ -332,12 +486,20 @@ def fss_init(thr, scale):
 
     Parameters
     ----------
+
     thr : float
         The intensity threshold.
+
     scale : float
         The spatial scale in pixels. In practice, the scale represents the size
         of the moving window that it is used to compute the fraction of pixels
         above the threshold.
+
+    Returns
+    -------
+
+    fss : dict
+        The initialized FSS verification object.
     """
     fss = {}
 
@@ -355,10 +517,14 @@ def fss_accum(fss, X_f, X_o):
 
     Parameters
     -----------
+
     fss : dict
-        The FSS object initialized with fss_init.
+        The FSS object initialized with
+        :py:func:`pysteps.verification.spatialscores.fss_init`.
+
     X_f : array_like
         Array of shape (m, n) containing the forecast field.
+
     X_o : array_like
         Array of shape (m, n) containing the observation field.
     """
@@ -395,11 +561,15 @@ def fss_compute(fss):
 
     Parameters
     ----------
+
     fss : dict
-       An FSS object initialized with fss_init and accumulated with fss_accum.
+       An FSS object initialized with
+       :py:func:`pysteps.verification.spatialscores.fss_init` and
+       accumulated with :py:func:`pysteps.verification.spatialscores.fss_accum`.
 
     Returns
     -------
+
     out : float
         The computed FSS value.
     """
