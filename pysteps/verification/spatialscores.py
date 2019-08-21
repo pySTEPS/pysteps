@@ -22,6 +22,7 @@ Skill scores for spatial forecasts.
     fss_compute
 """
 
+import collections
 import numpy as np
 from pysteps.exceptions import MissingOptionalDependency
 from scipy.ndimage.filters import uniform_filter
@@ -32,9 +33,7 @@ try:
     pywt_imported = True
 except ImportError:
     pywt_imported = False
-from .. import cascade
-from .. import utils
-from pysteps.noise.fftgenerators import build_2D_tapering_function
+
 
 
 def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
@@ -61,12 +60,12 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
         |  BMSE      | Binary mean squared error                              |
         +------------+--------------------------------------------------------+
 
-    thrs : sequence
-        A sequence of intensity thresholds for which to compute the
+    thrs : float or array_like
+        Scalar or 1-D array of intensity thresholds for which to compute the
         verification.
 
-    scales : sequence, optional
-        A sequence of spatial scales in pixels to be used in the FSS.
+    scales : float or array_like, optional
+        Scalar or 1-D array of spatial scales in pixels, required if *name*="FSS".
 
     wavelet : str, optional
         The name of the wavelet function to use in the BMSE.
@@ -116,18 +115,17 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
         |  BMSE      | Binary mean squared error                              |
         +------------+--------------------------------------------------------+
 
-    thrs : sequence
-        A sequence of intensity thresholds for which to compute the
+    thrs : float or array_like
+        Scalar or 1-D array of intensity thresholds for which to compute the
         verification.
 
-    scales : sequence, optional
-        A sequence of spatial scales in pixels to be used in the FSS.
+    scales : float or array_like, optional
+        Scalar or 1-D array of spatial scales in pixels, required if *name*="FSS".
 
     wavelet : str, optional
-        The name of the wavelet function to use in the BMSE.
-        Defaults to the Haar wavelet, as described in
-        Casati et al. 2004. See the documentation of
-        PyWavelets for a list of available options.
+        The name of the wavelet function, required if *name*="BMSE".
+        Defaults to the Haar wavelet, as described in Casati et al. 2004.
+        See the documentation of PyWavelets for a list of available options.
 
     Returns
     -------
@@ -136,24 +134,55 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
         The intensity-scale object.
 
     """
+
+    if name.lower() == "fss" and scales is None:
+        message = "an array of spatial scales must be provided for the FSS,"
+        message += " but %s was passed" % scales
+        raise ValueError(message)
+
+    if name.lower() == "bmse" and wavelet is None:
+        message = "the name of a wavelet must be provided for the BMSE,"
+        message += " but %s was passed" % wavelet
+        raise ValueError(message)
+
+    # catch scalars when passed as arguments
+    def get_iterable(x):
+        if isinstance(x, collections.Iterable):
+            return np.copy(x)
+        else:
+            return np.copy((x,))
+
     intscale = {}
     intscale["name"] = name
-    intscale["SS"] = None
-    intscale["thrs"] = thrs[:]
-    intscale["scales"] = scales
+    intscale["thrs"] = np.sort(get_iterable(thrs))
+    if scales is not None:
+        intscale["scales"] = np.sort(get_iterable(scales))[::-1]
+    else:
+        intscale["scales"] = scales
     intscale["wavelet"] = wavelet
-    intscale["n"] = None
-    intscale["shape"] = None
+
+    for i, thr in enumerate(intscale["thrs"]):
+
+        if name.lower() == "bmse":
+            intscale[thr] = binary_mse_init(thr, intscale["wavelet"])
+
+        elif name.lower() == "fss":
+            intscale[thr] = {}
+
+            for j, scale in enumerate(intscale["scales"]):
+                intscale[thr][scale] = fss_init(thr, scale)
+
     if name.lower() == "fss":
         intscale["label"] = "Fractions skill score"
         del intscale["wavelet"]
-    if name.lower() == "bmse":
+
+    elif name.lower() == "bmse":
         intscale["label"] = "Binary MSE skill score"
         intscale["scales"] = None
-    if name.lower() == "fss" and scales is None:
-        message = "a sequence of scales must be provided for the FSS,"
-        message += " but %s was passed" % scales
-        raise ValueError(message)
+
+    else:
+        raise ValueError("unknown method %s" % name)
+
     return intscale
 
 
@@ -173,64 +202,22 @@ def intensity_scale_accum(intscale, X_f, X_o):
     X_o : array_like
         Array of shape (m, n) containing the verification observation field.
     """
-    if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
-        message = "X_f and X_o must be two-dimensional arrays"
-        message += " having the same shape, but "
-        message += "X_f = %s and X_o = %s" % (str(X_f.shape), str(X_o.shape))
-        raise ValueError(message)
 
-    if intscale["shape"] is not None and X_f.shape != intscale["shape"]:
-        message = "X_f and X_o shapes do not match the shape"
-        message += " of the intensity-scale object"
-        raise ValueError(message)
-
-    if intscale["shape"] is None:
-        intscale["shape"] = X_f.shape
-
+    name = intscale["name"]
     thrs = intscale["thrs"]
-    thr_min = np.min(thrs)
-    n_thrs = len(thrs)
+    scales = intscale["scales"]
 
-    X_f = X_f.copy()
-    X_f[~np.isfinite(X_f)] = thr_min - 1
-    X_o = X_o.copy()
-    X_o[~np.isfinite(X_o)] = thr_min - 1
+    for i, thr in enumerate(thrs):
 
-    if intscale["name"].lower() == "bmse":
-        SS = None
-        n_thrs = len(thrs)
-        for i in range(n_thrs):
-            SS_, scales = binary_mse(X_f, X_o, thrs[i], intscale["wavelet"])
-            if SS is None:
-                SS = np.empty((SS_.size, n_thrs))
-            SS[:, i] = SS_
-        if intscale["scales"] is None:
-            intscale["scales"] = scales
+        if name.lower() == "bmse":
+            binary_mse_accum(intscale[thr], X_f, X_o)
 
-    elif intscale["name"].lower() == "fss":
-        scales = intscale["scales"]
-        n_scales = len(scales)
-        SS = np.empty((n_scales, n_thrs))
-        for i in range(n_thrs):
-            for j in range(n_scales):
-                SS[j, i] = fss(X_f, X_o, thrs[i], scales[j])
-    else:
-        raise ValueError("unknown method %s" % intscale["name"])
+        elif name.lower() == "fss":
+            for j, scale in enumerate(scales):
+                fss_accum(intscale[thr][scale], X_f, X_o)
 
-    # update scores
-    n = np.isfinite(SS).astype(int)
-    if intscale["SS"] is None:
-        intscale["SS"] = SS
-    else:
-        idx = n > 0
-        intscale["SS"][idx] = np.nansum(
-            (intscale["n"][idx] * intscale["SS"][idx], SS[idx]), axis=0
-        ) / (intscale["n"][idx] + 1)
-
-    # update number of samples
-    if intscale["n"] is None:
-        intscale["n"] = np.zeros(SS.shape, dtype=int)
-    intscale["n"] += n
+    if scales is None:
+        intscale["scales"] = intscale[thrs[0]]["scales"]
 
 
 def intensity_scale_compute(intscale):
@@ -249,11 +236,27 @@ def intensity_scale_compute(intscale):
     -------
 
     out : array_like
-        The two-dimensional array containing the intensity-scale skill scores
-        for each given spatial scale and intensity threshold.
+        The two-dimensional array of shape (j, k) containing the intensity-scale
+        skill scores for **j** spatial scales and **k** intensity thresholds.
 
     """
-    return intscale["SS"]
+
+    name = intscale["name"]
+    thrs = intscale["thrs"]
+    scales = intscale["scales"]
+
+    SS = np.zeros((scales.size, thrs.size))
+
+    for i, thr in enumerate(thrs):
+
+            if name.lower() == "bmse":
+                SS[:, i] = binary_mse_compute(intscale[thr], False)
+
+            elif name.lower() == "fss":
+                for j, scale in enumerate(scales):
+                    SS[j, i] = fss_compute(intscale[thr][scale])
+
+    return SS
 
 
 def binary_mse(X_f, X_o, thr, wavelet="haar", return_scales=True):
