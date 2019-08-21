@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import datetime as dt
-import pytest
 import numpy as np
-from pysteps.utils import arrays, conversion, dimension, transformation
+import pytest
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+
+from pysteps.utils import arrays, conversion, dimension, transformation
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # arrays

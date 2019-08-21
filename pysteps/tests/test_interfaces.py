@@ -44,7 +44,6 @@ def test_extrapolation_interface():
 
     from pysteps.extrapolation.interface import eulerian_persistence as eulerian
     from pysteps.extrapolation.interface import _do_nothing as do_nothing
-    from pysteps.extrapolation.interface import _return_none
 
     method_getter = extrapolation.interface.get_method
 

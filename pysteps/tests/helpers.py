@@ -13,9 +13,11 @@ import pysteps as stp
 from pysteps import io, rcparams
 
 
-def get_precipitation_fields(num_prev_files=0):
+def get_precipitation_fields(num_prev_files=0,
+                             num_next_files=0,
+                             return_raw=False):
     """Get a precipitation field from the archive to be used as reference."""
-
+    pytest.importorskip('PIL')
     # Selected case
     date = datetime.strptime("201505151630", "%Y%m%d%H%M")
     data_source = rcparams.data_sources["mch"]
@@ -29,14 +31,16 @@ def get_precipitation_fields(num_prev_files=0):
 
     # Find the input files from the archive
     fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext,
-                                  timestep=5, num_prev_files=num_prev_files)
+                                  timestep=5, num_prev_files=num_prev_files,
+                                  num_next_files=num_next_files)
 
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
-    reference_field, quality, metadata = io.read_timeseries(fns, importer,
-                                                            **importer_kwargs)
+    reference_field, __, metadata = io.read_timeseries(fns, importer,
+                                                       **importer_kwargs)
 
-    del quality  # Not used
+    if return_raw:
+        return reference_field
 
     if num_prev_files == 0:
         reference_field = np.squeeze(reference_field)  # Remove time dimension

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-from pysteps.postprocessing.ensemblestats import mean
-from pysteps.postprocessing.ensemblestats import excprob
+import pytest
 from numpy.testing import assert_array_almost_equal
+
+from pysteps.postprocessing.ensemblestats import excprob
+from pysteps.postprocessing.ensemblestats import mean
 
 # CREATE DATASETS TO TEST
 
@@ -27,7 +28,7 @@ test_data = [
     (b, False, 3.0, a2),
     (b, True, 3.0, a2),
     (b1, True, 3.0, a2),
-    ]
+]
 
 
 @pytest.mark.parametrize("X, ignore_nan, X_thr, expected", test_data)
@@ -56,7 +57,7 @@ test_data = [
     (b, 2.0, False, np.array([[0., 0., 1.], [1., 1., 1.], [1., 1., 1.]])),
     (b2, 2.0, False, np.array([[0., 0., 1.], [1., 1., 1.], [1., 1., np.nan]])),
     (b2, 2.0, True, np.array([[0., 0., 1.], [1., 1., 1.], [1., 1., 1.]])),
-    ]
+]
 
 
 @pytest.mark.parametrize("X, X_thr, ignore_nan, expected", test_data)

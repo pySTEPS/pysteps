@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-import pytest
 import numpy as np
+import pytest
+
 from pysteps import io, motion, nowcasts, rcparams, utils, verification
 
 
 def _import_mch_gif(prv, nxt):
-
+    pytest.importorskip('PIL')
     date = datetime.datetime.strptime("201505151630", "%Y%m%d%H%M")
     data_source = rcparams.data_sources["mch"]
 
@@ -75,12 +76,12 @@ steps_arg_values = [
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
 def test_steps(
-    n_ens_members,
-    n_cascade_levels,
-    ar_order,
-    mask_method,
-    probmatching_method,
-    max_crps,
+        n_ens_members,
+        n_cascade_levels,
+        ar_order,
+        mask_method,
+        probmatching_method,
+        max_crps,
 ):
     """Tests STEPS nowcast."""
     # inputs

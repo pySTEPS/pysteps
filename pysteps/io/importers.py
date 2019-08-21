@@ -82,11 +82,11 @@ Available Importers
     import_knmi_hdf5
 """
 
-
 import gzip
-from matplotlib.pyplot import imread
-import numpy as np
 import os
+
+import numpy as np
+from matplotlib.pyplot import imread
 
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
@@ -95,39 +95,44 @@ try:
     import gdalconst
     from osgeo import gdal, osr
 
-    gdal_imported = True
+    GDAL_IMPORTED = True
 except ImportError:
-    gdal_imported = False
+    GDAL_IMPORTED = False
+
 try:
     import h5py
 
-    h5py_imported = True
+    H5PY_IMPORTED = True
 except ImportError:
-    h5py_imported = False
+    H5PY_IMPORTED = False
+
 try:
     import metranet
 
-    metranet_imported = True
+    METRANET_IMPORTED = True
 except ImportError:
-    metranet_imported = False
+    METRANET_IMPORTED = False
+
 try:
     import netCDF4
 
-    netcdf4_imported = True
+    NETCDF4_IMPORTED = True
 except ImportError:
-    netcdf4_imported = False
+    NETCDF4_IMPORTED = False
+
 try:
     import PIL
 
-    pil_imported = True
+    PIL_IMPORTED = True
 except ImportError:
-    pil_imported = False
+    PIL_IMPORTED = False
+
 try:
     import pyproj
 
-    pyproj_imported = True
+    PYPROJ_IMPORTED = True
 except ImportError:
-    pyproj_imported = False
+    PYPROJ_IMPORTED = False
 
 
 def import_bom_rf3(filename, **kwargs):
@@ -147,7 +152,7 @@ def import_bom_rf3(filename, **kwargs):
         from the Bureau RF3 netcdf, the quality field and the metadata. The
         quality field is currently set to None.
     """
-    if not netcdf4_imported:
+    if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import BoM Rainfields3 products "
             "but it is not installed"
@@ -181,7 +186,6 @@ def _import_bom_rf3_data(filename):
 
 
 def _import_bom_rf3_geodata(filename):
-
     geodata = {}
 
     ds_rainfall = netCDF4.Dataset(filename)
@@ -281,7 +285,7 @@ def import_fmi_geotiff(filename, **kwargs):
         A three-element tuple containing the precipitation field, the associated
         quality field and metadata. The quality field is currently set to None.
     """
-    if not gdal_imported:
+    if not GDAL_IMPORTED:
         raise MissingOptionalDependency(
             "gdal package is required to import "
             "FMI's radar reflectivity composite in GeoTIFF format "
@@ -352,7 +356,7 @@ def import_fmi_pgm(filename, **kwargs):
         and the associated quality field and metadata. The quality field is
         currently set to None.
     """
-    if not pyproj_imported:
+    if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
             "pyproj package is required to import "
             "FMI's radar reflectivity composite "
@@ -499,7 +503,7 @@ def import_mch_gif(filename, product, unit, accutime):
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
     """
-    if not pil_imported:
+    if not PIL_IMPORTED:
         raise MissingOptionalDependency(
             "PIL package is required to import "
             "radar reflectivity composite from MeteoSwiss"
@@ -611,7 +615,7 @@ def import_mch_hdf5(filename, **kwargs):
         field is read from the file if it contains a dataset whose quantity
         identifier is 'QIND'.
     """
-    if not h5py_imported:
+    if not H5PY_IMPORTED:
         raise MissingOptionalDependency(
             "h5py package is required to import "
             "radar reflectivity composites using ODIM HDF5 specification "
@@ -759,7 +763,7 @@ def import_mch_metranet(filename, product, unit, accutime):
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
     """
-    if not metranet_imported:
+    if not METRANET_IMPORTED:
         raise MissingOptionalDependency(
             "metranet package needed for importing MeteoSwiss "
             "radar composites but it is not installed"
@@ -849,7 +853,7 @@ def import_opera_hdf5(filename, **kwargs):
         field is read from the file if it contains a dataset whose quantity
         identifier is 'QIND'.
     """
-    if not h5py_imported:
+    if not H5PY_IMPORTED:
         raise MissingOptionalDependency(
             "h5py package is required to import "
             "radar reflectivity composites using ODIM HDF5 specification "
@@ -920,10 +924,10 @@ def import_opera_hdf5(filename, **kwargs):
     UR_lat = where.attrs["UR_lat"]
     UR_lon = where.attrs["UR_lon"]
     if (
-        "LR_lat" in where.attrs.keys()
-        and "LR_lon" in where.attrs.keys()
-        and "UL_lat" in where.attrs.keys()
-        and "UL_lon" in where.attrs.keys()
+            "LR_lat" in where.attrs.keys()
+            and "LR_lon" in where.attrs.keys()
+            and "UL_lat" in where.attrs.keys()
+            and "UL_lon" in where.attrs.keys()
     ):
         LR_lat = float(where.attrs["LR_lat"])
         LR_lon = float(where.attrs["LR_lon"])
@@ -997,7 +1001,6 @@ def import_opera_hdf5(filename, **kwargs):
 
 
 def _read_mch_hdf5_what_group(whatgrp):
-
     qty = whatgrp.attrs["quantity"] if "quantity" in whatgrp.attrs.keys() else "RATE"
     gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
     offset = whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
@@ -1008,7 +1011,6 @@ def _read_mch_hdf5_what_group(whatgrp):
 
 
 def _read_opera_hdf5_what_group(whatgrp):
-
     qty = whatgrp.attrs["quantity"]
     gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
     offset = whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
@@ -1066,7 +1068,7 @@ def import_knmi_hdf5(filename, **kwargs):
 
     # TODO: Add quality field.
 
-    if not h5py_imported:
+    if not H5PY_IMPORTED:
         raise MissingOptionalDependency(
             "h5py package is required to import "
             "KNMI's radar datasets "

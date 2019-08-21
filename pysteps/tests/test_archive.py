@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# Test the io.archive module
-import os
-from datetime import datetime
-
 import pytest
+from datetime import datetime
 
 from pysteps.io.archive import _generate_path
 
