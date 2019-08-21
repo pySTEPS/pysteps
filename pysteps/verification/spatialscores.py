@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.verification.spatialscores
 ==================================
@@ -178,6 +179,7 @@ def intensity_scale_accum(intscale, X_f, X_o):
             SS[:, i] = SS_
         if intscale["scales"] is None:
             intscale["scales"] = scales
+
     elif intscale["name"].lower() == "fss":
         scales = intscale["scales"]
         n_scales = len(scales)
@@ -189,14 +191,19 @@ def intensity_scale_accum(intscale, X_f, X_o):
         raise ValueError("unknown method %s" % intscale["name"])
 
     # update scores
-    if intscale["n"] is None:
-        intscale["n"] = np.ones(SS.shape, dtype=int)
-    intscale["n"] += (~np.isnan(SS)).astype(int)
-
+    n = np.isfinite(SS).astype(int)
     if intscale["SS"] is None:
         intscale["SS"] = SS
     else:
-        intscale["SS"] += np.nansum((SS, -1 * intscale["SS"]), axis=0) / intscale["n"]
+        idx = n > 0
+        intscale["SS"][idx] = np.nansum(
+            (intscale["n"][idx] * intscale["SS"][idx], SS[idx]), axis=0
+        ) / (intscale["n"][idx] + 1)
+
+    # update number of samples
+    if intscale["n"] is None:
+        intscale["n"] = np.zeros(SS.shape, dtype=int)
+    intscale["n"] += n
 
 
 def intensity_scale_compute(intscale):
@@ -250,7 +257,8 @@ def binary_mse(X_f, X_o, thr, wavelet="haar"):
     if not pywt_imported:
         raise MissingOptionalDependency(
             "PyWavelets package is required for the binary MSE spatial "
-            "verification method but it is not installed")
+            "verification method but it is not installed"
+        )
 
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
         message = "X_f and X_o must be two-dimensional arrays"
@@ -318,6 +326,7 @@ def fss(X_f, X_o, thr, scale):
     fss_accum(fss, X_f, X_o)
     return fss_compute(fss)
 
+
 def fss_init(thr, scale):
     """Initialize a fractions skill score (FSS) verification object.
 
@@ -340,9 +349,10 @@ def fss_init(thr, scale):
 
     return fss
 
+
 def fss_accum(fss, X_f, X_o):
     """Accumulate forecast-observation pairs to an FSS object.
-    
+
     Parameters
     -----------
     fss : dict
@@ -375,27 +385,29 @@ def fss_accum(fss, X_f, X_o):
         S_f = I_f
         S_o = I_o
 
-    fss["sum_obs_sq"] += np.nansum(S_o**2)
-    fss["sum_fct_obs"] += np.nansum(S_f*S_o)
-    fss["sum_fct_sq"] += np.nansum(S_f**2)
+    fss["sum_obs_sq"] += np.nansum(S_o ** 2)
+    fss["sum_fct_obs"] += np.nansum(S_f * S_o)
+    fss["sum_fct_sq"] += np.nansum(S_f ** 2)
+
 
 def fss_compute(fss):
     """Compute the FSS.
-    
+
     Parameters
     ----------
     fss : dict
        An FSS object initialized with fss_init and accumulated with fss_accum.
-    
+
     Returns
     -------
     out : float
         The computed FSS value.
     """
-    numer = (fss["sum_fct_sq"] - 2.0*fss["sum_fct_obs"] + fss["sum_obs_sq"])
+    numer = fss["sum_fct_sq"] - 2.0 * fss["sum_fct_obs"] + fss["sum_obs_sq"]
     denom = fss["sum_fct_sq"] + fss["sum_obs_sq"]
 
     return 1.0 - numer / denom
+
 
 def _wavelet_decomp(X, w):
     c = pywt.wavedec2(X, w)
