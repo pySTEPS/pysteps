@@ -418,13 +418,13 @@ def det_cont_fct_merge(err_1, err_2):
 
     err_1 : dict
       A verification error object initialized with
-      pysteps.verification.detcontscores.det_cont_fct_init and populated with
-      pysteps.verification.detcontscores.det_cont_fct_accum.
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
+      populated with :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
 
     err_2 : dict
-      Another contingency table object initialized with
-      pysteps.verification.detcontscores.det_cont_fct_init and populated with
-      pysteps.verification.detcontscores.det_cont_fct_accum.
+      Another verification error object initialized with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
+      populated with :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
 
     Returns
     -------

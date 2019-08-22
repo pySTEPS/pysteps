@@ -231,13 +231,13 @@ def det_cat_fct_merge(contab_1, contab_2):
 
     contab_1 : dict
       A contingency table object initialized with
-      pysteps.verification.detcatscores.det_cat_fct_init and populated with
-      pysteps.verification.detcatscores.det_cat_fct_accum.
+      :py:func:`pysteps.verification.detcatscores.det_cat_fct_init` and populated
+      with :py:func:`pysteps.verification.detcatscores.det_cat_fct_accum`.
 
     contab_2 : dict
       Another contingency table object initialized with
-      pysteps.verification.detcatscores.det_cat_fct_init and populated with
-      pysteps.verification.detcatscores.det_cat_fct_accum.
+      :py:func:`pysteps.verification.detcatscores.det_cat_fct_init` and populated
+      with :py:func:`pysteps.verification.detcatscores.det_cat_fct_accum`.
 
     Returns
     -------
