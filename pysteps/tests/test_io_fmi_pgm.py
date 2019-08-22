@@ -7,6 +7,8 @@ import pytest
 import pysteps
 from pysteps.tests.helpers import smart_assert
 
+pytest.importorskip('pyproj')
+
 
 def test_io_import_fmi_pgm_shape():
     """Test the importer FMI PGM."""

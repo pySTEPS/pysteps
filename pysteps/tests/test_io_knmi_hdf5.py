@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 import pytest
 
 import pysteps
@@ -43,8 +44,8 @@ test_metadata = [
     ('transform', None, None),
     ('zerovalue', 0.0, 1e-10),
     ('threshold', 0.01, 1e-10),
-    ('zr_a',200.0,None),
-    ('zr_b',1.6,None)
+    ('zr_a', 200.0, None),
+    ('zr_b', 1.6, None)
 ]
 
 

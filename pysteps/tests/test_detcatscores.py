@@ -1,25 +1,25 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-from pysteps.verification import det_cat_fct
+import pytest
 from numpy.testing import assert_array_almost_equal
+
+from pysteps.verification import det_cat_fct
 
 # CREATE A LARGE DATASET TO MATCH
 # EXAMPLES IN
 # http://www.cawcr.gov.au/projects/verification/
 
-fct_hits = 1.0*np.ones(82)
-obs_hits = 1.0*np.ones(82)
-fct_fa = 1.0*np.ones(38)
-obs_fa = 1.0*np.zeros(38)
-fct_misses = 1.0*np.zeros(23)
-obs_misses = 1.0*np.ones(23)
-fct_cr = 1.0*np.zeros(222)
-obs_cr = 1.0*np.zeros(222)
+fct_hits = 1.0 * np.ones(82)
+obs_hits = 1.0 * np.ones(82)
+fct_fa = 1.0 * np.ones(38)
+obs_fa = 1.0 * np.zeros(38)
+fct_misses = 1.0 * np.zeros(23)
+obs_misses = 1.0 * np.ones(23)
+fct_cr = 1.0 * np.zeros(222)
+obs_cr = 1.0 * np.zeros(222)
 obs_data = np.concatenate([obs_hits, obs_fa, obs_misses, obs_cr])
 fct_data = np.concatenate([fct_hits, fct_fa, fct_misses, fct_cr])
-
 
 test_data = [
     ([0.], [0.], 0., None, []),
@@ -52,11 +52,11 @@ test_data = [
     (fct_data, obs_data, 0.0, ('MCC'), [0.611707]),
     # F1-score
     (fct_data, obs_data, 0.0, ('F1'), [0.728889]),
-    ]
+]
 
 
 @pytest.mark.parametrize("pred, obs, thr, scores, expected", test_data)
 def test_det_cat_fct(pred, obs, thr, scores, expected):
     """Test the det_cat_fct."""
     assert_array_almost_equal(
-            list(det_cat_fct(pred, obs, thr, scores).values()), expected)
+        list(det_cat_fct(pred, obs, thr, scores).values()), expected)

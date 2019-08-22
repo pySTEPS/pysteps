@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import os
+
+import pytest
+
 import pysteps
 from pysteps.tests.helpers import smart_assert
 
+pytest.importorskip('netCDF4')
 
 def test_io_import_bom_rf3_shape():
     """Test the importer Bom RF3."""
@@ -12,8 +15,8 @@ def test_io_import_bom_rf3_shape():
     rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
     filename = os.path.join(root_path, rel_path,
                             "2_20180616_100000.prcp-cscn.nc")
-    R, _, _ = pysteps.io.import_bom_rf3(filename)
-    assert R.shape == (512, 512)
+    precip, _, _ = pysteps.io.import_bom_rf3(filename)
+    assert precip.shape == (512, 512)
 
 
 expected_proj1 = ('+proj=aea  +lon_0=144.752 +lat_0=-37.852 '

@@ -206,13 +206,13 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
         # is maxiter=100.
         # To increase the stability of the tests to we increase this value to
         # maxiter=150.
-        computed_motion = oflow_method(precip_obs, verbose=False,
+        retrieved_motion = oflow_method(precip_obs, verbose=False,
                                        options=dict(maxiter=150, method='BFGS'))
     elif optflow_method_name == 'proesmans':
-        computed_motion = oflow_method(precip_obs)
+        retrieved_motion = oflow_method(precip_obs)
     else:
 
-        computed_motion = oflow_method(precip_obs, verbose=False)
+        retrieved_motion = oflow_method(precip_obs, verbose=False)
 
     precip_data, _ = stp.utils.dB_transform(precip_obs.max(axis=0),
                                             inverse=True)
@@ -226,7 +226,7 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
     # Relative MSE = < (expected_motion - computed_motion)^2 > / <expected_motion^2 >
     # Relative RMSE = sqrt(Relative MSE)
 
-    mse = ((ideal_motion - computed_motion)[:, precip_mask] ** 2).mean()
+    mse = ((ideal_motion - retrieved_motion)[:, precip_mask] ** 2).mean()
 
     rel_mse = mse / (ideal_motion[:, precip_mask] ** 2).mean()
     rel_rmse = np.sqrt(rel_mse) * 100

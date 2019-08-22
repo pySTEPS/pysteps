@@ -7,14 +7,16 @@ import pytest
 import pysteps
 from pysteps.tests.helpers import smart_assert
 
+pytest.importorskip('PIL')
+
 
 def test_io_import_mch_gif_shape():
     """Test the importer MCH GIF."""
     root_path = pysteps.rcparams.data_sources["mch"]["root_path"]
     filename = os.path.join(root_path, "20170131",
                             "AQC170310945F_00005.801.gif")
-    R, _, metadata = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
-    assert R.shape == (640, 710)
+    precip, _, metadata = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
+    assert precip.shape == (640, 710)
 
 
 expected_proj1 = ("+proj=somerc  +lon_0=7.43958333333333 "
