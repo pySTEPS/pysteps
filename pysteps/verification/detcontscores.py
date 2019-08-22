@@ -10,6 +10,7 @@ Forecast evaluation and skill scores for deterministic continuous forecasts.
     det_cont_fct
     det_cont_fct_init
     det_cont_fct_accum
+    det_cont_fct_merge
     det_cont_fct_compute
 """
 
@@ -269,7 +270,7 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
     err["mpred"] = None
     err["me"] = None
     err["mse"] = None
-    err["mss"] = None # mean square sum, i.e. E[(pred + obs)^2]
+    err["mss"] = None  # mean square sum, i.e. E[(pred + obs)^2]
     err["mae"] = None
     err["n"] = None
 
@@ -407,6 +408,95 @@ def det_cont_fct_accum(err, pred, obs):
 
     # update number of samples
     err["n"] += n
+
+
+def det_cont_fct_merge(err_1, err_2):
+    """Merge two verification error objects.
+
+    Parameters
+    ----------
+
+    err_1 : dict
+      A verification error object initialized with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
+      populated with :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
+
+    err_2 : dict
+      Another verification error object initialized with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
+      populated with :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
+
+    Returns
+    -------
+
+    out : dict
+      The merged verification error object.
+    """
+
+    # checks
+    if err_1["axis"] != err_2["axis"]:
+        raise ValueError(
+            "cannot merge: the axis are not same %s!=%s"
+            % (err_1["axis"], err_2["axis"])
+        )
+    if err_1["conditioning"] != err_2["conditioning"]:
+        raise ValueError(
+            "cannot merge: the conditioning is not same %s!=%s"
+            % (err_1["conditioning"], err_2["conditioning"])
+        )
+    if err_1["thr"] != err_2["thr"]:
+        raise ValueError(
+            "cannot merge: the threshold is not same %s!=%s"
+            % (err_1["thr"], err_2["thr"])
+        )
+    if err_1["cov"] is None or err_2["cov"] is None:
+        raise ValueError("cannot merge: no data found")
+
+    # merge the two verification error objects
+    err = err_1.copy()
+
+    # update variances
+    _parallel_var(
+        err["mobs"],
+        err["n"],
+        err["vobs"],
+        err_2["mobs"],
+        err_2["n"],
+        err_2["vobs"],
+    )
+    _parallel_var(
+        err["mpred"],
+        err["n"],
+        err["vpred"],
+        err_2["mpred"],
+        err_2["n"],
+        err_2["vpred"],
+    )
+
+    # update covariance
+    _parallel_cov(
+        err["cov"],
+        err["mobs"],
+        err["mpred"],
+        err["n"],
+        err_2["cov"],
+        err_2["mobs"],
+        err_2["mpred"],
+        err_2["n"],
+    )
+
+    # update means
+    _parallel_mean(err["mobs"], err["n"], err_2["mobs"], err_2["n"])
+    _parallel_mean(err["mpred"], err["n"], err_2["mpred"], err_2["n"])
+    _parallel_mean(err["me"], err["n"], err_2["me"], err_2["n"])
+    _parallel_mean(err["mse"], err["n"], err_2["mse"], err_2["n"])
+    _parallel_mean(err["mss"], err["n"], err_2["mss"], err_2["n"])
+    _parallel_mean(err["mae"], err["n"], err_2["mae"], err_2["n"])
+
+    # update number of samples
+    err["n"] += err_2["n"]
+
+    return err
 
 
 def det_cont_fct_compute(err, scores=""):
