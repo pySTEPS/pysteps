@@ -10,8 +10,6 @@ It explains how to install and make use of the most important features.
 For detailed reference documentation of the modules and functions available in
 the package see the :ref:`pysteps-reference`.
 
-** Under development **
-
 .. toctree::
     :maxdepth: 1
 
