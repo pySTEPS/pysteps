@@ -144,21 +144,70 @@ needs to be updated by:
 
 #. Checking the dependencies
 
-#. When the package version changes, reset the build number back to 0.
+#. Bumping the build number
 
-The build number is increased when the source code for the package has not changed but you need to make a
-new build. As a rule of thumb, the build number is increased whenever a new package with the same version needs to
-be uploaded to the conda-forge channel.
+   - When the package version changes, reset the build number back to 0.
+   - The build number is increased when the source code for the package has
+     not changed but you need to make a new build.
+   - In case that the recipe must be updated, increase by 1 the
+     **build_number** in the conda recipe in
+     `pysteps-feedstock/recipe/meta.yaml <https://github.com/conda-forge/pysteps-feedstock/blob/master/recipe/meta.yaml>`_.
 
-Recipe fixing
--------------
+     Some examples for needing to increase the build number are:
 
-In case that the recipe must be updated but the source code for the package has not changed the **build_number** in
-the conda recipe in
-`pysteps-feedstock/recipe/meta.yaml <https://github.com/conda-forge/pysteps-feedstock/blob/master/recipe/meta.yaml>`_
-needs to be increased by 1.
+     - updating the pinned dependencies
+     - Fixing wrong dependencies
 
-Some examples for needing to increase the build number are:
+#. Rerendering feedstocks
 
-    * updating the pinned dependencies
-    * Fixing wrong dependencies
+   - Rerendering is conda-forge’s way to update the files common to
+     all feedstocks (e.g. README, CI configuration, pinned dependencies).
+
+   - When to rerender:
+
+     We need to re-render when there are changes the following parts of the
+     feedstock:
+
+     - the platform configuration (skip sections)
+     - the yum_requirements.txt
+     - updates in the build matrix due to new versions of Python, NumPy,
+       PERL, R, etc.
+     - updates in conda-forge pinning that affect the feedstock
+     - build issues that a feedstock configuration update will fix
+
+   - To rerender the feedstock, the first step is to install **conda-smithy**
+     in your root environment::
+
+        conda install -c conda-forge conda-smithy
+
+   - Commit all changes and from the root directory of the feedstock, type::
+
+        conda smithy rerender -c auto
+
+     Optionally one can commit the changes manually.
+     To do this drop *-c auto* from the command.
+
+More information on https://conda-forge.org/docs/maintainer/updating_pkgs.html#dev-rerender-local
+
+
+conda-forge autotick bot
+------------------------
+
+The conda-forge autotick bot is now a central part of the conda-forge
+ecosystem.
+The conda-forge autotick bot was created to track out-of-date feedstocks and
+issue pull requests with updated recipes.
+The bot tracks and updates out-of-date feedstocks in four steps:
+
+- Find the names of all feedstocks on conda-forge.
+- Compute the dependency graph of packages on conda-forge found in step 1.
+- Find the most recent version of each feedstock’s source code.
+- Open a PR into each out-of-date feedstock updating the meta.yaml for the most recent upstream release.
+
+These steps are run automatically every six hours.
+
+Hence, when a new pysteps version is upload to PyPI, this bot will
+automatically update the recipe and submit a PR.
+If the tests in the PR pass, then it can be merger into the
+feedstock's master branch.
+
