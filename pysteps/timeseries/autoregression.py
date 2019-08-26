@@ -158,14 +158,14 @@ def estimate_ar_params_yw(gamma):
 
 
 def iterate_ar_model(X, phi, EPS=None):
-    """Apply an AR(p) model to a time-series of two-dimensional fields.
+    """Apply an AR(p) model to a time series of two-dimensional fields.
 
     Parameters
     ----------
     X : array_like
-      Three-dimensional array of shape (p,w,h) containing a time series of p
-      two-dimensional fields of shape (w,h). The fields are assumed to be in
-      ascending order by time, and the timesteps are assumed to be regular.
+      Three-dimensional array of shape (p,h,w) containing a time series of p
+      two-dimensional fields of shape (h,w). The fields are assumed to be in
+      ascending order by time, and the time intervals are assumed to be regular.
     phi : array_like
       Array of length p+1 specifying the parameters of the AR(p) model. The
       parameters are in ascending order by increasing time lag, and the last
