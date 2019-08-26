@@ -134,8 +134,8 @@ def banddepth(X, thr=None, norm=False):
     ----------
 
     X : array_like
-        Array of shape (k, m, n, ...) representing an ensemble of *k* members
-        (i.e., samples) with shape (m, n, ...).
+        Array of shape (k, m, ...) representing an ensemble of *k* members
+        (i.e., samples) with shape (m, ...).
 
     thr : float
         Optional threshold for excluding pixels that have no samples equal or
