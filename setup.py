@@ -9,7 +9,7 @@ try:
     from Cython.Build import cythonize
 except ImportError:
     raise RuntimeError(
-        "Cython required to pior running the package installation\n"
+        "Cython required for running the package installation\n"
         + "Try installing it with:\n"
         + "$> pip install cython"
     )
@@ -18,7 +18,7 @@ try:
     import numpy
 except ImportError:
     raise RuntimeError(
-        "Numpy required to pior running the package installation\n"
+        "Numpy required for running the package installation\n"
         + "Try installing it with:\n"
         + "$> pip install numpy"
     )
