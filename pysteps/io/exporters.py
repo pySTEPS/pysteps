@@ -86,14 +86,14 @@ import os
 from pysteps.exceptions import MissingOptionalDependency
 try:
     import netCDF4
-    netcdf4_imported = True
+    NETCDF4_IMPORTED = True
 except ImportError:
-    netcdf4_imported = False
+    NETCDF4_IMPORTED = False
 try:
     import pyproj
-    pyproj_imported = True
+    PYPROJ_IMPORTED = True
 except ImportError:
-    pyproj_imported = False
+    PYPROJ_IMPORTED = False
 
 # TODO(exporters): This is a draft version of the kineros exporter.
 # Revise the variable names and
@@ -261,12 +261,12 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         to write datasets into the given file format.
     
     """
-    if not netcdf4_imported:
+    if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required for netcdf "
             "exporters but it is not installed")
 
-    if not pyproj_imported:
+    if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
             "pyproj package is required for netcdf "
             "exporters but it is not installed")
@@ -440,7 +440,7 @@ def export_forecast_dataset(F, exporter):
         +-----------------+---------------------------------------------------+
 
     """
-    if exporter["method"] == "netcdf" and not netcdf4_imported:
+    if exporter["method"] == "netcdf" and not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required for netcdf "
             "exporters but it is not installed")
