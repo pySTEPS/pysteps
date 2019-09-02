@@ -39,8 +39,9 @@ The arguments in the above are defined as follows:
 |               |                   | (height,width) of the forecast grids    |
 +---------------+-------------------+-----------------------------------------+
 | n_ens_members | int               | number of ensemble members in the       |
-|               |                   | forecast. This argument is ignored if   |
-|               |                   | incremental is set to 'member'          |
+|               |                   | forecast                                |
+|               |                   | this argument is ignored if incremental |
+|               |                   | is set to 'member'                      |
 +---------------+-------------------+-----------------------------------------+
 | metadata      | dict              | metadata dictionary containing the      |
 |               |                   | projection,x1,x2,y1,y2 and unit         |
@@ -48,8 +49,7 @@ The arguments in the above are defined as follows:
 |               |                   | documentation of pysteps.io.importers   |
 +---------------+-------------------+-----------------------------------------+
 | incremental   | {None, 'timestep',| Allow incremental writing of datasets   |
-|               | 'member'}         | into the netCDF file                    |
-|               |                   | the available options are:              |
+|               | 'member'}         | the available options are:              |
 |               |                   | 'timestep' = write a forecast or a      |
 |               |                   | forecast ensemble for a given           |
 |               |                   | time step                               |
@@ -59,7 +59,7 @@ The arguments in the above are defined as follows:
 
 The return value is a dictionary containing an exporter object. This can be
 used with :py:func:`pysteps.io.exporters.export_forecast_dataset` to write
-datasets into the given file format.
+datasets in the given file format.
 
 Available Exporters
 -------------------
@@ -224,7 +224,7 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         Name of the output file.
 
     startdate : datetime.datetime
-        Start date of the forecast as datetime object.
+        Start date of the forecast.
 
     timestep : int
         Time step of the forecast (minutes).
