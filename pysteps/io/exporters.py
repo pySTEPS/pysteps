@@ -1,6 +1,6 @@
 """
-pysteps.io.exporter
-===================
+pysteps.io.exporters
+====================
 
 Methods for exporting forecasts of 2d precipitation fields into various file
 formats.
