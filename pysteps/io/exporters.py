@@ -81,8 +81,8 @@ Generic functions
 """
 
 from datetime import datetime
-import numpy as np
 import os
+import numpy as np
 from pysteps.exceptions import MissingOptionalDependency
 try:
     import netCDF4
@@ -449,17 +449,17 @@ def export_forecast_dataset(F, exporter):
         shp = (exporter["num_ens_members"], exporter["num_timesteps"],
                exporter["shape"][0], exporter["shape"][1])
         if F.shape != shp:
-            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape),str(shp)))
+            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
     elif exporter["incremental"] == "timestep":
         shp = (exporter["num_ens_members"], exporter["shape"][0],
                exporter["shape"][1])
         if F.shape != shp:
-            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape),str(shp)))
+            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
     elif exporter["incremental"] == "member":
         shp = (exporter["num_timesteps"], exporter["shape"][0],
                exporter["shape"][1])
         if F.shape != shp:
-            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape),str(shp)))
+            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
 
     if exporter["method"] == "netcdf":
         _export_netcdf(F, exporter)
