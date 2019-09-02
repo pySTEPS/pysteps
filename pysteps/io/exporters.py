@@ -9,7 +9,7 @@ Each exporter method in this module has its own initialization function that
 implements the following interface::
 
   initialize_forecast_exporter_xxx(filename, startdate, timestep,
-                                   num_timesteps, shape, num_ens_members,
+                                   n_timesteps, shape, n_ens_members,
                                    metadata, incremental=None)
 
 where xxx is the name (or abbreviation) of the file format.
