@@ -58,7 +58,7 @@ The arguments in the above are defined as follows:
 +---------------+-------------------+-----------------------------------------+
 
 The return value is a dictionary containing an exporter object. This can be
-used with :py:func:`pysteps.io.exporters.export_forecast_dataset` to write 
+used with :py:func:`pysteps.io.exporters.export_forecast_dataset` to write
 datasets into the given file format.
 
 Available Exporters
@@ -100,42 +100,42 @@ except ImportError:
 # the structure of the file if necessary.
 
 def initialize_forecast_exporter_kineros(filename, startdate, timestep,
-                                        n_timesteps, shape, n_ens_members,
-                                        metadata, incremental=None):
+                                         n_timesteps, shape, n_ens_members,
+                                         metadata, incremental=None):
     """Initialize a KINEROS2 Rainfall .pre file as specified
     in https://www.tucson.ars.ag.gov/kineros/.
 
     Grid points are treated as individual rain gauges and a separate file is
     produced for each ensemble member.
-    
+
     Parameters
     ----------
     filename : str
         Name of the output file.
-        
+
     startdate : datetime.datetime
         Start date of the forecast as datetime object.
-        
+
     timestep : int
         Time step of the forecast (minutes).
-        
+
     n_timesteps : int
-        Number of time steps in the forecast this argument is ignored if         
+        Number of time steps in the forecast this argument is ignored if
         incremental is set to 'timestep'.
-        
+
     shape : tuple of int
-        Two-element tuple defining the shape (height,width) of the forecast 
+        Two-element tuple defining the shape (height,width) of the forecast
         grids.
-        
+
     n_ens_members : int
         Number of ensemble members in the forecast. This argument is ignored if
         incremental is set to 'member'.
-        
+
     metadata: dict
-        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit      
-        attributes described in the documentation of 
+        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
+        attributes described in the documentation of
         :py:mod:`pysteps.io.importers`.
-        
+
     incremental : {None}, optional
         Currently not implemented for this method.
 
@@ -143,9 +143,9 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
     -------
     exporter : dict
         The return value is a dictionary containing an exporter object. This c
-        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset` 
+        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
         to write datasets into the given file format.
-    
+
     """
 
     if incremental is not None:
@@ -217,49 +217,49 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
                                         n_timesteps, shape, n_ens_members,
                                         metadata, incremental=None):
     """Initialize a netCDF forecast exporter.
-    
+
     Parameters
     ----------
     filename : str
         Name of the output file.
-        
+
     startdate : datetime.datetime
         Start date of the forecast as datetime object.
-        
+
     timestep : int
         Time step of the forecast (minutes).
-        
+
     n_timesteps : int
-        Number of time steps in the forecast this argument is ignored if         
+        Number of time steps in the forecast this argument is ignored if
         incremental is set to 'timestep'.
-        
+
     shape : tuple of int
-        Two-element tuple defining the shape (height,width) of the forecast 
+        Two-element tuple defining the shape (height,width) of the forecast
         grids.
-        
+
     n_ens_members : int
         Number of ensemble members in the forecast. This argument is ignored if
         incremental is set to 'member'.
-        
+
     metadata: dict
-        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit      
-        attributes described in the documentation of 
+        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
+        attributes described in the documentation of
         :py:mod:`pysteps.io.importers`.
-        
+
     incremental : {None,'timestep','member'}, optional
         Allow incremental writing of datasets into the netCDF file.\n
-        The available options are: 'timestep' = write a forecast or a forecast 
-        ensemble for  a given time step; 'member' = write a forecast sequence 
-        for a given ensemble member. If set to None, incremental writing is 
+        The available options are: 'timestep' = write a forecast or a forecast
+        ensemble for  a given time step; 'member' = write a forecast sequence
+        for a given ensemble member. If set to None, incremental writing is
         disabled.
 
     Returns
     -------
     exporter : dict
         The return value is a dictionary containing an exporter object. This c
-        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset` 
+        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
         to write datasets into the given file format.
-    
+
     """
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
