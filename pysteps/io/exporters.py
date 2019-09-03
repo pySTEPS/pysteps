@@ -563,7 +563,7 @@ def _export_netcdf(F, exporter):
         var_time[len(var_time)-1] = len(var_time) * exporter["timestep"] * 60
     else:
         var_F[var_F.shape[0], :, :, :] = F
-        var_ens_num = exporter["var_time"]
+        var_ens_num = exporter["var_ens_num"]
         var_ens_num[len(var_ens_num)-1] = len(var_ens_num)
 
 
