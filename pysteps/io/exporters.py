@@ -10,7 +10,7 @@ implements the following interface::
 
   initialize_forecast_exporter_xxx(outfnprefix, startdate, timestep,
                                    n_timesteps, shape, n_ens_members,
-                                   metadata, incremental=None)
+                                   metadata, incremental=None, **kwargs)
 
 where xxx specifies the file format.
 
@@ -58,9 +58,10 @@ table:
 |               |                   | for a given ensemble member             |
 +---------------+-------------------+-----------------------------------------+
 
-The return value is a dictionary containing an exporter object. This can be
-used with :py:func:`pysteps.io.exporters.export_forecast_dataset` to write
-datasets in the given file format.
+Optional exporter-specific arguments are passed with **kwargs. The return value
+is a dictionary containing an exporter object. This can be used with
+:py:func:`pysteps.io.exporters.export_forecast_dataset` to write datasets in
+the given file format.
 
 Available Exporters
 -------------------
