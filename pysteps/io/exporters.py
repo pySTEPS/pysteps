@@ -401,13 +401,14 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         for i in grid_mapping_params.items():
             var_gm.setncattr(i[0], i[1])
 
-    var_ens_num = ncf.createVariable("ens_number", np.int,
-                                     dimensions=("ens_number",)
-                                     )
-    if incremental != "member":
-        var_ens_num[:] = list(range(1, n_ens_members+1))
-    var_ens_num.long_name = "ensemble member"
-    var_ens_num.units = ""
+    if n_ens_members > 1:
+        var_ens_num = ncf.createVariable("ens_number", np.int,
+                                         dimensions=("ens_number",)
+                                         )
+        if incremental != "member":
+            var_ens_num[:] = list(range(1, n_ens_members+1))
+        var_ens_num.long_name = "ensemble member"
+        var_ens_num.units = ""
 
     var_time = ncf.createVariable("time", np.int, dimensions=("time",))
     if incremental != "timestep":
@@ -429,7 +430,8 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
     exporter["method"] = "netcdf"
     exporter["ncfile"] = ncf
     exporter["var_F"] = var_F
-    exporter["var_ens_num"] = var_ens_num
+    if n_ens_members > 1:
+        exporter["var_ens_num"] = var_ens_num
     exporter["var_time"] = var_time
     exporter["var_name"] = var_name
     exporter["startdate"] = startdate
