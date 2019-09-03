@@ -134,7 +134,8 @@ except ImportError:
 
 def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
                                          n_timesteps, shape, metadata,
-                                         n_ens_members=1, incremental=None):
+                                         n_ens_members=1, incremental=None,
+                                         **kwargs):
     """Initialize a KINEROS2 Rainfall .pre file as specified
     in https://www.tucson.ars.ag.gov/kineros/.
 
@@ -248,7 +249,8 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
 
 def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
                                         n_timesteps, shape, metadata,
-                                        n_ens_members=1, incremental=None):
+                                        n_ens_members=1, incremental=None,
+                                        **kwargs):
     """Initialize a netCDF forecast exporter.
 
     Parameters
