@@ -8,24 +8,25 @@ formats.
 Each exporter method in this module has its own initialization function that
 implements the following interface::
 
-  initialize_forecast_exporter_xxx(filename, startdate, timestep,
+  initialize_forecast_exporter_xxx(outfnprefix, startdate, timestep,
                                    n_timesteps, shape, n_ens_members,
                                    metadata, incremental=None)
 
-where xxx is the name (or abbreviation) of the file format.
+where xxx specifies the file format.
 
-This function creates the file and writes the metadata. The datasets are written
-by calling :py:func:`pysteps.io.exporters.export_forecast_dataset`, and
-the file is closed by calling :py:func:`pysteps.io.exporters.close_forecast_file`.
+This function creates the output files and writes the metadata. The datasets
+are written by calling :py:func:`pysteps.io.exporters.export_forecast_dataset`,
+and the files are closed by calling :py:func:`pysteps.io.exporters.close_forecast_files`.
 
-The arguments in the above are defined as follows:
+The arguments of initialize_forecast_exporter_xxx are described in the following
+table:
 
 .. tabularcolumns:: |p{2cm}|p{2cm}|L|
 
 +---------------+-------------------+-----------------------------------------+
 |   Argument    | Type/values       |             Description                 |
 +===============+===================+=========================================+
-| filename      | str               | name of the output file                 |
+| outfnprefix   | str               | prefix of output file names             |
 +---------------+-------------------+-----------------------------------------+
 | startdate     | datetime.datetime | start date of the forecast              |
 +---------------+-------------------+-----------------------------------------+
@@ -469,10 +470,10 @@ def export_forecast_dataset(F, exporter):
         raise ValueError("unknown exporter method %s" % exporter["method"])
 
 
-def close_forecast_file(exporter):
-    """Close the file associated with a forecast exporter.
+def close_forecast_files(exporter):
+    """Close the files associated with a forecast exporter.
 
-    Finish writing forecasts and close the file associated with a forecast
+    Finish writing forecasts and close the output files opened by a forecast
     exporter.
 
     Parameters
