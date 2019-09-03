@@ -131,7 +131,7 @@ except ImportError:
 # Revise the variable names and
 # the structure of the file if necessary.
 
-def initialize_forecast_exporter_kineros(filename, startdate, timestep,
+def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
                                          n_timesteps, shape, metadata,
                                          n_ens_members=1, incremental=None):
     """Initialize a KINEROS2 Rainfall .pre file as specified
@@ -142,8 +142,8 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
 
     Parameters
     ----------
-    filename : str
-        Name of the output file.
+    outfnprefix : str
+        Prefix for output file names.
 
     startdate : datetime.datetime
         Start date of the forecast as datetime object.
@@ -185,7 +185,7 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
 
     exporter = {}
 
-    basefn, extfn = os.path.splitext(filename)
+    basefn, extfn = os.path.splitext(outfnprefix)
     if extfn == "":
         extfn = ".pre"
 
@@ -245,15 +245,15 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
 # Revise the variable names and
 # the structure of the file if necessary.
 
-def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
+def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
                                         n_timesteps, shape, metadata,
                                         n_ens_members=1, incremental=None):
     """Initialize a netCDF forecast exporter.
 
     Parameters
     ----------
-    filename : str
-        Name of the output file.
+    outfnprefix : str
+        Prefix for output file names.
 
     startdate : datetime.datetime
         Start date of the forecast.
@@ -279,7 +279,7 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         incremental is set to 'member'.
 
     incremental : {None,'timestep','member'}, optional
-        Allow incremental writing of datasets into the netCDF file.\n
+        Allow incremental writing of datasets into the netCDF files.\n
         The available options are: 'timestep' = write a forecast or a forecast
         ensemble for  a given time step; 'member' = write a forecast sequence
         for a given ensemble member. If set to None, incremental writing is
@@ -315,7 +315,7 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
 
     exporter = {}
 
-    ncf = netCDF4.Dataset(filename, 'w', format="NETCDF4")
+    ncf = netCDF4.Dataset(outfnprefix, 'w', format="NETCDF4")
 
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
