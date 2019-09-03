@@ -14,9 +14,11 @@ implements the following interface::
 
 where xxx specifies the file format.
 
-This function creates the output files and writes the metadata. The datasets
-are written by calling :py:func:`pysteps.io.exporters.export_forecast_dataset`,
-and the files are closed by calling :py:func:`pysteps.io.exporters.close_forecast_files`.
+This function creates the output files and writes the metadata. See the
+documentation of the initialization methods for the format of the output files
+and their names. The datasets are written by calling
+:py:func:`pysteps.io.exporters.export_forecast_dataset`, and the files are
+closed by calling :py:func:`pysteps.io.exporters.close_forecast_files`.
 
 The arguments of initialize_forecast_exporter_xxx are described in the following
 table:
@@ -69,30 +71,10 @@ table:
 |               |                   | each ensemble member and time step      |
 +---------------+-------------------+-----------------------------------------+
 
-The output file names depend on the outfnprefix and outputfiles arguments as
-follows:
-
-.. tabularcolumns:: |p{2cm}|L|
-
-+--------------------------------------------------------------------------------+
-|  outputfiles     | File name format                                            |
-+================================================================================+
-| 'single'         | outfnprefix.<ext>                                           |
-+--------------------------------------------------------------------------------+
-| 'per_ens_member' | outfnprefix_i.<ext>, where i is the index of the ensemble   |
-|                  | member starting from one                                    |
-+--------------------------------------------------------------------------------+
-| 'per_timestep'   | <outfnprefix>_ts.<ext>, where ts is the forecast time step  |
-|                  | (minutes)                                                   |
-+--------------------------------------------------------------------------------+
-| 'separate'       | <outfnprefix>_i_ts.<ext>, where i is the index of the       |
-|                  | ensemble member and ts is the time step                     |
-+--------------------------------------------------------------------------------+
-
 Optional exporter-specific arguments are passed with **kwargs. The return value
 is a dictionary containing an exporter object. This can be used with
-:py:func:`pysteps.io.exporters.export_forecast_dataset` to write datasets in
-the given file format.
+:py:func:`pysteps.io.exporters.export_forecast_dataset` to write the datasets to
+the output files.
 
 Available Exporters
 -------------------
