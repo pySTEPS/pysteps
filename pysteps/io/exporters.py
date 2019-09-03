@@ -614,3 +614,31 @@ def _convert_proj4_to_grid_mapping(proj4str):
         return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params
+
+def _get_output_file_name(prefix, scheme, ext, num_ens_members, ens_member,
+                          num_timesteps, timestep):
+    if num_ens_members < 10:
+        ens_member_format = "%01d"
+    elif num_ens_members < 100:
+        ens_member_format = "%02d"
+    else:
+        ens_member_format = "%03d"
+
+    if num_timesteps < 10:
+        timestep_format = "%01d"
+    elif num_timesteps < 100:
+        timestep_format = "%02d"
+    else:
+        timestep_format = "%03d"
+
+    if scheme == "single":
+        return "%s.%s" % (prefix, ext)
+    elif scheme == "per_ens_member":
+        return ("%s_" + ens_member_format + ".%s") % (prefix, ens_member, ext)
+    elif scheme == "per_timestep":
+        return ("%s_" + timestep_format + ".%s") % (prefix, timestep, ext)
+    elif scheme == "separate":
+        return ("%s_" + ens_member_format + '_' + timestep_format + ".%s") % \
+               (prefix, ens_member, timestep, ext)
+    else:
+        raise ValueError("unsupported output file name scheme %s" % scheme)
