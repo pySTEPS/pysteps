@@ -84,8 +84,8 @@ follows:
 | 'per_leadtime'   | <outfnprefix>_lt.<ext>, where lt is the lead time           |
 |                  | (minutes)                                                   |
 +--------------------------------------------------------------------------------+
-| 'separate'       | <outfnprefix>_i_lt.<ext>, where lt is the lead time         |
-|                  | (minutes)                                                   |
+| 'separate'       | <outfnprefix>_i_lt.<ext>, where i is the index of the       |
+|                  | ensemble member and lt is the lead time                     |
 +--------------------------------------------------------------------------------+
 
 Optional exporter-specific arguments are passed with **kwargs. The return value
