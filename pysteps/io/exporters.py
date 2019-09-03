@@ -9,8 +9,8 @@ Each exporter method in this module has its own initialization function that
 implements the following interface::
 
   initialize_forecast_exporter_xxx(outfnprefix, startdate, timestep,
-                                   n_timesteps, shape, n_ens_members,
-                                   metadata, incremental=None, **kwargs)
+                                   n_timesteps, shape, metadata, n_ens_members=1,
+                                   incremental=None, **kwargs)
 
 where xxx specifies the file format.
 
@@ -39,15 +39,15 @@ table:
 | shape         | tuple             | two-element tuple defining the shape    |
 |               |                   | (height,width) of the forecast grids    |
 +---------------+-------------------+-----------------------------------------+
-| n_ens_members | int               | number of ensemble members in the       |
-|               |                   | forecast                                |
-|               |                   | this argument is ignored if incremental |
-|               |                   | is set to 'member'                      |
-+---------------+-------------------+-----------------------------------------+
 | metadata      | dict              | metadata dictionary containing the      |
 |               |                   | projection,x1,x2,y1,y2 and unit         |
 |               |                   | attributes described in the             |
 |               |                   | documentation of pysteps.io.importers   |
++---------------+-------------------+-----------------------------------------+
+| n_ens_members | int               | number of ensemble members in the       |
+|               |                   | forecast                                |
+|               |                   | this argument is ignored if incremental |
+|               |                   | is set to 'member'                      |
 +---------------+-------------------+-----------------------------------------+
 | incremental   | {None, 'timestep',| Allow incremental writing of datasets   |
 |               | 'member'}         | the available options are:              |
@@ -132,8 +132,8 @@ except ImportError:
 # the structure of the file if necessary.
 
 def initialize_forecast_exporter_kineros(filename, startdate, timestep,
-                                         n_timesteps, shape, n_ens_members,
-                                         metadata, incremental=None):
+                                         n_timesteps, shape, metadata,
+                                         n_ens_members=1, incremental=None):
     """Initialize a KINEROS2 Rainfall .pre file as specified
     in https://www.tucson.ars.ag.gov/kineros/.
 
@@ -159,14 +159,14 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
         Two-element tuple defining the shape (height,width) of the forecast
         grids.
 
-    n_ens_members : int
-        Number of ensemble members in the forecast. This argument is ignored if
-        incremental is set to 'member'.
-
     metadata: dict
         Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
         attributes described in the documentation of
         :py:mod:`pysteps.io.importers`.
+
+    n_ens_members : int
+        Number of ensemble members in the forecast. This argument is ignored if
+        incremental is set to 'member'.
 
     incremental : {None}, optional
         Currently not implemented for this method.
@@ -246,8 +246,8 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
 # the structure of the file if necessary.
 
 def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
-                                        n_timesteps, shape, n_ens_members,
-                                        metadata, incremental=None):
+                                        n_timesteps, shape, metadata,
+                                        n_ens_members=1, incremental=None):
     """Initialize a netCDF forecast exporter.
 
     Parameters
@@ -269,14 +269,14 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         Two-element tuple defining the shape (height,width) of the forecast
         grids.
 
-    n_ens_members : int
-        Number of ensemble members in the forecast. This argument is ignored if
-        incremental is set to 'member'.
-
     metadata: dict
         Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
         attributes described in the documentation of
         :py:mod:`pysteps.io.importers`.
+
+    n_ens_members : int
+        Number of ensemble members in the forecast. This argument is ignored if
+        incremental is set to 'member'.
 
     incremental : {None,'timestep','member'}, optional
         Allow incremental writing of datasets into the netCDF file.\n
@@ -446,9 +446,10 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
 def export_forecast_dataset(F, exporter):
     """Write a forecast array into a file.
 
-    The written dataset has dimensions
-    (num_ens_members,num_timesteps,shape[0],shape[1]), where shape refers to
-    the shape of the two-dimensional forecast grids. If the exporter was
+    If the exporter was initialized with n_ens_members>1, the written dataset
+    has dimensions (n_ens_members,num_timesteps,shape[0],shape[1]), where shape
+    refers to the shape of the two-dimensional forecast grids. Otherwise, the
+    dimensions are (num_timesteps,shape[0],shape[1]). If the exporter was
     initialized with incremental!=None, the array is appended to the existing
     dataset either along the ensemble member or time axis.
 
@@ -487,7 +488,7 @@ def export_forecast_dataset(F, exporter):
                exporter["shape"][1])
         if F.shape != shp:
             raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
-    elif exporter["incremental"] == "member":
+    elif exporter["incremental"] == "member" or exporter["num_ens_members"] == 1:
         shp = (exporter["num_timesteps"], exporter["shape"][0],
                exporter["shape"][1])
         if F.shape != shp:
