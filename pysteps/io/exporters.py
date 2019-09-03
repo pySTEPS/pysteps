@@ -57,6 +57,36 @@ table:
 |               |                   | 'member' = write a forecast sequence    |
 |               |                   | for a given ensemble member             |
 +---------------+-------------------+-----------------------------------------+
+| outputfiles   | 'single',         | organization of the output files        |
+|               | 'per_ens_member', | 'single' = write the whole forecast     |
+|               | 'per_leadtime'    | into the same file                      |
+|               | 'separate'        | 'per_ens_member' = use one file for     |
+|               |                   | each member of a forecast ensemble      |
+|               |                   | 'per_timestep' = use one file for each  |
+|               |                   | lead time                               |
+|               |                   | 'separate' = use a separate file for    |
+|               |                   | each ensemble member and lead time      |
++---------------+-------------------+-----------------------------------------+
+
+The output file names depend on the outfnprefix and outputfiles arguments as
+follows:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++--------------------------------------------------------------------------------+
+|  outputfiles     | File name format                                            |
++================================================================================+
+| 'single'         | outfnprefix.<ext>                                           |
++--------------------------------------------------------------------------------+
+| 'per_ens_member' | outfnprefix_i.<ext>, where i is the index of the ensemble   |
+|                  | member starting from one                                    |
++--------------------------------------------------------------------------------+
+| 'per_leadtime'   | <outfnprefix>_lt.<ext>, where lt is the lead time           |
+|                  | (minutes)                                                   |
++--------------------------------------------------------------------------------+
+| 'separate'       | <outfnprefix>_i_lt.<ext>, where lt is the lead time         |
+|                  | (minutes)                                                   |
++--------------------------------------------------------------------------------+
 
 Optional exporter-specific arguments are passed with **kwargs. The return value
 is a dictionary containing an exporter object. This can be used with
