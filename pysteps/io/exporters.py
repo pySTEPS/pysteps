@@ -30,7 +30,8 @@ table:
 +---------------+-------------------+-----------------------------------------+
 | startdate     | datetime.datetime | start date of the forecast              |
 +---------------+-------------------+-----------------------------------------+
-| timestep      | int               | time step of the forecast (minutes)     |
+| timestep      | int               | length of the forecast time step        |
+|               |                   | (minutes)                               |
 +---------------+-------------------+-----------------------------------------+
 | n_timesteps   | int               | number of time steps in the forecast    |
 |               |                   | this argument is ignored if             |
