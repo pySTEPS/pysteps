@@ -49,7 +49,7 @@ table:
 |               |                   | this argument is ignored if incremental |
 |               |                   | is set to 'member'                      |
 +---------------+-------------------+-----------------------------------------+
-| incremental   | {None, 'timestep',| Allow incremental writing of datasets   |
+| incremental   | {None, 'timestep',| allow incremental writing of datasets   |
 |               | 'member'}         | the available options are:              |
 |               |                   | 'timestep' = write a forecast or a      |
 |               |                   | forecast ensemble for a given           |
@@ -59,13 +59,13 @@ table:
 +---------------+-------------------+-----------------------------------------+
 | outputfiles   | 'single',         | organization of the output files        |
 |               | 'per_ens_member', | 'single' = write the whole forecast     |
-|               | 'per_leadtime'    | into the same file                      |
+|               | 'per_timestep'    | into the same file                      |
 |               | 'separate'        | 'per_ens_member' = use one file for     |
 |               |                   | each member of a forecast ensemble      |
 |               |                   | 'per_timestep' = use one file for each  |
-|               |                   | lead time                               |
+|               |                   | time step                               |
 |               |                   | 'separate' = use a separate file for    |
-|               |                   | each ensemble member and lead time      |
+|               |                   | each ensemble member and time step      |
 +---------------+-------------------+-----------------------------------------+
 
 The output file names depend on the outfnprefix and outputfiles arguments as
@@ -81,11 +81,11 @@ follows:
 | 'per_ens_member' | outfnprefix_i.<ext>, where i is the index of the ensemble   |
 |                  | member starting from one                                    |
 +--------------------------------------------------------------------------------+
-| 'per_leadtime'   | <outfnprefix>_lt.<ext>, where lt is the lead time           |
+| 'per_timestep'   | <outfnprefix>_ts.<ext>, where ts is the forecast time step  |
 |                  | (minutes)                                                   |
 +--------------------------------------------------------------------------------+
-| 'separate'       | <outfnprefix>_i_lt.<ext>, where i is the index of the       |
-|                  | ensemble member and lt is the lead time                     |
+| 'separate'       | <outfnprefix>_i_ts.<ext>, where i is the index of the       |
+|                  | ensemble member and ts is the time step                     |
 +--------------------------------------------------------------------------------+
 
 Optional exporter-specific arguments are passed with **kwargs. The return value
