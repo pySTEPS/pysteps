@@ -418,9 +418,14 @@ def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
 
-    var_F = ncf.createVariable(var_name, np.float32,
-                               dimensions=("ens_number", "time", "y", "x"),
-                               zlib=True, complevel=9)
+    if n_ens_members > 1:
+        var_F = ncf.createVariable(var_name, np.float32,
+                                   dimensions=("ens_number", "time", "y", "x"),
+                                   zlib=True, complevel=9)
+    else:
+        var_F = ncf.createVariable(var_name, np.float32,
+                                   dimensions=("time", "y", "x"),
+                                   zlib=True, complevel=9)
 
     if var_standard_name is not None:
         var_F.standard_name = var_standard_name
@@ -559,7 +564,10 @@ def _export_netcdf(F, exporter):
     if exporter["incremental"] is None:
         var_F[:] = F
     elif exporter["incremental"] == "timestep":
-        var_F[:, var_F.shape[1], :, :] = F
+        if exporter["num_ens_members"] > 1:
+            var_F[:, var_F.shape[1], :, :] = F
+        else:
+            var_F[var_F.shape[1], :, :] = F
         var_time = exporter["var_time"]
         var_time[len(var_time)-1] = len(var_time) * exporter["timestep"] * 60
     else:
@@ -616,8 +624,8 @@ def _convert_proj4_to_grid_mapping(proj4str):
 
     return grid_mapping_var_name, grid_mapping_name, params
 
-def _get_output_file_name(prefix, scheme, ext, num_ens_members, ens_member,
-                          num_timesteps, timestep):
+def get_output_file_name(prefix, scheme, ext, num_ens_members, ens_member,
+                         num_timesteps, timestep):
     if num_ens_members < 10:
         ens_member_format = "%01d"
     elif num_ens_members < 100:
