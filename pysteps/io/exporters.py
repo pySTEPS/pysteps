@@ -100,6 +100,11 @@ import os
 import numpy as np
 from pysteps.exceptions import MissingOptionalDependency
 try:
+    from osgeo import gdal, osr
+    GDAL_IMPORTED = True
+except ImportError:
+    GDAL_IMPORTED = False
+try:
     import netCDF4
     NETCDF4_IMPORTED = True
 except ImportError:
@@ -109,6 +114,44 @@ try:
     PYPROJ_IMPORTED = True
 except ImportError:
     PYPROJ_IMPORTED = False
+
+def initialize_forecast_exporter_geotiff(outfnprefix, startdate, timestep,
+                                         n_timesteps, shape, metadata,
+                                         n_ens_members=1, incremental=None,
+                                         **kwargs):
+    """"""
+    if not GDAL_IMPORTED:
+        raise MissingOptionalDependency(
+            "gdal package is required for GeoTIFF "
+            "exporters but it is not installed")
+
+    exporter = {}
+    exporter["method"] = "geotiff"
+    exporter["num_timesteps"] = n_timesteps
+    exporter["shape"] = shape
+    exporter["metadata"] = metadata
+    exporter["num_ens_members"] = n_ens_members
+    exporter["incremental"] = incremental
+    exporter["dst"] = []
+
+    driver = gdal.GetDriverByName("GTiff")
+    for i in range(n_timesteps):
+        outfn = _get_geotiff_filename(outfnprefix, startdate, n_timesteps,
+                                      timestep, i)
+        dst = driver.Create(outfn, shape[1], shape[0], 1, gdal.GDT_Float32,
+                            ["COMPRESS=DEFLATE", "PREDICTOR=3"])
+
+        exporter["dst"].append(dst)
+
+        sx = (metadata["x2"] - metadata["x1"]) / shape[1]
+        sy = (metadata["y2"] - metadata["y1"]) / shape[0]
+        dst.SetGeoTransform([metadata["x1"], sx, 0.0, metadata["y2"], 0.0, -sy])
+
+        sr = osr.SpatialReference()
+        sr.ImportFromProj4(metadata["projection"])
+        dst.SetProjection(sr.ExportToWkt())
+
+    return exporter
 
 # TODO(exporters): This is a draft version of the kineros exporter.
 # Revise the variable names and
@@ -464,6 +507,9 @@ def export_forecast_dataset(F, exporter):
         |    'member'     | (num_timesteps,shape[0],shape[1])                 |
         +-----------------+---------------------------------------------------+
 
+        If the exporter was initialized with num_ens_members=1, the num_ens_members
+        dimension is dropped.
+
     """
     if exporter["method"] == "netcdf" and not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
@@ -471,22 +517,31 @@ def export_forecast_dataset(F, exporter):
             "exporters but it is not installed")
 
     if exporter["incremental"] is None:
-        shp = (exporter["num_ens_members"], exporter["num_timesteps"],
-               exporter["shape"][0], exporter["shape"][1])
+        if exporter["num_ens_members"] > 1:
+            shp = (exporter["num_ens_members"], exporter["num_timesteps"],
+                   exporter["shape"][0], exporter["shape"][1])
+        else:
+            shp = (exporter["num_timesteps"], exporter["shape"][0],
+                   exporter["shape"][1])
         if F.shape != shp:
             raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
     elif exporter["incremental"] == "timestep":
-        shp = (exporter["num_ens_members"], exporter["shape"][0],
-               exporter["shape"][1])
+        if exporter["num_ens_members"] > 1:
+            shp = (exporter["num_ens_members"], exporter["shape"][0],
+                   exporter["shape"][1])
+        else:
+            shp = exporter["shape"]
         if F.shape != shp:
             raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
-    elif exporter["incremental"] == "member" or exporter["num_ens_members"] == 1:
+    elif exporter["incremental"] == "member":
         shp = (exporter["num_timesteps"], exporter["shape"][0],
                exporter["shape"][1])
         if F.shape != shp:
             raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
 
-    if exporter["method"] == "netcdf":
+    if exporter["method"] == "geotiff":
+        _export_geotiff(F, exporter)
+    elif exporter["method"] == "netcdf":
         _export_netcdf(F, exporter)
     elif exporter["method"] == "kineros":
         _export_kineros(F, exporter)
@@ -507,11 +562,27 @@ def close_forecast_files(exporter):
         in :py:mod:`pysteps.io.exporters`.
 
     """
+    if exporter["method"] == "geotiff":
+        pass # NOTE: There is no explicit "close" method in GDAL.
+             # The files are closed when all objects referencing to the GDAL
+             # datasets are deleted (i.e. when the exporter object is deleted).
     if exporter["method"] == "kineros":
         pass # no need to close the file
     else:
         exporter["ncfile"].close()
 
+def _export_geotiff(F, exporter):
+    for i in range(F.shape[0]):
+        if exporter["incremental"] is None:
+            band = exporter["dst"][i].GetRasterBand(1)
+        else:
+            exporter["dst"][i].AddBand(gdal.GDT_Float32)
+            band = exporter["dst"][i].GetRasterBand(exporter["dst"][i].RasterCount)
+        band.SetScale(1.0)
+        band.SetOffset(0.0)
+        band.SetUnitType(exporter["metadata"]["unit"])
+
+        band.WriteArray(F[i, :, :])
 
 def _export_kineros(F, exporter):
 
@@ -607,3 +678,19 @@ def _convert_proj4_to_grid_mapping(proj4str):
         return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params
+
+def _get_geotiff_filename(prefix, startdate, n_timesteps, timestep,
+                          timestep_index):
+    if n_timesteps * timestep < 10:
+        timestep_format = "%01d"
+    elif n_timesteps * timestep < 100:
+        timestep_format = "%02d"
+    elif n_timesteps * timestep < 1000:
+        timestep_format = "%03d"
+    elif n_timesteps * timestep < 10000:
+        timestep_format = "%04d"
+
+    startdate_str = datetime.strftime(startdate, "%Y%m%d%H%M")
+    timestep_str = timestep_format % ((timestep_index + 1) * timestep)
+
+    return prefix + '_' + startdate_str + '_' + timestep_str + '.tif'
