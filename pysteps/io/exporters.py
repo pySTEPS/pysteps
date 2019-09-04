@@ -102,16 +102,19 @@ import numpy as np
 from pysteps.exceptions import MissingOptionalDependency
 try:
     from osgeo import gdal, osr
+
     GDAL_IMPORTED = True
 except ImportError:
     GDAL_IMPORTED = False
 try:
     import netCDF4
+
     NETCDF4_IMPORTED = True
 except ImportError:
     NETCDF4_IMPORTED = False
 try:
     import pyproj
+
     PYPROJ_IMPORTED = True
 except ImportError:
     PYPROJ_IMPORTED = False
@@ -292,16 +295,15 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
     else:
         raise ValueError("unsupported unit %s" % metadata["unit"])
 
-    xr = np.linspace(metadata["x1"], metadata["x2"], w+1)[:-1]
+    xr = np.linspace(metadata["x1"], metadata["x2"], w + 1)[:-1]
     xr += 0.5 * (xr[1] - xr[0])
-    yr = np.linspace(metadata["y1"], metadata["y2"], h+1)[:-1]
+    yr = np.linspace(metadata["y1"], metadata["y2"], h + 1)[:-1]
     yr += 0.5 * (yr[1] - yr[0])
-    X, Y = np.meshgrid(xr, yr)
-    XY_coords = np.stack([X, Y])
+    xy_coords = np.stack(np.meshgrid(xr, yr))
 
     exporter["method"] = "kineros"
     exporter["ncfile"] = fns
-    exporter["XY_coords"] = XY_coords
+    exporter["XY_coords"] = xy_coords
     exporter["var_name"] = var_name
     exporter["var_long_name"] = var_long_name
     exporter["var_unit"] = var_unit
@@ -426,9 +428,9 @@ def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
     else:
         raise ValueError("unknown unit %s" % metadata["unit"])
 
-    xr = np.linspace(metadata["x1"], metadata["x2"], w+1)[:-1]
+    xr = np.linspace(metadata["x1"], metadata["x2"], w + 1)[:-1]
     xr += 0.5 * (xr[1] - xr[0])
-    yr = np.linspace(metadata["y1"], metadata["y2"], h+1)[:-1]
+    yr = np.linspace(metadata["y1"], metadata["y2"], h + 1)[:-1]
     yr += 0.5 * (yr[1] - yr[0])
 
     var_xc = ncf.createVariable("xc", np.float32, dimensions=("x",))
@@ -447,9 +449,9 @@ def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
     # TODO(exporters): Don't hard-code the unit.
     var_yc.units = 'm'
 
-    X, Y = np.meshgrid(xr, yr)
+    x_2d, y_2d = np.meshgrid(xr, yr)
     pr = pyproj.Proj(metadata["projection"])
-    lon, lat = pr(X.flatten(), Y.flatten(), inverse=True)
+    lon, lat = pr(x_2d.flatten(), y_2d.flatten(), inverse=True)
 
     var_lon = ncf.createVariable("lon", np.float, dimensions=("y", "x"))
     var_lon[:] = lon
@@ -482,35 +484,35 @@ def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
                                          dimensions=("ens_number",)
                                          )
         if incremental != "member":
-            var_ens_num[:] = list(range(1, n_ens_members+1))
+            var_ens_num[:] = list(range(1, n_ens_members + 1))
         var_ens_num.long_name = "ensemble member"
         var_ens_num.units = ""
 
     var_time = ncf.createVariable("time", np.int, dimensions=("time",))
     if incremental != "timestep":
-        var_time[:] = [i*timestep*60 for i in range(1, n_timesteps+1)]
+        var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
     var_time.long_name = "forecast time"
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
 
     if n_ens_members > 1:
-        var_F = ncf.createVariable(var_name, np.float32,
+        var_f = ncf.createVariable(var_name, np.float32,
                                    dimensions=("ens_number", "time", "y", "x"),
                                    zlib=True, complevel=9)
     else:
-        var_F = ncf.createVariable(var_name, np.float32,
+        var_f = ncf.createVariable(var_name, np.float32,
                                    dimensions=("time", "y", "x"),
                                    zlib=True, complevel=9)
 
     if var_standard_name is not None:
-        var_F.standard_name = var_standard_name
-    var_F.long_name = var_long_name
-    var_F.coordinates = "y x"
-    var_F.units = var_unit
+        var_f.standard_name = var_standard_name
+    var_f.long_name = var_long_name
+    var_f.coordinates = "y x"
+    var_f.units = var_unit
 
     exporter["method"] = "netcdf"
     exporter["ncfile"] = ncf
-    exporter["var_F"] = var_F
+    exporter["var_F"] = var_f
     if n_ens_members > 1:
         exporter["var_ens_num"] = var_ens_num
     exporter["var_time"] = var_time
@@ -526,7 +528,7 @@ def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
     return exporter
 
 
-def export_forecast_dataset(F, exporter):
+def export_forecast_dataset(field, exporter):
     """Write a forecast array into a file.
 
     If the exporter was initialized with n_ens_members>1, the written dataset
@@ -541,7 +543,7 @@ def export_forecast_dataset(F, exporter):
     exporter : dict
         An exporter object created with any initialization method implemented
         in :py:mod:`pysteps.io.exporters`.
-    F : array_like
+    field : array_like
         The array to write. The required shape depends on the choice of the
         'incremental' parameter the exporter was initialized with:
 
@@ -571,28 +573,28 @@ def export_forecast_dataset(F, exporter):
         else:
             shp = (exporter["num_timesteps"], exporter["shape"][0],
                    exporter["shape"][1])
-        if F.shape != shp:
-            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
+        if field.shape != shp:
+            raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
     elif exporter["incremental"] == "timestep":
         if exporter["num_ens_members"] > 1:
             shp = (exporter["num_ens_members"], exporter["shape"][0],
                    exporter["shape"][1])
         else:
             shp = exporter["shape"]
-        if F.shape != shp:
-            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
+        if field.shape != shp:
+            raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
     elif exporter["incremental"] == "member":
         shp = (exporter["num_timesteps"], exporter["shape"][0],
                exporter["shape"][1])
-        if F.shape != shp:
-            raise ValueError("F has invalid shape: %s != %s" % (str(F.shape), str(shp)))
+        if field.shape != shp:
+            raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
 
     if exporter["method"] == "geotiff":
-        _export_geotiff(F, exporter)
+        _export_geotiff(field, exporter)
     elif exporter["method"] == "netcdf":
-        _export_netcdf(F, exporter)
+        _export_netcdf(field, exporter)
     elif exporter["method"] == "kineros":
-        _export_kineros(F, exporter)
+        _export_kineros(field, exporter)
     else:
         raise ValueError("unknown exporter method %s" % exporter["method"])
 
@@ -615,7 +617,7 @@ def close_forecast_files(exporter):
              # The files are closed when all objects referencing to the GDAL
              # datasets are deleted (i.e. when the exporter object is deleted).
     if exporter["method"] == "kineros":
-        pass # no need to close the file
+        pass  # no need to close the file
     else:
         exporter["ncfile"].close()
 
@@ -667,8 +669,7 @@ def _export_geotiff(F, exporter):
             init_band(band)
             band.WriteArray(F[i, :, :])
 
-def _export_kineros(F, exporter):
-
+def _export_kineros(field, exporter):
     num_timesteps = exporter["num_timesteps"]
     num_ens_members = exporter["num_ens_members"]
     startdate = exporter["startdate"]
@@ -676,42 +677,45 @@ def _export_kineros(F, exporter):
     xgrid = exporter["XY_coords"][0, :, :].flatten()
     ygrid = exporter["XY_coords"][1, :, :].flatten()
 
-    timemin = [(t + 1)*timestep for t in range(num_timesteps)]
+    timemin = [(t + 1) * timestep for t in range(num_timesteps)]
 
     for n in range(num_ens_members):
-        fn = exporter["ncfile"][n]
-        F_ = F[n, :, :, :].reshape((num_timesteps, -1))
+        file_name = exporter["ncfile"][n]
+
+        field_tmp = field[n, :, :, :].reshape((num_timesteps, -1))
+
         if exporter["var_name"] == "Depth":
-            F_ = np.cumsum(F_, axis=0)
-        with open(fn, "a") as fd:
-            for m in range(F_.shape[1]):
+            field_tmp = np.cumsum(field_tmp, axis=0)
+
+        with open(file_name, "a") as fd:
+            for m in range(field_tmp.shape[1]):
                 fd.writelines("BEGIN RG%03d\n" % (m + 1))
                 fd.writelines("  X = %.2f, Y = %.2f\n" % (xgrid[m], ygrid[m]))
                 fd.writelines("  N = %i\n" % num_timesteps)
                 fd.writelines("  TIME        %s\n" % exporter["var_name"].upper())
                 fd.writelines("! (min)        (%s)\n" % exporter["var_unit"])
                 for t in range(num_timesteps):
-                    line_new = "{:6.1f}  {:11.2f}\n".format(timemin[t], F_[t, m])
+                    line_new = "{:6.1f}  {:11.2f}\n".format(timemin[t], field_tmp[t, m])
                     fd.writelines(line_new)
                 fd.writelines("END\n\n")
 
 
-def _export_netcdf(F, exporter):
-    var_F = exporter["var_F"]
+def _export_netcdf(field, exporter):
+    var_f = exporter["var_F"]
 
     if exporter["incremental"] is None:
-        var_F[:] = F
+        var_f[:] = field
     elif exporter["incremental"] == "timestep":
         if exporter["num_ens_members"] > 1:
-            var_F[:, var_F.shape[1], :, :] = F
+            var_f[:, var_f.shape[1], :, :] = field
         else:
-            var_F[var_F.shape[1], :, :] = F
+            var_f[var_f.shape[1], :, :] = field
         var_time = exporter["var_time"]
-        var_time[len(var_time)-1] = len(var_time) * exporter["timestep"] * 60
+        var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
     else:
-        var_F[var_F.shape[0], :, :, :] = F
+        var_f[var_f.shape[0], :, :, :] = field
         var_ens_num = exporter["var_ens_num"]
-        var_ens_num[len(var_ens_num)-1] = len(var_ens_num)
+        var_ens_num[len(var_ens_num) - 1] = len(var_ens_num)
 
 
 # TODO(exporters): Write methods for converting Proj.4 projection definitions
