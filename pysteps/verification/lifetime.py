@@ -122,7 +122,8 @@ def lifetime_accum(lifetime, X_s, X_t):
             idx_b = np.argmax(X_s_ <= euler_number)
             if idx_b > 0:
                 idx_a = idx_b - 1
-                fraction_score = (euler_number - X_s[idx_b])*(X_t[idx_a] - X_t[idx_b])\
+                fraction_score = (euler_number - X_s[idx_b])\
+                    * (X_t[idx_a] - X_t[idx_b])\
                     / (X_s[idx_a] - X_s[idx_b])
                 lf = X_t[idx_b] + fraction_score
             else:
