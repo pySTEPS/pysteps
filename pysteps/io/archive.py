@@ -66,9 +66,9 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         raise IOError("no input data found in %s" % root_path)
 
     if (num_prev_files + num_next_files) > 0:
-        return (filenames[::-1], timestamps[::-1])
+        return filenames[::-1], timestamps[::-1]
     else:
-        return (filenames, timestamps)
+        return filenames, timestamps
 
 
 def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext):

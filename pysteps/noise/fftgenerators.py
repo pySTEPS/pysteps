@@ -16,7 +16,7 @@ or::
 where X is an array of shape (m, n) or (t, m, n) that defines the target field
 and optional parameters are supplied as keyword arguments.
 
-The output of each initialization method is a dictionary containing the keys F
+The output of each initialization method is a dictionary containing the keys field
 and input_shape. The first is a two-dimensional array of shape (m, int(n/2)+1)
 that defines the filter. The second one is the shape of the input field for the
 filter.
@@ -24,9 +24,9 @@ filter.
 The methods in this module implement the following interface for the generation
 of correlated noise::
 
-  generate_noise_2d_xxx_filter(F, randstate=np.random, seed=None, **kwargs)
+  generate_noise_2d_xxx_filter(field, randstate=np.random, seed=None, **kwargs)
 
-where F (m, n) is a filter returned from the corresponding initialization
+where field (m, n) is a filter returned from the corresponding initialization
 method, and randstate and seed can be used to set the random generator and
 its seed. Additional keyword arguments can be included as a dictionary.
 
@@ -84,7 +84,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
     Returns
     -------
     out : dict
-        A a dictionary containing the keys F, input_shape, model and pars.
+        A a dictionary containing the keys field, input_shape, model and pars.
         The first is a two-dimensional array of shape (m, int(n/2)+1) that
         defines the filter. The second one is the shape of the input field for
         the filter. The last two are the model and fitted parameters,
@@ -203,7 +203,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         raise ValueError("unknown parametric model %s" % model)
 
     return {
-        "F": F,
+        "field": F,
         "input_shape": X.shape[1:],
         "use_full_fft": True,
         "model": f,
@@ -243,7 +243,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     Returns
     -------
     out : dict
-      A dictionary containing the keys F and input_shape. The first is a
+      A dictionary containing the keys field and input_shape. The first is a
       two-dimensional array of shape (m, int(n/2)+1) that defines the filter.
       The second one is the shape of the input field for the filter.
 
@@ -304,7 +304,7 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
         if np.std(F.real) > 0:
             F.real = (F.real - np.mean(F.real)) / np.std(F.real)
 
-    return {"F": np.abs(F), "input_shape": X.shape[1:], "use_full_fft": use_full_fft}
+    return {"field": np.abs(F), "input_shape": X.shape[1:], "use_full_fft": use_full_fft}
 
 
 def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None):
@@ -333,12 +333,12 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None):
     """
     input_shape = F["input_shape"]
     use_full_fft = F["use_full_fft"]
-    F = F["F"]
+    F = F["field"]
 
     if len(F.shape) != 2:
-        raise ValueError("F is not two-dimensional array")
+        raise ValueError("field is not two-dimensional array")
     if np.any(~np.isfinite(F)):
-        raise ValueError("F contains non-finite values")
+        raise ValueError("field contains non-finite values")
 
     if randstate is None:
         randstate = np.random
@@ -409,7 +409,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
     Returns
     -------
-    F : array-like
+    field : array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
         It can be passed to
@@ -469,7 +469,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(
         X, win_type=win_type, donorm=True, use_full_fft=True, fft_method=fft
-    )["F"]
+    )["field"]
     # and allocate it to the final grid
     F = np.zeros((num_windows_y, num_windows_x, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -504,9 +504,9 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
                     donorm=True,
                     use_full_fft=True,
                     fft_method=fft,
-                )["F"]
+                )["field"]
 
-    return {"F": F, "input_shape": X.shape[1:], "use_full_fft": True}
+    return {"field": F, "input_shape": X.shape[1:], "use_full_fft": True}
 
 
 def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
@@ -544,7 +544,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     Returns
     -------
-    F : array-like
+    field : array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
         It can be passed to
@@ -600,7 +600,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(
         X, win_type=win_type, donorm=True, use_full_fft=True, fft_method=fft
-    )["F"]
+    )["field"]
     # and allocate it to the final grid
     F = np.zeros((2 ** max_level, 2 ** max_level, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
@@ -633,7 +633,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
                         donorm=True,
                         use_full_fft=True,
                         fft_method=fft,
-                    )["F"]
+                    )["field"]
 
                     # compute logistic function to define weights as function of frequency
                     # k controls the shape of the weighting function
@@ -666,7 +666,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
             (0, 2 ** max_level), (0, 2 ** max_level), 2 ** level
         )
 
-    return {"F": F, "input_shape": X.shape[1:], "use_full_fft": True}
+    return {"field": F, "input_shape": X.shape[1:], "use_full_fft": True}
 
 
 def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
@@ -706,12 +706,12 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     """
     input_shape = F["input_shape"]
     use_full_fft = F["use_full_fft"]
-    F = F["F"]
+    F = F["field"]
 
     if len(F.shape) != 4:
         raise ValueError("the input is not four-dimensional array")
     if np.any(~np.isfinite(F)):
-        raise ValueError("F contains non-finite values")
+        raise ValueError("field contains non-finite values")
 
     # defaults
     overlap = kwargs.get("overlap", 0.2)

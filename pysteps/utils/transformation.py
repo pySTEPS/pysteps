@@ -278,7 +278,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     References
     ----------
-    Bogner, K., Pappenberger, F., and Cloke, H. L.: Technical Note: The normal
+    Bogner, K., Pappenberger, field., and Cloke, H. L.: Technical Note: The normal
     quantile transformation and its application in a flood forecasting system,
     Hydrol. Earth Syst. Sci., 16, 1085-1094,
     https://doi.org/10.5194/hess-16-1085-2012, 2012.
