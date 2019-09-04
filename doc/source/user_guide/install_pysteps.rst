@@ -25,18 +25,19 @@ Additionally, the following packages can be installed for better computational
 efficiency:
 
 * `dask <https://dask.org/>`_ and
-  `toolz <https://github.com/pytoolz/toolz/>`_ (for code parallelization)
-* `pyfftw <https://hgomersall.github.io/pyFFTW/>`_ (for faster FFT computation)
+  `toolz <https://github.com/pytoolz/toolz/>`_ (code parallelization)
+* `pyfftw <https://hgomersall.github.io/pyFFTW/>`_ (faster FFT computation)
+* `xarray <http://xarray.pydata.org/en/stable/>`_ (efficient handling of multidimentional arrays)
 
 
 Other optional dependencies include:
 
 * `cartopy <https://scitools.org.uk/cartopy/docs/v0.16/>`_ or
-  `basemap <https://matplotlib.org/basemap/>`_ (for geo-referenced
+  `basemap <https://matplotlib.org/basemap/>`_ (geo-referenced
   visualization)
-* `h5py <https://www.h5py.org/>`_ (for importing HDF5 data)
+* `h5py <https://www.h5py.org/>`_ (importing HDF5 data)
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
-  (for intensity-scale verification)
+  (intensity-scale verification)
 
 
 

@@ -25,4 +25,5 @@ dependencies:
   - PyWavelets
   - pytest-cov
   - codecov
+  - xarray
 
