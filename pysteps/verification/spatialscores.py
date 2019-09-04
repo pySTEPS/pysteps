@@ -35,7 +35,6 @@ except ImportError:
     pywt_imported = False
 
 
-
 def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
     """Compute an intensity-scale verification score.
 
@@ -65,7 +64,8 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
         verification.
 
     scales : float or array_like, optional
-        Scalar or 1-D array of spatial scales in pixels, required if *name*="FSS".
+        Scalar or 1-D array of spatial scales in pixels,
+        required if *name*="FSS".
 
     wavelet : str, optional
         The name of the wavelet function to use in the BMSE.
@@ -120,7 +120,8 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
         verification.
 
     scales : float or array_like, optional
-        Scalar or 1-D array of spatial scales in pixels, required if *name*="FSS".
+        Scalar or 1-D array of spatial scales in pixels,
+        required if *name*="FSS".
 
     wavelet : str, optional
         The name of the wavelet function, required if *name*="BMSE".
@@ -236,8 +237,9 @@ def intensity_scale_compute(intscale):
     -------
 
     out : array_like
-        The two-dimensional array of shape (j, k) containing the intensity-scale
-        skill scores for **j** spatial scales and **k** intensity thresholds.
+        The two-dimensional array of shape (j, k) containing
+        the intensity-scale skill scores for **j** spatial scales and
+        **k** intensity thresholds.
 
     """
 
@@ -249,12 +251,12 @@ def intensity_scale_compute(intscale):
 
     for i, thr in enumerate(thrs):
 
-            if name.lower() == "bmse":
-                SS[:, i] = binary_mse_compute(intscale[thr], False)
+        if name.lower() == "bmse":
+            SS[:, i] = binary_mse_compute(intscale[thr], False)
 
-            elif name.lower() == "fss":
-                for j, scale in enumerate(scales):
-                    SS[j, i] = fss_compute(intscale[thr][scale])
+        elif name.lower() == "fss":
+            for j, scale in enumerate(scales):
+                SS[j, i] = fss_compute(intscale[thr][scale])
 
     return SS
 
@@ -409,8 +411,9 @@ def binary_mse_compute(bmse, return_scales=True):
 
     bmse : dict
         The BMSE object initialized with
-        :py:func:`pysteps.verification.spatialscores.binary_mse_init` and accumulated
-        with :py:func:`pysteps.verification.spatialscores.binary_mse_accum`.
+        :py:func:`pysteps.verification.spatialscores.binary_mse_init`
+        and accumulated with
+        :py:func:`pysteps.verification.spatialscores.binary_mse_accum`.
 
     return_scales : bool, optional
         Whether to return the spatial scales resulting from the wavelet
@@ -567,8 +570,9 @@ def fss_compute(fss):
 
     fss : dict
        An FSS object initialized with
-       :py:func:`pysteps.verification.spatialscores.fss_init` and
-       accumulated with :py:func:`pysteps.verification.spatialscores.fss_accum`.
+       :py:func:`pysteps.verification.spatialscores.fss_init`
+       and accumulated with
+       :py:func:`pysteps.verification.spatialscores.fss_accum`.
 
     Returns
     -------
