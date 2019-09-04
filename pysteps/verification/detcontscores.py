@@ -73,7 +73,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     axis : {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
-        If axis is -1 (or any negative integer), the integration is not performed
+        If axis is -1 (or any negative integer),
+        the integration is not performed
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
@@ -107,7 +108,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     beta2 measures the degree of conditional bias of the forecasts given the
     observations (type 2).
 
-    The normalized MSE is computed as NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
+    The normalized MSE is computed as
+    NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
 
     The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2).
 
@@ -226,7 +228,8 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
     axis : {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
-        If axis is -1 (or any negative integer), the integration is not performed
+        If axis is -1 (or any negative integer),
+        the integration is not performed
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
@@ -341,7 +344,8 @@ def det_cont_fct_accum(err, pred, obs):
         # check dimensions
         if err["cov"].shape != nshape:
             raise ValueError(
-                "the shape of the input arrays does not match the shape of the "
+                "the shape of the input arrays does not match "
+                + "the shape of the "
                 + "verification object %s!=%s" % (nshape, err["cov"].shape)
             )
 
@@ -418,13 +422,15 @@ def det_cont_fct_merge(err_1, err_2):
 
     err_1 : dict
       A verification error object initialized with
-      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
-      populated with :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`
+      and populated with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
 
     err_2 : dict
       Another verification error object initialized with
-      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
-      populated with :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`
+      and populated with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
 
     Returns
     -------
@@ -615,7 +621,8 @@ def det_cont_fct_compute(err, scores=""):
             RMSE_d = np.sqrt(err["mse"] - err["me"] ** 2)
             result["DRMSE"] = RMSE_d
 
-        # reduction of variance (Brier Score, Nash-Sutcliffe efficiency coefficient,
+        # reduction of variance
+        # (Brier Score, Nash-Sutcliffe efficiency coefficient,
         # MSE skill score)
         if score_ in ["rv", "brier_score", "nse", ""]:
             RV = 1.0 - err["mse"] / err["vobs"]
@@ -703,7 +710,7 @@ def _scatter(pred, obs, axis=None):
         pred = np.rollaxis(pred, ax, 0)
         obs = np.rollaxis(obs, ax, 0)
     shp_rows = pred.shape[: len(axis)]
-    shp_cols = pred.shape[len(axis) :]
+    shp_cols = pred.shape[len(axis):]
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
@@ -757,7 +764,7 @@ def _spearmanr(pred, obs, axis=None):
         pred = np.rollaxis(pred, ax, 0)
         obs = np.rollaxis(obs, ax, 0)
     shp_rows = pred.shape[: len(axis)]
-    shp_cols = pred.shape[len(axis) :]
+    shp_cols = pred.shape[len(axis):]
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
