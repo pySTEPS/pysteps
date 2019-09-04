@@ -198,7 +198,7 @@ def rankhist_accum(rankhist, X_f, X_o):
     if X_f.shape[0] != rankhist["num_ens_members"]:
         raise ValueError("the number of ensemble members in X_f does not "
                          + "match the number of members in the rank "
-                         + "histogram (%d!=%d)" 
+                         + "histogram (%d!=%d)"
                          % (X_f.shape[0], rankhist["num_ens_members"]))
 
     X_f = np.vstack([X_f[i, :].flatten() for i in range(X_f.shape[0])]).T
@@ -242,7 +242,8 @@ def rankhist_accum(rankhist, X_f, X_o):
         bin_idx_2 = X_f.shape[1] - idx1[1][idx2]
 
         idxr = np.random.uniform(low=0.0, high=1.0, size=len(idxdup))
-        idxr = bin_idx_1[idxdup] + idxr * (bin_idx_2[idxdup] + 1 - bin_idx_1[idxdup])
+        idxr = bin_idx_1[idxdup] + idxr \
+            * (bin_idx_2[idxdup] + 1 - bin_idx_1[idxdup])
         bin_idx.extend(idxr.astype(int))
 
     for bi in bin_idx:
