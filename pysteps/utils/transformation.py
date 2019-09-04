@@ -25,14 +25,15 @@ warnings.filterwarnings(
 
 
 def boxcox_transform(
-    R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False
+    R, metadata=None, Lambda=None, threshold=None, zerovalue=None,
+    inverse=False,
 ):
     """The one-parameter Box-Cox transformation.
 
     The Box-Cox transform is a well-known power transformation introduced by
     Box and Cox (1964). In its one-parameter version, the Box-Cox transform
-    takes the form T(x) = ln(x) for Lambda = 0, or T(x) = (x**Lambda - 1)/Lambda
-    otherwise.
+    takes the form T(x) = ln(x) for Lambda = 0,
+    or T(x) = (x**Lambda - 1)/Lambda otherwise.
 
     Default parameters will produce a log transform (i.e. Lambda=0).
 
@@ -47,16 +48,17 @@ def boxcox_transform(
         :py:mod:`pysteps.io.importers`.
 
     Lambda : float, optional
-        Parameter Lambda of the Box-Cox transformation. It is 0 by default, which
-        produces the log transformation.
+        Parameter Lambda of the Box-Cox transformation.
+        It is 0 by default, which produces the log transformation.
 
         Choose Lambda < 1 for positively skewed data, Lambda > 1 for negatively
         skewed data.
 
     threshold : float, optional
         The value that is used for thresholding with the same units as R.
-        If None, the threshold contained in metadata is used. If no threshold is
-        found in the metadata, a value of 0.1 is used as default.
+        If None, the threshold contained in metadata is used.
+        If no threshold is found in the metadata,
+        a value of 0.1 is used as default.
 
     zerovalue : float, optional
         The value to be assigned to no rain pixels as defined by the threshold.
@@ -93,7 +95,7 @@ def boxcox_transform(
 
     if not inverse:
 
-        if metadata["transform"] is "BoxCox":
+        if metadata["transform"] == "BoxCox":
             return R, metadata
 
         if Lambda is None:
@@ -153,7 +155,8 @@ def boxcox_transform(
     return R, metadata
 
 
-def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
+def dB_transform(R, metadata=None, threshold=None, zerovalue=None,
+                 inverse=False,):
     """Methods to transform precipitation intensities to/from dB units.
 
     Parameters
@@ -166,8 +169,9 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
         :py:mod:`pysteps.io.importers`.
     threshold : float, optional
         Optional value that is used for thresholding with the same units as R.
-        If None, the threshold contained in metadata is used. If no threshold is
-        found in the metadata, a value of 0.1 is used as default.
+        If None, the threshold contained in metadata is used.
+        If no threshold is found in the metadata,
+        a value of 0.1 is used as default.
     zerovalue : float, optional
         The value to be assigned to no rain pixels as defined by the threshold.
         It is equal to the threshold - 1 by default.
@@ -197,7 +201,7 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
     # to dB units
     if not inverse:
 
-        if metadata["transform"] is "dB":
+        if metadata["transform"] == "dB":
             return R, metadata
 
         if threshold is None:
@@ -223,7 +227,7 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
     # from dB units
     elif inverse:
 
-        if metadata["transform"] is not "dB":
+        if metadata["transform"] != "dB":
             return R, metadata
 
         if threshold is None:
@@ -260,7 +264,8 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     Other Parameters
     ----------------
     a : float, optional
-        The offset fraction to be used for plotting positions; typically in (0,1).
+        The offset fraction to be used for plotting positions;
+        typically in (0,1).
         The default is 0., that is, it spaces the points evenly in the uniform
         distribution.
 
@@ -316,7 +321,8 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
         # build inverse transform
         metadata["inqt"] = interp1d(
-            Rqn, R_[np.argsort(R_)], bounds_error=False, fill_value=(R_.min(), R_.max())
+            Rqn, R_[np.argsort(R_)],
+            bounds_error=False, fill_value=(R_.min(), R_.max())
         )
 
         metadata["transform"] = "NQT"
