@@ -39,16 +39,16 @@ import numpy as np
 from pysteps import utils
 
 
-def decomposition_fft(X, filter, **kwargs):
+def decomposition_fft(field, bp_filter, **kwargs):
     """Decompose a 2d input field into multiple spatial scales by using the Fast
     Fourier Transform (FFT) and a bandpass filter.
 
     Parameters
     ----------
-    X : array_like
+    field : array_like
         Two-dimensional array containing the input field. All values are
         required to be finite.
-    filter : dict
+    bp_filter : dict
         A filter returned by a method implemented in
         :py:mod:`pysteps.cascade.bandpass_filters`.
 
@@ -72,52 +72,53 @@ def decomposition_fft(X, filter, **kwargs):
     """
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft = utils.get_method(fft, shape=X.shape)
+        fft = utils.get_method(fft, shape=field.shape)
 
-    MASK = kwargs.get("MASK", None)
+    mask = kwargs.get("MASK", None)
 
-    if len(X.shape) != 2:
+    if len(field.shape) != 2:
         raise ValueError("The input is not two-dimensional array")
 
-    if MASK is not None and MASK.shape != X.shape:
+    if mask is not None and mask.shape != field.shape:
         raise ValueError("Dimension mismatch between X and MASK:"
-                         + "X.shape=" + str(X.shape)
-                         + ",MASK.shape" + str(MASK.shape))
+                         + "X.shape=" + str(field.shape)
+                         + ",mask.shape" + str(mask.shape))
 
-    if X.shape[0] != filter["weights_2d"].shape[1]:
+    if field.shape[0] != bp_filter["weights_2d"].shape[1]:
         raise ValueError(
             "dimension mismatch between X and filter: "
-            + "X.shape[0]=%d , " % X.shape[0]
+            + "X.shape[0]=%d , " % field.shape[0]
             + "filter['weights_2d'].shape[1]"
-              "=%d" % filter["weights_2d"].shape[1])
+              "=%d" % bp_filter["weights_2d"].shape[1])
 
-    if int(X.shape[1] / 2) + 1 != filter["weights_2d"].shape[2]:
+    if int(field.shape[1] / 2) + 1 != bp_filter["weights_2d"].shape[2]:
         raise ValueError(
             "Dimension mismatch between X and filter: "
-            "int(X.shape[1]/2)+1=%d , " % (int(X.shape[1] / 2) + 1)
+            "int(X.shape[1]/2)+1=%d , " % (int(field.shape[1] / 2) + 1)
             + "filter['weights_2d'].shape[2]"
-              "=%d" % filter["weights_2d"].shape[2])
+              "=%d" % bp_filter["weights_2d"].shape[2])
 
-    if np.any(~np.isfinite(X)):
+    if np.any(~np.isfinite(field)):
         raise ValueError("X contains non-finite values")
 
     result = {}
     means = []
     stds = []
 
-    F = fft.rfft2(X)
-    X_decomp = []
-    for k in range(len(filter["weights_1d"])):
-        W_k = filter["weights_2d"][k, :, :]
-        X_ = fft.irfft2(F * W_k)
-        X_decomp.append(X_)
+    field_decomp = []
 
-        if MASK is not None:
-            X_ = X_[MASK]
-        means.append(np.mean(X_))
-        stds.append(np.std(X_))
+    for k in range(len(bp_filter["weights_1d"])):
 
-    result["cascade_levels"] = np.stack(X_decomp)
+        _decomp_field = fft.irfft2(fft.rfft2(field) * bp_filter["weights_2d"][k, :, :])
+
+        field_decomp.append(_decomp_field)
+
+        if mask is not None:
+            _decomp_field = _decomp_field[mask]
+        means.append(np.mean(_decomp_field))
+        stds.append(np.std(_decomp_field))
+
+    result["cascade_levels"] = np.stack(field_decomp)
     result["means"] = means
     result["stds"] = stds
 
