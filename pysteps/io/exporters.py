@@ -119,7 +119,53 @@ def initialize_forecast_exporter_geotiff(outfnprefix, startdate, timestep,
                                          n_timesteps, shape, metadata,
                                          n_ens_members=1, incremental=None,
                                          **kwargs):
-    """"""
+    """Initialize a GeoTIFF forecast exporter.
+
+    Initialize a GeoTIFF forecast exporter. GDAL needs to be installed to
+    use this exporter.
+
+    Parameters
+    ----------
+    outfnprefix : str
+        Prefix for output file names.
+
+    startdate : datetime.datetime
+        Start date of the forecast.
+
+    timestep : int
+        Time step of the forecast (minutes).
+
+    n_timesteps : int
+        Number of time steps in the forecast. This argument is ignored if
+        incremental is set to 'timestep'.
+
+    shape : tuple of int
+        Two-element tuple defining the shape (height,width) of the forecast
+        grids.
+
+    metadata: dict
+        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
+        attributes described in the documentation of
+        :py:mod:`pysteps.io.importers`.
+
+    n_ens_members : int
+        Number of ensemble members in the forecast.
+
+    incremental : {None,'timestep','member'}, optional
+        Allow incremental writing of datasets into the GeoTIFF files. Set to
+        'timestep' to enable writing forecasts or forecast ensembles separately
+        for each time step. If set to None, incremental writing is disabled and
+        the whole forecast is written in a single function call.
+
+    Returns
+    -------
+    exporter : dict
+        The return value is a dictionary containing an exporter object. This
+        can be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
+        to write the datasets.
+
+    """
+
     if not GDAL_IMPORTED:
         raise MissingOptionalDependency(
             "gdal package is required for GeoTIFF "
@@ -174,7 +220,7 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
         Prefix for output file names.
 
     startdate : datetime.datetime
-        Start date of the forecast as datetime object.
+        Start date of the forecast.
 
     timestep : int
         Time step of the forecast (minutes).
