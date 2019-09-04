@@ -18,6 +18,7 @@ Evaluation and skill scores for ensemble forecasts.
 import numpy as np
 from .interface import get_method
 
+
 def ensemble_skill(X_f, X_o, metric, **kwargs):
     """Compute mean ensemble skill for a given skill metric.
 
@@ -46,18 +47,22 @@ def ensemble_skill(X_f, X_o, metric, **kwargs):
     """
 
     if len(X_f.shape) != 3:
-        raise ValueError("the number of dimensions of X_f must be equal to 3, but %i dimensions were passed"
+        raise ValueError("the number of dimensions of X_f must be equal to 3, "
+                         + "but %i dimensions were passed"
                          % len(X_f.shape))
     if X_f.shape[1:] != X_o.shape:
-        raise ValueError("the shape of X_f does not match the shape of X_o (%d,%d)!=(%d,%d)"
-                         % (X_f.shape[1], X_f.shape[2], X_o.shape[0], X_o.shape[1]))
-
+        raise ValueError("the shape of X_f does not match the shape of "
+                         + "X_o (%d,%d)!=(%d,%d)"
+                         % (X_f.shape[1],
+                            X_f.shape[2],
+                            X_o.shape[0],
+                            X_o.shape[1]))
 
     compute_skill = get_method(metric, type="deterministic")
 
-    l = X_f.shape[0]
+    lolo = X_f.shape[0]
     skill = []
-    for member in range(l):
+    for member in range(lolo):
         skill_ = compute_skill(X_f[member, :, :], X_o, **kwargs)
         if isinstance(skill_, dict):
             skill_ = skill_[metric]
@@ -81,7 +86,8 @@ def ensemble_spread(X_f, metric, **kwargs):
     Returns
     -------
     out : float
-        The mean skill compted between all possible pairs of the ensemble members,
+        The mean skill compted between all possible pairs of
+        the ensemble members,
         which can be used as definition of mean ensemble spread (as in Zacharov
         and Rezcova 2009 with the FSS).
 
@@ -91,19 +97,23 @@ def ensemble_spread(X_f, metric, **kwargs):
 
     """
     if len(X_f.shape) != 3:
-        raise ValueError("the number of dimensions of X_f must be equal to 3, but %i dimensions were passed"
+        raise ValueError("the number of dimensions of X_f must be equal to 3, "
+                         + "but %i dimensions were passed"
                          % len(X_f.shape))
     if X_f.shape[0] < 2:
-        raise ValueError("the number of members in X_f must be greater than 1, but %i members were passed"
+        raise ValueError("the number of members in X_f must be greater than 1,"
+                         + " but %i members were passed"
                          % X_f.shape[0])
 
     compute_spread = get_method(metric, type="deterministic")
 
-    l = X_f.shape[0]
+    lolo = X_f.shape[0]
     spread = []
-    for member in range(l):
-        for othermember in range(member + 1, l):
-            spread_ = compute_spread(X_f[member, :, :], X_f[othermember, :, :], **kwargs)
+    for member in range(lolo):
+        for othermember in range(member + 1, lolo):
+            spread_ = compute_spread(X_f[member, :, :],
+                                     X_f[othermember, :, :],
+                                     **kwargs)
             if isinstance(spread_, dict):
                 spread_ = spread_[metric]
             spread.append(spread_)
@@ -125,9 +135,11 @@ def rankhist(X_f, X_o, X_min=None, normalize=True):
     X_min : {float,None}
         Threshold for minimum intensity. Forecast-observation pairs, where all
         ensemble members and verifying observations are below X_min, are not
-        counted in the rank histogram. If set to None, thresholding is not used.
+        counted in the rank histogram.
+        If set to None, thresholding is not used.
     normalize : {bool, True}
-        If True, normalize the rank histogram so that the bin counts sum to one.
+        If True, normalize the rank histogram so that
+        the bin counts sum to one.
 
     """
 
@@ -150,7 +162,8 @@ def rankhist_init(num_ens_members, X_min=None):
     X_min : {float,None}
         Threshold for minimum intensity. Forecast-observation pairs, where all
         ensemble members and verifying observations are below X_min, are not
-        counted in the rank histogram. If set to None, thresholding is not used.
+        counted in the rank histogram.
+        If set to None, thresholding is not used.
 
     Returns
     -------
@@ -183,7 +196,10 @@ def rankhist_accum(rankhist, X_f, X_o):
 
     """
     if X_f.shape[0] != rankhist["num_ens_members"]:
-        raise ValueError("the number of ensemble members in X_f does not match the number of members in the rank histogram (%d!=%d)" % (X_f.shape[0], rankhist["num_ens_members"]))
+        raise ValueError("the number of ensemble members in X_f does not "
+                         + "match the number of members in the rank "
+                         + "histogram (%d!=%d)" 
+                         % (X_f.shape[0], rankhist["num_ens_members"]))
 
     X_f = np.vstack([X_f[i, :].flatten() for i in range(X_f.shape[0])]).T
     X_o = X_o.flatten()
@@ -209,7 +225,9 @@ def rankhist_accum(rankhist, X_f, X_o):
     X_c.sort(axis=1)
 
     idx1 = np.where(X_c == X_o)
-    _,idx2,idx_counts = np.unique(idx1[0], return_index=True, return_counts=True)
+    _, idx2, idx_counts = np.unique(idx1[0],
+                                    return_index=True,
+                                    return_counts=True)
     bin_idx_1 = idx1[1][idx2]
 
     bin_idx = list(bin_idx_1[np.where(idx_counts == 1)[0]])
@@ -220,7 +238,7 @@ def rankhist_accum(rankhist, X_f, X_o):
     if len(idxdup) > 0:
         X_c_ = np.fliplr(X_c)
         idx1 = np.where(X_c_ == X_o)
-        _,idx2 = np.unique(idx1[0], return_index=True)
+        _, idx2 = np.unique(idx1[0], return_index=True)
         bin_idx_2 = X_f.shape[1] - idx1[1][idx2]
 
         idxr = np.random.uniform(low=0.0, high=1.0, size=len(idxdup))
@@ -239,13 +257,14 @@ def rankhist_compute(rankhist, normalize=True):
     rankhist : dict
         A rank histogram object created with rankhist_init.
     normalize : bool
-        If True, normalize the rank histogram so that the bin counts sum to one.
+        If True, normalize the rank histogram so that
+        the bin counts sum to one.
 
     Returns
     -------
     out : array_like
-        The counts for the n+1 bins in the rank histogram, where n is the number
-        of ensemble members.
+        The counts for the n+1 bins in the rank histogram,
+        where n is the number of ensemble members.
 
     """
     if normalize:
