@@ -82,6 +82,7 @@ Available Exporters
 .. autosummary::
     :toctree: ../generated/
 
+    initialize_forecast_exporter_geotiff
     initialize_forecast_exporter_kineros
     initialize_forecast_exporter_netcdf
 
@@ -92,7 +93,7 @@ Generic functions
     :toctree: ../generated/
 
     export_forecast_dataset
-    close_forecast_file
+    close_forecast_files
 """
 
 from datetime import datetime
