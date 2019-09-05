@@ -396,6 +396,11 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     elif incremental is not None:
         raise ValueError("unknown argument value incremental='%s': must be 'timestep' or 'member'" % str(incremental))
 
+    n_ens_gt_one = False
+    if n_ens_members is not None:
+        if n_ens_members > 1:
+            n_ens_gt_one = True
+
     exporter = {}
 
     outfn = os.path.join(outpath, outfnprefix + ".nc")
@@ -485,7 +490,7 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
         for i in grid_mapping_params.items():
             var_gm.setncattr(i[0], i[1])
 
-    if n_ens_members > 1:
+    if incremental == "member" or n_ens_gt_one:
         var_ens_num = ncf.createVariable("ens_number", np.int,
                                          dimensions=("ens_number",)
                                          )
@@ -501,7 +506,7 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
 
-    if n_ens_members > 1:
+    if incremental == "member" or n_ens_gt_one:
         var_f = ncf.createVariable(var_name, np.float32,
                                    dimensions=("ens_number", "time", "y", "x"),
                                    zlib=True, complevel=9)
@@ -519,7 +524,7 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     exporter["method"] = "netcdf"
     exporter["ncfile"] = ncf
     exporter["var_F"] = var_f
-    if n_ens_members > 1:
+    if incremental == "member" or n_ens_gt_one:
         exporter["var_ens_num"] = var_ens_num
     exporter["var_time"] = var_time
     exporter["var_name"] = var_name
