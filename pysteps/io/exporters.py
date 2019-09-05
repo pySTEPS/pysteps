@@ -318,7 +318,8 @@ def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
                                         n_timesteps, shape, metadata,
                                         n_ens_members=1, incremental=None,
                                         **kwargs):
-    """Initialize a netCDF forecast exporter.
+    """Initialize a netCDF forecast exporter. All outputs are written to a
+    single file named as outfnprefix+'.nc'.
 
     Parameters
     ----------
@@ -385,7 +386,7 @@ def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
 
     exporter = {}
 
-    ncf = netCDF4.Dataset(outfnprefix, 'w', format="NETCDF4")
+    ncf = netCDF4.Dataset(outfnprefix + ".nc", 'w', format="NETCDF4")
 
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
