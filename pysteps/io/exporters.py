@@ -8,7 +8,7 @@ formats.
 Each exporter method in this module has its own initialization function that
 implements the following interface::
 
-  initialize_forecast_exporter_xxx(outfnprefix, startdate, timestep,
+  initialize_forecast_exporter_xxx(outpath, outfnprefix, startdate, timestep,
                                    n_timesteps, shape, metadata, n_ens_members=1,
                                    incremental=None, **kwargs)
 
@@ -28,6 +28,8 @@ table:
 +---------------+-------------------+-----------------------------------------+
 |   Argument    | Type/values       |             Description                 |
 +===============+===================+=========================================+
+| outpath       | str               | output path                             |
++---------------+-------------------+-----------------------------------------+
 | outfnprefix   | str               | prefix of output file names             |
 +---------------+-------------------+-----------------------------------------+
 | startdate     | datetime.datetime | start date of the forecast              |
@@ -109,18 +111,21 @@ try:
 except ImportError:
     PYPROJ_IMPORTED = False
 
-def initialize_forecast_exporter_geotiff(outfnprefix, startdate, timestep,
-                                         n_timesteps, shape, metadata,
+def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
+                                         timestep, n_timesteps, shape, metadata,
                                          n_ens_members=1, incremental=None,
                                          **kwargs):
     """Initialize a GeoTIFF forecast exporter.
 
     The output files are named as '<outfnprefix>_<startdate>_<t>.tif', where
-    startdate is in YYmmddHHMM format and t is lead time (minutes).  GDAL needs
+    startdate is in YYmmddHHMM format and t is lead time (minutes). GDAL needs
     to be installed to use this exporter.
 
     Parameters
     ----------
+    outpath : str
+        Output path.
+
     outfnprefix : str
         Prefix for output file names.
 
@@ -189,6 +194,7 @@ def initialize_forecast_exporter_geotiff(outfnprefix, startdate, timestep,
         for i in range(n_timesteps):
             outfn = _get_geotiff_filename(outfnprefix, startdate, n_timesteps,
                                           timestep, i)
+            outfn = os.path.join(outpath, outfn)
             dst = _create_geotiff_file(outfn, driver, shape, metadata, n_ens_members)
             exporter["dst"].append(dst)
     else:
@@ -200,8 +206,8 @@ def initialize_forecast_exporter_geotiff(outfnprefix, startdate, timestep,
 # Revise the variable names and
 # the structure of the file if necessary.
 
-def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
-                                         n_timesteps, shape, metadata,
+def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
+                                         timestep, n_timesteps, shape, metadata,
                                          n_ens_members=1, incremental=None,
                                          **kwargs):
     """Initialize a KINEROS2 Rainfall .pre file as specified
@@ -214,6 +220,9 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
 
     Parameters
     ----------
+    outpath : str
+        Output path.
+
     outfnprefix : str
         Prefix for output file names.
 
@@ -261,15 +270,16 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
     n_ens_members = np.min((99, n_ens_members))
     fns = []
     for i in range(n_ens_members):
-        fn = "%s_N%02d%s" % (outfnprefix, i, ".pre")
-        with open(fn, "w") as fd:
+        outfn = "%s_N%02d%s" % (outfnprefix, i, ".pre")
+        outfn = os.path.join(outpath, outfn)
+        with open(outfn, "w") as fd:
             # write header
             fd.writelines("! pysteps-generated nowcast.\n")
             fd.writelines("! created the %s.\n" % datetime.now().strftime("%c"))
             # TODO(exporters): Add pySTEPS version here
             fd.writelines("! Member = %02d.\n" % i)
             fd.writelines("! Startdate = %s.\n" % startdate.strftime("%c"))
-            fns.append(fn)
+            fns.append(outfn)
         fd.close()
 
     h, w = shape
@@ -313,15 +323,18 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
 # Revise the variable names and
 # the structure of the file if necessary.
 
-def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
-                                        n_timesteps, shape, metadata,
+def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
+                                        timestep, n_timesteps, shape, metadata,
                                         n_ens_members=1, incremental=None,
                                         **kwargs):
     """Initialize a netCDF forecast exporter. All outputs are written to a
-    single file named as outfnprefix+'.nc'.
+    single file named as '<outfnprefix>_.nc'.
 
     Parameters
     ----------
+    outpath : str
+        Output path.
+
     outfnprefix : str
         Prefix for output file names.
 
@@ -385,7 +398,8 @@ def initialize_forecast_exporter_netcdf(outfnprefix, startdate, timestep,
 
     exporter = {}
 
-    ncf = netCDF4.Dataset(outfnprefix + ".nc", 'w', format="NETCDF4")
+    outfn = os.path.join(outpath, outfnprefix + ".nc")
+    ncf = netCDF4.Dataset(outfn, 'w', format="NETCDF4")
 
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
