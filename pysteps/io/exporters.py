@@ -208,7 +208,9 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
     in https://www.tucson.ars.ag.gov/kineros/.
 
     Grid points are treated as individual rain gauges and a separate file is
-    produced for each ensemble member.
+    produced for each ensemble member. The output files are named as
+    <outfnprefix>_N<n>.pre, where <n> is the index of ensemble member starting
+    from zero.
 
     Parameters
     ----------
@@ -255,15 +257,11 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
 
     exporter = {}
 
-    basefn, extfn = os.path.splitext(outfnprefix)
-    if extfn == "":
-        extfn = ".pre"
-
     # one file for each member
     n_ens_members = np.min((99, n_ens_members))
     fns = []
     for i in range(n_ens_members):
-        fn = "%s_N%02d%s" % (basefn, i, extfn)
+        fn = "%s_N%02d%s" % (outfnprefix, i, ".pre")
         with open(fn, "w") as fd:
             # write header
             fd.writelines("! pysteps-generated nowcast.\n")
