@@ -60,16 +60,6 @@ table:
 |               |                   | 'member' = write a forecast sequence    |
 |               |                   | for a given ensemble member             |
 +---------------+-------------------+-----------------------------------------+
-| outputfiles   | 'single',         | organization of the output files        |
-|               | 'per_ens_member', | 'single' = write the whole forecast     |
-|               | 'per_timestep'    | into the same file                      |
-|               | 'separate'        | 'per_ens_member' = use one file for     |
-|               |                   | each member of a forecast ensemble      |
-|               |                   | 'per_timestep' = use one file for each  |
-|               |                   | time step                               |
-|               |                   | 'separate' = use a separate file for    |
-|               |                   | each ensemble member and time step      |
-+---------------+-------------------+-----------------------------------------+
 
 Optional exporter-specific arguments are passed with **kwargs. The return value
 is a dictionary containing an exporter object. This can be used with
@@ -155,11 +145,12 @@ def initialize_forecast_exporter_geotiff(outfnprefix, startdate, timestep,
     n_ens_members : int
         Number of ensemble members in the forecast.
 
-    incremental : {None,'timestep','member'}, optional
+    incremental : {None,'timestep'}, optional
         Allow incremental writing of datasets into the GeoTIFF files. Set to
         'timestep' to enable writing forecasts or forecast ensembles separately
         for each time step. If set to None, incremental writing is disabled and
-        the whole forecast is written in a single function call.
+        the whole forecast is written in a single function call. The 'member'
+        option is not currently implemented.
 
     Returns
     -------
@@ -299,6 +290,7 @@ def initialize_forecast_exporter_kineros(outfnprefix, startdate, timestep,
     xr += 0.5 * (xr[1] - xr[0])
     yr = np.linspace(metadata["y1"], metadata["y2"], h + 1)[:-1]
     yr += 0.5 * (yr[1] - yr[0])
+
     xy_coords = np.stack(np.meshgrid(xr, yr))
 
     exporter["method"] = "kineros"
