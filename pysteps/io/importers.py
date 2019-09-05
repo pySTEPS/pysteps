@@ -158,20 +158,20 @@ def import_bom_rf3(filename, **kwargs):
             "but it is not installed"
         )
 
-    R = _import_bom_rf3_data(filename)
+    precip = _import_bom_rf3_data(filename)
 
     geodata = _import_bom_rf3_geodata(filename)
     metadata = geodata
     # TODO(import_bom_rf3): Add missing georeferencing data.
 
     metadata["transform"] = None
-    metadata["zerovalue"] = np.nanmin(R)
-    if np.any(np.isfinite(R)):
-        metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
+    metadata["zerovalue"] = np.nanmin(precip)
+    if np.any(np.isfinite(precip)):
+        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
     else:
         metadata["threshold"] = np.nan
 
-    return R, None, metadata
+    return precip, None, metadata
 
 
 def _import_bom_rf3_data(filename):
@@ -295,11 +295,11 @@ def import_fmi_geotiff(filename, **kwargs):
     f = gdal.Open(filename, gdalconst.GA_ReadOnly)
 
     rb = f.GetRasterBand(1)
-    R = rb.ReadAsArray()
-    MASK = R == 255
-    R = R.astype(float) * rb.GetScale() + rb.GetOffset()
-    R = (R - 64.0) / 2.0
-    R[MASK] = np.nan
+    precip = rb.ReadAsArray()
+    mask = precip == 255
+    precip = precip.astype(float) * rb.GetScale() + rb.GetOffset()
+    precip = (precip - 64.0) / 2.0
+    precip[mask] = np.nan
 
     sr = osr.SpatialReference()
     pr = f.GetProjection()
@@ -326,11 +326,11 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["unit"] = rb.GetUnitType()
     metadata["transform"] = None
     metadata["accutime"] = 5.0
-    R_min = np.nanmin(R)
-    metadata["threshold"] = np.nanmin(R[R > R_min])
-    metadata["zerovalue"] = R_min
+    precip_min = np.nanmin(precip)
+    metadata["threshold"] = np.nanmin(precip[precip > precip_min])
+    metadata["zerovalue"] = precip_min
 
-    return R, None, metadata
+    return precip, None, metadata
 
 
 def import_fmi_pgm(filename, **kwargs):
@@ -368,30 +368,30 @@ def import_fmi_pgm(filename, **kwargs):
     pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
 
     if gzipped is False:
-        R = imread(filename)
+        precip = imread(filename)
     else:
-        R = imread(gzip.open(filename, "r"))
+        precip = imread(gzip.open(filename, "r"))
     geodata = _import_fmi_pgm_geodata(pgm_metadata)
 
-    MASK = R == pgm_metadata["missingval"]
-    R = R.astype(float)
-    R[MASK] = np.nan
-    R = (R - 64.0) / 2.0
+    mask = precip == pgm_metadata["missingval"]
+    precip = precip.astype(float)
+    precip[mask] = np.nan
+    precip = (precip - 64.0) / 2.0
 
     metadata = geodata
     metadata["institution"] = "Finnish Meteorological Institute"
     metadata["accutime"] = 5.0
     metadata["unit"] = "dBZ"
     metadata["transform"] = "dB"
-    metadata["zerovalue"] = np.nanmin(R)
-    if np.any(np.isfinite(R)):
-        metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
+    metadata["zerovalue"] = np.nanmin(precip)
+    if np.any(np.isfinite(precip)):
+        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
     else:
         metadata["threshold"] = np.nan
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
 
-    return R, None, metadata
+    return precip, None, metadata
 
 
 def _import_fmi_pgm_geodata(metadata):
@@ -442,22 +442,22 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     else:
         f = gzip.open(filename, "rb")
 
-    l = f.readline()
-    while not l.startswith(b"#"):
-        l = f.readline()
-    while l.startswith(b"#"):
-        x = l.decode()
+    file_line = f.readline()
+    while not file_line.startswith(b"#"):
+        file_line = f.readline()
+    while file_line.startswith(b"#"):
+        x = file_line.decode()
         x = x[1:].strip().split(" ")
         if len(x) >= 2:
             k = x[0]
             v = x[1:]
             metadata[k] = v
         else:
-            l = f.readline()
+            file_line = f.readline()
             continue
-        l = f.readline()
-    l = f.readline().decode()
-    metadata["missingval"] = int(l)
+        file_line = f.readline()
+    file_line = f.readline().decode()
+    metadata["missingval"] = int(file_line)
     f.close()
 
     return metadata
@@ -535,18 +535,18 @@ def import_mch_gif(filename, product, unit, accutime):
         lut = dict(zip(zip(lut[:, 1], lut[:, 2], lut[:, 3]), lut[:, -1]))
 
         # apply lookup table conversion
-        R = np.zeros(len(Brgb.getdata()))
+        precip = np.zeros(len(Brgb.getdata()))
         for i, dn in enumerate(Brgb.getdata()):
-            R[i] = lut.get(dn, np.nan)
+            precip[i] = lut.get(dn, np.nan)
 
         # convert to original shape
         width, height = B.size
-        R = R.reshape(height, width)
+        precip = precip.reshape(height, width)
 
         # set values outside observational range to NaN,
         # and values in non-precipitating areas to zero.
-        R[R < 0] = 0
-        R[R > 9999] = np.nan
+        precip[precip < 0] = 0
+        precip[precip > 9999] = np.nan
 
     elif product.lower() in ["aqc", "cpc", "acquire ", "combiprecip"]:
 
@@ -555,7 +555,7 @@ def import_mch_gif(filename, product, unit, accutime):
 
         # build lookup table [mm/5min]
         lut = np.zeros(256)
-        A = 316.0
+        a = 316.0
         b = 1.5
         for i in range(256):
             if (i < 2) or (i > 250 and i < 255):
@@ -563,10 +563,10 @@ def import_mch_gif(filename, product, unit, accutime):
             elif i == 255:
                 lut[i] = np.nan
             else:
-                lut[i] = (10.0 ** ((i - 71.5) / 20.0) / A) ** (1.0 / b)
+                lut[i] = (10.0 ** ((i - 71.5) / 20.0) / a) ** (1.0 / b)
 
         # apply lookup table
-        R = lut[B]
+        precip = lut[B]
 
     else:
         raise ValueError("unknown product %s" % product)
@@ -574,9 +574,9 @@ def import_mch_gif(filename, product, unit, accutime):
     metadata["accutime"] = accutime
     metadata["unit"] = unit
     metadata["transform"] = None
-    metadata["zerovalue"] = np.nanmin(R)
-    if np.any(R > np.nanmin(R)):
-        metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
+    metadata["zerovalue"] = np.nanmin(precip)
+    if np.any(precip > np.nanmin(precip)):
+        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
     else:
         metadata["threshold"] = np.nan
     metadata["institution"] = "MeteoSwiss"
@@ -584,7 +584,7 @@ def import_mch_gif(filename, product, unit, accutime):
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
-    return R, None, metadata
+    return precip, None, metadata
 
 
 def import_mch_hdf5(filename, **kwargs):
@@ -631,8 +631,8 @@ def import_mch_hdf5(filename, **kwargs):
 
     f = h5py.File(filename, "r")
 
-    R = None
-    Q = None
+    precip = None
+    quality = None
 
     for dsg in f.items():
         if dsg[0].startswith("dataset"):
@@ -659,22 +659,22 @@ def import_mch_hdf5(filename, **kwargs):
                         )
 
                     if qty_.decode() in [qty, "QIND"]:
-                        ARR = dg[1]["data"][...]
-                        MASK_N = ARR == nodata
-                        MASK_U = ARR == undetect
-                        MASK = np.logical_and(~MASK_U, ~MASK_N)
+                        arr = dg[1]["data"][...]
+                        mask_n = arr == nodata
+                        mask_u = arr == undetect
+                        mask = np.logical_and(~mask_u, ~mask_n)
 
                         if qty_.decode() == qty:
-                            R = np.empty(ARR.shape)
-                            R[MASK] = ARR[MASK] * gain + offset
-                            R[MASK_U] = np.nan
-                            R[MASK_N] = np.nan
+                            precip = np.empty(arr.shape)
+                            precip[mask] = arr[mask] * gain + offset
+                            precip[mask_u] = np.nan
+                            precip[mask_n] = np.nan
                         elif qty_.decode() == "QIND":
-                            Q = np.empty(ARR.shape, dtype=float)
-                            Q[MASK] = ARR[MASK]
-                            Q[~MASK] = np.nan
+                            quality = np.empty(arr.shape, dtype=float)
+                            quality[mask] = arr[mask]
+                            quality[~mask] = np.nan
 
-    if R is None:
+    if precip is None:
         raise IOError("requested quantity %s not found" % qty)
 
     where = f["where"]
@@ -699,8 +699,8 @@ def import_mch_hdf5(filename, **kwargs):
         unit = "mm/h"
         transform = None
 
-    if np.any(np.isfinite(R)):
-        thr = np.nanmin(R[R > np.nanmin(R)])
+    if np.any(np.isfinite(precip)):
+        thr = np.nanmin(precip[precip > np.nanmin(precip)])
     else:
         thr = np.nan
 
@@ -711,7 +711,7 @@ def import_mch_hdf5(filename, **kwargs):
             "accutime": 5.0,
             "unit": unit,
             "transform": transform,
-            "zerovalue": np.nanmin(R),
+            "zerovalue": np.nanmin(precip),
             "threshold": thr,
             "zr_a": 316.0,
             "zr_b": 1.5,
@@ -720,7 +720,7 @@ def import_mch_hdf5(filename, **kwargs):
 
     f.close()
 
-    return R, Q, metadata
+    return precip, quality, metadata
 
 
 def import_mch_metranet(filename, product, unit, accutime):
@@ -770,7 +770,7 @@ def import_mch_metranet(filename, product, unit, accutime):
         )
 
     ret = metranet.read_file(filename, physic_value=True, verbose=False)
-    R = ret.data
+    precip = ret.data
 
     geodata = _import_mch_geodata()
 
@@ -780,15 +780,15 @@ def import_mch_metranet(filename, product, unit, accutime):
     metadata["accutime"] = accutime
     metadata["unit"] = unit
     metadata["transform"] = None
-    metadata["zerovalue"] = np.nanmin(R)
+    metadata["zerovalue"] = np.nanmin(precip)
     if np.isnan(metadata["zerovalue"]):
         metadata["threshold"] = np.nan
     else:
-        metadata["threshold"] = np.nanmin(R[R > metadata["zerovalue"]])
+        metadata["threshold"] = np.nanmin(precip[precip > metadata["zerovalue"]])
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
-    return R, None, metadata
+    return precip, None, metadata
 
 
 def _import_mch_geodata():
@@ -869,8 +869,8 @@ def import_opera_hdf5(filename, **kwargs):
 
     f = h5py.File(filename, "r")
 
-    R = None
-    Q = None
+    precip = None
+    quality = None
 
     for dsg in f.items():
         if dsg[0].startswith("dataset"):
@@ -897,60 +897,61 @@ def import_opera_hdf5(filename, **kwargs):
                         )
 
                     if qty_.decode() in [qty, "QIND"]:
-                        ARR = dg[1]["data"][...]
-                        MASK_N = ARR == nodata
-                        MASK_U = ARR == undetect
-                        MASK = np.logical_and(~MASK_U, ~MASK_N)
+                        arr = dg[1]["data"][...]
+                        mask_n = arr == nodata
+                        mask_u = arr == undetect
+                        mask = np.logical_and(~mask_u, ~mask_n)
 
                         if qty_.decode() == qty:
-                            R = np.empty(ARR.shape)
-                            R[MASK] = ARR[MASK] * gain + offset
-                            R[MASK_U] = 0.0
-                            R[MASK_N] = np.nan
+                            precip = np.empty(arr.shape)
+                            precip[mask] = arr[mask] * gain + offset
+                            precip[mask_u] = 0.0
+                            precip[mask_n] = np.nan
                         elif qty_.decode() == "QIND":
-                            Q = np.empty(ARR.shape, dtype=float)
-                            Q[MASK] = ARR[MASK]
-                            Q[~MASK] = np.nan
+                            quality = np.empty(arr.shape, dtype=float)
+                            quality[mask] = arr[mask]
+                            quality[~mask] = np.nan
 
-    if R is None:
+    if precip is None:
         raise IOError("requested quantity %s not found" % qty)
 
     where = f["where"]
     proj4str = where.attrs["projdef"].decode()
     pr = pyproj.Proj(proj4str)
 
-    LL_lat = where.attrs["LL_lat"]
-    LL_lon = where.attrs["LL_lon"]
-    UR_lat = where.attrs["UR_lat"]
-    UR_lon = where.attrs["UR_lon"]
+    ll_lat = where.attrs["LL_lat"]
+    ll_lon = where.attrs["LL_lon"]
+    ur_lat = where.attrs["UR_lat"]
+    ur_lon = where.attrs["UR_lon"]
     if (
             "LR_lat" in where.attrs.keys()
             and "LR_lon" in where.attrs.keys()
             and "UL_lat" in where.attrs.keys()
             and "UL_lon" in where.attrs.keys()
     ):
-        LR_lat = float(where.attrs["LR_lat"])
-        LR_lon = float(where.attrs["LR_lon"])
-        UL_lat = float(where.attrs["UL_lat"])
-        UL_lon = float(where.attrs["UL_lon"])
+        lr_lat = float(where.attrs["LR_lat"])
+        lr_lon = float(where.attrs["LR_lon"])
+        ul_lat = float(where.attrs["UL_lat"])
+        ul_lon = float(where.attrs["UL_lon"])
         full_cornerpts = True
     else:
         full_cornerpts = False
 
-    LL_x, LL_y = pr(LL_lon, LL_lat)
-    UR_x, UR_y = pr(UR_lon, UR_lat)
+    ll_x, ll_y = pr(ll_lon, ll_lat)
+    ur_x, ur_y = pr(ur_lon, ur_lat)
+
     if full_cornerpts:
-        LR_x, LR_y = pr(LR_lon, LR_lat)
-        UL_x, UL_y = pr(UL_lon, UL_lat)
-        x1 = min(LL_x, UL_x)
-        y1 = min(LL_y, LR_y)
-        x2 = max(LR_x, UR_x)
-        y2 = max(UL_y, UR_y)
+        lr_x, lr_y = pr(lr_lon, lr_lat)
+        ul_x, ul_y = pr(ul_lon, ul_lat)
+        x1 = min(ll_x, ul_x)
+        y1 = min(ll_y, lr_y)
+        x2 = max(lr_x, ur_x)
+        y2 = max(ul_y, ur_y)
     else:
-        x1 = LL_x
-        y1 = LL_y
-        x2 = UR_x
-        y2 = UR_y
+        x1 = ll_x
+        y1 = ll_y
+        x2 = ur_x
+        y2 = ur_y
 
     if "xscale" in where.attrs.keys() and "yscale" in where.attrs.keys():
         xpixelsize = where.attrs["xscale"]
@@ -969,17 +970,17 @@ def import_opera_hdf5(filename, **kwargs):
         unit = "mm/h"
         transform = None
 
-    if np.any(np.isfinite(R)):
-        thr = np.nanmin(R[R > np.nanmin(R)])
+    if np.any(np.isfinite(precip)):
+        thr = np.nanmin(precip[precip > np.nanmin(precip)])
     else:
         thr = np.nan
 
     metadata = {
         "projection": proj4str,
-        "ll_lon": LL_lon,
-        "ll_lat": LL_lat,
-        "ur_lon": UR_lon,
-        "ur_lat": UR_lat,
+        "ll_lon": ll_lon,
+        "ll_lat": ll_lat,
+        "ur_lon": ur_lon,
+        "ur_lat": ur_lat,
         "x1": x1,
         "y1": y1,
         "x2": x2,
@@ -991,13 +992,13 @@ def import_opera_hdf5(filename, **kwargs):
         "accutime": 15.0,
         "unit": unit,
         "transform": transform,
-        "zerovalue": np.nanmin(R),
+        "zerovalue": np.nanmin(precip),
         "threshold": thr,
     }
 
     f.close()
 
-    return R, Q, metadata
+    return precip, quality, metadata
 
 
 def _read_mch_hdf5_what_group(whatgrp):
@@ -1101,21 +1102,25 @@ def import_knmi_hdf5(filename, **kwargs):
 
     f = h5py.File(filename, "r")
     dset = f["image1"]["image_data"]
-    R_intermediate = np.copy(dset)  # copy the content
+    precip_intermediate = np.copy(dset)  # copy the content
 
     # In case R is a rainfall accumulation (ACRR), R is divided by 100.0,
     # because the data is saved as hundreds of mm (so, as integers). 65535 is
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
-        R = np.where(R_intermediate == 65535, np.NaN, R_intermediate / 100.0)
+        precip = np.where(precip_intermediate == 65535,
+                          np.NaN,
+                          precip_intermediate / 100.0)
 
     # In case reflectivities are imported, the no data value is 255. Values are
     # saved as integers. The reflectivities are not directly saved in dBZ, but
     # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
     if qty == "DBZH":
-        R = np.where(R_intermediate == 255, np.NaN, R_intermediate * 0.5 - 32.0)
+        precip = np.where(precip_intermediate == 255,
+                          np.NaN,
+                          precip_intermediate * 0.5 - 32.0)
 
-    if R is None:
+    if precip is None:
         raise IOError("requested quantity not found")
 
     # TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
@@ -1142,23 +1147,23 @@ def import_knmi_hdf5(filename, **kwargs):
 
     # Get coordinates
     latlon_corners = geographic.attrs["geo_product_corners"]
-    LL_lat = latlon_corners[1]
-    LL_lon = latlon_corners[0]
-    UR_lat = latlon_corners[5]
-    UR_lon = latlon_corners[4]
-    LR_lat = latlon_corners[7]
-    LR_lon = latlon_corners[6]
-    UL_lat = latlon_corners[3]
-    UL_lon = latlon_corners[2]
+    ll_lat = latlon_corners[1]
+    ll_lon = latlon_corners[0]
+    ur_lat = latlon_corners[5]
+    ur_lon = latlon_corners[4]
+    lr_lat = latlon_corners[7]
+    lr_lon = latlon_corners[6]
+    ul_lat = latlon_corners[3]
+    ul_lon = latlon_corners[2]
 
-    LL_x, LL_y = pr(LL_lon, LL_lat)
-    UR_x, UR_y = pr(UR_lon, UR_lat)
-    LR_x, LR_y = pr(LR_lon, LR_lat)
-    UL_x, UL_y = pr(UL_lon, UL_lat)
-    x1 = min(LL_x, UL_x)
-    y2 = min(LL_y, LR_y)
-    x2 = max(LR_x, UR_x)
-    y1 = max(UL_y, UR_y)
+    ll_x, ll_y = pr(ll_lon, ll_lat)
+    ur_x, ur_y = pr(ur_lon, ur_lat)
+    lr_x, lr_y = pr(lr_lon, lr_lat)
+    ul_x, ul_y = pr(ul_lon, ul_lat)
+    x1 = min(ll_x, ul_x)
+    y2 = min(ll_y, lr_y)
+    x2 = max(lr_x, ur_x)
+    y1 = max(ul_y, ur_y)
 
     # Fill in the metadata
     metadata["x1"] = x1 * 1000.0
@@ -1173,10 +1178,10 @@ def import_knmi_hdf5(filename, **kwargs):
     metadata["unit"] = unit
     metadata["transform"] = transform
     metadata["zerovalue"] = 0.0
-    metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
+    metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
     metadata["zr_a"] = 200.0
     metadata["zr_b"] = 1.6
 
     f.close()
 
-    return R, None, metadata
+    return precip, None, metadata

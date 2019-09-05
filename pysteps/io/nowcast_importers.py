@@ -78,15 +78,15 @@ from pysteps.exceptions import MissingOptionalDependency, DataModelError
 try:
     import netCDF4
 
-    netcdf4_imported = True
+    NETCDF4_IMPORTED = True
 except ImportError:
-    netcdf4_imported = False
+    NETCDF4_IMPORTED = False
 
 
 def import_netcdf_pysteps(filename, **kwargs):
     """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the
     CF 1.7 specification."""
-    if not netcdf4_imported:
+    if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import pysteps netcdf "
             "nowcasts but it is not installed"
@@ -97,22 +97,22 @@ def import_netcdf_pysteps(filename, **kwargs):
         var_names = list(ds.variables.keys())
 
         if "precip_intensity" in var_names:
-            R = ds.variables["precip_intensity"]
+            precip = ds.variables["precip_intensity"]
             unit = "mm/h"
             accutime = None
             transform = None
         elif "precip_accum" in var_names:
-            R = ds.variables["precip_accum"]
+            precip = ds.variables["precip_accum"]
             unit = "mm"
             accutime = None
             transform = None
         elif "hourly_precip_accum" in var_names:
-            R = ds.variables["hourly_precip_accum"]
+            precip = ds.variables["hourly_precip_accum"]
             unit = "mm"
             accutime = 60.0
             transform = None
         elif "reflectivity" in var_names:
-            R = ds.variables["reflectivity"]
+            precip = ds.variables["reflectivity"]
             unit = "dBZ"
             accutime = None
             transform = "dB"
@@ -125,7 +125,7 @@ def import_netcdf_pysteps(filename, **kwargs):
                 "file: " + filename
             )
 
-        R = R[...].squeeze().astype(float)
+        precip = precip[...].squeeze().astype(float)
 
         metadata = {}
 
@@ -135,7 +135,6 @@ def import_netcdf_pysteps(filename, **kwargs):
         timestamps = netCDF4.num2date(time_var[:], time_var.units)
         metadata["timestamps"] = timestamps
 
-        projdef = ""
         if "polar_stereographic" in var_names:
             vn = "polar_stereographic"
 
@@ -169,12 +168,12 @@ def import_netcdf_pysteps(filename, **kwargs):
         metadata["accutime"] = accutime
         metadata["unit"] = unit
         metadata["transform"] = transform
-        metadata["zerovalue"] = np.nanmin(R)
-        metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
+        metadata["zerovalue"] = np.nanmin(precip)
+        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
 
         ds.close()
 
-        return R, metadata
+        return precip, metadata
     except Exception as er:
         print("There was an error processing the file", er)
         return None, None

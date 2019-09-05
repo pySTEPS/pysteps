@@ -12,31 +12,32 @@ Utility methods for creating and processing arrays.
 
 import numpy as np
 
+
 def compute_centred_coord_array(M, N):
     """Compute a 2D coordinate array, where the origin is at the center.
-    
+
     Parameters
     ----------
     M : int
       The height of the array.
     N : int
       The width of the array.
-    
+
     Returns
     -------
     out : ndarray
       The coordinate array.
-     
+
     Examples
     --------
     >>> compute_centred_coord_array(2, 2)
-    
+
     (array([[-2],\n
         [-1],\n
         [ 0],\n
         [ 1],\n
         [ 2]]), array([[-2, -1,  0,  1,  2]]))
-    
+
     """
 
     if M % 2 == 1:
@@ -49,6 +50,6 @@ def compute_centred_coord_array(M, N):
     else:
         s2 = np.s_[-int(N/2):int(N/2)]
 
-    YC,XC = np.ogrid[s1, s2]
+    YC, XC = np.ogrid[s1, s2]
 
-    return YC,XC
+    return YC, XC
