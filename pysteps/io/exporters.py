@@ -115,8 +115,9 @@ def initialize_forecast_exporter_geotiff(outfnprefix, startdate, timestep,
                                          **kwargs):
     """Initialize a GeoTIFF forecast exporter.
 
-    Initialize a GeoTIFF forecast exporter. GDAL needs to be installed to
-    use this exporter.
+    The output files are named as '<outfnprefix>_<startdate>_<t>.tif', where
+    startdate is in YYmmddHHMM format and t is lead time (minutes).  GDAL needs
+    to be installed to use this exporter.
 
     Parameters
     ----------
