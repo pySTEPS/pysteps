@@ -6,7 +6,7 @@ Implementation of extrapolation-based nowcasting methods.
 
 .. autosummary::
     :toctree: ../generated/
-    
+
     forecast
 """
 
@@ -66,7 +66,8 @@ def forecast(precip, velocity, num_timesteps,
 
     if measure_time:
         print("Computing extrapolation nowcast from a "
-          f"{precip.shape[0]:d}x{precip.shape[1]:d} input grid... ", end="")
+              f"{precip.shape[0]:d}x{precip.shape[1]:d} input grid... ",
+              end="")
 
     if measure_time:
         start_time = time.time()

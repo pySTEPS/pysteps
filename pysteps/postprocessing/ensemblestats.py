@@ -31,8 +31,8 @@ def mean(X, ignore_nan=False, X_thr=None):
         If True, ignore nan values.
 
     X_thr : float
-        Optional threshold for computing the ensemble mean. Values below **X_thr**
-        are ignored.
+        Optional threshold for computing the ensemble mean.
+        Values below **X_thr** are ignored.
 
     Returns
     -------
@@ -70,8 +70,8 @@ def excprob(X, X_thr, ignore_nan=False):
     ----------
 
     X : array_like
-        Array of shape (k, m, n, ...) containing an k-member ensemble of forecasts
-        with shape (m, n, ...).
+        Array of shape (k, m, n, ...) containing an k-member ensemble of
+        forecasts with shape (m, n, ...).
 
     X_thr : float or a sequence of floats
         Intensity threshold(s) for which the exceedance probabilities are
@@ -84,8 +84,8 @@ def excprob(X, X_thr, ignore_nan=False):
     -------
 
     out : ndarray
-        Array of shape (len(X_thr), m, n) containing the exceedance probabilities
-        for the given intensity thresholds.
+        Array of shape (len(X_thr), m, n) containing the exceedance
+        probabilities for the given intensity thresholds.
         If len(X_thr)=1, the first dimension is dropped.
     """
     #  Checks
@@ -152,12 +152,13 @@ def banddepth(X, thr=None, norm=False):
     ----------
 
     Lopez-Pintado, Sara, and Juan Romo. 2009. "On the Concept of Depth for
-    Functional Data." Journal of the American Statistical Association 104 (486):
-    718–34. https://doi.org/10.1198/jasa.2009.0108.
+    Functional Data." Journal of the American Statistical Association
+    104 (486): 718–34. https://doi.org/10.1198/jasa.2009.0108.
 
     Sun, Ying, Marc G. Genton, and Douglas W. Nychka. 2012. "Exact Fast
     Computation of Band Depth for Large Functional Datasets: How Quickly Can
-    One Million Curves Be Ranked?" Stat 1 (1): 68–74. https://doi.org/10.1002/sta4.8.
+    One Million Curves Be Ranked?" Stat 1 (1): 68–74.
+    https://doi.org/10.1002/sta4.8.
     """
 
     # mask invalid pixels

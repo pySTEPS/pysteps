@@ -6,7 +6,7 @@ Implementation of the S-PROG method described in :cite:`Seed2003`
 
 .. autosummary::
     :toctree: ../generated/
-    
+
     forecast
 """
 
@@ -41,11 +41,13 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     ----------
     R : array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
-      ordered by timestamp from oldest to newest. The time steps between the inputs
-      are assumed to be regular, and the inputs are required to have finite values.
+      ordered by timestamp from oldest to newest. The time steps between
+      the inputs are assumed to be regular, and the inputs are required to have
+      finite values.
     V : array-like
-      Array of shape (2,m,n) containing the x- and y-components of the advection
-      field. The velocities are assumed to represent one time step between the
+      Array of shape (2,m,n) containing the x- and y-components of the
+      advection field.
+      The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
     n_timesteps : int
       Number of time steps to forecast.
@@ -66,19 +68,20 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
       The order of the autoregressive model to use. Must be >= 1.
     conditional : bool, optional
       If set to True, compute the statistics of the precipitation field
-      conditionally by excluding pixels where the values are below the threshold
-      R_thr.
+      conditionally by excluding pixels where the values are
+      below the threshold R_thr.
     probmatching_method : {'cdf','mean',None}, optional
       Method for matching the conditional statistics of the forecast field
       (areas with precipitation intensity above the threshold R_thr) with those
       of the most recently observed one. 'cdf'=map the forecast CDF to the
-      observed one, 'mean'=adjust only the mean value, None=no matching applied.
+      observed one, 'mean'=adjust only the mean value,
+      None=no matching applied.
     num_workers : int, optional
       The number of workers to use for parallel computation. Applicable if dask
-      is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
-      is advisable to disable OpenMP by setting the environment variable
-      OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
-      threads.
+      is enabled or pyFFTW is used for computing the FFT.
+      When num_workers>1, it is advisable to disable OpenMP by setting
+      the environment variable OMP_NUM_THREADS to 1.
+      This avoids slowdown caused by too many simultaneous threads.
     fft_method : str, optional
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
@@ -155,7 +158,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     if measure_time:
         starttime_init = time.time()
 
-    fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
+    fft = utils.get_method(fft_method, shape=R.shape[1:],
+                           n_threads=num_workers)
 
     M, N = R.shape[1:]
 
@@ -213,7 +217,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
     R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
 
-    # compute lag-l temporal autocorrelation coefficients for each cascade level
+    # compute lag-l temporal autocorrelation coefficients
+    # for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
         R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order + 1)])
@@ -225,7 +230,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
         # adjust the lag-2 correlation coefficient to ensure that the AR(p)
         # process is stationary
         for i in range(n_cascade_levels):
-            GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(GAMMA[i, 0], GAMMA[i, 1])
+            GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(GAMMA[i, 0],
+                                                               GAMMA[i, 1])
 
     # estimate the parameters of the AR(p) model from the autocorrelation
     # coefficients
