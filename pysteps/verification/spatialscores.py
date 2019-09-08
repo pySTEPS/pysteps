@@ -456,6 +456,7 @@ def binary_mse_accum(bmse, X_f, X_o):
                 bmse["n"] + 1
             )
 
+    bmse["n"] += 1
 
 def binary_mse_merge(bmse_1, bmse_2):
     """Merge two BMSE objects.
