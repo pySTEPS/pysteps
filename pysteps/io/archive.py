@@ -92,7 +92,7 @@ def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext):
         if os.path.exists(fn):
             fn = fn
         else:
-            print('filename for date %s not found in %s' % (date, path))
+            print('file not found: %s' % fn)
             fn = None
     else:
         print('path', path, 'not found.')
