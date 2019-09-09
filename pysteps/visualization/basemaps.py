@@ -113,8 +113,6 @@ def plot_geography(map, proj4str, extent, shape=None, lw=0.5,
         cartopy_scale = kwargs.get("scale", "50m")
         cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
 
-    X, Y = None, None
-
     if map == "basemap":
         pr = pyproj.Proj(proj4str)
         x1, x2, y1, y2 = extent[0], extent[1], extent[2], extent[3]
