@@ -19,12 +19,45 @@ if PYWT_IMPORTED:
     test_data.append((R[0], R[1], "BMSE", [1], None, "Haar", 0.99989651))
 
 
-@pytest.mark.parametrize("X_f, X_o, name, thrs, scales, wavelet, expected",
-                         test_data)
+@pytest.mark.parametrize(
+    "X_f, X_o, name, thrs, scales, wavelet, expected", test_data
+)
 def test_intensity_scale(X_f, X_o, name, thrs, scales, wavelet, expected):
     """Test the intensity_scale."""
     assert_array_almost_equal(
-        spatialscores.intensity_scale(X_f, X_o, name,
-                                      thrs, scales, wavelet)[0][0],
+        spatialscores.intensity_scale(X_f, X_o, name, thrs, scales, wavelet)[
+            0
+        ][0],
         expected,
     )
+
+
+R = get_precipitation_fields(num_prev_files=3, return_raw=True)
+test_data = [(R[:2], R[2:], "FSS", [1], [10], None, 0.85062658)]
+if PYWT_IMPORTED:
+    test_data.append((R[:2], R[2:], "BMSE", [1], None, "Haar", 0.99985691))
+
+
+@pytest.mark.parametrize(
+    "R1, R2, name, thrs, scales, wavelet, expected", test_data
+)
+def test_intensity_scale_methods(
+    R1, R2, name, thrs, scales, wavelet, expected
+):
+    """Test the intensity_scale merge."""
+
+    # init
+    int_1 = spatialscores.intensity_scale_init(name, thrs, scales, wavelet)
+    int_2 = spatialscores.intensity_scale_init(name, thrs, scales, wavelet)
+
+    # accum
+    spatialscores.intensity_scale_accum(int_1, R1[0], R1[1])
+    spatialscores.intensity_scale_accum(int_2, R2[0], R2[1])
+
+    # merge
+    int = spatialscores.intensity_scale_merge(int_1, int_2)
+
+    # compute
+    score = spatialscores.intensity_scale_compute(int)[0][0]
+
+    assert_array_almost_equal(score, expected)
