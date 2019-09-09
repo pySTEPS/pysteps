@@ -805,9 +805,10 @@ def _get_geotiff_filename(prefix, startdate, n_timesteps, timestep,
     if n_timesteps * timestep == 0:
         raise ValueError("n_timesteps x timestep can't be 0.")
 
-    timestep_format = f"%0{int(np.floor(np.log10(n_timesteps * timestep))) + 1}d"
+    timestep_format_str = f"{{time_str:0{int(np.floor(np.log10(n_timesteps * timestep))) + 1}d}}"
 
     startdate_str = datetime.strftime(startdate, "%Y%m%d%H%M")
-    timestep_str = timestep_format % ((timestep_index + 1) * timestep)
 
-    return prefix + '_' + startdate_str + '_' + timestep_str + '.tif'
+    timestep_str = timestep_format_str.format(time_str=(timestep_index + 1) * timestep)
+
+    return f"{prefix}_{startdate_str}_{timestep_str}.tif"
