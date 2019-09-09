@@ -77,6 +77,9 @@ def proj4_to_basemap(proj4str):
             # TODO: Make sure that the proj.4 projection type is in all cases
             # mapped to the corresponding (or closest matching) Basemap
             # projection.
+            if v == "somerc":
+                raise UnsupportedSomercProjection("unsupported projection:"
+                                                  " somerc")
             if v not in ["latlon", "latlong", "lonlat", "longlat"]:
                 odict["projection"] = v
             else:
@@ -151,7 +154,7 @@ def proj4_to_cartopy(proj4str):
         v = s[1].strip()
         try:
             v = float(v)
-        except Exception as err:
+        except Exception:
             pass
 
         if k == "proj":
