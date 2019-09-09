@@ -152,7 +152,6 @@ def proj4_to_cartopy(proj4str):
         try:
             v = float(v)
         except Exception as err:
-            print(err)
             pass
 
         if k == "proj":
