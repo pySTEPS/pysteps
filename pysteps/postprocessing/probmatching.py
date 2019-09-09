@@ -18,6 +18,7 @@ import numpy as np
 from scipy import interpolate as sip
 from scipy import optimize as sop
 
+
 def compute_empirical_cdf(bin_edges, hist):
     """Compute an empirical cumulative distribution function from the given
     histogram.
@@ -38,7 +39,7 @@ def compute_empirical_cdf(bin_edges, hist):
     cdf = []
     xs = 0.0
 
-    for x,h in zip(zip(bin_edges[:-1], bin_edges[1:]), hist):
+    for x, h in zip(zip(bin_edges[:-1], bin_edges[1:]), hist):
         cdf.append(xs)
         xs += (x[1] - x[0]) * h
 
@@ -73,8 +74,8 @@ def nonparam_match_empirical_cdf(R, R_trg):
     if np.any(~np.isfinite(R_trg)):
         raise ValueError("target array contains non-finite values")
     if R.size != R_trg.size:
-      raise ValueError("dimension mismatch between R and R_trg: R.shape=%s, R_trg.shape=%s" % \
-        (str(R.shape), str(R_trg.shape)))
+        raise ValueError("dimension mismatch between R and R_trg: R.shape=%s, R_trg.shape=%s" % \
+                         (str(R.shape), str(R_trg.shape)))
 
     # zeros in initial array
     zvalue = R.min()
@@ -136,10 +137,10 @@ def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
     """
     pmm = {}
 
-    pmm["bin_edges_1"]      = bin_edges_1.copy()
-    pmm["cdf_1"]            = cdf_1.copy()
-    pmm["bin_edges_2"]      = bin_edges_2.copy()
-    pmm["cdf_2"]            = cdf_2.copy()
+    pmm["bin_edges_1"] = bin_edges_1.copy()
+    pmm["cdf_1"] = cdf_1.copy()
+    pmm["bin_edges_2"] = bin_edges_2.copy()
+    pmm["cdf_2"] = cdf_2.copy()
     pmm["cdf_interpolator"] = sip.interp1d(bin_edges_1, cdf_1, kind="linear")
 
     return pmm
@@ -158,7 +159,8 @@ def pmm_compute(pmm, x):
         The coordinate for which to compute the probability matched value.
 
     """
-    mask = np.logical_and(x >= pmm["bin_edges_1"][0], x <= pmm["bin_edges_1"][-1])
+    mask = np.logical_and(x >= pmm["bin_edges_1"][0],
+                          x <= pmm["bin_edges_1"][-1])
     p = pmm["cdf_interpolator"](x[mask])
 
     result = np.ones(len(mask)) * np.nan
@@ -189,8 +191,10 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     Other Parameters
     ----------------
     scale : float
-        Optional initial value of the scale parameter for the Nelder-Mead optimisation.
-        Typically, this would be the scale parameter estimated the previous time step.
+        Optional initial value of the scale parameter for the Nelder-Mead
+        optimisation.
+        Typically, this would be the scale parameter estimated the previous
+        time step.
         Default : 1.
     max_iterations : int
         Maximum allowed number of iterations and function evaluations.
@@ -227,31 +231,31 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     # define objective function
     def _get_error(scale):
         R_ = np.zeros_like(R)
-        R_[idx_wet]  = f((R[idx_wet] - shift)*scale)
+        R_[idx_wet] = f((R[idx_wet] - shift)*scale)
         R_[~idx_wet] = 0
         second_moment = np.nanstd(R_)**2 + np.nanmean(R_)**2
         return np.abs(second_moment - second_moment_trg)
 
     # Nelder-Mead optimisation
     nm_scale = sop.minimize(_get_error, scale, method="Nelder-Mead", tol=tol,
-                            options={"disp":False,"maxiter":max_iterations})
+                            options={"disp": False, "maxiter": max_iterations})
     scale = nm_scale["x"][0]
 
-    R[idx_wet]  = f((R[idx_wet] - shift)*scale)
+    R[idx_wet] = f((R[idx_wet] - shift)*scale)
     R[~idx_wet] = 0
 
     return shift, scale, R.reshape(shape)
 
 
 def _invfunc(y, fx, fy):
-  if len(y) == 0:
-      return np.array([])
+    if len(y) == 0:
+        return np.array([])
 
-  b = np.digitize(y, fy)
-  mask = np.logical_and(b > 0, b < len(fy))
-  c = (y[mask] - fy[b[mask]-1]) / (fy[b[mask]] - fy[b[mask]-1])
+    b = np.digitize(y, fy)
+    mask = np.logical_and(b > 0, b < len(fy))
+    c = (y[mask] - fy[b[mask]-1]) / (fy[b[mask]] - fy[b[mask]-1])
 
-  result = np.ones(len(y)) * np.nan
-  result[mask] = c * fx[b[mask]] + (1.0-c) * fx[b[mask]-1]
+    result = np.ones(len(y)) * np.nan
+    result[mask] = c * fx[b[mask]] + (1.0-c) * fx[b[mask]-1]
 
-  return result
+    return result
