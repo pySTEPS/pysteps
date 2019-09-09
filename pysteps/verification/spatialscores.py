@@ -11,14 +11,17 @@ Skill scores for spatial forecasts.
     intensity_scale
     intensity_scale_init
     intensity_scale_accum
+    intensity_scale_merge
     intensity_scale_compute
     binary_mse
     binary_mse_init
     binary_mse_accum
+    binary_mse_merge
     binary_mse_compute
     fss
     fss_init
     fss_accum
+    fss_merge
     fss_compute
 """
 
@@ -221,6 +224,57 @@ def intensity_scale_accum(intscale, X_f, X_o):
         intscale["scales"] = intscale[thrs[0]]["scales"]
 
 
+def intensity_scale_merge(intscale_1, intscale_2):
+    """Merge two intensity-scale verification objects.
+
+    Parameters
+    ----------
+
+    intscale_1 : dict
+        Am intensity-scale object initialized with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_init`
+        and populated with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_accum`.
+
+    intscale_2 : dict
+        Another intensity-scale object initialized with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_init`
+        and populated with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_accum`.
+
+    Returns
+    -------
+
+    out : dict
+      The merged intensity-scale object.
+    """
+
+    # checks
+    if intscale_1["name"] != intscale_2["name"]:
+        raise ValueError(
+            "cannot merge: the intensity scale methods are not same %s!=%s"
+            % (intscale_1["name"], intscale_2["name"])
+        )
+
+    intscale = intscale_1.copy()
+    name = intscale["name"]
+    thrs = intscale["thrs"]
+    scales = intscale["scales"]
+
+    for i, thr in enumerate(thrs):
+
+        if name.lower() == "bmse":
+            intscale[thr] = binary_mse_merge(intscale[thr], intscale_2[thr])
+
+        elif name.lower() == "fss":
+            for j, scale in enumerate(scales):
+                intscale[thr][scale] = fss_merge(
+                    intscale[thr][scale], intscale_2[thr][scale]
+                )
+
+    return intscale
+
+
 def intensity_scale_compute(intscale):
     """Return the intensity scale matrix.
 
@@ -402,6 +456,63 @@ def binary_mse_accum(bmse, X_f, X_o):
                 bmse["n"] + 1
             )
 
+    bmse["n"] += 1
+
+def binary_mse_merge(bmse_1, bmse_2):
+    """Merge two BMSE objects.
+
+    Parameters
+    ----------
+
+    bmse_1 : dict
+      A BMSE object initialized with
+      :py:func:`pysteps.verification.spatialscores.binary_mse_init`.
+      and populated with
+      :py:func:`pysteps.verification.spatialscores.binary_mse_accum`.
+
+    bmse_2 : dict
+      Another BMSE object initialized with
+      :py:func:`pysteps.verification.spatialscores.binary_mse_init`.
+      and populated with
+      :py:func:`pysteps.verification.spatialscores.binary_mse_accum`.
+
+    Returns
+    -------
+
+    out : dict
+      The merged BMSE object.
+    """
+
+    # checks
+    if bmse_1["thr"] != bmse_2["thr"]:
+        raise ValueError(
+            "cannot merge: the thresholds are not same %s!=%s"
+            % (bmse_1["thr"], bmse_2["thr"])
+        )
+    if bmse_1["wavelet"] != bmse_2["wavelet"]:
+        raise ValueError(
+            "cannot merge: the wavelets are not same %s!=%s"
+            % (bmse_1["wavelet"], bmse_2["wavelet"])
+        )
+    if list(bmse_1["scales"]) != list(bmse_2["scales"]):
+        raise ValueError(
+            "cannot merge: the scales are not same %s!=%s"
+            % (bmse_1["scales"], bmse_2["scales"])
+        )
+
+    # merge the BMSE objects
+    bmse = bmse_1.copy()
+    bmse["eps"] = (bmse["eps"] * bmse["n"] + bmse_2["eps"] * bmse_2["n"]) / (
+        bmse["n"] + bmse_2["n"]
+    )
+    for j, scale in enumerate(bmse["scales"]):
+        bmse["mse"][j] = (
+            bmse["mse"][j] * bmse["n"] + bmse_2["mse"][j] * bmse_2["n"]
+        ) / (bmse["n"] + bmse_2["n"])
+    bmse["n"] += bmse_2["n"]
+
+    return bmse
+
 
 def binary_mse_compute(bmse, return_scales=True):
     """Compute the BMSE.
@@ -560,6 +671,52 @@ def fss_accum(fss, X_f, X_o):
     fss["sum_obs_sq"] += np.nansum(S_o ** 2)
     fss["sum_fct_obs"] += np.nansum(S_f * S_o)
     fss["sum_fct_sq"] += np.nansum(S_f ** 2)
+
+
+def fss_merge(fss_1, fss_2):
+    """Merge two FSS objects.
+
+    Parameters
+    ----------
+
+    fss_1 : dict
+      A FSS object initialized with
+      :py:func:`pysteps.verification.spatialscores.fss_init`.
+      and populated with
+      :py:func:`pysteps.verification.spatialscores.fss_accum`.
+
+    fss_2 : dict
+      Another FSS object initialized with
+      :py:func:`pysteps.verification.spatialscores.fss_init`.
+      and populated with
+      :py:func:`pysteps.verification.spatialscores.fss_accum`.
+
+    Returns
+    -------
+
+    out : dict
+      The merged FSS object.
+    """
+
+    # checks
+    if fss_1["thr"] != fss_2["thr"]:
+        raise ValueError(
+            "cannot merge: the thresholds are not same %s!=%s"
+            % (fss_1["thr"], fss_2["thr"])
+        )
+    if fss_1["scale"] != fss_2["scale"]:
+        raise ValueError(
+            "cannot merge: the scales are not same %s!=%s"
+            % (fss_1["scale"], fss_2["scale"])
+        )
+
+    # merge the FSS objects
+    fss = fss_1.copy()
+    fss["sum_obs_sq"] += fss_2["sum_obs_sq"]
+    fss["sum_fct_obs"] += fss_2["sum_fct_obs"]
+    fss["sum_fct_sq"] += fss_2["sum_fct_sq"]
+
+    return fss
 
 
 def fss_compute(fss):
