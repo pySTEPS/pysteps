@@ -188,10 +188,10 @@ def plot_map_basemap(bm_params, drawlonlatlines=False, coastlinecolor=(0.3,0.3,0
         ax.drawmapboundary(fill_color=mapboundarycolor, zorder=-1)
     if drawlonlatlines:
         ax.drawmeridians(np.linspace(ax.llcrnrlon, ax.urcrnrlon, 10),
-                         color=(0.5,0.5,0.5), linewidth=0.25, labels=[1,0,0,1],
+                         color=(0.5,0.5,0.5), linewidth=0.25, labels=[0,0,0,1],
                          fmt="%.1f", fontsize=6)
         ax.drawparallels(np.linspace(ax.llcrnrlat, ax.urcrnrlat, 10),
-                         color=(0.5,0.5,0.5), linewidth=0.25, labels=[1,0,0,1],
+                         color=(0.5,0.5,0.5), linewidth=0.25, labels=[1,0,0,0],
                          fmt="%.1f", fontsize=6)
 
     return ax

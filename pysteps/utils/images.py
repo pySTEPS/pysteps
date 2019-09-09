@@ -31,7 +31,7 @@ except ImportError:
 
 def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
                         min_distance=3, block_size=15, buffer_mask=0,
-                        use_harris = False, k = 0.04,
+                        use_harris=False, k=0.04,
                         verbose=False,
                         **kwargs):
     """
@@ -84,7 +84,8 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
         corners.
 
     block_size : int, optional
-        The **blockSize** parameter in the `Shi-Tomasi`_ corner detection method.
+        The **blockSize** parameter in the `Shi-Tomasi`_ corner detection
+        method.
         It represents the window size in pixels used for computing a derivative
         covariation matrix over each pixel neighborhood.
 

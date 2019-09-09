@@ -40,7 +40,8 @@ def plot_intensityscale(
         figure is created.
 
     vminmax : tuple of floats, optional
-       The minimum and maximum values for the intensity-scale skill score in the plot.
+       The minimum and maximum values for the intensity-scale skill score
+       in the plot.
        Defaults to the data extent.
 
     kmperpixel : float, optional

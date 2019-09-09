@@ -15,21 +15,23 @@ Interface module for different FFT methods.
 from pysteps.exceptions import MissingOptionalDependency
 from types import SimpleNamespace
 
+
 def get_numpy(shape, fftn_shape=None, **kwargs):
     import numpy.fft as numpy_fft
 
-    f = {"fft2":numpy_fft.fft2,
-         "ifft2":numpy_fft.ifft2,
-         "rfft2":numpy_fft.rfft2,
-         "irfft2":lambda X: numpy_fft.irfft2(X, s=shape),
-         "fftshift":numpy_fft.fftshift,
-         "ifftshift":numpy_fft.ifftshift,
-         "fftfreq":numpy_fft.fftfreq}
+    f = {"fft2": numpy_fft.fft2,
+         "ifft2": numpy_fft.ifft2,
+         "rfft2": numpy_fft.rfft2,
+         "irfft2": lambda X: numpy_fft.irfft2(X, s=shape),
+         "fftshift": numpy_fft.fftshift,
+         "ifftshift": numpy_fft.ifftshift,
+         "fftfreq": numpy_fft.fftfreq}
     if fftn_shape is not None:
         f["fftn"] = numpy_fft.fftn
     fft = SimpleNamespace(**f)
 
     return fft
+
 
 def get_scipy(shape, fftn_shape=None, **kwargs):
     import numpy.fft as numpy_fft
@@ -37,18 +39,19 @@ def get_scipy(shape, fftn_shape=None, **kwargs):
 
     # use numpy implementation of rfft2/irfft2 because they have not been
     # implemented in scipy.fftpack
-    f = {"fft2":scipy_fft.fft2,
-         "ifft2":scipy_fft.ifft2,
-         "rfft2":numpy_fft.rfft2,
-         "irfft2":lambda X: numpy_fft.irfft2(X, s=shape),
-         "fftshift":scipy_fft.fftshift,
-         "ifftshift":scipy_fft.ifftshift,
-         "fftfreq":scipy_fft.fftfreq}
+    f = {"fft2": scipy_fft.fft2,
+         "ifft2": scipy_fft.ifft2,
+         "rfft2": numpy_fft.rfft2,
+         "irfft2": lambda X: numpy_fft.irfft2(X, s=shape),
+         "fftshift": scipy_fft.fftshift,
+         "ifftshift": scipy_fft.ifftshift,
+         "fftfreq": scipy_fft.fftfreq}
     if fftn_shape is not None:
         f["fftn"] = scipy_fft.fftn
     fft = SimpleNamespace(**f)
 
     return fft
+
 
 def get_pyfftw(shape, fftn_shape=None, n_threads=1, **kwargs):
     try:
@@ -73,9 +76,9 @@ def get_pyfftw(shape, fftn_shape=None, n_threads=1, **kwargs):
         F = pyfftw.empty_aligned(fftn_shape, dtype="complex128")
 
         fftn_obj = pyfftw.FFTW(X, F, flags=["FFTW_ESTIMATE"],
-                              direction="FFTW_FORWARD",
-                              axes=list(range(len(fftn_shape))),
-                              threads=n_threads)
+                               direction="FFTW_FORWARD",
+                               axes=list(range(len(fftn_shape))),
+                               threads=n_threads)
 
     X = pyfftw.empty_aligned(shape, dtype="float64")
     output_shape = list(shape[:-1])
@@ -90,13 +93,13 @@ def get_pyfftw(shape, fftn_shape=None, n_threads=1, **kwargs):
                             direction="FFTW_BACKWARD", axes=(0, 1),
                             threads=n_threads)
 
-    f = {"fft2":lambda X: fft_obj(input_array=X.copy()).copy(),
-         "ifft2":lambda X: ifft_obj(input_array=X.copy()).copy(),
-         "rfft2":lambda X: rfft_obj(input_array=X.copy()).copy(),
-         "irfft2":lambda X: irfft_obj(input_array=X.copy()).copy(),
-         "fftshift":pyfftw_fft.fftshift,
-         "ifftshift":pyfftw_fft.ifftshift,
-         "fftfreq":pyfftw_fft.fftfreq}
+    f = {"fft2": lambda X: fft_obj(input_array=X.copy()).copy(),
+         "ifft2": lambda X: ifft_obj(input_array=X.copy()).copy(),
+         "rfft2": lambda X: rfft_obj(input_array=X.copy()).copy(),
+         "irfft2": lambda X: irfft_obj(input_array=X.copy()).copy(),
+         "fftshift": pyfftw_fft.fftshift,
+         "ifftshift": pyfftw_fft.ifftshift,
+         "fftfreq": pyfftw_fft.fftfreq}
     if fftn_shape is not None:
         f["fftn"] = lambda X: fftn_obj(input_array=X).copy()
     fft = SimpleNamespace(**f)

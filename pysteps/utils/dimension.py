@@ -16,21 +16,24 @@ Functions to manipulate array dimensions.
 
 import numpy as np
 
+
 def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
     """Aggregate fields in time.
 
     Parameters
     ----------
     R : array-like
-        Array of shape (t,m,n) or (l,t,m,n) containing a time series of (ensemble)
-        input fields.
+        Array of shape (t,m,n) or (l,t,m,n) containing
+        a time series of (ensemble) input fields.
         They must be evenly spaced in time.
     metadata : dict
         Metadata dictionary containing the timestamps and unit attributes as
         described in the documentation of :py:mod:`pysteps.io.importers`.
     time_window_min : float or None
-        The length in minutes of the time window that is used to aggregate the fields.
-        The time spanned by the t dimension of R must be a multiple of time_window_min.
+        The length in minutes of the time window that is used to
+        aggregate the fields.
+        The time spanned by the t dimension of R must be a multiple of
+        time_window_min.
         If set to None, it returns a copy of the original R and metadata.
     ignore_nan : bool, optional
         If True, ignore nan values.
@@ -46,7 +49,7 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
 
     See also
     --------
-    pysteps.utils.dimension.aggregate_fields_space, 
+    pysteps.utils.dimension.aggregate_fields_space,
     pysteps.utils.dimension.aggregate_fields
 
     """
@@ -57,7 +60,7 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
     if time_window_min is None:
         return R, metadata
 
-    unit       = metadata["unit"]
+    unit = metadata["unit"]
     timestamps = metadata["timestamps"]
     if "leadtimes" in metadata:
         leadtimes = metadata["leadtimes"]
@@ -72,7 +75,8 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
         raise ValueError("The number of dimension must be <= 4")
 
     if R.shape[axis] != len(timestamps):
-        raise ValueError("The list of timestamps has length %i, but R contains %i frames"
+        raise ValueError("The list of timestamps has length %i, "
+                         + "but R contains %i frames"
                          % (len(timestamps), R.shape[axis]))
 
     # assumes that frames are evenly spaced
@@ -84,13 +88,15 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
 
     nframes = int(time_window_min/delta)
 
-    # specify the operator to be used to aggregate the values within the time window
+    # specify the operator to be used to aggregate
+    # the values within the time window
     if unit == "mm/h":
         method = "mean"
     elif unit == "mm":
         method = "sum"
     else:
-        raise ValueError("can only aggregate units of 'mm/h' or 'mm' not %s" % unit)
+        raise ValueError("can only aggregate units of 'mm/h' or 'mm'"
+                         + " not %s" % unit)
 
     if ignore_nan:
         method = "".join(("nan", method))
@@ -104,6 +110,7 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
 
     return R, metadata
 
+
 def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     """Upscale fields in space.
 
@@ -114,13 +121,15 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
         a time series of (ensemble) input fields.
     metadata : dict
         Metadata dictionary containing the xpixelsize, ypixelsize and unit
-        attributes as described in the documentation of :py:mod:`pysteps.io.importers`.
+        attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     space_window : float or None
         The length of the space window that is used to upscale the fields.
-        The space_window unit is the same used in the geographical projection of R
+        The space_window unit is the same used in the geographical projection
+        of R
         and hence the same as for the xpixelsize and ypixelsize attributes.
         The space spanned by the m and n dimensions of R must be a multiple of
-        space_window. 
+        space_window.
         If set to None, it returns a copy of the original R and metadata.
     ignore_nan : bool, optional
         If True, ignore nan values.
@@ -128,7 +137,8 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     Returns
     -------
     outputarray : array-like
-        The new array of aggregated fields of shape (k,j), (t,k,j) or (l,t,k,j),
+        The new array of aggregated fields of shape (k,j), (t,k,j)
+        or (l,t,k,j),
         where k = m*ypixelsize/space_window and j = n*xpixelsize/space_window.
     metadata : dict
         The metadata with updated attributes.
@@ -146,18 +156,18 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     if space_window is None:
         return R, metadata
 
-    unit       = metadata["unit"]
+    unit = metadata["unit"]
     ypixelsize = metadata["ypixelsize"]
     xpixelsize = metadata["xpixelsize"]
 
     if len(R.shape) < 2:
         raise ValueError("The number of dimensions must be >= 2")
     if len(R.shape) == 2:
-        axes = [0,1]
+        axes = [0, 1]
     if len(R.shape) == 3:
-        axes = [1,2]
+        axes = [1, 2]
     if len(R.shape) == 4:
-        axes = [2,3]
+        axes = [2, 3]
     if len(R.shape) > 4:
         raise ValueError("The number of dimensions must be <= 4")
 
@@ -170,13 +180,15 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
 
     nframes = [int(space_window/ypixelsize), int(space_window/xpixelsize)]
 
-    # specify the operator to be used to aggregate the values within the space window
+    # specify the operator to be used to aggregate the values
+    # within the space window
     if unit == "mm/h":
         method = "mean"
     elif unit == "mm":
         method = "sum"
     else:
-        raise ValueError("can only aggregate units of 'mm/h' or 'mm' not %s" % unit)
+        raise ValueError("can only aggregate units of 'mm/h' or 'mm' "
+                         + "not %s" % unit)
 
     if ignore_nan:
         method = "".join(("nan", method))
@@ -189,10 +201,12 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
 
     return R, metadata
 
+
 def aggregate_fields(R, window_size, axis=0, method="mean"):
     """Aggregate fields.
-    It attemps to aggregate the given R axis in an integer number of sections of
-    length = window_size.  If such a aggregation is not possible, an error is raised.
+    It attemps to aggregate the given R axis in an integer number of sections
+    of length = window_size.
+    If such a aggregation is not possible, an error is raised.
 
     Parameters
     ----------
@@ -203,13 +217,15 @@ def aggregate_fields(R, window_size, axis=0, method="mean"):
     axis : int, optional
         The axis where to perform the aggregation.
     method : string, optional
-        Optional argument that specifies the operation to use to aggregate the values within the
-        window. Default to mean operator.
+        Optional argument that specifies the operation to use
+        to aggregate the values within the window.
+        Default to mean operator.
 
     Returns
     -------
     outputarray : array-like
-        The new aggregated array with shape[axis] = k, where k = R.shape[axis]/window_size
+        The new aggregated array with shape[axis] = k,
+        where k = R.shape[axis] / window_size
 
     See also
     --------
@@ -219,20 +235,29 @@ def aggregate_fields(R, window_size, axis=0, method="mean"):
 
     N = R.shape[axis]
     if N % window_size:
-        raise ValueError('window_size %i does not equally split R.shape[axis] %i' % (window_size, N))
+        raise ValueError('window_size %i does not equally split '
+                         + 'R.shape[axis] %i' % (window_size, N))
 
     R = R.copy().swapaxes(axis, 0)
     shape = list(R.shape)
     R_ = R.reshape((N, -1))
 
-    if   method.lower() == "sum":
-        R__ = R_.reshape(int(N/window_size), window_size, R_.shape[1]).sum(axis=1)
+    if method.lower() == "sum":
+        R__ = R_.reshape(int(N/window_size),
+                         window_size,
+                         R_.shape[1]).sum(axis=1)
     elif method.lower() == "mean":
-        R__ = R_.reshape(int(N/window_size), window_size, R_.shape[1]).mean(axis=1)
+        R__ = R_.reshape(int(N/window_size),
+                         window_size,
+                         R_.shape[1]).mean(axis=1)
     elif method.lower() == "nansum":
-        R__ = np.nansum(R_.reshape(int(N/window_size), window_size, R_.shape[1]), axis=1)
+        R__ = np.nansum(R_.reshape(int(N/window_size),
+                                   window_size,
+                                   R_.shape[1]), axis=1)
     elif method.lower() == "nanmean":
-        R__ = np.nanmean(R_.reshape(int(N/window_size), window_size, R_.shape[1]), axis=1)
+        R__ = np.nanmean(R_.reshape(int(N/window_size),
+                                    window_size,
+                                    R_.shape[1]), axis=1)
     else:
         raise ValueError("unknown method %s" % method)
 
@@ -240,6 +265,7 @@ def aggregate_fields(R, window_size, axis=0, method="mean"):
     R = R__.reshape(shape).swapaxes(axis, 0)
 
     return R
+
 
 def clip_domain(R, metadata, extent=None):
     """Clip the field domain by geographical coordinates.
@@ -249,7 +275,8 @@ def clip_domain(R, metadata, extent=None):
     R : array-like
         Array of shape (m,n) or (t,m,n) containing the input fields.
     metadata : dict
-        Metadata dictionary containing the x1, x2, y1, y2, xpixelsize, ypixelsize,
+        Metadata dictionary containing the x1, x2, y1, y2,
+        xpixelsize, ypixelsize,
         zerovalue and yorigin attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
     extent : scalars (left, right, bottom, top), optional
@@ -274,7 +301,7 @@ def clip_domain(R, metadata, extent=None):
     metadata = metadata.copy()
 
     if extent is None:
-        return R,metadata
+        return R, metadata
 
     if len(R.shape) < 2:
         raise ValueError("The number of dimension must be > 1")
@@ -300,19 +327,22 @@ def clip_domain(R, metadata, extent=None):
     # compute its extent in pixels
     dim_x_ = int((right_ - left_)/metadata["xpixelsize"])
     dim_y_ = int((top_ - bottom_)/metadata["ypixelsize"])
-    R_ = np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_))*metadata["zerovalue"]
+    R_ = np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_)) \
+        * metadata["zerovalue"]
 
     # build set of coordinates for the original domain
     y_coord = np.linspace(bottom, top - metadata["ypixelsize"], R.shape[2]) \
-                        + metadata["ypixelsize"]/2.
+        + metadata["ypixelsize"]/2.
     x_coord = np.linspace(left, right - metadata["xpixelsize"], R.shape[3]) \
-                        + metadata["xpixelsize"]/2.
+        + metadata["xpixelsize"]/2.
 
     # build set of coordinates for the new domain
-    y_coord_ = np.linspace(bottom_, top_ - metadata["ypixelsize"], R_.shape[2]) \
-                        + metadata["ypixelsize"]/2.
-    x_coord_ = np.linspace(left_, right_ - metadata["xpixelsize"], R_.shape[3]) \
-                        + metadata["xpixelsize"]/2.
+    y_coord_ = np.linspace(bottom_, top_ - metadata["ypixelsize"],
+                           R_.shape[2]) \
+        + metadata["ypixelsize"]/2.
+    x_coord_ = np.linspace(left_, right_ - metadata["xpixelsize"],
+                           R_.shape[3]) \
+        + metadata["xpixelsize"]/2.
 
     # origin='upper' reverses the vertical axes direction
     if metadata["yorigin"] == "upper":
@@ -329,7 +359,7 @@ def clip_domain(R, metadata, extent=None):
 
     # compose the new array
     R_[:, :, idx_y_[0]:(idx_y_[-1] + 1), idx_x_[0]:(idx_x_[-1] + 1)] = \
-                    R[:, :, idx_y[0]:(idx_y[-1] + 1), idx_x[0]:(idx_x[-1] + 1)]
+        R[:, :, idx_y[0]:(idx_y[-1] + 1), idx_x[0]:(idx_x[-1] + 1)]
 
     # update coordinates
     metadata["y1"] = bottom_
@@ -342,6 +372,7 @@ def clip_domain(R, metadata, extent=None):
 
     return R_.reshape(R_shape), metadata
 
+
 def square_domain(R, metadata, method="pad", inverse=False):
     """Either pad or crop a field to obtain a square domain.
 
@@ -350,18 +381,20 @@ def square_domain(R, metadata, method="pad", inverse=False):
     R : array-like
         Array of shape (m,n) or (t,m,n) containing the input fields.
     metadata : dict
-        Metadata dictionary containing the x1, x2, y1, y2, xpixelsize, ypixelsize,
-        attributes as described in the documentation of :py:mod:`pysteps.io.importers`.
+        Metadata dictionary containing the x1, x2, y1, y2,
+        xpixelsize, ypixelsize,
+        attributes as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     method : {'pad', 'crop'}, optional
         Either pad or crop.
         If pad, an equal number of zeros is added to both ends of its shortest
         side in order to produce a square domain.
-        If crop, an equal number of pixels is removed to both ends of its longest
-        side in order to produce a square domain.
+        If crop, an equal number of pixels is removed
+        to both ends of its longest side in order to produce a square domain.
         Note that the crop method involves an irreversible loss of data.
     inverse : bool, optional
-        Perform the inverse method to recover the original domain shape. After a
-        crop, the inverse is performed by padding the field with zeros.
+        Perform the inverse method to recover the original domain shape.
+        After a crop, the inverse is performed by padding the field with zeros.
 
     Returns
     -------
@@ -439,7 +472,7 @@ def square_domain(R, metadata, method="pad", inverse=False):
         R_shape[-2] = R_.shape[-2]
         R_shape[-1] = R_.shape[-1]
 
-        return R_.reshape(R_shape),metadata
+        return R_.reshape(R_shape), metadata
 
     elif inverse:
 
@@ -456,7 +489,7 @@ def square_domain(R, metadata, method="pad", inverse=False):
         shape = metadata.pop("orig_domain")
 
         if R.shape[2] == shape[0] and R.shape[3] == shape[1]:
-            return R.squeeze(),metadata
+            return R.squeeze(), metadata
 
         R_ = np.zeros((R.shape[0], R.shape[1], shape[0], shape[1]))
 
@@ -491,4 +524,4 @@ def square_domain(R, metadata, method="pad", inverse=False):
         R_shape[-2] = R_.shape[-2]
         R_shape[-1] = R_.shape[-1]
 
-        return R_.reshape(R_shape),metadata
+        return R_.reshape(R_shape), metadata

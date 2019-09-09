@@ -76,7 +76,8 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
     axis : None or int or tuple of ints, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
-        If axis is -1 (or any negative integer), the integration is not performed
+        If axis is -1 (or any negative integer),
+        the integration is not performed
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
@@ -111,7 +112,8 @@ def det_cat_fct_init(thr, axis=None):
     axis : None or int or tuple of ints, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
-        If axis is -1 (or any negative integer), the integration is not performed
+        If axis is -1 (or any negative integer),
+        the integration is not performed
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
@@ -195,7 +197,8 @@ def det_cat_fct_accum(contab, pred, obs):
         # check dimensions
         if contab["hits"].shape != nshape:
             raise ValueError(
-                "the shape of the input arrays does not match the shape of the "
+                "the shape of the input arrays does not match "
+                + "the shape of the "
                 + "contingency table %s!=%s" % (nshape, contab["hits"].shape)
             )
 
@@ -231,13 +234,15 @@ def det_cat_fct_merge(contab_1, contab_2):
 
     contab_1 : dict
       A contingency table object initialized with
-      :py:func:`pysteps.verification.detcatscores.det_cat_fct_init` and populated
-      with :py:func:`pysteps.verification.detcatscores.det_cat_fct_accum`.
+      :py:func:`pysteps.verification.detcatscores.det_cat_fct_init`
+      and populated with
+      :py:func:`pysteps.verification.detcatscores.det_cat_fct_accum`.
 
     contab_2 : dict
       Another contingency table object initialized with
-      :py:func:`pysteps.verification.detcatscores.det_cat_fct_init` and populated
-      with :py:func:`pysteps.verification.detcatscores.det_cat_fct_accum`.
+      :py:func:`pysteps.verification.detcatscores.det_cat_fct_init`
+      and populated with
+      :py:func:`pysteps.verification.detcatscores.det_cat_fct_accum`.
 
     Returns
     -------

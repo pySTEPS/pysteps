@@ -150,7 +150,8 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         All values in **input_array** are required to have finite values.
 
     thr : float
-        The number of standard deviations from the mean that defines an outlier.
+        The number of standard deviations from the mean
+        that defines an outlier.
 
     coord : array_like, optional
         Array of shape (n, d) containing the coordinates of the input data into
@@ -158,7 +159,8 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         Passing **coord** requires that **k** is not None.
 
     k : int or None, optional
-        The number of nearest neighbours used to localize the outlier detection.
+        The number of nearest neighbours used to localize the outlier
+        detection.
         If set to None (the default), it employs all the data points (global
         detection). Setting **k** requires that **coord** is not None.
 

@@ -77,12 +77,13 @@ def config_fname():
     - $PWD/pystepsrc : Looks for the file in the current directory
     - $PYSTEPSRC : If the system variable $PYSTEPSRC is defined and it points
     to a file, it is used..
-    - $PYSTEPSRC/pystepsrc : If $PYSTEPSRC points to a directory, it looks for the
-    pystepsrc file inside that directory.
-    - $HOME/.pysteps/pystepsrc (unix and Mac OS X) : If the system variable $HOME is defined, it looks
+    - $PYSTEPSRC/pystepsrc : If $PYSTEPSRC points to a directory, it looks for
+    the pystepsrc file inside that directory.
+    - $HOME/.pysteps/pystepsrc (unix and Mac OS X) :
+    If the system variable $HOME is defined, it looks
     for the configuration file in this path.
-    - $USERPROFILE/pysteps/pystepsrc (windows only): It looks for the configuration file
-    in the pysteps directory located user's home directory.
+    - $USERPROFILE/pysteps/pystepsrc (windows only): It looks for the
+    configuration file in the pysteps directory located user's home directory.
     - Lastly, it looks inside the library in pysteps/pystepsrc for a
     system-defined copy.
     """
@@ -96,8 +97,9 @@ def config_fname():
                 if stat.S_ISREG(st_mode) or stat.S_ISFIFO(st_mode):
                     return file_name
 
-            # Return first candidate that is a file, or last candidate if none is
-            # valid (in that case, a warning is raised at startup by `rc_params`).
+            # Return first candidate that is a file,
+            # or last candidate if none is valid
+            # (in that case, a warning is raised at startup by `rc_params`).
 
     return file_name
 

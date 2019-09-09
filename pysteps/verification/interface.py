@@ -130,7 +130,8 @@ def get_method(name, type="deterministic"):
     beta2 measures the degree of conditional bias of the forecasts given the
     observations (type 2).
 
-    The normalized MSE is computed as NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
+    The normalized MSE is computed as
+    NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
 
     The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2).
 
