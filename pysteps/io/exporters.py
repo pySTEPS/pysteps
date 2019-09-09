@@ -88,10 +88,13 @@ Generic functions
     close_forecast_files
 """
 
-from datetime import datetime
 import os
+from datetime import datetime
+
 import numpy as np
+
 from pysteps.exceptions import MissingOptionalDependency
+
 try:
     from osgeo import gdal, osr
 
@@ -110,6 +113,7 @@ try:
     PYPROJ_IMPORTED = True
 except ImportError:
     PYPROJ_IMPORTED = False
+
 
 def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
                                          timestep, n_timesteps, shape, metadata,
@@ -201,6 +205,7 @@ def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
         exporter["num_files_written"] = 0
 
     return exporter
+
 
 # TODO(exporters): This is a draft version of the kineros exporter.
 # Revise the variable names and
@@ -624,13 +629,14 @@ def close_forecast_files(exporter):
 
     """
     if exporter["method"] == "geotiff":
-        pass # NOTE: There is no explicit "close" method in GDAL.
-             # The files are closed when all objects referencing to the GDAL
-             # datasets are deleted (i.e. when the exporter object is deleted).
+        pass  # NOTE: There is no explicit "close" method in GDAL.
+        # The files are closed when all objects referencing to the GDAL
+        # datasets are deleted (i.e. when the exporter object is deleted).
     if exporter["method"] == "kineros":
         pass  # no need to close the file
     else:
         exporter["ncfile"].close()
+
 
 def _export_geotiff(F, exporter):
     def init_band(band):
@@ -646,7 +652,7 @@ def _export_geotiff(F, exporter):
                 band.WriteArray(F[i, :, :])
             else:
                 for j in range(exporter["num_ens_members"]):
-                    band = exporter["dst"][i].GetRasterBand(j+1)
+                    band = exporter["dst"][i].GetRasterBand(j + 1)
                     init_band(band)
                     band.WriteArray(F[j, i, :, :])
     elif exporter["incremental"] == "timestep":
@@ -662,7 +668,7 @@ def _export_geotiff(F, exporter):
                                    exporter["num_ens_members"])
 
         for j in range(exporter["num_ens_members"]):
-            band = dst.GetRasterBand(j+1)
+            band = dst.GetRasterBand(j + 1)
             init_band(band)
             if exporter["num_ens_members"] > 1:
                 band.WriteArray(F[j, :, :])
@@ -680,10 +686,11 @@ def _export_geotiff(F, exporter):
             init_band(band)
             band.WriteArray(F[i, :, :])
 
+
 def _export_kineros(field, exporter):
     num_timesteps = exporter["num_timesteps"]
     num_ens_members = exporter["num_ens_members"]
-    startdate = exporter["startdate"]
+
     timestep = exporter["timestep"]
     xgrid = exporter["XY_coords"][0, :, :].flatten()
     ygrid = exporter["XY_coords"][1, :, :].flatten()
@@ -777,6 +784,7 @@ def _convert_proj4_to_grid_mapping(proj4str):
 
     return grid_mapping_var_name, grid_mapping_name, params
 
+
 def _create_geotiff_file(outfn, driver, shape, metadata, num_bands):
     dst = driver.Create(outfn, shape[1], shape[0], num_bands, gdal.GDT_Float32,
                         ["COMPRESS=DEFLATE", "PREDICTOR=3"])
@@ -791,16 +799,13 @@ def _create_geotiff_file(outfn, driver, shape, metadata, num_bands):
 
     return dst
 
+
 def _get_geotiff_filename(prefix, startdate, n_timesteps, timestep,
                           timestep_index):
-    if n_timesteps * timestep < 10:
-        timestep_format = "%01d"
-    elif n_timesteps * timestep < 100:
-        timestep_format = "%02d"
-    elif n_timesteps * timestep < 1000:
-        timestep_format = "%03d"
-    elif n_timesteps * timestep < 10000:
-        timestep_format = "%04d"
+    if n_timesteps * timestep == 0:
+        raise ValueError("n_timesteps x timestep can't be 0.")
+
+    timestep_format = f"%0{int(np.floor(np.log10(n_timesteps * timestep))) + 1}d"
 
     startdate_str = datetime.strftime(startdate, "%Y%m%d%H%M")
     timestep_str = timestep_format % ((timestep_index + 1) * timestep)
