@@ -51,7 +51,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None,
         uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
     geodata : dictionary, optional
         Optional dictionary containing geographical information about
-        the field.
+        the field. Requied is map is not None.
+
         If geodata is not None, it must contain the following key-value pairs:
 
         .. tabularcolumns:: |p{1.5cm}|L|
