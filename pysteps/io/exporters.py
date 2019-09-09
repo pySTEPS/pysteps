@@ -8,28 +8,34 @@ formats.
 Each exporter method in this module has its own initialization function that
 implements the following interface::
 
-  initialize_forecast_exporter_xxx(filename, startdate, timestep,
-                                   n_timesteps, shape, n_ens_members,
-                                   metadata, incremental=None)
+  initialize_forecast_exporter_xxx(outpath, outfnprefix, startdate, timestep,
+                                   n_timesteps, shape, metadata, n_ens_members=1,
+                                   incremental=None, **kwargs)
 
-where xxx is the name (or abbreviation) of the file format.
+where xxx specifies the file format.
 
-This function creates the file and writes the metadata. The datasets are written
-by calling :py:func:`pysteps.io.exporters.export_forecast_dataset`, and
-the file is closed by calling :py:func:`pysteps.io.exporters.close_forecast_file`.
+This function creates the output files and writes the metadata. See the
+documentation of the initialization methods for the format of the output files
+and their names. The datasets are written by calling
+:py:func:`pysteps.io.exporters.export_forecast_dataset`, and the files are
+closed by calling :py:func:`pysteps.io.exporters.close_forecast_files`.
 
-The arguments in the above are defined as follows:
+The arguments of initialize_forecast_exporter_xxx are described in the following
+table:
 
 .. tabularcolumns:: |p{2cm}|p{2cm}|L|
 
 +---------------+-------------------+-----------------------------------------+
 |   Argument    | Type/values       |             Description                 |
 +===============+===================+=========================================+
-| filename      | str               | name of the output file                 |
+| outpath       | str               | output path                             |
++---------------+-------------------+-----------------------------------------+
+| outfnprefix   | str               | prefix of output file names             |
 +---------------+-------------------+-----------------------------------------+
 | startdate     | datetime.datetime | start date of the forecast              |
 +---------------+-------------------+-----------------------------------------+
-| timestep      | int               | time step of the forecast (minutes)     |
+| timestep      | int               | length of the forecast time step        |
+|               |                   | (minutes)                               |
 +---------------+-------------------+-----------------------------------------+
 | n_timesteps   | int               | number of time steps in the forecast    |
 |               |                   | this argument is ignored if             |
@@ -38,17 +44,17 @@ The arguments in the above are defined as follows:
 | shape         | tuple             | two-element tuple defining the shape    |
 |               |                   | (height,width) of the forecast grids    |
 +---------------+-------------------+-----------------------------------------+
-| n_ens_members | int               | number of ensemble members in the       |
-|               |                   | forecast                                |
-|               |                   | this argument is ignored if incremental |
-|               |                   | is set to 'member'                      |
-+---------------+-------------------+-----------------------------------------+
 | metadata      | dict              | metadata dictionary containing the      |
 |               |                   | projection,x1,x2,y1,y2 and unit         |
 |               |                   | attributes described in the             |
 |               |                   | documentation of pysteps.io.importers   |
 +---------------+-------------------+-----------------------------------------+
-| incremental   | {None, 'timestep',| Allow incremental writing of datasets   |
+| n_ens_members | int               | number of ensemble members in the       |
+|               |                   | forecast                                |
+|               |                   | this argument is ignored if incremental |
+|               |                   | is set to 'member'                      |
++---------------+-------------------+-----------------------------------------+
+| incremental   | {None, 'timestep',| allow incremental writing of datasets   |
 |               | 'member'}         | the available options are:              |
 |               |                   | 'timestep' = write a forecast or a      |
 |               |                   | forecast ensemble for a given           |
@@ -57,9 +63,10 @@ The arguments in the above are defined as follows:
 |               |                   | for a given ensemble member             |
 +---------------+-------------------+-----------------------------------------+
 
-The return value is a dictionary containing an exporter object. This can be
-used with :py:func:`pysteps.io.exporters.export_forecast_dataset` to write
-datasets in the given file format.
+Optional exporter-specific arguments are passed with **kwargs. The return value
+is a dictionary containing an exporter object. This can be used with
+:py:func:`pysteps.io.exporters.export_forecast_dataset` to write the datasets to
+the output files.
 
 Available Exporters
 -------------------
@@ -67,6 +74,7 @@ Available Exporters
 .. autosummary::
     :toctree: ../generated/
 
+    initialize_forecast_exporter_geotiff
     initialize_forecast_exporter_kineros
     initialize_forecast_exporter_netcdf
 
@@ -77,14 +85,22 @@ Generic functions
     :toctree: ../generated/
 
     export_forecast_dataset
-    close_forecast_file
+    close_forecast_files
 """
 
-from datetime import datetime
 import os
+from datetime import datetime
+
 import numpy as np
+
 from pysteps.exceptions import MissingOptionalDependency
 
+try:
+    from osgeo import gdal, osr
+
+    GDAL_IMPORTED = True
+except ImportError:
+    GDAL_IMPORTED = False
 try:
     import netCDF4
 
@@ -99,26 +115,124 @@ except ImportError:
     PYPROJ_IMPORTED = False
 
 
+def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
+                                         timestep, n_timesteps, shape, metadata,
+                                         n_ens_members=1, incremental=None,
+                                         **kwargs):
+    """Initialize a GeoTIFF forecast exporter.
+
+    The output files are named as '<outfnprefix>_<startdate>_<t>.tif', where
+    startdate is in YYmmddHHMM format and t is lead time (minutes). GDAL needs
+    to be installed to use this exporter.
+
+    Parameters
+    ----------
+    outpath : str
+        Output path.
+
+    outfnprefix : str
+        Prefix for output file names.
+
+    startdate : datetime.datetime
+        Start date of the forecast.
+
+    timestep : int
+        Time step of the forecast (minutes).
+
+    n_timesteps : int
+        Number of time steps in the forecast. This argument is ignored if
+        incremental is set to 'timestep'.
+
+    shape : tuple of int
+        Two-element tuple defining the shape (height,width) of the forecast
+        grids.
+
+    metadata: dict
+        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
+        attributes described in the documentation of
+        :py:mod:`pysteps.io.importers`.
+
+    n_ens_members : int
+        Number of ensemble members in the forecast.
+
+    incremental : {None,'timestep'}, optional
+        Allow incremental writing of datasets into the GeoTIFF files. Set to
+        'timestep' to enable writing forecasts or forecast ensembles separately
+        for each time step. If set to None, incremental writing is disabled and
+        the whole forecast is written in a single function call. The 'member'
+        option is not currently implemented.
+
+    Returns
+    -------
+    exporter : dict
+        The return value is a dictionary containing an exporter object. This
+        can be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
+        to write the datasets.
+
+    """
+
+    if not GDAL_IMPORTED:
+        raise MissingOptionalDependency(
+            "gdal package is required for GeoTIFF "
+            "exporters but it is not installed")
+
+    if incremental == "member":
+        raise ValueError("incremental writing of GeoTIFF files with the 'member' option is not supported")
+
+    exporter = {}
+    exporter["method"] = "geotiff"
+    exporter["outfnprefix"] = outfnprefix
+    exporter["startdate"] = startdate
+    exporter["timestep"] = timestep
+    exporter["num_timesteps"] = n_timesteps
+    exporter["shape"] = shape
+    exporter["metadata"] = metadata
+    exporter["num_ens_members"] = n_ens_members
+    exporter["incremental"] = incremental
+    exporter["dst"] = []
+
+    driver = gdal.GetDriverByName("GTiff")
+    exporter["driver"] = driver
+
+    if incremental != "timestep":
+        for i in range(n_timesteps):
+            outfn = _get_geotiff_filename(outfnprefix, startdate, n_timesteps,
+                                          timestep, i)
+            outfn = os.path.join(outpath, outfn)
+            dst = _create_geotiff_file(outfn, driver, shape, metadata, n_ens_members)
+            exporter["dst"].append(dst)
+    else:
+        exporter["num_files_written"] = 0
+
+    return exporter
+
+
 # TODO(exporters): This is a draft version of the kineros exporter.
 # Revise the variable names and
 # the structure of the file if necessary.
 
-def initialize_forecast_exporter_kineros(filename, startdate, timestep,
-                                         n_timesteps, shape, n_ens_members,
-                                         metadata, incremental=None):
+def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
+                                         timestep, n_timesteps, shape, metadata,
+                                         n_ens_members=1, incremental=None,
+                                         **kwargs):
     """Initialize a KINEROS2 Rainfall .pre file as specified
     in https://www.tucson.ars.ag.gov/kineros/.
 
     Grid points are treated as individual rain gauges and a separate file is
-    produced for each ensemble member.
+    produced for each ensemble member. The output files are named as
+    <outfnprefix>_N<n>.pre, where <n> is the index of ensemble member starting
+    from zero.
 
     Parameters
     ----------
-    filename : str
-        Name of the output file.
+    outpath : str
+        Output path.
+
+    outfnprefix : str
+        Prefix for output file names.
 
     startdate : datetime.datetime
-        Start date of the forecast as datetime object.
+        Start date of the forecast.
 
     timestep : int
         Time step of the forecast (minutes).
@@ -131,14 +245,14 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
         Two-element tuple defining the shape (height,width) of the forecast
         grids.
 
-    n_ens_members : int
-        Number of ensemble members in the forecast. This argument is ignored if
-        incremental is set to 'member'.
-
     metadata: dict
         Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
         attributes described in the documentation of
         :py:mod:`pysteps.io.importers`.
+
+    n_ens_members : int
+        Number of ensemble members in the forecast. This argument is ignored if
+        incremental is set to 'member'.
 
     incremental : {None}, optional
         Currently not implemented for this method.
@@ -157,23 +271,20 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
 
     exporter = {}
 
-    basefn, extfn = os.path.splitext(filename)
-    if extfn == "":
-        extfn = ".pre"
-
     # one file for each member
     n_ens_members = np.min((99, n_ens_members))
     fns = []
     for i in range(n_ens_members):
-        fn = "%s_N%02d%s" % (basefn, i, extfn)
-        with open(fn, "w") as fd:
+        outfn = "%s_N%02d%s" % (outfnprefix, i, ".pre")
+        outfn = os.path.join(outpath, outfn)
+        with open(outfn, "w") as fd:
             # write header
             fd.writelines("! pysteps-generated nowcast.\n")
             fd.writelines("! created the %s.\n" % datetime.now().strftime("%c"))
             # TODO(exporters): Add pySTEPS version here
             fd.writelines("! Member = %02d.\n" % i)
             fd.writelines("! Startdate = %s.\n" % startdate.strftime("%c"))
-            fns.append(fn)
+            fns.append(outfn)
         fd.close()
 
     h, w = shape
@@ -217,15 +328,20 @@ def initialize_forecast_exporter_kineros(filename, startdate, timestep,
 # Revise the variable names and
 # the structure of the file if necessary.
 
-def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
-                                        n_timesteps, shape, n_ens_members,
-                                        metadata, incremental=None):
-    """Initialize a netCDF forecast exporter.
+def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
+                                        timestep, n_timesteps, shape, metadata,
+                                        n_ens_members=1, incremental=None,
+                                        **kwargs):
+    """Initialize a netCDF forecast exporter. All outputs are written to a
+    single file named as '<outfnprefix>_.nc'.
 
     Parameters
     ----------
-    filename : str
-        Name of the output file.
+    outpath : str
+        Output path.
+
+    outfnprefix : str
+        Prefix for output file names.
 
     startdate : datetime.datetime
         Start date of the forecast.
@@ -241,17 +357,17 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         Two-element tuple defining the shape (height,width) of the forecast
         grids.
 
-    n_ens_members : int
-        Number of ensemble members in the forecast. This argument is ignored if
-        incremental is set to 'member'.
-
     metadata: dict
         Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
         attributes described in the documentation of
         :py:mod:`pysteps.io.importers`.
 
+    n_ens_members : int
+        Number of ensemble members in the forecast. This argument is ignored if
+        incremental is set to 'member'.
+
     incremental : {None,'timestep','member'}, optional
-        Allow incremental writing of datasets into the netCDF file.\n
+        Allow incremental writing of datasets into the netCDF files.\n
         The available options are: 'timestep' = write a forecast or a forecast
         ensemble for  a given time step; 'member' = write a forecast sequence
         for a given ensemble member. If set to None, incremental writing is
@@ -285,9 +401,15 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
     elif incremental is not None:
         raise ValueError("unknown argument value incremental='%s': must be 'timestep' or 'member'" % str(incremental))
 
+    n_ens_gt_one = False
+    if n_ens_members is not None:
+        if n_ens_members > 1:
+            n_ens_gt_one = True
+
     exporter = {}
 
-    ncf = netCDF4.Dataset(filename, 'w', format="NETCDF4")
+    outfn = os.path.join(outpath, outfnprefix + ".nc")
+    ncf = netCDF4.Dataset(outfn, 'w', format="NETCDF4")
 
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
@@ -373,13 +495,14 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
         for i in grid_mapping_params.items():
             var_gm.setncattr(i[0], i[1])
 
-    var_ens_num = ncf.createVariable("ens_number", np.int,
-                                     dimensions=("ens_number",)
-                                     )
-    if incremental != "member":
-        var_ens_num[:] = list(range(1, n_ens_members + 1))
-    var_ens_num.long_name = "ensemble member"
-    var_ens_num.units = ""
+    if incremental == "member" or n_ens_gt_one:
+        var_ens_num = ncf.createVariable("ens_number", np.int,
+                                         dimensions=("ens_number",)
+                                         )
+        if incremental != "member":
+            var_ens_num[:] = list(range(1, n_ens_members + 1))
+        var_ens_num.long_name = "ensemble member"
+        var_ens_num.units = ""
 
     var_time = ncf.createVariable("time", np.int, dimensions=("time",))
     if incremental != "timestep":
@@ -388,9 +511,14 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
 
-    var_f = ncf.createVariable(var_name, np.float32,
-                               dimensions=("ens_number", "time", "y", "x"),
-                               zlib=True, complevel=9)
+    if incremental == "member" or n_ens_gt_one:
+        var_f = ncf.createVariable(var_name, np.float32,
+                                   dimensions=("ens_number", "time", "y", "x"),
+                                   zlib=True, complevel=9)
+    else:
+        var_f = ncf.createVariable(var_name, np.float32,
+                                   dimensions=("time", "y", "x"),
+                                   zlib=True, complevel=9)
 
     if var_standard_name is not None:
         var_f.standard_name = var_standard_name
@@ -401,7 +529,8 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
     exporter["method"] = "netcdf"
     exporter["ncfile"] = ncf
     exporter["var_F"] = var_f
-    exporter["var_ens_num"] = var_ens_num
+    if incremental == "member" or n_ens_gt_one:
+        exporter["var_ens_num"] = var_ens_num
     exporter["var_time"] = var_time
     exporter["var_name"] = var_name
     exporter["startdate"] = startdate
@@ -418,9 +547,10 @@ def initialize_forecast_exporter_netcdf(filename, startdate, timestep,
 def export_forecast_dataset(field, exporter):
     """Write a forecast array into a file.
 
-    The written dataset has dimensions
-    (num_ens_members,num_timesteps,shape[0],shape[1]), where shape refers to
-    the shape of the two-dimensional forecast grids. If the exporter was
+    If the exporter was initialized with n_ens_members>1, the written dataset
+    has dimensions (n_ens_members,num_timesteps,shape[0],shape[1]), where shape
+    refers to the shape of the two-dimensional forecast grids. Otherwise, the
+    dimensions are (num_timesteps,shape[0],shape[1]). If the exporter was
     initialized with incremental!=None, the array is appended to the existing
     dataset either along the ensemble member or time axis.
 
@@ -443,6 +573,9 @@ def export_forecast_dataset(field, exporter):
         |    'member'     | (num_timesteps,shape[0],shape[1])                 |
         +-----------------+---------------------------------------------------+
 
+        If the exporter was initialized with num_ens_members=1, the num_ens_members
+        dimension is dropped.
+
     """
     if exporter["method"] == "netcdf" and not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
@@ -450,13 +583,20 @@ def export_forecast_dataset(field, exporter):
             "exporters but it is not installed")
 
     if exporter["incremental"] is None:
-        shp = (exporter["num_ens_members"], exporter["num_timesteps"],
-               exporter["shape"][0], exporter["shape"][1])
+        if exporter["num_ens_members"] > 1:
+            shp = (exporter["num_ens_members"], exporter["num_timesteps"],
+                   exporter["shape"][0], exporter["shape"][1])
+        else:
+            shp = (exporter["num_timesteps"], exporter["shape"][0],
+                   exporter["shape"][1])
         if field.shape != shp:
             raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
     elif exporter["incremental"] == "timestep":
-        shp = (exporter["num_ens_members"], exporter["shape"][0],
-               exporter["shape"][1])
+        if exporter["num_ens_members"] > 1:
+            shp = (exporter["num_ens_members"], exporter["shape"][0],
+                   exporter["shape"][1])
+        else:
+            shp = exporter["shape"]
         if field.shape != shp:
             raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
     elif exporter["incremental"] == "member":
@@ -465,7 +605,9 @@ def export_forecast_dataset(field, exporter):
         if field.shape != shp:
             raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
 
-    if exporter["method"] == "netcdf":
+    if exporter["method"] == "geotiff":
+        _export_geotiff(field, exporter)
+    elif exporter["method"] == "netcdf":
         _export_netcdf(field, exporter)
     elif exporter["method"] == "kineros":
         _export_kineros(field, exporter)
@@ -473,10 +615,10 @@ def export_forecast_dataset(field, exporter):
         raise ValueError("unknown exporter method %s" % exporter["method"])
 
 
-def close_forecast_file(exporter):
-    """Close the file associated with a forecast exporter.
+def close_forecast_files(exporter):
+    """Close the files associated with a forecast exporter.
 
-    Finish writing forecasts and close the file associated with a forecast
+    Finish writing forecasts and close the output files opened by a forecast
     exporter.
 
     Parameters
@@ -486,16 +628,69 @@ def close_forecast_file(exporter):
         in :py:mod:`pysteps.io.exporters`.
 
     """
+    if exporter["method"] == "geotiff":
+        pass  # NOTE: There is no explicit "close" method in GDAL.
+        # The files are closed when all objects referencing to the GDAL
+        # datasets are deleted (i.e. when the exporter object is deleted).
     if exporter["method"] == "kineros":
         pass  # no need to close the file
     else:
         exporter["ncfile"].close()
 
 
+def _export_geotiff(F, exporter):
+    def init_band(band):
+        band.SetScale(1.0)
+        band.SetOffset(0.0)
+        band.SetUnitType(exporter["metadata"]["unit"])
+
+    if exporter["incremental"] is None:
+        for i in range(exporter["num_timesteps"]):
+            if exporter["num_ens_members"] == 1:
+                band = exporter["dst"][i].GetRasterBand(1)
+                init_band(band)
+                band.WriteArray(F[i, :, :])
+            else:
+                for j in range(exporter["num_ens_members"]):
+                    band = exporter["dst"][i].GetRasterBand(j + 1)
+                    init_band(band)
+                    band.WriteArray(F[j, i, :, :])
+    elif exporter["incremental"] == "timestep":
+        i = exporter["num_files_written"]
+
+        outfn = _get_geotiff_filename(exporter["outfnprefix"],
+                                      exporter["startdate"],
+                                      exporter["num_timesteps"],
+                                      exporter["timestep"], i)
+        dst = _create_geotiff_file(outfn, exporter["driver"],
+                                   exporter["shape"],
+                                   exporter["metadata"],
+                                   exporter["num_ens_members"])
+
+        for j in range(exporter["num_ens_members"]):
+            band = dst.GetRasterBand(j + 1)
+            init_band(band)
+            if exporter["num_ens_members"] > 1:
+                band.WriteArray(F[j, :, :])
+            else:
+                band.WriteArray(F)
+
+        exporter["num_files_written"] += 1
+    elif exporter["incremental"] == "member":
+        for i in range(exporter["num_timesteps"]):
+            # NOTE: This does not work because the GeoTIFF driver does not
+            # support adding bands. An alternative solution needs to be
+            # implemented.
+            exporter["dst"][i].AddBand(gdal.GDT_Float32)
+            band = exporter["dst"][i].GetRasterBand(exporter["dst"][i].RasterCount)
+            init_band(band)
+            band.WriteArray(F[i, :, :])
+
+
 def _export_kineros(field, exporter):
     num_timesteps = exporter["num_timesteps"]
     num_ens_members = exporter["num_ens_members"]
-    startdate = exporter["startdate"]
+
     timestep = exporter["timestep"]
     xgrid = exporter["XY_coords"][0, :, :].flatten()
     ygrid = exporter["XY_coords"][1, :, :].flatten()
@@ -529,12 +724,15 @@ def _export_netcdf(field, exporter):
     if exporter["incremental"] is None:
         var_f[:] = field
     elif exporter["incremental"] == "timestep":
-        var_f[:, var_f.shape[1], :, :] = field
+        if exporter["num_ens_members"] > 1:
+            var_f[:, var_f.shape[1], :, :] = field
+        else:
+            var_f[var_f.shape[1], :, :] = field
         var_time = exporter["var_time"]
         var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
     else:
         var_f[var_f.shape[0], :, :, :] = field
-        var_ens_num = exporter["var_time"]
+        var_ens_num = exporter["var_ens_num"]
         var_ens_num[len(var_ens_num) - 1] = len(var_ens_num)
 
 
@@ -585,3 +783,32 @@ def _convert_proj4_to_grid_mapping(proj4str):
         return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params
+
+
+def _create_geotiff_file(outfn, driver, shape, metadata, num_bands):
+    dst = driver.Create(outfn, shape[1], shape[0], num_bands, gdal.GDT_Float32,
+                        ["COMPRESS=DEFLATE", "PREDICTOR=3"])
+
+    sx = (metadata["x2"] - metadata["x1"]) / shape[1]
+    sy = (metadata["y2"] - metadata["y1"]) / shape[0]
+    dst.SetGeoTransform([metadata["x1"], sx, 0.0, metadata["y2"], 0.0, -sy])
+
+    sr = osr.SpatialReference()
+    sr.ImportFromProj4(metadata["projection"])
+    dst.SetProjection(sr.ExportToWkt())
+
+    return dst
+
+
+def _get_geotiff_filename(prefix, startdate, n_timesteps, timestep,
+                          timestep_index):
+    if n_timesteps * timestep == 0:
+        raise ValueError("n_timesteps x timestep can't be 0.")
+
+    timestep_format_str = f"{{time_str:0{int(np.floor(np.log10(n_timesteps * timestep))) + 1}d}}"
+
+    startdate_str = datetime.strftime(startdate, "%Y%m%d%H%M")
+
+    timestep_str = timestep_format_str.format(time_str=(timestep_index + 1) * timestep)
+
+    return f"{prefix}_{startdate_str}_{timestep_str}.tif"
