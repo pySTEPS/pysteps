@@ -146,13 +146,13 @@ def import_netcdf_pysteps(filename, **kwargs):
             metadata["projection"] = proj_str
 
         # geodata
-        metadata["xpixelsize"] = abs(ds.variables["xc"][1] - ds.variables["xc"][0])
-        metadata["ypixelsize"] = abs(ds.variables["yc"][1] - ds.variables["yc"][0])
+        metadata["xpixelsize"] = abs(ds.variables["x"][1] - ds.variables["x"][0])
+        metadata["ypixelsize"] = abs(ds.variables["y"][1] - ds.variables["y"][0])
 
-        xmin = np.min(ds.variables["xc"]) - 0.5 * metadata["xpixelsize"]
-        xmax = np.max(ds.variables["xc"]) + 0.5 * metadata["xpixelsize"]
-        ymin = np.min(ds.variables["yc"]) - 0.5 * metadata["ypixelsize"]
-        ymax = np.max(ds.variables["yc"]) + 0.5 * metadata["ypixelsize"]
+        xmin = np.min(ds.variables["x"]) - 0.5 * metadata["xpixelsize"]
+        xmax = np.max(ds.variables["x"]) + 0.5 * metadata["xpixelsize"]
+        ymin = np.min(ds.variables["y"]) - 0.5 * metadata["ypixelsize"]
+        ymax = np.max(ds.variables["y"]) + 0.5 * metadata["ypixelsize"]
 
         # TODO: this is only a quick solution
         metadata["x1"] = xmin
