@@ -9,7 +9,8 @@ Each exporter method in this module has its own initialization function that
 implements the following interface::
 
   initialize_forecast_exporter_xxx(outpath, outfnprefix, startdate, timestep,
-                                   n_timesteps, shape, metadata, n_ens_members=1,
+                                   n_timesteps, shape, metadata,
+                                   n_ens_members=1,
                                    incremental=None, **kwargs)
 
 where xxx specifies the file format.
@@ -20,8 +21,8 @@ and their names. The datasets are written by calling
 :py:func:`pysteps.io.exporters.export_forecast_dataset`, and the files are
 closed by calling :py:func:`pysteps.io.exporters.close_forecast_files`.
 
-The arguments of initialize_forecast_exporter_xxx are described in the following
-table:
+The arguments of initialize_forecast_exporter_xxx are described in the
+following table:
 
 .. tabularcolumns:: |p{2cm}|p{2cm}|L|
 
@@ -65,8 +66,8 @@ table:
 
 Optional exporter-specific arguments are passed with **kwargs. The return value
 is a dictionary containing an exporter object. This can be used with
-:py:func:`pysteps.io.exporters.export_forecast_dataset` to write the datasets to
-the output files.
+:py:func:`pysteps.io.exporters.export_forecast_dataset` to write the datasets
+to the output files.
 
 Available Exporters
 -------------------
@@ -116,7 +117,8 @@ except ImportError:
 
 
 def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
-                                         timestep, n_timesteps, shape, metadata,
+                                         timestep, n_timesteps, shape,
+                                         metadata,
                                          n_ens_members=1, incremental=None,
                                          **kwargs):
     """Initialize a GeoTIFF forecast exporter.
@@ -165,8 +167,9 @@ def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
     Returns
     -------
     exporter : dict
-        The return value is a dictionary containing an exporter object. This
-        can be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
+        The return value is a dictionary containing an exporter object.
+        This can be used with
+        :py:func:`pysteps.io.exporters.export_forecast_dataset`
         to write the datasets.
 
     """
@@ -177,7 +180,8 @@ def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
             "exporters but it is not installed")
 
     if incremental == "member":
-        raise ValueError("incremental writing of GeoTIFF files with the 'member' option is not supported")
+        raise ValueError("incremental writing of GeoTIFF files with" +
+                         " the 'member' option is not supported")
 
     exporter = {}
     exporter["method"] = "geotiff"
@@ -199,7 +203,8 @@ def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
             outfn = _get_geotiff_filename(outfnprefix, startdate, n_timesteps,
                                           timestep, i)
             outfn = os.path.join(outpath, outfn)
-            dst = _create_geotiff_file(outfn, driver, shape, metadata, n_ens_members)
+            dst = _create_geotiff_file(outfn, driver, shape,
+                                       metadata, n_ens_members)
             exporter["dst"].append(dst)
     else:
         exporter["num_files_written"] = 0
@@ -212,7 +217,8 @@ def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
 # the structure of the file if necessary.
 
 def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
-                                         timestep, n_timesteps, shape, metadata,
+                                         timestep, n_timesteps,
+                                         shape, metadata,
                                          n_ens_members=1, incremental=None,
                                          **kwargs):
     """Initialize a KINEROS2 Rainfall .pre file as specified
@@ -267,7 +273,8 @@ def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
     """
 
     if incremental is not None:
-        raise ValueError("unknown option %s: incremental writing is not supported" % incremental)
+        raise ValueError("unknown option %s: " +
+                         "incremental writing is not supported" % incremental)
 
     exporter = {}
 
@@ -280,7 +287,8 @@ def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
         with open(outfn, "w") as fd:
             # write header
             fd.writelines("! pysteps-generated nowcast.\n")
-            fd.writelines("! created the %s.\n" % datetime.now().strftime("%c"))
+            fd.writelines("! created the %s.\n"
+                          % datetime.now().strftime("%c"))
             # TODO(exporters): Add pySTEPS version here
             fd.writelines("! Member = %02d.\n" % i)
             fd.writelines("! Startdate = %s.\n" % startdate.strftime("%c"))
@@ -392,14 +400,16 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
             "exporters but it is not installed")
 
     if incremental not in [None, "timestep", "member"]:
-        raise ValueError("unknown option %s: incremental must be 'timestep' or 'member'" % incremental)
+        raise ValueError("unknown option %s: incremental must be " +
+                         "'timestep' or 'member'" % incremental)
 
     if incremental == "timestep":
         n_timesteps = None
     elif incremental == "member":
         n_ens_members = None
     elif incremental is not None:
-        raise ValueError("unknown argument value incremental='%s': must be 'timestep' or 'member'" % str(incremental))
+        raise ValueError("unknown argument value incremental='%s': " +
+                         "must be 'timestep' or 'member'" % str(incremental))
 
     n_ens_gt_one = False
     if n_ens_members is not None:
@@ -449,7 +459,11 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     yr = np.linspace(metadata["y1"], metadata["y2"], h + 1)[:-1]
     yr += 0.5 * (yr[1] - yr[0])
 
-    var_xc = ncf.createVariable("xc", np.float32, dimensions=("x",))
+    # flip yr vector if yorigin is upper
+    if metadata["yorigin"] == "upper":
+        yr = np.flip(yr)
+
+    var_xc = ncf.createVariable("x", np.float32, dimensions=("x",))
     var_xc[:] = xr
     var_xc.axis = 'X'
     var_xc.standard_name = "projection_x_coordinate"
@@ -457,7 +471,7 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     # TODO(exporters): Don't hard-code the unit.
     var_xc.units = 'm'
 
-    var_yc = ncf.createVariable("yc", np.float32, dimensions=("y",))
+    var_yc = ncf.createVariable("y", np.float32, dimensions=("y",))
     var_yc[:] = yr
     var_yc.axis = 'Y'
     var_yc.standard_name = "projection_y_coordinate"
@@ -470,14 +484,14 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     lon, lat = pr(x_2d.flatten(), y_2d.flatten(), inverse=True)
 
     var_lon = ncf.createVariable("lon", np.float, dimensions=("y", "x"))
-    var_lon[:] = lon
+    var_lon[:] = lon.reshape(shape)
     var_lon.standard_name = "longitude"
     var_lon.long_name = "longitude coordinate"
     # TODO(exporters): Don't hard-code the unit.
     var_lon.units = "degrees_east"
 
     var_lat = ncf.createVariable("lat", np.float, dimensions=("y", "x"))
-    var_lat[:] = lat
+    var_lat[:] = lat.reshape(shape)
     var_lat.standard_name = "latitude"
     var_lat.long_name = "latitude coordinate"
     # TODO(exporters): Don't hard-code the unit.
@@ -525,6 +539,8 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     var_f.long_name = var_long_name
     var_f.coordinates = "y x"
     var_f.units = var_unit
+    if grid_mapping_var_name is not None:
+        var_f.grid_mapping = grid_mapping_var_name
 
     exporter["method"] = "netcdf"
     exporter["ncfile"] = ncf
@@ -573,8 +589,8 @@ def export_forecast_dataset(field, exporter):
         |    'member'     | (num_timesteps,shape[0],shape[1])                 |
         +-----------------+---------------------------------------------------+
 
-        If the exporter was initialized with num_ens_members=1, the num_ens_members
-        dimension is dropped.
+        If the exporter was initialized with num_ens_members=1,
+        the num_ens_members dimension is dropped.
 
     """
     if exporter["method"] == "netcdf" and not NETCDF4_IMPORTED:
@@ -590,7 +606,8 @@ def export_forecast_dataset(field, exporter):
             shp = (exporter["num_timesteps"], exporter["shape"][0],
                    exporter["shape"][1])
         if field.shape != shp:
-            raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
+            raise ValueError("field has invalid shape: %s != %s"
+                             % (str(field.shape), str(shp)))
     elif exporter["incremental"] == "timestep":
         if exporter["num_ens_members"] > 1:
             shp = (exporter["num_ens_members"], exporter["shape"][0],
@@ -598,12 +615,14 @@ def export_forecast_dataset(field, exporter):
         else:
             shp = exporter["shape"]
         if field.shape != shp:
-            raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
+            raise ValueError("field has invalid shape: %s != %s"
+                             % (str(field.shape), str(shp)))
     elif exporter["incremental"] == "member":
         shp = (exporter["num_timesteps"], exporter["shape"][0],
                exporter["shape"][1])
         if field.shape != shp:
-            raise ValueError("field has invalid shape: %s != %s" % (str(field.shape), str(shp)))
+            raise ValueError("field has invalid shape: %s != %s"
+                             % (str(field.shape), str(shp)))
 
     if exporter["method"] == "geotiff":
         _export_geotiff(field, exporter)
@@ -710,10 +729,12 @@ def _export_kineros(field, exporter):
                 fd.writelines("BEGIN RG%03d\n" % (m + 1))
                 fd.writelines("  X = %.2f, Y = %.2f\n" % (xgrid[m], ygrid[m]))
                 fd.writelines("  N = %i\n" % num_timesteps)
-                fd.writelines("  TIME        %s\n" % exporter["var_name"].upper())
+                fd.writelines("  TIME        %s\n"
+                              % exporter["var_name"].upper())
                 fd.writelines("! (min)        (%s)\n" % exporter["var_unit"])
                 for t in range(num_timesteps):
-                    line_new = "{:6.1f}  {:11.2f}\n".format(timemin[t], field_tmp[t, m])
+                    line_new = "{:6.1f}  {:11.2f}\n".format(timemin[t],
+                                                            field_tmp[t, m])
                     fd.writelines(line_new)
                 fd.writelines("END\n\n")
 
