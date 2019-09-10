@@ -55,6 +55,4 @@ def test_io_export_netcdf_one_member_one_time_step():
         export_forecast_dataset(precip[np.newaxis, :], exporter)
         close_forecast_files(exporter)
         # assert if netcdf file was saved and file size is not zero
-        import shutil
-        shutil.copy(file_path, '/home/cvelasco/test_netcdf_pysteps.nc')
         assert (os.path.exists(file_path) and os.path.getsize(file_path) > 0)
