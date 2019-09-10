@@ -10,7 +10,6 @@ from pysteps.io.exporters import close_forecast_files
 import pysteps
 import os
 import tempfile
-import pandas as pd
 import numpy as np
 
 
@@ -44,7 +43,8 @@ def test_io_export_netcdf_one_member_one_time_step():
     with tempfile.TemporaryDirectory() as outpath:
         outfnprefix = 'test_netcdf_out'
         file_path = os.path.join(outpath, outfnprefix+'.nc')
-        startdate = pd.to_datetime('2018-06-16T10:00:00')
+        startdate = datetime.strptime("2018-06-16 10:00:00",
+                                      "%Y-%m-%d %H:%M:%S")
         timestep = metadata['accutime']
         n_timesteps = 1
         shape = precip.shape
