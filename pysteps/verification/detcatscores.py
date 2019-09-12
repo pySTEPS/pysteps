@@ -188,10 +188,10 @@ def det_cat_fct_accum(contab, pred, obs):
     nshape = tuple(np.array(pred.shape)[np.array(idims)])
     if contab["hits"] is None:
         # initialize the count arrays in the contingency table
-        contab["hits"] = np.zeros(nshape)
-        contab["false_alarms"] = np.zeros(nshape)
-        contab["misses"] = np.zeros(nshape)
-        contab["correct_negatives"] = np.zeros(nshape)
+        contab["hits"] = np.zeros(nshape, dtype=int)
+        contab["false_alarms"] = np.zeros(nshape, dtype=int)
+        contab["misses"] = np.zeros(nshape, dtype=int)
+        contab["correct_negatives"] = np.zeros(nshape, dtype=int)
 
     else:
         # check dimensions
