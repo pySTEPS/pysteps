@@ -13,9 +13,16 @@ Methods for converting physical units.
     to_reflectivity
 """
 
-# import numpy as np
+import numpy as np
 import warnings
-from . import transformation
+from . import interface, transformation
+
+try:
+    import xarray as xr
+
+    XARRAY_IMPORTED = True
+except ImportError:
+    XARRAY_IMPORTED = False
 
 # TODO: This should not be done. Instead fix the code so that it doesn't
 # produce the warnings.
@@ -23,13 +30,15 @@ from . import transformation
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 
-def to_rainrate(R, metadata, zr_a=None, zr_b=None):
+def to_rainrate(R, metadata=None, zr_a=None, zr_b=None):
     """Convert to rain rate [mm/h].
 
     Parameters
     ----------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape to be (back-)transformed.
+
     metadata : dict
         Metadata dictionary containing the accutime, transform, unit, threshold
         and zerovalue attributes as described in the documentation of
@@ -37,50 +46,55 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
 
         Additionally, in case of conversion to/from reflectivity units, the
         zr_a and zr_b attributes are also required,
-        but only if zr_a = zr_b = None.
+        but only if **zr_a** = **zr_b** = None.
         If missing, it defaults to Marshall–Palmer relation,
-        that is, zr_a = 200.0 and zr_b = 1.6.
+        that is, **zr_a** = 200.0 and **zr_b** = 1.6.
+
+        When **R** is passed as an xarray, the metadata are extracted directly
+        from the xarray attributes.
+
     zr_a, zr_b : float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
+        The *a* and *b* coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape containing the converted units.
+
     metadata : dict
         The metadata with updated attributes.
 
+        When **R** is passed as an xarray, the metadata are updated directly
+        in the xarray attributes.
+
     """
 
-    R = R.copy()
-    metadata = metadata.copy()
+    if XARRAY_IMPORTED and isinstance(R, xr.DataArray):
+        R = R.copy()
+        metadata = R.attrs
+        isxarray = True
+
+    elif metadata is None:
+        raise ValueError(
+            "metadata cannot be None, unless R is passed as xarray.Dataset"
+        )
+
+    else:
+        R = np.copy(R)
+        metadata = np.copy(metadata)
+        isxarray = False
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] == "dB":
+        transform = interface.get_method(metadata["transform"])
 
-            R, metadata = transformation.dB_transform(R, metadata,
-                                                      inverse=True)
-
-        elif metadata["transform"] in ["BoxCox", "log"]:
-
-            R, metadata = transformation.boxcox_transform(R, metadata,
-                                                          inverse=True)
-
-        elif metadata["transform"] == "NQT":
-
-            R, metadata = transformation.NQ_transform(R, metadata,
-                                                      inverse=True)
-
-        elif metadata["transform"] == "sqrt":
-
-            R, metadata = transformation.sqrt_transform(R, metadata,
-                                                        inverse=True)
+        if isxarray:
+            R = transform(R, inverse=True)
+            metadata.update(R.attrs)
 
         else:
-
-            raise ValueError("Unknown transformation %s"
-                             % metadata["transform"])
+            R, metadata = transform(R, metadata, inverse=True)
 
     if metadata["unit"] == "mm/h":
 
@@ -125,16 +139,22 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
 
     metadata["unit"] = "mm/h"
 
+    if isxarray:
+        R.attrs.update(metadata)
+        return R
+
     return R, metadata
 
 
-def to_raindepth(R, metadata, zr_a=None, zr_b=None):
+def to_raindepth(R, metadata=None, zr_a=None, zr_b=None):
     """Convert to rain depth [mm].
 
     Parameters
     ----------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape to be (back-)transformed.
+
     metadata : dict
         Metadata dictionary containing the accutime, transform, unit, threshold
         and zerovalue attributes as described in the documentation of
@@ -142,49 +162,55 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
 
         Additionally, in case of conversion to/from reflectivity units, the
         zr_a and zr_b attributes are also required,
-        but only if zr_a = zr_b = None.
-        If missing, it defaults to Marshall–Palmer relation, that is,
-        zr_a = 200.0 and zr_b = 1.6.
+        but only if **zr_a** = **zr_b** = None.
+        If missing, it defaults to Marshall–Palmer relation,
+        that is, **zr_a** = 200.0 and **zr_b** = 1.6.
+
+        When **R** is passed as an xarray, the metadata are extracted directly
+        from the xarray attributes.
+
     zr_a, zr_b : float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
+        The *a* and *b* coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape containing the converted units.
+
     metadata : dict
         The metadata with updated attributes.
 
+        When **R** is passed as an xarray, the metadata are updated directly
+        in the xarray attributes.
+
     """
 
-    R = R.copy()
-    metadata = metadata.copy()
+    if XARRAY_IMPORTED and isinstance(R, xr.DataArray):
+        R = R.copy()
+        metadata = R.attrs
+        isxarray = True
+
+    elif metadata is None:
+        raise ValueError(
+            "metadata cannot be None, unless R is passed as xarray.Dataset"
+        )
+
+    else:
+        R = np.copy(R)
+        metadata = np.copy(metadata)
+        isxarray = False
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] == "dB":
+        transform = interface.get_method(metadata["transform"])
 
-            R, metadata = transformation.dB_transform(R, metadata,
-                                                      inverse=True)
-
-        elif metadata["transform"] in ["BoxCox", "log"]:
-
-            R, metadata = transformation.boxcox_transform(R, metadata,
-                                                          inverse=True)
-
-        elif metadata["transform"] == "NQT":
-
-            R, metadata = transformation.NQ_transform(R, metadata,
-                                                      inverse=True)
-
-        elif metadata["transform"] == "sqrt":
-
-            R, metadata = transformation.sqrt_transform(R, metadata,
-                                                        inverse=True)
+        if isxarray:
+            R = transform(R, inverse=True)
+            metadata.update(R.attrs)
 
         else:
-            raise ValueError("Unknown transformation %s"
-                             % metadata["transform"])
+            R, metadata = transform(R, metadata, inverse=True)
 
     if metadata["unit"] == "mm" and metadata["transform"] is None:
         pass
@@ -212,10 +238,12 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
         if zr_b is None:
             zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
         R = (R / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
-        threshold = (threshold / zr_a) ** (1.0 / zr_b) / 60.0 \
-            * metadata["accutime"]
-        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 \
-            * metadata["accutime"]
+        threshold = (
+            (threshold / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
+        )
+        zerovalue = (
+            (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
+        )
 
         metadata["zr_a"] = zr_a
         metadata["zr_b"] = zr_b
@@ -230,16 +258,22 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
 
     metadata["unit"] = "mm"
 
+    if isxarray:
+        R.attrs.update(metadata)
+        return R
+
     return R, metadata
 
 
-def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
+def to_reflectivity(R, metadata=None, zr_a=None, zr_b=None):
     """Convert to reflectivity [dBZ].
 
     Parameters
     ----------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape to be (back-)transformed.
+
     metadata : dict
         Metadata dictionary containing the accutime, transform, unit, threshold
         and zerovalue attributes as described in the documentation of
@@ -247,50 +281,55 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
 
         Additionally, in case of conversion to/from reflectivity units, the
         zr_a and zr_b attributes are also required,
-        but only if zr_a = zr_b = None.
-        If missing, it defaults to Marshall–Palmer relation, that is,
-        zr_a = 200.0 and zr_b = 1.6.
+        but only if **zr_a** = **zr_b** = None.
+        If missing, it defaults to Marshall–Palmer relation,
+        that is, **zr_a** = 200.0 and **zr_b** = 1.6.
+
+        When **R** is passed as an xarray, the metadata are extracted directly
+        from the xarray attributes.
+
     zr_a, zr_b : float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
+        The *a* and *b* coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape containing the converted units.
+
     metadata : dict
         The metadata with updated attributes.
 
+        When **R** is passed as an xarray, the metadata are updated directly
+        in the xarray attributes.
+
     """
 
-    R = R.copy()
-    metadata = metadata.copy()
+    if XARRAY_IMPORTED and isinstance(R, xr.DataArray):
+        R = R.copy()
+        metadata = R.attrs
+        isxarray = True
+
+    elif metadata is None:
+        raise ValueError(
+            "metadata cannot be None, unless R is passed as xarray.Dataset"
+        )
+
+    else:
+        R = np.copy(R)
+        metadata = np.copy(metadata)
+        isxarray = False
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] == "dB":
+        transform = interface.get_method(metadata["transform"])
 
-            R, metadata = transformation.dB_transform(R, metadata,
-                                                      inverse=True)
-
-        elif metadata["transform"] in ["BoxCox", "log"]:
-
-            R, metadata = transformation.boxcox_transform(R, metadata,
-                                                          inverse=True)
-
-        elif metadata["transform"] == "NQT":
-
-            R, metadata = transformation.NQ_transform(R, metadata,
-                                                      inverse=True)
-
-        elif metadata["transform"] == "sqrt":
-
-            R, metadata = transformation.sqrt_transform(R, metadata,
-                                                        inverse=True)
+        if isxarray:
+            R = transform(R, inverse=True)
+            metadata.update(R.attrs)
 
         else:
-
-            raise ValueError("Unknown transformation %s"
-                             % metadata["transform"])
+            R, metadata = transform(R, metadata, inverse=True)
 
     if metadata["unit"] == "mm/h":
 
@@ -307,12 +346,23 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
         metadata["zr_b"] = zr_b
 
         # Z to dBZ
-        R, metadata = transformation.dB_transform(R, metadata)
+        if isxarray:
+            R.attrs.update(metadata)
+            R = transformation.dB_transform(R)
+            metadata.update(R.attrs)
+
+        else:
+            R, metadata = transformation.dB_transform(R, metadata)
 
     elif metadata["unit"] == "mm":
 
         # depth to rate
-        R, metadata = to_rainrate(R, metadata)
+        if isxarray:
+            R = to_rainrate(R)
+            metadata.update(R.attrs)
+
+        else:
+            R, metadata = to_rainrate(R, metadata)
 
         # Z to R
         if zr_a is None:
@@ -326,12 +376,24 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
         metadata["zr_b"] = zr_b
 
         # Z to dBZ
-        R, metadata = transformation.dB_transform(R, metadata)
+        if isxarray:
+            R.attrs.update(metadata)
+            R = transformation.dB_transform(R)
+            metadata.update(R.attrs)
+
+        else:
+            R, metadata = transformation.dB_transform(R, metadata)
 
     elif metadata["unit"] == "dBZ":
 
         # Z to dBZ
-        R, metadata = transformation.dB_transform(R, metadata)
+        if isxarray:
+            R.attrs.update(metadata)
+            R = transformation.dB_transform(R)
+            metadata.update(R.attrs)
+
+        else:
+            R, metadata = transformation.dB_transform(R, metadata)
 
     else:
 
@@ -341,5 +403,9 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
         )
 
     metadata["unit"] = "dBZ"
+
+    if isxarray:
+        R.attrs.update(metadata)
+        return R
 
     return R, metadata

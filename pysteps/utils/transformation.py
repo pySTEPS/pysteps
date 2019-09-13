@@ -19,13 +19,24 @@ import scipy.stats as scipy_stats
 from scipy.interpolate import interp1d
 import warnings
 
+try:
+    import xarray as xr
+
+    XARRAY_IMPORTED = True
+except ImportError:
+    XARRAY_IMPORTED = False
+
 warnings.filterwarnings(
     "ignore", category=RuntimeWarning
 )  # To deactivate warnings for comparison operators with NaNs
 
 
 def boxcox_transform(
-    R, metadata=None, Lambda=None, threshold=None, zerovalue=None,
+    R,
+    metadata=None,
+    Lambda=None,
+    threshold=None,
+    zerovalue=None,
     inverse=False,
 ):
     """The one-parameter Box-Cox transformation.
@@ -39,7 +50,8 @@ def boxcox_transform(
 
     Parameters
     ----------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape to be transformed.
 
     metadata : dict, optional
@@ -69,8 +81,10 @@ def boxcox_transform(
 
     Returns
     -------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape containing the (back-)transformed units.
+
     metadata : dict
         The metadata with updated attributes.
 
@@ -79,24 +93,33 @@ def boxcox_transform(
     Box, G. E. and Cox, D. R. (1964), An Analysis of Transformations. Journal
     of the Royal Statistical Society: Series B (Methodological), 26: 211-243.
     doi:10.1111/j.2517-6161.1964.tb00553.x
-
     """
 
-    R = R.copy()
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "BoxCox"}
-        else:
-            metadata = {"transform": None}
+    if XARRAY_IMPORTED and isinstance(R, xr.DataArray):
+        R = R.copy()
+        metadata = R.attrs
+        isxarray = True
 
     else:
-        metadata = metadata.copy()
+        R = np.copy(R)
+        isxarray = False
+
+        if metadata is None:
+            if inverse:
+                metadata = {"transform": "BoxCox"}
+            else:
+                metadata = {"transform": None}
+
+        else:
+            metadata = np.copy(metadata)
 
     if not inverse:
 
         if metadata["transform"] == "BoxCox":
-            return R, metadata
+            if isxarray:
+                return R
+            else:
+                return R, metadata
 
         if Lambda is None:
             Lambda = metadata.get("BoxCox_lambda", 0.0)
@@ -108,17 +131,34 @@ def boxcox_transform(
 
         # Apply Box-Cox transform
         if Lambda == 0.0:
-            R[~zeros] = np.log(R[~zeros])
+            if isxarray:
+                R = np.log(R.where(~zeros))
+            else:
+                R[~zeros] = np.log(R[~zeros])
             threshold = np.log(threshold)
 
         else:
-            R[~zeros] = (R[~zeros] ** Lambda - 1) / Lambda
+            if isxarray:
+                R = (R.where(~zeros) ** Lambda - 1) / Lambda
+            else:
+                R[~zeros] = (R[~zeros] ** Lambda - 1) / Lambda
             threshold = (threshold ** Lambda - 1) / Lambda
 
         # Set value for zeros
         if zerovalue is None:
-            zerovalue = threshold - 1  # TODO: set to a more meaningful value
-        R[zeros] = zerovalue
+            if isxarray:
+                dr = (
+                    float(float(R.where(R > threshold).min().load()))
+                    - threshold
+                )
+            else:
+                dr = R[R > threshold].min() - threshold
+            zerovalue = threshold - dr  # TODO: set to a more meaningful value
+
+        if isxarray:
+            R = xr.where(zeros, zerovalue, R)
+        else:
+            R[zeros] = zerovalue
 
         metadata["transform"] = "BoxCox"
         metadata["BoxCox_lambda"] = Lambda
@@ -128,7 +168,10 @@ def boxcox_transform(
     elif inverse:
 
         if metadata["transform"] not in ["BoxCox", "log"]:
-            return R, metadata
+            if isxarray:
+                return R
+            else:
+                return R, metadata
 
         if Lambda is None:
             Lambda = metadata.pop("BoxCox_lambda", 0.0)
@@ -146,63 +189,87 @@ def boxcox_transform(
             R = np.exp(np.log(Lambda * R + 1) / Lambda)
             threshold = np.exp(np.log(Lambda * threshold + 1) / Lambda)
 
-        R[R < threshold] = zerovalue
+        if isxarray:
+            R = xr.where(R < threshold, zerovalue, R)
+        else:
+            R[R < threshold] = zerovalue
 
         metadata["transform"] = None
         metadata["zerovalue"] = zerovalue
         metadata["threshold"] = threshold
 
+    if isxarray:
+        R.attrs.update(metadata)
+        return R
+
     return R, metadata
 
 
-def dB_transform(R, metadata=None, threshold=None, zerovalue=None,
-                 inverse=False,):
+def dB_transform(
+    R, metadata=None, threshold=None, zerovalue=None, inverse=False
+):
     """Methods to transform precipitation intensities to/from dB units.
 
     Parameters
     ----------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape to be (back-)transformed.
+
     metadata : dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
+
     threshold : float, optional
         Optional value that is used for thresholding with the same units as R.
         If None, the threshold contained in metadata is used.
         If no threshold is found in the metadata,
         a value of 0.1 is used as default.
+
     zerovalue : float, optional
         The value to be assigned to no rain pixels as defined by the threshold.
         It is equal to the threshold - 1 by default.
+
     inverse : bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape containing the (back-)transformed units.
+
     metadata : dict
         The metadata with updated attributes.
-
     """
 
-    R = R.copy()
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "dB"}
-        else:
-            metadata = {"transform": None}
+    if XARRAY_IMPORTED and isinstance(R, xr.DataArray):
+        R = R.copy()
+        metadata = R.attrs
+        isxarray = True
 
     else:
-        metadata = metadata.copy()
+        R = np.copy(R)
+        isxarray = False
+
+        if metadata is None:
+            if inverse:
+                metadata = {"transform": "dB"}
+            else:
+                metadata = {"transform": None}
+
+        else:
+            metadata = np.copy(metadata)
 
     # to dB units
     if not inverse:
 
         if metadata["transform"] == "dB":
-            return R, metadata
+            if isxarray:
+                return R
+            else:
+                return R, metadata
 
         if threshold is None:
             threshold = metadata.get("threshold", 0.1)
@@ -210,40 +277,63 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None,
         zeros = R < threshold
 
         # Convert to dB
-        R[~zeros] = 10.0 * np.log10(R[~zeros])
+        if isxarray:
+            R = 10.0 * np.log10(R.where(~zeros))
+        else:
+            R[~zeros] = 10.0 * np.log10(R[~zeros])
         threshold = 10.0 * np.log10(threshold)
 
         # Set value for zeros
         if zerovalue is None:
-            zerovalue = threshold - 5  # TODO: set to a more meaningful value
-        R[zeros] = zerovalue
+            if isxarray:
+                dr = (
+                    float(float(R.where(R > threshold).min().load()))
+                    - threshold
+                )
+            else:
+                dr = R[R > threshold].min() - threshold
+            zerovalue = threshold - dr  # TODO: set to a more meaningful value
+
+        if isxarray:
+            R = xr.where(zeros, zerovalue, R)
+        else:
+            R[zeros] = zerovalue
 
         metadata["transform"] = "dB"
         metadata["zerovalue"] = zerovalue
         metadata["threshold"] = threshold
 
-        return R, metadata
-
     # from dB units
     elif inverse:
 
         if metadata["transform"] != "dB":
-            return R, metadata
+            if isxarray:
+                return R
+            else:
+                return R, metadata
 
         if threshold is None:
             threshold = metadata.get("threshold", -10.0)
+
         if zerovalue is None:
             zerovalue = 0.0
 
         R = 10.0 ** (R / 10.0)
         threshold = 10.0 ** (threshold / 10.0)
-        R[R < threshold] = zerovalue
+        if isxarray:
+            R = xr.where(R < threshold, zerovalue, R)
+        else:
+            R[R < threshold] = zerovalue
 
         metadata["transform"] = None
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
 
-        return R, metadata
+    if isxarray:
+        R.attrs.update(metadata)
+        return R
+
+    return R, metadata
 
 
 def NQ_transform(R, metadata=None, inverse=False, **kwargs):
@@ -252,17 +342,21 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     Parameters
     ----------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape to be transformed.
+
     metadata : dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
+
     inverse : bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Other Parameters
     ----------------
+
     a : float, optional
         The offset fraction to be used for plotting positions;
         typically in (0,1).
@@ -271,8 +365,10 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     Returns
     -------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape containing the (back-)transformed units.
+
     metadata : dict
         The metadata with updated attributes.
 
@@ -282,62 +378,85 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     quantile transformation and its application in a flood forecasting system,
     Hydrol. Earth Syst. Sci., 16, 1085-1094,
     https://doi.org/10.5194/hess-16-1085-2012, 2012.
-
-
     """
 
-    # defaults
-    a = kwargs.get("a", 0.0)
+    if XARRAY_IMPORTED and isinstance(R, xr.DataArray):
+        R = R.copy()
+        metadata = R.attrs
+        array = R.load().data
 
-    R = R.copy()
-    shape0 = R.shape
-    R = R.ravel().astype(float)
-    idxNan = np.isnan(R)
-    R_ = R[~idxNan]
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "NQT"}
-        else:
-            metadata = {"transform": None}
-        metadata["zerovalue"] = np.min(R_)
+        isxarray = True
 
     else:
-        metadata = metadata.copy()
+        array = np.copy(R)
+
+        isxarray = False
+
+        if metadata is None:
+            if inverse:
+                metadata = {"transform": "NQT"}
+            else:
+                metadata = {"transform": None}
+
+        else:
+            metadata = np.copy(metadata)
+
+    shape0 = array.shape
+    array = array.ravel().astype(float)
+    isfinite = np.isfinite(array)
+    wet = array >= metadata["threshold"]
+    idx = np.logical_and(isfinite, wet)
+    array_wet = array[idx]
 
     if not inverse:
 
         # Plotting positions
         # https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot#Plotting_position
-        n = R_.size
-        Rpp = ((np.arange(n) + 1 - a) / (n + 1 - 2 * a)).reshape(R_.shape)
+
+        # Default offset fraction
+        a = kwargs.get("a", 0.0)
+
+        n = array_wet.size
+        pp = ((np.arange(n) + 1 - a) / (n + 1 - 2 * a)).reshape(
+            array_wet.shape
+        )
 
         # NQ transform
-        Rqn = scipy_stats.norm.ppf(Rpp)
-        R__ = np.interp(R_, R_[np.argsort(R_)], Rqn)
-
-        # set zero rain to 0 in norm space
-        R__[R[~idxNan] == metadata["zerovalue"]] = 0
+        qn = scipy_stats.norm.ppf(pp)
+        narray_wet = np.interp(array_wet, array_wet[np.argsort(array_wet)], qn)
 
         # build inverse transform
         metadata["inqt"] = interp1d(
-            Rqn, R_[np.argsort(R_)],
-            bounds_error=False, fill_value=(R_.min(), R_.max())
+            qn,
+            array_wet[np.argsort(array_wet)],
+            bounds_error=False,
+            fill_value=(array_wet.min(), array_wet.max()),
         )
 
+        threshold = narray_wet.min()
+        dr = narray_wet[narray_wet > threshold].min() - threshold
+        zerovalue = threshold - dr  # TODO: set to a more meaningful value
+
         metadata["transform"] = "NQT"
-        metadata["zerovalue"] = 0
-        metadata["threshold"] = R__[R__ > 0].min()
+        metadata["threshold"] = threshold
+        metadata["zerovalue"] = zerovalue
 
     else:
 
         f = metadata.pop("inqt")
-        R__ = f(R_)
+        narray_wet = f(array_wet)
         metadata["transform"] = None
-        metadata["zerovalue"] = R__.min()
-        metadata["threshold"] = R__[R__ > R__.min()].min()
+        metadata["zerovalue"] = 0
+        metadata["threshold"] = narray_wet.min()
 
-    R[~idxNan] = R__
+    array[idx] = narray_wet
+    array[~wet] = narray_wet.min()
+    array[~isfinite] = np.nan
+
+    if isxarray:
+        R.data = array.reshape(shape0)
+        R.attrs.update(metadata)
+        return R
 
     return R.reshape(shape0), metadata
 
@@ -347,36 +466,47 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
 
     Parameters
     ----------
-    R : array-like
+
+    R : array-like  or xarray.Dataset
         Array of any shape to be transformed.
+
     metadata : dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
+
     inverse : bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
-    R : array-like
+
+    R : array-like or xarray.DataArray
         Array of any shape containing the (back-)transformed units.
+
     metadata : dict
         The metadata with updated attributes.
-
     """
 
-    R = R.copy()
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "sqrt"}
-        else:
-            metadata = {"transform": None}
-        metadata["zerovalue"] = np.nan
-        metadata["threshold"] = np.nan
+    if XARRAY_IMPORTED and isinstance(R, xr.DataArray):
+        R = R.copy()
+        metadata = R.attrs
+        isxarray = True
 
     else:
-        metadata = metadata.copy()
+        R = np.copy(R)
+        isxarray = False
+
+        if metadata is None:
+            if inverse:
+                metadata = {"transform": "sqrt"}
+            else:
+                metadata = {"transform": None}
+            metadata["zerovalue"] = np.nan
+            metadata["threshold"] = np.nan
+
+        else:
+            metadata = np.copy(metadata)
 
     if not inverse:
 
@@ -395,5 +525,9 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
         metadata["transform"] = None
         metadata["zerovalue"] = metadata["zerovalue"] ** 2
         metadata["threshold"] = metadata["threshold"] ** 2
+
+    if isxarray:
+        R.attrs.update(metadata)
+        return R
 
     return R, metadata
