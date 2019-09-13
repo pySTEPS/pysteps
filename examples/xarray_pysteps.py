@@ -15,7 +15,7 @@ https://gist.github.com/kmuehlbauer/645e42a53b30752230c08c20a9c964f9
 import xarray as xr
 import pysteps as sp
 
-import cartopy.crs as ccrs
+# import cartopy.crs as ccrs
 import datetime as dt
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,27 +70,27 @@ bom.proj
 # Since the data is supplied in some azimuthal equidistant projection (or the like),
 # we can use cartopy to do the transformation for us on the fly.
 
-proj_attrs = bom.proj.attrs.copy()
-proj_attrs["central_longitude"] = proj_attrs.pop(
-    "longitude_of_central_meridian"
-)
-proj_attrs["central_latitude"] = proj_attrs.pop(
-    "latitude_of_projection_origin"
-)
-proj_attrs["standard_parallels"] = proj_attrs.pop("standard_parallel")
-proj_attrs.pop("grid_mapping_name")
-globe_kwargs = {
-    "semimajor_axis": proj_attrs.pop("semi_major_axis"),
-    "inverse_flattening": proj_attrs.pop("inverse_flattening"),
-}
-proj_attrs["globe"] = ccrs.Globe(**globe_kwargs)
+# proj_attrs = bom.proj.attrs.copy()
+# proj_attrs["central_longitude"] = proj_attrs.pop(
+    # "longitude_of_central_meridian"
+# )
+# proj_attrs["central_latitude"] = proj_attrs.pop(
+    # "latitude_of_projection_origin"
+# )
+# proj_attrs["standard_parallels"] = proj_attrs.pop("standard_parallel")
+# proj_attrs.pop("grid_mapping_name")
+# globe_kwargs = {
+    # "semimajor_axis": proj_attrs.pop("semi_major_axis"),
+    # "inverse_flattening": proj_attrs.pop("inverse_flattening"),
+# }
+# proj_attrs["globe"] = ccrs.Globe(**globe_kwargs)
 
-aeqd = {}
-aeqd["central_longitude"] = bom.proj.attrs.get("longitude_of_central_meridian")
-aeqd["central_latitude"] = bom.proj.attrs.get("latitude_of_projection_origin")
+# aeqd = {}
+# aeqd["central_longitude"] = bom.proj.attrs.get("longitude_of_central_meridian")
+# aeqd["central_latitude"] = bom.proj.attrs.get("latitude_of_projection_origin")
 
-albers = ccrs.AlbersEqualArea(**proj_attrs)
-aeqd = ccrs.AzimuthalEquidistant(**aeqd)
+# albers = ccrs.AlbersEqualArea(**proj_attrs)
+# aeqd = ccrs.AzimuthalEquidistant(**aeqd)
 
 # get the pysteps colormap, norm and clevels
 cmap, norm, clevs, clevsStr = sp.visualization.precipfields.get_colormap(
@@ -98,26 +98,26 @@ cmap, norm, clevs, clevsStr = sp.visualization.precipfields.get_colormap(
 )
 
 # xarray/cartopy powered plotting
-fig = plt.figure(figsize=(10, 10))
-ax = fig.add_subplot(111, projection=albers)
+# fig = plt.figure(figsize=(10, 10))
+# ax = fig.add_subplot(111, projection=albers)
 
-cbar_kwargs = {
-    "ticks": clevs,
-    "norm": norm,
-    "extend": "max",
-    "fraction": 0.040,
-}
+# cbar_kwargs = {
+    # "ticks": clevs,
+    # "norm": norm,
+    # "extend": "max",
+    # "fraction": 0.040,
+# }
 
-bom.precipitation.plot(
-    ax=ax,
-    transform=aeqd,
-    cmap=cmap,
-    norm=norm,
-    add_colorbar=True,
-    cbar_kwargs=cbar_kwargs,
-)
+# bom.precipitation.plot(
+    # ax=ax,
+    # transform=aeqd,
+    # cmap=cmap,
+    # norm=norm,
+    # add_colorbar=True,
+    # cbar_kwargs=cbar_kwargs,
+# )
 
-ax.gridlines(crs=ccrs.PlateCarree())
+# ax.gridlines(crs=ccrs.PlateCarree())
 
 ###############################################################################
 # Easily read multiple consecutive datasets into one xarray Dataset
