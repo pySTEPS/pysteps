@@ -9,3 +9,4 @@ jsmin
 jsonschema
 netCDF4
 xarray
+dask
