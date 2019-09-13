@@ -45,7 +45,7 @@ metadata
 # Visualization
 sp.visualization.plot_precip_field(
     R,
-    map="cartopy",
+    map=None,# "cartopy",
     type="depth",
     units="mm",
     geodata=metadata,
@@ -93,9 +93,9 @@ bom.proj
 # aeqd = ccrs.AzimuthalEquidistant(**aeqd)
 
 # get the pysteps colormap, norm and clevels
-cmap, norm, clevs, clevsStr = sp.visualization.precipfields.get_colormap(
-    "depth", "mm", "pysteps"
-)
+# cmap, norm, clevs, clevsStr = sp.visualization.precipfields.get_colormap(
+    # "depth", "mm", "pysteps"
+# )
 
 # xarray/cartopy powered plotting
 # fig = plt.figure(figsize=(10, 10))
