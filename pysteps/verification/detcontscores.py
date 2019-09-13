@@ -528,9 +528,9 @@ def det_cont_fct_compute(err, scores=""):
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
-        |  beta1      | linear regression slope (type 1 conditional bias)     |
+        |  beta1     | linear regression slope (type 1 conditional bias)      |
         +------------+--------------------------------------------------------+
-        |  beta2      | linear regression slope (type 2 conditional bias)     |
+        |  beta2     | linear regression slope (type 2 conditional bias)      |
         +------------+--------------------------------------------------------+
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
