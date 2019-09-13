@@ -10,3 +10,4 @@ jsonschema
 netCDF4
 xarray
 dask
+toolz
