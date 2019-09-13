@@ -101,7 +101,7 @@ def boxcox_transform(
         isxarray = True
 
     else:
-        R = np.copy(R)
+        R = R.copy()
         isxarray = False
 
         if metadata is None:
@@ -250,7 +250,7 @@ def dB_transform(
         isxarray = True
 
     else:
-        R = np.copy(R)
+        R = R.copy()
         isxarray = False
 
         if metadata is None:
@@ -494,7 +494,7 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
         isxarray = True
 
     else:
-        R = np.copy(R)
+        R = R.copy()
         isxarray = False
 
         if metadata is None:
