@@ -82,7 +82,7 @@ def to_rainrate(R, metadata=None, zr_a=None, zr_b=None):
 
     else:
         R = np.copy(R)
-        metadata = np.copy(metadata)
+        metadata = metadata.copy()
         isxarray = False
 
     if metadata["transform"] is not None:
@@ -198,7 +198,7 @@ def to_raindepth(R, metadata=None, zr_a=None, zr_b=None):
 
     else:
         R = np.copy(R)
-        metadata = np.copy(metadata)
+        metadata = metadata.copy()
         isxarray = False
 
     if metadata["transform"] is not None:
@@ -317,7 +317,7 @@ def to_reflectivity(R, metadata=None, zr_a=None, zr_b=None):
 
     else:
         R = np.copy(R)
-        metadata = np.copy(metadata)
+        metadata = metadata.copy()
         isxarray = False
 
     if metadata["transform"] is not None:

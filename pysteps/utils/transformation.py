@@ -111,7 +111,7 @@ def boxcox_transform(
                 metadata = {"transform": None}
 
         else:
-            metadata = np.copy(metadata)
+            metadata = metadata.copy()
 
     if not inverse:
 
@@ -260,7 +260,7 @@ def dB_transform(
                 metadata = {"transform": None}
 
         else:
-            metadata = np.copy(metadata)
+            metadata = metadata.copy()
 
     # to dB units
     if not inverse:
@@ -399,7 +399,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
                 metadata = {"transform": None}
 
         else:
-            metadata = np.copy(metadata)
+            metadata = metadata.copy()
 
     shape0 = array.shape
     array = array.ravel().astype(float)
@@ -506,7 +506,7 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
             metadata["threshold"] = np.nan
 
         else:
-            metadata = np.copy(metadata)
+            metadata = metadata.copy()
 
     if not inverse:
 
