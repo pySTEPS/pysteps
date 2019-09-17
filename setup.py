@@ -87,6 +87,7 @@ setup(
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Atmospheric Science",
+        "Topic :: Scientific/Engineering :: Hydrology",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
