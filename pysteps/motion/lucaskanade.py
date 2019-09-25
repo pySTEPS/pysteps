@@ -407,7 +407,7 @@ def track_features(
         prvs_img = ((prvs_img.filled() - im_min) /
                     (im_max - im_min) * 255)
     else:
-        prvs_img = ((prvs_img.filled() - im_min)
+        prvs_img = (prvs_img.filled() - im_min)
                     
     im_min = next_img.min()
     im_max = next_img.max()
@@ -415,7 +415,7 @@ def track_features(
         next_img = ((next_img.filled() - im_min) /
                     (im_max.max() - im_min) * 255)
     else:
-        next_img = ((next_img.filled() - im_min)
+        next_img = (next_img.filled() - im_min)
 
     # convert to 8-bit
     prvs_img = np.ndarray.astype(prvs_img, "uint8")
