@@ -19,6 +19,7 @@ import datetime as dt
 import matplotlib.pyplot as pl
 import numpy as np
 import os
+from pprint import pprint
 
 ###############################################################################
 # How to use xarray with pysteps
@@ -39,12 +40,15 @@ filename = os.path.join(
 
 # Read data
 R, __, metadata = sp.io.import_bom_rf3(filename)
-metadata
+pprint(metadata)
 
-# Visualization
+# Visualization with pysteps
+fig = pl.figure(figsize=(10, 10))
+ax = fig.add_subplot(111)
 sp.visualization.plot_precip_field(
     R,
-    map=None,# "cartopy",
+    ax=ax,
+    map=None,
     type="depth",
     units="mm",
     geodata=metadata,
