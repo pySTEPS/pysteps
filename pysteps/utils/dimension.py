@@ -75,18 +75,19 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
         raise ValueError("The number of dimension must be <= 4")
 
     if R.shape[axis] != len(timestamps):
-        raise ValueError("The list of timestamps has length %i, "
-                         + "but R contains %i frames"
-                         % (len(timestamps), R.shape[axis]))
+        raise ValueError(
+            "The list of timestamps has length %i, " % len(timestamps)
+            + "but R contains %i frames" % R.shape[axis]
+        )
 
     # assumes that frames are evenly spaced
-    delta = (timestamps[1] - timestamps[0]).seconds/60
+    delta = (timestamps[1] - timestamps[0]).seconds / 60
     if delta == time_window_min:
         return R, metadata
-    if (R.shape[axis]*delta) % time_window_min:
-        raise ValueError('time_window_size does not equally split R')
+    if (R.shape[axis] * delta) % time_window_min:
+        raise ValueError("time_window_size does not equally split R")
 
-    nframes = int(time_window_min/delta)
+    nframes = int(time_window_min / delta)
 
     # specify the operator to be used to aggregate
     # the values within the time window
@@ -95,8 +96,9 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
     elif unit == "mm":
         method = "sum"
     else:
-        raise ValueError("can only aggregate units of 'mm/h' or 'mm'"
-                         + " not %s" % unit)
+        raise ValueError(
+            "can only aggregate units of 'mm/h' or 'mm'" + " not %s" % unit
+        )
 
     if ignore_nan:
         method = "".join(("nan", method))
@@ -104,9 +106,9 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
     R = aggregate_fields(R, nframes, axis=axis, method=method)
 
     metadata["accutime"] = time_window_min
-    metadata["timestamps"] = timestamps[nframes-1::nframes]
+    metadata["timestamps"] = timestamps[nframes - 1 :: nframes]
     if "leadtimes" in metadata:
-        metadata["leadtimes"] = leadtimes[nframes-1::nframes]
+        metadata["leadtimes"] = leadtimes[nframes - 1 :: nframes]
 
     return R, metadata
 
@@ -174,11 +176,12 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     # assumes that frames are evenly spaced
     if ypixelsize == space_window and xpixelsize == space_window:
         return R, metadata
-    if (R.shape[axes[0]]*ypixelsize) % space_window or \
-       (R.shape[axes[1]]*xpixelsize) % space_window:
-        raise ValueError('space_window does not equally split R')
+    if (R.shape[axes[0]] * ypixelsize) % space_window or (
+        R.shape[axes[1]] * xpixelsize
+    ) % space_window:
+        raise ValueError("space_window does not equally split R")
 
-    nframes = [int(space_window/ypixelsize), int(space_window/xpixelsize)]
+    nframes = [int(space_window / ypixelsize), int(space_window / xpixelsize)]
 
     # specify the operator to be used to aggregate the values
     # within the space window
@@ -187,8 +190,9 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     elif unit == "mm":
         method = "sum"
     else:
-        raise ValueError("can only aggregate units of 'mm/h' or 'mm' "
-                         + "not %s" % unit)
+        raise ValueError(
+            "can only aggregate units of 'mm/h' or 'mm' " + "not %s" % unit
+        )
 
     if ignore_nan:
         method = "".join(("nan", method))
@@ -235,33 +239,35 @@ def aggregate_fields(R, window_size, axis=0, method="mean"):
 
     N = R.shape[axis]
     if N % window_size:
-        raise ValueError('window_size %i does not equally split '
-                         + 'R.shape[axis] %i' % (window_size, N))
+        raise ValueError(
+            "window_size %i does not equally split R.shape[axis] %i"
+            % (window_size, N)
+        )
 
     R = R.copy().swapaxes(axis, 0)
     shape = list(R.shape)
     R_ = R.reshape((N, -1))
 
     if method.lower() == "sum":
-        R__ = R_.reshape(int(N/window_size),
-                         window_size,
-                         R_.shape[1]).sum(axis=1)
+        R__ = R_.reshape(int(N / window_size), window_size, R_.shape[1]).sum(
+            axis=1
+        )
     elif method.lower() == "mean":
-        R__ = R_.reshape(int(N/window_size),
-                         window_size,
-                         R_.shape[1]).mean(axis=1)
+        R__ = R_.reshape(int(N / window_size), window_size, R_.shape[1]).mean(
+            axis=1
+        )
     elif method.lower() == "nansum":
-        R__ = np.nansum(R_.reshape(int(N/window_size),
-                                   window_size,
-                                   R_.shape[1]), axis=1)
+        R__ = np.nansum(
+            R_.reshape(int(N / window_size), window_size, R_.shape[1]), axis=1
+        )
     elif method.lower() == "nanmean":
-        R__ = np.nanmean(R_.reshape(int(N/window_size),
-                                    window_size,
-                                    R_.shape[1]), axis=1)
+        R__ = np.nanmean(
+            R_.reshape(int(N / window_size), window_size, R_.shape[1]), axis=1
+        )
     else:
         raise ValueError("unknown method %s" % method)
 
-    shape[0] = int(N/window_size)
+    shape[0] = int(N / window_size)
     R = R__.reshape(shape).swapaxes(axis, 0)
 
     return R
@@ -325,24 +331,32 @@ def clip_domain(R, metadata, extent=None):
     top_ = extent[3]
 
     # compute its extent in pixels
-    dim_x_ = int((right_ - left_)/metadata["xpixelsize"])
-    dim_y_ = int((top_ - bottom_)/metadata["ypixelsize"])
-    R_ = np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_)) \
+    dim_x_ = int((right_ - left_) / metadata["xpixelsize"])
+    dim_y_ = int((top_ - bottom_) / metadata["ypixelsize"])
+    R_ = (
+        np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_))
         * metadata["zerovalue"]
+    )
 
     # build set of coordinates for the original domain
-    y_coord = np.linspace(bottom, top - metadata["ypixelsize"], R.shape[2]) \
-        + metadata["ypixelsize"]/2.
-    x_coord = np.linspace(left, right - metadata["xpixelsize"], R.shape[3]) \
-        + metadata["xpixelsize"]/2.
+    y_coord = (
+        np.linspace(bottom, top - metadata["ypixelsize"], R.shape[2])
+        + metadata["ypixelsize"] / 2.0
+    )
+    x_coord = (
+        np.linspace(left, right - metadata["xpixelsize"], R.shape[3])
+        + metadata["xpixelsize"] / 2.0
+    )
 
     # build set of coordinates for the new domain
-    y_coord_ = np.linspace(bottom_, top_ - metadata["ypixelsize"],
-                           R_.shape[2]) \
-        + metadata["ypixelsize"]/2.
-    x_coord_ = np.linspace(left_, right_ - metadata["xpixelsize"],
-                           R_.shape[3]) \
-        + metadata["xpixelsize"]/2.
+    y_coord_ = (
+        np.linspace(bottom_, top_ - metadata["ypixelsize"], R_.shape[2])
+        + metadata["ypixelsize"] / 2.0
+    )
+    x_coord_ = (
+        np.linspace(left_, right_ - metadata["xpixelsize"], R_.shape[3])
+        + metadata["xpixelsize"] / 2.0
+    )
 
     # origin='upper' reverses the vertical axes direction
     if metadata["yorigin"] == "upper":
@@ -358,8 +372,9 @@ def clip_domain(R, metadata, extent=None):
     idx_x_ = np.where(np.logical_and(x_coord_ < right, x_coord_ > left))[0]
 
     # compose the new array
-    R_[:, :, idx_y_[0]:(idx_y_[-1] + 1), idx_x_[0]:(idx_x_[-1] + 1)] = \
-        R[:, :, idx_y[0]:(idx_y[-1] + 1), idx_x[0]:(idx_x[-1] + 1)]
+    R_[:, :, idx_y_[0] : (idx_y_[-1] + 1), idx_x_[0] : (idx_x_[-1] + 1)] = R[
+        :, :, idx_y[0] : (idx_y[-1] + 1), idx_x[0] : (idx_x[-1] + 1)
+    ]
 
     # update coordinates
     metadata["y1"] = bottom_
@@ -423,7 +438,7 @@ def square_domain(R, metadata, method="pad", inverse=False):
         if R.shape[2] == R.shape[3]:
             return R.squeeze()
 
-        orig_dim = (R.shape)
+        orig_dim = R.shape
         orig_dim_n = orig_dim[0]
         orig_dim_t = orig_dim[1]
         orig_dim_y = orig_dim[2]
@@ -432,36 +447,36 @@ def square_domain(R, metadata, method="pad", inverse=False):
         if method == "pad":
 
             new_dim = np.max(orig_dim[2:])
-            R_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim))*R.min()
+            R_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim)) * R.min()
 
-            if(orig_dim_x < new_dim):
-                idx_buffer = int((new_dim - orig_dim_x)/2.)
-                R_[:, :, :, idx_buffer:(idx_buffer + orig_dim_x)] = R
-                metadata["x1"] -= idx_buffer*metadata["xpixelsize"]
-                metadata["x2"] += idx_buffer*metadata["xpixelsize"]
+            if orig_dim_x < new_dim:
+                idx_buffer = int((new_dim - orig_dim_x) / 2.0)
+                R_[:, :, :, idx_buffer : (idx_buffer + orig_dim_x)] = R
+                metadata["x1"] -= idx_buffer * metadata["xpixelsize"]
+                metadata["x2"] += idx_buffer * metadata["xpixelsize"]
 
-            elif(orig_dim_y < new_dim):
-                idx_buffer = int((new_dim - orig_dim_y)/2.)
-                R_[:, :, idx_buffer:(idx_buffer + orig_dim_y), :] = R
-                metadata["y1"] -= idx_buffer*metadata["ypixelsize"]
-                metadata["y2"] += idx_buffer*metadata["ypixelsize"]
+            elif orig_dim_y < new_dim:
+                idx_buffer = int((new_dim - orig_dim_y) / 2.0)
+                R_[:, :, idx_buffer : (idx_buffer + orig_dim_y), :] = R
+                metadata["y1"] -= idx_buffer * metadata["ypixelsize"]
+                metadata["y2"] += idx_buffer * metadata["ypixelsize"]
 
         elif method == "crop":
 
             new_dim = np.min(orig_dim[2:])
             R_ = np.zeros((orig_dim_n, orig_dim_t, new_dim, new_dim))
 
-            if(orig_dim_x > new_dim):
-                idx_buffer = int((orig_dim_x - new_dim)/2.)
-                R_ = R[:, :, :, idx_buffer:(idx_buffer + new_dim)]
-                metadata["x1"] += idx_buffer*metadata["xpixelsize"]
-                metadata["x2"] -= idx_buffer*metadata["xpixelsize"]
+            if orig_dim_x > new_dim:
+                idx_buffer = int((orig_dim_x - new_dim) / 2.0)
+                R_ = R[:, :, :, idx_buffer : (idx_buffer + new_dim)]
+                metadata["x1"] += idx_buffer * metadata["xpixelsize"]
+                metadata["x2"] -= idx_buffer * metadata["xpixelsize"]
 
-            elif(orig_dim_y > new_dim):
-                idx_buffer = int((orig_dim_y - new_dim)/2.)
-                R_ = R[:, :, idx_buffer:(idx_buffer + new_dim), :]
-                metadata["y1"] += idx_buffer*metadata["ypixelsize"]
-                metadata["y2"] -= idx_buffer*metadata["ypixelsize"]
+            elif orig_dim_y > new_dim:
+                idx_buffer = int((orig_dim_y - new_dim) / 2.0)
+                R_ = R[:, :, idx_buffer : (idx_buffer + new_dim), :]
+                metadata["y1"] += idx_buffer * metadata["ypixelsize"]
+                metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
 
         else:
             raise ValueError("Unknown type")
@@ -496,30 +511,30 @@ def square_domain(R, metadata, method="pad", inverse=False):
         if method == "pad":
 
             if R.shape[2] == shape[0]:
-                idx_buffer = int((R.shape[3] - shape[1])/2.)
-                R_ = R[:, :, :, idx_buffer:(idx_buffer + shape[1])]
-                metadata["x1"] += idx_buffer*metadata["xpixelsize"]
-                metadata["x2"] -= idx_buffer*metadata["xpixelsize"]
+                idx_buffer = int((R.shape[3] - shape[1]) / 2.0)
+                R_ = R[:, :, :, idx_buffer : (idx_buffer + shape[1])]
+                metadata["x1"] += idx_buffer * metadata["xpixelsize"]
+                metadata["x2"] -= idx_buffer * metadata["xpixelsize"]
 
             elif R.shape[3] == shape[1]:
-                idx_buffer = int((R.shape[2] - shape[0])/2.)
-                R_ = R[:, :, idx_buffer:(idx_buffer + shape[0]), :]
-                metadata["y1"] += idx_buffer*metadata["ypixelsize"]
-                metadata["y2"] -= idx_buffer*metadata["ypixelsize"]
+                idx_buffer = int((R.shape[2] - shape[0]) / 2.0)
+                R_ = R[:, :, idx_buffer : (idx_buffer + shape[0]), :]
+                metadata["y1"] += idx_buffer * metadata["ypixelsize"]
+                metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
 
         elif method == "crop":
 
             if R.shape[2] == shape[0]:
-                idx_buffer = int((shape[1] - R.shape[3])/2.)
-                R_[:, :, :, idx_buffer:(idx_buffer + R.shape[3])] = R
-                metadata["x1"] -= idx_buffer*metadata["xpixelsize"]
-                metadata["x2"] += idx_buffer*metadata["xpixelsize"]
+                idx_buffer = int((shape[1] - R.shape[3]) / 2.0)
+                R_[:, :, :, idx_buffer : (idx_buffer + R.shape[3])] = R
+                metadata["x1"] -= idx_buffer * metadata["xpixelsize"]
+                metadata["x2"] += idx_buffer * metadata["xpixelsize"]
 
             elif R.shape[3] == shape[1]:
-                idx_buffer = int((shape[0] - R.shape[2])/2.)
-                R_[:, :, idx_buffer:(idx_buffer + R.shape[2]), :] = R
-                metadata["y1"] -= idx_buffer*metadata["ypixelsize"]
-                metadata["y2"] += idx_buffer*metadata["ypixelsize"]
+                idx_buffer = int((shape[0] - R.shape[2]) / 2.0)
+                R_[:, :, idx_buffer : (idx_buffer + R.shape[2]), :] = R
+                metadata["y1"] -= idx_buffer * metadata["ypixelsize"]
+                metadata["y2"] += idx_buffer * metadata["ypixelsize"]
 
         R_shape[-2] = R_.shape[-2]
         R_shape[-1] = R_.shape[-1]
