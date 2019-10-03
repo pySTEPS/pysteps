@@ -10,7 +10,7 @@ when estimating rainfall accumulations to correct for the shift of rainfall patt
 between consecutive radar rainfall maps.
 
 Credits
-~~~~~~~
+-------
 
 The code for the advection correction using pysteps was originally written by
 Daniel Wolfensberger (https://github.com/wolfidan).
@@ -28,7 +28,7 @@ from scipy.ndimage import map_coordinates
 
 ################################################################################
 # Read the radar input images
-# ---------------------------
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # First, we import a sequence of 36 images of 5-minute radar composites
 # that we will use to procude a 3-hour rainfall accumulation map.
@@ -44,7 +44,7 @@ data_source = rcparams.data_sources["mch"]
 
 ###############################################################################
 # Load the data from the archive
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ------------------------------
 
 root_path = data_source["root_path"]
 path_fmt = data_source["path_fmt"]
@@ -81,7 +81,7 @@ R = R[::2]
 
 ################################################################################
 # Advection correction
-# --------------------
+# ~~~~~~~~~~~~~~~~~~~~
 #
 # Now we need to implement the advection correction for a pair of successive
 # radar images. The procedure is based on the algorithm described in Anagnostou
@@ -90,18 +90,19 @@ R = R[::2]
 # To evaluate the advection occurred between two successive radar images, we are
 # going to use the Lucas-Kanade optical flow routine available in pysteps.
 
+
 def advection_correction(R, T=5, t=1):
     """
     R = np.array([qpe_previous, qpe_current])
     T = time between two observations (5 min)
     t = interpolation timestep (1 min)
     """
-    
+
     # Evaluate advection
     oflow_method = motion.get_method("LK")
-    fd_kwargs = {"buffer_mask": 10}  # avoid edge effecte
+    fd_kwargs = {"buffer_mask": 10}  # avoid edge effects
     V = oflow_method(R, fd_kwargs=fd_kwargs)
-    
+
     # Perform temporal interpolation
     Rd = np.zeros((R[0].shape))
     x, y = np.meshgrid(
@@ -119,6 +120,7 @@ def advection_correction(R, T=5, t=1):
         Rd += (T - i) * R1 + i * R2
 
     return 1 / T ** 2 * Rd
+
 
 ###############################################################################
 # Finally, we apply the advection correction to the whole sequence of radar
