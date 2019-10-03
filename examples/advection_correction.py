@@ -21,7 +21,7 @@ from datetime import datetime
 import matplotlib.pyplot as pl
 import numpy as np
 
-from pysteps import io, motion, extrapolation, rcparams
+from pysteps import io, motion, rcparams
 from pysteps.utils import conversion, dimension
 from pysteps.visualization import plot_precip_field
 from scipy.ndimage import map_coordinates
