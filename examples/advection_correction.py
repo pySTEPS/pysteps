@@ -31,7 +31,7 @@ from scipy.ndimage import map_coordinates
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # First, we import a sequence of 36 images of 5-minute radar composites
-# that we will use to procude a 3-hour rainfall accumulation map.
+# that we will use to produce a 3-hour rainfall accumulation map.
 # We will keep only one frame every 10 minutes, in order to highlight the need
 # for advection correction.
 #
