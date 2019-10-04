@@ -103,7 +103,7 @@ def advection_correction(R, T=5, t=1):
     # Evaluate advection
     oflow_method = motion.get_method("LK")
     fd_kwargs = {"buffer_mask": 10}  # avoid edge effects
-    V = oflow_method(R, fd_kwargs=fd_kwargs)
+    V = oflow_method(np.log(R), fd_kwargs=fd_kwargs)
 
     # Perform temporal interpolation
     Rd = np.zeros((R[0].shape))
