@@ -11,11 +11,8 @@ between consecutive radar rainfall maps. This shift becomes particularly
 significant for long radar scanning cycles and in presence of fast moving
 precipitation features.
 
-Credits
--------
-
-The code for the advection correction using pysteps was originally written by
-Daniel Wolfensberger (https://github.com/wolfidan).
+.. note:: The code for the advection correction using pysteps was originally
+          written by `Daniel Wolfensberger <https://github.com/wolfidan>`_.
 
 """
 
@@ -30,7 +27,7 @@ from scipy.ndimage import map_coordinates
 
 ################################################################################
 # Read the radar input images
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ---------------------------
 #
 # First, we import a sequence of 36 images of 5-minute radar composites
 # that we will use to produce a 3-hour rainfall accumulation map.
@@ -46,7 +43,7 @@ data_source = rcparams.data_sources["mch"]
 
 ###############################################################################
 # Load the data from the archive
-# ------------------------------
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 root_path = data_source["root_path"]
 path_fmt = data_source["path_fmt"]
@@ -83,7 +80,7 @@ R = R[::2]
 
 ################################################################################
 # Advection correction
-# ~~~~~~~~~~~~~~~~~~~~
+# --------------------
 #
 # Now we need to implement the advection correction for a pair of successive
 # radar images. The procedure is based on the algorithm described in Anagnostou
@@ -135,7 +132,7 @@ R_ac /= R.shape[0]
 
 ###############################################################################
 # Results
-# ~~~~~~~
+# -------
 #
 # We compare the two accumulation maps. The first map on the left is
 # computed without advection correction and we can therefore see that the shift
@@ -154,9 +151,9 @@ pl.show()
 
 ################################################################################
 # Reference
-# ---------
+# ~~~~~~~~~
 #
 # Anagnostou, E. N., and W. F. Krajewski. 1999. "Real-Time Radar Rainfall
 # Estimation. Part I: Algorithm Formulation." Journal of Atmospheric and
 # Oceanic Technology 16: 189–97.
-# https://doi.org/10.1175/1520-0426(1999)016<0189:RTRREP>2.0.CO;2.
+# `https://doi.org/10.1175/1520-0426(1999)016<0189:RTRREP>2.0.CO;2 <https://doi.org/10.1175/1520-0426(1999)016<0189:RTRREP>2.0.CO;2>`_
