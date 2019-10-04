@@ -128,7 +128,7 @@ def advection_correction(R, T=5, t=1):
 # Finally, we apply the advection correction to the whole sequence of radar
 # images and produce the rainfall accumulation map.
 
-R_ac = np.zeros(R[0].shape)
+R_ac = R[0].copy()
 for i in range(R.shape[0] - 1):
     R_ac += advection_correction(R[i : (i + 2)], T=10)
 R_ac /= R.shape[0]
