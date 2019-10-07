@@ -14,11 +14,11 @@ of pysteps is available in the pysteps reference publication:
 
 Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann,
 A. Seed, and L. Foresti, 2019:  Pysteps:  an open-source Python library for
-probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev. Discuss.*,
-doi:10.5194/gmd-2019-94, **in review**. [source__]
+probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**,
+4185–4219, doi:10.5194/gmd-12-4185-2019. [source__]
 
 __ https://github.com/pySTEPS/pysteps
-__ https://www.geosci-model-dev-discuss.net/gmd-2019-94/
+__ https://doi.org/10.5194/gmd-12-4185-2019
 
 
 Documentation
