@@ -57,7 +57,7 @@ def test_io_import_saf_crri_eu_shape():
     filename = os.path.join(root_path, rel_path,
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
     precip, _, _ = pysteps.io.import_crri_eu(filename)
-    assert precip.shape == (250, 440)
+    assert precip.shape == (769, 1320)
 
 
 test_metadata_crri_eu = [
