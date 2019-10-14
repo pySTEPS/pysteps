@@ -40,7 +40,7 @@ before_install:
   # Install gcc for MacOSX
   # ----------------------
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      brew install gcc ;
+      brew install gcc@9 ;
       export CC=gcc-9  ;
       export CXX=g++-9 ;
       export CXX1X=g++-9 ;
