@@ -59,6 +59,7 @@ def test_io_import_saf_crri_eu_shape():
     precip, _, _ = pysteps.io.import_crri_eu(filename)
     assert precip.shape == (250, 440)
 
+
 test_metadata_crri_eu = [
     ('transform', None, None),
     ('zerovalue', 0.0, 0.1),
@@ -75,7 +76,9 @@ test_metadata_crri_eu = [
     ('institution', "SAF AEMET", None),
 ]
 
-@pytest.mark.parametrize("variable, expected, tolerance", test_metadata_crri_eu)
+
+@pytest.mark.parametrize("variable, expected, tolerance",
+                         test_metadata_crri_eu)
 def test_io_import_saf_crri_eu_metadata(variable, expected, tolerance):
     """Test the importer SAF CRRI."""
     root_path = pysteps.rcparams.data_sources["crri"]["root_path"]
@@ -84,7 +87,3 @@ def test_io_import_saf_crri_eu_metadata(variable, expected, tolerance):
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
     _, _, metadata = pysteps.io.import_crri_eu(filename)
     smart_assert(metadata[variable], expected, tolerance)
-
-
-
-
