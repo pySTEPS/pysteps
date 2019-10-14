@@ -239,7 +239,9 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
+        valid_time = netCDF4.num2date(times[:],
+                                      units=times.units,
+                                      calendar=calendar)
 
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
@@ -247,7 +249,9 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        start_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
+        start_time = netCDF4.num2date(times[:],
+                                      units=times.units,
+                                      calendar=calendar)
 
     time_step = None
 
@@ -282,8 +286,9 @@ def import_fmi_geotiff(filename, **kwargs):
     -------
 
     out : tuple
-        A three-element tuple containing the precipitation field, the associated
-        quality field and metadata. The quality field is currently set to None.
+        A three-element tuple containing the precipitation field,
+        the associated quality field and metadata.
+        The quality field is currently set to None.
     """
     if not GDAL_IMPORTED:
         raise MissingOptionalDependency(
@@ -405,8 +410,8 @@ def _import_fmi_pgm_geodata(metadata):
     projdef += " +lon_0=" + metadata["centrallongitude"][0] + "E"
     projdef += " +lat_0=" + metadata["centrallatitude"][0] + "N"
     projdef += " +lat_ts=" + metadata["truelatitude"][0]
-    # These are hard-coded because the projection definition is missing from the
-    # PGM files.
+    # These are hard-coded because the projection definition 
+    # is missing from the PGM files.
     projdef += " +a=6371288"
     projdef += " +x_0=380886.310"
     projdef += " +y_0=3395677.920"
