@@ -40,12 +40,14 @@ before_install:
   # Install gcc for MacOSX
   # ----------------------
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      brew install gcc@9 ;
+      brew update-reset
+      brew update
+      brew install gcc@9;
+      which gcc-9 ;
       export CC=gcc-9  ;
       export CXX=g++-9 ;
       export CXX1X=g++-9 ;
-      which gcc-9 ;
-      gcc-9 --version ;
+      gcc-9 --version
     fi
 
   # Install miniconda
