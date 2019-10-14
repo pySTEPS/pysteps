@@ -17,7 +17,7 @@ def test_io_import_saf_crri_shape():
     filename = os.path.join(root_path, rel_path,
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
     precip = pysteps.io.importers._import_crri_eu_data(filename)
-    assert precip.shape == (2200, 1019)
+    assert precip.shape == (1019, 2200)
 
 
 expected_proj = ("+proj=geos +a=6378137.000000 +b=6356752.300000 "
