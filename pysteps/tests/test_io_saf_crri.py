@@ -16,7 +16,7 @@ def test_io_import_saf_crri_shape():
     rel_path = "20180601/CRR"
     filename = os.path.join(root_path, rel_path,
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
-    precip, _, _ = pysteps.io._import_crri_eu_data(filename)
+    precip = pysteps.io.importers._import_crri_eu_data(filename)
     assert precip.shape == (2200, 1019)
 
 
@@ -46,5 +46,5 @@ def test_io_import_saf_crri_geodata(variable, expected, tolerance):
     rel_path = "20180601/CRR"
     filename = os.path.join(root_path, rel_path,
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
-    geodata = pysteps.io._import_crri_eu_geodata(filename)
+    geodata = pysteps.io.importers._import_crri_eu_geodata(filename)
     smart_assert(geodata[variable], expected, tolerance)
