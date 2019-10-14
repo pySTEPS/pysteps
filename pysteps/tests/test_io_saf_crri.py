@@ -48,3 +48,43 @@ def test_io_import_saf_crri_geodata(variable, expected, tolerance):
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
     geodata = pysteps.io.importers._import_crri_eu_geodata(filename)
     smart_assert(geodata[variable], expected, tolerance)
+
+
+def test_io_import_saf_crri_eu_shape():
+    """Test the importer SAF CRRI for EU."""
+    root_path = pysteps.rcparams.data_sources["crri"]["root_path"]
+    rel_path = "20180601/CRR"
+    filename = os.path.join(root_path, rel_path,
+                            "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
+    precip, _, _ = pysteps.io.import_crri_eu(filename)
+    assert precip.shape == (250, 440)
+
+test_metadata_crri_eu = [
+    ('transform', None, None),
+    ('zerovalue', 0.0, 0.1),
+    ('projection', expected_proj, None),
+    ('unit', "mm/h", None),
+    ('accutime', None, None),
+    ('x1', -1980000.0, 0.1),
+    ('x2', 1977000.0, 0.1),
+    ('y1', 2514000.0, 0.1),
+    ('y2', 4818000.0, 0.1),
+    ('xpixelsize', 3000.0, 0.1),
+    ('ypixelsize', 3000.0, 0.1),
+    ('yorigin', 'upper', None),
+    ('institution', "SAF AEMET", None),
+]
+
+@pytest.mark.parametrize("variable, expected, tolerance", test_metadata_crri_eu)
+def test_io_import_saf_crri_eu_metadata(variable, expected, tolerance):
+    """Test the importer SAF CRRI."""
+    root_path = pysteps.rcparams.data_sources["crri"]["root_path"]
+    rel_path = "20180601/CRR"
+    filename = os.path.join(root_path, rel_path,
+                            "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
+    _, _, metadata = pysteps.io.import_crri_eu(filename)
+    smart_assert(metadata[variable], expected, tolerance)
+
+
+
+
