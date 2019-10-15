@@ -157,7 +157,7 @@ def import_crri_eu(filename, **kwargs):
             "but it is not installed"
         )
 
-    R = _import_crri_eu_data(filename)
+    precip = _import_crri_eu_data(filename)
 
     geodata = _import_crri_eu_geodata(filename)
     metadata = geodata
@@ -165,20 +165,20 @@ def import_crri_eu(filename, **kwargs):
     # TODO(import_crri_eu): Add missing georeferencing data.
 
     metadata["transform"] = None
-    metadata["zerovalue"] = np.nanmin(R)
-    if np.any(np.isfinite(R)):
-        metadata["threshold"] = np.nanmin(R[R > np.nanmin(R)])
+    metadata["zerovalue"] = np.nanmin(precip)
+    if np.any(np.isfinite(precip)):
+        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
     else:
         metadata["threshold"] = np.nan
 
     # cut a window, to be defined here and only here
     if True:
-        ny, nx = R.shape
+        ny, nx = precip.shape
         nx1 = 440
         nx2 = nx - 440
         ny1 = 250
         ny2 = ny
-        R = R[ny1:ny2, nx1:nx2]
+        precip = precip[ny1:ny2, nx1:nx2]
         x1, x2 = metadata['x1'], metadata['x2']
         xpixelsize = metadata['xpixelsize']
         x1n = x1 + xpixelsize * nx1
@@ -190,7 +190,7 @@ def import_crri_eu(filename, **kwargs):
         y2n = y2 - ypixelsize * ny1
         metadata['y1'], metadata['y2'] = y1n, y2n
 
-    return R, None, metadata
+    return precip, None, metadata
 
 
 def _import_crri_eu_data(filename):
@@ -1224,7 +1224,7 @@ def import_knmi_hdf5(filename, **kwargs):
     dset = f["image1"]["image_data"]
     precip_intermediate = np.copy(dset)  # copy the content
 
-    # In case R is a rainfall accumulation (ACRR), R is divided by 100.0,
+    # In case precip is a rainfall accumulation (ACRR), precip is divided by 100.0,
     # because the data is saved as hundreds of mm (so, as integers). 65535 is
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
