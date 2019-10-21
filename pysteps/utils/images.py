@@ -142,11 +142,13 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
         input_image[mask] = np.ma.masked
 
     # scale image between 0 and 255
-    input_image = (
-        (input_image.filled() - input_image.min())
-        / (input_image.max() - input_image.min())
-        * 255
-    )
+    im_min = input_image.min()
+    im_max = input_image.max()
+    if im_max - im_min > 1e-8:
+        input_image = ((input_image.filled() - im_min) /
+                       (im_max - im_min) * 255)
+    else:
+        input_image = (input_image.filled() - im_min)
 
     # convert to 8-bit
     input_image = np.ndarray.astype(input_image, "uint8")
