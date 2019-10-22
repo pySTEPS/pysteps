@@ -55,7 +55,7 @@ def dense_lucaskanade(input_images,
                       nr_std_outlier=3,
                       k_outlier=30,
                       size_opening=3,
-                      decl_scale=10,
+                      decl_scale=20,
                       verbose=False):
     """Run the Lucas-Kanade optical flow routine and interpolate the motion
     vectors.

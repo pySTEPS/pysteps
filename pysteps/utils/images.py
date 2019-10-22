@@ -30,10 +30,10 @@ except ImportError:
 
 
 def ShiTomasi_detection(input_image,
-                        max_corners=500,
-                        quality_level=0.1,
-                        min_distance=3,
-                        block_size=15,
+                        max_corners=1000,
+                        quality_level=0.01,
+                        min_distance=10,
+                        block_size=5,
                         buffer_mask=0,
                         use_harris=False,
                         k=0.04,
