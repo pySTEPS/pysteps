@@ -111,7 +111,7 @@ To manually test the installation on new environment,
 create a copy of the basic development environment using the
 `environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
 file in the root folder of the pysteps project::
-    conda create -f environment_dev.yml -n pysteps_test
+    conda env create -f environment_dev.yml -n pysteps_test
 
 Then we activate the environment::
 
