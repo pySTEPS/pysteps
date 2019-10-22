@@ -413,7 +413,7 @@ def track_features(
     im_max = next_img.max()
     if im_max - im_min > 1e-8:
         next_img = ((next_img.filled() - im_min) /
-                    (im_max.max() - im_min) * 255)
+                    (im_max - im_min) * 255)
     else:
         next_img = (next_img.filled() - im_min)
 
