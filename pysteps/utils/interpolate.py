@@ -119,6 +119,19 @@ def rbfinterp2d(
 
     npoints = input_array.shape[0]
 
+    if npoints == 0:
+        raise ValueError(
+            "input_array (n, m) must contain at least one sample, but it has %i"
+            % npoints
+        )
+
+    # only one sample, return uniform fields
+    elif npoints == 1:
+        output_array = np.ones((nvar, ygrid.size, xgrid.size))
+        for i in range(nvar):
+            output_array[i, :, :] *= input_array[:, i]
+        return output_array
+
     coord = np.copy(coord)
 
     if coord.ndim != 2:
