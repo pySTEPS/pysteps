@@ -29,9 +29,14 @@ except ImportError:
     CV2_IMPORTED = False
 
 
-def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
-                        min_distance=3, block_size=15, buffer_mask=0,
-                        use_harris=False, k=0.04,
+def ShiTomasi_detection(input_image,
+                        max_corners=500,
+                        quality_level=0.1,
+                        min_distance=3,
+                        block_size=15,
+                        buffer_mask=0,
+                        use_harris=False,
+                        k=0.04,
                         verbose=False,
                         **kwargs):
     """
@@ -128,8 +133,9 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
         raise ValueError("input_image must be a two-dimensional array")
 
     # masked array
-    if ~isinstance(input_image, MaskedArray):
+    if not isinstance(input_image, MaskedArray):
         input_image = np.ma.masked_invalid(input_image)
+
     np.ma.set_fill_value(input_image, input_image.min())
 
     # buffer the quality mask to ensure that no vectors are computed nearby
@@ -158,6 +164,7 @@ def ShiTomasi_detection(input_image, max_corners=500, quality_level=0.1,
         maxCorners=max_corners,
         qualityLevel=quality_level,
         minDistance=min_distance,
+        blockSize=block_size,
         useHarrisDetector=use_harris,
         k=k,
     )
