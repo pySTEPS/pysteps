@@ -7,10 +7,12 @@ from pysteps.io.exporters import initialize_forecast_exporter_netcdf
 from pysteps.io.exporters import export_forecast_dataset
 from pysteps.io.exporters import close_forecast_files
 
-import pysteps
-import os
-import tempfile
 import numpy as np
+import os
+import pysteps
+import pytest
+import tempfile
+
 
 
 def test_get_geotiff_filename():
@@ -32,6 +34,9 @@ def test_get_geotiff_filename():
 
 def test_io_export_netcdf_one_member_one_time_step():
     """Test the export netcdf."""
+
+    pytest.importorskip('netCDF4')
+
     # open a netcdf file
     root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
     rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
