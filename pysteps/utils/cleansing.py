@@ -127,7 +127,7 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     if verbose:
         print("--- %i samples left after declustering ---" % dinput.shape[0])
 
-    return dcoord.squeeze(), dinput
+    return dcoord, dinput
 
 
 def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):

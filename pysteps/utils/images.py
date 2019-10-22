@@ -172,7 +172,7 @@ def ShiTomasi_detection(input_image,
     if points is None:
         points = np.empty(shape=(0, 2))
     else:
-        points = points.squeeze()
+        points = points[:, 0, :]
 
     if verbose:
         print("--- %i good features to track detected ---" % points.shape[0])
