@@ -126,9 +126,10 @@ pysteps already installed::
 
     pip uninstall pysteps
 
-Now, install the pysteps package from test.pypi.org::
+Now, install the pysteps package from test.pypi.org. 
+Since not all the dependecies are available in the Test PyPI repository, we need to add the official repo as an extra index to pip. By doing so, pip will look first in the Test PyPI index and then in the official PyPI::
 
-    pip install --index-url https://test.pypi.org/simple/ pysteps
+    pip install --no-cache-dir --index-url https://test.pypi.org/simple/  --extra-index-url=https://pypi.org/simple/ pysteps
 
 To test that the installation was successful, from a folder different
 than the pysteps source, run::
