@@ -46,6 +46,7 @@ def test_steps(
                                           upscale=2000)[1:, :, :]
 
     # Retrieve motion field
+    pytest.importorskip('cv2')
     oflow_method = motion.get_method("LK")
     retrieved_motion = oflow_method(precip_input)
 
