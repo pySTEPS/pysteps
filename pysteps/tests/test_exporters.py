@@ -36,6 +36,7 @@ def test_io_export_netcdf_one_member_one_time_step():
     """Test the export netcdf."""
 
     pytest.importorskip('netCDF4')
+    pytest.importorskip('pyproj')
 
     # open a netcdf file
     root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
