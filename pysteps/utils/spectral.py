@@ -16,25 +16,28 @@ import numpy as np
 from . import arrays
 
 
-def rapsd(Z, fft_method=None, return_freq=False, d=1.0, **fft_kwargs):
+def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False,
+          **fft_kwargs):
     """Compute radially averaged power spectral density (RAPSD) from the given
     2D input field.
 
     Parameters
     ----------
     Z : array_like
-      A 2d array of shape (M,N) containing the input field.
+        A 2d array of shape (M,N) containing the input field.
     fft_method : object
-      A module or object implementing the same methods as numpy.fft and
-      scipy.fftpack. If set to None, Z is assumed to represent the shifted
-      discrete Fourier transform of the input field, where the origin is at
-      the center of the array
-      (see numpy.fft.fftshift or scipy.fftpack.fftshift).
+        A module or object implementing the same methods as numpy.fft and
+        scipy.fftpack. If set to None, Z is assumed to represent the shifted
+        discrete Fourier transform of the input field, where the origin is at
+        the center of the array
+        (see numpy.fft.fftshift or scipy.fftpack.fftshift).
     return_freq: bool
-      Whether to also return the Fourier frequencies.
-    d: scalar
-      Sample spacing (inverse of the sampling rate). Defaults to 1.
-      Applicable if return_freq is 'True'.
+        Whether to also return the Fourier frequencies.
+    d : scalar
+        Sample spacing (inverse of the sampling rate). Defaults to 1.
+        Applicable if return_freq is 'True'.
+    normalize : bool
+        If True, normalize the power spectrum so that it sums to one.
 
     Returns
     -------
@@ -71,7 +74,7 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, **fft_kwargs):
 
     if fft_method is not None:
         F = fft_method.fftshift(fft_method.fft2(Z, **fft_kwargs))
-        F = np.abs(F)**2/F.size
+        F = np.abs(F)**2 / F.size
     else:
         F = Z
 
@@ -81,12 +84,17 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, **fft_kwargs):
         F_vals = F[MASK]
         result.append(np.mean(F_vals))
 
+    result = np.array(result)
+
+    if normalize:
+        result /= np.sum(result)
+
     if return_freq:
         freq = np.fft.fftfreq(L, d=d)
         freq = freq[r_range]
-        return np.array(result), freq
+        return result, freq
     else:
-        return np.array(result)
+        return result
 
 
 def remove_rain_norain_discontinuity(R):
