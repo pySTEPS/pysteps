@@ -50,6 +50,9 @@ def get_method(name, method_type):
         |              |  archive containing precipitation intensity          |
         |              |  composites.                                         |
         +--------------+------------------------------------------------------+
+        | crri_eu      |  NetCDF SAF CRRI files                               |
+        |              |  containing convective rain rate intensity and other |
+        +--------------+------------------------------------------------------+
         | fmi_geotiff  |  GeoTIFF files used in the Finnish Meteorological    |
         |              |  Institute (FMI) archive, containing reflectivity    |
         |              |  composites (dBZ).                                   |
@@ -57,6 +60,8 @@ def get_method(name, method_type):
         | fmi_pgm      |  PGM files used in the Finnish Meteorological        |
         |              |  Institute (FMI) archive, containing reflectivity    |
         |              |  composites (dBZ).                                   |
+        +--------------+------------------------------------------------------+
+        | knmi_hdf5    |  HDF5 file format used by KNMI.                      |
         +--------------+------------------------------------------------------+
         | mch_gif      | GIF files in the MeteoSwiss (MCH) archive containing |
         |              | precipitation composites.                            |
@@ -67,11 +72,6 @@ def get_method(name, method_type):
         |              | containing precipitation composites.                 |
         +--------------+------------------------------------------------------+
         | opera_hdf5   | ODIM HDF5 file format used by Eumetnet/OPERA.        |
-        +--------------+------------------------------------------------------+
-        | knmi_hdf5    |  HDF5 file format used by KNMI.                      |
-        +--------------+------------------------------------------------------+
-        | crri_eu      |  NetCDF SAF CRRI files                               |
-        |              |  containing convective rain rate intensity and other |
         +--------------+------------------------------------------------------+
 
         Exporters:
