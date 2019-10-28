@@ -73,6 +73,7 @@ Available Importers
     :toctree: ../generated/
 
     import_bom_rf3
+    import_crri_eu
     import_fmi_geotiff
     import_fmi_pgm
     import_mch_gif
