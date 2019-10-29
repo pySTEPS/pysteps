@@ -104,7 +104,7 @@ def recompose_cascade_spatial(R, mu, sigma):
     return R_rc
 
 
-def recompose_cascade_spectral(R, R_shape, mu, sigma, filter, fft):
+def recompose_cascade_spectral(R, mu, sigma, filter, fft):
     """Recompose a cascade in the spectral domain by summing the cascade levels
     and transforming the result to spatial domain.
 
@@ -114,16 +114,6 @@ def recompose_cascade_spectral(R, R_shape, mu, sigma, filter, fft):
         A three-dimensional array of shape (k,m,n) containing the cascade with
         k levels.
     """
-    # TESTING
-#    R_rc = np.zeros(R_shape)
-#    for i in range(len(mu)):
-#        R_i = np.zeros((1226, 381), dtype=complex)
-#        R_i[filter["masks"][i]] = R[i]
-#        R_rc += fft.irfft2(R_i) * sigma[i] + mu[i]
-#    
-#    return R_rc
-    #
-
     R_rc = np.zeros(filter["masks"][0].shape, dtype=complex)
 
     for i in range(len(mu)):
