@@ -64,11 +64,11 @@ def decomposition_fft(field, bp_filter, **kwargs):
         levels. Pixels with MASK==False are excluded from the computations.
     input_domain : {"spatial", "spectral"}
         The domain of the input field. If "spectral", the input is assumed to
-        be in the spectral domain.
+        be in the spectral domain. Defaults to "spatial".
     output_domain : {"spatial", "spectral"}
         If "spatial", the output cascade levels are transformed back to the
         spatial domain by using the inverse FFT. If "spectral", the cascade is
-        kept in the spectral domain.
+        kept in the spectral domain. Defaults to "spatial".
     compute_stats : bool
         If True, the output dictionary contains the keys "means" and "stds"
         for the mean and standard deviation of each output cascade level.
