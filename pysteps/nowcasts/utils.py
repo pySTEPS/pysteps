@@ -89,8 +89,8 @@ def print_corrcoefs(GAMMA):
 
 
 def recompose_cascade(R, mu, sigma):
-    """Recompose a cascade in the spatial domain by inverting the normalization
-    and summing the cascade levels.
+    """Recompose a cascade by inverting the normalization and summing the
+    cascade levels.
 
     Parameters
     ----------
@@ -105,7 +105,7 @@ def recompose_cascade(R, mu, sigma):
 
 
 def recompose_cascade_spectral(R, filter):
-    """Recompose a cascade in the spectral domain by summing the cascade levels.
+    """Recompose a cascade in the spectral domain by summing the frequency bands.
 
     Parameters
     ----------

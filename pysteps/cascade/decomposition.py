@@ -57,7 +57,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see :py:func:`pysteps.utils.interface.get_method`).
-        Defaults to "numpy".
+        Defaults to "numpy". This option is not used if input_domain and
+        output_domain are set to "spectral".
     MASK : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with MASK==False are excluded from the computations.
