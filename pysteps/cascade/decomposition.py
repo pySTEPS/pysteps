@@ -98,9 +98,9 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
     if field.shape[0] != bp_filter["weights_2d"].shape[1]:
         raise ValueError(
-            "dimension mismatch between field and filter: "
+            "dimension mismatch between field and bp_filter: "
             + "field.shape[0]=%d , " % field.shape[0]
-            + "filter['weights_2d'].shape[1]"
+            + "bp_filter['weights_2d'].shape[1]"
               "=%d" % bp_filter["weights_2d"].shape[1])
 
     if input_domain == "spatial" and \
@@ -108,7 +108,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
         raise ValueError(
             "Dimension mismatch between field and bp_filter: "
             "int(field.shape[1]/2)+1=%d , " % (int(field.shape[1] / 2) + 1)
-            + "filter['weights_2d'].shape[2]"
+            + "bp_filter['weights_2d'].shape[2]"
               "=%d" % bp_filter["weights_2d"].shape[2])
 
     if input_domain == "spectral" and \
@@ -116,7 +116,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
         raise ValueError(
             "Dimension mismatch between field and bp_filter: "
             "field.shape[1]=%d , " % (field.shape[1] + 1)
-            + "filter['weights_2d'].shape[2]"
+            + "bp_filter['weights_2d'].shape[2]"
               "=%d" % bp_filter["weights_2d"].shape[2])
 
     if np.any(~np.isfinite(field)):
@@ -133,7 +133,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     field_decomp = []
 
     for k in range(len(bp_filter["weights_1d"])):
-        field_ = field_fft * filter["weights_2d"][k, :, :]
+        field_ = field_fft * bp_filter["weights_2d"][k, :, :]
         if output_domain == "spatial" or compute_stats:
             field__ = fft.irfft2(field_)
         if output_domain == "spatial":
