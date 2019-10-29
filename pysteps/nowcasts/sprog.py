@@ -308,8 +308,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
             R_c_last = np.stack(R_c_last)
             R_c_ = nowcast_utils.recompose_cascade_spatial(R_c_last, mu, sigma)
         else:
-            R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_last, R.shape,
-                                                            mu, sigma, filter, fft)
+            R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_last, filter, fft)
 
         MASK = _compute_sprog_mask(R_c_, war)
         R_c_[~MASK] = R_min

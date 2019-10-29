@@ -599,8 +599,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                 R_c_ = np.stack(R_c_)
                 R_c_ = nowcast_utils.recompose_cascade_spatial(R_c_, mu, sigma)
             else:
-                R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_, R.shape,
-                                                                mu, sigma, filter,
+                R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_, filter,
                                                                 fft_objs[j])
 
             if mask_method is not None:

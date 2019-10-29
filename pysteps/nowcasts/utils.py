@@ -104,9 +104,9 @@ def recompose_cascade_spatial(R, mu, sigma):
     return R_rc
 
 
-def recompose_cascade_spectral(R, mu, sigma, filter, fft):
+def recompose_cascade_spectral(R, filter, fft):
     """Recompose a cascade in the spectral domain by summing the cascade levels
-    and transforming the result to spatial domain.
+    and transforming the result to spatial domain via inverse FFT.
 
     Parameters
     ----------
@@ -116,7 +116,7 @@ def recompose_cascade_spectral(R, mu, sigma, filter, fft):
     """
     R_rc = np.zeros(filter["masks"][0].shape, dtype=complex)
 
-    for i in range(len(mu)):
+    for i in range(len(filter["cascade_levels"].shape[0])):
         R_rc[filter["masks"][i]] += R[i]
 
     return fft.irfft2(R_rc)
