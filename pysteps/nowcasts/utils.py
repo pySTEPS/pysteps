@@ -97,7 +97,14 @@ def recompose_cascade(R, mu, sigma):
     R : array_like
         A three-dimensional array of shape (k,m,n) containing the cascade with
         k levels.
+    mu : array_like
+        One-dimensional array of length k containing the mean values of the
+        cascade levels.
+    sigma : array_like
+        One-dimensional array of length k containing the standard deviations of
+        the cascade levels.
     """
+    
     R_rc = [(R[i, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
     R_rc = np.sum(np.stack(R_rc), axis=0)
 
@@ -112,6 +119,9 @@ def recompose_cascade_spectral(R, filter):
     R : array_like
         A three-dimensional array of shape (k,m,n) containing the cascade with
         k levels.
+    filter : dict
+        A filter returned by a method implemented in
+        :py:mod:`pysteps.cascade.bandpass_filters`.
     """
     R_rc = np.zeros(filter["masks"][0].shape, dtype=complex)
 
