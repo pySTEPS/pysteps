@@ -81,7 +81,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
     """
     fft = kwargs.get("fft_method", "numpy")
-    if type(fft) == str:
+    if isinstance(fft, str):
         fft = utils.get_method(fft, shape=field.shape)
     mask = kwargs.get("MASK", None)
     input_domain = kwargs.get("input_domain", "spatial")
