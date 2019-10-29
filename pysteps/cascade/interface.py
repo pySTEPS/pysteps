@@ -28,8 +28,8 @@ def get_method(name):
     +-------------------+------------------------------------------------------+
     |     Name          |              Description                             |
     +===================+======================================================+
-    |  gaussian         | implementation of a bandpass filter using Gaussian   |
-    |                   | weights                                              |
+    |  gaussian         | implementation of a set of bandpass filters using    |
+    |                   | Gaussian weights                                     |
     +-------------------+------------------------------------------------------+
     |  uniform          | implementation of a filter where all weights are set |
     |                   | to one                                               |
@@ -40,8 +40,9 @@ def get_method(name):
     +-------------------+------------------------------------------------------+
     |     Name          |              Description                             |
     +===================+======================================================+
-    |  fft              | decomposition based on Fast Fourier Transform (FFT)  |
-    |                   | and a bandpass filter                                |
+    |  fft              | decomposition into multiple spatial scales based on  |
+    |                   | the fast Fourier Transform (FFT) and a set of        |
+    |                   | bandpass filters                                     |
     +-------------------+------------------------------------------------------+
 
     """
