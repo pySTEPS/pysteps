@@ -88,7 +88,7 @@ def print_corrcoefs(GAMMA):
         print(hline_str)
 
 
-def recompose_cascade_spatial(R, mu, sigma):
+def recompose_cascade(R, mu, sigma):
     """Recompose a cascade in the spatial domain by inverting the normalization
     and summing the cascade levels.
 

@@ -306,7 +306,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
         R_c_last = [R_c[i][-1, :] for i in range(n_cascade_levels)]
         if domain == "spatial":
             R_c_last = np.stack(R_c_last)
-            R_c_ = nowcast_utils.recompose_cascade_spatial(R_c_last, mu, sigma)
+            R_c_ = nowcast_utils.recompose_cascade(R_c_last, mu, sigma)
         else:
             R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_last, filter)
             R_c_ = fft.irfft2(R_c_)
