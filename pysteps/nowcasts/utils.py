@@ -134,21 +134,24 @@ def recompose_cascade_spectral(R, R_shape, mu, sigma, filter, fft):
 
 def stack_cascades(R_d, n_levels, donorm=True):
     """Stack the given cascades into a larger array.
+
     Parameters
     ----------
     R_d : list
       List of cascades obtained by calling a method implemented in
       pysteps.cascade.decomposition.
     n_levels : int
-      Number of cascade levels.
+      The number of cascade levels.
     donorm : bool
       If True, normalize the cascade levels before stacking.
+
     Returns
     -------
     out : tuple
-      A three-element tuple containing a four-dimensional array of stacked
-      cascade levels and lists of mean values and standard deviations for each
-      cascade level (taken from the last cascade).
+      A three-element tuple containing 1) a list of three-dimensional arrays
+      containing the rearranged cascade levels and 2) lists of mean values and
+      3) standard deviations for each cascade level (taken from the last element
+      in R_d).
     """
     R_c = []
     mu = np.empty(n_levels)
