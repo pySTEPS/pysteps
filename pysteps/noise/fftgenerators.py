@@ -230,8 +230,8 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
         :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
         (default 'flat-hanning').
     donorm : bool
-       Option to normalize the real and imaginary parts.
-       Default : False
+        Option to normalize the real and imaginary parts.
+        Default : False
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity (default True).
         It assumes no-rain pixels are assigned with lowest value.
@@ -243,15 +243,12 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
     Returns
     -------
     out : dict
-        A dictionary containing the keys field, input_shape, model and pars.
-        The first is a two-dimensional array of shape (m, int(n/2)+1) that
-        defines the filter. The second one is the shape of the input field for
-        the filter. The last two are the model and fitted parameters,
-        respectively.
+        A dictionary containing the keys field and input_shape. The first is a
+        two-dimensional array of shape (m, int(n/2)+1) that defines the filter.
+        The second one is the shape of the input field for the filter.
 
-        This dictionary can be passed to
-        :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter` to
-        generate noise fields.
+        It can be passed to
+        :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter`.
     """
     if len(X.shape) < 2 or len(X.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
