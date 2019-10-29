@@ -335,7 +335,8 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
     Returns
     -------
     N : array-like
-        A two-dimensional field of stationary correlated noise.
+        A two-dimensional field of stationary correlated noise. The noise field
+        is normalized to zero mean and unit variance.
 
     """
     if domain not in ["spatial", "spectral"]:
