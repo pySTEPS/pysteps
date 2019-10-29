@@ -2,17 +2,17 @@
 pysteps.cascade.decomposition
 =============================
 
-Methods for decomposing two-dimensional images into multiple spatial scales.
+Methods for decomposing two-dimensional fields into multiple spatial scales.
 
 The methods in this module implement the following interface::
 
     decomposition_xxx(field, bp_filter, **kwargs)
 
-where field is the input field and filter is a dictionary returned by a filter
+where field is the input field and bp_filter is a dictionary returned by a filter
 method implemented in :py:mod:`pysteps.cascade.bandpass_filters`.
 Optional parameters can be passed in
 the keyword arguments. The output of each method is a dictionary with the
-following key-value pairs, where means and stds is optional:
+following key-value pairs, where means and stds are optional:
 
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
@@ -40,8 +40,8 @@ from pysteps import utils
 
 
 def decomposition_fft(field, bp_filter, **kwargs):
-    """Decompose a 2d input field into multiple spatial scales by using the Fast
-    Fourier Transform (FFT) and a bandpass filter.
+    """Decompose a two-dimensional input field into multiple spatial scales by
+    using the Fast Fourier Transform (FFT) and a set of bandpass filters.
 
     Parameters
     ----------
@@ -62,14 +62,14 @@ def decomposition_fft(field, bp_filter, **kwargs):
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with MASK==False are excluded from the computations.
     input_domain : {"spatial", "spectral"}
-        The domain of the inputs. If "spectral", the FFT is assumed to be
-        applied to the inputs.
+        The domain of the input field. If "spectral", the input is assumed to
+        be in the spectral domain.
     output_domain : {"spatial", "spectral"}
         If "spatial", the output cascade levels are transformed back to the
         spatial domain by using the inverse FFT. If "spectral", the cascade is
         kept in the spectral domain.
     compute_stats : bool
-        If True, the output dictionary contains the keys 'means' and 'stds'
+        If True, the output dictionary contains the keys "means" and "stds"
         for the mean and standard deviation of each output cascade level.
 
     Returns
@@ -114,7 +114,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     if input_domain == "spectral" and \
        field.shape[1] != bp_filter["weights_2d"].shape[2]:
         raise ValueError(
-        "Dimension mismatch between field and bp_filter: "
+            "Dimension mismatch between field and bp_filter: "
             "field.shape[1]=%d , " % (field.shape[1] + 1)
             + "filter['weights_2d'].shape[2]"
               "=%d" % bp_filter["weights_2d"].shape[2])
