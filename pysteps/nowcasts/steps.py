@@ -601,6 +601,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             else:
                 R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_, filter,
                                                                 fft_objs[j])
+                R_c_ = fft_objs[j].irfft2(R_c_)
 
             if mask_method is not None:
                 # apply the precipitation mask to prevent generation of new
