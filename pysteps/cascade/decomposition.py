@@ -12,7 +12,7 @@ where field is the input field and bp_filter is a dictionary returned by a filte
 method implemented in :py:mod:`pysteps.cascade.bandpass_filters`.
 Optional parameters can be passed in
 the keyword arguments. The output of each method is a dictionary with the
-following key-value pairs, where means and stds are optional:
+following key-value pairs:
 
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
@@ -20,10 +20,6 @@ following key-value pairs, where means and stds are optional:
 |  cascade_levels   | three-dimensional array of shape (k,m,n), where k is the |
 |                   | number of cascade levels and the input fields have shape |
 |                   | (m,n)                                                    |
-+-------------------+----------------------------------------------------------+
-|  means            | list of mean values for each cascade level               |
-+-------------------+----------------------------------------------------------+
-|  stds             | list of standard deviations for each cascade level       |
 +-------------------+----------------------------------------------------------+
 
 Available methods
