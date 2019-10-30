@@ -8,8 +8,11 @@ Fourier domain.
 .. autosummary::
     :toctree: ../generated/
 
+    corrcoef
+    mean
     rapsd
     remove_rain_norain_discontinuity
+    std
 """
 
 import numpy as np
