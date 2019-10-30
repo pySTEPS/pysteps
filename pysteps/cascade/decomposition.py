@@ -187,6 +187,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
                 weight_masks.append(weight_mask)
 
     result["domain"] = output_domain
+    result["normalized"] = normalize
 
     if output_domain == "spatial":
         field_decomp = np.stack(field_decomp)
@@ -224,9 +225,12 @@ def recompose_fft(decomp, **kwargs):
     sigma = decomp["stds"]
 
     if decomp["domain"] == "spatial":
-        result = [levels[i, :, :] * sigma[i] + mu[i] for i in range(levels.shape[0])]
+        if decomp["normalized"]:
+            result = [levels[i, :, :] * sigma[i] + mu[i] for i in range(levels.shape[0])]
 
-        return np.sum(np.stack(result), axis=0)
+            return np.sum(np.stack(result), axis=0)
+        else:
+            return np.sum(levels, axis=0)
     else:
         weight_masks = decomp["weight_masks"]
         result = np.zeros(weight_masks.shape[1:], dtype=complex)
