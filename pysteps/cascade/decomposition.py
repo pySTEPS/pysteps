@@ -145,8 +145,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
         field_fft = fft.rfft2(field)
     else:
         field_fft = field
-        if compact_output:
-            weight_masks = []
+    if output_domain == "spectral" and compact_output:
+        weight_masks = []
     field_decomp = []
 
     for k in range(len(bp_filter["weights_1d"])):
@@ -177,8 +177,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
                 field__ = (field__ - mean) / std
             field_decomp.append(field__)
         else:
-            weight_mask = bp_filter["weights_2d"][k, :, :] > 1e-4
             if compact_output:
+                weight_mask = bp_filter["weights_2d"][k, :, :] > 1e-12
                 field_ = field_[weight_mask]
             if normalize:
                 field_ = (field_ - mean) / std
@@ -189,7 +189,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     result["domain"] = output_domain
     result["normalized"] = normalize
 
-    if output_domain == "spatial":
+    if output_domain == "spatial" or not compact_output:
         field_decomp = np.stack(field_decomp)
 
     result["cascade_levels"] = field_decomp
@@ -211,7 +211,7 @@ def recompose_fft(decomp, **kwargs):
     ----------
     decomp : dict
         A cascade decomposition returned by decomposition_fft.
-    
+
     Returns
     -------
     out : numpy.ndarray
@@ -232,10 +232,21 @@ def recompose_fft(decomp, **kwargs):
         else:
             return np.sum(levels, axis=0)
     else:
-        weight_masks = decomp["weight_masks"]
-        result = np.zeros(weight_masks.shape[1:], dtype=complex)
+        if not "weight_masks" in decomp.keys():
+            if decomp["normalized"]:
+                result = [levels[i, :, :] * sigma[i] + mu[i] for i in range(levels.shape[0])]
 
-        for i in range(weight_masks.shape[0]):
-            result[weight_masks[i]] += levels[i][weight_masks[i]] * sigma[i] + mu[i]
+                return np.sum(np.stack(result), axis=0)
+            else:
+                return np.sum(levels, axis=0)
+        else:
+            weight_masks = decomp["weight_masks"]
+            result = np.zeros(weight_masks.shape[1:], dtype=complex)
+    
+            for i in range(weight_masks.shape[0]):
+                if decomp["normalized"]:
+                    result[weight_masks[i]] += levels[i] * sigma[i] + mu[i]
+                else:
+                    result[weight_masks[i]] += levels[i]
 
-        return result
+            return result
