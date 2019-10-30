@@ -76,7 +76,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     compute_stats : bool
         If True, the output dictionary contains the keys "means" and "stds"
         for the mean and standard deviation of each output cascade level.
-        Defaults to True.
+        Defaults to False.
     compact_output : bool
         Applicable if output_domain is "spectral". If set to True, only the
         parts of the Fourier spectrum with nonzero filter weights are stored.
@@ -97,7 +97,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     mask = kwargs.get("MASK", None)
     input_domain = kwargs.get("input_domain", "spatial")
     output_domain = kwargs.get("output_domain", "spatial")
-    compute_stats = kwargs.get("compute_stats", True)
+    compute_stats = kwargs.get("compute_stats", False)
     compact_output = kwargs.get("compact_output", True)
 
     if normalize and not compute_stats:
