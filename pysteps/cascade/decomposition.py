@@ -59,6 +59,9 @@ def decomposition_fft(field, bp_filter, **kwargs):
         (see :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy". This option is not used if input_domain and
         output_domain are both set to "spectral".
+    normalize : bool
+        If True, normalize the cascade levels to zero mean and unit variance.
+        Requires that compute_stats is True.
     MASK : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with MASK==False are excluded from the computations.
@@ -90,11 +93,15 @@ def decomposition_fft(field, bp_filter, **kwargs):
     fft = kwargs.get("fft_method", "numpy")
     if isinstance(fft, str):
         fft = utils.get_method(fft, shape=field.shape)
+    normalize = kwargs.get("normalize", False)
     mask = kwargs.get("MASK", None)
     input_domain = kwargs.get("input_domain", "spatial")
     output_domain = kwargs.get("output_domain", "spatial")
     compute_stats = kwargs.get("compute_stats", True)
     compact_output = kwargs.get("compact_output", True)
+
+    if normalize and not compute_stats:
+        raise ValueError("incorrect input arguments: normalization=True but compute_stats=False")
 
     if len(field.shape) != 2:
         raise ValueError("The input is not two-dimensional array")
@@ -144,28 +151,40 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
     for k in range(len(bp_filter["weights_1d"])):
         field_ = field_fft * bp_filter["weights_2d"][k, :, :]
+
         if output_domain == "spatial" or (compute_stats and mask is not None):
             field__ = fft.irfft2(field_)
         else:
             field__ = field_
+
+        if compute_stats:
+            if output_domain == "spatial" or (compute_stats and mask is not None):
+                if mask is not None:
+                    masked_field = field__[mask]
+                else:
+                    masked_field = field__
+                mean = np.mean(masked_field)
+                std = np.std(masked_field)
+            else:
+                mean = utils.spectral.mean(field_, bp_filter["shape"])
+                std = utils.spectral.std(field_, bp_filter["shape"])
+            
+            means.append(mean)
+            stds.append(std)
+
         if output_domain == "spatial":
+            if normalize:
+                field__ = (field__ - mean) / std
             field_decomp.append(field__)
         else:
             weight_mask = bp_filter["weights_2d"][k, :, :] > 1e-4
             if compact_output:
                 field_ = field_[weight_mask]
+            if normalize:
+                field_ = (field_ - mean) / std
             field_decomp.append(field_)
             if compact_output:
                 weight_masks.append(weight_mask)
-
-        if compute_stats:
-            if output_domain == "spatial" or (compute_stats and mask is not None):
-                field__ = field__[mask]
-                means.append(np.mean(field__))
-                stds.append(np.std(field__))
-            else:
-                means.append(utils.spectral.mean(field_, bp_filter["shape"]))
-                stds.append(utils.spectral.std(field_, bp_filter["shape"]))
 
     result["domain"] = output_domain
 
