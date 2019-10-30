@@ -2,14 +2,17 @@
 pysteps.cascade.decomposition
 =============================
 
-Methods for decomposing two-dimensional fields into multiple spatial scales.
+Methods for decomposing two-dimensional fields into multiple spatial scales and
+recomposing the individual scales back to the original field.
 
 The methods in this module implement the following interface::
 
     decomposition_xxx(field, bp_filter, **kwargs)
+    recompose_xxx(decomp, **kwargs)
 
 where field is the input field and bp_filter is a dictionary returned by a
-filter method implemented in :py:mod:`pysteps.cascade.bandpass_filters`.
+filter method implemented in :py:mod:`pysteps.cascade.bandpass_filters`. The
+decomp argument is a decomposition obtained by calling decomposition_xxx.
 Optional parameters can be passed in
 the keyword arguments. The output of each method is a dictionary with the
 following key-value pairs:
@@ -29,6 +32,7 @@ Available methods
     :toctree: ../generated/
 
     decomposition_fft
+    recompose_fft
 """
 
 import numpy as np
@@ -69,6 +73,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     compute_stats : bool
         If True, the output dictionary contains the keys "means" and "stds"
         for the mean and standard deviation of each output cascade level.
+        Defaults to True.
 
     Returns
     -------
@@ -153,3 +158,15 @@ def decomposition_fft(field, bp_filter, **kwargs):
         result["stds"] = stds
 
     return result
+
+def recompose_fft(decomp, **kwargs):
+    if not "means" in decomp.keys() or not "stds" in decomp.keys():
+        raise KeyError("the decomposition was done with compute_stats=False")
+
+    levels = decomp["cascade_levels"]
+    mu = decomp["means"]
+    sigma = decomp["stds"]
+
+    result = [levels[i, :, :] * sigma[i] + mu[i] for i in range(levels.shape[0])]
+
+    return np.sum(np.stack(result), axis=0)
