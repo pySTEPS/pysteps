@@ -74,6 +74,10 @@ def decomposition_fft(field, bp_filter, **kwargs):
         If True, the output dictionary contains the keys "means" and "stds"
         for the mean and standard deviation of each output cascade level.
         Defaults to True.
+    compact_output : bool
+        Applicable if output_domain is "spectral". If set to True, only the
+        parts of the Fourier spectrum with nonzero filter weights are stored.
+        Defaults to False.
 
     Returns
     -------
@@ -90,6 +94,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     input_domain = kwargs.get("input_domain", "spatial")
     output_domain = kwargs.get("output_domain", "spatial")
     compute_stats = kwargs.get("compute_stats", True)
+    compact_output = kwargs.get("compact_output", True)
 
     if len(field.shape) != 2:
         raise ValueError("The input is not two-dimensional array")
@@ -133,6 +138,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
         field_fft = fft.rfft2(field)
     else:
         field_fft = field
+        if compact_output:
+            weight_masks = []
     field_decomp = []
 
     for k in range(len(bp_filter["weights_1d"])):
@@ -142,7 +149,12 @@ def decomposition_fft(field, bp_filter, **kwargs):
         if output_domain == "spatial":
             field_decomp.append(field__)
         else:
+            weight_mask = bp_filter["weights_2d"][k, :, :] > 1e-4
+            if compact_output:
+                field_ = field_[weight_mask]
             field_decomp.append(field_)
+            if compact_output:
+                weight_masks.append(weight_mask)
 
         if output_domain == "spatial" and mask is not None:
             field__ = field_[mask]
@@ -151,7 +163,11 @@ def decomposition_fft(field, bp_filter, **kwargs):
             means.append(np.mean(field__))
             stds.append(np.std(field__))
 
+    result["domain"] = output_domain
+
     result["cascade_levels"] = np.stack(field_decomp)
+    if output_domain == "spectral" and compact_output:
+        result["weight_masks"] = weight_masks
 
     if compute_stats:
         result["means"] = means
