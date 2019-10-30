@@ -181,6 +181,19 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
 
 def recompose_fft(decomp, **kwargs):
+    """Recompose a cascade obtained with decomposition_fft by inverting the
+    normalization and summing the individual levels.
+
+    Parameters
+    ----------
+    decomp : dict
+        A cascade decomposition returned by decomposition_fft.
+    
+    Returns
+    -------
+    out : numpy.ndarray
+        The recomposed cascade.
+    """
     if not "means" in decomp.keys() or not "stds" in decomp.keys():
         raise KeyError("the decomposition was done with compute_stats=False")
 
@@ -188,6 +201,15 @@ def recompose_fft(decomp, **kwargs):
     mu = decomp["means"]
     sigma = decomp["stds"]
 
-    result = [levels[i, :, :] * sigma[i] + mu[i] for i in range(levels.shape[0])]
+    if decomp["domain"] == "spatial":
+        result = [levels[i, :, :] * sigma[i] + mu[i] for i in range(levels.shape[0])]
 
-    return np.sum(np.stack(result), axis=0)
+        return np.sum(np.stack(result), axis=0)
+    else:
+        weight_masks = decomp["weight_masks"]
+        result = np.zeros(levels.shape[1:], dtype=complex)
+
+        for i in range(len(levels.shape[0])):
+            result[weight_masks[i]] += levels[i][weight_masks[i]] * sigma[i] + mu[i]
+
+        return result
