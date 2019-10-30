@@ -8,8 +8,8 @@ The methods in this module implement the following interface::
 
     decomposition_xxx(field, bp_filter, **kwargs)
 
-where field is the input field and bp_filter is a dictionary returned by a filter
-method implemented in :py:mod:`pysteps.cascade.bandpass_filters`.
+where field is the input field and bp_filter is a dictionary returned by a
+filter method implemented in :py:mod:`pysteps.cascade.bandpass_filters`.
 Optional parameters can be passed in
 the keyword arguments. The output of each method is a dictionary with the
 following key-value pairs:
@@ -58,6 +58,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     MASK : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with MASK==False are excluded from the computations.
+        This option is not used if output domain is "spectral".
     input_domain : {"spatial", "spectral"}
         The domain of the input field. If "spectral", the input is assumed to
         be in the spectral domain. Defaults to "spatial".
