@@ -174,7 +174,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
     result["cascade_levels"] = field_decomp
     if output_domain == "spectral" and compact_output:
-        result["weight_masks"] = weight_masks
+        result["weight_masks"] = np.stack(weight_masks)
 
     if compute_stats:
         result["means"] = means
@@ -210,9 +210,9 @@ def recompose_fft(decomp, **kwargs):
         return np.sum(np.stack(result), axis=0)
     else:
         weight_masks = decomp["weight_masks"]
-        result = np.zeros(levels.shape[1:], dtype=complex)
+        result = np.zeros(weight_masks.shape[1:], dtype=complex)
 
-        for i in range(len(levels.shape[0])):
+        for i in range(weight_masks.shape[0]):
             result[weight_masks[i]] += levels[i][weight_masks[i]] * sigma[i] + mu[i]
 
         return result
