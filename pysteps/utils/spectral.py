@@ -16,6 +16,81 @@ import numpy as np
 from . import arrays
 
 
+def corrcoef(X, Y, shape, use_full_fft=False):
+    """Compute the correlation coefficient between two-dimensional arrays in
+    the spectral domain.
+
+    Parameters
+    ----------
+    X : array_like
+        A complex array representing the Fourier transform of a two-dimensional
+        array.
+    Y : array_like
+        A complex array representing the Fourier transform of a two-dimensional
+        array.
+    shape : tuple
+        A two-element tuple specifying the shape of the original input arrays
+        in the spatial domain.
+    use_full_fft : bool
+        If True, X and Y represent the full FFTs of the original arrays.
+        Otherwise, they are assumed to contain only the symmetric part, i.e.
+        in the format returned by numpy.fft.rfft2.
+
+    Returns
+    -------
+    out : float
+        The correlation coefficient. Gives the same result as
+        numpy.corrcoef(X.flatten(), Y.flatten())[0, 1].
+    """
+    if len(X.shape) != 2:
+        raise ValueError("X is not a two-dimensional array")
+
+    if len(Y.shape) != 2:
+        raise ValueError("Y is not a two-dimensional array")
+
+    if X.shape != Y.shape:
+        raise ValueError(
+            "dimension mismatch between X and Y: "
+            + "X.shape=%d,%d , " % (X.shape[0], X.shape[1])
+            + "Y.shape=%d,%d" % (Y.shape[0], Y.shape[1]))
+
+    n = np.real(np.sum(X * np.conj(Y))) - np.real(X[0, 0] * Y[0, 0])
+    d1 = np.sum(np.abs(X)**2) - np.real(X[0, 0])**2
+    d2 = np.sum(np.abs(Y)**2) - np.real(Y[0, 0])**2
+
+    if not use_full_fft:
+        if shape[1] % 2 == 1:
+            n += np.real(np.sum(X[:, 1:] * np.conj(Y[:, 1:])))
+            d1 += np.sum(np.abs(X[:, 1:])**2)
+            d2 += np.sum(np.abs(Y[:, 1:])**2)
+        else:
+            n += np.real(np.sum(X[:, 1:-1] * np.conj(Y[:, 1:-1])))
+            d1 += np.sum(np.abs(X[:, 1:-1])**2)
+            d2 += np.sum(np.abs(Y[:, 1:-1])**2)
+
+    return n / np.sqrt(d1 * d2)
+
+
+def mean(X, shape):
+    """Compute the mean value of a two-dimensional array in the spectral domain.
+
+    Parameters
+    ----------
+    X : array_like
+        A complex array representing the Fourier transform of a two-dimensional
+        array.
+    shape : tuple
+        A two-element tuple specifying the shape of the original input array
+        in the spatial domain.
+
+    Returns
+    -------
+    out : float
+        The mean value.
+    """
+    return np.real(X[0, 0]) / (shape[0] * shape[1])
+
+
 def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False,
           **fft_kwargs):
     """Compute radially averaged power spectral density (RAPSD) from the given
@@ -120,3 +195,35 @@ def remove_rain_norain_discontinuity(R):
     R -= np.nanmin(R)
 
     return R
+
+
+def std(X, shape, use_full_fft=False):
+    """Compute the standard deviation of a two-dimensional array in the
+    spectral domain.
+
+    Parameters
+    ----------
+    X : array_like
+        A complex array representing the Fourier transform of a two-dimensional
+        array.
+    shape : tuple
+        A two-element tuple specifying the shape of the original input array
+        in the spatial domain.
+    use_full_fft : bool
+        If True, X represents the full FFT of the original array. Otherwise, it
+        is assumed to contain only the symmetric part, i.e. in the format
+        returned by numpy.fft.rfft2.
+
+    Returns
+    -------
+    out : float
+        The standard deviation.
+    """
+    res = np.sum(np.abs(X)**2) - np.real(X[0, 0])**2
+    if not use_full_fft:
+        if shape[1] % 2 == 1:
+            res += np.sum(np.abs(X[:, 1:])**2)
+        else:
+            res += np.sum(np.abs(X[:, 1:-1])**2)
+
+    return np.sqrt(res / (shape[0] * shape[1])**2)
