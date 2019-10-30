@@ -29,6 +29,8 @@ key-value pairs:
 | central_freqs   | 1d array of shape n containing the central frequencies of |
 |                 | the filters                                               |
 +-----------------+-----------------------------------------------------------+
+| shape           | the shape of the input field in the spatial domain        |
++-----------------+-----------------------------------------------------------+
 
 where r = int(max(N, M)/2)+1
 
@@ -76,6 +78,7 @@ def filter_uniform(shape, n):
     result["weights_2d"] = np.ones((1, height, int(width / 2) + 1))
     result["central_freqs"] = None
     result["central_wavenumbers"] = None
+    result["shape"] = shape
 
     return result
 
@@ -162,6 +165,7 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0,
             weights_2d[k, :, :] /= weights_2d_sum
 
     result = {"weights_1d": weights_1d, "weights_2d": weights_2d}
+    result["shape"] = shape
 
     central_wavenumbers = np.array(central_wavenumbers)
     result["central_wavenumbers"] = central_wavenumbers
