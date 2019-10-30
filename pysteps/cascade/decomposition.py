@@ -58,7 +58,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy". This option is not used if input_domain and
-        output_domain are set to "spectral".
+        output_domain are both set to "spectral".
     MASK : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with MASK==False are excluded from the computations.
@@ -144,8 +144,10 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
     for k in range(len(bp_filter["weights_1d"])):
         field_ = field_fft * bp_filter["weights_2d"][k, :, :]
-        if output_domain == "spatial" or compute_stats:
+        if output_domain == "spatial" or (compute_stats and mask is not None):
             field__ = fft.irfft2(field_)
+        else:
+            field__ = field_
         if output_domain == "spatial":
             field_decomp.append(field__)
         else:
@@ -156,12 +158,14 @@ def decomposition_fft(field, bp_filter, **kwargs):
             if compact_output:
                 weight_masks.append(weight_mask)
 
-        if output_domain == "spatial" and mask is not None:
-            field__ = field_[mask]
-
         if compute_stats:
-            means.append(np.mean(field__))
-            stds.append(np.std(field__))
+            if output_domain == "spatial" or (compute_stats and mask is not None):
+                field__ = field__[mask]
+                means.append(np.mean(field__))
+                stds.append(np.std(field__))
+            else:
+                means.append(utils.spectral.mean(field_, bp_filter["shape"]))
+                stds.append(utils.spectral.std(field_, bp_filter["shape"]))
 
     result["domain"] = output_domain
 
@@ -174,6 +178,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
         result["stds"] = stds
 
     return result
+
 
 def recompose_fft(decomp, **kwargs):
     if not "means" in decomp.keys() or not "stds" in decomp.keys():
