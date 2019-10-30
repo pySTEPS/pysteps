@@ -169,7 +169,10 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
     result["domain"] = output_domain
 
-    result["cascade_levels"] = np.stack(field_decomp)
+    if output_domain == "spatial":
+        field_decomp = np.stack(field_decomp)
+
+    result["cascade_levels"] = field_decomp
     if output_domain == "spectral" and compact_output:
         result["weight_masks"] = weight_masks
 
