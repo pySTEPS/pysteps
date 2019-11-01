@@ -61,7 +61,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
         output_domain are both set to "spectral".
     normalize : bool
         If True, normalize the cascade levels to zero mean and unit variance.
-        Requires that compute_stats is True.
+        Requires that compute_stats is True. Defaults to False.
     MASK : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with MASK==False are excluded from the computations.
