@@ -399,9 +399,7 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
     else:
         N = fN
         N[0, 0] = 0.0
-        var = np.sum(np.abs(N**2)) + np.sum(np.abs(N[:, 1:]**2))
-        var /= input_shape[0]**2 * input_shape[1]**2
-        N /= np.sqrt(var)
+        N /= utils.spectral.std(N, input_shape, use_full_fft=use_full_fft)
 
     return N
 
