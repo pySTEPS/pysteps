@@ -40,7 +40,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
              noise_stddev_adj=None, ar_order=2, vel_pert_method="bps",
              conditional=False, probmatching_method="cdf",
              mask_method="incremental", callback=None, return_output=True,
-             seed=None, num_workers=1, fft_method="numpy", domain="spectral",
+             seed=None, num_workers=1, fft_method="numpy", domain="spatial",
              extrap_kwargs=None, filter_kwargs=None, noise_kwargs=None,
              vel_pert_kwargs=None, mask_kwargs=None, measure_time=False):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction

@@ -34,7 +34,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
              extrap_method="semilagrangian", decomp_method="fft",
              bandpass_filter_method="gaussian", ar_order=2, conditional=False,
              probmatching_method="mean", num_workers=1, fft_method="numpy",
-             domain="spectral", extrap_kwargs=None, filter_kwargs=None,
+             domain="spatial", extrap_kwargs=None, filter_kwargs=None,
              measure_time=False):
     """Generate a nowcast by using the Spectral Prognosis (S-PROG) method.
 
