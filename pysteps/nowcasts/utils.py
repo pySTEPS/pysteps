@@ -172,7 +172,7 @@ def stack_cascades(R_d, n_levels, donorm=True):
         sigma[i] = R_d[n_inputs - 1]["stds"][i]
         R_c.append(np.stack(R_))
 
-    if not R_c["compact_output"]:
+    if not np.any([R_d[i]["compact_output"] for i in range(len(R_d))]):
         R_c = np.stack(R_c)
 
     return R_c, mu, sigma
