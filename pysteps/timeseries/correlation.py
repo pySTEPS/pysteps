@@ -12,8 +12,10 @@ two-dimensional fields.
 """
 
 import numpy as np
+from pysteps.utils import spectral
 
-def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None):
+def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None,
+                             use_full_fft=False):
     """Compute lag-l autocorrelation coefficients gamma_l, l=1,2,...,n-1, for a
     time series of n inputs of arbitraty dimension in spatial or spectral domain.
 
@@ -34,6 +36,10 @@ def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None):
         Optional mask to use for computing the correlation coefficients. Input
         elements with mask==False are excluded from the computations. Applicable
         if domain is "spatial".
+    use_full_fft : bool
+        If True, x represents the full FFTs of the original arrays. Otherwise,
+        the elements of x are assumed to contain only the symmetric part, i.e.
+        in the format returned by numpy.fft.rfft2. Defaults to False.
 
     Returns
     -------
@@ -70,20 +76,8 @@ def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None):
         if domain == "spatial":
             cc = np.corrcoef(x[-1, :][mask], x[-(k+2), :][mask])[0, 1]
         else:
-            n = np.real(np.sum(x[-1, :, :]*np.conj(x[-(k+2), :, :])))
-            d1 = np.sum(np.abs(x[-1, :, :])**2)
-            d2 = np.sum(np.abs(x[-(k+2), :, :])**2)
-
-            if x_shape[1] % 2 == 0:
-                n += np.real(np.sum(x[-1, :, :][:, 1:-1]*np.conj(x[-(k+2), :, :][:, 1:-1])))
-                d1 += np.sum(np.abs(x[-1, :, :][:, 1:-1])**2)
-                d2 += np.sum(np.abs(x[-(k+2), :, :][:, 1:-1])**2)
-            else:
-                n += np.real(np.sum(x[-1, :, :][:, 1:]*np.conj(x[-(k+2), :, :][:, 1:])))
-                d1 += np.sum(np.abs(x[-1, :, :][:, 1:])**2)
-                d2 += np.sum(np.abs(x[-(k+2), :, :][:, 1:])**2)
-
-            cc = n / np.sqrt(d1*d2)
+            cc = spectral.corrcoef(x[-1, :, :], x[-(k+2), :], x_shape,
+                                   use_full_fft=use_full_fft)
         gamma.append(cc)
 
     return gamma
