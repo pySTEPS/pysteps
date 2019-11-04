@@ -188,6 +188,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
     result["domain"] = output_domain
     result["normalized"] = normalize
+    result["compact_output"] = compact_output
 
     if output_domain == "spatial" or not compact_output:
         field_decomp = np.stack(field_decomp)
