@@ -101,7 +101,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     compact_output = kwargs.get("compact_output", True)
 
     if normalize and not compute_stats:
-        raise ValueError("incorrect input arguments: normalization=True but compute_stats=False")
+        raise ValueError("incorrect input arguments: normalize=True but compute_stats=False")
 
     if len(field.shape) != 2:
         raise ValueError("The input is not two-dimensional array")
