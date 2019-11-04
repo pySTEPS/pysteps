@@ -166,7 +166,7 @@ def stack_cascades(R_d, n_levels, donorm=True):
             if donorm:
                 mu_ = R_d[j]["means"][i]
                 sigma_ = R_d[j]["stds"][i]
-            R__ = (R_d[j]["cascade_levels"][i, :, :] - mu_) / sigma_
+            R__ = (R_d[j]["cascade_levels"][i] - mu_) / sigma_
             R_.append(R__)
         mu[i] = R_d[n_inputs - 1]["means"][i]
         sigma[i] = R_d[n_inputs - 1]["stds"][i]
