@@ -226,7 +226,7 @@ def recompose_fft(decomp, **kwargs):
 
     if decomp["domain"] == "spatial":
         if decomp["normalized"]:
-            result = [levels[i, :, :] * sigma[i] + mu[i] for i in range(levels.shape[0])]
+            result = [levels[i] * sigma[i] + mu[i] for i in range(levels.shape[0])]
 
             return np.sum(np.stack(result), axis=0)
         else:
@@ -234,7 +234,7 @@ def recompose_fft(decomp, **kwargs):
     else:
         if not "weight_masks" in decomp.keys():
             if decomp["normalized"]:
-                result = [levels[i, :, :] * sigma[i] + mu[i] for i in range(levels.shape[0])]
+                result = [levels[i] * sigma[i] + mu[i] for i in range(levels.shape[0])]
 
                 return np.sum(np.stack(result), axis=0)
             else:
