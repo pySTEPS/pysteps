@@ -56,7 +56,7 @@ def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None,
     if len(x.shape) < 2:
         raise ValueError("the dimension of x must be >= 2")
     if len(x.shape) != 3 and domain == "spectral":
-        raise NotImplementedError("with domain == 'spectral', this function has only been implemented for two-dimensional fields")
+        raise NotImplementedError("len(x.shape[1:]) = %d, but with domain == 'spectral', this function has only been implemented for two-dimensional fields" % len(x.shape[1:]))
     if mask is not None and mask.shape != x.shape[1:]:
         raise ValueError("dimension mismatch between x and mask: x.shape[1:]=%s, mask.shape=%s" % \
                          (str(x.shape), str(mask.shape)))
