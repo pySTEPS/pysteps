@@ -13,15 +13,17 @@ Interface for the cascade module.
 from pysteps.cascade import decomposition, bandpass_filters
 
 _cascade_methods = dict()
-_cascade_methods['fft'] = decomposition.decomposition_fft
+_cascade_methods['fft'] = (decomposition.decomposition_fft, decomposition.recompose_fft)
 _cascade_methods['gaussian'] = bandpass_filters.filter_gaussian
 _cascade_methods['uniform'] = bandpass_filters.filter_uniform
 
 
 def get_method(name):
     """
-    Return a callable function for the bandpass filter or decomposition method
-    corresponding to the given name.
+    Return a callable function for the bandpass filter or cascade decomposition
+    method corresponding to the given name. For the latter, two functions are
+    returned: the first is for the decomposition and the second is for
+    recomposing the cascade.
 
     Filter methods:
 
@@ -35,7 +37,7 @@ def get_method(name):
     |                   | to one                                               |
     +-------------------+------------------------------------------------------+
 
-    Decomposition methods:
+    Decomposition/recomposition methods:
 
     +-------------------+------------------------------------------------------+
     |     Name          |              Description                             |
