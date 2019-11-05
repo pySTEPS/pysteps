@@ -173,7 +173,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     filter_method = cascade.get_method(bandpass_filter_method)
     filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
 
-    decomp_method = cascade.get_method(decomp_method)
+    decomp_method, recomp_method = cascade.get_method(decomp_method)
 
     extrapolator_method = extrapolation.get_method(extrap_method)
 
@@ -217,24 +217,29 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     R_d = []
     for i in range(ar_order + 1):
         R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft,
-                           output_domain=domain)
+                           output_domain=domain, normalize=True,
+                           compute_stats=True, compact_output=True)
         R_d.append(R_)
 
-    # normalize the cascades and rearrange them into a four-dimensional array
-    # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    donorm = True if domain == "spatial" else False
-    R_c, mu, sigma = nowcast_utils.rearrange_cascades(R_d, n_cascade_levels,
-                                                      donorm=donorm)
+    # rearrange the cascade levels into a four-dimensional array of shape
+    # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
+    R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels,
+                                       convert_to_full_arrays=True)
 
-    # compute lag-l temporal autocorrelation coefficients
-    # for each cascade level
+    # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
         if domain == "spatial":
-            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], MASK=MASK_thr)
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i],
+                mask=MASK_thr)
         else:
-            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], 
-                domain="spectral", X_shape=R.shape[1:])
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i],
+                domain="spectral", x_shape=R.shape[1:])
+
+    R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels,
+                                       convert_to_full_arrays=False)
+
+    R_d = R_d[-1]
 
     nowcast_utils.print_corrcoefs(GAMMA)
 
@@ -255,22 +260,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
-    if domain == "spatial":
-        R_c = [R_c[i][-ar_order:, :, :] for i in range(n_cascade_levels)]
-    else:
-        # additionally mask Fourier frequencies outside each band if the
-        # computations are done in the spectral domain
-        R_c_ = []
-        filter["masks"] = []
-
-        for i in range(n_cascade_levels):
-            fb_mask = filter["weights_2d"][i, :, :] > 1e-3
-            filter["masks"].append(fb_mask)
-            R_c__ = []
-            for j in range(ar_order):
-                R_c__.append(R_c[i][-ar_order+j, :, :][fb_mask])
-            R_c_.append(np.stack(R_c__))
-        R_c = R_c_
+    R_c = [R_c[i][-ar_order:] for i in range(n_cascade_levels)]
 
     D = None
 
@@ -303,12 +293,12 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
         for i in range(n_cascade_levels):
             R_c[i] = autoregression.iterate_ar_model(R_c[i], PHI[i, :])
 
-        R_c_last = [R_c[i][-1, :] for i in range(n_cascade_levels)]
+        R_d["cascade_levels"] = [R_c[i][-1, :] for i in range(n_cascade_levels)]
         if domain == "spatial":
-            R_c_last = np.stack(R_c_last)
-            R_c_ = nowcast_utils.recompose_cascade(R_c_last, mu, sigma)
-        else:
-            R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_last, filter)
+            R_d["cascade_levels"] = np.stack(R_d["cascade_levels"])
+        R_c_ = recomp_method(R_d)
+
+        if domain == "spectral":
             R_c_ = fft.irfft2(R_c_)
 
         MASK = _compute_sprog_mask(R_c_, war)
