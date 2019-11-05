@@ -94,18 +94,16 @@ def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
     Parameters
     ----------
     R_d : list
-      List of cascades obtained by calling a method implemented in
-      pysteps.cascade.decomposition.
+        List of cascades obtained by calling a method implemented in
+        pysteps.cascade.decomposition.
     n_levels : int
-      The number of cascade levels.
+        The number of cascade levels.
 
     Returns
     -------
     out : tuple
-      A three-element tuple containing 1) a list of three-dimensional arrays
-      containing the rearranged cascade levels and 2) lists of mean values and
-      3) standard deviations for each cascade level (taken from the last element
-      in R_d).
+        A list of three-dimensional arrays containing the rearranged cascade
+        levels.
     """
     R_c = []
 
