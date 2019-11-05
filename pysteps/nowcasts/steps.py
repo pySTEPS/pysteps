@@ -340,7 +340,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     filter_method = cascade.get_method(bandpass_filter_method)
     filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
 
-    decomp_method = cascade.get_method(decomp_method)
+    decomp_method, recomp_method = cascade.get_method(decomp_method)
 
     extrapolator_method = extrapolation.get_method(extrap_method)
 
@@ -363,8 +363,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     res = list()
 
     def f(R, i):
-        return extrapolator_method(R[i, :, :], V, ar_order - i,
-                                   "min",
+        return extrapolator_method(R[i, :, :], V, ar_order - i, "min",
                                    **extrap_kwargs)[-1]
 
     for i in range(ar_order):
@@ -413,18 +412,21 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     R_d = []
     for i in range(ar_order + 1):
         R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft,
-                           output_domain=domain)
+                           output_domain=domain, normalize=True,
+                           compute_stats=True, compact_output=True)
         R_d.append(R_)
 
     # normalize the cascades and rearrange them into a four-dimensional array
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c, mu, sigma = nowcast_utils.rearrange_cascades(R_d, n_cascade_levels)
-    R_d = None
+    R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
+
+    R_d = R_d[-1]
+    R_d = [R_d.copy() for j in range(n_ens_members)]
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
-        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], MASK=MASK_thr)
+        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], mask=MASK_thr)
 
     nowcast_utils.print_corrcoefs(GAMMA)
 
@@ -444,22 +446,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
-    if domain == "spatial":
-        R_c = [R_c[i][-ar_order:, :, :] for i in range(n_cascade_levels)]
-    else:
-        # additionally mask Fourier frequencies outside each band if the
-        # computations are done in the spectral domain
-        R_c_ = []
-        filter["masks"] = []
-
-        for i in range(n_cascade_levels):
-            fb_mask = filter["weights_2d"][i, :, :] > 1e-3
-            filter["masks"].append(fb_mask)
-            R_c__ = []
-            for j in range(ar_order):
-                R_c__.append(R_c[i][-ar_order+j, :, :][fb_mask])
-            R_c_.append(np.stack(R_c__))
-        R_c = R_c_
+    R_c = [R_c[i][-ar_order:] for i in range(n_cascade_levels)]
 
     # stack the cascades into a list containing all ensemble members
     R_c = [[R_c[j].copy() for j in range(n_cascade_levels)] for i in range(n_ens_members)]
@@ -553,17 +540,18 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             if mask_method == "sprog":
                 MASK_prec = _compute_sprog_mask(R_m_, war)
 
-        # iterate each ensemble member
+        # the nowcast iteration for each ensemble member
         def worker(j):
             if noise_method is not None:
                 # generate noise field
                 EPS = generate_noise(pp, randstate=randgen_prec[j],
                                      fft_method=fft_objs[j], domain=domain)
+
                 # decompose the noise field into a cascade
-                compute_stats = True if domain == "spatial" else False
                 EPS = decomp_method(EPS, filter, fft_method=fft_objs[j],
                                     input_domain=domain, output_domain=domain,
-                                    compute_stats=compute_stats)
+                                    compute_stats=True, normalize=True,
+                                    compact_output=True)
             else:
                 EPS = None
 
@@ -571,11 +559,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             for i in range(n_cascade_levels):
                 # normalize the noise cascade
                 if EPS is not None:
-                    EPS_ = EPS["cascade_levels"][i, :, :]
-                    if domain == "spatial":
-                        EPS_ = (EPS_ - EPS["means"][i]) / EPS["stds"][i]
-                    else:
-                        EPS_ = EPS_[filter["masks"][i]]
+                    EPS_ = EPS["cascade_levels"][i]
                     EPS_ *= noise_std_coeffs[i]
                 else:
                     EPS_ = None
@@ -583,24 +567,30 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                 if EPS is not None or vel_pert_method is not None:
                     R_c[j][i] = \
                         autoregression.iterate_ar_model(R_c[j][i], PHI[i, :],
-                                                        EPS=EPS_)
+                                                        eps=EPS_)
                 else:
                     # use the deterministic AR(p) model computed above if
                     # perturbations are disabled
-                    R_c[j][i] = R_m[i, :, :, :]
+                    R_c[j][i] = R_m[i]
 
             EPS = None
             EPS_ = None
 
             # compute the recomposed precipitation field(s) from the cascades
             # obtained from the AR(p) model(s)
-            R_c_ = [R_c[j][i][-1, :] for i in range(n_cascade_levels)]
+            R_d[j]["cascade_levels"] = [R_c[j][i][-1, :] for i in range(n_cascade_levels)]
             if domain == "spatial":
-                R_c_ = np.stack(R_c_)
-                R_c_ = nowcast_utils.recompose_cascade(R_c_, mu, sigma)
-            else:
-                R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_, filter,
-                                                                fft_objs[j])
+                R_d[j]["cascade_levels"] = np.stack(R_d[j]["cascade_levels"])
+            #if domain == "spatial":
+            #    R_c_ = np.stack(R_c_)
+            #    R_c_ = nowcast_utils.recompose_cascade(R_c_, mu, sigma)
+            #else:
+            #    R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_, filter,
+            #                                                    fft_objs[j])
+            #    R_c_ = fft_objs[j].irfft2(R_c_)
+            R_c_ = recomp_method(R_d[j])
+
+            if domain == "spectral":
                 R_c_ = fft_objs[j].irfft2(R_c_)
 
             if mask_method is not None:
