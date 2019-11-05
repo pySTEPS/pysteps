@@ -98,7 +98,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     input_domain = kwargs.get("input_domain", "spatial")
     output_domain = kwargs.get("output_domain", "spatial")
     compute_stats = kwargs.get("compute_stats", False)
-    compact_output = kwargs.get("compact_output", True)
+    compact_output = kwargs.get("compact_output", False)
 
     if normalize and not compute_stats:
         raise ValueError("incorrect input arguments: normalize=True but compute_stats=False")
@@ -133,6 +133,9 @@ def decomposition_fft(field, bp_filter, **kwargs):
             "field.shape[1]=%d , " % (field.shape[1] + 1)
             + "bp_filter['weights_2d'].shape[2]"
               "=%d" % bp_filter["weights_2d"].shape[2])
+
+    if output_domain != "spectral":
+        compact_output = False
 
     if np.any(~np.isfinite(field)):
         raise ValueError("field contains non-finite values")
@@ -173,18 +176,14 @@ def decomposition_fft(field, bp_filter, **kwargs):
             stds.append(std)
 
         if output_domain == "spatial":
-            if normalize:
-                field__ = (field__ - mean) / std
-            field_decomp.append(field__)
-        else:
-            if compact_output:
-                weight_mask = bp_filter["weights_2d"][k, :, :] > 1e-12
-                field_ = field_[weight_mask]
-            if normalize:
-                field_ = (field_ - mean) / std
-            field_decomp.append(field_)
-            if compact_output:
-                weight_masks.append(weight_mask)
+            field_ = field__
+        if normalize:
+            field_ = (field_ - mean) / std
+        if output_domain == "spectral" and compact_output:
+            weight_mask = bp_filter["weights_2d"][k, :, :] > 1e-12
+            field_ = field_[weight_mask]
+            weight_masks.append(weight_mask)
+        field_decomp.append(field_)
 
     result["domain"] = output_domain
     result["normalized"] = normalize
@@ -222,32 +221,24 @@ def recompose_fft(decomp, **kwargs):
         raise KeyError("the decomposition was done with compute_stats=False")
 
     levels = decomp["cascade_levels"]
-    mu = decomp["means"]
-    sigma = decomp["stds"]
+    if decomp["normalized"]:
+        mu = decomp["means"]
+        sigma = decomp["stds"]
 
-    if decomp["domain"] == "spatial":
-        if decomp["normalized"]:
-            result = [levels[i] * sigma[i] + mu[i] for i in range(levels.shape[0])]
-
-            return np.sum(np.stack(result), axis=0)
-        else:
-            return np.sum(levels, axis=0)
+    if not decomp["normalized"] and not decomp["compact_output"]:
+        return np.sum(levels, axis=0)
     else:
-        if not "weight_masks" in decomp.keys():
-            if decomp["normalized"]:
-                result = [levels[i] * sigma[i] + mu[i] for i in range(levels.shape[0])]
-
-                return np.sum(np.stack(result), axis=0)
-            else:
-                return np.sum(levels, axis=0)
-        else:
+        if decomp["compact_output"]:
             weight_masks = decomp["weight_masks"]
             result = np.zeros(weight_masks.shape[1:], dtype=complex)
-    
-            for i in range(weight_masks.shape[0]):
+
+            for i in range(len(levels)):
                 if decomp["normalized"]:
                     result[weight_masks[i]] += levels[i] * sigma[i] + mu[i]
                 else:
                     result[weight_masks[i]] += levels[i]
+        else:
+            result = [levels[i] * sigma[i] + mu[i] for i in range(len(levels))]
+            result = np.sum(np.stack(result), axis=0)
 
-            return result
+        return result
