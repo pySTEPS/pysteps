@@ -88,50 +88,7 @@ def print_corrcoefs(GAMMA):
         print(hline_str)
 
 
-def recompose_cascade(R, mu, sigma):
-    """Recompose a cascade by inverting the normalization and summing the
-    cascade levels.
-
-    Parameters
-    ----------
-    R : array_like
-        A three-dimensional array of shape (k,m,n) containing the cascade with
-        k levels.
-    mu : array_like
-        One-dimensional array of length k containing the mean values of the
-        cascade levels.
-    sigma : array_like
-        One-dimensional array of length k containing the standard deviations of
-        the cascade levels.
-    """
-    
-    R_rc = [(R[i, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
-    R_rc = np.sum(np.stack(R_rc), axis=0)
-
-    return R_rc
-
-
-def recompose_cascade_spectral(R, filter):
-    """Recompose a cascade in the spectral domain by summing the frequency bands.
-
-    Parameters
-    ----------
-    R : array_like
-        A three-dimensional array of shape (k,m,n) containing the cascade with
-        k levels.
-    filter : dict
-        A filter returned by a method implemented in
-        :py:mod:`pysteps.cascade.bandpass_filters`.
-    """
-    R_rc = np.zeros(filter["masks"][0].shape, dtype=complex)
-
-    for i in range(len(filter["cascade_levels"].shape[0])):
-        R_rc[filter["masks"][i]] += R[i]
-
-    return R_rc
-
-
-def stack_cascades(R_d, n_levels, donorm=True):
+def stack_cascades(R_d, n_levels, donorm=True, convert_to_full_arrays=False):
     """Stack the given cascades into a larger array.
 
     Parameters
@@ -167,6 +124,10 @@ def stack_cascades(R_d, n_levels, donorm=True):
                 mu_ = R_d[j]["means"][i]
                 sigma_ = R_d[j]["stds"][i]
             R__ = (R_d[j]["cascade_levels"][i] - mu_) / sigma_
+            if R_d[j]["compact_output"] and convert_to_full_arrays:
+                R_tmp = np.zeros(R_d[j]["weight_masks"].shape[1:], dtype=complex)
+                R_tmp[R_d[j]["weight_masks"][i]] = R__
+                R__ = R_tmp
             R_.append(R__)
         mu[i] = R_d[n_inputs - 1]["means"][i]
         sigma[i] = R_d[n_inputs - 1]["stds"][i]
