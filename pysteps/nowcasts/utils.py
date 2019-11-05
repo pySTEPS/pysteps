@@ -88,7 +88,7 @@ def print_corrcoefs(GAMMA):
         print(hline_str)
 
 
-def stack_cascades(R_d, n_levels, donorm=True, convert_to_full_arrays=False):
+def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
     """Stack the given cascades into a larger array.
 
     Parameters
@@ -98,8 +98,6 @@ def stack_cascades(R_d, n_levels, donorm=True, convert_to_full_arrays=False):
       pysteps.cascade.decomposition.
     n_levels : int
       The number of cascade levels.
-    donorm : bool
-      If True, normalize the cascade levels before stacking.
 
     Returns
     -------
@@ -117,13 +115,8 @@ def stack_cascades(R_d, n_levels, donorm=True, convert_to_full_arrays=False):
 
     for i in range(n_levels):
         R_ = []
-        mu_ = 0
-        sigma_ = 1
         for j in range(n_inputs):
-            if donorm:
-                mu_ = R_d[j]["means"][i]
-                sigma_ = R_d[j]["stds"][i]
-            R__ = (R_d[j]["cascade_levels"][i] - mu_) / sigma_
+            R__ = R_d[j]["cascade_levels"][i]
             if R_d[j]["compact_output"] and convert_to_full_arrays:
                 R_tmp = np.zeros(R_d[j]["weight_masks"].shape[1:], dtype=complex)
                 R_tmp[R_d[j]["weight_masks"][i]] = R__
@@ -136,4 +129,4 @@ def stack_cascades(R_d, n_levels, donorm=True, convert_to_full_arrays=False):
     if not np.any([R_d[i]["compact_output"] for i in range(len(R_d))]):
         R_c = np.stack(R_c)
 
-    return R_c, mu, sigma
+    return R_c
