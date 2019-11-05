@@ -482,6 +482,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     if probmatching_method == "mean":
         mu_0 = np.mean(R[-1, :, :][R[-1, :, :] >= R_thr])
 
+    R_m = None
+
     if mask_method is not None:
         MASK_prec = R[-1, :, :] >= R_thr
 
@@ -491,6 +493,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             # compute the wet area ratio and the precipitation mask
             war = 1.0 * np.sum(MASK_prec) / (R.shape[1] * R.shape[2])
             R_m = [R_c[0][i].copy() for i in range(n_cascade_levels)]
+            R_m_d = R_d[0].copy()
         elif mask_method == "incremental":
             # get mask parameters
             mask_rim = mask_kwargs.get("mask_rim", 10)
@@ -504,7 +507,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             MASK_prec = _compute_incremental_mask(MASK_prec, struct, mask_rim)
             MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
 
-    if noise_method is None:
+    if noise_method is None and R_m is None:
         R_m = [R_c[0][i].copy() for i in range(n_cascade_levels)]
 
     fft_objs = []
@@ -532,10 +535,15 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             for i in range(n_cascade_levels):
                 # use a separate AR(p) model for the non-perturbed forecast,
                 # from which the mask is obtained
-                R_m[i, :, :, :] = \
-                    autoregression.iterate_ar_model(R_m[i, :, :, :], PHI[i, :])
+                R_m[i] = autoregression.iterate_ar_model(R_m[i], PHI[i, :])
 
-            R_m_ = nowcast_utils.recompose_cascade(R_m[:, -1, :, :], mu, sigma)
+            #R_m_ = nowcast_utils.recompose_cascade(R_m[:, -1, :, :], mu, sigma)
+            R_m_d["cascade_levels"] = [R_m[i][-1] for i in range(n_cascade_levels)]
+            if domain == "spatial":
+                R_m_d["cascade_levels"] = np.stack(R_m_d["cascade_levels"])
+            R_m_ = recomp_method(R_m_d)
+            if domain == "spectral":
+                R_m_ = fft.irfft2(R_m_)
 
             if mask_method == "sprog":
                 MASK_prec = _compute_sprog_mask(R_m_, war)
@@ -581,13 +589,6 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             R_d[j]["cascade_levels"] = [R_c[j][i][-1, :] for i in range(n_cascade_levels)]
             if domain == "spatial":
                 R_d[j]["cascade_levels"] = np.stack(R_d[j]["cascade_levels"])
-            #if domain == "spatial":
-            #    R_c_ = np.stack(R_c_)
-            #    R_c_ = nowcast_utils.recompose_cascade(R_c_, mu, sigma)
-            #else:
-            #    R_c_ = nowcast_utils.recompose_cascade_spectral(R_c_, filter,
-            #                                                    fft_objs[j])
-            #    R_c_ = fft_objs[j].irfft2(R_c_)
             R_c_ = recomp_method(R_d[j])
 
             if domain == "spectral":
