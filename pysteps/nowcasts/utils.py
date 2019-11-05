@@ -102,8 +102,7 @@ def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
     Returns
     -------
     out : tuple
-        A list of three-dimensional arrays containing the rearranged cascade
-        levels.
+        A list of three-dimensional arrays containing the stacked cascade levels.
     """
     R_c = []
 
