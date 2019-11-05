@@ -108,8 +108,6 @@ def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
       in R_d).
     """
     R_c = []
-    mu = np.empty(n_levels)
-    sigma = np.empty(n_levels)
 
     n_inputs = len(R_d)
 
@@ -122,8 +120,6 @@ def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
                 R_tmp[R_d[j]["weight_masks"][i]] = R__
                 R__ = R_tmp
             R_.append(R__)
-        mu[i] = R_d[n_inputs - 1]["means"][i]
-        sigma[i] = R_d[n_inputs - 1]["stds"][i]
         R_c.append(np.stack(R_))
 
     if not np.any([R_d[i]["compact_output"] for i in range(len(R_d))]):
