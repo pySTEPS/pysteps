@@ -276,7 +276,8 @@ def _import_bom_rf3_geodata(filename):
     return geodata
 
 def import_crri_eu(filename, **kwargs):
-    """Import a NetCDF radar rainfall product from the CRRI SAF.
+    """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
+    Intensity (CRRI) product from the Satellite Application Facilities (SAF).
 
     Parameters
     ----------
