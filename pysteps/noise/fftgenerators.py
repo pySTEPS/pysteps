@@ -212,7 +212,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
 
 def initialize_nonparam_2d_fft_filter(X, **kwargs):
-    """Takes one ore more 2d input fields and produces one non-paramtric, global
+    """Takes one ore more 2d input fields and produces one non-parametric, global
     and anasotropic fourier filter.
 
     Parameters
