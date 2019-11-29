@@ -4,14 +4,17 @@ pysteps.extrapolation.interface
 
 The functions in the extrapolation module implement the following interface::
 
-    extrapolate(extrap, precip, velocity, num_timesteps,
-                outval=np.nan, **keywords)
+    extrapolate(extrap, precip, velocity, timesteps, outval=np.nan, **keywords)
 
 where *extrap* is an extrapolator object returned by the initialize function,
 *precip* is a (m,n) array with input precipitation field to be advected and
 *velocity* is a (2,m,n) array containing  the x- and y-components of
 the m x n advection field.
-num_timesteps is an integer specifying the number of time steps to extrapolate.
+timesteps is an integer or list specifying the time steps to extrapolate. If
+an integer is given, a range of uniformly spaced steps 1,2,...,timesteps is
+created. If a list is given, it is assumed to represent a sequence of
+monotonously increasing time steps. One time unit is assumed to represent the
+time step of the advection field.
 The optional argument *outval* specifies the value for pixels advected
 from outside the domain.
 Optional keyword arguments that are specific to a given extrapolation
