@@ -18,8 +18,8 @@ import numpy as np
 import scipy.ndimage.interpolation as ip
 
 
-def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
-                allow_nonfinite_values=False, **kwargs):
+def extrapolate(precip, velocity, timesteps, outval=np.nan, xy_coords=None,
+                allow_nonfinite_values=False, vel_timestep=None, **kwargs):
     """Apply semi-Lagrangian backward extrapolation to a two-dimensional
     precipitation field.
 
@@ -31,8 +31,11 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
     velocity : array-like
         Array of shape (2,m,n) containing the x- and y-components of the m*n
         advection field. All values are required to be finite by default.
-    num_timesteps : int
-        Number of time steps to extrapolate.
+    timesteps : int or list
+        If timesteps is integer, it specifies the number of time steps to
+        extrapolate. If a list is given, each element is the desired
+        extrapolation time step from the current time. In this case, the
+        vel_timestep argument must be specified.
     outval : float, optional
         Optional argument for specifying the value for pixels advected from
         outside the domain. If outval is set to 'min', the value is taken as
@@ -66,6 +69,9 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         If True, return the total advection velocity (displacement) between the
         initial input field and the advected one integrated along
         the trajectory. Default : False
+    vel_timestep : float
+        The time step of the velocity field. It is assumed to have the same
+        unit as the timesteps argument.
 
     Returns
     -------
@@ -99,6 +105,12 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
     n_iter = kwargs.get("n_iter", 1)
     return_displacement = kwargs.get("return_displacement", False)
 
+    if isinstance(timesteps, int):
+        timesteps = np.arange(1, timesteps+1)
+        vel_timestep = 1.0
+
+    timestep_diff = np.hstack([[timesteps[0]], np.diff(timesteps)])
+
     if verbose:
         print("Computing the advection with the semi-lagrangian scheme.")
         t0 = time.time()
@@ -112,7 +124,7 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
 
         xy_coords = np.stack([x_values, y_values])
 
-    def interpolate_motion(D, V_inc):
+    def interpolate_motion(D, V_inc, td):
         XYW = xy_coords + D
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
@@ -127,24 +139,26 @@ def extrapolate(precip, velocity, num_timesteps, outval=np.nan, xy_coords=None,
         if n_iter > 1:
             V_inc /= n_iter
 
+        V_inc *= td / vel_timestep
+
     R_e = []
     if D_prev is None:
         D = np.zeros((2, velocity.shape[1], velocity.shape[2]))
-        V_inc = velocity.copy()
+        V_inc = velocity.copy() * timestep_diff[0] / vel_timestep
     else:
         D = D_prev.copy()
         V_inc = np.empty(velocity.shape)
-        interpolate_motion(D, V_inc)
+        interpolate_motion(D, V_inc, timestep_diff[0])
 
-    for t in range(num_timesteps):
+    for ti, td in enumerate(timestep_diff):
         if n_iter > 0:
             for k in range(n_iter):
-                interpolate_motion(D - V_inc / 2.0, V_inc)
+                interpolate_motion(D - V_inc / 2.0, V_inc, td)
                 D -= V_inc
-                interpolate_motion(D, V_inc)
+                interpolate_motion(D, V_inc, td)
         else:
-            if t > 0 or D_prev is not None:
-                interpolate_motion(D, V_inc)
+            if ti > 0 or D_prev is not None:
+                interpolate_motion(D, V_inc, td)
 
             D -= V_inc
 
