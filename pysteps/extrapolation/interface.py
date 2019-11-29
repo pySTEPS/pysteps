@@ -37,7 +37,7 @@ import numpy as np
 from pysteps.extrapolation import semilagrangian
 
 
-def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan,
+def eulerian_persistence(precip, velocity, timesteps, outval=np.nan,
                          **kwargs):
     """A dummy extrapolation method to apply Eulerian persistence to a
     two-dimensional precipitation field. The method returns the a sequence
@@ -51,8 +51,8 @@ def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan,
         values are required to be finite.
     velocity : array-like
         Not used by the method. 
-    num_timesteps : int
-        Number of time steps.
+    timesteps : int or list
+        Number of time steps or a list of time steps.
     outval : float, optional
         Not used by the method. 
 
@@ -77,6 +77,12 @@ def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan,
 
     """
     del velocity, outval  # Unused by _eulerian_persistence
+
+    if isinstance(timesteps, int):
+        num_timesteps = timesteps
+    else:
+        num_timesteps = len(timesteps)
+
     return_displacement = kwargs.get("return_displacement", False)
 
     extrapolated_precip = np.repeat(precip[np.newaxis, :, :, ],
@@ -89,10 +95,10 @@ def eulerian_persistence(precip, velocity, num_timesteps, outval=np.nan,
         return extrapolated_precip, np.zeros((2,) + extrapolated_precip.shape)
 
 
-def _do_nothing(precip, velocity, num_timesteps, outval=np.nan,
+def _do_nothing(precip, velocity, timesteps, outval=np.nan,
                 **kwargs):
     """Return None."""
-    del precip, velocity, num_timesteps, outval, kwargs  # Unused
+    del precip, velocity, timesteps, outval, kwargs  # Unused
     return None
 
 
