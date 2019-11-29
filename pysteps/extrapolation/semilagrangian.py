@@ -108,6 +108,8 @@ def extrapolate(precip, velocity, timesteps, outval=np.nan, xy_coords=None,
     if isinstance(timesteps, int):
         timesteps = np.arange(1, timesteps+1)
         vel_timestep = 1.0
+    elif np.any(np.diff(timesteps) <= 0.0):
+        raise ValueError("the given timestep sequence is not monotonously increasing")
 
     timestep_diff = np.hstack([[timesteps[0]], np.diff(timesteps)])
 
