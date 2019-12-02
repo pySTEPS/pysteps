@@ -161,6 +161,59 @@ def estimate_ar_params_yw(gamma):
     return phi
 
 
+def estimate_var_params_yw(gamma):
+    """Estimate the parameters of a VAR(p,q) model
+
+      :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+
+      \mathbf{\Phi}_2\mathbf{X}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{X}_{k-p}`
+
+    from the Yule-Walker equations using the given correlation coefficient
+    matrices.
+
+    Parameters
+    ----------
+    gamma : list
+      List of correlation matrices :math:`\Gamma_1,\Gamma_2,\dots,\Gamma_{n-1}`. See
+      :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`.
+
+    Returns
+    -------
+    out : list
+      List of VAR(p) coefficient matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
+      \dots\mathbf{\Phi}_p`.
+    """
+    p = len(gamma) - 1
+    q = gamma[0].shape[0]
+
+    a = np.empty((p*q, p*q))
+    for i in range(p):
+        for j in range(p):
+            a_tmp = gamma[(i + j) % p]
+            if i > j:
+                a_tmp = a_tmp.T
+            a[i*q:(i+1)*q, j*q:(j+1)*q] = a_tmp
+
+    b = np.vstack([gamma[i] for i in range(1, p+1)])
+    x = np.linalg.solve(a, b)
+
+    phi = []
+    for i in range(p):
+        phi.append(x[i*q:(i+1)*q, :])
+    
+    M = np.zeros((p*q, p*q))
+    for i in range(p):
+        M[0:q, i*q:(i+1)*q] = phi[i]
+    for i in range(1, p-1):
+        M[i*q:(i+1)*q, i*q:(i+1)*q] = np.eye((q, q))
+    r = np.linalg.eig(M)[0]
+    if any(np.abs(r) >= 1):
+        raise RuntimeError(
+            "Error in estimate_ar_params_y: "
+            "nonstationary AR(p) process")
+
+    return phi
+
+
 def iterate_ar_model(x, phi, eps=None):
     """Apply an AR(p) model to a time series.
 
