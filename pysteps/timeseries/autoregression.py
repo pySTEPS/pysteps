@@ -226,7 +226,7 @@ def iterate_ar_model(x, phi, eps=None):
 
     :math:`x_{k+1}=\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
 
-    to a time series.
+    to a time series :math:`x_k`.
 
     Parameters
     ----------
@@ -260,5 +260,40 @@ def iterate_ar_model(x, phi, eps=None):
 
     if eps is not None:
         x_new += phi[-1] * eps
+
+    return np.concatenate([x[1:, :], x_new[np.newaxis, :]])
+
+def iterate_var_model(x, phi, eps=None):
+    """Apply a VAR(p,q) model
+    
+    :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+\mathbf{\Phi}_2
+    \mathbf{X}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{X}_{k-p}`
+    
+    to a time series :math:`\mathbf{X}_k`.
+
+    Parameters
+    ----------
+    x : array_like
+        Array of shape (q,n,...) containing a q-variate time series of a input
+        variable x with length n=p+1. The elements of x along the second dimension
+        are assumed to be in ascending order by time, and the time intervals are
+        assumed to be regular.
+
+    """
+    if x.shape[1] != len(phi) - 1:
+        raise ValueError("dimension mismatch between x and phi: x.shape[1]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
+
+    x_new = np.zeros(x.shape[0])
+
+    p = len(phi) - 1
+    q = phi.shape[0]
+
+    for l in range(p):
+        for i in range(q):
+            for j in range(q):
+                x_new[i] += phi[l][i, j] * x[j, -(i+1), :]
+
+    if eps is not None:
+        x_new += np.dot(phi[-1], eps)
 
     return np.concatenate([x[1:, :], x_new[np.newaxis, :]])
