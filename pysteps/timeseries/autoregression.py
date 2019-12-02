@@ -111,17 +111,15 @@ def estimate_ar_params_yw(gamma):
     Parameters
     ----------
     gamma : array_like
-      Array of length p containing the lag-l, l=1,2,...p, temporal
-      autocorrelation coefficients.
-      The correlation coefficients are assumed to be in ascending
-      order with respect to time lag.
+        Array of length p containing the lag-l temporal autocorrelation
+        coefficients for l=1,2,...p. The correlation coefficients are assumed
+        to be in ascending order with respect to time lag.
 
     Returns
     -------
     out : ndarray
-      An array of shape (n,p+1) containing the AR(p) parameters for for the
-      lag-p terms for each cascade level, and also the standard deviation of
-      the innovation term.
+        Array of length p+1 containing the AR(p) parameters for for the
+        lag-p terms and the innovation term.
 
     """
     p = len(gamma)
