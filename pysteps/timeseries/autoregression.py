@@ -107,7 +107,7 @@ def ar_acf(gamma, n=None):
 def estimate_ar_params_yw(gamma):
     """Estimate the parameters of an AR(p) model
 
-    :math:`x_{k+1}=\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}`
+    :math:`x_{k+1}=\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
 
     from the Yule-Walker equations using the given set of autocorrelation
     coefficients.
@@ -222,7 +222,11 @@ def estimate_var_params_yw(gamma):
 
 
 def iterate_ar_model(x, phi, eps=None):
-    """Apply an AR(p) model to a time series.
+    """Apply an AR(p) model
+
+    :math:`x_{k+1}=\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
+
+    to a time series.
 
     Parameters
     ----------
