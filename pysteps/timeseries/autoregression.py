@@ -105,8 +105,12 @@ def ar_acf(gamma, n=None):
 
 
 def estimate_ar_params_yw(gamma):
-    """Estimate the parameters of an AR(p) model from the Yule-Walker equations
-    using the given set of autocorrelation coefficients.
+    """Estimate the parameters of an AR(p) model
+
+    :math:`x_{k+1}=\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}`
+
+    from the Yule-Walker equations using the given set of autocorrelation
+    coefficients.
 
     Parameters
     ----------
@@ -165,8 +169,7 @@ def estimate_var_params_yw(gamma):
       :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+
       \mathbf{\Phi}_2\mathbf{X}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{X}_{k-p}`
 
-    from the Yule-Walker equations using the given correlation coefficient
-    matrices.
+    from the Yule-Walker equations using the given correlation matrices.
 
     Parameters
     ----------
@@ -177,7 +180,7 @@ def estimate_var_params_yw(gamma):
     Returns
     -------
     out : list
-      List of VAR(p) coefficient matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
+      List of VAR(p,q) coefficient matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
       \dots\mathbf{\Phi}_p`.
     """
     p = len(gamma) - 1
