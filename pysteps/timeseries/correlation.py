@@ -62,7 +62,7 @@ def temporal_autocorrelation_multivariate(x, mask=None):
     :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
     correlation matrices :math:`\Gamma_l`, where :math:`\Gamma_{l,i,j}=\gamma_{l,i,j}`
     and :math:`\gamma_{l,i,j}=\mbox{corr}(x_i(t),x_j(t-l))` for
-    :math:`i,j=1,2,\dots,q` and :math:`l=1,2,\dots,n-1`.
+    :math:`i,j=1,2,\dots,q` and :math:`l=0,1,\dots,n-1`.
 
     Parameters
     ----------
@@ -76,7 +76,7 @@ def temporal_autocorrelation_multivariate(x, mask=None):
     Returns
     -------
     out : list
-        List of correlation matrices :math:`\Gamma_1,\Gamma_2,\dots,\Gamma_{n-1}`.
+        List of correlation matrices :math:`\Gamma_0,\Gamma_1,\dots,\Gamma_{n-1}`.
 
     References
     ----------
