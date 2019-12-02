@@ -41,7 +41,7 @@ def temporal_autocorrelation(x, mask=None):
         raise ValueError("the dimension of x must be >= 2")
     if mask is not None and mask.shape != x.shape[1:]:
         raise ValueError("dimension mismatch between x and mask: x.shape[1:]=%s, mask.shape=%s" % \
-                         (str(x.shape), str(mask.shape)))
+                         (str(x.shape[1:]), str(mask.shape)))
     if np.any(~np.isfinite(x)):
         raise ValueError("x contains non-finite values")
 
@@ -84,6 +84,11 @@ def temporal_autocorrelation_multivariate(x, mask=None):
     """
     if len(x.shape) < 3:
         raise ValueError("the dimension of x must be >= 3")
+    if mask is not None and mask.shape != x.shape[2:]:
+        raise ValueError("dimension mismatch between x and mask: x.shape[2:]=%s, mask.shape=%s" % \
+                         (str(x.shape[2:]), str(mask.shape)))
+    if np.any(~np.isfinite(x)):
+        raise ValueError("x contains non-finite values")
 
     p = x.shape[1] - 1
     q = x.shape[0]
