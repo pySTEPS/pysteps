@@ -2,8 +2,7 @@
 pysteps.timeseries.correlation
 ==============================
 
-Methods for computing spatial and temporal correlation of time series of
-two-dimensional fields.
+Methods for computing spatial and temporal correlations from time series data.
 
 .. autosummary::
     :toctree: ../generated/
