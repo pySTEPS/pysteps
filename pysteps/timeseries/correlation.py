@@ -14,16 +14,18 @@ import numpy as np
 
 
 def temporal_autocorrelation(x, mask=None):
-    """Compute lag-l autocorrelation coefficients gamma_l, l=1,2,...,n-1, for a
-    time series of n inputs of arbitrary dimension.
+    """Compute lag-l temporal autocorrelation coefficients
+    :math:`\gamma_l=\mbox{corr}(x(t),x(t-l))`, :math:`l=1,2,\dots,n-1`,
+    from a time series :math:`x_1,x_2,\dots,x_n`.
 
     Parameters
     ----------
     x : array_like
-        Array of shape (n, ...) containing a time series of n inputs of arbitrary
-        dimension. The inputs are assumed to be in increasing order with respect
-        to time, and the time step is assumed to be regular. x is required to
-        have finite values.
+        Array of shape (n, ...) containing the time series :math:`x_i`. The
+        inputs are assumed to be in increasing order with respect to time, and
+        the time step is assumed to be regular. All inputs are required to have
+        finite values. The remaining dimensions after the first one are
+        flattened before computing the correlation coefficients.
     mask : array_like
         Optional mask to use for computing the correlation coefficients. Input
         elements with mask==False are excluded from the computations.
@@ -32,7 +34,7 @@ def temporal_autocorrelation(x, mask=None):
     -------
     out : list
         List of length n-1 containing the temporal autocorrelation coefficients
-        for time lags l=1,2,...,n-1.
+        :math:`\gamma_i` for time lags :math:`l=1,2,...,n-1`.
 
     """
     if len(x.shape) < 2:
@@ -56,7 +58,8 @@ def temporal_autocorrelation(x, mask=None):
 
 
 def temporal_autocorrelation_multivariate(x, mask=None):
-    """For a :math:`q`-variate time series of length :math:`n`, compute the lag-l
+    """For a :math:`q`-variate time series
+    :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
     correlation matrices :math:`\Gamma_l`, where :math:`\Gamma_{l,i,j}=\gamma_{l,i,j}`
     and :math:`\gamma_{l,i,j}=\mbox{corr}(x_i(t),x_j(t-l))` for
     :math:`i,j=1,2,\dots,q` and :math:`l=1,2,\dots,n-1`.
@@ -64,15 +67,16 @@ def temporal_autocorrelation_multivariate(x, mask=None):
     Parameters
     ----------
     x : array_like
-        Array of shape (q, n, ...) containing a time series of n q-variate inputs
-        of arbitrary dimension. The inputs are assumed to be in increasing order
-        with respect to time, and the time step is assumed to be regular. x is
-        required to have finite values.
+        Array of shape (q, n, ...) containing the time series :math:`\mathbf{x}_i`.
+        The inputs are assumed to be in increasing order with respect to time,
+        and the time step is assumed to be regular. All inputs are required to
+        have finite values. The remaining dimensions after the second one are
+        flattened before computing the correlation coefficients.
 
     Returns
     -------
     out : list
-        List of correlation matrices :math:`\Gamma_l`, :math:`l=1,2,\dots,n-1`.
+        List of correlation matrices :math:`\Gamma_1,\Gamma_2,\dots,\Gamma_{n-1}`.
 
     References
     ----------
