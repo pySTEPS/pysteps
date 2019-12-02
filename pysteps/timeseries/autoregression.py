@@ -174,8 +174,9 @@ def estimate_var_params_yw(gamma):
     Parameters
     ----------
     gamma : list
-      List of correlation matrices :math:`\Gamma_1,\Gamma_2,\dots,\Gamma_{n-1}`. See
-      :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`.
+      List of correlation matrices
+      :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_{n-1}`.
+      See :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`.
 
     Returns
     -------
@@ -185,6 +186,11 @@ def estimate_var_params_yw(gamma):
     """
     p = len(gamma) - 1
     q = gamma[0].shape[0]
+
+    for i in range(len(gamma)):
+        if gamma[i].shape[0] != q or gamma[i].shape[1] != q:
+            raise ValueError("dimension mismatch: gamma[%d].shape=%s, but (%d,%d) expected" % \
+                             (i, str(gamma[i].shape, q, q)))
 
     a = np.empty((p*q, p*q))
     for i in range(p):
