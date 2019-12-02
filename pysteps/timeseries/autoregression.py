@@ -25,9 +25,9 @@ def adjust_lag2_corrcoef1(gamma_1, gamma_2):
     Parameters
     ----------
     gamma_1 : float
-      Lag-1 temporal autocorrelation coeffient.
+        Lag-1 temporal autocorrelation coeffient.
     gamma_2 : float
-      Lag-2 temporal autocorrelation coeffient.
+        Lag-2 temporal autocorrelation coeffient.
 
     Returns
     -------
@@ -49,14 +49,14 @@ def adjust_lag2_corrcoef2(gamma_1, gamma_2):
     Parameters
     ----------
     gamma_1 : float
-      Lag-1 temporal autocorrelation coeffient.
+        Lag-1 temporal autocorrelation coeffient.
     gamma_2 : float
-      Lag-2 temporal autocorrelation coeffient.
+        Lag-2 temporal autocorrelation coeffient.
 
     Returns
     -------
     out : float
-      The adjusted lag-2 correlation coefficient.
+        The adjusted lag-2 correlation coefficient.
 
     """
     gamma_2 = max(gamma_2, 2*gamma_1*gamma_2-1)
@@ -72,17 +72,17 @@ def ar_acf(gamma, n=None):
     Parameters
     ----------
     gamma : array-like
-      Array of length p containing the lag-l, l=1,2,...p, temporal
-      autocorrelation coefficients.
-      The correlation coefficients are assumed to be in ascending
-      order with respect to time lag.
+        Array of length p containing the lag-l, l=1,2,...p, temporal
+        autocorrelation coefficients.
+        The correlation coefficients are assumed to be in ascending
+        order with respect to time lag.
     n : int
-      Desired length of ACF array. Must be greater than len(gamma).
+        Desired length of ACF array. Must be greater than len(gamma).
 
     Returns
     -------
     out : array-like
-      Array containing the ACF values.
+        Array containing the ACF values.
 
     """
     ar_order = len(gamma)
@@ -174,15 +174,15 @@ def estimate_var_params_yw(gamma):
     Parameters
     ----------
     gamma : list
-      List of correlation matrices
-      :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_{n-1}`.
-      See :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`.
+        List of correlation matrices
+        :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_{n-1}`.
+        See :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`.
 
     Returns
     -------
     out : list
-      List of VAR(p,q) coefficient matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
-      \dots\mathbf{\Phi}_p`.
+        List of VAR(p,q) coefficient matrices :math:`\mathbf{\Phi}_1,
+        \mathbf{\Phi}_2,\dots\mathbf{\Phi}_p`.
     """
     p = len(gamma) - 1
     q = gamma[0].shape[0]
@@ -227,17 +227,18 @@ def iterate_ar_model(x, phi, eps=None):
     Parameters
     ----------
     x : array_like
-      Array of shape (p,...) containing a time series of a input variable x.
-      The elements of x along the first dimension are assumed to be in ascending
-      order by time, and the time intervals are assumed to be regular.
+        Array of shape (p,...) containing a time series of a input variable x.
+        The elements of x along the first dimension are assumed to be in
+        ascending order by time, and the time intervals are assumed to be
+        regular.
     phi : array_like
-      Array of length p+1 specifying the parameters of the AR(p) model. The
-      parameters are in ascending order by increasing time lag, and the last
-      element is the parameter corresponding to the innovation term eps.
+        Array of length p+1 specifying the parameters of the AR(p) model. The
+        parameters are in ascending order by increasing time lag, and the last
+        element is the parameter corresponding to the innovation term eps.
     eps : array_like
-      Optional perturbation field for the AR(p) process. The shape of eps is
-      expected to be x.shape[1:]. If eps is None, the innovation term is not
-      added.
+        Optional perturbation field for the AR(p) process. The shape of eps is
+        expected to be x.shape[1:]. If eps is None, the innovation term is not
+        added.
 
     """
     if x.shape[0] != len(phi) - 1:
