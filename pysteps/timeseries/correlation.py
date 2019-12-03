@@ -76,8 +76,8 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None):
         The order of differencing. If d>=1, a differencing operator
         :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
         applied before computing the correlation coefficients. In this case,
-        the length of the time series is reduced by d, and n-1-d correlation
-        matrices are computed.
+        a time series of length n+d is needed for computing the n correlation
+        matrices.
 
     Returns
     -------
