@@ -15,6 +15,7 @@ Methods related to autoregressive AR(p) models.
 """
 
 import numpy as np
+from scipy.special import binom
 
 
 def adjust_lag2_corrcoef1(gamma_1, gamma_2):
@@ -144,7 +145,7 @@ def estimate_ar_params_yw(gamma):
                   for i in range(p)])])
     if any(r >= 1):
         raise RuntimeError(
-            "Error in estimate_ar_params_y: "
+            "Error in estimate_ar_params_yw: "
             "nonstationary AR(p) process")
 
     c = 1.0
@@ -163,7 +164,7 @@ def estimate_ar_params_yw(gamma):
     return phi
 
 
-def estimate_var_params_yw(gamma):
+def estimate_var_params_yw(gamma, d=0):
     """Estimate the parameters of a VAR(p,q) model
 
       :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+
@@ -177,6 +178,11 @@ def estimate_var_params_yw(gamma):
         List of correlation matrices
         :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_{n-1}`.
         See :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`.
+    d : int
+        The order of differencing. If d>=1, a differencing operator
+        :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
+        applied to produce parameter estimates for a vector autoregressive
+        integrated VARI(p,q,d) model of order d.
 
     Returns
     -------
@@ -215,10 +221,25 @@ def estimate_var_params_yw(gamma):
     r = np.linalg.eig(M)[0]
     if any(np.abs(r) >= 1):
         raise RuntimeError(
-            "Error in estimate_ar_params_y: "
-            "nonstationary AR(p) process")
+            "Error in estimate_var_params_yw: "
+            "nonstationary VAR(p,q) process")
 
-    return phi
+    if d >= 1:
+        phi_out = []
+        for i in range(p+d):
+            phi_out.append(np.zeros((q, q)))
+
+        for i in range(1, d+1):
+            phi_out[i-1] -= binom(d, i) * (-1)**i * np.eye(q, q)
+        for i in range(1, p+1):
+            phi_out[i-1] += phi[i-1]
+        for i in range(1, p+1):
+            for j in range(1, d+1):
+                phi_out[i+j-1] += phi[i-1] * binom(d, j) * (-1)**j
+
+        return phi_out
+    else:
+        return phi
 
 
 def iterate_ar_model(x, phi, eps=None):
@@ -262,6 +283,7 @@ def iterate_ar_model(x, phi, eps=None):
         x_new += phi[-1] * eps
 
     return np.concatenate([x[1:, :], x_new[np.newaxis, :]])
+
 
 def iterate_var_model(x, phi, eps=None):
     """Apply a VAR(p,q) model
