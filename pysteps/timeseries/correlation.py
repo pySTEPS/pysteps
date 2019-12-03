@@ -57,7 +57,7 @@ def temporal_autocorrelation(x, mask=None):
     return gamma
 
 
-def temporal_autocorrelation_multivariate(x, d=1, mask=None):
+def temporal_autocorrelation_multivariate(x, d=0, mask=None):
     """For a :math:`q`-variate time series
     :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
     correlation matrices :math:`\Gamma_l`, where :math:`\Gamma_{l,i,j}=\gamma_{l,i,j}`
