@@ -57,7 +57,7 @@ def temporal_autocorrelation(x, mask=None):
     return gamma
 
 
-def temporal_autocorrelation_multivariate(x, mask=None):
+def temporal_autocorrelation_multivariate(x, d=1, mask=None):
     """For a :math:`q`-variate time series
     :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
     correlation matrices :math:`\Gamma_l`, where :math:`\Gamma_{l,i,j}=\gamma_{l,i,j}`
@@ -72,6 +72,12 @@ def temporal_autocorrelation_multivariate(x, mask=None):
         and the time step is assumed to be regular. All inputs are required to
         have finite values. The remaining dimensions after the second one are
         flattened before computing the correlation coefficients.
+    d : int
+        The order of differencing. If d>=1, a differencing operator
+        :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
+        applied before computing the correlation coefficients. In this case,
+        the length of the time series is reduced by d, and n-1-d correlation
+        matrices are computed.
 
     Returns
     -------
@@ -89,6 +95,9 @@ def temporal_autocorrelation_multivariate(x, mask=None):
                          (str(x.shape[2:]), str(mask.shape)))
     if np.any(~np.isfinite(x)):
         raise ValueError("x contains non-finite values")
+
+    if d >= 1:
+        x = np.diff(x, axis=1)
 
     p = x.shape[1] - 1
     q = x.shape[0]
