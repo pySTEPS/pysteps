@@ -199,7 +199,7 @@ def get_method(name, type="deterministic"):
             "mae",
             "mse",
             "me",
-            "nrmse",
+            "nmse",
             "rmse",
             "rv",
             "scatter",
