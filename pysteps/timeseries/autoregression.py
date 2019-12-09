@@ -343,4 +343,4 @@ def iterate_var_model(x, phi, eps=None):
     if eps is not None:
         x_new += np.dot(phi[-1], eps)
 
-    return np.concatenate([x[1:, :], x_new[np.newaxis, :]])
+    return np.concatenate([x[:, 1:, :], x_new[:, np.newaxis, :]], axis=1)
