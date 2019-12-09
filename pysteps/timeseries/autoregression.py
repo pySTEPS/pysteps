@@ -107,7 +107,7 @@ def ar_acf(gamma, n=None):
     return acf
 
 
-def estimate_ar_params_yw(gamma):
+def estimate_ar_params_yw(gamma, check_stationarity=True):
     """Estimate the parameters of an AR(p) model
 
     :math:`x_{k+1}=\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
@@ -121,6 +121,9 @@ def estimate_ar_params_yw(gamma):
         Array of length p containing the lag-l temporal autocorrelation
         coefficients for l=1,2,...p. The correlation coefficients are assumed
         to be in ascending order with respect to time lag.
+    check_stationarity : bool
+        If True, the stationarity of the resulting VAR(p) process is tested. An
+        exception is thrown if the process is not stationary.
 
     Returns
     -------
@@ -143,12 +146,13 @@ def estimate_ar_params_yw(gamma):
     # Check that the absolute values of the roots of the characteristic
     # polynomial are less than one.
     # Otherwise the AR(p) model is not stationary.
-    r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi_[i] \
-                  for i in range(p)])])
-    if any(r >= 1):
-        raise RuntimeError(
-            "Error in estimate_ar_params_yw: "
-            "nonstationary AR(p) process")
+    if check_stationarity:
+        r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi_[i] \
+                      for i in range(p)])])
+        if any(r >= 1):
+            raise RuntimeError(
+                "Error in estimate_ar_params_yw: "
+                "nonstationary AR(p) process")
 
     c = 1.0
     for j in range(p):
@@ -166,7 +170,7 @@ def estimate_ar_params_yw(gamma):
     return phi
 
 
-def estimate_var_params_yw(gamma, d=0):
+def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     """Estimate the parameters of a VAR(p) model
 
       :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+
@@ -185,6 +189,9 @@ def estimate_var_params_yw(gamma, d=0):
         :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
         applied to produce parameter estimates for a vector autoregressive
         integrated VARI(p,d) model of order d.
+    check_stationarity : bool
+        If True, the stationarity of the resulting VAR(p) process is tested. An
+        exception is thrown if the process is not stationary.
 
     Returns
     -------
@@ -219,17 +226,20 @@ def estimate_var_params_yw(gamma, d=0):
     phi = []
     for i in range(p):
         phi.append(x[i*q:(i+1)*q, :])
-    
-    M = np.zeros((p*q, p*q))
-    for i in range(p):
-        M[0:q, i*q:(i+1)*q] = phi[i]
-    for i in range(1, p-1):
-        M[i*q:(i+1)*q, i*q:(i+1)*q] = np.eye(q, q)
-    r = np.linalg.eig(M)[0]
-    if any(np.abs(r) >= 1):
-        raise RuntimeError(
-            "Error in estimate_var_params_yw: "
-            "nonstationary VAR(p) process")
+
+    if check_stationarity:
+        M = np.zeros((p*q, p*q))
+
+        for i in range(p):
+            M[0:q, i*q:(i+1)*q] = phi[i]
+        for i in range(1, p-1):
+            M[i*q:(i+1)*q, i*q:(i+1)*q] = np.eye(q, q)
+
+        r = np.linalg.eig(M)[0]
+        if any(np.abs(r) >= 1):
+            raise RuntimeError(
+                "Error in estimate_var_params_yw: "
+                "nonstationary VAR(p) process")
 
     if d >= 1:
         phi_out = []
