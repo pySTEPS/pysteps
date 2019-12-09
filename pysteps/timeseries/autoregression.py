@@ -176,13 +176,15 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
       :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+
       \mathbf{\Phi}_2\mathbf{X}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{X}_{k-p}`
 
-    from the Yule-Walker equations using the given correlation matrices.
+    from the Yule-Walker equations using the given correlation matrices
+    :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_n`, where
+    n=p.
 
     Parameters
     ----------
     gamma : list
         List of correlation matrices
-        :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_{n-1}`.
+        :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_n`.
         See :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`.
     d : int
         The order of differencing. If d>=1, a differencing operator
