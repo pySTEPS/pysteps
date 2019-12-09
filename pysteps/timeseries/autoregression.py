@@ -234,11 +234,10 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
 
         for i in range(p):
             M[0:q, i*q:(i+1)*q] = phi[i]
-        for i in range(1, p-1):
-            M[i*q:(i+1)*q, i*q:(i+1)*q] = np.eye(q, q)
-
+        for i in range(1, p):
+            M[i*q:(i+1)*q, (i-1)*q:i*q] = np.eye(q, q)
         r = np.linalg.eig(M)[0]
-        if any(np.abs(r) >= 1):
+        if np.any(np.abs(r) >= 1):
             raise RuntimeError(
                 "Error in estimate_var_params_yw: "
                 "nonstationary VAR(p) process")
