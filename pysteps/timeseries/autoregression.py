@@ -292,6 +292,7 @@ def iterate_ar_model(x, phi, eps=None):
     return np.concatenate([x[1:, :], x_new[np.newaxis, :]])
 
 
+# TODO: The innovation parameter is not yet implemented.
 def iterate_var_model(x, phi, eps=None):
     """Apply a VAR(p) model
 
@@ -309,13 +310,13 @@ def iterate_var_model(x, phi, eps=None):
         assumed to be regular.
 
     """
-    if x.shape[1] != len(phi) - 1:
+    if x.shape[1] != len(phi):
         raise ValueError("dimension mismatch between x and phi: x.shape[1]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
 
     x_new = np.zeros(x.shape[0])
 
-    p = len(phi) - 1
-    q = phi.shape[0]
+    p = len(phi)
+    q = phi[0].shape[0]
 
     for l in range(p):
         for i in range(q):
