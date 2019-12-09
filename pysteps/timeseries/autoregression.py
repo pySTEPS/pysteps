@@ -11,7 +11,9 @@ Methods related to autoregressive AR(p) models.
     adjust_lag2_corrcoef2
     ar_acf
     estimate_ar_params_yw
+    estimate_var_params_yw
     iterate_ar_model
+    iterate_var_model
 """
 
 import numpy as np
