@@ -313,10 +313,15 @@ def iterate_var_model(x, phi, eps=None):
     if x.shape[1] != len(phi):
         raise ValueError("dimension mismatch between x and phi: x.shape[1]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
 
+    phi_shape = phi[0].shape
+    for i in range(1, len(phi)):
+        if phi[i].shape != phi_shape:
+            raise ValueError("dimension mismatch between parameter matrices phi")
+
     x_new = np.zeros(x.shape[0])
 
     p = len(phi)
-    q = phi[0].shape[0]
+    q = phi_shape[0]
 
     for l in range(p):
         for i in range(q):
