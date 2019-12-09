@@ -305,7 +305,7 @@ def iterate_var_model(x, phi, eps=None):
     ----------
     x : array_like
         Array of shape (q,n,...) containing a q-variate time series of a input
-        variable x with length n=p+1. The elements of x along the second dimension
+        variable x with length n=p. The elements of x along the second dimension
         are assumed to be in ascending order by time, and the time intervals are
         assumed to be regular.
 
@@ -318,7 +318,7 @@ def iterate_var_model(x, phi, eps=None):
         if phi[i].shape != phi_shape:
             raise ValueError("dimension mismatch between parameter matrices phi")
 
-    x_new = np.zeros(x.shape[0])
+    x_new = np.zeros(np.hstack([[x.shape[0]], x.shape[2:]]))
 
     p = len(phi)
     q = phi_shape[0]
@@ -326,7 +326,7 @@ def iterate_var_model(x, phi, eps=None):
     for l in range(p):
         for i in range(q):
             for j in range(q):
-                x_new[i] += phi[l][i, j] * x[j, -(i+1), :]
+                x_new[i] += phi[l][i, j] * x[j, -(l+1), :]
 
     if eps is not None:
         x_new += np.dot(phi[-1], eps)
