@@ -167,7 +167,7 @@ def estimate_ar_params_yw(gamma):
 
 
 def estimate_var_params_yw(gamma, d=0):
-    """Estimate the parameters of a VAR(p,q) model
+    """Estimate the parameters of a VAR(p) model
 
       :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+
       \mathbf{\Phi}_2\mathbf{X}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{X}_{k-p}`
@@ -184,13 +184,18 @@ def estimate_var_params_yw(gamma, d=0):
         The order of differencing. If d>=1, a differencing operator
         :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
         applied to produce parameter estimates for a vector autoregressive
-        integrated VARI(p,q,d) model of order d.
+        integrated VARI(p,d) model of order d.
 
     Returns
     -------
     out : list
-        List of VAR(p,q) coefficient matrices :math:`\mathbf{\Phi}_1,
+        List of VAR(p) coefficient matrices :math:`\mathbf{\Phi}_1,
         \mathbf{\Phi}_2,\dots\mathbf{\Phi}_p`.
+
+    Notes
+    -----
+    To estimate the parameters of a VARI(p,d) model, call
+    correlation.temporal_autocorrelation_multivariate with d>0.
     """
     p = len(gamma) - 1
     q = gamma[0].shape[0]
@@ -224,7 +229,7 @@ def estimate_var_params_yw(gamma, d=0):
     if any(np.abs(r) >= 1):
         raise RuntimeError(
             "Error in estimate_var_params_yw: "
-            "nonstationary VAR(p,q) process")
+            "nonstationary VAR(p) process")
 
     if d >= 1:
         phi_out = []
