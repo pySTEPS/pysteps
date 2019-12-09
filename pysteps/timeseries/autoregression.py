@@ -293,12 +293,12 @@ def iterate_ar_model(x, phi, eps=None):
 
 
 def iterate_var_model(x, phi, eps=None):
-    """Apply a VAR(p,q) model
-    
+    """Apply a VAR(p) model
+
     :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+\mathbf{\Phi}_2
     \mathbf{X}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{X}_{k-p}`
-    
-    to a time series :math:`\mathbf{X}_k`.
+
+    to a q-variate time series :math:`\mathbf{X}_k`.
 
     Parameters
     ----------
