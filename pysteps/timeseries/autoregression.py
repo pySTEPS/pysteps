@@ -222,7 +222,7 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
                 a_tmp = a_tmp.T
             a[i*q:(i+1)*q, j*q:(j+1)*q] = a_tmp
 
-    b = np.vstack([gamma[i] for i in range(1, p+1)])
+    b = np.vstack([gamma[i].T for i in range(1, p+1)])
     x = np.linalg.solve(a, b)
 
     phi = []
