@@ -18,6 +18,7 @@ Methods related to autoregressive AR(p) models.
 
 import numpy as np
 from scipy.special import binom
+from scipy import linalg as la
 
 
 def adjust_lag2_corrcoef1(gamma_1, gamma_2):
@@ -173,8 +174,9 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
 def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     """Estimate the parameters of a VAR(p) model
 
-      :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+
-      \mathbf{\Phi}_2\mathbf{X}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{X}_{k-p}`
+      :math:`\mathbf{x}_{k+1}=\mathbf{\Phi}_1\mathbf{x}_k+
+      \mathbf{\Phi}_2\mathbf{x}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{x}_{k-p}+
+      \mathbf{\Phi}_{p+1}\mathbf{\epsilon}`
 
     from the Yule-Walker equations using the given correlation matrices
     :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_n`, where
@@ -199,7 +201,8 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     -------
     out : list
         List of VAR(p) coefficient matrices :math:`\mathbf{\Phi}_1,
-        \mathbf{\Phi}_2,\dots\mathbf{\Phi}_p`.
+        \mathbf{\Phi}_2,\dots\mathbf{\Phi}_{p+1}`, where the last matrix
+        corresponds to the innovation term.
 
     Notes
     -----
@@ -254,7 +257,13 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
         for i in range(1, p+1):
             for j in range(1, d+1):
                 phi_out[i+j-1] += phi[i-1] * binom(d, j) * (-1)**j
+    else:
+        phi_out = phi
 
+    phi_stacked = np.hstack(phi)
+    phi_out.append(la.sqrtm(gamma[0] - np.dot(np.dot(phi_stacked, a), phi_stacked.T)))
+
+    if d >= 1:
         return phi_out
     else:
         return phi
@@ -303,14 +312,14 @@ def iterate_ar_model(x, phi, eps=None):
     return np.concatenate([x[1:, :], x_new[np.newaxis, :]])
 
 
-# TODO: The innovation parameter is not yet implemented.
 def iterate_var_model(x, phi, eps=None):
     """Apply a VAR(p) model
 
-    :math:`\mathbf{X}_{k+1}=\mathbf{\Phi}_1\mathbf{X}_k+\mathbf{\Phi}_2
-    \mathbf{X}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{X}_{k-p}`
+    :math:`\mathbf{x}_{k+1}=\mathbf{\Phi}_1\mathbf{x}_k+\mathbf{\Phi}_2
+    \mathbf{x}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{x}_{k-p}+
+    \mathbf{\Phi}_{p+1}\mathbf{\epsilon}`
 
-    to a q-variate time series :math:`\mathbf{X}_k`.
+    to a q-variate time series :math:`\mathbf{x}_k`.
 
     Parameters
     ----------
@@ -319,9 +328,13 @@ def iterate_var_model(x, phi, eps=None):
         variable x with length n=p. The elements of x along the second dimension
         are assumed to be in ascending order by time, and the time intervals are
         assumed to be regular.
-
+    phi : list
+        List of parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,\dots,
+        \mathbf{\Phi}_{p+1}`.
+    eps : array_like
+        The innovation term. The length is expected to be x.shape[0].
     """
-    if x.shape[1] != len(phi):
+    if x.shape[1] != len(phi) - 1:
         raise ValueError("dimension mismatch between x and phi: x.shape[1]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
 
     phi_shape = phi[0].shape
@@ -331,7 +344,7 @@ def iterate_var_model(x, phi, eps=None):
 
     x_new = np.zeros(np.hstack([[x.shape[0]], x.shape[2:]]))
 
-    p = len(phi)
+    p = len(phi) - 1
     q = phi_shape[0]
 
     for l in range(p):
@@ -340,6 +353,6 @@ def iterate_var_model(x, phi, eps=None):
                 x_new[i] += phi[l][i, j] * x[j, -(l+1), :]
 
     if eps is not None:
-        x_new += np.dot(phi[-1], eps)
+        x_new += np.dot(np.dot(phi[-1], phi[-1]), eps)
 
     return np.concatenate([x[:, 1:, :], x_new[:, np.newaxis, :]], axis=1)
