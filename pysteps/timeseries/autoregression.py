@@ -217,7 +217,7 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     a = np.empty((p*q, p*q))
     for i in range(p):
         for j in range(p):
-            a_tmp = gamma[(i + j) % p]
+            a_tmp = gamma[i - abs(i-j)]
             if i > j:
                 a_tmp = a_tmp.T
             a[i*q:(i+1)*q, j*q:(j+1)*q] = a_tmp
