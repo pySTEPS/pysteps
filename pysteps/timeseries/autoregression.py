@@ -148,9 +148,7 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
     # polynomial are less than one.
     # Otherwise the AR(p) model is not stationary.
     if check_stationarity:
-        r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi_[i] \
-                      for i in range(p)])])
-        if any(r >= 1):
+        if not test_ar_stationarity(phi_):
             raise RuntimeError(
                 "Error in estimate_ar_params_yw: "
                 "nonstationary AR(p) process")
@@ -233,14 +231,7 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
         phi.append(x[i*q:(i+1)*q, :])
 
     if check_stationarity:
-        M = np.zeros((p*q, p*q))
-
-        for i in range(p):
-            M[0:q, i*q:(i+1)*q] = phi[i]
-        for i in range(1, p):
-            M[i*q:(i+1)*q, (i-1)*q:i*q] = np.eye(q, q)
-        r = np.linalg.eig(M)[0]
-        if np.any(np.abs(r) >= 1):
+        if not test_var_stationarity(phi):
             raise RuntimeError(
                 "Error in estimate_var_params_yw: "
                 "nonstationary VAR(p) process")
@@ -356,3 +347,58 @@ def iterate_var_model(x, phi, eps=None):
         x_new += np.dot(np.dot(phi[-1], phi[-1]), eps)
 
     return np.concatenate([x[:, 1:, :], x_new[:, np.newaxis, :]], axis=1)
+
+
+def test_ar_stationarity(phi):
+    """Test stationarity of an AR(p) process. That is, test that the roots of
+    the equation :math:`x^p-\phi_1*x^{p-1}-\dots-\phi_p` lie inside the unit
+    circle.
+
+    Parameters
+    ----------
+    phi : list
+        List of AR(p) parameters :math:`\phi_1,\phi_2,\dots,\phi_p`.
+
+    Returns
+    -------
+    out : bool
+        True/False if the process is/is not stationary.
+    """
+    r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi[i] \
+                 for i in range(len(phi))])])
+
+    return False if np.any(r >= 1) else True
+
+
+def test_var_stationarity(phi):
+    """Test stationarity of an AR(p) process. That is, test that the moduli of
+    the eigenvalues of the companion matrix lie inside the unit circle.
+
+    Parameters
+    ----------
+    phi : list
+        List of VAR(p) parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
+        \dots,\mathbf{\Phi}_p`.
+
+    Returns
+    -------
+    out : bool
+        True/False if the process is/is not stationary.
+    """
+    q = phi[0].shape
+    for i in range(1, len(phi)):
+        if phi[i].shape != q:
+            raise ValueError("dimension mismatch between parameter matrices phi")
+
+    p = len(phi)
+    q = phi[0].shape[0]
+
+    M = np.zeros((p*q, p*q))
+
+    for i in range(p):
+        M[0:q, i*q:(i+1)*q] = phi[i]
+    for i in range(1, p):
+        M[i*q:(i+1)*q, (i-1)*q:i*q] = np.eye(q, q)
+    r = np.linalg.eig(M)[0]
+
+    return False if np.any(np.abs(r) >= 1) else True
