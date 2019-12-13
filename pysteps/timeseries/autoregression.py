@@ -286,6 +286,12 @@ def iterate_ar_model(x, phi, eps=None):
     if x.shape[0] < len(phi) - 1:
         raise ValueError("dimension mismatch between x and phi: x.shape[0]=%d, len(phi)=%d" % (x.shape[0], len(phi)))
 
+    if len(x.shape) == 1:
+        x_simple_shape = True
+        x = x[:, np.newaxis]
+    else:
+        x_simple_shape = False
+
     if eps is not None and eps.shape != x.shape[1:]:
         raise ValueError("dimension mismatch between x and eps: x.shape=%s, eps.shape[1:]=%s" % (str(x.shape), str(eps.shape[1:])))
 
@@ -299,7 +305,10 @@ def iterate_ar_model(x, phi, eps=None):
     if eps is not None:
         x_new += phi[-1] * eps
 
-    return np.concatenate([x[1:, :], x_new[np.newaxis, :]])
+    if x_simple_shape:
+        return np.hstack([x[1:], [x_new]])
+    else:
+        return np.concatenate([x[1:, :], x_new[np.newaxis, :]])
 
 
 def iterate_var_model(x, phi, eps=None):
@@ -332,6 +341,12 @@ def iterate_var_model(x, phi, eps=None):
         if phi[i].shape != phi_shape:
             raise ValueError("dimension mismatch between parameter matrices phi")
 
+    if len(x.shape) == 2:
+        x_simple_shape = True
+        x = x[:, :, np.newaxis]
+    else:
+        x_simple_shape = False
+
     x_new = np.zeros(np.hstack([[x.shape[0]], x.shape[2:]]))
 
     p = len(phi) - 1
@@ -345,7 +360,10 @@ def iterate_var_model(x, phi, eps=None):
     if eps is not None:
         x_new += np.dot(np.dot(phi[-1], phi[-1]), eps)
 
-    return np.concatenate([x[:, 1:, :], x_new[:, np.newaxis, :]], axis=1)
+    if x_simple_shape:
+        return np.hstack([x[:, 1:, 0], x_new])
+    else:
+        return np.concatenate([x[:, 1:, :], x_new[:, np.newaxis, :]], axis=1)
 
 
 def test_ar_stationarity(phi):
