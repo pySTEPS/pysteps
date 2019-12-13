@@ -270,10 +270,9 @@ def iterate_ar_model(x, phi, eps=None):
     Parameters
     ----------
     x : array_like
-        Array of shape (p,...) containing a time series of a input variable x.
-        The elements of x along the first dimension are assumed to be in
-        ascending order by time, and the time intervals are assumed to be
-        regular.
+        Array of shape (n,...), n>=p, containing a time series of a input variable
+        x. The elements of x along the first dimension are assumed to be in
+        ascending order by time, and the time intervals are assumed to be regular.
     phi : array_like
         Array of length p+1 specifying the parameters of the AR(p) model. The
         parameters are in ascending order by increasing time lag, and the last
@@ -284,7 +283,7 @@ def iterate_ar_model(x, phi, eps=None):
         added.
 
     """
-    if x.shape[0] != len(phi) - 1:
+    if x.shape[0] < len(phi) - 1:
         raise ValueError("dimension mismatch between x and phi: x.shape[0]=%d, len(phi)=%d" % (x.shape[0], len(phi)))
 
     if eps is not None and eps.shape != x.shape[1:]:
@@ -315,17 +314,17 @@ def iterate_var_model(x, phi, eps=None):
     Parameters
     ----------
     x : array_like
-        Array of shape (q,n,...) containing a q-variate time series of a input
-        variable x with length n=p. The elements of x along the second dimension
-        are assumed to be in ascending order by time, and the time intervals are
-        assumed to be regular.
+        Array of shape (q,n,...), n>=p, containing a q-variate time series of a
+        input variable x with length n=p. The elements of x along the second
+        dimension are assumed to be in ascending order by time, and the time
+        intervals are assumed to be regular.
     phi : list
         List of parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,\dots,
         \mathbf{\Phi}_{p+1}`.
     eps : array_like
         The innovation term. The length is expected to be x.shape[0].
     """
-    if x.shape[1] != len(phi) - 1:
+    if x.shape[1] < len(phi) - 1:
         raise ValueError("dimension mismatch between x and phi: x.shape[1]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
 
     phi_shape = phi[0].shape
