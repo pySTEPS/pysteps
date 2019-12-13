@@ -352,10 +352,14 @@ def iterate_var_model(x, phi, eps=None):
     p = len(phi) - 1
     q = phi_shape[0]
 
-    for l in range(p):
-        for i in range(q):
-            for j in range(q):
-                x_new[i] += phi[l][i, j] * x[j, -(l+1), :]
+    if x_simple_shape:
+        for l in range(p):
+            x_new += np.dot(phi[l], x[:, -(l+1), :])
+    else:
+        for l in range(p):
+            for i in range(q):
+                for j in range(q):
+                    x_new[i] += phi[l][i, j] * x[j, -(l+1), :]
 
     if eps is not None:
         x_new += np.dot(np.dot(phi[-1], phi[-1]), eps)
