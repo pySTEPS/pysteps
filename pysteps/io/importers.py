@@ -121,7 +121,7 @@ except ImportError:
     NETCDF4_IMPORTED = False
 
 try:
-    import PIL
+    from PIL import Image
 
     PIL_IMPORTED = True
 except ImportError:
@@ -515,7 +515,7 @@ def import_mch_gif(filename, product, unit, accutime):
     metadata = geodata
 
     # import gif file
-    B = PIL.Image.open(filename)
+    B = Image.open(filename)
 
     if product.lower() in ["azc", "rzc", "precip"]:
 
