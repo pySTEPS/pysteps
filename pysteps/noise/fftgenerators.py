@@ -837,7 +837,7 @@ def build_2D_tapering_function(win_size, win_type="flat-hanning"):
 
         T = win_size[0] / 4.0
         W = win_size[0] / 2.0
-        B = np.linspace(-W, W, 2 * W)
+        B = np.linspace(-W, W, int(2 * W))
         R = np.abs(B) - T
         R[R < 0] = 0.0
         A = 0.5 * (1.0 + np.cos(np.pi * R / T))
@@ -846,7 +846,7 @@ def build_2D_tapering_function(win_size, win_type="flat-hanning"):
 
         T = win_size[1] / 4.0
         W = win_size[1] / 2.0
-        B = np.linspace(-W, W, 2 * W)
+        B = np.linspace(-W, W, int(2 * W))
         R = np.abs(B) - T
         R[R < 0] = 0.0
         A = 0.5 * (1.0 + np.cos(np.pi * R / T))

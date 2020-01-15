@@ -203,7 +203,7 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
     reldiag = {}
 
     reldiag["X_min"] = X_min
-    reldiag["bin_edges"] = np.linspace(-1e-6, 1+1e-6, n_bins+1)
+    reldiag["bin_edges"] = np.linspace(-1e-6, 1+1e-6, int(n_bins+1))
     reldiag["n_bins"] = n_bins
     reldiag["X_sum"] = np.zeros(n_bins)
     reldiag["Y_sum"] = np.zeros(n_bins, dtype=int)
@@ -340,7 +340,7 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
     ROC["misses"] = np.zeros(n_prob_thrs, dtype=int)
     ROC["false_alarms"] = np.zeros(n_prob_thrs, dtype=int)
     ROC["corr_neg"] = np.zeros(n_prob_thrs, dtype=int)
-    ROC["prob_thrs"] = np.linspace(0.0, 1.0, n_prob_thrs)
+    ROC["prob_thrs"] = np.linspace(0.0, 1.0, int(n_prob_thrs))
 
     return ROC
 
