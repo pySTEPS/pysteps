@@ -434,7 +434,7 @@ def track_features(
                                           p0, None, **params)
 
     # keep only features that have been found
-    st = st.squeeze() == 1
+    st = np.atleast_1d(st.squeeze()) == 1
     if np.any(st):
         p1 = p1[st, :]
         p0 = p0[st, :]
