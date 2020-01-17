@@ -18,6 +18,7 @@ from . import fft
 from . import images
 from . import interpolate
 from . import spectral
+from . import tapering
 from . import transformation
 
 
@@ -113,6 +114,19 @@ def get_method(name, **kwargs):
     +-------------------+-----------------------------------------------------+
     |  rm_rdisc         | remove the rain / no-rain discontinuity             |
     +-------------------+-----------------------------------------------------+
+
+    Tapering methods:
+
+    +-------------------------------+-----------------------------------------+
+    |     Name                      |              Description                |
+    +===============================+=========================================+
+    |  compute_mask_window_function | Compute window function for a           |
+    |                               | two-dimensional area defined by a       |
+    |                               | non-rectangular mask.                   |
+    +-------------------------------+-----------------------------------------+
+    |  compute_window_function      | Compute window function for a           |
+    |                               | two-dimensional rectangular area.       |
+    +-------------------------------+-----------------------------------------+
 
     Transformation methods:
 
