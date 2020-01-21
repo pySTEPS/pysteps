@@ -23,6 +23,9 @@ following key-value pairs:
 |  cascade_levels   | three-dimensional array of shape (k,m,n), where k is the |
 |                   | number of cascade levels and the input fields have shape |
 |                   | (m,n)                                                    |
+|                   | if domain is "spectral" and compact output is requested  |
+|                   | (see the table below), cascade_levels contains a list of |
+|                   | one-dimensional arrays                                   |
 +-------------------+----------------------------------------------------------+
 |  domain           | domain of the cascade decomposition: "spatial" or        |
 |                   | "spectral"                                               |
