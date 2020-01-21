@@ -203,7 +203,7 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
     reldiag = {}
 
     reldiag["X_min"] = X_min
-    reldiag["bin_edges"] = np.linspace(-1e-6, 1+1e-6, int(n_bins+1))
+    reldiag["bin_edges"] = np.linspace(-1e-6, 1 + 1e-6, int(n_bins + 1))
     reldiag["n_bins"] = n_bins
     reldiag["X_sum"] = np.zeros(n_bins)
     reldiag["Y_sum"] = np.zeros(n_bins, dtype=int)
