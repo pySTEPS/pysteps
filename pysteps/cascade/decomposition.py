@@ -3,7 +3,7 @@ pysteps.cascade.decomposition
 =============================
 
 Methods for decomposing two-dimensional fields into multiple spatial scales and
-recomposing the individual scales back to the original field.
+recomposing the individual scales to obtain the original field.
 
 The methods in this module implement the following interface::
 
@@ -24,6 +24,18 @@ following key-value pairs:
 |                   | number of cascade levels and the input fields have shape |
 |                   | (m,n)                                                    |
 +-------------------+----------------------------------------------------------+
+
+The following key-value pairs are optional. They are returned if **kwargs
+contains the "compute_stats" key with value set to True:
+
++-------------------+----------------------------------------------------------+
+|        Key        |                      Value                               |
++===================+==========================================================+
+|  means            | list of mean values for each cascade level               |
++-------------------+----------------------------------------------------------+
+|  stds             | list of standard deviations for each cascade level       |
++-------------------+----------------------------------------------------------+
+
 
 Available methods
 -----------------
