@@ -73,7 +73,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
         output_domain are both set to "spectral".
     normalize : bool
         If True, normalize the cascade levels to zero mean and unit variance.
-        Requires that compute_stats is True. Defaults to False.
+        Requires that compute_stats is True. Implies that compute_stats is True.
+        Defaults to False.
     MASK : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with MASK==False are excluded from the computations.
@@ -113,7 +114,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     compact_output = kwargs.get("compact_output", False)
 
     if normalize and not compute_stats:
-        raise ValueError("incorrect input arguments: normalize=True but compute_stats=False")
+        compute_stats = True
 
     if len(field.shape) != 2:
         raise ValueError("The input is not two-dimensional array")
