@@ -92,8 +92,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
         Defaults to False.
     compact_output : bool
         Applicable if output_domain is "spectral". If set to True, only the
-        parts of the Fourier spectrum with nonzero filter weights are stored.
-        Defaults to False.
+        parts of the Fourier spectrum with non-negligible filter weights are
+        stored. Defaults to False.
 
     Returns
     -------
