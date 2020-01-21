@@ -132,9 +132,9 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False,
     """
 
     if len(Z.shape) != 2:
-        raise ValueError("%i dimensions are found, but the number "
-                         + "of dimensions should be 2"
-                         % len(Z.shape))
+        raise ValueError(f"{len(Z.shape)} dimensions are found, but the number "
+                          "of dimensions should be 2"
+                        )
 
     if np.sum(np.isnan(Z)) > 0:
         raise ValueError('input array Z should not contain nans')
