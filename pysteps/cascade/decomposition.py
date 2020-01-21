@@ -251,7 +251,7 @@ def recompose_fft(decomp, **kwargs):
     Returns
     -------
     out : numpy.ndarray
-        The recomposed cascade.
+        A two-dimensional array containing the recomposed cascade.
     """
     if not "means" in decomp.keys() or not "stds" in decomp.keys():
         raise KeyError("the decomposition was done with compute_stats=False")
