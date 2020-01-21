@@ -24,9 +24,14 @@ following key-value pairs:
 |                   | number of cascade levels and the input fields have shape |
 |                   | (m,n)                                                    |
 +-------------------+----------------------------------------------------------+
+|  domain           | domain of the cascade decomposition: "spatial" or        |
+|                   | "spectral"                                               |
++-------------------+----------------------------------------------------------+
+|  normalized       | are the cascade levels normalized: True or False         |
++-------------------+----------------------------------------------------------+
 
-The following key-value pairs are optional. They are returned if **kwargs
-contains the "compute_stats" key with value set to True:
+The following key-value pairs are optional. They are included in the output if
+**kwargs contains the "compute_stats" key with value set to True:
 
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
@@ -34,6 +39,21 @@ contains the "compute_stats" key with value set to True:
 |  means            | list of mean values for each cascade level               |
 +-------------------+----------------------------------------------------------+
 |  stds             | list of standard deviations for each cascade level       |
++-------------------+----------------------------------------------------------+
+
+The following key-value pairs are included in the output if **kwargs contains
+the key "output_domain" with value set to "spectral":
++-------------------+----------------------------------------------------------+
+|        Key        |                      Value                               |
++===================+==========================================================+
+|  compact_output   | True or False. If set to True, only the parts of the     |
+|                   | Fourier spectrum with non-negligible filter weights are  |
+|                   | stored.                                                  |
++-------------------+----------------------------------------------------------+
+|  weight_masks     | Applicable if compact_output is True. Contains a list of |
+|                   | masks, where a True value indicates that the             |
+|                   | corresponding Fourier wavenumber is included in the      |
+|                   | decomposition                                            |
 +-------------------+----------------------------------------------------------+
 
 
