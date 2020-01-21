@@ -744,6 +744,9 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     if np.any(~np.isfinite(F)):
         raise ValueError("field contains non-finite values")
 
+    if "domain" in kwargs.keys() and kwargs["domain"] == "spectral":
+        raise NotImplementedError("SSFT-based noise generator is not implemented in the spectral domain")
+
     # defaults
     overlap = kwargs.get("overlap", 0.2)
     win_type = kwargs.get("win_type", "flat-hanning")
