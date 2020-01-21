@@ -22,16 +22,16 @@ def get_method(name):
     """
     Return a callable function for the bandpass filter or cascade decomposition
     method corresponding to the given name. For the latter, two functions are
-    returned: the first is for the decomposition and the second is for
-    recomposing the cascade.
+    returned: the first is for the decomposing and the second is for recomposing
+    the cascade.
 
     Filter methods:
 
     +-------------------+------------------------------------------------------+
     |     Name          |              Description                             |
     +===================+======================================================+
-    |  gaussian         | implementation of a set of bandpass filters using    |
-    |                   | Gaussian weights                                     |
+    |  gaussian         | implementation of bandpass filter using Gaussian     |
+    |                   | weights                                              |
     +-------------------+------------------------------------------------------+
     |  uniform          | implementation of a filter where all weights are set |
     |                   | to one                                               |
