@@ -411,7 +411,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
     for i in range(ar_order + 1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft,
+        R_ = decomp_method(R[i, :, :], filter, mask=MASK_thr, fft_method=fft,
                            output_domain=domain, normalize=True,
                            compute_stats=True, compact_output=True)
         R_d.append(R_)

@@ -79,7 +79,7 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
     R -= mu
 
     MASK_ = MASK if conditional else None
-    decomp_R = decomp_method(R, F, MASK=MASK_)
+    decomp_R = decomp_method(R, F, mask=MASK_)
 
     if dask_imported and num_workers > 1:
         res = []
@@ -104,7 +104,7 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
             # subtract the mean and decompose the masked noise field into a
             # cascade
             N -= mu
-            decomp_N = decomp_method(N, F, MASK=MASK_)
+            decomp_N = decomp_method(N, F, mask=MASK_)
 
             return decomp_N["stds"]
 

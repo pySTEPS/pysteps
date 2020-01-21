@@ -98,9 +98,9 @@ def decomposition_fft(field, bp_filter, **kwargs):
         If True, normalize the cascade levels to zero mean and unit variance.
         Requires that compute_stats is True. Implies that compute_stats is True.
         Defaults to False.
-    MASK : array_like
+    mask : array_like
         Optional mask to use for computing the statistics for the cascade
-        levels. Pixels with MASK==False are excluded from the computations.
+        levels. Pixels with mask==False are excluded from the computations.
         This option is not used if output domain is "spectral".
     input_domain : {"spatial", "spectral"}
         The domain of the input field. If "spectral", the input is assumed to
@@ -130,7 +130,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     if isinstance(fft, str):
         fft = utils.get_method(fft, shape=field.shape)
     normalize = kwargs.get("normalize", False)
-    mask = kwargs.get("MASK", None)
+    mask = kwargs.get("mask", None)
     input_domain = kwargs.get("input_domain", "spatial")
     output_domain = kwargs.get("output_domain", "spatial")
     compute_stats = kwargs.get("compute_stats", False)
@@ -143,7 +143,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
         raise ValueError("The input is not two-dimensional array")
 
     if mask is not None and mask.shape != field.shape:
-        raise ValueError("Dimension mismatch between field and MASK:"
+        raise ValueError("Dimension mismatch between field and mask:"
                          + "field.shape=" + str(field.shape)
                          + ",mask.shape" + str(mask.shape))
 
@@ -241,7 +241,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
 def recompose_fft(decomp, **kwargs):
     """Recompose a cascade obtained with decomposition_fft by inverting the
-    normalization and summing the individual levels.
+    normalization and summing the cascade levels.
 
     Parameters
     ----------
