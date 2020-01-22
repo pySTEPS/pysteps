@@ -253,6 +253,10 @@ def recompose_fft(decomp, **kwargs):
     out : numpy.ndarray
         A two-dimensional array containing the recomposed cascade.
     """
+    if decomp["normalized"] and ("means" not in decomp.keys() or \
+                                 "stds" not in decomp.keys()):
+        raise KeyError("'means' and 'stds' expected to be in decomp, but not found")
+
     levels = decomp["cascade_levels"]
     if decomp["normalized"]:
         mu = decomp["means"]
