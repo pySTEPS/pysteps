@@ -14,11 +14,11 @@ sprog_arg_names = (
 )
 
 sprog_arg_values = [
-    (6, 1, None, "spatial", 0.65),
-    (6, 2, None, "spatial", 0.65),
-    (6, 2, "cdf", "spatial", 0.65),
-    (6, 2, "mean", "spatial", 0.65),
-    (6, 2, "cdf", "spectral", 0.65),
+    (6, 1, None, "spatial", 0.5),
+    (6, 2, None, "spatial", 0.5),
+    (6, 2, "cdf", "spatial", 0.5),
+    (6, 2, "mean", "spatial", 0.5),
+    (6, 2, "cdf", "spectral", 0.5),
 ]
 
 
@@ -67,5 +67,4 @@ def test_sprog(
                 precip_obs[-1], 
                 thr=1.0, 
                 scores="CSI")["CSI"]
-    print(result)
-    assert result < min_csi
+    assert result > min_csi
