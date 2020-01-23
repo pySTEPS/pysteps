@@ -102,7 +102,7 @@ ax.set_title("Bandpass filter weights")
 # Finally, apply the 2D Gaussian filters to decompose the radar rainfall field
 # into a set of cascade levels of decreasing spatial scale and plot them.
 
-decomp = decomposition_fft(R, filter)
+decomp = decomposition_fft(R, filter, compute_stats=True)
 
 # Plot the normalized cascade levels
 for i in range(num_cascade_levels):
