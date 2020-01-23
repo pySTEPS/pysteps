@@ -50,7 +50,7 @@ def test_steps(
                                           upscale=2000)[1:, :, :]
 
     # Retrieve motion field
-    pytest.importorskip('cv2')
+    pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
     retrieved_motion = oflow_method(precip_input)
 
@@ -74,5 +74,11 @@ def test_steps(
     )
 
     # result
-    result = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
-    assert result < max_crps
+    crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
+    print(f"CRPS={crps:.1f}")
+    assert crps < max_crps
+
+if __name__ == "__main__":
+    for n in range(len(steps_arg_values)):
+        test_args = zip(steps_arg_names, steps_arg_values[n])
+        test_steps(**dict((x, y) for x, y in test_args))
