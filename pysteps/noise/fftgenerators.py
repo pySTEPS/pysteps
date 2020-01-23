@@ -900,7 +900,7 @@ def _get_mask(Size, idxi, idxj, win_fun):
             win_fun)
 
     else:
-        wind = np.ones((M, N))
+        wind = np.ones(win_size)
 
     mask = np.zeros(Size)
     mask[idxi.item(0) : idxi.item(1), idxj.item(0) : idxj.item(1)] = wind
