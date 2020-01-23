@@ -11,16 +11,19 @@ steps_arg_names = (
     "ar_order",
     "mask_method",
     "probmatching_method",
+    "domain",
     "max_crps",
 )
 
 steps_arg_values = [
-    (5, 6, 2, None, None, 1.55),
-    (5, 6, 2, "incremental", None, 6.65),
-    (5, 6, 2, "sprog", None, 7.65),
-    (5, 6, 2, "obs", None, 7.65),
-    (5, 6, 2, None, "cdf", 0.70),
-    (5, 6, 2, None, "mean", 1.55),
+    (5, 6, 2, None, None, "spatial", 1.55),
+    (5, 6, 2, "incremental", None, "spatial", 6.65),
+    (5, 6, 2, "sprog", None, "spatial", 7.65),
+    (5, 6, 2, "obs", None, "spatial", 7.65),
+    (5, 6, 2, None, "cdf", "spatial", 0.70),
+    (5, 6, 2, None, "mean", "spatial", 1.55),
+    (5, 6, 2, None, "mean", "spatial", 1.55),
+    (5, 6, 2, "incremental", "cdf", "spectral", 1.55),
 ]
 
 
@@ -31,6 +34,7 @@ def test_steps(
         ar_order,
         mask_method,
         probmatching_method,
+        domain,
         max_crps):
     """Tests STEPS nowcast."""
     # inputs
@@ -66,6 +70,7 @@ def test_steps(
         ar_order=ar_order,
         mask_method=mask_method,
         probmatching_method=probmatching_method,
+        domain=domain,
     )
 
     # result
