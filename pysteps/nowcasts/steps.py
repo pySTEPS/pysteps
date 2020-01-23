@@ -306,6 +306,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     print("precip. mask method:    %s" % mask_method)
     print("probability matching:   %s" % probmatching_method)
     print("FFT method:             %s" % fft_method)
+    print("domain:                 %s" % domain)
     print("")
 
     print("Parameters:")
