@@ -151,6 +151,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     print("conditional statistics: %s" % ("yes" if conditional else "no"))
     print("probability matching:   %s" % probmatching_method)
     print("FFT method:             %s" % fft_method)
+    print("domain:                 %s" % domain)
     print("")
 
     print("Parameters:")
