@@ -141,7 +141,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
       If "spatial", all computations are done in the spatial domain (the
       classical STEPS model). If "spectral", the AR(2) models and stochastic
       perturbations are applied directly in the spectral domain to reduce
-      memory footprint and improve performance.
+      memory footprint and improve performance :cite:`PCH2019b`.
     extrap_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
@@ -231,7 +231,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     References
     ----------
-    :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`
+    :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
 
     """
     _check_inputs(R, V, ar_order)

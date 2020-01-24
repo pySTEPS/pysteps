@@ -91,7 +91,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
       If "spatial", all computations are done in the spatial domain (the
       classical S-PROG model). If "spectral", the AR(2) models are applied
       directly in the spectral domain to reduce memory footprint and improve
-      performance.
+      performance :cite:`PCH2019a`.
     extrap_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
@@ -117,7 +117,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     References
     ----------
-    :cite:`Seed2003`
+    :cite:`Seed2003`, :cite:`PCH2019a`
 
     """
     _check_inputs(R, V, ar_order)
