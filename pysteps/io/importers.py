@@ -333,7 +333,7 @@ def import_saf_crri(filename, **kwargs):
         idx_x = None
         idx_y = None
 
-    precip = _import_saf_crri_data(filename)
+    precip = _import_saf_crri_data(filename, idx_x, idx_y)
 
     # TODO(import_saf_crri): Add missing georeferencing data.
 
