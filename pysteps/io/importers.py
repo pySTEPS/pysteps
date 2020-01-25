@@ -275,6 +275,7 @@ def _import_bom_rf3_geodata(filename):
 
     return geodata
 
+
 def import_saf_crri(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
@@ -352,8 +353,8 @@ def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
         if idx_x is not None:
             data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
         else:
-            data = np.array(ds_rainfall.variables["crr_intensity"])        precipitation = np.where(data == 65535, np.nan, data)
-            precipitation = np.where(data == 65535, np.nan, data)
+            data = np.array(ds_rainfall.variables["crr_intensity"])
+        precipitation = np.where(data == 65535, np.nan, data)
     else:
         precipitation = None
     ds_rainfall.close()
