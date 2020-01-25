@@ -37,6 +37,7 @@ def get_method(name, method_type):
     Parameters
     ----------
     name : str
+
         Name of the method. The available options are:\n
 
         Importers:
@@ -89,9 +90,9 @@ def get_method(name, method_type):
         | netcdf      | NetCDF files conforming to the CF 1.7 specification.  |
         +-------------+-------------------------------------------------------+
 
-    method_type : str
-        Type of the method.
-        The available options are 'importer' and 'exporter'.
+    method_type : {'importer', 'exporter'}
+
+        Type of the method (see tables above).
 
     """
 
