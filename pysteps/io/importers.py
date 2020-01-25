@@ -324,10 +324,10 @@ def import_saf_crri(filename, **kwargs):
         idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
 
         # update geodata
-        metadata["x1"] = xcoord[idx_x].min()
-        metadata["x2"] = xcoord[idx_x].max()
-        metadata["y1"] = ycoord[idx_y].min()
-        metadata["y2"] = ycoord[idx_y].max()
+        metadata["x1"] = xcoord[idx_x].min() - metadata["xpixelsize"] / 2
+        metadata["x2"] = xcoord[idx_x].max() + metadata["xpixelsize"] / 2
+        metadata["y1"] = ycoord[idx_y].min() - metadata["ypixelsize"] / 2
+        metadata["y2"] = ycoord[idx_y].max() + metadata["ypixelsize"] / 2
 
     else:
 

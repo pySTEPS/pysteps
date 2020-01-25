@@ -58,7 +58,7 @@ def test_io_import_saf_crri_metadata(variable, expected, tolerance):
 
 test_extent_crri = [
     (None, (-3301500.0, 3298500.0, 2512500.0, 5569500.0), (1019, 2200), None),
-    ((-1980000.0, 1977000.0, 2514000.0, 4818000.0), (-1977000.0, 1974000.0, 2517000.0, 4815000.0), (767, 1318), None),
+    ((-1980000.0, 1977000.0, 2514000.0, 4818000.0), (-1978500.0, 1975500.0, 2515500.0, 4816500.0), (767, 1318), None),
 ]
 
 @pytest.mark.parametrize("extent, expected_extent, expected_shape, tolerance",
