@@ -359,13 +359,11 @@ def _import_crri_eu_geodata(filename):
     geodata["projection"] = projdef
 
     # get x1, y1, x2, y2, xpixelsize, ypixelsize, yorigin
-    px = ds_rainfall.variables['nx'][:]
-    py = ds_rainfall.variables['ny'][:]
     geotable = ds_rainfall.getncattr('gdal_geotransform_table')
-    xmin = px.min()
-    xmax = px.max()
-    ymin = py.min()
-    ymax = py.max()
+    xmin = ds_rainfall.getncattr("gdal_xgeo_up_left")
+    xmax = ds_rainfall.getncattr("gdal_xgeo_low_right")
+    ymin = ds_rainfall.getncattr("gdal_ygeo_low_right")
+    ymax = ds_rainfall.getncattr("gdal_ygeo_up_left")
     xpixelsize = abs(geotable[1])
     ypixelsize = abs(geotable[5])
     factor_scale = 1.0
