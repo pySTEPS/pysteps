@@ -366,13 +366,12 @@ def _import_crri_eu_geodata(filename):
     ymax = ds_rainfall.getncattr("gdal_ygeo_up_left")
     xpixelsize = abs(geotable[1])
     ypixelsize = abs(geotable[5])
-    factor_scale = 1.0
-    geodata["x1"] = xmin * factor_scale
-    geodata["y1"] = ymin * factor_scale
-    geodata["x2"] = xmax * factor_scale
-    geodata["y2"] = ymax * factor_scale
-    geodata["xpixelsize"] = xpixelsize * factor_scale
-    geodata["ypixelsize"] = ypixelsize * factor_scale
+    geodata["x1"] = xmin
+    geodata["y1"] = ymin
+    geodata["x2"] = xmax
+    geodata["y2"] = ymax
+    geodata["xpixelsize"] = xpixelsize
+    geodata["ypixelsize"] = ypixelsize
     geodata["yorigin"] = "upper"
 
     # get the accumulation period
