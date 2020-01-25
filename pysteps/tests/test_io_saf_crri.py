@@ -62,7 +62,7 @@ test_extent_crri = [
 ]
 
 @pytest.mark.parametrize("extent, expected_extent, expected_shape, tolerance",
-                         test_metadata_crri)
+                         test_extent_crri)
 def test_io_import_saf_crri_extent(extent, expected_extent, expected_shape, tolerance):
     """Test the importer SAF CRRI."""
     root_path = pysteps.rcparams.data_sources["crri"]["root_path"]
