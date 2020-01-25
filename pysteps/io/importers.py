@@ -73,7 +73,7 @@ Available Importers
     :toctree: ../generated/
 
     import_bom_rf3
-    import_crri_eu
+    import_saf_crri
     import_fmi_geotiff
     import_fmi_pgm
     import_mch_gif
@@ -275,7 +275,7 @@ def _import_bom_rf3_geodata(filename):
 
     return geodata
 
-def import_crri_eu(filename, **kwargs):
+def import_saf_crri(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
 
@@ -300,12 +300,12 @@ def import_crri_eu(filename, **kwargs):
             "but it is not installed"
         )
 
-    precip = _import_crri_eu_data(filename)
+    precip = _import_saf_crri_data(filename)
 
-    geodata = _import_crri_eu_geodata(filename)
+    geodata = _import_saf_crri_geodata(filename)
     metadata = geodata
 
-    # TODO(import_crri_eu): Add missing georeferencing data.
+    # TODO(import_saf_crri): Add missing georeferencing data.
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
@@ -336,7 +336,7 @@ def import_crri_eu(filename, **kwargs):
     return precip, None, metadata
 
 
-def _import_crri_eu_data(filename):
+def _import_saf_crri_data(filename):
     ds_rainfall = netCDF4.Dataset(filename)
     if "crr_intensity" in ds_rainfall.variables.keys():
         data = np.array(ds_rainfall.variables["crr_intensity"])
@@ -348,7 +348,7 @@ def _import_crri_eu_data(filename):
     return precipitation
 
 
-def _import_crri_eu_geodata(filename):
+def _import_saf_crri_geodata(filename):
 
     geodata = {}
 

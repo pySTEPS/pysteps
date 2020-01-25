@@ -23,7 +23,7 @@ _importer_methods['mch_hdf5'] = importers.import_mch_hdf5
 _importer_methods['mch_metranet'] = importers.import_mch_metranet
 _importer_methods['opera_hdf5'] = importers.import_opera_hdf5
 _importer_methods['knmi_hdf5'] = importers.import_knmi_hdf5
-_importer_methods['crri_eu'] = importers.import_crri_eu
+_importer_methods['saf_crri'] = importers.import_crri
 
 _exporter_methods = dict()
 _exporter_methods['netcdf'] = exporters.initialize_forecast_exporter_netcdf
@@ -51,7 +51,7 @@ def get_method(name, method_type):
         |              |  archive containing precipitation intensity          |
         |              |  composites.                                         |
         +--------------+------------------------------------------------------+
-        | crri_eu      |  NetCDF SAF CRRI files                               |
+        | saf_crri     |  NetCDF SAF CRRI files                               |
         |              |  containing convective rain rate intensity and other |
         +--------------+------------------------------------------------------+
         | fmi_geotiff  |  GeoTIFF files used in the Finnish Meteorological    |
