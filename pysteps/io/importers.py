@@ -285,6 +285,13 @@ def import_saf_crri(filename, **kwargs):
     filename : str
         Name of the file to import.
 
+    Other Parameters
+    ----------------
+
+    extent : scalars (left, right, bottom, top), optional
+        The spatial extent specified in data coordinates.
+        If None, the full extent is imported.
+
     Returns
     -------
 
@@ -300,10 +307,32 @@ def import_saf_crri(filename, **kwargs):
             "but it is not installed"
         )
 
-    precip = _import_saf_crri_data(filename)
+    extent = kwargs.get("extent", None)
 
     geodata = _import_saf_crri_geodata(filename)
     metadata = geodata
+
+    if extent:
+        xcoord = np.arange(metadata["x1"], metadata["x2"],
+                           metadata["xpixelsize"]) + metadata["xpixelsize"] / 2
+        ycoord = np.arange(metadata["y1"], metadata["y2"],
+                           metadata["ypixelsize"]) + metadata["ypixelsize"] / 2
+        ycoord = ycoord[::-1] # yorigin = "upper"
+        idx_x = np.logical_and(xcoord < extent[1], xcoord > extent[0])
+        idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
+
+        # update geodata
+        metadata["x1"] = xcoord[idx_x].min()
+        metadata["x2"] = xcoord[idx_x].max()
+        metadata["y1"] = ycoord[idx_y].min()
+        metadata["y2"] = ycoord[idx_y].max()
+
+    else:
+
+        idx_x = None
+        idx_y = None
+
+    precip = _import_saf_crri_data(filename)
 
     # TODO(import_saf_crri): Add missing georeferencing data.
 
@@ -314,33 +343,17 @@ def import_saf_crri(filename, **kwargs):
     else:
         metadata["threshold"] = np.nan
 
-    # cut a window, to be defined here and only here
-    if True:
-        ny, nx = precip.shape
-        nx1 = 440
-        nx2 = nx - 440
-        ny1 = 250
-        ny2 = ny
-        precip = precip[ny1:ny2, nx1:nx2]
-        x1, x2 = metadata['x1'], metadata['x2']
-        xpixelsize = metadata['xpixelsize']
-        x1n = x1 + xpixelsize * nx1
-        x2n = x1 + xpixelsize * (nx2 - 1)
-        metadata['x1'], metadata['x2'] = x1n, x2n
-        y1, y2 = metadata['y1'], metadata['y2']
-        ypixelsize = metadata['ypixelsize']
-        y1n = y2 - ypixelsize * (ny2 - 1)
-        y2n = y2 - ypixelsize * ny1
-        metadata['y1'], metadata['y2'] = y1n, y2n
-
     return precip, None, metadata
 
 
-def _import_saf_crri_data(filename):
+def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
     ds_rainfall = netCDF4.Dataset(filename)
     if "crr_intensity" in ds_rainfall.variables.keys():
-        data = np.array(ds_rainfall.variables["crr_intensity"])
-        precipitation = np.where(data == 65535, np.nan, data)
+        if idx_x is not None:
+            data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
+        else:
+            data = np.array(ds_rainfall.variables["crr_intensity"])        precipitation = np.where(data == 65535, np.nan, data)
+            precipitation = np.where(data == 65535, np.nan, data)
     else:
         precipitation = None
     ds_rainfall.close()
