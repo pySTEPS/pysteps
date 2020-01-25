@@ -355,7 +355,7 @@ def _import_crri_eu_geodata(filename):
     ds_rainfall = netCDF4.Dataset(filename)
 
     # get projection
-    projdef = ds_rainfall.getncattr('gdal_projection')
+    projdef = ds_rainfall.getncattr("gdal_projection")
     geodata["projection"] = projdef
 
     # get x1, y1, x2, y2, xpixelsize, ypixelsize, yorigin
@@ -381,7 +381,7 @@ def _import_crri_eu_geodata(filename):
     geodata["unit"] = ds_rainfall.variables['crr_intensity'].units
 
     # get institution
-    geodata["institution"] = "SAF AEMET"
+    geodata["institution"] = ds_rainfall.getncattr("institution")
 
     ds_rainfall.close()
 
