@@ -297,10 +297,11 @@ def import_saf_crri(filename, **kwargs):
     -------
 
     out : tuple
-        A three-element tuple containing the rainfall field in mm/h imported
-        from the CRRI SAF netcdf, the quality field and the metadata. The
-        quality field is currently set to None.
-
+        A three-element tuple containing the rainfall field in mm/h, the quality
+        field and the metadata imported from the CRRI SAF netcdf file.
+        The quality field includes values [1, 2, 4, 8, 16, 24, 32] meaning
+        "nodata", "internal_consistency", "temporal_consistency", "good",
+        "questionable", "bad", and "interpolated", respectively.
     """
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
@@ -333,9 +334,7 @@ def import_saf_crri(filename, **kwargs):
         idx_x = None
         idx_y = None
 
-    precip = _import_saf_crri_data(filename, idx_x, idx_y)
-
-    # TODO(import_saf_crri): Add missing georeferencing data.
+    precip, quality = _import_saf_crri_data(filename, idx_x, idx_y)
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
@@ -344,7 +343,7 @@ def import_saf_crri(filename, **kwargs):
     else:
         metadata["threshold"] = np.nan
 
-    return precip, None, metadata
+    return precip, quality, metadata
 
 
 def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
@@ -352,14 +351,17 @@ def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
     if "crr_intensity" in ds_rainfall.variables.keys():
         if idx_x is not None:
             data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
+            quality = np.array(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
         else:
             data = np.array(ds_rainfall.variables["crr_intensity"])
+            quality = np.array(ds_rainfall.variables["crr_quality"])
         precipitation = np.where(data == 65535, np.nan, data)
     else:
         precipitation = None
+        quality = None
     ds_rainfall.close()
 
-    return precipitation
+    return precipitation, quality
 
 
 def _import_saf_crri_geodata(filename):
