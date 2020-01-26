@@ -280,6 +280,9 @@ def import_saf_crri(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
 
+    Product description available on http://www.nwcsaf.org/crr_description
+    (last visited Jan 26, 2020).
+
     Parameters
     ----------
 
