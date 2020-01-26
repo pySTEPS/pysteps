@@ -51,9 +51,6 @@ def get_method(name, method_type):
         |              |  archive containing precipitation intensity          |
         |              |  composites.                                         |
         +--------------+------------------------------------------------------+
-        | saf_crri     |  NetCDF SAF CRRI files                               |
-        |              |  containing convective rain rate intensity and other |
-        +--------------+------------------------------------------------------+
         | fmi_geotiff  |  GeoTIFF files used in the Finnish Meteorological    |
         |              |  Institute (FMI) archive, containing reflectivity    |
         |              |  composites (dBZ).                                   |
@@ -73,6 +70,9 @@ def get_method(name, method_type):
         |              | containing precipitation composites.                 |
         +--------------+------------------------------------------------------+
         | opera_hdf5   | ODIM HDF5 file format used by Eumetnet/OPERA.        |
+        +--------------+------------------------------------------------------+
+        | saf_crri     |  NetCDF SAF CRRI files                               |
+        |              |  containing convective rain rate intensity and other |
         +--------------+------------------------------------------------------+
 
         Exporters:
