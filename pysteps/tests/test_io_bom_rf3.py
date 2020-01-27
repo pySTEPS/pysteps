@@ -9,6 +9,7 @@ from pysteps.tests.helpers import smart_assert
 
 pytest.importorskip('netCDF4')
 
+
 def test_io_import_bom_rf3_shape():
     """Test the importer Bom RF3."""
     root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
