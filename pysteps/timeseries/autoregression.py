@@ -161,39 +161,39 @@ def estimate_ar_params_yw(gamma):
     return phi
 
 
-def iterate_ar_model(X, phi, EPS=None):
-    """Apply an AR(p) model to a time series of two-dimensional fields.
+def iterate_ar_model(x, phi, eps=None):
+    """Apply an AR(p) model to a time series.
 
     Parameters
     ----------
-    X : array_like
-      Three-dimensional array of shape (p,h,w) containing a time series of p
-      two-dimensional fields of shape (h,w). The fields are assumed to be in
-      ascending order by time, and the time intervals are assumed
-      to be regular.
+    x : array_like
+      Array of shape (p,...) containing a time series of a input variable x.
+      The elements of x along the first dimension are assumed to be in ascending
+      order by time, and the time intervals are assumed to be regular.
     phi : array_like
       Array of length p+1 specifying the parameters of the AR(p) model. The
       parameters are in ascending order by increasing time lag, and the last
-      element is the parameter corresponding to the innovation term EPS.
-    EPS : array_like
-      Optional perturbation field for the AR(p) process. If EPS is None, the
-      innovation term is not added.
+      element is the parameter corresponding to the innovation term eps.
+    eps : array_like
+      Optional perturbation field for the AR(p) process. The shape of eps is
+      expected to be x.shape[1:]. If eps is None, the innovation term is not
+      added.
 
     """
-    if X.shape[0] != len(phi)-1:
-        raise ValueError("dimension mismatch between X and phi: X.shape[0]=%d, len(phi)=%d" % (X.shape[0], len(phi)))
+    if x.shape[0] != len(phi) - 1:
+        raise ValueError("dimension mismatch between x and phi: x.shape[0]=%d, len(phi)=%d" % (x.shape[0], len(phi)))
 
-    if EPS is not None and EPS.shape != (X.shape[1], X.shape[2]):
-        raise ValueError("dimension mismatch between X and EPS: X.shape=%s, EPS.shape=%s" % (str(X.shape), str(EPS.shape)))
+    if eps is not None and eps.shape != x.shape[1:]:
+        raise ValueError("dimension mismatch between x and eps: x.shape=%s, eps.shape[1:]=%s" % (str(x.shape), str(eps.shape[1:])))
 
-    X_new = 0.0
+    x_new = 0.0
 
     p = len(phi) - 1
 
     for i in range(p):
-        X_new += phi[i] * X[-(i+1), :, :]
+        x_new += phi[i] * x[-(i+1), :]
 
-    if EPS is not None:
-        X_new += phi[-1] * EPS
+    if eps is not None:
+        x_new += phi[-1] * eps
 
-    return np.stack(list(X[1:, :, :]) + [X_new])
+    return np.concatenate([x[1:, :], x_new[np.newaxis, :]])

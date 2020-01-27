@@ -100,6 +100,7 @@ def get_pyfftw(shape, fftn_shape=None, n_threads=1, **kwargs):
          "fftshift": pyfftw_fft.fftshift,
          "ifftshift": pyfftw_fft.ifftshift,
          "fftfreq": pyfftw_fft.fftfreq}
+
     if fftn_shape is not None:
         f["fftn"] = lambda X: fftn_obj(input_array=X).copy()
     fft = SimpleNamespace(**f)

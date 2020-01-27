@@ -10,7 +10,7 @@ import pysteps
 from pysteps import nowcasts
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps.cascade.bandpass_filters import filter_uniform
-from pysteps.cascade.decomposition import decomposition_fft
+from pysteps.cascade.decomposition import decomposition_fft, recompose_fft
 from pysteps.tests.helpers import smart_assert
 
 
@@ -44,15 +44,10 @@ def test_decompose_recompose():
     _filter = filter_gaussian(precip.shape, num_cascade_levels)
 
     # Decompose precip
-    precip_d = []
     decomp = decomposition_fft(precip, _filter)
-    precip_d.append(decomp)
 
-    # Recomposed precip from R_d
-    precip_c, mu_c, sigma_c = nowcasts.utils.stack_cascades(precip_d,
-                                                            num_cascade_levels)
-
-    recomposed = nowcasts.utils.recompose_cascade(precip_c, mu_c, sigma_c)
+    # Recomposed precip from decomp
+    recomposed = recompose_fft(decomp)
     # Assert
     assert_array_almost_equal(recomposed.squeeze(), precip)
 

@@ -34,7 +34,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
              extrap_method="semilagrangian", decomp_method="fft",
              bandpass_filter_method="gaussian", ar_order=2, conditional=False,
              probmatching_method="mean", num_workers=1, fft_method="numpy",
-             extrap_kwargs=None, filter_kwargs=None, measure_time=False):
+             domain="spatial", extrap_kwargs=None, filter_kwargs=None,
+             measure_time=False):
     """Generate a nowcast by using the Spectral Prognosis (S-PROG) method.
 
     Parameters
@@ -86,6 +87,11 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
+    domain : {"spatial", "spectral"}
+      If "spatial", all computations are done in the spatial domain (the
+      classical S-PROG model). If "spectral", the AR(2) models are applied
+      directly in the spectral domain to reduce memory footprint and improve
+      performance :cite:`PCH2019a`.
     extrap_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
@@ -111,7 +117,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     References
     ----------
-    :cite:`Seed2003`
+    :cite:`Seed2003`, :cite:`PCH2019a`
 
     """
     _check_inputs(R, V, ar_order)
@@ -145,6 +151,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     print("conditional statistics: %s" % ("yes" if conditional else "no"))
     print("probability matching:   %s" % probmatching_method)
     print("FFT method:             %s" % fft_method)
+    print("domain:                 %s" % domain)
     print("")
 
     print("Parameters:")
@@ -167,7 +174,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     filter_method = cascade.get_method(bandpass_filter_method)
     filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
 
-    decomp_method = cascade.get_method(decomp_method)
+    decomp_method, recomp_method = cascade.get_method(decomp_method)
 
     extrapolator_method = extrapolation.get_method(extrap_method)
 
@@ -210,19 +217,30 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
     for i in range(ar_order + 1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft)
+        R_ = decomp_method(R[i, :, :], filter, mask=MASK_thr, fft_method=fft,
+                           output_domain=domain, normalize=True,
+                           compute_stats=True, compact_output=True)
         R_d.append(R_)
 
-    # normalize the cascades and rearrange them into a four-dimensional array
-    # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
+    # rearrange the cascade levels into a four-dimensional array of shape
+    # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
+    R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels,
+                                       convert_to_full_arrays=True)
 
-    # compute lag-l temporal autocorrelation coefficients
-    # for each cascade level
+    # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
-        R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order + 1)])
-        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
+        if domain == "spatial":
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i],
+                mask=MASK_thr)
+        else:
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i],
+                domain="spectral", x_shape=R.shape[1:])
+
+    R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels,
+                                       convert_to_full_arrays=False)
+
+    R_d = R_d[-1]
 
     nowcast_utils.print_corrcoefs(GAMMA)
 
@@ -243,7 +261,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
-    R_c = R_c[:, -ar_order:, :, :]
+    R_c = [R_c[i][-ar_order:] for i in range(n_cascade_levels)]
 
     D = None
 
@@ -274,12 +292,15 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
             starttime = time.time()
 
         for i in range(n_cascade_levels):
-            # use a separate AR(p) model for the non-perturbed forecast,
-            # from which the mask is obtained
-            R_c[i, :, :, :] = \
-                autoregression.iterate_ar_model(R_c[i, :, :, :], PHI[i, :])
+            R_c[i] = autoregression.iterate_ar_model(R_c[i], PHI[i, :])
 
-        R_c_ = nowcast_utils.recompose_cascade(R_c[:, -1, :, :], mu, sigma)
+        R_d["cascade_levels"] = [R_c[i][-1, :] for i in range(n_cascade_levels)]
+        if domain == "spatial":
+            R_d["cascade_levels"] = np.stack(R_d["cascade_levels"])
+        R_c_ = recomp_method(R_d)
+
+        if domain == "spectral":
+            R_c_ = fft.irfft2(R_c_)
 
         MASK = _compute_sprog_mask(R_c_, war)
         R_c_[~MASK] = R_min

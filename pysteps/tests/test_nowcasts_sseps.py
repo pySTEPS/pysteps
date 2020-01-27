@@ -5,38 +5,30 @@ import pytest
 from pysteps import motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
 
-steps_arg_names = (
+sseps_arg_names = (
     "n_ens_members",
     "n_cascade_levels",
     "ar_order",
     "mask_method",
     "probmatching_method",
-    "domain",
+    "win_size",
     "max_crps",
 )
 
-steps_arg_values = [
-    (5, 6, 2, None, None, "spatial", 1.55),
-    (5, 6, 2, "incremental", None, "spatial", 6.65),
-    (5, 6, 2, "sprog", None, "spatial", 7.65),
-    (5, 6, 2, "obs", None, "spatial", 7.65),
-    (5, 6, 2, None, "cdf", "spatial", 0.70),
-    (5, 6, 2, None, "mean", "spatial", 1.55),
-    (5, 6, 2, None, "mean", "spatial", 1.55),
-    (5, 6, 2, "incremental", "cdf", "spectral", 1.55),
+sseps_arg_values = [
+    (5, 6, 2, "incremental", "cdf", 200, 0.8),
 ]
 
-
-@pytest.mark.parametrize(steps_arg_names, steps_arg_values)
-def test_steps(
+@pytest.mark.parametrize(sseps_arg_names, sseps_arg_values)
+def test_sseps(
         n_ens_members,
         n_cascade_levels,
         ar_order,
         mask_method,
         probmatching_method,
-        domain,
+        win_size,
         max_crps):
-    """Tests STEPS nowcast."""
+    """Tests SSEPS nowcast."""
     # inputs
     precip_input, metadata = get_precipitation_fields(num_prev_files=2,
                                                       num_next_files=0,
@@ -55,23 +47,21 @@ def test_steps(
     retrieved_motion = oflow_method(precip_input)
 
     # Run nowcast
-    nowcast_method = nowcasts.get_method("steps")
+    nowcast_method = nowcasts.get_method("sseps")
 
     precip_forecast = nowcast_method(
         precip_input,
+        metadata,
         retrieved_motion,
+        win_size=win_size,
         n_timesteps=3,
-        R_thr=metadata["threshold"],
-        kmperpixel=2.0,
-        timestep=metadata["accutime"],
-        seed=42,
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
+        seed=42,
         mask_method=mask_method,
         probmatching_method=probmatching_method,
-        domain=domain,
-    )
+        )
 
     # result
     crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
@@ -79,6 +69,6 @@ def test_steps(
     assert crps < max_crps
 
 if __name__ == "__main__":
-    for n in range(len(steps_arg_values)):
-        test_args = zip(steps_arg_names, steps_arg_values[n])
-        test_steps(**dict((x, y) for x, y in test_args))
+    for n in range(len(sseps_arg_values)):
+        test_args = zip(sseps_arg_names, sseps_arg_values[n])
+        test_sseps(**dict((x, y) for x, y in test_args))

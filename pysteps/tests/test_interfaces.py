@@ -28,7 +28,7 @@ def test_cascade_interface():
 
     method_getter = pysteps.cascade.interface.get_method
 
-    valid_names_func_pair = [('fft', decomposition.decomposition_fft),
+    valid_names_func_pair = [('fft', (decomposition.decomposition_fft, decomposition.recompose_fft)),
                              ('gaussian', bandpass_filters.filter_gaussian),
                              ('uniform', bandpass_filters.filter_uniform)]
 
