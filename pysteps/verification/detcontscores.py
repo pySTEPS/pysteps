@@ -111,7 +111,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     The normalized MSE is computed as
     NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
 
-    The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2).
+    The debiased RMSE is computed as DRMSE = sqrt(MSE - ME^2).
 
     The reduction of variance score is computed as RV = 1 - MSE/Var(obs).
 
