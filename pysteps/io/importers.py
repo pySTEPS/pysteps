@@ -73,6 +73,7 @@ Available Importers
     :toctree: ../generated/
 
     import_bom_rf3
+    import_saf_crri
     import_fmi_geotiff
     import_fmi_pgm
     import_mch_gif
@@ -216,8 +217,10 @@ def _import_bom_rf3_geodata(filename):
         ymin = min(ds_rainfall.variables["y"])
         ymax = max(ds_rainfall.variables["y"])
 
-    xpixelsize = abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
-    ypixelsize = abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
+    xpixelsize = abs(ds_rainfall.variables["x"][1] -
+                     ds_rainfall.variables["x"][0])
+    ypixelsize = abs(ds_rainfall.variables["y"][1] -
+                     ds_rainfall.variables["y"][0])
     factor_scale = 1.0
     if "units" in ds_rainfall.variables["x"].ncattrs():
         if getattr(ds_rainfall.variables["x"], "units") == "km":
@@ -239,7 +242,9 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
+        valid_time = netCDF4.num2date(times[:],
+                                      units=times.units,
+                                      calendar=calendar)
 
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
@@ -247,7 +252,9 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        start_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
+        start_time = netCDF4.num2date(times[:],
+                                      units=times.units,
+                                      calendar=calendar)
 
     time_step = None
 
@@ -269,6 +276,137 @@ def _import_bom_rf3_geodata(filename):
     return geodata
 
 
+def import_saf_crri(filename, **kwargs):
+    """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
+    Intensity (CRRI) product from the Satellite Application Facilities (SAF).
+
+    Product description available on http://www.nwcsaf.org/crr_description
+    (last visited Jan 26, 2020).
+
+    Parameters
+    ----------
+
+    filename : str
+        Name of the file to import.
+
+    Other Parameters
+    ----------------
+
+    extent : scalars (left, right, bottom, top), optional
+        The spatial extent specified in data coordinates.
+        If None, the full extent is imported.
+
+    Returns
+    -------
+
+    out : tuple
+        A three-element tuple containing the rainfall field in mm/h, the quality
+        field and the metadata imported from the CRRI SAF netcdf file.
+        The quality field includes values [1, 2, 4, 8, 16, 24, 32] meaning
+        "nodata", "internal_consistency", "temporal_consistency", "good",
+        "questionable", "bad", and "interpolated", respectively.
+    """
+    if not NETCDF4_IMPORTED:
+        raise MissingOptionalDependency(
+            "netCDF4 package is required to import CRRI SAF products "
+            "but it is not installed"
+        )
+
+    extent = kwargs.get("extent", None)
+
+    geodata = _import_saf_crri_geodata(filename)
+    metadata = geodata
+
+    if extent:
+        xcoord = np.arange(metadata["x1"], metadata["x2"],
+                           metadata["xpixelsize"]) + metadata["xpixelsize"] / 2
+        ycoord = np.arange(metadata["y1"], metadata["y2"],
+                           metadata["ypixelsize"]) + metadata["ypixelsize"] / 2
+        ycoord = ycoord[::-1] # yorigin = "upper"
+        idx_x = np.logical_and(xcoord < extent[1], xcoord > extent[0])
+        idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
+
+        # update geodata
+        metadata["x1"] = xcoord[idx_x].min() - metadata["xpixelsize"] / 2
+        metadata["x2"] = xcoord[idx_x].max() + metadata["xpixelsize"] / 2
+        metadata["y1"] = ycoord[idx_y].min() - metadata["ypixelsize"] / 2
+        metadata["y2"] = ycoord[idx_y].max() + metadata["ypixelsize"] / 2
+
+    else:
+
+        idx_x = None
+        idx_y = None
+
+    precip, quality = _import_saf_crri_data(filename, idx_x, idx_y)
+
+    metadata["transform"] = None
+    metadata["zerovalue"] = np.nanmin(precip)
+    if np.any(np.isfinite(precip)):
+        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
+    else:
+        metadata["threshold"] = np.nan
+
+    return precip, quality, metadata
+
+
+def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
+    ds_rainfall = netCDF4.Dataset(filename)
+    if "crr_intensity" in ds_rainfall.variables.keys():
+        if idx_x is not None:
+            data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
+            quality = np.array(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
+        else:
+            data = np.array(ds_rainfall.variables["crr_intensity"])
+            quality = np.array(ds_rainfall.variables["crr_quality"])
+        precipitation = np.where(data == 65535, np.nan, data)
+    else:
+        precipitation = None
+        quality = None
+    ds_rainfall.close()
+
+    return precipitation, quality
+
+
+def _import_saf_crri_geodata(filename):
+
+    geodata = {}
+
+    ds_rainfall = netCDF4.Dataset(filename)
+
+    # get projection
+    projdef = ds_rainfall.getncattr("gdal_projection")
+    geodata["projection"] = projdef
+
+    # get x1, y1, x2, y2, xpixelsize, ypixelsize, yorigin
+    geotable = ds_rainfall.getncattr('gdal_geotransform_table')
+    xmin = ds_rainfall.getncattr("gdal_xgeo_up_left")
+    xmax = ds_rainfall.getncattr("gdal_xgeo_low_right")
+    ymin = ds_rainfall.getncattr("gdal_ygeo_low_right")
+    ymax = ds_rainfall.getncattr("gdal_ygeo_up_left")
+    xpixelsize = abs(geotable[1])
+    ypixelsize = abs(geotable[5])
+    geodata["x1"] = xmin
+    geodata["y1"] = ymin
+    geodata["x2"] = xmax
+    geodata["y2"] = ymax
+    geodata["xpixelsize"] = xpixelsize
+    geodata["ypixelsize"] = ypixelsize
+    geodata["yorigin"] = "upper"
+
+    # get the accumulation period
+    geodata["accutime"] = None
+
+    # get the unit of precipitation
+    geodata["unit"] = ds_rainfall.variables['crr_intensity'].units
+
+    # get institution
+    geodata["institution"] = ds_rainfall.getncattr("institution")
+
+    ds_rainfall.close()
+
+    return geodata
+
+
 def import_fmi_geotiff(filename, **kwargs):
     """Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
 
@@ -282,8 +420,9 @@ def import_fmi_geotiff(filename, **kwargs):
     -------
 
     out : tuple
-        A three-element tuple containing the precipitation field, the associated
-        quality field and metadata. The quality field is currently set to None.
+        A three-element tuple containing the precipitation field,
+        the associated quality field and metadata.
+        The quality field is currently set to None.
     """
     if not GDAL_IMPORTED:
         raise MissingOptionalDependency(
@@ -405,8 +544,8 @@ def _import_fmi_pgm_geodata(metadata):
     projdef += " +lon_0=" + metadata["centrallongitude"][0] + "E"
     projdef += " +lat_0=" + metadata["centrallatitude"][0] + "N"
     projdef += " +lat_ts=" + metadata["truelatitude"][0]
-    # These are hard-coded because the projection definition is missing from the
-    # PGM files.
+    # These are hard-coded because the projection definition
+    # is missing from the PGM files.
     projdef += " +a=6371288"
     projdef += " +x_0=380886.310"
     projdef += " +y_0=3395677.920"
@@ -1104,7 +1243,7 @@ def import_knmi_hdf5(filename, **kwargs):
     dset = f["image1"]["image_data"]
     precip_intermediate = np.copy(dset)  # copy the content
 
-    # In case R is a rainfall accumulation (ACRR), R is divided by 100.0,
+    # In case precip is a rainfall accumulation (ACRR), precip is divided by 100.0,
     # because the data is saved as hundreds of mm (so, as integers). 65535 is
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
