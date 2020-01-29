@@ -169,6 +169,123 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
     return phi
 
 
+def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
+                            include_constant_term=False, h=0, lam=0.0):
+    """Estimate the parameters of a vector autoregressive integrated VAR(p) model
+
+      :math:`\mathbf{x}_{k+1}=\mathbf{c}+\mathbf{\Phi}_1\mathbf{x}_k+
+      \mathbf{\Phi}_2\mathbf{x}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{x}_{k-p}+
+      \mathbf{\Phi}_{p+1}\mathbf{\epsilon}`
+
+    by using ordinary least squares (OLS). If :math:`d\geq 1`, the parameters
+    are estimated for a d times differenced time series that is integrated back
+    to the original one by summation of the differences.
+
+    Parameters
+    ----------
+    x : array_like
+        Array of shape (q,n,:) containing a time series of length n with
+        q-dimensional variables. The remaining dimensions are flattened.
+    p : int
+        The order of the model.
+    d : {0,1}
+        The order of differencing to apply to the time series.
+    check_stationarity : bool
+        Check the stationarity of the estimated model.
+    include_constant_term : bool
+        Include the constant term c to the model.
+    h : int
+        If h>0, the fitting is done by using a history of length h in addition
+        to the minimal required number of time steps n=p+d+1.
+    lam : float
+        If lam>0, the regression is regularized by adding a penalty term
+        (i.e. ridge regression).
+
+    Returns
+    -------
+    out : list
+        The estimated parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
+        \dots,\mathbf{\Phi}_{p+1}`. If include_constant_term is True, the
+        constant term :math:`\mathbf{c}` is added to the beginning of the list.
+    """
+    q = x.shape[0]
+    n = x.shape[1]
+
+    if n < p + d + h + 1:
+        raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+
+    if d >= 1:
+        x = np.diff(x, axis=1)
+        n -= d
+
+    x = x.reshape((q, n, np.prod(x.shape[2:])))
+
+    X = []
+    for i in range(x.shape[2]):
+        for j in range(p+h, n):
+            x_ = x[:, j, i]
+            X.append(x_.reshape((q, 1)))
+    X = np.hstack(X)
+
+    Z = []
+    for i in range(x.shape[2]):
+        for j in range(p-1, n-1-h):
+            z_ = np.vstack([x[:, j-k, i].reshape((q, 1)) for k in range(p)])
+            if include_constant_term:
+                z_ = np.vstack([[1], z_])
+            Z.append(z_)
+    Z = np.hstack(Z)
+
+    B = np.dot(np.dot(X, Z.T), np.linalg.inv(np.dot(Z, Z.T) + lam*np.eye(Z.shape[0])))
+
+    phi = []
+    if include_constant_term:
+        c = B[:, 0]
+        for i in range(p):
+            phi.append(B[:, i*q+1:(i+1)*q+1])
+    else:
+        for i in range(p):
+            phi.append(B[:, i*q:(i+1)*q])
+    phi.append(np.zeros((q, q)))
+
+    if check_stationarity:
+        M = np.zeros((p*q, p*q))
+
+        for i in range(p):
+            M[0:q, i*q:(i+1)*q] = phi[i]
+        for i in range(1, p):
+            M[i*q:(i+1)*q, (i-1)*q:i*q] = np.eye(q, q)
+        r, v = np.linalg.eig(M)
+
+        if np.any(np.abs(r) > 0.999):
+            raise RuntimeError(
+                "Error in estimate_var_params_ols: "
+                "nonstationary VAR(p) process")
+
+    if d == 1:
+        phi_out = []
+        for i in range(p+d):
+            phi_out.append(np.zeros((q, q)))
+        phi_out.append(np.zeros((q, q)))
+
+        for i in range(1, d+1):
+            phi_out[i-1] -= binom(d, i) * (-1)**i * np.eye(q, q)
+        for i in range(1, p+1):
+            phi_out[i-1] += phi[i-1]
+        for i in range(1, p+1):
+            for j in range(1, d+1):
+                phi_out[i+j-1] += phi[i-1] * binom(d, j) * (-1)**j
+
+        if include_constant_term:
+            return c, phi_out
+        else:
+            return phi_out
+    else:
+        if include_constant_term:
+            return c, phi
+        else:
+            return phi
+
 def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     """Estimate the parameters of a VAR(p) model
 
