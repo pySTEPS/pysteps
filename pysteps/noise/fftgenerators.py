@@ -7,13 +7,13 @@ Methods for noise generators based on FFT filtering of white noise.
 The methods in this module implement the following interface for filter
 initialization depending on their parametric or nonparametric nature::
 
-  initialize_param_2d_xxx_filter(X, **kwargs)
+  initialize_param_2d_xxx_filter(field, **kwargs)
 
 or::
 
-  initialize_nonparam_2d_xxx_filter(X, **kwargs)
+  initialize_nonparam_2d_xxx_filter(field, **kwargs)
 
-where X is an array of shape (m, n) or (t, m, n) that defines the target field
+where field is an array of shape (m, n) or (t, m, n) that defines the target field
 and optional parameters are supplied as keyword arguments.
 
 The output of each initialization method is a dictionary containing the keys field
@@ -49,13 +49,14 @@ from scipy import optimize
 from .. import utils
 
 
-def initialize_param_2d_fft_filter(X, **kwargs):
+def initialize_param_2d_fft_filter(field, **kwargs):
     """Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
     to produce one parametric, global and isotropic fourier filter.
 
     Parameters
     ----------
-    X : array-like
+
+    field : array-like
         Two- or three-dimensional array containing one or more input fields.
         All values are required to be finite. If more than one field are passed,
         the average fourier filter is returned. It assumes that fields are stacked
@@ -63,19 +64,24 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
     Other Parameters
     ----------------
-    win_type : {'hanning', 'flat-hanning' or None}
-        Optional tapering function to be applied to X, generated with
-        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
+
+    win_fun : {'hann', 'tukey' or None}
+        Optional tapering function to be applied to the input field, generated with
+        :py:func:`pysteps.utils.tapering.compute_window_function`.
         (default None).
+
     model : {'power-law'}
         The name of the parametric model to be used to fit the power spectrum of
-        X (default 'power-law').
+        the input field (default 'power-law').
+
     weighted : bool
         Whether or not to apply 1/sqrt(power) as weight in the numpy.polyfit()
         function (default False).
+
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity (default False).
         It assumes no-rain pixels are assigned with lowest value.
+
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
@@ -83,8 +89,9 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
     Returns
     -------
+
     out : dict
-        A a dictionary containing the keys field, input_shape, model and pars.
+        A dictionary containing the keys field, input_shape, model and pars.
         The first is a two-dimensional array of shape (m, int(n/2)+1) that
         defines the filter. The second one is the shape of the input field for
         the filter. The last two are the model and fitted parameters,
@@ -95,38 +102,38 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         generate noise fields.
     """
 
-    if len(X.shape) < 2 or len(X.shape) > 3:
+    if len(field.shape) < 2 or len(field.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
-    if np.any(~np.isfinite(X)):
-        raise ValueError("X contains non-finite values")
+    if np.any(~np.isfinite(field)):
+        raise ValueError("field contains non-finite values")
 
     # defaults
-    win_type = kwargs.get("win_type", None)
+    win_fun = kwargs.get("win_fun", None)
     model = kwargs.get("model", "power-law")
     weighted = kwargs.get("weighted", False)
     rm_rdisc = kwargs.get("rm_rdisc", False)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
+        fft_shape = field.shape if len(field.shape) == 2 else field.shape[1:]
         fft = utils.get_method(fft, shape=fft_shape)
 
-    X = X.copy()
+    field = field.copy()
 
     # remove rain/no-rain discontinuity
     if rm_rdisc:
-        X[X > X.min()] -= X[X > X.min()].min() - X.min()
+        field[field > field.min()] -= field[field > field.min()].min() - field.min()
 
     # dims
-    if len(X.shape) == 2:
-        X = X[None, :, :]
-    nr_fields = X.shape[0]
-    M, N = X.shape[1:]
+    if len(field.shape) == 2:
+        field = field[None, :, :]
+    nr_fields = field.shape[0]
+    M, N = field.shape[1:]
 
-    if win_type is not None:
-        tapering = build_2D_tapering_function((M, N), win_type)
+    if win_fun is not None:
+        tapering = utils.tapering.compute_window_function(M, N, win_fun)
 
         # make sure non-rainy pixels are set to zero
-        X -= X.min(axis=(1, 2))[:, None, None]
+        field -= field.min(axis=(1, 2))[:, None, None]
     else:
         tapering = np.ones((M, N))
 
@@ -135,7 +142,7 @@ def initialize_param_2d_fft_filter(X, **kwargs):
         # compute average 2D PSD
         F = np.zeros((M, N), dtype=complex)
         for i in range(nr_fields):
-            F += fft.fftshift(fft.fft2(X[i, :, :] * tapering))
+            F += fft.fftshift(fft.fft2(field[i, :, :] * tapering))
         F /= nr_fields
         F = abs(F) ** 2 / F.size
 
@@ -204,20 +211,21 @@ def initialize_param_2d_fft_filter(X, **kwargs):
 
     return {
         "field": F,
-        "input_shape": X.shape[1:],
+        "input_shape": field.shape[1:],
         "use_full_fft": True,
         "model": f,
         "pars": p,
     }
 
 
-def initialize_nonparam_2d_fft_filter(X, **kwargs):
-    """Takes one ore more 2d input fields and produces one non-paramtric, global
-    and anasotropic fourier filter.
+def initialize_nonparam_2d_fft_filter(field, **kwargs):
+    """Takes one ore more 2d input fields and produces one non-parametric, global
+    and anisotropic fourier filter.
 
     Parameters
     ----------
-    X : array-like
+
+    field : array-like
         Two- or three-dimensional array containing one or more input fields.
         All values are required to be finite. If more than one field are passed,
         the average fourier filter is returned. It assumes that fields are stacked
@@ -225,16 +233,20 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
 
     Other Parameters
     ----------------
-    win_type : {'hanning', 'flat-hanning'}
-        Optional tapering function to be applied to X, generated with
-        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
-        (default 'flat-hanning').
+
+    win_fun : {'hann', 'tukey', None}
+        Optional tapering function to be applied to the input field, generated with
+        :py:func:`pysteps.utils.tapering.compute_window_function`
+        (default 'tukey').
+
     donorm : bool
-       Option to normalize the real and imaginary parts.
-       Default : False
+        Option to normalize the real and imaginary parts.
+        Default : False
+
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity (default True).
         It assumes no-rain pixels are assigned with lowest value.
+
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
@@ -242,59 +254,64 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
 
     Returns
     -------
-    out : dict
-      A dictionary containing the keys field and input_shape. The first is a
-      two-dimensional array of shape (m, int(n/2)+1) that defines the filter.
-      The second one is the shape of the input field for the filter.
 
-      It can be passed to
-      :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter`.
+    out : dict
+        A dictionary containing the keys field and input_shape. The first is a
+        two-dimensional array of shape (m, int(n/2)+1) that defines the filter.
+        The second one is the shape of the input field for the filter.
+
+        It can be passed to
+        :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_fft_filter`.
     """
-    if len(X.shape) < 2 or len(X.shape) > 3:
+    if len(field.shape) < 2 or len(field.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
-    if np.any(~np.isfinite(X)):
-        raise ValueError("X contains non-finite values")
+    if np.any(~np.isfinite(field)):
+        raise ValueError("field contains non-finite values")
 
     # defaults
-    win_type = kwargs.get("win_type", "flat-hanning")
+    win_fun = kwargs.get("win_fun", "tukey")
     donorm = kwargs.get("donorm", False)
     rm_rdisc = kwargs.get("rm_rdisc", True)
     use_full_fft = kwargs.get("use_full_fft", False)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
+        fft_shape = field.shape if len(field.shape) == 2 else field.shape[1:]
         fft = utils.get_method(fft, shape=fft_shape)
 
-    X = X.copy()
+    field = field.copy()
 
     # remove rain/no-rain discontinuity
     if rm_rdisc:
-        X[X > X.min()] -= X[X > X.min()].min() - X.min()
+        field[field > field.min()] -= field[field > field.min()].min() - field.min()
 
     # dims
-    if len(X.shape) == 2:
-        X = X[None, :, :]
-    nr_fields = X.shape[0]
-    field_shape = X.shape[1:]
+    if len(field.shape) == 2:
+        field = field[None, :, :]
+    nr_fields = field.shape[0]
+    field_shape = field.shape[1:]
     if use_full_fft:
-        fft_shape = (X.shape[1], X.shape[2])
+        fft_shape = (field.shape[1], field.shape[2])
     else:
-        fft_shape = (X.shape[1], int(X.shape[2] / 2) + 1)
+        fft_shape = (field.shape[1], int(field.shape[2] / 2) + 1)
 
     # make sure non-rainy pixels are set to zero
-    X -= X.min(axis=(1, 2))[:, None, None]
+    field -= field.min(axis=(1, 2))[:, None, None]
 
-    if win_type is not None:
-        tapering = build_2D_tapering_function(field_shape, win_type)
+    if win_fun is not None:
+        tapering = utils.tapering.compute_window_function(
+            field_shape[0],
+            field_shape[1],
+            win_fun
+            )
     else:
         tapering = np.ones(field_shape)
 
     F = np.zeros(fft_shape, dtype=complex)
     for i in range(nr_fields):
         if use_full_fft:
-            F += fft.fft2(X[i, :, :] * tapering)
+            F += fft.fft2(field[i, :, :] * tapering)
         else:
-            F += fft.rfft2(X[i, :, :] * tapering)
+            F += fft.rfft2(field[i, :, :] * tapering)
     F /= nr_fields
 
     # normalize the real and imaginary parts
@@ -304,33 +321,49 @@ def initialize_nonparam_2d_fft_filter(X, **kwargs):
         if np.std(F.real) > 0:
             F.real = (F.real - np.mean(F.real)) / np.std(F.real)
 
-    return {"field": np.abs(F), "input_shape": X.shape[1:], "use_full_fft": use_full_fft}
+    return {"field": np.abs(F), "input_shape": field.shape[1:], "use_full_fft": use_full_fft}
 
 
-def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None):
+def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
+                                 domain="spatial"):
     """Produces a field of correlated noise using global Fourier filtering.
 
     Parameters
     ----------
+
     F : dict
         A filter object returned by
         :py:func:`pysteps.noise.fftgenerators.initialize_param_2d_fft_filter` or
         :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_fft_filter`.
         All values in the filter array are required to be finite.
+
     randstate : mtrand.RandomState
         Optional random generator to use. If set to None, use numpy.random.
+
     seed : int
         Value to set a seed for the generator. None will not set the seed.
+
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
 
+    domain : {"spatial", "spectral"}
+        The domain for the computations: If "spatial", the noise is generated
+        in the spatial domain and transformed back to spatial domain after the
+        Fourier filtering. If "spectral", the noise field is generated and kept
+        in the spectral domain.
+
     Returns
     -------
     N : array-like
-        A two-dimensional numpy array of stationary correlated noise.
+        A two-dimensional field of stationary correlated noise. The noise field
+        is normalized to zero mean and unit variance.
+
     """
+    if domain not in ["spatial", "spectral"]:
+        raise ValueError("invalid value %s for the 'domain' argument: must be 'spatial' or 'spectral'" % str(domain))
+
     input_shape = F["input_shape"]
     use_full_fft = F["use_full_fft"]
     F = F["field"]
@@ -356,30 +389,51 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None):
             fft = fft_method
 
     # produce fields of white noise
-    N = randstate.randn(input_shape[0], input_shape[1])
+    if domain == "spatial":
+        N = randstate.randn(input_shape[0], input_shape[1])
+    else:
+        if use_full_fft:
+            size = (input_shape[0], input_shape[1])
+        else:
+            size = (input_shape[0], int(input_shape[1]/2)+1)
+        theta = randstate.uniform(low=0.0, high=2.0*np.pi, size=size)
+        if input_shape[0] % 2 == 0:
+            theta[int(input_shape[0]/2)+1:, 0] = -theta[1:int(input_shape[0]/2), 0][::-1]
+        else:
+            theta[int(input_shape[0]/2)+1:, 0] = -theta[1:int(input_shape[0]/2)+1, 0][::-1]
+        N = np.cos(theta) + 1.j * np.sin(theta)
 
     # apply the global Fourier filter to impose a correlation structure
-    if use_full_fft:
-        fN = fft.fft2(N)
+    if domain == "spatial":
+        if use_full_fft:
+            fN = fft.fft2(N)
+        else:
+            fN = fft.rfft2(N)
     else:
-        fN = fft.rfft2(N)
+        fN = N
     fN *= F
-    if use_full_fft:
-        N = np.array(fft.ifft2(fN).real)
+    if domain == "spatial":
+        if use_full_fft:
+            N = np.array(fft.ifft2(fN).real)
+        else:
+            N = np.array(fft.irfft2(fN))
+        N = (N - N.mean()) / N.std()
     else:
-        N = np.array(fft.irfft2(fN))
-    N = (N - N.mean()) / N.std()
+        N = fN
+        N[0, 0] = 0.0
+        N /= utils.spectral.std(N, input_shape, use_full_fft=use_full_fft)
 
     return N
 
 
-def initialize_nonparam_2d_ssft_filter(X, **kwargs):
+def initialize_nonparam_2d_ssft_filter(field, **kwargs):
     """Function to compute the local Fourier filters using the Short-Space Fourier
     filtering approach.
 
     Parameters
     ----------
-    X : array-like
+
+    field : array-like
         Two- or three-dimensional array containing one or more input fields.
         All values are required to be finite. If more than one field are passed,
         the average fourier filter is returned. It assumes that fields are stacked
@@ -389,19 +443,24 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
     ----------------
     win_size : int or two-element tuple of ints
         Size-length of the window to compute the SSFT (default (128, 128)).
-    win_type : {'hanning', 'flat-hanning'}
-        Optional tapering function to be applied to X, generated with
-        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
-        (default 'flat-hanning').
+
+    win_fun : {'hann', 'tukey', None}
+        Optional tapering function to be applied to the input field, generated with
+        :py:func:`pysteps.utils.tapering.compute_window_function`
+        (default 'tukey').
+
     overlap : float [0,1[
         The proportion of overlap to be applied between successive windows
         (default 0.3).
+
     war_thr : float [0,1]
         Threshold for the minimum fraction of rain needed for computing the FFT
         (default 0.1).
+
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
+
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
@@ -409,6 +468,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
     Returns
     -------
+
     field : array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
@@ -421,40 +481,40 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
     """
 
-    if len(X.shape) < 2 or len(X.shape) > 3:
+    if len(field.shape) < 2 or len(field.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
-    if np.any(np.isnan(X)):
-        raise ValueError("X must not contain NaNs")
+    if np.any(np.isnan(field)):
+        raise ValueError("field must not contain NaNs")
 
     # defaults
     win_size = kwargs.get("win_size", (128, 128))
     if type(win_size) == int:
         win_size = (win_size, win_size)
-    win_type = kwargs.get("win_type", "flat-hanning")
+    win_fun = kwargs.get("win_fun", "tukey")
     overlap = kwargs.get("overlap", 0.3)
     war_thr = kwargs.get("war_thr", 0.1)
     rm_rdisc = kwargs.get("rm_disc", True)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
+        fft_shape = field.shape if len(field.shape) == 2 else field.shape[1:]
         fft = utils.get_method(fft, shape=fft_shape)
 
-    X = X.copy()
+    field = field.copy()
 
     # remove rain/no-rain discontinuity
     if rm_rdisc:
-        X[X > X.min()] -= X[X > X.min()].min() - X.min()
+        field[field > field.min()] -= field[field > field.min()].min() - field.min()
 
     # dims
-    if len(X.shape) == 2:
-        X = X[None, :, :]
-    nr_fields = X.shape[0]
-    dim = X.shape[1:]
+    if len(field.shape) == 2:
+        field = field[None, :, :]
+    nr_fields = field.shape[0]
+    dim = field.shape[1:]
     dim_x = dim[1]
     dim_y = dim[0]
 
     # make sure non-rainy pixels are set to zero
-    X -= X.min(axis=(1, 2))[:, None, None]
+    field -= field.min(axis=(1, 2))[:, None, None]
 
     # SSFT algorithm
 
@@ -468,7 +528,7 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(
-        X, win_type=win_type, donorm=True, use_full_fft=True, fft_method=fft
+        field, win_fun=win_fun, donorm=True, use_full_fft=True, fft_method=fft
     )["field"]
     # and allocate it to the final grid
     F = np.zeros((num_windows_y, num_windows_x, F0.shape[0], F0.shape[1]))
@@ -491,52 +551,59 @@ def initialize_nonparam_2d_ssft_filter(X, **kwargs):
 
             # build localization mask
             # TODO: the 0.01 rain threshold must be improved
-            mask = _get_mask(dim, idxi, idxj, win_type)
-            war = float(np.sum((X * mask[None, :, :]) > 0.01)) / (
+            mask = _get_mask(dim, idxi, idxj, win_fun)
+            war = float(np.sum((field * mask[None, :, :]) > 0.01)) / (
                 (idxi[1] - idxi[0]) * (idxj[1] - idxj[0]) * nr_fields
             )
 
             if war > war_thr:
                 # the new filter
                 F[i, j, :, :] = initialize_nonparam_2d_fft_filter(
-                    X * mask[None, :, :],
-                    win_type=None,
+                    field * mask[None, :, :],
+                    win_fun=None,
                     donorm=True,
                     use_full_fft=True,
                     fft_method=fft,
                 )["field"]
 
-    return {"field": F, "input_shape": X.shape[1:], "use_full_fft": True}
+    return {"field": F, "input_shape": field.shape[1:], "use_full_fft": True}
 
 
-def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
+def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
     """Function to compute the local Fourier filters using a nested approach.
 
     Parameters
     ----------
-    X : array-like
+
+    field : array-like
         Two- or three-dimensional array containing one or more input fields.
         All values are required to be finite.
         If more than one field are passed, the average fourier filter is returned.
         It assumes that fields are stacked by the first axis: [nr_fields, y, x].
+
     gridres : float
         Grid resolution in km.
 
     Other Parameters
     ----------------
+
     max_level : int
         Localization parameter. 0: global noise, >0: increasing degree of
         localization (default 3).
-    win_type : {'hanning', 'flat-hanning'}
-        Optional tapering function to be applied to X, generated with
-        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
-        (default 'flat-hanning').
+
+    win_fun : {'hann', 'tukey', None}
+        Optional tapering function to be applied to the input field, generated with
+        :py:func:`pysteps.utils.tapering.compute_window_function`
+        (default 'tukey').
+
     war_thr : float [0;1]
         Threshold for the minimum fraction of rain needed for computing the FFT
         (default 0.1).
+
     rm_rdisc : bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
+
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
@@ -544,6 +611,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     Returns
     -------
+
     field : array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
@@ -551,37 +619,37 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
         :py:func:`pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter`.
     """
 
-    if len(X.shape) < 2 or len(X.shape) > 3:
+    if len(field.shape) < 2 or len(field.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
-    if np.any(np.isnan(X)):
-        raise ValueError("X must not contain NaNs")
+    if np.any(np.isnan(field)):
+        raise ValueError("field must not contain NaNs")
 
     # defaults
     max_level = kwargs.get("max_level", 3)
-    win_type = kwargs.get("win_type", "flat-hanning")
+    win_fun = kwargs.get("win_fun", "tukey")
     war_thr = kwargs.get("war_thr", 0.1)
     rm_rdisc = kwargs.get("rm_disc", True)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
-        fft_shape = X.shape if len(X.shape) == 2 else X.shape[1:]
+        fft_shape = field.shape if len(field.shape) == 2 else field.shape[1:]
         fft = utils.get_method(fft, shape=fft_shape)
 
-    X = X.copy()
+    field = field.copy()
 
     # remove rain/no-rain discontinuity
     if rm_rdisc:
-        X[X > X.min()] -= X[X > X.min()].min() - X.min()
+        field[field > field.min()] -= field[field > field.min()].min() - field.min()
 
     # dims
-    if len(X.shape) == 2:
-        X = X[None, :, :]
-    nr_fields = X.shape[0]
-    dim = X.shape[1:]
+    if len(field.shape) == 2:
+        field = field[None, :, :]
+    nr_fields = field.shape[0]
+    dim = field.shape[1:]
     dim_x = dim[1]
     dim_y = dim[0]
 
     # make sure non-rainy pixels are set to zero
-    X -= X.min(axis=(1, 2))[:, None, None]
+    field -= field.min(axis=(1, 2))[:, None, None]
 
     # Nested algorithm
 
@@ -599,7 +667,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(
-        X, win_type=win_type, donorm=True, use_full_fft=True, fft_method=fft
+        field, win_fun=win_fun, donorm=True, use_full_fft=True, fft_method=fft
     )["field"]
     # and allocate it to the final grid
     F = np.zeros((2 ** max_level, 2 ** max_level, F0.shape[0], F0.shape[1]))
@@ -618,8 +686,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
 
             for n in range(len(Idxinext)):
 
-                mask = _get_mask(dim, Idxinext[n, :], Idxjnext[n, :], win_type)
-                war = np.sum((X * mask[None, :, :]) > 0.01) / float(
+                mask = _get_mask(dim, Idxinext[n, :], Idxjnext[n, :], win_fun)
+                war = np.sum((field * mask[None, :, :]) > 0.01) / float(
                     (Idxinext[n, 1] - Idxinext[n, 0])
                     * (Idxjnext[n, 1] - Idxjnext[n, 0])
                     * nr_fields
@@ -628,8 +696,8 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
                 if war > war_thr:
                     # the new filter
                     newfilter = initialize_nonparam_2d_fft_filter(
-                        X * mask[None, :, :],
-                        win_type=None,
+                        field * mask[None, :, :],
+                        win_fun=None,
                         donorm=True,
                         use_full_fft=True,
                         fft_method=fft,
@@ -666,7 +734,7 @@ def initialize_nonparam_2d_nested_filter(X, gridres=1.0, **kwargs):
             (0, 2 ** max_level), (0, 2 ** max_level), 2 ** level
         )
 
-    return {"field": F, "input_shape": X.shape[1:], "use_full_fft": True}
+    return {"field": F, "input_shape": field.shape[1:], "use_full_fft": True}
 
 
 def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
@@ -674,25 +742,31 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
 
     Parameters
     ----------
+
     F : array-like
         A filter object returned by
         :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_ssft_filter` or
         :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_nested_filter`.
         The filter is a four-dimensional array containing the 2d fourier filters
         distributed over a 2d spatial grid.
+
     randstate : mtrand.RandomState
         Optional random generator to use. If set to None, use numpy.random.
+
     seed : int
         Value to set a seed for the generator. None will not set the seed.
 
     Other Parameters
     ----------------
+
     overlap : float
         Percentage overlap [0-1] between successive windows (default 0.2).
-    win_type : {'hanning', 'flat-hanning'}
-        Optional tapering function to be applied to X, generated with
-        :py:func:`pysteps.noise.fftgenerators.build_2D_tapering_function`
-        (default 'flat-hanning').
+
+    win_fun : {'hann', 'tukey', None}
+        Optional tapering function to be applied to the input field, generated with
+        :py:func:`pysteps.utils.tapering.compute_window_function`
+        (default 'tukey').
+
     fft_method : str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
@@ -700,6 +774,7 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
 
     Returns
     -------
+
     N : array-like
         A two-dimensional numpy array of non-stationary correlated noise.
 
@@ -713,9 +788,12 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     if np.any(~np.isfinite(F)):
         raise ValueError("field contains non-finite values")
 
+    if "domain" in kwargs.keys() and kwargs["domain"] == "spectral":
+        raise NotImplementedError("SSFT-based noise generator is not implemented in the spectral domain")
+
     # defaults
     overlap = kwargs.get("overlap", 0.2)
-    win_type = kwargs.get("win_type", "flat-hanning")
+    win_fun = kwargs.get("win_fun", "tukey")
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
         fft = utils.get_method(fft, shape=input_shape)
@@ -768,7 +846,7 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
             ))
 
             # build mask and add local noise field to the composite image
-            M = _get_mask(dim, idxi, idxj, win_type)
+            M = _get_mask(dim, idxi, idxj, win_fun)
             cN += flN * M
             sM += M
 
@@ -777,63 +855,6 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     cN = (cN - cN.mean()) / cN.std()
 
     return cN
-
-
-def build_2D_tapering_function(win_size, win_type="flat-hanning"):
-    """Produces two-dimensional tapering function for rectangular fields.
-
-    Parameters
-    ----------
-    win_size : tuple of int
-        Size of the tapering window as two-element tuple of integers.
-    win_type : {'hanning', 'flat-hanning'}
-        Name of the tapering window type
-
-    Returns
-    -------
-    w2d : array-like
-        A two-dimensional numpy array containing the 2D tapering function.
-    """
-
-    if len(win_size) != 2:
-        raise ValueError("win_size is not a two-element tuple")
-
-    if win_type == "hanning":
-        w1dr = np.hanning(win_size[0])
-        w1dc = np.hanning(win_size[1])
-
-    elif win_type == "flat-hanning":
-
-        T = win_size[0] / 4.0
-        W = win_size[0] / 2.0
-        B = np.linspace(-W, W, int(2 * W))
-        R = np.abs(B) - T
-        R[R < 0] = 0.0
-        A = 0.5 * (1.0 + np.cos(np.pi * R / T))
-        A[np.abs(B) > (2 * T)] = 0.0
-        w1dr = A
-
-        T = win_size[1] / 4.0
-        W = win_size[1] / 2.0
-        B = np.linspace(-W, W, int(2 * W))
-        R = np.abs(B) - T
-        R[R < 0] = 0.0
-        A = 0.5 * (1.0 + np.cos(np.pi * R / T))
-        A[np.abs(B) > (2 * T)] = 0.0
-        w1dc = A
-
-    else:
-        raise ValueError("unknown win_type %s" % win_type)
-
-    # Expand to 2-D
-    # w2d = np.sqrt(np.outer(w1dr,w1dc))
-    w2d = np.outer(w1dr, w1dc)
-
-    # Set nans to zero
-    if np.sum(np.isnan(w2d)) > 0:
-        w2d[np.isnan(w2d)] = np.min(w2d[w2d > 0])
-
-    return w2d
 
 
 def _split_field(idxi, idxj, Segments):
@@ -864,7 +885,7 @@ def _split_field(idxi, idxj, Segments):
     return Idxi, Idxj
 
 
-def _get_mask(Size, idxi, idxj, win_type):
+def _get_mask(Size, idxi, idxj, win_fun):
     """Compute a mask of zeros with a window at a given position.
     """
 
@@ -872,7 +893,14 @@ def _get_mask(Size, idxi, idxj, win_type):
     idxj = np.array(idxj).astype(int)
 
     win_size = (idxi[1] - idxi[0], idxj[1] - idxj[0])
-    wind = build_2D_tapering_function(win_size, win_type)
+    if win_fun is not None:
+        wind = utils.tapering.compute_window_function(
+            win_size[0],
+            win_size[1],
+            win_fun)
+
+    else:
+        wind = np.ones(win_size)
 
     mask = np.zeros(Size)
     mask[idxi.item(0) : idxi.item(1), idxj.item(0) : idxj.item(1)] = wind

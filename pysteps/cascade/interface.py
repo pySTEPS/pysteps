@@ -13,35 +13,38 @@ Interface for the cascade module.
 from pysteps.cascade import decomposition, bandpass_filters
 
 _cascade_methods = dict()
-_cascade_methods['fft'] = decomposition.decomposition_fft
+_cascade_methods['fft'] = (decomposition.decomposition_fft, decomposition.recompose_fft)
 _cascade_methods['gaussian'] = bandpass_filters.filter_gaussian
 _cascade_methods['uniform'] = bandpass_filters.filter_uniform
 
 
 def get_method(name):
     """
-    Return a callable function for the bandpass filter or decomposition method
-    corresponding to the given name.
+    Return a callable function for the bandpass filter or cascade decomposition
+    method corresponding to the given name. For the latter, two functions are
+    returned: the first is for the decomposing and the second is for recomposing
+    the cascade.
 
     Filter methods:
 
     +-------------------+------------------------------------------------------+
     |     Name          |              Description                             |
     +===================+======================================================+
-    |  gaussian         | implementation of a bandpass filter using Gaussian   |
+    |  gaussian         | implementation of bandpass filter using Gaussian     |
     |                   | weights                                              |
     +-------------------+------------------------------------------------------+
     |  uniform          | implementation of a filter where all weights are set |
     |                   | to one                                               |
     +-------------------+------------------------------------------------------+
 
-    Decomposition methods:
+    Decomposition/recomposition methods:
 
     +-------------------+------------------------------------------------------+
     |     Name          |              Description                             |
     +===================+======================================================+
-    |  fft              | decomposition based on Fast Fourier Transform (FFT)  |
-    |                   | and a bandpass filter                                |
+    |  fft              | decomposition into multiple spatial scales based on  |
+    |                   | the fast Fourier Transform (FFT) and a set of        |
+    |                   | bandpass filters                                     |
     +-------------------+------------------------------------------------------+
 
     """
