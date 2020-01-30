@@ -155,7 +155,10 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     if len(x.shape) > 1:
         x = x.reshape((n, np.prod(x.shape[1:])))
 
-    if d >= 1:
+    if d not in [0, 1]:
+        raise ValueError("d = %d, but 0 or 1 required" % d)
+
+    if d == 1:
         x = np.diff(x, axis=0)
         n -= d
 
@@ -317,7 +320,10 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     if n < p + d + h + 1:
         raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
 
-    if d >= 1:
+    if d not in [0, 1]:
+        raise ValueError("d = %d, but 0 or 1 required" % d)
+
+    if d == 1:
         x = np.diff(x, axis=1)
         n -= d
 
@@ -435,6 +441,9 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
             raise ValueError("dimension mismatch: gamma[%d].shape=%s, but (%d,%d) expected" % \
                              (i, str(gamma[i].shape, q, q)))
 
+    if d not in [0, 1]:
+        raise ValueError("d = %d, but 0 or 1 required" % d)
+
     a = np.empty((p*q, p*q))
     for i in range(p):
         for j in range(p):
@@ -456,7 +465,7 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
                 "Error in estimate_var_params_yw: "
                 "nonstationary VAR(p) process")
 
-    if d >= 1:
+    if d == 1:
         phi_out = []
         for i in range(p+d):
             phi_out.append(np.zeros((q, q)))
@@ -474,7 +483,7 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     phi_stacked = np.hstack(phi)
     phi_out.append(la.sqrtm(gamma[0] - np.dot(np.dot(phi_stacked, a), phi_stacked.T)))
 
-    if d >= 1:
+    if d == 1:
         return phi_out
     else:
         return phi
