@@ -124,7 +124,8 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     ----------
     x : array_like
         Array of shape (n,...) containing a time series of length n>=p+d+h+1.
-        The remaining dimensions are flattened.
+        The remaining dimensions are flattened. The rows and columns of x
+        represent time steps and samples, respectively.
     p : int
         The order of the model.
     d : {0,1}
@@ -291,7 +292,9 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     ----------
     x : array_like
         Array of shape (q,n,:) containing a time series of length n with
-        q-dimensional variables. The remaining dimensions are flattened.
+        q-dimensional variables. The remaining dimensions are flattened. The
+        second and third dimensions of x represent time steps and samples,
+        respectively.
     p : int
         The order of the model.
     d : {0,1}
