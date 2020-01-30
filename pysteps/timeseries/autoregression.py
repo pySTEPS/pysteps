@@ -10,7 +10,9 @@ Methods related to autoregressive AR(p) models.
     adjust_lag2_corrcoef1
     adjust_lag2_corrcoef2
     ar_acf
+    estimate_ar_params_ols
     estimate_ar_params_yw
+    estimate_var_params_ols
     estimate_var_params_yw
     iterate_ar_model
     iterate_var_model
@@ -106,6 +108,107 @@ def ar_acf(gamma, n=None):
         acf.append(gamma_)
 
     return acf
+
+
+def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
+                           include_constant_term=False, h=0, lam=0.0):
+    """Estimate the parameters of an autoregressive integrated AR(p) model
+
+    :math:`x_{k+1}=c+\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
+
+    by using ordinary least squares (OLS). If :math:`d\geq 1`, the parameters
+    are estimated for a d times differenced time series that is integrated back
+    to the original one by summation of the differences.
+
+    Parameters
+    ----------
+    x : array_like
+        Array of shape (n,...) containing a time series of length n>=p+d+h+1.
+        The remaining dimensions are flattened.
+    p : int
+        The order of the model.
+    d : {0,1}
+        The order of differencing to apply to the time series.
+    check_stationarity : bool
+        Check the stationarity of the estimated model.
+    include_constant_term : bool
+        Include the constant term c to the model.
+    h : int
+        If h>0, the fitting is done by using a history of length h in addition
+        to the minimal required number of time steps n=p+d+1.
+    lam : float
+        If lam>0, the regression is regularized by adding a penalty term
+        (i.e. ridge regression).
+
+    Returns
+    -------
+    out : list
+        The estimated parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
+        \dots,\mathbf{\Phi}_{p+1}`. If include_constant_term is True, the
+        constant term :math:`\mathbf{c}` is added to the beginning of the list.
+    """
+    n = x.shape[0]
+
+    if n < p + d + h + 1:
+        raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+
+    if len(x.shape) > 1:
+        x = x.reshape((n, np.prod(x.shape[1:])))
+
+    if d >= 1:
+        x = np.diff(x, axis=0)
+        n -= d
+
+    x_lhs = x[p:, :]
+
+    Z = []
+    for i in range(x.shape[1]):
+        for j in range(p-1, n-1-h):
+            z_ = np.hstack([x[j-k, i] for k in range(p)])
+            if include_constant_term:
+                z_ = np.hstack([[1], z_])
+            Z.append(z_)
+    Z = np.column_stack(Z)
+
+    b = np.dot(np.dot(x_lhs, Z.T), np.linalg.inv(np.dot(Z, Z.T) + lam*np.eye(Z.shape[0])))
+    b = b.flatten()
+
+    phi = []
+    if include_constant_term:
+        c = b[0]
+        phi = b[1:]
+    else:
+        phi = b
+    phi = np.hstack([phi, [0.0]])
+
+    if check_stationarity:
+        if not test_ar_stationarity(phi[:-1]):
+            raise RuntimeError(
+                "Error in estimate_ar_params_yw: "
+                "nonstationary AR(p) process")
+
+    if d == 1:
+        phi_out = []
+        for i in range(p+d+1):
+            phi_out.append(0.0)
+
+        for i in range(1, d+1):
+            phi_out[i-1] -= binom(d, i) * (-1)**i
+        for i in range(1, p+1):
+            phi_out[i-1] += phi[i-1]
+        for i in range(1, p+1):
+            for j in range(1, d+1):
+                phi_out[i+j-1] += phi[i-1] * binom(d, j) * (-1)**j
+
+        if include_constant_term:
+            return c, phi_out
+        else:
+            return phi_out
+    else:
+        if include_constant_term:
+            return c, phi
+        else:
+            return phi
 
 
 def estimate_ar_params_yw(gamma, check_stationarity=True):
