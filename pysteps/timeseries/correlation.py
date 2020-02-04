@@ -9,6 +9,7 @@ two-dimensional fields.
     :toctree: ../generated/
 
     temporal_autocorrelation
+    temporal_autocorrelation_multivariate
 """
 
 import numpy as np
@@ -19,17 +20,21 @@ def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None,
                              use_full_fft=False):
     """Compute lag-l temporal autocorrelation coefficients
     :math:`\gamma_l=\mbox{corr}(x(t),x(t-l))`, :math:`l=1,2,\dots,n-1`,
-    from a time series :math:`x_1,x_2,\dots,x_n` of arbitrary dimension in
-    spatial or spectral domain.
+    from a time series :math:`x_1,x_2,\dots,x_n`. If a multivariate time series
+    is given, each element of :math:`x_i` is treated as one sample from the
+    process generating the time series. Use
+    :py:func:`temporal_autocorrelation_multivariate` if cross-correlations
+    between different elements of the time series are desired.
 
     Parameters
     ----------
     x : array_like
-        Array of shape (n, ...) containing the time series :math:`x_i`. The
-        inputs are assumed to be in increasing order with respect to time, and
-        the time step is assumed to be regular. All inputs are required to have
-        finite values. The remaining dimensions after the first one are
-        flattened before computing the correlation coefficients.
+        Array of shape (n, ...), where each row contains one sample from the
+        time series :math:`x_i`. The inputs are assumed to be in increasing
+        order with respect to time, and the time step is assumed to be regular.
+        All inputs are required to have finite values. The remaining dimensions
+        after the first one are flattened before computing the correlation
+        coefficients.
     domain : {"spatial", "spectral"}
         The domain of the time series x. If domain is "spectral", the elements
         of x are assumed to represent the FFTs of the original elements.
@@ -90,8 +95,9 @@ def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None,
 def temporal_autocorrelation_multivariate(x, d=0, mask=None):
     """For a :math:`q`-variate time series
     :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
-    correlation matrices :math:`\Gamma_l`, where :math:`\Gamma_{l,i,j}=\gamma_{l,i,j}`
-    and :math:`\gamma_{l,i,j}=\mbox{corr}(x_i(t),x_j(t-l))` for
+    correlation matrices :math:`\mathbf{\Gamma}_l`, where
+    :math:`\Gamma_{l,i,j}=\gamma_{l,i,j}` and
+    :math:`\gamma_{l,i,j}=\mbox{corr}(x_i(t),x_j(t-l))` for
     :math:`i,j=1,2,\dots,q` and :math:`l=0,1,\dots,n-1`.
 
     Parameters
