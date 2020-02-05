@@ -329,6 +329,11 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
         The estimated parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
         \dots,\mathbf{\Phi}_{p+1}`. If include_constant_term is True, the
         constant term :math:`\mathbf{c}` is added to the beginning of the list.
+
+    Notes
+    -----
+    Estimation of the innovation parameter is not currently implemented, and
+    it is set to a zero matrix.
     """
     q = x.shape[1]
     n = x.shape[0]
