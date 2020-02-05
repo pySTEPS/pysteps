@@ -147,6 +147,11 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
         The estimated parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
         \dots,\mathbf{\Phi}_{p+1}`. If include_constant_term is True, the
         constant term :math:`\mathbf{c}` is added to the beginning of the list.
+
+    Notes
+    -----
+    Estimation of the innovation term parameter :math:`\phi_{p+1}` is currently
+    implemented for p<=2. If p > 2, :math:`\phi_{p+1}` is set to zero.
     """
     n = x.shape[0]
 
@@ -183,7 +188,15 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
         phi = b[1:]
     else:
         phi = b
-    phi = np.hstack([phi, [0.0]])
+
+    if p == 1:
+        phi_pert = np.sqrt(1.0 - phi[0]*phi[0])
+    elif p == 2:
+        phi_pert = np.sqrt((1.0 + phi[1]) * ((1.0 - phi[1])**2.0 - phi[0]**2.0) / (1.0 - phi[1]))
+    else:
+        phi_pert = 0.0
+
+    phi = np.hstack([phi, [phi_pert]])
 
     if check_stationarity:
         if not test_ar_stationarity(phi[:-1]):
