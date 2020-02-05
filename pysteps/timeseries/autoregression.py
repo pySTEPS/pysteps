@@ -291,7 +291,7 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     Parameters
     ----------
     x : array_like
-        Array of shape (q,n,:) containing a time series of length n with
+        Array of shape (n, q, :) containing a time series of length n with
         q-dimensional variables. The remaining dimensions are flattened. The
         second and third dimensions of x represent time steps and samples,
         respectively.
@@ -317,8 +317,8 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
         \dots,\mathbf{\Phi}_{p+1}`. If include_constant_term is True, the
         constant term :math:`\mathbf{c}` is added to the beginning of the list.
     """
-    q = x.shape[0]
-    n = x.shape[1]
+    q = x.shape[1]
+    n = x.shape[0]
 
     if n < p + d + h + 1:
         raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
@@ -327,22 +327,22 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
         raise ValueError("d = %d, but 0 or 1 required" % d)
 
     if d == 1:
-        x = np.diff(x, axis=1)
+        x = np.diff(x, axis=0)
         n -= d
 
-    x = x.reshape((q, n, np.prod(x.shape[2:])))
+    x = x.reshape((n, q, np.prod(x.shape[2:])))
 
     X = []
     for i in range(x.shape[2]):
         for j in range(p+h, n):
-            x_ = x[:, j, i]
+            x_ = x[j, :, i]
             X.append(x_.reshape((q, 1)))
     X = np.hstack(X)
 
     Z = []
     for i in range(x.shape[2]):
         for j in range(p-1, n-1-h):
-            z_ = np.vstack([x[:, j-k, i].reshape((q, 1)) for k in range(p)])
+            z_ = np.vstack([x[j-k, :, i].reshape((q, 1)) for k in range(p)])
             if include_constant_term:
                 z_ = np.vstack([[1], z_])
             Z.append(z_)
@@ -555,7 +555,7 @@ def iterate_var_model(x, phi, eps=None):
     Parameters
     ----------
     x : array_like
-        Array of shape (q,n,...), n>=p, containing a q-variate time series of a
+        Array of shape (n,q,...), n>=p, containing a q-variate time series of a
         input variable x with length n=p. The elements of x along the second
         dimension are assumed to be in ascending order by time, and the time
         intervals are assumed to be regular.
@@ -565,8 +565,8 @@ def iterate_var_model(x, phi, eps=None):
     eps : array_like
         The innovation term. The length is expected to be x.shape[0].
     """
-    if x.shape[1] < len(phi) - 1:
-        raise ValueError("dimension mismatch between x and phi: x.shape[1]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
+    if x.shape[0] < len(phi) - 1:
+        raise ValueError("dimension mismatch between x and phi: x.shape[0]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
 
     phi_shape = phi[0].shape
     for i in range(1, len(phi)):
@@ -579,27 +579,27 @@ def iterate_var_model(x, phi, eps=None):
     else:
         x_simple_shape = False
 
-    x_new = np.zeros(np.hstack([[x.shape[0]], x.shape[2:]]))
+    x_new = np.zeros(np.hstack([[x.shape[1]], x.shape[2:]]))
 
     p = len(phi) - 1
     q = phi_shape[0]
 
     if x_simple_shape:
         for l in range(p):
-            x_new += np.dot(phi[l], x[:, -(l+1), :])
+            x_new += np.dot(phi[l], x[-(l+1), :, :])
     else:
         for l in range(p):
             for i in range(q):
                 for j in range(q):
-                    x_new[i] += phi[l][i, j] * x[j, -(l+1), :]
+                    x_new[i] += phi[l][i, j] * x[-(l+1), j, :]
 
     if eps is not None:
         x_new += np.dot(np.dot(phi[-1], phi[-1]), eps)
 
     if x_simple_shape:
-        return np.hstack([x[:, 1:, 0], x_new])
+        return np.hstack([x[1:, :, 0], x_new])
     else:
-        return np.concatenate([x[:, 1:, :], x_new[:, np.newaxis, :]], axis=1)
+        return np.concatenate([x[1:, :, :], x_new[:, np.newaxis, :]], axis=1)
 
 
 def test_ar_stationarity(phi):

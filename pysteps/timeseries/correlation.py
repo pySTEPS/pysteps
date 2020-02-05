@@ -112,7 +112,7 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None):
     Parameters
     ----------
     x : array_like
-        Array of shape (q, n, ...) containing the time series :math:`\mathbf{x}_i`.
+        Array of shape (n, q, ...) containing the time series :math:`\mathbf{x}_i`.
         The inputs are assumed to be in increasing order with respect to time,
         and the time step is assumed to be regular. All inputs are required to
         have finite values. The remaining dimensions after the second one are
@@ -142,18 +142,18 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None):
         raise ValueError("x contains non-finite values")
 
     if d >= 1:
-        x = np.diff(x, axis=1)
+        x = np.diff(x, axis=0)
 
-    p = x.shape[1] - 1
-    q = x.shape[0]
+    p = x.shape[0] - 1
+    q = x.shape[1]
 
     gamma = []
     for k in range(p+1):
         gamma_k = np.empty((q, q))
         for i in range(q):
-            x_i = x[i, -1, :]
+            x_i = x[-1, i, :]
             for j in range(q):
-                x_j = x[j, -(k+1), :]
+                x_j = x[-(k+1), j, :]
                 gamma_k[i, j] = np.corrcoef(x_i.flatten(), x_j.flatten())[0, 1]
         gamma.append(gamma_k)
 
