@@ -51,8 +51,9 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
         the FFT. Required if domain is "spectral".
     mask : array_like
         Optional mask to use for computing the correlation coefficients. Input
-        elements with mask==False are excluded from the computations. Applicable
-        if domain is "spatial".
+        elements with mask==False are excluded from the computations. The shape
+        of the mask is expected to be x.shape[1:]. Applicable if domain is
+        "spatial".
     use_full_fft : bool
         If True, x represents the full FFTs of the original arrays. Otherwise,
         the elements of x are assumed to contain only the symmetric part, i.e.
@@ -134,7 +135,8 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window_radius=np.in
         matrices.
     mask : array_like
         Optional mask to use for computing the correlation coefficients. Input
-        elements with mask==False are excluded from the computations.
+        elements with mask==False are excluded from the computations. The shape
+        of the mask is expected to be x.shape[2:].
     window_radius : float
         If window_radius < np.inf, the correlation coefficients are computed in
         a moving window. Defaults to np.inf (i.e. the correlations are computed
