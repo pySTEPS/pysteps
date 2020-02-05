@@ -70,7 +70,10 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
     -------
     out : list
         List of length n-1 containing the temporal autocorrelation coefficients
-        :math:`\gamma_i` for time lags :math:`l=1,2,...,n-1`.
+        :math:`\gamma_i` for time lags :math:`l=1,2,...,n-1`. If
+        window_radius<np.inf, the elements of the list are arrays of shape
+        x.shape[1:]. In this case, nan values are assigned to pixels, where
+        the sample size for computing the correlation coefficients is too small.
 
     Notes
     -----
@@ -149,6 +152,9 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window_radius=np.in
     -------
     out : list
         List of correlation matrices :math:`\Gamma_0,\Gamma_1,\dots,\Gamma_{n-1}`.
+        If window_radius<np.inf, the elements of the list are arrays of shape
+        x.shape[2:]. In this case, nan values are assigned to pixels, where
+        the sample size for computing the correlation coefficients is too small.
 
     References
     ----------
