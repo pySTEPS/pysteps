@@ -16,7 +16,7 @@ import numpy as np
 from pysteps.utils import spectral
 
 
-def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None,
+def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
                              use_full_fft=False):
     """Compute lag-l temporal autocorrelation coefficients
     :math:`\gamma_l=\mbox{corr}(x(t),x(t-l))`, :math:`l=1,2,\dots,n-1`,
@@ -34,6 +34,12 @@ def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None,
         order with respect to time, and the time step is assumed to be regular.
         All inputs are required to have finite values. The remaining dimensions
         after the first one are flattened before computing the correlation
+        coefficients.
+    d : int
+        The order of differencing. If d>=1, a differencing operator
+        :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
+        applied before computing the correlation coefficients. In this case,
+        a time series of length n+d is needed for computing the n-1 correlation
         coefficients.
     domain : {"spatial", "spectral"}
         The domain of the time series x. If domain is "spectral", the elements
@@ -71,6 +77,9 @@ def temporal_autocorrelation(x, domain="spatial", x_shape=None, mask=None,
                          (str(x.shape[1:]), str(mask.shape)))
     if np.any(~np.isfinite(x)):
         raise ValueError("x contains non-finite values")
+
+    if d >= 1:
+        x = np.diff(x, axis=0)
 
     if domain == "spatial" and mask is None:
         mask = np.ones(x.shape[1:], dtype=bool)
