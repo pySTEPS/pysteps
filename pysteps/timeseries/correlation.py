@@ -176,7 +176,10 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window_radius=np.in
 
     gamma = []
     for k in range(p+1):
-        gamma_k = np.empty((q, q))
+        if window_radius == np.inf:
+            gamma_k = np.empty((q, q))
+        else:
+            gamma_k = np.empty(np.hstack([[q, q], x.shape[2:]]))
         for i in range(q):
             x_i = x[-1, i, :]
             for j in range(q):
