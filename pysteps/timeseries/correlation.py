@@ -13,11 +13,13 @@ two-dimensional fields.
 """
 
 import numpy as np
+from scipy import ndimage
 from pysteps.utils import spectral
 
 
 def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
-                             use_full_fft=False):
+                             use_full_fft=False, window_radius=np.inf,
+                             window="gaussian"):
     """Compute lag-l temporal autocorrelation coefficients
     :math:`\gamma_l=\mbox{corr}(x(t),x(t-l))`, :math:`l=1,2,\dots,n-1`,
     from a time series :math:`x_1,x_2,\dots,x_n`. If a multivariate time series
@@ -55,6 +57,13 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
         If True, x represents the full FFTs of the original arrays. Otherwise,
         the elements of x are assumed to contain only the symmetric part, i.e.
         in the format returned by numpy.fft.rfft2. Defaults to False.
+    window_radius : float
+        If window_radius < np.inf, the correlation coefficients are computed in
+        a moving window. Defaults to np.inf (i.e. the correlations are computed
+        over the whole domain).
+    window : {"gaussian", "uniform"}
+        The weight function to use for the moving window. Applicable if
+        window_radius < np.inf.
 
     Returns
     -------
@@ -87,7 +96,11 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
     gamma = []
     for k in range(x.shape[0] - 1):
         if domain == "spatial":
-            cc = np.corrcoef(x[-1, :][mask], x[-(k+2), :][mask])[0, 1]
+            if window_radius == np.inf:
+                cc = np.corrcoef(x[-1, :][mask], x[-(k+2), :][mask])[0, 1]
+            else:
+                cc = _moving_window_corrcoef(x[-1, :], x[-(k+2), :], window_radius,
+                                             mask=mask)
         else:
             cc = spectral.corrcoef(x[-1, :, :], x[-(k+2), :], x_shape,
                                    use_full_fft=use_full_fft)
@@ -96,7 +109,8 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
     return gamma
 
 
-def temporal_autocorrelation_multivariate(x, d=0, mask=None):
+def temporal_autocorrelation_multivariate(x, d=0, mask=None, window_radius=np.inf,
+                                          window="gaussian"):
     """For a :math:`q`-variate time series
     :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
     correlation matrices :math:`\mathbf{\Gamma}_l`, where
@@ -118,6 +132,16 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None):
         applied before computing the correlation coefficients. In this case,
         a time series of length n+d is needed for computing the n correlation
         matrices.
+    mask : array_like
+        Optional mask to use for computing the correlation coefficients. Input
+        elements with mask==False are excluded from the computations.
+    window_radius : float
+        If window_radius < np.inf, the correlation coefficients are computed in
+        a moving window. Defaults to np.inf (i.e. the correlations are computed
+        over the whole domain).
+    window : {"gaussian", "uniform"}
+        The weight function to use for the moving window. Applicable if
+        window_radius < np.inf.
 
     Returns
     -------
@@ -149,7 +173,60 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None):
             x_i = x[-1, i, :]
             for j in range(q):
                 x_j = x[-(k+1), j, :]
-                gamma_k[i, j] = np.corrcoef(x_i.flatten(), x_j.flatten())[0, 1]
+                if window_radius == np.inf:
+                    gamma_k[i, j] = np.corrcoef(x_i.flatten(), x_j.flatten())[0, 1]
+                else:
+                    gamma_k[i, j] = _moving_window_corrcoef(x_i, x_j, window_radius,
+                                                            window=window, mask=mask)
         gamma.append(gamma_k)
 
     return gamma
+
+
+def _moving_window_corrcoef(x, y, window_radius, window="gaussian", mask=None):
+    if window not in ["gaussian", "uniform"]:
+        raise ValueError("unknown window type %s, the available options are 'gaussian' and 'uniform'" % window)
+
+    if mask is None:
+        mask = np.ones(x.shape)
+    else:
+        x = x.copy()
+        x[~mask] = 0.0
+        y = y.copy()
+        y[~mask] = 0.0
+        mask = mask.astype(float)
+
+    if window == "gaussian":
+        convol_filter = ndimage.gaussian_filter
+    else:
+        convol_filter = ndimage.uniform_filter
+
+    if window == "uniform":
+        window_size = 2 * window_radius + 1
+    else:
+        window_size = window_radius
+
+    n = convol_filter(mask, window_size, mode="constant") * window_size**2
+
+    sx = convol_filter(x, window_size, mode="constant") * window_size**2
+    sy = convol_filter(y, window_size, mode="constant") * window_size**2
+
+    ssx = convol_filter(x**2, window_size, mode="constant") * window_size**2
+    ssy = convol_filter(y**2, window_size, mode="constant") * window_size**2
+    sxy = convol_filter(x*y, window_size, mode="constant") * window_size**2
+
+    mux = sx / n
+    muy = sy / n
+
+    stdx = np.sqrt(ssx - 2 * mux * sx + n * mux**2)
+    stdy = np.sqrt(ssy - 2 * muy * sy + n * muy**2)
+    cov = sxy - muy * sx - mux * sy + n * mux * muy
+
+    mask = np.logical_and(stdx > 1e-8, stdy > 1e-8)
+    mask = np.logical_and(mask, stdx * stdy > 1e-8)
+    mask = np.logical_and(mask, n >= 3)
+    corr = np.empty(x.shape)
+    corr[mask] = cov[mask] / (stdx[mask] * stdy[mask])
+    corr[~mask] = np.nan
+
+    return corr
