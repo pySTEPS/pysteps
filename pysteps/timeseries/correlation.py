@@ -84,11 +84,6 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
     if domain == "spatial" and mask is None:
         mask = np.ones(x.shape[1:], dtype=bool)
 
-    if domain == "spectral":
-        x = x.copy()
-        for k in range(x.shape[0]):
-            x[k, np.zeros(x.shape[1:], dtype=int)] = 0.0
-
     gamma = []
     for k in range(x.shape[0] - 1):
         if domain == "spatial":
