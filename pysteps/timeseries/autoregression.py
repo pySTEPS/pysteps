@@ -253,40 +253,13 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
         lag-p terms and the innovation term.
 
     """
-    p = len(gamma)
-
-    phi = np.empty(p+1)
-
-    g = np.hstack([[1.0], gamma])
-    G = []
-    for j in range(p):
-        G.append(np.roll(g[:-1], j))
-    G = np.array(G)
-    phi_ = np.linalg.solve(G, g[1:].flatten())
-
-    # Check that the absolute values of the roots of the characteristic
-    # polynomial are less than one.
-    # Otherwise the AR(p) model is not stationary.
-    if check_stationarity:
-        if not test_ar_stationarity(phi_):
-            raise RuntimeError(
-                "Error in estimate_ar_params_yw: "
-                "nonstationary AR(p) process")
-
-    c = 1.0
-    for j in range(p):
-        c -= gamma[j] * phi_[j]
-    phi_pert = np.sqrt(c)
-
-    # If the expression inside the square root is negative, phi_pert cannot
-    # be computed and it is set to zero instead.
-    if not np.isfinite(phi_pert):
-        phi_pert = 0.0
-
-    phi[:p] = phi_
-    phi[-1] = phi_pert
-
-    return phi
+    if np.isscalar(gamma[0]):
+        return _estimate_ar_params_yw_global(gamma, check_stationarity=check_stationarity)
+    else:
+        for i in range(1, len(gamma)):
+            if gamma[i].shape != gamma[0].shape:
+                raise ValueError("the correlation coefficient fields gamma have mismatching shapes")
+        return _estimate_ar_params_yw_local(gamma, check_stationarity=True)
 
 
 def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
@@ -673,3 +646,69 @@ def test_var_stationarity(phi):
     r = np.linalg.eig(M)[0]
 
     return False if np.any(np.abs(r) >= 1) else True
+
+
+def _estimate_ar_params_yw_global(gamma, check_stationarity=True):
+    p = len(gamma)
+
+    phi = np.empty(p+1)
+
+    g = np.hstack([[1.0], gamma])
+    G = []
+    for j in range(p):
+        G.append(np.roll(g[:-1], j))
+    G = np.array(G)
+    phi_ = np.linalg.solve(G, g[1:].flatten())
+
+    # Check that the absolute values of the roots of the characteristic
+    # polynomial are less than one.
+    # Otherwise the AR(p) model is not stationary.
+    if check_stationarity:
+        if not test_ar_stationarity(phi_):
+            raise RuntimeError(
+                "Error in estimate_ar_params_yw: "
+                "nonstationary AR(p) process")
+
+    c = 1.0
+    for j in range(p):
+        c -= gamma[j] * phi_[j]
+    phi_pert = np.sqrt(c)
+
+    # If the expression inside the square root is negative, phi_pert cannot
+    # be computed and it is set to zero instead.
+    if not np.isfinite(phi_pert):
+        phi_pert = 0.0
+
+    phi[:p] = phi_
+    phi[-1] = phi_pert
+
+    return phi
+
+
+def _estimate_ar_params_yw_local(gamma, check_stationarity=True):
+    p = len(gamma)
+    shape = gamma[0].shape
+
+    phi = np.empty(np.hstack([[p+1], shape]))
+
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            g = np.hstack([[1.0], [gamma[k][i, j] for k in range(len(gamma))]])
+            G = []
+            for j in range(p):
+                G.append(np.roll(g[:-1], j))
+            G = np.array(G)
+            try:
+                phi_ = np.linalg.solve(G, g[1:].flatten())
+            except np.linalg.LinAlgError:
+                phi_ = np.ones(p) * np.nan
+
+            phi[:p, i, j] = phi_
+
+    c = 1.0
+    for i in range(p):
+        c -= gamma[i] * phi[i, :, :]
+    phi_pert = np.sqrt(c)
+    phi[-1, :, :] = phi_pert
+
+    return phi
