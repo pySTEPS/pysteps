@@ -49,7 +49,7 @@ def compute_empirical_cdf(bin_edges, hist):
     return cdf
 
 
-def nonparam_match_empirical_cdf(R, R_trg):
+def nonparam_match_empirical_cdf(initial_array, target_array):
     """Matches the empirical CDF of the initial array with the empirical CDF
     of a target array. Initial ranks are conserved, but empirical distribution
     matches the target one. Zero-pixels (i.e. pixels having the minimum value)
@@ -57,65 +57,68 @@ def nonparam_match_empirical_cdf(R, R_trg):
 
     Parameters
     ----------
-    R : array_like
+    initial_array : array_like
         The initial array whose CDF is to be matched with the target.
-    R_trg : array_like
+    target_array : array_like
         The target array.
 
     Returns
     -------
-    out : array_like
-        The matched array.
+    output_array : ndarray
+        The matched array of the same shape as the initial array.
 
     """
 
-    if np.any(~np.isfinite(R)):
+    if np.any(~np.isfinite(initial_array)):
         raise ValueError("initial array contains non-finite values")
-    if np.any(~np.isfinite(R_trg)):
+    if np.any(~np.isfinite(target_array)):
         raise ValueError("target array contains non-finite values")
-    if R.size != R_trg.size:
-        raise ValueError("dimension mismatch between R and R_trg: R.shape=%s, R_trg.shape=%s" % \
-                         (str(R.shape), str(R_trg.shape)))
+    if initial_array.size != target_array.size:
+        raise ValueError("dimension mismatch between initial_array and target_array: "
+                         f"initial_array.shape={initial_array.shape}, target_array.shape={target_array.shape}")
+
+    initial_array = np.array(initial_array)
+    target_array = np.array(target_array)
 
     # zeros in initial array
-    zvalue = R.min()
-    idxzeros = R == zvalue
+    zvalue = initial_array.min()
+    idxzeros = initial_array == zvalue
 
     # zeros in the target array
-    zvalue_trg = R_trg.min()
+    zvalue_trg = target_array.min()
 
     # adjust the fraction of rain in target distribution if the number of
     # nonzeros is greater than in the initial array
-    if np.sum(R_trg > zvalue_trg) > np.sum(R > zvalue):
-        war = np.sum(R > zvalue)/R.size
-        p = np.percentile(R_trg, 100*(1 - war))
-        R_trg = R_trg.copy()
-        R_trg[R_trg < p] = zvalue_trg
+    if np.sum(target_array > zvalue_trg) > np.sum(initial_array > zvalue):
+        war = np.sum(initial_array > zvalue)/initial_array.size
+        p = np.percentile(target_array, 100*(1 - war))
+        target_array = target_array.copy()
+        target_array[target_array < p] = zvalue_trg
 
     # flatten the arrays
-    arrayshape = R.shape
-    R_trg = R_trg.flatten()
-    R = R.flatten()
+    arrayshape = initial_array.shape
+    target_array = target_array.flatten()
+    initial_array = initial_array.flatten()
 
     # rank target values
-    order = R_trg.argsort()
-    ranked = R_trg[order]
+    order = target_array.argsort()
+    ranked = target_array[order]
 
     # rank initial values order
-    orderin = R.argsort()
-    ranks = np.empty(len(R), int)
-    ranks[orderin] = np.arange(len(R))
+    orderin = initial_array.argsort()
+    ranks = np.empty(len(initial_array), int)
+    ranks[orderin] = np.arange(len(initial_array))
 
     # get ranked values from target and rearrange with the initial order
-    R = ranked[ranks]
+    output_array = ranked[ranks]
 
     # reshape to the original array dimensions
-    R = R.reshape(arrayshape)
+    output_array = output_array.reshape(arrayshape)
 
-    # readd original zeros
-    R[idxzeros] = zvalue_trg
+    # read original zeros
+    output_array[idxzeros] = zvalue_trg
 
-    return R
+    return output_array
 
 
 # TODO: A more detailed explanation of the PMM method + references.
