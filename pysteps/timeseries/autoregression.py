@@ -260,15 +260,17 @@ def estimate_ar_params_ols_localized(x, p, d=0, check_stationarity=True,
                 tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
                 Z2[i, j, :] += tmp
 
-    phi = np.empty((x.shape[1], x.shape[2], p))
+    phi = np.empty((p+1, x.shape[1], x.shape[2]))
     for i in range(x.shape[1]):
         for j in range(x.shape[2]):
             try:
                 b = 2.0 * np.dot(XZ[:, i, j], np.linalg.inv(Z2[:, :, i, j] + 
                                  lam*np.eye(Z2.shape[0])))
-                phi[i, j, :] = b
+                phi[:-1, i, j] = b
             except np.linalg.LinAlgError:
-                phi[i, j, :] = np.nan
+                phi[:-1, i, j] = np.nan
+
+    phi[-1, :, :] = 0.0
 
     return phi
 
