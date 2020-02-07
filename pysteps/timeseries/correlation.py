@@ -64,7 +64,9 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
     window_radius : float
         If window_radius < np.inf, the correlation coefficients are computed in
         a moving window. Defaults to np.inf (i.e. the coefficients are computed
-        over the whole domain).
+        over the whole domain). If window is 'gaussian', window_radius is the
+        standard deviation of the Gaussian filter. If window is 'uniform', the
+        size of the window is 2*window_radius+1.
 
     Returns
     -------
@@ -146,7 +148,9 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
     window_radius : float
         If window_radius < np.inf, the correlation coefficients are computed in
         a moving window. Defaults to np.inf (i.e. the correlations are computed
-        over the whole domain).
+        over the whole domain). If window is 'gaussian', window_radius is the
+        standard deviation of the Gaussian filter. If window is 'uniform', the
+        size of the window is 2*window_radius+1.
 
     Returns
     -------
