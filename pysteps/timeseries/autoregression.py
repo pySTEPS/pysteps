@@ -260,19 +260,22 @@ def estimate_ar_params_ols_localized(x, p, d=0, check_stationarity=True,
                 tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
                 Z2[i, j, :] += tmp
 
-    phi = np.empty((p+1, x.shape[1], x.shape[2]))
-    for i in range(x.shape[1]):
-        for j in range(x.shape[2]):
-            try:
-                b = 2.0 * np.dot(XZ[:, i, j], np.linalg.inv(Z2[:, :, i, j] + 
-                                 lam*np.eye(Z2.shape[0])))
-                phi[:-1, i, j] = b
-            except np.linalg.LinAlgError:
-                phi[:-1, i, j] = np.nan
+    m = np.prod(x.shape[1:])
+    phi = np.empty(np.hstack([[p+1], m]))
+    XZ = XZ.reshape(np.hstack([[p], m]))
+    Z2 = Z2.reshape(np.hstack([[p, p], m]))
 
-    phi[-1, :, :] = 0.0
+    for i in range(m):
+        try:
+            b = 2.0 * np.dot(XZ[:, i], np.linalg.inv(Z2[:, :, i] + 
+                             lam*np.eye(Z2.shape[0])))
+            phi[:-1, i] = b
+        except np.linalg.LinAlgError:
+            phi[:-1, i] = np.nan
 
-    return phi
+    phi[-1, :] = 0.0
+
+    return list(phi.reshape(np.hstack([[p+1], x.shape[1:]])))
 
 
 def estimate_ar_params_yw(gamma, check_stationarity=True):
@@ -365,31 +368,31 @@ def estimate_ar_params_yw_localized(gamma):
             raise ValueError("the correlation coefficient fields gamma have mismatching shapes")
 
     p = len(gamma)
-    shape = gamma[0].shape
+    n = np.prod(gamma[0].shape)
 
-    phi = np.empty((p+1, shape[0], shape[1]))
+    phi = np.empty((p+1, n))
+    gamma_1d = [gamma[i].flatten() for i in range(len(gamma))]
 
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            g = np.hstack([[1.0], [gamma[k][i, j] for k in range(len(gamma))]])
-            G = []
-            for k in range(p):
-                G.append(np.roll(g[:-1], k))
-            G = np.array(G)
-            try:
-                phi_ = np.linalg.solve(G, g[1:].flatten())
-            except np.linalg.LinAlgError:
-                phi_ = np.ones(p) * np.nan
+    for i in range(n):
+        g = np.hstack([[1.0], [gamma_1d[k][i] for k in range(len(gamma_1d))]])
+        G = []
+        for k in range(p):
+            G.append(np.roll(g[:-1], k))
+        G = np.array(G)
+        try:
+            phi_ = np.linalg.solve(G, g[1:].flatten())
+        except np.linalg.LinAlgError:
+            phi_ = np.ones(p) * np.nan
 
-            phi[:p, i, j] = phi_
+        phi[:p, i] = phi_
 
     c = 1.0
     for i in range(p):
-        c -= gamma[i] * phi[i]
+        c -= gamma_1d[i] * phi[i]
     phi_pert = np.sqrt(c)
     phi[-1, :] = phi_pert
 
-    return list(phi)
+    return list(phi.reshape(np.hstack([[p+1], gamma[0].shape])))
 
 
 def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
