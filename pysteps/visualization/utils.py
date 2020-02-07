@@ -127,7 +127,7 @@ def proj4_to_cartopy(proj4str):
 
     proj = pyproj.Proj(proj4str)
 
-    if proj.is_latlong():
+    if proj.crs.is_geographic:
         return ccrs.PlateCarree()
 
     km_proj = {"lon_0": "central_longitude",
