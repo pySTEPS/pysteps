@@ -111,8 +111,8 @@ def get_precipitation_fields(num_prev_files=0,
                                                                threshold=0.1,
                                                                zerovalue=-15.0)
 
-        # Set missing values with the fill value
-        reference_field.data[reference_field.mask] = -15.0
+        # Set missing values equal to the zerovalue using the fill value
+        np.ma.set_fill_value(reference_field, -15.0)
 
     if metadata:
         return reference_field, ref_metadata
