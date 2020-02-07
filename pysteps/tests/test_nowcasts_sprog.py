@@ -36,11 +36,13 @@ def test_sprog(
                                                       return_raw=False,
                                                       metadata=True,
                                                       upscale=2000)
+    precip_input = precip_input.filled()
 
     precip_obs = get_precipitation_fields(num_prev_files=0,
                                           num_next_files=3,
                                           return_raw=False,
                                           upscale=2000)[1:, :, :]
+    precip_obs = precip_obs.filled()
 
     # Retrieve motion field
     pytest.importorskip("cv2")
@@ -63,8 +65,10 @@ def test_sprog(
 
     # result
     result = verification.det_cat_fct(
-                precip_forecast[-1], 
-                precip_obs[-1], 
-                thr=1.0, 
-                scores="CSI")["CSI"]
+        precip_forecast[-1],
+        precip_obs[-1],
+        thr=0.1,
+        scores="CSI")["CSI"]
+    print(f"got CSI={result:.1f}, required > {min_csi:.1f}")
     assert result > min_csi
+
