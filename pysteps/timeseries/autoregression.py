@@ -134,7 +134,7 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     check_stationarity : bool
         Check the stationarity of the estimated model.
     include_constant_term : bool
-        Include the constant term c to the model.
+        Include the constant term :math:`c` to the model.
     h : int
         If h>0, the fitting is done by using a history of length h in addition
         to the minimal required number of time steps n=p+d+1.
@@ -147,7 +147,7 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     out : list
         The estimated parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
         \dots,\mathbf{\Phi}_{p+1}`. If include_constant_term is True, the
-        constant term :math:`\mathbf{c}` is added to the beginning of the list.
+        constant term :math:`c` is added to the beginning of the list.
 
     Notes
     -----
@@ -183,12 +183,11 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     b = np.dot(np.dot(x_lhs, Z.T), np.linalg.inv(np.dot(Z, Z.T) + lam*np.eye(Z.shape[0])))
     b = b.flatten()
 
-    phi = []
     if include_constant_term:
         c = b[0]
-        phi = b[1:]
+        phi = list(b[1:])
     else:
-        phi = b
+        phi = list(b)
 
     if p == 1:
         phi_pert = np.sqrt(1.0 - phi[0]*phi[0])
@@ -197,26 +196,22 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     else:
         phi_pert = 0.0
 
-    phi = np.hstack([phi, [phi_pert]])
-
     if check_stationarity:
-        if not test_ar_stationarity(phi[:-1]):
+        if not test_ar_stationarity(phi):
             raise RuntimeError(
                 "Error in estimate_ar_params_yw: "
                 "nonstationary AR(p) process")
 
     if d == 1:
         phi_out = _compute_differenced_model_params(phi, p, 1, 1)
-
-        if include_constant_term:
-            return c, phi_out
-        else:
-            return phi_out
     else:
-        if include_constant_term:
-            return c, phi
-        else:
-            return phi
+        phi_out = phi
+
+    phi_out.append(phi_pert)
+    if include_constant_term:
+        phi_out.insert(0, c)
+
+    return phi_out
 
 
 def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
@@ -224,7 +219,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
                                      window="gaussian"):
     """Estimate the parameters of a localized AR(p) model
 
-    :math:`x_{k+1,i}=\phi_{1,i}x_{k,i}+\phi_{2,i}x_{k-1,i}+\dots+\phi_{p,i}x_{k-p,i}+\phi_{p+1}\epsilon`
+    :math:`x_{k+1,i}=c_i+\phi_{1,i}x_{k,i}+\phi_{2,i}x_{k-1,i}+\dots+\phi_{p,i}x_{k-p,i}+\phi_{p+1,i}\epsilon`
 
     by using ordinary least squares (OLS), where :math:`i` denote spatial
     coordinates with arbitrary dimension. If :math:`d\geq 1`, the parameters
@@ -245,6 +240,14 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
         the size of the window is 2*window_radius+1.
     d : {0,1}
         The order of differencing to apply to the time series.
+    include_constant_term : bool
+        Include the constant term :math:`c_i` to the model.
+    h : int
+        If h>0, the fitting is done by using a history of length h in addition
+        to the minimal required number of time steps n=p+d+1.
+    lam : float
+        If lam>0, the regression is regularized by adding a penalty term
+        (i.e. ridge regression).
     window : {"gaussian", "uniform"}
         The weight function to use for the moving window. Applicable if
         window_radius < np.inf.
@@ -254,13 +257,25 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
     out : list
         List of length p+1 containing the AR(p) parameter fields for for the
         lag-p terms and the innovation term. The parameter fields have the same
-        shape as the elements of gamma.
+        shape as the elements of gamma. Nan values are assigned, where the
+        sample size for estimating the parameters is too small. If
+        include_constant_term is True, the constant term :math:`c_i` is added
+        to the beginning of the list.
+
+    Notes
+    -----
+    Estimation of the innovation term parameter :math:`\phi_{p+1}` is currently
+    implemented for p<=2. If p > 2, :math:`\phi_{p+1}` is set to a zero array.
 
     """
     n = x.shape[0]
 
     if n < p + d + h + 1:
         raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+
+    if d == 1:
+        x = np.diff(x, axis=0)
+        n -= d
 
     if window == "gaussian":
         convol_filter = ndimage.gaussian_filter
@@ -278,15 +293,37 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
             tmp = convol_filter(x[p+j, :] * x[p-1-i+j, :], window_size, mode="constant")
             XZ[i, :] += tmp
 
-    Z2 = np.zeros(np.hstack([[p, p], x.shape[1:]]))
-    for i in range(p):
-        for j in range(p):
-            for k in range(h+2):
-                tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
-                Z2[i, j, :] += tmp
+    if include_constant_term:
+        v = 0.0
+        for i in range(h+1):
+            v += convol_filter(x[p+i, :], window_size, mode="constant")
+        XZ = np.vstack([v, XZ])
+
+    if not include_constant_term:
+        Z2 = np.zeros(np.hstack([[p, p], x.shape[1:]]))
+        for i in range(p):
+            for j in range(p):
+                for k in range(h+2):
+                    tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
+                    Z2[i, j, :] += tmp
+    else:
+        Z2 = np.zeros(np.hstack([[p+1, p+1], x.shape[1:]]))
+        Z2[0, 0] = h + 2
+        for i in range(p):
+            for j in range(h+1):
+                tmp = convol_filter(x[p-1-i+j, :], window_size, mode="constant")
+                Z2[0, i+1, :] += tmp
+                Z2[i+1, 0, :] += tmp
+        for i in range(p):
+            for j in range(p):
+                for k in range(h+2):
+                    tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
+                    Z2[i+1, j+1, :] += tmp
 
     m = np.prod(x.shape[1:])
     phi = np.empty(np.hstack([[p+1], m]))
+    if include_constant_term:
+        c = np.empty(m)
     XZ = XZ.reshape(np.hstack([[p], m]))
     Z2 = Z2.reshape(np.hstack([[p, p], m]))
 
@@ -294,13 +331,32 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
         try:
             b = 2.0 * np.dot(XZ[:, i], np.linalg.inv(Z2[:, :, i] + 
                              lam*np.eye(Z2.shape[0])))
-            phi[:-1, i] = b
+            if not include_constant_term:
+                phi[:-1, i] = b
+            else:
+                phi[:-1, i] = b[1:]
+                c[i] = b[0]
         except np.linalg.LinAlgError:
             phi[:-1, i] = np.nan
+            if include_constant_term:
+                c[i] = np.nan
 
-    phi[-1, :] = 0.0
+    if p == 1:
+        phi[-1, :] = np.sqrt(1.0 - phi[0, :]*phi[0, :])
+    elif p == 2:
+        phi[-1, :] = np.sqrt((1.0 + phi[1, :]) * ((1.0 - phi[1, :])**2.0 - phi[0, :]**2.0) / (1.0 - phi[1, :]))
+    else:
+        phi[-1, :] = np.zeros(m)
 
-    return list(phi.reshape(np.hstack([[p+1], x.shape[1:]])))
+    if d == 1:
+        phi = _compute_differenced_model_params(phi, p, 1, 1)
+        return [phi[i].reshape(x.shape[1:]) for i in range(len(phi))]
+
+    phi_out = list(phi.reshape(np.hstack([[p+1], x.shape[1:]])))
+    if include_constant_term:
+        phi_out.insert(0, c)
+
+    return phi_out
 
 
 def estimate_ar_params_yw(gamma, check_stationarity=True):
