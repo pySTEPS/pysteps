@@ -113,7 +113,7 @@ def ar_acf(gamma, n=None):
 
 def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
                            include_constant_term=False, h=0, lam=0.0):
-    """Estimate the parameters of an autoregressive integrated AR(p) model
+    """Estimate the parameters of an autoregressive AR(p) model
 
     :math:`x_{k+1}=c+\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
 
@@ -229,9 +229,44 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
             return phi
 
 
-def estimate_ar_params_ols_localized(x, p, d=0, check_stationarity=True,
-                           include_constant_term=False, h=0, lam=0.0,
-                           window="gaussian", window_radius=np.inf):
+def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
+                                     include_constant_term=False, h=0, lam=0.0,
+                                     window="gaussian"):
+    """Estimate the parameters of a localized AR(p) model
+
+    :math:`x_{k+1,i}=\phi_{1,i}x_{k,i}+\phi_{2,i}x_{k-1,i}+\dots+\phi_{p,i}x_{k-p,i}+\phi_{p+1}\epsilon`
+
+    by using ordinary least squares (OLS), where :math:`i` denote spatial
+    coordinates with arbitrary dimension. If :math:`d\geq 1`, the parameters
+    are estimated for a d times differenced time series that is integrated back
+    to the original one by summation of the differences.
+
+    Parameters
+    ----------
+    x : array_like
+        Array of shape (n,...) containing a time series of length n>=p+d+h+1.
+        The remaining dimensions are flattened. The rows and columns of x
+        represent time steps and samples, respectively.
+    p : int
+        The order of the model.
+    window_radius : float
+        Radius of the moving window. If window is 'gaussian', window_radius is
+        the standard deviation of the Gaussian filter. If window is 'uniform',
+        the size of the window is 2*window_radius+1.
+    d : {0,1}
+        The order of differencing to apply to the time series.
+    window : {"gaussian", "uniform"}
+        The weight function to use for the moving window. Applicable if
+        window_radius < np.inf.
+
+    Returns
+    -------
+    out : list
+        List of length p+1 containing the AR(p) parameter fields for for the
+        lag-p terms and the innovation term. The parameter fields have the same
+        shape as the elements of gamma.
+
+    """
     n = x.shape[0]
 
     if n < p + d + h + 1:
@@ -342,11 +377,11 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
 def estimate_ar_params_yw_localized(gamma):
     """Estimate the parameters of a localized AR(p) model
 
-    :math:`x_{k+1,i,j}=\phi_{1,i,j}x_{k,i,j}+\phi_{2,i,j}x_{k-1,i,j}+\dots+\phi_{p,i,j}x_{k-p,i,j}+\phi_{p+1}\epsilon`
+    :math:`x_{k+1,i}=\phi_{1,i}x_{k,i}+\phi_{2,i}x_{k-1,i}+\dots+\phi_{p,i}x_{k-p,i}+\phi_{p+1}\epsilon`
 
     from the Yule-Walker equations using the given set of autocorrelation
-    coefficients :math`\gamma_{l,i,j}`, where :math`l` denotes time lag and
-    :math:`i,j` denote spatial coordinates.
+    coefficients :math`\gamma_{l,i}`, where :math`l` denotes time lag and
+    :math:`i` denote spatial coordinates with arbitrary dimension.
 
     Parameters
     ----------
@@ -359,8 +394,8 @@ def estimate_ar_params_yw_localized(gamma):
     -------
     out : list
         List of length p+1 containing the AR(p) parameter fields for for the
-        lag-p terms and the innovation term. The parameter fields have the
-        same shape as the elements of gamma.
+        lag-p terms and the innovation term. The parameter fields have the same
+        shape as the elements of gamma.
 
     """
     for i in range(1, len(gamma)):
