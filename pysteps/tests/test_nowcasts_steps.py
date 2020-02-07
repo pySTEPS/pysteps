@@ -43,11 +43,13 @@ def test_steps(
                                                       return_raw=False,
                                                       metadata=True,
                                                       upscale=2000)
+    precip_input = precip_input.filled()
 
     precip_obs = get_precipitation_fields(num_prev_files=0,
                                           num_next_files=3,
                                           return_raw=False,
                                           upscale=2000)[1:, :, :]
+    precip_obs = precip_obs.filled()
 
     # Retrieve motion field
     pytest.importorskip("cv2")
@@ -75,7 +77,7 @@ def test_steps(
 
     # result
     crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
-    print(f"CRPS={crps:.1f}")
+    print(f"got CRPS={crps:.1f}, required < {max_crps:.1f}")
     assert crps < max_crps
 
 if __name__ == "__main__":
