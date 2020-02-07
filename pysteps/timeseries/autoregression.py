@@ -21,6 +21,7 @@ Methods related to autoregressive AR(p) models.
 import numpy as np
 from scipy.special import binom
 from scipy import linalg as la
+from scipy import ndimage
 
 
 def adjust_lag2_corrcoef1(gamma_1, gamma_2):
@@ -228,6 +229,50 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
             return phi
 
 
+def estimate_ar_params_ols_localized(x, p, d=0, check_stationarity=True,
+                           include_constant_term=False, h=0, lam=0.0,
+                           window="gaussian", window_radius=np.inf):
+    n = x.shape[0]
+
+    if n < p + d + h + 1:
+        raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+
+    if window == "gaussian":
+        convol_filter = ndimage.gaussian_filter
+    else:
+        convol_filter = ndimage.uniform_filter
+
+    if window == "uniform":
+        window_size = 2 * window_radius + 1
+    else:
+        window_size = window_radius
+
+    XZ = np.zeros(np.hstack([[p], x.shape[1:]]))
+    for i in range(p):
+        for j in range(h+1):
+            tmp = convol_filter(x[p+j, :] * x[p-1-i+j, :], window_size, mode="constant")
+            XZ[i, :] += tmp
+
+    Z2 = np.zeros(np.hstack([[p, p], x.shape[1:]]))
+    for i in range(p):
+        for j in range(p):
+            for k in range(h+2):
+                tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
+                Z2[i, j, :] += tmp
+
+    phi = np.empty((x.shape[1], x.shape[2], p))
+    for i in range(x.shape[1]):
+        for j in range(x.shape[2]):
+            try:
+                b = 2.0 * np.dot(XZ[:, i, j], np.linalg.inv(Z2[:, :, i, j] + 
+                                 lam*np.eye(Z2.shape[0])))
+                phi[i, j, :] = b
+            except np.linalg.LinAlgError:
+                phi[i, j, :] = np.nan
+
+    return phi
+
+
 def estimate_ar_params_yw(gamma, check_stationarity=True):
     """Estimate the parameters of an AR(p) model
 
@@ -259,7 +304,7 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
         for i in range(1, len(gamma)):
             if gamma[i].shape != gamma[0].shape:
                 raise ValueError("the correlation coefficient fields gamma have mismatching shapes")
-        return _estimate_ar_params_yw_local(gamma, check_stationarity=True)
+        return _estimate_ar_params_yw_local(gamma)
 
 
 def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
@@ -388,6 +433,59 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
             return c, phi
         else:
             return phi
+
+
+def estimate_var_params_ols_localized(x, p, d=0, include_constant_term=False,
+                                      window="gaussian", window_radius=np.inf,
+                                      h=0, lam=0.0):
+    q = x.shape[1]
+    n = x.shape[0]
+
+    if n < p + d + h + 1:
+        raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+
+    if window == "gaussian":
+        convol_filter = ndimage.gaussian_filter
+    else:
+        convol_filter = ndimage.uniform_filter
+
+    if window == "uniform":
+        window_size = 2 * window_radius + 1
+    else:
+        window_size = window_radius
+
+    XZ = np.zeros(np.hstack([[q, p*q], x.shape[2:]]))
+    for i in range(q):
+        for k in range(p):
+            for j in range(q):
+                for l in range(h+1):
+                    tmp = convol_filter(x[p+l, i, :] * x[p-1-k+l, j, :],
+                                        window_size, mode="constant")
+                    XZ[i, k*q+j, :] += tmp
+
+    Z2 = np.zeros(np.hstack([[p*q, p*q], x.shape[2:]]))
+    for i in range(p):
+        for j in range(q):
+            for k in range(p):
+                for l in range(q):
+                    for m in range(h+2):
+                        tmp = convol_filter(x[p-1-i+m, j, :] * x[p-1-k+m, l, :],
+                                            window_size, mode="constant")
+                        Z2[i*q+j, k*q+l, :] += tmp
+
+    phi = np.empty((x.shape[2], x.shape[3], p, q, q))
+    for i in range(x.shape[2]):
+        for j in range(x.shape[3]):
+            try:
+                B = 2.0 * np.dot(XZ[:, :, i, j], np.linalg.inv(Z2[:, :, i, j] + 
+                                 lam*np.eye(Z2.shape[0])))
+                for k in range(p):
+                    phi[i, j, k, :, :] = B[:, k*q:(k+1)*q]
+            except np.linalg.LinAlgError:
+                phi[i, j, :] = np.nan
+
+    return phi
+
 
 def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     """Estimate the parameters of a VAR(p) model
@@ -685,7 +783,7 @@ def _estimate_ar_params_yw_global(gamma, check_stationarity=True):
     return phi
 
 
-def _estimate_ar_params_yw_local(gamma, check_stationarity=True):
+def _estimate_ar_params_yw_local(gamma):
     p = len(gamma)
     shape = gamma[0].shape
 
