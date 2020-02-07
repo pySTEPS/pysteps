@@ -206,17 +206,7 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
                 "nonstationary AR(p) process")
 
     if d == 1:
-        phi_out = []
-        for i in range(p+d+1):
-            phi_out.append(0.0)
-
-        for i in range(1, d+1):
-            phi_out[i-1] -= binom(d, i) * (-1)**i
-        for i in range(1, p+1):
-            phi_out[i-1] += phi[i-1]
-        for i in range(1, p+1):
-            for j in range(1, d+1):
-                phi_out[i+j-1] += phi[i-1] * binom(d, j) * (-1)**j
+        phi_out = _compute_differenced_model_params(phi, p, 1, 1)
 
         if include_constant_term:
             return c, phi_out
@@ -534,18 +524,7 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
                 "nonstationary VAR(p) process")
 
     if d == 1:
-        phi_out = []
-        for i in range(p+d):
-            phi_out.append(np.zeros((q, q)))
-        phi_out.append(np.zeros((q, q)))
-
-        for i in range(1, d+1):
-            phi_out[i-1] -= binom(d, i) * (-1)**i * np.eye(q, q)
-        for i in range(1, p+1):
-            phi_out[i-1] += phi[i-1]
-        for i in range(1, p+1):
-            for j in range(1, d+1):
-                phi_out[i+j-1] += phi[i-1] * binom(d, j) * (-1)**j
+        phi_out = _compute_differenced_model_params(phi, p, q, 1)
 
         if include_constant_term:
             return c, phi_out
@@ -867,3 +846,25 @@ def test_var_stationarity(phi):
     r = np.linalg.eig(M)[0]
 
     return False if np.any(np.abs(r) >= 1) else True
+
+
+def _compute_differenced_model_params(phi, p, q, d):
+    phi_out = []
+    for i in range(p+d+1):
+        if q > 1:
+            phi_out.append(np.zeros((q, q)))
+        else:
+            phi_out.append(0.0)
+
+    for i in range(1, d+1):
+        if q > 1:
+            phi_out[i-1] -= binom(d, i) * (-1)**i * np.eye(q, q)
+        else:
+            phi_out[i-1] -= binom(d, i) * (-1)**i
+    for i in range(1, p+1):
+        phi_out[i-1] += phi[i-1]
+    for i in range(1, p+1):
+        for j in range(1, d+1):
+            phi_out[i+j-1] += phi[i-1] * binom(d, j) * (-1)**j
+
+    return phi_out
