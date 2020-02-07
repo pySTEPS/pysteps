@@ -300,13 +300,96 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
         lag-p terms and the innovation term.
 
     """
-    if np.isscalar(gamma[0]):
-        return _estimate_ar_params_yw_global(gamma, check_stationarity=check_stationarity)
-    else:
-        for i in range(1, len(gamma)):
-            if gamma[i].shape != gamma[0].shape:
-                raise ValueError("the correlation coefficient fields gamma have mismatching shapes")
-        return _estimate_ar_params_yw_local(gamma)
+    p = len(gamma)
+
+    phi = np.empty(p+1)
+
+    g = np.hstack([[1.0], gamma])
+    G = []
+    for j in range(p):
+        G.append(np.roll(g[:-1], j))
+    G = np.array(G)
+    phi_ = np.linalg.solve(G, g[1:].flatten())
+
+    # Check that the absolute values of the roots of the characteristic
+    # polynomial are less than one.
+    # Otherwise the AR(p) model is not stationary.
+    if check_stationarity:
+        if not test_ar_stationarity(phi_):
+            raise RuntimeError(
+                "Error in estimate_ar_params_yw: "
+                "nonstationary AR(p) process")
+
+    c = 1.0
+    for j in range(p):
+        c -= gamma[j] * phi_[j]
+    phi_pert = np.sqrt(c)
+
+    # If the expression inside the square root is negative, phi_pert cannot
+    # be computed and it is set to zero instead.
+    if not np.isfinite(phi_pert):
+        phi_pert = 0.0
+
+    phi[:p] = phi_
+    phi[-1] = phi_pert
+
+    return phi
+
+
+def estimate_ar_params_yw_localized(gamma):
+    """Estimate the parameters of a localized AR(p) model
+
+    :math:`x_{k+1,i,j}=\phi_{1,i,j}x_{k,i,j}+\phi_{2,i,j}x_{k-1,i,j}+\dots+\phi_{p,i,j}x_{k-p,i,j}+\phi_{p+1}\epsilon`
+
+    from the Yule-Walker equations using the given set of autocorrelation
+    coefficients :math`\gamma_{l,i,j}`, where :math`l` denotes time lag and
+    :math:`i,j` denote spatial coordinates.
+
+    Parameters
+    ----------
+    gamma : array_like
+        A list containing the lag-l temporal autocorrelation coefficient fields
+        for l=1,2,...p. The correlation coefficients are assumed to be in
+        ascending order with respect to time lag.
+
+    Returns
+    -------
+    out : list
+        List of length p+1 containing the AR(p) parameter fields for for the
+        lag-p terms and the innovation term. The parameter fields have the
+        same shape as the elements of gamma.
+
+    """
+    for i in range(1, len(gamma)):
+        if gamma[i].shape != gamma[0].shape:
+            raise ValueError("the correlation coefficient fields gamma have mismatching shapes")
+
+    p = len(gamma)
+    shape = gamma[0].shape
+
+    phi = np.empty((p+1, shape[0], shape[1]))
+
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            g = np.hstack([[1.0], [gamma[k][i, j] for k in range(len(gamma))]])
+            G = []
+            for k in range(p):
+                G.append(np.roll(g[:-1], k))
+            G = np.array(G)
+            try:
+                phi_ = np.linalg.solve(G, g[1:].flatten())
+            except np.linalg.LinAlgError:
+                phi_ = np.ones(p) * np.nan
+
+            phi[:p, i, j] = phi_
+
+    c = 1.0
+    for i in range(p):
+        c -= gamma[i] * phi[i]
+    phi_pert = np.sqrt(c)
+    phi[-1, :] = phi_pert
+
+    return list(phi)
 
 
 def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
@@ -746,69 +829,3 @@ def test_var_stationarity(phi):
     r = np.linalg.eig(M)[0]
 
     return False if np.any(np.abs(r) >= 1) else True
-
-
-def _estimate_ar_params_yw_global(gamma, check_stationarity=True):
-    p = len(gamma)
-
-    phi = np.empty(p+1)
-
-    g = np.hstack([[1.0], gamma])
-    G = []
-    for j in range(p):
-        G.append(np.roll(g[:-1], j))
-    G = np.array(G)
-    phi_ = np.linalg.solve(G, g[1:].flatten())
-
-    # Check that the absolute values of the roots of the characteristic
-    # polynomial are less than one.
-    # Otherwise the AR(p) model is not stationary.
-    if check_stationarity:
-        if not test_ar_stationarity(phi_):
-            raise RuntimeError(
-                "Error in estimate_ar_params_yw: "
-                "nonstationary AR(p) process")
-
-    c = 1.0
-    for j in range(p):
-        c -= gamma[j] * phi_[j]
-    phi_pert = np.sqrt(c)
-
-    # If the expression inside the square root is negative, phi_pert cannot
-    # be computed and it is set to zero instead.
-    if not np.isfinite(phi_pert):
-        phi_pert = 0.0
-
-    phi[:p] = phi_
-    phi[-1] = phi_pert
-
-    return phi
-
-
-def _estimate_ar_params_yw_local(gamma):
-    p = len(gamma)
-    shape = gamma[0].shape
-
-    phi = np.empty(np.hstack([[p+1], shape]))
-
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            g = np.hstack([[1.0], [gamma[k][i, j] for k in range(len(gamma))]])
-            G = []
-            for j in range(p):
-                G.append(np.roll(g[:-1], j))
-            G = np.array(G)
-            try:
-                phi_ = np.linalg.solve(G, g[1:].flatten())
-            except np.linalg.LinAlgError:
-                phi_ = np.ones(p) * np.nan
-
-            phi[:p, i, j] = phi_
-
-    c = 1.0
-    for i in range(p):
-        c -= gamma[i] * phi[i, :, :]
-    phi_pert = np.sqrt(c)
-    phi[-1, :, :] = phi_pert
-
-    return phi
