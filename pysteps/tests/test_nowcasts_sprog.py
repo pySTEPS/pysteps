@@ -72,3 +72,7 @@ def test_sprog(
     print(f"got CSI={result:.1f}, required > {min_csi:.1f}")
     assert result > min_csi
 
+if __name__ == "__main__":
+    for n in range(len(sprog_arg_values)):
+        test_args = zip(sprog_arg_names, sprog_arg_values[n])
+        test_sprog(**dict((x, y) for x, y in test_args))
