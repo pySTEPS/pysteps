@@ -289,34 +289,34 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
 
     XZ = np.zeros(np.hstack([[p], x.shape[1:]]))
     for i in range(p):
-        for j in range(h+1):
+        for j in range(h + 1):
             tmp = convol_filter(x[p+j, :] * x[p-1-i+j, :], window_size, mode="constant")
             XZ[i, :] += tmp
 
     if include_constant_term:
         v = 0.0
-        for i in range(h+1):
+        for i in range(h + 1):
             v += convol_filter(x[p+i, :], window_size, mode="constant")
-        XZ = np.vstack([v, XZ])
+        XZ = np.vstack([v[np.newaxis, :], XZ])
 
     if not include_constant_term:
         Z2 = np.zeros(np.hstack([[p, p], x.shape[1:]]))
         for i in range(p):
             for j in range(p):
-                for k in range(h+2):
+                for k in range(h + 2):
                     tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
                     Z2[i, j, :] += tmp
     else:
         Z2 = np.zeros(np.hstack([[p+1, p+1], x.shape[1:]]))
         Z2[0, 0] = h + 2
         for i in range(p):
-            for j in range(h+1):
+            for j in range(h + 1):
                 tmp = convol_filter(x[p-1-i+j, :], window_size, mode="constant")
                 Z2[0, i+1, :] += tmp
                 Z2[i+1, 0, :] += tmp
         for i in range(p):
             for j in range(p):
-                for k in range(h+2):
+                for k in range(h + 2):
                     tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
                     Z2[i+1, j+1, :] += tmp
 
@@ -324,8 +324,8 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
     phi = np.empty(np.hstack([[p+1], m]))
     if include_constant_term:
         c = np.empty(m)
-    XZ = XZ.reshape(np.hstack([[p], m]))
-    Z2 = Z2.reshape(np.hstack([[p, p], m]))
+    XZ = XZ.reshape(np.hstack([[XZ.shape[0]], m]))
+    Z2 = Z2.reshape(np.hstack([[Z2.shape[0], Z2.shape[1]], m]))
 
     for i in range(m):
         try:
@@ -354,7 +354,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
 
     phi_out = list(phi.reshape(np.hstack([[p+1], x.shape[1:]])))
     if include_constant_term:
-        phi_out.insert(0, c)
+        phi_out.insert(0, c.reshape(x.shape[1:]))
 
     return phi_out
 
@@ -616,7 +616,7 @@ def estimate_var_params_ols_localized(x, p, d=0, include_constant_term=False,
     for i in range(q):
         for k in range(p):
             for j in range(q):
-                for l in range(h+1):
+                for l in range(h + 1):
                     tmp = convol_filter(x[p+l, i, :] * x[p-1-k+l, j, :],
                                         window_size, mode="constant")
                     XZ[i, k*q+j, :] += tmp
@@ -626,7 +626,7 @@ def estimate_var_params_ols_localized(x, p, d=0, include_constant_term=False,
         for j in range(q):
             for k in range(p):
                 for l in range(q):
-                    for m in range(h+2):
+                    for m in range(h + 2):
                         tmp = convol_filter(x[p-1-i+m, j, :] * x[p-1-k+m, l, :],
                                             window_size, mode="constant")
                         Z2[i*q+j, k*q+l, :] += tmp
