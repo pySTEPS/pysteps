@@ -124,7 +124,7 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     Parameters
     ----------
     x : array_like
-        Array of shape (n,...) containing a time series of length n>=p+d+h+1.
+        Array of shape (n,...) containing a time series of length n=p+d+h+1.
         The remaining dimensions are flattened. The rows and columns of x
         represent time steps and samples, respectively.
     p : int
@@ -156,8 +156,9 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     """
     n = x.shape[0]
 
-    if n < p + d + h + 1:
-        raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+    if n != p + d + h + 1:
+        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
+                         (n, p, d, h, p+d+h+1))
 
     if len(x.shape) > 1:
         x = x.reshape((n, np.prod(x.shape[1:])))
@@ -229,7 +230,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
     Parameters
     ----------
     x : array_like
-        Array of shape (n,...) containing a time series of length n>=p+d+h+1.
+        Array of shape (n,...) containing a time series of length n=p+d+h+1.
         The remaining dimensions are flattened. The rows and columns of x
         represent time steps and samples, respectively.
     p : int
@@ -270,8 +271,9 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
     """
     n = x.shape[0]
 
-    if n < p + d + h + 1:
-        raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+    if n != p + d + h + 1:
+        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
+                         (n, p, d, h, p+d+h+1))
 
     if d == 1:
         x = np.diff(x, axis=0)
@@ -478,7 +480,7 @@ def estimate_ar_params_yw_localized(gamma):
 
 def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
                             include_constant_term=False, h=0, lam=0.0):
-    """Estimate the parameters of a vector autoregressive integrated VAR(p) model
+    """Estimate the parameters of a vector autoregressive VAR(p) model
 
       :math:`\mathbf{x}_{k+1}=\mathbf{c}+\mathbf{\Phi}_1\mathbf{x}_k+
       \mathbf{\Phi}_2\mathbf{x}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{x}_{k-p}+
@@ -491,9 +493,9 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     Parameters
     ----------
     x : array_like
-        Array of shape (n, q, :) containing a time series of length n with
-        q-dimensional variables. The remaining dimensions are flattened. The
-        second and third dimensions of x represent time steps and samples,
+        Array of shape (n, q, :) containing a time series of length n=p+d+h+1
+        with q-dimensional variables. The remaining dimensions are flattened.
+        The second and third dimensions of x represent time steps and samples,
         respectively.
     p : int
         The order of the model.
@@ -525,8 +527,9 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     q = x.shape[1]
     n = x.shape[0]
 
-    if n < p + d + h + 1:
-        raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+    if n != p + d + h + 1:
+        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
+                         (n, p, d, h, p+d+h+1))
 
     if d not in [0, 1]:
         raise ValueError("d = %d, but 0 or 1 required" % d)
@@ -599,8 +602,9 @@ def estimate_var_params_ols_localized(x, p, d=0, include_constant_term=False,
     q = x.shape[1]
     n = x.shape[0]
 
-    if n < p + d + h + 1:
-        raise ValueError("n = %d, p = %d, d = %d, but n >= p+d+h+1 required" % (n, p, d))
+    if n != p + d + h + 1:
+        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
+                         (n, p, d, h, p+d+h+1))
 
     if window == "gaussian":
         convol_filter = ndimage.gaussian_filter
