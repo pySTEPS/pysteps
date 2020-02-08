@@ -326,7 +326,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
                     Z2[i+1, j+1, :] += tmp
 
     m = np.prod(x.shape[1:])
-    phi = np.empty(np.hstack([[p+1], m]))
+    phi = np.empty(np.hstack([[p], m]))
     if include_constant_term:
         c = np.empty(m)
     XZ = XZ.reshape(np.hstack([[XZ.shape[0]], m]))
@@ -337,31 +337,30 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
             b = 2.0 * np.dot(XZ[:, i], np.linalg.inv(Z2[:, :, i] + 
                              lam*np.eye(Z2.shape[0])))
             if not include_constant_term:
-                phi[:-1, i] = b
+                phi[:, i] = b
             else:
-                phi[:-1, i] = b[1:]
+                phi[:, i] = b[1:]
                 c[i] = b[0]
         except np.linalg.LinAlgError:
-            phi[:-1, i] = np.nan
+            phi[:, i] = np.nan
             if include_constant_term:
                 c[i] = np.nan
 
     if p == 1:
-        phi[-1, :] = np.sqrt(1.0 - phi[0, :]*phi[0, :])
+        phi_pert = np.sqrt(1.0 - phi[0, :]*phi[0, :])
     elif p == 2:
-        phi[-1, :] = np.sqrt((1.0 + phi[1, :]) * ((1.0 - phi[1, :])**2.0 - phi[0, :]**2.0) / (1.0 - phi[1, :]))
+        phi_pert = np.sqrt((1.0 + phi[1, :]) * ((1.0 - phi[1, :])**2.0 - phi[0, :]**2.0) / (1.0 - phi[1, :]))
     else:
-        phi[-1, :] = np.zeros(m)
+        phi_pert = np.zeros(m)
 
+    phi = list(phi.reshape(np.hstack([[phi.shape[0]], x.shape[1:]])))
     if d == 1:
         phi = _compute_differenced_model_params(phi, p, 1, 1)
-        return [phi[i].reshape(x.shape[1:]) for i in range(len(phi))]
-
-    phi_out = list(phi.reshape(np.hstack([[p+1], x.shape[1:]])))
+    phi.append(phi_pert.reshape(x.shape[1:]))
     if include_constant_term:
-        phi_out.insert(0, c.reshape(x.shape[1:]))
+        phi.insert(0, c.reshape(x.shape[1:]))
 
-    return phi_out
+    return phi
 
 
 def estimate_ar_params_yw(gamma, check_stationarity=True):
@@ -646,7 +645,7 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
     out : list
         The estimated parameter matrices :math:`\mathbf{\Phi}_{1,i},
         \mathbf{\Phi}_{2,i},\dots,\mathbf{\Phi}_{p+1,i}`. If
-        include_constant_term is True, the constant term :math:`\mathbf{c}` is
+        include_constant_term is True, the constant term :math:`\mathbf{c}_i` is
         added to the beginning of the list. Each element of the list is a matrix
         of shape (x.shape[2], x.shape[3], q, q).
 
@@ -665,6 +664,10 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
     if n != p + d + h + 1:
         raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
                          (n, p, d, h, p+d+h+1))
+
+    if d == 1:
+        x = np.diff(x, axis=0)
+        n -= d
 
     if window == "gaussian":
         convol_filter = ndimage.gaussian_filter
@@ -695,18 +698,22 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
                                             window_size, mode="constant")
                         Z2[i*q+j, k*q+l, :] += tmp
 
-    phi = np.empty((x.shape[2], x.shape[3], p, q, q))
+    phi = np.empty((p, x.shape[2], x.shape[3], q, q))
     for i in range(x.shape[2]):
         for j in range(x.shape[3]):
             try:
                 B = 2.0 * np.dot(XZ[:, :, i, j], np.linalg.inv(Z2[:, :, i, j] + 
                                  lam*np.eye(Z2.shape[0])))
                 for k in range(p):
-                    phi[i, j, k, :, :] = B[:, k*q:(k+1)*q]
+                    phi[k, i, j, :, :] = B[:, k*q:(k+1)*q]
             except np.linalg.LinAlgError:
-                phi[i, j, :] = np.nan
+                phi[:, i, j, :] = np.nan
 
-    return phi
+    if d == 1:
+        phi = _compute_differenced_model_params(phi, p, q, 1)
+        return [phi[i].reshape(x.shape[1:]) for i in range(len(phi))]
+
+    return list(phi)
 
 
 def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
@@ -978,7 +985,7 @@ def _compute_differenced_model_params(phi, p, q, d):
 
     for i in range(1, d+1):
         if q > 1:
-            phi_out[i-1] -= binom(d, i) * (-1)**i * np.eye(q, q)
+            phi_out[i-1] -= binom(d, i) * (-1)**i * np.eye(q)
         else:
             phi_out[i-1] -= binom(d, i) * (-1)**i
     for i in range(1, p+1):
