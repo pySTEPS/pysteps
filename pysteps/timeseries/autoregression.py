@@ -254,7 +254,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
         (i.e. ridge regression).
     window : {"gaussian", "uniform"}
         The weight function to use for the moving window. Applicable if
-        window_radius < np.inf.
+        window_radius < np.inf. Defaults to 'gaussian'.
 
     Returns
     -------
@@ -600,11 +600,67 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
             return phi
 
 
-def estimate_var_params_ols_localized(x, p, d=0, include_constant_term=False,
-                                      window="gaussian", window_radius=np.inf,
-                                      h=0, lam=0.0):
+def estimate_var_params_ols_localized(x, p, window_radius, d=0,
+                                      include_constant_term=False,
+                                      h=0, lam=0.0, window="gaussian"):
+    """Estimate the parameters of a vector autoregressive VAR(p) model
+
+      :math:`\mathbf{x}_{k+1,i}=\mathbf{c}_i+\mathbf{\Phi}_{1,i}\mathbf{x}_{k,i}+
+      \mathbf{\Phi}_{2,i}\mathbf{x}_{k-1,i}+\dots+\mathbf{\Phi}_{p,i}
+      \mathbf{x}_{k-p,i}+\mathbf{\Phi}_{p+1,i}\mathbf{\epsilon}`
+
+    by using ordinary least squares (OLS), where :math:`i` denote spatial
+    coordinates with arbitrary dimension. If :math:`d\geq 1`, the parameters
+    are estimated for a d times differenced time series that is integrated back
+    to the original one by summation of the differences.
+
+    Parameters
+    ----------
+    x : array_like
+        Array of shape (n, q, :) containing a time series of length n=p+d+h+1
+        with q-dimensional variables. The remaining dimensions are flattened.
+        The remaining dimensions starting from the third one represent the
+        samples.
+    p : int
+        The order of the model.
+    window_radius : float
+        Radius of the moving window. If window is 'gaussian', window_radius is
+        the standard deviation of the Gaussian filter. If window is 'uniform',
+        the size of the window is 2*window_radius+1.
+    d : {0,1}
+        The order of differencing to apply to the time series.
+    include_constant_term : bool
+        Include the constant term :math:`\mathbf{c}` to the model.
+    h : int
+        If h>0, the fitting is done by using a history of length h in addition
+        to the minimal required number of time steps n=p+d+1.
+    lam : float
+        If lam>0, the regression is regularized by adding a penalty term
+        (i.e. ridge regression).
+    window : {"gaussian", "uniform"}
+        The weight function to use for the moving window. Applicable if
+        window_radius < np.inf. Defaults to 'gaussian'.
+
+    Returns
+    -------
+    out : list
+        The estimated parameter matrices :math:`\mathbf{\Phi}_{1,i},
+        \mathbf{\Phi}_{2,i},\dots,\mathbf{\Phi}_{p+1,i}`. If
+        include_constant_term is True, the constant term :math:`\mathbf{c}` is
+        added to the beginning of the list. Each element of the list is a matrix
+        of shape (x.shape[2], x.shape[3], q, q).
+
+    Notes
+    -----
+    Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
+    currently implemented, and it is set to a zero matrix. In addition, only
+    two-dimensional fields are supported.
+    """
     q = x.shape[1]
     n = x.shape[0]
+
+    if len(x.shape[2:]) != 2:
+        raise ValueError("the input time series x has invalid dimensions: currently only two-dimensional fields are supported")
 
     if n != p + d + h + 1:
         raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 

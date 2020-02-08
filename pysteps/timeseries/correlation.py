@@ -60,7 +60,7 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
         'spectral'. Defaults to False.
     window : {"gaussian", "uniform"}
         The weight function to use for the moving window. Applicable if
-        window_radius < np.inf.
+        window_radius < np.inf. Defaults to 'gaussian'.
     window_radius : float
         If window_radius < np.inf, the correlation coefficients are computed in
         a moving window. Defaults to np.inf (i.e. the coefficients are computed
@@ -144,7 +144,7 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
         of the mask is expected to be x.shape[2:].
     window : {"gaussian", "uniform"}
         The weight function to use for the moving window. Applicable if
-        window_radius < np.inf.
+        window_radius < np.inf. Defaults to 'gaussian'.
     window_radius : float
         If window_radius < np.inf, the correlation coefficients are computed in
         a moving window. Defaults to np.inf (i.e. the correlations are computed
