@@ -910,7 +910,7 @@ def test_var_stationarity(phi):
 
 def _compute_differenced_model_params(phi, p, q, d):
     phi_out = []
-    for i in range(p+d+1):
+    for i in range(p+d):
         if q > 1:
             phi_out.append(np.zeros((q, q)))
         else:
