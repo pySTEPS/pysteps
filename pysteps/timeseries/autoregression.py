@@ -498,16 +498,17 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     x : array_like
         Array of shape (n, q, :) containing a time series of length n=p+d+h+1
         with q-dimensional variables. The remaining dimensions are flattened.
-        The second and third dimensions of x represent time steps and samples,
-        respectively.
+        The remaining dimensions starting from the third one represent the
+        samples.
     p : int
         The order of the model.
     d : {0,1}
         The order of differencing to apply to the time series.
     check_stationarity : bool
-        Check the stationarity of the estimated model.
+        If True, the stationarity of the resulting VAR(p) process is tested. An
+        exception is thrown if the process is not stationary.
     include_constant_term : bool
-        Include the constant term c to the model.
+        Include the constant term :math:`\mathbf{c}` to the model.
     h : int
         If h>0, the fitting is done by using a history of length h in addition
         to the minimal required number of time steps n=p+d+1.
@@ -524,8 +525,8 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
 
     Notes
     -----
-    Estimation of the innovation parameter is not currently implemented, and
-    it is set to a zero matrix.
+    Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
+    currently implemented, and it is set to a zero matrix.
     """
     q = x.shape[1]
     n = x.shape[0]
