@@ -569,7 +569,6 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     else:
         for i in range(p):
             phi.append(B[:, i*q:(i+1)*q])
-    phi.append(np.zeros((q, q)))
 
     if check_stationarity:
         M = np.zeros((p*q, p*q))
