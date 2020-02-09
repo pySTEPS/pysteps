@@ -18,12 +18,12 @@ def test_estimate_ar_params_ols():
         for i in range(len(phi)):
             assert np.isscalar(phi[i])
 
-        phi = autoregression.estimate_ar_params_ols(R[-(p+1)], p, include_constant_term=True)
+        phi = autoregression.estimate_ar_params_ols(R[-(p+1):], p, include_constant_term=True)
         assert len(phi) == p + 2
         for i in range(len(phi)):
             assert np.isscalar(phi[i])
 
-        phi = autoregression.estimate_ar_params_ols(R[-(p+2)], p, include_constant_term=True, d=1)
+        phi = autoregression.estimate_ar_params_ols(R[-(p+2):], p, include_constant_term=True, d=1)
         assert len(phi) == p + 3
         for i in range(len(phi)):
             assert np.isscalar(phi[i])
