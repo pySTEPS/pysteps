@@ -585,18 +585,16 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
                 "Error in estimate_var_params_ols: "
                 "nonstationary VAR(p) process")
 
-    if d == 1:
+    if d == 0:
+        phi_out = phi
+    else:
         phi_out = _compute_differenced_model_params(phi, p, q, 1)
 
-        if include_constant_term:
-            return c, phi_out
-        else:
-            return phi_out
-    else:
-        if include_constant_term:
-            return c, phi
-        else:
-            return phi
+    if include_constant_term:
+        phi_out.insert(0, c)
+    phi_out.append(np.zeros((q, q)))
+
+    return phi_out
 
 
 def estimate_var_params_ols_localized(x, p, window_radius, d=0,
@@ -746,9 +744,9 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
     if d == 1:
         phi_out = _compute_differenced_model_params(phi_out, p, q, 1)
 
+    phi_out.append(np.zeros(phi_out[0].shape))
     if include_constant_term:
         phi_out.insert(0, c.reshape(np.hstack([x.shape[2:], [q]])))
-    phi_out.append(np.zeros(phi_out[1].shape))
 
     return phi_out
 
