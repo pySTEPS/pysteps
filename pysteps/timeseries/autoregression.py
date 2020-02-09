@@ -160,7 +160,7 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     n = x.shape[0]
 
     if n != p + d + h + 1:
-        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
+        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" %
                          (n, p, d, h, p+d+h+1))
 
     if len(x.shape) > 1:
@@ -275,7 +275,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
     n = x.shape[0]
 
     if n != p + d + h + 1:
-        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
+        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" %
                          (n, p, d, h, p+d+h+1))
 
     if d == 1:
@@ -334,7 +334,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
 
     for i in range(m):
         try:
-            b = np.dot(XZ[:, i], np.linalg.inv(Z2[:, :, i] + 
+            b = np.dot(XZ[:, i], np.linalg.inv(Z2[:, :, i] +
                        lam*np.eye(Z2.shape[0])))
             if not include_constant_term:
                 phi[:, i] = b
@@ -531,7 +531,7 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     n = x.shape[0]
 
     if n != p + d + h + 1:
-        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
+        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" %
                          (n, p, d, h, p+d+h+1))
 
     if d not in [0, 1]:
@@ -658,7 +658,7 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
     n = x.shape[0]
 
     if n != p + d + h + 1:
-        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
+        raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" %
                          (n, p, d, h, p+d+h+1))
 
     if d == 1:
@@ -728,7 +728,7 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
     phi = np.empty((p, m, q, q))
     for i in range(m):
         try:
-            B = np.dot(XZ[:, :, i], np.linalg.inv(Z2[:, :, i] + 
+            B = np.dot(XZ[:, :, i], np.linalg.inv(Z2[:, :, i] +
                        lam*np.eye(Z2.shape[0])))
             for k in range(p):
                 if not include_constant_term:
@@ -742,11 +742,10 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
             if include_constant_term:
                 c[i, :] = np.nan
 
-    if d == 1:
-        phi = _compute_differenced_model_params(phi, p, q, 1)
-        return [phi[i].reshape(x.shape[1:]) for i in range(len(phi))]
-
     phi_out = [phi[i].reshape(np.hstack([x.shape[2:], [q, q]])) for i in range(len(phi))]
+    if d == 1:
+        phi_out = _compute_differenced_model_params(phi_out, p, q, 1)
+
     if include_constant_term:
         phi_out.insert(0, c.reshape(np.hstack([x.shape[2:], [q]])))
     phi_out.append(np.zeros(phi_out[1].shape))
@@ -1017,7 +1016,10 @@ def _compute_differenced_model_params(phi, p, q, d):
     phi_out = []
     for i in range(p+d):
         if q > 1:
-            phi_out.append(np.zeros((q, q)))
+            if len(phi[0].shape) == 2:
+                phi_out.append(np.zeros((q, q)))
+            else:
+                phi_out.append(np.zeros(phi[0].shape))
         else:
             phi_out.append(0.0)
 
