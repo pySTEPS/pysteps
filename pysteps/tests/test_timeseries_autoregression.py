@@ -13,17 +13,17 @@ def test_estimate_ar_params_ols():
     R = _create_data_univariate()
 
     for p in range(1, 4):
-        phi = autoregression.estimate_ar_params_ols(R[-3:], p)
+        phi = autoregression.estimate_ar_params_ols(R[-(p+1):], p)
         assert len(phi) == p + 1
         for i in range(len(phi)):
             assert np.isscalar(phi[i])
 
-        phi = autoregression.estimate_ar_params_ols(R[-3:], p, include_constant_term=True)
+        phi = autoregression.estimate_ar_params_ols(R[-(p+1)], p, include_constant_term=True)
         assert len(phi) == p + 2
         for i in range(len(phi)):
             assert np.isscalar(phi[i])
 
-        phi = autoregression.estimate_ar_params_ols(R, p, include_constant_term=True, d=1)
+        phi = autoregression.estimate_ar_params_ols(R[-(p+2)], p, include_constant_term=True, d=1)
         assert len(phi) == p + 3
         for i in range(len(phi)):
             assert np.isscalar(phi[i])
@@ -33,18 +33,18 @@ def test_estimate_ar_params_ols_localized():
     R = _create_data_univariate()
 
     for p in range(1, 4):
-        phi = autoregression.estimate_ar_params_ols_localized(R[-3:], p, 50)
+        phi = autoregression.estimate_ar_params_ols_localized([-(p+1)], p, 50)
         assert len(phi) == p + 1
         for i in range(len(phi)):
             assert phi[i].shape == R.shape[1:]
 
-        phi = autoregression.estimate_ar_params_ols_localized(R[-3:], p, 50,
+        phi = autoregression.estimate_ar_params_ols_localized([-(p+1)], p, 50,
             include_constant_term=True)
         assert len(phi) == p + 2
         for i in range(len(phi)):
             assert phi[i].shape == R.shape[1:]
 
-        phi = autoregression.estimate_ar_params_ols_localized(R, p,
+        phi = autoregression.estimate_ar_params_ols_localized([-(p+2)], p,
             include_constant_term=True, d=1)
         assert len(phi) == p + 3
         for i in range(len(phi)):
@@ -56,18 +56,18 @@ def test_estimate_var_params_ols():
     q = R.shape[1]
 
     for p in range(1, 4):
-        phi = autoregression.estimate_var_params_ols(R[-3:], p)
+        phi = autoregression.estimate_var_params_ols(R[-(p+1)], p)
         assert len(phi) == p + 1
         for i in range(len(phi)):
             assert phi[i].shape == (q, q)
 
-        phi = autoregression.estimate_var_params_ols(R[-3:], p, include_constant_term=True)
+        phi = autoregression.estimate_var_params_ols(R[-(p+1)], p, include_constant_term=True)
         assert len(phi) == p + 2
         assert phi[0].shape == (q,)
         for i in range(1, len(phi)):
             assert phi[i].shape == (q, q)
 
-        phi = autoregression.estimate_var_params_ols(R, p, include_constant_term=True, d=1)
+        phi = autoregression.estimate_var_params_ols(R[-(p+2)], p, include_constant_term=True, d=1)
         assert len(phi) == p + 3
         assert phi[0].shape == (q,)
         for i in range(1, len(phi)):
@@ -79,19 +79,19 @@ def test_estimate_var_params_ols_localized():
     q = R.shape[1]
 
     for p in range(1, 4):
-        phi = autoregression.estimate_var_params_ols_localized(R[-3:], p, 50)
+        phi = autoregression.estimate_var_params_ols_localized([-(p+1)], p, 50)
         assert len(phi) == p + 1
         for i in range(len(phi)):
             assert phi[i].shape == (R.shape[2], R.shape[3], q, q)
 
-        phi = autoregression.estimate_var_params_ols_localized(R[-3:], p, 50,
+        phi = autoregression.estimate_var_params_ols_localized([-(p+1)], p, 50,
             include_constant_term=True)
         assert len(phi) == p + 2
         assert phi[0].shape == (R.shape[2], R.shape[3], q)
         for i in range(1, len(phi)):
             assert phi[i].shape == (R.shape[2], R.shape[3], q, q)
 
-        phi = autoregression.estimate_var_params_ols_localized(R, p, 50,
+        phi = autoregression.estimate_var_params_ols_localized([-(p+2)], p, 50,
             include_constant_term=True, d=1)
         assert len(phi) == p + 3
         assert phi[0].shape == (R.shape[2], R.shape[3], q)
@@ -123,7 +123,8 @@ def _create_data_univariate():
     filenames = ["201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz",
                  "201609281605_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz",
                  "201609281610_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz",
-                 "201609281615_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz"]
+                 "201609281615_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz",
+                 "201609281620_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz"]
 
     R = []
     for fn in filenames:
