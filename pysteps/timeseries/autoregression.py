@@ -308,12 +308,12 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
         Z2 = np.zeros(np.hstack([[p, p], x.shape[1:]]))
         for i in range(p):
             for j in range(p):
-                for k in range(h + 2):
+                for k in range(h + 1):
                     tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
                     Z2[i, j, :] += tmp
     else:
         Z2 = np.zeros(np.hstack([[p+1, p+1], x.shape[1:]]))
-        Z2[0, 0] = h + 2
+        Z2[0, 0, :] = convol_filter(np.ones(x.shape[1:]), window_size, mode="constant")
         for i in range(p):
             for j in range(h + 1):
                 tmp = convol_filter(x[p-1-i+j, :], window_size, mode="constant")
@@ -321,7 +321,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
                 Z2[i+1, 0, :] += tmp
         for i in range(p):
             for j in range(p):
-                for k in range(h + 2):
+                for k in range(h + 1):
                     tmp = convol_filter(x[p-1-i+k, :] * x[p-1-j+k, :], window_size, mode="constant")
                     Z2[i+1, j+1, :] += tmp
 
@@ -334,8 +334,8 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
 
     for i in range(m):
         try:
-            b = 2.0 * np.dot(XZ[:, i], np.linalg.inv(Z2[:, :, i] + 
-                             lam*np.eye(Z2.shape[0])))
+            b = np.dot(XZ[:, i], np.linalg.inv(Z2[:, :, i] + 
+                       lam*np.eye(Z2.shape[0])))
             if not include_constant_term:
                 phi[:, i] = b
             else:
@@ -557,7 +557,7 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
             if include_constant_term:
                 z_ = np.vstack([[1], z_])
             Z.append(z_)
-    Z = np.hstack(Z)
+    Z = np.column_stack(Z)
 
     B = np.dot(np.dot(X, Z.T), np.linalg.inv(np.dot(Z, Z.T) + lam*np.eye(Z.shape[0])))
 
@@ -652,14 +652,10 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
     Notes
     -----
     Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
-    currently implemented, and it is set to a zero matrix. In addition, only
-    two-dimensional fields are supported.
+    currently implemented, and it is set to a zero matrix.
     """
     q = x.shape[1]
     n = x.shape[0]
-
-    if len(x.shape[2:]) != 2:
-        raise ValueError("the input time series x has invalid dimensions: currently only two-dimensional fields are supported")
 
     if n != p + d + h + 1:
         raise ValueError("n = %d, p = %d, d = %d, h = %d, but n = p+d+h+1 = %d required" % 
@@ -688,32 +684,74 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
                                         window_size, mode="constant")
                     XZ[i, k*q+j, :] += tmp
 
-    Z2 = np.zeros(np.hstack([[p*q, p*q], x.shape[2:]]))
-    for i in range(p):
-        for j in range(q):
-            for k in range(p):
-                for l in range(q):
-                    for m in range(h + 2):
-                        tmp = convol_filter(x[p-1-i+m, j, :] * x[p-1-k+m, l, :],
-                                            window_size, mode="constant")
-                        Z2[i*q+j, k*q+l, :] += tmp
+    if include_constant_term:
+        v = np.zeros(np.hstack([[q], x.shape[2:]]))
+        for i in range(q):
+            for j in range(h + 1):
+                v[i, :] += convol_filter(x[p+j, i, :], window_size, mode="constant")
+        XZ = np.hstack([v[:, np.newaxis, :], XZ])
 
-    phi = np.empty((p, x.shape[2], x.shape[3], q, q))
-    for i in range(x.shape[2]):
-        for j in range(x.shape[3]):
-            try:
-                B = 2.0 * np.dot(XZ[:, :, i, j], np.linalg.inv(Z2[:, :, i, j] + 
-                                 lam*np.eye(Z2.shape[0])))
+    if not include_constant_term:
+        Z2 = np.zeros(np.hstack([[p*q, p*q], x.shape[2:]]))
+        for i in range(p):
+            for j in range(q):
                 for k in range(p):
-                    phi[k, i, j, :, :] = B[:, k*q:(k+1)*q]
-            except np.linalg.LinAlgError:
-                phi[:, i, j, :] = np.nan
+                    for l in range(q):
+                        for m in range(h + 1):
+                            tmp = convol_filter(x[p-1-i+m, j, :] * x[p-1-k+m, l, :],
+                                                window_size, mode="constant")
+                            Z2[i*q+j, k*q+l, :] += tmp
+    else:
+        Z2 = np.zeros(np.hstack([[p*q+1, p*q+1], x.shape[2:]]))
+        Z2[0, 0, :] = convol_filter(np.ones(x.shape[2:]), window_size, mode="constant")
+        for i in range(p):
+            for j in range(q):
+                for k in range(h + 1):
+                    tmp = convol_filter(x[p-1-i+k, j, :], window_size, mode="constant")
+                    Z2[0, i*q+j+1, :] += tmp
+                    Z2[i*q+j+1, 0, :] += tmp
+        for i in range(p):
+            for j in range(q):
+                for k in range(p):
+                    for l in range(q):
+                        for m in range(h + 1):
+                            tmp = convol_filter(x[p-1-i+m, j, :] * x[p-1-k+m, l, :],
+                                                window_size, mode="constant")
+                            Z2[i*q+j+1, k*q+l+1, :] += tmp
+
+    m = np.prod(x.shape[2:])
+    if include_constant_term:
+        c = np.empty((m, q))
+    XZ = XZ.reshape((XZ.shape[0], XZ.shape[1], m))
+    Z2 = Z2.reshape((Z2.shape[0], Z2.shape[1], m))
+
+    phi = np.empty((p, m, q, q))
+    for i in range(m):
+        try:
+            B = np.dot(XZ[:, :, i], np.linalg.inv(Z2[:, :, i] + 
+                       lam*np.eye(Z2.shape[0])))
+            for k in range(p):
+                if not include_constant_term:
+                    phi[k, i, :, :] = B[:, k*q:(k+1)*q]
+                else:
+                    phi[k, i, :, :] = B[:, k*q+1:(k+1)*q+1]
+            if include_constant_term:
+                c[i, :] = B[:, 0]
+        except np.linalg.LinAlgError:
+            phi[:, i, :, :] = np.nan
+            if include_constant_term:
+                c[i, :] = np.nan
 
     if d == 1:
         phi = _compute_differenced_model_params(phi, p, q, 1)
         return [phi[i].reshape(x.shape[1:]) for i in range(len(phi))]
 
-    return list(phi)
+    phi_out = [phi[i].reshape(np.hstack([x.shape[2:], [q, q]])) for i in range(len(phi))]
+    if include_constant_term:
+        phi_out.insert(0, c.reshape(np.hstack([x.shape[2:], [q]])))
+    phi_out.append(np.zeros(phi_out[1].shape))
+
+    return phi_out
 
 
 def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
