@@ -68,7 +68,7 @@ def test_estimate_ar_params_ols_localized():
             assert phi[i].shape == R.shape[1:]
 
         phi = autoregression.estimate_ar_params_ols_localized(R[-(p+2):], p,
-            include_constant_term=True, d=1)
+            50, include_constant_term=True, d=1)
         assert len(phi) == p + 3
         for i in range(len(phi)):
             assert phi[i].shape == R.shape[1:]
