@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import pysteps
-from pysteps.timeseries import autoregression
+from pysteps.timeseries import autoregression, correlation
 
 
 def test_estimate_ar_params_ols():
@@ -27,6 +27,29 @@ def test_estimate_ar_params_ols():
         assert len(phi) == p + 3
         for i in range(len(phi)):
             assert np.isscalar(phi[i])
+
+
+def test_estimate_ar_params_yw():
+    R = _create_data_univariate()
+
+    for p in range(1, 4):
+        gamma = correlation.temporal_autocorrelation(R[-(p+1):])
+        phi = autoregression.estimate_ar_params_yw(gamma)
+        assert len(phi) == p + 1
+        for i in range(len(phi)):
+            assert np.isscalar(phi[i])
+
+
+def test_estimate_ar_params_yw_localized():
+    R = _create_data_univariate()
+
+    for p in range(1, 4):
+        gamma = correlation.temporal_autocorrelation(R[-(p+1):], window="gaussian",
+                                                     window_radius=50)
+        phi = autoregression.estimate_ar_params_yw_localized(gamma)
+        assert len(phi) == p + 1
+        for i in range(len(phi)):
+            assert phi[i].shape == R.shape[1:]
 
 
 def test_estimate_ar_params_ols_localized():
@@ -97,6 +120,29 @@ def test_estimate_var_params_ols_localized():
         assert phi[0].shape == (R.shape[2], R.shape[3], q)
         for i in range(1, len(phi)):
             assert phi[i].shape == (R.shape[2], R.shape[3], q, q)
+
+
+def test_estimate_var_params_yw():
+    R = _create_data_multivariate()
+
+    for p in range(1, 4):
+        gamma = correlation.temporal_autocorrelation_multivariate(R[-(p+1):])
+        phi = autoregression.estimate_var_params_yw(gamma)
+        assert len(phi) == p + 1
+        for i in range(len(phi)):
+            assert phi[i].shape == (R.shape[1], R.shape[1])
+
+
+def test_estimate_var_params_yw_localized():
+    pass
+    # TODO: Implement this function.
+#    R = _create_data_multivariate()
+#
+#    for p in range(1, 4):
+#        gamma = correlation.temporal_autocorrelation_multivariate(R[-(p+1):],
+#            window="gaussian", window_radius=50)
+#        phi = autoregression.estimate_var_params_yw_localized(gamma)
+#        assert len(phi) == p + 1
 
 
 def _create_data_multivariate():
