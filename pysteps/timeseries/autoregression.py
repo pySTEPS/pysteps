@@ -766,7 +766,9 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     gamma : list
         List of correlation matrices
         :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_n`.
-        See :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`.
+        To obtain these matrices, use
+        :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
+        with window_radius=np.inf.
     d : int
         The order of differencing. If d>=1, a differencing operator
         :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
@@ -794,7 +796,7 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     for i in range(len(gamma)):
         if gamma[i].shape[0] != q or gamma[i].shape[1] != q:
             raise ValueError("dimension mismatch: gamma[%d].shape=%s, but (%d,%d) expected" % \
-                             (i, str(gamma[i].shape, q, q)))
+                             (i, str(gamma[i].shape), q, q))
 
     if d not in [0, 1]:
         raise ValueError("d = %d, but 0 or 1 required" % d)
@@ -842,6 +844,71 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
         return phi_out
     else:
         return phi
+
+
+def estimate_var_params_yw_localized(gamma):
+    """Estimate the parameters of a vector autoregressive VAR(p) model
+
+      :math:`\mathbf{x}_{k+1,i}=\mathbf{\Phi}_{1,i}\mathbf{x}_{k,i}+
+      \mathbf{\Phi}_{2,i}\mathbf{x}_{k-1,i}+\dots+\mathbf{\Phi}_{p,i}
+      \mathbf{x}_{k-p,i}+\mathbf{\Phi}_{p+1,i}\mathbf{\epsilon}`
+
+    from the Yule-Walker equations by using the given correlation matrices,
+    where :math:`i` denote spatial coordinates with arbitrary dimension.
+
+    Parameters
+    ----------
+    gamma : list
+        List of correlation matrices
+        :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_n`.
+        To obtain these matrices, use
+        :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
+        with window_radius<np.inf.
+
+    Returns
+    -------
+    out : list
+        The estimated parameter matrices :math:`\mathbf{\Phi}_{1,i},
+        \mathbf{\Phi}_{2,i},\dots,\mathbf{\Phi}_{p+1,i}`. Each element of the
+        list has the same shape as those in gamma.
+
+    Notes
+    -----
+    Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
+    currently implemented, and it is set to a zero matrix.
+    """
+    p = len(gamma) - 1
+    q = gamma[0].shape[2]
+    n = np.prod(gamma[0].shape[:-2])
+
+    for i in range(1, len(gamma)):
+        if gamma[i].shape != gamma[0].shape:
+            raise ValueError("dimension mismatch: gamma[%d].shape=%s, but %s expected" % \
+                             (i, str(gamma[i].shape), str(gamma[0].shape)))
+
+    gamma_1d = [g.reshape((n, q, q)) for g in gamma]
+    phi_out = [np.zeros([n, q, q]) for i in range(p)]
+
+    for k in range(n):
+        a = np.empty((p*q, p*q))
+        for i in range(p):
+            for j in range(p):
+                a_tmp = gamma_1d[abs(i-j)][k, :]
+                if i > j:
+                    a_tmp = a_tmp.T
+                a[i*q:(i+1)*q, j*q:(j+1)*q] = a_tmp
+
+        b = np.vstack([gamma_1d[i][k, :].T for i in range(1, p+1)])
+        x = np.linalg.solve(a, b)
+
+        for i in range(p):
+            phi_out[i][k, :, :] = x[i*q:(i+1)*q, :]
+
+    for i in range(len(phi_out)):
+        phi_out[i] = phi_out[i].reshape(np.hstack([gamma[0].shape[:-2], [q, q]]))
+    phi_out.append(np.zeros(gamma[0].shape))
+
+    return phi_out
 
 
 def iterate_ar_model(x, phi, eps=None):
