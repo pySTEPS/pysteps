@@ -161,7 +161,10 @@ def _create_data_multivariate():
         R_[~np.isfinite(R_)] = 0.0
         R.append(np.stack([R_, np.roll(R_, 5, axis=0)]))
 
-    return np.stack(R)
+    R = np.stack(R)
+    R = R[:, :, -400:, 200:-200]
+
+    return R
 
 
 def _create_data_univariate():
@@ -180,4 +183,7 @@ def _create_data_univariate():
         R_[~np.isfinite(R_)] = 0.0
         R.append(R_)
 
-    return np.stack(R)
+    R = np.stack(R)
+    R = R[:, -400:, 200:-200]
+
+    return R
