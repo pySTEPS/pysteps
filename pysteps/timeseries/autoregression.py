@@ -644,7 +644,7 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
         \mathbf{\Phi}_{2,i},\dots,\mathbf{\Phi}_{p+1,i}`. If
         include_constant_term is True, the constant term :math:`\mathbf{c}_i` is
         added to the beginning of the list. Each element of the list is a matrix
-        of shape (x.shape[2], x.shape[3], q, q).
+        of shape (x.shape[2:], q, q).
 
     Notes
     -----
