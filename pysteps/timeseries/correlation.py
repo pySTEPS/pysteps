@@ -155,10 +155,11 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
     Returns
     -------
     out : list
-        List of correlation matrices :math:`\Gamma_0,\Gamma_1,\dots,\Gamma_{n-1}`.
-        If window_radius<np.inf, the elements of the list are arrays of shape
-        (x.shape[2:],q,q). In this case, nan values are assigned, when the
-        sample size for computing the correlation coefficients is too small.
+        List of correlation matrices :math:`\Gamma_0,\Gamma_1,\dots,\Gamma_{n-1}`
+        of shape (q,q). If window_radius<np.inf, the elements of the list are
+        arrays of shape (x.shape[2:],q,q). In this case, nan values are assigned,
+        when the sample size for computing the correlation coefficients is too
+        small.
 
     References
     ----------
@@ -191,8 +192,9 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
                 if window_radius == np.inf:
                     gamma_k[i, j] = np.corrcoef(x_i.flatten(), x_j.flatten())[0, 1]
                 else:
-                    gamma_k[:, i, j] = _moving_window_corrcoef(x_i, x_j, window_radius,
+                    gamma_k[..., i, j] = _moving_window_corrcoef(x_i, x_j, window_radius,
                                                                window=window, mask=mask)
+
         gamma.append(gamma_k)
 
     return gamma
