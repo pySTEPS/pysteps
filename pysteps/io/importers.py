@@ -73,14 +73,14 @@ Available Importers
     :toctree: ../generated/
 
     import_bom_rf3
-    import_saf_crri
     import_fmi_geotiff
     import_fmi_pgm
+    import_knmi_hdf5
     import_mch_gif
     import_mch_hdf5
     import_mch_metranet
     import_opera_hdf5
-    import_knmi_hdf5
+    import_saf_crri
 """
 
 import gzip
@@ -271,137 +271,6 @@ def _import_bom_rf3_geodata(filename):
             geodata["unit"] = "mm"
 
     geodata["institution"] = "Commonwealth of Australia, Bureau of Meteorology"
-    ds_rainfall.close()
-
-    return geodata
-
-
-def import_saf_crri(filename, **kwargs):
-    """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
-    Intensity (CRRI) product from the Satellite Application Facilities (SAF).
-
-    Product description available on http://www.nwcsaf.org/crr_description
-    (last visited Jan 26, 2020).
-
-    Parameters
-    ----------
-
-    filename : str
-        Name of the file to import.
-
-    Other Parameters
-    ----------------
-
-    extent : scalars (left, right, bottom, top), optional
-        The spatial extent specified in data coordinates.
-        If None, the full extent is imported.
-
-    Returns
-    -------
-
-    out : tuple
-        A three-element tuple containing the rainfall field in mm/h, the quality
-        field and the metadata imported from the CRRI SAF netcdf file.
-        The quality field includes values [1, 2, 4, 8, 16, 24, 32] meaning
-        "nodata", "internal_consistency", "temporal_consistency", "good",
-        "questionable", "bad", and "interpolated", respectively.
-    """
-    if not NETCDF4_IMPORTED:
-        raise MissingOptionalDependency(
-            "netCDF4 package is required to import CRRI SAF products "
-            "but it is not installed"
-        )
-
-    extent = kwargs.get("extent", None)
-
-    geodata = _import_saf_crri_geodata(filename)
-    metadata = geodata
-
-    if extent:
-        xcoord = np.arange(metadata["x1"], metadata["x2"],
-                           metadata["xpixelsize"]) + metadata["xpixelsize"] / 2
-        ycoord = np.arange(metadata["y1"], metadata["y2"],
-                           metadata["ypixelsize"]) + metadata["ypixelsize"] / 2
-        ycoord = ycoord[::-1] # yorigin = "upper"
-        idx_x = np.logical_and(xcoord < extent[1], xcoord > extent[0])
-        idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
-
-        # update geodata
-        metadata["x1"] = xcoord[idx_x].min() - metadata["xpixelsize"] / 2
-        metadata["x2"] = xcoord[idx_x].max() + metadata["xpixelsize"] / 2
-        metadata["y1"] = ycoord[idx_y].min() - metadata["ypixelsize"] / 2
-        metadata["y2"] = ycoord[idx_y].max() + metadata["ypixelsize"] / 2
-
-    else:
-
-        idx_x = None
-        idx_y = None
-
-    precip, quality = _import_saf_crri_data(filename, idx_x, idx_y)
-
-    metadata["transform"] = None
-    metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(np.isfinite(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
-
-    return precip, quality, metadata
-
-
-def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
-    ds_rainfall = netCDF4.Dataset(filename)
-    if "crr_intensity" in ds_rainfall.variables.keys():
-        if idx_x is not None:
-            data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
-            quality = np.array(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
-        else:
-            data = np.array(ds_rainfall.variables["crr_intensity"])
-            quality = np.array(ds_rainfall.variables["crr_quality"])
-        precipitation = np.where(data == 65535, np.nan, data)
-    else:
-        precipitation = None
-        quality = None
-    ds_rainfall.close()
-
-    return precipitation, quality
-
-
-def _import_saf_crri_geodata(filename):
-
-    geodata = {}
-
-    ds_rainfall = netCDF4.Dataset(filename)
-
-    # get projection
-    projdef = ds_rainfall.getncattr("gdal_projection")
-    geodata["projection"] = projdef
-
-    # get x1, y1, x2, y2, xpixelsize, ypixelsize, yorigin
-    geotable = ds_rainfall.getncattr('gdal_geotransform_table')
-    xmin = ds_rainfall.getncattr("gdal_xgeo_up_left")
-    xmax = ds_rainfall.getncattr("gdal_xgeo_low_right")
-    ymin = ds_rainfall.getncattr("gdal_ygeo_low_right")
-    ymax = ds_rainfall.getncattr("gdal_ygeo_up_left")
-    xpixelsize = abs(geotable[1])
-    ypixelsize = abs(geotable[5])
-    geodata["x1"] = xmin
-    geodata["y1"] = ymin
-    geodata["x2"] = xmax
-    geodata["y2"] = ymax
-    geodata["xpixelsize"] = xpixelsize
-    geodata["ypixelsize"] = ypixelsize
-    geodata["yorigin"] = "upper"
-
-    # get the accumulation period
-    geodata["accutime"] = None
-
-    # get the unit of precipitation
-    geodata["unit"] = ds_rainfall.variables['crr_intensity'].units
-
-    # get institution
-    geodata["institution"] = ds_rainfall.getncattr("institution")
-
     ds_rainfall.close()
 
     return geodata
@@ -600,6 +469,172 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     f.close()
 
     return metadata
+
+
+def import_knmi_hdf5(filename, **kwargs):
+    """Import a precipitation or reflectivity field (and optionally the quality
+    field) from a HDF5 file conforming to the KNMI Data Centre specification.
+
+    Parameters
+    ----------
+
+    filename : str
+        Name of the file to import.
+
+    Other Parameters
+    ----------------
+
+    qty : {'ACRR', 'DBZH'}
+        The quantity to read from the file. The currently supported identifiers
+        are: 'ACRR'=hourly rainfall accumulation (mm) and 'DBZH'=max-reflectivity
+        (dBZ). The default value is 'ACRR'.
+
+    accutime : float
+        The accumulation time of the dataset in minutes. A 5 min accumulation
+        is used as default, but hourly, daily and monthly accumulations
+        are also available.
+
+    pixelsize: float
+        The pixel size of a raster cell in meters. The default value for the KNMI
+        datasets is 1000 m grid cell size, but datasets with 2400 m pixel size
+        are also available.
+
+    Returns
+    -------
+
+    out : tuple
+        A three-element tuple containing precipitation accumulation [mm] /
+        reflectivity [dBZ] of the KNMI product, the associated quality field
+        and metadata. The quality field is currently set to None.
+
+    Notes
+    -----
+
+    Every KNMI data type has a slightly different naming convention. The
+    standard setup is based on the accumulated rainfall product on 1 km2 spatial
+    and 5 min temporal resolution.
+    See https://data.knmi.nl/datasets?q=radar for a list of all available KNMI
+    radar data.
+    """
+
+    # TODO: Add quality field.
+
+    if not H5PY_IMPORTED:
+        raise MissingOptionalDependency(
+            "h5py package is required to import "
+            "KNMI's radar datasets "
+            "but it is not installed"
+        )
+
+    ###
+    # Options for kwargs.get
+    ###
+
+    # The unit in the 2D fields: either hourly rainfall accumulation (ACRR) or
+    # reflectivity (DBZH)
+    qty = kwargs.get("qty", "ACRR")
+
+    if qty not in ["ACRR", "DBZH"]:
+        raise ValueError(
+            "unknown quantity %s: the available options are 'ACRR' and 'DBZH' "
+        )
+
+    # The time step. Generally, the 5 min data is used, but also hourly, daily
+    # and monthly accumulations are present.
+    accutime = kwargs.get("accutime", 5.0)
+    # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
+    # 1.0 or 2.4 km datasets are available - give pixelsize in meters
+    pixelsize = kwargs.get("pixelsize", 1000.0)
+
+    ####
+    # Precipitation fields
+    ####
+
+    f = h5py.File(filename, "r")
+    dset = f["image1"]["image_data"]
+    precip_intermediate = np.copy(dset)  # copy the content
+
+    # In case precip is a rainfall accumulation (ACRR), precip is divided by 100.0,
+    # because the data is saved as hundreds of mm (so, as integers). 65535 is
+    # the no data value. The precision of the data is two decimals (0.01 mm).
+    if qty == "ACRR":
+        precip = np.where(precip_intermediate == 65535,
+                          np.NaN,
+                          precip_intermediate / 100.0)
+
+    # In case reflectivities are imported, the no data value is 255. Values are
+    # saved as integers. The reflectivities are not directly saved in dBZ, but
+    # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
+    if qty == "DBZH":
+        precip = np.where(precip_intermediate == 255,
+                          np.NaN,
+                          precip_intermediate * 0.5 - 32.0)
+
+    if precip is None:
+        raise IOError("requested quantity not found")
+
+    # TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
+
+    ####
+    # Meta data
+    ####
+
+    metadata = {}
+
+    if qty == "ACRR":
+        unit = "mm"
+        transform = None
+    elif qty == "DBZH":
+        unit = "dBZ"
+        transform = "dB"
+
+    # The 'where' group of mch- and Opera-data, is called 'geographic' in the
+    # KNMI data.
+    geographic = f["geographic"]
+    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
+    pr = pyproj.Proj(proj4str)
+    metadata["projection"] = proj4str
+
+    # Get coordinates
+    latlon_corners = geographic.attrs["geo_product_corners"]
+    ll_lat = latlon_corners[1]
+    ll_lon = latlon_corners[0]
+    ur_lat = latlon_corners[5]
+    ur_lon = latlon_corners[4]
+    lr_lat = latlon_corners[7]
+    lr_lon = latlon_corners[6]
+    ul_lat = latlon_corners[3]
+    ul_lon = latlon_corners[2]
+
+    ll_x, ll_y = pr(ll_lon, ll_lat)
+    ur_x, ur_y = pr(ur_lon, ur_lat)
+    lr_x, lr_y = pr(lr_lon, lr_lat)
+    ul_x, ul_y = pr(ul_lon, ul_lat)
+    x1 = min(ll_x, ul_x)
+    y2 = min(ll_y, lr_y)
+    x2 = max(lr_x, ur_x)
+    y1 = max(ul_y, ur_y)
+
+    # Fill in the metadata
+    metadata["x1"] = x1 * 1000.0
+    metadata["y1"] = y1 * 1000.0
+    metadata["x2"] = x2 * 1000.0
+    metadata["y2"] = y2 * 1000.0
+    metadata["xpixelsize"] = pixelsize
+    metadata["ypixelsize"] = pixelsize
+    metadata["yorigin"] = "upper"
+    metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
+    metadata["accutime"] = accutime
+    metadata["unit"] = unit
+    metadata["transform"] = transform
+    metadata["zerovalue"] = 0.0
+    metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
+    metadata["zr_a"] = 200.0
+    metadata["zr_b"] = 1.6
+
+    f.close()
+
+    return precip, None, metadata
 
 
 def import_mch_gif(filename, product, unit, accutime):
@@ -860,6 +895,16 @@ def import_mch_hdf5(filename, **kwargs):
     f.close()
 
     return precip, quality, metadata
+
+
+def _read_mch_hdf5_what_group(whatgrp):
+    qty = whatgrp.attrs["quantity"] if "quantity" in whatgrp.attrs.keys() else "RATE"
+    gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
+    offset = whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
+    nodata = whatgrp.attrs["nodata"] if "nodata" in whatgrp.attrs.keys() else 0
+    undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else -1.0
+
+    return qty, gain, offset, nodata, undetect
 
 
 def import_mch_metranet(filename, product, unit, accutime):
@@ -1141,16 +1186,6 @@ def import_opera_hdf5(filename, **kwargs):
     return precip, quality, metadata
 
 
-def _read_mch_hdf5_what_group(whatgrp):
-    qty = whatgrp.attrs["quantity"] if "quantity" in whatgrp.attrs.keys() else "RATE"
-    gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
-    offset = whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
-    nodata = whatgrp.attrs["nodata"] if "nodata" in whatgrp.attrs.keys() else 0
-    undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else -1.0
-
-    return qty, gain, offset, nodata, undetect
-
-
 def _read_opera_hdf5_what_group(whatgrp):
     qty = whatgrp.attrs["quantity"]
     gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
@@ -1161,9 +1196,12 @@ def _read_opera_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
-def import_knmi_hdf5(filename, **kwargs):
-    """Import a precipitation or reflectivity field (and optionally the quality
-    field) from a HDF5 file conforming to the KNMI Data Centre specification.
+def import_saf_crri(filename, **kwargs):
+    """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
+    Intensity (CRRI) product from the Satellite Application Facilities (SAF).
+
+    Product description available on http://www.nwcsaf.org/crr_description
+    (last visited Jan 26, 2020).
 
     Parameters
     ----------
@@ -1174,154 +1212,116 @@ def import_knmi_hdf5(filename, **kwargs):
     Other Parameters
     ----------------
 
-    qty : {'ACRR', 'DBZH'}
-        The quantity to read from the file. The currently supported identifiers
-        are: 'ACRR'=hourly rainfall accumulation (mm) and 'DBZH'=max-reflectivity
-        (dBZ). The default value is 'ACRR'.
-
-    accutime : float
-        The accumulation time of the dataset in minutes. A 5 min accumulation
-        is used as default, but hourly, daily and monthly accumulations
-        are also available.
-
-    pixelsize: float
-        The pixel size of a raster cell in meters. The default value for the KNMI
-        datasets is 1000 m grid cell size, but datasets with 2400 m pixel size
-        are also available.
+    extent : scalars (left, right, bottom, top), optional
+        The spatial extent specified in data coordinates.
+        If None, the full extent is imported.
 
     Returns
     -------
 
     out : tuple
-        A three-element tuple containing precipitation accumulation [mm] /
-        reflectivity [dBZ] of the KNMI product, the associated quality field
-        and metadata. The quality field is currently set to None.
-
-    Notes
-    -----
-
-    Every KNMI data type has a slightly different naming convention. The
-    standard setup is based on the accumulated rainfall product on 1 km2 spatial
-    and 5 min temporal resolution.
-    See https://data.knmi.nl/datasets?q=radar for a list of all available KNMI
-    radar data.
+        A three-element tuple containing the rainfall field in mm/h, the quality
+        field and the metadata imported from the CRRI SAF netcdf file.
+        The quality field includes values [1, 2, 4, 8, 16, 24, 32] meaning
+        "nodata", "internal_consistency", "temporal_consistency", "good",
+        "questionable", "bad", and "interpolated", respectively.
     """
-
-    # TODO: Add quality field.
-
-    if not H5PY_IMPORTED:
+    if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
-            "h5py package is required to import "
-            "KNMI's radar datasets "
+            "netCDF4 package is required to import CRRI SAF products "
             "but it is not installed"
         )
 
-    ###
-    # Options for kwargs.get
-    ###
+    extent = kwargs.get("extent", None)
 
-    # The unit in the 2D fields: either hourly rainfall accumulation (ACRR) or
-    # reflectivity (DBZH)
-    qty = kwargs.get("qty", "ACRR")
+    geodata = _import_saf_crri_geodata(filename)
+    metadata = geodata
 
-    if qty not in ["ACRR", "DBZH"]:
-        raise ValueError(
-            "unknown quantity %s: the available options are 'ACRR' and 'DBZH' "
-        )
+    if extent:
+        xcoord = np.arange(metadata["x1"], metadata["x2"],
+                           metadata["xpixelsize"]) + metadata["xpixelsize"] / 2
+        ycoord = np.arange(metadata["y1"], metadata["y2"],
+                           metadata["ypixelsize"]) + metadata["ypixelsize"] / 2
+        ycoord = ycoord[::-1] # yorigin = "upper"
+        idx_x = np.logical_and(xcoord < extent[1], xcoord > extent[0])
+        idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
 
-    # The time step. Generally, the 5 min data is used, but also hourly, daily
-    # and monthly accumulations are present.
-    accutime = kwargs.get("accutime", 5.0)
-    # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
-    # 1.0 or 2.4 km datasets are available - give pixelsize in meters
-    pixelsize = kwargs.get("pixelsize", 1000.0)
+        # update geodata
+        metadata["x1"] = xcoord[idx_x].min() - metadata["xpixelsize"] / 2
+        metadata["x2"] = xcoord[idx_x].max() + metadata["xpixelsize"] / 2
+        metadata["y1"] = ycoord[idx_y].min() - metadata["ypixelsize"] / 2
+        metadata["y2"] = ycoord[idx_y].max() + metadata["ypixelsize"] / 2
 
-    ####
-    # Precipitation fields
-    ####
+    else:
 
-    f = h5py.File(filename, "r")
-    dset = f["image1"]["image_data"]
-    precip_intermediate = np.copy(dset)  # copy the content
+        idx_x = None
+        idx_y = None
 
-    # In case precip is a rainfall accumulation (ACRR), precip is divided by 100.0,
-    # because the data is saved as hundreds of mm (so, as integers). 65535 is
-    # the no data value. The precision of the data is two decimals (0.01 mm).
-    if qty == "ACRR":
-        precip = np.where(precip_intermediate == 65535,
-                          np.NaN,
-                          precip_intermediate / 100.0)
+    precip, quality = _import_saf_crri_data(filename, idx_x, idx_y)
 
-    # In case reflectivities are imported, the no data value is 255. Values are
-    # saved as integers. The reflectivities are not directly saved in dBZ, but
-    # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
-    if qty == "DBZH":
-        precip = np.where(precip_intermediate == 255,
-                          np.NaN,
-                          precip_intermediate * 0.5 - 32.0)
+    metadata["transform"] = None
+    metadata["zerovalue"] = np.nanmin(precip)
+    if np.any(np.isfinite(precip)):
+        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
+    else:
+        metadata["threshold"] = np.nan
 
-    if precip is None:
-        raise IOError("requested quantity not found")
+    return precip, quality, metadata
 
-    # TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
 
-    ####
-    # Meta data
-    ####
+def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
+    ds_rainfall = netCDF4.Dataset(filename)
+    if "crr_intensity" in ds_rainfall.variables.keys():
+        if idx_x is not None:
+            data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
+            quality = np.array(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
+        else:
+            data = np.array(ds_rainfall.variables["crr_intensity"])
+            quality = np.array(ds_rainfall.variables["crr_quality"])
+        precipitation = np.where(data == 65535, np.nan, data)
+    else:
+        precipitation = None
+        quality = None
+    ds_rainfall.close()
 
-    metadata = {}
+    return precipitation, quality
 
-    if qty == "ACRR":
-        unit = "mm"
-        transform = None
-    elif qty == "DBZH":
-        unit = "dBZ"
-        transform = "dB"
 
-    # The 'where' group of mch- and Opera-data, is called 'geographic' in the
-    # KNMI data.
-    geographic = f["geographic"]
-    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
-    pr = pyproj.Proj(proj4str)
-    metadata["projection"] = proj4str
+def _import_saf_crri_geodata(filename):
 
-    # Get coordinates
-    latlon_corners = geographic.attrs["geo_product_corners"]
-    ll_lat = latlon_corners[1]
-    ll_lon = latlon_corners[0]
-    ur_lat = latlon_corners[5]
-    ur_lon = latlon_corners[4]
-    lr_lat = latlon_corners[7]
-    lr_lon = latlon_corners[6]
-    ul_lat = latlon_corners[3]
-    ul_lon = latlon_corners[2]
+    geodata = {}
 
-    ll_x, ll_y = pr(ll_lon, ll_lat)
-    ur_x, ur_y = pr(ur_lon, ur_lat)
-    lr_x, lr_y = pr(lr_lon, lr_lat)
-    ul_x, ul_y = pr(ul_lon, ul_lat)
-    x1 = min(ll_x, ul_x)
-    y2 = min(ll_y, lr_y)
-    x2 = max(lr_x, ur_x)
-    y1 = max(ul_y, ur_y)
+    ds_rainfall = netCDF4.Dataset(filename)
 
-    # Fill in the metadata
-    metadata["x1"] = x1 * 1000.0
-    metadata["y1"] = y1 * 1000.0
-    metadata["x2"] = x2 * 1000.0
-    metadata["y2"] = y2 * 1000.0
-    metadata["xpixelsize"] = pixelsize
-    metadata["ypixelsize"] = pixelsize
-    metadata["yorigin"] = "upper"
-    metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
-    metadata["accutime"] = accutime
-    metadata["unit"] = unit
-    metadata["transform"] = transform
-    metadata["zerovalue"] = 0.0
-    metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    metadata["zr_a"] = 200.0
-    metadata["zr_b"] = 1.6
+    # get projection
+    projdef = ds_rainfall.getncattr("gdal_projection")
+    geodata["projection"] = projdef
 
-    f.close()
+    # get x1, y1, x2, y2, xpixelsize, ypixelsize, yorigin
+    geotable = ds_rainfall.getncattr('gdal_geotransform_table')
+    xmin = ds_rainfall.getncattr("gdal_xgeo_up_left")
+    xmax = ds_rainfall.getncattr("gdal_xgeo_low_right")
+    ymin = ds_rainfall.getncattr("gdal_ygeo_low_right")
+    ymax = ds_rainfall.getncattr("gdal_ygeo_up_left")
+    xpixelsize = abs(geotable[1])
+    ypixelsize = abs(geotable[5])
+    geodata["x1"] = xmin
+    geodata["y1"] = ymin
+    geodata["x2"] = xmax
+    geodata["y2"] = ymax
+    geodata["xpixelsize"] = xpixelsize
+    geodata["ypixelsize"] = ypixelsize
+    geodata["yorigin"] = "upper"
 
-    return precip, None, metadata
+    # get the accumulation period
+    geodata["accutime"] = None
+
+    # get the unit of precipitation
+    geodata["unit"] = ds_rainfall.variables['crr_intensity'].units
+
+    # get institution
+    geodata["institution"] = ds_rainfall.getncattr("institution")
+
+    ds_rainfall.close()
+
+    return geodata
