@@ -134,16 +134,16 @@ def test_estimate_var_params_yw():
 
 
 def test_estimate_var_params_yw_localized():
-    pass
-    # TODO: Implement this function.
-#    R = _create_data_multivariate()
-#
-#    for p in range(1, 4):
-#        gamma = correlation.temporal_autocorrelation_multivariate(R[-(p+1):],
-#            window="gaussian", window_radius=50)
-#        phi = autoregression.estimate_var_params_yw_localized(gamma)
-#        assert len(phi) == p + 1
+    R = _create_data_multivariate()
+    q = R.shape[1]
 
+    for p in range(1, 4):
+        gamma = correlation.temporal_autocorrelation_multivariate(R[-(p+1):],
+            window="gaussian", window_radius=50)
+        phi = autoregression.estimate_var_params_yw_localized(gamma)
+        assert len(phi) == p + 1
+        for i in range(len(phi)):
+            assert phi[i].shape == (R.shape[2], R.shape[3], q, q)
 
 def _create_data_multivariate():
     root_path = pysteps.rcparams.data_sources["fmi"]["root_path"]
