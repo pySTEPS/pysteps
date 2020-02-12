@@ -924,14 +924,14 @@ def iterate_ar_model(x, phi, eps=None):
         Array of shape (n,...), n>=p, containing a time series of a input variable
         x. The elements of x along the first dimension are assumed to be in
         ascending order by time, and the time intervals are assumed to be regular.
-    phi : array_like
-        Array of length p+1 specifying the parameters of the AR(p) model. The
-        parameters are in ascending order by increasing time lag, and the last
-        element is the parameter corresponding to the innovation term eps.
+    phi : list
+        List or array of length p+1 specifying the parameters of the AR(p) model.
+        The parameters are in ascending order by increasing time lag, and the
+        last element is the parameter corresponding to the innovation term eps.
     eps : array_like
-        Optional perturbation field for the AR(p) process. The shape of eps is
-        expected to be x.shape[1:]. If eps is None, the innovation term is not
-        added.
+        Optional innovation term for the AR(p) process. The shape of eps is
+        expected to be a scalar or x.shape[1:] if len(x.shape)>1. If eps is
+        None, the innovation term is not added.
 
     """
     if x.shape[0] < len(phi) - 1:
@@ -975,19 +975,23 @@ def iterate_var_model(x, phi, eps=None):
     ----------
     x : array_like
         Array of shape (n,q,...), n>=p, containing a q-variate time series of a
-        input variable x with length n=p. The elements of x along the second
-        dimension are assumed to be in ascending order by time, and the time
-        intervals are assumed to be regular.
+        input variable x. The elements of x along the first dimension are
+        assumed to be in ascending order by time, and the time intervals are
+        assumed to be regular.
     phi : list
         List of parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,\dots,
         \mathbf{\Phi}_{p+1}`.
     eps : array_like
-        The innovation term. The length is expected to be x.shape[0].
+        Optional innovation term for the AR(p) process. The shape of eps is
+        expected to be (x.shape[1],) or (x.shape[1],x.shape[2:]) if
+        len(x.shape)>2. If eps is None, the innovation term is not added.
     """
     if x.shape[0] < len(phi) - 1:
         raise ValueError("dimension mismatch between x and phi: x.shape[0]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
 
     phi_shape = phi[0].shape
+    if phi_shape[-1] != phi_shape[-2]:
+        raise ValueError("phi[0].shape = %s, but the last two dimensions are expected to be equal" % str(phi_shape))
     for i in range(1, len(phi)):
         if phi[i].shape != phi_shape:
             raise ValueError("dimension mismatch between parameter matrices phi")
@@ -998,27 +1002,20 @@ def iterate_var_model(x, phi, eps=None):
     else:
         x_simple_shape = False
 
-    x_new = np.zeros(np.hstack([[x.shape[1]], x.shape[2:]]))
-
+    x_new = np.zeros(x.shape[1:])
     p = len(phi) - 1
-    q = phi_shape[0]
 
-    if x_simple_shape:
-        for l in range(p):
-            x_new += np.dot(phi[l], x[-(l+1), :, :])
-    else:
-        for l in range(p):
-            for i in range(q):
-                for j in range(q):
-                    x_new[i] += phi[l][i, j] * x[-(l+1), j, :]
+    for l in range(p):
+        x_new += np.einsum("...ij,j...->i...", phi[l], x[-(l+1), :])
 
     if eps is not None:
         x_new += np.dot(np.dot(phi[-1], phi[-1]), eps)
 
     if x_simple_shape:
-        return np.hstack([x[1:, :, 0], x_new])
+        return np.vstack([x[1:, :, 0], x_new])
     else:
-        return np.concatenate([x[1:, :, :], x_new[:, np.newaxis, :]], axis=1)
+        x_new = x_new.reshape(x.shape[1:])
+        return np.concatenate([x[1:, :], x_new[np.newaxis, :, :]], axis=0)
 
 
 def test_ar_stationarity(phi):
