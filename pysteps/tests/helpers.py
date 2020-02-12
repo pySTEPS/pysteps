@@ -17,39 +17,57 @@ def get_precipitation_fields(num_prev_files=0,
                              num_next_files=0,
                              return_raw=False,
                              metadata=False,
-                             upscale=None):
+                             upscale=None,
+                             source="mch"):
     """
     Get a precipitation field from the archive to be used as reference.
+
+    Source: bom
+    Reference time: 2018/06/16 10000 UTC
+
+    Source: fmi
+    Reference time: 2016/09/28 1600 UTC
+
+    Source: knmi
+    Reference time: 2010/08/26 0000 UTC
 
     Source: mch
     Reference time: 2015/05/15 1630 UTC
 
+    Source: opera
+    Reference time: 2018/08/24 1800 UTC
+
+    Source: crri
+    Reference time: 2018/06/01 0700 UTC
+
     Parameters
     ----------
 
-    num_prev_files: int
+    num_prev_files: int, optional
         Number of previous times (files) to return with respect to the
         reference time.
 
-    num_next_files: int
+    num_next_files: int, optional
         Number of future times (files) to return with respect to the
         reference time.
 
-    return_raw: bool
+    return_raw: bool, optional
         Do not preprocess the precipitation fields. False by default.
         The pre-processing steps are: 1) Convert to mm/h,
         2) Mask invalid values, 3) Log-transform the data [dBR].
 
-    metadata : bool
+    metadata: bool, optional
         If True, also return file metadata.
 
-    upscale: float or None
+    upscale: float or None, optional
         Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not
         modified.
         If it is a float, represents the length of the space window that is
         used to upscale the fields.
 
+    source: {"bom", "fmi" , "knmi", "mch", "opera", "saf"}, optional
+        Data source to be used.
 
     Returns
     -------
@@ -59,11 +77,35 @@ def get_precipitation_fields(num_prev_files=0,
 
 
     """
-    pytest.importorskip('PIL')
-    # Selected case
-    date = datetime.strptime("201505151630", "%Y%m%d%H%M")
-    data_source = rcparams.data_sources["mch"]
+    # Select case
+    if source == "bom":
+        pytest.importorskip("netCDF4")
+        date = datetime.strptime("2018/06/16 1000", "%Y/%m/%d %H%M")
 
+    elif source == "fmi":
+        pytest.importorskip("pyproj")
+        date = datetime.strptime("2016/09/28 1600", "%Y/%m/%d %H%M")
+
+    elif source == "knmi":
+        pytest.importorskip("h5py")
+        date = datetime.strptime("2010/08/26 0000", "%Y/%m/%d %H%M")
+
+    elif source == "mch":
+        pytest.importorskip("PIL")
+        date = datetime.strptime("2015/05/15 1630", "%Y/%m/%d %H%M")
+
+    elif source == "opera":
+        pytest.importorskip("h5py")
+        date = datetime.strptime("2018/08/24 1800", "%Y/%m/%d %H%M")
+
+    elif source == "saf":
+        pytest.importorskip("netCDF4")
+        date = datetime.strptime("2018/06/01 0700", "%Y/%m/%d %H%M")
+
+    else:
+        raise ValueError(f"Unknown data source '{source}'")
+
+    data_source = rcparams.data_sources[source]
     root_path = data_source["root_path"]
     path_fmt = data_source["path_fmt"]
     fn_pattern = data_source["fn_pattern"]
