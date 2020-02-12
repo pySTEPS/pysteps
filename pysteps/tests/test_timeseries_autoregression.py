@@ -145,6 +145,38 @@ def test_estimate_var_params_yw_localized():
         for i in range(len(phi)):
             assert phi[i].shape == (R.shape[2], R.shape[3], q, q)
 
+
+def test_iterate_ar():
+    R = _create_data_univariate()
+    p = 2
+
+    phi = autoregression.estimate_ar_params_ols(R[-(p+1):], p)
+    autoregression.iterate_ar_model(R, phi)
+
+def test_iterate_ar_localized():
+    R = _create_data_univariate()
+    p = 2
+
+    phi = autoregression.estimate_ar_params_ols_localized(R[-(p+1):], p, 50)
+    autoregression.iterate_ar_model(R, phi)
+
+
+def test_iterate_var():
+    R = _create_data_multivariate()
+    p = 2
+
+    phi = autoregression.estimate_var_params_ols(R[-(p+1):], p)
+    autoregression.iterate_var_model(R, phi)
+
+
+def test_iterate_var_localized():
+    R = _create_data_multivariate()
+    p = 2
+
+    phi = autoregression.estimate_var_params_ols_localized(R[-(p+1):], p, 50)
+    autoregression.iterate_var_model(R, phi)
+
+
 def _create_data_multivariate():
     root_path = pysteps.rcparams.data_sources["fmi"]["root_path"]
 
