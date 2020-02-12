@@ -158,7 +158,8 @@ def test_iterate_ar_localized():
     p = 2
 
     phi = autoregression.estimate_ar_params_ols_localized(R[-(p+1):], p, 50)
-    autoregression.iterate_ar_model(R, phi)
+    R_ = autoregression.iterate_ar_model(R, phi)
+    assert R_.shape == R.shape
 
 
 def test_iterate_var():
@@ -166,7 +167,8 @@ def test_iterate_var():
     p = 2
 
     phi = autoregression.estimate_var_params_ols(R[-(p+1):], p)
-    autoregression.iterate_var_model(R, phi)
+    R_ = autoregression.iterate_var_model(R, phi)
+    assert R_.shape == R.shape
 
 
 def test_iterate_var_localized():
@@ -174,7 +176,8 @@ def test_iterate_var_localized():
     p = 2
 
     phi = autoregression.estimate_var_params_ols_localized(R[-(p+1):], p, 50)
-    autoregression.iterate_var_model(R, phi)
+    R_ = autoregression.iterate_var_model(R, phi)
+    assert R_.shape == R.shape
 
 
 def _create_data_multivariate():
