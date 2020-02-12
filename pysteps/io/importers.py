@@ -1016,10 +1016,11 @@ def import_opera_hdf5(filename, **kwargs):
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
-                qty_, gain, offset, nodata, undetect = _read_opera_hdf5_what_group(
-                    dsg[1]["what"]
-                )
-                what_grp_found = True
+                if "quantity" in dsg[1]["what"].attrs.keys():
+                    qty_, gain, offset, nodata, undetect = _read_opera_hdf5_what_group(
+                        dsg[1]["what"]
+                    )
+                    what_grp_found = True
 
             for dg in dsg[1].items():
                 if dg[0][0:4] == "data":
