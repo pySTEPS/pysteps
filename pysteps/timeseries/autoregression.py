@@ -790,6 +790,7 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     To estimate the parameters of a VARI(p,d) model, call
     correlation.temporal_autocorrelation_multivariate with d>0.
     """
+
     p = len(gamma) - 1
     q = gamma[0].shape[0]
 
