@@ -37,7 +37,7 @@ def get_precipitation_fields(num_prev_files=0,
     Source: opera
     Reference time: 2018/08/24 1800 UTC
 
-    Source: crri
+    Source: saf
     Reference time: 2018/06/01 0700 UTC
 
     Parameters
