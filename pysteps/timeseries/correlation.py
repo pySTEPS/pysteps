@@ -161,6 +161,7 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
     References
     ----------
     :cite:`CP2002`
+
     """
     if len(x.shape) < 3:
         raise ValueError("the dimension of x must be >= 3")

@@ -156,6 +156,7 @@ def estimate_ar_params_ols(x, p, d=0, check_stationarity=True,
     -----
     Estimation of the innovation term parameter :math:`\phi_{p+1}` is currently
     implemented for p<=2. If p > 2, :math:`\phi_{p+1}` is set to zero.
+
     """
     n = x.shape[0]
 
@@ -363,7 +364,7 @@ def estimate_ar_params_ols_localized(x, p, window_radius, d=0,
     return phi
 
 
-def estimate_ar_params_yw(gamma, check_stationarity=True):
+def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
     """Estimate the parameters of an AR(p) model
 
     :math:`x_{k+1}=\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
@@ -377,6 +378,10 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
         Array of length p containing the lag-l temporal autocorrelation
         coefficients for l=1,2,...p. The correlation coefficients are assumed
         to be in ascending order with respect to time lag.
+    d : {0,1}
+        The order of differencing. If d=1, the correlation coefficients gamma
+        are assumed to be computed from the differenced time series, which is
+        also done for the resulting parameter estimates.
     check_stationarity : bool
         If True, the stationarity of the resulting VAR(p) process is tested. An
         exception is thrown if the process is not stationary.
@@ -387,30 +392,37 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
         Array of length p+1 containing the AR(p) parameters for for the
         lag-p terms and the innovation term.
 
-    """
-    p = len(gamma)
+    Notes
+    -----
+    To estimate the parameters of an integrated ARI(p,d) model, compute the
+    correlation coefficients gamma by calling
+    :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation` with d>0.
 
-    phi = np.empty(p+1)
+    """
+    if d not in [0, 1]:
+        raise ValueError("d = %d, but 0 or 1 required" % d)
+
+    p = len(gamma)
 
     g = np.hstack([[1.0], gamma])
     G = []
     for j in range(p):
         G.append(np.roll(g[:-1], j))
     G = np.array(G)
-    phi_ = np.linalg.solve(G, g[1:].flatten())
+    phi = np.linalg.solve(G, g[1:].flatten())
 
     # Check that the absolute values of the roots of the characteristic
     # polynomial are less than one.
     # Otherwise the AR(p) model is not stationary.
     if check_stationarity:
-        if not test_ar_stationarity(phi_):
+        if not test_ar_stationarity(phi):
             raise RuntimeError(
                 "Error in estimate_ar_params_yw: "
                 "nonstationary AR(p) process")
 
     c = 1.0
     for j in range(p):
-        c -= gamma[j] * phi_[j]
+        c -= gamma[j] * phi[j]
     phi_pert = np.sqrt(c)
 
     # If the expression inside the square root is negative, phi_pert cannot
@@ -418,13 +430,17 @@ def estimate_ar_params_yw(gamma, check_stationarity=True):
     if not np.isfinite(phi_pert):
         phi_pert = 0.0
 
-    phi[:p] = phi_
-    phi[-1] = phi_pert
+    if d == 1:
+        phi = _compute_differenced_model_params(phi, p, 1, 1)
+
+    phi_out = np.empty(len(phi)+1)
+    phi_out[:len(phi)] = phi
+    phi_out[-1] = phi_pert
 
     return phi
 
 
-def estimate_ar_params_yw_localized(gamma):
+def estimate_ar_params_yw_localized(gamma, d=0):
     """Estimate the parameters of a localized AR(p) model
 
     :math:`x_{k+1,i}=\phi_{1,i}x_{k,i}+\phi_{2,i}x_{k-1,i}+\dots+\phi_{p,i}x_{k-p,i}+\phi_{p+1}\epsilon`
@@ -439,6 +455,10 @@ def estimate_ar_params_yw_localized(gamma):
         A list containing the lag-l temporal autocorrelation coefficient fields
         for l=1,2,...p. The correlation coefficients are assumed to be in
         ascending order with respect to time lag.
+    d : {0,1}
+        The order of differencing. If d=1, the correlation coefficients gamma
+        are assumed to be computed from the differenced time series, which is
+        also done for the resulting parameter estimates.
 
     Returns
     -------
@@ -447,17 +467,27 @@ def estimate_ar_params_yw_localized(gamma):
         lag-p terms and the innovation term. The parameter fields have the same
         shape as the elements of gamma.
 
+    Notes
+    -----
+    To estimate the parameters of an integrated ARI(p,d) model, compute the
+    correlation coefficients gamma by calling
+    :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation` with d>0
+    and window_radius<np.inf.
+
     """
     for i in range(1, len(gamma)):
         if gamma[i].shape != gamma[0].shape:
             raise ValueError("the correlation coefficient fields gamma have mismatching shapes")
 
+    if d not in [0, 1]:
+        raise ValueError("d = %d, but 0 or 1 required" % d)
+
     p = len(gamma)
     n = np.prod(gamma[0].shape)
 
-    phi = np.empty((p+1, n))
     gamma_1d = [gamma[i].flatten() for i in range(len(gamma))]
 
+    phi = np.empty((p, n))
     for i in range(n):
         g = np.hstack([[1.0], [gamma_1d[k][i] for k in range(len(gamma_1d))]])
         G = []
@@ -469,15 +499,21 @@ def estimate_ar_params_yw_localized(gamma):
         except np.linalg.LinAlgError:
             phi_ = np.ones(p) * np.nan
 
-        phi[:p, i] = phi_
+        phi[:, i] = phi_
+
+    if d == 1:
+        phi = _compute_differenced_model_params(phi, p, 1, 1)
 
     c = 1.0
     for i in range(p):
         c -= gamma_1d[i] * phi[i]
     phi_pert = np.sqrt(c)
-    phi[-1, :] = phi_pert
 
-    return list(phi.reshape(np.hstack([[p+1], gamma[0].shape])))
+    phi_out = np.empty((len(phi)+1, n))
+    phi_out[:len(phi), :] = phi
+    phi_out[-1, :] = phi_pert
+
+    return list(phi_out.reshape(np.hstack([[len(phi_out)], gamma[0].shape])))
 
 
 def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
@@ -526,6 +562,7 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
     -----
     Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
     currently implemented, and it is set to a zero matrix.
+
     """
     q = x.shape[1]
     n = x.shape[0]
@@ -584,16 +621,14 @@ def estimate_var_params_ols(x, p, d=0, check_stationarity=True,
                 "Error in estimate_var_params_ols: "
                 "nonstationary VAR(p) process")
 
-    if d == 0:
-        phi_out = phi
-    else:
-        phi_out = _compute_differenced_model_params(phi, p, q, 1)
+    if d == 1:
+        phi = _compute_differenced_model_params(phi, p, q, 1)
 
     if include_constant_term:
-        phi_out.insert(0, c)
-    phi_out.append(np.zeros((q, q)))
+        phi.insert(0, c)
+    phi.append(np.zeros((q, q)))
 
-    return phi_out
+    return phi
 
 
 def estimate_var_params_ols_localized(x, p, window_radius, d=0,
@@ -650,6 +685,7 @@ def estimate_var_params_ols_localized(x, p, window_radius, d=0,
     -----
     Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
     currently implemented, and it is set to a zero matrix.
+
     """
     q = x.shape[1]
     n = x.shape[0]
@@ -769,11 +805,10 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
         To obtain these matrices, use
         :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
         with window_radius=np.inf.
-    d : int
-        The order of differencing. If d>=1, a differencing operator
-        :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
-        applied to produce parameter estimates for a vector autoregressive
-        integrated VARI(p,d) model of order d.
+    d : {0,1}
+        The order of differencing. If d=1, the correlation coefficients gamma
+        are assumed to be computed from the differenced time series, which is
+        also done for the resulting parameter estimates.
     check_stationarity : bool
         If True, the stationarity of the resulting VAR(p) process is tested. An
         exception is thrown if the process is not stationary.
@@ -787,10 +822,12 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
 
     Notes
     -----
-    To estimate the parameters of a VARI(p,d) model, call
-    correlation.temporal_autocorrelation_multivariate with d>0.
-    """
+    To estimate the parameters of an integrated VARI(p,d) model, compute the
+    correlation coefficients gamma by calling
+    :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
+    with d>0.
 
+    """
     p = len(gamma) - 1
     q = gamma[0].shape[0]
 
@@ -824,30 +861,16 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
                 "nonstationary VAR(p) process")
 
     if d == 1:
-        phi_out = []
-        for i in range(p+d):
-            phi_out.append(np.zeros((q, q)))
+        phi = _compute_differenced_model_params(phi, p, q, 1)
 
-        for i in range(1, d+1):
-            phi_out[i-1] -= binom(d, i) * (-1)**i * np.eye(q, q)
-        for i in range(1, p+1):
-            phi_out[i-1] += phi[i-1]
-        for i in range(1, p+1):
-            for j in range(1, d+1):
-                phi_out[i+j-1] += phi[i-1] * binom(d, j) * (-1)**j
-    else:
-        phi_out = phi
+    #phi_stacked = np.hstack(phi)
+    #phi.append(la.sqrtm(gamma[0] - np.dot(np.dot(phi_stacked, a), phi_stacked.T)))
+    phi.append(np.zeros(phi[0].shape))
 
-    phi_stacked = np.hstack(phi)
-    phi_out.append(la.sqrtm(gamma[0] - np.dot(np.dot(phi_stacked, a), phi_stacked.T)))
-
-    if d == 1:
-        return phi_out
-    else:
-        return phi
+    return phi
 
 
-def estimate_var_params_yw_localized(gamma):
+def estimate_var_params_yw_localized(gamma, d=0):
     """Estimate the parameters of a vector autoregressive VAR(p) model
 
       :math:`\mathbf{x}_{k+1,i}=\mathbf{\Phi}_{1,i}\mathbf{x}_{k,i}+
@@ -865,6 +888,10 @@ def estimate_var_params_yw_localized(gamma):
         To obtain these matrices, use
         :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
         with window_radius<np.inf.
+    d : {0,1}
+        The order of differencing. If d=1, the correlation coefficients gamma
+        are assumed to be computed from the differenced time series, which is
+        also done for the resulting parameter estimates.
 
     Returns
     -------
@@ -875,8 +902,11 @@ def estimate_var_params_yw_localized(gamma):
 
     Notes
     -----
-    Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
-    currently implemented, and it is set to a zero matrix.
+    To estimate the parameters of an integrated VARI(p,d) model, compute the
+    correlation coefficients gamma by calling
+    :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
+    with d>0 and window_radius<np.inf.
+
     """
     p = len(gamma) - 1
     q = gamma[0].shape[2]
@@ -886,6 +916,9 @@ def estimate_var_params_yw_localized(gamma):
         if gamma[i].shape != gamma[0].shape:
             raise ValueError("dimension mismatch: gamma[%d].shape=%s, but %s expected" % \
                              (i, str(gamma[i].shape), str(gamma[0].shape)))
+
+    if d not in [0, 1]:
+        raise ValueError("d = %d, but 0 or 1 required" % d)
 
     gamma_1d = [g.reshape((n, q, q)) for g in gamma]
     phi_out = [np.zeros([n, q, q]) for i in range(p)]
@@ -907,6 +940,8 @@ def estimate_var_params_yw_localized(gamma):
 
     for i in range(len(phi_out)):
         phi_out[i] = phi_out[i].reshape(np.hstack([gamma[0].shape[:-2], [q, q]]))
+    if d == 1:
+        phi_out = _compute_differenced_model_params(phi_out, p, 1, 1)
     phi_out.append(np.zeros(gamma[0].shape))
 
     return phi_out
@@ -986,6 +1021,7 @@ def iterate_var_model(x, phi, eps=None):
         Optional innovation term for the AR(p) process. The shape of eps is
         expected to be (x.shape[1],) or (x.shape[1],x.shape[2:]) if
         len(x.shape)>2. If eps is None, the innovation term is not added.
+
     """
     if x.shape[0] < len(phi) - 1:
         raise ValueError("dimension mismatch between x and phi: x.shape[0]=%d, len(phi)=%d" % (x.shape[1], len(phi)))
@@ -1013,7 +1049,7 @@ def iterate_var_model(x, phi, eps=None):
         x_new += np.dot(np.dot(phi[-1], phi[-1]), eps)
 
     if x_simple_shape:
-        return np.vstack([x[1:, :, 0], x_new])
+        return np.vstack([x[1:, :, 0], x_new[:, 0]])
     else:
         x_new = x_new.reshape(x.shape[1:])
         return np.concatenate([x[1:, :], x_new[np.newaxis, :, :]], axis=0)
@@ -1033,6 +1069,7 @@ def test_ar_stationarity(phi):
     -------
     out : bool
         True/False if the process is/is not stationary.
+
     """
     r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi[i] \
                  for i in range(len(phi))])])
@@ -1054,6 +1091,7 @@ def test_var_stationarity(phi):
     -------
     out : bool
         True/False if the process is/is not stationary.
+
     """
     q = phi[0].shape
     for i in range(1, len(phi)):
