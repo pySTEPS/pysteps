@@ -864,8 +864,6 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     if d == 1:
         phi = _compute_differenced_model_params(phi, p, q, 1)
 
-    #phi_stacked = np.hstack(phi)
-    #phi.append(la.sqrtm(gamma[0] - np.dot(np.dot(phi_stacked, a), phi_stacked.T)))
     phi.append(np.zeros(phi[0].shape))
 
     return phi
