@@ -9,7 +9,7 @@ dependencies:
   - attrdict
   - jsmin
   - jsonschema
-  - matplotlib
+  - matplotlib-base
   - netCDF4
   - numpy
   - opencv
