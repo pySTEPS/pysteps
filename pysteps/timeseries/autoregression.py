@@ -437,7 +437,7 @@ def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
     phi_out[:len(phi)] = phi
     phi_out[-1] = phi_pert
 
-    return phi
+    return phi_out
 
 
 def estimate_ar_params_yw_localized(gamma, d=0):
