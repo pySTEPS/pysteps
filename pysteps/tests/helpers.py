@@ -12,6 +12,14 @@ import pysteps as stp
 from pysteps import io, rcparams, utils
 from pysteps.utils import aggregate_fields_space
 
+_reference_dates = dict()
+_reference_dates["bom"] = datetime.strptime("2018/06/16 1000", "%Y/%m/%d %H%M")
+_reference_dates["fmi"] = datetime.strptime("2016/09/28 1600", "%Y/%m/%d %H%M")
+_reference_dates["knmi"] = datetime.strptime("2010/08/26 0000", "%Y/%m/%d %H%M")
+_reference_dates["mch"] = datetime.strptime("2015/05/15 1630", "%Y/%m/%d %H%M")
+_reference_dates["opera"] = datetime.strptime("2018/08/24 1800", "%Y/%m/%d %H%M")
+_reference_dates["saf"] = datetime.strptime("2018/06/01 0700", "%Y/%m/%d %H%M")
+
 
 def get_precipitation_fields(num_prev_files=0,
                              num_next_files=0,
@@ -67,7 +75,7 @@ def get_precipitation_fields(num_prev_files=0,
         used to upscale the fields.
 
     source: {"bom", "fmi" , "knmi", "mch", "opera", "saf"}, optional
-        Data source to be used.
+        Name of the data source to be used.
 
     Returns
     -------
@@ -77,33 +85,31 @@ def get_precipitation_fields(num_prev_files=0,
 
 
     """
-    # Select case
+
     if source == "bom":
         pytest.importorskip("netCDF4")
-        date = datetime.strptime("2018/06/16 1000", "%Y/%m/%d %H%M")
 
-    elif source == "fmi":
+    if source == "fmi":
         pytest.importorskip("pyproj")
-        date = datetime.strptime("2016/09/28 1600", "%Y/%m/%d %H%M")
 
-    elif source == "knmi":
+    if source == "knmi":
         pytest.importorskip("h5py")
-        date = datetime.strptime("2010/08/26 0000", "%Y/%m/%d %H%M")
 
-    elif source == "mch":
+    if source == "mch":
         pytest.importorskip("PIL")
-        date = datetime.strptime("2015/05/15 1630", "%Y/%m/%d %H%M")
 
-    elif source == "opera":
+    if source == "opera":
         pytest.importorskip("h5py")
-        date = datetime.strptime("2018/08/24 1800", "%Y/%m/%d %H%M")
 
-    elif source == "saf":
+    if source == "saf":
         pytest.importorskip("netCDF4")
-        date = datetime.strptime("2018/06/01 0700", "%Y/%m/%d %H%M")
 
-    else:
-        raise ValueError(f"Unknown data source '{source}'")
+    try:
+        date = _reference_dates[source]
+    except KeyError:
+        raise ValueError(f"Unknown source name '{source}'\n"
+                         "The available data sources are: "
+                         f"{str(list(_reference_dates.keys()))}")
 
     data_source = rcparams.data_sources[source]
     root_path = data_source["root_path"]
