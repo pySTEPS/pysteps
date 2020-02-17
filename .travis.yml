@@ -111,6 +111,7 @@ install:
   # ---------------
   - export PYSTEPS_BUILD_DIR="$( pwd )"
   - pip install .
+  - conda list
   - cd ~
 
   # Check that the pysteps package can be imported
