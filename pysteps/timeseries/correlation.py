@@ -37,11 +37,10 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
         All inputs are required to have finite values. The remaining dimensions
         after the first one are flattened before computing the correlation
         coefficients.
-    d : int
-        The order of differencing. If d>=1, a differencing operator
-        :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
-        applied before computing the correlation coefficients. In this case,
-        a time series of length n+d is needed for computing the n-1 coefficients.
+    d : {0,1}
+        The order of differencing. If d=1, the input time series is differenced
+        before computing the correlation coefficients. In this case, a time
+        series of length n+1 is needed for computing the n-1 coefficients.
     domain : {"spatial", "spectral"}
         The domain of the time series x. If domain is "spectral", the elements
         of x are assumed to represent the FFTs of the original elements.
@@ -93,7 +92,7 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
     if np.any(~np.isfinite(x)):
         raise ValueError("x contains non-finite values")
 
-    if d >= 1:
+    if d == 1:
         x = np.diff(x, axis=0)
 
     if domain == "spatial" and mask is None:
@@ -132,12 +131,10 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
         and the time step is assumed to be regular. All inputs are required to
         have finite values. The remaining dimensions after the second one are
         flattened before computing the correlation coefficients.
-    d : int
-        The order of differencing. If d>=1, a differencing operator
-        :math:`\Delta=(1-L)^d`, where :math:`L` is a time lag operator, is
-        applied before computing the correlation coefficients. In this case,
-        a time series of length n+d is needed for computing the n correlation
-        matrices.
+    d : {0,1}
+        The order of differencing. If d=1, the input time series is differenced
+        before computing the correlation coefficients. In this case, a time
+        series of length n+1 is needed for computing the n-1 coefficients.
     mask : array_like
         Optional mask to use for computing the correlation coefficients. Input
         elements with mask==False are excluded from the computations. The shape
@@ -173,7 +170,7 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
     if np.any(~np.isfinite(x)):
         raise ValueError("x contains non-finite values")
 
-    if d >= 1:
+    if d == 1:
         x = np.diff(x, axis=0)
 
     p = x.shape[0] - 1
