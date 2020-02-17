@@ -825,7 +825,8 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     To estimate the parameters of an integrated VARI(p,d) model, compute the
     correlation coefficients gamma by calling
     :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
-    with d>0.
+    with d>0. Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}`
+    is not currently implemented, and it is set to a zero matrix.
 
     """
     p = len(gamma) - 1
@@ -905,7 +906,9 @@ def estimate_var_params_yw_localized(gamma, d=0):
     To estimate the parameters of an integrated VARI(p,d) model, compute the
     correlation coefficients gamma by calling
     :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
-    with d>0 and window_radius<np.inf.
+    with d>0 and window_radius<np.inf. Estimation of the innovation parameter
+    :math:`\mathbf{\Phi}_{p+1}` is not currently implemented, and it is set to
+    a zero matrix.
 
     """
     p = len(gamma) - 1
