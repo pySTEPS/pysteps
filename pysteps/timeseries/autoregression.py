@@ -501,13 +501,13 @@ def estimate_ar_params_yw_localized(gamma, d=0):
 
         phi[:, i] = phi_
 
-    if d == 1:
-        phi = _compute_differenced_model_params(phi, p, 1, 1)
-
     c = 1.0
     for i in range(p):
         c -= gamma_1d[i] * phi[i]
     phi_pert = np.sqrt(c)
+
+    if d == 1:
+        phi = _compute_differenced_model_params(phi, p, 1, 1)
 
     phi_out = np.empty((len(phi)+1, n))
     phi_out[:len(phi), :] = phi
