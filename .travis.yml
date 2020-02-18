@@ -9,9 +9,9 @@ env:
 matrix:
   include:
     - os: linux
-      python: 3.7
+      python: 3.8
       env:
-        - PYTHON_VERSION=3.7
+        - PYTHON_VERSION=3.8
         - RUN_TESTS=false
 
     - os: linux
@@ -26,11 +26,17 @@ matrix:
         - PYTHON_VERSION=3.7
         - RUN_TESTS=true
 
+    - os: linux
+      python: 3.8
+      env:
+        - PYTHON_VERSION=3.7
+        - RUN_TESTS=true
+
     - os: osx
       language: generic
       osx_image: xcode10.1
       env:
-        - PYTHON_VERSION=3.7
+        - PYTHON_VERSION=3.8
         - RUN_TESTS=false
 
     - os: osx
@@ -45,6 +51,13 @@ matrix:
       osx_image: xcode10.1
       env:
         - PYTHON_VERSION=3.7
+        - RUN_TESTS=true
+
+    - os: osx
+      language: generic
+      osx_image: xcode10.1
+      env:
+        - PYTHON_VERSION=3.8
         - RUN_TESTS=true
 
 sudo: false
