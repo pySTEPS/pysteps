@@ -127,7 +127,14 @@ def proj4_to_cartopy(proj4str):
 
     proj = pyproj.Proj(proj4str)
 
-    if proj.is_latlong():
+    try:
+        # pyproj >= 2.2.0
+        is_geographic = proj.crs.is_geographic
+    except AttributeError:
+        # pyproj < 2.2.0
+        is_geographic = proj.is_latlong()
+
+    if is_geographic:
         return ccrs.PlateCarree()
 
     km_proj = {"lon_0": "central_longitude",
@@ -173,8 +180,10 @@ def proj4_to_cartopy(proj4str):
             elif v == "aea":
                 cl = ccrs.AlbersEqualArea
             elif v == "somerc":
-                raise UnsupportedSomercProjection("unsupported projection:"
-                                                  " somerc")
+                # Note: ccrs.epsg(2056) doesn't work because the projection
+                # limits are too strict.
+                # We'll use the Stereographic projection as an alternative.
+                cl = ccrs.Stereographic
             else:
                 raise ValueError("unsupported projection: %s" % v)
         elif k in km_proj:
