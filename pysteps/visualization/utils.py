@@ -181,15 +181,9 @@ def proj4_to_cartopy(proj4str):
                 cl = ccrs.AlbersEqualArea
             elif v == "somerc":
                 # Note: ccrs.epsg(2056) doesn't work because the projection
-                # limits are too strict. We'll use an equivalent projection:
-                return ccrs.Stereographic(
-                    central_longitude=7.43958333333333, 
-                    central_latitude=46.9524055555556,
-                    false_easting=600000, 
-                    false_northing=200000, 
-                    scale_factor=1)
-                # raise UnsupportedSomercProjection("unsupported projection:"
-                                                  # " somerc")
+                # limits are too strict.
+                # We'll use the Stereographic projection as an alternative.
+                cl = ccrs.Stereographic
             else:
                 raise ValueError("unsupported projection: %s" % v)
         elif k in km_proj:
