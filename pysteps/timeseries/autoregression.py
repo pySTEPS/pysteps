@@ -16,6 +16,7 @@ Methods related to autoregressive AR(p) models.
 
 import numpy as np
 
+
 def adjust_lag2_corrcoef1(gamma_1, gamma_2):
     """A simple adjustment of lag-2 temporal autocorrelation coefficient to
     ensure that the resulting AR(2) process is stationary when the parameters
@@ -42,8 +43,8 @@ def adjust_lag2_corrcoef1(gamma_1, gamma_2):
 
 def adjust_lag2_corrcoef2(gamma_1, gamma_2):
     """A more advanced adjustment of lag-2 temporal autocorrelation coefficient
-    to ensure that the resulting AR(2) process is stationary when the parameters
-    are estimated from the Yule-Walker equations.
+    to ensure that the resulting AR(2) process is stationary when
+    the parameters are estimated from the Yule-Walker equations.
 
     Parameters
     ----------
@@ -71,8 +72,9 @@ def ar_acf(gamma, n=None):
     Parameters
     ----------
     gamma : array-like
-      Array of length p containing the lag-l, l=1,2,...p, temporal autocorrelation
-      coefficients. The correlation coefficients are assumed to be in ascending
+      Array of length p containing the lag-l, l=1,2,...p, temporal
+      autocorrelation coefficients.
+      The correlation coefficients are assumed to be in ascending
       order with respect to time lag.
     n : int
       Desired length of ACF array. Must be greater than len(gamma).
@@ -109,8 +111,9 @@ def estimate_ar_params_yw(gamma):
     Parameters
     ----------
     gamma : array_like
-      Array of length p containing the lag-l, l=1,2,...p, temporal autocorrelation
-      coefficients. The correlation coefficients are assumed to be in ascending
+      Array of length p containing the lag-l, l=1,2,...p, temporal
+      autocorrelation coefficients.
+      The correlation coefficients are assumed to be in ascending
       order with respect to time lag.
 
     Returns
@@ -133,7 +136,8 @@ def estimate_ar_params_yw(gamma):
     phi_ = np.linalg.solve(G, g[1:].flatten())
 
     # Check that the absolute values of the roots of the characteristic
-    # polynomial are less than one. Otherwise the AR(p) model is not stationary.
+    # polynomial are less than one.
+    # Otherwise the AR(p) model is not stationary.
     r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi_[i] \
                   for i in range(p)])])
     if any(r >= 1):
@@ -143,7 +147,7 @@ def estimate_ar_params_yw(gamma):
 
     c = 1.0
     for j in range(p):
-      c -= gamma[j] * phi_[j]
+        c -= gamma[j] * phi_[j]
     phi_pert = np.sqrt(c)
 
     # If the expression inside the square root is negative, phi_pert cannot
@@ -157,38 +161,39 @@ def estimate_ar_params_yw(gamma):
     return phi
 
 
-def iterate_ar_model(X, phi, EPS=None):
-    """Apply an AR(p) model to a time-series of two-dimensional fields.
+def iterate_ar_model(x, phi, eps=None):
+    """Apply an AR(p) model to a time series.
 
     Parameters
     ----------
-    X : array_like
-      Three-dimensional array of shape (p,w,h) containing a time series of p
-      two-dimensional fields of shape (w,h). The fields are assumed to be in
-      ascending order by time, and the timesteps are assumed to be regular.
+    x : array_like
+      Array of shape (p,...) containing a time series of a input variable x.
+      The elements of x along the first dimension are assumed to be in ascending
+      order by time, and the time intervals are assumed to be regular.
     phi : array_like
       Array of length p+1 specifying the parameters of the AR(p) model. The
       parameters are in ascending order by increasing time lag, and the last
-      element is the parameter corresponding to the innovation term EPS.
-    EPS : array_like
-      Optional perturbation field for the AR(p) process. If EPS is None, the
-      innovation term is not added.
+      element is the parameter corresponding to the innovation term eps.
+    eps : array_like
+      Optional perturbation field for the AR(p) process. The shape of eps is
+      expected to be x.shape[1:]. If eps is None, the innovation term is not
+      added.
 
     """
-    if X.shape[0] != len(phi)-1:
-      raise ValueError("dimension mismatch between X and phi: X.shape[0]=%d, len(phi)=%d" % (X.shape[0], len(phi)))
+    if x.shape[0] != len(phi) - 1:
+        raise ValueError("dimension mismatch between x and phi: x.shape[0]=%d, len(phi)=%d" % (x.shape[0], len(phi)))
 
-    if EPS is not None and EPS.shape != (X.shape[1], X.shape[2]):
-        raise ValueError("dimension mismatch between X and EPS: X.shape=%s, EPS.shape=%s" % (str(X.shape), str(EPS.shape)))
+    if eps is not None and eps.shape != x.shape[1:]:
+        raise ValueError("dimension mismatch between x and eps: x.shape=%s, eps.shape[1:]=%s" % (str(x.shape), str(eps.shape[1:])))
 
-    X_new = 0.0
+    x_new = 0.0
 
     p = len(phi) - 1
 
     for i in range(p):
-        X_new += phi[i] * X[-(i+1), :, :]
+        x_new += phi[i] * x[-(i+1), :]
 
-    if EPS is not None:
-        X_new += phi[-1] * EPS
+    if eps is not None:
+        x_new += phi[-1] * eps
 
-    return np.stack(list(X[1:, :, :]) + [X_new])
+    return np.concatenate([x[1:, :], x_new[np.newaxis, :]])

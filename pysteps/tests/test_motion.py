@@ -194,6 +194,8 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
             - linear_x: (u=2, v=0)
             - linear_y: (u=0, v=2)
     """
+    if optflow_method_name == 'lk':
+        pytest.importorskip('cv2')
 
     ideal_motion, precip_obs = _create_observations(input_precip.copy(),
                                                     motion_type,
@@ -206,13 +208,13 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
         # is maxiter=100.
         # To increase the stability of the tests to we increase this value to
         # maxiter=150.
-        computed_motion = oflow_method(precip_obs, verbose=False,
+        retrieved_motion = oflow_method(precip_obs, verbose=False,
                                        options=dict(maxiter=150, method='BFGS'))
     elif optflow_method_name == 'proesmans':
-        computed_motion = oflow_method(precip_obs)
+        retrieved_motion = oflow_method(precip_obs)
     else:
 
-        computed_motion = oflow_method(precip_obs, verbose=False)
+        retrieved_motion = oflow_method(precip_obs, verbose=False)
 
     precip_data, _ = stp.utils.dB_transform(precip_obs.max(axis=0),
                                             inverse=True)
@@ -226,7 +228,7 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
     # Relative MSE = < (expected_motion - computed_motion)^2 > / <expected_motion^2 >
     # Relative RMSE = sqrt(Relative MSE)
 
-    mse = ((ideal_motion - computed_motion)[:, precip_mask] ** 2).mean()
+    mse = ((ideal_motion - retrieved_motion)[:, precip_mask] ** 2).mean()
 
     rel_mse = mse / (ideal_motion[:, precip_mask] ** 2).mean()
     rel_rmse = np.sqrt(rel_mse) * 100
@@ -264,6 +266,8 @@ def test_no_precipitation(optflow_method_name, num_times):
         Number of precipitation frames (times) used as input for the optical
         flow methods.
     """
+    if optflow_method_name == 'lk':
+        pytest.importorskip('cv2')
     zero_precip = np.zeros((num_times,) + reference_field.shape)
     motion_method = motion.get_method(optflow_method_name)
     uv_motion = motion_method(zero_precip, verbose=False)
@@ -286,6 +290,8 @@ input_tests_args_values = [
 def test_input_shape_checks(optflow_method_name,
                             minimum_input_frames,
                             maximum_input_frames):
+    if optflow_method_name == 'lk':
+        pytest.importorskip('cv2')
     image_size = 100
     motion_method = motion.get_method(optflow_method_name)
 

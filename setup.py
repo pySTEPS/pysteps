@@ -9,7 +9,7 @@ try:
     from Cython.Build import cythonize
 except ImportError:
     raise RuntimeError(
-        "Cython required to pior running the package installation\n"
+        "Cython required for running the package installation\n"
         + "Try installing it with:\n"
         + "$> pip install cython"
     )
@@ -18,7 +18,7 @@ try:
     import numpy
 except ImportError:
     raise RuntimeError(
-        "Numpy required to pior running the package installation\n"
+        "Numpy required for running the package installation\n"
         + "Try installing it with:\n"
         + "$> pip install numpy"
     )
@@ -73,7 +73,7 @@ requirements = [
 
 setup(
     name="pysteps",
-    version="1.1.0",
+    version="1.1.1",
     author="PySteps developers",
     packages=find_packages(),
     license="LICENSE",
@@ -87,6 +87,7 @@ setup(
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Atmospheric Science",
+        "Topic :: Scientific/Engineering :: Hydrology",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

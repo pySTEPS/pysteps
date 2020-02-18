@@ -84,8 +84,8 @@ def DARTS(input_images, **kwargs):
     lsq_method = kwargs.get("lsq_method", 2)
     verbose = kwargs.get("verbose", True)
 
-    if N_t >= input_images.shape[0]:
-        raise ValueError("N_t = %d >= %d = T, but N_t < T required" % (N_t, input_images.shape[0]))
+    if N_t >= input_images.shape[0] - 1:
+        raise ValueError("N_t = %d >= %d = T-1, but N_t < T-1 required" % (N_t, input_images.shape[0]-1))
 
     if output_type not in ["spatial", "spectral"]:
         raise ValueError("invalid output_type=%s, must be 'spatial' or 'spectral'" % output_type)

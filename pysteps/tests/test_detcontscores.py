@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-from pysteps.verification import det_cont_fct
+import pytest
 from numpy.testing import assert_array_almost_equal
+
+from pysteps.verification import det_cont_fct
 
 # CREATE A DATASET TO MATCH
 # EXAMPLES IN
 # http://www.cawcr.gov.au/projects/verification/
 
-obs_data = np.asarray([7, 10,  9, 15, 22, 13, 17, 17, 19, 23.0,
-                       0, 10,  0, 15,  0, 13,  0, 17,  0,  0.0])
-fct_data = np.asarray([1,  8, 12, 13, 18, 10, 16, 19, 23, 24.0,
-                       0,  0, 12,  0,  0,  0, 16,  0,  0,  0.0])
+obs_data = np.asarray([7, 10, 9, 15, 22, 13, 17, 17, 19, 23.0,
+                       0, 10, 0, 15, 0, 13, 0, 17, 0, 0.0])
+fct_data = np.asarray([1, 8, 12, 13, 18, 10, 16, 19, 23, 24.0,
+                       0, 0, 12, 0, 0, 0, 16, 0, 0, 0.0])
 
 test_data = [
 
@@ -61,34 +62,34 @@ test_data = [
     (fct_data, obs_data, ('scatter'), None, None, [0.808023]),
 
     # Mean Error along axis 0 as tuple
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'ME', (0), None,
-    [[-1.75, -1.75]]),
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'ME', (0,), None,
+     [[-1.75, -1.75]]),
     # Mean Error along axis 0
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'ME', 0, None,
-    [[-1.75, -1.75]]),
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'ME', 0, None,
+     [[-1.75, -1.75]]),
     # Mean Error along axis 1
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'ME', 1, None,
-    [[ -6, -2, 3, -2, -4, -3, -1, 2, 4, 1, 0, -10, 12, -15, 0, -13, 16, -17, 0, 0]]),
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'ME', 1, None,
+     [[-6, -2, 3, -2, -4, -3, -1, 2, 4, 1, 0, -10, 12, -15, 0, -13, 16, -17, 0, 0]]),
     # Mean Error along axis (1,2)
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'ME', (0,1), None,
-    [-1.75]),
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'ME', (0, 1), None,
+     [-1.75]),
     # Mean Error along axis (2,1)
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'ME', (1,0), None,
-    [-1.75]),
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'ME', (1, 0), None,
+     [-1.75]),
 
     # scatter along axis 0 as tuple
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'scatter', (0), None,
-    [[0.808023, 0.808023]]),
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'scatter', (0,), None,
+     [[0.808023, 0.808023]]),
     # scatter along axis 0
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'scatter', 0, None,
-    [[0.808023, 0.808023]]),
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'scatter', 0, None,
+     [[0.808023, 0.808023]]),
     # scatter along axis (1,2)
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'scatter', (0,1), None,
-    [0.804806]),
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'scatter', (0, 1), None,
+     [0.804806]),
     # scatter along axis (2,1)
-    (np.tile(fct_data, (2,1)).T, np.tile(obs_data, (2,1)).T, 'scatter', (1,0), None,
-    [0.804806]),
-    ]
+    (np.tile(fct_data, (2, 1)).T, np.tile(obs_data, (2, 1)).T, 'scatter', (1, 0), None,
+     [0.804806]),
+]
 
 
 @pytest.mark.parametrize("pred, obs, scores, axis, conditioning, expected", test_data)

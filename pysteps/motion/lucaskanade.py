@@ -55,7 +55,7 @@ def dense_lucaskanade(input_images,
                       nr_std_outlier=3,
                       k_outlier=30,
                       size_opening=3,
-                      decl_scale=10,
+                      decl_scale=20,
                       verbose=False):
     """Run the Lucas-Kanade optical flow routine and interpolate the motion
     vectors.
@@ -401,11 +401,21 @@ def track_features(
     np.ma.set_fill_value(next_img, next_img.min())
 
     # scale between 0 and 255
-    prvs_img = ((prvs_img.filled() - prvs_img.min()) /
-                (prvs_img.max() - prvs_img.min()) * 255)
-
-    next_img = ((next_img.filled() - next_img.min()) /
-                (next_img.max() - next_img.min()) * 255)
+    im_min = prvs_img.min()
+    im_max = prvs_img.max()
+    if im_max - im_min > 1e-8:
+        prvs_img = ((prvs_img.filled() - im_min) /
+                    (im_max - im_min) * 255)
+    else:
+        prvs_img = (prvs_img.filled() - im_min)
+                    
+    im_min = next_img.min()
+    im_max = next_img.max()
+    if im_max - im_min > 1e-8:
+        next_img = ((next_img.filled() - im_min) /
+                    (im_max - im_min) * 255)
+    else:
+        next_img = (next_img.filled() - im_min)
 
     # convert to 8-bit
     prvs_img = np.ndarray.astype(prvs_img, "uint8")
@@ -424,7 +434,7 @@ def track_features(
                                           p0, None, **params)
 
     # keep only features that have been found
-    st = st.squeeze() == 1
+    st = np.atleast_1d(st.squeeze()) == 1
     if np.any(st):
         p1 = p1[st, :]
         p0 = p0[st, :]

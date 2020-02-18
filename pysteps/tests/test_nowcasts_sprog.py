@@ -5,38 +5,31 @@ import pytest
 from pysteps import motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
 
-steps_arg_names = (
-    "n_ens_members",
+sprog_arg_names = (
     "n_cascade_levels",
     "ar_order",
-    "mask_method",
     "probmatching_method",
     "domain",
-    "max_crps",
+    "min_csi",
 )
 
-steps_arg_values = [
-    (5, 6, 2, None, None, "spatial", 1.55),
-    (5, 6, 2, "incremental", None, "spatial", 6.65),
-    (5, 6, 2, "sprog", None, "spatial", 7.65),
-    (5, 6, 2, "obs", None, "spatial", 7.65),
-    (5, 6, 2, None, "cdf", "spatial", 0.70),
-    (5, 6, 2, None, "mean", "spatial", 1.55),
-    (5, 6, 2, None, "mean", "spatial", 1.55),
-    (5, 6, 2, "incremental", "cdf", "spectral", 1.55),
+sprog_arg_values = [
+    (6, 1, None, "spatial", 0.5),
+    (6, 2, None, "spatial", 0.5),
+    (6, 2, "cdf", "spatial", 0.5),
+    (6, 2, "mean", "spatial", 0.5),
+    (6, 2, "cdf", "spectral", 0.5),
 ]
 
 
-@pytest.mark.parametrize(steps_arg_names, steps_arg_values)
-def test_steps(
-        n_ens_members,
+@pytest.mark.parametrize(sprog_arg_names, sprog_arg_values)
+def test_sprog(
         n_cascade_levels,
         ar_order,
-        mask_method,
         probmatching_method,
         domain,
-        max_crps):
-    """Tests STEPS nowcast."""
+        min_csi):
+    """Tests SPROG nowcast."""
     # inputs
     precip_input, metadata = get_precipitation_fields(num_prev_files=2,
                                                       num_next_files=0,
@@ -57,30 +50,29 @@ def test_steps(
     retrieved_motion = oflow_method(precip_input)
 
     # Run nowcast
-    nowcast_method = nowcasts.get_method("steps")
+    nowcast_method = nowcasts.get_method("sprog")
 
     precip_forecast = nowcast_method(
         precip_input,
         retrieved_motion,
         n_timesteps=3,
         R_thr=metadata["threshold"],
-        kmperpixel=2.0,
-        timestep=metadata["accutime"],
-        seed=42,
-        n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
-        mask_method=mask_method,
         probmatching_method=probmatching_method,
         domain=domain,
     )
 
     # result
-    crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
-    print(f"got CRPS={crps:.1f}, required < {max_crps:.1f}")
-    assert crps < max_crps
+    result = verification.det_cat_fct(
+        precip_forecast[-1],
+        precip_obs[-1],
+        thr=0.1,
+        scores="CSI")["CSI"]
+    print(f"got CSI={result:.1f}, required > {min_csi:.1f}")
+    assert result > min_csi
 
 if __name__ == "__main__":
-    for n in range(len(steps_arg_values)):
-        test_args = zip(steps_arg_names, steps_arg_values[n])
-        test_steps(**dict((x, y) for x, y in test_args))
+    for n in range(len(sprog_arg_values)):
+        test_args = zip(sprog_arg_names, sprog_arg_values[n])
+        test_sprog(**dict((x, y) for x, y in test_args))

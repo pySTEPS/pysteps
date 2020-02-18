@@ -18,6 +18,7 @@ import numpy as np
 from scipy import interpolate as sip
 from scipy import optimize as sop
 
+
 def compute_empirical_cdf(bin_edges, hist):
     """Compute an empirical cumulative distribution function from the given
     histogram.
@@ -38,7 +39,7 @@ def compute_empirical_cdf(bin_edges, hist):
     cdf = []
     xs = 0.0
 
-    for x,h in zip(zip(bin_edges[:-1], bin_edges[1:]), hist):
+    for x, h in zip(zip(bin_edges[:-1], bin_edges[1:]), hist):
         cdf.append(xs)
         xs += (x[1] - x[0]) * h
 
@@ -48,7 +49,7 @@ def compute_empirical_cdf(bin_edges, hist):
     return cdf
 
 
-def nonparam_match_empirical_cdf(R, R_trg):
+def nonparam_match_empirical_cdf(initial_array, target_array):
     """Matches the empirical CDF of the initial array with the empirical CDF
     of a target array. Initial ranks are conserved, but empirical distribution
     matches the target one. Zero-pixels (i.e. pixels having the minimum value)
@@ -56,65 +57,68 @@ def nonparam_match_empirical_cdf(R, R_trg):
 
     Parameters
     ----------
-    R : array_like
+    initial_array : array_like
         The initial array whose CDF is to be matched with the target.
-    R_trg : array_like
+    target_array : array_like
         The target array.
 
     Returns
     -------
-    out : array_like
-        The matched array.
+    output_array : ndarray
+        The matched array of the same shape as the initial array.
 
     """
 
-    if np.any(~np.isfinite(R)):
+    if np.any(~np.isfinite(initial_array)):
         raise ValueError("initial array contains non-finite values")
-    if np.any(~np.isfinite(R_trg)):
+    if np.any(~np.isfinite(target_array)):
         raise ValueError("target array contains non-finite values")
-    if R.size != R_trg.size:
-      raise ValueError("dimension mismatch between R and R_trg: R.shape=%s, R_trg.shape=%s" % \
-        (str(R.shape), str(R_trg.shape)))
+    if initial_array.size != target_array.size:
+        raise ValueError("dimension mismatch between initial_array and target_array: "
+                         f"initial_array.shape={initial_array.shape}, target_array.shape={target_array.shape}")
+
+    initial_array = np.array(initial_array)
+    target_array = np.array(target_array)
 
     # zeros in initial array
-    zvalue = R.min()
-    idxzeros = R == zvalue
+    zvalue = initial_array.min()
+    idxzeros = initial_array == zvalue
 
     # zeros in the target array
-    zvalue_trg = R_trg.min()
+    zvalue_trg = target_array.min()
 
     # adjust the fraction of rain in target distribution if the number of
     # nonzeros is greater than in the initial array
-    if np.sum(R_trg > zvalue_trg) > np.sum(R > zvalue):
-        war = np.sum(R > zvalue)/R.size
-        p = np.percentile(R_trg, 100*(1 - war))
-        R_trg = R_trg.copy()
-        R_trg[R_trg < p] = zvalue_trg
+    if np.sum(target_array > zvalue_trg) > np.sum(initial_array > zvalue):
+        war = np.sum(initial_array > zvalue)/initial_array.size
+        p = np.percentile(target_array, 100*(1 - war))
+        target_array = target_array.copy()
+        target_array[target_array < p] = zvalue_trg
 
     # flatten the arrays
-    arrayshape = R.shape
-    R_trg = R_trg.flatten()
-    R = R.flatten()
+    arrayshape = initial_array.shape
+    target_array = target_array.flatten()
+    initial_array = initial_array.flatten()
 
     # rank target values
-    order = R_trg.argsort()
-    ranked = R_trg[order]
+    order = target_array.argsort()
+    ranked = target_array[order]
 
     # rank initial values order
-    orderin = R.argsort()
-    ranks = np.empty(len(R), int)
-    ranks[orderin] = np.arange(len(R))
+    orderin = initial_array.argsort()
+    ranks = np.empty(len(initial_array), int)
+    ranks[orderin] = np.arange(len(initial_array))
 
     # get ranked values from target and rearrange with the initial order
-    R = ranked[ranks]
+    output_array = ranked[ranks]
 
     # reshape to the original array dimensions
-    R = R.reshape(arrayshape)
+    output_array = output_array.reshape(arrayshape)
 
-    # readd original zeros
-    R[idxzeros] = zvalue_trg
+    # read original zeros
+    output_array[idxzeros] = zvalue_trg
 
-    return R
+    return output_array
 
 
 # TODO: A more detailed explanation of the PMM method + references.
@@ -136,10 +140,10 @@ def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
     """
     pmm = {}
 
-    pmm["bin_edges_1"]      = bin_edges_1.copy()
-    pmm["cdf_1"]            = cdf_1.copy()
-    pmm["bin_edges_2"]      = bin_edges_2.copy()
-    pmm["cdf_2"]            = cdf_2.copy()
+    pmm["bin_edges_1"] = bin_edges_1.copy()
+    pmm["cdf_1"] = cdf_1.copy()
+    pmm["bin_edges_2"] = bin_edges_2.copy()
+    pmm["cdf_2"] = cdf_2.copy()
     pmm["cdf_interpolator"] = sip.interp1d(bin_edges_1, cdf_1, kind="linear")
 
     return pmm
@@ -158,7 +162,8 @@ def pmm_compute(pmm, x):
         The coordinate for which to compute the probability matched value.
 
     """
-    mask = np.logical_and(x >= pmm["bin_edges_1"][0], x <= pmm["bin_edges_1"][-1])
+    mask = np.logical_and(x >= pmm["bin_edges_1"][0],
+                          x <= pmm["bin_edges_1"][-1])
     p = pmm["cdf_interpolator"](x[mask])
 
     result = np.ones(len(mask)) * np.nan
@@ -189,8 +194,10 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     Other Parameters
     ----------------
     scale : float
-        Optional initial value of the scale parameter for the Nelder-Mead optimisation.
-        Typically, this would be the scale parameter estimated the previous time step.
+        Optional initial value of the scale parameter for the Nelder-Mead
+        optimisation.
+        Typically, this would be the scale parameter estimated the previous
+        time step.
         Default : 1.
     max_iterations : int
         Maximum allowed number of iterations and function evaluations.
@@ -227,31 +234,31 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     # define objective function
     def _get_error(scale):
         R_ = np.zeros_like(R)
-        R_[idx_wet]  = f((R[idx_wet] - shift)*scale)
+        R_[idx_wet] = f((R[idx_wet] - shift)*scale)
         R_[~idx_wet] = 0
         second_moment = np.nanstd(R_)**2 + np.nanmean(R_)**2
         return np.abs(second_moment - second_moment_trg)
 
     # Nelder-Mead optimisation
     nm_scale = sop.minimize(_get_error, scale, method="Nelder-Mead", tol=tol,
-                            options={"disp":False,"maxiter":max_iterations})
+                            options={"disp": False, "maxiter": max_iterations})
     scale = nm_scale["x"][0]
 
-    R[idx_wet]  = f((R[idx_wet] - shift)*scale)
+    R[idx_wet] = f((R[idx_wet] - shift)*scale)
     R[~idx_wet] = 0
 
     return shift, scale, R.reshape(shape)
 
 
 def _invfunc(y, fx, fy):
-  if len(y) == 0:
-      return np.array([])
+    if len(y) == 0:
+        return np.array([])
 
-  b = np.digitize(y, fy)
-  mask = np.logical_and(b > 0, b < len(fy))
-  c = (y[mask] - fy[b[mask]-1]) / (fy[b[mask]] - fy[b[mask]-1])
+    b = np.digitize(y, fy)
+    mask = np.logical_and(b > 0, b < len(fy))
+    c = (y[mask] - fy[b[mask]-1]) / (fy[b[mask]] - fy[b[mask]-1])
 
-  result = np.ones(len(y)) * np.nan
-  result[mask] = c * fx[b[mask]] + (1.0-c) * fx[b[mask]-1]
+    result = np.ones(len(y)) * np.nan
+    result[mask] = c * fx[b[mask]] + (1.0-c) * fx[b[mask]-1]
 
-  return result
+    return result

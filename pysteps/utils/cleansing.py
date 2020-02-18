@@ -150,7 +150,8 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         All values in **input_array** are required to have finite values.
 
     thr : float
-        The number of standard deviations from the mean that defines an outlier.
+        The number of standard deviations from the mean
+        that defines an outlier.
 
     coord : array_like, optional
         Array of shape (n, d) containing the coordinates of the input data into
@@ -158,7 +159,8 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         Passing **coord** requires that **k** is not None.
 
     k : int or None, optional
-        The number of nearest neighbours used to localize the outlier detection.
+        The number of nearest neighbours used to localize the outlier
+        detection.
         If set to None (the default), it employs all the data points (global
         detection). Setting **k** requires that **coord** is not None.
 
@@ -169,8 +171,8 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     -------
 
     out : array_like
-        A boolean array of the same shape as **input_array**, with True values
-        indicating the outliers detected in **input_array**.
+        A 1-D boolean array of shape (n) with True values indicating the outliers
+        detected in **input_array**.
     """
 
     input_array = np.copy(input_array)
@@ -179,14 +181,19 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         raise ValueError("input_array contains non-finite values")
 
     if input_array.ndim == 1:
+        nsamples = input_array.size
         nvar = 1
     elif input_array.ndim == 2:
+        nsamples = input_array.shape[0]
         nvar = input_array.shape[1]
     else:
         raise ValueError(
             "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
             % coord.ndim
         )
+
+    if nsamples < 2:
+        return np.zeros(nsamples, dtype=bool)
 
     if coord is not None:
 
@@ -200,17 +207,17 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                 % coord.ndim
             )
 
-        if coord.shape[0] != input_array.shape[0]:
+        if coord.shape[0] != nsamples:
             raise ValueError(
                 "the number of samples in input_array does not match the "
                 + "number of coordinates %i!=%i"
-                % (input_array.shape[0], coord.shape[0])
+                % (nsamples, coord.shape[0])
             )
 
         if k is None:
             raise ValueError("coord is set but k is None")
 
-        k = np.min((coord.shape[0], k + 1))
+        k = np.min((nsamples, k + 1))
 
     else:
         if k is not None:

@@ -15,7 +15,7 @@ over a subdomain of prescribed size.
 
 .. autosummary::
     :toctree: ../generated/
-    
+
     forecast
 """
 
@@ -84,7 +84,7 @@ def forecast(
         are assumed to be regular, and the inputs are required to have finite values.
     metadata : dict
         Metadata dictionary containing the accutime, xpixelsize, threshold and
-        zerovalue attributes as described in the documentation of 
+        zerovalue attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
     V : array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
@@ -302,7 +302,7 @@ def forecast(
 
     xy_coords = np.stack([x_values, y_values])
 
-    decomp_method = cascade.get_method(decomp_method)
+    decomp_method, __ = cascade.get_method(decomp_method)
     filter_method = cascade.get_method(bandpass_filter_method)
     if noise_method is not None:
         init_noise, generate_noise = noise.get_method(noise_method)
@@ -346,7 +346,7 @@ def forecast(
         }
     )
 
-    print("Estimating nowcast parameters.")
+    print("Estimating nowcast parameters...", end="")
 
     def estimator(R, parsglob=None, idxm=None, idxn=None):
 
@@ -370,15 +370,19 @@ def forecast(
         if parsglob is None:
             R_d = []
             for i in range(ar_order + 1):
-                R_d_ = decomp_method(R[i, :, :], filter, fft_method=fft_method)
+                R_d_ = decomp_method(R[i, :, :], filter, fft_method=fft_method,
+                                     normalize=True, compute_stats=True)
                 R_d.append(R_d_)
             R_d_ = None
 
         # normalize the cascades and rearrange them into a four-dimensional array
         # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
         if parsglob is None:
-            R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
+            R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
+            mu = R_d[-1]["means"]
+            sigma = R_d[-1]["stds"]
             R_d = None
+
         else:
             R_c = parsglob["R_c"][0][
                 :, :, idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
@@ -514,7 +518,7 @@ def forecast(
     if measure_time:
         print("%.2f seconds." % (time.time() - starttime))
     else:
-        print("done.")
+        print(" done.")
 
     # initialize the random generators
     if noise_method is not None:
@@ -574,7 +578,8 @@ def forecast(
                     parsglob["P"], randstate=randgen_prec[j], fft_method=fft_method
                 )
                 # decompose the noise field into a cascade
-                EPS_d = decomp_method(EPS, parsglob["filter"], fft_method=fft_method)
+                EPS_d = decomp_method(EPS, parsglob["filter"], fft_method=fft_method,
+                                      normalize=True, compute_stats=True)
             else:
                 EPS_d = None
 
@@ -592,7 +597,7 @@ def forecast(
                     EPS_ = None
                 # apply AR(p) process to cascade level
                 R_c[i, :, :, :] = autoregression.iterate_ar_model(
-                    R_c[i, :, :, :], parsglob["PHI"][i, :], EPS=EPS_
+                    R_c[i, :, :, :], parsglob["PHI"][i, :], eps=EPS_
                 )
                 EPS_ = None
             parsglob["R_c"][j] = R_c.copy()
@@ -662,7 +667,7 @@ def forecast(
                                     EPS_ = None
                                 # apply AR(p) process to cascade level
                                 R_c[i, :, :, :] = autoregression.iterate_ar_model(
-                                    R_c[i, :, :, :], PHI[m, n, i, :], EPS=EPS_
+                                    R_c[i, :, :, :], PHI[m, n, i, :], eps=EPS_
                                 )
                                 EPS_ = None
                             rc[m][n][j] = R_c.copy()
@@ -816,6 +821,7 @@ def _compute_incremental_mask(Rbin, kr, r):
     return mask / mask.max()
 
 
+# TODO: Use the recomponse_cascade method in the cascade.decomposition module
 def _recompose_cascade(R, mu, sigma):
     R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
     R_rc = np.sum(np.stack(R_rc), axis=0)
@@ -850,7 +856,7 @@ def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
 
         T = win_size[0] / 4.0
         W = win_size[0] / 2.0
-        B = np.linspace(-W, W, 2 * W)
+        B = np.linspace(-W, W, int(2 * W))
         R = np.abs(B) - T
         R[R < 0] = 0.0
         A = 0.5 * (1.0 + np.cos(np.pi * R / T))
@@ -859,7 +865,7 @@ def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
 
         T = win_size[1] / 4.0
         W = win_size[1] / 2.0
-        B = np.linspace(-W, W, 2 * W)
+        B = np.linspace(-W, W, int(2 * W))
         R = np.abs(B) - T
         R[R < 0] = 0.0
         A = 0.5 * (1.0 + np.cos(np.pi * R / T))

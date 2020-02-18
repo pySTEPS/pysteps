@@ -24,7 +24,7 @@ The time step of the output is taken from the inputs.
 
 .. autosummary::
     :toctree: ../generated/
-    
+
     get_method
 """
 
@@ -49,24 +49,24 @@ def get_method(name):
 
     Implemented methods:
 
-    +-------------------+-------------------------------------------------------+
-    |     Name          |              Description                              |
-    +===================+=======================================================+
-    |  eulerian         | this approach keeps the last observation frozen       |
-    |                   | (Eulerian persistence)                                |
-    +-------------------+-------------------------------------------------------+
-    |  lagrangian or    | this approach extrapolates the last observation       |
-    |  extrapolation    | using the motion field (Lagrangian persistence)       |
-    +-------------------+-------------------------------------------------------+
-    |  sprog            | the S-PROG method described in :cite:`Seed2003`       |
-    +-------------------+-------------------------------------------------------+
-    |  steps            | the STEPS stochastic nowcasting method described in   |
-    |                   | :cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013` |
-    |                   |                                                       |
-    +-------------------+-------------------------------------------------------+
-    |  sseps            | short-space ensemble prediction system (SSEPS).       |
-    |                   | Essentially, this is a localization of STEPS.         |
-    +-------------------+-------------------------------------------------------+
+    +-----------------+-------------------------------------------------------+
+    |     Name        |              Description                              |
+    +=================+=======================================================+
+    |  eulerian       | this approach keeps the last observation frozen       |
+    |                 | (Eulerian persistence)                                |
+    +-----------------+-------------------------------------------------------+
+    |  lagrangian or  | this approach extrapolates the last observation       |
+    |  extrapolation  | using the motion field (Lagrangian persistence)       |
+    +-----------------+-------------------------------------------------------+
+    |  sprog          | the S-PROG method described in :cite:`Seed2003`       |
+    +-----------------+-------------------------------------------------------+
+    |  steps          | the STEPS stochastic nowcasting method described in   |
+    |                 | :cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013` |
+    |                 |                                                       |
+    +-----------------+-------------------------------------------------------+
+    |  sseps          | short-space ensemble prediction system (SSEPS).       |
+    |                 | Essentially, this is a localization of STEPS.         |
+    +-----------------+-------------------------------------------------------+
 
     steps and sseps produce stochastic nowcasts, and the other methods are
     deterministic.

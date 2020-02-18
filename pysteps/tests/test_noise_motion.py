@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_array_almost_equal
+
+from pysteps.noise.motion import generate_bps
 from pysteps.noise.motion import get_default_params_bps_par
 from pysteps.noise.motion import get_default_params_bps_perp
 from pysteps.noise.motion import initialize_bps
-from pysteps.noise.motion import generate_bps
 
 
 def test_noise_motion_get_default_params_bps_par():
@@ -23,16 +24,16 @@ def test_noise_motion_get_default_params_bps_perp():
     assert_array_almost_equal(result, expected)
 
 
-vv = np.ones((8, 8))*np.sqrt(2)*0.5
+vv = np.ones((8, 8)) * np.sqrt(2) * 0.5
 test_init_bps_vars = [
-                      ("vsf", 60),
-                      ("eps_par", -0.2042896366299448),
-                      ("eps_perp", 1.6383482042624593),
-                      ("p_par", (10.88, 0.23, -7.68)),
-                      ("p_perp", (5.76, 0.31, -2.72)),
-                      ("V_par", np.stack([vv, vv])),
-                      ("V_perp", np.stack([-vv, vv])),
-                     ]
+    ("vsf", 60),
+    ("eps_par", -0.2042896366299448),
+    ("eps_perp", 1.6383482042624593),
+    ("p_par", (10.88, 0.23, -7.68)),
+    ("p_perp", (5.76, 0.31, -2.72)),
+    ("V_par", np.stack([vv, vv])),
+    ("V_perp", np.stack([-vv, vv])),
+]
 
 
 @pytest.mark.parametrize("variable, expected", test_init_bps_vars)
@@ -60,5 +61,5 @@ def test_generate_bps():
                                  seed=seed,
                                  )
     new_vv = generate_bps(perturbator, timestep)
-    expected = np.stack([v*-0.066401, v*0.050992])
+    expected = np.stack([v * -0.066401, v * 0.050992])
     assert_array_almost_equal(new_vv, expected)

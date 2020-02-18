@@ -23,6 +23,7 @@ Evaluation and skill scores for probabilistic forecasts.
 
 import numpy as np
 
+
 def CRPS(X_f, X_o):
     """Compute the continuous ranked probability score (CRPS).
 
@@ -202,7 +203,7 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
     reldiag = {}
 
     reldiag["X_min"] = X_min
-    reldiag["bin_edges"] = np.linspace(-1e-6, 1+1e-6, n_bins+1)
+    reldiag["bin_edges"] = np.linspace(-1e-6, 1 + 1e-6, int(n_bins + 1))
     reldiag["n_bins"] = n_bins
     reldiag["X_sum"] = np.zeros(n_bins)
     reldiag["Y_sum"] = np.zeros(n_bins, dtype=int)
@@ -293,8 +294,8 @@ def ROC_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
     X_min : float
       Precipitation intensity threshold for yes/no prediction.
     n_prob_thrs : int
-      The number of probability thresholds to use. The interval [0,1] is divided
-      into n_prob_thrs evenly spaced values.
+      The number of probability thresholds to use.
+      The interval [0,1] is divided into n_prob_thrs evenly spaced values.
     compute_area : bool
       If True, compute the area under the ROC curve (between 0.5 and 1).
 
@@ -323,8 +324,8 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
     X_min : float
       Precipitation intensity threshold for yes/no prediction.
     n_prob_thrs : int
-      The number of probability thresholds to use. The interval [0,1] is divided
-      into n_prob_thrs evenly spaced values.
+      The number of probability thresholds to use.
+      The interval [0,1] is divided into n_prob_thrs evenly spaced values.
 
     Returns
     -------
@@ -339,7 +340,7 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
     ROC["misses"] = np.zeros(n_prob_thrs, dtype=int)
     ROC["false_alarms"] = np.zeros(n_prob_thrs, dtype=int)
     ROC["corr_neg"] = np.zeros(n_prob_thrs, dtype=int)
-    ROC["prob_thrs"] = np.linspace(0.0, 1.0, n_prob_thrs)
+    ROC["prob_thrs"] = np.linspace(0.0, 1.0, int(n_prob_thrs))
 
     return ROC
 
@@ -398,15 +399,17 @@ def ROC_curve_compute(ROC, compute_area=False):
     POFD_vals = []
 
     for i in range(len(ROC["prob_thrs"])):
-        POD_vals.append(1.0*ROC["hits"][i] / (ROC["hits"][i] + ROC["misses"][i]))
-        POFD_vals.append(1.0*ROC["false_alarms"][i] / \
+        POD_vals.append(1.0*ROC["hits"][i] /
+                        (ROC["hits"][i] + ROC["misses"][i]))
+        POFD_vals.append(1.0*ROC["false_alarms"][i] /
                          (ROC["corr_neg"][i] + ROC["false_alarms"][i]))
 
     if compute_area:
         # Compute the total area of parallelepipeds under the ROC curve.
         area = (1.0 - POFD_vals[0]) * (1.0 + POD_vals[0]) / 2.0
         for i in range(len(ROC["prob_thrs"])-1):
-            area += (POFD_vals[i] - POFD_vals[i+1]) * (POD_vals[i+1] + POD_vals[i]) / 2.0
+            area += (POFD_vals[i] - POFD_vals[i+1]) * \
+              (POD_vals[i+1] + POD_vals[i]) / 2.0
         area += POFD_vals[-1] * POD_vals[-1] / 2.0
 
         return POFD_vals, POD_vals, area

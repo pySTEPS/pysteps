@@ -15,8 +15,17 @@ import fnmatch
 import os
 
 
-def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
-                 num_prev_files=0, num_next_files=0):
+def find_by_date(
+    date,
+    root_path,
+    path_fmt,
+    fn_pattern,
+    fn_ext,
+    timestep,
+    num_prev_files=0,
+    num_next_files=0,
+    silent=False,
+):
     """List input files whose timestamp matches the given date.
 
     Parameters
@@ -40,6 +49,8 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         Optional, number of previous files to find before the given timestamp.
     num_next_files : int
         Optional, number of future files to find after the given timestamp.
+    silent : bool
+        Optional, whether to suppress all messages from the method.
 
     Returns
     -------
@@ -56,8 +67,14 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
     timestamps = []
 
     for i in range(num_prev_files + num_next_files + 1):
-        curdate = date + timedelta(minutes=num_next_files * timestep) - timedelta(minutes=i * timestep)
-        fn = _find_matching_filename(curdate, root_path, path_fmt, fn_pattern, fn_ext)
+        curdate = (
+            date
+            + timedelta(minutes=num_next_files * timestep)
+            - timedelta(minutes=i * timestep)
+        )
+        fn = _find_matching_filename(
+            curdate, root_path, path_fmt, fn_pattern, fn_ext, silent
+        )
         filenames.append(fn)
 
         timestamps.append(curdate)
@@ -66,20 +83,22 @@ def find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext, timestep,
         raise IOError("no input data found in %s" % root_path)
 
     if (num_prev_files + num_next_files) > 0:
-        return (filenames[::-1], timestamps[::-1])
+        return filenames[::-1], timestamps[::-1]
     else:
-        return (filenames, timestamps)
+        return filenames, timestamps
 
 
-def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext):
+def _find_matching_filename(
+    date, root_path, path_fmt, fn_pattern, fn_ext, silent=False
+):
     path = _generate_path(date, root_path, path_fmt)
     fn = None
 
     if os.path.exists(path):
-        fn = datetime.strftime(date, fn_pattern) + '.' + fn_ext
+        fn = datetime.strftime(date, fn_pattern) + "." + fn_ext
 
         # test for wildcars
-        if '?' in fn:
+        if "?" in fn:
             filenames = os.listdir(path)
             if len(filenames) > 0:
                 for filename in filenames:
@@ -92,10 +111,11 @@ def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext):
         if os.path.exists(fn):
             fn = fn
         else:
-            print('filename for date %s not found in %s' % (date, path))
             fn = None
-    else:
-        print('path', path, 'not found.')
+            if not silent:
+                print("file not found: %s" % fn)
+    elif not silent:
+        print("path", path, "not found.")
 
     return fn
 

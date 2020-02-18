@@ -15,8 +15,10 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     * - package
       - |github| |conda| |pypi|
     * - license
-      - |License|
-
+      - |license|
+    * - community
+      - |slack|
+ 
 .. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
     :target: https://pysteps.readthedocs.io/
@@ -28,7 +30,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 .. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/master/graph/badge.svg
     :alt: Coverage
     :target: https://codecov.io/gh/pySTEPS/pysteps
-    
+
 .. |requires| image:: https://requires.io/github/pySTEPS/pysteps/requirements.svg?branch=master
      :target: https://requires.io/github/pySTEPS/pysteps/requirements/?branch=master
      :alt: Requirements Status
@@ -36,18 +38,22 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 .. |github| image:: https://img.shields.io/github/release/pySTEPS/pysteps.svg
     :target: https://github.com/pySTEPS/pysteps/releases/latest
     :alt: Latest github release
-    
-.. |conda| image:: https://anaconda.org/conda-forge/pysteps/badges/version.svg   
+
+.. |conda| image:: https://anaconda.org/conda-forge/pysteps/badges/version.svg
     :target: https://anaconda.org/conda-forge/pysteps
     :alt: Anaconda Cloud
-    
+
 .. |pypi| image:: https://badge.fury.io/py/pysteps.svg
     :target: https://pypi.org/project/pysteps/
     :alt: Latest PyPI version
-    
+
 .. |license| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
     :alt: License
     :target: https://opensource.org/licenses/BSD-3-Clause
+
+.. |slack| image:: https://pysteps-slackin.herokuapp.com/badge.svg
+    :alt: Slack invitation page
+    :target: https://pysteps-slackin.herokuapp.com/
 
 .. end-badges
 
@@ -60,6 +66,14 @@ The aim of pysteps is to serve two different needs. The first is to provide a mo
 
 The pysteps library supports standard input/output file formats and implements several optical flow methods as well as advanced stochastic generators to produce ensemble nowcasts. In addition, it includes tools for visualizing and post-processing the nowcasts and methods for deterministic, probabilistic, and neighbourhood forecast verification.
 
+Get in touch
+============
+
+You can get in touch with the pysteps community on our `pysteps slack`__. To get access to it, you need to ask for an invitation or you can use the automatic invitation page `here`__. This invite page can sometimes take a while to load so please be patient.
+
+__ https://pysteps.slack.com/
+__ https://pysteps-slackin.herokuapp.com/
+
 Installation
 ============
 
@@ -71,7 +85,7 @@ Use
 ===
 
 You can have a look at the `gallery of examples`__ to get a better idea of how the library can be used.
- 
+
 __ https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
 
 For a more detailed description of the implemented functions, check the `pysteps reference page`__.
@@ -102,9 +116,12 @@ __ https://pysteps.readthedocs.io/en/latest/developer_guide/index.html
 Reference publications
 ======================
 
-Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann, A. Seed, and L. Foresti, 2019:  Pysteps:  an open-source Python library for probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev. Discuss.*, doi:10.5194/gmd-2019-94 **in review**. [source__]
+Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann,
+A. Seed, and L. Foresti, 2019:  Pysteps:  an open-source Python library for
+probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**,
+4185–4219, doi:10.5194/gmd-12-4185-2019. [source__]
 
-__ https://www.geosci-model-dev-discuss.net/gmd-2019-94/
+__ https://doi.org/10.5194/gmd-12-4185-2019
 
 Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann, A. Seed, and
 L. Foresti, 2019: pysteps - a Community-Driven Open-Source Library for Precipitation Nowcasting. *Poster presented at the 3rd European Nowcasting Conference, Madrid, ES*, doi: 10.13140/RG.2.2.31368.67840. [source__]

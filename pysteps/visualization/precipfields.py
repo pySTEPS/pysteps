@@ -12,14 +12,22 @@ Methods for plotting precipitation fields.
 """
 
 import matplotlib.pylab as plt
-from matplotlib import cm, colors, gridspec
+from matplotlib import cm, colors  # , gridspec
 import numpy as np
-from pysteps.exceptions import UnsupportedSomercProjection
+try:
+    import pyproj
+
+    PYPROJ_IMPORTED = True
+except ImportError:
+    PYPROJ_IMPORTED = False
+from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 from . import basemaps
 from . import utils
 
-def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
+
+def plot_precip_field(R, type="intensity", map=None, geodata=None,
+                      units='mm/h', bbox=None,
                       colorscale='pysteps', probthr=None, title=None,
                       colorbar=True, drawlonlatlines=False, lw=0.5, axis="on",
                       cax=None, **kwargs):
@@ -48,40 +56,49 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         Optional method for plotting a map: 'basemap' or 'cartopy'. The former
         uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
     geodata : dictionary, optional
-        Optional dictionary containing geographical information about the field.
+        Optional dictionary containing geographical information about
+        the field. Required is map is not None.
+
         If geodata is not None, it must contain the following key-value pairs:
-        
+
         .. tabularcolumns:: |p{1.5cm}|L|
 
-        +-----------------+----------------------------------------------------+
-        |        Key      |                  Value                             |
-        +=================+====================================================+
-        |    projection   | PROJ.4-compatible projection definition            |
-        +-----------------+----------------------------------------------------+
-        |    x1           | x-coordinate of the lower-left corner of the data  |
-        |                 | raster (meters)                                    |
-        +-----------------+----------------------------------------------------+
-        |    y1           | y-coordinate of the lower-left corner of the data  |
-        |                 | raster (meters)                                    |
-        +-----------------+----------------------------------------------------+
-        |    x2           | x-coordinate of the upper-right corner of the data |
-        |                 | raster (meters)                                    |
-        +-----------------+----------------------------------------------------+
-        |    y2           | y-coordinate of the upper-right corner of the data |
-        |                 | raster (meters)                                    |
-        +-----------------+----------------------------------------------------+
-        |    yorigin      | a string specifying the location of the first      |
-        |                 | element in the data raster w.r.t. y-axis:          |
-        |                 | 'upper' = upper border, 'lower' = lower border     |
-        +-----------------+----------------------------------------------------+
+        +-----------------+---------------------------------------------------+
+        |        Key      |                  Value                            |
+        +=================+===================================================+
+        |    projection   | PROJ.4-compatible projection definition           |
+        +-----------------+---------------------------------------------------+
+        |    x1           | x-coordinate of the lower-left corner of the data |
+        |                 | raster (meters)                                   |
+        +-----------------+---------------------------------------------------+
+        |    y1           | y-coordinate of the lower-left corner of the data |
+        |                 | raster (meters)                                   |
+        +-----------------+---------------------------------------------------+
+        |    x2           | x-coordinate of the upper-right corner of the     |
+        |                 | data raster (meters)                              |
+        +-----------------+---------------------------------------------------+
+        |    y2           | y-coordinate of the upper-right corner of the     |
+        |                 | data raster (meters)                              |
+        +-----------------+---------------------------------------------------+
+        |    yorigin      | a string specifying the location of the first     |
+        |                 | element in the data raster w.r.t. y-axis:         |
+        |                 | 'upper' = upper border, 'lower' = lower border    |
+        +-----------------+---------------------------------------------------+
     units : {'mm/h', 'mm', 'dBZ'}, optional
         Units of the input array. If type is 'prob', this specifies the unit of
         the intensity threshold.
+    bbox : tuple, optional
+        Four-element tuple specifying the coordinates of the bounding box. Use
+        this for plotting a subdomain inside the input grid. The coordinates are
+        of the form (lower left x,lower left y,upper right x,upper right y). If
+        map is not None, the x- and y-coordinates are longitudes and latitudes.
+        Otherwise they represent image pixels.
     colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
     probthr : float, optional
-        Intensity threshold to show in the color bar of the exceedance probability
-        map. Required if type is "prob" and colorbar is True.
+        Intensity threshold to show in the color bar of the exceedance
+        probability map.
+        Required if type is "prob" and colorbar is True.
     title : str, optional
         If not None, print the title on top of the plot.
     colorbar : bool, optional
@@ -108,9 +125,11 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
     """
     if type not in ["intensity", "depth", "prob"]:
-        raise ValueError("invalid type '%s', must be 'intensity', 'depth' or 'prob'" % type)
+        raise ValueError("invalid type '%s', must be "
+                         + "'intensity', 'depth' or 'prob'" % type)
     if units not in ["mm/h", "mm", "dBZ"]:
-        raise ValueError("invalid units '%s', must be 'mm/h', 'mm' or 'dBZ'" % units)
+        raise ValueError("invalid units '%s', must be "
+                         + "'mm/h', 'mm' or 'dBZ'" % units)
     if type == "prob" and colorbar and probthr is None:
         raise ValueError("type='prob' but probthr not specified")
     if map is not None and geodata is None:
@@ -123,36 +142,67 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
     # extract extent and origin
     if geodata is not None:
-        extent = (geodata['x1'],geodata['x2'], geodata['y1'],geodata['y2'])
+        field_extent = (geodata['x1'], geodata['x2'], geodata['y1'], geodata['y2'])
+        if bbox is None:
+            bm_extent = field_extent
+        else:
+            if not PYPROJ_IMPORTED:
+                raise MissingOptionalDependency(
+                    "pyproj package is required to import "
+                    "FMI's radar reflectivity composite "
+                    "but it is not installed"
+                )
+            pr = pyproj.Proj(geodata["projection"])
+            x1, y1 = pr(bbox[0], bbox[1])
+            x2, y2 = pr(bbox[2], bbox[3])
+            bm_extent = (x1, x2, y1, y2)
         origin = geodata["yorigin"]
     else:
-        extent = (0, R.shape[1]-1, 0, R.shape[0]-1)
+        field_extent = (0, R.shape[1]-1, 0, R.shape[0]-1)
         origin = "upper"
-    
+
     # plot geography
     if map is not None:
         try:
             ax = basemaps.plot_geography(map, geodata["projection"],
-                            extent, R.shape, lw, drawlonlatlines, **kwargs)
+                                    bm_extent, R.shape, lw,
+                                    drawlonlatlines, **kwargs)
             regular_grid = True
-        except UnsupportedSomercProjection:        
+        except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
-            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-            geodata = utils.reproject_geodata(geodata, t_proj4str, return_grid="quadmesh")
-            extent = (geodata['x1'], geodata['x2'], geodata['y1'], geodata['y2'])
+            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 "
+            t_proj4str += "+x_0=4321000 +y_0=3210000 +ellps=GRS80 "
+            t_proj4str += "+units=m +no_defs"
+            geodata = utils.reproject_geodata(geodata, t_proj4str,
+                                              return_grid="quadmesh")
+            bm_extent = (geodata['x1'], geodata['x2'],
+                         geodata['y1'], geodata['y2'])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
             regular_grid = geodata["regular_grid"]
-            
+
             ax = basemaps.plot_geography(map, geodata["projection"],
-                            extent, R.shape, lw, drawlonlatlines, **kwargs)
+                                         bm_extent, R.shape, lw,
+                                         drawlonlatlines, **kwargs)
     else:
         regular_grid = True
-        ax = plt.gca()
-    
+
+    if bbox is not None and map is not None:
+        x1, y1 = pr(geodata["x1"], geodata["y1"], inverse=True)
+        x2, y2 = pr(geodata["x2"], geodata["y2"], inverse=True)
+        if map == "basemap":
+            x1, y1 = ax(x1, y1)
+            x2, y2 = ax(x2, y2)
+        else:
+            x1, y1 = pr(x1, y1)
+            x2, y2 = pr(x2, y2)
+        field_extent = (x1, x2, y1, y2)
+
     # plot rainfield
     if regular_grid:
-        im = _plot_field(R, ax, type, units, colorscale, extent=extent, origin=origin)
+        ax = plt.gca()
+        im = _plot_field(R, ax, type, units, colorscale,
+                         extent=field_extent, origin=origin)
     else:
         if origin == "upper":
             Y = np.flipud(Y)
@@ -160,12 +210,13 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
     # plot radar domain mask
     mask = np.ones(R.shape)
-    mask[~np.isnan(R)] = np.nan # Fully transparent within the radar domain
+    mask[~np.isnan(R)] = np.nan  # Fully transparent within the radar domain
     ax.imshow(mask, cmap=colors.ListedColormap(['gray']), alpha=0.5,
-              zorder=1e6, extent=extent, origin=origin)
-              
-    # ax.pcolormesh(X, Y, np.flipud(mask), cmap=colors.ListedColormap(['gray']),
-                    # alpha=0.5, zorder=1e6)
+              zorder=1e6, extent=field_extent, origin=origin)
+
+    # ax.pcolormesh(X, Y, np.flipud(mask),
+    #               cmap=colors.ListedColormap(['gray']),
+    #               alpha=0.5, zorder=1e6)
     # TODO: pcolormesh doesn't work properly with the alpha parameter
 
     if title is not None:
@@ -173,10 +224,14 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
     # add colorbar
     if colorbar:
+        if type in ["intensity", "depth"]:
+            extend = "max"
+        else:
+            extend = "neither"
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm,
-                extend="max" if type in ["intensity", "depth"] else "neither",
-                shrink=0.8, cax=cax)
-        if clevsStr != None:
+                            extend=extend,
+                            shrink=0.8, cax=cax)
+        if clevsStr is not None:
             cbar.ax.set_yticklabels(clevsStr)
 
         if type == "intensity":
@@ -187,7 +242,12 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
             cbar.set_label("Precipitation depth")
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
-    
+
+    if map is None and bbox is not None:
+        ax = plt.gca()
+        ax.set_xlim(bbox[0], bbox[2])
+        ax.set_ylim(bbox[1], bbox[3])
+
     if geodata is None or axis == "off":
         axes = plt.gca()
         axes.xaxis.set_ticks([])
@@ -196,6 +256,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         axes.yaxis.set_ticklabels([])
 
     return plt.gca()
+
 
 def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
     R = R.copy()
@@ -213,12 +274,14 @@ def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
     else:
         R[R < 1e-3] = np.nan
 
-    vmin,vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
+    vmin, vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
-    im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent, interpolation='nearest',
+    im = ax.imshow(R, cmap=cmap, norm=norm, extent=extent,
+                   interpolation='nearest',
                    vmin=vmin, vmax=vmax, origin=origin, zorder=1)
 
     return im
+
 
 def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale):
     R = R.copy()
@@ -236,11 +299,13 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale):
     else:
         R[R < 1e-3] = np.nan
 
-    vmin,vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
+    vmin, vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
-    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
+    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm,
+                       vmin=vmin, vmax=vmax, zorder=1)
 
     return im
+
 
 def get_colormap(type, units='mm/h', colorscale='pysteps'):
     """Function to generate a colormap (cmap) and norm.
@@ -252,7 +317,7 @@ def get_colormap(type, units='mm/h', colorscale='pysteps'):
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
     units : {'mm/h', 'mm', 'dBZ'}, optional
-        Units of the input array. If type is 'prob', this specifies the unit of 
+        Units of the input array. If type is 'prob', this specifies the unit of
         the intensity threshold.
     colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
@@ -272,16 +337,18 @@ def get_colormap(type, units='mm/h', colorscale='pysteps'):
     """
     if type in ["intensity", "depth"]:
         # Get list of colors
-        color_list,clevs,clevsStr = _get_colorlist(units, colorscale)
+        color_list, clevs, clevsStr = _get_colorlist(units, colorscale)
 
-        cmap = colors.LinearSegmentedColormap.from_list("cmap", color_list, len(clevs)-1)
+        cmap = colors.LinearSegmentedColormap.from_list("cmap",
+                                                        color_list,
+                                                        len(clevs)-1)
 
         if colorscale == 'BOM-RF3':
-            cmap.set_over('black',1)
+            cmap.set_over('black', 1)
         if colorscale == 'pysteps':
-            cmap.set_over('darkred',1)
+            cmap.set_over('darkred', 1)
         if colorscale == 'STEPS-BE':
-            cmap.set_over('black',1)
+            cmap.set_over('black', 1)
         norm = colors.BoundaryNorm(clevs, cmap.N)
 
         return cmap, norm, clevs, clevsStr
@@ -291,6 +358,7 @@ def get_colormap(type, units='mm/h', colorscale='pysteps'):
         return cmap, colors.Normalize(vmin=0, vmax=1), None, None
     else:
         return cm.jet, colors.Normalize(), None, None
+
 
 def _get_colorlist(units='mm/h', colorscale='pysteps'):
     """
@@ -336,30 +404,37 @@ def _get_colorlist(units='mm/h', colorscale='pysteps'):
                                (40,   0,   0)])  # > 100
         color_list = color_list/255.
         if units == 'mm/h':
-            clevs = [0.,0.2, 0.5, 1.5, 2.5, 4, 6, 10, 15, 20, 30, 40, 50, 60, 75,
-                    100, 150]
+            clevs = [0., 0.2, 0.5, 1.5, 2.5, 4, 6, 10, 15, 20, 30, 40, 50, 60,
+                     75, 100, 150]
         elif units == "mm":
-            clevs = [0.,0.2, 0.5, 1.5, 2.5, 4, 5, 7, 10, 15, 20, 25, 30, 35, 40,
-                    45, 50]
+            clevs = [0., 0.2, 0.5, 1.5, 2.5, 4, 5, 7, 10, 15, 20, 25, 30, 35,
+                     40, 45, 50]
         else:
             raise ValueError('Wrong units in get_colorlist: %s' % units)
     elif colorscale == 'pysteps':
-        pinkHex = '#%02x%02x%02x' % (232, 215, 242)
+        # pinkHex = '#%02x%02x%02x' % (232, 215, 242)
         redgreyHex = '#%02x%02x%02x' % (156, 126, 148)
-        color_list = [redgreyHex, "#640064","#AF00AF","#DC00DC","#3232C8","#0064FF","#009696","#00C832",
-        "#64FF00","#96FF00","#C8FF00","#FFFF00","#FFC800","#FFA000","#FF7D00","#E11900"]
+        color_list = [redgreyHex, "#640064", "#AF00AF", "#DC00DC", "#3232C8",
+                      "#0064FF", "#009696", "#00C832", "#64FF00", "#96FF00",
+                      "#C8FF00", "#FFFF00", "#FFC800", "#FFA000", "#FF7D00",
+                      "#E11900"]
         if units in ['mm/h', 'mm']:
-            clevs= [0.08,0.16,0.25,0.40,0.63,1,1.6,2.5,4,6.3,10,16,25,40,63,100,160]
+            clevs = [0.08, 0.16, 0.25, 0.40, 0.63, 1, 1.6, 2.5, 4, 6.3, 10,
+                     16, 25, 40, 63, 100, 160]
         elif units == 'dBZ':
-            clevs = np.arange(10,65,5)
+            clevs = np.arange(10, 65, 5)
         else:
             raise ValueError('Wrong units in get_colorlist: %s' % units)
     elif colorscale == 'STEPS-BE':
-        color_list = ['cyan','deepskyblue','dodgerblue','blue','chartreuse','limegreen','green','darkgreen','yellow','gold','orange','red','magenta','darkmagenta']
+        color_list = ['cyan', 'deepskyblue', 'dodgerblue', 'blue',
+                      'chartreuse', 'limegreen', 'green', 'darkgreen',
+                      'yellow', 'gold', 'orange', 'red', 'magenta',
+                      'darkmagenta']
         if units in ['mm/h', 'mm']:
-            clevs = [0.1,0.25,0.4,0.63,1,1.6,2.5,4,6.3,10,16,25,40,63,100]
+            clevs = [0.1, 0.25, 0.4, 0.63, 1, 1.6, 2.5, 4, 6.3, 10, 16, 25, 40,
+                     63, 100]
         elif units == 'dBZ':
-            clevs = np.arange(10,65,5)
+            clevs = np.arange(10, 65, 5)
         else:
             raise ValueError('Wrong units in get_colorlist: %s' % units)
 
@@ -372,6 +447,7 @@ def _get_colorlist(units='mm/h', colorscale='pysteps'):
     clevsStr = _dynamic_formatting_floats(clevs, )
 
     return color_list, clevs, clevsStr
+
 
 def _dynamic_formatting_floats(floatArray, colorscale='pysteps'):
     """

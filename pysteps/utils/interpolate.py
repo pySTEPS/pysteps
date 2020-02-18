@@ -33,8 +33,8 @@ def rbfinterp2d(
     ----------
 
     coord : array_like
-        Array of shape (n, 2) containing the coordinates of the data points into
-        a 2-dimensional space.
+        Array of shape (n, 2) containing the coordinates of the data points
+        into a 2-dimensional space.
 
     input_array : array_like
         Array of shape (n) or (n, m) containing the values of the data points,
@@ -45,7 +45,8 @@ def rbfinterp2d(
     xgrid, ygrid : array_like
         1D arrays representing the coordinates of the 2-D output grid.
 
-    rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
+    rbfunction : {"gaussian", "multiquadric", "inverse quadratic",
+        "inverse multiquadric", "bump"}, optional
         The name of one of the available radial basis function based on a
         normalized Euclidian norm.
 
@@ -84,7 +85,8 @@ def rbfinterp2d(
     References
     ----------
 
-    Wikipedia contributors, "Radial basis function," Wikipedia, The Free Encyclopedia,
+    Wikipedia contributors, "Radial basis function,"
+    Wikipedia, The Free Encyclopedia,
     https://en.wikipedia.org/w/index.php?title=Radial_basis_function&oldid=906155047
     (accessed August 19, 2019).
     """
@@ -117,6 +119,19 @@ def rbfinterp2d(
 
     npoints = input_array.shape[0]
 
+    if npoints == 0:
+        raise ValueError(
+            "input_array (n, m) must contain at least one sample, but it has %i"
+            % npoints
+        )
+
+    # only one sample, return uniform fields
+    elif npoints == 1:
+        output_array = np.ones((nvar, ygrid.size, xgrid.size))
+        for i in range(nvar):
+            output_array[i, :, :] *= input_array[:, i]
+        return output_array
+
     coord = np.copy(coord)
 
     if coord.ndim != 2:
@@ -133,7 +148,7 @@ def rbfinterp2d(
     # normalize coordinates
     qcoord = np.percentile(coord, [2, 98], axis=0)
     dextent = np.max(np.diff(qcoord, axis=0))
-    coord = ( coord - qcoord[0, :] ) / dextent
+    coord = (coord - qcoord[0, :]) / dextent
 
     rbfunction = rbfunction.lower()
     if rbfunction not in _rbfunctions:
@@ -147,7 +162,7 @@ def rbfinterp2d(
     X, Y = np.meshgrid(xgrid, ygrid)
     grid = np.column_stack((X.ravel(), Y.ravel()))
     # normalize the grid coordinates
-    grid = (grid - qcoord[0, :] ) / dextent
+    grid = (grid - qcoord[0, :]) / dextent
 
     # k-nearest interpolation
     if k is not None and k > 0:
@@ -188,7 +203,7 @@ def rbfinterp2d(
 
         if k == 1:
             # nearest neighbour
-            output_array[i0 : (i0 + idelta), :] = input_array[inds, :]
+            output_array[i0: (i0 + idelta), :] = input_array[inds, :]
 
         else:
 
@@ -211,7 +226,7 @@ def rbfinterp2d(
 
             # interpolate
             for j in range(nvar):
-                output_array[i0 : (i0 + idelta), j] = np.sum(
+                output_array[i0: (i0 + idelta), j] = np.sum(
                     w * input_array[inds, j], axis=1
                 ) / np.sum(w, axis=1)
 

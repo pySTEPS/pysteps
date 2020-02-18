@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-from pysteps.postprocessing.ensemblestats import mean
-from pysteps.postprocessing.ensemblestats import excprob
+import pytest
 from numpy.testing import assert_array_almost_equal
+
+from pysteps.postprocessing.ensemblestats import excprob, mean, banddepth
 
 # CREATE DATASETS TO TEST
 
@@ -27,7 +27,7 @@ test_data = [
     (b, False, 3.0, a2),
     (b, True, 3.0, a2),
     (b1, True, 3.0, a2),
-    ]
+]
 
 
 @pytest.mark.parametrize("X, ignore_nan, X_thr, expected", test_data)
@@ -37,9 +37,7 @@ def test_ensemblestats_mean(X, ignore_nan, X_thr, expected):
 
 
 #  test exceptions
-test_exceptions = [(0), (None), (a[0, :]),
-                   (np.tile(a, (4, 1, 1, 1))),
-                   ]
+test_exceptions = [(0), (None), (a[0, :]), (np.tile(a, (4, 1, 1, 1)))]
 
 
 @pytest.mark.parametrize("X", test_exceptions)
@@ -53,10 +51,25 @@ b2 = b.copy()
 b2[2, 2, 2] = np.nan
 
 test_data = [
-    (b, 2.0, False, np.array([[0., 0., 1.], [1., 1., 1.], [1., 1., 1.]])),
-    (b2, 2.0, False, np.array([[0., 0., 1.], [1., 1., 1.], [1., 1., np.nan]])),
-    (b2, 2.0, True, np.array([[0., 0., 1.], [1., 1., 1.], [1., 1., 1.]])),
-    ]
+    (
+        b,
+        2.0,
+        False,
+        np.array([[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]),
+    ),
+    (
+        b2,
+        2.0,
+        False,
+        np.array([[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, np.nan]]),
+    ),
+    (
+        b2,
+        2.0,
+        True,
+        np.array([[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]),
+    ),
+]
 
 
 @pytest.mark.parametrize("X, X_thr, ignore_nan, expected", test_data)
@@ -66,13 +79,27 @@ def test_ensemblestats_excprob(X, X_thr, ignore_nan, expected):
 
 
 #  test exceptions
-test_exceptions = [(0), (None),
-                   (a[0, :]),
-                   (a),
-                   ]
+test_exceptions = [(0), (None), (a[0, :]), (a)]
 
 
 @pytest.mark.parametrize("X", test_exceptions)
 def test_exceptions_excprob(X):
     with pytest.raises(Exception):
         excprob(X, 2.0)
+
+
+#  test data
+b3 = np.tile(a, (5, 1, 1)) + 1
+b3 *= np.arange(1, 6)[:, None, None]
+b3[2, 2, 2] = np.nan
+
+test_data = [
+    (b3, 1, True, np.array([0.0, 0.75, 1.0, 0.75, 0.0])),
+    (b3, None, False, np.array([0.4, 0.7, 0.8, 0.7, 0.4])),
+]
+
+
+@pytest.mark.parametrize("X, thr, norm, expected", test_data)
+def test_ensemblestats_banddepth(X, thr, norm, expected):
+    """Test ensemblestats banddepth."""
+    assert_array_almost_equal(banddepth(X, thr, norm), expected)

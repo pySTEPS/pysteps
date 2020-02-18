@@ -13,15 +13,14 @@ Methods for converting physical units.
     to_reflectivity
 """
 
-import numpy as np
+# import numpy as np
 import warnings
+from . import transformation
 
 # TODO: This should not be done. Instead fix the code so that it doesn't
 # produce the warnings.
 # to deactivate warnings for comparison operators with NaNs
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-
-from . import transformation
 
 
 def to_rainrate(R, metadata, zr_a=None, zr_b=None):
@@ -37,9 +36,10 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if zr_a = zr_b = None.
-        If missing, it defaults to Marshall–Palmer relation, that is, zr_a = 200.0
-        and zr_b = 1.6.
+        zr_a and zr_b attributes are also required,
+        but only if zr_a = zr_b = None.
+        If missing, it defaults to Marshall–Palmer relation,
+        that is, zr_a = 200.0 and zr_b = 1.6.
     zr_a, zr_b : float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
@@ -57,25 +57,30 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] is "dB":
+        if metadata["transform"] == "dB":
 
-            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+            R, metadata = transformation.dB_transform(R, metadata,
+                                                      inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
 
-            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            R, metadata = transformation.boxcox_transform(R, metadata,
+                                                          inverse=True)
 
-        elif metadata["transform"] is "NQT":
+        elif metadata["transform"] == "NQT":
 
-            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
+            R, metadata = transformation.NQ_transform(R, metadata,
+                                                      inverse=True)
 
-        elif metadata["transform"] is "sqrt":
+        elif metadata["transform"] == "sqrt":
 
-            R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
+            R, metadata = transformation.sqrt_transform(R, metadata,
+                                                        inverse=True)
 
         else:
 
-            raise ValueError("Unknown transformation %s" % metadata["transform"])
+            raise ValueError("Unknown transformation %s"
+                             % metadata["transform"])
 
     if metadata["unit"] == "mm/h":
 
@@ -136,9 +141,10 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if zr_a = zr_b = None.
-        If missing, it defaults to Marshall–Palmer relation, that is, zr_a = 200.0
-        and zr_b = 1.6.
+        zr_a and zr_b attributes are also required,
+        but only if zr_a = zr_b = None.
+        If missing, it defaults to Marshall–Palmer relation, that is,
+        zr_a = 200.0 and zr_b = 1.6.
     zr_a, zr_b : float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
@@ -156,25 +162,29 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] is "dB":
+        if metadata["transform"] == "dB":
 
-            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+            R, metadata = transformation.dB_transform(R, metadata,
+                                                      inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
 
-            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            R, metadata = transformation.boxcox_transform(R, metadata,
+                                                          inverse=True)
 
-        elif metadata["transform"] is "NQT":
+        elif metadata["transform"] == "NQT":
 
-            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
+            R, metadata = transformation.NQ_transform(R, metadata,
+                                                      inverse=True)
 
-        elif metadata["transform"] is "sqrt":
+        elif metadata["transform"] == "sqrt":
 
-            R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
+            R, metadata = transformation.sqrt_transform(R, metadata,
+                                                        inverse=True)
 
         else:
-
-            raise ValueError("Unknown transformation %s" % metadata["transform"])
+            raise ValueError("Unknown transformation %s"
+                             % metadata["transform"])
 
     if metadata["unit"] == "mm" and metadata["transform"] is None:
         pass
@@ -202,8 +212,10 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
         if zr_b is None:
             zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
         R = (R / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
-        threshold = (threshold / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
-        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
+        threshold = (threshold / zr_a) ** (1.0 / zr_b) / 60.0 \
+            * metadata["accutime"]
+        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 \
+            * metadata["accutime"]
 
         metadata["zr_a"] = zr_a
         metadata["zr_b"] = zr_b
@@ -234,9 +246,10 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if zr_a = zr_b = None.
-        If missing, it defaults to Marshall–Palmer relation, that is, zr_a = 200.0
-        and zr_b = 1.6.
+        zr_a and zr_b attributes are also required,
+        but only if zr_a = zr_b = None.
+        If missing, it defaults to Marshall–Palmer relation, that is,
+        zr_a = 200.0 and zr_b = 1.6.
     zr_a, zr_b : float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
@@ -254,25 +267,30 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] is "dB":
+        if metadata["transform"] == "dB":
 
-            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+            R, metadata = transformation.dB_transform(R, metadata,
+                                                      inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
 
-            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            R, metadata = transformation.boxcox_transform(R, metadata,
+                                                          inverse=True)
 
-        elif metadata["transform"] is "NQT":
+        elif metadata["transform"] == "NQT":
 
-            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
+            R, metadata = transformation.NQ_transform(R, metadata,
+                                                      inverse=True)
 
-        elif metadata["transform"] is "sqrt":
+        elif metadata["transform"] == "sqrt":
 
-            R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
+            R, metadata = transformation.sqrt_transform(R, metadata,
+                                                        inverse=True)
 
         else:
 
-            raise ValueError("Unknown transformation %s" % metadata["transform"])
+            raise ValueError("Unknown transformation %s"
+                             % metadata["transform"])
 
     if metadata["unit"] == "mm/h":
 
