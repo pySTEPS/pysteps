@@ -3,7 +3,7 @@ opencv-python
 pillow
 pyproj
 scipy
-matplotlib-base
+matplotlib
 attrdict
 jsmin
 jsonschema
