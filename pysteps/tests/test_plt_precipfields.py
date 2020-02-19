@@ -17,7 +17,7 @@ plt_arg_names = (
     "title",
     "colorbar",
     "axis",
-    )
+)
 
 plt_arg_values = [
     ("mch", "intensity", None, "pysteps", None, None, False, "off"),
@@ -28,38 +28,47 @@ plt_arg_values = [
     ("bom", "intensity", None, "pysteps", None, None, True, "on"),
     ("fmi", "intensity", None, "pysteps", None, None, True, "on"),
     ("knmi", "intensity", None, "pysteps", None, None, True, "on"),
-    ("knmi", "intensity", [2e5, -3.8e6, 5e5, -4.1e6], "pysteps", None, None, True, "on"),
+    (
+        "knmi",
+        "intensity",
+        [2e5, -4.1e6, 5e5, -3.8e6],
+        "pysteps",
+        None,
+        None,
+        True,
+        "on",
+    ),
     ("opera", "intensity", None, "pysteps", None, None, True, "on"),
     ("saf", "intensity", None, "pysteps", None, None, True, "on"),
 ]
 
+
 @pytest.mark.parametrize(plt_arg_names, plt_arg_values)
 def test_visualization_plot_precip_field(
-        source,
-        type,
-        bbox,
-        colorscale,
-        probthr,
-        title,
-        colorbar,
-        axis,
-        ):
+    source, type, bbox, colorscale, probthr, title, colorbar, axis
+):
 
     if type == "intensity":
 
-        field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
+        field, metadata = get_precipitation_fields(
+            0, 0, True, True, None, source
+        )
         field = field.squeeze()
         field, metadata = conversion.to_rainrate(field, metadata)
 
     elif type == "depth":
 
-        field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
+        field, metadata = get_precipitation_fields(
+            0, 0, True, True, None, source
+        )
         field = field.squeeze()
         field, metadata = conversion.to_raindepth(field, metadata)
 
     elif type == "prob":
 
-        field, metadata = get_precipitation_fields(0, 10, True, True, None, source)
+        field, metadata = get_precipitation_fields(
+            0, 10, True, True, None, source
+        )
         field, metadata = conversion.to_rainrate(field, metadata)
         field = ensemblestats.excprob(field, probthr)
 
@@ -74,7 +83,7 @@ def test_visualization_plot_precip_field(
         title=title,
         colorbar=colorbar,
         axis=axis,
-        )
+    )
 
 
 if __name__ == "__main__":

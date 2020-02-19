@@ -193,7 +193,10 @@ def _import_bom_rf3_geodata(filename):
 
     if "proj" in ds_rainfall.variables.keys():
         projection = ds_rainfall.variables["proj"]
-        if getattr(projection, "grid_mapping_name") == "albers_conical_equal_area":
+        if (
+            getattr(projection, "grid_mapping_name")
+            == "albers_conical_equal_area"
+        ):
             projdef = "+proj=aea "
             lon_0 = getattr(projection, "longitude_of_central_meridian")
             projdef += " +lon_0=" + f"{lon_0:.3f}"
@@ -217,10 +220,12 @@ def _import_bom_rf3_geodata(filename):
         ymin = min(ds_rainfall.variables["y"])
         ymax = max(ds_rainfall.variables["y"])
 
-    xpixelsize = abs(ds_rainfall.variables["x"][1] -
-                     ds_rainfall.variables["x"][0])
-    ypixelsize = abs(ds_rainfall.variables["y"][1] -
-                     ds_rainfall.variables["y"][0])
+    xpixelsize = abs(
+        ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0]
+    )
+    ypixelsize = abs(
+        ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0]
+    )
     factor_scale = 1.0
     if "units" in ds_rainfall.variables["x"].ncattrs():
         if getattr(ds_rainfall.variables["x"], "units") == "km":
@@ -242,9 +247,9 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar)
+        valid_time = netCDF4.num2date(
+            times[:], units=times.units, calendar=calendar
+        )
 
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
@@ -252,9 +257,9 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        start_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar)
+        start_time = netCDF4.num2date(
+            times[:], units=times.units, calendar=calendar
+        )
 
     time_step = None
 
@@ -543,7 +548,9 @@ def import_knmi_hdf5(filename, **kwargs):
     # and monthly accumulations are present.
     accutime = kwargs.get("accutime", 5.0)
     # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
-    # 1.0 or 2.4 km datasets are available - give pixelsize in meters
+    # 1.0 or 2.4 km datasets are available - give pixelsize in meters.
+    # Although the pixelsize is in meters, note that we need to provide the pixel
+    # size in km for visualisation purposes with cartopy and basemap.
     pixelsize = kwargs.get("pixelsize", 1000.0)
 
     ####
@@ -558,17 +565,19 @@ def import_knmi_hdf5(filename, **kwargs):
     # because the data is saved as hundreds of mm (so, as integers). 65535 is
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
-        precip = np.where(precip_intermediate == 65535,
-                          np.NaN,
-                          precip_intermediate / 100.0)
+        precip = np.where(
+            precip_intermediate == 65535, np.NaN, precip_intermediate / 100.0
+        )
 
     # In case reflectivities are imported, the no data value is 255. Values are
     # saved as integers. The reflectivities are not directly saved in dBZ, but
     # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
     if qty == "DBZH":
-        precip = np.where(precip_intermediate == 255,
-                          np.NaN,
-                          precip_intermediate * 0.5 - 32.0)
+        precip = np.where(
+            precip_intermediate == 255,
+            np.NaN,
+            precip_intermediate * 0.5 - 32.0,
+        )
 
     if precip is None:
         raise IOError("requested quantity not found")
@@ -591,7 +600,9 @@ def import_knmi_hdf5(filename, **kwargs):
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
-    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
+    proj4str = (
+        geographic["map_projection"].attrs["projection_proj4_params"].decode()
+    )
     pr = pyproj.Proj(proj4str)
     metadata["projection"] = proj4str
 
@@ -611,9 +622,9 @@ def import_knmi_hdf5(filename, **kwargs):
     lr_x, lr_y = pr(lr_lon, lr_lat)
     ul_x, ul_y = pr(ul_lon, ul_lat)
     x1 = min(ll_x, ul_x)
-    y2 = min(ll_y, lr_y)
+    y1 = min(ll_y, lr_y)
     x2 = max(lr_x, ur_x)
-    y1 = max(ul_y, ur_y)
+    y2 = max(ul_y, ur_y)
 
     # Fill in the metadata
     metadata["x1"] = x1 * 1000.0
@@ -623,7 +634,9 @@ def import_knmi_hdf5(filename, **kwargs):
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
     metadata["yorigin"] = "upper"
-    metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
+    metadata[
+        "institution"
+    ] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
     metadata["transform"] = transform
@@ -898,11 +911,21 @@ def import_mch_hdf5(filename, **kwargs):
 
 
 def _read_mch_hdf5_what_group(whatgrp):
-    qty = whatgrp.attrs["quantity"] if "quantity" in whatgrp.attrs.keys() else "RATE"
+    qty = (
+        whatgrp.attrs["quantity"]
+        if "quantity" in whatgrp.attrs.keys()
+        else "RATE"
+    )
     gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
-    offset = whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
+    offset = (
+        whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
+    )
     nodata = whatgrp.attrs["nodata"] if "nodata" in whatgrp.attrs.keys() else 0
-    undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else -1.0
+    undetect = (
+        whatgrp.attrs["undetect"]
+        if "undetect" in whatgrp.attrs.keys()
+        else -1.0
+    )
 
     return qty, gain, offset, nodata, undetect
 
@@ -968,7 +991,9 @@ def import_mch_metranet(filename, product, unit, accutime):
     if np.isnan(metadata["zerovalue"]):
         metadata["threshold"] = np.nan
     else:
-        metadata["threshold"] = np.nanmin(precip[precip > metadata["zerovalue"]])
+        metadata["threshold"] = np.nanmin(
+            precip[precip > metadata["zerovalue"]]
+        )
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
@@ -1109,10 +1134,10 @@ def import_opera_hdf5(filename, **kwargs):
     ur_lat = where.attrs["UR_lat"]
     ur_lon = where.attrs["UR_lon"]
     if (
-            "LR_lat" in where.attrs.keys()
-            and "LR_lon" in where.attrs.keys()
-            and "UL_lat" in where.attrs.keys()
-            and "UL_lon" in where.attrs.keys()
+        "LR_lat" in where.attrs.keys()
+        and "LR_lon" in where.attrs.keys()
+        and "UL_lat" in where.attrs.keys()
+        and "UL_lon" in where.attrs.keys()
     ):
         lr_lat = float(where.attrs["LR_lat"])
         lr_lon = float(where.attrs["LR_lon"])
@@ -1189,9 +1214,17 @@ def import_opera_hdf5(filename, **kwargs):
 def _read_opera_hdf5_what_group(whatgrp):
     qty = whatgrp.attrs["quantity"]
     gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
-    offset = whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
-    nodata = whatgrp.attrs["nodata"] if "nodata" in whatgrp.attrs.keys() else np.nan
-    undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else 0.0
+    offset = (
+        whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
+    )
+    nodata = (
+        whatgrp.attrs["nodata"] if "nodata" in whatgrp.attrs.keys() else np.nan
+    )
+    undetect = (
+        whatgrp.attrs["undetect"]
+        if "undetect" in whatgrp.attrs.keys()
+        else 0.0
+    )
 
     return qty, gain, offset, nodata, undetect
 
@@ -1238,11 +1271,15 @@ def import_saf_crri(filename, **kwargs):
     metadata = geodata
 
     if extent:
-        xcoord = np.arange(metadata["x1"], metadata["x2"],
-                           metadata["xpixelsize"]) + metadata["xpixelsize"] / 2
-        ycoord = np.arange(metadata["y1"], metadata["y2"],
-                           metadata["ypixelsize"]) + metadata["ypixelsize"] / 2
-        ycoord = ycoord[::-1] # yorigin = "upper"
+        xcoord = (
+            np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
+            + metadata["xpixelsize"] / 2
+        )
+        ycoord = (
+            np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+            + metadata["ypixelsize"] / 2
+        )
+        ycoord = ycoord[::-1]  # yorigin = "upper"
         idx_x = np.logical_and(xcoord < extent[1], xcoord > extent[0])
         idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
 
@@ -1273,8 +1310,12 @@ def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
     ds_rainfall = netCDF4.Dataset(filename)
     if "crr_intensity" in ds_rainfall.variables.keys():
         if idx_x is not None:
-            data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
-            quality = np.array(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
+            data = np.array(
+                ds_rainfall.variables["crr_intensity"][idx_y, idx_x]
+            )
+            quality = np.array(
+                ds_rainfall.variables["crr_quality"][idx_y, idx_x]
+            )
         else:
             data = np.array(ds_rainfall.variables["crr_intensity"])
             quality = np.array(ds_rainfall.variables["crr_quality"])
@@ -1298,7 +1339,7 @@ def _import_saf_crri_geodata(filename):
     geodata["projection"] = projdef
 
     # get x1, y1, x2, y2, xpixelsize, ypixelsize, yorigin
-    geotable = ds_rainfall.getncattr('gdal_geotransform_table')
+    geotable = ds_rainfall.getncattr("gdal_geotransform_table")
     xmin = ds_rainfall.getncattr("gdal_xgeo_up_left")
     xmax = ds_rainfall.getncattr("gdal_xgeo_low_right")
     ymin = ds_rainfall.getncattr("gdal_ygeo_low_right")
@@ -1317,7 +1358,7 @@ def _import_saf_crri_geodata(filename):
     geodata["accutime"] = None
 
     # get the unit of precipitation
-    geodata["unit"] = ds_rainfall.variables['crr_intensity'].units
+    geodata["unit"] = ds_rainfall.variables["crr_intensity"].units
 
     # get institution
     geodata["institution"] = ds_rainfall.getncattr("institution")

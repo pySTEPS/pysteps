@@ -18,17 +18,20 @@ from pysteps.exceptions import MissingOptionalDependency
 
 try:
     from mpl_toolkits.basemap import Basemap
+
     basemap_imported = True
 except ImportError:
     basemap_imported = False
 try:
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
+
     cartopy_imported = True
 except ImportError:
     cartopy_imported = False
 try:
     import pyproj
+
     pyproj_imported = True
 except ImportError:
     pyproj_imported = False
@@ -36,9 +39,9 @@ except ImportError:
 from . import utils
 
 
-def plot_geography(map, proj4str, extent, shape=None, lw=0.5,
-                   drawlonlatlines=False,
-                   **kwargs):
+def plot_geography(
+    map, proj4str, extent, shape=None, lw=0.5, drawlonlatlines=False, **kwargs
+):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
 
@@ -91,20 +94,24 @@ def plot_geography(map, proj4str, extent, shape=None, lw=0.5,
         Returns False in case a fall-back projection is used.
     """
     if map is not None and map not in ["basemap", "cartopy"]:
-        raise ValueError("unknown map method %s: must be"
-                         + " 'basemap' or 'cartopy'" % map)
+        raise ValueError(
+            "unknown map method %s: must be" + " 'basemap' or 'cartopy'" % map
+        )
     if map == "basemap" and not basemap_imported:
         raise MissingOptionalDependency(
             "map='basemap' option passed to plot_geography function"
-            "but the basemap package is not installed")
+            "but the basemap package is not installed"
+        )
     if map == "cartopy" and not cartopy_imported:
         raise MissingOptionalDependency(
             "map='cartopy' option passed to plot_geography function"
-            "but the cartopy package is not installed")
+            "but the cartopy package is not installed"
+        )
     if map is not None and not pyproj_imported:
         raise MissingOptionalDependency(
             "map!=None option passed to plot_geography function"
-            "but the pyproj package is not installed")
+            "but the pyproj package is not installed"
+        )
 
     if map == "basemap":
         basemap_resolution = kwargs.get("resolution", "l")
@@ -126,29 +133,38 @@ def plot_geography(map, proj4str, extent, shape=None, lw=0.5,
         bm_params["urcrnrlat"] = ur_lat
         bm_params["resolution"] = basemap_resolution
 
-        ax = plot_map_basemap(bm_params,
-                              drawlonlatlines=drawlonlatlines, lw=lw)
+        ax = plot_map_basemap(
+            bm_params, drawlonlatlines=drawlonlatlines, lw=lw
+        )
 
         if basemap_scale_args is not None:
             ax.drawmapscale(*basemap_scale_args, fontsize=6, yoffset=10000)
     else:
         crs = utils.proj4_to_cartopy(proj4str)
 
-        ax = plot_map_cartopy(crs, extent, cartopy_scale,
-                              drawlonlatlines=drawlonlatlines, lw=lw,
-                              subplot=cartopy_subplot)
+        ax = plot_map_cartopy(
+            crs,
+            extent,
+            cartopy_scale,
+            drawlonlatlines=drawlonlatlines,
+            lw=lw,
+            subplot=cartopy_subplot,
+        )
 
     return ax
 
 
-def plot_map_basemap(bm_params, drawlonlatlines=False,
-                     coastlinecolor=(0.3, 0.3, 0.3),
-                     countrycolor=(0.3, 0.3, 0.3),
-                     continentcolor=(0.95, 0.95, 0.85),
-                     lakecolor=(0.65, 0.75, 0.9),
-                     rivercolor=(0.65, 0.75, 0.9),
-                     mapboundarycolor=(0.65, 0.75, 0.9),
-                     lw=0.5):
+def plot_map_basemap(
+    bm_params,
+    drawlonlatlines=False,
+    coastlinecolor=(0.3, 0.3, 0.3),
+    countrycolor=(0.3, 0.3, 0.3),
+    continentcolor=(0.95, 0.95, 0.85),
+    lakecolor=(0.65, 0.75, 0.9),
+    rivercolor=(0.65, 0.75, 0.9),
+    mapboundarycolor=(0.65, 0.75, 0.9),
+    lw=0.5,
+):
     """
     Plot coastlines, countries, rivers and meridians/parallels using Basemap.
 
@@ -182,7 +198,8 @@ def plot_map_basemap(bm_params, drawlonlatlines=False,
     if not basemap_imported:
         raise MissingOptionalDependency(
             "map='basemap' option passed to plot_map_basemap function"
-            "but the basemap package is not installed")
+            "but the basemap package is not installed"
+        )
 
     ax = Basemap(**bm_params)
 
@@ -197,20 +214,29 @@ def plot_map_basemap(bm_params, drawlonlatlines=False,
     if mapboundarycolor is not None:
         ax.drawmapboundary(fill_color=mapboundarycolor, zorder=-1)
     if drawlonlatlines:
-        ax.drawmeridians(np.linspace(ax.llcrnrlon, ax.urcrnrlon, 10),
-                         color=(0.5, 0.5, 0.5), linewidth=0.25,
-                         labels=[0, 0, 0, 1],
-                         fmt="%.1f", fontsize=6)
-        ax.drawparallels(np.linspace(ax.llcrnrlat, ax.urcrnrlat, 10),
-                         color=(0.5, 0.5, 0.5), linewidth=0.25,
-                         labels=[1, 0, 0, 0],
-                         fmt="%.1f", fontsize=6)
+        ax.drawmeridians(
+            np.linspace(ax.llcrnrlon, ax.urcrnrlon, 10),
+            color=(0.5, 0.5, 0.5),
+            linewidth=0.25,
+            labels=[0, 0, 0, 1],
+            fmt="%.1f",
+            fontsize=6,
+        )
+        ax.drawparallels(
+            np.linspace(ax.llcrnrlat, ax.urcrnrlat, 10),
+            color=(0.5, 0.5, 0.5),
+            linewidth=0.25,
+            labels=[1, 0, 0, 0],
+            fmt="%.1f",
+            fontsize=6,
+        )
 
     return ax
 
 
-def plot_map_cartopy(crs, extent, scale, drawlonlatlines=False,
-                     lw=0.5, subplot=(1, 1, 1)):
+def plot_map_cartopy(
+    crs, extent, scale, drawlonlatlines=False, lw=0.5, subplot=(1, 1, 1)
+):
     """
     Plot coastlines, countries, rivers and meridians/parallels using Cartopy.
 
@@ -239,7 +265,8 @@ def plot_map_cartopy(crs, extent, scale, drawlonlatlines=False,
     if not cartopy_imported:
         raise MissingOptionalDependency(
             "map='cartopy' option passed to plot_map_cartopy function"
-            "but the cartopy package is not installed")
+            "but the cartopy package is not installed"
+        )
 
     if isinstance(subplot, gridspec.SubplotSpec):
         ax = plt.subplot(subplot, projection=crs)
@@ -247,31 +274,67 @@ def plot_map_cartopy(crs, extent, scale, drawlonlatlines=False,
         ax = plt.subplot(subplot[0], subplot[1], subplot[2], projection=crs)
 
     ax.add_feature(
-        cfeature.NaturalEarthFeature("physical", "ocean",
-                                     scale="50m" if scale == "10m" else scale,
-                                     edgecolor="none",
-                                     facecolor=np.array([0.59375, 0.71484375, 0.8828125])), zorder=0)
+        cfeature.NaturalEarthFeature(
+            "physical",
+            "ocean",
+            scale="50m" if scale == "10m" else scale,
+            edgecolor="none",
+            facecolor=np.array([0.59375, 0.71484375, 0.8828125]),
+        ),
+        zorder=0,
+    )
     ax.add_feature(
-        cfeature.NaturalEarthFeature("physical", "land",
-                                     scale=scale, edgecolor="none",
-                                     facecolor=np.array([0.9375, 0.9375, 0.859375])), zorder=0)
+        cfeature.NaturalEarthFeature(
+            "physical",
+            "land",
+            scale=scale,
+            edgecolor="none",
+            facecolor=np.array([0.9375, 0.9375, 0.859375]),
+        ),
+        zorder=0,
+    )
     ax.add_feature(
-        cfeature.NaturalEarthFeature("physical", "coastline", scale=scale,
-                                     edgecolor="black", facecolor="none",
-                                     linewidth=lw), zorder=2)
+        cfeature.NaturalEarthFeature(
+            "physical",
+            "coastline",
+            scale=scale,
+            edgecolor="black",
+            facecolor="none",
+            linewidth=lw,
+        ),
+        zorder=2,
+    )
     ax.add_feature(
-        cfeature.NaturalEarthFeature("physical", "lakes", scale=scale,
-                                     edgecolor="none",
-                                     facecolor=np.array([0.59375, 0.71484375, 0.8828125])), zorder=0)
+        cfeature.NaturalEarthFeature(
+            "physical",
+            "lakes",
+            scale=scale,
+            edgecolor="none",
+            facecolor=np.array([0.59375, 0.71484375, 0.8828125]),
+        ),
+        zorder=0,
+    )
     ax.add_feature(
-        cfeature.NaturalEarthFeature("physical", "rivers_lake_centerlines",
-                                     scale=scale,
-                                     edgecolor=np.array([0.59375, 0.71484375, 0.8828125]),
-                                     facecolor="none"), zorder=0)
+        cfeature.NaturalEarthFeature(
+            "physical",
+            "rivers_lake_centerlines",
+            scale=scale,
+            edgecolor=np.array([0.59375, 0.71484375, 0.8828125]),
+            facecolor="none",
+        ),
+        zorder=0,
+    )
     ax.add_feature(
-        cfeature.NaturalEarthFeature("cultural", "admin_0_boundary_lines_land",
-                                     scale=scale, edgecolor="black",
-                                     facecolor="none", linewidth=lw), zorder=2)
+        cfeature.NaturalEarthFeature(
+            "cultural",
+            "admin_0_boundary_lines_land",
+            scale=scale,
+            edgecolor="black",
+            facecolor="none",
+            linewidth=lw,
+        ),
+        zorder=2,
+    )
 
     if drawlonlatlines:
         ax.gridlines(crs=ccrs.PlateCarree())
