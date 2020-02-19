@@ -14,21 +14,25 @@ Methods for plotting geographical maps using Cartopy or Basemap.
 from matplotlib import gridspec
 import matplotlib.pylab as plt
 import numpy as np
+import warnings
 from pysteps.exceptions import MissingOptionalDependency
 
 try:
     from mpl_toolkits.basemap import Basemap
+
     basemap_imported = True
 except ImportError:
     basemap_imported = False
 try:
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
+
     cartopy_imported = True
 except ImportError:
     cartopy_imported = False
 try:
     import pyproj
+
     pyproj_imported = True
 except ImportError:
     pyproj_imported = False
@@ -95,15 +99,15 @@ def plot_geography(map, proj4str, extent, shape=None, lw=0.5,
                          + " 'basemap' or 'cartopy'" % map)
     if map == "basemap" and not basemap_imported:
         raise MissingOptionalDependency(
-            "map='basemap' option passed to plot_geography function"
+            "map='basemap' option passed to plot_geography function "
             "but the basemap package is not installed")
     if map == "cartopy" and not cartopy_imported:
         raise MissingOptionalDependency(
-            "map='cartopy' option passed to plot_geography function"
+            "map='cartopy' option passed to plot_geography function "
             "but the cartopy package is not installed")
     if map is not None and not pyproj_imported:
         raise MissingOptionalDependency(
-            "map!=None option passed to plot_geography function"
+            "map!=None option passed to plot_geography function "
             "but the pyproj package is not installed")
 
     if map == "basemap":
@@ -181,8 +185,12 @@ def plot_map_basemap(bm_params, drawlonlatlines=False,
     """
     if not basemap_imported:
         raise MissingOptionalDependency(
-            "map='basemap' option passed to plot_map_basemap function"
+            "map='basemap' option passed to plot_map_basemap function "
             "but the basemap package is not installed")
+
+    warnings.warn(
+        "Basemap will be deprecated in a future release of pysteps, use Cartopy instead",
+        PendingDeprecationWarning)
 
     ax = Basemap(**bm_params)
 
@@ -238,7 +246,7 @@ def plot_map_cartopy(crs, extent, scale, drawlonlatlines=False,
     """
     if not cartopy_imported:
         raise MissingOptionalDependency(
-            "map='cartopy' option passed to plot_map_cartopy function"
+            "map='cartopy' option passed to plot_map_cartopy function "
             "but the cartopy package is not installed")
 
     if isinstance(subplot, gridspec.SubplotSpec):
