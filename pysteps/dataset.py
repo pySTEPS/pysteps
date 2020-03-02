@@ -25,8 +25,16 @@ import time
 from jsmin import jsmin
 
 import pysteps
-from pysteps import _decode_filesystem_path
+
 from pysteps.exceptions import DirectoryNotEmpty
+
+
+# Include this function here to avoid a dependency on pysteps.__init__.py
+def _decode_filesystem_path(path):
+    if not isinstance(path, str):
+        return path.decode(sys.getfilesystemencoding())
+    else:
+        return path
 
 
 class ShowProgress(object):
