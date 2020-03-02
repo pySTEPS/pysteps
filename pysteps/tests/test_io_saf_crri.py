@@ -26,7 +26,7 @@ test_geodata_crri = [
 @pytest.mark.parametrize("variable, expected, tolerance", test_geodata_crri)
 def test_io_import_saf_crri_geodata(variable, expected, tolerance):
     """Test the importer SAF CRRI."""
-    root_path = pysteps.rcparams.data_sources["crri"]["root_path"]
+    root_path = pysteps.rcparams.data_sources["saf"]["root_path"]
     rel_path = "20180601/CRR"
     filename = os.path.join(root_path, rel_path,
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
@@ -47,7 +47,7 @@ test_metadata_crri = [
                          test_metadata_crri)
 def test_io_import_saf_crri_metadata(variable, expected, tolerance):
     """Test the importer SAF CRRI."""
-    root_path = pysteps.rcparams.data_sources["crri"]["root_path"]
+    root_path = pysteps.rcparams.data_sources["saf"]["root_path"]
     rel_path = "20180601/CRR"
     filename = os.path.join(root_path, rel_path,
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")
@@ -65,7 +65,7 @@ test_extent_crri = [
                          test_extent_crri)
 def test_io_import_saf_crri_extent(extent, expected_extent, expected_shape, tolerance):
     """Test the importer SAF CRRI."""
-    root_path = pysteps.rcparams.data_sources["crri"]["root_path"]
+    root_path = pysteps.rcparams.data_sources["saf"]["root_path"]
     rel_path = "20180601/CRR"
     filename = os.path.join(root_path, rel_path,
                             "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc")

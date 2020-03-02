@@ -31,8 +31,7 @@ efficiency:
 
 Other optional dependencies include:
 
-* `cartopy <https://scitools.org.uk/cartopy/docs/v0.16/>`_ or
-  `basemap <https://matplotlib.org/basemap/>`_ (for geo-referenced
+* `cartopy <https://scitools.org.uk/cartopy/docs/v0.16/>`_ (for geo-referenced
   visualization)
 * `h5py <https://www.h5py.org/>`_ (for importing HDF5 data)
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
