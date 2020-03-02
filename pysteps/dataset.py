@@ -16,6 +16,7 @@ import json
 import os
 import sys
 from distutils.dir_util import copy_tree
+from logging.handlers import RotatingFileHandler
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from urllib import request
 from zipfile import ZipFile
@@ -81,7 +82,7 @@ class ShowProgress(object):
                 progress_msg = (
                     f"Progress: [{bar_str}]"
                     f"({downloaded_size:.1f} Mb)"
-                    f" - Time left: {int(eta):d}:{int(eta) * 60} [m:s]"
+                    f" - Time left: {int(eta):d}:{int(eta * 60)} [m:s]"
                 )
 
             else:
@@ -149,6 +150,17 @@ def download_pysteps_data(dir_path, force=True):
 def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pystepsrc"):
     """
     Create a default configuration file pointing to the pysteps data directory.
+
+    If the configuration file already exists, it backup the existing file by appending
+    to the filename the extensions '.1', '.2', up to '.5.'.
+    A maximum of 5 files are kept. .2, up to app.log.5.
+
+    A file rotation is implemented for the backup files.
+
+    For example, if the default configuration filename is 'pystepsrc' and the files
+    pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to pystepsrc.1,
+    pystepsrc.2, pystepsrc.2, etc. respectively. Finally, after the existing files are
+    backed up, the new configuration file is written.
     
     Parameters
     ----------
@@ -189,5 +201,10 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
         os.makedirs(config_dir)
 
     dest_path = os.path.join(config_dir, file_name)
+
+    # Backup existing configuration files if it exists and rotate previous backups
+    if os.path.isfile(dest_path):
+        RotatingFileHandler(dest_path, backupCount=6).doRollover()
+
     with open(dest_path, "w") as f:
         json.dump(rcparams, f, indent=4)
