@@ -11,7 +11,7 @@ python $PYSTEPS_BUILD_DIR/ci/fetch_pysteps_data.py
 
 # Replace the default version with the modified.
 # pysteps will load this the config file ($PWD/pystepsrc)
-cp PYSTEPSRC=$PYSTEPS_BUILD_DIR/pystepsrc ~/pystepsrc
+cp $PYSTEPS_BUILD_DIR/pystepsrc ~/pystepsrc
 
 # Run tests
 echo "Run test suite"
