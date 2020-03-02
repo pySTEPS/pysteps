@@ -8,7 +8,10 @@ cd $PYSTEPS_BUILD_DIR
 echo "Download the pysteps example data"
 export PYSTEPS_DATA_DIR=$PYSTEPS_BUILD_DIR/pysteps_data
 python $PYSTEPS_BUILD_DIR/ci/fetch_pysteps_data.py
-export PYSTEPSRC=$PYSTEPS_BUILD_DIR/pystepsrc
+
+# Replace the default version with the modified.
+# pysteps will load this the config file ($PWD/pystepsrc)
+cp PYSTEPSRC=$PYSTEPS_BUILD_DIR/pystepsrc ~/pystepsrc
 
 # Run tests
 echo "Run test suite"
