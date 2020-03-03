@@ -16,6 +16,7 @@ available in pySTEPS.
 
     cascade
     extrapolation
+    datasets
     io
     motion
     noise
