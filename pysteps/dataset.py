@@ -184,6 +184,12 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
 
     file_name : str
         Configuration file name. `pystepsrc` by default.
+
+    Returns
+    -------
+
+    dest_path : str
+        Configuration file path.
     """
 
     pysteps_lib_root = os.path.dirname(_decode_filesystem_path(pysteps.__file__))
@@ -216,3 +222,5 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
 
     with open(dest_path, "w") as f:
         json.dump(rcparams, f, indent=4)
+
+    return dest_path
