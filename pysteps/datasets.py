@@ -1,6 +1,6 @@
 """
-pysteps.dataset
-===============
+pysteps.datasets
+================
 
 Utilities to download the pysteps data and to create a default pysteps configuration
 file pointing to that data.
@@ -10,7 +10,6 @@ file pointing to that data.
 
     download_pysteps_data
     create_default_pystepsrc
-
 """
 import json
 import os

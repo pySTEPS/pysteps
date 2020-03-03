@@ -11,7 +11,7 @@ PYSTEPSRC=$PYSTEPS_DATA_DIR/pystepsrc for pysteps to use that configuration file
 
 import os
 
-from pysteps.dataset import create_default_pystepsrc, download_pysteps_data
+from pysteps.datasets import create_default_pystepsrc, download_pysteps_data
 
 tox_test_data_dir = os.environ['PYSTEPS_DATA_DIR']
 

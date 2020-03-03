@@ -10,7 +10,7 @@ from jsonschema import Draft4Validator
 
 # import subpackages
 from . import cascade
-from . import dataset
+from . import datasets
 from . import decorators
 from . import exceptions
 from . import extrapolation
