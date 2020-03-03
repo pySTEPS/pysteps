@@ -1,4 +1,3 @@
-# import subpackages
 import json
 import os
 import stat
@@ -9,6 +8,7 @@ from attrdict import AttrDict
 from jsmin import jsmin
 from jsonschema import Draft4Validator
 
+# import subpackages
 from . import cascade
 from . import dataset
 from . import decorators
@@ -144,14 +144,21 @@ class DotDictify(AttrDict):
     __setattr__, __getattr__ = __setitem__, __getitem__
 
 
-# Load default configuration
-params_file = config_fname()
+rcparams = dict()
 
-if params_file is not None:
+
+def load_config_file(params_file, verbose=False):
+    """
+    Load the pysteps configuration file. The configuration parameters are available
+    as a DotDictify instance in the `pysteps.rcparams` variable.
+    """
+
+    global rcparams
+
     with open(params_file, 'r') as f:
         rcparams = json.loads(jsmin(f.read()))
 
-    if not rcparams.get("silent_import", False):
+    if (not rcparams.get("silent_import", False)) or verbose:
         print("Pysteps configuration file found at: " + params_file
               + "\n")
 
@@ -168,12 +175,17 @@ if params_file is not None:
         if error_count > 0:
             raise RuntimeError(error_msg)
 
+    rcparams = DotDictify(rcparams)
 
+
+# Load default configuration
+_params_file = config_fname()
+
+if _params_file is not None:
+    load_config_file(_params_file)
 else:
     warnings.warn("pystepsrc file not found."
                   + "The defaults parameters are left empty",
                   category=ImportWarning)
 
     rcparams = dict()
-
-rcparams = DotDictify(rcparams)
