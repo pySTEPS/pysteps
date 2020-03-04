@@ -11,6 +11,7 @@ file pointing to that data.
     download_pysteps_data
     create_default_pystepsrc
 """
+
 import json
 import os
 import sys
@@ -21,14 +22,16 @@ from urllib import request
 from zipfile import ZipFile
 
 import time
+from datetime import datetime
 from jsmin import jsmin
 
 import pysteps
-
+from pysteps import io
 from pysteps.exceptions import DirectoryNotEmpty
-
-
 # Include this function here to avoid a dependency on pysteps.__init__.py
+from pysteps.utils import conversion
+
+
 def _decode_filesystem_path(path):
     if not isinstance(path, str):
         return path.decode(sys.getfilesystemencoding())
@@ -195,9 +198,9 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
 
     # Load the library built-in configuration file
     with open(os.path.join(pysteps_lib_root, "pystepsrc"), "r") as f:
-        rcparams = json.loads(jsmin(f.read()))
+        rcparams_json = json.loads(jsmin(f.read()))
 
-    for key, value in rcparams["data_sources"].items():
+    for key, value in rcparams_json["data_sources"].items():
         value["root_path"] = os.path.abspath(
             os.path.join(pysteps_data_dir, value["root_path"])
         )
@@ -220,6 +223,69 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
         RotatingFileHandler(dest_path, backupCount=6).doRollover()
 
     with open(dest_path, "w") as f:
-        json.dump(rcparams, f, indent=4)
+        json.dump(rcparams_json, f, indent=4)
 
     return dest_path
+
+
+def load_fmi(num_next_files=12, num_prev_files=2):
+    """
+    Load a sequence of radar composites from the Finnish radar network.
+    The Finnish network produce a composite every 5 minutes.
+    This function load by default 14 composites, corresponding to a 1h and 10min
+    time window.
+
+    For example, the first 2 composites can be used to obtain the motion field of the
+    precipitation pattern while the remaining 12 composites can be used to evaluate
+    the quality of our forecast.
+
+
+    Calling this function requires the pysteps-data installed, otherwise an exception
+    is raised. To install the pysteps example data check the `example_data` section.
+
+    Parameters
+    ----------
+
+    num_prev_files : int
+        Number of previous files before the beginning of each precipitation event.
+
+    num_next_files : int
+        Number of future files to find after the beginning of each precipitation event.
+
+    Returns
+    -------
+
+    rainrate : array-like
+        Precipitation data in mm/h. Dimensions: [time, lat, lon]
+
+    metadata : dict
+        The metadata observations attributes.
+
+    timestep : number
+        Time interval between composites in minutes.
+    """
+    case_date = datetime.strptime("201609281600", "%Y%m%d%H%M")
+    data_source = pysteps.rcparams.data_sources["fmi"]
+
+    # Find the input files from the archive
+    file_names = io.archive.find_by_date(case_date,
+                                         data_source["root_path"],
+                                         data_source["path_fmt"],
+                                         data_source["fn_pattern"],
+                                         data_source["fn_ext"],
+                                         data_source["timestep"],
+                                         num_prev_files=num_prev_files,
+                                         num_next_files=num_next_files,
+                                         )
+
+    # Read the radar composites
+    importer = io.get_method(data_source["importer"], "importer")
+    importer_kwargs = data_source["importer_kwargs"]
+    reflectivity, _, metadata = io.read_timeseries(file_names,
+                                                   importer,
+                                                   **importer_kwargs)
+
+    # Convert to rain rate
+    precip, metadata = conversion.to_rainrate(reflectivity, metadata)
+
+    return precip, metadata, data_source["timestep"]
