@@ -28,10 +28,10 @@ from jsmin import jsmin
 import pysteps
 from pysteps import io
 from pysteps.exceptions import DirectoryNotEmpty
-# Include this function here to avoid a dependency on pysteps.__init__.py
 from pysteps.utils import conversion
 
 
+# Include this function here to avoid a dependency on pysteps.__init__.py
 def _decode_filesystem_path(path):
     if not isinstance(path, str):
         return path.decode(sys.getfilesystemencoding())
