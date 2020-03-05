@@ -165,8 +165,7 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
     to the filename the extensions '.1', '.2', up to '.5.'.
     A maximum of 5 files are kept. .2, up to app.log.5.
 
-    A file rotation is implemented for the backup files.
-
+    File rotation is implemented for the backup files.
     For example, if the default configuration filename is 'pystepsrc' and the files
     pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to pystepsrc.1,
     pystepsrc.2, pystepsrc.2, etc. respectively. Finally, after the existing files are
@@ -228,17 +227,16 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
     return dest_path
 
 
-def load_fmi(num_next_files=12, num_prev_files=2):
+def load_fmi(num_next_files=12, num_prev_files=1):
     """
     Load a sequence of radar composites from the Finnish radar network.
-    The Finnish network produce a composite every 5 minutes.
+    The Finnish network produces a composite every 5 minutes.
+
     This function load by default 14 composites, corresponding to a 1h and 10min
     time window.
-
-    For example, the first 2 composites can be used to obtain the motion field of the
-    precipitation pattern while the remaining 12 composites can be used to evaluate
-    the quality of our forecast.
-
+    For example, the first two composites can be used to obtain the motion field of
+    the precipitation pattern, while the remaining twelve composites can be used to
+    evaluate the quality of our forecast.
 
     Calling this function requires the pysteps-data installed, otherwise an exception
     is raised. To install the pysteps example data check the `example_data` section.
@@ -248,10 +246,11 @@ def load_fmi(num_next_files=12, num_prev_files=2):
 
     num_prev_files : int
         Number of previous files before the beginning of each precipitation event.
+        Default: 1
 
     num_next_files : int
         Number of future files to find after the beginning of each precipitation event.
-
+        Default: 12
     Returns
     -------
 
