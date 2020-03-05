@@ -19,6 +19,7 @@ over a subdomain of prescribed size.
     forecast
 """
 
+import logging
 import sys
 import time
 
@@ -38,6 +39,8 @@ try:
     dask_imported = True
 except ImportError:
     dask_imported = False
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def forecast(
@@ -236,40 +239,40 @@ def forecast(
     timestep = metadata["accutime"]
     kmperpixel = metadata["xpixelsize"] / 1000
 
-    print("Computing SSEPS nowcast:")
-    print("------------------------")
-    print("")
+    _LOGGER.debug("Computing SSEPS nowcast:")
+    _LOGGER.debug("------------------------")
+    _LOGGER.debug("")
 
-    print("Inputs:")
-    print("-------")
-    print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
-    print("km/pixel:         %g" % kmperpixel)
-    print("time step:        %d minutes" % timestep)
-    print("")
+    _LOGGER.debug("Inputs:")
+    _LOGGER.debug("-------")
+    _LOGGER.debug("input dimensions: %dx%d", R.shape[1], R.shape[2])
+    _LOGGER.debug("km/pixel:         %g", kmperpixel)
+    _LOGGER.debug("time step:        %d minutes", timestep)
+    _LOGGER.debug("")
 
-    print("Methods:")
-    print("--------")
-    print("extrapolation:          %s" % extrap_method)
-    print("bandpass filter:        %s" % bandpass_filter_method)
-    print("decomposition:          %s" % decomp_method)
-    print("noise generator:        %s" % noise_method)
-    print("velocity perturbator:   %s" % vel_pert_method)
-    print("precip. mask method:    %s" % mask_method)
-    print("probability matching:   %s" % probmatching_method)
-    print("FFT method:             %s" % fft_method)
-    print("")
+    _LOGGER.debug("Methods:")
+    _LOGGER.debug("--------")
+    _LOGGER.debug("extrapolation:          %s", extrap_method)
+    _LOGGER.debug("bandpass filter:        %s", bandpass_filter_method)
+    _LOGGER.debug("decomposition:          %s", decomp_method)
+    _LOGGER.debug("noise generator:        %s", noise_method)
+    _LOGGER.debug("velocity perturbator:   %s", vel_pert_method)
+    _LOGGER.debug("precip. mask method:    %s", mask_method)
+    _LOGGER.debug("probability matching:   %s", probmatching_method)
+    _LOGGER.debug("FFT method:             %s", fft_method)
+    _LOGGER.debug("")
 
-    print("Parameters:")
-    print("-----------")
-    print("localization window:      %dx%d" % (win_size[0], win_size[1]))
-    print("overlap:                  %.1f" % overlap)
-    print("war thr:                  %.2f" % war_thr)
-    print("number of time steps:     %d" % n_timesteps)
-    print("ensemble size:            %d" % n_ens_members)
-    print("number of cascade levels: %d" % n_cascade_levels)
-    print("order of the AR(p) model: %d" % ar_order)
-    print("dask imported:            %s" % ("yes" if dask_imported else "no"))
-    print("num workers:              %d" % num_workers)
+    _LOGGER.debug("Parameters:")
+    _LOGGER.debug("-----------")
+    _LOGGER.debug("localization window:      %dx%d", win_size[0], win_size[1])
+    _LOGGER.debug("overlap:                  %.1f", overlap)
+    _LOGGER.debug("war thr:                  %.2f", war_thr)
+    _LOGGER.debug("number of time steps:     %d", n_timesteps)
+    _LOGGER.debug("ensemble size:            %d", n_ens_members)
+    _LOGGER.debug("number of cascade levels: %d", n_cascade_levels)
+    _LOGGER.debug("order of the AR(p) model: %d", ar_order)
+    _LOGGER.debug("dask imported:            %s", "yes" if dask_imported else "no")
+    _LOGGER.debug("num workers:              %d", num_workers)
 
     if vel_pert_method is "bps":
         vp_par = vel_pert_kwargs.get(
@@ -278,11 +281,11 @@ def forecast(
         vp_perp = vel_pert_kwargs.get(
             "p_pert_perp", noise.motion.get_default_params_bps_perp()
         )
-        print(
+        _LOGGER.debug(
             "velocity perturbations, parallel:      %g,%g,%g"
             % (vp_par[0], vp_par[1], vp_par[2])
         )
-        print(
+        _LOGGER.debug(
             "velocity perturbations, perpendicular: %g,%g,%g"
             % (vp_perp[0], vp_perp[1], vp_perp[2])
         )
@@ -346,7 +349,7 @@ def forecast(
         }
     )
 
-    print("Estimating nowcast parameters...", end="")
+    _LOGGER.debug("Estimating nowcast parameters...")
 
     def estimator(R, parsglob=None, idxm=None, idxn=None):
 
@@ -516,9 +519,9 @@ def forecast(
         pars = None
 
     if measure_time:
-        print("%.2f seconds." % (time.time() - starttime))
+        _LOGGER.debug("%.2f seconds.", time.time() - starttime)
     else:
-        print(" done.")
+        _LOGGER.debug(" done.")
 
     # initialize the random generators
     if noise_method is not None:
@@ -555,14 +558,14 @@ def forecast(
 
     R = R[-1, :, :]
 
-    print("Starting nowcast computation.")
+    _LOGGER.debug("Starting nowcast computation.")
 
     if measure_time:
         starttime_mainloop = time.time()
 
     # iterate each time step
     for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t + 1), end="")
+        _LOGGER.debug("Computing nowcast for time step %d... ", t + 1)
         sys.stdout.flush()
         if measure_time:
             starttime = time.time()
@@ -764,9 +767,9 @@ def forecast(
         res = None
 
         if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
+            _LOGGER.debug("%.2f seconds.", time.time() - starttime)
         else:
-            print("done.")
+            _LOGGER.debug("done.")
 
         if callback is not None:
             callback(np.stack(R_f_))

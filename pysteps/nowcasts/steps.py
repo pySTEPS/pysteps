@@ -2,15 +2,16 @@
 pysteps.nowcasts.steps
 ======================
 
-Implementation of the STEPS stochastic nowcasting method as described in  
+Implementation of the STEPS stochastic nowcasting method as described in
 :cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013`.
 
 .. autosummary::
     :toctree: ../generated/
-    
+
     forecast
 """
 
+import logging
 import sys
 import time
 
@@ -31,6 +32,8 @@ try:
     DASK_IMPORTED = True
 except ImportError:
     DASK_IMPORTED = False
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
@@ -281,51 +284,51 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         if mask_method == "incremental":
             raise ValueError("mask_method='incremental' but timestep=None")
 
-    print("Computing STEPS nowcast:")
-    print("------------------------")
-    print("")
+    _LOGGER.debug("Computing STEPS nowcast:")
+    _LOGGER.debug("------------------------")
+    _LOGGER.debug("")
 
-    print("Inputs:")
-    print("-------")
-    print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
+    _LOGGER.debug("Inputs:")
+    _LOGGER.debug("-------")
+    _LOGGER.debug("input dimensions: %dx%d", R.shape[1], R.shape[2])
     if kmperpixel is not None:
-        print("km/pixel:         %g" % kmperpixel)
+        _LOGGER.debug("km/pixel:         %g", kmperpixel)
     if timestep is not None:
-        print("time step:        %d minutes" % timestep)
-    print("")
+        _LOGGER.debug("time step:        %d minutes", timestep)
+    _LOGGER.debug("")
 
-    print("Methods:")
-    print("--------")
-    print("extrapolation:          %s" % extrap_method)
-    print("bandpass filter:        %s" % bandpass_filter_method)
-    print("decomposition:          %s" % decomp_method)
-    print("noise generator:        %s" % noise_method)
-    print("noise adjustment:       %s" % ("yes" if noise_stddev_adj else "no"))
-    print("velocity perturbator:   %s" % vel_pert_method)
-    print("conditional statistics: %s" % ("yes" if conditional else "no"))
-    print("precip. mask method:    %s" % mask_method)
-    print("probability matching:   %s" % probmatching_method)
-    print("FFT method:             %s" % fft_method)
-    print("domain:                 %s" % domain)
-    print("")
+    _LOGGER.debug("Methods:")
+    _LOGGER.debug("--------")
+    _LOGGER.debug("extrapolation:          %s", extrap_method)
+    _LOGGER.debug("bandpass filter:        %s", bandpass_filter_method)
+    _LOGGER.debug("decomposition:          %s", decomp_method)
+    _LOGGER.debug("noise generator:        %s", noise_method)
+    _LOGGER.debug("noise adjustment:       %s", "yes" if noise_stddev_adj else "no")
+    _LOGGER.debug("velocity perturbator:   %s", vel_pert_method)
+    _LOGGER.debug("conditional statistics: %s", "yes" if conditional else "no")
+    _LOGGER.debug("precip. mask method:    %s", mask_method)
+    _LOGGER.debug("probability matching:   %s", probmatching_method)
+    _LOGGER.debug("FFT method:             %s", fft_method)
+    _LOGGER.debug("domain:                 %s", domain)
+    _LOGGER.debug("")
 
-    print("Parameters:")
-    print("-----------")
-    print("number of time steps:     %d" % n_timesteps)
-    print("ensemble size:            %d" % n_ens_members)
-    print("parallel threads:         %d" % num_workers)
-    print("number of cascade levels: %d" % n_cascade_levels)
-    print("order of the AR(p) model: %d" % ar_order)
+    _LOGGER.debug("Parameters:")
+    _LOGGER.debug("-----------")
+    _LOGGER.debug("number of time steps:     %d", n_timesteps)
+    _LOGGER.debug("ensemble size:            %d", n_ens_members)
+    _LOGGER.debug("parallel threads:         %d", num_workers)
+    _LOGGER.debug("number of cascade levels: %d", n_cascade_levels)
+    _LOGGER.debug("order of the AR(p) model: %d", ar_order)
     if vel_pert_method == "bps":
         vp_par = vel_pert_kwargs.get("p_par", noise.motion.get_default_params_bps_par())
         vp_perp = vel_pert_kwargs.get("p_perp", noise.motion.get_default_params_bps_perp())
-        print("velocity perturbations, parallel:      %g,%g,%g" % \
-              (vp_par[0], vp_par[1], vp_par[2]))
-        print("velocity perturbations, perpendicular: %g,%g,%g" % \
-              (vp_perp[0], vp_perp[1], vp_perp[2]))
+        _LOGGER.debug("velocity perturbations, parallel:      %g,%g,%g",
+                      vp_par[0], vp_par[1], vp_par[2])
+        _LOGGER.debug("velocity perturbations, perpendicular: %g,%g,%g",
+                      vp_perp[0], vp_perp[1], vp_perp[2])
 
     if conditional or mask_method is not None:
-        print("precip. intensity threshold: %g" % R_thr)
+        _LOGGER.debug("precip. intensity threshold: %g", R_thr)
 
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members \
         else num_workers
@@ -385,7 +388,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         pp = init_noise(R, fft_method=fft, **noise_kwargs)
 
         if noise_stddev_adj == "auto":
-            print("Computing noise adjustment coefficients... ", end="")
+            _LOGGER.debug("Computing noise adjustment coefficients... ")
             sys.stdout.flush()
             if measure_time:
                 starttime = time.time()
@@ -397,9 +400,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
                                                                      conditional=True, num_workers=num_workers)
 
             if measure_time:
-                print("%.2f seconds." % (time.time() - starttime))
+                _LOGGER.debug("%.2f seconds.", time.time() - starttime)
             else:
-                print("done.")
+                _LOGGER.debug("done.")
         elif noise_stddev_adj == "fixed":
             f = lambda k: 1.0 / (0.75 + 0.09 * k)
             noise_std_coeffs = [f(k) for k in range(1, n_cascade_levels + 1)]
@@ -407,7 +410,7 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
             noise_std_coeffs = np.ones(n_cascade_levels)
 
         if noise_stddev_adj is not None:
-            print("noise std. dev. coeffs:   %s" % str(noise_std_coeffs))
+            _LOGGER.debug("noise std. dev. coeffs:   %s", str(noise_std_coeffs))
 
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
@@ -429,7 +432,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     for i in range(n_cascade_levels):
         GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], mask=MASK_thr)
 
-    nowcast_utils.print_corrcoefs(GAMMA)
+    if _LOGGER.isEnabledFor(logging.DEBUG):
+        nowcast_utils.log_corrcoefs(GAMMA)
 
     if ar_order == 2:
         # adjust the lag-2 correlation coefficient to ensure that the AR(p)
@@ -443,7 +447,8 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
     for i in range(n_cascade_levels):
         PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
 
-    nowcast_utils.print_ar_params(PHI)
+    if _LOGGER.isEnabledFor(logging.DEBUG):
+        nowcast_utils.log_ar_params(PHI)
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
@@ -520,14 +525,14 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
 
     R = R[-1, :, :]
 
-    print("Starting nowcast computation.")
+    _LOGGER.debug("Starting nowcast computation.")
 
     if measure_time:
         starttime_mainloop = time.time()
 
     # iterate each time step
     for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t + 1), end="")
+        _LOGGER.debug("Computing nowcast for time step %d... ", t + 1)
         sys.stdout.flush()
         if measure_time:
             starttime = time.time()
@@ -648,9 +653,9 @@ def forecast(R, V, n_timesteps, n_ens_members=24, n_cascade_levels=6,
         res = None
 
         if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
+            _LOGGER.debug("%.2f seconds.", time.time() - starttime)
         else:
-            print("done.")
+            _LOGGER.debug("done.")
 
         if callback is not None:
             callback(np.stack(R_f_))

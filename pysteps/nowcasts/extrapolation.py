@@ -10,9 +10,12 @@ Implementation of extrapolation-based nowcasting methods.
     forecast
 """
 
+import logging
 import time
 
 from pysteps import extrapolation
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def forecast(precip, velocity, num_timesteps,
@@ -65,9 +68,8 @@ def forecast(precip, velocity, num_timesteps,
         extrap_kwargs = dict()
 
     if measure_time:
-        print("Computing extrapolation nowcast from a "
-              f"{precip.shape[0]:d}x{precip.shape[1]:d} input grid... ",
-              end="")
+        _LOGGER.debug("Computing extrapolation nowcast from a %dx%d input grid... ",
+                      precip.shape[0], precip.shape[1])
 
     if measure_time:
         start_time = time.time()
@@ -79,7 +81,7 @@ def forecast(precip, velocity, num_timesteps,
 
     if measure_time:
         computation_time = time.time() - start_time
-        print(f"{computation_time:.2f} seconds.")
+        _LOGGER.debug("%.2f seconds.", computation_time)
 
     if measure_time:
         return precip_forecast, computation_time

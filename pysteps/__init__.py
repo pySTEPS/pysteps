@@ -1,10 +1,10 @@
-# import subpackages
-import sys
-
 import json
+import logging
 import os
 import stat
+import sys
 import warnings
+
 from attrdict import AttrDict
 from jsmin import jsmin
 from jsonschema import Draft4Validator
@@ -20,6 +20,10 @@ from . import timeseries
 from . import utils
 from . import verification as vf
 from . import visualization as plt
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _get_config_file_schema():
@@ -149,8 +153,7 @@ if params_file is not None:
         rcparams = json.loads(jsmin(f.read()))
 
     if not rcparams.get("silent_import", False):
-        print("Pysteps configuration file found at: " + params_file
-              + "\n")
+        _LOGGER.debug("Pysteps configuration file found at: %s", params_file)
 
     with open(_get_config_file_schema(), 'r') as f:
         schema = json.loads(jsmin(f.read()))

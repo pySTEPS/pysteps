@@ -10,6 +10,7 @@ Implementation of the S-PROG method described in :cite:`Seed2003`
     forecast
 """
 
+import logging
 import sys
 import time
 
@@ -28,6 +29,8 @@ try:
     DASK_IMPORTED = True
 except ImportError:
     DASK_IMPORTED = False
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
@@ -134,33 +137,33 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
 
-    print("Computing S-PROG nowcast:")
-    print("-------------------------")
-    print("")
+    _LOGGER.debug("Computing S-PROG nowcast:")
+    _LOGGER.debug("-------------------------")
+    _LOGGER.debug("")
 
-    print("Inputs:")
-    print("-------")
-    print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
-    print("")
+    _LOGGER.debug("Inputs:")
+    _LOGGER.debug("-------")
+    _LOGGER.debug("input dimensions: %dx%d", R.shape[1], R.shape[2])
+    _LOGGER.debug("")
 
-    print("Methods:")
-    print("--------")
-    print("extrapolation:          %s" % extrap_method)
-    print("bandpass filter:        %s" % bandpass_filter_method)
-    print("decomposition:          %s" % decomp_method)
-    print("conditional statistics: %s" % ("yes" if conditional else "no"))
-    print("probability matching:   %s" % probmatching_method)
-    print("FFT method:             %s" % fft_method)
-    print("domain:                 %s" % domain)
-    print("")
+    _LOGGER.debug("Methods:")
+    _LOGGER.debug("--------")
+    _LOGGER.debug("extrapolation:          %s", extrap_method)
+    _LOGGER.debug("bandpass filter:        %s", bandpass_filter_method)
+    _LOGGER.debug("decomposition:          %s", decomp_method)
+    _LOGGER.debug("conditional statistics: %s", "yes" if conditional else "no")
+    _LOGGER.debug("probability matching:   %s", probmatching_method)
+    _LOGGER.debug("FFT method:             %s", fft_method)
+    _LOGGER.debug("domain:                 %s", domain)
+    _LOGGER.debug("")
 
-    print("Parameters:")
-    print("-----------")
-    print("number of time steps:     %d" % n_timesteps)
-    print("parallel threads:         %d" % num_workers)
-    print("number of cascade levels: %d" % n_cascade_levels)
-    print("order of the AR(p) model: %d" % ar_order)
-    print("precip. intensity threshold: %g" % R_thr)
+    _LOGGER.debug("Parameters:")
+    _LOGGER.debug("-----------")
+    _LOGGER.debug("number of time steps:     %d", n_timesteps)
+    _LOGGER.debug("parallel threads:         %d", num_workers)
+    _LOGGER.debug("number of cascade levels: %d", n_cascade_levels)
+    _LOGGER.debug("order of the AR(p) model: %d", ar_order)
+    _LOGGER.debug("precip. intensity threshold: %g", R_thr)
 
     if measure_time:
         starttime_init = time.time()
@@ -242,7 +245,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     R_d = R_d[-1]
 
-    nowcast_utils.print_corrcoefs(GAMMA)
+    if _LOGGER.isEnabledFor(logging.DEBUG):
+        nowcast_utils.log_corrcoefs(GAMMA)
 
     if ar_order == 2:
         # adjust the lag-2 correlation coefficient to ensure that the AR(p)
@@ -257,7 +261,8 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     for i in range(n_cascade_levels):
         PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
 
-    nowcast_utils.print_ar_params(PHI)
+    if _LOGGER.isEnabledFor(logging.DEBUG):
+        nowcast_utils.log_ar_params(PHI)
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
@@ -277,7 +282,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     R = R[-1, :, :]
 
-    print("Starting nowcast computation.")
+    _LOGGER.debug("Starting nowcast computation.")
 
     if measure_time:
         starttime_mainloop = time.time()
@@ -286,7 +291,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     # iterate each time step
     for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t + 1), end="")
+        _LOGGER.debug("Computing nowcast for time step %d... ", t + 1)
         sys.stdout.flush()
         if measure_time:
             starttime = time.time()
@@ -322,9 +327,9 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
         R_f.append(R_f_)
 
         if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
+            _LOGGER.debug("%.2f seconds.", time.time() - starttime)
         else:
-            print("done.")
+            _LOGGER.debug("done.")
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop

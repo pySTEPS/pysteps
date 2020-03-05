@@ -13,10 +13,14 @@ Module with common utilities used by nowcasts methods.
     recompose_cascade
 """
 
+import logging
+
 import numpy as np
 
+_LOGGER = logging.getLogger(__name__)
 
-def print_ar_params(PHI):
+
+def log_ar_params(PHI):
     """Print the parameters of an AR(p) model.
 
     Parameters
@@ -25,9 +29,9 @@ def print_ar_params(PHI):
       Array of shape (n, p) containing the AR(p) parameters for n cascade
       levels.
     """
-    print("****************************************")
-    print("* AR(p) parameters for cascade levels: *")
-    print("****************************************")
+    _LOGGER.debug("****************************************")
+    _LOGGER.debug("* AR(p) parameters for cascade levels: *")
+    _LOGGER.debug("****************************************")
 
     n = PHI.shape[1]
 
@@ -35,24 +39,24 @@ def print_ar_params(PHI):
     for k in range(n):
         hline_str += "---------------"
 
-    print(hline_str)
+    _LOGGER.debug(hline_str)
     title_str = "| Level |"
     for k in range(n - 1):
         title_str += "    Phi-%d     |" % (k + 1)
     title_str += "    Phi-0     |"
-    print(title_str)
-    print(hline_str)
+    _LOGGER.debug(title_str)
+    _LOGGER.debug(hline_str)
 
     fmt_str = "| %-5d |"
     for k in range(n):
         fmt_str += " %-12.6f |"
 
     for k in range(PHI.shape[0]):
-        print(fmt_str % ((k + 1,) + tuple(PHI[k, :])))
-        print(hline_str)
+        _LOGGER.debug(fmt_str, (k + 1,) + tuple(PHI[k, :]))
+        _LOGGER.debug(hline_str)
 
 
-def print_corrcoefs(GAMMA):
+def log_corrcoefs(GAMMA):
     """Print the parameters of an AR(p) model.
 
     Parameters
@@ -61,9 +65,9 @@ def print_corrcoefs(GAMMA):
       Array of shape (m, n) containing n correlation coefficients for m cascade
       levels.
     """
-    print("************************************************")
-    print("* Correlation coefficients for cascade levels: *")
-    print("************************************************")
+    _LOGGER.debug("************************************************")
+    _LOGGER.debug("* Correlation coefficients for cascade levels: *")
+    _LOGGER.debug("************************************************")
 
     m = GAMMA.shape[0]
     n = GAMMA.shape[1]
@@ -72,20 +76,20 @@ def print_corrcoefs(GAMMA):
     for k in range(n):
         hline_str += "----------------"
 
-    print(hline_str)
+    _LOGGER.debug(hline_str)
     title_str = "| Level |"
     for k in range(n):
         title_str += "     Lag-%d     |" % (k + 1)
-    print(title_str)
-    print(hline_str)
+    _LOGGER.debug(title_str)
+    _LOGGER.debug(hline_str)
 
     fmt_str = "| %-5d |"
     for k in range(n):
         fmt_str += " %-13.6f |"
 
     for k in range(m):
-        print(fmt_str % ((k + 1,) + tuple(GAMMA[k, :])))
-        print(hline_str)
+        _LOGGER.debug(fmt_str, (k + 1,) + tuple(GAMMA[k, :]))
+        _LOGGER.debug(hline_str)
 
 
 def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
