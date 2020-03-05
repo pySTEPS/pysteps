@@ -79,6 +79,17 @@ The lines starting with "//" are comments and they are ignored.
                     "qty": "ACRR",
                     "pixelsize": 1000.0
                 }
+            },
+            "saf": {
+                "root_path": "./saf",
+                "path_fmt": "%Y%m%d/CRR",
+                "fn_pattern": "S_NWC_CRR_MSG4_Europe-VISIR_%Y%m%dT%H%M00Z",
+                "fn_ext": "nc",
+                "importer": "saf_crri",
+                "timestep": 15,
+                "importer_kwargs": {
+                    "gzipped": true
+                }
             }
         }
     }

@@ -174,7 +174,7 @@ JSON_ file and then stored in the **pysteps.rcparams** AttrDict_.
     :maxdepth: 1
 
     Set-up the user-defined configuration file <set_pystepsrc>
-    Example pystepsrc file <pystepsrc_example>
+    Example pystepsrc file :ref:`pystepsrc_example`.
 
 
 
