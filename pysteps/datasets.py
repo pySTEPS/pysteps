@@ -10,6 +10,8 @@ file pointing to that data.
 
     download_pysteps_data
     create_default_pystepsrc
+    info
+    load_dataset
 """
 
 import json
@@ -30,6 +32,25 @@ from pysteps import io
 from pysteps.exceptions import DirectoryNotEmpty
 from pysteps.utils import conversion
 
+_precip_events = {
+    "fmi": "201609281445",
+    "fmi2": "201705091045",
+    "mch": "201505151545",
+    "mch2": "201607112045",
+    "mch3": "201701310945",
+    "opera": "201808241800",
+    "knmi": "201008260000",
+    "bom": "201806161000",
+}
+
+_data_sources = {
+    "fmi": "Finish Meteorological Institute",
+    "mch": "MeteoSwiss",
+    "bom": "Australian Bureau of Meteorology",
+    "knmi": "Royal Netherlands Meteorological Institute",
+    "opera": "OPERA",
+}
+
 
 # Include this function here to avoid a dependency on pysteps.__init__.py
 def _decode_filesystem_path(path):
@@ -39,12 +60,32 @@ def _decode_filesystem_path(path):
         return path
 
 
+def info():
+    """
+    Describe the available datasets in the pysteps example data.
+
+    >>> from pysteps import datasets
+    >>> datasets.info()
+    """
+    print("\nAvailable datasets:\n")
+
+    print(f"{'Case':<8} {'Event date':<22} {'Source':<45}\n")
+
+    for case_name, case_date in _precip_events.items():
+        _source = "".join([i for i in case_name if not i.isdigit()])
+        _source = _data_sources[_source]
+
+        _case_date = datetime.strptime(_precip_events[case_name], "%Y%m%d%H%M")
+        _case_date = datetime.strftime(_case_date, "%Y-%m-%d %H:%M UTC")
+
+        print(f"{case_name:<8} {_case_date:<22} {_source:<45}")
+
+
 class ShowProgress(object):
     """
     Class used to report the download progress.
 
-    Examples
-    --------
+    Usage::
 
     >>> from urllib import request
     >>> pbar = ShowProgress()
@@ -84,10 +125,12 @@ class ShowProgress(object):
                 progress = count * block_size / total_size
                 block = int(round(self._progress_bar_length * progress))
 
-                elapsed_time = (time.time() - self.init_time)
+                elapsed_time = time.time() - self.init_time
                 eta = (elapsed_time / progress - elapsed_time) / 60
 
-                bar_str = "#" * block + "-" * (self._progress_bar_length - block)
+                bar_str = "#" * block + "-" * (
+                    self._progress_bar_length - block
+                )
 
                 progress_msg = (
                     f"Progress: [{bar_str}]"
@@ -96,7 +139,8 @@ class ShowProgress(object):
                 )
 
             else:
-                progress_msg = f"Progress: ({downloaded_size:.1f} Mb) - Time left: unknown"
+                progress_msg = (f"Progress: ({downloaded_size:.1f} Mb)"
+                                f" - Time left: unknown")
 
         self._print(progress_msg)
 
@@ -127,9 +171,8 @@ def download_pysteps_data(dir_path, force=True):
     if os.path.exists(dir_path) and os.path.isdir(dir_path):
         if os.listdir(dir_path) and not force:
             raise DirectoryNotEmpty(
-                dir_path +
-                "is not empty.\n"
-                "Set force=True force the extration of the files."
+                dir_path + "is not empty.\n"
+                           "Set force=True force the extration of the files."
             )
     else:
         os.makedirs(dir_path)
@@ -142,7 +185,8 @@ def download_pysteps_data(dir_path, force=True):
     pbar = ShowProgress()
     request.urlretrieve(
         "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
-        tmp_file.name, pbar
+        tmp_file.name,
+        pbar,
     )
     pbar.end()
 
@@ -193,7 +237,9 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
         Configuration file path.
     """
 
-    pysteps_lib_root = os.path.dirname(_decode_filesystem_path(pysteps.__file__))
+    pysteps_lib_root = os.path.dirname(
+        _decode_filesystem_path(pysteps.__file__)
+    )
 
     # Load the library built-in configuration file
     with open(os.path.join(pysteps_lib_root, "pystepsrc"), "r") as f:
@@ -207,9 +253,9 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
     if config_dir is None:
         home_dir = os.path.expanduser("~")
         if os.name == "nt":
-            subdir = 'pysteps'
+            subdir = "pysteps"
         else:
-            subdir = '.pysteps'
+            subdir = ".pysteps"
         config_dir = os.path.join(home_dir, subdir, file_name)
 
     if not os.path.isdir(config_dir):
@@ -227,10 +273,14 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
     return dest_path
 
 
-def load_fmi(num_next_files=12, num_prev_files=1):
+def load_dataset(case="fmi", frames=14):
     """
-    Load a sequence of radar composites from the Finnish radar network.
-    The Finnish network produces a composite every 5 minutes.
+    Load a sequence of radar composites from the pysteps example data.
+
+    To print the available datasets run
+
+    >>> from pysteps import datasets
+    >>> datasets.info()
 
     This function load by default 14 composites, corresponding to a 1h and 10min
     time window.
@@ -244,13 +294,14 @@ def load_fmi(num_next_files=12, num_prev_files=1):
     Parameters
     ----------
 
-    num_prev_files : int
-        Number of previous files before the beginning of each precipitation event.
-        Default: 1
+    case : str
+        Case to load.
 
-    num_next_files : int
-        Number of future files to find after the beginning of each precipitation event.
-        Default: 12
+    frames : int
+        Number composites (radar images).
+        Max allowed value: 25
+        Default: 14
+
     Returns
     -------
 
@@ -263,26 +314,32 @@ def load_fmi(num_next_files=12, num_prev_files=1):
     timestep : number
         Time interval between composites in minutes.
     """
-    case_date = datetime.strptime("201609281600", "%Y%m%d%H%M")
-    data_source = pysteps.rcparams.data_sources["fmi"]
+
+    case = case.lower()
+
+    case_date = datetime.strptime(_precip_events[case], "%Y%m%d%H%M")
+
+    source = "".join([i for i in case if not i.isdigit()])
+    data_source = pysteps.rcparams.data_sources[source]
 
     # Find the input files from the archive
-    file_names = io.archive.find_by_date(case_date,
-                                         data_source["root_path"],
-                                         data_source["path_fmt"],
-                                         data_source["fn_pattern"],
-                                         data_source["fn_ext"],
-                                         data_source["timestep"],
-                                         num_prev_files=num_prev_files,
-                                         num_next_files=num_next_files,
-                                         )
+    file_names = io.archive.find_by_date(
+        case_date,
+        data_source["root_path"],
+        data_source["path_fmt"],
+        data_source["fn_pattern"],
+        data_source["fn_ext"],
+        data_source["timestep"],
+        num_prev_files=0,
+        num_next_files=frames - 1,
+    )
 
     # Read the radar composites
     importer = io.get_method(data_source["importer"], "importer")
     importer_kwargs = data_source["importer_kwargs"]
-    reflectivity, _, metadata = io.read_timeseries(file_names,
-                                                   importer,
-                                                   **importer_kwargs)
+    reflectivity, _, metadata = io.read_timeseries(
+        file_names, importer, **importer_kwargs
+    )
 
     # Convert to rain rate
     precip, metadata = conversion.to_rainrate(reflectivity, metadata)
