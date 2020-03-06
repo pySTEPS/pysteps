@@ -172,7 +172,7 @@ def download_pysteps_data(dir_path, force=True):
         if os.listdir(dir_path) and not force:
             raise DirectoryNotEmpty(
                 dir_path + "is not empty.\n"
-                           "Set force=True force the extration of the files."
+                           "Set force=True force the extraction of the files."
             )
     else:
         os.makedirs(dir_path)
@@ -181,7 +181,7 @@ def download_pysteps_data(dir_path, force=True):
     # The http response from github can either contain Content-Length (size of the file)
     # or use chunked Transfer-Encoding.
     # If Transfer-Encoding is chunked, then the Content-Length is not available since
-    # the content is dynamically generated and we can't know the length a priori easily.
+    # the content is dynamically generated and we can't know the length a pr_iori easily.
     pbar = ShowProgress()
     request.urlretrieve(
         "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
@@ -299,7 +299,7 @@ def load_dataset(case="fmi", frames=14):
 
     frames : int
         Number composites (radar images).
-        Max allowed value: 25
+        Max allowed value: 24
         Default: 14
 
     Returns
@@ -314,6 +314,9 @@ def load_dataset(case="fmi", frames=14):
     timestep : number
         Time interval between composites in minutes.
     """
+
+    if frames > 24:
+        raise ValueError("The number of frames should be smaller than 25")
 
     case = case.lower()
 
@@ -333,6 +336,9 @@ def load_dataset(case="fmi", frames=14):
         num_prev_files=0,
         num_next_files=frames - 1,
     )
+
+    if None in file_names[0]:
+        raise FileNotFoundError(f"Error loading {case} case. Some files are missing.")
 
     # Read the radar composites
     importer = io.get_method(data_source["importer"], "importer")
