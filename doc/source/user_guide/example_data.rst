@@ -3,7 +3,7 @@
 Installing the Example data
 ===========================
 
-The examples scripts in the user guide as well as the pySTEPS build-in tests
+The examples scripts in the user guide, as well as the pySTEPS build-in tests,
 use the example radar data available in a separate repository:
 `pysteps-data <https://github.com/pySTEPS/pysteps-data>`_.
 
@@ -15,15 +15,16 @@ the :mod:`pysteps.datasets` module.
 Installation using the datasets module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Below is a snippet code that can be used to install can configure `pystepsrc`
-file to point to that example data.
+Below is a snippet code that can be used to install can configure `pystepsrc` file to
+point to that example data.
+
 
 In the example below, the example data is placed in the user's home folder under the
 **pysteps_data** directory. It also creates a default configuration file that points to
-the downloaded data and place it file in the $HOME/.pysteps (unix and Mac OS X) or
-$USERPROFILE/pysteps (windows). This is one of the default locations looked by
-pysteps when the package is imported. See :ref:`pystepsrc_order` for more information
-about the default *pystepsrc* locations.
+the downloaded data and places it in the $HOME/.pysteps (Unix and Mac OS X) or
+$USERPROFILE/pysteps (Windows). This is one of the default locations where pysteps
+looks for the configuration file (see :ref:`pysteps_lookup` for
+more information).
 
 .. code-block:: python
 
@@ -54,6 +55,8 @@ use the :func:`pysteps.load_config_file` function as follows::
 
 
 To customize the default configuration file see the :ref:`pystepsrc` section.
+
+
 Manual installation
 ~~~~~~~~~~~~~~~~~~~
 
@@ -63,7 +66,7 @@ Another alternative is to download the data manually into your computer and conf
 First, download the data from the repository by
 `clicking here <https://github.com/pySTEPS/pysteps-data/archive/master.zip>`_.
 
-Unzip the data into a folder of your preference. Once the data is unzip, the
+Unzip the data into a folder of your preference. Once the data is unzipped, the
 directory structure looks like this::
 
 
@@ -76,8 +79,8 @@ directory structure looks like this::
           ├── fmi
           ├── mch
 
-Now we need to update the *pystepsrc* file for the each of the data_sources
-to point to these directories, as described in the :ref:`pystepsrc` section.
+The next step is updating the *pystepsrc* file to point to these directories,
+as described in the :ref:`pystepsrc` section.
 
 
 

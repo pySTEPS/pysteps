@@ -4,11 +4,11 @@
 User guide
 ==========
 
-This guide is gives an introductory overview to the pySTEPS package.
+This guide gives an introductory overview of the pySTEPS package.
 It explains how to install and make use of the most important features.
 
 For detailed reference documentation of the modules and functions available in
-the package see the :ref:`pysteps-reference`.
+the package, see the :ref:`pysteps-reference`.
 
 .. toctree::
     :maxdepth: 1
