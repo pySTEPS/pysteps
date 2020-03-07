@@ -147,13 +147,30 @@ class DotDictify(AttrDict):
 rcparams = dict()
 
 
-def load_config_file(params_file, verbose=False):
+def load_config_file(params_file=None, verbose=False):
     """
     Load the pysteps configuration file. The configuration parameters are available
     as a DotDictify instance in the `pysteps.rcparams` variable.
+
+    Parameters
+    ----------
+
+    params_file=None, verbose=False
     """
 
     global rcparams
+
+    if params_file is None:
+        # Load default configuration
+        params_file = config_fname()
+
+        if params_file is None:
+            warnings.warn("pystepsrc file not found."
+                          + "The defaults parameters are left empty",
+                          category=ImportWarning)
+
+            rcparams = dict()
+            return
 
     with open(params_file, 'r') as f:
         rcparams = json.loads(jsmin(f.read()))
@@ -179,13 +196,4 @@ def load_config_file(params_file, verbose=False):
 
 
 # Load default configuration
-_params_file = config_fname()
-
-if _params_file is not None:
-    load_config_file(_params_file)
-else:
-    warnings.warn("pystepsrc file not found."
-                  + "The defaults parameters are left empty",
-                  category=ImportWarning)
-
-    rcparams = dict()
+load_config_file()
