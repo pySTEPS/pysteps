@@ -41,7 +41,7 @@ def constant(R, **kwargs):
         R_w = ip.map_coordinates(R[-2, :, :], XYW, mode="constant", cval=np.nan,
                                  order=0, prefilter=False)
 
-        mask = np.isfinite(R_w)
+        mask = np.logical_and(np.isfinite(R[-1, :, :]), np.isfinite(R_w))
 
         return -np.corrcoef(R[-1, :, :][mask], R_w[mask])[0, 1]
 
