@@ -67,6 +67,18 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     input quantity. The forecast model is, however, more general and can take
     any two-dimensional input field.
     """
+    if len(vil.shape) != 3:
+        raise ValueError("vil.shape = %s, but a three-dimensional array expected" % str(vil.shape))
+
+    if len(rainrate.shape) != 2:
+        raise ValueError("rainrate.shape = %s, but a two-dimensional array expected" % str())
+
+    if vil.shape[0] != ar_order + 2:
+        raise ValueError("vil.shape[0] = %d, but vil.shape[0] = ar_order = %d required" % (vil.shape[0], ar_order))
+
+    if len(velocity.shape) != 3:
+        raise ValueError("velocity.shape = %s, but a three-dimensional array expected" % str(velocity.shape))
+
     if extrap_kwargs is None:
         extrap_kwargs = dict()
 
