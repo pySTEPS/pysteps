@@ -28,9 +28,9 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     Parameters
     ----------
     vil : array_like
-        Array of shape (ar_order+2,m,n) containing the input precipitation
-        fields ordered by timestamp from oldest to newest. The time steps
-        between the inputs are assumed to be regular.
+        Array of shape (ar_order+2,m,n) containing the input vil fields ordered
+        by timestamp from oldest to newest. The time steps between the inputs
+        are assumed to be regular.
     rainrate : array_like
         Array of shape (m,n) containing the most recently observed rain rate
         field. If set to None, the vil array is assumed to contain rain rates
@@ -41,14 +41,29 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         between the inputs. All values are required to be finite.
     n_timesteps : int
        Number of time steps to forecast. 
-    n_cascade_levels : int
+    n_cascade_levels : int, optional
         The number of cascade levels to use.
-    ar_window_radius : int
+    extrap_method : str, optional
+        Name of the extrapolation method to use. See the documentation of
+        pysteps.extrapolation.interface.
+    ar_order : int, optional
+        The order of the autoregressive model to use.
+    ar_window_radius : int, optional
         The radius of the window to use for determining the parameters of the
         autoregressive model.
-    r_vil_window_radius : int
+    r_vil_window_radius : int, optional
         The radius of the window to use for determining the R(VIL) relation.
         Applicable if rainrate is not None.
+    fft_method : str, optional
+        A string defining the FFT method to use (see utils.fft.get_method).
+        Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
+        the recommended method is 'pyfftw'.
+    extrap_kwargs : dict, optional
+        Optional dictionary containing keyword arguments for the extrapolation
+        method. See the documentation of pysteps.extrapolation.
+    filter_kwargs : dict, optional
+        Optional dictionary containing keyword arguments for the filter method.
+        See the documentation of pysteps.cascade.bandpass_filters.py.
 
     Returns
     -------
