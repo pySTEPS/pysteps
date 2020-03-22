@@ -70,8 +70,9 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     if len(vil.shape) != 3:
         raise ValueError("vil.shape = %s, but a three-dimensional array expected" % str(vil.shape))
 
-    if len(rainrate.shape) != 2:
-        raise ValueError("rainrate.shape = %s, but a two-dimensional array expected" % str())
+    if rainrate is not None:
+        if len(rainrate.shape) != 2:
+            raise ValueError("rainrate.shape = %s, but a two-dimensional array expected" % str(rainrate.shape))
 
     if vil.shape[0] != ar_order + 2:
         raise ValueError("vil.shape[0] = %d, but vil.shape[0] = ar_order = %d required" % (vil.shape[0], ar_order))
@@ -88,7 +89,8 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     m, n = vil.shape[1:]
     vil = vil.copy()
 
-    r_vil_a, r_vil_b = _R_VIL_regression(vil[-1, :], rainrate, r_vil_window_radius)
+    if rainrate is not None:
+        r_vil_a, r_vil_b = _R_VIL_regression(vil[-1, :], rainrate, r_vil_window_radius)
 
     extrapolator = extrapolation.get_method(extrap_method)
 
@@ -149,7 +151,10 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         vil_f = recomp_method(vil_dec_dict)
         vil_f[~mask] = np.nan
 
-        r_f_ = r_vil_a * vil_f + r_vil_b
+        if rainrate is not None:
+            r_f_ = r_vil_a * vil_f + r_vil_b
+        else:
+            r_f_ = vil_f
 
         extrap_kwargs.update({"D_prev": dp, "return_displacement": True,
                               "allow_nonfinite_values": True})
