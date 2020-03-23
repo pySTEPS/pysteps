@@ -101,6 +101,29 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     if filter_kwargs is None:
         filter_kwargs = dict()
 
+    print("Computing S-PROG nowcast:")
+    print("-------------------------")
+    print("")
+
+    print("Inputs:")
+    print("-------")
+    print("input dimensions: %dx%d" % (vil.shape[1], vil.shape[2]))
+    print("")
+
+    print("Methods:")
+    print("--------")
+    print("extrapolation:   %s" % extrap_method)
+    print("FFT:             %s" % fft_method)
+    print("")
+
+    print("Parameters:")
+    print("-----------")
+    print("number of time steps:        %d" % n_timesteps)
+    print("number of cascade levels:    %d" % n_cascade_levels)
+    print("order of the ARI(p,1) model: %d" % ar_order)
+    print("ARI(p,1) window radius:      %d" % ar_window_radius)
+    print("R(VIL) window radius:        %d" % r_vil_window_radius)
+
     m, n = vil.shape[1:]
     vil = vil.copy()
 
