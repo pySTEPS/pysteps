@@ -146,7 +146,13 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
 
     phi = []
     for i in range(n_cascade_levels):
-        phi.append(autoregression.estimate_ar_params_yw_localized(gamma[i, :], d=1))
+        if ar_order > 2:
+            phi_ = autoregression.estimate_ar_params_yw_localized(gamma[i, :], d=1)
+        elif ar_order == 2:
+            phi_ = _estimate_ar2_params(gamma[i, :])
+        else:
+            pass
+        phi.append(phi_)
 
     vil_dec = vil_dec[:, -3:, :]
 
@@ -180,6 +186,29 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         r_f.append(r_f_[-1])
 
     return np.stack(r_f)
+
+
+def _estimate_ar1_params(gamma):
+    phi = []
+    phi.append(1 + gamma[0, :])
+    phi.append(-gamma[0, :])
+    phi.append(np.zeros(gamma[0, :].shape))
+
+    return phi
+
+
+def _estimate_ar2_params(gamma):
+    phi_diff = []
+    phi_diff.append(gamma[0, :] * (1 - gamma[1, :]) / (1 - gamma[0, :]*gamma[0, :]))
+    phi_diff.append((gamma[1, :] - gamma[0, :]*gamma[0, :]) / (1 - gamma[0, :]*gamma[0, :]))
+
+    phi = []
+    phi.append(1 + phi_diff[0])
+    phi.append(-phi_diff[0] + phi_diff[1])
+    phi.append(-phi_diff[1])
+    phi.append(np.zeros(phi_diff[0].shape))
+
+    return phi
 
 
 def _moving_window_corrcoef(x, y, window_radius):
