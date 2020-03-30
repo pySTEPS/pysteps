@@ -51,7 +51,7 @@ use the :func:`pysteps.load_config_file` function as follows::
 
     # Load the new configuration file and replace the default configuration
     import pysteps
-    pysteps.load_config_file(path_to_my_config_file, verbose=True)
+    pysteps.load_config_file(config_file_path, verbose=True)
 
 
 To customize the default configuration file see the :ref:`pystepsrc` section.
