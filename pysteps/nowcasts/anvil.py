@@ -16,12 +16,20 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from pysteps import cascade, extrapolation
 from pysteps.timeseries import autoregression
+from pysteps import utils
+
+try:
+    import dask
+
+    DASK_IMPORTED = True
+except ImportError:
+    DASK_IMPORTED = False
 
 
 def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
              extrap_method="semilagrangian", ar_order=2, ar_window_radius=50,
-             r_vil_window_radius=5, fft_method="numpy", extrap_kwargs=None,
-             filter_kwargs=None):
+             r_vil_window_radius=5, fft_method="numpy", num_workers=1,
+             extrap_kwargs=None, filter_kwargs=None):
     """Generate a nowcast by using the autoregressive nowcasting using VIL
     (ANVIL) method. VIL is acronym for vertically integrated liquid.
 
@@ -40,7 +48,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         advection field. The velocities are assumed to represent one time step
         between the inputs. All values are required to be finite.
     n_timesteps : int
-       Number of time steps to forecast. 
+       Number of time steps to forecast.
     n_cascade_levels : int, optional
         The number of cascade levels to use.
     extrap_method : str, optional
@@ -58,6 +66,12 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         A string defining the FFT method to use (see utils.fft.get_method).
         Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
         the recommended method is 'pyfftw'.
+    num_workers : int, optional
+        The number of workers to use for parallel computation. Applicable if
+        dask is enabled or pyFFTW is used for computing the FFT.
+        When num_workers>1, it is advisable to disable OpenMP by setting
+        the environment variable OMP_NUM_THREADS to 1.
+        This avoids slowdown caused by too many simultaneous threads.
     extrap_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
@@ -119,6 +133,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     print("Parameters:")
     print("-----------")
     print("number of time steps:        %d" % n_timesteps)
+    print("parallel threads:            %d" % num_workers)
     print("number of cascade levels:    %d" % n_cascade_levels)
     print("order of the ARI(p,1) model: %d" % ar_order)
     print("ARI(p,1) window radius:      %d" % ar_window_radius)
@@ -132,9 +147,23 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
 
     extrapolator = extrapolation.get_method(extrap_method)
 
+    res = list()
+
+    def worker(vil, i):
+        return i, extrapolator(vil[i, :], velocity, vil.shape[0]-1-i,
+                               allow_nonfinite_values=True, **extrap_kwargs)[-1]
+
     for i in range(vil.shape[0] - 1):
-        vil[i, :] = extrapolator(vil[i, :], velocity, vil.shape[0]-1-i,
-                                 allow_nonfinite_values=True)[-1]
+        if not DASK_IMPORTED or num_workers == 1:
+            vil[i, :, :] = worker(vil, i)[1]
+        else:
+            res.append(dask.delayed(worker)(vil, i))
+
+    if DASK_IMPORTED and num_workers > 1:
+        num_workers_ = len(res) if num_workers > len(res) else num_workers
+        vil_e = dask.compute(*res, num_workers=num_workers_)
+        for i in range(len(vil_e)):
+            vil[vil_e[i][0], :] = vil_e[i][1]
 
     mask = np.isfinite(vil[0, :])
     for i in range(1, vil.shape[0]):
@@ -143,13 +172,16 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     bp_filter_method = cascade.get_method("gaussian")
     bp_filter = bp_filter_method((m, n), n_cascade_levels, **filter_kwargs)
 
+    fft = utils.get_method(fft_method, shape=vil.shape[1:],
+                           n_threads=num_workers)
+
     decomp_method, recomp_method = cascade.get_method("fft")
 
     vil_dec = np.empty((n_cascade_levels, vil.shape[0], m, n))
     for i in range(vil.shape[0]):
         vil_ = vil[i, :].copy()
         vil_[~np.isfinite(vil_)] = 0.0
-        vil_dec_i = decomp_method(vil_, bp_filter)
+        vil_dec_i = decomp_method(vil_, bp_filter, fft_method=fft)
         for j in range(n_cascade_levels):
             vil_dec[j, i, :] = vil_dec_i["cascade_levels"][j, :]
 
