@@ -7,11 +7,12 @@ method developed in :cite:`PCHL2020`.
 
 .. autosummary::
     :toctree: ../generated/
-    
+
     forecast
 """
 
 import sys
+import time
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from pysteps import cascade, extrapolation
@@ -29,7 +30,7 @@ except ImportError:
 def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
              extrap_method="semilagrangian", ar_order=2, ar_window_radius=50,
              r_vil_window_radius=5, fft_method="numpy", num_workers=1,
-             extrap_kwargs=None, filter_kwargs=None):
+             extrap_kwargs=None, filter_kwargs=None, measure_time=False):
     """Generate a nowcast by using the autoregressive nowcasting using VIL
     (ANVIL) method. VIL is acronym for vertically integrated liquid.
 
@@ -78,13 +79,18 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     filter_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the filter method.
         See the documentation of pysteps.cascade.bandpass_filters.py.
+    measure_time : bool
+        If True, measure, print and return the computation time.
 
     Returns
     -------
     out : ndarray
         A three-dimensional array of shape (n_timesteps,m,n) containing a time
         series of forecast precipitation fields. The time series starts from
-        t0+timestep, where timestep is taken from the input VIL/rain rate fields.
+        t0+timestep, where timestep is taken from the input VIL/rain rate
+        fields. If measure_time is True, the return value is a three-element
+        tuple containing the nowcast array, the initialization time of the
+        nowcast generator and the time used in the main loop (seconds).
 
     References
     ----------
@@ -115,8 +121,8 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     if filter_kwargs is None:
         filter_kwargs = dict()
 
-    print("Computing S-PROG nowcast:")
-    print("-------------------------")
+    print("Computing ANVIL nowcast:")
+    print("------------------------")
     print("")
 
     print("Inputs:")
@@ -138,6 +144,9 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     print("order of the ARI(p,1) model: %d" % ar_order)
     print("ARI(p,1) window radius:      %d" % ar_window_radius)
     print("R(VIL) window radius:        %d" % r_vil_window_radius)
+
+    if measure_time:
+        starttime_init = time.time()
 
     m, n = vil.shape[1:]
     vil = vil.copy()
@@ -211,11 +220,22 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
 
     vil_dec = vil_dec[:, -3:, :]
 
+    if measure_time:
+        init_time = time.time() - starttime_init
+
+    print("Starting nowcast computation.")
+
+    if measure_time:
+        starttime_mainloop = time.time()
+
     r_f = []
     dp = None
     for t in range(n_timesteps):
         print("Computing nowcast for time step %d... " % (t + 1), end="")
         sys.stdout.flush()
+        
+        if measure_time:
+            starttime = time.time()
 
         for i in range(n_cascade_levels):
             vil_dec[i, :] = autoregression.iterate_ar_model(vil_dec[i, :], phi[i])
@@ -236,11 +256,20 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
                               "allow_nonfinite_values": True})
         r_f_, dp = extrapolator(r_f_, velocity, 1, **extrap_kwargs)
 
-        print("done.")
+        if measure_time:
+            print("%.2f seconds." % (time.time() - starttime))
+        else:
+            print("done.")
 
         r_f.append(r_f_[-1])
 
-    return np.stack(r_f)
+    if measure_time:
+        mainloop_time = time.time() - starttime_mainloop
+
+    if measure_time:
+        return np.stack(r_f), init_time, mainloop_time
+    else:
+        return np.stack(r_f)
 
 
 def _estimate_ar1_params(gamma):
