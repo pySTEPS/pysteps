@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from tempfile import TemporaryDirectory
-
+import os
 import pytest
+from tempfile import TemporaryDirectory
 
 import pysteps
 from pysteps import datasets
@@ -34,3 +34,33 @@ def _test_download_data():
     finally:
         temp_dir.cleanup()
         pysteps.load_config_file()
+
+
+def _default_path():
+    """Default pystepsrc path."""
+    home_dir = os.path.expanduser("~")
+    if os.name == "nt":
+        subdir = "pysteps"
+    else:
+        subdir = ".pysteps"
+    return os.path.join(home_dir, subdir, "pystepsrc")
+
+
+test_params_paths = [
+    (None, "pystepsrc", _default_path()),
+    ("/root/path", "pystepsrc", "/root/path/pystepsrc"),
+    ("/root/path", "pystepsrc2", "/root/path/pystepsrc2"),
+    ("relative/path", "pystepsrc2", "relative/path/pystepsrc2"),
+    ("relative/path", "pystepsrc", "relative/path/pystepsrc"),
+]
+
+
+@pytest.mark.parametrize("config_dir, file_name, expected_path", test_params_paths)
+def test_params_file_creation_path(config_dir, file_name, expected_path):
+    """Test that the default pysteps parameters file is create in the right place."""
+
+    pysteps_data_dir = "dummy/path/to/data"
+    params_file_path = create_default_pystepsrc(pysteps_data_dir, config_dir=config_dir, file_name=file_name,
+                                                dryrun=True)
+
+    assert expected_path == params_file_path

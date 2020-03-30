@@ -129,7 +129,7 @@ class ShowProgress(object):
                 eta = (elapsed_time / progress - elapsed_time) / 60
 
                 bar_str = "#" * block + "-" * (
-                    self._progress_bar_length - block
+                        self._progress_bar_length - block
                 )
 
                 progress_msg = (
@@ -201,7 +201,7 @@ def download_pysteps_data(dir_path, force=True):
         copy_tree(os.path.join(tmp_dir.name, common_path), dir_path)
 
 
-def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pystepsrc"):
+def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pystepsrc", dryrun=False):
     """
     Create a default configuration file pointing to the pysteps data directory.
 
@@ -230,6 +230,10 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
     file_name : str
         Configuration file name. `pystepsrc` by default.
 
+    dryrun : bool
+        Do not create the parameters file nor create backups of existing files.
+        No changes are made in the file system. It just returns the file path.
+
     Returns
     -------
 
@@ -256,19 +260,21 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
             subdir = "pysteps"
         else:
             subdir = ".pysteps"
-        config_dir = os.path.join(home_dir, subdir, file_name)
-
-    if not os.path.isdir(config_dir):
-        os.makedirs(config_dir)
+        config_dir = os.path.join(home_dir, subdir)
 
     dest_path = os.path.join(config_dir, file_name)
 
-    # Backup existing configuration files if it exists and rotate previous backups
-    if os.path.isfile(dest_path):
-        RotatingFileHandler(dest_path, backupCount=6).doRollover()
+    if not dryrun:
 
-    with open(dest_path, "w") as f:
-        json.dump(rcparams_json, f, indent=4)
+        if not os.path.isdir(config_dir):
+            os.makedirs(config_dir)
+
+        # Backup existing configuration files if it exists and rotate previous backups
+        if os.path.isfile(dest_path):
+            RotatingFileHandler(dest_path, backupCount=6).doRollover()
+
+        with open(dest_path, "w") as f:
+            json.dump(rcparams_json, f, indent=4)
 
     return dest_path
 
