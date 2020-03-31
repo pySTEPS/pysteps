@@ -8,6 +8,11 @@ class MissingOptionalDependency(Exception):
     pass
 
 
+class DirectoryNotEmpty(Exception):
+    """Raised when the destination directory in a file copy operation is not empty."""
+    pass
+
+
 class DataModelError(Exception):
     """Raised when a file is not compilant with the Data Information Model."""
     pass
