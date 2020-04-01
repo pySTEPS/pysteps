@@ -1,15 +1,18 @@
-# import subpackages
-import sys
-
 import json
 import os
 import stat
+import sys
 import warnings
+
 from attrdict import AttrDict
 from jsmin import jsmin
 from jsonschema import Draft4Validator
 
+# import subpackages
 from . import cascade
+from . import datasets
+from . import decorators
+from . import exceptions
 from . import extrapolation
 from . import io
 from . import motion
@@ -141,14 +144,38 @@ class DotDictify(AttrDict):
     __setattr__, __getattr__ = __setitem__, __getitem__
 
 
-# Load default configuration
-params_file = config_fname()
+rcparams = dict()
 
-if params_file is not None:
+
+def load_config_file(params_file=None, verbose=False):
+    """
+    Load the pysteps configuration file. The configuration parameters are available
+    as a DotDictify instance in the `pysteps.rcparams` variable.
+
+    Parameters
+    ----------
+
+    params_file=None, verbose=False
+    """
+
+    global rcparams
+
+    if params_file is None:
+        # Load default configuration
+        params_file = config_fname()
+
+        if params_file is None:
+            warnings.warn("pystepsrc file not found."
+                          + "The defaults parameters are left empty",
+                          category=ImportWarning)
+
+            rcparams = dict()
+            return
+
     with open(params_file, 'r') as f:
         rcparams = json.loads(jsmin(f.read()))
 
-    if not rcparams.get("silent_import", False):
+    if (not rcparams.get("silent_import", False)) or verbose:
         print("Pysteps configuration file found at: " + params_file
               + "\n")
 
@@ -165,12 +192,8 @@ if params_file is not None:
         if error_count > 0:
             raise RuntimeError(error_msg)
 
+    rcparams = DotDictify(rcparams)
 
-else:
-    warnings.warn("pystepsrc file not found."
-                  + "The defaults parameters are left empty",
-                  category=ImportWarning)
 
-    rcparams = dict()
-
-rcparams = DotDictify(rcparams)
+# Load default configuration
+load_config_file()

@@ -8,6 +8,7 @@ import pytest
 import pysteps
 from pysteps.timeseries import autoregression, correlation
 
+pytest.importorskip('pyproj')
 
 def test_estimate_ar_params_ols():
     R = _create_data_univariate()

@@ -5,10 +5,13 @@ cd $PYSTEPS_BUILD_DIR
 
 # Load pysteps-data
 # -----------------
-echo "Download pysteps example data"
-git clone https://github.com/pySTEPS/pysteps-data.git $PYSTEPS_BUILD_DIR/pysteps-data
-python $PYSTEPS_BUILD_DIR/ci/create_pystepsrc_file.py
-export PYSTEPSRC=$PYSTEPS_BUILD_DIR/pystepsrc.travis
+echo "Download the pysteps example data"
+export PYSTEPS_DATA_DIR=$PYSTEPS_BUILD_DIR/pysteps_data
+python $PYSTEPS_BUILD_DIR/ci/fetch_pysteps_data.py
+
+# Replace the default version with the modified.
+# pysteps will load this the config file ($PWD/pystepsrc)
+cp $PYSTEPS_DATA_DIR/pystepsrc ~/pystepsrc
 
 # Run tests
 echo "Run test suite"

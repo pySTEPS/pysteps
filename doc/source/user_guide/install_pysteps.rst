@@ -42,17 +42,17 @@ Other optional dependencies include:
 Anaconda install (recommended)
 ------------------------------
 
-Conda is an open source package management system and environment management
-system that runs on Windows, macOS and Linux.
-Conda quickly installs, runs and updates packages and their dependencies.
-It also allows to easily create, save, load and switch between different
+Conda is an open-source package management system and environment management
+system that runs on Windows, macOS, and Linux.
+Conda quickly installs, runs, and updates packages and their dependencies.
+It also allows you to easily create, save, load, or switch between different
 environments on your local computer.
 
 Since version 1.0, pySTEPS is available in conda-forge, a community-driven
 package repository for anaconda.
 
-There are two installation alternatives using anaconda: install pySTEPS in
-pre-existing environment, or install it new environment.
+There are two installation alternatives using anaconda: install pySTEPS in a
+pre-existing environment or install it new environment.
 
 New environment
 ~~~~~~~~~~~~~~~
@@ -71,7 +71,7 @@ Let's set this channel as the priority one::
 
     $ conda config --env --set channel_priority strict
 
-The later step is not strictly necessary, but is recommended since
+The latter step is not strictly necessary but is recommended since
 the conda-forge and the default Anaconda channels are not 100% compatible.
 
 Finally, to install pySTEPS and all its dependencies run::
@@ -82,7 +82,7 @@ Finally, to install pySTEPS and all its dependencies run::
 Install from source
 -------------------
 
-The recommended way to install pysteps from source is using `pip`
+The recommended way to install pysteps from the source is using `pip`
 to adhere to the [PEP517 standards](https://www.python.org/dev/peps/pep-0517/).
 Using `pip` instead of `setup.py` guarantees that all the package dependencies
 are properly handled during the installation process.
@@ -92,14 +92,14 @@ OSX users
 ~~~~~~~~~
 
 pySTEPS uses Cython extensions that need to be compiled with multi-threading
-support enabled. The default Apple Clang compiler does not support OpenMP,
-so using the default compiler would have disabled multi-threading and you will
-get the following error during the installation::
+support enabled. The default Apple Clang compiler does not support OpenMP.
+Hence, using the default compiler would have disabled multi-threading and may raise
+the following error during the installation::
 
     clang: error: unsupported option '-fopenmp'
     error: command 'gcc' failed with exit status 1
 
-To solve this issue, obtain the lastest gcc version with
+To solve this issue, obtain the latest gcc version with
 Homebrew_ that has multi-threading enabled::
 
     brew install gcc
@@ -144,8 +144,8 @@ Or, from a local copy of the repo (global installation)::
     cd pysteps
     pip install .
 
-The above commands will install the latest version of the **master** branch,
-which is constantly under development.
+The above commands install the latest version of the **master** branch,
+which is continuously under development.
 
 .. _development_mode_install:
 

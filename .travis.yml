@@ -66,6 +66,7 @@ before_install:
   # Install gcc for MacOSX
   # ----------------------
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      export HOMEBREW_NO_INSTALL_CLEANUP=1;
       brew update-reset;
       brew update;
       brew install gcc@9;
