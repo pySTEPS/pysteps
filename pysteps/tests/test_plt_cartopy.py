@@ -16,7 +16,7 @@ plt_arg_values = [
     ("mch", "cartopy", True, 1.0),
     ("bom", "cartopy", True, 0.5),
     ("fmi", "cartopy", True, 0.5),
-    # TODO: why isn't the knmi projection workin? ("knmi", "cartopy", True, 0.5),
+    ("knmi", "cartopy", True, 0.5),
     ("opera", "cartopy", True, 0.5),
 ]
 

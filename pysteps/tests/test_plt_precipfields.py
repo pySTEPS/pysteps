@@ -28,7 +28,7 @@ plt_arg_values = [
     ("bom", "intensity", None, "pysteps", None, None, True, "on"),
     ("fmi", "intensity", None, "pysteps", None, None, True, "on"),
     ("knmi", "intensity", None, "pysteps", None, None, True, "on"),
-    ("knmi", "intensity", [2e5, -3.8e6, 5e5, -4.1e6], "pysteps", None, None, True, "on"),
+    ("knmi", "intensity", [2e2, -4.1e3, 5e2, -3.8e3], "pysteps", None, None, True, "on"),
     ("opera", "intensity", None, "pysteps", None, None, True, "on"),
     ("saf", "intensity", None, "pysteps", None, None, True, "on"),
 ]
