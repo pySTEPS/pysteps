@@ -69,16 +69,16 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None,
         |    projection   | PROJ.4-compatible projection definition           |
         +-----------------+---------------------------------------------------+
         |    x1           | x-coordinate of the lower-left corner of the data |
-        |                 | raster (meters)                                   |
+        |                 | raster                                            |
         +-----------------+---------------------------------------------------+
         |    y1           | y-coordinate of the lower-left corner of the data |
-        |                 | raster (meters)                                   |
+        |                 | raster                                            |
         +-----------------+---------------------------------------------------+
         |    x2           | x-coordinate of the upper-right corner of the     |
-        |                 | data raster (meters)                              |
+        |                 | data raster                                       |
         +-----------------+---------------------------------------------------+
         |    y2           | y-coordinate of the upper-right corner of the     |
-        |                 | data raster (meters)                              |
+        |                 | data raster                                       |
         +-----------------+---------------------------------------------------+
         |    yorigin      | a string specifying the location of the first     |
         |                 | element in the data raster w.r.t. y-axis:         |
