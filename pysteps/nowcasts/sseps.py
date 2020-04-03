@@ -85,7 +85,7 @@ def forecast(
     metadata : dict
         Metadata dictionary containing the accutime, xpixelsize, threshold and
         zerovalue attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+        :py:mod:`pysteps.io.importers`. xpixelsize is assumed to be in meters.
     V : array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
         field. The velocities are assumed to represent one time step between the

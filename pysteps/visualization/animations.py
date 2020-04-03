@@ -55,16 +55,16 @@ def animate(R_obs, nloops=2, timestamps=None, R_fct=None, timestep_min=5,
         |   projection   | PROJ.4-compatible projection definition            |
         +----------------+----------------------------------------------------+
         |    x1          | x-coordinate of the lower-left corner of the data  |
-        |                | raster (meters)                                    |
+        |                | raster                                             |
         +----------------+----------------------------------------------------+
         |    y1          | y-coordinate of the lower-left corner of the data  |
-        |                | raster (meters)                                    |
+        |                | raster                                             |
         +----------------+----------------------------------------------------+
         |    x2          | x-coordinate of the upper-right corner of the data |
-        |                | raster (meters)                                    |
+        |                | raster                                             |
         +----------------+----------------------------------------------------+
         |    y2          | y-coordinate of the upper-right corner of the data |
-        |                | raster (meters)                                    |
+        |                | raster                                             |
         +----------------+----------------------------------------------------+
         |    yorigin     | a string specifying the location of the first      |
         |                | element in the data raster w.r.t. y-axis:          |

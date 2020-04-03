@@ -26,20 +26,16 @@ The metadata dictionary contains the following recommended key-value pairs:
 |    projection    | PROJ.4-compatible projection definition                  |
 +------------------+----------------------------------------------------------+
 |    x1            | x-coordinate of the lower-left corner of the data raster |
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    y1            | y-coordinate of the lower-left corner of the data raster |
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    x2            | x-coordinate of the upper-right corner of the data raster|
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    y2            | y-coordinate of the upper-right corner of the data raster|
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
-|    xpixelsize    | grid resolution in x-direction (meters)                  |
+|    xpixelsize    | grid resolution in x-direction                           |
 +------------------+----------------------------------------------------------+
-|    ypixelsize    | grid resolution in y-direction (meters)                  |
+|    ypixelsize    | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
 |    yorigin       | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
