@@ -26,20 +26,16 @@ The metadata dictionary contains the following recommended key-value pairs:
 |    projection    | PROJ.4-compatible projection definition                  |
 +------------------+----------------------------------------------------------+
 |    x1            | x-coordinate of the lower-left corner of the data raster |
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    y1            | y-coordinate of the lower-left corner of the data raster |
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    x2            | x-coordinate of the upper-right corner of the data raster|
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    y2            | y-coordinate of the upper-right corner of the data raster|
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
-|    xpixelsize    | grid resolution in x-direction (meters)                  |
+|    xpixelsize    | grid resolution in x-direction                           |
 +------------------+----------------------------------------------------------+
-|    ypixelsize    | grid resolution in y-direction (meters)                  |
+|    ypixelsize    | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
 |    yorigin       | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
@@ -495,9 +491,9 @@ def import_knmi_hdf5(filename, **kwargs):
         are also available.
 
     pixelsize: float
-        The pixel size of a raster cell in meters. The default value for the KNMI
-        datasets is 1000 m grid cell size, but datasets with 2400 m pixel size
-        are also available.
+        The pixel size of a raster cell in kilometers. The default value for the 
+        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel 
+        size are also available.
 
     Returns
     -------
@@ -543,8 +539,8 @@ def import_knmi_hdf5(filename, **kwargs):
     # and monthly accumulations are present.
     accutime = kwargs.get("accutime", 5.0)
     # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
-    # 1.0 or 2.4 km datasets are available - give pixelsize in meters
-    pixelsize = kwargs.get("pixelsize", 1000.0)
+    # 1.0 or 2.4 km datasets are available - Provide pixelsize in kilometers
+    pixelsize = kwargs.get("pixelsize", 1.0)
 
     ####
     # Precipitation fields
@@ -611,15 +607,15 @@ def import_knmi_hdf5(filename, **kwargs):
     lr_x, lr_y = pr(lr_lon, lr_lat)
     ul_x, ul_y = pr(ul_lon, ul_lat)
     x1 = min(ll_x, ul_x)
-    y2 = min(ll_y, lr_y)
+    y1 = min(ll_y, lr_y)
     x2 = max(lr_x, ur_x)
-    y1 = max(ul_y, ur_y)
+    y2 = max(ul_y, ur_y)
 
     # Fill in the metadata
-    metadata["x1"] = x1 * 1000.0
-    metadata["y1"] = y1 * 1000.0
-    metadata["x2"] = x2 * 1000.0
-    metadata["y2"] = y2 * 1000.0
+    metadata["x1"] = x1
+    metadata["y1"] = y1 
+    metadata["x2"] = x2 
+    metadata["y2"] = y2 
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
     metadata["yorigin"] = "upper"
