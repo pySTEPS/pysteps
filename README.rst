@@ -17,7 +17,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     * - license
       - |license|
     * - community
-      - |slack|
+      - |slack| |contributors| |downloads|
  
 .. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
@@ -54,6 +54,15 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 .. |slack| image:: https://pysteps-slackin.herokuapp.com/badge.svg
     :alt: Slack invitation page
     :target: https://pysteps-slackin.herokuapp.com/
+
+.. |contributors| image:: https://img.shields.io/github/contributors/pySTEPS/pysteps   
+    :alt: GitHub contributors
+    :target: https://github.com/pySTEPS/pysteps/graphs/contributors
+    
+.. |downloads| image:: https://img.shields.io/conda/dn/conda-forge/pysteps   
+    :alt: Conda downloads
+    :target: https://anaconda.org/conda-forge/pysteps
+    
 
 .. end-badges
 
