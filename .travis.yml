@@ -3,7 +3,7 @@ language: python
 env:
   global:
     - MINIMAL_DEPENDENCIES="cython numpy attrdict jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
-    - OPTIONAL_DEPENDENCIES="dask pyfftw cartopy h5py PyWavelets"
+    - OPTIONAL_DEPENDENCIES="dask pyfftw cartopy h5py PyWavelets pygrib"
     - TEST_DEPENDENCIES="pytest pytest-cov codecov"
 
 matrix:
