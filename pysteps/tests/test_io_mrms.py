@@ -19,7 +19,9 @@ def test_io_import_mrms():
 
     filename = os.path.join(root_path, "2019/06/10/", "PrecipRate_00.00_20190610-000000.grib2")
 
-    precip_full, _, metadata = pysteps.io.import_mrms(filename, fillna=0)
+    precip_full, _, metadata = pysteps.io.import_mrms(filename,
+                                                      fillna=0,
+                                                      block_size=1)
     assert precip_full.shape == (3500, 7000)
     assert precip_full.dtype == 'single'
 
@@ -41,7 +43,8 @@ def test_io_import_mrms():
     precip_full2 = pysteps.io.import_mrms(filename,
                                           fillna=0,
                                           lat_range=(20, 55),
-                                          lon_range=(220, 300))[0]
+                                          lon_range=(220, 300),
+                                          block_size=1)[0]
     assert precip_full2.shape == (3500, 7000)
     array_assert(precip_full, precip_full2)
     del precip_full2
@@ -50,7 +53,8 @@ def test_io_import_mrms():
     precip_clipped = pysteps.io.import_mrms(filename,
                                             fillna=0,
                                             lat_range=(30, 35),
-                                            lon_range=(250, 260))[0]
+                                            lon_range=(250, 260),
+                                            block_size=1)[0]
 
     assert precip_clipped.shape == (500, 1000)
     array_assert(precip_clipped, precip_full[2000:2500, 2000:3000])
