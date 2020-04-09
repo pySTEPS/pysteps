@@ -4,7 +4,6 @@ import stat
 import sys
 import warnings
 
-from attrdict import AttrDict
 from jsmin import jsmin
 from jsonschema import Draft4Validator
 
@@ -114,7 +113,7 @@ def _decode_filesystem_path(path):
         return path
 
 
-class DotDictify(AttrDict):
+class DotDictify(dict):
     """
     Class used to recursively access dict via attributes as well
     as index access.
