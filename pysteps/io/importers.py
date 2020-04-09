@@ -68,6 +68,7 @@ Available Importers
 .. autosummary::
     :toctree: ../generated/
 
+    import_mrms
     import_bom_rf3
     import_fmi_geotiff
     import_fmi_pgm
@@ -87,6 +88,7 @@ from matplotlib.pyplot import imread
 
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
+from pysteps.utils import block_reduce
 
 try:
     import gdalconst
@@ -130,6 +132,230 @@ try:
     PYPROJ_IMPORTED = True
 except ImportError:
     PYPROJ_IMPORTED = False
+
+try:
+    import pygrib
+
+    PYGRIB_IMPORTED = True
+except ImportError:
+    PYGRIB_IMPORTED = False
+
+
+def _check_coords_range(selected_range, coordinate, full_range):
+    """Check that the coordinates range arguments follow the expected pattern in the **import_mrms** function."""
+
+    if selected_range is None:
+        return sorted(full_range)
+
+    if not isinstance(selected_range, (list, tuple)):
+
+        if len(selected_range) != 2:
+            raise ValueError(f"The {coordinate} range must be None or a two-element tuple or list")
+
+        selected_range = list(selected_range)  # Make mutable
+
+        for i in range(2):
+            if selected_range[i] is None:
+                selected_range[i] = full_range
+
+        selected_range.sort()
+
+    return tuple(selected_range)
+
+
+def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
+                dtype='float32', block_size=4, **kwargs):
+    """
+    Importer for NSSL's Multi-Radar/Multi-Sensor System
+    ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
+    (grib format).
+
+    The rainrate values are expressed in mm/h, and the dimensions of the data
+    array are [latitude, longitude]. The first grid point (0,0) corresponds to
+    the upper left corner of the domain, while (last i, last j) denote the
+    lower right corner.
+
+    Due to the large size of the dataset (3500 x 7000), a float32 type is used
+    by default to reduce the memory footprint. However, be aware that when this
+    array is passed to a pystep function, it may be converted to double
+    precision, doubling the memory footprint.
+    To change the precision of the data, use the *dtype* keyword.
+
+    Also, by default, the original data is downscaled by 4
+    (that gives a 4 km grid spacing).
+    In case that the original grid spacing is needed, use `block_size=1`.
+    But be aware that a single composite in double precipitation will
+    require 186 Mb of memory.
+
+    Finally, the precipitation data can only be extracted sub region of the
+    full domain using the `lat_range` and `lon_range` keywords.
+    By default, the entire domain is returned.
+
+    Parameters
+    ----------
+
+    filename : str
+        Name of the file to import.
+
+    fillna : float or np.nan
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
+
+    dtype : str
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+
+    lat_range : tuple, list, or None
+        Latitude range (min_lat, max_lat) of the data to be retrieved.
+        By default, the entire latitude range is retrieved.
+
+    lon_range : tuple, list, or None
+        Longitude range (min_lon, max_lon) of the data to be retrieved.
+        By default, the entire longitude range is retrieved.
+
+    block_size : array_like or int
+        Array containing down-sampling integer factor along each axis.
+        If an integer value is given, the same block shape is used for all the
+        image dimensions.
+        Default: block_size=4.
+
+    Other Parameters
+    ----------------
+
+    kwargs : dict
+        Parameters passed to the :func:`pysteps.utils.block_reduce` function
+        used to downscale the data.
+
+    Returns
+    -------
+
+    precipitation : 2D array, float32
+        Precipitation field in mm/h. The dimensions are [latitude, longitude].
+        The first grid point (0,0) corresponds to the upper left corner of the
+        domain, while (last i, last j) denote the lower right corner.
+
+    quality : None
+
+    metadata : dict
+        Associated metadata (pixel sizes, map projections, etc.).
+    """
+
+    if not PYGRIB_IMPORTED:
+        raise MissingOptionalDependency(
+            "pygrib package is required to import NCEP's MRMS products but it is not installed"
+        )
+
+    accepted_precisions = ["float32", "float64", "single", "double"]
+    if dtype not in accepted_precisions:
+        raise ValueError(
+            "The selected precision do not correspond to a valid value."
+            "The accepted values are: " + str(accepted_precisions)
+        )
+    try:
+        grib_file = pygrib.open(filename)
+    except OSError:
+        raise OSError(f"Error opening NCEP's MRMS file. "
+                      f"File Not Found: {filename}")
+
+    if isinstance(block_size, int):
+        block_size = (block_size, block_size)
+
+    # The MRMS grib file contain one message with the precipitation intensity
+    grib_file.rewind()
+    grib_msg = grib_file.read(1)[0]  # Read the only message
+
+    # -------------------------
+    # Read the grid information
+    lr_lon = grib_msg["longitudeOfLastGridPointInDegrees"]
+    lr_lat = grib_msg["latitudeOfLastGridPointInDegrees"]
+
+    ul_lon = grib_msg["longitudeOfFirstGridPointInDegrees"]
+    ul_lat = grib_msg["latitudeOfFirstGridPointInDegrees"]
+
+    # Ni - Number of points along a latitude circle (west-east)
+    # Nj - Number of points along a longitude meridian (south-north)
+    # The lat/lon grid has a 0.01 degrees spacing.
+    lats = np.linspace(ul_lat, lr_lat, grib_msg["Nj"])
+    lons = np.linspace(ul_lon, lr_lon, grib_msg["Ni"])
+
+    # NOTE:
+    # Values equal to -3 represents "No Coverage" and they are considered
+    # missing values. This reader replace those values by np.nan.
+    # Note that Missing values are not the same as zero precipitation values.
+    # Missing values indicates regions with no valid measures.
+    # While zero precipitation indicates regions with valid measurements,
+    # but with no precipitation detected.
+
+    precip = grib_msg.values.astype(dtype)
+    no_data_mask = precip == -3
+
+    if block_size != (1, 1):
+        # Downscale data
+        lats = block_reduce(lats, block_size[0], **kwargs)
+        lons = block_reduce(lons, block_size[1], **kwargs)
+        print(lats.shape)
+        print(lons.shape)
+
+
+        # Update the limits
+        lr_lat, ul_lat = lats[0], lats[-1]
+        ul_lon, lr_lon = lons[0], lons[-1]
+
+        precip[no_data_mask] = 0  # block_reduce does not handle nan values
+        precip = block_reduce(precip, block_size, **kwargs)
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        kwargs_max = kwargs.copy()
+        kwargs_max['func'] = np.max
+        no_data_mask = block_reduce(no_data_mask.astype('int'),
+                                    block_size,
+                                    **kwargs_max).astype(bool)
+
+    lons, lats = np.meshgrid(lons, lats)
+    precip[no_data_mask] = fillna
+
+    if any(x is not None for x in [lon_range, lat_range]):
+        # clip domain
+        ul_lon, lr_lon = _check_coords_range(lon_range,
+                                             "longitude",
+                                             (ul_lon, lr_lon))
+
+        lr_lat, ul_lat = _check_coords_range(lat_range,
+                                             "latitude",
+                                             (ul_lat, lr_lat))
+
+        mask_lat = (lats >= lr_lat) & (lats <= ul_lat)
+        mask_lon = (lons >= ul_lon) & (lons <= lr_lon)
+
+        nlats = np.count_nonzero(mask_lat[:, 0])
+        nlons = np.count_nonzero(mask_lon[0, :])
+
+        precip = precip[mask_lon & mask_lat].reshape(nlats, nlons)
+
+    # block_reduce(image, block_size, func=np.mean, **kwargs)
+
+    # The data is in regular lat/lon projection
+    pr = pyproj.Proj("+proj = latlon + a = 6378160.0 "
+                     "+ b = 6356775.0 + type = crs")
+    x1, y1 = pr(lr_lon, lr_lat)
+    x2, y2 = pr(ul_lon, ul_lat)
+
+    metadata = dict(
+        xpixelsize=1000 * block_size[0],
+        ypixelsize=1000 * block_size[1],
+        unit="mm/h",
+        transform=None,
+        zerovalue=0,
+        projection=grib_msg.projparams,
+        yorigin="upper",
+        x1=x1,
+        x2=x2,
+        y1=y1,
+        y2=y2,
+    )
+
+    return precip, None, metadata
 
 
 def import_bom_rf3(filename, **kwargs):
@@ -613,9 +839,9 @@ def import_knmi_hdf5(filename, **kwargs):
 
     # Fill in the metadata
     metadata["x1"] = x1
-    metadata["y1"] = y1 
-    metadata["x2"] = x2 
-    metadata["y2"] = y2 
+    metadata["y1"] = y1
+    metadata["x2"] = x2
+    metadata["y2"] = y2
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
     metadata["yorigin"] = "upper"
@@ -1238,7 +1464,7 @@ def import_saf_crri(filename, **kwargs):
                            metadata["xpixelsize"]) + metadata["xpixelsize"] / 2
         ycoord = np.arange(metadata["y1"], metadata["y2"],
                            metadata["ypixelsize"]) + metadata["ypixelsize"] / 2
-        ycoord = ycoord[::-1] # yorigin = "upper"
+        ycoord = ycoord[::-1]  # yorigin = "upper"
         idx_x = np.logical_and(xcoord < extent[1], xcoord > extent[0])
         idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
 
@@ -1284,7 +1510,6 @@ def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
 
 
 def _import_saf_crri_geodata(filename):
-
     geodata = {}
 
     ds_rainfall = netCDF4.Dataset(filename)

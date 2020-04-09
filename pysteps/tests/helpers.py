@@ -187,3 +187,21 @@ def smart_assert(actual_value, expected, tolerance=None):
                                              abs=tolerance,
                                              nan_ok=True,
                                              )
+
+
+def array_assert(actual_array, expected_array, decimals=6, tol=1e-5):
+    """
+    Assert if two numpy arrays are equal (up to a given tolerance and precision).
+
+    """
+
+    if actual_array.shape != expected_array.shape:
+        pytest.fail("Arrays have a different shape." 
+                    f"Received: {str(actual_array.shape)}. "
+                    f"Expected: {str(expected_array.shape)}.")
+
+    max_abs_diff = np.abs((actual_array - expected_array).round(decimals)).max()
+
+    if max_abs_diff > tol:
+        pytest.fail("Arrays are not equal. Max difference:" + str(max_abs_diff))
+
