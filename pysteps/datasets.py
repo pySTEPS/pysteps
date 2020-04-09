@@ -13,18 +13,19 @@ file pointing to that data.
     info
     load_dataset
 """
-
+import gzip
 import json
 import os
+import shutil
 import sys
+import time
+from datetime import datetime, timedelta
 from distutils.dir_util import copy_tree
 from logging.handlers import RotatingFileHandler
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from urllib import request
 from zipfile import ZipFile
 
-import time
-from datetime import datetime
 from jsmin import jsmin
 
 import pysteps
@@ -32,6 +33,7 @@ from pysteps import io
 from pysteps.exceptions import DirectoryNotEmpty
 from pysteps.utils import conversion
 
+# "event name" , "%Y%m%d%H%M"
 _precip_events = {
     "fmi": "201609281445",
     "fmi2": "201705091045",
@@ -41,6 +43,7 @@ _precip_events = {
     "opera": "201808241800",
     "knmi": "201008260000",
     "bom": "201806161000",
+    "mrms": "201906100000",
 }
 
 _data_sources = {
@@ -49,6 +52,7 @@ _data_sources = {
     "bom": "Australian Bureau of Meteorology",
     "knmi": "Royal Netherlands Meteorological Institute",
     "opera": "OPERA",
+    "mrms": "NSSL's Multi-Radar/Multi-Sensor System",
 }
 
 
@@ -108,7 +112,7 @@ class ShowProgress(object):
         self.prev_msg_width = len(msg)
         sys.stdout.write(msg)
 
-    def __call__(self, count, block_size, total_size):
+    def __call__(self, count, block_size, total_size, exact=True):
 
         self._clear_line()
 
@@ -132,10 +136,15 @@ class ShowProgress(object):
                         self._progress_bar_length - block
                 )
 
+                if exact:
+                    downloaded_msg = f"({downloaded_size:.1f} Mb / {self.total_size:.1f} Mb)"
+                else:
+                    downloaded_msg = f"(~{downloaded_size:.0f} Mb/ {self.total_size:.0f} Mb)"
+
                 progress_msg = (
-                    f"Progress: [{bar_str}]"
-                    f"({downloaded_size:.1f} Mb)"
-                    f" - Time left: {int(eta):d}:{int(eta * 60)} [m:s]"
+                        f"Progress: [{bar_str}]"
+                        + downloaded_msg
+                        + f" - Time left: {int(eta):d}:{int(eta * 60)} [m:s]"
                 )
 
             else:
@@ -149,6 +158,71 @@ class ShowProgress(object):
         sys.stdout.write("\n" + message + "\n")
 
 
+def download_mrms_data(dir_path=None, frames=35):
+    """
+    Download a small dataset with 6 hours of the NSSL's Multi-Radar/Multi-Sensor System
+    ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) precipitation product (grib format).
+
+    Parameters
+    ----------
+    dir_path: str
+        Path to directory where the psyteps data will be placed.
+        If None, the default location defined in the pystepsrc file is used.
+        The files are archived following the folder structure defined in the pystepsrc file.
+        If the directory exists existing MRMS files may be overwritten.
+
+    frames : int
+        Number precipitation composites to download. The frames are separated 2 min from each other.
+        By default, 35 frames are downloaded (corresponding to 1h and 10 min).
+    """
+
+    if not os.path.isdir(dir_path):
+        os.makedirs(dir_path)
+
+    initial_date = datetime.strptime(_precip_events['mrms'], "%Y%m%d%H%M")
+
+    # Assume that each file size is 0.9 Mb
+    total_size = 0.9 * frames * 1024 ** 2
+    block_size = total_size / frames
+    pbar = ShowProgress()
+
+    print("Downloading MRMS data from https://mtarchive.geol.iastate.edu")
+
+    for frame in range(frames):
+        current_date = initial_date + timedelta(seconds=60 * frame * 2)
+        # Generate files URL from https://mtarchive.geol.iastate.edu
+        file_url = datetime.strftime(
+            current_date,
+            f"https://mtarchive.geol.iastate.edu/%Y/%m/%d/mrms/ncep/PrecipRate/PrecipRate_00.00_%Y%m%d-%H%M%S.grib2.gz"
+        )
+
+        pbar(frame, block_size, total_size, exact=False)
+
+        tmp_file = NamedTemporaryFile()
+
+        sub_dir = os.path.join(dir_path, datetime.strftime(current_date, "%Y/%m/%d"))
+
+        if not os.path.isdir(sub_dir):
+            os.makedirs(sub_dir)
+
+        request.urlretrieve(
+            file_url,
+            tmp_file.name,
+        )
+
+        dest_file_path = os.path.join(
+            sub_dir,
+            datetime.strftime(current_date, "PrecipRate_00.00_%Y%m%d-%H%M%S.grib2")
+        )
+
+        # Uncompress the data
+        with gzip.open(tmp_file.name, "rb") as f_in:
+            with open(dest_file_path, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+
+    pbar.end()
+
+
 def download_pysteps_data(dir_path, force=True):
     """
     Download pysteps data from github.
@@ -159,7 +233,7 @@ def download_pysteps_data(dir_path, force=True):
         Path to directory where the psyteps data will be placed.
 
     force : bool
-        If the destination directory exits and force=False, the DirectoryNotEmpty
+        If the destination directory exits and force=False, a DirectoryNotEmpty
         exception if raised.
         If force=True, the data will we downloaded in the destination directory and may
         override existing files.
@@ -183,12 +257,13 @@ def download_pysteps_data(dir_path, force=True):
     # If Transfer-Encoding is chunked, then the Content-Length is not available since
     # the content is dynamically generated and we can't know the length a pr_iori easily.
     pbar = ShowProgress()
+    print("Downloading pysteps-data from github.")
     request.urlretrieve(
         "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
         tmp_file.name,
         pbar,
     )
-    pbar.end()
+    pbar.end(message="Download complete\n")
 
     with ZipFile(tmp_file.name, "r") as zip_obj:
         tmp_dir = TemporaryDirectory()
@@ -199,6 +274,8 @@ def download_pysteps_data(dir_path, force=True):
         zip_obj.extractall(tmp_dir.name)
 
         copy_tree(os.path.join(tmp_dir.name, common_path), dir_path)
+
+    download_mrms_data(os.path.join(dir_path, "mrms"))
 
 
 def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pystepsrc", dryrun=False):
