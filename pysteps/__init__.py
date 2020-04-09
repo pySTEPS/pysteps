@@ -29,7 +29,7 @@ def _get_config_file_schema():
     Return the path to the parameters file json schema.
     """
     module_file = _decode_filesystem_path(__file__)
-    return os.path.join(os.path.dirname(module_file), 'pystepsrc_schema.json')
+    return os.path.join(os.path.dirname(module_file), "pystepsrc_schema.json")
 
 
 def _fconfig_candidates_generator():
@@ -39,34 +39,34 @@ def _fconfig_candidates_generator():
     See :py:func:~config_fname for more details.
     """
 
-    yield os.path.join(os.getcwd(), 'pystepsrc')
+    yield os.path.join(os.getcwd(), "pystepsrc")
 
     try:
-        pystepsrc = os.environ['PYSTEPSRC']
+        pystepsrc = os.environ["PYSTEPSRC"]
     except KeyError:
         pass
     else:
         yield pystepsrc
-        yield os.path.join(pystepsrc, 'pystepsrc')
+        yield os.path.join(pystepsrc, "pystepsrc")
 
     if os.name == "nt":
         # Windows environment
-        env_variable = 'USERPROFILE'
-        subdir = 'pysteps'
+        env_variable = "USERPROFILE"
+        subdir = "pysteps"
     else:
         # UNIX like
-        env_variable = 'HOME'
-        subdir = '.pysteps'
+        env_variable = "HOME"
+        subdir = ".pysteps"
 
     try:
         pystepsrc = os.environ[env_variable]
     except KeyError:
         pass
     else:
-        yield os.path.join(pystepsrc, subdir, 'pystepsrc')
+        yield os.path.join(pystepsrc, subdir, "pystepsrc")
 
     module_file = _decode_filesystem_path(__file__)
-    yield os.path.join(os.path.dirname(module_file), 'pystepsrc')
+    yield os.path.join(os.path.dirname(module_file), "pystepsrc")
     yield None
 
 
@@ -164,21 +164,22 @@ def load_config_file(params_file=None, verbose=False):
         params_file = config_fname()
 
         if params_file is None:
-            warnings.warn("pystepsrc file not found."
-                          + "The defaults parameters are left empty",
-                          category=ImportWarning)
+            warnings.warn(
+                "pystepsrc file not found."
+                + "The defaults parameters are left empty",
+                category=ImportWarning,
+            )
 
             rcparams = dict()
             return
 
-    with open(params_file, 'r') as f:
+    with open(params_file, "r") as f:
         rcparams = json.loads(jsmin(f.read()))
 
     if (not rcparams.get("silent_import", False)) or verbose:
-        print("Pysteps configuration file found at: " + params_file
-              + "\n")
+        print("Pysteps configuration file found at: " + params_file + "\n")
 
-    with open(_get_config_file_schema(), 'r') as f:
+    with open(_get_config_file_schema(), "r") as f:
         schema = json.loads(jsmin(f.read()))
         validator = Draft4Validator(schema)
 
