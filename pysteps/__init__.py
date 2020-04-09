@@ -146,7 +146,7 @@ class DotDictify(dict):
 rcparams = dict()
 
 
-def load_config_file(params_file=None, verbose=False):
+def load_config_file(params_file=None, verbose=False, dryrun=False):
     """
     Load the pysteps configuration file. The configuration parameters are available
     as a DotDictify instance in the `pysteps.rcparams` variable.
@@ -154,7 +154,18 @@ def load_config_file(params_file=None, verbose=False):
     Parameters
     ----------
 
-    params_file=None, verbose=False
+    params_file: str
+        Path to the parameters file to load. If `params_file=None`, it looks
+        for a configuration file in the default locations.
+
+    verbose: bool
+        Print debugging information. False by default.
+        This flag is overwritten by the silent_import=False in the
+        pysteps configuration file.
+
+    dryrun: bool
+        If False, perform a dry run that does not update the `pysteps.rcparams`
+        attribute.
     """
 
     global rcparams
@@ -170,13 +181,13 @@ def load_config_file(params_file=None, verbose=False):
                 category=ImportWarning,
             )
 
-            rcparams = dict()
+            _rcparams = dict()
             return
 
     with open(params_file, "r") as f:
-        rcparams = json.loads(jsmin(f.read()))
+        _rcparams = json.loads(jsmin(f.read()))
 
-    if (not rcparams.get("silent_import", False)) or verbose:
+    if (not _rcparams.get("silent_import", False)) or verbose:
         print("Pysteps configuration file found at: " + params_file + "\n")
 
     with open(_get_config_file_schema(), "r") as f:
@@ -185,14 +196,19 @@ def load_config_file(params_file=None, verbose=False):
 
         error_msg = "Error reading pystepsrc file."
         error_count = 0
-        for error in validator.iter_errors(rcparams):
+        for error in validator.iter_errors(_rcparams):
             error_msg += "\nError in " + "/".join(list(error.path))
             error_msg += " : " + error.message
             error_count += 1
         if error_count > 0:
             raise RuntimeError(error_msg)
 
-    rcparams = DotDictify(rcparams)
+    _rcparams = DotDictify(_rcparams)
+
+    if not dryrun:
+        rcparams = _rcparams
+
+    return _rcparams
 
 
 # Load default configuration

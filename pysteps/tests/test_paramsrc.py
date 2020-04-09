@@ -26,7 +26,7 @@ minimal_pystepsrc_file = """
             "importer_kwargs": {
                 "gzipped": true
             }
-        }
+        }        
     }
 }
 """
@@ -39,7 +39,10 @@ def test_read_paramsrc():
     with NamedTemporaryFile(mode="w") as tmp_paramsrc:
         tmp_paramsrc.write(minimal_pystepsrc_file)
         tmp_paramsrc.flush()
-        load_config_file(tmp_paramsrc.name)
+
+        # Perform a dry run that do not update
+        # the internal pysteps.rcparams values.
+        load_config_file(tmp_paramsrc.name, dryrun=True, verbose=False)
 
         rcparams = pysteps.rcparams
 
