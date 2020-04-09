@@ -166,6 +166,12 @@ def load_config_file(params_file=None, verbose=False, dryrun=False):
     dryrun: bool
         If False, perform a dry run that does not update the `pysteps.rcparams`
         attribute.
+
+    Returns
+    -------
+
+    rcparams : DotDictify
+        Configuration parameters loaded from file.
     """
 
     global rcparams
