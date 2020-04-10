@@ -113,7 +113,7 @@ def _decode_filesystem_path(path):
         return path
 
 
-class DotDictify(dict):
+class _DotDictify(dict):
     """
     Class used to recursively access dict via attributes as well
     as index access.
@@ -129,14 +129,14 @@ class DotDictify(dict):
     """
 
     def __setitem__(self, key, value):
-        if isinstance(value, dict) and not isinstance(value, DotDictify):
-            value = DotDictify(value)
+        if isinstance(value, dict) and not isinstance(value, _DotDictify):
+            value = _DotDictify(value)
         super().__setitem__(key, value)
 
     def __getitem__(self, key):
         value = super().__getitem__(key)
-        if isinstance(value, dict) and not isinstance(value, DotDictify):
-            value = DotDictify(value)
+        if isinstance(value, dict) and not isinstance(value, _DotDictify):
+            value = _DotDictify(value)
             super().__setitem__(key, value)
         return value
 
@@ -170,7 +170,7 @@ def load_config_file(params_file=None, verbose=False, dryrun=False):
     Returns
     -------
 
-    rcparams : DotDictify
+    rcparams : _DotDictify
         Configuration parameters loaded from file.
     """
 
@@ -209,7 +209,7 @@ def load_config_file(params_file=None, verbose=False, dryrun=False):
         if error_count > 0:
             raise RuntimeError(error_msg)
 
-    _rcparams = DotDictify(_rcparams)
+    _rcparams = _DotDictify(_rcparams)
 
     if not dryrun:
         rcparams = _rcparams
