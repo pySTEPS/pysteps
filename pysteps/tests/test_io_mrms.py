@@ -19,7 +19,7 @@ def test_io_import_mrms():
 
     precip_full, _, metadata = pysteps.io.import_mrms(filename,
                                                       fillna=0,
-                                                      block_size=1)
+                                                      window_size=1)
     assert precip_full.shape == (3500, 7000)
     assert precip_full.dtype == 'single'
 
@@ -41,7 +41,7 @@ def test_io_import_mrms():
     precip_full2 = pysteps.io.import_mrms(filename,
                                           fillna=0,
                                           extent=(220, 300, 20, 55),
-                                          block_size=1)[0]
+                                          window_size=1)[0]
     assert precip_full2.shape == (3500, 7000)
 
     assert_array_almost_equal(precip_full, precip_full2)
@@ -52,7 +52,7 @@ def test_io_import_mrms():
     precip_clipped = pysteps.io.import_mrms(filename,
                                             fillna=0,
                                             extent=(250, 260, 30, 35),
-                                            block_size=1)[0]
+                                            window_size=1)[0]
 
     assert precip_clipped.shape == (500, 1000)
     assert_array_almost_equal(precip_clipped, precip_full[2000:2500, 2000:3000])
@@ -71,13 +71,13 @@ def test_io_import_mrms():
     precip_donwscaled = pysteps.io.import_mrms(filename,
                                                dtype="single",
                                                fillna=0,
-                                               block_size=2)[0]
+                                               window_size=2)[0]
     assert precip_donwscaled.shape == (3500 / 2, 7000 / 2)
 
     precip_donwscaled, _, metadata = pysteps.io.import_mrms(filename,
                                                             dtype="single",
                                                             fillna=0,
-                                                            block_size=3)
+                                                            window_size=3)
     expected_metadata = dict(
         xpixelsize=1000 * 3,
         ypixelsize=1000 * 3,

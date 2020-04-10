@@ -82,13 +82,14 @@ Available Importers
 
 import gzip
 import os
+from functools import partial
 
 import numpy as np
 from matplotlib.pyplot import imread
 
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
-from pysteps.utils import block_reduce
+from pysteps.utils import aggregate_fields
 
 try:
     import gdalconst
@@ -164,7 +165,7 @@ def _check_coords_range(selected_range, coordinate, full_range):
 
 
 def import_mrms(filename, fillna=np.nan, extent=None,
-                dtype='float32', block_size=4, **kwargs):
+                dtype='float32', window_size=4, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
     ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
@@ -183,7 +184,7 @@ def import_mrms(filename, fillna=np.nan, extent=None,
 
     Also, by default, the original data is downscaled by 4
     (that gives a 4 km grid spacing).
-    In case that the original grid spacing is needed, use `block_size=1`.
+    In case that the original grid spacing is needed, use `window_size=1`.
     But be aware that a single composite in double precipitation will
     require 186 Mb of memory.
 
@@ -225,18 +226,11 @@ def import_mrms(filename, fillna=np.nan, extent=None,
          The extent can be in any form that can be converted to a flat array
          of 4 elements array (e.g., lists or tuples).
 
-    block_size : array_like or int
+    window_size : array_like or int
         Array containing down-sampling integer factor along each axis.
         If an integer value is given, the same block shape is used for all the
         image dimensions.
-        Default: block_size=4.
-
-    Other Parameters
-    ----------------
-
-    kwargs : dict
-        Parameters passed to the :func:`pysteps.utils.block_reduce` function
-        used to downscale the data.
+        Default: window_size=4.
 
     Returns
     -------
@@ -251,6 +245,8 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     metadata : dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
+
+    del kwargs
 
     if not PYGRIB_IMPORTED:
         raise MissingOptionalDependency(
@@ -269,8 +265,8 @@ def import_mrms(filename, fillna=np.nan, extent=None,
         raise OSError(f"Error opening NCEP's MRMS file. "
                       f"File Not Found: {filename}")
 
-    if isinstance(block_size, int):
-        block_size = (block_size, block_size)
+    if isinstance(window_size, int):
+        window_size = (window_size, window_size)
 
     if extent is not None:
         extent = np.asarray(extent, dtype=dtype)
@@ -301,34 +297,30 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     precip = grib_msg.values.astype(dtype)
     no_data_mask = precip == -3  # Missing values
 
-    if block_size != (1, 1):
+    # Create a function with default arguments for aggregate_fields
+    block_reduce = partial(aggregate_fields, method="mean", trim=True)
+
+    if window_size != (1, 1):
         # Downscale data
-        lats = block_reduce(lats, block_size[0], **kwargs)
-        lons = block_reduce(lons, block_size[1], **kwargs)
-        print(lats.shape)
-        print(lons.shape)
+
+        lats = block_reduce(lats, window_size[0])
+        lons = block_reduce(lons, window_size[1])
 
         # Update the limits
         lr_lat, ul_lat = lats[0], lats[-1]
         ul_lon, lr_lon = lons[0], lons[-1]
 
         precip[no_data_mask] = 0  # block_reduce does not handle nan values
-        precip = block_reduce(precip, block_size, **kwargs)
+        precip = block_reduce(precip, window_size, axis=(0, 1))
 
         # Consider that if a single invalid observation is located in the block,
         # then mark that value as invalid.
-        kwargs_max = kwargs.copy()
-        kwargs_max['func'] = np.max
         no_data_mask = block_reduce(no_data_mask.astype('int'),
-                                    block_size,
-                                    **kwargs_max).astype(bool)
+                                    window_size, axis=(0, 1)).astype(bool)
 
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = fillna
 
-    # extent : scalars (left, right, bottom, top), optional
-    #         The spatial extent specified in data coordinates.
-    #         If None, the full extent is imported.
     if extent is not None:
         # clip domain
         ul_lon, lr_lon = _check_coords_range((extent[0], extent[1]),
@@ -347,8 +339,6 @@ def import_mrms(filename, fillna=np.nan, extent=None,
 
         precip = precip[mask_lon & mask_lat].reshape(nlats, nlons)
 
-    # block_reduce(image, block_size, func=np.mean, **kwargs)
-
     # The data is in regular lat/lon projection
     pr = pyproj.Proj("+proj = latlon + a = 6378160.0 "
                      "+ b = 6356775.0 + type = crs")
@@ -356,8 +346,8 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     x2, y2 = pr(ul_lon, ul_lat)
 
     metadata = dict(
-        xpixelsize=1000 * block_size[0],
-        ypixelsize=1000 * block_size[1],
+        xpixelsize=1000 * window_size[0],
+        ypixelsize=1000 * window_size[1],
         unit="mm/h",
         transform=None,
         zerovalue=0,
