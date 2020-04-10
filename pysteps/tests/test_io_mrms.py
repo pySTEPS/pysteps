@@ -2,12 +2,10 @@
 
 import os
 
-import numpy as np
 import pytest
+from numpy.testing import assert_array_almost_equal
 
 import pysteps
-from pysteps.tests.helpers import array_assert
-from pysteps.utils import block_reduce
 
 pytest.importorskip('pygrib')
 
@@ -45,7 +43,9 @@ def test_io_import_mrms():
                                           extent=(220, 300, 20, 55),
                                           block_size=1)[0]
     assert precip_full2.shape == (3500, 7000)
-    array_assert(precip_full, precip_full2)
+
+    assert_array_almost_equal(precip_full, precip_full2)
+
     del precip_full2
 
     # Test that a portion of the domain is returned correctly
@@ -55,7 +55,7 @@ def test_io_import_mrms():
                                             block_size=1)[0]
 
     assert precip_clipped.shape == (500, 1000)
-    array_assert(precip_clipped, precip_full[2000:2500, 2000:3000])
+    assert_array_almost_equal(precip_clipped, precip_full[2000:2500, 2000:3000])
     del precip_clipped
 
     precip_single = pysteps.io.import_mrms(filename, dtype="double", fillna=0)[0]
