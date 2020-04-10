@@ -191,6 +191,19 @@ def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
     full domain using the `lat_range` and `lon_range` keywords.
     By default, the entire domain is returned.
 
+    Notes
+    -----
+    In the MRMS grib files, "-3" is used to represent "No Coverage" or
+    "Missing data".
+    This reader assings to those missing points the value given in the `fillna`
+    argument (NaN by default).
+
+    Note that "missing values" are not the same as "no precipitation" values.
+    Missing values indicates regions with no valid measures.
+    While zero precipitation indicates regions with valid measurements,
+    but with no precipitation detected.
+
+
     Parameters
     ----------
 
@@ -278,16 +291,8 @@ def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
     lats = np.linspace(ul_lat, lr_lat, grib_msg["Nj"])
     lons = np.linspace(ul_lon, lr_lon, grib_msg["Ni"])
 
-    # NOTE:
-    # Values equal to -3 represents "No Coverage" and they are considered
-    # missing values. This reader replace those values by np.nan.
-    # Note that Missing values are not the same as zero precipitation values.
-    # Missing values indicates regions with no valid measures.
-    # While zero precipitation indicates regions with valid measurements,
-    # but with no precipitation detected.
-
     precip = grib_msg.values.astype(dtype)
-    no_data_mask = precip == -3
+    no_data_mask = precip == -3  # Missing values
 
     if block_size != (1, 1):
         # Downscale data
@@ -295,7 +300,6 @@ def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
         lons = block_reduce(lons, block_size[1], **kwargs)
         print(lats.shape)
         print(lons.shape)
-
 
         # Update the limits
         lr_lat, ul_lat = lats[0], lats[-1]
