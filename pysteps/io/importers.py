@@ -163,7 +163,7 @@ def _check_coords_range(selected_range, coordinate, full_range):
     return tuple(selected_range)
 
 
-def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
+def import_mrms(filename, fillna=np.nan, extent=None,
                 dtype='float32', block_size=4, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
@@ -188,7 +188,7 @@ def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
     require 186 Mb of memory.
 
     Finally, the precipitation data can only be extracted sub region of the
-    full domain using the `lat_range` and `lon_range` keywords.
+    full domain using the `extent` keyword.
     By default, the entire domain is returned.
 
     Notes
@@ -218,13 +218,12 @@ def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
         Data-type to which the array is cast.
         Valid values:  "float32", "float64", "single", and "double".
 
-    lat_range : tuple, list, or None
-        Latitude range (min_lat, max_lat) of the data to be retrieved.
-        By default, the entire latitude range is retrieved.
-
-    lon_range : tuple, list, or None
-        Longitude range (min_lon, max_lon) of the data to be retrieved.
-        By default, the entire longitude range is retrieved.
+    extent: None or array-like
+        Longitude and latitude range (in degrees) of the data to be retrieved.
+        (min_lon, max_lon, min_lat, max_lat).
+         By default (None), the entire domain is retrieved.
+         The extent can be in any form that can be converted to a flat array
+         of 4 elements array (e.g., lists or tuples).
 
     block_size : array_like or int
         Array containing down-sampling integer factor along each axis.
@@ -273,6 +272,14 @@ def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
     if isinstance(block_size, int):
         block_size = (block_size, block_size)
 
+    if extent is not None:
+        extent = np.asarray(extent, dtype=dtype)
+        if (extent.ndim != 1) or (extent.size != 4):
+            raise ValueError(
+                "The extent must be None or a flat array with 4 elements.\n"
+                f"Received: extent.shape = {str(extent.shape)}"
+            )
+
     # The MRMS grib file contain one message with the precipitation intensity
     grib_file.rewind()
     grib_msg = grib_file.read(1)[0]  # Read the only message
@@ -319,13 +326,16 @@ def import_mrms(filename, fillna=np.nan, lat_range=None, lon_range=None,
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = fillna
 
-    if any(x is not None for x in [lon_range, lat_range]):
+    # extent : scalars (left, right, bottom, top), optional
+    #         The spatial extent specified in data coordinates.
+    #         If None, the full extent is imported.
+    if extent is not None:
         # clip domain
-        ul_lon, lr_lon = _check_coords_range(lon_range,
+        ul_lon, lr_lon = _check_coords_range((extent[0], extent[1]),
                                              "longitude",
                                              (ul_lon, lr_lon))
 
-        lr_lat, ul_lat = _check_coords_range(lat_range,
+        lr_lat, ul_lat = _check_coords_range((extent[2], extent[3]),
                                              "latitude",
                                              (ul_lat, lr_lat))
 

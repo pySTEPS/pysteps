@@ -42,8 +42,7 @@ def test_io_import_mrms():
     # Test that if the bounding box is larger than the domain, all the points are returned.
     precip_full2 = pysteps.io.import_mrms(filename,
                                           fillna=0,
-                                          lat_range=(20, 55),
-                                          lon_range=(220, 300),
+                                          extent=(220, 300, 20, 55),
                                           block_size=1)[0]
     assert precip_full2.shape == (3500, 7000)
     array_assert(precip_full, precip_full2)
@@ -52,8 +51,7 @@ def test_io_import_mrms():
     # Test that a portion of the domain is returned correctly
     precip_clipped = pysteps.io.import_mrms(filename,
                                             fillna=0,
-                                            lat_range=(30, 35),
-                                            lon_range=(250, 260),
+                                            extent=(250, 260, 30, 35),
                                             block_size=1)[0]
 
     assert precip_clipped.shape == (500, 1000)
