@@ -164,6 +164,42 @@ def _check_coords_range(selected_range, coordinate, full_range):
     return tuple(selected_range)
 
 
+def _get_grib_projection(grib_msg):
+    """Get the projection parameters from the grib file."""
+
+    projparams = grib_msg.projparams
+
+    # pygrib defines the regular lat/lon projections as "cyl", which causes
+    # errors in pyproj and cartopy. Here we replace it for "latlon".
+    if projparams["proj"] == "cyl":
+        projparams["proj"] = "latlon"
+
+    # Grib C tables (3-2)
+    # https://apps.ecmwf.int/codes/grib/format/grib2/ctables/3/2
+    # https://en.wikibooks.org/wiki/PROJ.4
+    _grib_shapes_of_earth = dict()
+    _grib_shapes_of_earth[0] = {"R": 6367470}
+    _grib_shapes_of_earth[1] = {"R": 6367470}
+    _grib_shapes_of_earth[2] = {"ellps": "IAU76"}
+    _grib_shapes_of_earth[4] = {"ellps": "GRS80"}
+    _grib_shapes_of_earth[5] = {"ellps": "WGS84"}
+    _grib_shapes_of_earth[6] = {"R": 6371229}
+    _grib_shapes_of_earth[8] = {"datum": "WGS84", "R": 6371200}
+    _grib_shapes_of_earth[9] = {"datum": "OSGB36"}
+
+    # pygrib defines the ellipsoids using "a" and "b" only.
+    # Here we replace the for the PROJ.4 SpheroidCodes if they are available.
+    if grib_msg['shapeOfTheEarth'] in _grib_shapes_of_earth:
+        keys_to_remove = ["a", "b"]
+        for key in keys_to_remove:
+            if key in projparams:
+                del projparams[key]
+
+        projparams.update(_grib_shapes_of_earth[grib_msg['shapeOfTheEarth']])
+
+    return projparams
+
+
 def import_mrms(filename, fillna=np.nan, extent=None,
                 dtype='float32', window_size=4, **kwargs):
     """
@@ -282,6 +318,12 @@ def import_mrms(filename, fillna=np.nan, extent=None,
 
     # -------------------------
     # Read the grid information
+
+    # latitudeOfFirstGridPointInDegrees 54.995
+    # longitudeOfFirstGridPointInDegrees 230.005
+    # latitudeOfLastGridPointInDegrees 20.005001
+    # longitudeOfLastGridPointInDegrees 299.994998
+
     lr_lon = grib_msg["longitudeOfLastGridPointInDegrees"]
     lr_lat = grib_msg["latitudeOfLastGridPointInDegrees"]
 
@@ -307,7 +349,7 @@ def import_mrms(filename, fillna=np.nan, extent=None,
         lons = block_reduce(lons, window_size[1])
 
         # Update the limits
-        lr_lat, ul_lat = lats[0], lats[-1]
+        ul_lat, lr_lat = lats[0], lats[-1]  # Lat from North to south!
         ul_lon, lr_lon = lons[0], lons[-1]
 
         precip[no_data_mask] = 0  # block_reduce does not handle nan values
@@ -339,11 +381,11 @@ def import_mrms(filename, fillna=np.nan, extent=None,
 
         precip = precip[mask_lon & mask_lat].reshape(nlats, nlons)
 
-    # The data is in regular lat/lon projection
-    pr = pyproj.Proj("+proj = latlon + a = 6378160.0 "
-                     "+ b = 6356775.0 + type = crs")
-    x1, y1 = pr(lr_lon, lr_lat)
-    x2, y2 = pr(ul_lon, ul_lat)
+    proj_params = _get_grib_projection(grib_msg)
+    pr = pyproj.Proj(proj_params)
+
+    x1, y1 = pr(ul_lon, lr_lat)
+    x2, y2 = pr(lr_lon, ul_lat)
 
     metadata = dict(
         xpixelsize=1000 * window_size[0],
@@ -351,7 +393,7 @@ def import_mrms(filename, fillna=np.nan, extent=None,
         unit="mm/h",
         transform=None,
         zerovalue=0,
-        projection=grib_msg.projparams,
+        projection=proj_params,
         yorigin="upper",
         x1=x1,
         x2=x2,
