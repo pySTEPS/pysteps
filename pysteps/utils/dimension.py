@@ -218,8 +218,9 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
 
     It attempts to aggregate the given R axis in an integer number of sections
     of length = window_size.
-    If such a aggregation is not possible, an error is raised.
-
+    If such a aggregation is not possible, an error is raised unless 'trim'
+    set to True, in which case the axis is trimmed (from the end)
+    to make it perfectly divisible".
 
     Parameters
     ----------
