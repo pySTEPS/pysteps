@@ -176,6 +176,10 @@ def download_mrms_data(dir_path=None, frames=35):
         By default, 35 frames are downloaded (corresponding to 1h and 10 min).
     """
 
+    if dir_path is None:
+        data_source = pysteps.rcparams.data_sources["mrms"]
+        dir_path = data_source["root_path"]
+
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
 
@@ -382,7 +386,7 @@ def load_dataset(case="fmi", frames=14):
 
     frames : int
         Number composites (radar images).
-        Max allowed value: 24
+        Max allowed value: 24 (34 for MRMS product)
         Default: 14
 
     Returns
@@ -398,10 +402,16 @@ def load_dataset(case="fmi", frames=14):
         Time interval between composites in minutes.
     """
 
-    if frames > 24:
-        raise ValueError("The number of frames should be smaller than 25")
-
     case = case.lower()
+
+    if case == "mrms":
+        max_frames = 34
+    else:
+        max_frames = 24
+    if frames > max_frames:
+        raise ValueError(
+            f"The number of frames should be smaller than {max_frames + 1}"
+        )
 
     case_date = datetime.strptime(_precip_events[case], "%Y%m%d%H%M")
 
