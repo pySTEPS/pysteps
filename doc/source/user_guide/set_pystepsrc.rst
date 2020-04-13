@@ -4,15 +4,12 @@ The pySTEPS configuration file (pystepsrc)
 ==========================================
 
 .. _JSON: https://en.wikipedia.org/wiki/JSON
-.. _AttrDict: https://pypi.org/project/attrdict/
 
 The pysteps package allows the users to customize the default settings
 and configuration.
 The configuration parameters used by default are loaded from a user-defined
-JSON_ file and then stored in the **pysteps.rcparams** AttrDict_.
-
-The configuration parameters can be accessed as attributes or as items
-in a dictionary.
+JSON_ file and then stored in `pysteps.rcparams`, a dictionary-like object
+that can be accessed as attributes or as items.
 For example, the default parameters can be obtained using any of the following ways::
 
     import pysteps
