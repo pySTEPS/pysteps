@@ -18,6 +18,7 @@ plt_arg_values = [
     ("fmi", "cartopy", True, 0.5),
     ("knmi", "cartopy", True, 0.5),
     ("opera", "cartopy", True, 0.5),
+    ("mrms", "cartopy", True, 0.5),
 ]
 
 @pytest.mark.parametrize(plt_arg_names, plt_arg_values)
