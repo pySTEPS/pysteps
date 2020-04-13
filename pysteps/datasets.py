@@ -24,6 +24,7 @@ from distutils.dir_util import copy_tree
 from logging.handlers import RotatingFileHandler
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from urllib import request
+from urllib.error import HTTPError
 from zipfile import ZipFile
 
 from jsmin import jsmin
@@ -158,73 +159,129 @@ class ShowProgress(object):
         sys.stdout.write("\n" + message + "\n")
 
 
-def download_mrms_data(dir_path=None, frames=35):
+def download_mrms_data(dir_path, initial_date, final_date,
+                       timestep=2, nodelay=False):
     """
-    Download a small dataset with 6 hours of the NSSL's Multi-Radar/Multi-Sensor System
-    ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) precipitation product (grib format).
+    Download a small dataset with 6 hours of the NSSL's Multi-Radar/Multi-Sensor
+    System ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) precipitation
+    product (grib format).
+
+    All the available files in the archive in the indicated time period
+    (`initial_date` to `final_date`) are downloaded.
+    By default, the timestep between files downloaded is 2 min.
+    If the `timestep` is exactly divisible by 2 min, the immediately lower
+    multiple is used. For example, if  `timestep=5min`, the value is lowered to
+    4 min.
+
+    Note
+    ----
+    To reduce the load on the archive's server, an internal delay of 5 seconds
+    every 30 files downloaded is implemented.
+    This delay can be disabled by setting `nodelay=True`.
+
 
     Parameters
     ----------
     dir_path: str
-        Path to directory where the psyteps data will be placed.
+        Path to directory where the MRMS data is be placed.
         If None, the default location defined in the pystepsrc file is used.
-        The files are archived following the folder structure defined in the pystepsrc file.
+        The files are archived following the folder structure defined in
+        the pystepsrc file.
         If the directory exists existing MRMS files may be overwritten.
 
-    frames : int
-        Number precipitation composites to download. The frames are separated 2 min from each other.
-        By default, 35 frames are downloaded (corresponding to 1h and 10 min).
+    initial_date : datetime
+        Beginning of the date period.
+
+    final_date : datetime
+        End of the date period.
+
+    timestep : int or timedelta
+        Timestep between downloaded files in minutes.
+
+    nodelay : bool
+        Do not implement a 5-seconds delay every 30 files downloaded.
     """
 
     if dir_path is None:
         data_source = pysteps.rcparams.data_sources["mrms"]
         dir_path = data_source["root_path"]
 
+    if not isinstance(timestep, (int, timedelta)):
+        raise TypeError("'timestep' must be an integer or a timedelta object."
+                        f"Received: {type(timestep)}")
+
+    if isinstance(timestep, int):
+        timestep = timedelta(seconds=timestep * 60)
+
+    if timestep.total_seconds() < 120:
+        raise ValueError("The time step should be greater than 2 minutes."
+                         f"Received: {timestep.total_seconds()}")
+
+    _remainder = timestep % timedelta(seconds=120)
+    timestep -= _remainder
+
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
 
-    initial_date = datetime.strptime(_precip_events['mrms'], "%Y%m%d%H%M")
+    if nodelay:
+        def delay(_counter):
+            return 0
+    else:
+        def delay(_counter):
+            if _counter >= 30:
+                _counter = 0
+                time.sleep(5)
+            return _counter
 
-    # Assume that each file size is 0.9 Mb
-    total_size = 0.9 * frames * 1024 ** 2
-    block_size = total_size / frames
-    pbar = ShowProgress()
+    archive_url = "https://mtarchive.geol.iastate.edu"
+    print(f"Downloading MRMS data from {archive_url}")
 
-    print("Downloading MRMS data from https://mtarchive.geol.iastate.edu")
+    current_date = initial_date
 
-    for frame in range(frames):
-        current_date = initial_date + timedelta(seconds=60 * frame * 2)
-        # Generate files URL from https://mtarchive.geol.iastate.edu
-        file_url = datetime.strftime(
-            current_date,
-            f"https://mtarchive.geol.iastate.edu/%Y/%m/%d/mrms/ncep/PrecipRate/PrecipRate_00.00_%Y%m%d-%H%M%S.grib2.gz"
-        )
+    counter = 0
+    while current_date <= final_date:
 
-        pbar(frame, block_size, total_size, exact=False)
+        counter = delay(counter)
 
-        tmp_file = NamedTemporaryFile()
-
-        sub_dir = os.path.join(dir_path, datetime.strftime(current_date, "%Y/%m/%d"))
+        sub_dir = os.path.join(dir_path,
+                               datetime.strftime(current_date, "%Y/%m/%d"))
 
         if not os.path.isdir(sub_dir):
             os.makedirs(sub_dir)
 
-        request.urlretrieve(
-            file_url,
-            tmp_file.name,
+        # Generate files URL from https://mtarchive.geol.iastate.edu
+
+        dest_file_name = datetime.strftime(
+            current_date,
+            "PrecipRate_00.00_%Y%m%d-%H%M%S.grib2"
         )
 
-        dest_file_path = os.path.join(
-            sub_dir,
-            datetime.strftime(current_date, "PrecipRate_00.00_%Y%m%d-%H%M%S.grib2")
-        )
+        rel_url_fmt = ("/%Y/%m/%d"
+                       "/mrms/ncep/PrecipRate"
+                       "/PrecipRate_00.00_%Y%m%d-%H%M%S.grib2.gz")
+
+        file_url = archive_url + datetime.strftime(current_date, rel_url_fmt)
+
+        tmp_file = NamedTemporaryFile()
+        try:
+            print(f"Downloading {file_url} ", end="")
+            request.urlretrieve(
+                file_url,
+                tmp_file.name,
+            )
+            print("DONE")
+        except HTTPError as err:
+            print(err)
+
+        dest_file_path = os.path.join(sub_dir, dest_file_name)
 
         # Uncompress the data
         with gzip.open(tmp_file.name, "rb") as f_in:
             with open(dest_file_path, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
 
-    pbar.end()
+        current_date = current_date + timedelta(seconds=60 * 2)
+        counter += 1
 
 
 def download_pysteps_data(dir_path, force=True):
@@ -278,8 +335,6 @@ def download_pysteps_data(dir_path, force=True):
         zip_obj.extractall(tmp_dir.name)
 
         copy_tree(os.path.join(tmp_dir.name, common_path), dir_path)
-
-    download_mrms_data(os.path.join(dir_path, "mrms"))
 
 
 def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pystepsrc", dryrun=False):
@@ -386,7 +441,7 @@ def load_dataset(case="fmi", frames=14):
 
     frames : int
         Number composites (radar images).
-        Max allowed value: 24 (34 for MRMS product)
+        Max allowed value: 24 (35 for MRMS product)
         Default: 14
 
     Returns
@@ -405,7 +460,7 @@ def load_dataset(case="fmi", frames=14):
     case = case.lower()
 
     if case == "mrms":
-        max_frames = 34
+        max_frames = 36
     else:
         max_frames = 24
     if frames > max_frames:
