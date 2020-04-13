@@ -24,8 +24,8 @@ def test_io_import_mrms():
     assert precip_full.dtype == 'single'
 
     expected_metadata = dict(
-        xpixelsize=1000,
-        ypixelsize=1000,
+        xpixelsize=0.01,
+        ypixelsize=0.01,
         unit="mm/h",
         transform=None,
         zerovalue=0,
@@ -79,8 +79,8 @@ def test_io_import_mrms():
                                                             fillna=0,
                                                             window_size=3)
     expected_metadata = dict(
-        xpixelsize=1000 * 3,
-        ypixelsize=1000 * 3,
+        xpixelsize=0.03,
+        ypixelsize=0.03,
         unit="mm/h",
         transform=None,
         zerovalue=0,
