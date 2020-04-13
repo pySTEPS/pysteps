@@ -166,7 +166,6 @@ def _check_coords_range(selected_range, coordinate, full_range):
 
 def _get_grib_projection(grib_msg):
     """Get the projection parameters from the grib file."""
-
     projparams = grib_msg.projparams
 
     # pygrib defines the regular lat/lon projections as "cyl", which causes
@@ -219,49 +218,42 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     To change the precision of the data, use the *dtype* keyword.
 
     Also, by default, the original data is downscaled by 4
-    (that gives a 4 km grid spacing).
+    (resulting in a ~4 km grid spacing).
     In case that the original grid spacing is needed, use `window_size=1`.
     But be aware that a single composite in double precipitation will
     require 186 Mb of memory.
 
-    Finally, the precipitation data can only be extracted sub region of the
-    full domain using the `extent` keyword.
+    Finally, if desired, the precipitation data can be extracted over a
+    sub region of the full domain using the `extent` keyword.
     By default, the entire domain is returned.
 
     Notes
     -----
     In the MRMS grib files, "-3" is used to represent "No Coverage" or
-    "Missing data".
-    This reader assings to those missing points the value given in the `fillna`
-    argument (NaN by default).
+    "Missing data". However, in this reader replace those values by the value
+    especified in the `fillna` argument (NaN by default).
 
     Note that "missing values" are not the same as "no precipitation" values.
     Missing values indicates regions with no valid measures.
     While zero precipitation indicates regions with valid measurements,
     but with no precipitation detected.
 
-
     Parameters
     ----------
-
     filename : str
         Name of the file to import.
-
     fillna : float or np.nan
         Value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
-
     dtype : str
         Data-type to which the array is cast.
         Valid values:  "float32", "float64", "single", and "double".
-
     extent: None or array-like
         Longitude and latitude range (in degrees) of the data to be retrieved.
         (min_lon, max_lon, min_lat, max_lat).
          By default (None), the entire domain is retrieved.
          The extent can be in any form that can be converted to a flat array
          of 4 elements array (e.g., lists or tuples).
-
     window_size : array_like or int
         Array containing down-sampling integer factor along each axis.
         If an integer value is given, the same block shape is used for all the
@@ -270,14 +262,12 @@ def import_mrms(filename, fillna=np.nan, extent=None,
 
     Returns
     -------
-
     precipitation : 2D array, float32
         Precipitation field in mm/h. The dimensions are [latitude, longitude].
         The first grid point (0,0) corresponds to the upper left corner of the
         domain, while (last i, last j) denote the lower right corner.
-
     quality : None
-
+        Not implement.
     metadata : dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
@@ -319,11 +309,6 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     # -------------------------
     # Read the grid information
 
-    # latitudeOfFirstGridPointInDegrees 54.995
-    # longitudeOfFirstGridPointInDegrees 230.005
-    # latitudeOfLastGridPointInDegrees 20.005001
-    # longitudeOfLastGridPointInDegrees 299.994998
-
     lr_lon = grib_msg["longitudeOfLastGridPointInDegrees"]
     lr_lat = grib_msg["latitudeOfLastGridPointInDegrees"]
 
@@ -343,8 +328,8 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     block_reduce = partial(aggregate_fields, method="mean", trim=True)
 
     if window_size != (1, 1):
-        # Downscale data
 
+        # Downscale data
         lats = block_reduce(lats, window_size[0])
         lons = block_reduce(lons, window_size[1])
 
@@ -388,8 +373,8 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     x2, y2 = pr(lr_lon, ul_lat)
 
     metadata = dict(
-        xpixelsize=1000 * window_size[0],
-        ypixelsize=1000 * window_size[1],
+        xpixelsize=grib_msg["iDirectionIncrementInDegrees"] * window_size[0],
+        ypixelsize=grib_msg["jDirectionIncrementInDegrees"] * window_size[1],
         unit="mm/h",
         transform=None,
         zerovalue=0,
