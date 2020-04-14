@@ -394,8 +394,8 @@ def track_features(
             "routine but it is not installed"
         )
 
-    prvs_img = np.copy(prvs_image)
-    next_img = np.copy(next_image)
+    prvs_img = prvs_image.copy()
+    next_img = next_image.copy()
     p0 = np.copy(points)
 
     if not isinstance(prvs_img, MaskedArray):
