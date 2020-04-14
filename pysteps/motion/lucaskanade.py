@@ -216,11 +216,11 @@ def dense_lucaskanade(input_images,
         prvs_img = input_images[n, :, :].copy()
         next_img = input_images[n + 1, :, :].copy()
 
-        if ~isinstance(prvs_img, MaskedArray):
+        if not isinstance(prvs_img, MaskedArray):
             prvs_img = np.ma.masked_invalid(prvs_img)
         np.ma.set_fill_value(prvs_img, prvs_img.min())
 
-        if ~isinstance(next_img, MaskedArray):
+        if not isinstance(next_img, MaskedArray):
             next_img = np.ma.masked_invalid(next_img)
         np.ma.set_fill_value(next_img, next_img.min())
 
@@ -392,11 +392,11 @@ def track_features(
     next_img = np.copy(next_image)
     p0 = np.copy(points)
 
-    if ~isinstance(prvs_img, MaskedArray):
+    if not isinstance(prvs_img, MaskedArray):
         prvs_img = np.ma.masked_invalid(prvs_img)
     np.ma.set_fill_value(prvs_img, prvs_img.min())
 
-    if ~isinstance(next_img, MaskedArray):
+    if not isinstance(next_img, MaskedArray):
         next_img = np.ma.masked_invalid(next_img)
     np.ma.set_fill_value(next_img, next_img.min())
 
