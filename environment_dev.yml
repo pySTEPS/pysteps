@@ -6,7 +6,6 @@ channels:
 dependencies:
   - python>=3.6
   - pip
-  - attrdict
   - jsmin
   - jsonschema
   - matplotlib

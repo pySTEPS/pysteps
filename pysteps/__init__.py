@@ -4,7 +4,6 @@ import stat
 import sys
 import warnings
 
-from attrdict import AttrDict
 from jsmin import jsmin
 from jsonschema import Draft4Validator
 
@@ -30,7 +29,7 @@ def _get_config_file_schema():
     Return the path to the parameters file json schema.
     """
     module_file = _decode_filesystem_path(__file__)
-    return os.path.join(os.path.dirname(module_file), 'pystepsrc_schema.json')
+    return os.path.join(os.path.dirname(module_file), "pystepsrc_schema.json")
 
 
 def _fconfig_candidates_generator():
@@ -40,34 +39,34 @@ def _fconfig_candidates_generator():
     See :py:func:~config_fname for more details.
     """
 
-    yield os.path.join(os.getcwd(), 'pystepsrc')
+    yield os.path.join(os.getcwd(), "pystepsrc")
 
     try:
-        pystepsrc = os.environ['PYSTEPSRC']
+        pystepsrc = os.environ["PYSTEPSRC"]
     except KeyError:
         pass
     else:
         yield pystepsrc
-        yield os.path.join(pystepsrc, 'pystepsrc')
+        yield os.path.join(pystepsrc, "pystepsrc")
 
     if os.name == "nt":
         # Windows environment
-        env_variable = 'USERPROFILE'
-        subdir = 'pysteps'
+        env_variable = "USERPROFILE"
+        subdir = "pysteps"
     else:
         # UNIX like
-        env_variable = 'HOME'
-        subdir = '.pysteps'
+        env_variable = "HOME"
+        subdir = ".pysteps"
 
     try:
         pystepsrc = os.environ[env_variable]
     except KeyError:
         pass
     else:
-        yield os.path.join(pystepsrc, subdir, 'pystepsrc')
+        yield os.path.join(pystepsrc, subdir, "pystepsrc")
 
     module_file = _decode_filesystem_path(__file__)
-    yield os.path.join(os.path.dirname(module_file), 'pystepsrc')
+    yield os.path.join(os.path.dirname(module_file), "pystepsrc")
     yield None
 
 
@@ -114,7 +113,7 @@ def _decode_filesystem_path(path):
         return path
 
 
-class DotDictify(AttrDict):
+class _DotDictify(dict):
     """
     Class used to recursively access dict via attributes as well
     as index access.
@@ -130,14 +129,14 @@ class DotDictify(AttrDict):
     """
 
     def __setitem__(self, key, value):
-        if isinstance(value, dict) and not isinstance(value, DotDictify):
-            value = DotDictify(value)
+        if isinstance(value, dict) and not isinstance(value, _DotDictify):
+            value = _DotDictify(value)
         super().__setitem__(key, value)
 
     def __getitem__(self, key):
         value = super().__getitem__(key)
-        if isinstance(value, dict) and not isinstance(value, DotDictify):
-            value = DotDictify(value)
+        if isinstance(value, dict) and not isinstance(value, _DotDictify):
+            value = _DotDictify(value)
             super().__setitem__(key, value)
         return value
 
@@ -147,7 +146,7 @@ class DotDictify(AttrDict):
 rcparams = dict()
 
 
-def load_config_file(params_file=None, verbose=False):
+def load_config_file(params_file=None, verbose=False, dryrun=False):
     """
     Load the pysteps configuration file. The configuration parameters are available
     as a DotDictify instance in the `pysteps.rcparams` variable.
@@ -155,7 +154,24 @@ def load_config_file(params_file=None, verbose=False):
     Parameters
     ----------
 
-    params_file=None, verbose=False
+    params_file: str
+        Path to the parameters file to load. If `params_file=None`, it looks
+        for a configuration file in the default locations.
+
+    verbose: bool
+        Print debugging information. False by default.
+        This flag is overwritten by the silent_import=False in the
+        pysteps configuration file.
+
+    dryrun: bool
+        If False, perform a dry run that does not update the `pysteps.rcparams`
+        attribute.
+
+    Returns
+    -------
+
+    rcparams : _DotDictify
+        Configuration parameters loaded from file.
     """
 
     global rcparams
@@ -165,34 +181,40 @@ def load_config_file(params_file=None, verbose=False):
         params_file = config_fname()
 
         if params_file is None:
-            warnings.warn("pystepsrc file not found."
-                          + "The defaults parameters are left empty",
-                          category=ImportWarning)
+            warnings.warn(
+                "pystepsrc file not found."
+                + "The defaults parameters are left empty",
+                category=ImportWarning,
+            )
 
-            rcparams = dict()
+            _rcparams = dict()
             return
 
-    with open(params_file, 'r') as f:
-        rcparams = json.loads(jsmin(f.read()))
+    with open(params_file, "r") as f:
+        _rcparams = json.loads(jsmin(f.read()))
 
-    if (not rcparams.get("silent_import", False)) or verbose:
-        print("Pysteps configuration file found at: " + params_file
-              + "\n")
+    if (not _rcparams.get("silent_import", False)) or verbose:
+        print("Pysteps configuration file found at: " + params_file + "\n")
 
-    with open(_get_config_file_schema(), 'r') as f:
+    with open(_get_config_file_schema(), "r") as f:
         schema = json.loads(jsmin(f.read()))
         validator = Draft4Validator(schema)
 
         error_msg = "Error reading pystepsrc file."
         error_count = 0
-        for error in validator.iter_errors(rcparams):
+        for error in validator.iter_errors(_rcparams):
             error_msg += "\nError in " + "/".join(list(error.path))
             error_msg += " : " + error.message
             error_count += 1
         if error_count > 0:
             raise RuntimeError(error_msg)
 
-    rcparams = DotDictify(rcparams)
+    _rcparams = _DotDictify(_rcparams)
+
+    if not dryrun:
+        rcparams = _rcparams
+
+    return _rcparams
 
 
 # Load default configuration
