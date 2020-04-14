@@ -4,4 +4,3 @@ numpydoc
 sphinxcontrib.bibtex
 sphinx_rtd_theme
 sphinx_gallery
-pygrib
