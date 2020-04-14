@@ -51,6 +51,9 @@ def ShiTomasi_detection(input_image,
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
 
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
     .. _`Harris detector`:\
         https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#gac1fc3598018010880e370e2f709b4345
 
@@ -61,10 +64,10 @@ def ShiTomasi_detection(input_image,
     Parameters
     ----------
 
-    input_image : array_like or MaskedArray_
+    input_image : ndarray_ or MaskedArray_
         Array of shape (m, n) containing the input image.
 
-        In case of array_like, invalid values (Nans or infs) are masked,
+        In case of ndarray_, invalid values (Nans or infs) are masked,
         otherwise the mask of the MaskedArray_ is used. Such mask defines a
         region where features are not detected.
 
@@ -110,7 +113,7 @@ def ShiTomasi_detection(input_image,
     Returns
     -------
 
-    points : array_like
+    points : ndarray_
         Array of shape (p, 2) indicating the pixel coordinates of *p* detected
         corners.
 
