@@ -135,7 +135,7 @@ def ShiTomasi_detection(input_image,
     if input_image.ndim != 2:
         raise ValueError("input_image must be a two-dimensional array")
 
-    # masked array
+    # Check if a MaskedArray is used. If not, mask the ndarray
     if not isinstance(input_image, MaskedArray):
         input_image = np.ma.masked_invalid(input_image)
 
@@ -219,7 +219,7 @@ def morph_opening(input_image, thr, n):
 
     input_image = input_image.copy()
 
-    # masked array
+    # Check if a MaskedArray is used. If not, mask the ndarray
     to_ndarray = False
     if not isinstance(input_image, MaskedArray):
         to_ndarray = True

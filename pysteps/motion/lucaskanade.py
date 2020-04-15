@@ -219,6 +219,7 @@ def dense_lucaskanade(input_images,
         prvs_img = input_images[n, :, :].copy()
         next_img = input_images[n + 1, :, :].copy()
 
+        # Check if a MaskedArray is used. If not, mask the ndarray
         if not isinstance(prvs_img, MaskedArray):
             prvs_img = np.ma.masked_invalid(prvs_img)
         np.ma.set_fill_value(prvs_img, prvs_img.min())
@@ -398,6 +399,7 @@ def track_features(
     next_img = next_image.copy()
     p0 = np.copy(points)
 
+    # Check if a MaskedArray is used. If not, mask the ndarray
     if not isinstance(prvs_img, MaskedArray):
         prvs_img = np.ma.masked_invalid(prvs_img)
     np.ma.set_fill_value(prvs_img, prvs_img.min())
@@ -414,7 +416,7 @@ def track_features(
                     (im_max - im_min) * 255)
     else:
         prvs_img = (prvs_img.filled() - im_min)
-                    
+
     im_min = next_img.min()
     im_max = next_img.max()
     if im_max - im_min > 1e-8:
