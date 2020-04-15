@@ -32,6 +32,7 @@ Other optional dependencies include:
 * `cartopy <https://scitools.org.uk/cartopy/docs/v0.16/>`_ (for geo-referenced
   visualization)
 * `h5py <https://www.h5py.org/>`_ (for importing HDF5 data)
+* `pygrib <https://jswhit.github.io/pygrib/docs/index.html>`_ (for importing MRMS data)
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
 

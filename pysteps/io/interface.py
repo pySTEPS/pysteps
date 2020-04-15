@@ -14,21 +14,24 @@ Interface for the io module.
 
 from pysteps.io import importers, exporters
 
-_importer_methods = dict()
-_importer_methods['bom_rf3'] = importers.import_bom_rf3
-_importer_methods['fmi_geotiff'] = importers.import_fmi_geotiff
-_importer_methods['fmi_pgm'] = importers.import_fmi_pgm
-_importer_methods['mch_gif'] = importers.import_mch_gif
-_importer_methods['mch_hdf5'] = importers.import_mch_hdf5
-_importer_methods['mch_metranet'] = importers.import_mch_metranet
-_importer_methods['opera_hdf5'] = importers.import_opera_hdf5
-_importer_methods['knmi_hdf5'] = importers.import_knmi_hdf5
-_importer_methods['saf_crri'] = importers.import_saf_crri
+_importer_methods = dict(
+    mrms=importers.import_mrms,
+    bom_rf3=importers.import_bom_rf3,
+    fmi_geotiff=importers.import_fmi_geotiff,
+    fmi_pgm=importers.import_fmi_pgm,
+    mch_gif=importers.import_mch_gif,
+    mch_hdf5=importers.import_mch_hdf5,
+    mch_metranet=importers.import_mch_metranet,
+    opera_hdf5=importers.import_opera_hdf5,
+    knmi_hdf5=importers.import_knmi_hdf5,
+    saf_crri=importers.import_saf_crri
+)
 
-_exporter_methods = dict()
-_exporter_methods['geotiff'] = exporters.initialize_forecast_exporter_geotiff
-_exporter_methods['kineros'] = exporters.initialize_forecast_exporter_kineros
-_exporter_methods['netcdf'] = exporters.initialize_forecast_exporter_netcdf
+_exporter_methods = dict(
+    geotiff=exporters.initialize_forecast_exporter_geotiff,
+    kineros=exporters.initialize_forecast_exporter_kineros,
+    netcdf=exporters.initialize_forecast_exporter_netcdf,
+)
 
 
 def get_method(name, method_type):
