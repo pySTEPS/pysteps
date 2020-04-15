@@ -109,7 +109,6 @@ LK_optflow = motion.get_method("LK")
 
 # Mask invalid values
 R = np.ma.masked_invalid(R)
-R.data[R.mask] = np.nan
 
 # Use default settings (i.e., no buffering of the radar mask)
 fd_kwargs1 = {"buffer_mask":0}
