@@ -29,6 +29,9 @@ def rbfinterp2d(
     """Fast 2-D grid interpolation of a sparse (multivariate) array using a
     radial basis function.
 
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
     Parameters
     ----------
 
@@ -69,7 +72,7 @@ def rbfinterp2d(
     Returns
     -------
 
-    output_array : array_like
+    output_array : ndarray_
         The interpolated field(s) having shape (m, ygrid.size, xgrid.size).
 
     Notes

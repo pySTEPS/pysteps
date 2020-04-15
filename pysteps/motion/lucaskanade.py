@@ -68,6 +68,9 @@ def dense_lucaskanade(input_images,
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
 
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
     Interface to the OpenCV_ implementation of the local `Lucas-Kanade`_ optical
     flow method applied in combination to a feature detection routine.
 
@@ -77,7 +80,7 @@ def dense_lucaskanade(input_images,
     Parameters
     ----------
 
-    input_images : array_like or MaskedArray_
+    input_images : ndarray_ or MaskedArray_
         Array of shape (T, m, n) containing a sequence of *T* two-dimensional
         input images of shape (m, n). The indexing order in **input_images** is
         assumed to be (time, latitude, longitude).
@@ -86,7 +89,7 @@ def dense_lucaskanade(input_images,
         With *T* > 2, all the resulting sparse vectors are pooled together for
         the final interpolation on a regular grid.
 
-        In case of array_like, invalid values (Nans or infs) are masked,
+        In case of ndarray_, invalid values (Nans or infs) are masked,
         otherwise the mask of the MaskedArray_ is used. Such mask defines a
         region where features are not detected for the tracking algorithm.
 
@@ -156,7 +159,7 @@ def dense_lucaskanade(input_images,
     Returns
     -------
 
-    out : array_like or tuple
+    out : ndarray_ or tuple
         If **dense=True** (the default), return the advection field having shape
         (2, m, n), where out[0, :, :] contains the x-components of the motion
         vectors and out[1, :, :] contains the y-components.
@@ -216,11 +219,12 @@ def dense_lucaskanade(input_images,
         prvs_img = input_images[n, :, :].copy()
         next_img = input_images[n + 1, :, :].copy()
 
-        if ~isinstance(prvs_img, MaskedArray):
+        # Check if a MaskedArray is used. If not, mask the ndarray
+        if not isinstance(prvs_img, MaskedArray):
             prvs_img = np.ma.masked_invalid(prvs_img)
         np.ma.set_fill_value(prvs_img, prvs_img.min())
 
-        if ~isinstance(next_img, MaskedArray):
+        if not isinstance(next_img, MaskedArray):
             next_img = np.ma.masked_invalid(next_img)
         np.ma.set_fill_value(next_img, next_img.min())
 
@@ -310,14 +314,17 @@ def track_features(
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
 
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
     Parameters
     ----------
 
-    prvs_image : array_like or MaskedArray_
+    prvs_image : ndarray_ or MaskedArray_
         Array of shape (m, n) containing the first image.
         Invalid values (Nans or infs) are filled using the min value.
 
-    next_image : array_like or MaskedArray_
+    next_image : ndarray_ or MaskedArray_
         Array of shape (m, n) containing the successive image.
         Invalid values (Nans or infs) are filled using the min value.
 
@@ -351,11 +358,11 @@ def track_features(
     Returns
     -------
 
-    xy : array_like
+    xy : ndarray_
         Array of shape (d, 2) with the x- and y-coordinates of *d* <= *p*
         detected sparse motion vectors.
 
-    uv : array_like
+    uv : ndarray_
         Array of shape (d, 2) with the u- and v-components of *d* <= *p*
         detected sparse motion vectors.
 
@@ -388,15 +395,16 @@ def track_features(
             "routine but it is not installed"
         )
 
-    prvs_img = np.copy(prvs_image)
-    next_img = np.copy(next_image)
+    prvs_img = prvs_image.copy()
+    next_img = next_image.copy()
     p0 = np.copy(points)
 
-    if ~isinstance(prvs_img, MaskedArray):
+    # Check if a MaskedArray is used. If not, mask the ndarray
+    if not isinstance(prvs_img, MaskedArray):
         prvs_img = np.ma.masked_invalid(prvs_img)
     np.ma.set_fill_value(prvs_img, prvs_img.min())
 
-    if ~isinstance(next_img, MaskedArray):
+    if not isinstance(next_img, MaskedArray):
         next_img = np.ma.masked_invalid(next_img)
     np.ma.set_fill_value(next_img, next_img.min())
 
@@ -408,7 +416,7 @@ def track_features(
                     (im_max - im_min) * 255)
     else:
         prvs_img = (prvs_img.filled() - im_min)
-                    
+
     im_min = next_img.min()
     im_max = next_img.max()
     if im_max - im_min > 1e-8:
