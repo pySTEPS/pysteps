@@ -4,21 +4,24 @@ Testing helper functions
 
 Collection of helper functions for the testing suite.
 """
-import numpy as np
-import pytest
 from datetime import datetime
 
+import numpy as np
+import pytest
+
 import pysteps as stp
-from pysteps import io, rcparams, utils
+from pysteps import io, rcparams
 from pysteps.utils import aggregate_fields_space
 
 _reference_dates = dict()
-_reference_dates["bom"] = datetime.strptime("2018/06/16 1000", "%Y/%m/%d %H%M")
-_reference_dates["fmi"] = datetime.strptime("2016/09/28 1600", "%Y/%m/%d %H%M")
-_reference_dates["knmi"] = datetime.strptime("2010/08/26 0000", "%Y/%m/%d %H%M")
-_reference_dates["mch"] = datetime.strptime("2015/05/15 1630", "%Y/%m/%d %H%M")
-_reference_dates["opera"] = datetime.strptime("2018/08/24 1800", "%Y/%m/%d %H%M")
-_reference_dates["saf"] = datetime.strptime("2018/06/01 0700", "%Y/%m/%d %H%M")
+_reference_dates["bom"] = datetime(2018, 6, 16, 10, 0)
+_reference_dates["fmi"] = datetime(2016, 9, 28, 16, 0)
+_reference_dates["knmi"] = datetime(2010, 8, 26, 0, 0)
+_reference_dates["mch"] = datetime(2015, 5, 15, 16, 30)
+_reference_dates["opera"] = datetime(2018, 8, 24, 18, 0)
+_reference_dates["saf"] = datetime(2018, 6, 1, 7, 0)
+_reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
+
 
 
 def get_precipitation_fields(num_prev_files=0,
@@ -103,6 +106,9 @@ def get_precipitation_fields(num_prev_files=0,
 
     if source == "saf":
         pytest.importorskip("netCDF4")
+
+    if source == "mrms":
+        pytest.importorskip("pygrib")
 
     try:
         date = _reference_dates[source]
