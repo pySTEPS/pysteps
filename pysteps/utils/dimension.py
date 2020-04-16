@@ -217,8 +217,8 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
     """Aggregate fields along a given direction.
 
     It attempts to aggregate the given R axis in an integer number of sections
-    of length = window_size.
-    If such a aggregation is not possible, an error is raised unless 'trim'
+    of length = ``window_size``.
+    If such a aggregation is not possible, an error is raised unless ``trim``
     set to True, in which case the axis is trimmed (from the end)
     to make it perfectly divisible".
 
@@ -231,11 +231,11 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
         If a single integer value is given, the same window is used for
         all the selected axis.
 
-        If 'window_size` is a 1D array-like,
+        If ``window_size`` is a 1D array-like,
         each element indicates the length of the window that is used
         to aggregate the fields along each axis. In this case,
         the number of elements of 'window_size' must be the same as the elements
-        in the 'axis' argument.
+        in the ``axis`` argument.
     axis : int or array-like of ints
         Axis or axes where to perform the aggregation.
         If this is a tuple of ints, the aggregation is performed over multiple
@@ -245,11 +245,13 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
         to aggregate the values within the window.
         Default to mean operator.
     trim : bool
-         In case that the `data` is not perfectly divisible by `window_size`
-         along the selected axis:
+         In case that the ``data`` is not perfectly divisible by
+         ``window_size`` along the selected axis:
+
          - trim=True: the data will be trimmed (from the end) along that
            axis to make it perfectly divisible.
          - trim=False: a ValueError exception is raised.
+
     Returns
     -------
     new_array : array-like

@@ -68,7 +68,7 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
 
     scales : float or array_like, optional
         Scalar or 1-D array of spatial scales in pixels,
-        required if *name*="FSS".
+        required if ``name="FSS"``.
 
     wavelet : str, optional
         The name of the wavelet function to use in the BMSE.
@@ -124,10 +124,10 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
 
     scales : float or array_like, optional
         Scalar or 1-D array of spatial scales in pixels,
-        required if *name*="FSS".
+        required if ``name="FSS"``.
 
     wavelet : str, optional
-        The name of the wavelet function, required if *name*="BMSE".
+        The name of the wavelet function, required if ``name="BMSE"``.
         Defaults to the Haar wavelet, as described in Casati et al. 2004.
         See the documentation of PyWavelets for a list of available options.
 
@@ -349,7 +349,7 @@ def binary_mse(X_f, X_o, thr, wavelet="haar", return_scales=True):
         One-dimensional array containing the binary MSE for each spatial scale.
 
     scales : list, optional
-        If *return_scales*=True, return the spatial scales in pixels resulting
+        If ``return_scales=True``, return the spatial scales in pixels resulting
         from the wavelet decomposition.
 
     References
@@ -537,7 +537,7 @@ def binary_mse_compute(bmse, return_scales=True):
         One-dimensional array containing the binary MSE for each spatial scale.
 
     scales : list, optional
-        If *return_scales*=True, return the spatial scales in pixels resulting
+        If ``return_scales=True``, return the spatial scales in pixels resulting
         from the wavelet decomposition.
     """
 

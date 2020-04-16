@@ -25,6 +25,10 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
            cartopy_subplot=(1, 1, 1), axis="on", **kwargs):
     """Function to plot a motion field as arrows.
 
+    .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
+    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
+
     Parameters
     ----------
     UV : array-like
@@ -38,24 +42,6 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
-    drawlonlatlines : bool, optional
-        If set to True, draw longitude and latitude lines. Applicable if map is
-        'basemap' or 'cartopy'.
-    basemap_resolution : str, optional
-        The resolution of the basemap, see the documentation of
-        `mpl_toolkits.basemap`_.
-        Applicable if map is 'basemap'.
-    cartopy_scale : {'10m', '50m', '110m'}, optional
-        The scale (resolution) of the map. The available options are '10m',
-        '50m', and '110m'. Applicable if map is 'cartopy'.
-    lw: float, optional
-        Linewidth of the map (administrative boundaries and coastlines).
-    cartopy_subplot : tuple or SubplotSpec_ instance, optional
-        Cartopy subplot. Applicable if map is 'cartopy'.
-    axis : {'off','on'}, optional
-        Whether to turn off or on the x and y axis.
-
-        .. tabularcolumns:: |p{1.5cm}|L|
 
         +----------------+----------------------------------------------------+
         |        Key     |                  Value                             |
@@ -74,10 +60,28 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
         |    y2          | y-coordinate of the upper-right corner of the data |
         |                | raster                                             |
         +----------------+----------------------------------------------------+
-        |    yorigin     | a string specifying the location of the first      |
+        |    yorigin     | location of the first element in the data raster   |
         |                | element in the data raster w.r.t. y-axis:          |
+        |                |                                                    |
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
+
+    drawlonlatlines : bool, optional
+        If set to True, draw longitude and latitude lines. Applicable if map is
+        'basemap' or 'cartopy'.
+    basemap_resolution : str, optional
+        The resolution of the basemap, see the documentation of
+        `mpl_toolkits.basemap`_.
+        Applicable if map is 'basemap'.
+    cartopy_scale : {'10m', '50m', '110m'}, optional
+        The scale (resolution) of the map. The available options are '10m',
+        '50m', and '110m'. Applicable if map is 'cartopy'.
+    lw: float, optional
+        Linewidth of the map (administrative boundaries and coastlines).
+    cartopy_subplot : tuple or SubplotSpec_ instance, optional
+        Cartopy subplot. Applicable if map is 'cartopy'.
+    axis : {'off','on'}, optional
+        Whether to turn off or on the x and y axis.
 
     Other Parameters
     ----------------
@@ -190,6 +194,13 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
                cartopy_subplot=(1, 1, 1), axis="on", **kwargs):
     """Function to plot a motion field as streamlines.
 
+    .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
+
+    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
+
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
+
+
     Parameters
     ----------
     UV : array-like
@@ -197,30 +208,12 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
     ax : axis object
         Optional axis object to use for plotting.
     map : {'basemap', 'cartopy'}, optional
-        Optional method for plotting a map: 'basemap' or 'cartopy'. The former
-        uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
+        Optional method for plotting a map: 'basemap' or 'cartopy'.
+        The former uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
     geodata : dictionary
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
-    drawlonlatlines : bool, optional
-        If set to True, draw longitude and latitude lines. Applicable if map is
-        'basemap' or 'cartopy'.
-    basemap_resolution : str, optional
-        The resolution of the basemap, see the documentation of
-        `mpl_toolkits.basemap`_.
-        Applicable if map is 'basemap'.
-    cartopy_scale : {'10m', '50m', '110m'}, optional
-        The scale (resolution) of the map. The available options are '10m',
-        '50m', and '110m'. Applicable if map is 'cartopy'.
-    lw: float, optional
-        Linewidth of the map (administrative boundaries and coastlines).
-    cartopy_subplot : tuple or SubplotSpec_ instance, optional
-        Cartopy subplot. Applicable if map is 'cartopy'.
-    axis : {'off','on'}, optional
-        Whether to turn off or on the x and y axis.
-
-        .. tabularcolumns:: |p{1.5cm}|L|
 
         +----------------+----------------------------------------------------+
         |        Key     |                  Value                             |
@@ -239,10 +232,30 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
         |    y2          | y-coordinate of the upper-right corner of the data |
         |                | raster                                             |
         +----------------+----------------------------------------------------+
-        |    yorigin     | a string specifying the location of the first      |
+        |    yorigin     | location of the first element in the data raster   |
         |                | element in the data raster w.r.t. y-axis:          |
+        |                |                                                    |
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
+
+    drawlonlatlines : bool, optional
+        If set to True, draw longitude and latitude lines. Applicable if map is
+        'basemap' or 'cartopy'.
+    basemap_resolution : str, optional
+        The resolution of the basemap, see the documentation of
+        `mpl_toolkits.basemap`_.
+        Applicable if map is 'basemap'.
+    cartopy_scale : {'10m', '50m', '110m'}, optional
+        The scale (resolution) of the map. The available options are '10m',
+        '50m', and '110m'. Applicable if map is 'cartopy'.
+    lw: float, optional
+        Linewidth of the map (administrative boundaries and coastlines).
+    cartopy_subplot : tuple or SubplotSpec_ instance, optional
+        Cartopy subplot. Applicable if map is 'cartopy'.
+    axis : {'off','on'}, optional
+        Whether to turn off or on the x and y axis.
+
+
 
     Other Parameters
     ----------------
