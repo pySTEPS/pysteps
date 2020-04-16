@@ -24,9 +24,9 @@ def postprocess_import(fillna=np.nan, dtype='double'):
         - Allow type casting (dtype keyword)
         - Set invalid or missing data to predefined value (fillna keyword)
 
-    This decorators replace the text "{extra_kwargs}" in the function's
+    This decorator replaces the text "{extra_kwargs}" in the function's
     docstring with the documentation of the keywords used in the postprocessing.
-    This additional docstrings are added as a "Other Parameters" section.
+    The additional docstrings are added as "Other Parameters" in the importer function.
 
     Parameters
     ----------
@@ -48,7 +48,7 @@ def postprocess_import(fillna=np.nan, dtype='double'):
             accepted_precisions = ["float32", "float64", "single", "double"]
             if _dtype not in accepted_precisions:
                 raise ValueError(
-                    "The selected precision do not correspond to a valid value."
+                    "The selected precision does not correspond to a valid value."
                     "The accepted values are: " + str(accepted_precisions)
                 )
 
@@ -91,7 +91,7 @@ def check_input_frames(minimum_input_frames=2,
                        just_ndim=False):
     """
     Check that the input_images used as inputs in the optical-flow
-    methods has the correct shape (t, x, y ).
+    methods have the correct shape (t, x, y ).
     """
 
     def _check_input_frames(motion_method_func):
