@@ -204,3 +204,22 @@ def smart_assert(actual_value, expected, tolerance=None):
                                              abs=tolerance,
                                              nan_ok=True,
                                              )
+
+
+def get_invalid_mask(input_array, fillna=np.nan):
+    """
+    The the mask indicating the invalid values.
+
+    If the input array is a MaskedArray, its mask is returned.
+    Otherwise, if returns the mask indicating where the arrays is equal to
+    `fillna`.
+    """
+    if isinstance(input_array, np.ma.MaskedArray):
+        invalid_mask = np.ma.getmaskarray(input_array)
+    else:
+        if fillna is np.nan:
+            invalid_mask = ~np.isfinite(input_array)
+        else:
+            invalid_mask = input_array == fillna
+
+    return invalid_mask
