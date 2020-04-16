@@ -51,6 +51,9 @@ def get_precipitation_fields(num_prev_files=0,
     Source: saf
     Reference time: 2018/06/01 0700 UTC
 
+    Source: mrms
+    Reference time: 2019/06/10 0000 UTC
+
     Parameters
     ----------
 
@@ -77,7 +80,7 @@ def get_precipitation_fields(num_prev_files=0,
         If it is a float, represents the length of the space window that is
         used to upscale the fields.
 
-    source: {"bom", "fmi" , "knmi", "mch", "opera", "saf"}, optional
+    source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
         Name of the data source to be used.
 
     Returns
