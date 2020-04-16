@@ -23,13 +23,13 @@ _reference_dates["saf"] = datetime(2018, 6, 1, 7, 0)
 _reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
 
 
-
 def get_precipitation_fields(num_prev_files=0,
                              num_next_files=0,
                              return_raw=False,
                              metadata=False,
                              upscale=None,
-                             source="mch"):
+                             source="mch",
+                             **importer_kwargs):
     """
     Get a precipitation field from the archive to be used as reference.
 
@@ -83,6 +83,12 @@ def get_precipitation_fields(num_prev_files=0,
     source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
         Name of the data source to be used.
 
+    Other Parameters
+    ----------------
+
+    importer_kwargs : dict
+        Additional keyword arguments passed to the importer.
+
     Returns
     -------
     reference_field : array
@@ -126,7 +132,8 @@ def get_precipitation_fields(num_prev_files=0,
     fn_pattern = data_source["fn_pattern"]
     fn_ext = data_source["fn_ext"]
     importer_name = data_source["importer"]
-    importer_kwargs = data_source["importer_kwargs"]
+    _importer_kwargs = data_source["importer_kwargs"].copy()
+    _importer_kwargs.update(**importer_kwargs)
     timestep = data_source["timestep"]
 
     # Find the input files from the archive
@@ -141,8 +148,9 @@ def get_precipitation_fields(num_prev_files=0,
 
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
+
     reference_field, __, ref_metadata = io.read_timeseries(fns, importer,
-                                                           **importer_kwargs)
+                                                           **_importer_kwargs)
 
     if not return_raw:
 
