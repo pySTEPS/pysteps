@@ -10,7 +10,6 @@ import sys
 import json
 from jsmin import jsmin
 
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -30,7 +29,6 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
-              'sphinx.ext.githubpages',
               'numpydoc',
               'sphinxcontrib.bibtex',
               'sphinx_gallery.gen_gallery',
@@ -52,7 +50,8 @@ master_doc = 'index'
 project = u'pysteps'
 copyright = u'2020, PySteps developers'
 author = u'PySteps developers'
-  
+
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
@@ -95,6 +94,7 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
+
 # -- Read the Docs build --------------------------------------------------
 
 def set_root():
@@ -103,8 +103,6 @@ def set_root():
         rcparams = json.loads(jsmin(f.read()))
 
     for key, value in rcparams["data_sources"].items():
-        original_path = value["root_path"]
-
         new_path = os.path.join("..", "..", "pysteps-data", value["root_path"])
         new_path = os.path.abspath(new_path)
 
@@ -113,6 +111,7 @@ def set_root():
     fn = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
     with open(fn, "w") as f:
         json.dump(rcparams, f, indent=4)
+
 
 if 'READTHEDOCS' in os.environ:
     repourl = "https://github.com/pySTEPS/pysteps-data.git"
@@ -234,7 +233,7 @@ texinfo_documents = [
 # The configuration dictionary for Sphinx-Gallery
 
 sphinx_gallery_conf = {
-     'examples_dirs': '../../examples',   # path to your example scripts
-     'gallery_dirs': 'auto_examples',  # path where to save gallery generated examples
-     'filename_pattern': '/*', # Include all the files in the examples dir
+    'examples_dirs': '../../examples',  # path to your example scripts
+    'gallery_dirs': 'auto_examples',  # path where to save gallery generated examples
+    'filename_pattern': '/*',  # Include all the files in the examples dir
 }

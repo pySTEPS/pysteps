@@ -34,7 +34,7 @@ following key-value pairs:
 +-------------------+----------------------------------------------------------+
 
 The following key-value pairs are optional. They are included in the output if
-**kwargs contains the "compute_stats" key with value set to True:
+``kwargs`` contains the "compute_stats" key with value set to True:
 
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
@@ -44,8 +44,9 @@ The following key-value pairs are optional. They are included in the output if
 |  stds             | list of standard deviations for each cascade level       |
 +-------------------+----------------------------------------------------------+
 
-The following key-value pairs are included in the output if **kwargs contains
+The following key-value pairs are included in the output if ``kwargs`` contains
 the key "output_domain" with value set to "spectral":
+
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
 +===================+==========================================================+

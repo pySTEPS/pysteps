@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.io.importers
 ====================
@@ -251,9 +252,9 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     extent: None or array-like
         Longitude and latitude range (in degrees) of the data to be retrieved.
         (min_lon, max_lon, min_lat, max_lat).
-         By default (None), the entire domain is retrieved.
-         The extent can be in any form that can be converted to a flat array
-         of 4 elements array (e.g., lists or tuples).
+        By default (None), the entire domain is retrieved.
+        The extent can be in any form that can be converted to a flat array
+        of 4 elements array (e.g., lists or tuples).
     window_size : array_like or int
         Array containing down-sampling integer factor along each axis.
         If an integer value is given, the same block shape is used for all the
