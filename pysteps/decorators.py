@@ -8,6 +8,7 @@ the behavior of some functions in pysteps.
 .. autosummary::
     :toctree: ../generated/
 
+    postprocess_import
     check_motion_input_image
 """
 import inspect
