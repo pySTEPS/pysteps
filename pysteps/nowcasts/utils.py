@@ -10,7 +10,6 @@ Module with common utilities used by nowcasts methods.
     print_ar_params
     print_corrcoefs
     stack_cascades
-    recompose_cascade
 """
 
 import numpy as np

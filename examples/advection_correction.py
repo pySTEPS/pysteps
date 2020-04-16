@@ -156,4 +156,4 @@ pl.show()
 # Anagnostou, E. N., and W. F. Krajewski. 1999. "Real-Time Radar Rainfall
 # Estimation. Part I: Algorithm Formulation." Journal of Atmospheric and
 # Oceanic Technology 16: 189–97.
-# `https://doi.org/10.1175/1520-0426(1999)016<0189:RTRREP>2.0.CO;2 <https://doi.org/10.1175/1520-0426(1999)016<0189:RTRREP>2.0.CO;2>`_
+# https://doi.org/10.1175/1520-0426(1999)016<0189:RTRREP>2.0.CO;2

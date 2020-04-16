@@ -25,6 +25,10 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
            cartopy_subplot=(1, 1, 1), axis="on", **kwargs):
     """Function to plot a motion field as arrows.
 
+    .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
+    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
+
     Parameters
     ----------
     UV : array-like
@@ -189,6 +193,12 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
                basemap_resolution='l', cartopy_scale="50m", lw=0.5,
                cartopy_subplot=(1, 1, 1), axis="on", **kwargs):
     """Function to plot a motion field as streamlines.
+
+    .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
+
+    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
+
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
 
     Parameters
     ----------
