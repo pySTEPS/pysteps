@@ -59,8 +59,10 @@ uploaded manually from the **Test PyPI** page.
 If Twine is not installed, you can install it by running
 ``pip install twine`` or ``conda install twine``.
 
+
 Test PyPI
 ^^^^^^^^^
+
 To upload the recently created source distribution
 (**dist/pysteps-a.b.c.tar.gz**) under the **dist** directory run::
 
@@ -111,6 +113,7 @@ To manually test the installation on new environment,
 create a copy of the basic development environment using the
 `environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
 file in the root folder of the pysteps project::
+
     conda env create -f environment_dev.yml -n pysteps_test
 
 Then we activate the environment::
@@ -162,7 +165,7 @@ installed from the Official PyPi repository
 Automatic test
 ^^^^^^^^^^^^^^
 
-Similarly to the :ref:`Test the uploaded package` section, to test the
+Similarly to the `Test the uploaded package`_ section, to test the
 installation from PyPI in a clean environment, run::
 
     tox -r -e pypi
@@ -170,5 +173,5 @@ installation from PyPI in a clean environment, run::
 Manual test
 ^^^^^^^^^^^
 
-Follow test instructions in :ref:`Test PyPI` section.
+Follow test instructions in `Test PyPI`_ section.
 
