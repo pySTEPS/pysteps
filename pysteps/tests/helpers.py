@@ -94,8 +94,6 @@ def get_precipitation_fields(num_prev_files=0,
     reference_field : array
 
     metadata : dict
-
-
     """
 
     if source == "bom":
@@ -202,17 +200,16 @@ def smart_assert(actual_value, expected, tolerance=None):
         assert actual_value == pytest.approx(expected,
                                              rel=tolerance,
                                              abs=tolerance,
-                                             nan_ok=True,
-                                             )
+                                             nan_ok=True)
 
 
 def get_invalid_mask(input_array, fillna=np.nan):
     """
-    The the mask indicating the invalid values.
+    Return a bool array indicating the invalid values in ``input_array``.
 
     If the input array is a MaskedArray, its mask will be returned.
-    Otherwise, it returns the mask indicating where the arrays is equal to
-    `fillna`.
+    Otherwise, it returns an array with the ``input_array == fillna``
+    element-wise comparison.
     """
     if isinstance(input_array, np.ma.MaskedArray):
         invalid_mask = np.ma.getmaskarray(input_array)
