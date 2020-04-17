@@ -210,8 +210,8 @@ def get_invalid_mask(input_array, fillna=np.nan):
     """
     The the mask indicating the invalid values.
 
-    If the input array is a MaskedArray, its mask is returned.
-    Otherwise, if returns the mask indicating where the arrays is equal to
+    If the input array is a MaskedArray, its mask will be returned.
+    Otherwise, it returns the mask indicating where the arrays is equal to
     `fillna`.
     """
     if isinstance(input_array, np.ma.MaskedArray):
