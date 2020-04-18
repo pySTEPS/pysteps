@@ -22,7 +22,7 @@ def rbfinterp2d(
     xgrid,
     ygrid,
     rbfunction="gaussian",
-    epsilon=5,
+    epsilon=10,
     k=50,
     nchunks=5,
 ):
