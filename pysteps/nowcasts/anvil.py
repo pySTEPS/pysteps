@@ -6,7 +6,7 @@ Implementation of the autoregressive nowcasting using VIL (ANVIL) nowcasting
 method developed in :cite:`PCHL2020`. ANVIL is an extension of S-PROG. The
 main improvements are using an autoregressive integrated (ARI) model and
 vertically integrated liquid (VIL) as the input variable. In addition, the ARI
-model implements localization of the parameter estimates.
+model allows localization of the parameter estimates.
 
 .. autosummary::
     :toctree: ../generated/
@@ -81,7 +81,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     filter_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the filter method.
         See the documentation of pysteps.cascade.bandpass_filters.py.
-    measure_time : bool
+    measure_time : bool, optional
         If True, measure, print and return the computation time.
 
     Returns
