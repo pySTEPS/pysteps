@@ -154,7 +154,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     vil = vil.copy()
 
     if rainrate is not None:
-        r_vil_a, r_vil_b = _R_VIL_regression(vil[-1, :], rainrate, r_vil_window_radius)
+        r_vil_a, r_vil_b = _r_vil_regression(vil[-1, :], rainrate, r_vil_window_radius)
 
     extrapolator = extrapolation.get_method(extrap_method)
 
@@ -325,7 +325,7 @@ def _moving_window_corrcoef(x, y, window_radius):
     return corr
 
 
-def _R_VIL_regression(vil, r, window_radius):
+def _r_vil_regression(vil, r, window_radius):
     vil = vil.copy()
     vil[~np.isfinite(vil)] = 0.0
 
