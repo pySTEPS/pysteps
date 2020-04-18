@@ -3,7 +3,10 @@ pysteps.nowcasts.anvil
 ======================
 
 Implementation of the autoregressive nowcasting using VIL (ANVIL) nowcasting
-method developed in :cite:`PCHL2020`.
+method developed in :cite:`PCHL2020`. ANVIL is an extension of S-PROG. The
+main improvements are using an autoregressive integrated (ARI) model and
+vertically integrated liquid (VIL) as the input variable. In addition, the ARI
+model implements localization of the parameter estimates.
 
 .. autosummary::
     :toctree: ../generated/
@@ -31,13 +34,12 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
              extrap_method="semilagrangian", ar_order=2, ar_window_radius=50,
              r_vil_window_radius=5, fft_method="numpy", num_workers=1,
              extrap_kwargs=None, filter_kwargs=None, measure_time=False):
-    """Generate a nowcast by using the autoregressive nowcasting using VIL
-    (ANVIL) method. VIL is acronym for vertically integrated liquid.
+    """Generate a nowcast by using the ANVIL method.
 
     Parameters
     ----------
     vil : array_like
-        Array of shape (ar_order+2,m,n) containing the input vil fields ordered
+        Array of shape (ar_order+2,m,n) containing the input VIL fields ordered
         by timestamp from oldest to newest. The time steps between the inputs
         are assumed to be regular.
     rainrate : array_like
@@ -49,7 +51,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         advection field. The velocities are assumed to represent one time step
         between the inputs. All values are required to be finite.
     n_timesteps : int
-       Number of time steps to forecast.
+        Number of time steps to forecast.
     n_cascade_levels : int, optional
         The number of cascade levels to use.
     extrap_method : str, optional
@@ -69,7 +71,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         the recommended method is 'pyfftw'.
     num_workers : int, optional
         The number of workers to use for parallel computation. Applicable if
-        dask is enabled or pyFFTW is used for computing the FFT.
+        dask is installed or pyFFTW is used for computing the FFT.
         When num_workers>1, it is advisable to disable OpenMP by setting
         the environment variable OMP_NUM_THREADS to 1.
         This avoids slowdown caused by too many simultaneous threads.
