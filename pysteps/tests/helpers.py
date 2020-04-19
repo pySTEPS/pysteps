@@ -23,13 +23,13 @@ _reference_dates["saf"] = datetime(2018, 6, 1, 7, 0)
 _reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
 
 
-
 def get_precipitation_fields(num_prev_files=0,
                              num_next_files=0,
                              return_raw=False,
                              metadata=False,
                              upscale=None,
-                             source="mch"):
+                             source="mch",
+                             **importer_kwargs):
     """
     Get a precipitation field from the archive to be used as reference.
 
@@ -50,6 +50,9 @@ def get_precipitation_fields(num_prev_files=0,
 
     Source: saf
     Reference time: 2018/06/01 0700 UTC
+
+    Source: mrms
+    Reference time: 2019/06/10 0000 UTC
 
     Parameters
     ----------
@@ -77,16 +80,20 @@ def get_precipitation_fields(num_prev_files=0,
         If it is a float, represents the length of the space window that is
         used to upscale the fields.
 
-    source: {"bom", "fmi" , "knmi", "mch", "opera", "saf"}, optional
+    source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
         Name of the data source to be used.
+
+    Other Parameters
+    ----------------
+
+    importer_kwargs : dict
+        Additional keyword arguments passed to the importer.
 
     Returns
     -------
     reference_field : array
 
     metadata : dict
-
-
     """
 
     if source == "bom":
@@ -123,7 +130,8 @@ def get_precipitation_fields(num_prev_files=0,
     fn_pattern = data_source["fn_pattern"]
     fn_ext = data_source["fn_ext"]
     importer_name = data_source["importer"]
-    importer_kwargs = data_source["importer_kwargs"]
+    _importer_kwargs = data_source["importer_kwargs"].copy()
+    _importer_kwargs.update(**importer_kwargs)
     timestep = data_source["timestep"]
 
     # Find the input files from the archive
@@ -138,8 +146,9 @@ def get_precipitation_fields(num_prev_files=0,
 
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
+
     reference_field, __, ref_metadata = io.read_timeseries(fns, importer,
-                                                           **importer_kwargs)
+                                                           **_importer_kwargs)
 
     if not return_raw:
 
@@ -191,5 +200,23 @@ def smart_assert(actual_value, expected, tolerance=None):
         assert actual_value == pytest.approx(expected,
                                              rel=tolerance,
                                              abs=tolerance,
-                                             nan_ok=True,
-                                             )
+                                             nan_ok=True)
+
+
+def get_invalid_mask(input_array, fillna=np.nan):
+    """
+    Return a bool array indicating the invalid values in ``input_array``.
+
+    If the input array is a MaskedArray, its mask will be returned.
+    Otherwise, it returns an array with the ``input_array == fillna``
+    element-wise comparison.
+    """
+    if isinstance(input_array, np.ma.MaskedArray):
+        invalid_mask = np.ma.getmaskarray(input_array)
+    else:
+        if fillna is np.nan:
+            invalid_mask = ~np.isfinite(input_array)
+        else:
+            invalid_mask = input_array == fillna
+
+    return invalid_mask
