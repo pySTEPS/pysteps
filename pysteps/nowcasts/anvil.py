@@ -71,8 +71,8 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         pysteps.extrapolation.interface.
     ar_order : int, optional
         The order of the autoregressive model to use. The recommended values
-        are 1 or 2. Using a higher-order ARI model is strongly discouraged
-        because the stationarity of the AR process cannot be guaranteed.
+        are 1 or 2. Using a higher-order model is strongly discouraged because
+        the stationarity of the AR process cannot be guaranteed.
     ar_window_radius : int, optional
         The radius of the window to use for determining the parameters of the
         autoregressive model.
