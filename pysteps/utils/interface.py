@@ -179,7 +179,7 @@ def get_method(name, **kwargs):
     methods_objects["upscale"] = dimension.aggregate_fields_space
 
     # image processing methods
-    methods_objects["shitomasi"] = images.shi_tomasi_detection
+    methods_objects["shitomasi"] = images.shitomasi_detection
     methods_objects["morph_opening"] = images.morph_opening
 
     # interpolation methods

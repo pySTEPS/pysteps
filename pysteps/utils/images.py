@@ -12,7 +12,7 @@ Image processing routines for pysteps.
 .. autosummary::
     :toctree: ../generated/
 
-    shi_tomasi_detection
+    shitomasi_detection
     morph_opening
 """
 
@@ -29,7 +29,7 @@ except ImportError:
     CV2_IMPORTED = False
 
 
-def shi_tomasi_detection(input_image,
+def shitomasi_detection(input_image,
                         max_corners=1000,
                         quality_level=0.01,
                         min_distance=10,
