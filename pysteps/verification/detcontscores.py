@@ -299,7 +299,7 @@ def det_cont_fct_accum(err, pred, obs):
     References
     ----------
 
-    Chan, Tony field.; Golub, Gene H.; LeVeque, Randall J. (1979), "Updating
+    Chan, Tony F.; Golub, Gene H.; LeVeque, Randall J. (1979), "Updating
     Formulae and a Pairwise Algorithm for Computing Sample Variances.",
     Technical Report STAN-CS-79-773, Department of Computer Science,
     Stanford University.
