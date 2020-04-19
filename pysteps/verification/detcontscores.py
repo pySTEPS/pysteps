@@ -139,7 +139,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
 
     # catch case of single score passed as string
     def get_iterable(x):
-        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+        if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
             return x
         else:
             return (x,)
@@ -257,7 +257,7 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
     # catch case of axis passed as integer
     def get_iterable(x):
         if x is None or (
-            isinstance(x, collections.Iterable) and not isinstance(x, int)
+            isinstance(x, collections.abc.Iterable) and not isinstance(x, int)
         ):
             return x
         else:
@@ -561,7 +561,7 @@ def det_cont_fct_compute(err, scores=""):
 
     # catch case of single score passed as string
     def get_iterable(x):
-        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+        if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
             return x
         else:
             return (x,)
@@ -694,7 +694,7 @@ def _scatter(pred, obs, axis=None):
     # catch case of axis passed as integer
     def get_iterable(x):
         if x is None or (
-            isinstance(x, collections.Iterable) and not isinstance(x, int)
+            isinstance(x, collections.abc.Iterable) and not isinstance(x, int)
         ):
             return x
         else:
@@ -748,7 +748,7 @@ def _spearmanr(pred, obs, axis=None):
     # catch case of axis passed as integer
     def get_iterable(x):
         if x is None or (
-            isinstance(x, collections.Iterable) and not isinstance(x, int)
+            isinstance(x, collections.abc.Iterable) and not isinstance(x, int)
         ):
             return x
         else:
