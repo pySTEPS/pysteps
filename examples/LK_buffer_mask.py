@@ -142,9 +142,9 @@ plt.show()
 # Note that by default ``dense_lucaskanade`` uses a 5-pixel buffer.
 
 # with buffer
-buffer = 5
+buffer = 10
 fd_kwargs2 = {"buffer_mask" : buffer}
-xy, uv = LK_optflow(R, dense=False, fd_kwargs=fd_kwargs2)
+xy, uv = dense_lucaskanade(R, dense=False, fd_kwargs=fd_kwargs2)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(
@@ -175,8 +175,8 @@ plt.show()
 # interpolation routine. This will produce a smoother motion field.
 
 interp_kwargs = {"epsilon" : 5} # use a small shape parameter for interpolation
-UV1 = LK_optflow(R, dense=True, fd_kwargs=fd_kwargs1, interp_kwargs=interp_kwargs)
-UV2 = LK_optflow(R, dense=True, fd_kwargs=fd_kwargs2, interp_kwargs=interp_kwargs)
+UV1 = dense_lucaskanade(R, dense=True, fd_kwargs=fd_kwargs1, interp_kwargs=interp_kwargs)
+UV2 = dense_lucaskanade(R, dense=True, fd_kwargs=fd_kwargs2, interp_kwargs=interp_kwargs)
 
 V1 = np.sqrt(UV1[0] ** 2 + UV1[1] ** 2)
 V2 = np.sqrt(UV2[0] ** 2 + UV2[1] ** 2)
