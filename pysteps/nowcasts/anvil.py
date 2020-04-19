@@ -235,7 +235,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         elif ar_order == 2:
             phi_ = _estimate_ar2_params(gamma[i, :])
         else:
-            pass
+            phi_ = _estimate_ar1_params(gamma[i, :])
         phi.append(phi_)
 
     vil_dec = vil_dec[:, -3:, :]
