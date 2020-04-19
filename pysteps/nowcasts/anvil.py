@@ -34,14 +34,27 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
              extrap_method="semilagrangian", ar_order=2, ar_window_radius=50,
              r_vil_window_radius=5, fft_method="numpy", num_workers=1,
              extrap_kwargs=None, filter_kwargs=None, measure_time=False):
-    """Generate a nowcast by using the ANVIL method.
+    """Generate a nowcast by using the autoregressive nowcasting using VIL
+    (ANVIL) method. The key features of ANVIL are:
+
+    1) Extrapolation-based nowcast.
+    2) Additional growth and decay model. Implemented by using cascade
+       decomposition and multiscale autoregressive integrated ARI(p,1) model.
+       Instead of the original time series, the ARI model is applied to the
+       differenced one corresponding to time derivatives.
+    4) Originally designed for using integrated liquid (VIL) as the input data.
+       In this case, the rain rate (R) is obtained from VIL via an empirical
+       relation. This implementation is more general so that the input can be
+       any two-dimensional precipitation field.
+    3) The parameters of the ARI model and the R(VIL) relation are allowed to
+       be spatially variable. The estimation is done using a moving window.
 
     Parameters
     ----------
     vil : array_like
-        Array of shape (ar_order+2,m,n) containing the input VIL fields ordered
-        by timestamp from oldest to newest. The time steps between the inputs
-        are assumed to be regular.
+        Array of shape (ar_order+2,m,n) containing the input fields ordered by
+        timestamp from oldest to newest. The time steps between the inputs are
+        assumed to be regular.
     rainrate : array_like
         Array of shape (m,n) containing the most recently observed rain rate
         field. If set to None, the vil array is assumed to contain rain rates
@@ -97,12 +110,6 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     References
     ----------
     :cite:`PCHL2020`
-
-    Notes
-    -----
-    The original ANVIL method developed in :cite:`PCHL2020` uses VIL as the
-    input quantity. The forecast model is, however, more general and can take
-    any two-dimensional input field.
     """
     if len(vil.shape) != 3:
         raise ValueError("vil.shape = %s, but a three-dimensional array expected" % str(vil.shape))
@@ -154,12 +161,15 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     vil = vil.copy()
 
     if rainrate is not None:
+        # determine the coefficients fields of the relation R=a*VIL+b by
+        # localized linear regression
         r_vil_a, r_vil_b = _r_vil_regression(vil[-1, :], rainrate, r_vil_window_radius)
 
     extrapolator = extrapolation.get_method(extrap_method)
 
     res = list()
 
+    # transform the input fields to Lagrangian coordinates by extrapolation
     def worker(vil, i):
         return i, extrapolator(vil[i, :], velocity, vil.shape[0]-1-i,
                                allow_nonfinite_values=True, **extrap_kwargs)[-1]
@@ -176,10 +186,13 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         for i in range(len(vil_e)):
             vil[vil_e[i][0], :] = vil_e[i][1]
 
+    # compute the final mask as the intersection of the masks of the advected
+    # fields
     mask = np.isfinite(vil[0, :])
     for i in range(1, vil.shape[0]):
         mask = np.logical_and(mask, np.isfinite(vil[i, :]))
 
+    # apply cascade decomposition to the advected input fields
     bp_filter_method = cascade.get_method("gaussian")
     bp_filter = bp_filter_method((m, n), n_cascade_levels, **filter_kwargs)
 
@@ -196,6 +209,8 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         for j in range(n_cascade_levels):
             vil_dec[j, i, :] = vil_dec_i["cascade_levels"][j, :]
 
+    # compute time-lagged correlation coefficients of the advected and
+    # differenced input fields, one set of coefficients for each cascade level
     gamma = np.empty((n_cascade_levels, ar_order, m, n))
     for i in range(n_cascade_levels):
         vil_diff = np.diff(vil_dec[i, :], axis=0)
@@ -206,10 +221,13 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
                                                      ar_window_radius)
 
     if ar_order == 2:
+        # if the order of the ARI model is 2, adjust the correlation coefficients
+        # so that the resulting ARI process is stationary
         for i in range(n_cascade_levels):
             gamma[i, 1, :] = autoregression.adjust_lag2_corrcoef2(gamma[i, 0, :],
                                                                   gamma[i, 1, :])
 
+    # estimate the parameters of the ARI models
     phi = []
     for i in range(n_cascade_levels):
         if ar_order > 2:
@@ -239,9 +257,11 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         if measure_time:
             starttime = time.time()
 
+        # iterate the ARI models for each cascade level
         for i in range(n_cascade_levels):
             vil_dec[i, :] = autoregression.iterate_ar_model(vil_dec[i, :], phi[i])
 
+        # recompose the cascade to obtain the forecast field
         vil_dec_dict = {}
         vil_dec_dict["cascade_levels"] = vil_dec[:, -1, :]
         vil_dec_dict["domain"] = "spatial"
@@ -250,10 +270,12 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         vil_f[~mask] = np.nan
 
         if rainrate is not None:
+            # convert VIL to rain rate
             r_f_ = r_vil_a * vil_f + r_vil_b
         else:
             r_f_ = vil_f
 
+        # extrapolate to the current nowcast lead time
         extrap_kwargs.update({"D_prev": dp, "return_displacement": True,
                               "allow_nonfinite_values": True})
         r_f_, dp = extrapolator(r_f_, velocity, 1, **extrap_kwargs)
@@ -274,6 +296,8 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         return np.stack(r_f)
 
 
+# optimized version of timeseries.autoregression.estimate_ar_params_yw_localized
+# for an ARI(1,1) model
 def _estimate_ar1_params(gamma):
     phi = []
     phi.append(1 + gamma[0, :])
@@ -283,6 +307,8 @@ def _estimate_ar1_params(gamma):
     return phi
 
 
+# optimized version of timeseries.autoregression.estimate_ar_params_yw_localized
+# for an ARI(2,1) model
 def _estimate_ar2_params(gamma):
     phi_diff = []
     phi_diff.append(gamma[0, :] * (1 - gamma[1, :]) / (1 - gamma[0, :]*gamma[0, :]))
@@ -297,6 +323,10 @@ def _estimate_ar2_params(gamma):
     return phi
 
 
+# Computation of time-lagged correlation coefficients in a moving window with
+# a Gaussian weight function. Differently to the standard formula for the
+# Pearson correlation coefficient, the mean value of the inputs is assumed to
+# be zero.
 def _moving_window_corrcoef(x, y, window_radius):
     mask = np.logical_and(np.isfinite(x), np.isfinite(y))
     x = x.copy()
@@ -325,6 +355,12 @@ def _moving_window_corrcoef(x, y, window_radius):
     return corr
 
 
+# Determine the coefficients of the regression R=a*VIL+b.
+# The parameters a and b are estimated in a localized fashion for each pixel
+# in the input grid. This is done using a window specified by window_radius.
+# Zero and non-finite values are not included. In addition, the regression is
+# done by using a Gaussian weight function depending on the distance to the
+# current grid point.
 def _r_vil_regression(vil, r, window_radius):
     vil = vil.copy()
     vil[~np.isfinite(vil)] = 0.0
