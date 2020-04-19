@@ -97,22 +97,22 @@ plt.show()
 # Sparse Lucas-Kanade
 # -------------------
 #
-# By setting the optional argument 'dense=False' in 'xy, uv = LK_optflow(.....)',
+# By setting the optional argument ``dense=False`` in ``xy, uv = dense_lucaskanade(...)``,
 # the LK algorithm returns the motion vectors detected by the Lucas-Kanade scheme
 # without interpolating them on the grid.
 # This allows us to better identify the presence of wrongly detected
 # stationary motion in areas where precipitation is leaving the domain (look
 # for the red dots within the blue circle in the figure below).
 
-# get Lucas-Kanade optical flow method
-LK_optflow = motion.get_method("LK")
+# Get Lucas-Kanade optical flow method
+dense_lucaskanade = motion.get_method("LK")
 
 # Mask invalid values
 R = np.ma.masked_invalid(R)
 
-# Use default settings (i.e., no buffering of the radar mask)
-fd_kwargs1 = {"buffer_mask":0}
-xy, uv = LK_optflow(R, dense=False, fd_kwargs=fd_kwargs1)
+# Use no buffering of the radar mask
+fd_kwargs1 = {"buffer_mask" : 0}
+xy, uv = dense_lucaskanade(R, dense=False, fd_kwargs=fd_kwargs1)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(
@@ -127,22 +127,23 @@ plt.quiver(
 )
 circle = plt.Circle((620, 245), 100, color="b", clip_on=False, fill=False)
 plt.gca().add_artist(circle)
-plt.title("buffer_mask = 0 (default)")
+plt.title("buffer_mask = 0")
 plt.show()
 
 ################################################################################
-# By default, the LK algorithm considers missing values as no precipitation, i.e.,
+# The LK algorithm cannot distinguish missing values from no precipitation, that is,
 # no-data are the same as no-echoes. As a result, the fixed boundaries produced
 # by precipitation in contact with no-data areas are interpreted as stationary motion.
 # One way to mitigate this effect of the boundaries is to introduce a slight buffer
 # of the no-data mask so that the algorithm will ignore all the portions of the
 # radar domain that are nearby no-data areas.
-# This is achieved by passing the keyword argument 'buffer_mask = 10' within the
-# feature detection optional arguments 'fd_kwargs'.
+# This buffer can be set by the keyword argument ``buffer_mask`` within the
+# feature detection optional arguments ``fd_kwargs``.
+# Note that by default ``dense_lucaskanade`` uses a 5-pixel buffer.
 
 # with buffer
-buffer = 10
-fd_kwargs2 = {"buffer_mask":buffer}
+buffer = 5
+fd_kwargs2 = {"buffer_mask" : buffer}
 xy, uv = LK_optflow(R, dense=False, fd_kwargs=fd_kwargs2)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
@@ -166,13 +167,16 @@ plt.show()
 # ------------------
 #
 # The above displacement vectors produced by the Lucas-Kanade method are now
-# interpolated to produce a full field of motion (i.e., 'dense=True').
+# interpolated to produce a full field of motion (i.e., ``dense=True``).
 # By comparing the velocity of the motion fields, we can easily notice
 # the negative bias that is introduced by the the erroneous interpretation of
 # velocities near the maximum range of the radars.
+# Please note that we are setting a small shape parameter ``epsilon`` for the
+# interpolation routine. This will produce a smoother motion field.
 
-UV1 = LK_optflow(R, dense=True, fd_kwargs=fd_kwargs1)
-UV2 = LK_optflow(R, dense=True, fd_kwargs=fd_kwargs2)
+interp_kwargs = {"epsilon" : 5} # use a small shape parameter for interpolation
+UV1 = LK_optflow(R, dense=True, fd_kwargs=fd_kwargs1, interp_kwargs=interp_kwargs)
+UV2 = LK_optflow(R, dense=True, fd_kwargs=fd_kwargs2, interp_kwargs=interp_kwargs)
 
 V1 = np.sqrt(UV1[0] ** 2 + UV1[1] ** 2)
 V2 = np.sqrt(UV2[0] ** 2 + UV2[1] ** 2)
@@ -183,8 +187,8 @@ plt.title("Relative difference in motion speed")
 plt.show()
 
 ################################################################################
-# Notice that the default motion field can be significantly slower (more than 10%
-# slower) because of the presence of wrong stationary motion vectors at the edges.
+# Notice how the presence of erroneous velocity vectors produces a significantly
+# slower motion field near the right edge of the domain.
 #
 # Forecast skill
 # --------------
@@ -192,7 +196,7 @@ plt.show()
 # We are now going to evaluate the benefit of buffering the radar mask by computing
 # the forecast skill in terms of the Spearman correlation coefficient.
 # The extrapolation forecasts are computed using the dense UV motion fields
-# estimted above.
+# estimated above.
 
 # Get the advection routine and extrapolate the last radar frame by 12 time steps
 # (i.e., 1 hour lead time)
