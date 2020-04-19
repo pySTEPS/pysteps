@@ -57,8 +57,8 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         assumed to be regular.
     rainrate : array_like
         Array of shape (m,n) containing the most recently observed rain rate
-        field. If set to None, the vil array is assumed to contain rain rates
-        and no R(VIL) conversion is done.
+        field. If set to None, no R(VIL) conversion is done and the outputs
+        are in the same units as the inputs.
     velocity : array_like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
@@ -71,7 +71,9 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
     ar_order : int, optional
-        The order of the autoregressive model to use.
+        The order of the autoregressive model to use. The recommended values
+        are 1 or 2. Using a higher-order ARI model is strongly discouraged
+        because the stationarity of the AR process cannot be guaranteed.
     ar_window_radius : int, optional
         The radius of the window to use for determining the parameters of the
         autoregressive model.
@@ -165,11 +167,10 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         # localized linear regression
         r_vil_a, r_vil_b = _r_vil_regression(vil[-1, :], rainrate, r_vil_window_radius)
 
+    # transform the input fields to Lagrangian coordinates by extrapolation
     extrapolator = extrapolation.get_method(extrap_method)
-
     res = list()
 
-    # transform the input fields to Lagrangian coordinates by extrapolation
     def worker(vil, i):
         return i, extrapolator(vil[i, :], velocity, vil.shape[0]-1-i,
                                allow_nonfinite_values=True, **extrap_kwargs)[-1]
@@ -209,8 +210,8 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         for j in range(n_cascade_levels):
             vil_dec[j, i, :] = vil_dec_i["cascade_levels"][j, :]
 
-    # compute time-lagged correlation coefficients of the advected and
-    # differenced input fields, one set of coefficients for each cascade level
+    # compute time-lagged correlation coefficients for the cascade levels of
+    # the advected and differenced input fields
     gamma = np.empty((n_cascade_levels, ar_order, m, n))
     for i in range(n_cascade_levels):
         vil_diff = np.diff(vil_dec[i, :], axis=0)
@@ -222,7 +223,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
 
     if ar_order == 2:
         # if the order of the ARI model is 2, adjust the correlation coefficients
-        # so that the resulting ARI process is stationary
+        # so that the resulting process is stationary
         for i in range(n_cascade_levels):
             gamma[i, 1, :] = autoregression.adjust_lag2_corrcoef2(gamma[i, 0, :],
                                                                   gamma[i, 1, :])
@@ -323,10 +324,10 @@ def _estimate_ar2_params(gamma):
     return phi
 
 
-# Computation of time-lagged correlation coefficients in a moving window with
-# a Gaussian weight function. Differently to the standard formula for the
-# Pearson correlation coefficient, the mean value of the inputs is assumed to
-# be zero.
+# Compute correlation coefficients of two 2d fields in a moving window with
+# a Gaussian weight function. See Section II.G of PCLH2020. Differently to the
+# standard formula for the Pearson correlation coefficient, the mean value of
+# the inputs is assumed to be zero.
 def _moving_window_corrcoef(x, y, window_radius):
     mask = np.logical_and(np.isfinite(x), np.isfinite(y))
     x = x.copy()
@@ -356,6 +357,7 @@ def _moving_window_corrcoef(x, y, window_radius):
 
 
 # Determine the coefficients of the regression R=a*VIL+b.
+# See Section II.G of PCLH2020.
 # The parameters a and b are estimated in a localized fashion for each pixel
 # in the input grid. This is done using a window specified by window_radius.
 # Zero and non-finite values are not included. In addition, the regression is

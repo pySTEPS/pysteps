@@ -54,7 +54,7 @@ def get_method(name):
     |     Name        |              Description                              |
     +=================+=======================================================+
     |  anvil          | the autoregressive nowcasting using VIL (ANVIL)       |
-    |                 | nowcasting method developed in :cite:`PCHL2020`       |
+    |                 | nowcasting method developed in :cite:`PCLH2020`       |
     +-----------------+-------------------------------------------------------+
     |  eulerian       | this approach keeps the last observation frozen       |
     |                 | (Eulerian persistence)                                |
