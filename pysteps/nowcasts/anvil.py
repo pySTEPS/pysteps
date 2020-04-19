@@ -3,7 +3,7 @@ pysteps.nowcasts.anvil
 ======================
 
 Implementation of the autoregressive nowcasting using VIL (ANVIL) nowcasting
-method developed in :cite:`PCHL2020`. ANVIL is an extension of S-PROG. The
+method developed in :cite:`PCLH2020`. ANVIL is an extension of S-PROG. The
 main improvements are using an autoregressive integrated (ARI) model and
 vertically integrated liquid (VIL) as the input variable. In addition, the ARI
 model allows localization of the parameter estimates.
@@ -100,7 +100,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
 
     Notes
     -----
-    The original ANVIL method developed in :cite:`PCHL2020` uses VIL as the
+    The original ANVIL method developed in :cite:`PCLH2020` uses VIL as the
     input quantity. The forecast model is, however, more general and can take
     any two-dimensional input field.
     """
@@ -235,7 +235,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     for t in range(n_timesteps):
         print("Computing nowcast for time step %d... " % (t + 1), end="")
         sys.stdout.flush()
-        
+
         if measure_time:
             starttime = time.time()
 
