@@ -14,7 +14,6 @@ model allows localization of the parameter estimates.
     forecast
 """
 
-import sys
 import time
 import numpy as np
 from scipy.ndimage import gaussian_filter
@@ -252,8 +251,8 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     r_f = []
     dp = None
     for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t + 1), end="")
-        sys.stdout.flush()
+        print("Computing nowcast for time step %d... " % (t + 1), end="",
+              flush=True)
 
         if measure_time:
             starttime = time.time()
