@@ -209,7 +209,7 @@ def test_optflow_method_convergence(input_precip, optflow_method_name,
         # To increase the stability of the tests to we increase this value to
         # maxiter=150.
         retrieved_motion = oflow_method(precip_obs, verbose=False,
-                                       options=dict(maxiter=150, method='BFGS'))
+                                       options=dict(maxiter=150))
     elif optflow_method_name == 'proesmans':
         retrieved_motion = oflow_method(precip_obs)
     else:
