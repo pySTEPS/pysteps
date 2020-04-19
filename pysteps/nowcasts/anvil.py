@@ -238,7 +238,7 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
             phi_ = _estimate_ar1_params(gamma[i, :])
         phi.append(phi_)
 
-    vil_dec = vil_dec[:, -3:, :]
+    vil_dec = vil_dec[:, -(ar_order+1):, :]
 
     if measure_time:
         init_time = time.time() - starttime_init
