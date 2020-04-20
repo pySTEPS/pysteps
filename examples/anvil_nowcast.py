@@ -101,9 +101,11 @@ refobs_field, metadata = utils.to_rainrate(refobs_field[-1], metadata)
 refobs_field[refobs_field < 0.5] = 0.0
 
 ############################################################################
-# Plot the observed rain rate fields and extrapolation and ANVIL nowcasts.
-# Mark growth and decay areas with red and blue circles, respectively.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Plot the extrapolation and ANVIL nowcasts.
+# ------------------------------------------
+#
+# For comparison, the observed rain rate fields are also plotted. Growth and
+# decay areas are marked with red and blue circles, respectively.
 def plot_growth_decay_circles(ax):
     circle = plt.Circle((360, 300), 25, color="b", clip_on=False, fill=False,
                         zorder=1e9)
