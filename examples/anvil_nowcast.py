@@ -6,6 +6,8 @@ ANVIL nowcast
 
 This example demonstrates how the ANVIL method can predict growth and decay of
 precipitation.
+
+Load the libraries.
 """
 from datetime import datetime, timedelta
 import warnings
@@ -25,6 +27,8 @@ from pysteps.visualization import plot_precip_field
 # fields. Here we use a composite of rain rates.
 
 date = datetime.strptime("201505151620", "%Y%m%d%H%M")
+
+# Read the data source information from rcparams
 data_source = rcparams.data_sources["mch"]
 
 root_path = data_source["root_path"]
@@ -34,13 +38,12 @@ fn_ext = data_source["fn_ext"]
 importer_name = data_source["importer"]
 importer_kwargs = data_source["importer_kwargs"]
 
-importer = io.get_method(importer_name, "importer")
-
 # Find the input files in the archive, use history length of 5 timesteps
 filenames = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern,
                                     fn_ext, timestep=5, num_prev_files=5)
 
 # Read the input time series
+importer = io.get_method(importer_name, "importer")
 rainrate_field, quality, metadata = io.read_timeseries(filenames, importer,
                                                        **importer_kwargs)
 
@@ -52,7 +55,7 @@ rainrate_field, metadata = utils.to_rainrate(rainrate_field, metadata)
 #
 # ---------------------------
 # Apply the Lucas-Kanade method with the parameters given in Pulkkinen et al.
-# (2020) to compute the advection field
+# (2020) to compute the advection field.
 
 fd_kwargs = {}
 fd_kwargs["max_corners"] = 1000
@@ -75,9 +78,9 @@ rainrate_field_log, _ = utils.transformation.dB_transform(rainrate_field,
                                                           metadata=metadata)
 velocity = oflow(rainrate_field_log, **oflow_kwargs)
 
-#########################################################################
-# Compute extrapolation and ANVIL nowcasts
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##################################################################################
+# Compute extrapolation and ANVIL nowcasts and threshold rain rates below 0.5 mm/h
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 forecast_extrap = extrapolation.forecast(rainrate_field[-1], velocity, 3,
                                          extrap_kwargs={"allow_nonfinite_values": True})
 forecast_extrap[forecast_extrap < 0.5] = 0.0
