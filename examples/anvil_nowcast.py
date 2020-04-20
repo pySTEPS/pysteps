@@ -76,9 +76,8 @@ velocity = oflow(rainrate_field_log, **oflow_kwargs)
 #########################################################################
 # Compute extrapolation and ANVIL nowcasts
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-rainrate_field_ = rainrate_field.copy()
-rainrate_field_[~np.isfinite(rainrate_field_)] = 0.0
-forecast_extrap = extrapolation.forecast(rainrate_field_[-1], velocity, 3)
+forecast_extrap = extrapolation.forecast(rainrate_field[-1], velocity, 3,
+                                         extrap_kwargs={"allow_nonfinite_values": True})
 forecast_extrap[forecast_extrap < 0.5] = 0.0
 
 forecast_anvil = anvil.forecast(rainrate_field[-4:], None, velocity, 3,
