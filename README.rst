@@ -82,7 +82,7 @@ Use pysteps to compute and plot an extrapolation nowcast in Google Colab |colab|
 
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
     :alt: Conda downloads
-    :target: https://colab.research.google.com/github/pySTEPS/pysteps/tree/master/examples/my_first_nowcast.ipynb
+    :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
 
 
 Get in touch
