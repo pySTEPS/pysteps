@@ -8,6 +8,8 @@ This example demonstrates how the ANVIL method can predict growth and decay of
 precipitation.
 """
 from datetime import datetime, timedelta
+import warnings
+warnings.simplefilter("ignore")
 import matplotlib.pyplot as plt
 import numpy as np
 from pysteps import motion, io, rcparams, utils
