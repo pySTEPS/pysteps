@@ -62,7 +62,6 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 .. |downloads| image:: https://img.shields.io/conda/dn/conda-forge/pysteps   
     :alt: Conda downloads
     :target: https://anaconda.org/conda-forge/pysteps
-    
 
 .. end-badges
 
@@ -74,6 +73,17 @@ Pysteps is an open-source and community-driven Python library for probabilistic 
 The aim of pysteps is to serve two different needs. The first is to provide a modular and well-documented framework for researchers interested in developing new methods for nowcasting and stochastic space-time simulation of precipitation. The second aim is to offer a highly configurable and easily accessible platform for practitioners ranging from weather forecasters to hydrologists.
 
 The pysteps library supports standard input/output file formats and implements several optical flow methods as well as advanced stochastic generators to produce ensemble nowcasts. In addition, it includes tools for visualizing and post-processing the nowcasts and methods for deterministic, probabilistic, and neighbourhood forecast verification.
+
+
+Run your first nowcast!
+=======================
+
+Use pysteps to compute and plot an extrapolation nowcast in Google Colab |colab|
+
+.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
+    :alt: Conda downloads
+    :target: https://colab.research.google.com/github/pySTEPS/pysteps/tree/master/examples/my_first_nowcast.ipynb
+
 
 Get in touch
 ============

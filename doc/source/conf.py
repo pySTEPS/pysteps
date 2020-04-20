@@ -235,5 +235,5 @@ texinfo_documents = [
 sphinx_gallery_conf = {
     'examples_dirs': '../../examples',  # path to your example scripts
     'gallery_dirs': 'auto_examples',  # path where to save gallery generated examples
-    'filename_pattern': '/*',  # Include all the files in the examples dir
+    'filename_pattern': r'/*\.py',  # Include all the files in the examples dir
 }
