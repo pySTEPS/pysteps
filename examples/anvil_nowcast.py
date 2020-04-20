@@ -4,7 +4,8 @@
 ANVIL nowcast
 =============
 
-This example demonstrates how ANVIL can predict growth and decay of precipitation.
+This example demonstrates how to use ANVIL and the advantages compared to
+extrapolation nowcast and S-PROG.
 
 Load the libraries.
 """
@@ -14,10 +15,10 @@ warnings.simplefilter("ignore")
 import matplotlib.pyplot as plt
 import numpy as np
 from pysteps import motion, io, rcparams, utils
-from pysteps.nowcasts import anvil, extrapolation
+from pysteps.nowcasts import anvil, extrapolation, sprog
 from pysteps.visualization import plot_precip_field
 
-################################################################################
+###############################################################################
 # Read the input data
 # -------------------
 #
@@ -77,20 +78,27 @@ rainrate_field_log, _ = utils.transformation.dB_transform(rainrate_field,
                                                           metadata=metadata)
 velocity = oflow(rainrate_field_log, **oflow_kwargs)
 
-##################################################################################
-# Compute extrapolation and ANVIL nowcasts and threshold rain rates below 0.5 mm/h
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+###############################################################################
+# Compute the nowcasts and threshold rain rates below 0.5 mm/h
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 forecast_extrap = extrapolation.forecast(rainrate_field[-1], velocity, 3,
                                          extrap_kwargs={"allow_nonfinite_values": True})
 forecast_extrap[forecast_extrap < 0.5] = 0.0
+
+rainrate_field_finite = rainrate_field.copy()
+rainrate_field_finite[~np.isfinite(rainrate_field_finite)] = 0.0
+forecast_sprog = sprog.forecast(rainrate_field_finite[-3:], velocity, 3,
+                                n_cascade_levels=8, R_thr=0.5)
+forecast_sprog[~np.isfinite(forecast_extrap)] = np.nan
+forecast_sprog[forecast_sprog < 0.5] = 0.0
 
 forecast_anvil = anvil.forecast(rainrate_field[-4:], None, velocity, 3,
                                 ar_window_radius=25, ar_order=2)
 forecast_anvil[forecast_anvil < 0.5] = 0.0
 
-#########################################################################
-# Read the reference observation field
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+###############################################################################
+# Read the reference observation field and threshold rain rates below 0.5 mm/h
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 filenames = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern,
                                     fn_ext, timestep=5, num_next_files=3)
 
@@ -100,9 +108,9 @@ refobs_field, quality, metadata = io.read_timeseries(filenames, importer,
 refobs_field, metadata = utils.to_rainrate(refobs_field[-1], metadata)
 refobs_field[refobs_field < 0.5] = 0.0
 
-############################################################################
-# Plot the extrapolation and ANVIL nowcasts.
-# ------------------------------------------
+###############################################################################
+# Plot the extrapolation, S-PROG and ANVIL nowcasts.
+# --------------------------------------------------
 #
 # For comparison, the observed rain rate fields are also plotted. Growth and
 # decay areas are marked with red and blue circles, respectively.
@@ -138,26 +146,44 @@ def plot_growth_decay_circles(ax):
                         zorder=1e9)
     ax.add_artist(circle)
 
-fig = plt.figure(figsize=(10,9))
+fig = plt.figure(figsize=(10, 9))
 
-ax = fig.add_subplot(221)
+ax = fig.add_subplot(321)
 rainrate_field[-1][rainrate_field[-1] < 0.5] = 0.0
 plot_precip_field(rainrate_field[-1])
 plot_growth_decay_circles(ax)
 ax.set_title("Obs. %s" % str(date))
 
-ax = fig.add_subplot(222)
+ax = fig.add_subplot(322)
 plot_precip_field(refobs_field)
 plot_growth_decay_circles(ax)
 ax.set_title("Obs. %s" % str(date + timedelta(minutes=15)))
 
-ax = fig.add_subplot(223)
+ax = fig.add_subplot(323)
 plot_precip_field(forecast_extrap[-1])
 plot_growth_decay_circles(ax)
 ax.set_title("Extrapolation +15 minutes")
 
-ax = fig.add_subplot(224)
+ax = fig.add_subplot(324)
+plot_precip_field(forecast_sprog[-1])
+plot_growth_decay_circles(ax)
+ax.set_title("S-PROG (with post-processing)\n +15 minutes")
+
+ax = fig.add_subplot(325)
 plot_precip_field(forecast_anvil[-1])
 plot_growth_decay_circles(ax)
 ax.set_title("ANVIL +15 minutes")
+
 plt.show()
+
+###############################################################################
+# Remarks
+# -------
+#
+# The extrapolation nowcast is static, i.e. it does not predict any growth or
+# decay. While S-PROG is to some extent able to predict growth and decay, this
+# this comes with loss of small-scale features. In addition, statistical
+# post-processing needs to be applied to correct the bias and incorrect wet-area
+# ratio introduced by the autoregressive process. ANVIL is able to do both:
+# predict growth and decay and preserve the small-scale structure in a way that
+# post-processing is not necessary.
