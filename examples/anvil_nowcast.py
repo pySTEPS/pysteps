@@ -146,7 +146,7 @@ def plot_growth_decay_circles(ax):
                         zorder=1e9)
     ax.add_artist(circle)
 
-fig = plt.figure(figsize=(10, 9))
+fig = plt.figure(figsize=(10, 13))
 
 ax = fig.add_subplot(321)
 rainrate_field[-1][rainrate_field[-1] < 0.5] = 0.0
