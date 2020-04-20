@@ -3,10 +3,14 @@ pysteps.nowcasts.anvil
 ======================
 
 Implementation of the autoregressive nowcasting using VIL (ANVIL) nowcasting
-method developed in :cite:`PCLH2020`. ANVIL is an extension of S-PROG. The
-main improvements are using an autoregressive integrated (ARI) model and
-vertically integrated liquid (VIL) as the input variable. In addition, the ARI
-model allows localization of the parameter estimates.
+method developed in :cite:`PCLH2020`. Compared to S-PROG, the main improvements
+are using an autoregressive integrated (ARI) model and the option to use
+vertically integrated liquid (VIL) as the input variable. Using the ARI model
+avoids biasedness and loss of small-scale features in the forecast field, and
+no statistical post-processing is needed. In addition, the model allows
+localization of parameter estimates. It was shown in :cite:`PCLH2020` that due
+to the above improvements, ANVIL produces more reliable deterministic nowcasts
+than S-PROG.
 
 .. autosummary::
     :toctree: ../generated/
@@ -37,10 +41,10 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
     (ANVIL) method. The key features of ANVIL are:
 
     1) Extrapolation-based nowcast.
-    2) Additional growth and decay model. Implemented by using cascade
-       decomposition and multiscale autoregressive integrated ARI(p,1) model.
-       Instead of the original time series, the ARI model is applied to the
-       differenced one corresponding to time derivatives.
+    2) Growth and decay: implemented by using a cascade decomposition and
+       a multiscale autoregressive integrated ARI(p,1) model. Instead of the
+       original time series, the ARI model is applied to the differenced one
+       corresponding to time derivatives.
     4) Originally designed for using integrated liquid (VIL) as the input data.
        In this case, the rain rate (R) is obtained from VIL via an empirical
        relation. This implementation is more general so that the input can be
