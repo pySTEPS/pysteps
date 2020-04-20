@@ -13,9 +13,9 @@ anvil_arg_names = (
 )
 
 anvil_arg_values = [
-    # (8, 1, 50, 0.5), # TODO: uncomment once AR(1) is supported
+    (8, 1, 50, 0.6),
     (8, 2, 50, 0.6),
-    # (8, 3, 50, 0.6), # TODO: uncomment once AR(3) is supported
+    # (8, 3, 50, 0.6), # This is commented out for the moment since it's a bit unstable (and slow)
 ]
 
 
