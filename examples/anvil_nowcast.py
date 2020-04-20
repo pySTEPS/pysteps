@@ -4,8 +4,7 @@
 ANVIL nowcast
 =============
 
-This example demonstrates how the ANVIL method can predict growth and decay of
-precipitation.
+This example demonstrates how ANVIL can predict growth and decay of precipitation.
 
 Load the libraries.
 """
@@ -22,9 +21,9 @@ from pysteps.visualization import plot_precip_field
 # Read the input data
 # -------------------
 #
-# The ANVIL method was originally developed to use vertically integrated liquid
-# (VIL) as the input data, but the model allows using any two-dimensional input
-# fields. Here we use a composite of rain rates.
+# ANVIL was originally developed to use vertically integrated liquid (VIL) as
+# the input data, but the model allows using any two-dimensional input fields.
+# Here we use a composite of rain rates.
 
 date = datetime.strptime("201505151620", "%Y%m%d%H%M")
 
@@ -38,7 +37,7 @@ fn_ext = data_source["fn_ext"]
 importer_name = data_source["importer"]
 importer_kwargs = data_source["importer_kwargs"]
 
-# Find the input files in the archive, use history length of 5 timesteps
+# Find the input files in the archive. Use history length of 5 timesteps
 filenames = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern,
                                     fn_ext, timestep=5, num_prev_files=5)
 
@@ -52,8 +51,8 @@ rainrate_field, metadata = utils.to_rainrate(rainrate_field, metadata)
 
 ################################################################################
 # Compute the advection field
-#
 # ---------------------------
+#
 # Apply the Lucas-Kanade method with the parameters given in Pulkkinen et al.
 # (2020) to compute the advection field.
 
