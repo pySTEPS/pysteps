@@ -76,7 +76,7 @@ The pysteps library supports standard input/output file formats and implements s
 
 
 Run your first nowcast!
-=======================
+-----------------------
 
 Use pysteps to compute and plot an extrapolation nowcast in Google Colab |colab|
 
