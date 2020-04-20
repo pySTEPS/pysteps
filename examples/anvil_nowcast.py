@@ -138,26 +138,26 @@ def plot_growth_decay_circles(ax):
                         zorder=1e9)
     ax.add_artist(circle)
 
-plt.figure()
+fig = plt.figure(figsize=(10,9))
 
-ax = plt.subplot(221)
+ax = fig.add_subplot(221)
 rainrate_field[-1][rainrate_field[-1] < 0.5] = 0.0
 plot_precip_field(rainrate_field[-1], colorbar=False)
 plot_growth_decay_circles(ax)
 ax.set_title("Obs. %s" % str(date))
 
-ax = plt.subplot(222)
-plot_precip_field(refobs_field, colorbar=False)
+ax = fig.add_subplot(222)
+plot_precip_field(refobs_field, colorbar=True)
 plot_growth_decay_circles(ax)
 ax.set_title("Obs. %s" % str(date + timedelta(minutes=15)))
 
-ax = plt.subplot(223)
+ax = fig.add_subplot(223)
 plot_precip_field(forecast_extrap[-1], colorbar=False)
 plot_growth_decay_circles(ax)
 ax.set_title("Extrapolation +15 minutes")
 
-ax = plt.subplot(224)
-plot_precip_field(forecast_anvil[-1], colorbar=False)
+ax = fig.add_subplot(224)
+plot_precip_field(forecast_anvil[-1], colorbar=True)
 plot_growth_decay_circles(ax)
 ax.set_title("ANVIL +15 minutes")
 plt.show()
