@@ -101,21 +101,62 @@ refobs_field, quality, metadata = io.read_timeseries(filenames, importer,
 refobs_field, metadata = utils.to_rainrate(refobs_field[-1], metadata)
 refobs_field[refobs_field < 0.5] = 0.0
 
-#########################################################################
-# Plot the observed rain rate fields and extrapolation and ANVIL nowcasts
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+############################################################################
+# Plot the observed rain rate fields and extrapolation and ANVIL nowcasts.
+# Mark growth and decay areas with red and blue circles, respectively.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def plot_growth_decay_circles(ax):
+    circle = plt.Circle((360, 300), 25, color="b", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((420, 350), 30, color="b", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((405, 380), 30, color="b", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((420, 500), 25, color="b", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((480, 535), 30, color="b", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((330, 470), 35, color="b", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((505, 205), 30, color="b", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((440, 180), 30, color="r", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((590, 240), 30, color="r", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+    circle = plt.Circle((585, 160), 15, color="r", clip_on=False, fill=False,
+                        zorder=1e9)
+    ax.add_artist(circle)
+
 plt.figure()
+
 ax = plt.subplot(221)
 rainrate_field[-1][rainrate_field[-1] < 0.5] = 0.0
 plot_precip_field(rainrate_field[-1])
+plot_growth_decay_circles(ax)
 ax.set_title("Obs. %s" % str(date))
+
 ax = plt.subplot(222)
 plot_precip_field(refobs_field)
+plot_growth_decay_circles(ax)
 ax.set_title("Obs. %s" % str(date + timedelta(minutes=15)))
+
 ax = plt.subplot(223)
 plot_precip_field(forecast_extrap[-1])
+plot_growth_decay_circles(ax)
 ax.set_title("Extrapolation +15 minutes")
+
 ax = plt.subplot(224)
 plot_precip_field(forecast_anvil[-1])
+plot_growth_decay_circles(ax)
 ax.set_title("ANVIL +15 minutes")
 plt.show()
