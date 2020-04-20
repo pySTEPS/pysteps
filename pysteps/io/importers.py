@@ -215,7 +215,12 @@ def _get_threshold_value(precip):
     valid_mask = np.isfinite(precip)
     if valid_mask.any():
         _precip = precip[valid_mask]
-        return np.min(_precip[_precip > _precip.min()])
+        min_precip = _precip.min()
+        above_min_mask = _precip > min_precip
+        if above_min_mask.any():
+            return np.min(_precip[above_min_mask])
+        else:
+            return min_precip
     else:
         return np.nan
 
