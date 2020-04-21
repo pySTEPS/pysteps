@@ -50,7 +50,7 @@ def test_anvil_rainrate(
 
     precip_forecast = nowcast_method(
         precip_input[-(ar_order + 2):],
-        precip_input[-1], # no R(VIL) conversion is done
+        None, # no R(VIL) conversion is done
         retrieved_motion,
         n_timesteps=3,
         n_cascade_levels=n_cascade_levels,
