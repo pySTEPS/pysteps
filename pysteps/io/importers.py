@@ -88,6 +88,7 @@ from functools import partial
 import numpy as np
 from matplotlib.pyplot import imread
 
+from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.utils import aggregate_fields
@@ -223,10 +224,10 @@ def _get_threshold_value(precip):
             return min_precip
     else:
         return np.nan
+      
 
-
-def import_mrms(filename, fillna=np.nan, extent=None,
-                dtype='float32', window_size=4, **kwargs):
+@postprocess_import(dtype='float32')
+def import_mrms(filename, extent=None, window_size=4, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
     ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
@@ -257,7 +258,7 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     -----
     In the MRMS grib files, "-3" is used to represent "No Coverage" or
     "Missing data". However, in this reader replace those values by the value
-    especified in the `fillna` argument (NaN by default).
+    specified in the `fillna` argument (NaN by default).
 
     Note that "missing values" are not the same as "no precipitation" values.
     Missing values indicates regions with no valid measures.
@@ -268,12 +269,6 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     ----------
     filename : str
         Name of the file to import.
-    fillna : float or np.nan
-        Value used to represent the missing data ("No Coverage").
-        By default, np.nan is used.
-    dtype : str
-        Data-type to which the array is cast.
-        Valid values:  "float32", "float64", "single", and "double".
     extent: None or array-like
         Longitude and latitude range (in degrees) of the data to be retrieved.
         (min_lon, max_lon, min_lat, max_lat).
@@ -285,6 +280,8 @@ def import_mrms(filename, fillna=np.nan, extent=None,
         If an integer value is given, the same block shape is used for all the
         image dimensions.
         Default: window_size=4.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -305,12 +302,6 @@ def import_mrms(filename, fillna=np.nan, extent=None,
             "pygrib package is required to import NCEP's MRMS products but it is not installed"
         )
 
-    accepted_precisions = ["float32", "float64", "single", "double"]
-    if dtype not in accepted_precisions:
-        raise ValueError(
-            "The selected precision do not correspond to a valid value."
-            "The accepted values are: " + str(accepted_precisions)
-        )
     try:
         grib_file = pygrib.open(filename)
     except OSError:
@@ -321,7 +312,7 @@ def import_mrms(filename, fillna=np.nan, extent=None,
         window_size = (window_size, window_size)
 
     if extent is not None:
-        extent = np.asarray(extent, dtype=dtype)
+        extent = np.asarray(extent)
         if (extent.ndim != 1) or (extent.size != 4):
             raise ValueError(
                 "The extent must be None or a flat array with 4 elements.\n"
@@ -347,7 +338,7 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     lats = np.linspace(ul_lat, lr_lat, grib_msg["Nj"])
     lons = np.linspace(ul_lon, lr_lon, grib_msg["Ni"])
 
-    precip = grib_msg.values.astype(dtype)
+    precip = grib_msg.values
     no_data_mask = precip == -3  # Missing values
 
     # Create a function with default arguments for aggregate_fields
@@ -371,7 +362,7 @@ def import_mrms(filename, fillna=np.nan, extent=None,
                                     window_size, axis=(0, 1)).astype(bool)
 
     lons, lats = np.meshgrid(lons, lats)
-    precip[no_data_mask] = fillna
+    precip[no_data_mask] = np.nan
 
     if extent is not None:
         # clip domain
@@ -415,6 +406,7 @@ def import_mrms(filename, fillna=np.nan, extent=None,
     return precip, None, metadata
 
 
+@postprocess_import()
 def import_bom_rf3(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the BoM Rainfields3.
 
@@ -423,6 +415,8 @@ def import_bom_rf3(filename, **kwargs):
 
     filename : str
         Name of the file to import.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -552,6 +546,7 @@ def _import_bom_rf3_geodata(filename):
     return geodata
 
 
+@postprocess_import()
 def import_fmi_geotiff(filename, **kwargs):
     """Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
 
@@ -560,6 +555,8 @@ def import_fmi_geotiff(filename, **kwargs):
 
     filename : str
         Name of the file to import.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -616,7 +613,8 @@ def import_fmi_geotiff(filename, **kwargs):
     return precip, None, metadata
 
 
-def import_fmi_pgm(filename, **kwargs):
+@postprocess_import()
+def import_fmi_pgm(filename, gzipped=False, **kwargs):
     """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
 
     Parameters
@@ -625,11 +623,10 @@ def import_fmi_pgm(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-
     gzipped : bool
         If True, the input file is treated as a compressed gzip file.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -645,8 +642,6 @@ def import_fmi_pgm(filename, **kwargs):
             "FMI's radar reflectivity composite "
             "but it is not installed"
         )
-
-    gzipped = kwargs.get("gzipped", False)
 
     pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
 
@@ -743,7 +738,8 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     return metadata
 
 
-def import_knmi_hdf5(filename, **kwargs):
+@postprocess_import()
+def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs):
     """Import a precipitation or reflectivity field (and optionally the quality
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
 
@@ -752,9 +748,6 @@ def import_knmi_hdf5(filename, **kwargs):
 
     filename : str
         Name of the file to import.
-
-    Other Parameters
-    ----------------
 
     qty : {'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identifiers
@@ -770,6 +763,8 @@ def import_knmi_hdf5(filename, **kwargs):
         The pixel size of a raster cell in kilometers. The default value for the 
         KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel 
         size are also available.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -798,25 +793,10 @@ def import_knmi_hdf5(filename, **kwargs):
             "but it is not installed"
         )
 
-    ###
-    # Options for kwargs.get
-    ###
-
-    # The unit in the 2D fields: either hourly rainfall accumulation (ACRR) or
-    # reflectivity (DBZH)
-    qty = kwargs.get("qty", "ACRR")
-
     if qty not in ["ACRR", "DBZH"]:
         raise ValueError(
             "unknown quantity %s: the available options are 'ACRR' and 'DBZH' "
         )
-
-    # The time step. Generally, the 5 min data is used, but also hourly, daily
-    # and monthly accumulations are present.
-    accutime = kwargs.get("accutime", 5.0)
-    # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
-    # 1.0 or 2.4 km datasets are available - Provide pixelsize in kilometers
-    pixelsize = kwargs.get("pixelsize", 1.0)
 
     ####
     # Precipitation fields
@@ -909,7 +889,8 @@ def import_knmi_hdf5(filename, **kwargs):
     return precip, None, metadata
 
 
-def import_mch_gif(filename, product, unit, accutime):
+@postprocess_import()
+def import_mch_gif(filename, product, unit, accutime, **kwargs):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
 
@@ -940,6 +921,8 @@ def import_mch_gif(filename, product, unit, accutime):
 
     accutime : float
         the accumulation time in minutes of the data
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -1030,7 +1013,8 @@ def import_mch_gif(filename, product, unit, accutime):
     return precip, None, metadata
 
 
-def import_mch_hdf5(filename, **kwargs):
+@postprocess_import()
+def import_mch_hdf5(filename, qty="RATE", **kwargs):
     """Import a precipitation field (and optionally the quality field) from a
     MeteoSwiss HDF5 file conforming to the ODIM specification.
 
@@ -1040,14 +1024,13 @@ def import_mch_hdf5(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-
     qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -1064,8 +1047,6 @@ def import_mch_hdf5(filename, **kwargs):
             "radar reflectivity composites using ODIM HDF5 specification "
             "but it is not installed"
         )
-
-    qty = kwargs.get("qty", "RATE")
 
     if qty not in ["ACRR", "DBZH", "RATE"]:
         raise ValueError(
@@ -1121,7 +1102,6 @@ def import_mch_hdf5(filename, **kwargs):
         raise IOError("requested quantity %s not found" % qty)
 
     where = f["where"]
-    proj4str = where.attrs["projdef"].decode()  # is empty ...
 
     geodata = _import_mch_geodata()
     metadata = geodata
@@ -1176,6 +1156,7 @@ def _read_mch_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
+@postprocess_import()
 def import_mch_metranet(filename, product, unit, accutime):
     """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
     archive.
@@ -1207,6 +1188,8 @@ def import_mch_metranet(filename, product, unit, accutime):
 
     accutime : float
         the accumulation time in minutes of the data
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -1275,7 +1258,8 @@ def _import_mch_geodata():
     return geodata
 
 
-def import_opera_hdf5(filename, **kwargs):
+@postprocess_import()
+def import_opera_hdf5(filename, qty="RATE", **kwargs):
     """Import a precipitation field (and optionally the quality field) from an
     OPERA HDF5 file conforming to the ODIM specification.
 
@@ -1285,14 +1269,13 @@ def import_opera_hdf5(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-
     qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -1309,8 +1292,6 @@ def import_opera_hdf5(filename, **kwargs):
             "radar reflectivity composites using ODIM HDF5 specification "
             "but it is not installed"
         )
-
-    qty = kwargs.get("qty", "RATE")
 
     if qty not in ["ACRR", "DBZH", "RATE"]:
         raise ValueError(
@@ -1457,7 +1438,8 @@ def _read_opera_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
-def import_saf_crri(filename, **kwargs):
+@postprocess_import()
+def import_saf_crri(filename, extent=None, **kwargs):
     """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
 
@@ -1470,12 +1452,11 @@ def import_saf_crri(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-
     extent : scalars (left, right, bottom, top), optional
         The spatial extent specified in data coordinates.
         If None, the full extent is imported.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -1492,8 +1473,6 @@ def import_saf_crri(filename, **kwargs):
             "netCDF4 package is required to import CRRI SAF products "
             "but it is not installed"
         )
-
-    extent = kwargs.get("extent", None)
 
     geodata = _import_saf_crri_geodata(filename)
     metadata = geodata

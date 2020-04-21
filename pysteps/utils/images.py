@@ -12,7 +12,7 @@ Image processing routines for pysteps.
 .. autosummary::
     :toctree: ../generated/
 
-    ShiTomasi_detection
+    shitomasi_detection
     morph_opening
 """
 
@@ -29,12 +29,12 @@ except ImportError:
     CV2_IMPORTED = False
 
 
-def ShiTomasi_detection(input_image,
+def shitomasi_detection(input_image,
                         max_corners=1000,
                         quality_level=0.01,
                         min_distance=10,
                         block_size=5,
-                        buffer_mask=0,
+                        buffer_mask=5,
                         use_harris=False,
                         k=0.04,
                         verbose=False,
@@ -75,27 +75,27 @@ def ShiTomasi_detection(input_image,
         valid pixels.
 
     max_corners : int, optional
-        The **maxCorners** parameter in the `Shi-Tomasi`_ corner detection
+        The ``maxCorners`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the maximum number of points to be tracked (corners).
         If set to zero, all detected corners are used.
 
     quality_level : float, optional
-        The **qualityLevel** parameter in the `Shi-Tomasi`_ corner detection
+        The ``qualityLevel`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the minimal accepted quality for the image corners.
 
     min_distance : int, optional
-        The **minDistance** parameter in the `Shi-Tomasi`_ corner detection
+        The ``minDistance`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents minimum possible Euclidean distance in pixels between
         corners.
 
     block_size : int, optional
-        The **blockSize** parameter in the `Shi-Tomasi`_ corner detection
+        The ``blockSize`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the window size in pixels used for computing a derivative
-        covariation matrix over each pixel neighborhood.
+        covariation matrix over each pixel neighbourhood.
 
     use_harris : bool, optional
         Whether to use a `Harris detector`_  or cornerMinEigenVal_.

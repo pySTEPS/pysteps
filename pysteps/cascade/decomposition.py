@@ -259,7 +259,8 @@ def recompose_fft(decomp, **kwargs):
         mu = decomp["means"]
         sigma = decomp["stds"]
 
-    if not decomp["normalized"] and not decomp["compact_output"]:
+    if not decomp["normalized"] and not \
+       (decomp["domain"] == "spectral" and decomp["compact_output"]):
         return np.sum(levels, axis=0)
     else:
         if decomp["compact_output"]:

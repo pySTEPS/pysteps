@@ -31,12 +31,12 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     input_array : array_like
         Array of shape (n) or (n, m), where *n* is the number of samples and
         *m* the number of variables.
-        All values in **input_array** are required to have finite values.
+        All values in ``input_array`` are required to have finite values.
 
     scale : float or array_like
-        The **scale** parameter in the same units of **coord**.
+        The ``scale`` parameter in the same units of ``coord``.
         It can be a scalar or an array_like of shape (d).
-        Data points within the declustering **scale** are aggregated.
+        Data points within the declustering ``scale`` are aggregated.
 
     min_samples : int, optional
         The minimum number of samples for computing the median within a given
@@ -49,8 +49,8 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     -------
 
     out : tuple of ndarrays
-        A two-element tuple (**out_coord**, **output_array**) containing the
-        declustered coordinates (l, d) and **input_array** (l, m), where *l* is
+        A two-element tuple (``out_coord``, ``output_array``) containing the
+        declustered coordinates (l, d) and input array (l, m), where *l* is
         the new number of samples with *l* <= *n*.
     """
 
@@ -147,22 +147,21 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         Array of shape (n) or (n, m), where *n* is the number of samples and
         *m* the number of variables. If *m* > 1, the Mahalanobis distance
         is used.
-        All values in **input_array** are required to have finite values.
+        All values in ``input_array`` are required to have finite values.
 
     thr : float
-        The number of standard deviations from the mean
-        that defines an outlier.
+        The number of standard deviations from the mean used to define an outlier.
 
     coord : array_like, optional
         Array of shape (n, d) containing the coordinates of the input data into
         a space of *d* dimensions.
-        Passing **coord** requires that **k** is not None.
+        Passing ``coord`` requires that ``k`` is not None.
 
     k : int or None, optional
         The number of nearest neighbours used to localize the outlier
         detection.
         If set to None (the default), it employs all the data points (global
-        detection). Setting **k** requires that **coord** is not None.
+        detection). Setting ``k`` requires that ``coord`` is not None.
 
     verbose : bool, optional
         Print out information.
@@ -172,7 +171,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
     out : array_like
         A 1-D boolean array of shape (n) with True values indicating the outliers
-        detected in **input_array**.
+        detected in ``input_array``.
     """
 
     input_array = np.copy(input_array)

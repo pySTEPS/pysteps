@@ -45,8 +45,8 @@ def adjust_lag2_corrcoef1(gamma_1, gamma_2):
       The adjusted lag-2 correlation coefficient.
 
     """
-    gamma_2 = max(gamma_2, 2*gamma_1*gamma_1-1+1e-10)
-    gamma_2 = min(gamma_2, 1-1e-10)
+    gamma_2 = np.maximum(gamma_2, 2*gamma_1*gamma_1-1+1e-10)
+    gamma_2 = np.minimum(gamma_2, 1-1e-10)
 
     return gamma_2
 
@@ -69,8 +69,8 @@ def adjust_lag2_corrcoef2(gamma_1, gamma_2):
         The adjusted lag-2 correlation coefficient.
 
     """
-    gamma_2 = max(gamma_2, 2*gamma_1*gamma_2-1)
-    gamma_2 = max(gamma_2, (3*gamma_1**2-2+2*(1-gamma_1**2)**1.5) / gamma_1**2)
+    gamma_2 = np.maximum(gamma_2, 2*gamma_1*gamma_2-1)
+    gamma_2 = np.maximum(gamma_2, (3*gamma_1**2-2+2*(1-gamma_1**2)**1.5) / gamma_1**2)
 
     return gamma_2
 
