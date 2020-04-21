@@ -347,7 +347,7 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
 
     File rotation is implemented for the backup files.
     For example, if the default configuration filename is 'pystepsrc' and the files
-    pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to respetively
+    pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to respectively
     pystepsrc.1, pystepsrc.2, pystepsrc.2, etc. Finally, after the existing files are
     backed up, the new configuration file is written.
     
