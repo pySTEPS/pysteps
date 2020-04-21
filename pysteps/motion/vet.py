@@ -481,6 +481,7 @@ def vet(input_images,
     options.setdefault('gtol', 0.1)
     options.setdefault('maxiter', 100)
     options.setdefault('disp', False)
+    optimization_method = options.pop("method", "CG")
 
     # Set to None to suppress pylint warning.
     pad_i = None
@@ -613,7 +614,7 @@ def vet(input_images,
                                 (sectors_in_i, sectors_in_j),
                                 _mask,
                                 smooth_gain),
-                          method='CG',
+                          method=optimization_method,
                           options=options)
 
         first_guess = result.x.reshape(*first_guess.shape)

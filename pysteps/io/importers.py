@@ -201,6 +201,31 @@ def _get_grib_projection(grib_msg):
     return projparams
 
 
+def _get_threshold_value(precip):
+    """
+    Get the the rain/no rain threshold with the same unit, transformation and
+    accutime of the data.
+    If all the values are NaNs, the returned value is `np.nan`.
+    Otherwise, np.min(precip[precip > precip.min()]) is returned.
+
+    Returns
+    -------
+
+    threshold : float
+    """
+    valid_mask = np.isfinite(precip)
+    if valid_mask.any():
+        _precip = precip[valid_mask]
+        min_precip = _precip.min()
+        above_min_mask = _precip > min_precip
+        if above_min_mask.any():
+            return np.min(_precip[above_min_mask])
+        else:
+            return min_precip
+    else:
+        return np.nan
+      
+
 @postprocess_import(dtype='float32')
 def import_mrms(filename, extent=None, window_size=4, **kwargs):
     """
@@ -371,6 +396,7 @@ def import_mrms(filename, extent=None, window_size=4, **kwargs):
         zerovalue=0,
         projection=proj_params,
         yorigin="upper",
+        threshold=_get_threshold_value(precip),
         x1=x1,
         x2=x2,
         y1=y1,
@@ -414,10 +440,7 @@ def import_bom_rf3(filename, **kwargs):
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(np.isfinite(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
+    metadata["threshold"] = _get_threshold_value(precip)
 
     return precip, None, metadata
 
@@ -584,9 +607,8 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["unit"] = rb.GetUnitType()
     metadata["transform"] = None
     metadata["accutime"] = 5.0
-    precip_min = np.nanmin(precip)
-    metadata["threshold"] = np.nanmin(precip[precip > precip_min])
-    metadata["zerovalue"] = precip_min
+    metadata["threshold"] = _get_threshold_value(precip)
+    metadata["zerovalue"] = np.nanmin(precip)
 
     return precip, None, metadata
 
@@ -640,10 +662,7 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
     metadata["unit"] = "dBZ"
     metadata["transform"] = "dB"
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(np.isfinite(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
+    metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
 
@@ -861,7 +880,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     metadata["unit"] = unit
     metadata["transform"] = transform
     metadata["zerovalue"] = 0.0
-    metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
+    metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 200.0
     metadata["zr_b"] = 1.6
 
@@ -985,10 +1004,7 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
     metadata["unit"] = unit
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(precip > np.nanmin(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
+    metadata["threshold"] = _get_threshold_value(precip)
     metadata["institution"] = "MeteoSwiss"
     metadata["product"] = product
     metadata["zr_a"] = 316.0
@@ -1201,10 +1217,7 @@ def import_mch_metranet(filename, product, unit, accutime):
     metadata["unit"] = unit
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.isnan(metadata["zerovalue"]):
-        metadata["threshold"] = np.nan
-    else:
-        metadata["threshold"] = np.nanmin(precip[precip > metadata["zerovalue"]])
+    metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
@@ -1389,11 +1402,6 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
         unit = "mm/h"
         transform = None
 
-    if np.any(np.isfinite(precip)):
-        thr = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        thr = np.nan
-
     metadata = {
         "projection": proj4str,
         "ll_lon": ll_lon,
@@ -1412,7 +1420,7 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
         "unit": unit,
         "transform": transform,
         "zerovalue": np.nanmin(precip),
-        "threshold": thr,
+        "threshold": _get_threshold_value(precip),
     }
 
     f.close()
@@ -1493,10 +1501,7 @@ def import_saf_crri(filename, extent=None, **kwargs):
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(np.isfinite(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
+    metadata["threshold"] = _get_threshold_value(precip)
 
     return precip, quality, metadata
 

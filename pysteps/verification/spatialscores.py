@@ -151,7 +151,7 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
 
     # catch scalars when passed as arguments
     def get_iterable(x):
-        if isinstance(x, collections.Iterable):
+        if isinstance(x, collections.abc.Iterable):
             return np.copy(x)
         else:
             return np.copy((x,))
@@ -453,10 +453,11 @@ def binary_mse_accum(bmse, X_f, X_o):
         mse = np.mean(E_decomp[j] ** 2)
         if np.isfinite(mse):
             bmse["mse"][j] = (bmse["mse"][j] * bmse["n"] + mse) / (
-                bmse["n"] + 1
+                    bmse["n"] + 1
             )
 
     bmse["n"] += 1
+
 
 def binary_mse_merge(bmse_1, bmse_2):
     """Merge two BMSE objects.
@@ -503,12 +504,12 @@ def binary_mse_merge(bmse_1, bmse_2):
     # merge the BMSE objects
     bmse = bmse_1.copy()
     bmse["eps"] = (bmse["eps"] * bmse["n"] + bmse_2["eps"] * bmse_2["n"]) / (
-        bmse["n"] + bmse_2["n"]
+            bmse["n"] + bmse_2["n"]
     )
     for j, scale in enumerate(bmse["scales"]):
         bmse["mse"][j] = (
-            bmse["mse"][j] * bmse["n"] + bmse_2["mse"][j] * bmse_2["n"]
-        ) / (bmse["n"] + bmse_2["n"])
+                                 bmse["mse"][j] * bmse["n"] + bmse_2["mse"][j] * bmse_2["n"]
+                         ) / (bmse["n"] + bmse_2["n"])
     bmse["n"] += bmse_2["n"]
 
     return bmse

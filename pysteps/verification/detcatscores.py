@@ -130,7 +130,7 @@ def det_cat_fct_init(thr, axis=None):
     # catch case of axis passed as integer
     def get_iterable(x):
         if x is None or (
-            isinstance(x, collections.Iterable) and not isinstance(x, int)
+            isinstance(x, collections.abc.Iterable) and not isinstance(x, int)
         ):
             return x
         else:
@@ -332,7 +332,7 @@ def det_cat_fct_compute(contab, scores=""):
 
     # catch case of single score passed as string
     def get_iterable(x):
-        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+        if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
             return x
         else:
             return (x,)
