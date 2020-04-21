@@ -15,13 +15,13 @@ Interface for the io module.
 from pysteps.io import importers, exporters
 
 _importer_methods = dict(
-    mrms=importers.import_mrms,
     bom_rf3=importers.import_bom_rf3,
     fmi_geotiff=importers.import_fmi_geotiff,
     fmi_pgm=importers.import_fmi_pgm,
     mch_gif=importers.import_mch_gif,
     mch_hdf5=importers.import_mch_hdf5,
     mch_metranet=importers.import_mch_metranet,
+    mrms=importers.import_mrms_grib,
     opera_hdf5=importers.import_opera_hdf5,
     knmi_hdf5=importers.import_knmi_hdf5,
     saf_crri=importers.import_saf_crri
@@ -72,6 +72,8 @@ def get_method(name, method_type):
         +--------------+------------------------------------------------------+
         | mch_metranet | metranet files in the MeteoSwiss (MCH) archive       |
         |              | containing precipitation composites.                 |
+        +--------------+------------------------------------------------------+
+        | mrms_grib    | Grib2 files used by the NSSL's MRMS product          |
         +--------------+------------------------------------------------------+
         | opera_hdf5   | ODIM HDF5 file format used by Eumetnet/OPERA.        |
         +--------------+------------------------------------------------------+

@@ -69,7 +69,6 @@ Available Importers
 .. autosummary::
     :toctree: ../generated/
 
-    import_mrms
     import_bom_rf3
     import_fmi_geotiff
     import_fmi_pgm
@@ -77,6 +76,7 @@ Available Importers
     import_mch_gif
     import_mch_hdf5
     import_mch_metranet
+    import_mrms_grib
     import_opera_hdf5
     import_saf_crri
 """
@@ -145,7 +145,8 @@ except ImportError:
 
 
 def _check_coords_range(selected_range, coordinate, full_range):
-    """Check that the coordinates range arguments follow the expected pattern in the **import_mrms** function."""
+    """Check that the coordinates range arguments follow the expected pattern in
+    the **import_mrms_grib** function."""
 
     if selected_range is None:
         return sorted(full_range)
@@ -227,7 +228,7 @@ def _get_threshold_value(precip):
       
 
 @postprocess_import(dtype='float32')
-def import_mrms(filename, extent=None, window_size=4, **kwargs):
+def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
     ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
