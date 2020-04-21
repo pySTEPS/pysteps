@@ -92,7 +92,7 @@ forecast_sprog = sprog.forecast(rainrate_field_finite[-3:], velocity, 3,
 forecast_sprog[~np.isfinite(forecast_extrap)] = np.nan
 forecast_sprog[forecast_sprog < 0.5] = 0.0
 
-forecast_anvil = anvil.forecast(rainrate_field[-4:], None, velocity, 3,
+forecast_anvil = anvil.forecast(rainrate_field[-4:], velocity, 3,
                                 ar_window_radius=25, ar_order=2)
 forecast_anvil[forecast_anvil < 0.5] = 0.0
 

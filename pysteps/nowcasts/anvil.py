@@ -33,7 +33,7 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
+def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
              extrap_method="semilagrangian", ar_order=2, ar_window_radius=50,
              r_vil_window_radius=5, fft_method="numpy", num_workers=1,
              extrap_kwargs=None, filter_kwargs=None, measure_time=False):
@@ -58,16 +58,16 @@ def forecast(vil, rainrate, velocity, n_timesteps, n_cascade_levels=8,
         Array of shape (ar_order+2,m,n) containing the input fields ordered by
         timestamp from oldest to newest. The time steps between the inputs are
         assumed to be regular.
-    rainrate : array_like
-        Array of shape (m,n) containing the most recently observed rain rate
-        field. If set to None, no R(VIL) conversion is done and the outputs
-        are in the same units as the inputs.
     velocity : array_like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs. All values are required to be finite.
     n_timesteps : int
         Number of time steps to forecast.
+    rainrate : array_like
+        Array of shape (m,n) containing the most recently observed rain rate
+        field. If set to None, no R(VIL) conversion is done and the outputs
+        are in the same units as the inputs.
     n_cascade_levels : int, optional
         The number of cascade levels to use.
     extrap_method : str, optional
