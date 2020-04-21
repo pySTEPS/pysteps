@@ -13,15 +13,6 @@
         "colorscale": "pysteps"
     },
     "data_sources": {
-        "mrms": {
-            "root_path": "./mrms",
-            "path_fmt": "%Y/%m/%d",
-            "fn_pattern": "PrecipRate_00.00_%Y%m%d-%H%M%S",
-            "fn_ext": "grib2",
-            "importer": "mrms",
-            "timestep": 2,
-            "importer_kwargs": {}
-        },
         "bom": {
             "root_path": "./radar/bom",
             "path_fmt": "prcp-cscn/2/%Y/%m/%d",
@@ -56,6 +47,15 @@
                 "unit": "mm",
                 "accutime": 5
             }
+        },
+        "mrms": {
+            "root_path": "./mrms",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "PrecipRate_00.00_%Y%m%d-%H%M%S",
+            "fn_ext": "grib2",
+            "importer": "mrms",
+            "timestep": 2,
+            "importer_kwargs": {}
         },
         "opera": {
             "root_path": "./radar/OPERA",
