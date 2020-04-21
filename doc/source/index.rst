@@ -20,12 +20,7 @@ probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**
 __ https://github.com/pySTEPS/pysteps
 __ https://doi.org/10.5194/gmd-12-4185-2019
 
-
-Run your first nowcast!
------------------------
-
-Use pysteps to compute and plot an extrapolation nowcast in Google Colab with `this interactive notebook`__.
-
+.. note:: Use pysteps to run your first extrapolation nowcast in Google Colab with `this interactive notebook`__.
 __ https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
 
 Documentation
