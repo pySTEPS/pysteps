@@ -341,14 +341,14 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
     """
     Create a default configuration file pointing to the pysteps data directory.
 
-    If the configuration file already exists, it backup the existing file by appending
-    to the filename the extensions '.1', '.2', up to '.5.'.
+    If the configuration file already exists, it will backup the existing file by
+    appending the extensions '.1', '.2', up to '.5.' to the filename.
     A maximum of 5 files are kept. .2, up to app.log.5.
 
     File rotation is implemented for the backup files.
     For example, if the default configuration filename is 'pystepsrc' and the files
-    pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to pystepsrc.1,
-    pystepsrc.2, pystepsrc.2, etc. respectively. Finally, after the existing files are
+    pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to respetively
+    pystepsrc.1, pystepsrc.2, pystepsrc.2, etc. Finally, after the existing files are
     backed up, the new configuration file is written.
     
     Parameters
@@ -367,7 +367,7 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
         Configuration file name. `pystepsrc` by default.
 
     dryrun : bool
-        Do not create the parameters file nor create backups of existing files.
+        Do not create the parameter file, nor create backups of existing files.
         No changes are made in the file system. It just returns the file path.
 
     Returns
