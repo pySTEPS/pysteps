@@ -78,35 +78,46 @@ def test_io_interface():
     from pysteps.io import import_bom_rf3
     from pysteps.io import import_fmi_geotiff
     from pysteps.io import import_fmi_pgm
+    from pysteps.io import import_knmi_hdf5
     from pysteps.io import import_mch_gif
     from pysteps.io import import_mch_hdf5
     from pysteps.io import import_mch_metranet
+    from pysteps.io import import_mrms_grib
     from pysteps.io import import_opera_hdf5
+    from pysteps.io import import_saf_crri
+
+    from pysteps.io import initialize_forecast_exporter_geotiff
+    from pysteps.io import initialize_forecast_exporter_kineros
     from pysteps.io import initialize_forecast_exporter_netcdf
 
     # Test importers
     valid_names_func_pair = [('bom_rf3', import_bom_rf3),
                              ('fmi_geotiff', import_fmi_geotiff),
                              ('fmi_pgm', import_fmi_pgm),
+                             ('knmi_hdf5', import_knmi_hdf5),
                              ('mch_gif', import_mch_gif),
                              ('mch_hdf5', import_mch_hdf5),
                              ('mch_metranet', import_mch_metranet),
+                             ('mrms_grib', import_mrms_grib),
                              ('opera_hdf5', import_opera_hdf5),
-                             ('mch_gif', import_mch_gif),
-                             ('mch_gif', import_mch_gif),
-                             ('mch_gif', import_mch_gif), ]
+                             ('saf_crri', import_saf_crri),
+                             ]
 
     def method_getter(name):
         return pysteps.io.interface.get_method(name, 'importer')
 
-    invalid_names = ['opera', 'mch', 'fmi']
+    invalid_names = ['bom', 'fmi', 'knmi', 'mch', 'mrms', 'opera', 'saf']
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
     # Test exporters
     def method_getter(name):
         return pysteps.io.interface.get_method(name, 'exporter')
 
-    valid_names_func_pair = [('netcdf', initialize_forecast_exporter_netcdf)]
+    valid_names_func_pair = [
+        ('geotiff', initialize_forecast_exporter_geotiff),
+        ('kineros', initialize_forecast_exporter_kineros),
+        ('netcdf', initialize_forecast_exporter_netcdf),
+        ]
     invalid_names = ['hdf']
 
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
@@ -124,18 +135,24 @@ def test_io_interface():
 def test_motion_interface():
     """Test the motion module interface."""
 
+    from pysteps.motion.constant import constant
     from pysteps.motion.darts import DARTS
     from pysteps.motion.lucaskanade import dense_lucaskanade
+    from pysteps.motion.proesmans import proesmans
     from pysteps.motion.vet import vet
 
     method_getter = pysteps.motion.interface.get_method
 
-    valid_names_func_pair = [('lk', dense_lucaskanade),
+    valid_names_func_pair = [
+                             ('constant', constant),
+                             ('darts', DARTS),
+                             ('lk', dense_lucaskanade),
                              ('lucaskanade', dense_lucaskanade),
+                             ('proesmans', proesmans),
                              ('vet', vet),
-                             ('DARTS', DARTS)]
+                             ]
 
-    invalid_names = ['dart', 'pyvet', 'no_method']
+    invalid_names = ['dart', 'pyvet', 'lukascanade', 'lucas-kanade', 'no_method']
 
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
@@ -174,7 +191,7 @@ def test_noise_interface():
                     generate_noise_2d_ssft_filter)),
         ('bps', (initialize_bps, generate_bps))]
 
-    invalid_names = ['nest', 'sft']
+    invalid_names = ['nest', 'sft', 'ssfft']
 
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
@@ -182,14 +199,20 @@ def test_noise_interface():
 def test_nowcasts_interface():
     """Test the nowcasts module interface."""
 
-    from pysteps.nowcasts import steps
-    from pysteps.nowcasts import extrapolation
+    from pysteps.nowcasts import anvil, sprog, steps, sseps, extrapolation
     method_getter = pysteps.nowcasts.interface.get_method
 
-    valid_names_func_pair = [('extrapolation', extrapolation.forecast),
-                             ('steps', steps.forecast)]
+    valid_names_func_pair = [
+        ('anvil', anvil.forecast),
+        ('extrapolation', extrapolation.forecast),
+        ('lagrangian', extrapolation.forecast),
+        ('sprog', sprog.forecast),
+        ('sseps', sseps.forecast),
+        ('steps', steps.forecast),
+        ]
 
-    invalid_names = ['extrap', 'step']
+
+    invalid_names = ['extrap', 'step', 's-prog', 'pysteps']
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
     # Test eulerian persistence method
