@@ -53,7 +53,7 @@
             "path_fmt": "%Y/%m/%d",
             "fn_pattern": "PrecipRate_00.00_%Y%m%d-%H%M%S",
             "fn_ext": "grib2",
-            "importer": "mrms",
+            "importer": "mrms_grib",
             "timestep": 2,
             "importer_kwargs": {}
         },
