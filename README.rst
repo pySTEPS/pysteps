@@ -18,6 +18,8 @@ pySTEPS - Python framework for short-term ensemble prediction systems
       - |license|
     * - community
       - |slack| |contributors| |downloads|
+    * - tutorials
+      - |colab|
  
 .. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
@@ -63,6 +65,10 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :alt: Conda downloads
     :target: https://anaconda.org/conda-forge/pysteps
 
+.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
+    :alt: Conda downloads
+    :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
+
 .. end-badges
 
 What is pysteps?
@@ -78,12 +84,9 @@ The pysteps library supports standard input/output file formats and implements s
 Run your first nowcast!
 -----------------------
 
-Use pysteps to compute and plot an extrapolation nowcast in Google Colab |colab|
+Use pysteps to compute and plot an extrapolation nowcast in Google Colab with `this interactive notebook`__.
 
-.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
-    :alt: Conda downloads
-    :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
-
+__ https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
 
 Get in touch
 ============
