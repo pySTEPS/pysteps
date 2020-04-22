@@ -19,7 +19,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     * - community
       - |slack| |contributors| |downloads|
     * - tutorials
-      - |colab|
+      - |colab| |gallery|
  
 .. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
@@ -66,8 +66,12 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :target: https://anaconda.org/conda-forge/pysteps
 
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
-    :alt: Conda downloads
+    :alt: My first nowcast
     :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
+    
+.. |gallery| image:: https://img.shields.io/badge/pysteps-Gallery-blue.svg
+    :alt: Pysteps gallery
+    :target: https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
 
 .. end-badges
 
