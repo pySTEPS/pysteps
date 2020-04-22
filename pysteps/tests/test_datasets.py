@@ -10,7 +10,7 @@ from pysteps.datasets import download_pysteps_data, create_default_pystepsrc, lo
 from pysteps.exceptions import DirectoryNotEmpty
 
 _datasets_opt_deps = dict(
-    fmi=[],
+    fmi=["pyproj"],
     mch=["PIL"],
     bom=["netCDF4"],
     knmi=["h5py"],
