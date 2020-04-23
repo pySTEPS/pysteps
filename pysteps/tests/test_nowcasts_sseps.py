@@ -19,28 +19,31 @@ sseps_arg_values = [
     (5, 6, 2, "incremental", "cdf", 200, 0.8),
 ]
 
+
 @pytest.mark.parametrize(sseps_arg_names, sseps_arg_values)
 def test_sseps(
-        n_ens_members,
-        n_cascade_levels,
-        ar_order,
-        mask_method,
-        probmatching_method,
-        win_size,
-        max_crps):
+    n_ens_members,
+    n_cascade_levels,
+    ar_order,
+    mask_method,
+    probmatching_method,
+    win_size,
+    max_crps,
+):
     """Tests SSEPS nowcast."""
     # inputs
-    precip_input, metadata = get_precipitation_fields(num_prev_files=2,
-                                                      num_next_files=0,
-                                                      return_raw=False,
-                                                      metadata=True,
-                                                      upscale=2000)
+    precip_input, metadata = get_precipitation_fields(
+        num_prev_files=2,
+        num_next_files=0,
+        return_raw=False,
+        metadata=True,
+        upscale=2000,
+    )
     precip_input = precip_input.filled()
 
-    precip_obs = get_precipitation_fields(num_prev_files=0,
-                                          num_next_files=3,
-                                          return_raw=False,
-                                          upscale=2000)[1:, :, :]
+    precip_obs = get_precipitation_fields(
+        num_prev_files=0, num_next_files=3, return_raw=False, upscale=2000
+    )[1:, :, :]
     precip_obs = precip_obs.filled()
 
     # Retrieve motion field
@@ -63,12 +66,13 @@ def test_sseps(
         seed=42,
         mask_method=mask_method,
         probmatching_method=probmatching_method,
-        )
+    )
 
     # result
     crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
     print(f"got CRPS={crps:.1f}, required < {max_crps:.1f}")
     assert crps < max_crps
+
 
 if __name__ == "__main__":
     for n in range(len(sseps_arg_values)):

@@ -167,9 +167,7 @@ def det_cat_fct_accum(contab, pred, obs):
 
     pred = np.asarray(pred.copy())
     obs = np.asarray(obs.copy())
-    axis = (
-        tuple(range(pred.ndim)) if contab["axis"] is None else contab["axis"]
-    )
+    axis = tuple(range(pred.ndim)) if contab["axis"] is None else contab["axis"]
 
     # checks
     if pred.shape != obs.shape:
@@ -398,15 +396,13 @@ def det_cat_fct_compute(contab, scores=""):
                 result["GSS"] = GSS
         if score_ in ["sedi", ""]:
             # Symmetric extremal dependence index
-            SEDI = (
-                np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA)
-            ) / (np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA))
+            SEDI = (np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA)) / (
+                np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA)
+            )
             result["SEDI"] = SEDI
         if score_ in ["mcc", ""]:
             # Matthews correlation coefficient
-            MCC = (H * R - F * M) / np.sqrt(
-                (H + F) * (H + M) * (R + F) * (R + M)
-            )
+            MCC = (H * R - F * M) / np.sqrt((H + F) * (H + M) * (R + F) * (R + M))
             result["MCC"] = MCC
         if score_ in ["f1", ""]:
             # F1 score

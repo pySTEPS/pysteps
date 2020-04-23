@@ -32,9 +32,7 @@ if sys.platform.startswith("darwin"):
     common_link_args.append("-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/")
 
 extensions_data = {
-    "pysteps.motion._proesmans": {
-        "sources": ["pysteps/motion/_proesmans.pyx"]
-    },
+    "pysteps.motion._proesmans": {"sources": ["pysteps/motion/_proesmans.pyx"]},
     "pysteps.motion._vet": {"sources": ["pysteps/motion/_vet.pyx"]},
 }
 

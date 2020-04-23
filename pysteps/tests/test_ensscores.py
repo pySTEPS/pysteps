@@ -11,7 +11,10 @@ precip = get_precipitation_fields(num_next_files=10, return_raw=True)
 np.random.seed(42)
 
 # rankhist
-test_data = [(precip[:10], precip[-1], None, True, 11), (precip[:10], precip[-1], None, False, 11)]
+test_data = [
+    (precip[:10], precip[-1], None, True, 11),
+    (precip[:10], precip[-1], None, False, 11),
+]
 
 
 @pytest.mark.parametrize("X_f, X_o, X_min, normalize, expected", test_data)
@@ -24,7 +27,13 @@ def test_rankhist_size(X_f, X_o, X_min, normalize, expected):
 
 # ensemble_skill
 test_data = [
-    (precip[:10], precip[-1], "RMSE", {"axis": None, "conditioning": "single"}, 0.26054151),
+    (
+        precip[:10],
+        precip[-1],
+        "RMSE",
+        {"axis": None, "conditioning": "single"},
+        0.26054151,
+    ),
     (precip[:10], precip[-1], "CSI", {"thr": 1.0, "axis": None}, 0.22017924),
     (precip[:10], precip[-1], "FSS", {"thr": 1.0, "scale": 10}, 0.63239752),
 ]

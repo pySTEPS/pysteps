@@ -11,7 +11,8 @@ test_argvalues = [
     ("20190122_2222", "%Y/foo/%m", "./2019/foo/01"),
     ("20190130_1200", "%Y/foo/%m", "./2019/foo/01"),
     ("20190130_1205", "%Y%m%d/foo/bar/%H%M", "./20190130/foo/bar/1205"),
-    ("20190130_1205", "foo/bar/%H%M", "./foo/bar/1205")]
+    ("20190130_1205", "foo/bar/%H%M", "./foo/bar/1205"),
+]
 
 
 @pytest.mark.parametrize("timestamp, path_fmt, expected_path", test_argvalues)

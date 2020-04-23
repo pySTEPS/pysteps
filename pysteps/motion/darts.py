@@ -85,10 +85,15 @@ def DARTS(input_images, **kwargs):
     verbose = kwargs.get("verbose", True)
 
     if N_t >= input_images.shape[0] - 1:
-        raise ValueError("N_t = %d >= %d = T-1, but N_t < T-1 required" % (N_t, input_images.shape[0]-1))
+        raise ValueError(
+            "N_t = %d >= %d = T-1, but N_t < T-1 required"
+            % (N_t, input_images.shape[0] - 1)
+        )
 
     if output_type not in ["spatial", "spectral"]:
-        raise ValueError("invalid output_type=%s, must be 'spatial' or 'spectral'" % output_type)
+        raise ValueError(
+            "invalid output_type=%s, must be 'spatial' or 'spectral'" % output_type
+        )
 
     if verbose:
         print("Computing the motion field with the DARTS method.")
@@ -96,8 +101,12 @@ def DARTS(input_images, **kwargs):
 
     input_images = np.moveaxis(input_images, (0, 1, 2), (2, 0, 1))
 
-    fft = utils.get_method(fft_method, shape=input_images.shape[:2], fftn_shape=input_images.shape,
-                           **kwargs)
+    fft = utils.get_method(
+        fft_method,
+        shape=input_images.shape[:2],
+        fftn_shape=input_images.shape,
+        **kwargs,
+    )
 
     T_x = input_images.shape[1]
     T_y = input_images.shape[0]
@@ -126,7 +135,9 @@ def DARTS(input_images, **kwargs):
 
     y = np.zeros(m, dtype=complex)
 
-    k_t, k_y, k_x = np.unravel_index(np.arange(m), (2 * N_t + 1, 2 * N_y + 1, 2 * N_x + 1))
+    k_t, k_y, k_x = np.unravel_index(
+        np.arange(m), (2 * N_t + 1, 2 * N_y + 1, 2 * N_x + 1)
+    )
 
     for i in range(m):
         k_x_ = k_x[i] - N_x
@@ -191,14 +202,18 @@ def DARTS(input_images, **kwargs):
 
     i, j = np.unravel_index(np.arange(h * w), (h, w))
 
-    V[i, j] = x[0:h * w]
-    U[i, j] = x[h * w:2 * h * w]
+    V[i, j] = x[0 : h * w]
+    U[i, j] = x[h * w : 2 * h * w]
 
     k_x, k_y = np.meshgrid(np.arange(-M_x, M_x + 1), np.arange(-M_y, M_y + 1))
 
     if output_type == "spatial":
-        U = np.real(fft.ifft2(_fill(U, input_images.shape[0], input_images.shape[1], k_x, k_y)))
-        V = np.real(fft.ifft2(_fill(V, input_images.shape[0], input_images.shape[1], k_x, k_y)))
+        U = np.real(
+            fft.ifft2(_fill(U, input_images.shape[0], input_images.shape[1], k_x, k_y))
+        )
+        V = np.real(
+            fft.ifft2(_fill(V, input_images.shape[0], input_images.shape[1], k_x, k_y))
+        )
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
@@ -216,8 +231,9 @@ def _leastsq(A, B, y):
     mask = s > 0.01 * s[0]
     s = 1.0 / s[mask]
 
-    MM_inv = np.dot(np.dot(V[:len(s), :].conjugate().T, np.diag(s)),
-                    U[:, :len(s)].conjugate().T)
+    MM_inv = np.dot(
+        np.dot(V[: len(s), :].conjugate().T, np.diag(s)), U[:, : len(s)].conjugate().T
+    )
 
     return np.dot(MM_inv, np.dot(M_ct, y))
 

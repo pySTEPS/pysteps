@@ -72,9 +72,7 @@ mask = np.ones(ref_mm.shape)
 mask[~np.isnan(ref_mm)] = np.nan
 
 # Log-transform the data [dBR]
-R, metadata = transformation.dB_transform(
-    R, metadata, threshold=0.1, zerovalue=-15.0
-)
+R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
 
 # Keep the reference frame in dBR (for plotting purposes)
 ref_dbr = R[0].copy()
@@ -111,7 +109,7 @@ dense_lucaskanade = motion.get_method("LK")
 R = np.ma.masked_invalid(R)
 
 # Use no buffering of the radar mask
-fd_kwargs1 = {"buffer_mask" : 0}
+fd_kwargs1 = {"buffer_mask": 0}
 xy, uv = dense_lucaskanade(R, dense=False, fd_kwargs=fd_kwargs1)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
@@ -143,7 +141,7 @@ plt.show()
 
 # with buffer
 buffer = 10
-fd_kwargs2 = {"buffer_mask" : buffer}
+fd_kwargs2 = {"buffer_mask": buffer}
 xy, uv = dense_lucaskanade(R, dense=False, fd_kwargs=fd_kwargs2)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
@@ -174,9 +172,13 @@ plt.show()
 # Please note that we are setting a small shape parameter ``epsilon`` for the
 # interpolation routine. This will produce a smoother motion field.
 
-interp_kwargs = {"epsilon" : 5} # use a small shape parameter for interpolation
-UV1 = dense_lucaskanade(R, dense=True, fd_kwargs=fd_kwargs1, interp_kwargs=interp_kwargs)
-UV2 = dense_lucaskanade(R, dense=True, fd_kwargs=fd_kwargs2, interp_kwargs=interp_kwargs)
+interp_kwargs = {"epsilon": 5}  # use a small shape parameter for interpolation
+UV1 = dense_lucaskanade(
+    R, dense=True, fd_kwargs=fd_kwargs1, interp_kwargs=interp_kwargs
+)
+UV2 = dense_lucaskanade(
+    R, dense=True, fd_kwargs=fd_kwargs2, interp_kwargs=interp_kwargs
+)
 
 V1 = np.sqrt(UV1[0] ** 2 + UV1[1] ** 2)
 V2 = np.sqrt(UV2[0] ** 2 + UV2[1] ** 2)
@@ -211,13 +213,7 @@ R_f2 = transformation.dB_transform(R_f2, threshold=-10.0, inverse=True)[0]
 
 # Find the veriyfing observations in the archive
 fns = io.archive.find_by_date(
-    date,
-    root_path,
-    path_fmt,
-    fn_pattern,
-    fn_ext,
-    timestep=5,
-    num_next_files=12,
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_next_files=12,
 )
 
 # Read and convert the radar composites

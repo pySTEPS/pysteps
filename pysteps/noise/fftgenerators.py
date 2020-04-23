@@ -299,10 +299,8 @@ def initialize_nonparam_2d_fft_filter(field, **kwargs):
 
     if win_fun is not None:
         tapering = utils.tapering.compute_window_function(
-            field_shape[0],
-            field_shape[1],
-            win_fun
-            )
+            field_shape[0], field_shape[1], win_fun
+        )
     else:
         tapering = np.ones(field_shape)
 
@@ -321,11 +319,16 @@ def initialize_nonparam_2d_fft_filter(field, **kwargs):
         if np.std(F.real) > 0:
             F.real = (F.real - np.mean(F.real)) / np.std(F.real)
 
-    return {"field": np.abs(F), "input_shape": field.shape[1:], "use_full_fft": use_full_fft}
+    return {
+        "field": np.abs(F),
+        "input_shape": field.shape[1:],
+        "use_full_fft": use_full_fft,
+    }
 
 
-def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
-                                 domain="spatial"):
+def generate_noise_2d_fft_filter(
+    F, randstate=None, seed=None, fft_method=None, domain="spatial"
+):
     """Produces a field of correlated noise using global Fourier filtering.
 
     Parameters
@@ -362,7 +365,10 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
 
     """
     if domain not in ["spatial", "spectral"]:
-        raise ValueError("invalid value %s for the 'domain' argument: must be 'spatial' or 'spectral'" % str(domain))
+        raise ValueError(
+            "invalid value %s for the 'domain' argument: must be 'spatial' or 'spectral'"
+            % str(domain)
+        )
 
     input_shape = F["input_shape"]
     use_full_fft = F["use_full_fft"]
@@ -395,13 +401,17 @@ def generate_noise_2d_fft_filter(F, randstate=None, seed=None, fft_method=None,
         if use_full_fft:
             size = (input_shape[0], input_shape[1])
         else:
-            size = (input_shape[0], int(input_shape[1]/2)+1)
-        theta = randstate.uniform(low=0.0, high=2.0*np.pi, size=size)
+            size = (input_shape[0], int(input_shape[1] / 2) + 1)
+        theta = randstate.uniform(low=0.0, high=2.0 * np.pi, size=size)
         if input_shape[0] % 2 == 0:
-            theta[int(input_shape[0]/2)+1:, 0] = -theta[1:int(input_shape[0]/2), 0][::-1]
+            theta[int(input_shape[0] / 2) + 1 :, 0] = -theta[
+                1 : int(input_shape[0] / 2), 0
+            ][::-1]
         else:
-            theta[int(input_shape[0]/2)+1:, 0] = -theta[1:int(input_shape[0]/2)+1, 0][::-1]
-        N = np.cos(theta) + 1.j * np.sin(theta)
+            theta[int(input_shape[0] / 2) + 1 :, 0] = -theta[
+                1 : int(input_shape[0] / 2) + 1, 0
+            ][::-1]
+        N = np.cos(theta) + 1.0j * np.sin(theta)
 
     # apply the global Fourier filter to impose a correlation structure
     if domain == "spatial":
@@ -789,7 +799,9 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
         raise ValueError("field contains non-finite values")
 
     if "domain" in kwargs.keys() and kwargs["domain"] == "spectral":
-        raise NotImplementedError("SSFT-based noise generator is not implemented in the spectral domain")
+        raise NotImplementedError(
+            "SSFT-based noise generator is not implemented in the spectral domain"
+        )
 
     # defaults
     overlap = kwargs.get("overlap", 0.2)
@@ -837,13 +849,13 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
 
             # compute indices of local window
             idxi[0] = int(np.max((i * win_size[0] - overlap * win_size[0], 0)))
-            idxi[1] = int(np.min(
-                (idxi[0] + win_size[0] + overlap * win_size[0], dim_y)
-            ))
+            idxi[1] = int(
+                np.min((idxi[0] + win_size[0] + overlap * win_size[0], dim_y))
+            )
             idxj[0] = int(np.max((j * win_size[1] - overlap * win_size[1], 0)))
-            idxj[1] = int(np.min(
-                (idxj[0] + win_size[1] + overlap * win_size[1], dim_x)
-            ))
+            idxj[1] = int(
+                np.min((idxj[0] + win_size[1] + overlap * win_size[1], dim_x))
+            )
 
             # build mask and add local noise field to the composite image
             M = _get_mask(dim, idxi, idxj, win_fun)
@@ -894,10 +906,7 @@ def _get_mask(Size, idxi, idxj, win_fun):
 
     win_size = (idxi[1] - idxi[0], idxj[1] - idxj[0])
     if win_fun is not None:
-        wind = utils.tapering.compute_window_function(
-            win_size[0],
-            win_size[1],
-            win_fun)
+        wind = utils.tapering.compute_window_function(win_size[0], win_size[1], win_fun)
 
     else:
         wind = np.ones(win_size)

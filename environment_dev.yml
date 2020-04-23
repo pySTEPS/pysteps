@@ -22,6 +22,8 @@ dependencies:
   - pyfftw
   - h5py
   - PyWavelets
+  - pygrib
+  - pre_commit
   - pytest-cov
   - codecov
 

@@ -193,9 +193,7 @@ def rbfinterp2d(
 
         if k == 0:
             # use all points
-            d = scipy.spatial.distance.cdist(
-                coord, subgrid, "euclidean"
-            ).transpose()
+            d = scipy.spatial.distance.cdist(coord, subgrid, "euclidean").transpose()
             inds = np.arange(npoints)[None, :] * np.ones(
                 (subgrid.shape[0], npoints)
             ).astype(int)
@@ -206,13 +204,13 @@ def rbfinterp2d(
 
         if k == 1:
             # nearest neighbour
-            output_array[i0: (i0 + idelta), :] = input_array[inds, :]
+            output_array[i0 : (i0 + idelta), :] = input_array[inds, :]
 
         else:
 
             # the interpolation weights
             if rbfunction == "gaussian":
-                w = np.exp(-(d * epsilon) ** 2)
+                w = np.exp(-((d * epsilon) ** 2))
 
             elif rbfunction == "inverse quadratic":
                 w = 1.0 / (1 + (epsilon * d) ** 2)
@@ -229,7 +227,7 @@ def rbfinterp2d(
 
             # interpolate
             for j in range(nvar):
-                output_array[i0: (i0 + idelta), j] = np.sum(
+                output_array[i0 : (i0 + idelta), j] = np.sum(
                     w * input_array[inds, j], axis=1
                 ) / np.sum(w, axis=1)
 

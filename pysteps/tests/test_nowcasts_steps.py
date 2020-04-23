@@ -29,26 +29,28 @@ steps_arg_values = [
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
 def test_steps(
-        n_ens_members,
-        n_cascade_levels,
-        ar_order,
-        mask_method,
-        probmatching_method,
-        domain,
-        max_crps):
+    n_ens_members,
+    n_cascade_levels,
+    ar_order,
+    mask_method,
+    probmatching_method,
+    domain,
+    max_crps,
+):
     """Tests STEPS nowcast."""
     # inputs
-    precip_input, metadata = get_precipitation_fields(num_prev_files=2,
-                                                      num_next_files=0,
-                                                      return_raw=False,
-                                                      metadata=True,
-                                                      upscale=2000)
+    precip_input, metadata = get_precipitation_fields(
+        num_prev_files=2,
+        num_next_files=0,
+        return_raw=False,
+        metadata=True,
+        upscale=2000,
+    )
     precip_input = precip_input.filled()
 
-    precip_obs = get_precipitation_fields(num_prev_files=0,
-                                          num_next_files=3,
-                                          return_raw=False,
-                                          upscale=2000)[1:, :, :]
+    precip_obs = get_precipitation_fields(
+        num_prev_files=0, num_next_files=3, return_raw=False, upscale=2000
+    )[1:, :, :]
     precip_obs = precip_obs.filled()
 
     # Retrieve motion field
@@ -79,6 +81,7 @@ def test_steps(
     crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
     print(f"got CRPS={crps:.1f}, required < {max_crps:.1f}")
     assert crps < max_crps
+
 
 if __name__ == "__main__":
     for n in range(len(steps_arg_values)):

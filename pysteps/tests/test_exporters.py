@@ -25,11 +25,12 @@ def test_get_geotiff_filename():
     timestep = 5
 
     for timestep_index in range(n_timesteps):
-        file_name = _get_geotiff_filename("test/path",
-                                          start_date, n_timesteps, timestep,
-                                          timestep_index)
-        expected = (f"test/path_201909082022_"
-                    f"{(timestep_index + 1) * timestep:03d}.tif")
+        file_name = _get_geotiff_filename(
+            "test/path", start_date, n_timesteps, timestep, timestep_index
+        )
+        expected = (
+            f"test/path_201909082022_" f"{(timestep_index + 1) * timestep:03d}.tif"
+        )
         assert expected == file_name
 
 
@@ -39,9 +40,9 @@ def test_io_export_netcdf_one_member_one_time_step():
 
     pytest.importorskip("pyproj")
 
-    precip, metadata = get_precipitation_fields(return_raw=True,
-                                                metadata=True,
-                                                source="fmi")
+    precip, metadata = get_precipitation_fields(
+        return_raw=True, metadata=True, source="fmi"
+    )
     precip = precip.squeeze()
 
     invalid_mask = get_invalid_mask(precip)
@@ -50,19 +51,25 @@ def test_io_export_netcdf_one_member_one_time_step():
     with tempfile.TemporaryDirectory() as outpath:
         outfnprefix = "test_netcdf_out"
         file_path = os.path.join(outpath, outfnprefix + ".nc")
-        startdate = metadata['timestamps'][0]
-        timestep = metadata['accutime']
+        startdate = metadata["timestamps"][0]
+        timestep = metadata["accutime"]
         n_timesteps = 1
         shape = precip.shape
         exporter = initialize_forecast_exporter_netcdf(
-            outpath, outfnprefix, startdate,
-            timestep, n_timesteps, shape, metadata,
-            n_ens_members=1)
+            outpath,
+            outfnprefix,
+            startdate,
+            timestep,
+            n_timesteps,
+            shape,
+            metadata,
+            n_ens_members=1,
+        )
         export_forecast_dataset(precip[np.newaxis, :], exporter)
         close_forecast_files(exporter)
 
         # assert if netcdf file was saved and file size is not zero
-        assert (os.path.exists(file_path) and os.path.getsize(file_path) > 0)
+        assert os.path.exists(file_path) and os.path.getsize(file_path) > 0
 
         # Test that the file can be read by the nowcast_importer
         output_file_path = os.path.join(outpath, f"{outfnprefix}.nc")

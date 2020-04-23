@@ -47,16 +47,16 @@ def ensemble_skill(X_f, X_o, metric, **kwargs):
     """
 
     if len(X_f.shape) != 3:
-        raise ValueError("the number of dimensions of X_f must be equal to 3, "
-                         + "but %i dimensions were passed"
-                         % len(X_f.shape))
+        raise ValueError(
+            "the number of dimensions of X_f must be equal to 3, "
+            + "but %i dimensions were passed" % len(X_f.shape)
+        )
     if X_f.shape[1:] != X_o.shape:
-        raise ValueError("the shape of X_f does not match the shape of "
-                         + "X_o (%d,%d)!=(%d,%d)"
-                         % (X_f.shape[1],
-                            X_f.shape[2],
-                            X_o.shape[0],
-                            X_o.shape[1]))
+        raise ValueError(
+            "the shape of X_f does not match the shape of "
+            + "X_o (%d,%d)!=(%d,%d)"
+            % (X_f.shape[1], X_f.shape[2], X_o.shape[0], X_o.shape[1])
+        )
 
     compute_skill = get_method(metric, type="deterministic")
 
@@ -97,13 +97,15 @@ def ensemble_spread(X_f, metric, **kwargs):
 
     """
     if len(X_f.shape) != 3:
-        raise ValueError("the number of dimensions of X_f must be equal to 3, "
-                         + "but %i dimensions were passed"
-                         % len(X_f.shape))
+        raise ValueError(
+            "the number of dimensions of X_f must be equal to 3, "
+            + "but %i dimensions were passed" % len(X_f.shape)
+        )
     if X_f.shape[0] < 2:
-        raise ValueError("the number of members in X_f must be greater than 1,"
-                         + " but %i members were passed"
-                         % X_f.shape[0])
+        raise ValueError(
+            "the number of members in X_f must be greater than 1,"
+            + " but %i members were passed" % X_f.shape[0]
+        )
 
     compute_spread = get_method(metric, type="deterministic")
 
@@ -111,9 +113,9 @@ def ensemble_spread(X_f, metric, **kwargs):
     spread = []
     for member in range(lolo):
         for othermember in range(member + 1, lolo):
-            spread_ = compute_spread(X_f[member, :, :],
-                                     X_f[othermember, :, :],
-                                     **kwargs)
+            spread_ = compute_spread(
+                X_f[member, :, :], X_f[othermember, :, :], **kwargs
+            )
             if isinstance(spread_, dict):
                 spread_ = spread_[metric]
             spread.append(spread_)
@@ -174,7 +176,7 @@ def rankhist_init(num_ens_members, X_min=None):
     rankhist = {}
 
     rankhist["num_ens_members"] = num_ens_members
-    rankhist["n"] = np.zeros(num_ens_members+1, dtype=int)
+    rankhist["n"] = np.zeros(num_ens_members + 1, dtype=int)
     rankhist["X_min"] = X_min
 
     return rankhist
@@ -196,10 +198,11 @@ def rankhist_accum(rankhist, X_f, X_o):
 
     """
     if X_f.shape[0] != rankhist["num_ens_members"]:
-        raise ValueError("the number of ensemble members in X_f does not "
-                         + "match the number of members in the rank "
-                         + "histogram (%d!=%d)"
-                         % (X_f.shape[0], rankhist["num_ens_members"]))
+        raise ValueError(
+            "the number of ensemble members in X_f does not "
+            + "match the number of members in the rank "
+            + "histogram (%d!=%d)" % (X_f.shape[0], rankhist["num_ens_members"])
+        )
 
     X_f = np.vstack([X_f[i, :].flatten() for i in range(X_f.shape[0])]).T
     X_o = X_o.flatten()
@@ -225,9 +228,7 @@ def rankhist_accum(rankhist, X_f, X_o):
     X_c.sort(axis=1)
 
     idx1 = np.where(X_c == X_o)
-    _, idx2, idx_counts = np.unique(idx1[0],
-                                    return_index=True,
-                                    return_counts=True)
+    _, idx2, idx_counts = np.unique(idx1[0], return_index=True, return_counts=True)
     bin_idx_1 = idx1[1][idx2]
 
     bin_idx = list(bin_idx_1[np.where(idx_counts == 1)[0]])
@@ -242,8 +243,7 @@ def rankhist_accum(rankhist, X_f, X_o):
         bin_idx_2 = X_f.shape[1] - idx1[1][idx2]
 
         idxr = np.random.uniform(low=0.0, high=1.0, size=len(idxdup))
-        idxr = bin_idx_1[idxdup] + idxr \
-            * (bin_idx_2[idxdup] + 1 - bin_idx_1[idxdup])
+        idxr = bin_idx_1[idxdup] + idxr * (bin_idx_2[idxdup] + 1 - bin_idx_1[idxdup])
         bin_idx.extend(idxr.astype(int))
 
     for bi in bin_idx:
@@ -269,6 +269,6 @@ def rankhist_compute(rankhist, normalize=True):
 
     """
     if normalize:
-        return 1.0*rankhist["n"] / sum(rankhist["n"])
+        return 1.0 * rankhist["n"] / sum(rankhist["n"])
     else:
         return rankhist["n"]

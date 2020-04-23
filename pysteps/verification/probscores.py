@@ -98,21 +98,21 @@ def CRPS_accum(CRPS, X_f, X_o):
     n = X_f.shape[0]
     m = X_f.shape[1]
 
-    alpha = np.zeros((n, m+1))
-    beta = np.zeros((n, m+1))
+    alpha = np.zeros((n, m + 1))
+    beta = np.zeros((n, m + 1))
 
     for i in range(1, m):
         mask = X_o > X_f[:, i]
-        alpha[mask, i] = X_f[mask, i] - X_f[mask, i-1]
+        alpha[mask, i] = X_f[mask, i] - X_f[mask, i - 1]
         beta[mask, i] = 0.0
 
-        mask = np.logical_and(X_f[:, i] > X_o, X_o > X_f[:, i-1])
-        alpha[mask, i] = X_o[mask] - X_f[mask, i-1]
+        mask = np.logical_and(X_f[:, i] > X_o, X_o > X_f[:, i - 1])
+        alpha[mask, i] = X_o[mask] - X_f[mask, i - 1]
         beta[mask, i] = X_f[mask, i] - X_o[mask]
 
-        mask = X_o < X_f[:, i-1]
+        mask = X_o < X_f[:, i - 1]
         alpha[mask, i] = 0.0
-        beta[mask, i] = X_f[mask, i] - X_f[mask, i-1]
+        beta[mask, i] = X_f[mask, i] - X_f[mask, i - 1]
 
     mask = X_o < X_f[:, 0]
     alpha[mask, 0] = 0.0
@@ -122,8 +122,8 @@ def CRPS_accum(CRPS, X_f, X_o):
     alpha[mask, -1] = X_o[mask] - X_f[mask, -1]
     beta[mask, -1] = 0.0
 
-    p = 1.0*np.arange(m+1) / m
-    res = np.sum(alpha*p**2.0 + beta*(1.0-p)**2.0, axis=1)
+    p = 1.0 * np.arange(m + 1) / m
+    res = np.sum(alpha * p ** 2.0 + beta * (1.0 - p) ** 2.0, axis=1)
 
     CRPS["CRPS_sum"] += np.sum(res)
     CRPS["n"] += len(res)
@@ -142,7 +142,7 @@ def CRPS_compute(CRPS):
     out : float
       The computed CRPS.
     """
-    return 1.0*CRPS["CRPS_sum"] / CRPS["n"]
+    return 1.0 * CRPS["CRPS_sum"] / CRPS["n"]
 
 
 def reldiag(P_f, X_o, X_min, n_bins=10, min_count=10):
@@ -399,17 +399,20 @@ def ROC_curve_compute(ROC, compute_area=False):
     POFD_vals = []
 
     for i in range(len(ROC["prob_thrs"])):
-        POD_vals.append(1.0*ROC["hits"][i] /
-                        (ROC["hits"][i] + ROC["misses"][i]))
-        POFD_vals.append(1.0*ROC["false_alarms"][i] /
-                         (ROC["corr_neg"][i] + ROC["false_alarms"][i]))
+        POD_vals.append(1.0 * ROC["hits"][i] / (ROC["hits"][i] + ROC["misses"][i]))
+        POFD_vals.append(
+            1.0 * ROC["false_alarms"][i] / (ROC["corr_neg"][i] + ROC["false_alarms"][i])
+        )
 
     if compute_area:
         # Compute the total area of parallelepipeds under the ROC curve.
         area = (1.0 - POFD_vals[0]) * (1.0 + POD_vals[0]) / 2.0
-        for i in range(len(ROC["prob_thrs"])-1):
-            area += (POFD_vals[i] - POFD_vals[i+1]) * \
-              (POD_vals[i+1] + POD_vals[i]) / 2.0
+        for i in range(len(ROC["prob_thrs"]) - 1):
+            area += (
+                (POFD_vals[i] - POFD_vals[i + 1])
+                * (POD_vals[i + 1] + POD_vals[i])
+                / 2.0
+            )
         area += POFD_vals[-1] * POD_vals[-1] / 2.0
 
         return POFD_vals, POD_vals, area

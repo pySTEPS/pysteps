@@ -37,8 +37,7 @@ import numpy as np
 from pysteps.extrapolation import semilagrangian
 
 
-def eulerian_persistence(precip, velocity, timesteps, outval=np.nan,
-                         **kwargs):
+def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
     """A dummy extrapolation method to apply Eulerian persistence to a
     two-dimensional precipitation field. The method returns the a sequence
     of the same initial field with no extrapolation applied (i.e. Eulerian
@@ -85,9 +84,7 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan,
 
     return_displacement = kwargs.get("return_displacement", False)
 
-    extrapolated_precip = np.repeat(precip[np.newaxis, :, :, ],
-                                    num_timesteps,
-                                    axis=0)
+    extrapolated_precip = np.repeat(precip[np.newaxis, :, :,], num_timesteps, axis=0)
 
     if not return_displacement:
         return extrapolated_precip
@@ -95,8 +92,7 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan,
         return extrapolated_precip, np.zeros((2,) + extrapolated_precip.shape)
 
 
-def _do_nothing(precip, velocity, timesteps, outval=np.nan,
-                **kwargs):
+def _do_nothing(precip, velocity, timesteps, outval=np.nan, **kwargs):
     """Return None."""
     del precip, velocity, timesteps, outval, kwargs  # Unused
     return None
@@ -108,8 +104,8 @@ def _return_none(**kwargs):
 
 
 _extrapolation_methods = dict()
-_extrapolation_methods['eulerian'] = eulerian_persistence
-_extrapolation_methods['semilagrangian'] = semilagrangian.extrapolate
+_extrapolation_methods["eulerian"] = eulerian_persistence
+_extrapolation_methods["semilagrangian"] = semilagrangian.extrapolate
 _extrapolation_methods[None] = _do_nothing
 _extrapolation_methods["none"] = _do_nothing
 
@@ -140,6 +136,8 @@ def get_method(name):
         return _extrapolation_methods[name]
 
     except KeyError:
-        raise ValueError("Unknown method {}\n".format(name)
-                         + "The available methods are:"
-                         + str(list(_extrapolation_methods.keys()))) from None
+        raise ValueError(
+            "Unknown method {}\n".format(name)
+            + "The available methods are:"
+            + str(list(_extrapolation_methods.keys()))
+        ) from None

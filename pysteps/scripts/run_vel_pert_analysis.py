@@ -16,18 +16,26 @@ num_prev_files = 9
 use_precip_mask = False
 R_min = 0.1
 
-argparser = argparse.ArgumentParser(\
-    description="Estimate motion perturbation parameters for STEPS.")
+argparser = argparse.ArgumentParser(
+    description="Estimate motion perturbation parameters for STEPS."
+)
 argparser.add_argument("startdate", type=str, help="start date (YYYYmmDDHHMM)")
 argparser.add_argument("enddate", type=str, help="end date (YYYYmmDDHHMM)")
 argparser.add_argument("datasource", type=str, help="data source to use")
-argparser.add_argument("oflow", type=str,
-                       help="optical flow method to use (darts, lucaskanade or vet)")
-argparser.add_argument("maxleadtime", type=int,
-  help="maximum lead time for the analyses (minutes)")
+argparser.add_argument(
+    "oflow", type=str, help="optical flow method to use (darts, lucaskanade or vet)"
+)
+argparser.add_argument(
+    "maxleadtime", type=int, help="maximum lead time for the analyses (minutes)"
+)
 argparser.add_argument("outfile", type=str, help="output file name")
-argparser.add_argument("--accum", nargs='?', type=str, metavar="filename",
-                       help="accumulate statistics to previously computed file <filename>")
+argparser.add_argument(
+    "--accum",
+    nargs="?",
+    type=str,
+    metavar="filename",
+    help="accumulate statistics to previously computed file <filename>",
+)
 args = argparser.parse_args()
 
 datasource = rcparams["data_sources"][args.datasource]
@@ -50,9 +58,15 @@ oflow = motion.get_method(args.oflow)
 curdate = startdate
 while curdate <= enddate:
     try:
-        fns = io.archive.find_by_date(curdate, datasource["root_path"],
-            datasource["path_fmt"], datasource["fn_pattern"], datasource["fn_ext"],
-            datasource["timestep"], num_prev_files=9)
+        fns = io.archive.find_by_date(
+            curdate,
+            datasource["root_path"],
+            datasource["path_fmt"],
+            datasource["fn_pattern"],
+            datasource["fn_ext"],
+            datasource["timestep"],
+            num_prev_files=9,
+        )
     except IOError:
         curdate += timedelta(minutes=datasource["timestep"])
         continue
@@ -61,8 +75,9 @@ while curdate <= enddate:
         curdate += timedelta(minutes=datasource["timestep"])
         continue
 
-    R, _, metadata = io.readers.read_timeseries(fns, importer,
-                                                **datasource["importer_kwargs"])
+    R, _, metadata = io.readers.read_timeseries(
+        fns, importer, **datasource["importer_kwargs"]
+    )
 
     # TODO: Here we assume that metadata["xpixelsize"] = metadata["ypixelsize"]
     vsf = 60.0 / datasource["timestep"] * metadata["xpixelsize"] / 1000.0
@@ -90,7 +105,7 @@ while curdate <= enddate:
     # TODO: Allow the user to supply parameters for the optical flow.
     V = oflow(R_) * vsf
     # discard the motion field if the mean velocity is abnormally large
-    if np.nanmean(np.linalg.norm(V, axis=0)) > 0.5*R.shape[1]:
+    if np.nanmean(np.linalg.norm(V, axis=0)) > 0.5 * R.shape[1]:
         curdate += timedelta(minutes=datasource["timestep"])
         continue
 
@@ -125,7 +140,7 @@ for i, date1 in enumerate(dates):
     if date1 + timedelta(minutes=args.maxleadtime) > enddate:
         continue
 
-    for date2 in dates[i+1:]:
+    for date2 in dates[i + 1 :]:
         lt = (date2 - date1).total_seconds() / 60
         if lt > args.maxleadtime:
             continue
@@ -134,7 +149,7 @@ for i, date1 in enumerate(dates):
 
         DV = V2 - V1
 
-        DP_par = DV[0, :, :] * V1_par[0, :, :]  + DV[1, :, :] * V1_par[1, :, :]
+        DP_par = DV[0, :, :] * V1_par[0, :, :] + DV[1, :, :] * V1_par[1, :, :]
         DP_perp = DV[0, :, :] * V1_perp[0, :, :] + DV[1, :, :] * V1_perp[1, :, :]
 
         if not lt in results.keys():
@@ -146,8 +161,7 @@ for i, date1 in enumerate(dates):
             results[lt]["n_samples"] = 0
 
         if use_precip_mask:
-            MASK = np.logical_and(np.isfinite(V1[0, :, :]),
-                                  np.isfinite(V2[0, :, :]))
+            MASK = np.logical_and(np.isfinite(V1[0, :, :]), np.isfinite(V2[0, :, :]))
             DP_par = DP_par[MASK]
             DP_perp = DP_perp[MASK]
             n_samples = np.sum(MASK)
@@ -155,9 +169,9 @@ for i, date1 in enumerate(dates):
             n_samples = DP_par.size
 
         results[lt]["dp_par_sum"] += np.sum(DP_par)
-        results[lt]["dp_par_sq_sum"] += np.sum(DP_par**2)
+        results[lt]["dp_par_sq_sum"] += np.sum(DP_par ** 2)
         results[lt]["dp_perp_sum"] += np.sum(DP_perp)
-        results[lt]["dp_perp_sq_sum"] += np.sum(DP_perp**2)
+        results[lt]["dp_perp_sq_sum"] += np.sum(DP_perp ** 2)
         results[lt]["n_samples"] += n_samples
 
 with open("%s" % args.outfile, "wb") as f:

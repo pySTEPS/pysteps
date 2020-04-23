@@ -6,7 +6,11 @@ import pytest
 from _pytest.outcomes import Skipped
 
 import pysteps
-from pysteps.datasets import download_pysteps_data, create_default_pystepsrc, load_dataset
+from pysteps.datasets import (
+    download_pysteps_data,
+    create_default_pystepsrc,
+    load_dataset,
+)
 from pysteps.exceptions import DirectoryNotEmpty
 
 _datasets_opt_deps = dict(
@@ -77,7 +81,8 @@ def test_params_file_creation_path(config_dir, file_name, expected_path):
     """Test that the default pysteps parameters file is create in the right place."""
 
     pysteps_data_dir = "dummy/path/to/data"
-    params_file_path = create_default_pystepsrc(pysteps_data_dir, config_dir=config_dir, file_name=file_name,
-                                                dryrun=True)
+    params_file_path = create_default_pystepsrc(
+        pysteps_data_dir, config_dir=config_dir, file_name=file_name, dryrun=True
+    )
 
     assert expected_path == params_file_path

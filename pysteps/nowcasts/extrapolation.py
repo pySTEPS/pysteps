@@ -15,9 +15,14 @@ import time
 from pysteps import extrapolation
 
 
-def forecast(precip, velocity, num_timesteps,
-             extrap_method="semilagrangian", extrap_kwargs=None,
-             measure_time=False):
+def forecast(
+    precip,
+    velocity,
+    num_timesteps,
+    extrap_method="semilagrangian",
+    extrap_kwargs=None,
+    measure_time=False,
+):
     """Generate a nowcast by applying a simple advection-based extrapolation to
     the given precipitation field.
 
@@ -65,17 +70,20 @@ def forecast(precip, velocity, num_timesteps,
         extrap_kwargs = dict()
 
     if measure_time:
-        print("Computing extrapolation nowcast from a "
-              f"{precip.shape[0]:d}x{precip.shape[1]:d} input grid... ",
-              end="")
+        print(
+            "Computing extrapolation nowcast from a "
+            f"{precip.shape[0]:d}x{precip.shape[1]:d} input grid... ",
+            end="",
+        )
 
     if measure_time:
         start_time = time.time()
 
     extrapolation_method = extrapolation.get_method(extrap_method)
 
-    precip_forecast = extrapolation_method(precip, velocity, num_timesteps,
-                                           **extrap_kwargs)
+    precip_forecast = extrapolation_method(
+        precip, velocity, num_timesteps, **extrap_kwargs
+    )
 
     if measure_time:
         computation_time = time.time() - start_time
@@ -89,12 +97,13 @@ def forecast(precip, velocity, num_timesteps,
 
 def _check_inputs(precip, velocity):
     if len(precip.shape) != 2:
-        raise ValueError("The input precipitation must be a "
-                         "two-dimensional array")
+        raise ValueError("The input precipitation must be a " "two-dimensional array")
     if len(velocity.shape) != 3:
         raise ValueError("Input velocity must be a three-dimensional array")
     if precip.shape != velocity.shape[1:3]:
-        raise ValueError("Dimension mismatch between "
-                         "input precipitation and velocity: " +
-                         "shape(precip)=%s, shape(velocity)=%s" %
-                         (str(precip.shape), str(velocity.shape)))
+        raise ValueError(
+            "Dimension mismatch between "
+            "input precipitation and velocity: "
+            + "shape(precip)=%s, shape(velocity)=%s"
+            % (str(precip.shape), str(velocity.shape))
+        )

@@ -24,7 +24,7 @@ _importer_methods = dict(
     mrms_grib=importers.import_mrms_grib,
     opera_hdf5=importers.import_opera_hdf5,
     knmi_hdf5=importers.import_knmi_hdf5,
-    saf_crri=importers.import_saf_crri
+    saf_crri=importers.import_saf_crri,
 )
 
 _exporter_methods = dict(
@@ -107,32 +107,38 @@ def get_method(name, method_type):
     if isinstance(method_type, str):
         method_type = method_type.lower()
     else:
-        raise TypeError("Only strings supported for for the method_type"
-                        + " argument\n"
-                        + "The available types are: 'importer' and 'exporter'"
-                        ) from None
+        raise TypeError(
+            "Only strings supported for for the method_type"
+            + " argument\n"
+            + "The available types are: 'importer' and 'exporter'"
+        ) from None
 
     if isinstance(name, str):
         name = name.lower()
     else:
-        raise TypeError("Only strings supported for the method's names.\n"
-                        + "Available importers names:"
-                        + str(list(_importer_methods.keys()))
-                        + "\nAvailable exporters names:"
-                        + str(list(_exporter_methods.keys()))) from None
+        raise TypeError(
+            "Only strings supported for the method's names.\n"
+            + "Available importers names:"
+            + str(list(_importer_methods.keys()))
+            + "\nAvailable exporters names:"
+            + str(list(_exporter_methods.keys()))
+        ) from None
 
     if method_type == "importer":
         methods_dict = _importer_methods
     elif method_type == "exporter":
         methods_dict = _exporter_methods
     else:
-        raise ValueError("Unknown method type {}\n".format(name)
-                         + "The available types are: 'importer' and 'exporter'"
-                         ) from None
+        raise ValueError(
+            "Unknown method type {}\n".format(name)
+            + "The available types are: 'importer' and 'exporter'"
+        ) from None
 
     try:
         return methods_dict[name]
     except KeyError:
-        raise ValueError("Unknown {} method {}\n".format(method_type, name)
-                         + "The available methods are:"
-                         + str(list(methods_dict.keys()))) from None
+        raise ValueError(
+            "Unknown {} method {}\n".format(method_type, name)
+            + "The available methods are:"
+            + str(list(methods_dict.keys()))
+        ) from None

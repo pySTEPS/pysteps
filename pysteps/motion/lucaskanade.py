@@ -45,18 +45,20 @@ import warnings
 
 
 @check_input_frames(2)
-def dense_lucaskanade(input_images,
-                      lk_kwargs=None,
-                      fd_method="ShiTomasi",
-                      fd_kwargs=None,
-                      interp_method="rbfinterp2d",
-                      interp_kwargs=None,
-                      dense=True,
-                      nr_std_outlier=3,
-                      k_outlier=30,
-                      size_opening=3,
-                      decl_scale=20,
-                      verbose=False):
+def dense_lucaskanade(
+    input_images,
+    lk_kwargs=None,
+    fd_method="ShiTomasi",
+    fd_kwargs=None,
+    interp_method="rbfinterp2d",
+    interp_kwargs=None,
+    dense=True,
+    nr_std_outlier=3,
+    k_outlier=30,
+    size_opening=3,
+    decl_scale=20,
+    verbose=False,
+):
     """Run the Lucas-Kanade optical flow routine and interpolate the motion
     vectors.
 
@@ -290,15 +292,15 @@ def dense_lucaskanade(input_images,
 
 
 def track_features(
-        prvs_image,
-        next_image,
-        points,
-        winsize=(50, 50),
-        nr_levels=3,
-        criteria=(3, 10, 0),
-        flags=0,
-        min_eig_thr=1e-4,
-        verbose=False,
+    prvs_image,
+    next_image,
+    points,
+    winsize=(50, 50),
+    nr_levels=3,
+    criteria=(3, 10, 0),
+    flags=0,
+    min_eig_thr=1e-4,
+    verbose=False,
 ):
     """
     Interface to the OpenCV `Lucas-Kanade`_ features tracking algorithm
@@ -412,18 +414,16 @@ def track_features(
     im_min = prvs_img.min()
     im_max = prvs_img.max()
     if im_max - im_min > 1e-8:
-        prvs_img = ((prvs_img.filled() - im_min) /
-                    (im_max - im_min) * 255)
+        prvs_img = (prvs_img.filled() - im_min) / (im_max - im_min) * 255
     else:
-        prvs_img = (prvs_img.filled() - im_min)
+        prvs_img = prvs_img.filled() - im_min
 
     im_min = next_img.min()
     im_max = next_img.max()
     if im_max - im_min > 1e-8:
-        next_img = ((next_img.filled() - im_min) /
-                    (im_max - im_min) * 255)
+        next_img = (next_img.filled() - im_min) / (im_max - im_min) * 255
     else:
-        next_img = (next_img.filled() - im_min)
+        next_img = next_img.filled() - im_min
 
     # convert to 8-bit
     prvs_img = np.ndarray.astype(prvs_img, "uint8")
@@ -438,8 +438,7 @@ def track_features(
         flags=flags,
         minEigThreshold=min_eig_thr,
     )
-    p1, st, __ = cv2.calcOpticalFlowPyrLK(prvs_img, next_img,
-                                          p0, None, **params)
+    p1, st, __ = cv2.calcOpticalFlowPyrLK(prvs_img, next_img, p0, None, **params)
 
     # keep only features that have been found
     st = np.atleast_1d(st.squeeze()) == 1

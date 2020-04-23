@@ -116,11 +116,18 @@ except ImportError:
     PYPROJ_IMPORTED = False
 
 
-def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
-                                         timestep, n_timesteps, shape,
-                                         metadata,
-                                         n_ens_members=1, incremental=None,
-                                         **kwargs):
+def initialize_forecast_exporter_geotiff(
+    outpath,
+    outfnprefix,
+    startdate,
+    timestep,
+    n_timesteps,
+    shape,
+    metadata,
+    n_ens_members=1,
+    incremental=None,
+    **kwargs,
+):
     """Initialize a GeoTIFF forecast exporter.
 
     The output files are named as '<outfnprefix>_<startdate>_<t>.tif', where
@@ -176,12 +183,14 @@ def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
 
     if not GDAL_IMPORTED:
         raise MissingOptionalDependency(
-            "gdal package is required for GeoTIFF "
-            "exporters but it is not installed")
+            "gdal package is required for GeoTIFF " "exporters but it is not installed"
+        )
 
     if incremental == "member":
-        raise ValueError("incremental writing of GeoTIFF files with" +
-                         " the 'member' option is not supported")
+        raise ValueError(
+            "incremental writing of GeoTIFF files with"
+            + " the 'member' option is not supported"
+        )
 
     exporter = {}
     exporter["method"] = "geotiff"
@@ -200,11 +209,11 @@ def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
 
     if incremental != "timestep":
         for i in range(n_timesteps):
-            outfn = _get_geotiff_filename(outfnprefix, startdate, n_timesteps,
-                                          timestep, i)
+            outfn = _get_geotiff_filename(
+                outfnprefix, startdate, n_timesteps, timestep, i
+            )
             outfn = os.path.join(outpath, outfn)
-            dst = _create_geotiff_file(outfn, driver, shape,
-                                       metadata, n_ens_members)
+            dst = _create_geotiff_file(outfn, driver, shape, metadata, n_ens_members)
             exporter["dst"].append(dst)
     else:
         exporter["num_files_written"] = 0
@@ -216,11 +225,19 @@ def initialize_forecast_exporter_geotiff(outpath, outfnprefix, startdate,
 # Revise the variable names and
 # the structure of the file if necessary.
 
-def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
-                                         timestep, n_timesteps,
-                                         shape, metadata,
-                                         n_ens_members=1, incremental=None,
-                                         **kwargs):
+
+def initialize_forecast_exporter_kineros(
+    outpath,
+    outfnprefix,
+    startdate,
+    timestep,
+    n_timesteps,
+    shape,
+    metadata,
+    n_ens_members=1,
+    incremental=None,
+    **kwargs,
+):
     """Initialize a KINEROS2 Rainfall .pre file as specified
     in https://www.tucson.ars.ag.gov/kineros/.
 
@@ -273,8 +290,9 @@ def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
     """
 
     if incremental is not None:
-        raise ValueError("unknown option %s: " +
-                         "incremental writing is not supported" % incremental)
+        raise ValueError(
+            "unknown option %s: " + "incremental writing is not supported" % incremental
+        )
 
     exporter = {}
 
@@ -287,8 +305,7 @@ def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
         with open(outfn, "w") as fd:
             # write header
             fd.writelines("! pysteps-generated nowcast.\n")
-            fd.writelines("! created the %s.\n"
-                          % datetime.now().strftime("%c"))
+            fd.writelines("! created the %s.\n" % datetime.now().strftime("%c"))
             # TODO(exporters): Add pySTEPS version here
             fd.writelines("! Member = %02d.\n" % i)
             fd.writelines("! Startdate = %s.\n" % startdate.strftime("%c"))
@@ -336,10 +353,19 @@ def initialize_forecast_exporter_kineros(outpath, outfnprefix, startdate,
 # Revise the variable names and
 # the structure of the file if necessary.
 
-def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
-                                        timestep, n_timesteps, shape, metadata,
-                                        n_ens_members=1, incremental=None,
-                                        **kwargs):
+
+def initialize_forecast_exporter_netcdf(
+    outpath,
+    outfnprefix,
+    startdate,
+    timestep,
+    n_timesteps,
+    shape,
+    metadata,
+    n_ens_members=1,
+    incremental=None,
+    **kwargs,
+):
     """Initialize a netCDF forecast exporter. All outputs are written to a
     single file named as '<outfnprefix>_.nc'.
 
@@ -392,24 +418,29 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required for netcdf "
-            "exporters but it is not installed")
+            "exporters but it is not installed"
+        )
 
     if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
-            "pyproj package is required for netcdf "
-            "exporters but it is not installed")
+            "pyproj package is required for netcdf " "exporters but it is not installed"
+        )
 
     if incremental not in [None, "timestep", "member"]:
-        raise ValueError("unknown option %s: incremental must be " +
-                         "'timestep' or 'member'" % incremental)
+        raise ValueError(
+            "unknown option %s: incremental must be "
+            + "'timestep' or 'member'" % incremental
+        )
 
     if incremental == "timestep":
         n_timesteps = None
     elif incremental == "member":
         n_ens_members = None
     elif incremental is not None:
-        raise ValueError("unknown argument value incremental='%s': " +
-                         "must be 'timestep' or 'member'" % str(incremental))
+        raise ValueError(
+            "unknown argument value incremental='%s': "
+            + "must be 'timestep' or 'member'" % str(incremental)
+        )
 
     n_ens_gt_one = False
     if n_ens_members is not None:
@@ -419,7 +450,7 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     exporter = {}
 
     outfn = os.path.join(outpath, outfnprefix + ".nc")
-    ncf = netCDF4.Dataset(outfn, 'w', format="NETCDF4")
+    ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
 
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
@@ -465,19 +496,19 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
 
     var_xc = ncf.createVariable("x", np.float32, dimensions=("x",))
     var_xc[:] = xr
-    var_xc.axis = 'X'
+    var_xc.axis = "X"
     var_xc.standard_name = "projection_x_coordinate"
     var_xc.long_name = "x-coordinate in Cartesian system"
     # TODO(exporters): Don't hard-code the unit.
-    var_xc.units = 'm'
+    var_xc.units = "m"
 
     var_yc = ncf.createVariable("y", np.float32, dimensions=("y",))
     var_yc[:] = yr
-    var_yc.axis = 'Y'
+    var_yc.axis = "Y"
     var_yc.standard_name = "projection_y_coordinate"
     var_yc.long_name = "y-coordinate in Cartesian system"
     # TODO(exporters): Don't hard-code the unit.
-    var_yc.units = 'm'
+    var_yc.units = "m"
 
     x_2d, y_2d = np.meshgrid(xr, yr)
     pr = pyproj.Proj(metadata["projection"])
@@ -499,20 +530,22 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
 
     ncf.projection = metadata["projection"]
 
-    grid_mapping_var_name, grid_mapping_name, grid_mapping_params = \
-        _convert_proj4_to_grid_mapping(metadata["projection"])
+    (
+        grid_mapping_var_name,
+        grid_mapping_name,
+        grid_mapping_params,
+    ) = _convert_proj4_to_grid_mapping(metadata["projection"])
     # skip writing the grid mapping if a matching name was not found
     if grid_mapping_var_name is not None:
-        var_gm = ncf.createVariable(grid_mapping_var_name, np.int,
-                                    dimensions=())
+        var_gm = ncf.createVariable(grid_mapping_var_name, np.int, dimensions=())
         var_gm.grid_mapping_name = grid_mapping_name
         for i in grid_mapping_params.items():
             var_gm.setncattr(i[0], i[1])
 
     if incremental == "member" or n_ens_gt_one:
-        var_ens_num = ncf.createVariable("ens_number", np.int,
-                                         dimensions=("ens_number",)
-                                         )
+        var_ens_num = ncf.createVariable(
+            "ens_number", np.int, dimensions=("ens_number",)
+        )
         if incremental != "member":
             var_ens_num[:] = list(range(1, n_ens_members + 1))
         var_ens_num.long_name = "ensemble member"
@@ -526,13 +559,17 @@ def initialize_forecast_exporter_netcdf(outpath, outfnprefix, startdate,
     var_time.units = "seconds since %s" % startdate_str
 
     if incremental == "member" or n_ens_gt_one:
-        var_f = ncf.createVariable(var_name, np.float32,
-                                   dimensions=("ens_number", "time", "y", "x"),
-                                   zlib=True, complevel=9)
+        var_f = ncf.createVariable(
+            var_name,
+            np.float32,
+            dimensions=("ens_number", "time", "y", "x"),
+            zlib=True,
+            complevel=9,
+        )
     else:
-        var_f = ncf.createVariable(var_name, np.float32,
-                                   dimensions=("time", "y", "x"),
-                                   zlib=True, complevel=9)
+        var_f = ncf.createVariable(
+            var_name, np.float32, dimensions=("time", "y", "x"), zlib=True, complevel=9
+        )
 
     if var_standard_name is not None:
         var_f.standard_name = var_standard_name
@@ -596,33 +633,46 @@ def export_forecast_dataset(field, exporter):
     if exporter["method"] == "netcdf" and not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required for netcdf "
-            "exporters but it is not installed")
+            "exporters but it is not installed"
+        )
 
     if exporter["incremental"] is None:
         if exporter["num_ens_members"] > 1:
-            shp = (exporter["num_ens_members"], exporter["num_timesteps"],
-                   exporter["shape"][0], exporter["shape"][1])
+            shp = (
+                exporter["num_ens_members"],
+                exporter["num_timesteps"],
+                exporter["shape"][0],
+                exporter["shape"][1],
+            )
         else:
-            shp = (exporter["num_timesteps"], exporter["shape"][0],
-                   exporter["shape"][1])
+            shp = (
+                exporter["num_timesteps"],
+                exporter["shape"][0],
+                exporter["shape"][1],
+            )
         if field.shape != shp:
-            raise ValueError("field has invalid shape: %s != %s"
-                             % (str(field.shape), str(shp)))
+            raise ValueError(
+                "field has invalid shape: %s != %s" % (str(field.shape), str(shp))
+            )
     elif exporter["incremental"] == "timestep":
         if exporter["num_ens_members"] > 1:
-            shp = (exporter["num_ens_members"], exporter["shape"][0],
-                   exporter["shape"][1])
+            shp = (
+                exporter["num_ens_members"],
+                exporter["shape"][0],
+                exporter["shape"][1],
+            )
         else:
             shp = exporter["shape"]
         if field.shape != shp:
-            raise ValueError("field has invalid shape: %s != %s"
-                             % (str(field.shape), str(shp)))
+            raise ValueError(
+                "field has invalid shape: %s != %s" % (str(field.shape), str(shp))
+            )
     elif exporter["incremental"] == "member":
-        shp = (exporter["num_timesteps"], exporter["shape"][0],
-               exporter["shape"][1])
+        shp = (exporter["num_timesteps"], exporter["shape"][0], exporter["shape"][1])
         if field.shape != shp:
-            raise ValueError("field has invalid shape: %s != %s"
-                             % (str(field.shape), str(shp)))
+            raise ValueError(
+                "field has invalid shape: %s != %s" % (str(field.shape), str(shp))
+            )
 
     if exporter["method"] == "geotiff":
         _export_geotiff(field, exporter)
@@ -677,14 +727,20 @@ def _export_geotiff(F, exporter):
     elif exporter["incremental"] == "timestep":
         i = exporter["num_files_written"]
 
-        outfn = _get_geotiff_filename(exporter["outfnprefix"],
-                                      exporter["startdate"],
-                                      exporter["num_timesteps"],
-                                      exporter["timestep"], i)
-        dst = _create_geotiff_file(outfn, exporter["driver"],
-                                   exporter["shape"],
-                                   exporter["metadata"],
-                                   exporter["num_ens_members"])
+        outfn = _get_geotiff_filename(
+            exporter["outfnprefix"],
+            exporter["startdate"],
+            exporter["num_timesteps"],
+            exporter["timestep"],
+            i,
+        )
+        dst = _create_geotiff_file(
+            outfn,
+            exporter["driver"],
+            exporter["shape"],
+            exporter["metadata"],
+            exporter["num_ens_members"],
+        )
 
         for j in range(exporter["num_ens_members"]):
             band = dst.GetRasterBand(j + 1)
@@ -729,12 +785,10 @@ def _export_kineros(field, exporter):
                 fd.writelines("BEGIN RG%03d\n" % (m + 1))
                 fd.writelines("  X = %.2f, Y = %.2f\n" % (xgrid[m], ygrid[m]))
                 fd.writelines("  N = %i\n" % num_timesteps)
-                fd.writelines("  TIME        %s\n"
-                              % exporter["var_name"].upper())
+                fd.writelines("  TIME        %s\n" % exporter["var_name"].upper())
                 fd.writelines("! (min)        (%s)\n" % exporter["var_unit"])
                 for t in range(num_timesteps):
-                    line_new = "{:6.1f}  {:11.2f}\n".format(timemin[t],
-                                                            field_tmp[t, m])
+                    line_new = "{:6.1f}  {:11.2f}\n".format(timemin[t], field_tmp[t, m])
                     fd.writelines(line_new)
                 fd.writelines("END\n\n")
 
@@ -763,12 +817,13 @@ def _export_netcdf(field, exporter):
 # The conversions implemented here are take from:
 # https://github.com/cf-convention/cf-convention.github.io/blob/master/wkt-proj-4.md
 
+
 def _convert_proj4_to_grid_mapping(proj4str):
-    tokens = proj4str.split('+')
+    tokens = proj4str.split("+")
 
     d = {}
     for t in tokens[1:]:
-        t = t.split('=')
+        t = t.split("=")
         if len(t) > 1:
             d[t[0]] = t[1].strip()
 
@@ -800,15 +855,21 @@ def _convert_proj4_to_grid_mapping(proj4str):
         v2 = d["lat_2"] if "lat_2" in d else float(0)
         params["standard_parallel"] = (float(v1), float(v2))
     else:
-        print('unknown projection', d["proj"])
+        print("unknown projection", d["proj"])
         return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params
 
 
 def _create_geotiff_file(outfn, driver, shape, metadata, num_bands):
-    dst = driver.Create(outfn, shape[1], shape[0], num_bands, gdal.GDT_Float32,
-                        ["COMPRESS=DEFLATE", "PREDICTOR=3"])
+    dst = driver.Create(
+        outfn,
+        shape[1],
+        shape[0],
+        num_bands,
+        gdal.GDT_Float32,
+        ["COMPRESS=DEFLATE", "PREDICTOR=3"],
+    )
 
     sx = (metadata["x2"] - metadata["x1"]) / shape[1]
     sy = (metadata["y2"] - metadata["y1"]) / shape[0]
@@ -821,12 +882,13 @@ def _create_geotiff_file(outfn, driver, shape, metadata, num_bands):
     return dst
 
 
-def _get_geotiff_filename(prefix, startdate, n_timesteps, timestep,
-                          timestep_index):
+def _get_geotiff_filename(prefix, startdate, n_timesteps, timestep, timestep_index):
     if n_timesteps * timestep == 0:
         raise ValueError("n_timesteps x timestep can't be 0.")
 
-    timestep_format_str = f"{{time_str:0{int(np.floor(np.log10(n_timesteps * timestep))) + 1}d}}"
+    timestep_format_str = (
+        f"{{time_str:0{int(np.floor(np.log10(n_timesteps * timestep))) + 1}d}}"
+    )
 
     startdate_str = datetime.strftime(startdate, "%Y%m%d%H%M")
 

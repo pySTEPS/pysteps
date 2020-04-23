@@ -78,13 +78,17 @@ def get_method(name):
     if isinstance(name, str):
         name = name.lower()
     else:
-        raise TypeError("Only strings supported for the method's names.\n" +
-                        "Available names:" +
-                        str(list(_nowcast_methods.keys()))) from None
+        raise TypeError(
+            "Only strings supported for the method's names.\n"
+            + "Available names:"
+            + str(list(_nowcast_methods.keys()))
+        ) from None
 
     try:
         return _nowcast_methods[name]
     except KeyError:
-        raise ValueError("Unknown nowcasting method {}\n".format(name) +
-                         "The available methods are:" +
-                         str(list(_nowcast_methods.keys()))) from None
+        raise ValueError(
+            "Unknown nowcasting method {}\n".format(name)
+            + "The available methods are:"
+            + str(list(_nowcast_methods.keys()))
+        ) from None

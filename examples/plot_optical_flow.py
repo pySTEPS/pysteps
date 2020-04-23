@@ -128,9 +128,9 @@ plt.show()
 # Anisotropic diffusion method (Proesmans et al 1994)
 # ---------------------------------------------------
 #
-# This module implements the anisotropic diffusion method presented in Proesmans 
-# et al. (1994), a robust optical flow technique which employs the notion of 
-# inconsitency during the solution of the optical flow equations. 
+# This module implements the anisotropic diffusion method presented in Proesmans
+# et al. (1994), a robust optical flow technique which employs the notion of
+# inconsitency during the solution of the optical flow equations.
 
 oflow_method = motion.get_method("proesmans")
 R[~np.isfinite(R)] = metadata["zerovalue"]

@@ -17,22 +17,20 @@ from pysteps.tests.helpers import smart_assert
 def test_decompose_recompose():
     """Tests cascade decomposition."""
 
-    pytest.importorskip('netCDF4')
+    pytest.importorskip("netCDF4")
 
     root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
     rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
-    filename = os.path.join(root_path, rel_path,
-                            "2_20180616_120000.prcp-cscn.nc")
+    filename = os.path.join(root_path, rel_path, "2_20180616_120000.prcp-cscn.nc")
     precip, _, metadata = pysteps.io.import_bom_rf3(filename)
 
     # Convert to rain rate from mm
     precip, metadata = pysteps.utils.to_rainrate(precip, metadata)
 
     # Log-transform the data
-    precip, metadata = pysteps.utils.dB_transform(precip,
-                                                  metadata,
-                                                  threshold=0.1,
-                                                  zerovalue=-15.0)
+    precip, metadata = pysteps.utils.dB_transform(
+        precip, metadata, threshold=0.1, zerovalue=-15.0
+    )
 
     # Set Nans as the fill value
     precip[~np.isfinite(precip)] = metadata["zerovalue"]
@@ -53,8 +51,8 @@ def test_decompose_recompose():
 
 
 test_metadata_filter = [
-    ('central_freqs', None, None),
-    ('central_wavenumbers', None, None),
+    ("central_freqs", None, None),
+    ("central_wavenumbers", None, None),
 ]
 
 
@@ -66,9 +64,9 @@ def test_filter_uniform(variable, expected, tolerance):
 
 def test_filter_uniform_weights_1d():
     _filter = filter_uniform((8, 8), 1)
-    assert_array_almost_equal(_filter['weights_1d'], np.ones((1, 5)))
+    assert_array_almost_equal(_filter["weights_1d"], np.ones((1, 5)))
 
 
 def test_filter_uniform_weights_2d():
     _filter = filter_uniform((8, 8), 1)
-    assert_array_almost_equal(_filter['weights_2d'], np.ones((1, 8, 5)))
+    assert_array_almost_equal(_filter["weights_2d"], np.ones((1, 8, 5)))

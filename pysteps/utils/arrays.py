@@ -41,14 +41,14 @@ def compute_centred_coord_array(M, N):
     """
 
     if M % 2 == 1:
-        s1 = np.s_[-int(M / 2):int(M / 2) + 1]
+        s1 = np.s_[-int(M / 2) : int(M / 2) + 1]
     else:
-        s1 = np.s_[-int(M / 2):int(M / 2)]
+        s1 = np.s_[-int(M / 2) : int(M / 2)]
 
     if N % 2 == 1:
-        s2 = np.s_[-int(N / 2):int(N / 2) + 1]
+        s2 = np.s_[-int(N / 2) : int(N / 2) + 1]
     else:
-        s2 = np.s_[-int(N / 2):int(N / 2)]
+        s2 = np.s_[-int(N / 2) : int(N / 2)]
 
     YC, XC = np.ogrid[s1, s2]
 

@@ -33,10 +33,22 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
-             extrap_method="semilagrangian", ar_order=2, ar_window_radius=50,
-             r_vil_window_radius=5, fft_method="numpy", num_workers=1,
-             extrap_kwargs=None, filter_kwargs=None, measure_time=False):
+def forecast(
+    vil,
+    velocity,
+    n_timesteps,
+    rainrate=None,
+    n_cascade_levels=8,
+    extrap_method="semilagrangian",
+    ar_order=2,
+    ar_window_radius=50,
+    r_vil_window_radius=5,
+    fft_method="numpy",
+    num_workers=1,
+    extrap_kwargs=None,
+    filter_kwargs=None,
+    measure_time=False,
+):
     """Generate a nowcast by using the autoregressive nowcasting using VIL
     (ANVIL) method. The key features of ANVIL are:
 
@@ -117,17 +129,28 @@ def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
     :cite:`PCLH2020`
     """
     if len(vil.shape) != 3:
-        raise ValueError("vil.shape = %s, but a three-dimensional array expected" % str(vil.shape))
+        raise ValueError(
+            "vil.shape = %s, but a three-dimensional array expected" % str(vil.shape)
+        )
 
     if rainrate is not None:
         if len(rainrate.shape) != 2:
-            raise ValueError("rainrate.shape = %s, but a two-dimensional array expected" % str(rainrate.shape))
+            raise ValueError(
+                "rainrate.shape = %s, but a two-dimensional array expected"
+                % str(rainrate.shape)
+            )
 
     if vil.shape[0] != ar_order + 2:
-        raise ValueError("vil.shape[0] = %d, but vil.shape[0] = ar_order + 2 = %d required" % (vil.shape[0], ar_order+2))
+        raise ValueError(
+            "vil.shape[0] = %d, but vil.shape[0] = ar_order + 2 = %d required"
+            % (vil.shape[0], ar_order + 2)
+        )
 
     if len(velocity.shape) != 3:
-        raise ValueError("velocity.shape = %s, but a three-dimensional array expected" % str(velocity.shape))
+        raise ValueError(
+            "velocity.shape = %s, but a three-dimensional array expected"
+            % str(velocity.shape)
+        )
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -175,8 +198,16 @@ def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
     res = list()
 
     def worker(vil, i):
-        return i, extrapolator(vil[i, :], velocity, vil.shape[0]-1-i,
-                               allow_nonfinite_values=True, **extrap_kwargs)[-1]
+        return (
+            i,
+            extrapolator(
+                vil[i, :],
+                velocity,
+                vil.shape[0] - 1 - i,
+                allow_nonfinite_values=True,
+                **extrap_kwargs,
+            )[-1],
+        )
 
     for i in range(vil.shape[0] - 1):
         if not DASK_IMPORTED or num_workers == 1:
@@ -200,8 +231,7 @@ def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
     bp_filter_method = cascade.get_method("gaussian")
     bp_filter = bp_filter_method((m, n), n_cascade_levels, **filter_kwargs)
 
-    fft = utils.get_method(fft_method, shape=vil.shape[1:],
-                           n_threads=num_workers)
+    fft = utils.get_method(fft_method, shape=vil.shape[1:], n_threads=num_workers)
 
     decomp_method, recomp_method = cascade.get_method("fft")
 
@@ -220,16 +250,17 @@ def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
         vil_diff = np.diff(vil_dec[i, :], axis=0)
         vil_diff[~np.isfinite(vil_diff)] = 0.0
         for j in range(ar_order):
-            gamma[i, j, :] = _moving_window_corrcoef(vil_diff[-1, :],
-                                                     vil_diff[-(j+2), :],
-                                                     ar_window_radius)
+            gamma[i, j, :] = _moving_window_corrcoef(
+                vil_diff[-1, :], vil_diff[-(j + 2), :], ar_window_radius
+            )
 
     if ar_order == 2:
         # if the order of the ARI model is 2, adjust the correlation coefficients
         # so that the resulting process is stationary
         for i in range(n_cascade_levels):
-            gamma[i, 1, :] = autoregression.adjust_lag2_corrcoef2(gamma[i, 0, :],
-                                                                  gamma[i, 1, :])
+            gamma[i, 1, :] = autoregression.adjust_lag2_corrcoef2(
+                gamma[i, 0, :], gamma[i, 1, :]
+            )
 
     # estimate the parameters of the ARI models
     phi = []
@@ -242,7 +273,7 @@ def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
             phi_ = _estimate_ar1_params(gamma[i, :])
         phi.append(phi_)
 
-    vil_dec = vil_dec[:, -(ar_order+1):, :]
+    vil_dec = vil_dec[:, -(ar_order + 1) :, :]
 
     if measure_time:
         init_time = time.time() - starttime_init
@@ -255,8 +286,7 @@ def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
     r_f = []
     dp = None
     for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t + 1), end="",
-              flush=True)
+        print("Computing nowcast for time step %d... " % (t + 1), end="", flush=True)
 
         if measure_time:
             starttime = time.time()
@@ -280,8 +310,9 @@ def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
             r_f_ = vil_f
 
         # extrapolate to the current nowcast lead time
-        extrap_kwargs.update({"D_prev": dp, "return_displacement": True,
-                              "allow_nonfinite_values": True})
+        extrap_kwargs.update(
+            {"D_prev": dp, "return_displacement": True, "allow_nonfinite_values": True}
+        )
         r_f_, dp = extrapolator(r_f_, velocity, 1, **extrap_kwargs)
 
         if measure_time:
@@ -315,8 +346,10 @@ def _estimate_ar1_params(gamma):
 # for an ARI(2,1) model
 def _estimate_ar2_params(gamma):
     phi_diff = []
-    phi_diff.append(gamma[0, :] * (1 - gamma[1, :]) / (1 - gamma[0, :]*gamma[0, :]))
-    phi_diff.append((gamma[1, :] - gamma[0, :]*gamma[0, :]) / (1 - gamma[0, :]*gamma[0, :]))
+    phi_diff.append(gamma[0, :] * (1 - gamma[1, :]) / (1 - gamma[0, :] * gamma[0, :]))
+    phi_diff.append(
+        (gamma[1, :] - gamma[0, :] * gamma[0, :]) / (1 - gamma[0, :] * gamma[0, :])
+    )
 
     phi = []
     phi.append(1 + phi_diff[0])
@@ -341,9 +374,9 @@ def _moving_window_corrcoef(x, y, window_radius):
 
     n = gaussian_filter(mask, window_radius, mode="constant")
 
-    ssx = gaussian_filter(x**2, window_radius, mode="constant")
-    ssy = gaussian_filter(y**2, window_radius, mode="constant")
-    sxy = gaussian_filter(x*y, window_radius, mode="constant")
+    ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
+    ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
+    sxy = gaussian_filter(x * y, window_radius, mode="constant")
 
     stdx = np.sqrt(ssx / n)
     stdy = np.sqrt(ssy / n)
@@ -380,8 +413,8 @@ def _r_vil_regression(vil, r, window_radius):
     n = gaussian_filter(mask.astype(float), window_radius, mode="constant")
 
     sx = gaussian_filter(vil, window_radius, mode="constant")
-    sx2 = gaussian_filter(vil*vil, window_radius, mode="constant")
-    sxy = gaussian_filter(vil*r, window_radius, mode="constant")
+    sx2 = gaussian_filter(vil * vil, window_radius, mode="constant")
+    sxy = gaussian_filter(vil * r, window_radius, mode="constant")
     sy = gaussian_filter(r, window_radius, mode="constant")
 
     rhs1 = sxy
@@ -392,14 +425,14 @@ def _r_vil_regression(vil, r, window_radius):
     m3 = sx
     m4 = n
 
-    c = 1.0 / (m1*m4 - m2*m3)
+    c = 1.0 / (m1 * m4 - m2 * m3)
 
     m_inv_11 = c * m4
     m_inv_12 = -c * m2
     m_inv_21 = -c * m3
     m_inv_22 = c * m1
 
-    mask = np.abs(m1*m4 - m2*m3) > 1e-8
+    mask = np.abs(m1 * m4 - m2 * m3) > 1e-8
     mask = np.logical_and(mask, n > 1e-3)
     a = np.empty(vil.shape)
     a[mask] = m_inv_11[mask] * rhs1[mask] + m_inv_12[mask] * rhs2[mask]
