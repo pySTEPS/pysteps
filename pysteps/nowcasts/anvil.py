@@ -35,7 +35,7 @@ except ImportError:
 
 def forecast(vil, velocity, n_timesteps, rainrate=None, n_cascade_levels=8,
              extrap_method="semilagrangian", ar_order=2, ar_window_radius=50,
-             r_vil_window_radius=5, fft_method="numpy", num_workers=1,
+             r_vil_window_radius=3, fft_method="numpy", num_workers=1,
              extrap_kwargs=None, filter_kwargs=None, measure_time=False):
     """Generate a nowcast by using the autoregressive nowcasting using VIL
     (ANVIL) method. The key features of ANVIL are:
@@ -373,11 +373,13 @@ def _r_vil_regression(vil, r, window_radius):
     r = r.copy()
     r[~np.isfinite(r)] = 0.0
 
-    mask = np.logical_and(vil > 1e-3, r > 1e-3)
-    vil[~mask] = 0.0
-    r[~mask] = 0.0
+    mask_vil = vil > 10.0
+    mask_r = r > 0.1
+    mask_obs = np.logical_and(mask_vil, mask_r)
+    vil[~mask_obs] = 0.0
+    r[~mask_obs] = 0.0
 
-    n = gaussian_filter(mask.astype(float), window_radius, mode="constant")
+    n = gaussian_filter(mask_obs.astype(float), window_radius, mode="constant")
 
     sx = gaussian_filter(vil, window_radius, mode="constant")
     sx2 = gaussian_filter(vil*vil, window_radius, mode="constant")
@@ -400,12 +402,14 @@ def _r_vil_regression(vil, r, window_radius):
     m_inv_22 = c * m1
 
     mask = np.abs(m1*m4 - m2*m3) > 1e-8
-    mask = np.logical_and(mask, n > 1e-3)
+    mask = np.logical_and(mask, n > 0.01)
     a = np.empty(vil.shape)
     a[mask] = m_inv_11[mask] * rhs1[mask] + m_inv_12[mask] * rhs2[mask]
     a[~mask] = 0.0
+    a[~mask_vil] = 0.0
     b = np.empty(vil.shape)
     b[mask] = m_inv_21[mask] * rhs1[mask] + m_inv_22[mask] * rhs2[mask]
     b[~mask] = 0.0
+    b[~mask_vil] = 0.0
 
     return a, b
