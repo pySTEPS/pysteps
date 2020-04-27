@@ -10,8 +10,6 @@ Implementation of the DARTS algorithm.
     DARTS
 """
 
-import sys
-
 import numpy as np
 import time
 from numpy.linalg import lstsq, svd
@@ -108,8 +106,7 @@ def DARTS(input_images, **kwargs):
         print("DARTS")
         print("-----")
 
-        print("  Computing the FFT of the reflectivity fields..."),
-        sys.stdout.flush()
+        print("  Computing the FFT of the reflectivity fields...", end="", flush=True)
         starttime = time.time()
 
     input_images = fft.fftn(input_images)
@@ -117,8 +114,7 @@ def DARTS(input_images, **kwargs):
     if verbose:
         print("Done in %.2f seconds." % (time.time() - starttime))
 
-        print("  Constructing the y-vector..."),
-        sys.stdout.flush()
+        print("  Constructing the y-vector...", end="", flush=True)
         starttime = time.time()
 
     m = (2 * N_x + 1) * (2 * N_y + 1) * (2 * N_t + 1)
@@ -142,8 +138,7 @@ def DARTS(input_images, **kwargs):
     B = np.zeros((m, n), dtype=complex)
 
     if verbose:
-        print("  Constructing the H-matrix..."),
-        sys.stdout.flush()
+        print("  Constructing the H-matrix...", end="", flush=True)
         starttime = time.time()
 
     c1 = -1.0 * T_t / (T_x * T_y)
@@ -172,8 +167,7 @@ def DARTS(input_images, **kwargs):
     if verbose:
         print("Done in %.2f seconds." % (time.time() - starttime))
 
-        print("  Solving the linear systems..."),
-        sys.stdout.flush()
+        print("  Solving the linear systems...", end="", flush=True)
         starttime = time.time()
 
     if lsq_method == 1:
