@@ -44,8 +44,9 @@ the best way to get started is by looking for "Good First Issue" in the
 
 In a nutshell, the main steps to follow for contributing to pysteps are:
 
-- Setup the development environment
+- Setting up the development environment
 - Fork the repository
+- Install pre-commit hooks
 - Create a new branch for each contribution
 - Read the Code Style guide
 - Work on your changes
@@ -53,8 +54,8 @@ In a nutshell, the main steps to follow for contributing to pysteps are:
 - Push to your fork repository and create a new PR in GitHub.
 
 
-Setup the Development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Setting up the Development environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The recommended way to setup up the developer environment is the Anaconda
 (commonly referred as Conda).
@@ -98,6 +99,29 @@ If you are new to GitHub, below you can find a list of useful tutorials:
 
 - http://rogerdudler.github.io/git-guide/index.html
 - https://www.atlassian.com/git/tutorials
+
+Install pre-commit hooks
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once you cloned the repository and the development environment is installed (and active),
+install the git pre-commit hook by executing the following command in the repository's
+root::
+
+    pre-commit hook install
+
+The pre-commit hooks are scripts that are executed in every commit automatically to
+identify simple issues with the code. If an issue is identified (the pre-commit script
+exits with non-zero status), the hook aborts the commit and print the error.
+Currently, Pysteps only test the code to be committed complies with black's autoformat.
+In case that the commit is aborted, you only need to run black in the entire source code.
+This can be done by running `black .` or `pre-commit run --all-files`.
+The latter is recommended since it indicates if the commit contained any formatting errors
+(that are automatically corrected).
+
+For more information about git hooks and the pre-commit package see:
+
+- https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
+- https://pre-commit.com/
 
 
 Create a new branch
