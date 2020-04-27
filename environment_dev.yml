@@ -1,8 +1,8 @@
 # pysteps development environment
 name: pysteps_dev
 channels:
-- conda-forge
-- defaults
+  - conda-forge
+  - defaults
 dependencies:
   - python>=3.6
   - pip
@@ -23,7 +23,8 @@ dependencies:
   - h5py
   - PyWavelets
   - pygrib
-  - pre_commit
+  - black
   - pytest-cov
   - codecov
+  - pre_commit
 
