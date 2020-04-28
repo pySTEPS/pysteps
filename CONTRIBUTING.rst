@@ -118,7 +118,7 @@ This can be done by running :code:`black .` or :code:`pre-commit run --all-files
 The latter is recommended since it indicates if the commit contained any formatting errors
 (that are automatically corrected).
 To ensure that the same configuration is used in every development environment, black's
-configuration is stored in the `proproject.toml` file.
+configuration is stored in the `pyproject.toml` file.
 This configuration is automatically load when black is run from any directory in the
 pysteps project.
 
