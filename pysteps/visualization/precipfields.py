@@ -143,6 +143,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     # extract extent and origin
     if geodata is not None:
         field_extent = (geodata['x1'], geodata['x2'], geodata['y1'], geodata['y2'])
+        pr = pyproj.Proj(geodata["projection"])
         if bbox is None:
             bm_extent = field_extent
         else:
@@ -152,7 +153,6 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                     "FMI's radar reflectivity composite "
                     "but it is not installed"
                 )
-            pr = pyproj.Proj(geodata["projection"])
             x1, y1 = pr(bbox[0], bbox[1])
             x2, y2 = pr(bbox[2], bbox[3])
             bm_extent = (x1, x2, y1, y2)
@@ -187,7 +187,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     else:
         regular_grid = True
 
-    if bbox is not None and map is not None:
+    if map is not None:
         x1, y1 = pr(geodata["x1"], geodata["y1"], inverse=True)
         x2, y2 = pr(geodata["x2"], geodata["y2"], inverse=True)
         if map == "basemap":
