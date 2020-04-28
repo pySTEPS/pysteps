@@ -160,7 +160,7 @@ to follow:
 
 - Always use 4 spaces for indentation (don’t use tabs).
 - Write UTF-8 (add **# -*- coding: utf-8 -*-** at the top of each file).
-- Max line-length: 88 characters (Note that we don't use the PEP8's 78 value).
+- Max line-length: 88 characters (Note that we don't use the PEP8's 79 value).
 - Always indent wrapped code for readability.
 - Avoid extraneous whitespace.
 - Don’t use whitespace to line up assignment operators (=, :).
