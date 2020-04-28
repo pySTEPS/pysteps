@@ -148,11 +148,16 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
 
     # draw basemaps
     if map is not None:
+        if map == "basemap":
+            map_kwargs = {"resolution": basemap_resolution}
+        else:
+            map_kwargs = {"scale": cartopy_scale, "subplot": cartopy_subplot}
+
         try:
             ax = basemaps.plot_geography(map, geodata["projection"],
-                                         extent, UV.shape[1:], drawlonlatlines,
-                                         basemap_resolution,
-                                         cartopy_scale, lw, cartopy_subplot)
+                                         extent, shape=UV.shape[1:],
+                                         lw=lw, drawlonlatlines=drawlonlatlines,
+                                         **map_kwargs)
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -164,9 +169,9 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
             ax = basemaps.plot_geography(map, geodata["projection"],
-                                         extent, UV.shape[1:], drawlonlatlines,
-                                         basemap_resolution,
-                                         cartopy_scale, lw, cartopy_subplot)
+                                         extent, shape=UV.shape[1:],
+                                         lw=lw, drawlonlatlines=drawlonlatlines,
+                                         **map_kwargs)
     else:
         ax = plt.gca()
 
@@ -318,11 +323,16 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
 
     # draw basemaps
     if map is not None:
+        if map == "basemap":
+            map_kwargs = {"resolution": basemap_resolution}
+        else:
+            map_kwargs = {"scale": cartopy_scale, "subplot": cartopy_subplot}
+
         try:
             ax = basemaps.plot_geography(map, geodata["projection"],
-                                         extent, UV.shape[1:], drawlonlatlines,
-                                         basemap_resolution,
-                                         cartopy_scale, lw, cartopy_subplot)
+                                         extent, shape=UV.shape[1:], lw=lw,
+                                         drawlonlatlines=drawlonlatlines,
+                                         **map_kwargs)
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -334,9 +344,9 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
             ax = basemaps.plot_geography(map, geodata["projection"],
-                                         extent, UV.shape[1:], drawlonlatlines,
-                                         basemap_resolution,
-                                         cartopy_scale, lw, cartopy_subplot)
+                                         extent, shape=UV.shape[1:], lw=lw,
+                                         drawlonlatlines=drawlonlatlines,
+                                         **map_kwargs)
     else:
         ax = plt.gca()
 
