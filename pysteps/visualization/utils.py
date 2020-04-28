@@ -84,7 +84,7 @@ def proj4_to_basemap(proj4str):
                 odict["projection"] = v
             else:
                 odict["projection"] = "cyl"
-        elif k == "lon_0" or k == "lat_0" or k == "lat_ts":
+        elif k in ["lon_0", "lat_0", "lat_ts"]:
             # TODO: Check that east/west and north/south hemispheres are
             # handled correctly.
             if v[-1] in ["E", "N", "S", "W"]:
