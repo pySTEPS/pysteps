@@ -143,16 +143,16 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     # extract extent and origin
     if geodata is not None:
         field_extent = (geodata['x1'], geodata['x2'], geodata['y1'], geodata['y2'])
+        if not PYPROJ_IMPORTED:
+            raise MissingOptionalDependency(
+                "pyproj package is required to import "
+                "FMI's radar reflectivity composite "
+                "but it is not installed"
+            )
         pr = pyproj.Proj(geodata["projection"])
         if bbox is None:
             bm_extent = field_extent
         else:
-            if not PYPROJ_IMPORTED:
-                raise MissingOptionalDependency(
-                    "pyproj package is required to import "
-                    "FMI's radar reflectivity composite "
-                    "but it is not installed"
-                )
             x1, y1 = pr(bbox[0], bbox[1])
             x2, y2 = pr(bbox[2], bbox[3])
             bm_extent = (x1, x2, y1, y2)
