@@ -19,9 +19,7 @@ default_dtypes = dict(
 @pytest.mark.parametrize("source, default_dtype", default_dtypes.items())
 def test_postprocess_import_decorator(source, default_dtype):
     """Test the postprocessing decorator for the importers."""
-    import_data = partial(get_precipitation_fields,
-                          return_raw=True,
-                          source=source)
+    import_data = partial(get_precipitation_fields, return_raw=True, source=source)
 
     precip = import_data()
     invalid_mask = ~np.isfinite(precip)

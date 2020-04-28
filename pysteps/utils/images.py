@@ -29,16 +29,18 @@ except ImportError:
     CV2_IMPORTED = False
 
 
-def shitomasi_detection(input_image,
-                        max_corners=1000,
-                        quality_level=0.01,
-                        min_distance=10,
-                        block_size=5,
-                        buffer_mask=5,
-                        use_harris=False,
-                        k=0.04,
-                        verbose=False,
-                        **kwargs):
+def shitomasi_detection(
+    input_image,
+    max_corners=1000,
+    quality_level=0.01,
+    min_distance=10,
+    block_size=5,
+    buffer_mask=5,
+    use_harris=False,
+    k=0.04,
+    verbose=False,
+    **kwargs,
+):
     """
     Interface to the OpenCV `Shi-Tomasi`_ features detection method to detect
     corners in an image.
@@ -154,10 +156,9 @@ def shitomasi_detection(input_image,
     im_min = input_image.min()
     im_max = input_image.max()
     if im_max - im_min > 1e-8:
-        input_image = ((input_image.filled() - im_min) /
-                       (im_max - im_min) * 255)
+        input_image = (input_image.filled() - im_min) / (im_max - im_min) * 255
     else:
-        input_image = (input_image.filled() - im_min)
+        input_image = input_image.filled() - im_min
 
     # convert to 8-bit
     input_image = np.ndarray.astype(input_image, "uint8")

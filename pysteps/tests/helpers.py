@@ -23,13 +23,15 @@ _reference_dates["saf"] = datetime(2018, 6, 1, 7, 0)
 _reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
 
 
-def get_precipitation_fields(num_prev_files=0,
-                             num_next_files=0,
-                             return_raw=False,
-                             metadata=False,
-                             upscale=None,
-                             source="mch",
-                             **importer_kwargs):
+def get_precipitation_fields(
+    num_prev_files=0,
+    num_next_files=0,
+    return_raw=False,
+    metadata=False,
+    upscale=None,
+    source="mch",
+    **importer_kwargs,
+):
     """
     Get a precipitation field from the archive to be used as reference.
 
@@ -120,9 +122,11 @@ def get_precipitation_fields(num_prev_files=0,
     try:
         date = _reference_dates[source]
     except KeyError:
-        raise ValueError(f"Unknown source name '{source}'\n"
-                         "The available data sources are: "
-                         f"{str(list(_reference_dates.keys()))}")
+        raise ValueError(
+            f"Unknown source name '{source}'\n"
+            "The available data sources are: "
+            f"{str(list(_reference_dates.keys()))}"
+        )
 
     data_source = rcparams.data_sources[source]
     root_path = data_source["root_path"]
@@ -135,20 +139,23 @@ def get_precipitation_fields(num_prev_files=0,
     timestep = data_source["timestep"]
 
     # Find the input files from the archive
-    fns = io.archive.find_by_date(date,
-                                  root_path,
-                                  path_fmt,
-                                  fn_pattern,
-                                  fn_ext,
-                                  timestep=timestep,
-                                  num_prev_files=num_prev_files,
-                                  num_next_files=num_next_files)
+    fns = io.archive.find_by_date(
+        date,
+        root_path,
+        path_fmt,
+        fn_pattern,
+        fn_ext,
+        timestep=timestep,
+        num_prev_files=num_prev_files,
+        num_next_files=num_next_files,
+    )
 
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    reference_field, __, ref_metadata = io.read_timeseries(fns, importer,
-                                                           **_importer_kwargs)
+    reference_field, __, ref_metadata = io.read_timeseries(
+        fns, importer, **_importer_kwargs
+    )
 
     if not return_raw:
 
@@ -157,22 +164,22 @@ def get_precipitation_fields(num_prev_files=0,
             reference_field = np.squeeze(reference_field)
 
         # Convert to mm/h
-        reference_field, ref_metadata = stp.utils.to_rainrate(reference_field,
-                                                              ref_metadata)
+        reference_field, ref_metadata = stp.utils.to_rainrate(
+            reference_field, ref_metadata
+        )
 
         # Upscale data to 2 km
-        reference_field, ref_metadata = aggregate_fields_space(reference_field,
-                                                               ref_metadata,
-                                                               upscale)
+        reference_field, ref_metadata = aggregate_fields_space(
+            reference_field, ref_metadata, upscale
+        )
 
         # Mask invalid values
         reference_field = np.ma.masked_invalid(reference_field)
 
         # Log-transform the data [dBR]
-        reference_field, ref_metadata = stp.utils.dB_transform(reference_field,
-                                                               ref_metadata,
-                                                               threshold=0.1,
-                                                               zerovalue=-15.0)
+        reference_field, ref_metadata = stp.utils.dB_transform(
+            reference_field, ref_metadata, threshold=0.1, zerovalue=-15.0
+        )
 
         # Set missing values with the fill value
         np.ma.set_fill_value(reference_field, -15.0)
@@ -197,10 +204,9 @@ def smart_assert(actual_value, expected, tolerance=None):
         assert actual_value == expected
     else:
         # Compare numbers up to a certain precision
-        assert actual_value == pytest.approx(expected,
-                                             rel=tolerance,
-                                             abs=tolerance,
-                                             nan_ok=True)
+        assert actual_value == pytest.approx(
+            expected, rel=tolerance, abs=tolerance, nan_ok=True
+        )
 
 
 def get_invalid_mask(input_array, fillna=np.nan):

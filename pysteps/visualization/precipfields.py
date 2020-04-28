@@ -215,7 +215,7 @@ def plot_precip_field(
                 R.shape,
                 lw,
                 drawlonlatlines,
-                **map_kwargs,
+                **kwargs,
             )
     else:
         regular_grid = True

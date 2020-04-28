@@ -53,13 +53,7 @@ timestep = data_source["timestep"]
 
 # Get 1 hour of observations in the data archive
 fns = io.archive.find_by_date(
-    date,
-    root_path,
-    path_fmt,
-    fn_pattern,
-    fn_ext,
-    timestep,
-    num_next_files=11,
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=11,
 )
 
 # Read the radar composites
@@ -104,6 +98,7 @@ def plot_distribution(data, labels, skw):
     ax1.set_ylabel(r"Standardized values [$\sigma$]")
     ax2.set_ylabel(r"Skewness []", color="r")
     ax2.tick_params(axis="y", labelcolor="r")
+
 
 ###############################################################################
 # Box-Cox transform

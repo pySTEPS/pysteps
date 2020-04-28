@@ -12,18 +12,15 @@ test_data = [
     (R[0], R[1], "BMSE", [1], None, "Haar", 0.99989651),
 ]
 
-@pytest.mark.parametrize(
-    "X_f, X_o, name, thrs, scales, wavelet, expected", test_data
-)
+
+@pytest.mark.parametrize("X_f, X_o, name, thrs, scales, wavelet, expected", test_data)
 def test_intensity_scale(X_f, X_o, name, thrs, scales, wavelet, expected):
     """Test the intensity_scale."""
     if name == "BMSE":
         pytest.importorskip("pywt")
 
     assert_array_almost_equal(
-        spatialscores.intensity_scale(X_f, X_o, name, thrs, scales, wavelet)[
-            0
-        ][0],
+        spatialscores.intensity_scale(X_f, X_o, name, thrs, scales, wavelet)[0][0],
         expected,
     )
 
@@ -34,12 +31,9 @@ test_data = [
     (R[:2], R[2:], "BMSE", [1], None, "Haar"),
 ]
 
-@pytest.mark.parametrize(
-    "R1, R2, name, thrs, scales, wavelet", test_data
-)
-def test_intensity_scale_methods(
-    R1, R2, name, thrs, scales, wavelet
-):
+
+@pytest.mark.parametrize("R1, R2, name, thrs, scales, wavelet", test_data)
+def test_intensity_scale_methods(R1, R2, name, thrs, scales, wavelet):
     """Test the intensity_scale merge."""
     if name == "BMSE":
         pytest.importorskip("pywt")

@@ -74,8 +74,10 @@ def nonparam_match_empirical_cdf(initial_array, target_array):
     if np.any(~np.isfinite(target_array)):
         raise ValueError("target array contains non-finite values")
     if initial_array.size != target_array.size:
-        raise ValueError("dimension mismatch between initial_array and target_array: "
-                         f"initial_array.shape={initial_array.shape}, target_array.shape={target_array.shape}")
+        raise ValueError(
+            "dimension mismatch between initial_array and target_array: "
+            f"initial_array.shape={initial_array.shape}, target_array.shape={target_array.shape}"
+        )
 
     initial_array = np.array(initial_array)
     target_array = np.array(target_array)
@@ -90,8 +92,8 @@ def nonparam_match_empirical_cdf(initial_array, target_array):
     # adjust the fraction of rain in target distribution if the number of
     # nonzeros is greater than in the initial array
     if np.sum(target_array > zvalue_trg) > np.sum(initial_array > zvalue):
-        war = np.sum(initial_array > zvalue)/initial_array.size
-        p = np.percentile(target_array, 100*(1 - war))
+        war = np.sum(initial_array > zvalue) / initial_array.size
+        p = np.percentile(target_array, 100 * (1 - war))
         target_array = target_array.copy()
         target_array[target_array < p] = zvalue_trg
 
@@ -162,8 +164,7 @@ def pmm_compute(pmm, x):
         The coordinate for which to compute the probability matched value.
 
     """
-    mask = np.logical_and(x >= pmm["bin_edges_1"][0],
-                          x <= pmm["bin_edges_1"][-1])
+    mask = np.logical_and(x >= pmm["bin_edges_1"][0], x <= pmm["bin_edges_1"][-1])
     p = pmm["cdf_interpolator"](x[mask])
 
     result = np.ones(len(mask)) * np.nan
@@ -223,28 +224,33 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     R = R.flatten()
 
     # defaults
-    scale = kwargs.get("scale", 1.)
+    scale = kwargs.get("scale", 1.0)
     max_iterations = kwargs.get("max_iterations", 100)
-    tol = kwargs.get("tol", 0.05*second_moment_trg)
+    tol = kwargs.get("tol", 0.05 * second_moment_trg)
 
     # calculate the shift parameter based on the required rain fraction
-    shift = np.percentile(R, 100*(1 - rain_fraction_trg))
+    shift = np.percentile(R, 100 * (1 - rain_fraction_trg))
     idx_wet = R > shift
 
     # define objective function
     def _get_error(scale):
         R_ = np.zeros_like(R)
-        R_[idx_wet] = f((R[idx_wet] - shift)*scale)
+        R_[idx_wet] = f((R[idx_wet] - shift) * scale)
         R_[~idx_wet] = 0
-        second_moment = np.nanstd(R_)**2 + np.nanmean(R_)**2
+        second_moment = np.nanstd(R_) ** 2 + np.nanmean(R_) ** 2
         return np.abs(second_moment - second_moment_trg)
 
     # Nelder-Mead optimisation
-    nm_scale = sop.minimize(_get_error, scale, method="Nelder-Mead", tol=tol,
-                            options={"disp": False, "maxiter": max_iterations})
+    nm_scale = sop.minimize(
+        _get_error,
+        scale,
+        method="Nelder-Mead",
+        tol=tol,
+        options={"disp": False, "maxiter": max_iterations},
+    )
     scale = nm_scale["x"][0]
 
-    R[idx_wet] = f((R[idx_wet] - shift)*scale)
+    R[idx_wet] = f((R[idx_wet] - shift) * scale)
     R[~idx_wet] = 0
 
     return shift, scale, R.reshape(shape)
@@ -256,9 +262,9 @@ def _invfunc(y, fx, fy):
 
     b = np.digitize(y, fy)
     mask = np.logical_and(b > 0, b < len(fy))
-    c = (y[mask] - fy[b[mask]-1]) / (fy[b[mask]] - fy[b[mask]-1])
+    c = (y[mask] - fy[b[mask] - 1]) / (fy[b[mask]] - fy[b[mask] - 1])
 
     result = np.ones(len(y)) * np.nan
-    result[mask] = c * fx[b[mask]] + (1.0-c) * fx[b[mask]-1]
+    result[mask] = c * fx[b[mask]] + (1.0 - c) * fx[b[mask] - 1]
 
     return result

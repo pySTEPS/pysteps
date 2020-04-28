@@ -79,8 +79,7 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     if coord.shape[0] != input_array.shape[0]:
         raise ValueError(
             "the number of samples in the input_array does not match the "
-            + "number of coordinates %i!=%i"
-            % (input_array.shape[0], coord.shape[0])
+            + "number of coordinates %i!=%i" % (input_array.shape[0], coord.shape[0])
         )
 
     if np.isscalar(scale):
@@ -202,15 +201,13 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
         elif coord.ndim > 2:
             raise ValueError(
-                "coord must have 2 dimensions (n, d), but it has %i"
-                % coord.ndim
+                "coord must have 2 dimensions (n, d), but it has %i" % coord.ndim
             )
 
         if coord.shape[0] != nsamples:
             raise ValueError(
                 "the number of samples in input_array does not match the "
-                + "number of coordinates %i!=%i"
-                % (nsamples, coord.shape[0])
+                + "number of coordinates %i!=%i" % (nsamples, coord.shape[0])
             )
 
         if k is None:
@@ -262,9 +259,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
                 thisdata = input_array[i]
                 neighbours = input_array[inds[i, 1:]]
-                thiszdata = (thisdata - np.mean(neighbours)) / np.std(
-                    neighbours
-                )
+                thiszdata = (thisdata - np.mean(neighbours)) / np.std(neighbours)
                 outliers = np.append(outliers, thiszdata > thr)
 
             else:

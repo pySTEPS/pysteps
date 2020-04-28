@@ -44,8 +44,9 @@ the best way to get started is by looking for "Good First Issue" in the
 
 In a nutshell, the main steps to follow for contributing to pysteps are:
 
-- Setup the development environment
+- Setting up the development environment
 - Fork the repository
+- Install pre-commit hooks
 - Create a new branch for each contribution
 - Read the Code Style guide
 - Work on your changes
@@ -53,8 +54,8 @@ In a nutshell, the main steps to follow for contributing to pysteps are:
 - Push to your fork repository and create a new PR in GitHub.
 
 
-Setup the Development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Setting up the Development environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The recommended way to setup up the developer environment is the Anaconda
 (commonly referred as Conda).
@@ -99,6 +100,33 @@ If you are new to GitHub, below you can find a list of useful tutorials:
 - http://rogerdudler.github.io/git-guide/index.html
 - https://www.atlassian.com/git/tutorials
 
+Install pre-commit hooks
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once you cloned the repository and the development environment is installed (and active),
+install the git pre-commit hook by executing the following command in the repository's
+root::
+
+    pre-commit install
+
+The pre-commit hooks are scripts that are executed in every commit automatically to
+identify simple issues with the code. If an issue is identified (the pre-commit script
+exits with non-zero status), the hook aborts the commit and print the error.
+Currently, Pysteps only test the code to be committed complies with black's autoformat.
+In case that the commit is aborted, you only need to run black in the entire source code.
+This can be done by running :code:`black .` or :code:`pre-commit run --all-files`.
+The latter is recommended since it indicates if the commit contained any formatting errors
+(that are automatically corrected).
+To ensure that the same configuration is used in every development environment, black's
+configuration is stored in the `pyproject.toml` file.
+This configuration is automatically load when black is run from any directory in the
+pysteps project.
+
+For more information about git hooks and the pre-commit package see:
+
+- https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
+- https://pre-commit.com/
+
 
 Create a new branch
 ~~~~~~~~~~~~~~~~~~~
@@ -117,26 +145,12 @@ For more information on how to create and work with branches, see
 Code Style
 ~~~~~~~~~~
 
-Although it is not strictly enforced yet, we strongly suggest to follow the
+We strongly suggest to follow the
 `PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`_.
-Two popular modules used to check pep8 compliance are
-`pycodestyle <https://pypi.org/project/pycodestyle/>`_ and
-`pylint <https://pypi.org/project/pylint/>`_ that can be installed using pip::
-
-    pip install pylint
-    pip install pycodestyle
-
-or using anaconda::
-
-    conda install pylint
-    conda install pycodestyle
-
-For further information instructions, the reader is referred to their official
-documentation.
-
-- https://pycodestyle.readthedocs.io/en/latest/
-- https://www.pylint.org/
-
+Note that this is not strictly enforced yet, since many source files in pysteps
+are not PEP8 compliant.
+However, we encourage new contributions to be compliant at least with the coding style
+summarized next.
 
 Coding style summary
 ^^^^^^^^^^^^^^^^^^^^
@@ -144,10 +158,9 @@ Coding style summary
 For quick reference, these are the most important good coding practices
 to follow:
 
-
 - Always use 4 spaces for indentation (don’t use tabs).
 - Write UTF-8 (add **# -*- coding: utf-8 -*-** at the top of each file).
-- Max line-length: 79 characters.
+- Max line-length: 88 characters (note that we don't use the PEP8's 79 value).
 - Always indent wrapped code for readability.
 - Avoid extraneous whitespace.
 - Don’t use whitespace to line up assignment operators (=, :).
@@ -155,7 +168,6 @@ to follow:
 - No spaces around = for default parameter values (keywords).
 - Spaces around mathematical operators, but group them sensibly.
 - No multiple statements on the same line.
-
 - Naming conventions:
 
    Function names, variable names, and filenames should be descriptive and self
@@ -248,21 +260,13 @@ to follow:
     Source: `Google's python style guide
     <http://google.github.io/styleguide/pyguide.html>`_
 
-- Create an ignored variable:
+- Ignore returned variables:
 
-  If you need to assign something (for instance, in Unpacking) but will not
-  need that variable, use __ (double underscore)::
+  If you need to ignore part to the variables returned by a function,
+  use "_" (single underscore) or __ (double underscore)::
 
     precip, __, metadata = import_bom_rf3('example_file.bom')
-
-  Many Python style guides recommend the use of a single underscore "_" rather
-  than the double underscore "__" recommended here. The issue is that "_" is
-  commonly used as an alias for the
-  `gettext() <https://docs.python.org/3/library/gettext.html>`_ function, and
-  is also used at the interactive prompt to hold the value of the last
-  operation. Using a double underscore instead is just as clear and eliminates
-  the risk of accidentally interfering with either of these other use cases.
-  (Source: https://docs.python-guide.org/writing/style/)
+    precip2, _, metadata2 = import_bom_rf3('example_file2.bom')
 
 
 - Zen of Python (PEP 20), the guiding principles for Python’s
@@ -300,12 +304,10 @@ For a detailed description of a pythonic code style check these guidelines:
 
 **Auto-formatters**
 
-Formatting code to PEP8 style is a time consuming process.
-Instead of manually formatting code before a commit to to PEP8 style, you can use auto-format packages which
-automatically formats Python code to conform to the PEP 8 style guide.
-
-If your development environment does not include auto-formatting capabilities, we recommend using
-`black <https://black.readthedocs.io/en/stable/>`_, which can be installed by any of the following options::
+Hand-formatting code according the PEP8 style guide can be a tedious process if it is done
+manually. To make our lives easy, in pysteps, we use
+`black <https://black.readthedocs.io/en/stable/>`_ to auto-format the code using its
+default configuration. Black can be installed using any of the following::
 
     conda install black
 
@@ -330,9 +332,7 @@ Here is a summary of the most important rules:
 
 - One-line docstrings Triple quotes are used even though the string fits on one line.
   This makes it easy to later expand it.
-
 - A one-line docstring is a phrase ending in a period.
-
 - All docstrings should be written in imperative ("""Return some value.""")
   mood rather than descriptive mood ("""Returns some value.""").
 
@@ -345,16 +345,13 @@ Here is an example of a docstring::
 
         Parameters
         ----------
-
         gamma_1 : float
           Lag-1 temporal autocorrelation coeffient.
-
         gamma_2 : float
           Lag-2 temporal autocorrelation coeffient.
 
         Returns
         -------
-
         out : float
           The adjusted lag-2 correlation coefficient.
         """
@@ -363,12 +360,11 @@ Here is an example of a docstring::
 Working on changes
 ~~~~~~~~~~~~~~~~~~
 
-
 **IMPORTANT**
 
 If your changes will take a significant amount of work,
-we highly recommend opening an issue first, explaining what do you want
-to do and why. It is better to start the discussions early in case that other
+we highly recommend opening an issue first, explaining what you want
+to do and why. It is better to start the discussions early, in case other
 contributors disagree with what you would like to do or have ideas
 that will help you do it.
 

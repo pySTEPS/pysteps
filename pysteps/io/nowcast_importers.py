@@ -180,10 +180,8 @@ def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
             metadata["projection"] = proj_str
 
         # geodata
-        metadata["xpixelsize"] = abs(ds.variables["x"][1] -
-                                     ds.variables["x"][0])
-        metadata["ypixelsize"] = abs(ds.variables["y"][1] -
-                                     ds.variables["y"][0])
+        metadata["xpixelsize"] = abs(ds.variables["x"][1] - ds.variables["x"][0])
+        metadata["ypixelsize"] = abs(ds.variables["y"][1] - ds.variables["y"][0])
 
         xmin = np.min(ds.variables["x"]) - 0.5 * metadata["xpixelsize"]
         xmax = np.max(ds.variables["x"]) + 0.5 * metadata["xpixelsize"]
@@ -224,15 +222,12 @@ def _convert_grid_mapping_to_proj4(grid_mapping):
     # TODO: implement more projection types here
     if grid_mapping["grid_mapping_name"] == "polar_stereographic":
         proj_str = "+proj=stere"
-        proj_str += " +lon_0=%s" \
-                    % grid_mapping["straight_vertical_longitude_from_pole"]
-        proj_str += " +lat_0=%s" \
-                    % grid_mapping["latitude_of_projection_origin"]
+        proj_str += " +lon_0=%s" % grid_mapping["straight_vertical_longitude_from_pole"]
+        proj_str += " +lat_0=%s" % grid_mapping["latitude_of_projection_origin"]
         if "standard_parallel" in gm_keys:
             proj_str += " +lat_ts=%s" % grid_mapping["standard_parallel"]
         if "scale_factor_at_projection_origin" in gm_keys:
-            proj_str += " +k_0=%s" \
-                        % grid_mapping["scale_factor_at_projection_origin"]
+            proj_str += " +k_0=%s" % grid_mapping["scale_factor_at_projection_origin"]
         proj_str += " +x_0=%s" % grid_mapping["false_easting"]
         proj_str += " +y_0=%s" % grid_mapping["false_northing"]
 

@@ -154,7 +154,9 @@ def _check_coords_range(selected_range, coordinate, full_range):
     if not isinstance(selected_range, (list, tuple)):
 
         if len(selected_range) != 2:
-            raise ValueError(f"The {coordinate} range must be None or a two-element tuple or list")
+            raise ValueError(
+                f"The {coordinate} range must be None or a two-element tuple or list"
+            )
 
         selected_range = list(selected_range)  # Make mutable
 
@@ -191,13 +193,13 @@ def _get_grib_projection(grib_msg):
 
     # pygrib defines the ellipsoids using "a" and "b" only.
     # Here we replace the for the PROJ.4 SpheroidCodes if they are available.
-    if grib_msg['shapeOfTheEarth'] in _grib_shapes_of_earth:
+    if grib_msg["shapeOfTheEarth"] in _grib_shapes_of_earth:
         keys_to_remove = ["a", "b"]
         for key in keys_to_remove:
             if key in projparams:
                 del projparams[key]
 
-        projparams.update(_grib_shapes_of_earth[grib_msg['shapeOfTheEarth']])
+        projparams.update(_grib_shapes_of_earth[grib_msg["shapeOfTheEarth"]])
 
     return projparams
 
@@ -225,9 +227,9 @@ def _get_threshold_value(precip):
             return min_precip
     else:
         return np.nan
-      
 
-@postprocess_import(dtype='float32')
+
+@postprocess_import(dtype="float32")
 def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
@@ -306,8 +308,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     try:
         grib_file = pygrib.open(filename)
     except OSError:
-        raise OSError(f"Error opening NCEP's MRMS file. "
-                      f"File Not Found: {filename}")
+        raise OSError(f"Error opening NCEP's MRMS file. " f"File Not Found: {filename}")
 
     if isinstance(window_size, int):
         window_size = (window_size, window_size)
@@ -359,21 +360,22 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
         # Consider that if a single invalid observation is located in the block,
         # then mark that value as invalid.
-        no_data_mask = block_reduce(no_data_mask.astype('int'),
-                                    window_size, axis=(0, 1)).astype(bool)
+        no_data_mask = block_reduce(
+            no_data_mask.astype("int"), window_size, axis=(0, 1)
+        ).astype(bool)
 
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = np.nan
 
     if extent is not None:
         # clip domain
-        ul_lon, lr_lon = _check_coords_range((extent[0], extent[1]),
-                                             "longitude",
-                                             (ul_lon, lr_lon))
+        ul_lon, lr_lon = _check_coords_range(
+            (extent[0], extent[1]), "longitude", (ul_lon, lr_lon)
+        )
 
-        lr_lat, ul_lat = _check_coords_range((extent[2], extent[3]),
-                                             "latitude",
-                                             (ul_lat, lr_lat))
+        lr_lat, ul_lat = _check_coords_range(
+            (extent[2], extent[3]), "latitude", (ul_lat, lr_lat)
+        )
 
         mask_lat = (lats >= lr_lat) & (lats <= ul_lat)
         mask_lon = (lons >= ul_lon) & (lons <= lr_lon)
@@ -488,10 +490,8 @@ def _import_bom_rf3_geodata(filename):
         ymin = min(ds_rainfall.variables["y"])
         ymax = max(ds_rainfall.variables["y"])
 
-    xpixelsize = abs(ds_rainfall.variables["x"][1] -
-                     ds_rainfall.variables["x"][0])
-    ypixelsize = abs(ds_rainfall.variables["y"][1] -
-                     ds_rainfall.variables["y"][0])
+    xpixelsize = abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
+    ypixelsize = abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
     factor_scale = 1.0
     if "units" in ds_rainfall.variables["x"].ncattrs():
         if getattr(ds_rainfall.variables["x"], "units") == "km":
@@ -513,9 +513,7 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar)
+        valid_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
@@ -523,9 +521,7 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        start_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar)
+        start_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     time_step = None
 
@@ -811,17 +807,17 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     # because the data is saved as hundreds of mm (so, as integers). 65535 is
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
-        precip = np.where(precip_intermediate == 65535,
-                          np.NaN,
-                          precip_intermediate / 100.0)
+        precip = np.where(
+            precip_intermediate == 65535, np.NaN, precip_intermediate / 100.0
+        )
 
     # In case reflectivities are imported, the no data value is 255. Values are
     # saved as integers. The reflectivities are not directly saved in dBZ, but
     # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
     if qty == "DBZH":
-        precip = np.where(precip_intermediate == 255,
-                          np.NaN,
-                          precip_intermediate * 0.5 - 32.0)
+        precip = np.where(
+            precip_intermediate == 255, np.NaN, precip_intermediate * 0.5 - 32.0
+        )
 
     if precip is None:
         raise IOError("requested quantity not found")
@@ -1073,9 +1069,13 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
                 if dg[0][0:4] == "data":
                     # check if the "what" group is in the "data" group
                     if "what" in list(dg[1].keys()):
-                        qty_, gain, offset, nodata, undetect = _read_mch_hdf5_what_group(
-                            dg[1]["what"]
-                        )
+                        (
+                            qty_,
+                            gain,
+                            offset,
+                            nodata,
+                            undetect,
+                        ) = _read_mch_hdf5_what_group(dg[1]["what"])
                     elif not what_grp_found:
                         raise DataModelError(
                             "Non ODIM compilant file: "
@@ -1319,9 +1319,13 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
                 if dg[0][0:4] == "data":
                     # check if the "what" group is in the "data" group
                     if "what" in list(dg[1].keys()):
-                        qty_, gain, offset, nodata, undetect = _read_opera_hdf5_what_group(
-                            dg[1]["what"]
-                        )
+                        (
+                            qty_,
+                            gain,
+                            offset,
+                            nodata,
+                            undetect,
+                        ) = _read_opera_hdf5_what_group(dg[1]["what"])
                     elif not what_grp_found:
                         raise DataModelError(
                             "Non ODIM compilant file: "
@@ -1357,10 +1361,10 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
     ur_lat = where.attrs["UR_lat"]
     ur_lon = where.attrs["UR_lon"]
     if (
-            "LR_lat" in where.attrs.keys()
-            and "LR_lon" in where.attrs.keys()
-            and "UL_lat" in where.attrs.keys()
-            and "UL_lon" in where.attrs.keys()
+        "LR_lat" in where.attrs.keys()
+        and "LR_lon" in where.attrs.keys()
+        and "UL_lat" in where.attrs.keys()
+        and "UL_lon" in where.attrs.keys()
     ):
         lr_lat = float(where.attrs["LR_lat"])
         lr_lon = float(where.attrs["LR_lon"])
@@ -1479,10 +1483,14 @@ def import_saf_crri(filename, extent=None, **kwargs):
     metadata = geodata
 
     if extent:
-        xcoord = np.arange(metadata["x1"], metadata["x2"],
-                           metadata["xpixelsize"]) + metadata["xpixelsize"] / 2
-        ycoord = np.arange(metadata["y1"], metadata["y2"],
-                           metadata["ypixelsize"]) + metadata["ypixelsize"] / 2
+        xcoord = (
+            np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
+            + metadata["xpixelsize"] / 2
+        )
+        ycoord = (
+            np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+            + metadata["ypixelsize"] / 2
+        )
         ycoord = ycoord[::-1]  # yorigin = "upper"
         idx_x = np.logical_and(xcoord < extent[1], xcoord > extent[0])
         idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
@@ -1535,7 +1543,7 @@ def _import_saf_crri_geodata(filename):
     geodata["projection"] = projdef
 
     # get x1, y1, x2, y2, xpixelsize, ypixelsize, yorigin
-    geotable = ds_rainfall.getncattr('gdal_geotransform_table')
+    geotable = ds_rainfall.getncattr("gdal_geotransform_table")
     xmin = ds_rainfall.getncattr("gdal_xgeo_up_left")
     xmax = ds_rainfall.getncattr("gdal_xgeo_low_right")
     ymin = ds_rainfall.getncattr("gdal_ygeo_low_right")
@@ -1554,7 +1562,7 @@ def _import_saf_crri_geodata(filename):
     geodata["accutime"] = None
 
     # get the unit of precipitation
-    geodata["unit"] = ds_rainfall.variables['crr_intensity'].units
+    geodata["unit"] = ds_rainfall.variables["crr_intensity"].units
 
     # get institution
     geodata["institution"] = ds_rainfall.getncattr("institution")

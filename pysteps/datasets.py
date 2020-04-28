@@ -133,24 +133,27 @@ class ShowProgress(object):
                 elapsed_time = time.time() - self.init_time
                 eta = (elapsed_time / progress - elapsed_time) / 60
 
-                bar_str = "#" * block + "-" * (
-                        self._progress_bar_length - block
-                )
+                bar_str = "#" * block + "-" * (self._progress_bar_length - block)
 
                 if exact:
-                    downloaded_msg = f"({downloaded_size:.1f} Mb / {self.total_size:.1f} Mb)"
+                    downloaded_msg = (
+                        f"({downloaded_size:.1f} Mb / {self.total_size:.1f} Mb)"
+                    )
                 else:
-                    downloaded_msg = f"(~{downloaded_size:.0f} Mb/ {self.total_size:.0f} Mb)"
+                    downloaded_msg = (
+                        f"(~{downloaded_size:.0f} Mb/ {self.total_size:.0f} Mb)"
+                    )
 
                 progress_msg = (
-                        f"Progress: [{bar_str}]"
-                        + downloaded_msg
-                        + f" - Time left: {int(eta):d}:{int(eta * 60)} [m:s]"
+                    f"Progress: [{bar_str}]"
+                    + downloaded_msg
+                    + f" - Time left: {int(eta):d}:{int(eta * 60)} [m:s]"
                 )
 
             else:
-                progress_msg = (f"Progress: ({downloaded_size:.1f} Mb)"
-                                f" - Time left: unknown")
+                progress_msg = (
+                    f"Progress: ({downloaded_size:.1f} Mb)" f" - Time left: unknown"
+                )
 
         self._print(progress_msg)
 
@@ -159,8 +162,7 @@ class ShowProgress(object):
         sys.stdout.write("\n" + message + "\n")
 
 
-def download_mrms_data(dir_path, initial_date, final_date,
-                       timestep=2, nodelay=False):
+def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=False):
     """
     Download a small dataset with 6 hours of the NSSL's Multi-Radar/Multi-Sensor
     System ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) precipitation
@@ -207,15 +209,19 @@ def download_mrms_data(dir_path, initial_date, final_date,
         dir_path = data_source["root_path"]
 
     if not isinstance(timestep, (int, timedelta)):
-        raise TypeError("'timestep' must be an integer or a timedelta object."
-                        f"Received: {type(timestep)}")
+        raise TypeError(
+            "'timestep' must be an integer or a timedelta object."
+            f"Received: {type(timestep)}"
+        )
 
     if isinstance(timestep, int):
         timestep = timedelta(seconds=timestep * 60)
 
     if timestep.total_seconds() < 120:
-        raise ValueError("The time step should be greater than 2 minutes."
-                         f"Received: {timestep.total_seconds()}")
+        raise ValueError(
+            "The time step should be greater than 2 minutes."
+            f"Received: {timestep.total_seconds()}"
+        )
 
     _remainder = timestep % timedelta(seconds=120)
     timestep -= _remainder
@@ -224,9 +230,12 @@ def download_mrms_data(dir_path, initial_date, final_date,
         os.makedirs(dir_path)
 
     if nodelay:
+
         def delay(_counter):
             return 0
+
     else:
+
         def delay(_counter):
             if _counter >= 30:
                 _counter = 0
@@ -243,8 +252,7 @@ def download_mrms_data(dir_path, initial_date, final_date,
 
         counter = delay(counter)
 
-        sub_dir = os.path.join(dir_path,
-                               datetime.strftime(current_date, "%Y/%m/%d"))
+        sub_dir = os.path.join(dir_path, datetime.strftime(current_date, "%Y/%m/%d"))
 
         if not os.path.isdir(sub_dir):
             os.makedirs(sub_dir)
@@ -252,13 +260,14 @@ def download_mrms_data(dir_path, initial_date, final_date,
         # Generate files URL from https://mtarchive.geol.iastate.edu
 
         dest_file_name = datetime.strftime(
-            current_date,
-            "PrecipRate_00.00_%Y%m%d-%H%M%S.grib2"
+            current_date, "PrecipRate_00.00_%Y%m%d-%H%M%S.grib2"
         )
 
-        rel_url_fmt = ("/%Y/%m/%d"
-                       "/mrms/ncep/PrecipRate"
-                       "/PrecipRate_00.00_%Y%m%d-%H%M%S.grib2.gz")
+        rel_url_fmt = (
+            "/%Y/%m/%d"
+            "/mrms/ncep/PrecipRate"
+            "/PrecipRate_00.00_%Y%m%d-%H%M%S.grib2.gz"
+        )
 
         file_url = archive_url + datetime.strftime(current_date, rel_url_fmt)
 
@@ -266,8 +275,7 @@ def download_mrms_data(dir_path, initial_date, final_date,
         try:
             print(f"Downloading {file_url} ", end="")
             request.urlretrieve(
-                file_url,
-                tmp_file.name,
+                file_url, tmp_file.name,
             )
             print("DONE")
         except HTTPError as err:
@@ -307,7 +315,7 @@ def download_pysteps_data(dir_path, force=True):
         if os.listdir(dir_path) and not force:
             raise DirectoryNotEmpty(
                 dir_path + "is not empty.\n"
-                           "Set force=True force the extraction of the files."
+                "Set force=True force the extraction of the files."
             )
     else:
         os.makedirs(dir_path)
@@ -337,7 +345,9 @@ def download_pysteps_data(dir_path, force=True):
         copy_tree(os.path.join(tmp_dir.name, common_path), dir_path)
 
 
-def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pystepsrc", dryrun=False):
+def create_default_pystepsrc(
+    pysteps_data_dir, config_dir=None, file_name="pystepsrc", dryrun=False
+):
     """
     Create a default configuration file pointing to the pysteps data directory.
 
@@ -377,9 +387,7 @@ def create_default_pystepsrc(pysteps_data_dir, config_dir=None, file_name="pyste
         Configuration file path.
     """
 
-    pysteps_lib_root = os.path.dirname(
-        _decode_filesystem_path(pysteps.__file__)
-    )
+    pysteps_lib_root = os.path.dirname(_decode_filesystem_path(pysteps.__file__))
 
     # Load the library built-in configuration file
     with open(os.path.join(pysteps_lib_root, "pystepsrc"), "r") as f:

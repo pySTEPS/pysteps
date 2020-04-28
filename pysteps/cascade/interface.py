@@ -13,9 +13,9 @@ Interface for the cascade module.
 from pysteps.cascade import decomposition, bandpass_filters
 
 _cascade_methods = dict()
-_cascade_methods['fft'] = (decomposition.decomposition_fft, decomposition.recompose_fft)
-_cascade_methods['gaussian'] = bandpass_filters.filter_gaussian
-_cascade_methods['uniform'] = bandpass_filters.filter_uniform
+_cascade_methods["fft"] = (decomposition.decomposition_fft, decomposition.recompose_fft)
+_cascade_methods["gaussian"] = bandpass_filters.filter_gaussian
+_cascade_methods["uniform"] = bandpass_filters.filter_uniform
 
 
 def get_method(name):
@@ -52,12 +52,16 @@ def get_method(name):
     if isinstance(name, str):
         name = name.lower()
     else:
-        raise TypeError("Only strings supported for the method's names.\n"
-                        + "Available names:"
-                        + str(list(_cascade_methods.keys()))) from None
+        raise TypeError(
+            "Only strings supported for the method's names.\n"
+            + "Available names:"
+            + str(list(_cascade_methods.keys()))
+        ) from None
     try:
         return _cascade_methods[name]
     except KeyError:
-        raise ValueError("Unknown method {}\n".format(name)
-                         + "The available methods are:"
-                         + str(list(_cascade_methods.keys()))) from None
+        raise ValueError(
+            "Unknown method {}\n".format(name)
+            + "The available methods are:"
+            + str(list(_cascade_methods.keys()))
+        ) from None

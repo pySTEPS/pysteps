@@ -182,8 +182,7 @@ def load_config_file(params_file=None, verbose=False, dryrun=False):
 
         if params_file is None:
             warnings.warn(
-                "pystepsrc file not found."
-                + "The defaults parameters are left empty",
+                "pystepsrc file not found." + "The defaults parameters are left empty",
                 category=ImportWarning,
             )
 

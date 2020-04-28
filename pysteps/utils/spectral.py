@@ -55,21 +55,22 @@ def corrcoef(X, Y, shape, use_full_fft=False):
         raise ValueError(
             "dimension mismatch between X and Y: "
             + "X.shape=%d,%d , " % (X.shape[0], X.shape[1])
-            + "Y.shape=%d,%d" % (Y.shape[0], Y.shape[1]))
+            + "Y.shape=%d,%d" % (Y.shape[0], Y.shape[1])
+        )
 
     n = np.real(np.sum(X * np.conj(Y))) - np.real(X[0, 0] * Y[0, 0])
-    d1 = np.sum(np.abs(X)**2) - np.real(X[0, 0])**2
-    d2 = np.sum(np.abs(Y)**2) - np.real(Y[0, 0])**2
+    d1 = np.sum(np.abs(X) ** 2) - np.real(X[0, 0]) ** 2
+    d2 = np.sum(np.abs(Y) ** 2) - np.real(Y[0, 0]) ** 2
 
     if not use_full_fft:
         if shape[1] % 2 == 1:
             n += np.real(np.sum(X[:, 1:] * np.conj(Y[:, 1:])))
-            d1 += np.sum(np.abs(X[:, 1:])**2)
-            d2 += np.sum(np.abs(Y[:, 1:])**2)
+            d1 += np.sum(np.abs(X[:, 1:]) ** 2)
+            d2 += np.sum(np.abs(Y[:, 1:]) ** 2)
         else:
             n += np.real(np.sum(X[:, 1:-1] * np.conj(Y[:, 1:-1])))
-            d1 += np.sum(np.abs(X[:, 1:-1])**2)
-            d2 += np.sum(np.abs(Y[:, 1:-1])**2)
+            d1 += np.sum(np.abs(X[:, 1:-1]) ** 2)
+            d2 += np.sum(np.abs(Y[:, 1:-1]) ** 2)
 
     return n / np.sqrt(d1 * d2)
 
@@ -94,8 +95,7 @@ def mean(X, shape):
     return np.real(X[0, 0]) / (shape[0] * shape[1])
 
 
-def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False,
-          **fft_kwargs):
+def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_kwargs):
     """Compute radially averaged power spectral density (RAPSD) from the given
     2D input field.
 
@@ -132,27 +132,28 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False,
     """
 
     if len(Z.shape) != 2:
-        raise ValueError(f"{len(Z.shape)} dimensions are found, but the number "
-                          "of dimensions should be 2"
-                        )
+        raise ValueError(
+            f"{len(Z.shape)} dimensions are found, but the number "
+            "of dimensions should be 2"
+        )
 
     if np.sum(np.isnan(Z)) > 0:
-        raise ValueError('input array Z should not contain nans')
+        raise ValueError("input array Z should not contain nans")
 
     M, N = Z.shape
 
     YC, XC = arrays.compute_centred_coord_array(M, N)
-    R = np.sqrt(XC*XC + YC*YC).round()
+    R = np.sqrt(XC * XC + YC * YC).round()
     L = max(Z.shape[0], Z.shape[1])
 
     if L % 2 == 0:
-        r_range = np.arange(0, int(L/2)+1)
+        r_range = np.arange(0, int(L / 2) + 1)
     else:
-        r_range = np.arange(0, int(L/2))
+        r_range = np.arange(0, int(L / 2))
 
     if fft_method is not None:
         F = fft_method.fftshift(fft_method.fft2(Z, **fft_kwargs))
-        F = np.abs(F)**2 / F.size
+        F = np.abs(F) ** 2 / F.size
     else:
         F = Z
 
@@ -194,7 +195,7 @@ def remove_rain_norain_discontinuity(R):
     R = R.copy()
     zerovalue = np.nanmin(R)
     threshold = np.nanmin(R[R > zerovalue])
-    R[R > zerovalue] -= (threshold - zerovalue)
+    R[R > zerovalue] -= threshold - zerovalue
     R -= np.nanmin(R)
 
     return R
@@ -222,11 +223,11 @@ def std(X, shape, use_full_fft=False):
     out : float
         The standard deviation.
     """
-    res = np.sum(np.abs(X)**2) - np.real(X[0, 0])**2
+    res = np.sum(np.abs(X) ** 2) - np.real(X[0, 0]) ** 2
     if not use_full_fft:
         if shape[1] % 2 == 1:
-            res += np.sum(np.abs(X[:, 1:])**2)
+            res += np.sum(np.abs(X[:, 1:]) ** 2)
         else:
-            res += np.sum(np.abs(X[:, 1:-1])**2)
+            res += np.sum(np.abs(X[:, 1:-1]) ** 2)
 
-    return np.sqrt(res / (shape[0] * shape[1])**2)
+    return np.sqrt(res / (shape[0] * shape[1]) ** 2)

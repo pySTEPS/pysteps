@@ -42,9 +42,7 @@ def test_read_paramsrc():
 
         # Perform a dry run that do not update
         # the internal pysteps.rcparams values.
-        rcparams = load_config_file(tmp_paramsrc.name,
-                                    dryrun=True,
-                                    verbose=False)
+        rcparams = load_config_file(tmp_paramsrc.name, dryrun=True, verbose=False)
 
         # Test item and attribute getters
         assert rcparams["data_sources"]["bom"]["fn_ext"] == "nc"
