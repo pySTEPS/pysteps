@@ -17,9 +17,16 @@ from scipy import ndimage
 from pysteps.utils import spectral
 
 
-def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
-                             use_full_fft=False, window="gaussian",
-                             window_radius=np.inf):
+def temporal_autocorrelation(
+    x,
+    d=0,
+    domain="spatial",
+    x_shape=None,
+    mask=None,
+    use_full_fft=False,
+    window="gaussian",
+    window_radius=np.inf,
+):
     """Compute lag-l temporal autocorrelation coefficients
     :math:`\gamma_l=\mbox{corr}(x(t),x(t-l))`, :math:`l=1,2,\dots,n-1`,
     from a time series :math:`x_1,x_2,\dots,x_n`. If a multivariate time series
@@ -85,10 +92,15 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
     if len(x.shape) < 2:
         raise ValueError("the dimension of x must be >= 2")
     if len(x.shape) != 3 and domain == "spectral":
-        raise NotImplementedError("len(x.shape[1:]) = %d, but with domain == 'spectral', this function has only been implemented for two-dimensional fields" % len(x.shape[1:]))
+        raise NotImplementedError(
+            "len(x.shape[1:]) = %d, but with domain == 'spectral', this function has only been implemented for two-dimensional fields"
+            % len(x.shape[1:])
+        )
     if mask is not None and mask.shape != x.shape[1:]:
-        raise ValueError("dimension mismatch between x and mask: x.shape[1:]=%s, mask.shape=%s" % \
-                         (str(x.shape[1:]), str(mask.shape)))
+        raise ValueError(
+            "dimension mismatch between x and mask: x.shape[1:]=%s, mask.shape=%s"
+            % (str(x.shape[1:]), str(mask.shape))
+        )
     if np.any(~np.isfinite(x)):
         raise ValueError("x contains non-finite values")
 
@@ -102,20 +114,23 @@ def temporal_autocorrelation(x, d=0, domain="spatial", x_shape=None, mask=None,
     for k in range(x.shape[0] - 1):
         if domain == "spatial":
             if window_radius == np.inf:
-                cc = np.corrcoef(x[-1, :][mask], x[-(k+2), :][mask])[0, 1]
+                cc = np.corrcoef(x[-1, :][mask], x[-(k + 2), :][mask])[0, 1]
             else:
-                cc = _moving_window_corrcoef(x[-1, :], x[-(k+2), :], window_radius,
-                                             mask=mask)
+                cc = _moving_window_corrcoef(
+                    x[-1, :], x[-(k + 2), :], window_radius, mask=mask
+                )
         else:
-            cc = spectral.corrcoef(x[-1, :, :], x[-(k+2), :], x_shape,
-                                   use_full_fft=use_full_fft)
+            cc = spectral.corrcoef(
+                x[-1, :, :], x[-(k + 2), :], x_shape, use_full_fft=use_full_fft
+            )
         gamma.append(cc)
 
     return gamma
 
 
-def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
-                                          window_radius=np.inf):
+def temporal_autocorrelation_multivariate(
+    x, d=0, mask=None, window="gaussian", window_radius=np.inf
+):
     """For a :math:`q`-variate time series
     :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
     correlation matrices :math:`\mathbf{\Gamma}_l`, where
@@ -166,8 +181,10 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
     if len(x.shape) < 3:
         raise ValueError("the dimension of x must be >= 3")
     if mask is not None and mask.shape != x.shape[2:]:
-        raise ValueError("dimension mismatch between x and mask: x.shape[2:]=%s, mask.shape=%s" % \
-                         (str(x.shape[2:]), str(mask.shape)))
+        raise ValueError(
+            "dimension mismatch between x and mask: x.shape[2:]=%s, mask.shape=%s"
+            % (str(x.shape[2:]), str(mask.shape))
+        )
     if np.any(~np.isfinite(x)):
         raise ValueError("x contains non-finite values")
 
@@ -178,7 +195,7 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
     q = x.shape[1]
 
     gamma = []
-    for k in range(p+1):
+    for k in range(p + 1):
         if window_radius == np.inf:
             gamma_k = np.empty((q, q))
         else:
@@ -186,12 +203,13 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
         for i in range(q):
             x_i = x[-1, i, :]
             for j in range(q):
-                x_j = x[-(k+1), j, :]
+                x_j = x[-(k + 1), j, :]
                 if window_radius == np.inf:
                     gamma_k[i, j] = np.corrcoef(x_i.flatten(), x_j.flatten())[0, 1]
                 else:
-                    gamma_k[..., i, j] = _moving_window_corrcoef(x_i, x_j, window_radius,
-                                                               window=window, mask=mask)
+                    gamma_k[..., i, j] = _moving_window_corrcoef(
+                        x_i, x_j, window_radius, window=window, mask=mask
+                    )
 
         gamma.append(gamma_k)
 
@@ -200,7 +218,10 @@ def temporal_autocorrelation_multivariate(x, d=0, mask=None, window="gaussian",
 
 def _moving_window_corrcoef(x, y, window_radius, window="gaussian", mask=None):
     if window not in ["gaussian", "uniform"]:
-        raise ValueError("unknown window type %s, the available options are 'gaussian' and 'uniform'" % window)
+        raise ValueError(
+            "unknown window type %s, the available options are 'gaussian' and 'uniform'"
+            % window
+        )
 
     if mask is None:
         mask = np.ones(x.shape)
@@ -221,20 +242,20 @@ def _moving_window_corrcoef(x, y, window_radius, window="gaussian", mask=None):
     else:
         window_size = window_radius
 
-    n = convol_filter(mask, window_size, mode="constant") * window_size**2
+    n = convol_filter(mask, window_size, mode="constant") * window_size ** 2
 
-    sx = convol_filter(x, window_size, mode="constant") * window_size**2
-    sy = convol_filter(y, window_size, mode="constant") * window_size**2
+    sx = convol_filter(x, window_size, mode="constant") * window_size ** 2
+    sy = convol_filter(y, window_size, mode="constant") * window_size ** 2
 
-    ssx = convol_filter(x**2, window_size, mode="constant") * window_size**2
-    ssy = convol_filter(y**2, window_size, mode="constant") * window_size**2
-    sxy = convol_filter(x*y, window_size, mode="constant") * window_size**2
+    ssx = convol_filter(x ** 2, window_size, mode="constant") * window_size ** 2
+    ssy = convol_filter(y ** 2, window_size, mode="constant") * window_size ** 2
+    sxy = convol_filter(x * y, window_size, mode="constant") * window_size ** 2
 
     mux = sx / n
     muy = sy / n
 
-    stdx = np.sqrt(ssx - 2 * mux * sx + n * mux**2)
-    stdy = np.sqrt(ssy - 2 * muy * sy + n * muy**2)
+    stdx = np.sqrt(ssx - 2 * mux * sx + n * mux ** 2)
+    stdy = np.sqrt(ssy - 2 * muy * sy + n * muy ** 2)
     cov = sxy - muy * sx - mux * sy + n * mux * muy
 
     mask = np.logical_and(stdx > 1e-8, stdy > 1e-8)

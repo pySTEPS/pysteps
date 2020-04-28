@@ -79,7 +79,7 @@ def compute_window_function(m, n, func, **kwargs):
         Array of shape (m, n) containing the tapering weights.
     """
     X, Y = np.meshgrid(np.arange(n), np.arange(m))
-    R = np.sqrt((X - int(n/2))**2 + (Y - int(m/2))**2)
+    R = np.sqrt((X - int(n / 2)) ** 2 + (Y - int(m / 2)) ** 2)
 
     if func == "hann":
         return _hann(R)
@@ -109,7 +109,7 @@ def _hann(R):
     mask = R > int(N / 2)
 
     W[mask] = 0.0
-    W[~mask] = 0.5 * (1.0 - np.cos(2.0 * np.pi * (R[~mask] + int(N/2)) / N))
+    W[~mask] = 0.5 * (1.0 - np.cos(2.0 * np.pi * (R[~mask] + int(N / 2)) / N))
 
     return W
 
@@ -118,12 +118,13 @@ def _tukey(R, alpha):
     W = np.ones_like(R)
     N = min(R.shape[0], R.shape[1])
 
-    mask1 = R < int(N/2)
+    mask1 = R < int(N / 2)
     mask2 = R > int(N / 2) * (1.0 - alpha)
     mask = np.logical_and(mask1, mask2)
-    W[mask] = 0.5 * (1.0 + np.cos(np.pi*(R[mask] /
-                                  (alpha * 0.5 * N) - 1.0/alpha + 1.0)))
-    mask = R >= int(N/2)
+    W[mask] = 0.5 * (
+        1.0 + np.cos(np.pi * (R[mask] / (alpha * 0.5 * N) - 1.0 / alpha + 1.0))
+    )
+    mask = R >= int(N / 2)
     W[mask] = 0.0
 
     return W

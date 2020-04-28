@@ -55,13 +55,15 @@ importer_name = data_source["importer"]
 importer_kwargs = data_source["importer_kwargs"]
 
 # Find the reference field in the archive
-fns = io.archive.find_by_date(date, root_path, path_fmt, fn_pattern, fn_ext,
-                              timestep=5, num_prev_files=0)
+fns = io.archive.find_by_date(
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_prev_files=0
+)
 
 # Read the reference radar composite
 importer = io.get_method(importer_name, "importer")
-reference_field, quality, metadata = io.read_timeseries(fns, importer,
-                                                        **importer_kwargs)
+reference_field, quality, metadata = io.read_timeseries(
+    fns, importer, **importer_kwargs
+)
 
 del quality  # Not used
 
@@ -82,10 +84,9 @@ plot_precip_field(reference_field, title="Reference field")
 plt.show()
 
 # Log-transform the data [dBR]
-reference_field, metadata = stp.utils.dB_transform(reference_field,
-                                                   metadata,
-                                                   threshold=0.1,
-                                                   zerovalue=-15.0)
+reference_field, metadata = stp.utils.dB_transform(
+    reference_field, metadata, threshold=0.1, zerovalue=-15.0
+)
 
 print("Precip. pattern shape: " + str(reference_field.shape))
 
@@ -144,7 +145,7 @@ def create_motion_field(input_precip, motion_type):
 
     x_pos = np.arange(nx)
     y_pos = np.arange(ny)
-    x, y = np.meshgrid(x_pos, y_pos, indexing='ij')
+    x, y = np.meshgrid(x_pos, y_pos, indexing="ij")
 
     ideal_motion = np.zeros((2, nx, ny))
 
@@ -206,8 +207,9 @@ def create_observations(input_precip, motion_type, num_times=9):
 
     # NOTE: The motion field passed to the morph function can't have any NaNs.
     # Otherwise, it can result in a segmentation fault.
-    morphed_field, mask = morph(input_precip.swapaxes(0, 1),
-                                ideal_motion.swapaxes(1, 2))
+    morphed_field, mask = morph(
+        input_precip.swapaxes(0, 1), ideal_motion.swapaxes(1, 2)
+    )
 
     mask = np.array(mask, dtype=bool)
 
@@ -215,15 +217,18 @@ def create_observations(input_precip, motion_type, num_times=9):
     synthetic_observations = synthetic_observations[np.newaxis, :]
 
     for t in range(1, num_times):
-        morphed_field, mask = morph(synthetic_observations[t - 1],
-                                    ideal_motion.swapaxes(1, 2))
+        morphed_field, mask = morph(
+            synthetic_observations[t - 1], ideal_motion.swapaxes(1, 2)
+        )
         mask = np.array(mask, dtype=bool)
 
-        morphed_field = np.ma.MaskedArray(morphed_field[np.newaxis, :],
-                                          mask=mask[np.newaxis, :])
+        morphed_field = np.ma.MaskedArray(
+            morphed_field[np.newaxis, :], mask=mask[np.newaxis, :]
+        )
 
-        synthetic_observations = np.ma.concatenate([synthetic_observations, morphed_field],
-                                                   axis=0)
+        synthetic_observations = np.ma.concatenate(
+            [synthetic_observations, morphed_field], axis=0
+        )
 
     # Swap  back to (lat, lon)
     synthetic_observations = synthetic_observations.swapaxes(1, 2)
@@ -235,9 +240,7 @@ def create_observations(input_precip, motion_type, num_times=9):
     return ideal_motion, synthetic_observations
 
 
-def plot_optflow_method_convergence(input_precip,
-                                    optflow_method_name,
-                                    motion_type):
+def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_type):
     """
     Test the convergence to the actual solution of the optical flow method used.
 
@@ -263,10 +266,9 @@ def plot_optflow_method_convergence(input_precip,
     else:
         num_times = 9
 
-    ideal_motion, precip_obs = create_observations(input_precip,
-                                                   motion_type,
-                                                   num_times=num_times)
-
+    ideal_motion, precip_obs = create_observations(
+        input_precip, motion_type, num_times=num_times
+    )
 
     oflow_method = motion.get_method(optflow_method_name)
 
@@ -274,20 +276,23 @@ def plot_optflow_method_convergence(input_precip,
 
     computed_motion = oflow_method(precip_obs, verbose=False)
 
-    print(f"{optflow_method_name} computation time: "
-          f"{(time.perf_counter() - elapsed_time):.1f} [s]")
+    print(
+        f"{optflow_method_name} computation time: "
+        f"{(time.perf_counter() - elapsed_time):.1f} [s]"
+    )
 
     precip_obs, _ = stp.utils.dB_transform(precip_obs, inverse=True)
 
     precip_data = precip_obs.max(axis=0)
     precip_data.data[precip_data.mask] = 0
 
-    precip_mask = ((uniform_filter(precip_data, size=20) > 0.1)
-                   & ~precip_obs.mask.any(axis=0))
+    precip_mask = (uniform_filter(precip_data, size=20) > 0.1) & ~precip_obs.mask.any(
+        axis=0
+    )
 
-    cmap = get_cmap('jet')
-    cmap.set_under('grey', alpha=0.25)
-    cmap.set_over('none')
+    cmap = get_cmap("jet")
+    cmap.set_under("grey", alpha=0.25)
+    cmap.set_over("none")
 
     # Compare retrieved motion field with the ideal one
     plt.figure(figsize=(9, 4))
@@ -307,8 +312,9 @@ def plot_optflow_method_convergence(input_precip,
     mse = ((ideal_motion - computed_motion)[:, precip_mask] ** 2).mean()
 
     rel_mse = mse / (ideal_motion[:, precip_mask] ** 2).mean()
-    plt.suptitle(f"{optflow_method_name} "
-                 f"Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%")
+    plt.suptitle(
+        f"{optflow_method_name} " f"Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%"
+    )
     plt.show()
 
 
@@ -318,17 +324,17 @@ def plot_optflow_method_convergence(input_precip,
 #
 # Constant motion x-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'LucasKanade', 'linear_x')
+plot_optflow_method_convergence(reference_field, "LucasKanade", "linear_x")
 
 ################################################################################
 # Constant motion y-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'LucasKanade', 'linear_y')
+plot_optflow_method_convergence(reference_field, "LucasKanade", "linear_y")
 
 ################################################################################
 # Rotational motion
 # ~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'LucasKanade', 'rotor')
+plot_optflow_method_convergence(reference_field, "LucasKanade", "rotor")
 
 ################################################################################
 # Variational Echo Tracking (VET)
@@ -336,17 +342,17 @@ plot_optflow_method_convergence(reference_field, 'LucasKanade', 'rotor')
 #
 # Constant motion x-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'VET', 'linear_x')
+plot_optflow_method_convergence(reference_field, "VET", "linear_x")
 
 ################################################################################
 # Constant motion y-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'VET', 'linear_y')
+plot_optflow_method_convergence(reference_field, "VET", "linear_y")
 
 ################################################################################
 # Rotational motion
 # ~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'VET', 'rotor')
+plot_optflow_method_convergence(reference_field, "VET", "rotor")
 
 ################################################################################
 # DARTS
@@ -354,16 +360,16 @@ plot_optflow_method_convergence(reference_field, 'VET', 'rotor')
 #
 # Constant motion x-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'DARTS', 'linear_x')
+plot_optflow_method_convergence(reference_field, "DARTS", "linear_x")
 
 ################################################################################
 # Constant motion y-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'DARTS', 'linear_y')
+plot_optflow_method_convergence(reference_field, "DARTS", "linear_y")
 
 ################################################################################
 # Rotational motion
 # ~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, 'DARTS', 'rotor')
+plot_optflow_method_convergence(reference_field, "DARTS", "rotor")
 
 # sphinx_gallery_thumbnail_number = 5

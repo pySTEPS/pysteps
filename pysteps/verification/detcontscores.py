@@ -149,14 +149,10 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     # split between online and offline scores
     loffline = ["scatter", "corr_s"]
     onscores = [
-        score
-        for score in scores
-        if str(score).lower() not in loffline or score == ""
+        score for score in scores if str(score).lower() not in loffline or score == ""
     ]
     offscores = [
-        score
-        for score in scores
-        if str(score).lower() in loffline or score == ""
+        score for score in scores if str(score).lower() in loffline or score == ""
     ]
 
     # unique lists
@@ -398,9 +394,7 @@ def det_cont_fct_accum(err, pred, obs):
     _parallel_var(err["mpred"], err["n"], err["vpred"], mpred, n, vpred)
 
     # update covariance
-    _parallel_cov(
-        err["cov"], err["mobs"], err["mpred"], err["n"], cov, mobs, mpred, n
-    )
+    _parallel_cov(err["cov"], err["mobs"], err["mpred"], err["n"], cov, mobs, mpred, n)
 
     # update means
     _parallel_mean(err["mobs"], err["n"], mobs, n)
@@ -463,12 +457,7 @@ def det_cont_fct_merge(err_1, err_2):
 
     # update variances
     _parallel_var(
-        err["mobs"],
-        err["n"],
-        err["vobs"],
-        err_2["mobs"],
-        err_2["n"],
-        err_2["vobs"],
+        err["mobs"], err["n"], err["vobs"], err_2["mobs"], err_2["n"], err_2["vobs"],
     )
     _parallel_var(
         err["mpred"],
@@ -651,17 +640,12 @@ def _parallel_var(avg_a, count_a, var_a, avg_b, count_b, var_b):
     var_a[idx] = (
         m_a[idx]
         + m_b[idx]
-        + delta[idx] ** 2
-        * count_a[idx]
-        * count_b[idx]
-        / (count_a[idx] + count_b[idx])
+        + delta[idx] ** 2 * count_a[idx] * count_b[idx] / (count_a[idx] + count_b[idx])
     )
     var_a[idx] = var_a[idx] / (count_a[idx] + count_b[idx])
 
 
-def _parallel_cov(
-    cov_a, avg_xa, avg_ya, count_a, cov_b, avg_xb, avg_yb, count_b
-):
+def _parallel_cov(cov_a, avg_xa, avg_ya, count_a, cov_b, avg_xb, avg_yb, count_b):
     """Update cov_a with cov_b.
     """
     idx = count_b > 0
@@ -710,7 +694,7 @@ def _scatter(pred, obs, axis=None):
         pred = np.rollaxis(pred, ax, 0)
         obs = np.rollaxis(obs, ax, 0)
     shp_rows = pred.shape[: len(axis)]
-    shp_cols = pred.shape[len(axis):]
+    shp_cols = pred.shape[len(axis) :]
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
@@ -764,7 +748,7 @@ def _spearmanr(pred, obs, axis=None):
         pred = np.rollaxis(pred, ax, 0)
         obs = np.rollaxis(obs, ax, 0)
     shp_rows = pred.shape[: len(axis)]
-    shp_cols = pred.shape[len(axis):]
+    shp_cols = pred.shape[len(axis) :]
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
@@ -775,9 +759,7 @@ def _spearmanr(pred, obs, axis=None):
     nsamp = np.sum(np.logical_and(np.isfinite(pred), np.isfinite(obs)), axis=0)
     idx = nsamp > 2
     if np.any(idx):
-        corr_s_ = spearmanr(
-            pred[:, idx], obs[:, idx], axis=0, nan_policy="omit"
-        )[0]
+        corr_s_ = spearmanr(pred[:, idx], obs[:, idx], axis=0, nan_policy="omit")[0]
 
         if corr_s_.size > 1:
             corr_s[idx] = np.diag(corr_s_, idx.sum())

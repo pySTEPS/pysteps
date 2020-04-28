@@ -83,8 +83,9 @@ def filter_uniform(shape, n):
     return result
 
 
-def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0,
-                    normalize=True):
+def filter_gaussian(
+    shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0, normalize=True
+):
     """Implements a set of Gaussian bandpass filters in logarithmic frequency
     scale.
 
@@ -129,12 +130,12 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0,
     except TypeError:
         height, width = (shape, shape)
 
-    rx = np.s_[:int(width / 2) + 1]
+    rx = np.s_[: int(width / 2) + 1]
 
     if (height % 2) == 1:
-        ry = np.s_[-int(height / 2):int(height / 2) + 1]
+        ry = np.s_[-int(height / 2) : int(height / 2) + 1]
     else:
-        ry = np.s_[-int(height / 2):int(height / 2)]
+        ry = np.s_[-int(height / 2) : int(height / 2)]
 
     y_grid, x_grid = np.ogrid[ry, rx]
     dy = int(height / 2) if height % 2 == 0 else int(height / 2) + 1
@@ -146,9 +147,9 @@ def filter_gaussian(shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0,
     r_max = int(max_length / 2) + 1
     r_1d = np.arange(r_max)
 
-    wfs, central_wavenumbers = _gaussweights_1d(max_length, n, l_0=l_0,
-                                                gauss_scale=gauss_scale,
-                                                gauss_scale_0=gauss_scale_0)
+    wfs, central_wavenumbers = _gaussweights_1d(
+        max_length, n, l_0=l_0, gauss_scale=gauss_scale, gauss_scale_0=gauss_scale_0
+    )
 
     weights_1d = np.empty((n, r_max))
     weights_2d = np.empty((n, height, int(width / 2) + 1))
@@ -198,14 +199,13 @@ def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
         return res
 
     class GaussFunc:
-
         def __init__(self, c, s):
             self.c = c
             self.s = s
 
         def __call__(self, x):
             x = log_e(x) - self.c
-            return np.exp(-x ** 2.0 / (2.0 * self.s ** 2.0))
+            return np.exp(-(x ** 2.0) / (2.0 * self.s ** 2.0))
 
     weight_funcs = []
     central_wavenumbers = [0.0]

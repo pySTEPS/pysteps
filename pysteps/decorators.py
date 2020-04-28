@@ -18,7 +18,7 @@ from functools import wraps
 import numpy as np
 
 
-def postprocess_import(fillna=np.nan, dtype='double'):
+def postprocess_import(fillna=np.nan, dtype="double"):
     """
     Postprocess the imported precipitation data.
     Operations:
@@ -80,27 +80,29 @@ def postprocess_import(fillna=np.nan, dtype='double'):
         # Clean up indentation from docstrings for the
         # docstrings to be merged correctly.
         extra_kwargs_doc = inspect.cleandoc(extra_kwargs_doc)
-        _import_with_postprocessing.__doc__ = inspect.cleandoc(_import_with_postprocessing.__doc__)
+        _import_with_postprocessing.__doc__ = inspect.cleandoc(
+            _import_with_postprocessing.__doc__
+        )
 
         # Add extra kwargs docstrings
         _import_with_postprocessing.__doc__ = _import_with_postprocessing.__doc__.format_map(
-            defaultdict(str, extra_kwargs_doc=extra_kwargs_doc))
+            defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
+        )
 
         return _import_with_postprocessing
 
     return _postprocess_import
 
 
-def check_input_frames(minimum_input_frames=2,
-                       maximum_input_frames=np.inf,
-                       just_ndim=False):
+def check_input_frames(
+    minimum_input_frames=2, maximum_input_frames=np.inf, just_ndim=False
+):
     """
     Check that the input_images used as inputs in the optical-flow
     methods have the correct shape (t, x, y ).
     """
 
     def _check_input_frames(motion_method_func):
-
         @wraps(motion_method_func)
         def new_function(*args, **kwargs):
             """

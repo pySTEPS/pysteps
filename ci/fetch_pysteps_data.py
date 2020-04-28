@@ -13,10 +13,10 @@ import os
 
 from pysteps.datasets import create_default_pystepsrc, download_pysteps_data
 
-tox_test_data_dir = os.environ['PYSTEPS_DATA_DIR']
+tox_test_data_dir = os.environ["PYSTEPS_DATA_DIR"]
 
 download_pysteps_data(tox_test_data_dir, force=True)
 
-create_default_pystepsrc(tox_test_data_dir,
-                         config_dir=tox_test_data_dir,
-                         file_name="pystepsrc")
+create_default_pystepsrc(
+    tox_test_data_dir, config_dir=tox_test_data_dir, file_name="pystepsrc"
+)

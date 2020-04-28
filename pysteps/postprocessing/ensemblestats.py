@@ -46,8 +46,7 @@ def mean(X, ignore_nan=False, X_thr=None):
 
     if X_ndim > 3 or X_ndim <= 1:
         raise Exception(
-            "Number of dimensions of X should be 2 or 3."
-            + "It was: {}".format(X_ndim)
+            "Number of dimensions of X should be 2 or 3." + "It was: {}".format(X_ndim)
         )
     elif X.ndim == 2:
         X = X[None, ...]
@@ -164,9 +163,7 @@ def banddepth(X, thr=None, norm=False):
     # mask invalid pixels
     if thr is None:
         thr = np.nanmin(X)
-    mask = np.logical_and(
-        np.all(np.isfinite(X), axis=0), np.any(X >= thr, axis=0)
-    )
+    mask = np.logical_and(np.all(np.isfinite(X), axis=0), np.any(X >= thr, axis=0))
 
     n = X.shape[0]
     p = np.sum(mask)
