@@ -114,7 +114,7 @@ identify simple issues with the code. If an issue is identified (the pre-commit 
 exits with non-zero status), the hook aborts the commit and print the error.
 Currently, Pysteps only test the code to be committed complies with black's autoformat.
 In case that the commit is aborted, you only need to run black in the entire source code.
-This can be done by running `black .` or `pre-commit run --all-files`.
+This can be done by running :code:`black .` or :code:`pre-commit run --all-files`.
 The latter is recommended since it indicates if the commit contained any formatting errors
 (that are automatically corrected).
 To ensure that the same configuration is used in every development environment, black's
