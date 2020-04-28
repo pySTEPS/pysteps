@@ -29,7 +29,7 @@ from . import utils
 def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
                       bbox=None, colorscale='pysteps', probthr=None, title=None,
                       drawlonlatlines=False, lw=0.5, axis="on", colorbar=True,
-                      cb_label=None, cb_kwargs={}, **kwargs):
+                      cb_label=None, cb_kwargs={}, map_kwargs={}, **kwargs):
     """
     Function to plot a precipitation intensity or probability field with a
     colorbar.
@@ -113,10 +113,13 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         Label of the colorbar, set to None to use the default value.
     cb_kwargs : dict, optional
         Optional keyword arguments that are passed to matplotlib.pyplot.colorbar.
+    map_kwargs : dict, optional
+        Keyword arguments that are passed to basemaps.plot_geography. Applicable
+        if map is not None.
 
     Other parameters
     ----------------
-    Optional parameters are contained in **kwargs. See basemaps.plot_geography.
+    Optional parameters are contained in **kwargs. Not currently used.
 
     Returns
     -------
@@ -166,7 +169,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
         try:
             ax = basemaps.plot_geography(map, geodata["projection"],
                                          bm_extent, R.shape, lw,
-                                         drawlonlatlines, **kwargs)
+                                         drawlonlatlines, **map_kwargs)
             regular_grid = True
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -183,7 +186,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
 
             ax = basemaps.plot_geography(map, geodata["projection"],
                                          bm_extent, R.shape, lw,
-                                         drawlonlatlines, **kwargs)
+                                         drawlonlatlines, **map_kwargs)
     else:
         regular_grid = True
 

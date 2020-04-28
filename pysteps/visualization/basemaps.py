@@ -41,8 +41,7 @@ from . import utils
 
 
 def plot_geography(map, proj4str, extent, shape=None, lw=0.5,
-                   drawlonlatlines=False,
-                   **kwargs):
+                   drawlonlatlines=False, **kwargs):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
 
@@ -112,6 +111,8 @@ def plot_geography(map, proj4str, extent, shape=None, lw=0.5,
 
     if map == "basemap":
         basemap_resolution = kwargs.get("resolution", "l")
+        if "resolution" in kwargs.keys():
+            kwargs.pop("resolution")
         basemap_scale_args = kwargs.get("scale_args", None)
     if map == "cartopy":
         cartopy_scale = kwargs.get("scale", "50m")
@@ -130,8 +131,8 @@ def plot_geography(map, proj4str, extent, shape=None, lw=0.5,
         bm_params["urcrnrlat"] = ur_lat
         bm_params["resolution"] = basemap_resolution
 
-        ax = plot_map_basemap(bm_params,
-                              drawlonlatlines=drawlonlatlines, lw=lw)
+        ax = plot_map_basemap(bm_params, drawlonlatlines=drawlonlatlines, lw=lw,
+                              **kwargs)
 
         if basemap_scale_args is not None:
             ax.drawmapscale(*basemap_scale_args, fontsize=6, yoffset=10000)
