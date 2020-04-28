@@ -107,7 +107,7 @@ Once you cloned the repository and the development environment is installed (and
 install the git pre-commit hook by executing the following command in the repository's
 root::
 
-    pre-commit hook install
+    pre-commit install
 
 The pre-commit hooks are scripts that are executed in every commit automatically to
 identify simple issues with the code. If an issue is identified (the pre-commit script
