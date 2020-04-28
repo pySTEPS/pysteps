@@ -20,9 +20,19 @@ from . import basemaps
 from . import utils
 
 
-def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
-           basemap_resolution='l', cartopy_scale="50m", lw=0.5,
-           cartopy_subplot=(1, 1, 1), axis="on", **kwargs):
+def quiver(
+    UV,
+    ax=None,
+    map=None,
+    geodata=None,
+    drawlonlatlines=False,
+    basemap_resolution="l",
+    cartopy_scale="50m",
+    lw=0.5,
+    cartopy_subplot=(1, 1, 1),
+    axis="on",
+    **kwargs,
+):
     """Function to plot a motion field as arrows.
 
     .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
@@ -105,8 +115,18 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
     # defaults
     step = kwargs.get("step", 20)
 
-    quiver_keys = ["scale", "scale_units", "width", "headwidth", "headlength",
-                   "headaxislength", "minshaft", "minlength", "pivot", "color"]
+    quiver_keys = [
+        "scale",
+        "scale_units",
+        "width",
+        "headwidth",
+        "headlength",
+        "headaxislength",
+        "minshaft",
+        "minlength",
+        "pivot",
+        "color",
+    ]
     kwargs_quiver = {k: kwargs[k] for k in set(quiver_keys).intersection(kwargs)}
 
     kwargs_quiver["color"] = kwargs.get("color", "black")
@@ -114,15 +134,19 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
     # prepare x y coordinates
     reproject = False
     if geodata is not None:
-        x = np.linspace(geodata['x1'], geodata['x2'],
-                        UV.shape[2]) + geodata["xpixelsize"]/2.0
-        y = np.linspace(geodata['y1'], geodata['y2'],
-                        UV.shape[1]) + geodata["ypixelsize"]/2.0
-        extent = (geodata['x1'], geodata['x2'], geodata['y1'], geodata['y2'])
+        x = (
+            np.linspace(geodata["x1"], geodata["x2"], UV.shape[2])
+            + geodata["xpixelsize"] / 2.0
+        )
+        y = (
+            np.linspace(geodata["y1"], geodata["y2"], UV.shape[1])
+            + geodata["ypixelsize"] / 2.0
+        )
+        extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
 
         # check geodata and project if different from axes
         if ax is not None and map is None:
-            if type(ax).__name__ == 'GeoAxesSubplot':
+            if type(ax).__name__ == "GeoAxesSubplot":
                 try:
                     ccrs = utils.proj4_to_cartopy(geodata["projection"])
                 except UnsupportedSomercProjection:
@@ -130,14 +154,14 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
                     # This will work reasonably well for Europe only.
                     t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
                     reproject = True
-            elif type(ax).__name__ == 'Basemap':
+            elif type(ax).__name__ == "Basemap":
                 utils.proj4_to_basemap(geodata["projection"])
 
             if reproject:
-                geodata = utils.reproject_geodata(geodata, t_proj4str,
-                                                  return_grid="coords")
-                extent = (geodata['x1'], geodata['x2'],
-                          geodata['y1'], geodata['y2'])
+                geodata = utils.reproject_geodata(
+                    geodata, t_proj4str, return_grid="coords"
+                )
+                extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
                 X, Y = geodata["X_grid"], geodata["Y_grid"]
     else:
         x = np.arange(UV.shape[2])
@@ -154,24 +178,32 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
             map_kwargs = {"scale": cartopy_scale, "subplot": cartopy_subplot}
 
         try:
-            ax = basemaps.plot_geography(map, geodata["projection"],
-                                         extent, shape=UV.shape[1:],
-                                         lw=lw, drawlonlatlines=drawlonlatlines,
-                                         **map_kwargs)
+            ax = basemaps.plot_geography(
+                map,
+                geodata["projection"],
+                extent,
+                shape=UV.shape[1:],
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
+                **map_kwargs,
+            )
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
             t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-            geodata = utils.reproject_geodata(geodata, t_proj4str,
-                                              return_grid="coords")
-            extent = (geodata['x1'], geodata['x2'],
-                      geodata['y1'], geodata['y2'])
+            geodata = utils.reproject_geodata(geodata, t_proj4str, return_grid="coords")
+            extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
-            ax = basemaps.plot_geography(map, geodata["projection"],
-                                         extent, shape=UV.shape[1:],
-                                         lw=lw, drawlonlatlines=drawlonlatlines,
-                                         **map_kwargs)
+            ax = basemaps.plot_geography(
+                map,
+                geodata["projection"],
+                extent,
+                shape=UV.shape[1:],
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
+                **map_kwargs,
+            )
     else:
         ax = plt.gca()
 
@@ -181,8 +213,15 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
     dy = UV[1, :, :]
 
     # plot quiver
-    ax.quiver(X[skip], np.flipud(Y[skip]), dx[skip], -dy[skip], angles="xy",
-              zorder=1e6, **kwargs_quiver)
+    ax.quiver(
+        X[skip],
+        np.flipud(Y[skip]),
+        dx[skip],
+        -dy[skip],
+        angles="xy",
+        zorder=1e6,
+        **kwargs_quiver,
+    )
 
     if geodata is None or axis == "off":
         axes = plt.gca()
@@ -194,9 +233,19 @@ def quiver(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
     return plt.gca()
 
 
-def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
-               basemap_resolution='l', cartopy_scale="50m", lw=0.5,
-               cartopy_subplot=(1, 1, 1), axis="on", **kwargs):
+def streamplot(
+    UV,
+    ax=None,
+    map=None,
+    geodata=None,
+    drawlonlatlines=False,
+    basemap_resolution="l",
+    cartopy_scale="50m",
+    lw=0.5,
+    cartopy_subplot=(1, 1, 1),
+    axis="on",
+    **kwargs,
+):
     """Function to plot a motion field as streamlines.
 
     .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
@@ -288,16 +337,19 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
     # prepare x y coordinates
     reproject = False
     if geodata is not None:
-        x = np.linspace(geodata['x1'], geodata['x2'],
-                        UV.shape[2]) + geodata["xpixelsize"]/2.0
-        y = np.linspace(geodata['y1'], geodata['y2'],
-                        UV.shape[1]) + geodata["ypixelsize"]/2.0
-        extent = (geodata['x1'], geodata['x2'],
-                  geodata['y1'], geodata['y2'])
+        x = (
+            np.linspace(geodata["x1"], geodata["x2"], UV.shape[2])
+            + geodata["xpixelsize"] / 2.0
+        )
+        y = (
+            np.linspace(geodata["y1"], geodata["y2"], UV.shape[1])
+            + geodata["ypixelsize"] / 2.0
+        )
+        extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
 
         # check geodata and project if different from axes
         if ax is not None and map is None:
-            if type(ax).__name__ == 'GeoAxesSubplot':
+            if type(ax).__name__ == "GeoAxesSubplot":
                 try:
                     ccrs = utils.proj4_to_cartopy(geodata["projection"])
                 except UnsupportedSomercProjection:
@@ -305,14 +357,14 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
                     # This will work reasonably well for Europe only.
                     t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
                     reproject = True
-            elif type(ax).__name__ == 'Basemap':
+            elif type(ax).__name__ == "Basemap":
                 utils.proj4_to_basemap(geodata["projection"])
 
             if reproject:
-                geodata = utils.reproject_geodata(geodata, t_proj4str,
-                                                  return_grid="coords")
-                extent = (geodata['x1'], geodata['x2'],
-                          geodata['y1'], geodata['y2'])
+                geodata = utils.reproject_geodata(
+                    geodata, t_proj4str, return_grid="coords"
+                )
+                extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
                 X, Y = geodata["X_grid"], geodata["Y_grid"]
     else:
         x = np.arange(UV.shape[2])
@@ -329,30 +381,45 @@ def streamplot(UV, ax=None, map=None, geodata=None, drawlonlatlines=False,
             map_kwargs = {"scale": cartopy_scale, "subplot": cartopy_subplot}
 
         try:
-            ax = basemaps.plot_geography(map, geodata["projection"],
-                                         extent, shape=UV.shape[1:], lw=lw,
-                                         drawlonlatlines=drawlonlatlines,
-                                         **map_kwargs)
+            ax = basemaps.plot_geography(
+                map,
+                geodata["projection"],
+                extent,
+                shape=UV.shape[1:],
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
+                **map_kwargs,
+            )
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
             t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-            geodata = utils.reproject_geodata(geodata, t_proj4str,
-                                              return_grid="coords")
-            extent = (geodata['x1'], geodata['x2'],
-                      geodata['y1'], geodata['y2'])
+            geodata = utils.reproject_geodata(geodata, t_proj4str, return_grid="coords")
+            extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
-            ax = basemaps.plot_geography(map, geodata["projection"],
-                                         extent, shape=UV.shape[1:], lw=lw,
-                                         drawlonlatlines=drawlonlatlines,
-                                         **map_kwargs)
+            ax = basemaps.plot_geography(
+                map,
+                geodata["projection"],
+                extent,
+                shape=UV.shape[1:],
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
+                **map_kwargs,
+            )
     else:
         ax = plt.gca()
 
     # plot streamplot
-    ax.streamplot(x, np.flipud(y), UV[0, :, :], -UV[1, :, :], density=density,
-                  color=color, zorder=1e6)
+    ax.streamplot(
+        x,
+        np.flipud(y),
+        UV[0, :, :],
+        -UV[1, :, :],
+        density=density,
+        color=color,
+        zorder=1e6,
+    )
 
     if geodata is None or axis == "off":
         axes = plt.gca()

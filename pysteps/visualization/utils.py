@@ -18,11 +18,13 @@ from pysteps.exceptions import UnsupportedSomercProjection
 
 try:
     import cartopy.crs as ccrs
+
     cartopy_imported = True
 except ImportError:
     cartopy_imported = False
 try:
     import pyproj
+
     pyproj_imported = True
 except ImportError:
     pyproj_imported = False
@@ -43,12 +45,12 @@ def parse_proj4_string(proj4str):
       parameter tokens beginning with '+'.
 
     """
-    tokens = proj4str.split('+')
+    tokens = proj4str.split("+")
 
     result = {}
     for t in tokens[1:]:
-        if '=' in t:
-            k, v = t.split('=')
+        if "=" in t:
+            k, v = t.split("=")
             result[k] = v.strip()
 
     return result
@@ -78,8 +80,7 @@ def proj4_to_basemap(proj4str):
             # mapped to the corresponding (or closest matching) Basemap
             # projection.
             if v == "somerc":
-                raise UnsupportedSomercProjection("unsupported projection:"
-                                                  " somerc")
+                raise UnsupportedSomercProjection("unsupported projection:" " somerc")
             if v not in ["latlon", "latlong", "lonlat", "longlat"]:
                 odict["projection"] = v
             else:
@@ -118,12 +119,14 @@ def proj4_to_cartopy(proj4str):
     if not cartopy_imported:
         raise MissingOptionalDependency(
             "cartopy package is required for proj4_to_cartopy function "
-            "utility but it is not installed")
+            "utility but it is not installed"
+        )
 
     if not pyproj_imported:
         raise MissingOptionalDependency(
             "pyproj package is required for proj4_to_cartopy function utility "
-            "but it is not installed")
+            "but it is not installed"
+        )
 
     proj = pyproj.Proj(proj4str)
 
@@ -137,24 +140,24 @@ def proj4_to_cartopy(proj4str):
     if is_geographic:
         return ccrs.PlateCarree()
 
-    km_proj = {"lon_0": "central_longitude",
-               "lat_0": "central_latitude",
-               "lat_ts": "true_scale_latitude",
-               "x_0": "false_easting",
-               "y_0": "false_northing",
-               "k": "scale_factor",
-               "zone": "zone"}
-    km_globe = {'a': "semimajor_axis",
-                'b': "semiminor_axis"}
-    km_std = {"lat_1": "lat_1",
-              "lat_2": "lat_2"}
+    km_proj = {
+        "lon_0": "central_longitude",
+        "lat_0": "central_latitude",
+        "lat_ts": "true_scale_latitude",
+        "x_0": "false_easting",
+        "y_0": "false_northing",
+        "k": "scale_factor",
+        "zone": "zone",
+    }
+    km_globe = {"a": "semimajor_axis", "b": "semiminor_axis"}
+    km_std = {"lat_1": "lat_1", "lat_2": "lat_2"}
 
     kw_proj = {}
     kw_globe = {}
     kw_std = {}
 
-    for s in proj.srs.split('+'):
-        s = s.split('=')
+    for s in proj.srs.split("+"):
+        s = s.split("=")
         if len(s) != 2:
             continue
         k = s[0].strip()
@@ -200,7 +203,7 @@ def proj4_to_cartopy(proj4str):
         kw_proj["standard_parallels"] = (kw_std["lat_1"], kw_std["lat_2"])
 
     if cl.__name__ == "Mercator":
-        kw_proj.pop("false_easting",  None)
+        kw_proj.pop("false_easting", None)
         kw_proj.pop("false_northing", None)
 
     return cl(globe=globe, **kw_proj)
@@ -237,13 +240,16 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
     if not pyproj_imported:
         raise MissingOptionalDependency(
             "pyproj package is required for reproject_geodata function utility"
-            " but it is not installed")
+            " but it is not installed"
+        )
 
     geodata = geodata.copy()
     s_proj4str = geodata["projection"]
     extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-    shape = (int((geodata["y2"]-geodata["y1"])/geodata["ypixelsize"]),
-             int((geodata["x2"]-geodata["x1"])/geodata["xpixelsize"]))
+    shape = (
+        int((geodata["y2"] - geodata["y1"]) / geodata["ypixelsize"]),
+        int((geodata["x2"] - geodata["x1"]) / geodata["xpixelsize"]),
+    )
 
     s_srs = pyproj.Proj(s_proj4str)
     t_srs = pyproj.Proj(t_proj4str)
@@ -256,8 +262,8 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
     # Reproject grid on fall-back projection
     if return_grid is not None:
         if return_grid == "coords":
-            y_coord = np.linspace(y1, y2, shape[0]) + geodata["ypixelsize"]/2.0
-            x_coord = np.linspace(x1, x2, shape[1]) + geodata["xpixelsize"]/2.0
+            y_coord = np.linspace(y1, y2, shape[0]) + geodata["ypixelsize"] / 2.0
+            x_coord = np.linspace(x1, x2, shape[1]) + geodata["xpixelsize"] / 2.0
         elif return_grid == "quadmesh":
             y_coord = np.linspace(y1, y2, shape[0] + 1)
             x_coord = np.linspace(x1, x2, shape[1] + 1)
