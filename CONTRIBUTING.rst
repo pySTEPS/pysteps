@@ -301,7 +301,7 @@ For a detailed description of a pythonic code style check these guidelines:
 **Auto-formatters**
 
 Hand-formatting code according the PEP8 style guide can be a tedious process if it is done
-manually. To make out lives easy, in pysteps, we use
+manually. To make our lives easy, in pysteps, we use
 `black <https://black.readthedocs.io/en/stable/>`_ to auto-format the code using its
 default configuration. Black can be installed using any of the following::
 
@@ -359,8 +359,8 @@ Working on changes
 **IMPORTANT**
 
 If your changes will take a significant amount of work,
-we highly recommend opening an issue first, explaining what do you want
-to do and why. It is better to start the discussions early in case that other
+we highly recommend opening an issue first, explaining what you want
+to do and why. It is better to start the discussions early, in case other
 contributors disagree with what you would like to do or have ideas
 that will help you do it.
 
