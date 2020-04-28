@@ -30,7 +30,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None,
                       units='mm/h', bbox=None,
                       colorscale='pysteps', probthr=None, title=None,
                       colorbar=True, drawlonlatlines=False, lw=0.5, axis="on",
-                      cax=None, **kwargs):
+                      cb_kwargs={}, **kwargs):
     """
     Function to plot a precipitation intensity or probability field with a
     colorbar.
@@ -110,9 +110,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None,
         Linewidth of the map (administrative boundaries and coastlines).
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-    cax : Axes_ object, optional
-        Axes into which the colorbar will be drawn. If no axes is provided
-        the colorbar axes are created next to the plot.
+    cb_kwargs : dict, optional
+        Optional keyword arguments that are passed to matplotlib.pyplot.colorbar.
 
     Other parameters
     ----------------
@@ -229,8 +228,7 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None,
         else:
             extend = "neither"
         cbar = plt.colorbar(im, ticks=clevs, spacing='uniform', norm=norm,
-                            extend=extend,
-                            shrink=0.8, cax=cax)
+                            extend=extend, **cb_kwargs)
         if clevsStr is not None:
             cbar.ax.set_yticklabels(clevsStr)
 
