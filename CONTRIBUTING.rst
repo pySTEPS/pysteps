@@ -117,6 +117,10 @@ In case that the commit is aborted, you only need to run black in the entire sou
 This can be done by running `black .` or `pre-commit run --all-files`.
 The latter is recommended since it indicates if the commit contained any formatting errors
 (that are automatically corrected).
+To ensure that the same configuration is used in every development environment, black's
+configuration is stored in the `proproject.toml` file.
+This configuration is automatically load when black is run from any directory in the
+pysteps project.
 
 For more information about git hooks and the pre-commit package see:
 
