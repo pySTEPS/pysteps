@@ -26,11 +26,10 @@ from . import basemaps
 from . import utils
 
 
-def plot_precip_field(R, type="intensity", map=None, geodata=None,
-                      units='mm/h', bbox=None,
-                      colorscale='pysteps', probthr=None, title=None,
-                      colorbar=True, drawlonlatlines=False, lw=0.5, axis="on",
-                      cb_kwargs={}, **kwargs):
+def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
+                      bbox=None, colorscale='pysteps', probthr=None, title=None,
+                      drawlonlatlines=False, lw=0.5, axis="on", colorbar=True,
+                      cb_label=None, cb_kwargs={}, **kwargs):
     """
     Function to plot a precipitation intensity or probability field with a
     colorbar.
@@ -101,8 +100,6 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None,
         Required if type is "prob" and colorbar is True.
     title : str, optional
         If not None, print the title on top of the plot.
-    colorbar : bool, optional
-        If set to True, add a colorbar on the right side of the plot.
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
@@ -110,6 +107,10 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None,
         Linewidth of the map (administrative boundaries and coastlines).
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
+    colorbar : bool, optional
+        If set to True, add a colorbar on the right side of the plot.
+    cb_label : str, optional
+        Label of the colorbar, set to None to use the default value.
     cb_kwargs : dict, optional
         Optional keyword arguments that are passed to matplotlib.pyplot.colorbar.
 
@@ -234,12 +235,18 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None,
 
         if type == "intensity":
             cbar.ax.set_title(units, fontsize=10)
-            cbar.set_label("Precipitation intensity")
+            if cb_label == None:
+                cbar.set_label("Precipitation intensity")
         elif type == "depth":
             cbar.ax.set_title(units, fontsize=10)
-            cbar.set_label("Precipitation depth")
+            if cb_label == None:
+                cbar.set_label("Precipitation depth")
         else:
-            cbar.set_label("P(R > %.1f %s)" % (probthr, units))
+            if cb_label == None:
+                cbar.set_label("P(R > %.1f %s)" % (probthr, units))
+
+        if cb_label != None:
+            cbar.set_label(cb_label)
 
     if map is None and bbox is not None:
         ax = plt.gca()
