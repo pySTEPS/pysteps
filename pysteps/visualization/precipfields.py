@@ -165,8 +165,8 @@ def plot_precip_field(R, type="intensity", map=None, geodata=None, units='mm/h',
     if map is not None:
         try:
             ax = basemaps.plot_geography(map, geodata["projection"],
-                                    bm_extent, R.shape, lw,
-                                    drawlonlatlines, **kwargs)
+                                         bm_extent, R.shape, lw,
+                                         drawlonlatlines, **kwargs)
             regular_grid = True
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
