@@ -188,6 +188,9 @@ def forecast(
     m, n = vil.shape[1:]
     vil = vil.copy()
 
+    if rainrate is None:
+        rainrate_mask = vil[-1, :] < 0.1
+
     if rainrate is not None:
         # determine the coefficients fields of the relation R=a*VIL+b by
         # localized linear regression
@@ -226,6 +229,9 @@ def forecast(
     mask = np.isfinite(vil[0, :])
     for i in range(1, vil.shape[0]):
         mask = np.logical_and(mask, np.isfinite(vil[i, :]))
+
+    if rainrate is None:
+        rainrate_mask = np.logical_and(rainrate_mask, mask)
 
     # apply cascade decomposition to the advected input fields
     bp_filter_method = cascade.get_method("gaussian")
@@ -308,6 +314,7 @@ def forecast(
             r_f_ = r_vil_a * vil_f + r_vil_b
         else:
             r_f_ = vil_f
+            r_f_[rainrate_mask] = 0.0
 
         # extrapolate to the current nowcast lead time
         extrap_kwargs.update(
