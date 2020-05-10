@@ -12,6 +12,7 @@ Image processing routines for pysteps.
 .. autosummary::
     :toctree: ../generated/
 
+    blob_detection
     shitomasi_detection
     morph_opening
 """
