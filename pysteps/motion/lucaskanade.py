@@ -236,7 +236,7 @@ def dense_lucaskanade(
             next_img = morph_opening(next_img, next_img.min(), size_opening)
 
         # features detection
-        points = feature_detection_method(prvs_img, **fd_kwargs)
+        points = feature_detection_method(prvs_img, **fd_kwargs).astype(np.float32)
 
         # skip loop if no features to track
         if points.shape[0] == 0:
