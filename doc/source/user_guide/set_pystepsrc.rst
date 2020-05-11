@@ -108,9 +108,14 @@ need to create the directory if it does not exist. In a **windows terminal**, ru
 
     $ mkdir %USERPROFILE%\pysteps
 
-NOTE: It was reported that the %USERPROFILE% variable may be interpreted as an string
-literal when the latter command is ran from the anaconda terminal, thus creating a
-'%USERPROFILE%' folder in the current working dir.
+**Important**: It was reported that the %USERPROFILE% variable may be interpreted as an string
+literal when the anaconda terminal is used.
+This will result in a '%USERPROFILE%' folder being created in the current working directory
+instead of the desired pysteps folder in the user's home. If that is the case,
+you can use your home path explicitly when creating the directory.
+For example::
+
+    $ mkdir C:\Users\your_username\pysteps
 
 The next step is to find the location of the library's pystepsrc file is
 actually used.
