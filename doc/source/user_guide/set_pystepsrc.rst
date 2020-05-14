@@ -116,7 +116,7 @@ instead of the desired pysteps folder in the user's home.
 If that is the case, use your home path explicitly to create the pysteps configuration
 folder. For example::
 
-    $ mkdir C:\\Users\your_username\\pysteps
+    $ mkdir C:\Users\your_username\pysteps
 
 The next step is to find the location of the library's default pystepsrc file.
 When we import pysteps in a python interpreter, the configuration file loaded
