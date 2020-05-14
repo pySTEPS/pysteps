@@ -113,8 +113,8 @@ It was reported that the %USERPROFILE% variable may be interpreted as an string
 literal when the anaconda terminal is used.
 This will result in a '%USERPROFILE%' folder being created in the current working directory
 instead of the desired pysteps folder in the user's home.
-If that is the case, use your home path explicitly to create the pysteps configuration
-folder. For example::
+If that is the case, use the explicit path to your home folder instead of `%USERPROFILE%`.
+For example::
 
     $ mkdir C:\Users\your_username\pysteps
 
