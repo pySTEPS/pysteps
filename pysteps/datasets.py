@@ -258,7 +258,6 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
             os.makedirs(sub_dir)
 
         # Generate files URL from https://mtarchive.geol.iastate.edu
-
         dest_file_name = datetime.strftime(
             current_date, "PrecipRate_00.00_%Y%m%d-%H%M%S.grib2"
         )
@@ -271,25 +270,23 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
 
         file_url = archive_url + datetime.strftime(current_date, rel_url_fmt)
 
-        tmp_file = NamedTemporaryFile()
         try:
             print(f"Downloading {file_url} ", end="")
-            request.urlretrieve(
-                file_url, tmp_file.name,
-            )
+            tmp_file_name, _ = request.urlretrieve(file_url)
             print("DONE")
+
+            dest_file_path = os.path.join(sub_dir, dest_file_name)
+
+            # Uncompress the data
+            with gzip.open(tmp_file_name, "rb") as f_in:
+                with open(dest_file_path, "wb") as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+
+            current_date = current_date + timedelta(seconds=60 * 2)
+            counter += 1
+
         except HTTPError as err:
             print(err)
-
-        dest_file_path = os.path.join(sub_dir, dest_file_name)
-
-        # Uncompress the data
-        with gzip.open(tmp_file.name, "rb") as f_in:
-            with open(dest_file_path, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
-
-        current_date = current_date + timedelta(seconds=60 * 2)
-        counter += 1
 
 
 def download_pysteps_data(dir_path, force=True):
@@ -308,7 +305,6 @@ def download_pysteps_data(dir_path, force=True):
         override existing files.
 
     """
-    tmp_file = NamedTemporaryFile()
 
     # Check if directory exists but is not empty
     if os.path.exists(dir_path) and os.path.isdir(dir_path):
@@ -324,17 +320,15 @@ def download_pysteps_data(dir_path, force=True):
     # The http response from github can either contain Content-Length (size of the file)
     # or use chunked Transfer-Encoding.
     # If Transfer-Encoding is chunked, then the Content-Length is not available since
-    # the content is dynamically generated and we can't know the length a pr_iori easily.
+    # the content is dynamically generated and we can't know the length a priori easily.
     pbar = ShowProgress()
     print("Downloading pysteps-data from github.")
-    request.urlretrieve(
-        "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
-        tmp_file.name,
-        pbar,
+    tmp_file_name, _ = request.urlretrieve(
+        "https://github.com/pySTEPS/pysteps-data/archive/master.zip", reporthook=pbar,
     )
     pbar.end(message="Download complete\n")
 
-    with ZipFile(tmp_file.name, "r") as zip_obj:
+    with ZipFile(tmp_file_name, "r") as zip_obj:
         tmp_dir = TemporaryDirectory()
 
         # Extract all the contents of zip file in the temp directory
