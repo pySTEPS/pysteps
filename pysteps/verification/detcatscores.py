@@ -300,6 +300,8 @@ def det_cat_fct_compute(contab, scores=""):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
+        |  ETS       | equitable threat score                                 |
+        +------------+--------------------------------------------------------+
         |  F1        | the harmonic mean of precision and sensitivity         |
         +------------+--------------------------------------------------------+
         |  FA        | false alarm rate (prob. of false detection, fall-out,  |
