@@ -51,8 +51,9 @@ def get_default_params_bps_perp():
     return (5.76, 0.31, -2.72)
 
 
-def initialize_bps(V, pixelsperkm, timestep, p_par=None, p_perp=None,
-                   randstate=None, seed=None):
+def initialize_bps(
+    V, pixelsperkm, timestep, p_par=None, p_perp=None, randstate=None, seed=None
+):
     """Initialize the motion field perturbator described in :cite:`BPS2006`.
     For simplicity, the bias adjustment procedure described there has not been
     implemented. The perturbator generates a field whose magnitude increases
@@ -115,8 +116,8 @@ def initialize_bps(V, pixelsperkm, timestep, p_par=None, p_perp=None,
     if seed is not None:
         randstate.seed(seed)
 
-    eps_par = randstate.laplace(scale=1.0/np.sqrt(2))
-    eps_perp = randstate.laplace(scale=1.0/np.sqrt(2))
+    eps_par = randstate.laplace(scale=1.0 / np.sqrt(2))
+    eps_perp = randstate.laplace(scale=1.0 / np.sqrt(2))
 
     # scale factor for converting the unit of the advection velocities
     # into km/h
@@ -170,4 +171,4 @@ def generate_bps(perturbator, t):
     g_par = p_par[0] * pow(t, p_par[1]) + p_par[2]
     g_perp = p_perp[0] * pow(t, p_perp[1]) + p_perp[2]
 
-    return (g_par*eps_par*V_par + g_perp*eps_perp*V_perp) / vsf
+    return (g_par * eps_par * V_par + g_perp * eps_perp * V_perp) / vsf

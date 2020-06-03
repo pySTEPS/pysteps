@@ -14,21 +14,24 @@ Interface for the io module.
 
 from pysteps.io import importers, exporters
 
-_importer_methods = dict()
-_importer_methods['bom_rf3'] = importers.import_bom_rf3
-_importer_methods['fmi_geotiff'] = importers.import_fmi_geotiff
-_importer_methods['fmi_pgm'] = importers.import_fmi_pgm
-_importer_methods['mch_gif'] = importers.import_mch_gif
-_importer_methods['mch_hdf5'] = importers.import_mch_hdf5
-_importer_methods['mch_metranet'] = importers.import_mch_metranet
-_importer_methods['opera_hdf5'] = importers.import_opera_hdf5
-_importer_methods['knmi_hdf5'] = importers.import_knmi_hdf5
-_importer_methods['saf_crri'] = importers.import_saf_crri
+_importer_methods = dict(
+    bom_rf3=importers.import_bom_rf3,
+    fmi_geotiff=importers.import_fmi_geotiff,
+    fmi_pgm=importers.import_fmi_pgm,
+    mch_gif=importers.import_mch_gif,
+    mch_hdf5=importers.import_mch_hdf5,
+    mch_metranet=importers.import_mch_metranet,
+    mrms_grib=importers.import_mrms_grib,
+    opera_hdf5=importers.import_opera_hdf5,
+    knmi_hdf5=importers.import_knmi_hdf5,
+    saf_crri=importers.import_saf_crri,
+)
 
-_exporter_methods = dict()
-_exporter_methods['geotiff'] = exporters.initialize_forecast_exporter_geotiff
-_exporter_methods['kineros'] = exporters.initialize_forecast_exporter_kineros
-_exporter_methods['netcdf'] = exporters.initialize_forecast_exporter_netcdf
+_exporter_methods = dict(
+    geotiff=exporters.initialize_forecast_exporter_geotiff,
+    kineros=exporters.initialize_forecast_exporter_kineros,
+    netcdf=exporters.initialize_forecast_exporter_netcdf,
+)
 
 
 def get_method(name, method_type):
@@ -70,6 +73,8 @@ def get_method(name, method_type):
         | mch_metranet | metranet files in the MeteoSwiss (MCH) archive       |
         |              | containing precipitation composites.                 |
         +--------------+------------------------------------------------------+
+        | mrms_grib    | Grib2 files used by the NSSL's MRMS product          |
+        +--------------+------------------------------------------------------+
         | opera_hdf5   | ODIM HDF5 file format used by Eumetnet/OPERA.        |
         +--------------+------------------------------------------------------+
         | saf_crri     |  NetCDF SAF CRRI files                               |
@@ -102,32 +107,38 @@ def get_method(name, method_type):
     if isinstance(method_type, str):
         method_type = method_type.lower()
     else:
-        raise TypeError("Only strings supported for for the method_type"
-                        + " argument\n"
-                        + "The available types are: 'importer' and 'exporter'"
-                        ) from None
+        raise TypeError(
+            "Only strings supported for for the method_type"
+            + " argument\n"
+            + "The available types are: 'importer' and 'exporter'"
+        ) from None
 
     if isinstance(name, str):
         name = name.lower()
     else:
-        raise TypeError("Only strings supported for the method's names.\n"
-                        + "Available importers names:"
-                        + str(list(_importer_methods.keys()))
-                        + "\nAvailable exporters names:"
-                        + str(list(_exporter_methods.keys()))) from None
+        raise TypeError(
+            "Only strings supported for the method's names.\n"
+            + "Available importers names:"
+            + str(list(_importer_methods.keys()))
+            + "\nAvailable exporters names:"
+            + str(list(_exporter_methods.keys()))
+        ) from None
 
     if method_type == "importer":
         methods_dict = _importer_methods
     elif method_type == "exporter":
         methods_dict = _exporter_methods
     else:
-        raise ValueError("Unknown method type {}\n".format(name)
-                         + "The available types are: 'importer' and 'exporter'"
-                         ) from None
+        raise ValueError(
+            "Unknown method type {}\n".format(name)
+            + "The available types are: 'importer' and 'exporter'"
+        ) from None
 
     try:
         return methods_dict[name]
     except KeyError:
-        raise ValueError("Unknown {} method {}\n".format(method_type, name)
-                         + "The available methods are:"
-                         + str(list(methods_dict.keys()))) from None
+        raise ValueError(
+            "Unknown {} method {}\n".format(method_type, name)
+            + "The available methods are:"
+            + str(list(methods_dict.keys()))
+        ) from None

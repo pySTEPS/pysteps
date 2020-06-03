@@ -9,8 +9,6 @@ Dependencies
 The pysteps package needs the following dependencies
 
 * `python >=3.6 <http://www.python.org/>`_
-* `attrdict <https://pypi.org/project/attrdict/>`_
-* `jsmin <https://pypi.org/project/jsmin/>`_
 * `jsonschema <https://pypi.org/project/jsonschema/>`_
 * `matplotlib <http://matplotlib.org/>`_
 * `netCDF4 <https://pypi.org/project/netCDF4/>`_
@@ -34,6 +32,7 @@ Other optional dependencies include:
 * `cartopy <https://scitools.org.uk/cartopy/docs/v0.16/>`_ (for geo-referenced
   visualization)
 * `h5py <https://www.h5py.org/>`_ (for importing HDF5 data)
+* `pygrib <https://jswhit.github.io/pygrib/docs/index.html>`_ (for importing MRMS data)
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
 
@@ -163,12 +162,12 @@ Setting up the user-defined configuration file
 ----------------------------------------------
 
 .. _JSON: https://en.wikipedia.org/wiki/JSON
-.. _AttrDict: https://pypi.org/project/attrdict/
 
 The pysteps package allows the users to customize the default settings
 and configuration.
 The configuration parameters used by default are loaded from a user-defined
-JSON_ file and then stored in the **pysteps.rcparams** AttrDict_.
+JSON_ file and then stored in the **pysteps.rcparams**, a dictionary-like object
+that can be accessed as attributes or as items.
 
 .. toctree::
     :maxdepth: 1

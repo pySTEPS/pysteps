@@ -20,9 +20,7 @@ import numpy as np
 from . import ensscores, probscores, spatialscores
 
 
-def plot_intensityscale(
-    intscale, fig=None, vminmax=None, kmperpixel=None, unit=None
-):
+def plot_intensityscale(intscale, fig=None, vminmax=None, kmperpixel=None, unit=None):
     """Plot a intensity-scale verification table with a color bar and axis
     labels.
 
@@ -62,9 +60,7 @@ def plot_intensityscale(
     if vminmax is not None:
         vmin = np.min(vminmax)
         vmax = np.max(vminmax)
-    im = ax.imshow(
-        SS, vmin=vmin, vmax=vmax, interpolation="nearest", cmap=cm.jet
-    )
+    im = ax.imshow(SS, vmin=vmin, vmax=vmax, interpolation="nearest", cmap=cm.jet)
     cb = fig.colorbar(im)
     cb.set_label(intscale["label"])
 
@@ -104,9 +100,7 @@ def plot_rankhist(rankhist, ax=None):
 
     r = ensscores.rankhist_compute(rankhist)
     x = np.linspace(0, 1, rankhist["num_ens_members"] + 1)
-    ax.bar(
-        x, r, width=1.0 / len(x), align="edge", color="gray", edgecolor="black"
-    )
+    ax.bar(x, r, width=1.0 / len(x), align="edge", color="gray", edgecolor="black")
 
     ax.set_xticks(x[::3] + (x[1] - x[0]))
     ax.set_xticklabels(np.arange(1, len(x))[::3])

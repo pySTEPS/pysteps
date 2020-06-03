@@ -34,7 +34,7 @@ following key-value pairs:
 +-------------------+----------------------------------------------------------+
 
 The following key-value pairs are optional. They are included in the output if
-**kwargs contains the "compute_stats" key with value set to True:
+``kwargs`` contains the "compute_stats" key with value set to True:
 
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
@@ -44,8 +44,9 @@ The following key-value pairs are optional. They are included in the output if
 |  stds             | list of standard deviations for each cascade level       |
 +-------------------+----------------------------------------------------------+
 
-The following key-value pairs are included in the output if **kwargs contains
+The following key-value pairs are included in the output if ``kwargs`` contains
 the key "output_domain" with value set to "spectral":
+
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
 +===================+==========================================================+
@@ -143,32 +144,43 @@ def decomposition_fft(field, bp_filter, **kwargs):
         raise ValueError("The input is not two-dimensional array")
 
     if mask is not None and mask.shape != field.shape:
-        raise ValueError("Dimension mismatch between field and mask:"
-                         + "field.shape=" + str(field.shape)
-                         + ",mask.shape" + str(mask.shape))
+        raise ValueError(
+            "Dimension mismatch between field and mask:"
+            + "field.shape="
+            + str(field.shape)
+            + ",mask.shape"
+            + str(mask.shape)
+        )
 
     if field.shape[0] != bp_filter["weights_2d"].shape[1]:
         raise ValueError(
             "dimension mismatch between field and bp_filter: "
             + "field.shape[0]=%d , " % field.shape[0]
             + "bp_filter['weights_2d'].shape[1]"
-              "=%d" % bp_filter["weights_2d"].shape[1])
+            "=%d" % bp_filter["weights_2d"].shape[1]
+        )
 
-    if input_domain == "spatial" and \
-       int(field.shape[1] / 2) + 1 != bp_filter["weights_2d"].shape[2]:
+    if (
+        input_domain == "spatial"
+        and int(field.shape[1] / 2) + 1 != bp_filter["weights_2d"].shape[2]
+    ):
         raise ValueError(
             "Dimension mismatch between field and bp_filter: "
             "int(field.shape[1]/2)+1=%d , " % (int(field.shape[1] / 2) + 1)
             + "bp_filter['weights_2d'].shape[2]"
-              "=%d" % bp_filter["weights_2d"].shape[2])
+            "=%d" % bp_filter["weights_2d"].shape[2]
+        )
 
-    if input_domain == "spectral" and \
-       field.shape[1] != bp_filter["weights_2d"].shape[2]:
+    if (
+        input_domain == "spectral"
+        and field.shape[1] != bp_filter["weights_2d"].shape[2]
+    ):
         raise ValueError(
             "Dimension mismatch between field and bp_filter: "
             "field.shape[1]=%d , " % (field.shape[1] + 1)
             + "bp_filter['weights_2d'].shape[2]"
-              "=%d" % bp_filter["weights_2d"].shape[2])
+            "=%d" % bp_filter["weights_2d"].shape[2]
+        )
 
     if output_domain != "spectral":
         compact_output = False
@@ -207,7 +219,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
             else:
                 mean = utils.spectral.mean(field_, bp_filter["shape"])
                 std = utils.spectral.std(field_, bp_filter["shape"])
-            
+
             means.append(mean)
             stds.append(std)
 
@@ -258,7 +270,9 @@ def recompose_fft(decomp, **kwargs):
         mu = decomp["means"]
         sigma = decomp["stds"]
 
-    if not decomp["normalized"] and not decomp["compact_output"]:
+    if not decomp["normalized"] and not (
+        decomp["domain"] == "spectral" and decomp["compact_output"]
+    ):
         return np.sum(levels, axis=0)
     else:
         if decomp["compact_output"]:

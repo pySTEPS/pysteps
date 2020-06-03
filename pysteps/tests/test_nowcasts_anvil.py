@@ -5,29 +5,26 @@ import pytest
 from pysteps import motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
 
-sprog_arg_names = (
+anvil_arg_names = (
     "n_cascade_levels",
     "ar_order",
-    "probmatching_method",
-    "domain",
+    "ar_window_radius",
     "min_csi",
 )
 
-sprog_arg_values = [
-    (6, 1, None, "spatial", 0.5),
-    (6, 2, None, "spatial", 0.5),
-    (6, 2, "cdf", "spatial", 0.5),
-    (6, 2, "mean", "spatial", 0.5),
-    (6, 2, "cdf", "spectral", 0.5),
+anvil_arg_values = [
+    (8, 1, 50, 0.6),
+    (8, 2, 50, 0.6),
+    # (8, 3, 50, 0.6), # This is commented out for the moment since it's a bit unstable (and slow)
 ]
 
 
-@pytest.mark.parametrize(sprog_arg_names, sprog_arg_values)
-def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, min_csi):
-    """Tests SPROG nowcast."""
+@pytest.mark.parametrize(anvil_arg_names, anvil_arg_values)
+def test_anvil_rainrate(n_cascade_levels, ar_order, ar_window_radius, min_csi):
+    """Tests ANVIL nowcast using rain rate precipitation fields."""
     # inputs
     precip_input, metadata = get_precipitation_fields(
-        num_prev_files=2,
+        num_prev_files=4,
         num_next_files=0,
         return_raw=False,
         metadata=True,
@@ -46,28 +43,27 @@ def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, min_csi)
     retrieved_motion = oflow_method(precip_input)
 
     # Run nowcast
-    nowcast_method = nowcasts.get_method("sprog")
+    nowcast_method = nowcasts.get_method("anvil")
 
     precip_forecast = nowcast_method(
-        precip_input,
+        precip_input[-(ar_order + 2) :],
         retrieved_motion,
         n_timesteps=3,
-        R_thr=metadata["threshold"],
+        rainrate=None,  # no R(VIL) conversion is done
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
-        probmatching_method=probmatching_method,
-        domain=domain,
+        ar_window_radius=ar_window_radius,
     )
 
     # result
     result = verification.det_cat_fct(
         precip_forecast[-1], precip_obs[-1], thr=0.1, scores="CSI"
     )["CSI"]
-    print(f"got CSI={result:.1f}, required > {min_csi:.1f}")
+    print(f"got CSI={result:.2f}, required > {min_csi:.2f}")
     assert result > min_csi
 
 
 if __name__ == "__main__":
-    for n in range(len(sprog_arg_values)):
-        test_args = zip(sprog_arg_names, sprog_arg_values[n])
-        test_sprog(**dict((x, y) for x, y in test_args))
+    for n in range(len(anvil_arg_values)):
+        test_args = zip(anvil_arg_names, anvil_arg_values[n])
+        test_anvil_rainrate(**dict((x, y) for x, y in test_args))

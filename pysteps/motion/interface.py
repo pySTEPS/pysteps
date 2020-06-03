@@ -31,15 +31,15 @@ from pysteps.motion.proesmans import proesmans
 from pysteps.motion.vet import vet
 
 _methods = dict()
-_methods['constant'] = constant
-_methods['lk'] = dense_lucaskanade
-_methods['lucaskanade'] = dense_lucaskanade
-_methods['darts'] = DARTS
-_methods['proesmans'] = proesmans
-_methods['vet'] = vet
-_methods[None] = lambda precip, *args, **kw: np.zeros((2,
-                                                       precip.shape[1],
-                                                       precip.shape[2]))
+_methods["constant"] = constant
+_methods["lk"] = dense_lucaskanade
+_methods["lucaskanade"] = dense_lucaskanade
+_methods["darts"] = DARTS
+_methods["proesmans"] = proesmans
+_methods["vet"] = vet
+_methods[None] = lambda precip, *args, **kw: np.zeros(
+    (2, precip.shape[1], precip.shape[2])
+)
 
 
 def get_method(name):
@@ -97,6 +97,8 @@ def get_method(name):
             motion_method = _methods[name]
             return motion_method
         except KeyError:
-            raise ValueError("Unknown method {}\n".format(name)
-                             + "The available methods are:"
-                             + str(list(_methods.keys()))) from None
+            raise ValueError(
+                "Unknown method {}\n".format(name)
+                + "The available methods are:"
+                + str(list(_methods.keys()))
+            ) from None

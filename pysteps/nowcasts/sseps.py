@@ -85,7 +85,7 @@ def forecast(
     metadata : dict
         Metadata dictionary containing the accutime, xpixelsize, threshold and
         zerovalue attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+        :py:mod:`pysteps.io.importers`. xpixelsize is assumed to be in meters.
     V : array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
         field. The velocities are assumed to represent one time step between the
@@ -370,8 +370,13 @@ def forecast(
         if parsglob is None:
             R_d = []
             for i in range(ar_order + 1):
-                R_d_ = decomp_method(R[i, :, :], filter, fft_method=fft_method,
-                                     normalize=True, compute_stats=True)
+                R_d_ = decomp_method(
+                    R[i, :, :],
+                    filter,
+                    fft_method=fft_method,
+                    normalize=True,
+                    compute_stats=True,
+                )
                 R_d.append(R_d_)
             R_d_ = None
 
@@ -578,8 +583,13 @@ def forecast(
                     parsglob["P"], randstate=randgen_prec[j], fft_method=fft_method
                 )
                 # decompose the noise field into a cascade
-                EPS_d = decomp_method(EPS, parsglob["filter"], fft_method=fft_method,
-                                      normalize=True, compute_stats=True)
+                EPS_d = decomp_method(
+                    EPS,
+                    parsglob["filter"],
+                    fft_method=fft_method,
+                    normalize=True,
+                    compute_stats=True,
+                )
             else:
                 EPS_d = None
 

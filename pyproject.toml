@@ -14,8 +14,8 @@ build-backend = "setuptools.build_meta:__legacy__"
 # Define black parameters for the project
 # https://black.readthedocs.io/en/stable/pyproject_toml.html#configuration-format
 [tool.black]
-line-length = 79
 target-version = ['py36']
+line-length = 88
 exclude = '''
 /(
     \.eggs

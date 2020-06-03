@@ -18,8 +18,16 @@ import numpy as np
 import scipy.ndimage.interpolation as ip
 
 
-def extrapolate(precip, velocity, timesteps, outval=np.nan, xy_coords=None,
-                allow_nonfinite_values=False, vel_timestep=None, **kwargs):
+def extrapolate(
+    precip,
+    velocity,
+    timesteps,
+    outval=np.nan,
+    xy_coords=None,
+    allow_nonfinite_values=False,
+    vel_timestep=None,
+    **kwargs,
+):
     """Apply semi-Lagrangian backward extrapolation to a two-dimensional
     precipitation field.
 
@@ -95,7 +103,7 @@ def extrapolate(precip, velocity, timesteps, outval=np.nan, xy_coords=None,
     if not allow_nonfinite_values:
         if np.any(~np.isfinite(precip)):
             raise ValueError("precip contains non-finite values")
-    
+
         if np.any(~np.isfinite(velocity)):
             raise ValueError("velocity contains non-finite values")
 
@@ -106,7 +114,7 @@ def extrapolate(precip, velocity, timesteps, outval=np.nan, xy_coords=None,
     return_displacement = kwargs.get("return_displacement", False)
 
     if isinstance(timesteps, int):
-        timesteps = np.arange(1, timesteps+1)
+        timesteps = np.arange(1, timesteps + 1)
         vel_timestep = 1.0
     elif np.any(np.diff(timesteps) <= 0.0):
         raise ValueError("the given timestep sequence is not monotonously increasing")
@@ -121,8 +129,9 @@ def extrapolate(precip, velocity, timesteps, outval=np.nan, xy_coords=None,
         outval = np.nanmin(precip)
 
     if xy_coords is None:
-        x_values, y_values = np.meshgrid(np.arange(precip.shape[1]),
-                                         np.arange(precip.shape[0]))
+        x_values, y_values = np.meshgrid(
+            np.arange(precip.shape[1]), np.arange(precip.shape[0])
+        )
 
         xy_coords = np.stack([x_values, y_values])
 
@@ -130,10 +139,12 @@ def extrapolate(precip, velocity, timesteps, outval=np.nan, xy_coords=None,
         XYW = xy_coords + D
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-        VWX = ip.map_coordinates(velocity[0, :, :], XYW, mode="nearest",
-                                 order=0, prefilter=False)
-        VWY = ip.map_coordinates(velocity[1, :, :], XYW, mode="nearest",
-                                 order=0, prefilter=False)
+        VWX = ip.map_coordinates(
+            velocity[0, :, :], XYW, mode="nearest", order=0, prefilter=False
+        )
+        VWY = ip.map_coordinates(
+            velocity[1, :, :], XYW, mode="nearest", order=0, prefilter=False
+        )
 
         V_inc[0, :, :] = VWX
         V_inc[1, :, :] = VWY
@@ -167,8 +178,9 @@ def extrapolate(precip, velocity, timesteps, outval=np.nan, xy_coords=None,
         XYW = xy_coords + D
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
-        IW = ip.map_coordinates(precip, XYW, mode="constant", cval=outval,
-                                order=0, prefilter=False)
+        IW = ip.map_coordinates(
+            precip, XYW, mode="constant", cval=outval, order=0, prefilter=False
+        )
         R_e.append(np.reshape(IW, precip.shape))
 
     if verbose:

@@ -32,9 +32,7 @@ if sys.platform.startswith("darwin"):
     common_link_args.append("-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/")
 
 extensions_data = {
-    "pysteps.motion._proesmans": {
-        "sources": ["pysteps/motion/_proesmans.pyx"]
-    },
+    "pysteps.motion._proesmans": {"sources": ["pysteps/motion/_proesmans.pyx"]},
     "pysteps.motion._vet": {"sources": ["pysteps/motion/_vet.pyx"]},
 }
 
@@ -64,7 +62,6 @@ external_modules = cythonize(extensions, force=True, language_level=3)
 
 requirements = [
     "numpy",
-    "attrdict",
     "jsmin",
     "scipy",
     "matplotlib",
@@ -73,7 +70,7 @@ requirements = [
 
 setup(
     name="pysteps",
-    version="1.2.0",
+    version="1.3.1",
     author="PySteps developers",
     packages=find_packages(),
     license="LICENSE",

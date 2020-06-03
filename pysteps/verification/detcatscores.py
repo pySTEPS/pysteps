@@ -52,6 +52,8 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
+        |  ETS       | equitable threat score                                 |
+        +------------+--------------------------------------------------------+
         |  F1        | the harmonic mean of precision and sensitivity         |
         +------------+--------------------------------------------------------+
         |  FA        | false alarm rate (prob. of false detection, fall-out,  |
@@ -130,7 +132,7 @@ def det_cat_fct_init(thr, axis=None):
     # catch case of axis passed as integer
     def get_iterable(x):
         if x is None or (
-            isinstance(x, collections.Iterable) and not isinstance(x, int)
+            isinstance(x, collections.abc.Iterable) and not isinstance(x, int)
         ):
             return x
         else:
@@ -167,9 +169,7 @@ def det_cat_fct_accum(contab, pred, obs):
 
     pred = np.asarray(pred.copy())
     obs = np.asarray(obs.copy())
-    axis = (
-        tuple(range(pred.ndim)) if contab["axis"] is None else contab["axis"]
-    )
+    axis = tuple(range(pred.ndim)) if contab["axis"] is None else contab["axis"]
 
     # checks
     if pred.shape != obs.shape:
@@ -302,6 +302,8 @@ def det_cat_fct_compute(contab, scores=""):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
+        |  ETS       | equitable threat score                                 |
+        +------------+--------------------------------------------------------+
         |  F1        | the harmonic mean of precision and sensitivity         |
         +------------+--------------------------------------------------------+
         |  FA        | false alarm rate (prob. of false detection, fall-out,  |
@@ -332,7 +334,7 @@ def det_cat_fct_compute(contab, scores=""):
 
     # catch case of single score passed as string
     def get_iterable(x):
-        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+        if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
             return x
         else:
             return (x,)
@@ -398,15 +400,13 @@ def det_cat_fct_compute(contab, scores=""):
                 result["GSS"] = GSS
         if score_ in ["sedi", ""]:
             # Symmetric extremal dependence index
-            SEDI = (
-                np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA)
-            ) / (np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA))
+            SEDI = (np.log(FA) - np.log(POD) + np.log(1 - POD) - np.log(1 - FA)) / (
+                np.log(FA) + np.log(POD) + np.log(1 - POD) + np.log(1 - FA)
+            )
             result["SEDI"] = SEDI
         if score_ in ["mcc", ""]:
             # Matthews correlation coefficient
-            MCC = (H * R - F * M) / np.sqrt(
-                (H + F) * (H + M) * (R + F) * (R + M)
-            )
+            MCC = (H * R - F * M) / np.sqrt((H + F) * (H + M) * (R + F) * (R + M))
             result["MCC"] = MCC
         if score_ in ["f1", ""]:
             # F1 score

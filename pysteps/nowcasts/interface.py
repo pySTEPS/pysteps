@@ -29,15 +29,16 @@ The time step of the output is taken from the inputs.
 """
 
 from pysteps.extrapolation.interface import eulerian_persistence
-from pysteps.nowcasts import sprog, steps, sseps, extrapolation
+from pysteps.nowcasts import anvil, sprog, steps, sseps, extrapolation
 
 _nowcast_methods = dict()
+_nowcast_methods["anvil"] = anvil.forecast
 _nowcast_methods["eulerian"] = eulerian_persistence
-_nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["extrapolation"] = extrapolation.forecast
+_nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["sprog"] = sprog.forecast
-_nowcast_methods["steps"] = steps.forecast
 _nowcast_methods["sseps"] = sseps.forecast
+_nowcast_methods["steps"] = steps.forecast
 
 
 def get_method(name):
@@ -52,6 +53,9 @@ def get_method(name):
     +-----------------+-------------------------------------------------------+
     |     Name        |              Description                              |
     +=================+=======================================================+
+    |  anvil          | the autoregressive nowcasting using VIL (ANVIL)       |
+    |                 | nowcasting method developed in :cite:`PCLH2020`       |
+    +-----------------+-------------------------------------------------------+
     |  eulerian       | this approach keeps the last observation frozen       |
     |                 | (Eulerian persistence)                                |
     +-----------------+-------------------------------------------------------+
@@ -74,13 +78,17 @@ def get_method(name):
     if isinstance(name, str):
         name = name.lower()
     else:
-        raise TypeError("Only strings supported for the method's names.\n" +
-                        "Available names:" +
-                        str(list(_nowcast_methods.keys()))) from None
+        raise TypeError(
+            "Only strings supported for the method's names.\n"
+            + "Available names:"
+            + str(list(_nowcast_methods.keys()))
+        ) from None
 
     try:
         return _nowcast_methods[name]
     except KeyError:
-        raise ValueError("Unknown nowcasting method {}\n".format(name) +
-                         "The available methods are:" +
-                         str(list(_nowcast_methods.keys()))) from None
+        raise ValueError(
+            "Unknown nowcasting method {}\n".format(name)
+            + "The available methods are:"
+            + str(list(_nowcast_methods.keys()))
+        ) from None

@@ -7,14 +7,18 @@ Functions to manipulate array dimensions.
 .. autosummary::
     :toctree: ../generated/
 
+    aggregate_fields
     aggregate_fields_time
     aggregate_fields_space
-    aggregate_fields
     clip_domain
     square_domain
 """
 
 import numpy as np
+
+_aggregation_methods = dict(
+    sum=np.sum, mean=np.mean, nanmean=np.nanmean, nansum=np.nansum,
+)
 
 
 def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
@@ -206,30 +210,50 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     return R, metadata
 
 
-def aggregate_fields(R, window_size, axis=0, method="mean"):
-    """Aggregate fields.
-    It attemps to aggregate the given R axis in an integer number of sections
-    of length = window_size.
-    If such a aggregation is not possible, an error is raised.
+def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
+    """Aggregate fields along a given direction.
+
+    It attempts to aggregate the given R axis in an integer number of sections
+    of length = ``window_size``.
+    If such a aggregation is not possible, an error is raised unless ``trim``
+    set to True, in which case the axis is trimmed (from the end)
+    to make it perfectly divisible".
 
     Parameters
     ----------
-    R : array-like
+    data : array-like
         Array of any shape containing the input fields.
-    window_size : int
+    window_size : int or tuple of ints
         The length of the window that is used to aggregate the fields.
-    axis : int, optional
-        The axis where to perform the aggregation.
+        If a single integer value is given, the same window is used for
+        all the selected axis.
+
+        If ``window_size`` is a 1D array-like,
+        each element indicates the length of the window that is used
+        to aggregate the fields along each axis. In this case,
+        the number of elements of 'window_size' must be the same as the elements
+        in the ``axis`` argument.
+    axis : int or array-like of ints
+        Axis or axes where to perform the aggregation.
+        If this is a tuple of ints, the aggregation is performed over multiple
+        axes, instead of a single axis
     method : string, optional
         Optional argument that specifies the operation to use
         to aggregate the values within the window.
         Default to mean operator.
+    trim : bool
+         In case that the ``data`` is not perfectly divisible by
+         ``window_size`` along the selected axis:
+
+         - trim=True: the data will be trimmed (from the end) along that
+           axis to make it perfectly divisible.
+         - trim=False: a ValueError exception is raised.
 
     Returns
     -------
-    outputarray : array-like
+    new_array : array-like
         The new aggregated array with shape[axis] = k,
-        where k = R.shape[axis] / window_size
+        where k = R.shape[axis] / window_size.
 
     See also
     --------
@@ -237,40 +261,76 @@ def aggregate_fields(R, window_size, axis=0, method="mean"):
     pysteps.utils.dimension.aggregate_fields_space
     """
 
-    N = R.shape[axis]
-    if N % window_size:
+    if np.ndim(axis) > 1:
+        raise TypeError(
+            "Only integers or integer 1D arrays can be used for the " "'axis' argument."
+        )
+
+    if np.ndim(axis) == 1:
+        axis = np.asarray(axis)
+        if np.ndim(window_size) == 0:
+            window_size = (window_size,) * axis.size
+
+        window_size = np.asarray(window_size, dtype="int")
+
+        if window_size.shape != axis.shape:
+            raise ValueError(
+                "The 'window_size' and 'axis' shapes are incompatible."
+                f"window_size.shape: {str(window_size.shape)}, "
+                f"axis.shape: {str(axis.shape)}, "
+            )
+
+        new_data = data.copy()
+        for i in range(axis.size):
+            # Recursively call the aggregate_fields function
+            new_data = aggregate_fields(
+                new_data, window_size[i], axis=axis[i], method=method, trim=trim
+            )
+
+        return new_data
+
+    if np.ndim(window_size) != 0:
+        raise TypeError(
+            "A single axis was selected for the aggregation but several"
+            f"of window_sizes were given: {str(window_size)}."
+        )
+
+    data = np.asarray(data).copy()
+    orig_shape = data.shape
+
+    if method not in _aggregation_methods:
         raise ValueError(
-            "window_size %i does not equally split R.shape[axis] %i"
-            % (window_size, N)
+            "Aggregation method not recognized. "
+            f"Available methods: {str(list(_aggregation_methods.keys()))}"
         )
 
-    R = R.copy().swapaxes(axis, 0)
-    shape = list(R.shape)
-    R_ = R.reshape((N, -1))
+    if window_size <= 0:
+        raise ValueError("'window_size' must be strictly positive")
 
-    if method.lower() == "sum":
-        R__ = R_.reshape(int(N / window_size), window_size, R_.shape[1]).sum(
-            axis=1
+    if (orig_shape[axis] % window_size) and (not trim):
+        raise ValueError(
+            f"Since 'trim' argument was set to False,"
+            f"the 'window_size' {window_size} must exactly divide"
+            f"the dimension along the selected axis:"
+            f"data.shape[axis]={orig_shape[axis]}"
         )
-    elif method.lower() == "mean":
-        R__ = R_.reshape(int(N / window_size), window_size, R_.shape[1]).mean(
-            axis=1
-        )
-    elif method.lower() == "nansum":
-        R__ = np.nansum(
-            R_.reshape(int(N / window_size), window_size, R_.shape[1]), axis=1
-        )
-    elif method.lower() == "nanmean":
-        R__ = np.nanmean(
-            R_.reshape(int(N / window_size), window_size, R_.shape[1]), axis=1
-        )
-    else:
-        raise ValueError("unknown method %s" % method)
 
-    shape[0] = int(N / window_size)
-    R = R__.reshape(shape).swapaxes(axis, 0)
+    new_data = data.swapaxes(axis, 0)
+    if trim:
+        trim_size = data.shape[axis] % window_size
+        if trim_size > 0:
+            new_data = new_data[:-trim_size]
 
-    return R
+    new_data_shape = list(new_data.shape)
+    new_data_shape[0] //= window_size  # Final shape
+
+    new_data = new_data.reshape(new_data_shape[0], window_size, -1)
+
+    new_data = _aggregation_methods[method](new_data, axis=1)
+
+    new_data = new_data.reshape(new_data_shape).swapaxes(axis, 0)
+
+    return new_data
 
 
 def clip_domain(R, metadata, extent=None):
@@ -333,10 +393,7 @@ def clip_domain(R, metadata, extent=None):
     # compute its extent in pixels
     dim_x_ = int((right_ - left_) / metadata["xpixelsize"])
     dim_y_ = int((top_ - bottom_) / metadata["ypixelsize"])
-    R_ = (
-        np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_))
-        * metadata["zerovalue"]
-    )
+    R_ = np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_)) * metadata["zerovalue"]
 
     # build set of coordinates for the original domain
     y_coord = (

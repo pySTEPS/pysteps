@@ -48,6 +48,15 @@
                 "accutime": 5
             }
         },
+        "mrms": {
+            "root_path": "./mrms",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "PrecipRate_00.00_%Y%m%d-%H%M%S",
+            "fn_ext": "grib2",
+            "importer": "mrms_grib",
+            "timestep": 2,
+            "importer_kwargs": {}
+        },
         "opera": {
             "root_path": "./radar/OPERA",
             "path_fmt": "%Y%m%d",

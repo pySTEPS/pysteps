@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 
 import datetime as dt
+
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+from pytest import raises
 
-from pysteps.utils import arrays, conversion, dimension, transformation
+from pysteps.utils import (
+    arrays,
+    conversion,
+    dimension,
+    transformation,
+    aggregate_fields,
+)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # arrays
@@ -357,6 +365,99 @@ test_data = [
 def test_to_reflectivity(R, metadata, expected):
     """Test the to_reflectivity."""
     assert_array_almost_equal(conversion.to_reflectivity(R, metadata)[0], expected)
+
+
+test_data_not_trim = (
+    # "data, window_size, axis, method, expected"
+    (np.arange(6), 2, 0, "mean", np.array([0.5, 2.5, 4.5])),
+    (
+        np.arange(4 * 6).reshape(4, 6),
+        (2, 3),
+        (0, 1),
+        "sum",
+        np.array([[24, 42], [96, 114]]),
+    ),
+    (
+        np.arange(4 * 6).reshape(4, 6),
+        (2, 2),
+        (0, 1),
+        "sum",
+        np.array([[14, 22, 30], [62, 70, 78]]),
+    ),
+    (
+        np.arange(4 * 6).reshape(4, 6),
+        2,
+        (0, 1),
+        "sum",
+        np.array([[14, 22, 30], [62, 70, 78]]),
+    ),
+    (
+        np.arange(4 * 6).reshape(4, 6),
+        (2, 3),
+        (0, 1),
+        "mean",
+        np.array([[4.0, 7.0], [16.0, 19.0]]),
+    ),
+    (
+        np.arange(4 * 6).reshape(4, 6),
+        (2, 2),
+        (0, 1),
+        "mean",
+        np.array([[3.5, 5.5, 7.5], [15.5, 17.5, 19.5]]),
+    ),
+    (
+        np.arange(4 * 6).reshape(4, 6),
+        2,
+        (0, 1),
+        "mean",
+        np.array([[3.5, 5.5, 7.5], [15.5, 17.5, 19.5]]),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "data, window_size, axis, method, expected", test_data_not_trim
+)
+def test_aggregate_fields(data, window_size, axis, method, expected):
+    """
+    Test the aggregate_fields function.
+    The windows size must divide exactly the data dimensions.
+    Internally, additional test are generated for situations where the
+    windows size does not divide the data dimensions.
+    The length of each dimension should be larger than 2.
+    """
+
+    assert_array_equal(
+        aggregate_fields(data, window_size, axis=axis, method=method), expected,
+    )
+
+    # Test the trimming capabilities.
+    data = np.pad(data, (0, 1))
+    assert_array_equal(
+        aggregate_fields(data, window_size, axis=axis, method=method, trim=True),
+        expected,
+    )
+
+    with raises(ValueError):
+        aggregate_fields(data, window_size, axis=axis, method=method)
+
+
+def test_aggregate_fields_errors():
+    """
+    Test that the errors are correctly captured in the aggregate_fields
+    function.
+    """
+    data = np.arange(4 * 6).reshape(4, 6)
+
+    with raises(ValueError):
+        aggregate_fields(data, -1, axis=0)
+    with raises(ValueError):
+        aggregate_fields(data, 0, axis=0)
+    with raises(ValueError):
+        aggregate_fields(data, 1, method="invalid")
+
+    with raises(TypeError):
+        aggregate_fields(data, (1, 1), axis=0)
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

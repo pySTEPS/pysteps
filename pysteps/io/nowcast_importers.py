@@ -24,20 +24,16 @@ The metadata dictionary contains the following mandatory key-value pairs:
 |    projection    | PROJ.4-compatible projection definition                  |
 +------------------+----------------------------------------------------------+
 |    x1            | x-coordinate of the lower-left corner of the data raster |
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    y1            | y-coordinate of the lower-left corner of the data raster |
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    x2            | x-coordinate of the upper-right corner of the data raster|
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    y2            | y-coordinate of the upper-right corner of the data raster|
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
-|    xpixelsize    | grid resolution in x-direction (meters)                  |
+|    xpixelsize    | grid resolution in x-direction                           |
 +------------------+----------------------------------------------------------+
-|    ypixelsize    | grid resolution in y-direction (meters)                  |
+|    ypixelsize    | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
 |    yorigin       | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
@@ -73,6 +69,7 @@ Available Nowcast Importers
 
 import numpy as np
 
+from pysteps.decorators import postprocess_import
 from pysteps.exceptions import MissingOptionalDependency, DataModelError
 
 try:
@@ -83,14 +80,45 @@ except ImportError:
     NETCDF4_IMPORTED = False
 
 
-def import_netcdf_pysteps(filename, **kwargs):
-    """Read a nowcast or a nowcast ensemble from a NetCDF file conforming to the
-    CF 1.7 specification."""
+@postprocess_import(dtype="single")
+def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
+    """Read a nowcast or an ensemble of nowcasts from a NetCDF file conforming
+    to the CF 1.7 specification.
+
+    If an error occurs during the import, the corresponding error message
+    is shown, and ( None, None ) is returned.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+
+    onerror : str
+        Define the behavior if an exception is raised during the import.
+        - "warn": Print an error message and return (None, None)
+        - "raise": Raise an exception
+
+    {extra_kwargs_doc}
+
+    Returns
+    -------
+    precipitation : 2D array, float32
+        Precipitation field in mm/h. The dimensions are [latitude, longitude].
+        The first grid point (0,0) corresponds to the upper left corner of the
+        domain, while (last i, last j) denote the lower right corner.
+    metadata : dict
+        Associated metadata (pixel sizes, map projections, etc.).
+    """
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import pysteps netcdf "
             "nowcasts but it is not installed"
         )
+
+    onerror = onerror.lower()
+    if onerror not in ["warn", "raise"]:
+        raise ValueError("'onerror' keyword must be 'warn' or 'raise'.")
+
     try:
         ds = netCDF4.Dataset(filename, "r")
 
@@ -128,6 +156,11 @@ def import_netcdf_pysteps(filename, **kwargs):
 
         precip = precip[...].squeeze().astype(float)
 
+        if isinstance(precip, np.ma.MaskedArray):
+            invalid_mask = np.ma.getmaskarray(precip)
+            precip = precip.data
+            precip[invalid_mask] = np.nan
+
         metadata = {}
 
         time_var = ds.variables["time"]
@@ -147,10 +180,8 @@ def import_netcdf_pysteps(filename, **kwargs):
             metadata["projection"] = proj_str
 
         # geodata
-        metadata["xpixelsize"] = abs(ds.variables["x"][1] -
-                                     ds.variables["x"][0])
-        metadata["ypixelsize"] = abs(ds.variables["y"][1] -
-                                     ds.variables["y"][0])
+        metadata["xpixelsize"] = abs(ds.variables["x"][1] - ds.variables["x"][0])
+        metadata["ypixelsize"] = abs(ds.variables["y"][1] - ds.variables["y"][0])
 
         xmin = np.min(ds.variables["x"]) - 0.5 * metadata["xpixelsize"]
         xmax = np.max(ds.variables["x"]) + 0.5 * metadata["xpixelsize"]
@@ -166,7 +197,7 @@ def import_netcdf_pysteps(filename, **kwargs):
         metadata["yorigin"] = "upper"  # TODO: check this
 
         # TODO: Read the metadata to the dictionary.
-        if accutime is None:
+        if (accutime is None) and (leadtimes.size > 1):
             accutime = leadtimes[1] - leadtimes[0]
         metadata["accutime"] = accutime
         metadata["unit"] = unit
@@ -178,8 +209,11 @@ def import_netcdf_pysteps(filename, **kwargs):
 
         return precip, metadata
     except Exception as er:
-        print("There was an error processing the file", er)
-        return None, None
+        if onerror == "warn":
+            print("There was an error processing the file", er)
+            return None, None
+        else:
+            raise er
 
 
 def _convert_grid_mapping_to_proj4(grid_mapping):
@@ -188,15 +222,12 @@ def _convert_grid_mapping_to_proj4(grid_mapping):
     # TODO: implement more projection types here
     if grid_mapping["grid_mapping_name"] == "polar_stereographic":
         proj_str = "+proj=stere"
-        proj_str += " +lon_0=%s" \
-            % grid_mapping["straight_vertical_longitude_from_pole"]
-        proj_str += " +lat_0=%s" \
-            % grid_mapping["latitude_of_projection_origin"]
+        proj_str += " +lon_0=%s" % grid_mapping["straight_vertical_longitude_from_pole"]
+        proj_str += " +lat_0=%s" % grid_mapping["latitude_of_projection_origin"]
         if "standard_parallel" in gm_keys:
             proj_str += " +lat_ts=%s" % grid_mapping["standard_parallel"]
         if "scale_factor_at_projection_origin" in gm_keys:
-            proj_str += " +k_0=%s" \
-                % grid_mapping["scale_factor_at_projection_origin"]
+            proj_str += " +k_0=%s" % grid_mapping["scale_factor_at_projection_origin"]
         proj_str += " +x_0=%s" % grid_mapping["false_easting"]
         proj_str += " +y_0=%s" % grid_mapping["false_northing"]
 

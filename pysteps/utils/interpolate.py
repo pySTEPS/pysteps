@@ -22,12 +22,15 @@ def rbfinterp2d(
     xgrid,
     ygrid,
     rbfunction="gaussian",
-    epsilon=5,
+    epsilon=10,
     k=50,
     nchunks=5,
 ):
     """Fast 2-D grid interpolation of a sparse (multivariate) array using a
     radial basis function.
+
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
 
     Parameters
     ----------
@@ -40,27 +43,27 @@ def rbfinterp2d(
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
         variables.
-        All values in **input_array** are required to have finite values.
+        All values in ``input_array`` are required to have finite values.
 
     xgrid, ygrid : array_like
         1D arrays representing the coordinates of the 2-D output grid.
 
-    rbfunction : {"gaussian", "multiquadric", "inverse quadratic",
-        "inverse multiquadric", "bump"}, optional
+    rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
         The name of one of the available radial basis function based on a
-        normalized Euclidian norm.
+        normalized Euclidian norm as defined in the **Notes** section below.
 
-        See also the Notes section below.
+        More details provided in the wikipedia reference page linked below.
 
     epsilon : float, optional
         The shape parameter used to scale the input to the radial kernel.
 
-        A smaller value for **epsilon** produces a smoother interpolation. More
-        details provided in the wikipedia reference page.
+        A smaller value for ``epsilon`` produces a smoother interpolation. More
+        details provided in the wikipedia reference page linked below.
 
     k : int or None, optional
-        The number of nearest neighbours used to speed-up the interpolation.
-        If set to None, it interpolates based on all the data points.
+        The number of nearest neighbours used for each target location.
+        This can also be useful to to speed-up the interpolation.
+        If set to None, it interpolates using all the data points at once.
 
     nchunks : int, optional
         The number of chunks in which the grid points are split to limit the
@@ -69,8 +72,8 @@ def rbfinterp2d(
     Returns
     -------
 
-    output_array : array_like
-        The interpolated field(s) having shape (m, ygrid.size, xgrid.size).
+    output_array : ndarray_
+        The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
 
     Notes
     -----
@@ -190,9 +193,7 @@ def rbfinterp2d(
 
         if k == 0:
             # use all points
-            d = scipy.spatial.distance.cdist(
-                coord, subgrid, "euclidean"
-            ).transpose()
+            d = scipy.spatial.distance.cdist(coord, subgrid, "euclidean").transpose()
             inds = np.arange(npoints)[None, :] * np.ones(
                 (subgrid.shape[0], npoints)
             ).astype(int)
@@ -203,13 +204,13 @@ def rbfinterp2d(
 
         if k == 1:
             # nearest neighbour
-            output_array[i0: (i0 + idelta), :] = input_array[inds, :]
+            output_array[i0 : (i0 + idelta), :] = input_array[inds, :]
 
         else:
 
             # the interpolation weights
             if rbfunction == "gaussian":
-                w = np.exp(-(d * epsilon) ** 2)
+                w = np.exp(-((d * epsilon) ** 2))
 
             elif rbfunction == "inverse quadratic":
                 w = 1.0 / (1 + (epsilon * d) ** 2)
@@ -226,7 +227,7 @@ def rbfinterp2d(
 
             # interpolate
             for j in range(nvar):
-                output_array[i0: (i0 + idelta), j] = np.sum(
+                output_array[i0 : (i0 + idelta), j] = np.sum(
                     w * input_array[inds, j], axis=1
                 ) / np.sum(w, axis=1)
 

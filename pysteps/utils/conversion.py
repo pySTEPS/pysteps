@@ -59,28 +59,23 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
 
         if metadata["transform"] == "dB":
 
-            R, metadata = transformation.dB_transform(R, metadata,
-                                                      inverse=True)
+            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
 
-            R, metadata = transformation.boxcox_transform(R, metadata,
-                                                          inverse=True)
+            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "NQT":
 
-            R, metadata = transformation.NQ_transform(R, metadata,
-                                                      inverse=True)
+            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "sqrt":
 
-            R, metadata = transformation.sqrt_transform(R, metadata,
-                                                        inverse=True)
+            R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
         else:
 
-            raise ValueError("Unknown transformation %s"
-                             % metadata["transform"])
+            raise ValueError("Unknown transformation %s" % metadata["transform"])
 
     if metadata["unit"] == "mm/h":
 
@@ -164,27 +159,22 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
 
         if metadata["transform"] == "dB":
 
-            R, metadata = transformation.dB_transform(R, metadata,
-                                                      inverse=True)
+            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
 
-            R, metadata = transformation.boxcox_transform(R, metadata,
-                                                          inverse=True)
+            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "NQT":
 
-            R, metadata = transformation.NQ_transform(R, metadata,
-                                                      inverse=True)
+            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "sqrt":
 
-            R, metadata = transformation.sqrt_transform(R, metadata,
-                                                        inverse=True)
+            R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
         else:
-            raise ValueError("Unknown transformation %s"
-                             % metadata["transform"])
+            raise ValueError("Unknown transformation %s" % metadata["transform"])
 
     if metadata["unit"] == "mm" and metadata["transform"] is None:
         pass
@@ -212,10 +202,8 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
         if zr_b is None:
             zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
         R = (R / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
-        threshold = (threshold / zr_a) ** (1.0 / zr_b) / 60.0 \
-            * metadata["accutime"]
-        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 \
-            * metadata["accutime"]
+        threshold = (threshold / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
+        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
 
         metadata["zr_a"] = zr_a
         metadata["zr_b"] = zr_b
@@ -269,28 +257,23 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
 
         if metadata["transform"] == "dB":
 
-            R, metadata = transformation.dB_transform(R, metadata,
-                                                      inverse=True)
+            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
 
-            R, metadata = transformation.boxcox_transform(R, metadata,
-                                                          inverse=True)
+            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "NQT":
 
-            R, metadata = transformation.NQ_transform(R, metadata,
-                                                      inverse=True)
+            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "sqrt":
 
-            R, metadata = transformation.sqrt_transform(R, metadata,
-                                                        inverse=True)
+            R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
         else:
 
-            raise ValueError("Unknown transformation %s"
-                             % metadata["transform"])
+            raise ValueError("Unknown transformation %s" % metadata["transform"])
 
     if metadata["unit"] == "mm/h":
 

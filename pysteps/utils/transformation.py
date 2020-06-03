@@ -25,8 +25,7 @@ warnings.filterwarnings(
 
 
 def boxcox_transform(
-    R, metadata=None, Lambda=None, threshold=None, zerovalue=None,
-    inverse=False,
+    R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False,
 ):
     """The one-parameter Box-Cox transformation.
 
@@ -155,8 +154,9 @@ def boxcox_transform(
     return R, metadata
 
 
-def dB_transform(R, metadata=None, threshold=None, zerovalue=None,
-                 inverse=False,):
+def dB_transform(
+    R, metadata=None, threshold=None, zerovalue=None, inverse=False,
+):
     """Methods to transform precipitation intensities to/from dB units.
 
     Parameters
@@ -278,7 +278,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     References
     ----------
-    Bogner, K., Pappenberger, field., and Cloke, H. L.: Technical Note: The normal
+    Bogner, K., Pappenberger, F., and Cloke, H. L.: Technical Note: The normal
     quantile transformation and its application in a flood forecasting system,
     Hydrol. Earth Syst. Sci., 16, 1085-1094,
     https://doi.org/10.5194/hess-16-1085-2012, 2012.
@@ -321,8 +321,7 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
         # build inverse transform
         metadata["inqt"] = interp1d(
-            Rqn, R_[np.argsort(R_)],
-            bounds_error=False, fill_value=(R_.min(), R_.max())
+            Rqn, R_[np.argsort(R_)], bounds_error=False, fill_value=(R_.min(), R_.max())
         )
 
         metadata["transform"] = "NQT"

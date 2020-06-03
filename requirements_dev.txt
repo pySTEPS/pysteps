@@ -6,7 +6,6 @@ pillow
 pyproj
 scipy
 matplotlib
-attrdict
 jsmin
 jsonschema
 netCDF4

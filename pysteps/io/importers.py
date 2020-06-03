@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.io.importers
 ====================
@@ -26,20 +27,16 @@ The metadata dictionary contains the following recommended key-value pairs:
 |    projection    | PROJ.4-compatible projection definition                  |
 +------------------+----------------------------------------------------------+
 |    x1            | x-coordinate of the lower-left corner of the data raster |
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    y1            | y-coordinate of the lower-left corner of the data raster |
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    x2            | x-coordinate of the upper-right corner of the data raster|
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
 |    y2            | y-coordinate of the upper-right corner of the data raster|
-|                  | (meters)                                                 |
 +------------------+----------------------------------------------------------+
-|    xpixelsize    | grid resolution in x-direction (meters)                  |
+|    xpixelsize    | grid resolution in x-direction                           |
 +------------------+----------------------------------------------------------+
-|    ypixelsize    | grid resolution in y-direction (meters)                  |
+|    ypixelsize    | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
 |    yorigin       | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
@@ -79,18 +76,22 @@ Available Importers
     import_mch_gif
     import_mch_hdf5
     import_mch_metranet
+    import_mrms_grib
     import_opera_hdf5
     import_saf_crri
 """
 
 import gzip
 import os
+from functools import partial
 
 import numpy as np
 from matplotlib.pyplot import imread
 
+from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
+from pysteps.utils import aggregate_fields
 
 try:
     import gdalconst
@@ -135,7 +136,280 @@ try:
 except ImportError:
     PYPROJ_IMPORTED = False
 
+try:
+    import pygrib
 
+    PYGRIB_IMPORTED = True
+except ImportError:
+    PYGRIB_IMPORTED = False
+
+
+def _check_coords_range(selected_range, coordinate, full_range):
+    """Check that the coordinates range arguments follow the expected pattern in
+    the **import_mrms_grib** function."""
+
+    if selected_range is None:
+        return sorted(full_range)
+
+    if not isinstance(selected_range, (list, tuple)):
+
+        if len(selected_range) != 2:
+            raise ValueError(
+                f"The {coordinate} range must be None or a two-element tuple or list"
+            )
+
+        selected_range = list(selected_range)  # Make mutable
+
+        for i in range(2):
+            if selected_range[i] is None:
+                selected_range[i] = full_range
+
+        selected_range.sort()
+
+    return tuple(selected_range)
+
+
+def _get_grib_projection(grib_msg):
+    """Get the projection parameters from the grib file."""
+    projparams = grib_msg.projparams
+
+    # pygrib defines the regular lat/lon projections as "cyl", which causes
+    # errors in pyproj and cartopy. Here we replace it for "latlon".
+    if projparams["proj"] == "cyl":
+        projparams["proj"] = "latlon"
+
+    # Grib C tables (3-2)
+    # https://apps.ecmwf.int/codes/grib/format/grib2/ctables/3/2
+    # https://en.wikibooks.org/wiki/PROJ.4
+    _grib_shapes_of_earth = dict()
+    _grib_shapes_of_earth[0] = {"R": 6367470}
+    _grib_shapes_of_earth[1] = {"R": 6367470}
+    _grib_shapes_of_earth[2] = {"ellps": "IAU76"}
+    _grib_shapes_of_earth[4] = {"ellps": "GRS80"}
+    _grib_shapes_of_earth[5] = {"ellps": "WGS84"}
+    _grib_shapes_of_earth[6] = {"R": 6371229}
+    _grib_shapes_of_earth[8] = {"datum": "WGS84", "R": 6371200}
+    _grib_shapes_of_earth[9] = {"datum": "OSGB36"}
+
+    # pygrib defines the ellipsoids using "a" and "b" only.
+    # Here we replace the for the PROJ.4 SpheroidCodes if they are available.
+    if grib_msg["shapeOfTheEarth"] in _grib_shapes_of_earth:
+        keys_to_remove = ["a", "b"]
+        for key in keys_to_remove:
+            if key in projparams:
+                del projparams[key]
+
+        projparams.update(_grib_shapes_of_earth[grib_msg["shapeOfTheEarth"]])
+
+    return projparams
+
+
+def _get_threshold_value(precip):
+    """
+    Get the the rain/no rain threshold with the same unit, transformation and
+    accutime of the data.
+    If all the values are NaNs, the returned value is `np.nan`.
+    Otherwise, np.min(precip[precip > precip.min()]) is returned.
+
+    Returns
+    -------
+
+    threshold : float
+    """
+    valid_mask = np.isfinite(precip)
+    if valid_mask.any():
+        _precip = precip[valid_mask]
+        min_precip = _precip.min()
+        above_min_mask = _precip > min_precip
+        if above_min_mask.any():
+            return np.min(_precip[above_min_mask])
+        else:
+            return min_precip
+    else:
+        return np.nan
+
+
+@postprocess_import(dtype="float32")
+def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
+    """
+    Importer for NSSL's Multi-Radar/Multi-Sensor System
+    ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
+    (grib format).
+
+    The rainrate values are expressed in mm/h, and the dimensions of the data
+    array are [latitude, longitude]. The first grid point (0,0) corresponds to
+    the upper left corner of the domain, while (last i, last j) denote the
+    lower right corner.
+
+    Due to the large size of the dataset (3500 x 7000), a float32 type is used
+    by default to reduce the memory footprint. However, be aware that when this
+    array is passed to a pystep function, it may be converted to double
+    precision, doubling the memory footprint.
+    To change the precision of the data, use the *dtype* keyword.
+
+    Also, by default, the original data is downscaled by 4
+    (resulting in a ~4 km grid spacing).
+    In case that the original grid spacing is needed, use `window_size=1`.
+    But be aware that a single composite in double precipitation will
+    require 186 Mb of memory.
+
+    Finally, if desired, the precipitation data can be extracted over a
+    sub region of the full domain using the `extent` keyword.
+    By default, the entire domain is returned.
+
+    Notes
+    -----
+    In the MRMS grib files, "-3" is used to represent "No Coverage" or
+    "Missing data". However, in this reader replace those values by the value
+    specified in the `fillna` argument (NaN by default).
+
+    Note that "missing values" are not the same as "no precipitation" values.
+    Missing values indicates regions with no valid measures.
+    While zero precipitation indicates regions with valid measurements,
+    but with no precipitation detected.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+    extent: None or array-like
+        Longitude and latitude range (in degrees) of the data to be retrieved.
+        (min_lon, max_lon, min_lat, max_lat).
+        By default (None), the entire domain is retrieved.
+        The extent can be in any form that can be converted to a flat array
+        of 4 elements array (e.g., lists or tuples).
+    window_size : array_like or int
+        Array containing down-sampling integer factor along each axis.
+        If an integer value is given, the same block shape is used for all the
+        image dimensions.
+        Default: window_size=4.
+
+    {extra_kwargs_doc}
+
+    Returns
+    -------
+    precipitation : 2D array, float32
+        Precipitation field in mm/h. The dimensions are [latitude, longitude].
+        The first grid point (0,0) corresponds to the upper left corner of the
+        domain, while (last i, last j) denote the lower right corner.
+    quality : None
+        Not implement.
+    metadata : dict
+        Associated metadata (pixel sizes, map projections, etc.).
+    """
+
+    del kwargs
+
+    if not PYGRIB_IMPORTED:
+        raise MissingOptionalDependency(
+            "pygrib package is required to import NCEP's MRMS products but it is not installed"
+        )
+
+    try:
+        grib_file = pygrib.open(filename)
+    except OSError:
+        raise OSError(f"Error opening NCEP's MRMS file. " f"File Not Found: {filename}")
+
+    if isinstance(window_size, int):
+        window_size = (window_size, window_size)
+
+    if extent is not None:
+        extent = np.asarray(extent)
+        if (extent.ndim != 1) or (extent.size != 4):
+            raise ValueError(
+                "The extent must be None or a flat array with 4 elements.\n"
+                f"Received: extent.shape = {str(extent.shape)}"
+            )
+
+    # The MRMS grib file contain one message with the precipitation intensity
+    grib_file.rewind()
+    grib_msg = grib_file.read(1)[0]  # Read the only message
+
+    # -------------------------
+    # Read the grid information
+
+    lr_lon = grib_msg["longitudeOfLastGridPointInDegrees"]
+    lr_lat = grib_msg["latitudeOfLastGridPointInDegrees"]
+
+    ul_lon = grib_msg["longitudeOfFirstGridPointInDegrees"]
+    ul_lat = grib_msg["latitudeOfFirstGridPointInDegrees"]
+
+    # Ni - Number of points along a latitude circle (west-east)
+    # Nj - Number of points along a longitude meridian (south-north)
+    # The lat/lon grid has a 0.01 degrees spacing.
+    lats = np.linspace(ul_lat, lr_lat, grib_msg["Nj"])
+    lons = np.linspace(ul_lon, lr_lon, grib_msg["Ni"])
+
+    precip = grib_msg.values
+    no_data_mask = precip == -3  # Missing values
+
+    # Create a function with default arguments for aggregate_fields
+    block_reduce = partial(aggregate_fields, method="mean", trim=True)
+
+    if window_size != (1, 1):
+        # Downscale data
+        lats = block_reduce(lats, window_size[0])
+        lons = block_reduce(lons, window_size[1])
+
+        # Update the limits
+        ul_lat, lr_lat = lats[0], lats[-1]  # Lat from North to south!
+        ul_lon, lr_lon = lons[0], lons[-1]
+
+        precip[no_data_mask] = 0  # block_reduce does not handle nan values
+        precip = block_reduce(precip, window_size, axis=(0, 1))
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        no_data_mask = block_reduce(
+            no_data_mask.astype("int"), window_size, axis=(0, 1)
+        ).astype(bool)
+
+    lons, lats = np.meshgrid(lons, lats)
+    precip[no_data_mask] = np.nan
+
+    if extent is not None:
+        # clip domain
+        ul_lon, lr_lon = _check_coords_range(
+            (extent[0], extent[1]), "longitude", (ul_lon, lr_lon)
+        )
+
+        lr_lat, ul_lat = _check_coords_range(
+            (extent[2], extent[3]), "latitude", (ul_lat, lr_lat)
+        )
+
+        mask_lat = (lats >= lr_lat) & (lats <= ul_lat)
+        mask_lon = (lons >= ul_lon) & (lons <= lr_lon)
+
+        nlats = np.count_nonzero(mask_lat[:, 0])
+        nlons = np.count_nonzero(mask_lon[0, :])
+
+        precip = precip[mask_lon & mask_lat].reshape(nlats, nlons)
+
+    proj_params = _get_grib_projection(grib_msg)
+    pr = pyproj.Proj(proj_params)
+
+    x1, y1 = pr(ul_lon, lr_lat)
+    x2, y2 = pr(lr_lon, ul_lat)
+
+    metadata = dict(
+        xpixelsize=grib_msg["iDirectionIncrementInDegrees"] * window_size[0],
+        ypixelsize=grib_msg["jDirectionIncrementInDegrees"] * window_size[1],
+        unit="mm/h",
+        transform=None,
+        zerovalue=0,
+        projection=proj_params,
+        yorigin="upper",
+        threshold=_get_threshold_value(precip),
+        x1=x1,
+        x2=x2,
+        y1=y1,
+        y2=y2,
+    )
+
+    return precip, None, metadata
+
+
+@postprocess_import()
 def import_bom_rf3(filename, **kwargs):
     """Import a NetCDF radar rainfall product from the BoM Rainfields3.
 
@@ -144,6 +418,8 @@ def import_bom_rf3(filename, **kwargs):
 
     filename : str
         Name of the file to import.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -167,10 +443,7 @@ def import_bom_rf3(filename, **kwargs):
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(np.isfinite(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
+    metadata["threshold"] = _get_threshold_value(precip)
 
     return precip, None, metadata
 
@@ -217,10 +490,8 @@ def _import_bom_rf3_geodata(filename):
         ymin = min(ds_rainfall.variables["y"])
         ymax = max(ds_rainfall.variables["y"])
 
-    xpixelsize = abs(ds_rainfall.variables["x"][1] -
-                     ds_rainfall.variables["x"][0])
-    ypixelsize = abs(ds_rainfall.variables["y"][1] -
-                     ds_rainfall.variables["y"][0])
+    xpixelsize = abs(ds_rainfall.variables["x"][1] - ds_rainfall.variables["x"][0])
+    ypixelsize = abs(ds_rainfall.variables["y"][1] - ds_rainfall.variables["y"][0])
     factor_scale = 1.0
     if "units" in ds_rainfall.variables["x"].ncattrs():
         if getattr(ds_rainfall.variables["x"], "units") == "km":
@@ -242,9 +513,7 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar)
+        valid_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
@@ -252,9 +521,7 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        start_time = netCDF4.num2date(times[:],
-                                      units=times.units,
-                                      calendar=calendar)
+        start_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     time_step = None
 
@@ -276,6 +543,7 @@ def _import_bom_rf3_geodata(filename):
     return geodata
 
 
+@postprocess_import()
 def import_fmi_geotiff(filename, **kwargs):
     """Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
 
@@ -284,6 +552,8 @@ def import_fmi_geotiff(filename, **kwargs):
 
     filename : str
         Name of the file to import.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -334,14 +604,14 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["unit"] = rb.GetUnitType()
     metadata["transform"] = None
     metadata["accutime"] = 5.0
-    precip_min = np.nanmin(precip)
-    metadata["threshold"] = np.nanmin(precip[precip > precip_min])
-    metadata["zerovalue"] = precip_min
+    metadata["threshold"] = _get_threshold_value(precip)
+    metadata["zerovalue"] = np.nanmin(precip)
 
     return precip, None, metadata
 
 
-def import_fmi_pgm(filename, **kwargs):
+@postprocess_import()
+def import_fmi_pgm(filename, gzipped=False, **kwargs):
     """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
 
     Parameters
@@ -350,11 +620,10 @@ def import_fmi_pgm(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-
     gzipped : bool
         If True, the input file is treated as a compressed gzip file.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -370,8 +639,6 @@ def import_fmi_pgm(filename, **kwargs):
             "FMI's radar reflectivity composite "
             "but it is not installed"
         )
-
-    gzipped = kwargs.get("gzipped", False)
 
     pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
 
@@ -392,10 +659,7 @@ def import_fmi_pgm(filename, **kwargs):
     metadata["unit"] = "dBZ"
     metadata["transform"] = "dB"
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(np.isfinite(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
+    metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
 
@@ -471,7 +735,8 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     return metadata
 
 
-def import_knmi_hdf5(filename, **kwargs):
+@postprocess_import()
+def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs):
     """Import a precipitation or reflectivity field (and optionally the quality
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
 
@@ -480,9 +745,6 @@ def import_knmi_hdf5(filename, **kwargs):
 
     filename : str
         Name of the file to import.
-
-    Other Parameters
-    ----------------
 
     qty : {'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identifiers
@@ -495,9 +757,11 @@ def import_knmi_hdf5(filename, **kwargs):
         are also available.
 
     pixelsize: float
-        The pixel size of a raster cell in meters. The default value for the KNMI
-        datasets is 1000 m grid cell size, but datasets with 2400 m pixel size
-        are also available.
+        The pixel size of a raster cell in kilometers. The default value for the 
+        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel 
+        size are also available.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -526,25 +790,10 @@ def import_knmi_hdf5(filename, **kwargs):
             "but it is not installed"
         )
 
-    ###
-    # Options for kwargs.get
-    ###
-
-    # The unit in the 2D fields: either hourly rainfall accumulation (ACRR) or
-    # reflectivity (DBZH)
-    qty = kwargs.get("qty", "ACRR")
-
     if qty not in ["ACRR", "DBZH"]:
         raise ValueError(
             "unknown quantity %s: the available options are 'ACRR' and 'DBZH' "
         )
-
-    # The time step. Generally, the 5 min data is used, but also hourly, daily
-    # and monthly accumulations are present.
-    accutime = kwargs.get("accutime", 5.0)
-    # The pixel size. Recommended is to use KNMI datasets with 1 km grid cell size.
-    # 1.0 or 2.4 km datasets are available - give pixelsize in meters
-    pixelsize = kwargs.get("pixelsize", 1000.0)
 
     ####
     # Precipitation fields
@@ -558,17 +807,17 @@ def import_knmi_hdf5(filename, **kwargs):
     # because the data is saved as hundreds of mm (so, as integers). 65535 is
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
-        precip = np.where(precip_intermediate == 65535,
-                          np.NaN,
-                          precip_intermediate / 100.0)
+        precip = np.where(
+            precip_intermediate == 65535, np.NaN, precip_intermediate / 100.0
+        )
 
     # In case reflectivities are imported, the no data value is 255. Values are
     # saved as integers. The reflectivities are not directly saved in dBZ, but
     # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
     if qty == "DBZH":
-        precip = np.where(precip_intermediate == 255,
-                          np.NaN,
-                          precip_intermediate * 0.5 - 32.0)
+        precip = np.where(
+            precip_intermediate == 255, np.NaN, precip_intermediate * 0.5 - 32.0
+        )
 
     if precip is None:
         raise IOError("requested quantity not found")
@@ -611,15 +860,15 @@ def import_knmi_hdf5(filename, **kwargs):
     lr_x, lr_y = pr(lr_lon, lr_lat)
     ul_x, ul_y = pr(ul_lon, ul_lat)
     x1 = min(ll_x, ul_x)
-    y2 = min(ll_y, lr_y)
+    y1 = min(ll_y, lr_y)
     x2 = max(lr_x, ur_x)
-    y1 = max(ul_y, ur_y)
+    y2 = max(ul_y, ur_y)
 
     # Fill in the metadata
-    metadata["x1"] = x1 * 1000.0
-    metadata["y1"] = y1 * 1000.0
-    metadata["x2"] = x2 * 1000.0
-    metadata["y2"] = y2 * 1000.0
+    metadata["x1"] = x1
+    metadata["y1"] = y1
+    metadata["x2"] = x2
+    metadata["y2"] = y2
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
     metadata["yorigin"] = "upper"
@@ -628,7 +877,7 @@ def import_knmi_hdf5(filename, **kwargs):
     metadata["unit"] = unit
     metadata["transform"] = transform
     metadata["zerovalue"] = 0.0
-    metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
+    metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 200.0
     metadata["zr_b"] = 1.6
 
@@ -637,7 +886,8 @@ def import_knmi_hdf5(filename, **kwargs):
     return precip, None, metadata
 
 
-def import_mch_gif(filename, product, unit, accutime):
+@postprocess_import()
+def import_mch_gif(filename, product, unit, accutime, **kwargs):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
 
@@ -668,6 +918,8 @@ def import_mch_gif(filename, product, unit, accutime):
 
     accutime : float
         the accumulation time in minutes of the data
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -749,10 +1001,7 @@ def import_mch_gif(filename, product, unit, accutime):
     metadata["unit"] = unit
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(precip > np.nanmin(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
+    metadata["threshold"] = _get_threshold_value(precip)
     metadata["institution"] = "MeteoSwiss"
     metadata["product"] = product
     metadata["zr_a"] = 316.0
@@ -761,7 +1010,8 @@ def import_mch_gif(filename, product, unit, accutime):
     return precip, None, metadata
 
 
-def import_mch_hdf5(filename, **kwargs):
+@postprocess_import()
+def import_mch_hdf5(filename, qty="RATE", **kwargs):
     """Import a precipitation field (and optionally the quality field) from a
     MeteoSwiss HDF5 file conforming to the ODIM specification.
 
@@ -771,14 +1021,13 @@ def import_mch_hdf5(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-
     qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -795,8 +1044,6 @@ def import_mch_hdf5(filename, **kwargs):
             "radar reflectivity composites using ODIM HDF5 specification "
             "but it is not installed"
         )
-
-    qty = kwargs.get("qty", "RATE")
 
     if qty not in ["ACRR", "DBZH", "RATE"]:
         raise ValueError(
@@ -822,9 +1069,13 @@ def import_mch_hdf5(filename, **kwargs):
                 if dg[0][0:4] == "data":
                     # check if the "what" group is in the "data" group
                     if "what" in list(dg[1].keys()):
-                        qty_, gain, offset, nodata, undetect = _read_mch_hdf5_what_group(
-                            dg[1]["what"]
-                        )
+                        (
+                            qty_,
+                            gain,
+                            offset,
+                            nodata,
+                            undetect,
+                        ) = _read_mch_hdf5_what_group(dg[1]["what"])
                     elif not what_grp_found:
                         raise DataModelError(
                             "Non ODIM compilant file: "
@@ -852,7 +1103,6 @@ def import_mch_hdf5(filename, **kwargs):
         raise IOError("requested quantity %s not found" % qty)
 
     where = f["where"]
-    proj4str = where.attrs["projdef"].decode()  # is empty ...
 
     geodata = _import_mch_geodata()
     metadata = geodata
@@ -907,6 +1157,7 @@ def _read_mch_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
+@postprocess_import()
 def import_mch_metranet(filename, product, unit, accutime):
     """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
     archive.
@@ -939,6 +1190,8 @@ def import_mch_metranet(filename, product, unit, accutime):
     accutime : float
         the accumulation time in minutes of the data
 
+    {extra_kwargs_doc}
+
     Returns
     -------
 
@@ -965,10 +1218,7 @@ def import_mch_metranet(filename, product, unit, accutime):
     metadata["unit"] = unit
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.isnan(metadata["zerovalue"]):
-        metadata["threshold"] = np.nan
-    else:
-        metadata["threshold"] = np.nanmin(precip[precip > metadata["zerovalue"]])
+    metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
@@ -1009,7 +1259,8 @@ def _import_mch_geodata():
     return geodata
 
 
-def import_opera_hdf5(filename, **kwargs):
+@postprocess_import()
+def import_opera_hdf5(filename, qty="RATE", **kwargs):
     """Import a precipitation field (and optionally the quality field) from an
     OPERA HDF5 file conforming to the ODIM specification.
 
@@ -1019,14 +1270,13 @@ def import_opera_hdf5(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-
     qty : {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -1043,8 +1293,6 @@ def import_opera_hdf5(filename, **kwargs):
             "radar reflectivity composites using ODIM HDF5 specification "
             "but it is not installed"
         )
-
-    qty = kwargs.get("qty", "RATE")
 
     if qty not in ["ACRR", "DBZH", "RATE"]:
         raise ValueError(
@@ -1071,9 +1319,13 @@ def import_opera_hdf5(filename, **kwargs):
                 if dg[0][0:4] == "data":
                     # check if the "what" group is in the "data" group
                     if "what" in list(dg[1].keys()):
-                        qty_, gain, offset, nodata, undetect = _read_opera_hdf5_what_group(
-                            dg[1]["what"]
-                        )
+                        (
+                            qty_,
+                            gain,
+                            offset,
+                            nodata,
+                            undetect,
+                        ) = _read_opera_hdf5_what_group(dg[1]["what"])
                     elif not what_grp_found:
                         raise DataModelError(
                             "Non ODIM compilant file: "
@@ -1109,10 +1361,10 @@ def import_opera_hdf5(filename, **kwargs):
     ur_lat = where.attrs["UR_lat"]
     ur_lon = where.attrs["UR_lon"]
     if (
-            "LR_lat" in where.attrs.keys()
-            and "LR_lon" in where.attrs.keys()
-            and "UL_lat" in where.attrs.keys()
-            and "UL_lon" in where.attrs.keys()
+        "LR_lat" in where.attrs.keys()
+        and "LR_lon" in where.attrs.keys()
+        and "UL_lat" in where.attrs.keys()
+        and "UL_lon" in where.attrs.keys()
     ):
         lr_lat = float(where.attrs["LR_lat"])
         lr_lon = float(where.attrs["LR_lon"])
@@ -1155,11 +1407,6 @@ def import_opera_hdf5(filename, **kwargs):
         unit = "mm/h"
         transform = None
 
-    if np.any(np.isfinite(precip)):
-        thr = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        thr = np.nan
-
     metadata = {
         "projection": proj4str,
         "ll_lon": ll_lon,
@@ -1178,7 +1425,7 @@ def import_opera_hdf5(filename, **kwargs):
         "unit": unit,
         "transform": transform,
         "zerovalue": np.nanmin(precip),
-        "threshold": thr,
+        "threshold": _get_threshold_value(precip),
     }
 
     f.close()
@@ -1196,7 +1443,8 @@ def _read_opera_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
-def import_saf_crri(filename, **kwargs):
+@postprocess_import()
+def import_saf_crri(filename, extent=None, **kwargs):
     """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
 
@@ -1209,12 +1457,11 @@ def import_saf_crri(filename, **kwargs):
     filename : str
         Name of the file to import.
 
-    Other Parameters
-    ----------------
-
     extent : scalars (left, right, bottom, top), optional
         The spatial extent specified in data coordinates.
         If None, the full extent is imported.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -1232,17 +1479,19 @@ def import_saf_crri(filename, **kwargs):
             "but it is not installed"
         )
 
-    extent = kwargs.get("extent", None)
-
     geodata = _import_saf_crri_geodata(filename)
     metadata = geodata
 
     if extent:
-        xcoord = np.arange(metadata["x1"], metadata["x2"],
-                           metadata["xpixelsize"]) + metadata["xpixelsize"] / 2
-        ycoord = np.arange(metadata["y1"], metadata["y2"],
-                           metadata["ypixelsize"]) + metadata["ypixelsize"] / 2
-        ycoord = ycoord[::-1] # yorigin = "upper"
+        xcoord = (
+            np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
+            + metadata["xpixelsize"] / 2
+        )
+        ycoord = (
+            np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+            + metadata["ypixelsize"] / 2
+        )
+        ycoord = ycoord[::-1]  # yorigin = "upper"
         idx_x = np.logical_and(xcoord < extent[1], xcoord > extent[0])
         idx_y = np.logical_and(ycoord < extent[3], ycoord > extent[2])
 
@@ -1261,10 +1510,7 @@ def import_saf_crri(filename, **kwargs):
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
-    if np.any(np.isfinite(precip)):
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
-    else:
-        metadata["threshold"] = np.nan
+    metadata["threshold"] = _get_threshold_value(precip)
 
     return precip, quality, metadata
 
@@ -1288,7 +1534,6 @@ def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
 
 
 def _import_saf_crri_geodata(filename):
-
     geodata = {}
 
     ds_rainfall = netCDF4.Dataset(filename)
@@ -1298,7 +1543,7 @@ def _import_saf_crri_geodata(filename):
     geodata["projection"] = projdef
 
     # get x1, y1, x2, y2, xpixelsize, ypixelsize, yorigin
-    geotable = ds_rainfall.getncattr('gdal_geotransform_table')
+    geotable = ds_rainfall.getncattr("gdal_geotransform_table")
     xmin = ds_rainfall.getncattr("gdal_xgeo_up_left")
     xmax = ds_rainfall.getncattr("gdal_xgeo_low_right")
     ymin = ds_rainfall.getncattr("gdal_ygeo_low_right")
@@ -1317,7 +1562,7 @@ def _import_saf_crri_geodata(filename):
     geodata["accutime"] = None
 
     # get the unit of precipitation
-    geodata["unit"] = ds_rainfall.variables['crr_intensity'].units
+    geodata["unit"] = ds_rainfall.variables["crr_intensity"].units
 
     # get institution
     geodata["institution"] = ds_rainfall.getncattr("institution")

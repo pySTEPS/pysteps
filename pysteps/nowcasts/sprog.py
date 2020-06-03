@@ -30,12 +30,25 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
-             extrap_method="semilagrangian", decomp_method="fft",
-             bandpass_filter_method="gaussian", ar_order=2, conditional=False,
-             probmatching_method="mean", num_workers=1, fft_method="numpy",
-             domain="spatial", extrap_kwargs=None, filter_kwargs=None,
-             measure_time=False):
+def forecast(
+    R,
+    V,
+    n_timesteps,
+    n_cascade_levels=6,
+    R_thr=None,
+    extrap_method="semilagrangian",
+    decomp_method="fft",
+    bandpass_filter_method="gaussian",
+    ar_order=2,
+    conditional=False,
+    probmatching_method="mean",
+    num_workers=1,
+    fft_method="numpy",
+    domain="spatial",
+    extrap_kwargs=None,
+    filter_kwargs=None,
+    measure_time=False,
+):
     """Generate a nowcast by using the Spectral Prognosis (S-PROG) method.
 
     Parameters
@@ -165,8 +178,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     if measure_time:
         starttime_init = time.time()
 
-    fft = utils.get_method(fft_method, shape=R.shape[1:],
-                           n_threads=num_workers)
+    fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
 
     M, N = R.shape[1:]
 
@@ -178,31 +190,32 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     extrapolator_method = extrapolation.get_method(extrap_method)
 
-    R = R[-(ar_order + 1):, :, :].copy()
+    R = R[-(ar_order + 1) :, :, :].copy()
     R_min = R.min()
 
     if conditional:
-        MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
+        MASK_thr = np.logical_and.reduce(
+            [R[i, :, :] >= R_thr for i in range(R.shape[0])]
+        )
     else:
         MASK_thr = None
 
     # initialize the extrapolator
-    x_values, y_values = np.meshgrid(np.arange(R.shape[2]),
-                                     np.arange(R.shape[1]))
+    x_values, y_values = np.meshgrid(np.arange(R.shape[2]), np.arange(R.shape[1]))
 
     xy_coords = np.stack([x_values, y_values])
 
     extrap_kwargs = extrap_kwargs.copy()
-    extrap_kwargs['xy_coords'] = xy_coords
+    extrap_kwargs["xy_coords"] = xy_coords
 
     # advect the previous precipitation fields to the same position with the
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     res = list()
 
     def f(R, i):
-        return extrapolator_method(R[i, :, :], V, ar_order - i,
-                                   "min",
-                                   **extrap_kwargs)[-1]
+        return extrapolator_method(R[i, :, :], V, ar_order - i, "min", **extrap_kwargs)[
+            -1
+        ]
 
     for i in range(ar_order):
         if not DASK_IMPORTED:
@@ -217,28 +230,37 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
     for i in range(ar_order + 1):
-        R_ = decomp_method(R[i, :, :], filter, mask=MASK_thr, fft_method=fft,
-                           output_domain=domain, normalize=True,
-                           compute_stats=True, compact_output=True)
+        R_ = decomp_method(
+            R[i, :, :],
+            filter,
+            mask=MASK_thr,
+            fft_method=fft,
+            output_domain=domain,
+            normalize=True,
+            compute_stats=True,
+            compact_output=True,
+        )
         R_d.append(R_)
 
     # rearrange the cascade levels into a four-dimensional array of shape
     # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels,
-                                       convert_to_full_arrays=True)
+    R_c = nowcast_utils.stack_cascades(
+        R_d, n_cascade_levels, convert_to_full_arrays=True
+    )
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
         if domain == "spatial":
-            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i],
-                mask=MASK_thr)
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], mask=MASK_thr)
         else:
-            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i],
-                domain="spectral", x_shape=R.shape[1:])
+            GAMMA[i, :] = correlation.temporal_autocorrelation(
+                R_c[i], domain="spectral", x_shape=R.shape[1:]
+            )
 
-    R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels,
-                                       convert_to_full_arrays=False)
+    R_c = nowcast_utils.stack_cascades(
+        R_d, n_cascade_levels, convert_to_full_arrays=False
+    )
 
     R_d = R_d[-1]
 
@@ -248,8 +270,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
         # adjust the lag-2 correlation coefficient to ensure that the AR(p)
         # process is stationary
         for i in range(n_cascade_levels):
-            GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(GAMMA[i, 0],
-                                                               GAMMA[i, 1])
+            GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(GAMMA[i, 0], GAMMA[i, 1])
 
     # estimate the parameters of the AR(p) model from the autocorrelation
     # coefficients
@@ -345,8 +366,10 @@ def _check_inputs(R, V, ar_order):
     if len(V.shape) != 3:
         raise ValueError("V must be a three-dimensional array")
     if R.shape[1:3] != V.shape[1:3]:
-        raise ValueError("dimension mismatch between R and V: shape(R)=%s, shape(V)=%s" % \
-                         (str(R.shape), str(V.shape)))
+        raise ValueError(
+            "dimension mismatch between R and V: shape(R)=%s, shape(V)=%s"
+            % (str(R.shape), str(V.shape))
+        )
 
 
 def _compute_sprog_mask(R, war):

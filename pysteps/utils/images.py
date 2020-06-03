@@ -12,7 +12,8 @@ Image processing routines for pysteps.
 .. autosummary::
     :toctree: ../generated/
 
-    ShiTomasi_detection
+    blob_detection
+    shitomasi_detection
     morph_opening
 """
 
@@ -28,17 +29,88 @@ try:
 except ImportError:
     CV2_IMPORTED = False
 
+try:
+    from skimage import feature
 
-def ShiTomasi_detection(input_image,
-                        max_corners=1000,
-                        quality_level=0.01,
-                        min_distance=10,
-                        block_size=5,
-                        buffer_mask=0,
-                        use_harris=False,
-                        k=0.04,
-                        verbose=False,
-                        **kwargs):
+    SKIMAGE_IMPORTED = True
+except ImportError:
+    SKIMAGE_IMPORTED = True
+
+
+def blob_detection(
+    input_image,
+    method="log",
+    threshold=0.5,
+    min_sigma=3,
+    max_sigma=20,
+    overlap=0.5,
+    return_sigmas=False,
+    **kwargs,
+):
+    """
+    Interface to the `feature.blob_*`_ methods implemented in scikit-image. A
+    blob is defined as local a maximum of a Gaussian-filtered image.
+
+    .. _`feature.blob_*`:\
+    https://scikit-image.org/docs/dev/auto_examples/features_detection/plot_blob.html
+
+    Parameters
+    ----------
+    input_image : array_like
+        Array of shape (m, n) containing the input image. Nan values are ignored.
+    method : {'log', 'dog', 'doh'}, optional
+        The method to use: 'log' = Laplacian of Gaussian, 'dog' = Difference of
+        Gaussian, ''
+    threshold : float, optional
+        Detection threshold.
+    min_sigma : float, optional
+        The minimum standard deviation for the Gaussian kernel.
+    max_sigma : float, optional
+        The maximum standard deviation for the Gaussian kernel.
+    overlap : float, optional
+        A value between 0 and 1. If the area of two blobs overlaps by a fraction
+        greater than threshold, the smaller blob is eliminated.
+    return_sigmas : bool, optional
+        If True, the return array has a third column indicating the standard
+        deviations of the Gaussian kernels that detected the blobs.
+    """
+    if method not in ["log", "dog", "doh"]:
+        raise ValueError("unknown method %s, must be 'log', 'dog' or 'doh'" % method)
+
+    if method == "log":
+        detector = feature.blob_log
+    elif method == "dog":
+        detector = feature.blob_dog
+    else:
+        detector = feature.blob_doh
+
+    blobs = detector(
+        input_image,
+        min_sigma=min_sigma,
+        max_sigma=max_sigma,
+        threshold=threshold,
+        overlap=overlap,
+        **kwargs,
+    )
+
+    if not return_sigmas:
+        blobs = blobs[:, :2]
+
+    return np.column_stack([blobs[:, 1], blobs[:, 0]])
+
+
+def shitomasi_detection(
+    input_image,
+    max_corners=1000,
+    quality_level=0.01,
+    min_distance=10,
+    block_size=5,
+    buffer_mask=5,
+    use_harris=False,
+    k=0.04,
+    verbose=False,
+    **kwargs,
+):
     """
     Interface to the OpenCV `Shi-Tomasi`_ features detection method to detect
     corners in an image.
@@ -51,6 +123,9 @@ def ShiTomasi_detection(input_image,
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
 
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
     .. _`Harris detector`:\
         https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#gac1fc3598018010880e370e2f709b4345
 
@@ -61,10 +136,10 @@ def ShiTomasi_detection(input_image,
     Parameters
     ----------
 
-    input_image : array_like or MaskedArray_
+    input_image : ndarray_ or MaskedArray_
         Array of shape (m, n) containing the input image.
 
-        In case of array_like, invalid values (Nans or infs) are masked,
+        In case of ndarray_, invalid values (Nans or infs) are masked,
         otherwise the mask of the MaskedArray_ is used. Such mask defines a
         region where features are not detected.
 
@@ -72,27 +147,27 @@ def ShiTomasi_detection(input_image,
         valid pixels.
 
     max_corners : int, optional
-        The **maxCorners** parameter in the `Shi-Tomasi`_ corner detection
+        The ``maxCorners`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the maximum number of points to be tracked (corners).
         If set to zero, all detected corners are used.
 
     quality_level : float, optional
-        The **qualityLevel** parameter in the `Shi-Tomasi`_ corner detection
+        The ``qualityLevel`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the minimal accepted quality for the image corners.
 
     min_distance : int, optional
-        The **minDistance** parameter in the `Shi-Tomasi`_ corner detection
+        The ``minDistance`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents minimum possible Euclidean distance in pixels between
         corners.
 
     block_size : int, optional
-        The **blockSize** parameter in the `Shi-Tomasi`_ corner detection
+        The ``blockSize`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the window size in pixels used for computing a derivative
-        covariation matrix over each pixel neighborhood.
+        covariation matrix over each pixel neighbourhood.
 
     use_harris : bool, optional
         Whether to use a `Harris detector`_  or cornerMinEigenVal_.
@@ -110,7 +185,7 @@ def ShiTomasi_detection(input_image,
     Returns
     -------
 
-    points : array_like
+    points : ndarray_
         Array of shape (p, 2) indicating the pixel coordinates of *p* detected
         corners.
 
@@ -127,12 +202,12 @@ def ShiTomasi_detection(input_image,
             "routine but it is not installed"
         )
 
-    input_image = np.copy(input_image)
+    input_image = input_image.copy()
 
     if input_image.ndim != 2:
         raise ValueError("input_image must be a two-dimensional array")
 
-    # masked array
+    # Check if a MaskedArray is used. If not, mask the ndarray
     if not isinstance(input_image, MaskedArray):
         input_image = np.ma.masked_invalid(input_image)
 
@@ -151,10 +226,9 @@ def ShiTomasi_detection(input_image,
     im_min = input_image.min()
     im_max = input_image.max()
     if im_max - im_min > 1e-8:
-        input_image = ((input_image.filled() - im_min) /
-                       (im_max - im_min) * 255)
+        input_image = (input_image.filled() - im_min) / (im_max - im_min) * 255
     else:
-        input_image = (input_image.filled() - im_min)
+        input_image = input_image.filled() - im_min
 
     # convert to 8-bit
     input_image = np.ndarray.astype(input_image, "uint8")
@@ -184,10 +258,16 @@ def morph_opening(input_image, thr, n):
     """Filter out small scale noise on the image by applying a binary
     morphological opening, that is, erosion followed by dilation.
 
+    .. _MaskedArray:\
+        https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
+
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
     Parameters
     ----------
 
-    input_image : array_like
+    input_image : ndarray_ or MaskedArray_
         Array of shape (m, n) containing the input image.
 
     thr : float
@@ -199,7 +279,7 @@ def morph_opening(input_image, thr, n):
     Returns
     -------
 
-    input_image : array_like
+    input_image : ndarray_ or MaskedArray_
         Array of shape (m,n) containing the filtered image.
     """
     if not CV2_IMPORTED:
@@ -208,8 +288,18 @@ def morph_opening(input_image, thr, n):
             "routine but it is not installed"
         )
 
+    input_image = input_image.copy()
+
+    # Check if a MaskedArray is used. If not, mask the ndarray
+    to_ndarray = False
+    if not isinstance(input_image, MaskedArray):
+        to_ndarray = True
+        input_image = np.ma.masked_invalid(input_image)
+
+    np.ma.set_fill_value(input_image, input_image.min())
+
     # Convert to binary image
-    field_bin = np.ndarray.astype(input_image > thr, "uint8")
+    field_bin = np.ndarray.astype(input_image.filled() > thr, "uint8")
 
     # Build a structuring element of size n
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
@@ -222,5 +312,8 @@ def morph_opening(input_image, thr, n):
 
     # Filter out small isolated pixels based on mask
     input_image[mask] = np.nanmin(input_image)
+
+    if to_ndarray:
+        input_image = np.array(input_image)
 
     return input_image
