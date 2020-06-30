@@ -98,7 +98,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     normalize : bool
         If True, normalize the cascade levels to zero mean and unit variance.
         Requires that compute_stats is True. Implies that compute_stats is True.
-        Defaults to False.
+        Defaults to True.
     mask : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with mask==False are excluded from the computations.
@@ -134,7 +134,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     mask = kwargs.get("mask", None)
     input_domain = kwargs.get("input_domain", "spatial")
     output_domain = kwargs.get("output_domain", "spatial")
-    compute_stats = kwargs.get("compute_stats", False)
+    compute_stats = kwargs.get("compute_stats", True)
     compact_output = kwargs.get("compact_output", False)
 
     if normalize and not compute_stats:
