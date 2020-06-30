@@ -98,7 +98,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     normalize : bool
         If True, normalize the cascade levels to zero mean and unit variance.
         Requires that compute_stats is True. Implies that compute_stats is True.
-        Defaults to True.
+        Defaults to False.
     mask : array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with mask==False are excluded from the computations.
