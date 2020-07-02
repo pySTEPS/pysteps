@@ -127,7 +127,7 @@ def banddepth(X, thr=None, norm=False):
     k-member ensemble data set.
 
     Implementation of the exact fast algorithm for computing the modified band
-    detpth as described in Sun et al (2012).
+    depth as described in Sun et al (2012).
 
     Parameters
     ----------
