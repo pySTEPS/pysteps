@@ -56,8 +56,7 @@ def forecast(
     R : array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
       ordered by timestamp from oldest to newest. The time steps between
-      the inputs are assumed to be regular, and the inputs are required to have
-      finite values.
+      the inputs are assumed to be regular.
     V : array-like
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field.
@@ -141,9 +140,6 @@ def forecast(
     if filter_kwargs is None:
         filter_kwargs = dict()
 
-    if np.any(~np.isfinite(R)):
-        raise ValueError("R contains non-finite values")
-
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
 
@@ -191,8 +187,14 @@ def forecast(
     extrapolator_method = extrapolation.get_method(extrap_method)
 
     R = R[-(ar_order + 1) :, :, :].copy()
-    R_min = R.min()
+    R_min = np.nanmin(R)
 
+    # determine the domain mask from non-finite values
+    domain_mask = np.logical_or.reduce(
+        [~np.isfinite(R[i, :]) for i in range(R.shape[0])]
+    )
+
+    # determine the precipitation threshold mask
     if conditional:
         MASK_thr = np.logical_and.reduce(
             [R[i, :, :] >= R_thr for i in range(R.shape[0])]
@@ -207,15 +209,14 @@ def forecast(
 
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
+    extrap_kwargs["allow_nonfinite_values"] = True
 
     # advect the previous precipitation fields to the same position with the
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     res = list()
 
     def f(R, i):
-        return extrapolator_method(R[i, :, :], V, ar_order - i, "min", **extrap_kwargs)[
-            -1
-        ]
+        return extrapolator_method(R[i, :], V, ar_order - i, "min", **extrap_kwargs)[-1]
 
     for i in range(ar_order):
         if not DASK_IMPORTED:
@@ -226,6 +227,11 @@ def forecast(
     if DASK_IMPORTED:
         num_workers_ = len(res) if num_workers > len(res) else num_workers
         R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
+
+    # replace non-finite values with the minimum value
+    R = R.copy()
+    for i in range(R.shape[0]):
+        R[i, ~np.isfinite(R[i, :])] = np.nanmin(R[i, :])
 
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
@@ -333,6 +339,8 @@ def forecast(
         elif probmatching_method == "mean":
             mu_fct = np.mean(R_c_[MASK])
             R_c_[MASK] = R_c_[MASK] - mu_fct + mu_0
+
+        R_c_[domain_mask] = np.nan
 
         # advect the recomposed precipitation field to obtain the forecast for
         # time step t
