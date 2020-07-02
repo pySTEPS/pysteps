@@ -316,6 +316,8 @@ def forecast(
             r_f_ = vil_f
             r_f_[rainrate_mask] = 0.0
 
+        r_f_[r_f_ < 0.0] = 0.0
+
         # extrapolate to the current nowcast lead time
         extrap_kwargs.update(
             {"D_prev": dp, "return_displacement": True, "allow_nonfinite_values": True}
