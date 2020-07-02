@@ -68,8 +68,8 @@ def forecast(
     ----------
     vil : array_like
         Array of shape (ar_order+2,m,n) containing the input fields ordered by
-        timestamp from oldest to newest. The time steps between the inputs are
-        assumed to be regular.
+        timestamp from oldest to newest. The inputs are expected to contain VIL
+        or rain rate. The time steps between the inputs are assumed to be regular.
     velocity : array_like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
