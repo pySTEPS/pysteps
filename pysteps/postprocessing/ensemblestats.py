@@ -110,6 +110,7 @@ def excprob(X, X_thr, ignore_nan=False):
 
         X_[X >= x] = 1.0
         X_[X < x] = 0.0
+        X_[~np.isfinite(X)] = np.nan
 
         if ignore_nan:
             P.append(np.nanmean(X_, axis=0))
