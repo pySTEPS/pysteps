@@ -47,7 +47,7 @@ Possible solutions are to:
 #. use a normalized MSE or other score,
 #. decompose the field with a Fourier (or wavelet) transform to compare features at the same spatial scales.
 
-A good deterministic comparison of a deep convolutional machine learning neural network nowcast and pysteps is given in Franch et al. (2020).
+A good deterministic comparison of a deep convolutional machine learning neural network nowcast and pysteps is given in :cite:`FNPC2020`.
 
 2. Probabilistic machine learning vs pysteps
 --------------------------------------------
@@ -57,7 +57,7 @@ Probabilistic machine learning regression methods can be roughly categorized int
 a. Quantile-based methods, such as quantile regression, quantile random forests and quantile neural networks.
 b. Ensemble-based methods, such as generative adversarial neural networks (GANNs) and variational auto-encoders (VAEs).
 
-Quantile-based machine learning nowcasts are interesting, but can only estimate the probability of exceedance at a given point (see e.g. Foresti et al., 2019).
+Quantile-based machine learning nowcasts are interesting, but can only estimate the probability of exceedance at a given point (see e.g. :cite:`FSNBG2019`).
 
 To estimate areal exceedance probabilities, for example above catchments, or to propagate the nowcast uncertainty into hydrological models, the full ensemble still needs to be generated, e.g. with generative machine learning models.
 
