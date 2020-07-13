@@ -44,7 +44,7 @@ Another possibility, but more computationally demanding, is to average many ense
 Still, even by using the pysteps ensemble mean, it is not given that its variance will be the same as the one of machine learning predictions. 
 Possible solutions are to:
 
-#. use a normalized MSE or other score,
+#. use a normalized MSE (NMSE) or another score accounting for differences in the variance between prediction and observation.
 #. decompose the field with a Fourier (or wavelet) transform to compare features at the same spatial scales.
 
 A good deterministic comparison of a deep convolutional machine learning neural network nowcast and pysteps is given in :cite:`FNPC2020`.
