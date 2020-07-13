@@ -4,7 +4,7 @@ Benchmarking machine learning models with pysteps
 =================================================
 How to correctly compare the accuracy of machine learning against traditional nowcasting methods available in pysteps?
 
-Before starting, you need to ask yourself these two questions:
+Before starting the comparison, you need to ask yourself what is the objective of nowcasting:
 
 #. Do you only want to minimize prediction errors?
 #. Do you also want to represent the prediction uncertainty? 
