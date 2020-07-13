@@ -17,7 +17,7 @@ To achieve objective 2, you need to produce a probabilistic or an ensemble nowca
 In weather forecasting (and nowcasting) we usually want to achieve both goals because it is impossible to predict the evolution of a chaotic system with 100% accuracy, especially space-time precipitation fields and thunderstorms! 
 
 Machine learning and pysteps offer several methods to produce both deterministic and probabilistic nowcasts. 
-Therefore, if you want to compare machine learning-based nowcasts to pysteps you need to select the right method.
+Therefore, if you want to compare machine learning-based nowcasts to simpler extrapolation-based models, you need to select the right method.
 
 1. Deterministic nowcasting
 --------------------------------------------
