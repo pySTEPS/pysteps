@@ -19,7 +19,7 @@ In weather forecasting (and nowcasting) we usually want to achieve both goals be
 Machine learning and pysteps offer several methods to produce both deterministic and probabilistic nowcasts. 
 Therefore, if you want to compare machine learning-based nowcasts to pysteps you need to select the right method.
 
-1. Deterministic machine learning vs pysteps
+1. Deterministic nowcasting
 --------------------------------------------
 
 Deterministic nowcasts can be divided into:
