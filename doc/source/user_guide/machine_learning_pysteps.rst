@@ -49,7 +49,7 @@ Possible solutions are to:
 
 A good deterministic comparison of a deep convolutional machine learning neural network nowcast and pysteps is given in :cite:`FNPC2020`.
 
-2. Probabilistic machine learning vs pysteps
+2. Probabilistic nowcasting
 --------------------------------------------
 
 Probabilistic machine learning regression methods can be roughly categorized into:
