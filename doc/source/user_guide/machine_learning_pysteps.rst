@@ -97,7 +97,7 @@ The comparison of methods from different types should only be done carefully and
      - Probabilities derived from pysteps.nowcasts.steps/sseps
      - Reliability diagram (predicted vs observed quantile), probability integral transform (PIT) histogram
    * - Probabilistic (ensemble-based)
-     - GANNs, VAEs, etc
+     - GANs, VAEs, etc
      - Ensemble and probabilities derived from pysteps.nowcasts.steps/sseps
      - Probabilistic verification: reliability diagrams, continuous ranked probability scores (CRPS), etc. 
        Ensemble verification: rank histograms, spread-error relationships, etc
