@@ -1,7 +1,7 @@
 .. _machine_learning_pysteps:
 
-Machine learning vs pysteps
-===========================
+Benchmarking machine learning models with pysteps
+=================================================
 How to correctly compare the accuracy of machine learning against traditional nowcasting methods available in pysteps?
 
 Before starting, you need to ask yourself these two questions:
