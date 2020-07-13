@@ -55,7 +55,7 @@ A good deterministic comparison of a deep convolutional machine learning neural 
 Probabilistic machine learning regression methods can be roughly categorized into:
 
 a. Quantile-based methods, such as quantile regression, quantile random forests and quantile neural networks.
-b. Ensemble-based methods, such as generative adversarial neural networks (GANNs) and variational auto-encoders (VAEs).
+b. Ensemble-based methods, such as generative adversarial networks (GANs) and variational auto-encoders (VAEs).
 
 Quantile-based machine learning nowcasts are interesting, but can only estimate the probability of exceedance at a given point (see e.g. :cite:`FSNBG2019`).
 
