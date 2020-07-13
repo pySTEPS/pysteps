@@ -152,6 +152,9 @@ html_context = {
         ],
      }
 
+def setup(app):
+   app.add_stylesheet("pysteps.css")
+
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
