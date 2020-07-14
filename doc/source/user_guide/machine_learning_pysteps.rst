@@ -85,11 +85,11 @@ The comparison of methods from different types should only be done carefully and
      - Pysteps
      - Verification
    * - Deterministic (variance-preserving)
-     - NA?
-     - pysteps.nowcasts.extrapolation (test different optical flow methods)
+     - SRGAN (Wang et al., 2018), Others?
+     - pysteps.nowcasts.extrapolation (any optical flow method)
      - MSE, RMSE, MAE, ETS, etc
    * - Deterministic (error-minimization)
-     - ANNs, (deep) CNNs, random forests, AdaBoost, support vector regression, etc
+     - Classical ANNs, (deep) CNNs, random forests, AdaBoost, etc
      - pysteps.nowcasts.sprog, pysteps.nowcasts.anvil or ensemble mean of pysteps.nowcasts.steps/sseps
      - MSE, RMSE, MAE, ETS, etc or better normalized scores, etc
    * - Probabilistic (quantile-based)
