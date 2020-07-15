@@ -25,7 +25,7 @@ Therefore, if you want to compare machine learning-based nowcasts to simpler ext
 Deterministic nowcasts can be divided into:
 
 a. Variance-preserving nowcasts, such as extrapolation nowcasts by Eulerian and Lagrangian persistence.
-b. Error-minimization nowcasts, such as machine learning-based or ensemble mean nowcasts.
+b. Error-minimization nowcasts, such as machine learning, Fourier-filtered and ensemble mean nowcasts.
 
 **Very important**: these two types of deterministic nowcasts are not directly comparable because they have a different variance! 
 This is best explained by the decomposition of the mean squared error (MSE):
@@ -69,10 +69,10 @@ Summary
 -------
 The table below is an attempt to classify machine learning and pysteps nowcasting methods according to the four main prediction types:
 
-#. Deterministic (variance-preserving)
-#. Deterministic (error-minimization)
-#. Probabilistic (quantile-based)
-#. Probabilistic (ensemble-based)
+#. Deterministic (variance-preserving), like one control NWP forecast
+#. Deterministic (error-minimization), like an ensemble mean NWP forecast
+#. Probabilistic (quantile-based), like a probabilistic NWP forecast (without members)
+#. Probabilistic (ensemble-based), like the members of an ensemble NWP forecast
 
 The comparison of methods from different types should only be done carefully and with good reasons.
 
