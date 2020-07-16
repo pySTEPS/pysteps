@@ -17,4 +17,5 @@ the package, see the :ref:`pysteps-reference`.
     example_data
     set_pystepsrc
     ../auto_examples/index
+    machine_learning_pysteps
 
