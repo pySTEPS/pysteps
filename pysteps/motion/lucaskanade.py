@@ -100,7 +100,7 @@ def dense_lucaskanade(
         features tracking algorithm. See the documentation of
         :py:func:`pysteps.motion.lucaskanade.track_features`.
 
-    fd_method : {"ShiTomasi"}, optional
+    fd_method : {"ShiTomasi", "blob"}, optional
       Name of the feature detection routine. See feature detection methods in
       :py:mod:`pysteps.utils.images`.
 
@@ -236,7 +236,7 @@ def dense_lucaskanade(
             next_img = morph_opening(next_img, next_img.min(), size_opening)
 
         # features detection
-        points = feature_detection_method(prvs_img, **fd_kwargs)
+        points = feature_detection_method(prvs_img, **fd_kwargs).astype(np.float32)
 
         # skip loop if no features to track
         if points.shape[0] == 0:

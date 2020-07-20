@@ -12,6 +12,7 @@ Image processing routines for pysteps.
 .. autosummary::
     :toctree: ../generated/
 
+    blob_detection
     shitomasi_detection
     morph_opening
 """
@@ -27,6 +28,75 @@ try:
     CV2_IMPORTED = True
 except ImportError:
     CV2_IMPORTED = False
+
+try:
+    from skimage import feature
+
+    SKIMAGE_IMPORTED = True
+except ImportError:
+    SKIMAGE_IMPORTED = True
+
+
+def blob_detection(
+    input_image,
+    method="log",
+    threshold=0.5,
+    min_sigma=3,
+    max_sigma=20,
+    overlap=0.5,
+    return_sigmas=False,
+    **kwargs,
+):
+    """
+    Interface to the `feature.blob_*`_ methods implemented in scikit-image. A
+    blob is defined as local a maximum of a Gaussian-filtered image.
+
+    .. _`feature.blob_*`:\
+    https://scikit-image.org/docs/dev/auto_examples/features_detection/plot_blob.html
+
+    Parameters
+    ----------
+    input_image : array_like
+        Array of shape (m, n) containing the input image. Nan values are ignored.
+    method : {'log', 'dog', 'doh'}, optional
+        The method to use: 'log' = Laplacian of Gaussian, 'dog' = Difference of
+        Gaussian, ''
+    threshold : float, optional
+        Detection threshold.
+    min_sigma : float, optional
+        The minimum standard deviation for the Gaussian kernel.
+    max_sigma : float, optional
+        The maximum standard deviation for the Gaussian kernel.
+    overlap : float, optional
+        A value between 0 and 1. If the area of two blobs overlaps by a fraction
+        greater than threshold, the smaller blob is eliminated.
+    return_sigmas : bool, optional
+        If True, the return array has a third column indicating the standard
+        deviations of the Gaussian kernels that detected the blobs.
+    """
+    if method not in ["log", "dog", "doh"]:
+        raise ValueError("unknown method %s, must be 'log', 'dog' or 'doh'" % method)
+
+    if method == "log":
+        detector = feature.blob_log
+    elif method == "dog":
+        detector = feature.blob_dog
+    else:
+        detector = feature.blob_doh
+
+    blobs = detector(
+        input_image,
+        min_sigma=min_sigma,
+        max_sigma=max_sigma,
+        threshold=threshold,
+        overlap=overlap,
+        **kwargs,
+    )
+
+    if not return_sigmas:
+        blobs = blobs[:, :2]
+
+    return np.column_stack([blobs[:, 1], blobs[:, 0]])
 
 
 def shitomasi_detection(

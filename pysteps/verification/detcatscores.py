@@ -52,6 +52,8 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
         +------------+--------------------------------------------------------+
+        |  ETS       | equitable threat score                                 |
+        +------------+--------------------------------------------------------+
         |  F1        | the harmonic mean of precision and sensitivity         |
         +------------+--------------------------------------------------------+
         |  FA        | false alarm rate (prob. of false detection, fall-out,  |
@@ -299,6 +301,8 @@ def det_cat_fct_compute(contab, scores=""):
         |  BIAS      | frequency bias                                         |
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
+        +------------+--------------------------------------------------------+
+        |  ETS       | equitable threat score                                 |
         +------------+--------------------------------------------------------+
         |  F1        | the harmonic mean of precision and sensitivity         |
         +------------+--------------------------------------------------------+

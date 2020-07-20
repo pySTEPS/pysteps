@@ -2,12 +2,12 @@
 pysteps.nowcasts.steps
 ======================
 
-Implementation of the STEPS stochastic nowcasting method as described in  
+Implementation of the STEPS stochastic nowcasting method as described in
 :cite:`Seed2003`, :cite:`BPS2006` and :cite:`SPN2013`.
 
 .. autosummary::
     :toctree: ../generated/
-    
+
     forecast
 """
 
@@ -73,8 +73,7 @@ def forecast(
     R : array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
       ordered by timestamp from oldest to newest. The time steps between the
-      inputs are assumed to be regular, and the inputs are required to have
-      finite values.
+      inputs are assumed to be regular.
     V : array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
@@ -273,9 +272,6 @@ def forecast(
     if mask_kwargs is None:
         mask_kwargs = dict()
 
-    if np.any(~np.isfinite(R)):
-        raise ValueError("R contains non-finite values")
-
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
 
@@ -384,6 +380,12 @@ def forecast(
 
     R = R[-(ar_order + 1) :, :, :].copy()
 
+    # determine the domain mask from non-finite values
+    domain_mask = np.logical_or.reduce(
+        [~np.isfinite(R[i, :]) for i in range(R.shape[0])]
+    )
+
+    # determine the precipitation threshold mask
     if conditional:
         MASK_thr = np.logical_and.reduce(
             [R[i, :, :] >= R_thr for i in range(R.shape[0])]
@@ -395,6 +397,7 @@ def forecast(
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
+    extrap_kwargs["allow_nonfinite_values"] = True
     res = list()
 
     def f(R, i):
@@ -411,6 +414,11 @@ def forecast(
     if DASK_IMPORTED:
         num_workers_ = len(res) if num_workers > len(res) else num_workers
         R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
+
+    # replace non-finite values with the minimum value
+    R = R.copy()
+    for i in range(R.shape[0]):
+        R[i, ~np.isfinite(R[i, :])] = np.nanmin(R[i, :])
 
     if noise_method is not None:
         # get methods for perturbations
@@ -691,6 +699,8 @@ def forecast(
                 V_ = V + generate_vel_noise(vps[j], (t + 1) * timestep)
             else:
                 V_ = V
+
+            R_c_[domain_mask] = np.nan
 
             # advect the recomposed precipitation field to obtain the forecast
             # for time step t

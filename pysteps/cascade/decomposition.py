@@ -134,7 +134,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     mask = kwargs.get("mask", None)
     input_domain = kwargs.get("input_domain", "spatial")
     output_domain = kwargs.get("output_domain", "spatial")
-    compute_stats = kwargs.get("compute_stats", False)
+    compute_stats = kwargs.get("compute_stats", True)
     compact_output = kwargs.get("compact_output", False)
 
     if normalize and not compute_stats:

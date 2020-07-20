@@ -214,5 +214,4 @@ def plot_ROC(ROC, ax=None, opt_prob_thr=False):
         )
 
     for p_thr_, x, y in zip(p_thr, POFD, POD):
-        if p_thr_ > 0.05 and p_thr_ < 0.95:
-            ax.text(x + 0.02, y - 0.02, "%.2f" % p_thr_, fontsize=7)
+        ax.text(x + 0.02, y - 0.02, "%.2f" % p_thr_, fontsize=7)

@@ -37,6 +37,7 @@ def test_visualization_plot_precip_field(source, map, drawlonlatlines, lw):
         drawlonlatlines=drawlonlatlines,
         lw=lw,
     )
+    pl.close()
 
 
 if __name__ == "__main__":

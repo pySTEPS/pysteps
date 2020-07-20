@@ -101,7 +101,7 @@ def advection_correction(R, T=5, t=1):
     x, y = np.meshgrid(
         np.arange(R[0].shape[1], dtype=float), np.arange(R[0].shape[0], dtype=float),
     )
-    for i in range(1, 1 + int(T / t)):
+    for i in range(t, T + t, t):
 
         pos1 = (y - i / T * V[1], x - i / T * V[0])
         R1 = map_coordinates(R[0], pos1, order=1)
@@ -111,7 +111,7 @@ def advection_correction(R, T=5, t=1):
 
         Rd += (T - i) * R1 + i * R2
 
-    return 1 / T ** 2 * Rd
+    return t / T ** 2 * Rd
 
 
 ###############################################################################
@@ -120,7 +120,7 @@ def advection_correction(R, T=5, t=1):
 
 R_ac = R[0].copy()
 for i in range(R.shape[0] - 1):
-    R_ac += advection_correction(R[i : (i + 2)], T=10)
+    R_ac += advection_correction(R[i : (i + 2)], T=10, t=1)
 R_ac /= R.shape[0]
 
 ###############################################################################

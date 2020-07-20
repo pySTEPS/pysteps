@@ -46,9 +46,10 @@ following order:
   pystepsrc file inside that directory.
 - **$HOME/.pysteps/pystepsrc** (Unix and Mac OS X) : If the system variable $HOME is defined, it looks
   for the configuration file in this path.
-- **$USERPROFILE/pysteps/pystepsrc** (Windows only): It looks for the configuration file
-  in the pysteps directory located user's home directory.
-- Lastly, it looks inside the library in *pysteps/pystepsrc* for a
+- **%USERPROFILE%\\pysteps\\pystepsrc** (Windows only): It looks for the configuration file
+  in the pysteps directory located user's home directory (indicated by the %USERPROFILE%
+  system variable).
+- Lastly, it looks inside the library in *pysteps\\pystepsrc* for a
   system-defined copy.
 
 The recommended method to setup the configuration files is to edit a copy
@@ -73,15 +74,14 @@ need to create the directory if it does not exist. In a terminal, run::
 
     $ mkdir -p ${HOME}/.pysteps
 
-The next step is to find the location of the library's pystepsrc file being
-actually used.
+The next step is to find the location of the library's default pystepsrc file.
 When we import pysteps in a python interpreter, the configuration file loaded
 is shown::
 
     import pysteps
     "Pysteps configuration file found at: /path/to/pysteps/library/pystepsrc"
 
-Then we copy the library's default rc file to that directory::
+Then we copy the library's default configuration file to that directory::
 
     $ cp /path/to/pysteps/library/pystepsrc ${HOME}/.pysteps/pystepsrc
 
@@ -98,26 +98,36 @@ Windows
 ~~~~~~~
 
 For windows users, the recommended way to customize the pySTEPS
-configuration is placing the pystepsrc parameters file in the users folder
+configuration is placing the pystepsrc parameters file in the users' folder
 (defined in the %USERPROFILE% environment variable) in the following path:
-**%USERPROFILE%/pysteps/pystepsrc**
+**%USERPROFILE%\\pysteps\\pystepsrc**
 
-To steps to setup up the configuration file in the home directory first we
-need to create the directory if it does not exist. In a terminal, run::
+To setup up the configuration file in the home directory first, we
+need to create the directory if it does not exist. In a **windows terminal**, run::
 
-    $ mkdir -p %USERPROFILE%\pysteps
+    $ mkdir %USERPROFILE%\pysteps
 
-The next step is to find the location of the library's pystepsrc file is
-actually used.
+**Important**
+
+It was reported that the %USERPROFILE% variable may be interpreted as an string
+literal when the anaconda terminal is used.
+This will result in a '%USERPROFILE%' folder being created in the current working directory
+instead of the desired pysteps folder in the user's home.
+If that is the case, use the explicit path to your home folder instead of `%USERPROFILE%`.
+For example::
+
+    $ mkdir C:\Users\your_username\pysteps
+
+The next step is to find the location of the library's default pystepsrc file.
 When we import pysteps in a python interpreter, the configuration file loaded
 is shown::
 
     import pysteps
     "Pysteps configuration file found at: C:\path\to\pysteps\library\pystepsrc"
 
-Then we copy the library's default rc file to that directory::
+Then we copy the library's default configuration file to that directory::
 
-    $ cp C:\path\to\pysteps\library\pystepsrc %USERPROFILE%\pysteps\pystepsrc
+    $ copy C:\path\to\pysteps\library\pystepsrc %USERPROFILE%\pysteps\pystepsrc
 
 Edit the file with the text editor of your preference and change the default
 configurations with your preferences.

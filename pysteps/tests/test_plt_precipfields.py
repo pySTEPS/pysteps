@@ -78,6 +78,7 @@ def test_visualization_plot_precip_field(
         colorbar=colorbar,
         axis=axis,
     )
+    pl.close()
 
 
 if __name__ == "__main__":
