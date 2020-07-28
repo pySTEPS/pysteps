@@ -91,7 +91,7 @@ def forecast(
         the stationarity of the AR process cannot be guaranteed.
     ar_window_radius : int, optional
         The radius of the window to use for determining the parameters of the
-        autoregressive model.
+        autoregressive model. Set to None to disable localization.
     r_vil_window_radius : int, optional
         The radius of the window to use for determining the R(VIL) relation.
         Applicable if rainrate is not None.
@@ -179,7 +179,11 @@ def forecast(
     print("parallel threads:            %d" % num_workers)
     print("number of cascade levels:    %d" % n_cascade_levels)
     print("order of the ARI(p,1) model: %d" % ar_order)
-    print("ARI(p,1) window radius:      %d" % ar_window_radius)
+    if type(ar_window_radius) == int:
+        print("ARI(p,1) window radius:      %d" % ar_window_radius)
+    else:
+        print("ARI(p,1) window radius:      none")
+
     print("R(VIL) window radius:        %d" % r_vil_window_radius)
 
     if measure_time:
@@ -381,11 +385,18 @@ def _moving_window_corrcoef(x, y, window_radius):
     y[~mask] = 0.0
     mask = mask.astype(float)
 
-    n = gaussian_filter(mask, window_radius, mode="constant")
+    if window_radius is not None:
+        n = gaussian_filter(mask, window_radius, mode="constant")
 
-    ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
-    ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
-    sxy = gaussian_filter(x * y, window_radius, mode="constant")
+        ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
+        ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
+        sxy = gaussian_filter(x * y, window_radius, mode="constant")
+    else:
+        n = np.mean(mask)
+
+        ssx = np.mean(x ** 2)
+        ssy = np.mean(y ** 2)
+        sxy = np.mean(x * y)
 
     stdx = np.sqrt(ssx / n)
     stdy = np.sqrt(ssy / n)
