@@ -50,7 +50,10 @@ def quiver(
     geodata : dictionary
         Optional dictionary containing geographical information about
         the field.
+        
         If geodata is not None, it must contain the following key-value pairs:
+        
+        .. tabularcolumns:: |p{1.5cm}|L|
 
         +----------------+----------------------------------------------------+
         |        Key     |                  Value                             |
@@ -69,11 +72,10 @@ def quiver(
         |    y2          | y-coordinate of the upper-right corner of the data |
         |                | raster                                             |
         +----------------+----------------------------------------------------+
-        |    yorigin     | location of the first element in the data raster   |
-        |                | element in the data raster w.r.t. y-axis:          |
-        |                |                                                    |
-        |                | 'upper' = upper border, 'lower' = lower border     |
-        +----------------+----------------------------------------------------+
+        |    xpixelsize    | grid resolution in x-direction                   |
+        +------------------+--------------------------------------------------+
+        |    ypixelsize    | grid resolution in y-direction                   |
+        +------------------+--------------------------------------------------+
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
@@ -249,6 +251,8 @@ def streamplot(
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
+        
+        .. tabularcolumns:: |p{1.5cm}|L|
 
         +----------------+----------------------------------------------------+
         |        Key     |                  Value                             |
@@ -267,12 +271,10 @@ def streamplot(
         |    y2          | y-coordinate of the upper-right corner of the data |
         |                | raster                                             |
         +----------------+----------------------------------------------------+
-        |    yorigin     | location of the first element in the data raster   |
-        |                | element in the data raster w.r.t. y-axis:          |
-        |                |                                                    |
-        |                | 'upper' = upper border, 'lower' = lower border     |
-        +----------------+----------------------------------------------------+
-
+        |    xpixelsize    | grid resolution in x-direction                   |
+        +------------------+--------------------------------------------------+
+        |    ypixelsize    | grid resolution in y-direction                   |
+        +------------------+--------------------------------------------------+
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
