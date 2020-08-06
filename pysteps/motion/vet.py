@@ -529,7 +529,7 @@ def vet(
             constant_values=numpy.nan,
         )
 
-        mask = numpy.pad(mask, padding_tuple, "constant", constant_values="True")
+        mask = numpy.pad(mask, padding_tuple, "constant", constant_values=True)
 
         input_images = numpy.ma.MaskedArray(data=input_images_data, mask=mask)
 
