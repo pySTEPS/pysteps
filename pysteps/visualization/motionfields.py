@@ -179,10 +179,10 @@ def quiver(
                 extent,
                 UV.shape[1:],
                 drawlonlatlines,
-                basemap_resolution,
-                cartopy_scale,
-                lw,
-                cartopy_subplot,
+                resolution=basemap_resolution,
+                scale_args=cartopy_scale,
+                scale=lw,
+                subplot=cartopy_subplot,
             )
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -198,10 +198,10 @@ def quiver(
                 extent,
                 UV.shape[1:],
                 drawlonlatlines,
-                basemap_resolution,
-                cartopy_scale,
-                lw,
-                cartopy_subplot,
+                resolution=basemap_resolution,
+                scale_args=cartopy_scale,
+                scale=lw,
+                subplot=cartopy_subplot,
             )
     else:
         ax = plt.gca()
@@ -381,10 +381,10 @@ def streamplot(
                 extent,
                 UV.shape[1:],
                 drawlonlatlines,
-                basemap_resolution,
-                cartopy_scale,
-                lw,
-                cartopy_subplot,
+                resolution=basemap_resolution,
+                scale_args=cartopy_scale,
+                scale=lw,
+                subplot=cartopy_subplot,
             )
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -400,10 +400,10 @@ def streamplot(
                 extent,
                 UV.shape[1:],
                 drawlonlatlines,
-                basemap_resolution,
-                cartopy_scale,
-                lw,
-                cartopy_subplot,
+                resolution=basemap_resolution,
+                scale_args=cartopy_scale,
+                scale=lw,
+                subplot=cartopy_subplot,
             )
     else:
         ax = plt.gca()
