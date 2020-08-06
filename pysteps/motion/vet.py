@@ -513,20 +513,25 @@ def vet(
             + "Supported values: {0}".format(str(valid_indexing))
         )
 
-    # Get mask
-    if isinstance(input_images, MaskedArray):
-        mask = numpy.ma.getmaskarray(input_images)
-    else:
-        # Mask invalid data
-        if padding > 0:
-            padding_tuple = ((0, 0), (padding, padding), (padding, padding))
-
-            input_images = numpy.pad(
-                input_images, padding_tuple, "constant", constant_values=numpy.nan
-            )
-
+    # Convert input_images to a MaskedArray if it is a regular ndarray
+    if not isinstance(input_images, MaskedArray):
         input_images = numpy.ma.masked_invalid(input_images)
-        mask = numpy.ma.getmaskarray(input_images)
+
+    mask = numpy.ma.getmaskarray(input_images)
+
+    if padding > 0:
+        padding_tuple = ((0, 0), (padding, padding), (padding, padding))
+
+        input_images_data = numpy.pad(
+            numpy.ma.getdata(input_images),
+            padding_tuple,
+            "constant",
+            constant_values=numpy.nan,
+        )
+
+        mask = numpy.pad(mask, padding_tuple, "constant", constant_values=True)
+
+        input_images = numpy.ma.MaskedArray(data=input_images_data, mask=mask)
 
     input_images.data[mask] = 0  # Remove any Nan from the raw data
 
