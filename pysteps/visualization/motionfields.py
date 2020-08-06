@@ -26,11 +26,10 @@ def quiver(
     map=None,
     geodata=None,
     drawlonlatlines=False,
-    basemap_resolution="l",
-    cartopy_scale="50m",
     lw=0.5,
-    cartopy_subplot=(1, 1, 1),
     axis="on",
+    step=20,
+    color="black",
     **kwargs,
 ):
     """Function to plot a motion field as arrows.
@@ -75,33 +74,22 @@ def quiver(
         |                |                                                    |
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
-
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
-    basemap_resolution : str, optional
-        The resolution of the basemap, see the documentation of
-        `mpl_toolkits.basemap`_.
-        Applicable if map is 'basemap'.
-    cartopy_scale : {'10m', '50m', '110m'}, optional
-        The scale (resolution) of the map. The available options are '10m',
-        '50m', and '110m'. Applicable if map is 'cartopy'.
     lw: float, optional
         Linewidth of the map (administrative boundaries and coastlines).
-    cartopy_subplot : tuple or SubplotSpec_ instance, optional
-        Cartopy subplot. Applicable if map is 'cartopy'.
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-
-    Other Parameters
-    ----------------
     step : int
         Optional resample step to control the density of the arrows.
-        Default : 20
     color : string
         Optional color of the arrows. This is a synonym for the PolyCollection
         facecolor kwarg in matplotlib.collections.
-        Default : black
+    
+    Other parameters
+    ----------------
+    Optional parameters are contained in **kwargs. See basemaps.plot_geography.
 
     Returns
     -------
@@ -179,10 +167,7 @@ def quiver(
                 extent,
                 UV.shape[1:],
                 drawlonlatlines,
-                resolution=basemap_resolution,
-                scale_args=cartopy_scale,
-                scale=lw,
-                subplot=cartopy_subplot,
+                **kwargs,
             )
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -197,11 +182,9 @@ def quiver(
                 geodata["projection"],
                 extent,
                 UV.shape[1:],
+                lw,
                 drawlonlatlines,
-                resolution=basemap_resolution,
-                scale_args=cartopy_scale,
-                scale=lw,
-                subplot=cartopy_subplot,
+                **kwargs,
             )
     else:
         ax = plt.gca()
@@ -238,11 +221,10 @@ def streamplot(
     map=None,
     geodata=None,
     drawlonlatlines=False,
-    basemap_resolution="l",
-    cartopy_scale="50m",
     lw=0.5,
-    cartopy_subplot=(1, 1, 1),
     axis="on",
+    density=1.5,
+    color="black",
     **kwargs,
 ):
     """Function to plot a motion field as streamlines.
@@ -294,31 +276,19 @@ def streamplot(
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
-    basemap_resolution : str, optional
-        The resolution of the basemap, see the documentation of
-        `mpl_toolkits.basemap`_.
-        Applicable if map is 'basemap'.
-    cartopy_scale : {'10m', '50m', '110m'}, optional
-        The scale (resolution) of the map. The available options are '10m',
-        '50m', and '110m'. Applicable if map is 'cartopy'.
     lw: float, optional
         Linewidth of the map (administrative boundaries and coastlines).
-    cartopy_subplot : tuple or SubplotSpec_ instance, optional
-        Cartopy subplot. Applicable if map is 'cartopy'.
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-
-
-
-    Other Parameters
-    ----------------
     density : float
         Controls the closeness of streamlines.
-        Default : 1.5
     color : string
-        Optional streamline color. This is a synonym for the PolyCollection
+        Optional color of the arrows. This is a synonym for the PolyCollection
         facecolor kwarg in matplotlib.collections.
-        Default : black
+    
+    Other parameters
+    ----------------
+    Optional parameters are contained in **kwargs. See basemaps.plot_geography.
 
     Returns
     -------
@@ -381,10 +351,7 @@ def streamplot(
                 extent,
                 UV.shape[1:],
                 drawlonlatlines,
-                resolution=basemap_resolution,
-                scale_args=cartopy_scale,
-                scale=lw,
-                subplot=cartopy_subplot,
+                **kwargs,
             )
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -400,10 +367,7 @@ def streamplot(
                 extent,
                 UV.shape[1:],
                 drawlonlatlines,
-                resolution=basemap_resolution,
-                scale_args=cartopy_scale,
-                scale=lw,
-                subplot=cartopy_subplot,
+                **kwargs,
             )
     else:
         ax = plt.gca()
