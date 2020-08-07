@@ -12,7 +12,6 @@ Functions to plot motion fields.
 """
 
 import matplotlib.pylab as plt
-import matplotlib.colors as colors
 import numpy as np
 from pysteps.exceptions import UnsupportedSomercProjection
 
@@ -29,7 +28,7 @@ def quiver(
     lw=0.5,
     axis="on",
     step=20,
-    color="black",
+    quiver_kwargs=None,
     **kwargs,
 ):
     """Function to plot a motion field as arrows.
@@ -76,6 +75,10 @@ def quiver(
         +------------------+--------------------------------------------------+
         |    ypixelsize    | grid resolution in y-direction                   |
         +------------------+--------------------------------------------------+
+        |    yorigin      | a string specifying the location of the first     |
+        |                 | element in the data raster w.r.t. y-axis:         |
+        |                 | 'upper' = upper border, 'lower' = lower border    |
+        +-----------------+---------------------------------------------------+
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
@@ -85,9 +88,10 @@ def quiver(
         Whether to turn off or on the x and y axis.
     step : int
         Optional resample step to control the density of the arrows.
-    color : string
-        Optional color of the arrows. This is a synonym for the PolyCollection
-        facecolor kwarg in matplotlib.collections.
+    quiver_kwargs : dict, optional
+      Optional dictionary containing keyword arguments for the quiver method.
+      See the documentation of matplotlib.pyplot.quiver.
+    
     
     Other parameters
     ----------------
@@ -102,24 +106,8 @@ def quiver(
     if map is not None and geodata is None:
         raise ValueError("map!=None but geodata=None")
 
-    # defaults
-    step = kwargs.get("step", 20)
-
-    quiver_keys = [
-        "scale",
-        "scale_units",
-        "width",
-        "headwidth",
-        "headlength",
-        "headaxislength",
-        "minshaft",
-        "minlength",
-        "pivot",
-        "color",
-    ]
-    kwargs_quiver = {k: kwargs[k] for k in set(quiver_keys).intersection(kwargs)}
-
-    kwargs_quiver["color"] = kwargs.get("color", "black")
+    if quiver_kwargs is None:
+        quiver_kwargs = dict()
 
     # prepare x y coordinates
     reproject = False
@@ -153,6 +141,7 @@ def quiver(
                 )
                 extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
                 X, Y = geodata["X_grid"], geodata["Y_grid"]
+
     else:
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1])
@@ -196,17 +185,14 @@ def quiver(
     dx = UV[0, :, :]
     dy = UV[1, :, :]
 
+    if geodata is None or geodata["yorigin"] == "upper":
+        Y = np.flipud(Y)
+        dy *= -1
+
     # plot quiver
     ax.quiver(
-        X[skip],
-        np.flipud(Y[skip]),
-        dx[skip],
-        -dy[skip],
-        angles="xy",
-        zorder=1e6,
-        **kwargs_quiver,
+        X[skip], Y[skip], dx[skip], dy[skip], angles="xy", zorder=1e6, **quiver_kwargs,
     )
-
     if geodata is None or axis == "off":
         axes = plt.gca()
         axes.xaxis.set_ticks([])
@@ -225,8 +211,7 @@ def streamplot(
     drawlonlatlines=False,
     lw=0.5,
     axis="on",
-    density=1.5,
-    color="black",
+    streamplot_kwargs=None,
     **kwargs,
 ):
     """Function to plot a motion field as streamlines.
@@ -275,6 +260,10 @@ def streamplot(
         +------------------+--------------------------------------------------+
         |    ypixelsize    | grid resolution in y-direction                   |
         +------------------+--------------------------------------------------+
+        |    yorigin      | a string specifying the location of the first     |
+        |                 | element in the data raster w.r.t. y-axis:         |
+        |                 | 'upper' = upper border, 'lower' = lower border    |
+        +-----------------+---------------------------------------------------+
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
@@ -282,11 +271,9 @@ def streamplot(
         Linewidth of the map (administrative boundaries and coastlines).
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-    density : float
-        Controls the closeness of streamlines.
-    color : string
-        Optional color of the arrows. This is a synonym for the PolyCollection
-        facecolor kwarg in matplotlib.collections.
+    streamplot_kwargs : dict, optional
+      Optional dictionary containing keyword arguments for the streamplot method.
+      See the documentation of matplotlib.pyplot.streamplot.
     
     Other parameters
     ----------------
@@ -301,9 +288,8 @@ def streamplot(
     if map is not None and geodata is None:
         raise ValueError("map!=None but geodata=None")
 
-    # defaults
-    density = kwargs.get("density", 1.5)
-    color = kwargs.get("color", "black")
+    if streamplot_kwargs is None:
+        streamplot_kwargs = dict()
 
     # prepare x y coordinates
     reproject = False
@@ -337,6 +323,8 @@ def streamplot(
                 )
                 extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
                 X, Y = geodata["X_grid"], geodata["Y_grid"]
+                x = X[0, :]
+                y = Y[:, 0]
     else:
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1])
@@ -362,6 +350,8 @@ def streamplot(
             geodata = utils.reproject_geodata(geodata, t_proj4str, return_grid="coords")
             extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
+            x = X[0, :]
+            y = Y[:, 0]
 
             ax = basemaps.plot_geography(
                 map,
@@ -374,15 +364,16 @@ def streamplot(
     else:
         ax = plt.gca()
 
+    dx = UV[0, :, :]
+    dy = UV[1, :, :]
+
+    if geodata is None or geodata["yorigin"] == "upper":
+        y = y[::-1]
+        dy *= -1
+
     # plot streamplot
     ax.streamplot(
-        x,
-        np.flipud(y),
-        UV[0, :, :],
-        -UV[1, :, :],
-        density=density,
-        color=color,
-        zorder=1e6,
+        x, y, dx, dy, zorder=1e6, **streamplot_kwargs,
     )
 
     if geodata is None or axis == "off":
