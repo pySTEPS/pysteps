@@ -157,6 +157,7 @@ def quiver(
                 geodata["projection"],
                 extent,
                 UV.shape[1:],
+                lw,
                 drawlonlatlines,
                 **kwargs,
             )
@@ -340,6 +341,7 @@ def streamplot(
                 geodata["projection"],
                 extent,
                 UV.shape[1:],
+                lw,
                 drawlonlatlines,
                 **kwargs,
             )
@@ -358,6 +360,7 @@ def streamplot(
                 geodata["projection"],
                 extent,
                 UV.shape[1:],
+                lw,
                 drawlonlatlines,
                 **kwargs,
             )
