@@ -71,10 +71,6 @@ def quiver(
         |    y2          | y-coordinate of the upper-right corner of the data |
         |                | raster                                             |
         +----------------+----------------------------------------------------+
-        |    xpixelsize    | grid resolution in x-direction                   |
-        +------------------+--------------------------------------------------+
-        |    ypixelsize    | grid resolution in y-direction                   |
-        +------------------+--------------------------------------------------+
         |    yorigin      | a string specifying the location of the first     |
         |                 | element in the data raster w.r.t. y-axis:         |
         |                 | 'upper' = upper border, 'lower' = lower border    |
@@ -112,14 +108,18 @@ def quiver(
     # prepare x y coordinates
     reproject = False
     if geodata is not None:
-        x = (
-            np.linspace(geodata["x1"], geodata["x2"], UV.shape[2])
-            + geodata["xpixelsize"] / 2.0
-        )
-        y = (
-            np.linspace(geodata["y1"], geodata["y2"], UV.shape[1])
-            + geodata["ypixelsize"] / 2.0
-        )
+        xmin = min((geodata["x1"], geodata["x2"]))
+        xmax = max((geodata["x1"], geodata["x2"]))
+        x = np.linspace(xmin, xmax, UV.shape[2])
+        xpixelsize = np.abs(x[1] - x[0])
+        x += xpixelsize / 2.0
+
+        ymin = min((geodata["y1"], geodata["y2"]))
+        ymax = max((geodata["y1"], geodata["y2"]))
+        y = np.linspace(ymin, ymax, UV.shape[1])
+        ypixelsize = np.abs(y[1] - y[0])
+        y += ypixelsize / 2.0
+
         extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
 
         # check geodata and project if different from axes
@@ -256,14 +256,10 @@ def streamplot(
         |    y2          | y-coordinate of the upper-right corner of the data |
         |                | raster                                             |
         +----------------+----------------------------------------------------+
-        |    xpixelsize    | grid resolution in x-direction                   |
-        +------------------+--------------------------------------------------+
-        |    ypixelsize    | grid resolution in y-direction                   |
-        +------------------+--------------------------------------------------+
-        |    yorigin      | a string specifying the location of the first     |
-        |                 | element in the data raster w.r.t. y-axis:         |
-        |                 | 'upper' = upper border, 'lower' = lower border    |
-        +-----------------+---------------------------------------------------+
+        |    yorigin     | a string specifying the location of the first      |
+        |                | element in the data raster w.r.t. y-axis:          |
+        |                | 'upper' = upper border, 'lower' = lower border     |
+        +----------------+----------------------------------------------------+
     drawlonlatlines : bool, optional
         If set to True, draw longitude and latitude lines. Applicable if map is
         'basemap' or 'cartopy'.
@@ -294,14 +290,18 @@ def streamplot(
     # prepare x y coordinates
     reproject = False
     if geodata is not None:
-        x = (
-            np.linspace(geodata["x1"], geodata["x2"], UV.shape[2])
-            + geodata["xpixelsize"] / 2.0
-        )
-        y = (
-            np.linspace(geodata["y1"], geodata["y2"], UV.shape[1])
-            + geodata["ypixelsize"] / 2.0
-        )
+        xmin = min((geodata["x1"], geodata["x2"]))
+        xmax = max((geodata["x1"], geodata["x2"]))
+        x = np.linspace(xmin, xmax, UV.shape[2])
+        xpixelsize = np.abs(x[1] - x[0])
+        x += xpixelsize / 2.0
+
+        ymin = min((geodata["y1"], geodata["y2"]))
+        ymax = max((geodata["y1"], geodata["y2"]))
+        y = np.linspace(ymin, ymax, UV.shape[1])
+        ypixelsize = np.abs(y[1] - y[0])
+        y += ypixelsize / 2.0
+
         extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
 
         # check geodata and project if different from axes
