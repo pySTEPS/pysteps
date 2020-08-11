@@ -161,15 +161,15 @@ def quiver(
     if plot_map is not None:
         try:
             ax = basemaps.plot_geography(
-                None,
+                plot_map,
                 geodata["projection"],
                 extent,
-                UV.shape[1:],
-                lw,
-                drawlonlatlines,
-                plot_map=plot_map,
+                shape=UV.shape[1:],
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
                 **kwargs,
             )
+
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -179,13 +179,12 @@ def quiver(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
             ax = basemaps.plot_geography(
-                None,
+                plot_map,
                 geodata["projection"],
                 extent,
-                UV.shape[1:],
-                lw,
-                drawlonlatlines,
-                plot_map=plot_map,
+                shape=UV.shape[1:],
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
                 **kwargs,
             )
     else:
@@ -352,13 +351,12 @@ def streamplot(
     if plot_map is not None:
         try:
             ax = basemaps.plot_geography(
-                None,
+                plot_map,
                 geodata["projection"],
                 extent,
-                UV.shape[1:],
-                lw,
-                drawlonlatlines,
-                plot_map=plot_map,
+                shape=UV.shape[1:],
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
                 **kwargs,
             )
         except UnsupportedSomercProjection:
@@ -372,13 +370,12 @@ def streamplot(
             y = Y[:, 0]
 
             ax = basemaps.plot_geography(
-                None,
+                plot_map,
                 geodata["projection"],
                 extent,
-                UV.shape[1:],
-                lw,
-                drawlonlatlines,
-                plot_map=plot_map,
+                shape=UV.shape[1:],
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
                 **kwargs,
             )
     else:

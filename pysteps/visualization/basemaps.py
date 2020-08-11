@@ -41,7 +41,7 @@ from . import utils
 
 
 def plot_geography(
-    map, proj4str, extent, shape=None, lw=0.5, drawlonlatlines=False, **kwargs
+    plot_map, proj4str, extent, shape=None, lw=0.5, drawlonlatlines=False, **kwargs
 ):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
@@ -54,7 +54,7 @@ def plot_geography(
 
     Parameters
     ----------
-    map : {'cartopy', 'basemap'}
+    plot_map : {'cartopy', 'basemap'}
         The type of basemap.
     proj4str : str
         The PROJ.4-compatible projection string.
@@ -94,15 +94,8 @@ def plot_geography(
         Whether the projection allows plotting a regular grid.
         Returns False in case a fall-back projection is used.
     """
-    if map is not None:
-        FutureWarning(
-            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
-        )
-        plot_map = map
-    else:
-        plot_map = kwargs.pop("plot_map", None)
 
-    if plot_map is not None and plot_map not in ["basemap", "cartopy"]:
+    if plot_map not in ["basemap", "cartopy"]:
         raise ValueError(
             "unknown map method %s: must be" + " 'basemap' or 'cartopy'" % plot_map
         )
@@ -125,11 +118,6 @@ def plot_geography(
     if plot_map == "basemap":
         basemap_resolution = kwargs.get("resolution", "l")
         basemap_scale_args = kwargs.get("scale_args", None)
-    if plot_map == "cartopy":
-        cartopy_scale = kwargs.get("scale", "50m")
-        cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
-
-    if plot_map == "basemap":
         pr = pyproj.Proj(proj4str)
         x1, x2, y1, y2 = extent[0], extent[1], extent[2], extent[3]
         ll_lon, ll_lat = pr(x1, y1, inverse=True)
@@ -147,6 +135,8 @@ def plot_geography(
         if basemap_scale_args is not None:
             ax.drawmapscale(*basemap_scale_args, fontsize=6, yoffset=10000)
     else:
+        cartopy_scale = kwargs.get("scale", "50m")
+        cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
         crs = utils.proj4_to_cartopy(proj4str)
 
         ax = plot_map_cartopy(

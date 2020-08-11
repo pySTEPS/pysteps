@@ -188,13 +188,12 @@ def plot_precip_field(
     if plot_map is not None:
         try:
             ax = basemaps.plot_geography(
-                None,
+                plot_map,
                 geodata["projection"],
                 bm_extent,
                 R.shape,
                 lw,
                 drawlonlatlines,
-                plot_map=plot_map,
                 **kwargs,
             )
             regular_grid = True
@@ -212,13 +211,12 @@ def plot_precip_field(
             regular_grid = geodata["regular_grid"]
 
             ax = basemaps.plot_geography(
-                None,
+                plot_map,
                 geodata["projection"],
                 bm_extent,
                 R.shape,
                 lw,
                 drawlonlatlines,
-                plot_map=plot_map,
                 **kwargs,
             )
     else:
