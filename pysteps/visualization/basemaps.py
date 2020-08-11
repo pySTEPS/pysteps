@@ -94,34 +94,42 @@ def plot_geography(
         Whether the projection allows plotting a regular grid.
         Returns False in case a fall-back projection is used.
     """
-    if map is not None and map not in ["basemap", "cartopy"]:
-        raise ValueError(
-            "unknown map method %s: must be" + " 'basemap' or 'cartopy'" % map
+    if map is not None:
+        FutureWarning(
+            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
         )
-    if map == "basemap" and not basemap_imported:
+        plot_map = map
+    else:
+        plot_map = kwargs.pop("plot_map", None)
+
+    if plot_map is not None and plot_map not in ["basemap", "cartopy"]:
+        raise ValueError(
+            "unknown map method %s: must be" + " 'basemap' or 'cartopy'" % plot_map
+        )
+    if plot_map == "basemap" and not basemap_imported:
         raise MissingOptionalDependency(
             "map='basemap' option passed to plot_geography function "
             "but the basemap package is not installed"
         )
-    if map == "cartopy" and not cartopy_imported:
+    if plot_map == "cartopy" and not cartopy_imported:
         raise MissingOptionalDependency(
             "map='cartopy' option passed to plot_geography function "
             "but the cartopy package is not installed"
         )
-    if map is not None and not pyproj_imported:
+    if plot_map is not None and not pyproj_imported:
         raise MissingOptionalDependency(
             "map!=None option passed to plot_geography function "
             "but the pyproj package is not installed"
         )
 
-    if map == "basemap":
+    if plot_map == "basemap":
         basemap_resolution = kwargs.get("resolution", "l")
         basemap_scale_args = kwargs.get("scale_args", None)
-    if map == "cartopy":
+    if plot_map == "cartopy":
         cartopy_scale = kwargs.get("scale", "50m")
         cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
 
-    if map == "basemap":
+    if plot_map == "basemap":
         pr = pyproj.Proj(proj4str)
         x1, x2, y1, y2 = extent[0], extent[1], extent[2], extent[3]
         ll_lon, ll_lat = pr(x1, y1, inverse=True)

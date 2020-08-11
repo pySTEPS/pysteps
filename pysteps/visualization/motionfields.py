@@ -99,7 +99,15 @@ def quiver(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-    if map is not None and geodata is None:
+    if map is not None:
+        FutureWarning(
+            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
+        )
+        plot_map = map
+    else:
+        plot_map = kwargs.pop("plot_map", None)
+
+    if plot_map is not None and geodata is None:
         raise ValueError("map!=None but geodata=None")
 
     if quiver_kwargs is None:
@@ -123,7 +131,7 @@ def quiver(
         extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
 
         # check geodata and project if different from axes
-        if ax is not None and map is None:
+        if ax is not None and plot_map is None:
             if type(ax).__name__ == "GeoAxesSubplot":
                 try:
                     ccrs = utils.proj4_to_cartopy(geodata["projection"])
@@ -150,15 +158,16 @@ def quiver(
         X, Y = np.meshgrid(x, y)
 
     # draw basemaps
-    if map is not None:
+    if plot_map is not None:
         try:
             ax = basemaps.plot_geography(
-                map,
+                None,
                 geodata["projection"],
                 extent,
                 UV.shape[1:],
                 lw,
                 drawlonlatlines,
+                plot_map=plot_map,
                 **kwargs,
             )
         except UnsupportedSomercProjection:
@@ -170,12 +179,13 @@ def quiver(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
             ax = basemaps.plot_geography(
-                map,
+                None,
                 geodata["projection"],
                 extent,
                 UV.shape[1:],
                 lw,
                 drawlonlatlines,
+                plot_map=plot_map,
                 **kwargs,
             )
     else:
@@ -282,7 +292,15 @@ def streamplot(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-    if map is not None and geodata is None:
+    if map is not None:
+        FutureWarning(
+            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
+        )
+        plot_map = map
+    else:
+        plot_map = kwargs.pop("plot_map", None)
+
+    if plot_map is not None and geodata is None:
         raise ValueError("map!=None but geodata=None")
 
     if streamplot_kwargs is None:
@@ -306,7 +324,7 @@ def streamplot(
         extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
 
         # check geodata and project if different from axes
-        if ax is not None and map is None:
+        if ax is not None and plot_map is None:
             if type(ax).__name__ == "GeoAxesSubplot":
                 try:
                     ccrs = utils.proj4_to_cartopy(geodata["projection"])
@@ -331,15 +349,16 @@ def streamplot(
         y = np.arange(UV.shape[1])
 
     # draw basemaps
-    if map is not None:
+    if plot_map is not None:
         try:
             ax = basemaps.plot_geography(
-                map,
+                None,
                 geodata["projection"],
                 extent,
                 UV.shape[1:],
                 lw,
                 drawlonlatlines,
+                plot_map=plot_map,
                 **kwargs,
             )
         except UnsupportedSomercProjection:
@@ -353,12 +372,13 @@ def streamplot(
             y = Y[:, 0]
 
             ax = basemaps.plot_geography(
-                map,
+                None,
                 geodata["projection"],
                 extent,
                 UV.shape[1:],
                 lw,
                 drawlonlatlines,
+                plot_map=plot_map,
                 **kwargs,
             )
     else:

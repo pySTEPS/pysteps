@@ -137,6 +137,14 @@ def plot_precip_field(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
+    if map is not None:
+        FutureWarning(
+            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
+        )
+        plot_map = map
+    else:
+        plot_map = kwargs.pop("plot_map", None)
+
     if type not in ["intensity", "depth", "prob"]:
         raise ValueError(
             "invalid type '%s', must be " + "'intensity', 'depth' or 'prob'" % type
@@ -147,7 +155,7 @@ def plot_precip_field(
         )
     if type == "prob" and colorbar and probthr is None:
         raise ValueError("type='prob' but probthr not specified")
-    if map is not None and geodata is None:
+    if plot_map is not None and geodata is None:
         raise ValueError("map!=None but geodata=None")
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
@@ -177,15 +185,16 @@ def plot_precip_field(
         origin = "upper"
 
     # plot geography
-    if map is not None:
+    if plot_map is not None:
         try:
             ax = basemaps.plot_geography(
-                map,
+                None,
                 geodata["projection"],
                 bm_extent,
                 R.shape,
                 lw,
                 drawlonlatlines,
+                plot_map=plot_map,
                 **kwargs,
             )
             regular_grid = True
@@ -203,21 +212,22 @@ def plot_precip_field(
             regular_grid = geodata["regular_grid"]
 
             ax = basemaps.plot_geography(
-                map,
+                None,
                 geodata["projection"],
                 bm_extent,
                 R.shape,
                 lw,
                 drawlonlatlines,
+                plot_map=plot_map,
                 **kwargs,
             )
     else:
         regular_grid = True
 
-    if bbox is not None and map is not None:
+    if bbox is not None and plot_map is not None:
         x1, y1 = pr(geodata["x1"], geodata["y1"], inverse=True)
         x2, y2 = pr(geodata["x2"], geodata["y2"], inverse=True)
-        if map == "basemap":
+        if plot_map == "basemap":
             x1, y1 = ax(x1, y1)
             x2, y2 = ax(x2, y2)
         else:
@@ -283,7 +293,7 @@ def plot_precip_field(
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
 
-    if map is None and bbox is not None:
+    if plot_map is None and bbox is not None:
         ax = plt.gca()
         ax.set_xlim(bbox[0], bbox[2])
         ax.set_ylim(bbox[1], bbox[3])
