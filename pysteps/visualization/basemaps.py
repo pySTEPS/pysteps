@@ -40,9 +40,7 @@ except ImportError:
 from . import utils
 
 
-def plot_geography(
-    plot_map, proj4str, extent, shape=None, lw=0.5, drawlonlatlines=False, **kwargs
-):
+def plot_geography(plot_map, proj4str, extent, lw=0.5, drawlonlatlines=False, **kwargs):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
 
@@ -60,9 +58,6 @@ def plot_geography(
         The PROJ.4-compatible projection string.
     extent: scalars (left, right, bottom, top)
         The bounding box in proj4str coordinates.
-    shape: scalars (n_rows, n_cols)
-        The dimensions of the image.
-        Only used if needing a fallback projection.
     lw: float, optional
         Linewidth of the map (administrative boundaries and coastlines).
     drawlonlatlines : bool, optional

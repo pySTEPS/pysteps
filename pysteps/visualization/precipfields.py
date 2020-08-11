@@ -191,9 +191,8 @@ def plot_precip_field(
                 plot_map,
                 geodata["projection"],
                 bm_extent,
-                R.shape,
-                lw,
-                drawlonlatlines,
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
                 **kwargs,
             )
             regular_grid = True
@@ -214,9 +213,8 @@ def plot_precip_field(
                 plot_map,
                 geodata["projection"],
                 bm_extent,
-                R.shape,
-                lw,
-                drawlonlatlines,
+                lw=lw,
+                drawlonlatlines=drawlonlatlines,
                 **kwargs,
             )
     else:
