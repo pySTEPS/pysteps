@@ -330,9 +330,6 @@ def streamplot(
         x = np.arange(UV.shape[2])
         y = np.arange(UV.shape[1])
 
-    if not reproject:
-        X, Y = np.meshgrid(x, y)
-
     # draw basemaps
     if map is not None:
         try:
