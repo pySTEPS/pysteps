@@ -40,9 +40,7 @@ except ImportError:
 from . import utils
 
 
-def plot_geography(
-    map, proj4str, extent, shape=None, lw=0.5, drawlonlatlines=False, **kwargs
-):
+def plot_geography(plot_map, proj4str, extent, lw=0.5, drawlonlatlines=False, **kwargs):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
 
@@ -54,15 +52,12 @@ def plot_geography(
 
     Parameters
     ----------
-    map : {'cartopy', 'basemap'}
+    plot_map : {'cartopy', 'basemap'}
         The type of basemap.
     proj4str : str
         The PROJ.4-compatible projection string.
     extent: scalars (left, right, bottom, top)
         The bounding box in proj4str coordinates.
-    shape: scalars (n_rows, n_cols)
-        The dimensions of the image.
-        Only used if needing a fallback projection.
     lw: float, optional
         Linewidth of the map (administrative boundaries and coastlines).
     drawlonlatlines : bool, optional
@@ -94,34 +89,30 @@ def plot_geography(
         Whether the projection allows plotting a regular grid.
         Returns False in case a fall-back projection is used.
     """
-    if map is not None and map not in ["basemap", "cartopy"]:
+
+    if plot_map not in ["basemap", "cartopy"]:
         raise ValueError(
-            "unknown map method %s: must be" + " 'basemap' or 'cartopy'" % map
+            "unknown map method %s: must be" + " 'basemap' or 'cartopy'" % plot_map
         )
-    if map == "basemap" and not basemap_imported:
+    if plot_map == "basemap" and not basemap_imported:
         raise MissingOptionalDependency(
             "map='basemap' option passed to plot_geography function "
             "but the basemap package is not installed"
         )
-    if map == "cartopy" and not cartopy_imported:
+    if plot_map == "cartopy" and not cartopy_imported:
         raise MissingOptionalDependency(
             "map='cartopy' option passed to plot_geography function "
             "but the cartopy package is not installed"
         )
-    if map is not None and not pyproj_imported:
+    if plot_map is not None and not pyproj_imported:
         raise MissingOptionalDependency(
             "map!=None option passed to plot_geography function "
             "but the pyproj package is not installed"
         )
 
-    if map == "basemap":
+    if plot_map == "basemap":
         basemap_resolution = kwargs.get("resolution", "l")
         basemap_scale_args = kwargs.get("scale_args", None)
-    if map == "cartopy":
-        cartopy_scale = kwargs.get("scale", "50m")
-        cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
-
-    if map == "basemap":
         pr = pyproj.Proj(proj4str)
         x1, x2, y1, y2 = extent[0], extent[1], extent[2], extent[3]
         ll_lon, ll_lat = pr(x1, y1, inverse=True)
@@ -139,6 +130,8 @@ def plot_geography(
         if basemap_scale_args is not None:
             ax.drawmapscale(*basemap_scale_args, fontsize=6, yoffset=10000)
     else:
+        cartopy_scale = kwargs.get("scale", "50m")
+        cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
         crs = utils.proj4_to_cartopy(proj4str)
 
         ax = plot_map_cartopy(
