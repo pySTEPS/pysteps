@@ -190,8 +190,10 @@ def quiver(
 
     # reduce number of vectors to plot
     skip = (slice(None, None, step), slice(None, None, step))
-    dx = UV[0, :, :]
-    dy = UV[1, :, :]
+    dx = UV[0, :, :][skip]
+    dy = UV[1, :, :][skip]
+    X = X[skip]
+    Y = Y[skip]
 
     if geodata is None or geodata["yorigin"] == "upper":
         Y = np.flipud(Y)
@@ -199,7 +201,7 @@ def quiver(
 
     # plot quiver
     ax.quiver(
-        X[skip], Y[skip], dx[skip], dy[skip], angles="xy", zorder=1e6, **quiver_kwargs,
+        X, Y, dx, dy, angles="xy", zorder=1e6, **quiver_kwargs,
     )
     if geodata is None or axis == "off":
         axes = plt.gca()
