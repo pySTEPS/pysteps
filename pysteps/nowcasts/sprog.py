@@ -41,7 +41,7 @@ def forecast(
     bandpass_filter_method="gaussian",
     ar_order=2,
     conditional=False,
-    probmatching_method="mean",
+    probmatching_method="cdf",
     num_workers=1,
     fft_method="numpy",
     domain="spatial",
