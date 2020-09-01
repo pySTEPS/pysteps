@@ -1099,26 +1099,6 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
                             quality[mask] = arr[mask]
                             quality[~mask] = np.nan
 
-                    for dgg in dg[1].items(): # da qui  ----------------------------
-                        if(dgg[0][0:7]=="quality"):
-                            quality_keys = list(dgg[1].keys())
-                            if "what" in quality_keys:
-                                (
-                                    qty_,
-                                    gain,
-                                    offset,
-                                    nodata,
-                                    undetect,
-                                ) = _read_opera_hdf5_what_group(dgg[1]["what"])
-                            if qty_.decode() == "QIND":
-                                arr = dgg[1]["data"][...]
-                                mask_n = arr == nodata
-                                mask_u = arr == undetect
-                                mask = np.logical_and(~mask_u, ~mask_n)
-                                quality = np.empty(arr.shape)#, dtype=float)
-                                quality[mask] = arr[mask] * gain + offset
-                                quality[~mask] = np.nan  # a qui -----------------------------
-
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
 
@@ -1368,6 +1348,26 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
                             quality = np.empty(arr.shape, dtype=float)
                             quality[mask] = arr[mask]
                             quality[~mask] = np.nan
+
+                    for dgg in dg[1].items(): # da qui  ----------------------------
+                        if(dgg[0][0:7]=="quality"):
+                            quality_keys = list(dgg[1].keys())
+                            if "what" in quality_keys:
+                                (
+                                    qty_,
+                                    gain,
+                                    offset,
+                                    nodata,
+                                    undetect,
+                                ) = _read_opera_hdf5_what_group(dgg[1]["what"])
+                            if qty_.decode() == "QIND":
+                                arr = dgg[1]["data"][...]
+                                mask_n = arr == nodata
+                                mask_u = arr == undetect
+                                mask = np.logical_and(~mask_u, ~mask_n)
+                                quality = np.empty(arr.shape)#, dtype=float)
+                                quality[mask] = arr[mask] * gain + offset
+                                quality[~mask] = np.nan  # a qui -----------------------------
 
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
