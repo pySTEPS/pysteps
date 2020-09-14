@@ -41,20 +41,6 @@ def balanced_spatial_average(x, k):
     return convolve(x, k) / convolve(ones, k)
 
 
-def get_alpha_seq(P):
-    ki = np.fft.fftfreq(P.shape[1])
-    kj = np.fft.fftfreq(P.shape[2])
-    k_sqr = ki[:, None] ** 2 + kj[None, :] ** 2
-    k = np.sqrt(k_sqr)
-    k = np.stack([k] * P.shape[0])
-
-    fp = np.stack([np.fft.fft2(p) for p in P])
-    fp_abs = abs(fp)
-    log_power_spectrum = np.log(fp_abs ** 2)
-    valid = (k != 0) & np.isfinite(log_power_spectrum)
-    return log_slope(np.log(k[valid]), log_power_spectrum[valid])
-
-
 def downscale(P, alpha=None, ds_factor=16, threshold=None):
     """
     Downscale a rainfall field by a given factor.
