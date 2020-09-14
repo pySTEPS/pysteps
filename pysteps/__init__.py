@@ -11,6 +11,7 @@ from jsonschema import Draft4Validator
 from . import cascade
 from . import datasets
 from . import decorators
+from . import downscaling
 from . import exceptions
 from . import extrapolation
 from . import io
