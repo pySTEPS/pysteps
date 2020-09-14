@@ -6,6 +6,10 @@ Stochastic downscaling with RainFARM
 This example script shows how to use the stochastic downscaling method
 RainFARM available in pysteps.
 
+RainFARM is a downscaling method developed specifically for rainfall 
+using Gaussian random fields which are generated using power-law 
+spectral scaling.
+
 """
 
 import matplotlib.pyplot as plt
@@ -68,7 +72,7 @@ plot_precip_field(precip_lr, geodata=metadata_lr)
 # We can now use the RainFARM method to provide stochastic realizations
 # of the downscaled field.
 
-num_realizations = 3
+num_realizations = 2
 precip_hr = []
 for n in range(num_realizations):
     precip_hr = rainfarm.downscale(precip_lr, ds_factor=16)
