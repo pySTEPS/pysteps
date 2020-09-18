@@ -11,7 +11,9 @@ Interface for the io module.
 
     get_method
 """
+from pkg_resources import iter_entry_points
 
+from pysteps.decorators import postprocess_import
 from pysteps.io import importers, exporters
 
 _importer_methods = dict(
@@ -32,6 +34,25 @@ _exporter_methods = dict(
     kineros=exporters.initialize_forecast_exporter_kineros,
     netcdf=exporters.initialize_forecast_exporter_netcdf,
 )
+
+
+def discover_importers():
+    """
+    Search for installed importers plugins in the entrypoint 'pysteps.plugins.importers'
+
+    The importers found are added to the `pysteps.io.interface_importer_methods`
+    dictionary containing the available importers.
+    """
+    for entry_point in iter_entry_points(group="pysteps.plugins.importers", name=None):
+        _importer = entry_point.load()
+        short_name = _importer.__name__.replace("import_", "")
+        if hasattr(_importer, "postprocess_kws"):
+            _postprocess_kws = _importer.postprocess_kws
+        else:
+            _postprocess_kws = dict()
+        _importer = postprocess_import(**_postprocess_kws)(_importer)
+        if short_name not in _importer_methods:
+            _importer_methods[short_name] = _importer
 
 
 def get_method(name, method_type):

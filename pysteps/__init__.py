@@ -218,3 +218,6 @@ def load_config_file(params_file=None, verbose=False, dryrun=False):
 
 # Load default configuration
 load_config_file()
+
+# After the sub-modules are loaded, register the discovered importers plugin.
+io.interface.discover_importers()
