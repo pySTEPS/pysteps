@@ -64,15 +64,15 @@ before_install:
   # Install gcc for MacOSX
   # ----------------------
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      export HOMEBREW_NO_INSTALL_CLEANUP=1;
-      brew update-reset;
-      brew update;
-      brew install gcc@9;
-      which gcc-9 ;
-      export CC=gcc-9  ;
-      export CXX=g++-9 ;
-      export CXX1X=g++-9 ;
-      gcc-9 --version;
+    export HOMEBREW_NO_INSTALL_CLEANUP=1;
+    brew update-reset;
+    brew update;
+    brew install gcc@9;
+    which gcc-9 ;
+    export CC=gcc-9  ;
+    export CXX=g++-9 ;
+    export CXX1X=g++-9 ;
+    gcc-9 --version;
     fi
 
   # Install miniconda
@@ -114,6 +114,17 @@ install:
 
   # Check that the pysteps package can be imported
   - python -c "import pysteps; print(pysteps.__file__)"
+
+  # Check that Pysteps plugin support works correctly
+  - mkdir - p $HOME/tmp
+  - cd $HOME/tmp
+  - git clone --depth 1 https://github.com/aperezhortal/cookiecutter-pysteps-plugin
+  - pip install cookiecutter
+  - cookiecutter -o $HOME/tmp/ --no-input cookiecutter-pysteps-plugin
+  - pip install $HOME/tmp/pysteps_importer_abc_xyz
+  - cd ~
+  - python $PYSTEPS_BUILD_DIR/ci/test_plugin_support.py
+
   # Check the compiled modules
   - python -c "from pysteps import motion"
   - python -c "from pysteps.motion import vet"
