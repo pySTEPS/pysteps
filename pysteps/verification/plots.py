@@ -103,7 +103,7 @@ def plot_rankhist(rankhist, ax=None):
     ax.bar(x, r, width=1.0 / len(x), align="edge", color="gray", edgecolor="black")
 
     ax.set_xticks(x[::3] + (x[1] - x[0]))
-    ax.set_xticklabels(np.arange(1, len(x))[::3])
+    ax.set_xticklabels(np.arange(1, len(x) + 1)[::3])
     ax.set_xlim(0, 1 + 1.0 / len(x))
     ax.set_ylim(0, np.max(r) * 1.25)
 
@@ -214,5 +214,4 @@ def plot_ROC(ROC, ax=None, opt_prob_thr=False):
         )
 
     for p_thr_, x, y in zip(p_thr, POFD, POD):
-        if p_thr_ > 0.05 and p_thr_ < 0.95:
-            ax.text(x + 0.02, y - 0.02, "%.2f" % p_thr_, fontsize=7)
+        ax.text(x + 0.02, y - 0.02, "%.2f" % p_thr_, fontsize=7)

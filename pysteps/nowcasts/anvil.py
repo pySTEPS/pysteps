@@ -68,8 +68,8 @@ def forecast(
     ----------
     vil : array_like
         Array of shape (ar_order+2,m,n) containing the input fields ordered by
-        timestamp from oldest to newest. The time steps between the inputs are
-        assumed to be regular.
+        timestamp from oldest to newest. The inputs are expected to contain VIL
+        or rain rate. The time steps between the inputs are assumed to be regular.
     velocity : array_like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
@@ -91,7 +91,7 @@ def forecast(
         the stationarity of the AR process cannot be guaranteed.
     ar_window_radius : int, optional
         The radius of the window to use for determining the parameters of the
-        autoregressive model.
+        autoregressive model. Set to None to disable localization.
     r_vil_window_radius : int, optional
         The radius of the window to use for determining the R(VIL) relation.
         Applicable if rainrate is not None.
@@ -179,7 +179,11 @@ def forecast(
     print("parallel threads:            %d" % num_workers)
     print("number of cascade levels:    %d" % n_cascade_levels)
     print("order of the ARI(p,1) model: %d" % ar_order)
-    print("ARI(p,1) window radius:      %d" % ar_window_radius)
+    if type(ar_window_radius) == int:
+        print("ARI(p,1) window radius:      %d" % ar_window_radius)
+    else:
+        print("ARI(p,1) window radius:      none")
+
     print("R(VIL) window radius:        %d" % r_vil_window_radius)
 
     if measure_time:
@@ -316,6 +320,8 @@ def forecast(
             r_f_ = vil_f
             r_f_[rainrate_mask] = 0.0
 
+        r_f_[r_f_ < 0.0] = 0.0
+
         # extrapolate to the current nowcast lead time
         extrap_kwargs.update(
             {"D_prev": dp, "return_displacement": True, "allow_nonfinite_values": True}
@@ -379,11 +385,18 @@ def _moving_window_corrcoef(x, y, window_radius):
     y[~mask] = 0.0
     mask = mask.astype(float)
 
-    n = gaussian_filter(mask, window_radius, mode="constant")
+    if window_radius is not None:
+        n = gaussian_filter(mask, window_radius, mode="constant")
 
-    ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
-    ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
-    sxy = gaussian_filter(x * y, window_radius, mode="constant")
+        ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
+        ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
+        sxy = gaussian_filter(x * y, window_radius, mode="constant")
+    else:
+        n = np.mean(mask)
+
+        ssx = np.mean(x ** 2)
+        ssy = np.mean(y ** 2)
+        sxy = np.mean(x * y)
 
     stdx = np.sqrt(ssx / n)
     stdy = np.sqrt(ssy / n)

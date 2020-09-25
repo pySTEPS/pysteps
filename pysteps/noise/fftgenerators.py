@@ -907,6 +907,7 @@ def _get_mask(Size, idxi, idxj, win_fun):
     win_size = (idxi[1] - idxi[0], idxj[1] - idxj[0])
     if win_fun is not None:
         wind = utils.tapering.compute_window_function(win_size[0], win_size[1], win_fun)
+        wind += 1e-6  # avoid zero values
 
     else:
         wind = np.ones(win_size)

@@ -51,7 +51,7 @@ def test_estimate_ar_params_yw_localized():
 
     for p in range(1, 4):
         gamma = correlation.temporal_autocorrelation(
-            R[-(p + 1) :], window="gaussian", window_radius=50
+            R[-(p + 1) :], window="gaussian", window_radius=25
         )
         phi = autoregression.estimate_ar_params_yw_localized(gamma)
         assert len(phi) == p + 1
@@ -63,20 +63,20 @@ def test_estimate_ar_params_ols_localized():
     R = _create_data_univariate()
 
     for p in range(1, 4):
-        phi = autoregression.estimate_ar_params_ols_localized(R[-(p + 1) :], p, 50)
+        phi = autoregression.estimate_ar_params_ols_localized(R[-(p + 1) :], p, 25)
         assert len(phi) == p + 1
         for i in range(len(phi)):
             assert phi[i].shape == R.shape[1:]
 
         phi = autoregression.estimate_ar_params_ols_localized(
-            R[-(p + 1) :], p, 50, include_constant_term=True
+            R[-(p + 1) :], p, 25, include_constant_term=True
         )
         assert len(phi) == p + 2
         for i in range(len(phi)):
             assert phi[i].shape == R.shape[1:]
 
         phi = autoregression.estimate_ar_params_ols_localized(
-            R[-(p + 2) :], p, 50, include_constant_term=True, d=1
+            R[-(p + 2) :], p, 25, include_constant_term=True, d=1
         )
         assert len(phi) == p + 3
         for i in range(len(phi)):
@@ -115,13 +115,13 @@ def test_estimate_var_params_ols_localized():
     q = R.shape[1]
 
     for p in range(1, 4):
-        phi = autoregression.estimate_var_params_ols_localized(R[-(p + 1) :], p, 50)
+        phi = autoregression.estimate_var_params_ols_localized(R[-(p + 1) :], p, 25)
         assert len(phi) == p + 1
         for i in range(len(phi)):
             assert phi[i].shape == (R.shape[2], R.shape[3], q, q)
 
         phi = autoregression.estimate_var_params_ols_localized(
-            R[-(p + 1) :], p, 50, include_constant_term=True
+            R[-(p + 1) :], p, 25, include_constant_term=True
         )
         assert len(phi) == p + 2
         assert phi[0].shape == (R.shape[2], R.shape[3], q)
@@ -129,7 +129,7 @@ def test_estimate_var_params_ols_localized():
             assert phi[i].shape == (R.shape[2], R.shape[3], q, q)
 
         phi = autoregression.estimate_var_params_ols_localized(
-            R[-(p + 2) :], p, 50, include_constant_term=True, d=1
+            R[-(p + 2) :], p, 25, include_constant_term=True, d=1
         )
         assert len(phi) == p + 3
         assert phi[0].shape == (R.shape[2], R.shape[3], q)
@@ -154,7 +154,7 @@ def test_estimate_var_params_yw_localized():
 
     for p in range(1, 4):
         gamma = correlation.temporal_autocorrelation_multivariate(
-            R[-(p + 1) :], window="gaussian", window_radius=50
+            R[-(p + 1) :], window="gaussian", window_radius=25
         )
         phi = autoregression.estimate_var_params_yw_localized(gamma)
         assert len(phi) == p + 1
@@ -174,7 +174,7 @@ def test_iterate_ar_localized():
     R = _create_data_univariate()
     p = 2
 
-    phi = autoregression.estimate_ar_params_ols_localized(R[-(p + 1) :], p, 50)
+    phi = autoregression.estimate_ar_params_ols_localized(R[-(p + 1) :], p, 25)
     R_ = autoregression.iterate_ar_model(R, phi)
     assert R_.shape == R.shape
 
@@ -192,7 +192,7 @@ def test_iterate_var_localized():
     R = _create_data_multivariate()
     p = 2
 
-    phi = autoregression.estimate_var_params_ols_localized(R[-(p + 1) :], p, 50)
+    phi = autoregression.estimate_var_params_ols_localized(R[-(p + 1) :], p, 25)
     R_ = autoregression.iterate_var_model(R, phi)
     assert R_.shape == R.shape
 
@@ -216,7 +216,7 @@ def _create_data_multivariate():
         R.append(np.stack([R_, np.roll(R_, 5, axis=0)]))
 
     R = np.stack(R)
-    R = R[:, :, -400:, 200:-200]
+    R = R[:, :, 575:800, 255:480]
 
     return R
 
@@ -240,6 +240,6 @@ def _create_data_univariate():
         R.append(R_)
 
     R = np.stack(R)
-    R = R[:, -400:, 200:-200]
+    R = R[:, 575:800, 255:480]
 
     return R

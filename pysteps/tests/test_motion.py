@@ -21,6 +21,7 @@ from contextlib import contextmanager
 
 import numpy as np
 import pytest
+from functools import partial
 from scipy.ndimage import uniform_filter
 
 import pysteps as stp
@@ -322,6 +323,40 @@ def test_input_shape_checks(
             motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
         for frames in range(maximum_input_frames + 1, maximum_input_frames + 4):
             motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
+
+
+def test_vet_padding():
+    """
+    Test that the padding functionality in vet works correctly with ndarrays and
+    masked arrays.
+    """
+
+    _, precip_obs = _create_observations(
+        reference_field.copy(), "linear_y", num_times=2
+    )
+
+    # Use a small region to speed up the test
+    precip_obs = precip_obs[:, 200:427, 250:456]
+    # precip_obs.shape == (227 , 206)
+    # 227 is a prime number ; 206 = 2*103
+    # Using this shape will force vet to internally pad the input array for the sector's
+    # blocks to divide exactly the input shape.
+    # NOTE: This "internal padding" is different from the padding keyword being test next.
+
+    for padding in [0, 3, 10]:
+        # No padding
+        vet_method = partial(
+            motion.get_method("vet"),
+            verbose=False,
+            sectors=((16, 4, 2), (16, 4, 2)),
+            options=dict(maxiter=5),
+            padding=padding
+            # We use only a few iterations since
+            # we don't care about convergence in this test
+        )
+
+        assert precip_obs.shape == vet_method(precip_obs).shape
+        assert precip_obs.shape == vet_method(np.ma.masked_invalid(precip_obs)).shape
 
 
 def test_vet_cost_function():

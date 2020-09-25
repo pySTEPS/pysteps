@@ -89,11 +89,8 @@ R_f = nowcast_method(
     R[-3:, :, :],
     V,
     n_leadtimes,
-    n_cascade_levels=8,
+    n_cascade_levels=6,
     R_thr=-10.0,
-    decomp_method="fft",
-    bandpass_filter_method="gaussian",
-    probmatching_method="mean",
 )
 
 # Back-transform to rain rate
@@ -123,7 +120,7 @@ plot_precip_field(
 # the variance associated to the unpredictable development of precipitation. This
 # approach is known as STEPS (short-term ensemble prediction system).
 
-# The STEPES nowcast
+# The STEPS nowcast
 nowcast_method = nowcasts.get_method("steps")
 R_f = nowcast_method(
     R[-3:, :, :],
@@ -134,8 +131,6 @@ R_f = nowcast_method(
     R_thr=-10.0,
     kmperpixel=2.0,
     timestep=timestep,
-    decomp_method="fft",
-    bandpass_filter_method="gaussian",
     noise_method="nonparametric",
     vel_pert_method="bps",
     mask_method="incremental",
