@@ -38,6 +38,9 @@ The metadata dictionary contains the following recommended key-value pairs:
 +------------------+----------------------------------------------------------+
 |    ypixelsize    | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
+|   cartesian_unit | the physical unit of the cartesian x- and y-coordinates: |
+|                  | e.g. 'm' or 'km'                                         | 
++------------------+----------------------------------------------------------+
 |    yorigin       | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
 |                  | 'upper' = upper border                                   |
@@ -404,6 +407,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         x2=x2,
         y1=y1,
         y2=y2,
+        cartesian_unit="m"
     )
 
     return precip, None, metadata
@@ -497,12 +501,15 @@ def _import_bom_rf3_geodata(filename):
         if getattr(ds_rainfall.variables["x"], "units") == "km":
             factor_scale = 1000.0
 
+            
+
     geodata["x1"] = xmin * factor_scale
     geodata["y1"] = ymin * factor_scale
     geodata["x2"] = xmax * factor_scale
     geodata["y2"] = ymax * factor_scale
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
 
     # get the accumulation period
@@ -606,6 +613,7 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["accutime"] = 5.0
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zerovalue"] = np.nanmin(precip)
+    metadata["cartesian_unit"] = "m"
 
     return precip, None, metadata
 
@@ -662,7 +670,7 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
-
+    
     return precip, None, metadata
 
 
@@ -697,7 +705,7 @@ def _import_fmi_pgm_geodata(metadata):
     geodata["y1"] = y1
     geodata["x2"] = x2
     geodata["y2"] = y2
-
+    geodata["cartesian_unit"] = "m"
     geodata["xpixelsize"] = float(metadata["metersperpixel_x"][0])
     geodata["ypixelsize"] = float(metadata["metersperpixel_y"][0])
 
@@ -822,8 +830,6 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     if precip is None:
         raise IOError("requested quantity not found")
 
-    # TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
-
     ####
     # Meta data
     ####
@@ -871,6 +877,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     metadata["y2"] = y2
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
+    metadata["cartesian_unit"] = "km"
     metadata["yorigin"] = "upper"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
@@ -1253,7 +1260,7 @@ def _import_mch_geodata():
 
     geodata["xpixelsize"] = 1000.0
     geodata["ypixelsize"] = 1000.0
-
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
     return geodata
@@ -1419,6 +1426,7 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
         "y2": y2,
         "xpixelsize": xpixelsize,
         "ypixelsize": ypixelsize,
+        "cartesian_unit": "m",
         "yorigin": "upper",
         "institution": "Odyssey datacentre",
         "accutime": 15.0,
@@ -1556,6 +1564,7 @@ def _import_saf_crri_geodata(filename):
     geodata["y2"] = ymax
     geodata["xpixelsize"] = xpixelsize
     geodata["ypixelsize"] = ypixelsize
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
     # get the accumulation period

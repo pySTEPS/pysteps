@@ -392,9 +392,9 @@ def initialize_forecast_exporter_netcdf(
         grids.
 
     metadata: dict
-        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
-        attributes described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+        Metadata dictionary containing the projection, x1, x2, y1, y2, 
+        unit attributes (projection and variable units) described in the 
+        documentation of :py:mod:`pysteps.io.importers`.
 
     n_ens_members : int
         Number of ensemble members in the forecast. This argument is ignored if
@@ -499,16 +499,14 @@ def initialize_forecast_exporter_netcdf(
     var_xc.axis = "X"
     var_xc.standard_name = "projection_x_coordinate"
     var_xc.long_name = "x-coordinate in Cartesian system"
-    # TODO(exporters): Don't hard-code the unit.
-    var_xc.units = "m"
+    var_xc.units = metadata["cartesian_unit"]
 
     var_yc = ncf.createVariable("y", np.float32, dimensions=("y",))
     var_yc[:] = yr
     var_yc.axis = "Y"
     var_yc.standard_name = "projection_y_coordinate"
     var_yc.long_name = "y-coordinate in Cartesian system"
-    # TODO(exporters): Don't hard-code the unit.
-    var_yc.units = "m"
+    var_yc.units = metadata["cartesian_unit"]
 
     x_2d, y_2d = np.meshgrid(xr, yr)
     pr = pyproj.Proj(metadata["projection"])
