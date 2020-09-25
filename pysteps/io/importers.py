@@ -24,46 +24,46 @@ The metadata dictionary contains the following recommended key-value pairs:
 +------------------+----------------------------------------------------------+
 |       Key        |                Value                                     |
 +==================+==========================================================+
-|    projection    | PROJ.4-compatible projection definition                  |
+|   projection     | PROJ.4-compatible projection definition                  |
 +------------------+----------------------------------------------------------+
-|    x1            | x-coordinate of the lower-left corner of the data raster |
+|   x1             | x-coordinate of the lower-left corner of the data raster |
 +------------------+----------------------------------------------------------+
-|    y1            | y-coordinate of the lower-left corner of the data raster |
+|   y1             | y-coordinate of the lower-left corner of the data raster |
 +------------------+----------------------------------------------------------+
-|    x2            | x-coordinate of the upper-right corner of the data raster|
+|   x2             | x-coordinate of the upper-right corner of the data raster|
 +------------------+----------------------------------------------------------+
-|    y2            | y-coordinate of the upper-right corner of the data raster|
+|   y2             | y-coordinate of the upper-right corner of the data raster|
 +------------------+----------------------------------------------------------+
-|    xpixelsize    | grid resolution in x-direction                           |
+|   xpixelsize     | grid resolution in x-direction                           |
 +------------------+----------------------------------------------------------+
-|    ypixelsize    | grid resolution in y-direction                           |
+|   ypixelsize     | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
 |   cartesian_unit | the physical unit of the cartesian x- and y-coordinates: |
 |                  | e.g. 'm' or 'km'                                         | 
 +------------------+----------------------------------------------------------+
-|    yorigin       | a string specifying the location of the first element in |
+|   yorigin        | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
 |                  | 'upper' = upper border                                   |
 |                  | 'lower' = lower border                                   |
 +------------------+----------------------------------------------------------+
-|    institution   | name of the institution who provides the data            |
+|   institution    | name of the institution who provides the data            |
 +------------------+----------------------------------------------------------+
-|    unit          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
+|   unit           | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
 +------------------+----------------------------------------------------------+
-|    transform     | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
 |                  | others                                                   |
 +------------------+----------------------------------------------------------+
-|    accutime      | the accumulation time in minutes of the data, float      |
+|   accutime       | the accumulation time in minutes of the data, float      |
 +------------------+----------------------------------------------------------+
-|    threshold     | the rain/no rain threshold with the same unit,           |
+|   threshold      | the rain/no rain threshold with the same unit,           |
 |                  | transformation and accutime of the data.                 |
 +------------------+----------------------------------------------------------+
-|    zerovalue     | the value assigned to the no rain pixels with the same   |
+|   zerovalue      | the value assigned to the no rain pixels with the same   |
 |                  | unit, transformation and accutime of the data.           |
 +------------------+----------------------------------------------------------+
-|    zr_a          | the Z-R constant a in Z = a*R**b                         |
+|   zr_a           | the Z-R constant a in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
-|    zr_b          | the Z-R exponent b in Z = a*R**b                         |
+|   zr_b           | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
 Available Importers
