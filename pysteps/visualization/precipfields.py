@@ -272,7 +272,6 @@ def plot_precip_field(
             im,
             ticks=clevs,
             spacing="uniform",
-            norm=norm,
             extend=extend,
             shrink=0.8,
             cax=cax,
