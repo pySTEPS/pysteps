@@ -18,7 +18,7 @@ import numpy as np
 from scipy.ndimage import convolve
 
 
-def log_slope(log_k, log_power_spectrum):
+def _log_slope(log_k, log_power_spectrum):
     lk_min = log_k.min()
     lk_max = log_k.max()
     lk_range = lk_max - lk_min
@@ -36,7 +36,7 @@ def log_slope(log_k, log_power_spectrum):
     return alpha
 
 
-def balanced_spatial_average(x, k):
+def _balanced_spatial_average(x, k):
     ones = np.ones_like(x)
     return convolve(x, k) / convolve(ones, k)
 
@@ -49,7 +49,7 @@ def downscale(P, alpha=None, ds_factor=16, threshold=None):
     ----------
 
     P : array_like
-        Array of shape (m,n) containing the input field. 
+        Array of shape (m,n) containing the input field.
         The input is expected to contain rain rate values.
 
     alpha : float, optional
@@ -67,11 +67,19 @@ def downscale(P, alpha=None, ds_factor=16, threshold=None):
     -------
     r : array_like
         Array of shape (m*ds_factor,n*ds_factor) containing
-        the downscaled field. 
+        the downscaled field.
+
+    Notes
+    -----
+    The pysteps implementation of RainFARM currently covers spatial downscaling
+    only, that is, it can improve spatial resolution of a rainfall field, but
+    unlikely the original algorithm from Rebora et al. (2006), it cannot downscale
+    the temporal dimension.
 
     References
     ----------
     :cite:`Rebora2006`
+
     """
 
     ki = np.fft.fftfreq(P.shape[0])
@@ -89,7 +97,7 @@ def downscale(P, alpha=None, ds_factor=16, threshold=None):
         fp_abs = abs(fp)
         log_power_spectrum = np.log(fp_abs ** 2)
         valid = (k != 0) & np.isfinite(log_power_spectrum)
-        alpha = log_slope(np.log(k[valid]), log_power_spectrum[valid])
+        alpha = _log_slope(np.log(k[valid]), log_power_spectrum[valid])
 
     fg = np.exp(complex(0, 1) * 2 * np.pi * np.random.rand(*k_ds.shape))
     with warnings.catch_warnings():
@@ -106,8 +114,8 @@ def downscale(P, alpha=None, ds_factor=16, threshold=None):
     tophat = ((mx ** 2 + my ** 2) <= rad ** 2).astype(float)
     tophat /= tophat.sum()
 
-    P_agg = balanced_spatial_average(P_u, tophat)
-    r_agg = balanced_spatial_average(r, tophat)
+    P_agg = _balanced_spatial_average(P_u, tophat)
+    r_agg = _balanced_spatial_average(r, tophat)
     r *= P_agg / r_agg
 
     if threshold is not None:

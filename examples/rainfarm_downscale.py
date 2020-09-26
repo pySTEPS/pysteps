@@ -1,14 +1,14 @@
 #!/bin/env python
 """
-Stochastic downscaling with RainFARM
-====================================
+Precipitation downscaling with RainFARM
+=======================================
 
-This example script shows how to use the stochastic downscaling method
-RainFARM available in pysteps.
+This example script shows how to use the stochastic downscaling method RainFARM
+available in pysteps.
 
-RainFARM is a downscaling method developed specifically for rainfall 
-using Gaussian random fields which are generated using power-law 
-spectral scaling.
+RainFARM is a downscaling algorithm for rainfall developed by Rebora et al. (2006).
+It uses Gaussian random fields which are generated using power-law spectral scaling
+in order to add realistic small-scale variability to the precipitation field.
 
 """
 
@@ -26,7 +26,7 @@ from pysteps.visualization import plot_precip_field
 # Read the input data
 # -------------------
 #
-# As a first step, we need to import the precipitation fields that we are going
+# As first step, we need to import the precipitation field that we are going
 # to use in this example.
 
 # Import the example radar composite
@@ -46,6 +46,7 @@ precip, metadata = square_domain(precip, metadata, "crop")
 pprint(metadata)
 
 # Plot the original rainfall field
+plt.figure()
 plot_precip_field(precip, geodata=metadata)
 
 # Assign the fill value to all the Nans
@@ -63,15 +64,17 @@ upscale_to = metadata["xpixelsize"] * 16  # upscaling factor : 16 x
 precip_lr, metadata_lr = aggregate_fields_space(precip, metadata, upscale_to)
 
 # Plot the upscaled rainfall field
+plt.figure()
 plot_precip_field(precip_lr, geodata=metadata_lr)
 
 ###############################################################################
 # Downscale the field
 # -------------------
 #
-# We can now use the RainFARM method to provide stochastic realizations
-# of the downscaled field.
+# We can now use RainFARM to generate stochastic realizations of the downscaled
+# precipitation field.
 
+plt.figure()
 num_realizations = 2
 precip_hr = []
 for n in range(num_realizations):
@@ -79,3 +82,20 @@ for n in range(num_realizations):
     plt.subplot(1, num_realizations, n + 1)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
 plt.tight_layout()
+
+###############################################################################
+# Remarks
+# -------
+#
+# The pysteps implementation of RainFARM currently covers spatial downscaling only,
+# that is, it can improve spatial resolution of a rainfall field, but unlikely
+# the original algorithm from Rebora et al. (2006), it cannot downscale the temporal
+# dimension.
+
+###############################################################################
+# References
+# ----------
+#
+# Rebora, N., L. Ferraris, J. von Hardenberg, and A. Provenzale, 2006: RainFARM:
+# Rainfall downscaling by a filtered autoregressive model. J. Hydrometeor., 7,
+# 724–738.
