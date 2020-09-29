@@ -547,6 +547,7 @@ def initialize_forecast_exporter_netcdf(
         if incremental != "member":
             var_ens_num[:] = list(range(1, n_ens_members + 1))
         var_ens_num.long_name = "ensemble member"
+        var_ens_num.standard_name = "realization"
         var_ens_num.units = ""
 
     var_time = ncf.createVariable("time", np.int, dimensions=("time",))
