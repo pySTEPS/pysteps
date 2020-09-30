@@ -238,13 +238,14 @@ def initialize_forecast_exporter_kineros(
     incremental=None,
     **kwargs,
 ):
-    """Initialize a KINEROS2 Rainfall .pre file as specified
-    in https://www.tucson.ars.ag.gov/kineros/.
+    """Initialize a KINEROS2 format exporter for the rainfall ".pre" files
+    specified in https://www.tucson.ars.ag.gov/kineros/.
 
     Grid points are treated as individual rain gauges and a separate file is
     produced for each ensemble member. The output files are named as
     <outfnprefix>_N<n>.pre, where <n> is the index of ensemble member starting
     from zero.
+
 
     Parameters
     ----------
@@ -770,6 +771,9 @@ def _export_kineros(field, exporter):
     ygrid = exporter["XY_coords"][1, :, :].flatten()
 
     timemin = [(t + 1) * timestep for t in range(num_timesteps)]
+
+    if field.ndim == 3:
+        field = field.reshape((1,) + field.shape)
 
     for n in range(num_ens_members):
         file_name = exporter["ncfile"][n]
