@@ -390,6 +390,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
     proj_params = _get_grib_projection(grib_msg)
     pr = pyproj.Proj(proj_params)
+    proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
 
     x1, y1 = pr(ul_lon, lr_lat)
     x2, y2 = pr(lr_lon, ul_lat)
@@ -400,14 +401,14 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         unit="mm/h",
         transform=None,
         zerovalue=0,
-        projection=proj_params,
+        projection=proj_def.strip(),
         yorigin="upper",
         threshold=_get_threshold_value(precip),
         x1=x1,
         x2=x2,
         y1=y1,
         y2=y2,
-        cartesian_unit="m"
+        cartesian_unit="m",
     )
 
     return precip, None, metadata
@@ -500,8 +501,6 @@ def _import_bom_rf3_geodata(filename):
     if "units" in ds_rainfall.variables["x"].ncattrs():
         if getattr(ds_rainfall.variables["x"], "units") == "km":
             factor_scale = 1000.0
-
-            
 
     geodata["x1"] = xmin * factor_scale
     geodata["y1"] = ymin * factor_scale
@@ -670,7 +669,7 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
-    
+
     return precip, None, metadata
 
 
