@@ -34,7 +34,7 @@ try:
 
     SKIMAGE_IMPORTED = True
 except ImportError:
-    SKIMAGE_IMPORTED = True
+    SKIMAGE_IMPORTED = False
 
 
 def blob_detection(
