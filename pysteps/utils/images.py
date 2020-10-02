@@ -85,6 +85,12 @@ def blob_detection(
     if method not in ["log", "dog", "doh"]:
         raise ValueError("unknown method %s, must be 'log', 'dog' or 'doh'" % method)
 
+    if not SKIMAGE_IMPORTED:
+        raise MissingOptionalDependency(
+            "skimage is required for the blob_detection routine "
+            "but it is not installed"
+        )
+
     if method == "log":
         detector = feature.blob_log
     elif method == "dog":
