@@ -408,7 +408,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         x2=x2,
         y1=y1,
         y2=y2,
-        cartesian_unit="m",
+        cartesian_unit="degrees",
     )
 
     return precip, None, metadata

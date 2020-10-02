@@ -38,6 +38,7 @@ def test_io_import_mrms_grib():
         "x2": -60.00500199999991,
         "y1": 20.005001,
         "y2": 54.995000000000005,
+        "cartesian_unit": "degrees",
     }
 
     for key, value in expected_metadata.items():
