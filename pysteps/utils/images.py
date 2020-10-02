@@ -94,9 +94,9 @@ def blob_detection(
     )
 
     if not return_sigmas:
-        blobs = blobs[:, :2]
-
-    return np.column_stack([blobs[:, 1], blobs[:, 0]])
+        return np.column_stack([blobs[:, 1], blobs[:, 0]])
+    else:
+        return np.column_stack([blobs[:, 1], blobs[:, 0], blobs[:, 2]])
 
 
 def shitomasi_detection(
