@@ -75,8 +75,11 @@ plot_precip_field(precip_lr, geodata=metadata_lr)
 # precipitation field.
 
 plt.figure()
+# Set the number of stochastic realizations
 num_realizations = 2
 precip_hr = []
+# Per realization, generate a stochastically downscaled precipitation field
+# and plot it
 for n in range(num_realizations):
     precip_hr = rainfarm.downscale(precip_lr, ds_factor=16)
     plt.subplot(1, num_realizations, n + 1)
