@@ -30,7 +30,7 @@ def _log_slope(log_k, log_power_spectrum):
     num_selected = np.count_nonzero(selected)
     lk_sel = log_k[selected]
     ps_sel = log_power_spectrum[selected]
-    (alpha, _) = np.polyfit(lk_sel, ps_sel, 1)
+    alpha = np.polyfit(lk_sel, ps_sel, 1)[0]
     alpha = -alpha
 
     return alpha
