@@ -7,8 +7,8 @@ This example script shows how to use the stochastic downscaling method RainFARM
 available in pysteps.
 
 RainFARM is a downscaling algorithm for rainfall developed by Rebora et al. (2006).
-It uses Gaussian random fields which are generated using power-law spectral scaling
-in order to add realistic small-scale variability to the precipitation field.
+This method represents a realistic small-scale variability to the precipitation field 
+using Gaussian random fields generated using a power-law spectral scaling.
 
 """
 
