@@ -56,7 +56,8 @@ precip[~np.isfinite(precip)] = metadata["zerovalue"]
 # Upscale the field
 # -----------------
 #
-# In order to test our downscaling method, we first need to
+# To test our downscaling method, we first need to
+
 # upscale the original field to a lower resolution. We are going
 # to use an upscaling factor of 16 x.
 
