@@ -90,10 +90,11 @@ plt.tight_layout()
 # Remarks
 # -------
 #
-# The pysteps implementation of RainFARM currently covers spatial downscaling only,
-# that is, it can improve spatial resolution of a rainfall field, but unlikely
+# Currently, the pysteps implementation of RainFARM only covers spatial downscaling.
+# That is, it can improve the spatial resolution of a rainfall field. However, unlike
 # the original algorithm from Rebora et al. (2006), it cannot downscale the temporal
 # dimension.
+
 
 ###############################################################################
 # References
