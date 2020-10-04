@@ -670,7 +670,7 @@ def _import_fmi_pgm_geodata(metadata):
 
     projdef = ""
 
-    if metadata["type"][0] != "stereographic":
+    if "type" in metadata.keys() and metadata["type"][0] != "stereographic":
         raise ValueError("unknown projection %s" % metadata["type"][0])
     projdef += "+proj=stere "
     projdef += " +lon_0=" + metadata["centrallongitude"][0] + "E"
