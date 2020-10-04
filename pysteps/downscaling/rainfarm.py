@@ -24,10 +24,8 @@ def _log_slope(log_k, log_power_spectrum):
     lk_range = lk_max - lk_min
     lk_min += (1 / 6) * lk_range
     lk_max -= (1 / 6) * lk_range
-    dk = lk_range / 32
 
     selected = (lk_min <= log_k) & (log_k <= lk_max)
-    num_selected = np.count_nonzero(selected)
     lk_sel = log_k[selected]
     ps_sel = log_power_spectrum[selected]
     alpha = np.polyfit(lk_sel, ps_sel, 1)[0]
