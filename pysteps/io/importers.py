@@ -640,12 +640,11 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
             "but it is not installed"
         )
 
-    pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
-
     if gzipped is False:
         precip = imread(filename)
     else:
         precip = imread(gzip.open(filename, "r"))
+    pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
     geodata = _import_fmi_pgm_geodata(pgm_metadata)
 
     mask = precip == pgm_metadata["missingval"]
@@ -757,8 +756,8 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
         are also available.
 
     pixelsize: float
-        The pixel size of a raster cell in kilometers. The default value for the 
-        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel 
+        The pixel size of a raster cell in kilometers. The default value for the
+        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel
         size are also available.
 
     {extra_kwargs_doc}
