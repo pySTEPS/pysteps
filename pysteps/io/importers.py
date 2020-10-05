@@ -77,6 +77,7 @@ Available Importers
     import_mch_hdf5
     import_mch_metranet
     import_mrms_grib
+    import_odim_hdf5
     import_opera_hdf5
     import_saf_crri
 """
@@ -757,8 +758,8 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
         are also available.
 
     pixelsize: float
-        The pixel size of a raster cell in kilometers. The default value for the 
-        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel 
+        The pixel size of a raster cell in kilometers. The default value for the
+        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel
         size are also available.
 
     {extra_kwargs_doc}
@@ -1260,9 +1261,10 @@ def _import_mch_geodata():
 
 
 @postprocess_import()
-def import_opera_hdf5(filename, qty="RATE", **kwargs):
-    """Import a precipitation field (and optionally the quality field) from an
-    OPERA HDF5 file conforming to the ODIM specification.
+def import_odim_hdf5(filename, qty="RATE", **kwargs):
+    """Import a precipitation field (and optionally the quality field) from a
+    HDF5 file conforming to the ODIM specification. OPERA and DPC files are
+    supported, but other ODIM-compliant files may not me read correctly.
 
     Parameters
     ----------
@@ -1451,6 +1453,9 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
     f.close()
 
     return precip, quality, metadata
+
+
+import_opera_hdf5 = import_odim_hdf5
 
 
 def _read_opera_hdf5_what_group(whatgrp):
