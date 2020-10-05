@@ -38,6 +38,7 @@ test_metadata = [
     ("y2", -3649.950360247753, 1e-10),
     ("xpixelsize", 1.0, 1e-10),
     ("xpixelsize", 1.0, 1e-10),
+    ("cartesian_unit", "km", None),
     ("accutime", 5.0, 1e-10),
     ("yorigin", "upper", None),
     ("unit", "mm", None),

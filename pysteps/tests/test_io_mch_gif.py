@@ -35,6 +35,7 @@ test_metadata = [
     ("y2", 480000.0, 0.1),
     ("xpixelsize", 1000.0, 0.1),
     ("ypixelsize", 1000.0, 0.1),
+    ("cartesian_unit", "m", None),
     ("yorigin", "upper", None),
     ("accutime", 5.0, 0.1),
     ("unit", "mm", None),
@@ -73,6 +74,7 @@ test_geodata = [
     ("y2", 480000.0, 0.1),
     ("xpixelsize", 1000.0, 0.1),
     ("ypixelsize", 1000.0, 0.1),
+    ("cartesian_unit", "m", None),
     ("yorigin", "upper", None),
 ]
 

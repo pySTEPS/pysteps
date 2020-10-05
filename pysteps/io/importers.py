@@ -24,43 +24,46 @@ The metadata dictionary contains the following recommended key-value pairs:
 +------------------+----------------------------------------------------------+
 |       Key        |                Value                                     |
 +==================+==========================================================+
-|    projection    | PROJ.4-compatible projection definition                  |
+|   projection     | PROJ.4-compatible projection definition                  |
 +------------------+----------------------------------------------------------+
-|    x1            | x-coordinate of the lower-left corner of the data raster |
+|   x1             | x-coordinate of the lower-left corner of the data raster |
 +------------------+----------------------------------------------------------+
-|    y1            | y-coordinate of the lower-left corner of the data raster |
+|   y1             | y-coordinate of the lower-left corner of the data raster |
 +------------------+----------------------------------------------------------+
-|    x2            | x-coordinate of the upper-right corner of the data raster|
+|   x2             | x-coordinate of the upper-right corner of the data raster|
 +------------------+----------------------------------------------------------+
-|    y2            | y-coordinate of the upper-right corner of the data raster|
+|   y2             | y-coordinate of the upper-right corner of the data raster|
 +------------------+----------------------------------------------------------+
-|    xpixelsize    | grid resolution in x-direction                           |
+|   xpixelsize     | grid resolution in x-direction                           |
 +------------------+----------------------------------------------------------+
-|    ypixelsize    | grid resolution in y-direction                           |
+|   ypixelsize     | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
-|    yorigin       | a string specifying the location of the first element in |
+|   cartesian_unit | the physical unit of the cartesian x- and y-coordinates: |
+|                  | e.g. 'm' or 'km'                                         | 
++------------------+----------------------------------------------------------+
+|   yorigin        | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
 |                  | 'upper' = upper border                                   |
 |                  | 'lower' = lower border                                   |
 +------------------+----------------------------------------------------------+
-|    institution   | name of the institution who provides the data            |
+|   institution    | name of the institution who provides the data            |
 +------------------+----------------------------------------------------------+
-|    unit          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
+|   unit           | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
 +------------------+----------------------------------------------------------+
-|    transform     | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
 |                  | others                                                   |
 +------------------+----------------------------------------------------------+
-|    accutime      | the accumulation time in minutes of the data, float      |
+|   accutime       | the accumulation time in minutes of the data, float      |
 +------------------+----------------------------------------------------------+
-|    threshold     | the rain/no rain threshold with the same unit,           |
+|   threshold      | the rain/no rain threshold with the same unit,           |
 |                  | transformation and accutime of the data.                 |
 +------------------+----------------------------------------------------------+
-|    zerovalue     | the value assigned to the no rain pixels with the same   |
+|   zerovalue      | the value assigned to the no rain pixels with the same   |
 |                  | unit, transformation and accutime of the data.           |
 +------------------+----------------------------------------------------------+
-|    zr_a          | the Z-R constant a in Z = a*R**b                         |
+|   zr_a           | the Z-R constant a in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
-|    zr_b          | the Z-R exponent b in Z = a*R**b                         |
+|   zr_b           | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
 Available Importers
@@ -387,6 +390,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
     proj_params = _get_grib_projection(grib_msg)
     pr = pyproj.Proj(proj_params)
+    proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
 
     x1, y1 = pr(ul_lon, lr_lat)
     x2, y2 = pr(lr_lon, ul_lat)
@@ -397,13 +401,14 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         unit="mm/h",
         transform=None,
         zerovalue=0,
-        projection=proj_params,
+        projection=proj_def.strip(),
         yorigin="upper",
         threshold=_get_threshold_value(precip),
         x1=x1,
         x2=x2,
         y1=y1,
         y2=y2,
+        cartesian_unit="degrees",
     )
 
     return precip, None, metadata
@@ -503,6 +508,7 @@ def _import_bom_rf3_geodata(filename):
     geodata["y2"] = ymax * factor_scale
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
 
     # get the accumulation period
@@ -606,6 +612,7 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["accutime"] = 5.0
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zerovalue"] = np.nanmin(precip)
+    metadata["cartesian_unit"] = "m"
 
     return precip, None, metadata
 
@@ -696,7 +703,7 @@ def _import_fmi_pgm_geodata(metadata):
     geodata["y1"] = y1
     geodata["x2"] = x2
     geodata["y2"] = y2
-
+    geodata["cartesian_unit"] = "m"
     geodata["xpixelsize"] = float(metadata["metersperpixel_x"][0])
     geodata["ypixelsize"] = float(metadata["metersperpixel_y"][0])
 
@@ -821,8 +828,6 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     if precip is None:
         raise IOError("requested quantity not found")
 
-    # TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
-
     ####
     # Meta data
     ####
@@ -870,6 +875,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     metadata["y2"] = y2
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
+    metadata["cartesian_unit"] = "km"
     metadata["yorigin"] = "upper"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
@@ -1252,7 +1258,7 @@ def _import_mch_geodata():
 
     geodata["xpixelsize"] = 1000.0
     geodata["ypixelsize"] = 1000.0
-
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
     return geodata
@@ -1418,6 +1424,7 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
         "y2": y2,
         "xpixelsize": xpixelsize,
         "ypixelsize": ypixelsize,
+        "cartesian_unit": "m",
         "yorigin": "upper",
         "institution": "Odyssey datacentre",
         "accutime": 15.0,
@@ -1555,6 +1562,7 @@ def _import_saf_crri_geodata(filename):
     geodata["y2"] = ymax
     geodata["xpixelsize"] = xpixelsize
     geodata["ypixelsize"] = ypixelsize
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
     # get the accumulation period

@@ -238,13 +238,14 @@ def initialize_forecast_exporter_kineros(
     incremental=None,
     **kwargs,
 ):
-    """Initialize a KINEROS2 Rainfall .pre file as specified
-    in https://www.tucson.ars.ag.gov/kineros/.
+    """Initialize a KINEROS2 format exporter for the rainfall ".pre" files
+    specified in https://www.tucson.ars.ag.gov/kineros/.
 
     Grid points are treated as individual rain gauges and a separate file is
     produced for each ensemble member. The output files are named as
     <outfnprefix>_N<n>.pre, where <n> is the index of ensemble member starting
     from zero.
+
 
     Parameters
     ----------
@@ -392,9 +393,9 @@ def initialize_forecast_exporter_netcdf(
         grids.
 
     metadata: dict
-        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
-        attributes described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+        Metadata dictionary containing the projection, x1, x2, y1, y2, 
+        unit attributes (projection and variable units) described in the 
+        documentation of :py:mod:`pysteps.io.importers`.
 
     n_ens_members : int
         Number of ensemble members in the forecast. This argument is ignored if
@@ -499,16 +500,14 @@ def initialize_forecast_exporter_netcdf(
     var_xc.axis = "X"
     var_xc.standard_name = "projection_x_coordinate"
     var_xc.long_name = "x-coordinate in Cartesian system"
-    # TODO(exporters): Don't hard-code the unit.
-    var_xc.units = "m"
+    var_xc.units = metadata["cartesian_unit"]
 
     var_yc = ncf.createVariable("y", np.float32, dimensions=("y",))
     var_yc[:] = yr
     var_yc.axis = "Y"
     var_yc.standard_name = "projection_y_coordinate"
     var_yc.long_name = "y-coordinate in Cartesian system"
-    # TODO(exporters): Don't hard-code the unit.
-    var_yc.units = "m"
+    var_yc.units = metadata["cartesian_unit"]
 
     x_2d, y_2d = np.meshgrid(xr, yr)
     pr = pyproj.Proj(metadata["projection"])
@@ -549,6 +548,7 @@ def initialize_forecast_exporter_netcdf(
         if incremental != "member":
             var_ens_num[:] = list(range(1, n_ens_members + 1))
         var_ens_num.long_name = "ensemble member"
+        var_ens_num.standard_name = "realization"
         var_ens_num.units = ""
 
     var_time = ncf.createVariable("time", np.int, dimensions=("time",))
@@ -771,6 +771,9 @@ def _export_kineros(field, exporter):
     ygrid = exporter["XY_coords"][1, :, :].flatten()
 
     timemin = [(t + 1) * timestep for t in range(num_timesteps)]
+
+    if field.ndim == 3:
+        field = field.reshape((1,) + field.shape)
 
     for n in range(num_ens_members):
         file_name = exporter["ncfile"][n]
