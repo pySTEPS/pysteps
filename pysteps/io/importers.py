@@ -1263,8 +1263,10 @@ def _import_mch_geodata():
 @postprocess_import()
 def import_odim_hdf5(filename, qty="RATE", **kwargs):
     """Import a precipitation field (and optionally the quality field) from a
-    HDF5 file conforming to the ODIM specification. OPERA and DPC files are
-    supported, but other ODIM-compliant files may not me read correctly.
+    HDF5 file conforming to the ODIM specification. 
+    **Important:** Currently, only the Pan-European (OPERA) and the 
+    Dipartimento della Protezione Civile (DPC) radar composites are correctly supported.
+    Other ODIM-compliant files may not be read correctly.
 
     Parameters
     ----------
