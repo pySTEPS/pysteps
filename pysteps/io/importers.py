@@ -1457,7 +1457,14 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
     return precip, quality, metadata
 
 
-import_opera_hdf5 = import_odim_hdf5
+def import_opera_hdf5(filename, qty='RATE', **kwargs):
+    """
+    Wrapper to :py:func:`pysteps.io.importers.import_odim_hdf5`
+    to maintain backward compatibility with previous pysteps versions.
+    
+    **Important:** Use :py:func:`~pysteps.io.importers.import_odim_hdf5` instead.
+    """
+    return import_odim_hdf5(filename, qty=qty, **kwargs)```
 
 
 def _read_opera_hdf5_what_group(whatgrp):
