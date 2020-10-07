@@ -1464,7 +1464,7 @@ def import_opera_hdf5(filename, qty='RATE', **kwargs):
     
     **Important:** Use :py:func:`~pysteps.io.importers.import_odim_hdf5` instead.
     """
-    return import_odim_hdf5(filename, qty=qty, **kwargs)```
+    return import_odim_hdf5(filename, qty=qty, **kwargs)
 
 
 def _read_opera_hdf5_what_group(whatgrp):
