@@ -80,6 +80,7 @@ Available Importers
     import_mch_hdf5
     import_mch_metranet
     import_mrms_grib
+    import_odim_hdf5
     import_opera_hdf5
     import_saf_crri
 """
@@ -1265,9 +1266,12 @@ def _import_mch_geodata():
 
 
 @postprocess_import()
-def import_opera_hdf5(filename, qty="RATE", **kwargs):
-    """Import a precipitation field (and optionally the quality field) from an
-    OPERA HDF5 file conforming to the ODIM specification.
+def import_odim_hdf5(filename, qty="RATE", **kwargs):
+    """Import a precipitation field (and optionally the quality field) from a
+    HDF5 file conforming to the ODIM specification. 
+    **Important:** Currently, only the Pan-European (OPERA) and the 
+    Dipartimento della Protezione Civile (DPC) radar composites are correctly supported.
+    Other ODIM-compliant files may not be read correctly.
 
     Parameters
     ----------
@@ -1353,6 +1357,26 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
                             quality = np.empty(arr.shape, dtype=float)
                             quality[mask] = arr[mask]
                             quality[~mask] = np.nan
+                    if quality is None:
+                        for dgg in dg[1].items(): # da qui  ----------------------------
+                            if(dgg[0][0:7]=="quality"):
+                                quality_keys = list(dgg[1].keys())
+                                if "what" in quality_keys:
+                                    (
+                                        qty_,
+                                        gain,
+                                        offset,
+                                        nodata,
+                                        undetect,
+                                    ) = _read_opera_hdf5_what_group(dgg[1]["what"])
+                                if qty_.decode() == "QIND":
+                                    arr = dgg[1]["data"][...]
+                                    mask_n = arr == nodata
+                                    mask_u = arr == undetect
+                                    mask = np.logical_and(~mask_u, ~mask_n)
+                                    quality = np.empty(arr.shape)#, dtype=float)
+                                    quality[mask] = arr[mask] * gain + offset
+                                    quality[~mask] = np.nan  # a qui -----------------------------
 
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
@@ -1437,6 +1461,16 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
     f.close()
 
     return precip, quality, metadata
+
+
+def import_opera_hdf5(filename, qty='RATE', **kwargs):
+    """
+    Wrapper to :py:func:`pysteps.io.importers.import_odim_hdf5`
+    to maintain backward compatibility with previous pysteps versions.
+    
+    **Important:** Use :py:func:`~pysteps.io.importers.import_odim_hdf5` instead.
+    """
+    return import_odim_hdf5(filename, qty=qty, **kwargs)
 
 
 def _read_opera_hdf5_what_group(whatgrp):
