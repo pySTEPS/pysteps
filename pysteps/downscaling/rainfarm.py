@@ -39,7 +39,7 @@ def _balanced_spatial_average(x, k):
     return convolve(x, k) / convolve(ones, k)
 
 
-def downscale(P, alpha=None, ds_factor=16, threshold=None):
+def downscale(P, alpha=None, ds_factor=16, threshold=None, return_alpha=False):
     """
     Downscale a rainfall field by a given factor.
 
@@ -60,12 +60,17 @@ def downscale(P, alpha=None, ds_factor=16, threshold=None):
     threshold : float, optional
         Set all values lower than the threshold to zero.
 
+    return_alpha : bool, optional
+        Whether to return the estimated spectral slope `alpha`.
+
 
     Returns
     -------
     r : array_like
         Array of shape (m*ds_factor,n*ds_factor) containing
         the downscaled field.
+    alpha : float
+        Returned only when `return_alpha=True`.
 
     Notes
     -----
@@ -118,5 +123,8 @@ def downscale(P, alpha=None, ds_factor=16, threshold=None):
 
     if threshold is not None:
         r[r < threshold] = 0
+
+    if return_alpha:
+        return r, alpha
 
     return r
