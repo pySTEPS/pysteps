@@ -83,7 +83,7 @@ num_realizations = 5
 # The first time, the spectral slope alpha needs to be estimated. To illustrate
 # the sensitity of this parameter, we are going to plot some realizations with
 # half or double the estimated slope.
-# alpha = None
+alpha = None
 for n in range(num_realizations):
 
     # Spectral slope estimated from the upscaled field
