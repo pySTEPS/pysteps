@@ -16,6 +16,7 @@ available in pySTEPS.
 
     pysteps
     cascade
+    decorators
     extrapolation
     datasets
     io
