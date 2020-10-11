@@ -9,7 +9,7 @@ the behavior of some functions in pysteps.
     :toctree: ../generated/
 
     postprocess_import
-    check_motion_input_image
+    check_input_frames
 """
 import inspect
 from collections import defaultdict
