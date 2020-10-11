@@ -36,6 +36,9 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     fillna : float or np.nan
         Default value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
+        If the importer returns a MaskedArray, all the masked values are set to the
+        fillna value. If a numpy array is returned, all the invalid values (nan and inf)
+        are set to the fillna value.
     """
 
     def _postprocess_import(importer):
@@ -85,8 +88,10 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         )
 
         # Add extra kwargs docstrings
-        _import_with_postprocessing.__doc__ = _import_with_postprocessing.__doc__.format_map(
-            defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
+        _import_with_postprocessing.__doc__ = (
+            _import_with_postprocessing.__doc__.format_map(
+                defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
+            )
         )
 
         return _import_with_postprocessing
