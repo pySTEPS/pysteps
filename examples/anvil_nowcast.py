@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pysteps import motion, io, rcparams, utils
 from pysteps.nowcasts import anvil, extrapolation, sprog
+from pysteps.utils import transformation
 from pysteps.visualization import plot_precip_field
 
 ###############################################################################
@@ -90,12 +91,19 @@ forecast_extrap = extrapolation.forecast(
 )
 forecast_extrap[forecast_extrap < 0.5] = 0.0
 
-rainrate_field_finite = rainrate_field.copy()
-rainrate_field_finite[~np.isfinite(rainrate_field_finite)] = 0.0
-forecast_sprog = sprog.forecast(
-    rainrate_field_finite[-3:], velocity, 3, n_cascade_levels=8, R_thr=0.5
+# log-transform the data and the threshold value to dBR units for S-PROG
+rainrate_field_db, _ = transformation.dB_transform(
+    rainrate_field, metadata, threshold=0.1, zerovalue=-15.0
 )
-forecast_sprog[~np.isfinite(forecast_extrap)] = np.nan
+rainrate_thr, _ = transformation.dB_transform(
+    np.array([0.5]), metadata, threshold=0.1, zerovalue=-15.0
+)
+forecast_sprog = sprog.forecast(
+    rainrate_field_db[-3:], velocity, 3, n_cascade_levels=8, R_thr=rainrate_thr[0]
+)
+forecast_sprog, _ = transformation.dB_transform(
+    forecast_sprog, threshold=-10.0, inverse=True
+)
 forecast_sprog[forecast_sprog < 0.5] = 0.0
 
 forecast_anvil = anvil.forecast(

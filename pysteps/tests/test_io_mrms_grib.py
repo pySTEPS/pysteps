@@ -25,16 +25,27 @@ def test_io_import_mrms_grib():
     assert precip_full.shape == (3500, 7000)
     assert precip_full.dtype == "single"
 
-    expected_metadata = dict(
-        xpixelsize=0.01,
-        ypixelsize=0.01,
-        unit="mm/h",
-        transform=None,
-        zerovalue=0,
-        yorigin="upper",
-    )
-    for key in expected_metadata.keys():
-        assert metadata[key] == expected_metadata[key]
+    expected_metadata = {
+        "xpixelsize": 0.01,
+        "ypixelsize": 0.01,
+        "unit": "mm/h",
+        "transform": None,
+        "zerovalue": 0,
+        "projection": "+proj=latlon  +ellps=IAU76",
+        "yorigin": "upper",
+        "threshold": 0.1,
+        "x1": -129.99499999999998,
+        "x2": -60.00500199999991,
+        "y1": 20.005001,
+        "y2": 54.995000000000005,
+        "cartesian_unit": "degrees",
+    }
+
+    for key, value in expected_metadata.items():
+        if isinstance(value, float):
+            assert_array_almost_equal(metadata[key], expected_metadata[key])
+        else:
+            assert metadata[key] == expected_metadata[key]
 
     # The full latitude range is (20.005, 54.995)
     # The full longitude range is (230.005, 299.995)
@@ -74,14 +85,23 @@ def test_io_import_mrms_grib():
     precip_donwscaled, _, metadata = pysteps.io.import_mrms_grib(
         filename, dtype="single", fillna=0, window_size=3
     )
-    expected_metadata = dict(
+    print(metadata)
+    expected_metadata.update(
         xpixelsize=0.03,
         ypixelsize=0.03,
-        unit="mm/h",
-        transform=None,
-        zerovalue=0,
-        yorigin="upper",
+        x1=-129.98500000028577,
+        x2=-60.02500199942843,
+        y1=20.03500099914261,
+        y2=54.985000000285794,
     )
+
+    # Remove the threshold keyword from the test when the window_size>1 is used.
+    # The threshold is computed automatically from the minimum valid precipitation values.
+    # The minimum value is affected by the the block_averaging (window_size=3 keyword)
+    # of the precipitation fields. Hence, the "threshold" value will depend on the
+    # precipitation pattern (i.e. the file being read).
+    expected_metadata.pop("threshold", None)
+
     for key in expected_metadata.keys():
         assert metadata[key] == expected_metadata[key]
     assert precip_donwscaled.shape == (3500 // 3, 7000 // 3)

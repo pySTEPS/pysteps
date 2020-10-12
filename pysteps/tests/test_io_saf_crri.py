@@ -22,6 +22,7 @@ test_geodata_crri = [
     ("y2", 5569500.0, 0.1),
     ("xpixelsize", 3000.0, 0.1),
     ("ypixelsize", 3000.0, 0.1),
+    ("cartesian_unit", "m", None),
     ("yorigin", "upper", None),
 ]
 

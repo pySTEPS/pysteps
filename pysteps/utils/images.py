@@ -34,7 +34,7 @@ try:
 
     SKIMAGE_IMPORTED = True
 except ImportError:
-    SKIMAGE_IMPORTED = True
+    SKIMAGE_IMPORTED = False
 
 
 def blob_detection(
@@ -49,7 +49,7 @@ def blob_detection(
 ):
     """
     Interface to the `feature.blob_*`_ methods implemented in scikit-image. A
-    blob is defined as local a maximum of a Gaussian-filtered image.
+    blob is defined as a scale-space maximum of a Gaussian-filtered image.
 
     .. _`feature.blob_*`:\
     https://scikit-image.org/docs/dev/auto_examples/features_detection/plot_blob.html
@@ -71,11 +71,25 @@ def blob_detection(
         A value between 0 and 1. If the area of two blobs overlaps by a fraction
         greater than threshold, the smaller blob is eliminated.
     return_sigmas : bool, optional
-        If True, the return array has a third column indicating the standard
-        deviations of the Gaussian kernels that detected the blobs.
+        If True, return the standard deviations of the Gaussian kernels
+        corresponding to the detected blobs.
+
+    Returns
+    -------
+    points : ndarray_
+        Array of shape (p, 2) or (p, 3) indicating the pixel coordinates of *p*
+        detected blobs. If return_sigmas is True, the third column contains
+        the standard deviations of the Gaussian kernels corresponding to the
+        blobs.
     """
     if method not in ["log", "dog", "doh"]:
         raise ValueError("unknown method %s, must be 'log', 'dog' or 'doh'" % method)
+
+    if not SKIMAGE_IMPORTED:
+        raise MissingOptionalDependency(
+            "skimage is required for the blob_detection routine "
+            "but it is not installed"
+        )
 
     if method == "log":
         detector = feature.blob_log
@@ -94,9 +108,9 @@ def blob_detection(
     )
 
     if not return_sigmas:
-        blobs = blobs[:, :2]
-
-    return np.column_stack([blobs[:, 1], blobs[:, 0]])
+        return np.column_stack([blobs[:, 1], blobs[:, 0]])
+    else:
+        return np.column_stack([blobs[:, 1], blobs[:, 0], blobs[:, 2]])
 
 
 def shitomasi_detection(

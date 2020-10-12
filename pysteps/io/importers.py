@@ -24,43 +24,46 @@ The metadata dictionary contains the following recommended key-value pairs:
 +------------------+----------------------------------------------------------+
 |       Key        |                Value                                     |
 +==================+==========================================================+
-|    projection    | PROJ.4-compatible projection definition                  |
+|   projection     | PROJ.4-compatible projection definition                  |
 +------------------+----------------------------------------------------------+
-|    x1            | x-coordinate of the lower-left corner of the data raster |
+|   x1             | x-coordinate of the lower-left corner of the data raster |
 +------------------+----------------------------------------------------------+
-|    y1            | y-coordinate of the lower-left corner of the data raster |
+|   y1             | y-coordinate of the lower-left corner of the data raster |
 +------------------+----------------------------------------------------------+
-|    x2            | x-coordinate of the upper-right corner of the data raster|
+|   x2             | x-coordinate of the upper-right corner of the data raster|
 +------------------+----------------------------------------------------------+
-|    y2            | y-coordinate of the upper-right corner of the data raster|
+|   y2             | y-coordinate of the upper-right corner of the data raster|
 +------------------+----------------------------------------------------------+
-|    xpixelsize    | grid resolution in x-direction                           |
+|   xpixelsize     | grid resolution in x-direction                           |
 +------------------+----------------------------------------------------------+
-|    ypixelsize    | grid resolution in y-direction                           |
+|   ypixelsize     | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
-|    yorigin       | a string specifying the location of the first element in |
+|   cartesian_unit | the physical unit of the cartesian x- and y-coordinates: |
+|                  | e.g. 'm' or 'km'                                         | 
++------------------+----------------------------------------------------------+
+|   yorigin        | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
 |                  | 'upper' = upper border                                   |
 |                  | 'lower' = lower border                                   |
 +------------------+----------------------------------------------------------+
-|    institution   | name of the institution who provides the data            |
+|   institution    | name of the institution who provides the data            |
 +------------------+----------------------------------------------------------+
-|    unit          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
+|   unit           | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
 +------------------+----------------------------------------------------------+
-|    transform     | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
 |                  | others                                                   |
 +------------------+----------------------------------------------------------+
-|    accutime      | the accumulation time in minutes of the data, float      |
+|   accutime       | the accumulation time in minutes of the data, float      |
 +------------------+----------------------------------------------------------+
-|    threshold     | the rain/no rain threshold with the same unit,           |
+|   threshold      | the rain/no rain threshold with the same unit,           |
 |                  | transformation and accutime of the data.                 |
 +------------------+----------------------------------------------------------+
-|    zerovalue     | the value assigned to the no rain pixels with the same   |
+|   zerovalue      | the value assigned to the no rain pixels with the same   |
 |                  | unit, transformation and accutime of the data.           |
 +------------------+----------------------------------------------------------+
-|    zr_a          | the Z-R constant a in Z = a*R**b                         |
+|   zr_a           | the Z-R constant a in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
-|    zr_b          | the Z-R exponent b in Z = a*R**b                         |
+|   zr_b           | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
 Available Importers
@@ -77,6 +80,7 @@ Available Importers
     import_mch_hdf5
     import_mch_metranet
     import_mrms_grib
+    import_odim_hdf5
     import_opera_hdf5
     import_saf_crri
 """
@@ -387,6 +391,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
     proj_params = _get_grib_projection(grib_msg)
     pr = pyproj.Proj(proj_params)
+    proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
 
     x1, y1 = pr(ul_lon, lr_lat)
     x2, y2 = pr(lr_lon, ul_lat)
@@ -397,13 +402,14 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         unit="mm/h",
         transform=None,
         zerovalue=0,
-        projection=proj_params,
+        projection=proj_def.strip(),
         yorigin="upper",
         threshold=_get_threshold_value(precip),
         x1=x1,
         x2=x2,
         y1=y1,
         y2=y2,
+        cartesian_unit="degrees",
     )
 
     return precip, None, metadata
@@ -503,6 +509,7 @@ def _import_bom_rf3_geodata(filename):
     geodata["y2"] = ymax * factor_scale
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
 
     # get the accumulation period
@@ -606,6 +613,7 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["accutime"] = 5.0
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zerovalue"] = np.nanmin(precip)
+    metadata["cartesian_unit"] = "m"
 
     return precip, None, metadata
 
@@ -632,6 +640,13 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
         A three-element tuple containing the reflectivity composite in dBZ
         and the associated quality field and metadata. The quality field is
         currently set to None.
+
+    Notes
+    -----
+
+    Reading georeferencing metadata is supported only for stereographic
+    projection. For other projections, the keys related to georeferencing are
+    not set.
     """
     if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
@@ -640,12 +655,11 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
             "but it is not installed"
         )
 
-    pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
-
     if gzipped is False:
         precip = imread(filename)
     else:
         precip = imread(gzip.open(filename, "r"))
+    pgm_metadata = _import_fmi_pgm_metadata(filename, gzipped=gzipped)
     geodata = _import_fmi_pgm_geodata(pgm_metadata)
 
     mask = precip == pgm_metadata["missingval"]
@@ -671,37 +685,36 @@ def _import_fmi_pgm_geodata(metadata):
 
     projdef = ""
 
-    if metadata["type"][0] != "stereographic":
-        raise ValueError("unknown projection %s" % metadata["type"][0])
-    projdef += "+proj=stere "
-    projdef += " +lon_0=" + metadata["centrallongitude"][0] + "E"
-    projdef += " +lat_0=" + metadata["centrallatitude"][0] + "N"
-    projdef += " +lat_ts=" + metadata["truelatitude"][0]
-    # These are hard-coded because the projection definition
-    # is missing from the PGM files.
-    projdef += " +a=6371288"
-    projdef += " +x_0=380886.310"
-    projdef += " +y_0=3395677.920"
-    projdef += " +no_defs"
-    #
-    geodata["projection"] = projdef
+    if "type" in metadata.keys() and metadata["type"][0] == "stereographic":
+        projdef += "+proj=stere "
+        projdef += " +lon_0=" + metadata["centrallongitude"][0] + "E"
+        projdef += " +lat_0=" + metadata["centrallatitude"][0] + "N"
+        projdef += " +lat_ts=" + metadata["truelatitude"][0]
+        # These are hard-coded because the projection definition
+        # is missing from the PGM files.
+        projdef += " +a=6371288"
+        projdef += " +x_0=380886.310"
+        projdef += " +y_0=3395677.920"
+        projdef += " +no_defs"
+        #
+        geodata["projection"] = projdef
 
-    ll_lon, ll_lat = [float(v) for v in metadata["bottomleft"]]
-    ur_lon, ur_lat = [float(v) for v in metadata["topright"]]
+        ll_lon, ll_lat = [float(v) for v in metadata["bottomleft"]]
+        ur_lon, ur_lat = [float(v) for v in metadata["topright"]]
 
-    pr = pyproj.Proj(projdef)
-    x1, y1 = pr(ll_lon, ll_lat)
-    x2, y2 = pr(ur_lon, ur_lat)
+        pr = pyproj.Proj(projdef)
+        x1, y1 = pr(ll_lon, ll_lat)
+        x2, y2 = pr(ur_lon, ur_lat)
 
-    geodata["x1"] = x1
-    geodata["y1"] = y1
-    geodata["x2"] = x2
-    geodata["y2"] = y2
+        geodata["x1"] = x1
+        geodata["y1"] = y1
+        geodata["x2"] = x2
+        geodata["y2"] = y2
+        geodata["cartesian_unit"] = "m"
+        geodata["xpixelsize"] = float(metadata["metersperpixel_x"][0])
+        geodata["ypixelsize"] = float(metadata["metersperpixel_y"][0])
 
-    geodata["xpixelsize"] = float(metadata["metersperpixel_x"][0])
-    geodata["ypixelsize"] = float(metadata["metersperpixel_y"][0])
-
-    geodata["yorigin"] = "upper"
+        geodata["yorigin"] = "upper"
 
     return geodata
 
@@ -757,8 +770,8 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
         are also available.
 
     pixelsize: float
-        The pixel size of a raster cell in kilometers. The default value for the 
-        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel 
+        The pixel size of a raster cell in kilometers. The default value for the
+        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel
         size are also available.
 
     {extra_kwargs_doc}
@@ -822,8 +835,6 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     if precip is None:
         raise IOError("requested quantity not found")
 
-    # TODO: Check if the reflectivity conversion equation is still up to date (unfortunately not well documented)
-
     ####
     # Meta data
     ####
@@ -871,6 +882,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     metadata["y2"] = y2
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
+    metadata["cartesian_unit"] = "km"
     metadata["yorigin"] = "upper"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
@@ -1253,16 +1265,19 @@ def _import_mch_geodata():
 
     geodata["xpixelsize"] = 1000.0
     geodata["ypixelsize"] = 1000.0
-
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
     return geodata
 
 
 @postprocess_import()
-def import_opera_hdf5(filename, qty="RATE", **kwargs):
-    """Import a precipitation field (and optionally the quality field) from an
-    OPERA HDF5 file conforming to the ODIM specification.
+def import_odim_hdf5(filename, qty="RATE", **kwargs):
+    """Import a precipitation field (and optionally the quality field) from a
+    HDF5 file conforming to the ODIM specification.
+    **Important:** Currently, only the Pan-European (OPERA) and the
+    Dipartimento della Protezione Civile (DPC) radar composites are correctly supported.
+    Other ODIM-compliant files may not be read correctly.
 
     Parameters
     ----------
@@ -1348,6 +1363,30 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
                             quality = np.empty(arr.shape, dtype=float)
                             quality[mask] = arr[mask]
                             quality[~mask] = np.nan
+                    if quality is None:
+                        for dgg in dg[
+                            1
+                        ].items():  # da qui  ----------------------------
+                            if dgg[0][0:7] == "quality":
+                                quality_keys = list(dgg[1].keys())
+                                if "what" in quality_keys:
+                                    (
+                                        qty_,
+                                        gain,
+                                        offset,
+                                        nodata,
+                                        undetect,
+                                    ) = _read_opera_hdf5_what_group(dgg[1]["what"])
+                                if qty_.decode() == "QIND":
+                                    arr = dgg[1]["data"][...]
+                                    mask_n = arr == nodata
+                                    mask_u = arr == undetect
+                                    mask = np.logical_and(~mask_u, ~mask_n)
+                                    quality = np.empty(arr.shape)  # , dtype=float)
+                                    quality[mask] = arr[mask] * gain + offset
+                                    quality[
+                                        ~mask
+                                    ] = np.nan  # a qui -----------------------------
 
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
@@ -1419,6 +1458,7 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
         "y2": y2,
         "xpixelsize": xpixelsize,
         "ypixelsize": ypixelsize,
+        "cartesian_unit": "m",
         "yorigin": "upper",
         "institution": "Odyssey datacentre",
         "accutime": 15.0,
@@ -1431,6 +1471,16 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
     f.close()
 
     return precip, quality, metadata
+
+
+def import_opera_hdf5(filename, qty="RATE", **kwargs):
+    """
+    Wrapper to :py:func:`pysteps.io.importers.import_odim_hdf5`
+    to maintain backward compatibility with previous pysteps versions.
+
+    **Important:** Use :py:func:`~pysteps.io.importers.import_odim_hdf5` instead.
+    """
+    return import_odim_hdf5(filename, qty=qty, **kwargs)
 
 
 def _read_opera_hdf5_what_group(whatgrp):
@@ -1556,6 +1606,7 @@ def _import_saf_crri_geodata(filename):
     geodata["y2"] = ymax
     geodata["xpixelsize"] = xpixelsize
     geodata["ypixelsize"] = ypixelsize
+    geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
     # get the accumulation period
