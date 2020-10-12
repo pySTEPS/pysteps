@@ -640,6 +640,13 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
         A three-element tuple containing the reflectivity composite in dBZ
         and the associated quality field and metadata. The quality field is
         currently set to None.
+
+    Notes
+    -----
+
+    Reading georeferencing metadata is supported only for stereographic
+    projection. For other projections, the keys related to georeferencing are
+    not set.
     """
     if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
@@ -678,37 +685,36 @@ def _import_fmi_pgm_geodata(metadata):
 
     projdef = ""
 
-    if "type" in metadata.keys() and metadata["type"][0] != "stereographic":
-        raise ValueError("unknown projection %s" % metadata["type"][0])
-    projdef += "+proj=stere "
-    projdef += " +lon_0=" + metadata["centrallongitude"][0] + "E"
-    projdef += " +lat_0=" + metadata["centrallatitude"][0] + "N"
-    projdef += " +lat_ts=" + metadata["truelatitude"][0]
-    # These are hard-coded because the projection definition
-    # is missing from the PGM files.
-    projdef += " +a=6371288"
-    projdef += " +x_0=380886.310"
-    projdef += " +y_0=3395677.920"
-    projdef += " +no_defs"
-    #
-    geodata["projection"] = projdef
+    if "type" in metadata.keys() and metadata["type"][0] == "stereographic":
+        projdef += "+proj=stere "
+        projdef += " +lon_0=" + metadata["centrallongitude"][0] + "E"
+        projdef += " +lat_0=" + metadata["centrallatitude"][0] + "N"
+        projdef += " +lat_ts=" + metadata["truelatitude"][0]
+        # These are hard-coded because the projection definition
+        # is missing from the PGM files.
+        projdef += " +a=6371288"
+        projdef += " +x_0=380886.310"
+        projdef += " +y_0=3395677.920"
+        projdef += " +no_defs"
+        #
+        geodata["projection"] = projdef
 
-    ll_lon, ll_lat = [float(v) for v in metadata["bottomleft"]]
-    ur_lon, ur_lat = [float(v) for v in metadata["topright"]]
+        ll_lon, ll_lat = [float(v) for v in metadata["bottomleft"]]
+        ur_lon, ur_lat = [float(v) for v in metadata["topright"]]
 
-    pr = pyproj.Proj(projdef)
-    x1, y1 = pr(ll_lon, ll_lat)
-    x2, y2 = pr(ur_lon, ur_lat)
+        pr = pyproj.Proj(projdef)
+        x1, y1 = pr(ll_lon, ll_lat)
+        x2, y2 = pr(ur_lon, ur_lat)
 
-    geodata["x1"] = x1
-    geodata["y1"] = y1
-    geodata["x2"] = x2
-    geodata["y2"] = y2
-    geodata["cartesian_unit"] = "m"
-    geodata["xpixelsize"] = float(metadata["metersperpixel_x"][0])
-    geodata["ypixelsize"] = float(metadata["metersperpixel_y"][0])
+        geodata["x1"] = x1
+        geodata["y1"] = y1
+        geodata["x2"] = x2
+        geodata["y2"] = y2
+        geodata["cartesian_unit"] = "m"
+        geodata["xpixelsize"] = float(metadata["metersperpixel_x"][0])
+        geodata["ypixelsize"] = float(metadata["metersperpixel_y"][0])
 
-    geodata["yorigin"] = "upper"
+        geodata["yorigin"] = "upper"
 
     return geodata
 
@@ -1268,8 +1274,8 @@ def _import_mch_geodata():
 @postprocess_import()
 def import_odim_hdf5(filename, qty="RATE", **kwargs):
     """Import a precipitation field (and optionally the quality field) from a
-    HDF5 file conforming to the ODIM specification. 
-    **Important:** Currently, only the Pan-European (OPERA) and the 
+    HDF5 file conforming to the ODIM specification.
+    **Important:** Currently, only the Pan-European (OPERA) and the
     Dipartimento della Protezione Civile (DPC) radar composites are correctly supported.
     Other ODIM-compliant files may not be read correctly.
 
@@ -1358,8 +1364,10 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                             quality[mask] = arr[mask]
                             quality[~mask] = np.nan
                     if quality is None:
-                        for dgg in dg[1].items(): # da qui  ----------------------------
-                            if(dgg[0][0:7]=="quality"):
+                        for dgg in dg[
+                            1
+                        ].items():  # da qui  ----------------------------
+                            if dgg[0][0:7] == "quality":
                                 quality_keys = list(dgg[1].keys())
                                 if "what" in quality_keys:
                                     (
@@ -1374,9 +1382,11 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                                     mask_n = arr == nodata
                                     mask_u = arr == undetect
                                     mask = np.logical_and(~mask_u, ~mask_n)
-                                    quality = np.empty(arr.shape)#, dtype=float)
+                                    quality = np.empty(arr.shape)  # , dtype=float)
                                     quality[mask] = arr[mask] * gain + offset
-                                    quality[~mask] = np.nan  # a qui -----------------------------
+                                    quality[
+                                        ~mask
+                                    ] = np.nan  # a qui -----------------------------
 
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
@@ -1463,11 +1473,11 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
     return precip, quality, metadata
 
 
-def import_opera_hdf5(filename, qty='RATE', **kwargs):
+def import_opera_hdf5(filename, qty="RATE", **kwargs):
     """
     Wrapper to :py:func:`pysteps.io.importers.import_odim_hdf5`
     to maintain backward compatibility with previous pysteps versions.
-    
+
     **Important:** Use :py:func:`~pysteps.io.importers.import_odim_hdf5` instead.
     """
     return import_odim_hdf5(filename, qty=qty, **kwargs)
