@@ -19,6 +19,7 @@ import numpy as np
 #     PYPROJ_IMPORTED = False
 
 from pysteps.decorators import postprocess_import
+from pysteps.exceptions import MissingOptionalDependency
 
 
 # Function import_abc_grib to import Grib files from the Awesome Bureau of Composites
@@ -110,7 +111,7 @@ def import_abc_grib(filename, keyword1="some_keyword", keyword2=10, **kwargs):
     ####################################################################################
     # The {extra_kwargs_doc} above is needed to add default keywords added to this     #
     # importer by the pysteps.decorator.postprocess_import decorator.                  #
-    # IMPORTANT: Remove these box in the final version of this function                #
+    # IMPORTANT: Remove this box in the final version of this function                 #
     ####################################################################################
 
     Returns
@@ -131,7 +132,7 @@ def import_abc_grib(filename, keyword1="some_keyword", keyword2=10, **kwargs):
     #     )
 
     ####################################################################################
-    # Add the code to read the precipitation data here. Note that only cartesian grid
+    # Add the code to read the precipitation data here. Note that only cartesian grids
     # are supported by pysteps!
 
     # In this example, we are going create a precipitation fields of only zeros.
@@ -140,14 +141,14 @@ def import_abc_grib(filename, keyword1="some_keyword", keyword2=10, **kwargs):
     # grib file stores the data using double precision.
 
     # Quality field, should have the same dimensions of the precipitation field.
-    # Use None is not information is available.
+    # Use None if not information is available.
     quality = None
 
     # Adjust the metadata fields according to the file format specifications.
     # For additional information on the metadata fields, see:
     # https://pysteps.readthedocs.io/en/latest/pysteps_reference/io.html#pysteps-io-importers
 
-    # The projection definition is an string with a PROJ.4-compatible projection
+    # The projection definition is a string with a PROJ.4-compatible projection
     # definition of the cartographic projection used for the data
     # More info at: https://proj.org/usage/projections.html
 

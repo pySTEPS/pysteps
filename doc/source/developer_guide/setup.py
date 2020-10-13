@@ -13,7 +13,7 @@ Setup script for installing the Awesome Bureau of Composites (abc) importers plu
 # projects. See more at: https://setuptools.readthedocs.io/en/latest/
 from setuptools import setup, find_packages
 
-# The long description is used to explain to the users how the package is install and
+# The long description is used to explain to the users how the package is installed and
 # how it is used. Typically, a python package includes this long description in a
 # separate README file.
 # The following lines use the contents of the readme file as long

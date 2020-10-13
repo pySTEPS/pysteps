@@ -1,10 +1,10 @@
-.. _importers-plugins:
+.. _importer-plugins:
 
 ================================
 Create your own importers plugin
 ================================
 
-Since version 3.4, pysteps allows the users to add new importers by installing external
+Since version 1.4, pysteps allows the users to add new importers by installing external
 packages, called plugins, without modifying the pysteps installation.
 These plugins need to follow a particular structure (described next) to allow pysteps
 to discover and integrate the new importers to the pysteps interface without any user
@@ -19,7 +19,7 @@ How the plugins work?
 
 When the plugin is installed, it advertises the new importers to other packages (in our
 case, pysteps) using the python `entry points specification`_.
-This new importers are automatically discovered every time that the pysteps library is
+These new importers are automatically discovered every time that the pysteps library is
 imported. The discovered importers are added as attributes to the io.importers module
 and also registered to the io.get_method interface without any user intervention.
 In addition, since the installation of the plugins does not modify the actual pysteps
@@ -33,10 +33,10 @@ Create your own plugin
 ======================
 
 There are two ways of creating your own plugin.
-One is building the importers plugin package from scratch.
+The first one involves building the importers plugin package from scratch.
 An easier alternative is using a `Cookiecutter`_ template that easily create the skeleton
-for an importer plugin template.
-Although the latter alternative is recommended (the cookiecutter template),
+for the new importer plugin.
+Although the cookiecutter template is recommended,
 in the next section we describe step-by-step how to create an importers plugin to
 explain in detail all the elements needed for the plugin to work correctly.
 
@@ -52,7 +52,7 @@ Plugin project structure
 Let's suppose that we want to add two new importers to pysteps for reading the radar
 composites from the "Awesome Bureau of Composites", kindly abbreviated as "abc".
 The composites provided by this institution are available in two different
-formats: Netcdf and Grib2. The details of each format is not important for the rest of
+formats: Netcdf and Grib2. The details of each format are not important for the rest of
 this description. Just remember the names of the two formats.
 
 Without further ado, let's create a python package  (a.k.a. the plugin) implementing the
@@ -103,7 +103,7 @@ For our example, the package name is **pysteps_importer_abc**.
         ├── pysteps_importer_abc
         └───── __init__.py
 
-The __init__.py files are required inform python that a given directory contains a
+The __init__.py files are required to inform python that a given directory contains a
 python package. Also, this is the first file executed when the importer plugin (i.e.,
 the package) is imported.
 
@@ -117,7 +117,7 @@ Importer module
         └───── importer_abc_xyz.py  (importer module)
 
 Inside the package folder (*pysteps_importer_abc*), we place the python module
-(or modules) containing the importers' implementation.
+(or modules) containing the actual implementation of our new importers.
 Below, there is an example of an importer module that implements the skeleton of two
 different importers (the "grib" and "netcdf" importer that we are using as an example):
 
@@ -182,7 +182,7 @@ template is available at
 https://github.com/aperezhortal/cookiecutter-pysteps-plugin
 .
 
-The first step is two install the latest version of `Cookiecutter`_ using,
+The first step is to install the latest version of `Cookiecutter`_ using,
 for example::
 
     pip install -U cookiecutter
@@ -278,5 +278,4 @@ be patient.
 
 __ https://pysteps.slack.com/
 __ https://pysteps-slackin.herokuapp.com/
-
 
