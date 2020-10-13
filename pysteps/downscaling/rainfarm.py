@@ -39,14 +39,14 @@ def _balanced_spatial_average(x, k):
     return convolve(x, k) / convolve(ones, k)
 
 
-def downscale(P, alpha=None, ds_factor=16, threshold=None, return_alpha=False):
+def downscale(precip, alpha=None, ds_factor=16, threshold=None, return_alpha=False):
     """
     Downscale a rainfall field by a given factor.
 
     Parameters
     ----------
 
-    P : array_like
+    precip : array_like
         Array of shape (m,n) containing the input field.
         The input is expected to contain rain rate values.
 
@@ -85,18 +85,18 @@ def downscale(P, alpha=None, ds_factor=16, threshold=None, return_alpha=False):
 
     """
 
-    ki = np.fft.fftfreq(P.shape[0])
-    kj = np.fft.fftfreq(P.shape[1])
+    ki = np.fft.fftfreq(precip.shape[0])
+    kj = np.fft.fftfreq(precip.shape[1])
     k_sqr = ki[:, None] ** 2 + kj[None, :] ** 2
     k = np.sqrt(k_sqr)
 
-    ki_ds = np.fft.fftfreq(P.shape[0] * ds_factor, d=1 / ds_factor)
-    kj_ds = np.fft.fftfreq(P.shape[1] * ds_factor, d=1 / ds_factor)
+    ki_ds = np.fft.fftfreq(precip.shape[0] * ds_factor, d=1 / ds_factor)
+    kj_ds = np.fft.fftfreq(precip.shape[1] * ds_factor, d=1 / ds_factor)
     k_ds_sqr = ki_ds[:, None] ** 2 + kj_ds[None, :] ** 2
     k_ds = np.sqrt(k_ds_sqr)
 
     if alpha is None:
-        fp = np.fft.fft2(P)
+        fp = np.fft.fft2(precip)
         fp_abs = abs(fp)
         log_power_spectrum = np.log(fp_abs ** 2)
         valid = (k != 0) & np.isfinite(log_power_spectrum)
@@ -111,7 +111,7 @@ def downscale(P, alpha=None, ds_factor=16, threshold=None, return_alpha=False):
     g /= g.std()
     r = np.exp(g)
 
-    P_u = np.repeat(np.repeat(P, ds_factor, axis=0), ds_factor, axis=1)
+    P_u = np.repeat(np.repeat(precip, ds_factor, axis=0), ds_factor, axis=1)
     rad = int(round(ds_factor / np.sqrt(np.pi)))
     (mx, my) = np.mgrid[-rad : rad + 0.01, -rad : rad + 0.01]
     tophat = ((mx ** 2 + my ** 2) <= rad ** 2).astype(float)
