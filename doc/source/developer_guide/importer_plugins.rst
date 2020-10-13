@@ -1,8 +1,8 @@
 .. _importer-plugins:
 
-================================
-Create your own importers plugin
-================================
+===============================
+Create your own importer plugin
+===============================
 
 Since version 1.4, pysteps allows the users to add new importers by installing external
 packages, called plugins, without modifying the pysteps installation.
