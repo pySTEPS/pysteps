@@ -13,7 +13,7 @@ contributing to the pySTEPS project.
 
     contributors_guidelines
     ../user_guide/install_pysteps
-    importers_plugins
+    importer_plugins
     test_pysteps
     build_the_docs
     pypi
