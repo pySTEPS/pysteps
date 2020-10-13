@@ -18,6 +18,7 @@ available in pySTEPS.
     cascade
     extrapolation
     datasets
+    downscaling
     io
     motion
     noise
