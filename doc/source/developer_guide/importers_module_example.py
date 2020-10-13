@@ -178,7 +178,7 @@ def import_abc_grib(filename, keyword1="some_keyword", keyword2=10, **kwargs):
     return precip, quality, metadata
 
 
-# Function import_abc_netcdf to import nETCDF files from the Awesome Bureau of Composites
+# Function import_abc_netcdf to import NETCDF files from the Awesome Bureau of Composites
 # =======================================================================================
 
 
