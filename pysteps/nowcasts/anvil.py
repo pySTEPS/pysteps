@@ -44,6 +44,7 @@ def forecast(
     ar_window_radius=50,
     r_vil_window_radius=3,
     fft_method="numpy",
+    apply_rainrate_mask=True,
     num_workers=1,
     extrap_kwargs=None,
     filter_kwargs=None,
@@ -99,6 +100,11 @@ def forecast(
         A string defining the FFT method to use (see utils.fft.get_method).
         Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
         the recommended method is 'pyfftw'.
+    apply_rainrate_mask : bool
+        Apply mask to prevent producing precipitation to areas where it was not
+        originally observed. Defaults to True. Disabling this may improve some
+        verification metrics but increases the number of false alarms. Applicable
+        if rainrate is None.
     num_workers : int, optional
         The number of workers to use for parallel computation. Applicable if
         dask is installed or pyFFTW is used for computing the FFT.
@@ -192,7 +198,7 @@ def forecast(
     m, n = vil.shape[1:]
     vil = vil.copy()
 
-    if rainrate is None:
+    if rainrate is None and apply_rainrate_mask:
         rainrate_mask = vil[-1, :] < 0.1
 
     if rainrate is not None:
@@ -234,7 +240,7 @@ def forecast(
     for i in range(1, vil.shape[0]):
         mask = np.logical_and(mask, np.isfinite(vil[i, :]))
 
-    if rainrate is None:
+    if rainrate is None and apply_rainrate_mask:
         rainrate_mask = np.logical_and(rainrate_mask, mask)
 
     # apply cascade decomposition to the advected input fields
@@ -318,7 +324,8 @@ def forecast(
             r_f_ = r_vil_a * vil_f + r_vil_b
         else:
             r_f_ = vil_f
-            r_f_[rainrate_mask] = 0.0
+            if apply_rainrate_mask:
+                r_f_[rainrate_mask] = 0.0
 
         r_f_[r_f_ < 0.0] = 0.0
 
