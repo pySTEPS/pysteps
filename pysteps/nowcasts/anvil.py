@@ -51,18 +51,18 @@ def forecast(
     measure_time=False,
 ):
     """Generate a nowcast by using the autoregressive nowcasting using VIL
-    (ANVIL) method. The key features of ANVIL are:
+    (ANVIL) method. ANVIL is built on top of an extrapolation-based nowcast.
+    The key features are:
 
-    1) Extrapolation-based nowcast.
-    2) Growth and decay: implemented by using a cascade decomposition and
+    1) Growth and decay: implemented by using a cascade decomposition and
        a multiscale autoregressive integrated ARI(p,1) model. Instead of the
        original time series, the ARI model is applied to the differenced one
        corresponding to time derivatives.
-    3) Originally designed for using integrated liquid (VIL) as the input data.
+    2) Originally designed for using integrated liquid (VIL) as the input data.
        In this case, the rain rate (R) is obtained from VIL via an empirical
        relation. This implementation is more general so that the input can be
        any two-dimensional precipitation field.
-    4) The parameters of the ARI model and the R(VIL) relation are allowed to
+    3) The parameters of the ARI model and the R(VIL) relation are allowed to
        be spatially variable. The estimation is done using a moving window.
 
     Parameters
