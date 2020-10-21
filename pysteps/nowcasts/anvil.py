@@ -58,11 +58,11 @@ def forecast(
        a multiscale autoregressive integrated ARI(p,1) model. Instead of the
        original time series, the ARI model is applied to the differenced one
        corresponding to time derivatives.
-    4) Originally designed for using integrated liquid (VIL) as the input data.
+    3) Originally designed for using integrated liquid (VIL) as the input data.
        In this case, the rain rate (R) is obtained from VIL via an empirical
        relation. This implementation is more general so that the input can be
        any two-dimensional precipitation field.
-    3) The parameters of the ARI model and the R(VIL) relation are allowed to
+    4) The parameters of the ARI model and the R(VIL) relation are allowed to
        be spatially variable. The estimation is done using a moving window.
 
     Parameters
