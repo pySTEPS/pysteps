@@ -34,10 +34,16 @@ from pysteps.exceptions import MissingOptionalDependency
 # convention:
 # https://pysteps.readthedocs.io/en/latest/pysteps_reference/io.html#available-importers
 #
-# The function prototype for the importer's declaration should have the following form:
+# The definition of the new importer functions should have the following form:
 #
 #  @postprocess_import()
 #  def import_institution_format(filename, keyword1="some_keyword", keyword2=10, **kwargs):
+#
+# The "filename" positional argument and the "**kwargs" argument are mandatory.
+# However, the keyword1="some_keyword", keyword2=10 are optional shown in the above
+# example are optional. In the case that the new importer needs optional keywords to
+# fine control its behavior, it is strongly encouraged to define them explicitly
+# instead of relying on the "**kwargs" argument.
 #
 #
 # The @postprocess_import operator
