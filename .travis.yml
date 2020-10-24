@@ -118,10 +118,10 @@ install:
   # Check that Pysteps plugin support works correctly
   - mkdir - p $HOME/tmp
   - cd $HOME/tmp
-  - git clone --depth 1 https://github.com/aperezhortal/cookiecutter-pysteps-plugin
+  - git clone --depth 1 https://github.com/pySTEPS/cookiecutter-pysteps-plugin
   - pip install cookiecutter
   - cookiecutter -o $HOME/tmp/ --no-input cookiecutter-pysteps-plugin
-  - pip install $HOME/tmp/pysteps_importer_abc_xyz
+  - pip install $HOME/tmp/pysteps-importer-abc
   - cd ~
   - python $PYSTEPS_BUILD_DIR/ci/test_plugin_support.py
 

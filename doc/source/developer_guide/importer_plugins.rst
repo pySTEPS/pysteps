@@ -179,7 +179,7 @@ Cookiecutter pysteps-plugin template
 templates, called "cookiecutters".
 To facilitate the creation of an imported plugin for pysteps, the following cookiecutter
 template is available at
-https://github.com/aperezhortal/cookiecutter-pysteps-plugin
+https://github.com/pySTEPS/cookiecutter-pysteps-plugin
 .
 
 The first step is to install the latest version of `Cookiecutter`_ using,
@@ -190,14 +190,14 @@ for example::
 After cookiecutter is installed, a Pysteps-plugin project can be created by simply
 running the following command and answering to the input prompts:
 
-    cookiecutter https://github.com/aperezhortal/cookiecutter-pysteps-plugin
+    cookiecutter https://github.com/pySTEPS/cookiecutter-pysteps-plugin
 
 When the above command is run, you are asked to enter the following values
 (one at a time):
 
 ::
 
-    $> cookiecutter https://github.com/aperezhortal/cookiecutter-pysteps-plugin
+    $> cookiecutter https://github.com/pySTEPS/cookiecutter-pysteps-plugin
 
     full_name [Your name]:
     email [your@email.com]:
