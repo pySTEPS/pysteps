@@ -20,16 +20,7 @@ from . import utils
 
 
 def quiver(
-    UV,
-    ax=None,
-    map=None,
-    geodata=None,
-    drawlonlatlines=False,
-    lw=0.5,
-    axis="on",
-    step=20,
-    quiver_kwargs=None,
-    **kwargs,
+    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs=None, **kwargs,
 ):
     """Function to plot a motion field as arrows.
 
@@ -43,15 +34,12 @@ def quiver(
         Array of shape (2,m,n) containing the input motion field.
     ax : axis object
         Optional axis object to use for plotting.
-    map : {'basemap', 'cartopy'}, optional
-        Optional method for plotting a map: 'basemap' or 'cartopy'. The former
-        uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
     geodata : dictionary
         Optional dictionary containing geographical information about
         the field.
-        
+
         If geodata is not None, it must contain the following key-value pairs:
-        
+
         .. tabularcolumns:: |p{1.5cm}|L|
 
         +----------------+----------------------------------------------------+
@@ -75,11 +63,6 @@ def quiver(
         |                 | element in the data raster w.r.t. y-axis:         |
         |                 | 'upper' = upper border, 'lower' = lower border    |
         +-----------------+---------------------------------------------------+
-    drawlonlatlines : bool, optional
-        If set to True, draw longitude and latitude lines. Applicable if map is
-        'basemap' or 'cartopy'.
-    lw: float, optional
-        Linewidth of the map (administrative boundaries and coastlines).
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
     step : int
@@ -87,11 +70,12 @@ def quiver(
     quiver_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the quiver method.
       See the documentation of matplotlib.pyplot.quiver.
-    
-    
+
+
     Other parameters
     ----------------
-    Optional parameters are contained in **kwargs. See basemaps.plot_geography.
+    Optional parameters that need to be passed to
+    :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
     Returns
     -------
@@ -99,16 +83,9 @@ def quiver(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-    if map is not None:
-        FutureWarning(
-            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
-        )
-        plot_map = map
-    else:
-        plot_map = kwargs.pop("plot_map", None)
-
+    plot_map = kwargs.get("plot_map", None)
     if plot_map is not None and geodata is None:
-        raise ValueError("map!=None but geodata=None")
+        raise ValueError("plot_map!=None but geodata=None")
 
     if quiver_kwargs is None:
         quiver_kwargs = dict()
@@ -160,14 +137,7 @@ def quiver(
     # draw basemaps
     if plot_map is not None:
         try:
-            ax = basemaps.plot_geography(
-                plot_map,
-                geodata["projection"],
-                extent,
-                lw=lw,
-                drawlonlatlines=drawlonlatlines,
-                **kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
 
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -177,14 +147,7 @@ def quiver(
             extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
-            ax = basemaps.plot_geography(
-                plot_map,
-                geodata["projection"],
-                extent,
-                lw=lw,
-                drawlonlatlines=drawlonlatlines,
-                **kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
     else:
         ax = plt.gca()
 
@@ -214,15 +177,7 @@ def quiver(
 
 
 def streamplot(
-    UV,
-    ax=None,
-    map=None,
-    geodata=None,
-    drawlonlatlines=False,
-    lw=0.5,
-    axis="on",
-    streamplot_kwargs=None,
-    **kwargs,
+    UV, ax=None, geodata=None, axis="on", streamplot_kwargs=None, **kwargs,
 ):
     """Function to plot a motion field as streamlines.
 
@@ -239,14 +194,11 @@ def streamplot(
         Array of shape (2, m,n) containing the input motion field.
     ax : axis object
         Optional axis object to use for plotting.
-    map : {'basemap', 'cartopy'}, optional
-        Optional method for plotting a map: 'basemap' or 'cartopy'.
-        The former uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
     geodata : dictionary
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
-        
+
         .. tabularcolumns:: |p{1.5cm}|L|
 
         +----------------+----------------------------------------------------+
@@ -270,20 +222,16 @@ def streamplot(
         |                | element in the data raster w.r.t. y-axis:          |
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
-    drawlonlatlines : bool, optional
-        If set to True, draw longitude and latitude lines. Applicable if map is
-        'basemap' or 'cartopy'.
-    lw: float, optional
-        Linewidth of the map (administrative boundaries and coastlines).
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
     streamplot_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the streamplot method.
       See the documentation of matplotlib.pyplot.streamplot.
-    
+
     Other parameters
     ----------------
-    Optional parameters are contained in **kwargs. See basemaps.plot_geography.
+    Optional parameters that need to be passed to
+    :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
     Returns
     -------
@@ -291,16 +239,10 @@ def streamplot(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-    if map is not None:
-        FutureWarning(
-            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
-        )
-        plot_map = map
-    else:
-        plot_map = kwargs.pop("plot_map", None)
+    plot_map = kwargs.get("plot_map", None)
 
     if plot_map is not None and geodata is None:
-        raise ValueError("map!=None but geodata=None")
+        raise ValueError("plot_map!=None but geodata=None")
 
     if streamplot_kwargs is None:
         streamplot_kwargs = dict()
@@ -350,14 +292,7 @@ def streamplot(
     # draw basemaps
     if plot_map is not None:
         try:
-            ax = basemaps.plot_geography(
-                plot_map,
-                geodata["projection"],
-                extent,
-                lw=lw,
-                drawlonlatlines=drawlonlatlines,
-                **kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -368,14 +303,7 @@ def streamplot(
             x = X[0, :]
             y = Y[:, 0]
 
-            ax = basemaps.plot_geography(
-                plot_map,
-                geodata["projection"],
-                extent,
-                lw=lw,
-                drawlonlatlines=drawlonlatlines,
-                **kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
     else:
         ax = plt.gca()
 

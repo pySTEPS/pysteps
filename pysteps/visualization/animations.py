@@ -25,7 +25,6 @@ def animate(
     UV=None,
     motion_plot="quiver",
     geodata=None,
-    map=None,
     colorscale="pysteps",
     units="mm/h",
     colorbar=True,
@@ -88,9 +87,6 @@ def animate(
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
 
-    map : str
-        Optional method for plotting a map.
-        See :py:func:`pysteps.visualization.precipifields.plot_precip_field`.
     units : str
         Units of the input array (mm/h or dBZ)
     colorscale : str
@@ -128,13 +124,6 @@ def animate(
     ax : fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
-    if map is not None:
-        FutureWarning(
-            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
-        )
-        plot_map = map
-    else:
-        plot_map = kwargs.pop("plot_map", None)
 
     if timestamps is not None:
         startdate_str = timestamps[-1].strftime("%Y%m%d%H%M")
@@ -183,7 +172,6 @@ def animate(
                         ax = st.plt.plot_precip_field(
                             P_obs,
                             type="prob",
-                            plot_map=plot_map,
                             geodata=geodata,
                             units=units,
                             probthr=prob_thr,
@@ -194,7 +182,6 @@ def animate(
                         title += "Observed Rainfall"
                         ax = st.plt.plot_precip_field(
                             R_obs[i, :, :],
-                            plot_map=plot_map,
                             geodata=geodata,
                             units=units,
                             colorscale=colorscale,
@@ -245,7 +232,6 @@ def animate(
                         ax = st.plt.plot_precip_field(
                             P,
                             type="prob",
-                            plot_map=plot_map,
                             geodata=geodata,
                             units=units,
                             probthr=prob_thr,
@@ -259,7 +245,6 @@ def animate(
                         )
                         ax = st.plt.plot_precip_field(
                             EM,
-                            plot_map=plot_map,
                             geodata=geodata,
                             units=units,
                             title=title,
@@ -271,7 +256,6 @@ def animate(
                         title += "Forecast Rainfall"
                         ax = st.plt.plot_precip_field(
                             R_fct[n, i - n_obs, :, :],
-                            plot_map=plot_map,
                             geodata=geodata,
                             units=units,
                             title=title,

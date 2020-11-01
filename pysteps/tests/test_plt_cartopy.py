@@ -9,7 +9,7 @@ import matplotlib.pyplot as pl
 
 pytest.importorskip("cartopy")
 
-plt_arg_names = ("source", "map", "drawlonlatlines", "lw")
+plt_arg_names = ("source", "plot_map", "drawlonlatlines", "lw")
 
 plt_arg_values = [
     ("mch", "cartopy", False, 0.5),
@@ -23,7 +23,7 @@ plt_arg_values = [
 
 
 @pytest.mark.parametrize(plt_arg_names, plt_arg_values)
-def test_visualization_plot_precip_field(source, map, drawlonlatlines, lw):
+def test_visualization_plot_precip_field(source, plot_map, drawlonlatlines, lw):
 
     field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
     field = field.squeeze()
@@ -33,7 +33,7 @@ def test_visualization_plot_precip_field(source, map, drawlonlatlines, lw):
         field,
         type="intensity",
         geodata=metadata,
-        map=map,
+        plot_map=plot_map,
         drawlonlatlines=drawlonlatlines,
         lw=lw,
     )
