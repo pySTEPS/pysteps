@@ -90,13 +90,14 @@ def animate(
 
     map : str
         Optional method for plotting a map.
-        See pysteps.visualization.precipifields.plot_precip.field.
+        See :py:func:`pysteps.visualization.precipifields.plot_precip_field`.
     units : str
         Units of the input array (mm/h or dBZ)
     colorscale : str
-        Which colorscale to use.
-    title : str
-        If not None, print the title on top of the plot.
+        The *colorscale* argument to
+        :py:func:`pysteps.visualization.precipifields.plot_precip_field`.
+    title : str or None
+        If not None, print the string as title on top of the plot.
     colorbar : bool
         If set to True, add a colorbar on the right side of the plot.
     type : {'ensemble', 'mean', 'prob'}, str
@@ -117,8 +118,10 @@ def animate(
     path_outputs : string
         Path to folder where to save the frames.
     kwargs : dict
-        Optional keyword arguments that are supplied to plot_precip_field
-        and quiver/streamplot.
+        Optional keyword arguments that are supplied to
+        :py:func:`pysteps.visualization.precipifields.plot_precip_field`,
+        :py:func:`pysteps.visualization.motionfields.quiver`, and
+        :py:func:`pysteps.visualization.motionfields.streamplot`.
 
     Returns
     -------
