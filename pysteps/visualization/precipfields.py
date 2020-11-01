@@ -114,8 +114,9 @@ def plot_precip_field(
 
     Other parameters
     ----------------
-    Optional parameters that need to be passed to
-    :py:func:`pysteps.visualization.basemaps.plot_geography`.
+    kwargs: dict
+        Optional parameters that need to be passed to
+        :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
     Returns
     -------

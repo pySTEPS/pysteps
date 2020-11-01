@@ -91,7 +91,7 @@ def animate(
         Units of the input array (mm/h or dBZ)
     colorscale : str
         The *colorscale* argument to
-        :py:func:`pysteps.visualization.precipifields.plot_precip_field`.
+        :py:func:`pysteps.visualization.precipfields.plot_precip_field`.
     title : str or None
         If not None, print the string as title on top of the plot.
     colorbar : bool
@@ -115,7 +115,7 @@ def animate(
         Path to folder where to save the frames.
     kwargs : dict
         Optional keyword arguments that are supplied to
-        :py:func:`pysteps.visualization.precipifields.plot_precip_field`,
+        :py:func:`pysteps.visualization.precipfields.plot_precip_field`,
         :py:func:`pysteps.visualization.motionfields.quiver`, and
         :py:func:`pysteps.visualization.motionfields.streamplot`.
 

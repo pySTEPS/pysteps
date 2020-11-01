@@ -59,10 +59,10 @@ def quiver(
         |    y2          | y-coordinate of the upper-right corner of the data |
         |                | raster                                             |
         +----------------+----------------------------------------------------+
-        |    yorigin      | a string specifying the location of the first     |
-        |                 | element in the data raster w.r.t. y-axis:         |
-        |                 | 'upper' = upper border, 'lower' = lower border    |
-        +-----------------+---------------------------------------------------+
+        |    yorigin     | a string specifying the location of the first      |
+        |                | element in the data raster w.r.t. y-axis:          |
+        |                | 'upper' = upper border, 'lower' = lower border     |
+        +----------------+----------------------------------------------------+
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
     step : int
@@ -74,8 +74,9 @@ def quiver(
 
     Other parameters
     ----------------
-    Optional parameters that need to be passed to
-    :py:func:`pysteps.visualization.basemaps.plot_geography`.
+    kwargs: dict
+        Optional parameters that need to be passed to
+        :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
     Returns
     -------
@@ -230,8 +231,9 @@ def streamplot(
 
     Other parameters
     ----------------
-    Optional parameters that need to be passed to
-    :py:func:`pysteps.visualization.basemaps.plot_geography`.
+    kwargs: dict
+        Optional parameters that need to be passed to
+        :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
     Returns
     -------
