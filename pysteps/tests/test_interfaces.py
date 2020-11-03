@@ -259,7 +259,6 @@ def test_utils_interface():
         ("clip", dimension.clip_domain),
         ("square", dimension.square_domain),
         ("upscale", dimension.aggregate_fields_space),
-        ("shitomasi", images.shitomasi_detection),
         ("morph_opening", images.morph_opening),
         ("rbfinterp2d", interpolate.rbfinterp2d),
         ("rapsd", spectral.rapsd),
@@ -274,4 +273,52 @@ def test_utils_interface():
     ]
 
     invalid_names = ["random", "invalid"]
+    _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
+
+
+def test_downscaling_interface():
+    """Test the downscaling module interface."""
+
+    from pysteps.downscaling import rainfarm
+
+    method_getter = pysteps.downscaling.interface.get_method
+
+    valid_names_func_pair = [
+        ("rainfarm", rainfarm.downscale),
+    ]
+
+    invalid_names = ["rain-farm", "rainfarms"]
+    _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
+
+
+def test_feature_interface():
+    """Test the feature detection module interface."""
+
+    from pysteps.feature import blob
+    from pysteps.feature import shitomasi
+
+    method_getter = pysteps.feature.interface.get_method
+
+    valid_names_func_pair = [
+        ("blob", blob.detection),
+        ("ShiTomasi", shitomasi.detection),
+        ("shitomasi", shitomasi.detection),
+    ]
+
+    invalid_names = ["blobs", "shi-tomasi"]
+    _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
+
+
+def test_tracking_interface():
+    """Test the feature tracking module interface."""
+
+    from pysteps.tracking import lucaskanade
+
+    method_getter = pysteps.tracking.interface.get_method
+
+    valid_names_func_pair = [
+        ("lucaskanade", lucaskanade.track_features),
+    ]
+
+    invalid_names = ["lucas-kanade"]
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
