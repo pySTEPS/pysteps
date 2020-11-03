@@ -28,7 +28,7 @@ from numpy.ma.core import MaskedArray
 from pysteps.decorators import check_input_frames
 from pysteps.exceptions import MissingOptionalDependency
 
-from pysteps import utils
+from pysteps import utils, feature
 from pysteps.tracking.lucaskanade import track_features
 from pysteps.utils.cleansing import decluster, detect_outliers
 from pysteps.utils.images import morph_opening
@@ -98,16 +98,16 @@ def dense_lucaskanade(
     lk_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the `Lucas-Kanade`_
         features tracking algorithm. See the documentation of
-        :py:func:`pysteps.motion.lucaskanade.track_features`.
+        :py:func:`pysteps.tracking.lucaskanade.track_features`.
 
     fd_method : {"ShiTomasi", "blob"}, optional
       Name of the feature detection routine. See feature detection methods in
-      :py:mod:`pysteps.utils.images`.
+      :py:mod:`pysteps.feature`.
 
     fd_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the features
         detection algorithm.
-        See the documentation of :py:mod:`pysteps.utils.images`.
+        See the documentation of :py:mod:`pysteps.feature`.
 
     interp_method : {"rbfinterp2d"}, optional
       Name of the interpolation method to use. See interpolation methods in
@@ -201,7 +201,7 @@ def dense_lucaskanade(
     nr_fields = input_images.shape[0]
     domain_size = (input_images.shape[1], input_images.shape[2])
 
-    feature_detection_method = utils.get_method(fd_method)
+    feature_detection_method = feature.get_method(fd_method)
     interpolation_method = utils.get_method(interp_method)
 
     if fd_kwargs is None:
