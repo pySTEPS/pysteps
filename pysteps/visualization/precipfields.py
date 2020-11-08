@@ -167,9 +167,9 @@ def plot_precip_field(
         try:
             ax = basemaps.plot_geography(geodata["projection"], bm_extent, **kwargs,)
             regular_grid = True
-        except MissingOptionalDependency as err:
+        except MissingOptionalDependency as e:
             # Cartopy is not installed
-            print(err)
+            print(f"{e.__class__}: {e}")
             ax = plt.axes()
             regular_grid = True
         except UnsupportedSomercProjection:

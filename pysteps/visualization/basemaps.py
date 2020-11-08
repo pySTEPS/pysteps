@@ -139,7 +139,7 @@ def plot_map_cartopy(
     """
     if not CARTOPY_IMPORTED:
         raise MissingOptionalDependency(
-            "the cartopy package is required to plot the geographical map "
+            "the cartopy package is required to plot the geographical map"
             " but it is not installed"
         )
 

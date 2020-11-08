@@ -13,7 +13,7 @@ Functions to plot motion fields.
 
 import matplotlib.pylab as plt
 import numpy as np
-from pysteps.exceptions import UnsupportedSomercProjection
+from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 from . import basemaps
 from . import utils
@@ -135,9 +135,9 @@ def quiver(
         try:
             ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
 
-        except MissingOptionalDependency as err:
+        except MissingOptionalDependency as e:
             # Cartopy is not installed
-            print(err)
+            print(f"{e.__class__}: {e}")
             ax = plt.axes()
 
         except UnsupportedSomercProjection:
@@ -291,9 +291,9 @@ def streamplot(
         try:
             ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
 
-        except MissingOptionalDependency as err:
+        except MissingOptionalDependency as e:
             # Cartopy is not installed
-            print(err)
+            print(f"{e.__class__}: {e}")
             ax = plt.axes()
 
         except UnsupportedSomercProjection:
