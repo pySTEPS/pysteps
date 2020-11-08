@@ -40,7 +40,9 @@ except ImportError:
 from . import utils
 
 
-def plot_geography(plot_map, proj4str, extent, lw=0.5, drawlonlatlines=False, **kwargs):
+def plot_geography(
+    proj4str, extent, plot_map="cartopy", lw=0.5, drawlonlatlines=False, **kwargs
+):
     """
     Plot geographical map using either cartopy_ or basemap_ in a chosen projection.
 
@@ -52,33 +54,32 @@ def plot_geography(plot_map, proj4str, extent, lw=0.5, drawlonlatlines=False, **
 
     Parameters
     ----------
-    plot_map : {'cartopy', 'basemap'}
-        The type of basemap.
     proj4str : str
         The PROJ.4-compatible projection string.
     extent: scalars (left, right, bottom, top)
         The bounding box in proj4str coordinates.
+    plot_map : {'cartopy', 'basemap'}, optional
+        The type of basemap, either 'cartopy_' or 'basemap_'.
     lw: float, optional
         Linewidth of the map (administrative boundaries and coastlines).
     drawlonlatlines : bool, optional
-        If set to True, draw longitude and latitude lines. Applicable if map is
+        If set to True, draw longitude and latitude lines. Applicable if plot_map is
         'basemap' or 'cartopy'.
 
     Other parameters
     ----------------
     resolution : str, optional
-        The resolution of the map, see the documentation of
-        `mpl_toolkits.basemap`_.
-        Applicable if map is 'basemap'. Default ``'l'``.
+        The resolution of the map, see the documentation of `basemap`_.
+        Applicable if 'plot_map' is 'basemap'. Default ``'l'``.
     scale_args : list, optional
         If not None, a map scale bar is drawn with basemap_scale_args supplied
-        to mpl_toolkits.basemap.Basemap.drawmapscale. Applicable if map is
+        to mpl_toolkits.basemap.Basemap.drawmapscale. Applicable if 'plot_map' is
         'basemap'. Default ``None``.
     scale : {'10m', '50m', '110m'}, optional
-        The scale (resolution) of the map. The available options are '10m',
-        '50m', and '110m'. Applicable if map is 'cartopy'. Default ``'50m'``
+        The scale (resolution) of the plot_map. The available options are '10m',
+        '50m', and '110m'. Applicable if plot_map is 'cartopy'. Default ``'50m'``
     subplot : tuple or SubplotSpec_ instance, optional
-        The cartopy subplot to plot into. Applicable if map is 'cartopy'.
+        The cartopy subplot to plot into. Applicable if plot_map is 'cartopy'.
         Default ``'(1, 1, 1)'``
 
     Returns
@@ -92,21 +93,21 @@ def plot_geography(plot_map, proj4str, extent, lw=0.5, drawlonlatlines=False, **
 
     if plot_map not in ["basemap", "cartopy"]:
         raise ValueError(
-            "unknown map method %s: must be" + " 'basemap' or 'cartopy'" % plot_map
+            "unknown plot_map method %s: must be" + " 'basemap' or 'cartopy'" % plot_map
         )
     if plot_map == "basemap" and not basemap_imported:
         raise MissingOptionalDependency(
-            "map='basemap' option passed to plot_geography function "
+            "plot_map='basemap' option passed to plot_geography function "
             "but the basemap package is not installed"
         )
     if plot_map == "cartopy" and not cartopy_imported:
         raise MissingOptionalDependency(
-            "map='cartopy' option passed to plot_geography function "
+            "plot_map='cartopy' option passed to plot_geography function "
             "but the cartopy package is not installed"
         )
     if plot_map is not None and not pyproj_imported:
         raise MissingOptionalDependency(
-            "map!=None option passed to plot_geography function "
+            "plot_map!=None option passed to plot_geography function "
             "but the pyproj package is not installed"
         )
 
@@ -189,7 +190,7 @@ def plot_map_basemap(
     """
     if not basemap_imported:
         raise MissingOptionalDependency(
-            "map='basemap' option passed to plot_map_basemap function "
+            "plot_map='basemap' option passed to plot_map_basemap function "
             "but the basemap package is not installed"
         )
 
@@ -261,7 +262,7 @@ def plot_map_cartopy(
     """
     if not cartopy_imported:
         raise MissingOptionalDependency(
-            "map='cartopy' option passed to plot_map_cartopy function "
+            "plot_map='cartopy' option passed to plot_map_cartopy function "
             "but the cartopy package is not installed"
         )
 
