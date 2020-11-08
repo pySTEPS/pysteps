@@ -34,7 +34,9 @@ except ImportError:
 from . import utils
 
 
-def plot_geography(proj4str, extent, lw=0.5, drawlonlatlines=False, **kwargs):
+def plot_geography(
+    proj4str, extent, lw=0.5, drawlonlatlines=False, drawlonlatlabels=True, **kwargs
+):
     """
     Plot geographical map using cartopy_ in a chosen projection.
 
@@ -44,26 +46,29 @@ def plot_geography(proj4str, extent, lw=0.5, drawlonlatlines=False, **kwargs):
 
     Parameters
     ----------
-    proj4str : str
+    proj4str: str
         The PROJ.4-compatible projection string.
     extent: scalars (left, right, bottom, top)
         The bounding box in proj4str coordinates.
     lw: float, optional
         Linewidth of the map (administrative boundaries and coastlines).
-    drawlonlatlines : bool, optional
+    drawlonlatlines: bool, optional
         If set to True, draw longitude and latitude lines.
+    drawlonlatlabels: bool, optional
+        If set to True, draw longitude and latitude labels.  Valid only if
+        'drawlonlatlines' is True.
 
     Other parameters
     ----------------
-    scale : {'10m', '50m', '110m'}, optional
+    scale: {'10m', '50m', '110m'}, optional
         The scale (resolution) of the plot_map. The available options are '10m',
         '50m', and '110m'. Default ``'50m'``
-    subplot : tuple or SubplotSpec_ instance, optional
+    subplot: tuple or SubplotSpec_ instance, optional
         The cartopy subplot to plot into. Default ``'(1, 1, 1)'``
 
     Returns
     -------
-    ax : fig Axes_
+    ax: fig Axes_
         Cartopy axes.
     """
 
@@ -87,6 +92,7 @@ def plot_geography(proj4str, extent, lw=0.5, drawlonlatlines=False, **kwargs):
         extent,
         cartopy_scale,
         drawlonlatlines=drawlonlatlines,
+        drawlonlatlabels=drawlonlatlabels,
         lw=lw,
         subplot=cartopy_subplot,
     )
@@ -95,31 +101,40 @@ def plot_geography(proj4str, extent, lw=0.5, drawlonlatlines=False, **kwargs):
 
 
 def plot_map_cartopy(
-    crs, extent, scale, drawlonlatlines=False, lw=0.5, subplot=(1, 1, 1)
+    crs,
+    extent,
+    scale,
+    drawlonlatlines=False,
+    drawlonlatlabels=True,
+    lw=0.5,
+    subplot=(1, 1, 1),
 ):
     """
     Plot coastlines, countries, rivers and meridians/parallels using Cartopy.
 
     Parameters
     ----------
-    crs : object
+    crs: object
         Instance of a crs class defined in cartopy.crs.
         It can be created using utils.proj4_to_cartopy.
-    extent : scalars (left, right, bottom, top)
+    extent: scalars (left, right, bottom, top)
         The coordinates of the bounding box.
-    drawlonlatlines : bool
+    drawlonlatlines: bool
         Whether to plot longitudes and latitudes.
-    scale : {'10m', '50m', '110m'}
+    drawlonlatlabels: bool, optional
+        If set to True, draw longitude and latitude labels. Valid only if
+        'drawlonlatlines' is True.
+    scale: {'10m', '50m', '110m'}
         The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'.
-    lw : float
+    lw: float
         Line width.
-    subplot : scalars (nrows, ncols, index)
+    subplot: scalars (nrows, ncols, index)
         Subplot dimensions (n_rows, n_cols) and subplot number (index).
 
     Returns
     -------
-    ax : axes
+    ax: axes
         Cartopy axes. Compatible with matplotlib.
     """
     if not CARTOPY_IMPORTED:
@@ -195,32 +210,37 @@ def plot_map_cartopy(
         ),
         zorder=2,
     )
-    ax.add_feature(
-        cfeature.NaturalEarthFeature(
-            "physical",
-            "reefs",
-            scale=scale,
-            edgecolor="black",
-            facecolor="none",
-            linewidth=lw,
-        ),
-        zorder=2,
-    )
-    ax.add_feature(
-        cfeature.NaturalEarthFeature(
-            "physical", "minor_islands", scale=scale, edgecolor="black", linewidth=lw,
-        ),
-        zorder=2,
-    )
-    ax.add_feature(
-        cfeature.NaturalEarthFeature(
-            "physical", "coastline", scale=scale, edgecolor="black", linewidth=lw,
-        ),
-        zorder=2,
-    )
+    if scale in ["10m", "50m"]:
+        ax.add_feature(
+            cfeature.NaturalEarthFeature(
+                "physical",
+                "reefs",
+                scale="10m",
+                edgecolor="black",
+                facecolor="none",
+                linewidth=lw,
+            ),
+            zorder=2,
+        )
+        ax.add_feature(
+            cfeature.NaturalEarthFeature(
+                "physical",
+                "minor_islands",
+                scale="10m",
+                edgecolor="black",
+                facecolor="none",
+                linewidth=lw,
+            ),
+            zorder=2,
+        )
 
     if drawlonlatlines:
-        ax.gridlines(crs=ccrs.PlateCarree())
+        gl = ax.gridlines(
+            crs=ccrs.PlateCarree(), draw_labels=drawlonlatlabels, dms=True
+        )
+        gl.top_labels = gl.right_labels = False
+        gl.y_inline = gl.x_inline = False
+        gl.rotate_labels = False
 
     ax.set_extent(extent, crs)
 
