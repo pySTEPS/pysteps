@@ -195,6 +195,29 @@ def plot_map_cartopy(
         ),
         zorder=2,
     )
+    ax.add_feature(
+        cfeature.NaturalEarthFeature(
+            "physical",
+            "reefs",
+            scale=scale,
+            edgecolor="black",
+            facecolor="none",
+            linewidth=lw,
+        ),
+        zorder=2,
+    )
+    ax.add_feature(
+        cfeature.NaturalEarthFeature(
+            "physical", "minor_islands", scale=scale, edgecolor="black", linewidth=lw,
+        ),
+        zorder=2,
+    )
+    ax.add_feature(
+        cfeature.NaturalEarthFeature(
+            "physical", "coastline", scale=scale, edgecolor="black", linewidth=lw,
+        ),
+        zorder=2,
+    )
 
     if drawlonlatlines:
         ax.gridlines(crs=ccrs.PlateCarree())
