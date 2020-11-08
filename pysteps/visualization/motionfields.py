@@ -135,8 +135,9 @@ def quiver(
         try:
             ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
 
-        except MissingOptionalDependency:
+        except MissingOptionalDependency as err:
             # Cartopy is not installed
+            print(err)
             ax = plt.axes()
 
         except UnsupportedSomercProjection:
@@ -290,8 +291,9 @@ def streamplot(
         try:
             ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
 
-        except MissingOptionalDependency:
+        except MissingOptionalDependency as err:
             # Cartopy is not installed
+            print(err)
             ax = plt.axes()
 
         except UnsupportedSomercProjection:

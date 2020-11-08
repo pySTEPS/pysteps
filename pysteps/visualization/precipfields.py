@@ -93,9 +93,9 @@ def plot_precip_field(
     bbox : tuple, optional
         Four-element tuple specifying the coordinates of the bounding box. Use
         this for plotting a subdomain inside the input grid. The coordinates are
-        of the form (lower left x,lower left y,upper right x,upper right y). If
-        map is not None, the x- and y-coordinates are longitudes and latitudes.
-        Otherwise they represent image pixels.
+        of the form (lower left x, lower left y ,upper right x, upper right y).
+        If 'geodata' is not None, the bbox is in map coordinates, otherwise
+        it represents image pixels.
     colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
     probthr : float, optional
@@ -167,8 +167,9 @@ def plot_precip_field(
         try:
             ax = basemaps.plot_geography(geodata["projection"], bm_extent, **kwargs,)
             regular_grid = True
-        except MissingOptionalDependency:
+        except MissingOptionalDependency as err:
             # Cartopy is not installed
+            print(err)
             ax = plt.axes()
             regular_grid = True
         except UnsupportedSomercProjection:
@@ -185,9 +186,9 @@ def plot_precip_field(
             regular_grid = geodata["regular_grid"]
 
             ax = basemaps.plot_geography(geodata["projection"], bm_extent, **kwargs,)
-        else:
-            regular_grid = True
+
     else:
+        ax = plt.axes()
         regular_grid = True
 
     if bbox is not None and geodata is not None:
@@ -199,7 +200,6 @@ def plot_precip_field(
 
     # plot rainfield
     if regular_grid:
-        ax = plt.gca()
         im = _plot_field(
             R, ax, type, units, colorscale, extent=field_extent, origin=origin
         )
@@ -249,19 +249,17 @@ def plot_precip_field(
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
 
-    if geodata is None and bbox is not None:
-        ax = plt.gca()
+    if geodata is None or axis == "off":
+        ax.xaxis.set_ticks([])
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticks([])
+        ax.yaxis.set_ticklabels([])
+
+    if bbox is not None:
         ax.set_xlim(bbox[0], bbox[2])
         ax.set_ylim(bbox[1], bbox[3])
 
-    if geodata is None or axis == "off":
-        axes = plt.gca()
-        axes.xaxis.set_ticks([])
-        axes.xaxis.set_ticklabels([])
-        axes.yaxis.set_ticks([])
-        axes.yaxis.set_ticklabels([])
-
-    return plt.gca()
+    return ax
 
 
 def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
@@ -280,16 +278,12 @@ def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
     else:
         R[R < 1e-3] = np.nan
 
-    vmin, vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
-
     im = ax.imshow(
         R,
         cmap=cmap,
         norm=norm,
         extent=extent,
         interpolation="nearest",
-        vmin=vmin,
-        vmax=vmax,
         origin=origin,
         zorder=1,
     )
