@@ -58,7 +58,7 @@ def animate(
         Optional, the motion field used for the forecast.
     motion_plot : string
         The method to plot the motion field.
-    geodata : dictionary
+    geodata : dictionary or None
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:

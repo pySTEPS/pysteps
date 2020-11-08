@@ -58,7 +58,7 @@ def plot_precip_field(
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
-    geodata : dictionary, optional
+    geodata : dictionary or None, optional
         Optional dictionary containing geographical information about
         the field. Required is map is not None.
 
@@ -135,9 +135,6 @@ def plot_precip_field(
         )
     if type == "prob" and colorbar and probthr is None:
         raise ValueError("type='prob' but probthr not specified")
-    plot_map = kwargs.get("plot_map", None)
-    if plot_map is not None and geodata is None:
-        raise ValueError("map!=None but geodata=None")
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
 
@@ -152,8 +149,8 @@ def plot_precip_field(
         else:
             if not PYPROJ_IMPORTED:
                 raise MissingOptionalDependency(
-                    "pyproj package is required to import "
-                    "FMI's radar reflectivity composite "
+                    "pyproj package is required to plot "
+                    "georeferenced precipitation fields "
                     "but it is not installed"
                 )
             pr = pyproj.Proj(geodata["projection"])
@@ -166,7 +163,7 @@ def plot_precip_field(
         origin = "upper"
 
     # plot geography
-    if plot_map is not None:
+    if geodata is not None:
         try:
             ax = basemaps.plot_geography(geodata["projection"], bm_extent, **kwargs,)
             regular_grid = True
@@ -187,15 +184,11 @@ def plot_precip_field(
     else:
         regular_grid = True
 
-    if bbox is not None and plot_map is not None:
+    if bbox is not None and geodata is not None:
         x1, y1 = pr(geodata["x1"], geodata["y1"], inverse=True)
         x2, y2 = pr(geodata["x2"], geodata["y2"], inverse=True)
-        if plot_map == "basemap":
-            x1, y1 = ax(x1, y1)
-            x2, y2 = ax(x2, y2)
-        else:
-            x1, y1 = pr(x1, y1)
-            x2, y2 = pr(x2, y2)
+        x1, y1 = pr(x1, y1)
+        x2, y2 = pr(x2, y2)
         field_extent = (x1, x2, y1, y2)
 
     # plot rainfield
@@ -250,7 +243,7 @@ def plot_precip_field(
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
 
-    if plot_map is None and bbox is not None:
+    if geodata is None and bbox is not None:
         ax = plt.gca()
         ax.set_xlim(bbox[0], bbox[2])
         ax.set_ylim(bbox[1], bbox[3])
