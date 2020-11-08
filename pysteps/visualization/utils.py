@@ -143,6 +143,8 @@ def proj4_to_cartopy(proj4str):
                 # limits are too strict.
                 # We'll use the Stereographic projection as an alternative.
                 cl = ccrs.Stereographic
+            elif v == "geos":
+                cl = ccrs.Geostationary
             else:
                 raise ValueError("unsupported projection: %s" % v)
         elif k in km_proj:
