@@ -136,6 +136,8 @@ def proj4_to_cartopy(proj4str):
                 cl = ccrs.Stereographic
             elif v == "aea":
                 cl = ccrs.AlbersEqualArea
+            elif v == "aeqd":
+                cl = ccrs.AzimuthalEquidistant
             elif v == "somerc":
                 # Note: ccrs.epsg(2056) doesn't work because the projection
                 # limits are too strict.
