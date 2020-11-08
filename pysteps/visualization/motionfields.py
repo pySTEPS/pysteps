@@ -135,6 +135,10 @@ def quiver(
         try:
             ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
 
+        except MissingOptionalDependency:
+            # Cartopy is not installed
+            ax = plt.axes()
+
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -144,6 +148,7 @@ def quiver(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
             ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+
     else:
         ax = plt.gca()
 
@@ -284,6 +289,11 @@ def streamplot(
     if geodata is not None:
         try:
             ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+
+        except MissingOptionalDependency:
+            # Cartopy is not installed
+            ax = plt.axes()
+
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -295,6 +305,7 @@ def streamplot(
             y = Y[:, 0]
 
             ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+
     else:
         ax = plt.gca()
 

@@ -167,6 +167,10 @@ def plot_precip_field(
         try:
             ax = basemaps.plot_geography(geodata["projection"], bm_extent, **kwargs,)
             regular_grid = True
+        except MissingOptionalDependency:
+            # Cartopy is not installed
+            ax = plt.axes()
+            regular_grid = True
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -181,6 +185,8 @@ def plot_precip_field(
             regular_grid = geodata["regular_grid"]
 
             ax = basemaps.plot_geography(geodata["projection"], bm_extent, **kwargs,)
+        else:
+            regular_grid = True
     else:
         regular_grid = True
 
