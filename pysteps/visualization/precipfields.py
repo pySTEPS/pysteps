@@ -39,7 +39,7 @@ def plot_precip_field(
     colorbar=True,
     axis="on",
     cax=None,
-    **kwargs,
+    map_kwargs={},
 ):
     """
     Function to plot a precipitation intensity or probability field with a
@@ -114,7 +114,7 @@ def plot_precip_field(
 
     Other parameters
     ----------------
-    kwargs: dict
+    map_kwargs: dict
         Optional parameters that need to be passed to
         :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
@@ -165,7 +165,7 @@ def plot_precip_field(
     # plot geography
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs,)
             regular_grid = True
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -185,7 +185,7 @@ def plot_precip_field(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
             regular_grid = geodata["regular_grid"]
 
-            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs,)
 
     else:
         ax = plt.axes()

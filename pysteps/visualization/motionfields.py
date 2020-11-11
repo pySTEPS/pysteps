@@ -20,7 +20,7 @@ from . import utils
 
 
 def quiver(
-    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs=None, **kwargs,
+    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs={}, map_kwargs={},
 ):
     """Function to plot a motion field as arrows.
 
@@ -74,7 +74,7 @@ def quiver(
 
     Other parameters
     ----------------
-    kwargs: dict
+    map_kwargs: dict
         Optional parameters that need to be passed to
         :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
@@ -84,9 +84,6 @@ def quiver(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-
-    if quiver_kwargs is None:
-        quiver_kwargs = dict()
 
     # prepare x y coordinates
     reproject = False
@@ -133,7 +130,7 @@ def quiver(
     # draw basemaps
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
 
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -148,7 +145,7 @@ def quiver(
             extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
 
     else:
         ax = plt.gca()
@@ -179,7 +176,7 @@ def quiver(
 
 
 def streamplot(
-    UV, ax=None, geodata=None, axis="on", streamplot_kwargs=None, **kwargs,
+    UV, ax=None, geodata=None, axis="on", streamplot_kwargs={}, map_kwargs={},
 ):
     """Function to plot a motion field as streamlines.
 
@@ -232,7 +229,7 @@ def streamplot(
 
     Other parameters
     ----------------
-    kwargs: dict
+    map_kwargs: dict
         Optional parameters that need to be passed to
         :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
@@ -242,9 +239,6 @@ def streamplot(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-
-    if streamplot_kwargs is None:
-        streamplot_kwargs = dict()
 
     # prepare x y coordinates
     reproject = False
@@ -289,7 +283,7 @@ def streamplot(
     # draw basemaps
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
 
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -306,7 +300,7 @@ def streamplot(
             x = X[0, :]
             y = Y[:, 0]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
 
     else:
         ax = plt.gca()

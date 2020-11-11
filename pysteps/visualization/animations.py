@@ -35,7 +35,8 @@ def animate(
     fig_dpi=150,
     fig_format="png",
     path_outputs="",
-    **kwargs,
+    motion_kwargs={},
+    map_kwargs={},
 ):
     """Function to animate observations and forecasts in pysteps.
 
@@ -113,10 +114,12 @@ def animate(
         matplotlib.pyplot.savefig. Applicable if savefig is True.
     path_outputs : string
         Path to folder where to save the frames.
-    kwargs : dict
+    motion_kwargs : dict
         Optional keyword arguments that are supplied to
-        :py:func:`pysteps.visualization.precipfields.plot_precip_field`,
-        :py:func:`pysteps.visualization.motionfields.quiver`, and
+        :py:func:`pysteps.visualization.precipfields.plot_precip_field` or
+        :py:func:`pysteps.visualization.motionfields.quiver`.
+    map_kwargs : dict
+        Optional keyword arguments that are supplied to
         :py:func:`pysteps.visualization.motionfields.streamplot`.
 
     Returns
@@ -176,7 +179,7 @@ def animate(
                             units=units,
                             probthr=prob_thr,
                             title=title,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
                     else:
                         title += "Observed Rainfall"
@@ -187,14 +190,14 @@ def animate(
                             colorscale=colorscale,
                             title=title,
                             colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
 
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
+                            st.plt.quiver(UV, ax=ax, geodata=geodata, **motion_kwargs)
                         elif motion_plot.lower() == "streamplot":
-                            st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
+                            st.plt.streamplot(UV, ax=ax, geodata=geodata, **motion_kwargs)
 
                     if savefig & (loop == 0):
                         if type == "prob":
@@ -236,7 +239,7 @@ def animate(
                             units=units,
                             probthr=prob_thr,
                             title=title,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
                     elif type == "mean":
                         title += "Forecast Ensemble Mean"
@@ -250,7 +253,7 @@ def animate(
                             title=title,
                             colorscale=colorscale,
                             colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
                     else:
                         title += "Forecast Rainfall"
@@ -261,14 +264,14 @@ def animate(
                             title=title,
                             colorscale=colorscale,
                             colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
 
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
+                            st.plt.quiver(UV, ax=ax, geodata=geodata, **motion_kwargs)
                         elif motion_plot.lower() == "streamplot":
-                            st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
+                            st.plt.streamplot(UV, ax=ax, geodata=geodata, **motion_kwargs)
 
                     if leadtime is not None:
                         plt.text(
