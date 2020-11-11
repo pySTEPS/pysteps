@@ -36,7 +36,7 @@ def test_visualization_motionfields_quiver(
     if source is not None:
         fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
         if not pass_geodata:
-            pass_geodata = None
+            geodata = None
         ax = plot_precip_field(fields[-1], geodata=geodata)
         oflow_method = motion.get_method("LK")
         UV = oflow_method(fields)
