@@ -34,6 +34,9 @@ except ImportError:
 from . import utils
 
 
+VALID_BASEMAPS = ["cartopy"]
+
+
 def plot_geography(
     proj4str, extent, lw=0.5, drawlonlatlines=False, drawlonlatlabels=True, **kwargs
 ):
@@ -60,11 +63,15 @@ def plot_geography(
 
     Other parameters
     ----------------
+    plot_map : {'cartopy', None}, optional
+        The type of basemap, either 'cartopy_' or None. If None, the figure
+        axis is returned without any basemap drawn. Default ``'cartopy'``.
     scale: {'10m', '50m', '110m'}, optional
-        The scale (resolution) of the plot_map. The available options are '10m',
-        '50m', and '110m'. Default ``'50m'``
+        The scale (resolution). Applicable if 'plot_map' is 'cartopy'.
+        The available options are '10m', '50m', and '110m'. Default ``'50m'``.
     subplot: tuple or SubplotSpec_ instance, optional
-        The cartopy subplot to plot into. Default ``'(1, 1, 1)'``
+        The cartopy subplot to plot into. Applicable if 'plot_map' is 'cartopy'.
+        Default ``'(1, 1, 1)'``.
 
     Returns
     -------
@@ -72,17 +79,30 @@ def plot_geography(
         Cartopy axes.
     """
 
-    if not CARTOPY_IMPORTED:
+    plot_map = kwargs.get("plot_map", "cartopy")
+
+    if plot_map is None:
+        return plt.axes()
+
+    if plot_map not in VALID_BASEMAPS:
+        raise ValueError(
+            f"unsupported plot_map method {plot_map}. Supported basemaps: "
+            f"{VALID_BASEMAPS}"
+        )
+
+    if plot_map == "cartopy" and not CARTOPY_IMPORTED:
         raise MissingOptionalDependency(
             "the cartopy package is required to plot the geographical map "
             " but it is not installed"
         )
+
     if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
             "the pyproj package is required to plot the geographical map"
             "but it is not installed"
         )
 
+    # if plot_map == "cartopy": # not really an option for the moment
     cartopy_scale = kwargs.get("scale", "50m")
     cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
     crs = utils.proj4_to_cartopy(proj4str)
