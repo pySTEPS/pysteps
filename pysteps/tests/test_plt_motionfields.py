@@ -14,23 +14,22 @@ arg_names_quiver = (
     "axis",
     "step",
     "quiver_kwargs",
-    "drawlonlatlines",
-    "lw",
+    "map_kwargs",
     "upscale",
     "pass_geodata",
 )
 
 arg_values_quiver = [
-    (None, "off", 10, None, False, 0.5, None, False),
-    ("bom", "on", 10, None, False, 0.5, 4000, False),
-    ("bom", "on", 10, None, True, 0.5, 4000, True),
-    ("mch", "on", 20, None, False, 0.5, 2000, True),
+    (None, "off", 10, {}, {"drawlonlatlines": False, "lw": 0.5}, None, False),
+    ("bom", "on", 10, {}, {"drawlonlatlines": False, "lw": 0.5}, 4000, False),
+    ("bom", "on", 10, {}, {"drawlonlatlines": True, "lw": 0.5}, 4000, True),
+    ("mch", "on", 20, {}, {"drawlonlatlines": False, "lw": 0.5}, 2000, True),
 ]
 
 
 @pytest.mark.parametrize(arg_names_quiver, arg_values_quiver)
 def test_visualization_motionfields_quiver(
-    source, axis, step, quiver_kwargs, drawlonlatlines, lw, upscale, pass_geodata,
+    source, axis, step, quiver_kwargs, map_kwargs, upscale, pass_geodata,
 ):
 
     if source is not None:
@@ -50,38 +49,28 @@ def test_visualization_motionfields_quiver(
         U, V = np.meshgrid(u, v)
         UV = np.concatenate([U[None, :], V[None, :]])
 
-    __ = quiver(
-        UV,
-        ax,
-        geodata,
-        axis,
-        step,
-        quiver_kwargs,
-        drawlonlatlines=drawlonlatlines,
-        lw=lw,
-    )
+    __ = quiver(UV, ax, geodata, axis, step, quiver_kwargs, map_kwargs=map_kwargs,)
 
 
 arg_names_streamplot = (
     "source",
     "axis",
     "streamplot_kwargs",
-    "drawlonlatlines",
-    "lw",
+    "map_kwargs",
     "upscale",
     "pass_geodata",
 )
 
 arg_values_streamplot = [
-    (None, "off", None, False, 0.5, None, False),
-    ("bom", "on", None, False, 0.5, 4000, False),
-    ("bom", "on", {"density": 0.5}, True, 0.5, 4000, True),
+    (None, "off", {}, {"drawlonlatlines": False, "lw": 0.5}, None, False),
+    ("bom", "on", {}, {"drawlonlatlines": False, "lw": 0.5}, 4000, False),
+    ("bom", "on", {"density": 0.5}, {"drawlonlatlines": True, "lw": 0.5}, 4000, True),
 ]
 
 
 @pytest.mark.parametrize(arg_names_streamplot, arg_values_streamplot)
 def test_visualization_motionfields_streamplot(
-    source, axis, streamplot_kwargs, drawlonlatlines, lw, upscale, pass_geodata
+    source, axis, streamplot_kwargs, map_kwargs, upscale, pass_geodata
 ):
 
     if source is not None:
@@ -101,15 +90,7 @@ def test_visualization_motionfields_streamplot(
         U, V = np.meshgrid(u, v)
         UV = np.concatenate([U[None, :], V[None, :]])
 
-    __ = streamplot(
-        UV,
-        ax,
-        geodata,
-        axis,
-        streamplot_kwargs,
-        drawlonlatlines=drawlonlatlines,
-        lw=lw,
-    )
+    __ = streamplot(UV, ax, geodata, axis, streamplot_kwargs, map_kwargs=map_kwargs,)
 
 
 if __name__ == "__main__":
