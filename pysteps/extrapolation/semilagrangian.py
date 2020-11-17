@@ -116,6 +116,14 @@ def extrapolate(
     n_iter = kwargs.get("n_iter", 1)
     return_displacement = kwargs.get("return_displacement", False)
 
+    # replace nans with zeros and apply separate masking if interp_order > 1
+    if interp_order > 1:
+        mask = np.isfinite(precip)
+        precip = precip.copy()
+        precip[~mask] = 0.0
+
+    prefilter = True if interp_order > 1 else False
+
     if isinstance(timesteps, int):
         timesteps = np.arange(1, timesteps + 1)
         vel_timestep = 1.0
@@ -143,10 +151,18 @@ def extrapolate(
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
         VWX = ip.map_coordinates(
-            velocity[0, :, :], XYW, mode="nearest", order=interp_order, prefilter=False
+            velocity[0, :, :],
+            XYW,
+            mode="nearest",
+            order=interp_order,
+            prefilter=prefilter,
         )
         VWY = ip.map_coordinates(
-            velocity[1, :, :], XYW, mode="nearest", order=interp_order, prefilter=False
+            velocity[1, :, :],
+            XYW,
+            mode="nearest",
+            order=interp_order,
+            prefilter=prefilter,
         )
 
         V_inc[0, :, :] = VWX
@@ -187,7 +203,7 @@ def extrapolate(
             mode="constant",
             cval=outval,
             order=interp_order,
-            prefilter=False,
+            prefilter=prefilter,
         )
         R_e.append(np.reshape(IW, precip.shape))
 
