@@ -26,7 +26,7 @@ def extrapolate(
     xy_coords=None,
     allow_nonfinite_values=False,
     vel_timestep=None,
-    interp_order=0,
+    interp_order=3,
     **kwargs,
 ):
     """Apply semi-Lagrangian backward extrapolation to a two-dimensional
@@ -121,6 +121,7 @@ def extrapolate(
         mask = np.isfinite(precip)
         precip = precip.copy()
         precip[~mask] = 0.0
+        mask = mask.astype(float)
 
     prefilter = True if interp_order > 1 else False
 
@@ -197,6 +198,13 @@ def extrapolate(
             order=interp_order,
             prefilter=prefilter,
         )
+
+        if interp_order > 1:
+            MW = ip.map_coordinates(
+                mask, XYW, mode="constant", cval=0, order=1, prefilter=False
+            )
+            IW[MW < 0.5] = np.nan
+
         R_e.append(np.reshape(IW, precip.shape))
 
     if verbose:
