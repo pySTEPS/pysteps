@@ -140,10 +140,10 @@ def extrapolate(
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
         VWX = ip.map_coordinates(
-            velocity[0, :, :], XYW, mode="nearest", order=1, prefilter=False
+            velocity[0, :, :], XYW, mode="nearest", order=0, prefilter=False
         )
         VWY = ip.map_coordinates(
-            velocity[1, :, :], XYW, mode="nearest", order=1, prefilter=False
+            velocity[1, :, :], XYW, mode="nearest", order=0, prefilter=False
         )
 
         V_inc[0, :, :] = VWX
@@ -179,7 +179,7 @@ def extrapolate(
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
         IW = ip.map_coordinates(
-            precip, XYW, mode="constant", cval=outval, order=1, prefilter=False
+            precip, XYW, mode="constant", cval=outval, order=0, prefilter=False
         )
         R_e.append(np.reshape(IW, precip.shape))
 
