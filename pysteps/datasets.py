@@ -324,7 +324,8 @@ def download_pysteps_data(dir_path, force=True):
     pbar = ShowProgress()
     print("Downloading pysteps-data from github.")
     tmp_file_name, _ = request.urlretrieve(
-        "https://github.com/pySTEPS/pysteps-data/archive/master.zip", reporthook=pbar,
+        "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
+        reporthook=pbar,
     )
     pbar.end(message="Download complete\n")
 
@@ -354,7 +355,7 @@ def create_default_pystepsrc(
     pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to respectively
     pystepsrc.1, pystepsrc.2, pystepsrc.2, etc. Finally, after the existing files are
     backed up, the new configuration file is written.
-    
+
     Parameters
     ----------
 

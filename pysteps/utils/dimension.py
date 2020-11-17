@@ -17,7 +17,10 @@ Functions to manipulate array dimensions.
 import numpy as np
 
 _aggregation_methods = dict(
-    sum=np.sum, mean=np.mean, nanmean=np.nanmean, nansum=np.nansum,
+    sum=np.sum,
+    mean=np.mean,
+    nanmean=np.nanmean,
+    nansum=np.nansum,
 )
 
 

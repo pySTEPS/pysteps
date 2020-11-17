@@ -49,9 +49,9 @@ def quiver(
     geodata : dictionary
         Optional dictionary containing geographical information about
         the field.
-        
+
         If geodata is not None, it must contain the following key-value pairs:
-        
+
         .. tabularcolumns:: |p{1.5cm}|L|
 
         +----------------+----------------------------------------------------+
@@ -87,8 +87,8 @@ def quiver(
     quiver_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the quiver method.
       See the documentation of matplotlib.pyplot.quiver.
-    
-    
+
+
     Other parameters
     ----------------
     Optional parameters are contained in **kwargs. See basemaps.plot_geography.
@@ -201,7 +201,13 @@ def quiver(
 
     # plot quiver
     ax.quiver(
-        X, Y, dx, dy, angles="xy", zorder=1e6, **quiver_kwargs,
+        X,
+        Y,
+        dx,
+        dy,
+        angles="xy",
+        zorder=1e6,
+        **quiver_kwargs,
     )
     if geodata is None or axis == "off":
         axes = plt.gca()
@@ -246,7 +252,7 @@ def streamplot(
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
-        
+
         .. tabularcolumns:: |p{1.5cm}|L|
 
         +----------------+----------------------------------------------------+
@@ -280,7 +286,7 @@ def streamplot(
     streamplot_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the streamplot method.
       See the documentation of matplotlib.pyplot.streamplot.
-    
+
     Other parameters
     ----------------
     Optional parameters are contained in **kwargs. See basemaps.plot_geography.
@@ -388,7 +394,12 @@ def streamplot(
 
     # plot streamplot
     ax.streamplot(
-        x, y, dx, dy, zorder=1e6, **streamplot_kwargs,
+        x,
+        y,
+        dx,
+        dy,
+        zorder=1e6,
+        **streamplot_kwargs,
     )
 
     if geodata is None or axis == "off":

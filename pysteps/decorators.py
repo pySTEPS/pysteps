@@ -85,8 +85,10 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         )
 
         # Add extra kwargs docstrings
-        _import_with_postprocessing.__doc__ = _import_with_postprocessing.__doc__.format_map(
-            defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
+        _import_with_postprocessing.__doc__ = (
+            _import_with_postprocessing.__doc__.format_map(
+                defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
+            )
         )
 
         return _import_with_postprocessing

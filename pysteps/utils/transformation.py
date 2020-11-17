@@ -25,7 +25,12 @@ warnings.filterwarnings(
 
 
 def boxcox_transform(
-    R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False,
+    R,
+    metadata=None,
+    Lambda=None,
+    threshold=None,
+    zerovalue=None,
+    inverse=False,
 ):
     """The one-parameter Box-Cox transformation.
 
@@ -155,7 +160,11 @@ def boxcox_transform(
 
 
 def dB_transform(
-    R, metadata=None, threshold=None, zerovalue=None, inverse=False,
+    R,
+    metadata=None,
+    threshold=None,
+    zerovalue=None,
+    inverse=False,
 ):
     """Methods to transform precipitation intensities to/from dB units.
 

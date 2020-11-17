@@ -31,7 +31,14 @@ arg_values_quiver = [
 
 @pytest.mark.parametrize(arg_names_quiver, arg_values_quiver)
 def test_visualization_motionfields_quiver(
-    source, map, drawlonlatlines, lw, axis, step, quiver_kwargs, upscale,
+    source,
+    map,
+    drawlonlatlines,
+    lw,
+    axis,
+    step,
+    quiver_kwargs,
+    upscale,
 ):
 
     if map == "cartopy":
@@ -41,7 +48,11 @@ def test_visualization_motionfields_quiver(
 
     if source is not None:
         fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
-        ax = plot_precip_field(fields[-1], map=map, geodata=geodata,)
+        ax = plot_precip_field(
+            fields[-1],
+            map=map,
+            geodata=geodata,
+        )
         oflow_method = motion.get_method("LK")
         UV = oflow_method(fields)
 
@@ -76,7 +87,13 @@ arg_values_streamplot = [
 
 @pytest.mark.parametrize(arg_names_streamplot, arg_values_streamplot)
 def test_visualization_motionfields_streamplot(
-    source, map, drawlonlatlines, lw, axis, streamplot_kwargs, upscale,
+    source,
+    map,
+    drawlonlatlines,
+    lw,
+    axis,
+    streamplot_kwargs,
+    upscale,
 ):
 
     if map == "cartopy":
@@ -86,7 +103,11 @@ def test_visualization_motionfields_streamplot(
 
     if source is not None:
         fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
-        ax = plot_precip_field(fields[-1], map=map, geodata=geodata,)
+        ax = plot_precip_field(
+            fields[-1],
+            map=map,
+            geodata=geodata,
+        )
         oflow_method = motion.get_method("LK")
         UV = oflow_method(fields)
 

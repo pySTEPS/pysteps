@@ -53,7 +53,13 @@ timestep = data_source["timestep"]
 
 # Get 1 hour of observations in the data archive
 fns = io.archive.find_by_date(
-    date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=11,
+    date,
+    root_path,
+    path_fmt,
+    fn_pattern,
+    fn_ext,
+    timestep,
+    num_next_files=11,
 )
 
 # Read the radar composites

@@ -576,7 +576,9 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
 
     # Generate color level strings with correct amount of decimal places
     clevsStr = []
-    clevsStr = _dynamic_formatting_floats(clevs,)
+    clevsStr = _dynamic_formatting_floats(
+        clevs,
+    )
 
     return color_list, clevs, clevsStr
 
