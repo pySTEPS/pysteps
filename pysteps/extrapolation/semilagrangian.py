@@ -26,6 +26,7 @@ def extrapolate(
     xy_coords=None,
     allow_nonfinite_values=False,
     vel_timestep=None,
+    interp_order=0,
     **kwargs,
 ):
     """Apply semi-Lagrangian backward extrapolation to a two-dimensional
@@ -80,6 +81,8 @@ def extrapolate(
     vel_timestep : float
         The time step of the velocity field. It is assumed to have the same
         unit as the timesteps argument.
+    interp_order : int
+        Order of the interpolation to use. Default : 0 (nearest interpolation).
 
     Returns
     -------
@@ -140,10 +143,10 @@ def extrapolate(
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
         VWX = ip.map_coordinates(
-            velocity[0, :, :], XYW, mode="nearest", order=0, prefilter=False
+            velocity[0, :, :], XYW, mode="nearest", order=interp_order, prefilter=False
         )
         VWY = ip.map_coordinates(
-            velocity[1, :, :], XYW, mode="nearest", order=0, prefilter=False
+            velocity[1, :, :], XYW, mode="nearest", order=interp_order, prefilter=False
         )
 
         V_inc[0, :, :] = VWX
@@ -179,7 +182,12 @@ def extrapolate(
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
         IW = ip.map_coordinates(
-            precip, XYW, mode="constant", cval=outval, order=0, prefilter=False
+            precip,
+            XYW,
+            mode="constant",
+            cval=outval,
+            order=interp_order,
+            prefilter=False,
         )
         R_e.append(np.reshape(IW, precip.shape))
 
