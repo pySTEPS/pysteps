@@ -151,18 +151,10 @@ def extrapolate(
         XYW = [XYW[1, :, :], XYW[0, :, :]]
 
         VWX = ip.map_coordinates(
-            velocity[0, :, :],
-            XYW,
-            mode="nearest",
-            order=interp_order,
-            prefilter=prefilter,
+            velocity[0, :, :], XYW, mode="nearest", order=1, prefilter=False,
         )
         VWY = ip.map_coordinates(
-            velocity[1, :, :],
-            XYW,
-            mode="nearest",
-            order=interp_order,
-            prefilter=prefilter,
+            velocity[1, :, :], XYW, mode="nearest", order=1, prefilter=False,
         )
 
         V_inc[0, :, :] = VWX
