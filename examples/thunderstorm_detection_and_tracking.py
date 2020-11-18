@@ -19,34 +19,33 @@ as well as how to plot the resulting tracks.
 """
 #%% IMPORT ALL REQUIRED FUNCTIONS
 
+from datetime import datetime
 import numpy as np
 import sys
 import os
-
-# sys.path.append("/users/mfeldman/scripts/pysteps")
 
 from pysteps.visualization import tstorm as tstorm_plot
 from pysteps.feature import tstorm as tstorm_detect
 from pysteps.tracking import tdating as tstorm_dating
 import pysteps
-from datetime import datetime
+
 from pysteps import io, rcparams
-from pysteps.datasets import download_pysteps_data
+from pysteps.utils import to_reflectivity
+
 
 #%% LOAD PYSTEPS EXAMPLE DATA
-home_dir = os.path.expanduser("~")
-pysteps_data_dir_path = os.path.join(home_dir, "pysteps_data")
-download_pysteps_data(pysteps_data_dir_path, force=True)
-pysteps.load_config_file("/users/mfeldman/.pysteps/pystepsrc", verbose=True)
+
+date = datetime.strptime("201607112100", "%Y%m%d%H%M")
 data_source = rcparams.data_sources["mch"]
-root_path = os.path.join(pysteps_data_dir_path,data_source["root_path"])
+
+root_path = data_source["root_path"]
 path_fmt = data_source["path_fmt"]
 fn_pattern = data_source["fn_pattern"]
 fn_ext = data_source["fn_ext"]
 importer_name = data_source["importer"]
 importer_kwargs = data_source["importer_kwargs"]
 timestep = data_source["timestep"]
-date = datetime.strptime("201607112100", "%Y%m%d%H%M")
+
 #%% FIND AND READ FILES
 fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=20
@@ -54,7 +53,7 @@ fns = io.archive.find_by_date(
 
 importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
-Z, metadata = pysteps.utils.to_reflectivity(R, metadata)
+Z, metadata = to_reflectivity(R, metadata)
 timelist = metadata["timestamps"]
 #%% IDENTIFICATION OF THUNDERSTORMS IN SINGLE TIMESTEP
 input_image = Z[5, :, :]
@@ -77,7 +76,7 @@ tstorm_plot.plot_cart_contour(
     input_image,
     cells_id.cont,
     "contours",
-    "/scratch/mfeldman/",
+    "",
     "contours.png",
     poix=poix,
     poiy=poiy,
@@ -92,7 +91,7 @@ poiy = np.array([397.604, 302.408, 259.762, 295.476, 349.79])
 tstorm_plot.plot_track(
     track_list,
     "tracks",
-    "/scratch/mfeldman/",
+    "",
     "tracks_c.png",
     710,
     640,
