@@ -2,7 +2,7 @@
 pysteps.tracking.interface
 ===========================
 
-Interface for the tracking module. It returns a callable function for tracking
+Interface to the tracking module. It returns a callable function for tracking
 features.
 
 .. autosummary::
@@ -15,6 +15,7 @@ from pysteps.tracking import lucaskanade
 
 _tracking_methods = dict()
 _tracking_methods["lucaskanade"] = lucaskanade.track_features
+_tracking_methods["tdating"] = tdating.dating
 
 
 def get_method(name):
@@ -30,6 +31,8 @@ def get_method(name):
     +=================+========================================================+
     | lucaskanade     | Wrapper to the OpenCV implementation of the            |
     |                 | Lucas-Kanade tracking algorithm                        |
+    +-----------------+--------------------------------------------------------+
+    | tdating         | Thunderstorm Detection and Tracking (DATing) module    |
     +-----------------+--------------------------------------------------------+
     """
     if isinstance(name, str):

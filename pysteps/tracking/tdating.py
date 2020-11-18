@@ -5,10 +5,18 @@ Created on Wed Nov  4 11:09:44 2020
 
 @author: mfeldman
 
-pysteps.tracking.dating
-====================
+pysteps.tracking.tdating
+========================
 
 Thunderstorm Detection and Tracking (DATing) module
+
+.. autosummary::
+    :toctree: ../generated/
+    dating
+    tracking
+    advect
+    match
+    couple_track
 """
 
 import copy
@@ -39,18 +47,20 @@ except ImportError:
     PANDAS_IMPORTED = False
 
 
-def dating(input_video,
-           timelist,
-           mintrack=3,
-           cell_list=[],
-           label_list=[],
-           start=0,
-           minref=35,
-           maxref=48,
-           mindiff=6,
-           minsize=50,
-           minmax=41,
-           mindis=10):
+def dating(
+    input_video,
+    timelist,
+    mintrack=3,
+    cell_list=[],
+    label_list=[],
+    start=0,
+    minref=35,
+    maxref=48,
+    mindiff=6,
+    minsize=50,
+    minmax=41,
+    mindis=10,
+):
     """
     This function performs the thunderstorm detection and tracking DATing.
     It requires a 3-D input array that contains the temporal succession of the 2-D data
@@ -68,10 +78,10 @@ def dating(input_video,
         List of length t containing string of time and date of each (m,n) field.
     mintrack : int, optional
         minimum length of cell-track to be counted. The default is 3.
-        
+
     The following optional variables allow expanding an existing list of cells.
     All three must be filled in to achieve this.
-    
+
     cell_list : list, optional
         If you wish to expand an existing list of cells, insert previous cell-list here.
         The default is [].
@@ -83,10 +93,10 @@ def dating(input_video,
         timesteps prior to the merging. The start can then be set to 2, allowing the
         motion vectors to be formed from the first three grids and continuing the cell
         tracking from there. The default is 0, which initiates a new tracking sequence.
-    
+
     The following optional variables set the threshold values for the thunderstorm cell
     detection.
-    
+
     minref : float, optional
         Lower threshold for object detection. Lower values will be set to NaN.
         The default is 35 dBZ.

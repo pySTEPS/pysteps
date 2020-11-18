@@ -26,6 +26,7 @@ available in pySTEPS.
     nowcasts
     postprocessing
     timeseries
+    tracking
     utils
     verification
     visualization
