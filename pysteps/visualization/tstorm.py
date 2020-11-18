@@ -13,21 +13,17 @@ mpl.use("module://ipykernel.pylab.backend_inline")
 import matplotlib.pyplot as plt
 
 
-def plot_track(
-    track_list, imtitle, savepath, imname, xsize, ysize, poix=None, poiy=None
-):
+def plot_track(track_list, imtitle, imname, xsize, ysize, poix=None, poiy=None):
     """
-    
+
+    .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
+
     Parameters
     ----------
     track_list : list
         List of tracks provided by DATing.
     imtitle : string
         Text written in image title.
-    savepath : string
-        path to saving location.
-    imname : string
-        name to save image under, include file ending.
     xsize : int
         size of domain in x-direction.
     ysize : int
@@ -41,8 +37,8 @@ def plot_track(
 
     Returns
     -------
-    None.
-
+    ax : fig Axes_
+        Figure axes.
     """
     fig = plt.figure(figsize=(14.2, 12.8))
     plt.ylim(0, ysize)
@@ -53,17 +49,14 @@ def plot_track(
     for track in track_list:
         p2 = plt.plot(track.max_x, track.max_y, c=next(color))
     plt.title(imtitle)
-    namefig = savepath + imname
-    fig.savefig(namefig)
-    plt.show()
-    plt.close(fig=fig)
+    return plt.gca()
 
 
-def plot_cart_contour(
-    input_image, contours, imtitle, savepath, imname, poix=None, poiy=None
-):
+def plot_cart_contour(input_image, contours, imtitle, imname, poix=None, poiy=None):
     """
     Plots input image with identified cell contours. Optionally points of interest added.
+
+    .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
 
     Parameters
     ----------
@@ -73,19 +66,16 @@ def plot_cart_contour(
         list of identified cell contours.
     imtitle : string
         caption of image.
-    savepath : string
-        path to saving location.
-    imname : string
-        name of saved image.
     poix : array-like, optional
         1-D array of x-locations of points of interest. The default is None.
     poiy : array-like, optional
-        1-D array, same length as poix, y-locations of points of interest. The default is None.
+        1-D array, same length as poix, y-locations of points of interest.
+        The default is None.
 
     Returns
     -------
-    None.
-
+    ax : fig Axes_
+        Figure axes.
     """
     fig = plt.figure(figsize=(10, 7.5))
     cmap = plt.cm.jet
@@ -99,7 +89,4 @@ def plot_cart_contour(
             p1 = plt.plot(c[:, 1], c[:, 0], color="black")
         # else: p1=plt.plot(contour[:,1], contour[:,0], color='black')
     plt.title(imtitle)
-    namefig = savepath + imname
-    plt.show()
-    fig.savefig(namefig)
-    plt.close(fig=fig)
+    return plt.gca()
