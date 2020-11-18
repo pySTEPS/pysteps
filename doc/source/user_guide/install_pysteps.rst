@@ -35,6 +35,8 @@ Other optional dependencies include:
 * `pygrib <https://jswhit.github.io/pygrib/docs/index.html>`_ (for importing MRMS data)
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
+* `pandas <https://pandas.pydata.org/>`_ and
+  `scikit-image <https://scikit-image.org/>`_ (for more advanced feature tracking)
 
 
 

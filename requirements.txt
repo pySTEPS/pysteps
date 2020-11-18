@@ -7,5 +7,3 @@ matplotlib
 jsmin
 jsonschema
 netCDF4
-scikit-image
-pandas
