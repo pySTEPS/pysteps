@@ -20,6 +20,7 @@ as well as how to plot the resulting tracks.
 #%% IMPORT ALL REQUIRED FUNCTIONS
 
 from datetime import datetime
+import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import os
@@ -27,10 +28,10 @@ import os
 from pysteps.visualization import tstorm as tstorm_plot
 from pysteps.feature import tstorm as tstorm_detect
 from pysteps.tracking import tdating as tstorm_dating
-import pysteps
 
 from pysteps import io, rcparams
 from pysteps.utils import to_reflectivity
+from pysteps.visualization import plot_precip_field
 
 
 #%% LOAD PYSTEPS EXAMPLE DATA
@@ -55,8 +56,9 @@ importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 Z, metadata = to_reflectivity(R, metadata)
 timelist = metadata["timestamps"]
+
 #%% IDENTIFICATION OF THUNDERSTORMS IN SINGLE TIMESTEP
-input_image = Z[5, :, :]
+input_image = Z[5, :, :].copy()
 time = timelist[5]
 cells_id, labels = tstorm_detect.detection(
     input_image,
@@ -72,15 +74,15 @@ cells_id, labels = tstorm_detect.detection(
 input_image[input_image < 0] = np.nan
 poix = np.array([426.201, 242.057, 452.957, 348.687, 524.7])
 poiy = np.array([397.604, 302.408, 259.762, 295.476, 349.79])
+
+ax = plot_precip_field(Z[5, :, :], units=metadata["unit"])
+
 tstorm_plot.plot_cart_contour(
-    input_image,
     cells_id.cont,
-    "contours",
-    "",
-    "contours.png",
     poix=poix,
     poiy=poiy,
 )
+
 #%% COMPUTATION OF THUNDERSTORM TRACKS OVER ENTIRE TIMELINE
 track_list, cell_list, label_list = tstorm_dating.dating(
     input_video=Z, timelist=timelist, mintrack=3, cell_list=[], label_list=[], start=0
@@ -90,11 +92,9 @@ poix = np.array([426.201, 242.057, 452.957, 348.687, 524.7])
 poiy = np.array([397.604, 302.408, 259.762, 295.476, 349.79])
 tstorm_plot.plot_track(
     track_list,
-    "tracks",
-    "",
-    "tracks_c.png",
     710,
     640,
     poix=poix,
     poiy=poiy,
 )
+plt.show()
