@@ -51,7 +51,7 @@ def plot_track(track_list, xsize, ysize, poix=None, poiy=None):
     ax = plt.gca()
     ax.set_ylim(0, ysize)
     ax.set_xlim(0, xsize)
-    if all(poix != None) and all(poiy != None):
+    if poix is not None and poiy is not None:
         p1 = ax.scatter(poix, poiy, s=None, c="black")
     color = iter(plt.cm.spring(np.linspace(0, 1, len(track_list))))
     for track in track_list:

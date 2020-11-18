@@ -20,6 +20,7 @@ Created on Thu Nov  5 10:29:23 2020
 import os
 import sys
 from datetime import datetime
+from pprint import pprint
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,8 +29,7 @@ from pysteps import io, rcparams
 from pysteps.feature import tstorm as tstorm_detect
 from pysteps.tracking import tdating as tstorm_dating
 from pysteps.utils import to_reflectivity
-from pysteps.visualization import plot_precip_field
-from pysteps.visualization import tstorm as tstorm_plot
+from pysteps.visualization import plot_precip_field, plot_track, plot_cart_contour
 
 #%% LOAD PYSTEPS EXAMPLE DATA
 
@@ -54,6 +54,8 @@ R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 Z, metadata = to_reflectivity(R, metadata)
 timelist = metadata["timestamps"]
 
+pprint(metadata)
+
 #%% IDENTIFICATION OF THUNDERSTORMS IN SINGLE TIMESTEP
 input_image = Z[5, :, :].copy()
 time = timelist[5]
@@ -67,31 +69,24 @@ cells_id, labels = tstorm_detect.detection(
     mindis=10,
     time=time,
 )
-#%% PLOTTING IDENTIFIED CONTOURS ON COMPOSITE
-input_image[input_image < 0] = np.nan
-poix = np.array([426.201, 242.057, 452.957, 348.687, 524.7])
-poiy = np.array([397.604, 302.408, 259.762, 295.476, 349.79])
-
-ax = plot_precip_field(Z[5, :, :], units=metadata["unit"])
-
-tstorm_plot.plot_cart_contour(
-    cells_id.cont,
-    poix=poix,
-    poiy=poiy,
-)
 
 #%% COMPUTATION OF THUNDERSTORM TRACKS OVER ENTIRE TIMELINE
 track_list, cell_list, label_list = tstorm_dating.dating(
     input_video=Z, timelist=timelist, mintrack=3, cell_list=[], label_list=[], start=0
 )
-#%% PLOTTING EXAMPLE TRACKS WITH RADAR LOCATIONS
-poix = np.array([426.201, 242.057, 452.957, 348.687, 524.7])
-poiy = np.array([397.604, 302.408, 259.762, 295.476, 349.79])
-tstorm_plot.plot_track(
+
+#%% PLOTTING
+
+# Plot precipitation field
+plot_precip_field(Z[5, :, :], units=metadata["unit"])
+
+# Plot the identified cells
+plot_cart_contour(cells_id.cont)
+
+# Plot tracks
+plot_track(
     track_list,
     710,
     640,
-    poix=poix,
-    poiy=poiy,
 )
 plt.show()
