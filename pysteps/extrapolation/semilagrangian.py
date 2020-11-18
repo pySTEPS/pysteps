@@ -82,7 +82,7 @@ def extrapolate(
         The time step of the velocity field. It is assumed to have the same
         unit as the timesteps argument.
     interp_order : int
-        Order of the interpolation to use. Default : 0 (nearest interpolation).
+        Order of the interpolation to use. Default : 3 (cubic).
 
     Returns
     -------
