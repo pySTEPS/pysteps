@@ -269,12 +269,7 @@ def plot_precip_field(
         else:
             extend = "neither"
         cbar = plt.colorbar(
-            im,
-            ticks=clevs,
-            spacing="uniform",
-            extend=extend,
-            shrink=0.8,
-            cax=cax,
+            im, ticks=clevs, spacing="uniform", extend=extend, shrink=0.8, cax=cax,
         )
         if clevsStr is not None:
             cbar.ax.set_yticklabels(clevsStr)
@@ -576,9 +571,7 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
 
     # Generate color level strings with correct amount of decimal places
     clevsStr = []
-    clevsStr = _dynamic_formatting_floats(
-        clevs,
-    )
+    clevsStr = _dynamic_formatting_floats(clevs,)
 
     return color_list, clevs, clevsStr
 

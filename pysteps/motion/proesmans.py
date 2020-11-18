@@ -19,12 +19,7 @@ from pysteps.motion._proesmans import _compute_advection_field
 
 @check_input_frames(2, 2)
 def proesmans(
-    input_images,
-    lam=50.0,
-    num_iter=100,
-    num_levels=6,
-    filter_std=0.0,
-    verbose=True,
+    input_images, lam=50.0, num_iter=100, num_levels=6, filter_std=0.0, verbose=True,
 ):
     """Implementation of the anisotropic diffusion method of Proesmans et al.
     (1994).

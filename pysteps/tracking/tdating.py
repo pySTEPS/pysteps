@@ -18,8 +18,10 @@ from pysteps import motion
 import sys
 import pysteps.feature.tstorm as tstorm_detect
 from pysteps.exceptions import MissingOptionalDependency
+
 try:
     import skimage
+
     SKIMAGE_IMPORTED = True
 except ImportError:
     SKIMAGE_IMPORTED = False
@@ -31,10 +33,12 @@ if SKIMAGE_IMPORTED == True:
     import skimage.draw as skid
 try:
     import pandas as pd
+
     PANDAS_IMPORTED = True
 except ImportError:
     PANDAS_IMPORTED = False
-    
+
+
 def dating(input_video, timelist, mintrack=3, cell_list=[], label_list=[], start=0):
     """
     This function performs the thunderstorm detection and tracking DATing.
@@ -83,120 +87,148 @@ def dating(input_video, timelist, mintrack=3, cell_list=[], label_list=[], start
     """
     if not SKIMAGE_IMPORTED:
         raise MissingOptionalDependency(
-            "skimage is required for thunderstorm DATing "
-            "but it is not installed"
+            "skimage is required for thunderstorm DATing " "but it is not installed"
         )
     if not PANDAS_IMPORTED:
         raise MissingOptionalDependency(
-            "pandas is required for thunderstorm DATing "
-            "but it is not installed"
+            "pandas is required for thunderstorm DATing " "but it is not installed"
         )
     oflow_method = motion.get_method("LK")
-    max_ID=0
-    for t in range(start,len(timelist)):
-        cells_id, labels=tstorm_detect.detection(input_video[t,:,:], time=timelist[t])
-        if len(cell_list)<2:
+    max_ID = 0
+    for t in range(start, len(timelist)):
+        cells_id, labels = tstorm_detect.detection(
+            input_video[t, :, :], time=timelist[t]
+        )
+        if len(cell_list) < 2:
             cell_list.append(cells_id)
             label_list.append(labels)
-            cid=np.unique(labels)
-            max_ID=np.nanmax([np.nanmax(cid), max_ID])+1
+            cid = np.unique(labels)
+            max_ID = np.nanmax([np.nanmax(cid), max_ID]) + 1
             continue
-        if t>=2:
-            flowfield=oflow_method(input_video[t-2:t+1, :, :])
-            cells_id, max_ID, newlabels=tracking(cells_id, cell_list[-1], labels, flowfield, max_ID)
-            cid=np.unique(newlabels)
-            max_ID=np.nanmax([np.nanmax(cid), max_ID])
+        if t >= 2:
+            flowfield = oflow_method(input_video[t - 2 : t + 1, :, :])
+            cells_id, max_ID, newlabels = tracking(
+                cells_id, cell_list[-1], labels, flowfield, max_ID
+            )
+            cid = np.unique(newlabels)
+            max_ID = np.nanmax([np.nanmax(cid), max_ID])
             cell_list.append(cells_id)
             label_list.append(newlabels)
-    
-    track_list=couple_track(cell_list[2:], int(max_ID), mintrack)
-    
+
+    track_list = couple_track(cell_list[2:], int(max_ID), mintrack)
+
     return track_list, cell_list, label_list
-    
+
 
 def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
 
-    cells_id_new=cells_id.copy()
-    cells_ad=advect(cells_id_prev, labels, V1)
-    cells_ov, labels=match(cells_ad, labels)
-    newlabels=np.zeros(labels.shape)
+    cells_id_new = cells_id.copy()
+    cells_ad = advect(cells_id_prev, labels, V1)
+    cells_ov, labels = match(cells_ad, labels)
+    newlabels = np.zeros(labels.shape)
     for ID, cell in cells_id_new.iterrows():
-        if cell.ID==0 or np.isnan(cell.ID): continue
-        new_ID=cells_ov[cells_ov.t_ID==cell.ID].ID.values
-        if len(new_ID)>0:
-            xx=cells_ov[cells_ov.t_ID==cell.ID].x
-            size=[]
+        if cell.ID == 0 or np.isnan(cell.ID):
+            continue
+        new_ID = cells_ov[cells_ov.t_ID == cell.ID].ID.values
+        if len(new_ID) > 0:
+            xx = cells_ov[cells_ov.t_ID == cell.ID].x
+            size = []
             for x in xx:
                 size.append(len(x))
-            biggest=np.argmax(size)
-            new_ID=new_ID[biggest]
-            cells_id_new.ID[ID]=new_ID
+            biggest = np.argmax(size)
+            new_ID = new_ID[biggest]
+            cells_id_new.ID[ID] = new_ID
         else:
-            max_ID+=1
-            new_ID=max_ID
-            cells_id_new.ID[ID]=new_ID
-        newlabels[labels==ID+1]=new_ID
+            max_ID += 1
+            new_ID = max_ID
+            cells_id_new.ID[ID] = new_ID
+        newlabels[labels == ID + 1] = new_ID
         del new_ID
     return cells_id_new, max_ID, newlabels
 
+
 def advect(cells_id, labels, V1):
-    
-    cells_ad=pd.DataFrame(data=None, index=range(len(cells_id)), columns=["ID", "x", "y", "max_x", "max_y", "max_ref", "cont", "t_ID", "frac", "flowx", "flowy"])
+
+    cells_ad = pd.DataFrame(
+        data=None,
+        index=range(len(cells_id)),
+        columns=[
+            "ID",
+            "x",
+            "y",
+            "max_x",
+            "max_y",
+            "max_ref",
+            "cont",
+            "t_ID",
+            "frac",
+            "flowx",
+            "flowy",
+        ],
+    )
     for ID, cell in cells_id.iterrows():
-        if cell.ID==0 or np.isnan(cell.ID): continue
-        ad_x=int(np.nanmean(V1[0,cell.y,cell.x]))
-        ad_y=int(np.nanmean(V1[1,cell.y,cell.x]))
-        new_x=cell.x+ad_x
-        new_y=cell.y+ad_y
-        new_x[new_x>labels.shape[1]-1]=labels.shape[1]-1
-        new_y[new_y>labels.shape[0]-1]=labels.shape[0]-1
-        new_x[new_x<0]=0
-        new_y[new_y<0]=0
-        new_max_x=cell.max_x+ad_x
-        new_max_y=cell.max_y+ad_y
-        cells_ad.x[ID]=new_x
-        cells_ad.y[ID]=new_y
-        cells_ad.flowx[ID]=ad_x
-        cells_ad.flowy[ID]=ad_y
-        cells_ad.max_x[ID]=new_max_x
-        cells_ad.max_y[ID]=new_max_y
-        cells_ad.ID[ID]=cell.ID
-        cell_unique=np.zeros(labels.shape)
-        cell_unique[new_y, new_x]=1
-        cells_ad.cont[ID]=skime.find_contours(cell_unique, 0.8)
-        
+        if cell.ID == 0 or np.isnan(cell.ID):
+            continue
+        ad_x = int(np.nanmean(V1[0, cell.y, cell.x]))
+        ad_y = int(np.nanmean(V1[1, cell.y, cell.x]))
+        new_x = cell.x + ad_x
+        new_y = cell.y + ad_y
+        new_x[new_x > labels.shape[1] - 1] = labels.shape[1] - 1
+        new_y[new_y > labels.shape[0] - 1] = labels.shape[0] - 1
+        new_x[new_x < 0] = 0
+        new_y[new_y < 0] = 0
+        new_max_x = cell.max_x + ad_x
+        new_max_y = cell.max_y + ad_y
+        cells_ad.x[ID] = new_x
+        cells_ad.y[ID] = new_y
+        cells_ad.flowx[ID] = ad_x
+        cells_ad.flowy[ID] = ad_y
+        cells_ad.max_x[ID] = new_max_x
+        cells_ad.max_y[ID] = new_max_y
+        cells_ad.ID[ID] = cell.ID
+        cell_unique = np.zeros(labels.shape)
+        cell_unique[new_y, new_x] = 1
+        cells_ad.cont[ID] = skime.find_contours(cell_unique, 0.8)
+
     return cells_ad
 
+
 def match(cells_ad, labels):
-    cells_ov=cells_ad.copy()
+    cells_ov = cells_ad.copy()
     for ID_a, cell_a in cells_ov.iterrows():
-        if cell_a.ID==0 or np.isnan(cell_a.ID): continue
-        ID_vec=labels[cell_a.y, cell_a.x]
-        IDs=np.unique(ID_vec)
-        n_IDs=len(IDs)
-        N=np.zeros(n_IDs)
+        if cell_a.ID == 0 or np.isnan(cell_a.ID):
+            continue
+        ID_vec = labels[cell_a.y, cell_a.x]
+        IDs = np.unique(ID_vec)
+        n_IDs = len(IDs)
+        N = np.zeros(n_IDs)
         for n in range(n_IDs):
-            N[n]=len(np.where(ID_vec==IDs[n])[0])
-        m=np.argmax(N)
-        ID_match=IDs[m]
-        ID_coverage=N[m]/len(ID_vec)
-        if ID_coverage>=0.4:
-            cells_ov.t_ID[ID_a]=ID_match
+            N[n] = len(np.where(ID_vec == IDs[n])[0])
+        m = np.argmax(N)
+        ID_match = IDs[m]
+        ID_coverage = N[m] / len(ID_vec)
+        if ID_coverage >= 0.4:
+            cells_ov.t_ID[ID_a] = ID_match
         else:
-            cells_ov.t_ID[ID_a]=0
-        cells_ov.frac[ID_a]=ID_coverage
+            cells_ov.t_ID[ID_a] = 0
+        cells_ov.frac[ID_a] = ID_coverage
     return cells_ov, labels
 
 
 def couple_track(cell_list, max_ID, mintrack):
-    track_list=[]
-    for n in range(1,max_ID):
-        cell_track=pd.DataFrame(data=None, index=None, columns=["ID", "time", "x", "y", "max_x", "max_y", "max_ref", "cont"])
+    track_list = []
+    for n in range(1, max_ID):
+        cell_track = pd.DataFrame(
+            data=None,
+            index=None,
+            columns=["ID", "time", "x", "y", "max_x", "max_y", "max_ref", "cont"],
+        )
         for t in range(len(cell_list)):
-            mytime=cell_list[t]
-            mycell=mytime[mytime.ID==n]
-            cell_track=cell_track.append(mycell)
-                
-        if len(cell_track)<mintrack:continue
+            mytime = cell_list[t]
+            mycell = mytime[mytime.ID == n]
+            cell_track = cell_track.append(mycell)
+
+        if len(cell_track) < mintrack:
+            continue
         track_list.append(cell_track)
     return track_list

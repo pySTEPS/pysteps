@@ -457,12 +457,7 @@ def det_cont_fct_merge(err_1, err_2):
 
     # update variances
     _parallel_var(
-        err["mobs"],
-        err["n"],
-        err["vobs"],
-        err_2["mobs"],
-        err_2["n"],
-        err_2["vobs"],
+        err["mobs"], err["n"], err["vobs"], err_2["mobs"], err_2["n"], err_2["vobs"],
     )
     _parallel_var(
         err["mpred"],

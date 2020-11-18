@@ -55,13 +55,7 @@ timestep = data_source["timestep"]
 
 # Find the input files from the archive
 fns = io.archive.find_by_date(
-    date,
-    root_path,
-    path_fmt,
-    fn_pattern,
-    fn_ext,
-    timestep=5,
-    num_next_files=35,
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_next_files=35,
 )
 
 # Read the radar composites
@@ -105,8 +99,7 @@ def advection_correction(R, T=5, t=1):
     # Perform temporal interpolation
     Rd = np.zeros((R[0].shape))
     x, y = np.meshgrid(
-        np.arange(R[0].shape[1], dtype=float),
-        np.arange(R[0].shape[0], dtype=float),
+        np.arange(R[0].shape[1], dtype=float), np.arange(R[0].shape[0], dtype=float),
     )
     for i in range(t, T + t, t):
 

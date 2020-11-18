@@ -324,8 +324,7 @@ def download_pysteps_data(dir_path, force=True):
     pbar = ShowProgress()
     print("Downloading pysteps-data from github.")
     tmp_file_name, _ = request.urlretrieve(
-        "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
-        reporthook=pbar,
+        "https://github.com/pySTEPS/pysteps-data/archive/master.zip", reporthook=pbar,
     )
     pbar.end(message="Download complete\n")
 

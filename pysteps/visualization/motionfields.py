@@ -201,13 +201,7 @@ def quiver(
 
     # plot quiver
     ax.quiver(
-        X,
-        Y,
-        dx,
-        dy,
-        angles="xy",
-        zorder=1e6,
-        **quiver_kwargs,
+        X, Y, dx, dy, angles="xy", zorder=1e6, **quiver_kwargs,
     )
     if geodata is None or axis == "off":
         axes = plt.gca()
@@ -394,12 +388,7 @@ def streamplot(
 
     # plot streamplot
     ax.streamplot(
-        x,
-        y,
-        dx,
-        dy,
-        zorder=1e6,
-        **streamplot_kwargs,
+        x, y, dx, dy, zorder=1e6, **streamplot_kwargs,
     )
 
     if geodata is None or axis == "off":

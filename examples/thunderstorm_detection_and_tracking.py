@@ -23,12 +23,12 @@ import numpy as np
 import sys
 import os
 
-sys.path.append('/users/mfeldman/scripts/pysteps')
+sys.path.append("/users/mfeldman/scripts/pysteps")
 
 # os.chdir('/users/mfeldman/scripts/pysteps')
 from pysteps.visualization import tstorm as tstorm_plot
 from pysteps.feature import tstorm as tstorm_detect
-from pysteps.tracking import dating as tstorm_dating
+from pysteps.tracking import tdating as tstorm_dating
 import pysteps
 from datetime import datetime
 from pysteps import io, rcparams
@@ -38,9 +38,9 @@ from pysteps.datasets import download_pysteps_data
 home_dir = os.path.expanduser("~")
 pysteps_data_dir_path = os.path.join(home_dir, "pysteps_data")
 download_pysteps_data(pysteps_data_dir_path, force=True)
-pysteps.load_config_file('/users/mfeldman/.pysteps/pystepsrc', verbose=True)
+pysteps.load_config_file("/users/mfeldman/.pysteps/pystepsrc", verbose=True)
 data_source = rcparams.data_sources["mch"]
-root_path = '/scratch/mfeldman/pysteps_data/radar/mch' #data_source["root_path"]
+root_path = "/scratch/mfeldman/pysteps_data/radar/mch"  # data_source["root_path"]
 path_fmt = data_source["path_fmt"]
 fn_pattern = data_source["fn_pattern"]
 fn_ext = data_source["fn_ext"]
@@ -56,31 +56,47 @@ fns = io.archive.find_by_date(
 importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 Z, metadata = pysteps.utils.to_reflectivity(R, metadata)
-timelist=metadata["timestamps"]
+timelist = metadata["timestamps"]
 #%% IDENTIFICATION OF THUNDERSTORMS IN SINGLE TIMESTEP
-input_image=Z[5,:,:]
-time=timelist[5]
-cells_id, labels= tstorm_detect.detection(input_image,
-                                      minref=35,
-                                      maxref=48,
-                                      mindiff=6,
-                                      minsize=50,
-                                      minmax=41,
-                                      mindis=10,
-                                      time=time)
+input_image = Z[5, :, :]
+time = timelist[5]
+cells_id, labels = tstorm_detect.detection(
+    input_image,
+    minref=35,
+    maxref=48,
+    mindiff=6,
+    minsize=50,
+    minmax=41,
+    mindis=10,
+    time=time,
+)
 #%% PLOTTING IDENTIFIED CONTOURS ON COMPOSITE
-input_image[input_image<0]=np.nan
-poix=np.array([426.201, 242.057, 452.957, 348.687, 524.7])
-poiy=np.array([397.604, 302.408, 259.762, 295.476, 349.79])
-tstorm_plot.plot_cart_contour(input_image, cells_id.cont, "contours", '/scratch/mfeldman/', "contours.png", poix=poix, poiy=poiy)
+input_image[input_image < 0] = np.nan
+poix = np.array([426.201, 242.057, 452.957, 348.687, 524.7])
+poiy = np.array([397.604, 302.408, 259.762, 295.476, 349.79])
+tstorm_plot.plot_cart_contour(
+    input_image,
+    cells_id.cont,
+    "contours",
+    "/scratch/mfeldman/",
+    "contours.png",
+    poix=poix,
+    poiy=poiy,
+)
 #%% COMPUTATION OF THUNDERSTORM TRACKS OVER ENTIRE TIMELINE
-track_list, cell_list, label_list=tstorm_dating.dating(input_video=Z,
-                                                timelist=timelist,
-                                                mintrack=3,
-                                                cell_list=[],
-                                                label_list=[],
-                                                start=0)
+track_list, cell_list, label_list = tstorm_dating.dating(
+    input_video=Z, timelist=timelist, mintrack=3, cell_list=[], label_list=[], start=0
+)
 #%% PLOTTING EXAMPLE TRACKS WITH RADAR LOCATIONS
-poix=np.array([426.201, 242.057, 452.957, 348.687, 524.7])
-poiy=np.array([397.604, 302.408, 259.762, 295.476, 349.79])
-tstorm_plot.plot_track(track_list, "tracks", '/scratch/mfeldman/', "tracks_c.png", 710, 640, poix=poix, poiy=poiy)
+poix = np.array([426.201, 242.057, 452.957, 348.687, 524.7])
+poiy = np.array([397.604, 302.408, 259.762, 295.476, 349.79])
+tstorm_plot.plot_track(
+    track_list,
+    "tracks",
+    "/scratch/mfeldman/",
+    "tracks_c.png",
+    710,
+    640,
+    poix=poix,
+    poiy=poiy,
+)

@@ -85,13 +85,7 @@ V = dense_lucaskanade(R)
 
 # The S-PROG nowcast
 nowcast_method = nowcasts.get_method("sprog")
-R_f = nowcast_method(
-    R[-3:, :, :],
-    V,
-    n_leadtimes,
-    n_cascade_levels=6,
-    R_thr=-10.0,
-)
+R_f = nowcast_method(R[-3:, :, :], V, n_leadtimes, n_cascade_levels=6, R_thr=-10.0,)
 
 # Back-transform to rain rate
 R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]

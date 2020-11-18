@@ -9,10 +9,7 @@ from pysteps.utils import aggregate_fields_space, square_domain
 
 # load and preprocess input field
 precip, metadata = get_precipitation_fields(
-    num_prev_files=0,
-    num_next_files=0,
-    return_raw=False,
-    metadata=True,
+    num_prev_files=0, num_next_files=0, return_raw=False, metadata=True,
 )
 precip = precip.filled()
 precip, metadata = square_domain(precip, metadata, "crop")
@@ -42,13 +39,7 @@ def test_rainfarm_shape(alpha, ds_factor, threshold, return_alpha):
 
     rainfarm = downscaling.get_method("rainfarm")
 
-    precip_hr = rainfarm(
-        precip_lr,
-        alpha,
-        ds_factor,
-        threshold,
-        return_alpha,
-    )
+    precip_hr = rainfarm(precip_lr, alpha, ds_factor, threshold, return_alpha,)
 
     assert precip_hr.ndim == precip.ndim
     assert precip_hr.shape[0] == precip.shape[0]
@@ -70,13 +61,7 @@ def test_rainfarm_alpha(alpha, ds_factor, threshold, return_alpha):
 
     rainfarm = downscaling.get_method("rainfarm")
 
-    precip_hr = rainfarm(
-        precip_lr,
-        alpha,
-        ds_factor,
-        threshold,
-        return_alpha,
-    )
+    precip_hr = rainfarm(precip_lr, alpha, ds_factor, threshold, return_alpha,)
 
     assert len(precip_hr) == 2
     if alpha is None:

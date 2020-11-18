@@ -213,13 +213,7 @@ R_f2 = transformation.dB_transform(R_f2, threshold=-10.0, inverse=True)[0]
 
 # Find the veriyfing observations in the archive
 fns = io.archive.find_by_date(
-    date,
-    root_path,
-    path_fmt,
-    fn_pattern,
-    fn_ext,
-    timestep=5,
-    num_next_files=12,
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_next_files=12,
 )
 
 # Read and convert the radar composites

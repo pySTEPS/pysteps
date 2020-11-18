@@ -45,14 +45,7 @@ plt_arg_values = [
 
 @pytest.mark.parametrize(plt_arg_names, plt_arg_values)
 def test_visualization_plot_precip_field(
-    source,
-    type,
-    bbox,
-    colorscale,
-    probthr,
-    title,
-    colorbar,
-    axis,
+    source, type, bbox, colorscale, probthr, title, colorbar, axis,
 ):
 
     if type == "intensity":
