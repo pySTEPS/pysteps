@@ -17,20 +17,19 @@ Created on Thu Nov  5 10:29:23 2020
 """
 #%% IMPORT ALL REQUIRED FUNCTIONS
 
+import os
+import sys
 from datetime import datetime
+
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-import os
-
-from pysteps.visualization import tstorm as tstorm_plot
-from pysteps.feature import tstorm as tstorm_detect
-from pysteps.tracking import tdating as tstorm_dating
 
 from pysteps import io, rcparams
+from pysteps.feature import tstorm as tstorm_detect
+from pysteps.tracking import tdating as tstorm_dating
 from pysteps.utils import to_reflectivity
 from pysteps.visualization import plot_precip_field
-
+from pysteps.visualization import tstorm as tstorm_plot
 
 #%% LOAD PYSTEPS EXAMPLE DATA
 

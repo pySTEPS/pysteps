@@ -12,6 +12,7 @@ Created on Wed Nov  4 11:09:44 2020
 
 .. autosummary::
     :toctree: ../generated/
+
     dating
     tracking
     advect
@@ -20,11 +21,13 @@ Created on Wed Nov  4 11:09:44 2020
 """
 
 import copy
-import scipy.ndimage as ndi
-import numpy as np
-from pysteps import motion
 import sys
+
+import numpy as np
+import scipy.ndimage as ndi
+
 import pysteps.feature.tstorm as tstorm_detect
+from pysteps import motion
 from pysteps.exceptions import MissingOptionalDependency
 
 try:
@@ -34,11 +37,11 @@ try:
 except ImportError:
     SKIMAGE_IMPORTED = False
 if SKIMAGE_IMPORTED == True:
-    import skimage.morphology as skim
-    import skimage.measure as skime
-    import skimage.segmentation as skis
-    import skimage.feature as skif
     import skimage.draw as skid
+    import skimage.feature as skif
+    import skimage.measure as skime
+    import skimage.morphology as skim
+    import skimage.segmentation as skis
 try:
     import pandas as pd
 

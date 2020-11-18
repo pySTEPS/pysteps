@@ -16,10 +16,9 @@ Created on Wed Nov  4 11:09:44 2020
     plot_track
     plot_cart_contour
 """
-import numpy as np
 import matplotlib as mpl
-
 import matplotlib.pyplot as plt
+import numpy as np
 
 from pysteps.visualization import plot_precip_field
 
