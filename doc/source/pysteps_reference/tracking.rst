@@ -2,7 +2,7 @@
 pysteps.tracking
 ================
 
-Implementation of deterministic and ensemble nowcasting methods.
+Implementations of feature tracking methods.
 
 
 .. automodule:: pysteps.tracking.interface
