@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Nov  4 11:09:44 2020
-
-@author: mfeldman
-
 pysteps.tracking.tdating
 ========================
 
 Thunderstorm Detection and Tracking (DATing) module
+
+Created on Wed Nov  4 11:09:44 2020
+
+@author: mfeldman
 
 .. autosummary::
     :toctree: ../generated/

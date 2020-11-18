@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Nov  5 10:29:23 2020
-
-@author: mfeldman
-"""
-#%%
-"""
 Thunderstorm Detection and Tracking - DATing
 ============================================
 
@@ -16,6 +10,10 @@ MeteoSwiss radar data and uses the Cartesian composite of maximum reflectivity o
 The first section demonstrates thunderstorm cell detection and how to plot contours.
 The second section demonstrates detection and tracking in combination,
 as well as how to plot the resulting tracks.
+
+Created on Thu Nov  5 10:29:23 2020
+
+@author: mfeldman
 """
 #%% IMPORT ALL REQUIRED FUNCTIONS
 

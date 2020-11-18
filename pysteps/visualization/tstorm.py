@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+pysteps.visualization.tstorm
+============================
+
+Methods for plotting thunderstorm cells.
+
 Created on Wed Nov  4 11:09:44 2020
 
 @author: mfeldman
+
+.. autosummary::
+    :toctree: ../generated/
+
+    plot_track
+    plot_cart_contour
 """
 import numpy as np
 import matplotlib as mpl

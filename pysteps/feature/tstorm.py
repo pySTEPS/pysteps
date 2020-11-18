@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Nov  4 11:09:12 2020
-
-@author: mfeldman
-
 pysteps.feature.tstorm
 ======================
 
 Thunderstorm cell detection module, part of Thunderstorm Detection and Tracking (DATing)
+
+Created on Wed Nov  4 11:09:12 2020
+
+@author: mfeldman
 
 .. autosummary::
     :toctree: ../generated/
