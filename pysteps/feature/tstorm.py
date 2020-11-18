@@ -5,10 +5,17 @@ Created on Wed Nov  4 11:09:12 2020
 
 @author: mfeldman
 
-pysteps.feature.cell
-====================
+pysteps.feature.tstorm
+======================
 
 Thunderstorm cell detection module, part of Thunderstorm Detection and Tracking (DATing)
+
+.. autosummary::
+    :toctree: ../generated/
+    detection
+    belonging
+    longdistance
+    get_profile
 """
 
 import scipy.ndimage as ndi
@@ -50,7 +57,7 @@ def detection(
     recommended to use a 2-D Cartesian maximum reflectivity composite, however the
     function will process any 2-D array.
     The thunderstorm cell detection requires both scikit-image and pandas.
-    
+
     Parameters
     ----------
     input_image : array-like

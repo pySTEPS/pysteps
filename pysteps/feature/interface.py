@@ -12,10 +12,12 @@ detecting features.
 """
 
 from pysteps.feature import blob
+from pysteps.feature import tstorm
 from pysteps.feature import shitomasi
 
 _detection_methods = dict()
 _detection_methods["blob"] = blob.detection
+_detection_methods["tstorm"] = tstorm.detection
 _detection_methods["shitomasi"] = shitomasi.detection
 
 
@@ -31,6 +33,8 @@ def get_method(name):
     |     Name        |              Description                              |
     +=================+=======================================================+
     |  blob           | blob detection in scale space                         |
+    +-----------------+-------------------------------------------------------+
+    |  tstorm         | Thunderstorm cell detection                           |
     +-----------------+-------------------------------------------------------+
     |  ShiTomasi      | Shi-Tomasi corner detection                           |
     +-----------------+-------------------------------------------------------+

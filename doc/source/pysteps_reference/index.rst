@@ -19,6 +19,7 @@ available in pySTEPS.
     extrapolation
     datasets
     downscaling
+    feature
     io
     motion
     noise
