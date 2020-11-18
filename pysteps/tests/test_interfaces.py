@@ -295,17 +295,18 @@ def test_feature_interface():
     """Test the feature detection module interface."""
 
     from pysteps.feature import blob
+    from pysteps.feature import tstorm
     from pysteps.feature import shitomasi
 
     method_getter = pysteps.feature.interface.get_method
 
     valid_names_func_pair = [
         ("blob", blob.detection),
-        ("ShiTomasi", shitomasi.detection),
+        ("tstorm", tstorm.detection),
         ("shitomasi", shitomasi.detection),
     ]
 
-    invalid_names = ["blobs", "shi-tomasi"]
+    invalid_names = ["blobs", "storm", "shi-tomasi"]
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
 
 
@@ -313,12 +314,14 @@ def test_tracking_interface():
     """Test the feature tracking module interface."""
 
     from pysteps.tracking import lucaskanade
+    from pysteps.tracking import tdating
 
     method_getter = pysteps.tracking.interface.get_method
 
     valid_names_func_pair = [
         ("lucaskanade", lucaskanade.track_features),
+        ("tdating", tdating.dating),
     ]
 
-    invalid_names = ["lucas-kanade"]
+    invalid_names = ["lucas-kanade", "dating"]
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
