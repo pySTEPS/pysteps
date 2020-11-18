@@ -23,9 +23,8 @@ import numpy as np
 import sys
 import os
 
-sys.path.append("/users/mfeldman/scripts/pysteps")
+# sys.path.append("/users/mfeldman/scripts/pysteps")
 
-# os.chdir('/users/mfeldman/scripts/pysteps')
 from pysteps.visualization import tstorm as tstorm_plot
 from pysteps.feature import tstorm as tstorm_detect
 from pysteps.tracking import tdating as tstorm_dating
@@ -40,7 +39,7 @@ pysteps_data_dir_path = os.path.join(home_dir, "pysteps_data")
 download_pysteps_data(pysteps_data_dir_path, force=True)
 pysteps.load_config_file("/users/mfeldman/.pysteps/pystepsrc", verbose=True)
 data_source = rcparams.data_sources["mch"]
-root_path = "/scratch/mfeldman/pysteps_data/radar/mch"  # data_source["root_path"]
+root_path = os.path.join(pysteps_data_dir_path,data_source["root_path"])
 path_fmt = data_source["path_fmt"]
 fn_pattern = data_source["fn_pattern"]
 fn_ext = data_source["fn_ext"]

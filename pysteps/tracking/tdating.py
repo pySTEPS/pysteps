@@ -39,7 +39,18 @@ except ImportError:
     PANDAS_IMPORTED = False
 
 
-def dating(input_video, timelist, mintrack=3, cell_list=[], label_list=[], start=0):
+def dating(input_video,
+           timelist,
+           mintrack=3,
+           cell_list=[],
+           label_list=[],
+           start=0,
+           minref=35,
+           maxref=48,
+           mindiff=6,
+           minsize=50,
+           minmax=41,
+           mindis=10):
     """
     This function performs the thunderstorm detection and tracking DATing.
     It requires a 3-D input array that contains the temporal succession of the 2-D data
@@ -72,6 +83,27 @@ def dating(input_video, timelist, mintrack=3, cell_list=[], label_list=[], start
         timesteps prior to the merging. The start can then be set to 2, allowing the
         motion vectors to be formed from the first three grids and continuing the cell
         tracking from there. The default is 0, which initiates a new tracking sequence.
+    
+    The following optional variables set the threshold values for the thunderstorm cell
+    detection.
+    
+    minref : float, optional
+        Lower threshold for object detection. Lower values will be set to NaN.
+        The default is 35 dBZ.
+    maxref : float, optional
+        Upper threshold for object detection. Higher values will be set to this value.
+        The default is 48 dBZ.
+    mindiff : float, optional
+        Minimal difference between two identified maxima within same area to split area
+        into two objects. The default is 6 dBZ.
+    minsize : float, optional
+        Minimal area for possible detected object. The default is 50 dBZ.
+    minmax : float, optional
+        Minimum value of maximum in identified objects. Objects with a maximum lower
+        than this will be discarded. The default is 41 dBZ.
+    mindis : float, optional
+        Minimum distance between two maxima of identified objects. Objects with a
+        smaller distance will be merged. The default is 10 km.
 
     Returns
     -------
@@ -111,7 +143,7 @@ def dating(input_video, timelist, mintrack=3, cell_list=[], label_list=[], start
                 cells_id, cell_list[-1], labels, flowfield, max_ID
             )
             cid = np.unique(newlabels)
-            max_ID = np.nanmax([np.nanmax(cid), max_ID])
+            # max_ID = np.nanmax([np.nanmax(cid), max_ID])
             cell_list.append(cells_id)
             label_list.append(newlabels)
 
