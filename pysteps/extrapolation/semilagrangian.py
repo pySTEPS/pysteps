@@ -26,7 +26,7 @@ def extrapolate(
     xy_coords=None,
     allow_nonfinite_values=False,
     vel_timestep=None,
-    interp_order=3,
+    interp_order=1,
     **kwargs,
 ):
     """Apply semi-Lagrangian backward extrapolation to a two-dimensional
@@ -82,7 +82,11 @@ def extrapolate(
         The time step of the velocity field. It is assumed to have the same
         unit as the timesteps argument.
     interp_order : int
-        Order of the interpolation to use. Default : 3 (cubic).
+        Order of the interpolation to use. Default : 1 (linear). Setting this
+        to 0 (nearest neighbor) gives the best computational performance but
+        may produce visible artefacts. Setting this to 3 (cubic) gives the best
+        ability to reproduce small-scale variability but may significantly
+        increase the computation time.
 
     Returns
     -------
