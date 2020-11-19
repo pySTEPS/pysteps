@@ -120,15 +120,16 @@ def extrapolate(
     n_iter = kwargs.get("n_iter", 1)
     return_displacement = kwargs.get("return_displacement", False)
 
-    # replace nans with zeros and apply separate masking if interp_order > 1
+    # if interp_order > 1, apply separate masking to preserve nan and
+    # non-precipitation values
     if interp_order > 1:
-        mask_finite = np.isfinite(precip)
         minval = np.nanmin(precip)
-        mask_min = precip > minval
-        precip = precip.copy()
-        precip[~mask_finite] = 0.0
-        mask_finite = mask_finite.astype(float)
-        mask_min = mask_min.astype(float)
+        mask_min = (precip > minval).astype(float)
+        if allow_nonfinite_values:
+            mask_finite = np.isfinite(precip)
+            precip = precip.copy()
+            precip[~mask_finite] = 0.0
+            mask_finite = mask_finite.astype(float)
 
     prefilter = True if interp_order > 1 else False
 
@@ -216,15 +217,17 @@ def extrapolate(
                 prefilter=False,
             )
             precip_warped[mask_warped < 0.5] = minval
-            mask_warped = ip.map_coordinates(
-                mask_finite,
-                coords_warped,
-                mode="constant",
-                cval=0,
-                order=1,
-                prefilter=False,
-            )
-            precip_warped[mask_warped < 0.5] = np.nan
+
+            if allow_nonfinite_values:
+                mask_warped = ip.map_coordinates(
+                    mask_finite,
+                    coords_warped,
+                    mode="constant",
+                    cval=0,
+                    order=1,
+                    prefilter=False,
+                )
+                precip_warped[mask_warped < 0.5] = np.nan
 
         precip_extrap.append(np.reshape(precip_warped, precip.shape))
 
