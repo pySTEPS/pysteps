@@ -45,6 +45,7 @@ importer_kwargs = data_source["importer_kwargs"]
 timestep = data_source["timestep"]
 
 #%% FIND AND READ FILES
+# root_path='/users/mfeldman/pysteps_data/radar/mch'
 fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=20
 )
@@ -67,6 +68,7 @@ cells_id, labels = tstorm_detect.detection(
     minsize=50,
     minmax=41,
     mindis=10,
+    dyn_thresh=False,
     time=time,
 )
 
@@ -82,6 +84,7 @@ plot_precip_field(Z[5, :, :], units=metadata["unit"])
 
 # Plot the identified cells
 plot_cart_contour(cells_id.cont)
+plt.show()
 
 # Plot tracks
 plot_track(
