@@ -48,7 +48,7 @@ def extrapolate(
     outval : float, optional
         Optional argument for specifying the value for pixels advected from
         outside the domain. If outval is set to 'min', the value is taken as
-        the minimum value of R.
+        the minimum value of precip.
         Default : np.nan
     xy_coords : ndarray, optional
         Array with the coordinates of the grid dimension (2, m, n ).
@@ -82,7 +82,7 @@ def extrapolate(
         The time step of the velocity field. It is assumed to have the same
         unit as the timesteps argument.
     interp_order : int
-        Order of the interpolation to use. Default : 1 (linear). Setting this
+        The order of interpolation to use. Default : 1 (linear). Setting this
         to 0 (nearest neighbor) gives the best computational performance but
         may produce visible artefacts. Setting this to 3 (cubic) gives the best
         ability to reproduce small-scale variability but may significantly
