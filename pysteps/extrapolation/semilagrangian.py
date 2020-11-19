@@ -118,10 +118,13 @@ def extrapolate(
 
     # replace nans with zeros and apply separate masking if interp_order > 1
     if interp_order > 1:
-        mask = np.isfinite(precip)
+        mask_finite = np.isfinite(precip)
+        minval = np.nanmin(precip)
+        mask_min = precip > minval
         precip = precip.copy()
-        precip[~mask] = 0.0
-        mask = mask.astype(float)
+        precip[~mask_finite] = 0.0
+        mask_finite = mask_finite.astype(float)
+        mask_min = mask_min.astype(float)
 
     prefilter = True if interp_order > 1 else False
 
@@ -201,7 +204,21 @@ def extrapolate(
 
         if interp_order > 1:
             mask_warped = ip.map_coordinates(
-                mask, coords_warped, mode="constant", cval=0, order=1, prefilter=False
+                mask_min,
+                coords_warped,
+                mode="constant",
+                cval=0,
+                order=1,
+                prefilter=False,
+            )
+            precip_warped[mask_warped < 0.5] = minval
+            mask_warped = ip.map_coordinates(
+                mask_finite,
+                coords_warped,
+                mode="constant",
+                cval=0,
+                order=1,
+                prefilter=False,
             )
             precip_warped[mask_warped < 0.5] = np.nan
 
