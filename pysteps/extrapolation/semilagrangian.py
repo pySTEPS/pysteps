@@ -26,7 +26,6 @@ def extrapolate(
     xy_coords=None,
     allow_nonfinite_values=False,
     vel_timestep=None,
-    interp_order=1,
     **kwargs,
 ):
     """Apply semi-Lagrangian backward extrapolation to a two-dimensional
@@ -119,6 +118,7 @@ def extrapolate(
     displacement_prev = kwargs.get("displacement_prev", None)
     n_iter = kwargs.get("n_iter", 1)
     return_displacement = kwargs.get("return_displacement", False)
+    interp_order = kwargs.get("interp_order", 1)
 
     # if interp_order > 1, apply separate masking to preserve nan and
     # non-precipitation values
