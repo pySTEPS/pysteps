@@ -32,7 +32,7 @@ jobs:
         - PYTHON_VERSION=3.8
         - RUN_TESTS=true
 
-      - os: linux
+    - os: linux
       python: 3.9
       env:
         - PYTHON_VERSION=3.9
