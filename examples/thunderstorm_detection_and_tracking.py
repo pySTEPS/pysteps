@@ -68,13 +68,25 @@ cells_id, labels = tstorm_detect.detection(
     minsize=50,
     minmax=41,
     mindis=10,
-    dyn_thresh=False,
+    dyn_thresh=True,
     time=time,
 )
 
 #%% COMPUTATION OF THUNDERSTORM TRACKS OVER ENTIRE TIMELINE
 track_list, cell_list, label_list = tstorm_dating.dating(
-    input_video=Z, timelist=timelist, mintrack=3, cell_list=[], label_list=[], start=0
+    input_video=Z,
+    timelist=timelist,
+    mintrack=3,
+    cell_list=[],
+    label_list=[],
+    start=0,
+    minref=35,
+    maxref=48,
+    mindiff=6,
+    minsize=50,
+    minmax=41,
+    mindis=10,
+    dyn_thresh=True,
 )
 
 #%% PLOTTING
@@ -85,7 +97,7 @@ plot_precip_field(Z[5, :, :], units=metadata["unit"])
 # Plot the identified cells
 plot_cart_contour(cells_id.cont)
 plt.show()
-
+#%%
 # Plot tracks
 plot_track(
     track_list,

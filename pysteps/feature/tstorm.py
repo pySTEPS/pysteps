@@ -155,7 +155,7 @@ def detection(
 
     areas, lines = belonging(input_image, np.nanmin(input_image.flatten()), maxima_dis)
 
-    if dyn_thresh: cells_id, labels = get_profile_dyn(areas, lines, binary, input_image, loc_max, time, minref, mindiff)
+    if dyn_thresh: cells_id, labels = get_profile_dyn(areas, lines, binary, input_image, loc_max, time, minref, mindiff, minsize)
     else: cells_id, labels = get_profile(areas, binary, input_image, loc_max, time, minref)
 
     return cells_id, labels
@@ -237,7 +237,7 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
 
     return cells_id, labels
 
-def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref):
+def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_size):
     """
     This function returns the identified cells in a dataframe including their x,y
     locations, location of their maxima, maximum reflectivity and contours. The lower reflectivity bound is variable
@@ -266,10 +266,22 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref):
             if max_ref-min_ref<dref: min_ref=max_ref-dref
         else: min_ref=minref
         ref_unique=cell_unique*ref
-        plt.imshow(ref_unique)
         loc=np.where(ref_unique>=min_ref)
+        labels, ngroups = ndi.label(cell_unique)
         c_unique=np.zeros(cells.shape)
         c_unique[loc]=1
+        labels, n_groups = ndi.label(c_unique)
+        print(len(loc[0]), min_ref, n_groups)
+        print(len(loc[0])<min_size,min_ref>minref,n_groups>ngroups)
+        while (len(loc[0])<min_size or n_groups>ngroups) and min_ref>minref:
+            min_ref-=1
+            ref_unique=cell_unique*ref
+            loc=np.where(ref_unique>=min_ref)
+            c_unique=np.zeros(cells.shape)
+            c_unique[loc]=1
+            labels, n_groups = ndi.label(c_unique)
+            print(len(loc[0]), min_ref, n_groups)
+        
         cells_id.x[n] = np.where(c_unique == 1)[1]
         cells_id.y[n] = np.where(c_unique == 1)[0]
         contours = skime.find_contours(c_unique, 0.8)

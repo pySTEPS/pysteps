@@ -63,6 +63,7 @@ def dating(
     minsize=50,
     minmax=41,
     mindis=10,
+    dyn_thresh=False,
 ):
     """
     This function performs the thunderstorm detection and tracking DATing.
@@ -117,7 +118,10 @@ def dating(
     mindis : float, optional
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
-
+    dyn_thresh: binary, optional
+        Set to True to activate dynamic lower threshold. Restricts contours to more
+        meaningful area. The default is False.
+        
     Returns
     -------
     track_list : list of dataframes
