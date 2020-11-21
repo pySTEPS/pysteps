@@ -10,6 +10,8 @@ Functions to produce animations for pysteps.
     animate
 """
 
+import os
+
 import matplotlib.pylab as plt
 import numpy as np
 import pysteps as st
@@ -35,7 +37,8 @@ def animate(
     fig_dpi=150,
     fig_format="png",
     path_outputs="",
-    **kwargs,
+    motion_kwargs={},
+    map_kwargs={},
 ):
     """Function to animate observations and forecasts in pysteps.
 
@@ -58,7 +61,7 @@ def animate(
         Optional, the motion field used for the forecast.
     motion_plot : string
         The method to plot the motion field.
-    geodata : dictionary
+    geodata : dictionary or None
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
@@ -113,10 +116,12 @@ def animate(
         matplotlib.pyplot.savefig. Applicable if savefig is True.
     path_outputs : string
         Path to folder where to save the frames.
-    kwargs : dict
+    motion_kwargs : dict
         Optional keyword arguments that are supplied to
-        :py:func:`pysteps.visualization.precipfields.plot_precip_field`,
-        :py:func:`pysteps.visualization.motionfields.quiver`, and
+        :py:func:`pysteps.visualization.precipfields.plot_precip_field` or
+        :py:func:`pysteps.visualization.motionfields.quiver`.
+    map_kwargs : dict
+        Optional keyword arguments that are supplied to
         :py:func:`pysteps.visualization.motionfields.streamplot`.
 
     Returns
@@ -176,7 +181,7 @@ def animate(
                             units=units,
                             probthr=prob_thr,
                             title=title,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
                     else:
                         title += "Observed Rainfall"
@@ -187,30 +192,38 @@ def animate(
                             colorscale=colorscale,
                             title=title,
                             colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
 
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
+                            st.plt.quiver(UV, ax=ax, geodata=geodata, **motion_kwargs)
                         elif motion_plot.lower() == "streamplot":
-                            st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
+                            st.plt.streamplot(
+                                UV, ax=ax, geodata=geodata, **motion_kwargs
+                            )
 
                     if savefig & (loop == 0):
                         if type == "prob":
-                            figname = "%s/%s_frame_%02d_binmap_%.1f.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                i,
-                                prob_thr,
-                                fig_format,
+                            figname = os.path.join(
+                                "%s, %s_frame_%02d_binmap_%.1f.%s"
+                                % (
+                                    path_outputs,
+                                    startdate_str,
+                                    i,
+                                    prob_thr,
+                                    fig_format,
+                                )
                             )
                         else:
-                            figname = "%s/%s_frame_%02d.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                i,
-                                fig_format,
+                            figname = os.path.join(
+                                "%s, %s_frame_%02d.%s"
+                                % (
+                                    path_outputs,
+                                    startdate_str,
+                                    i,
+                                    fig_format,
+                                )
                             )
                         plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                         print(figname, "saved.")
@@ -236,7 +249,7 @@ def animate(
                             units=units,
                             probthr=prob_thr,
                             title=title,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
                     elif type == "mean":
                         title += "Forecast Ensemble Mean"
@@ -250,7 +263,7 @@ def animate(
                             title=title,
                             colorscale=colorscale,
                             colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
                     else:
                         title += "Forecast Rainfall"
@@ -261,14 +274,16 @@ def animate(
                             title=title,
                             colorscale=colorscale,
                             colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
                         )
 
                     if UV is not None and motion_plot is not None:
                         if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
+                            st.plt.quiver(UV, ax=ax, geodata=geodata, **motion_kwargs)
                         elif motion_plot.lower() == "streamplot":
-                            st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
+                            st.plt.streamplot(
+                                UV, ax=ax, geodata=geodata, **motion_kwargs
+                            )
 
                     if leadtime is not None:
                         plt.text(
@@ -291,27 +306,36 @@ def animate(
 
                     if savefig & (loop == 0):
                         if type == "prob":
-                            figname = "%s/%s_frame_%02d_probmap_%.1f.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                i,
-                                prob_thr,
-                                fig_format,
+                            figname = os.path.join(
+                                "%s, %s_frame_%02d_probmap_%.1f.%s"
+                                % (
+                                    path_outputs,
+                                    startdate_str,
+                                    i,
+                                    prob_thr,
+                                    fig_format,
+                                )
                             )
                         elif type == "mean":
-                            figname = "%s/%s_frame_%02d_ensmean.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                i,
-                                fig_format,
+                            figname = os.path.join(
+                                "%s, %s_frame_%02d_ensmean.%s"
+                                % (
+                                    path_outputs,
+                                    startdate_str,
+                                    i,
+                                    fig_format,
+                                )
                             )
                         else:
-                            figname = "%s/%s_member_%02d_frame_%02d.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                (n + 1),
-                                i,
-                                fig_format,
+                            figname = os.path.join(
+                                "%s, %s_member_%02d_frame_%02d.%s"
+                                % (
+                                    path_outputs,
+                                    startdate_str,
+                                    (n + 1),
+                                    i,
+                                    fig_format,
+                                )
                             )
                         plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                         print(figname, "saved.")
