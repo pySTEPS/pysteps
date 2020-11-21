@@ -123,7 +123,6 @@ def extrapolate(
     if "D_prev" in kwargs.keys():
         warnings.warn(
             "deprecated argument D_prev is ignored, use displacement_prev instead",
-            DeprecationWarning,
         )
 
     # if interp_order > 1, apply separate masking to preserve nan and
