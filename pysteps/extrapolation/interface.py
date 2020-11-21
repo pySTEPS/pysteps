@@ -49,11 +49,11 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
         Array of shape (m,n) containing the input precipitation field. All
         values are required to be finite.
     velocity : array-like
-        Not used by the method. 
+        Not used by the method.
     timesteps : int or list
         Number of time steps or a list of time steps.
     outval : float, optional
-        Not used by the method. 
+        Not used by the method.
 
     Other Parameters
     ----------------
@@ -72,7 +72,7 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
 
     References
     ----------
-    :cite:`GZ2002` Germann et al (2002)
+    :cite:`GZ2002`
 
     """
     del velocity, outval  # Unused by _eulerian_persistence
@@ -84,7 +84,15 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
 
     return_displacement = kwargs.get("return_displacement", False)
 
-    extrapolated_precip = np.repeat(precip[np.newaxis, :, :,], num_timesteps, axis=0)
+    extrapolated_precip = np.repeat(
+        precip[
+            np.newaxis,
+            :,
+            :,
+        ],
+        num_timesteps,
+        axis=0,
+    )
 
     if not return_displacement:
         return extrapolated_precip
@@ -124,8 +132,8 @@ def get_method(name):
     |  eulerian       | this methods does not apply any advection to the input |
     |                 | precipitation field (Eulerian persistence)             |
     +-----------------+--------------------------------------------------------+
-    | semilagrangian  | implementation of the semi-Lagrangian method of        |
-    |                 | Germann et al. (2002) :cite:`GZ2002`                   |
+    | semilagrangian  | implementation of the semi-Lagrangian method described |
+    |                 | in :cite:`GZ2002`                                      |
     +-----------------+--------------------------------------------------------+
 
     """
