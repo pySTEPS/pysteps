@@ -29,6 +29,8 @@ def _compute_advection_field(float64 [:, :, :] R, lam, intp num_iter,
     cdef np.ndarray[float64, ndim=4] V_cur = np.zeros((2, 2, m, n))
     cdef np.ndarray[float64, ndim=4] V_next
 
+    cdef np.ndarray[float64, ndim=3] GAMMA = np.empty((2, R.shape[1], R.shape[2]))
+
     for i in range(n_levels-1, -1, -1):
         _proesmans(np.stack([R_p[0][i], R_p[1][i]]), V_cur, num_iter, lam)
 
@@ -41,7 +43,9 @@ def _compute_advection_field(float64 [:, :, :] R, lam, intp num_iter,
             _initialize_next_level(V_cur, V_next)
             V_cur = V_next
 
-    return V_cur[0, :, :, :]
+    _compute_consistency_maps(V_cur, GAMMA)
+
+    return V_cur, GAMMA
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
