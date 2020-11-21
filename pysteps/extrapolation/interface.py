@@ -20,7 +20,7 @@ from outside the domain.
 Optional keyword arguments that are specific to a given extrapolation
 method are passed as a dictionary.
 
-The output of each method is an array precip that includes the time series of
+The output of each method is an array that contains the time series of
 extrapolated fields of shape (num_timesteps, m, n).
 
 .. currentmodule:: pysteps.extrapolation.interface
