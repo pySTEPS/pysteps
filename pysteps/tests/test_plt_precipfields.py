@@ -6,7 +6,7 @@ from pysteps.visualization import plot_precip_field
 from pysteps.utils import conversion
 from pysteps.postprocessing import ensemblestats
 from pysteps.tests.helpers import get_precipitation_fields
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 
 plt_arg_names = (
     "source",
@@ -28,16 +28,7 @@ plt_arg_values = [
     ("bom", "intensity", None, "pysteps", None, None, True, "on"),
     ("fmi", "intensity", None, "pysteps", None, None, True, "on"),
     ("knmi", "intensity", None, "pysteps", None, None, True, "on"),
-    (
-        "knmi",
-        "intensity",
-        [2e2, -4.1e3, 5e2, -3.8e3],
-        "pysteps",
-        None,
-        None,
-        True,
-        "on",
-    ),
+    ("knmi", "intensity", [300, 300, 500, 500], "pysteps", None, None, True, "on",),
     ("opera", "intensity", None, "pysteps", None, None, True, "on"),
     ("saf", "intensity", None, "pysteps", None, None, True, "on"),
 ]
@@ -70,7 +61,7 @@ def test_visualization_plot_precip_field(
         field,
         type=type,
         bbox=bbox,
-        geodata=metadata,
+        geodata=None,
         colorscale=colorscale,
         probthr=probthr,
         units=metadata["unit"],
@@ -78,11 +69,10 @@ def test_visualization_plot_precip_field(
         colorbar=colorbar,
         axis=axis,
     )
-    pl.close()
 
 
 if __name__ == "__main__":
 
     for i, args in enumerate(plt_arg_values):
         test_visualization_plot_precip_field(*args)
-        pl.show()
+        plt.show()

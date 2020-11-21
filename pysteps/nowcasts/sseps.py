@@ -271,7 +271,7 @@ def forecast(
     print("dask imported:            %s" % ("yes" if dask_imported else "no"))
     print("num workers:              %d" % num_workers)
 
-    if vel_pert_method is "bps":
+    if vel_pert_method == "bps":
         vp_par = vel_pert_kwargs.get(
             "p_pert_par", noise.motion.get_default_params_bps_par()
         )
