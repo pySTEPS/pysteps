@@ -20,7 +20,13 @@ from . import utils
 
 
 def quiver(
-    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs={}, map_kwargs={},
+    UV,
+    ax=None,
+    geodata=None,
+    axis="on",
+    step=20,
+    quiver_kwargs={},
+    map_kwargs={},
 ):
     """Function to plot a motion field as arrows.
 
@@ -130,7 +136,11 @@ def quiver(
     # draw basemaps
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -145,7 +155,11 @@ def quiver(
             extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
     else:
         ax = plt.gca()
@@ -153,7 +167,7 @@ def quiver(
     # reduce number of vectors to plot
     skip = (slice(None, None, step), slice(None, None, step))
     dx = UV[0, :, :][skip]
-    dy = UV[1, :, :][skip]
+    dy = UV[1, :, :][skip].copy()
     X = X[skip]
     Y = Y[skip]
 
@@ -163,7 +177,13 @@ def quiver(
 
     # plot quiver
     ax.quiver(
-        X, Y, dx, dy, angles="xy", zorder=1e6, **quiver_kwargs,
+        X,
+        Y,
+        dx,
+        dy,
+        angles="xy",
+        zorder=1e6,
+        **quiver_kwargs,
     )
     if geodata is None or axis == "off":
         axes = plt.gca()
@@ -176,7 +196,12 @@ def quiver(
 
 
 def streamplot(
-    UV, ax=None, geodata=None, axis="on", streamplot_kwargs={}, map_kwargs={},
+    UV,
+    ax=None,
+    geodata=None,
+    axis="on",
+    streamplot_kwargs={},
+    map_kwargs={},
 ):
     """Function to plot a motion field as streamlines.
 
@@ -283,7 +308,11 @@ def streamplot(
     # draw basemaps
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -300,13 +329,17 @@ def streamplot(
             x = X[0, :]
             y = Y[:, 0]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
     else:
         ax = plt.gca()
 
     dx = UV[0, :, :]
-    dy = UV[1, :, :]
+    dy = UV[1, :, :].copy()  # Create a copy since dy may be modified
 
     if geodata is None or geodata["yorigin"] == "upper":
         y = y[::-1]
@@ -314,7 +347,12 @@ def streamplot(
 
     # plot streamplot
     ax.streamplot(
-        x, y, dx, dy, zorder=1e6, **streamplot_kwargs,
+        x,
+        y,
+        dx,
+        dy,
+        zorder=1e6,
+        **streamplot_kwargs,
     )
 
     if geodata is None or axis == "off":
