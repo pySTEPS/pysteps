@@ -12,6 +12,7 @@ Implementation of the semi-Lagrangian method described in :cite:`GZ2002`.
 """
 
 import time
+import warnings
 
 import numpy as np
 import scipy.ndimage.interpolation as ip
@@ -96,7 +97,7 @@ def extrapolate(
 
     References
     ----------
-    :cite:`GZ2002` Germann et al (2002)
+    :cite:`GZ2002`
 
     """
     if len(precip.shape) != 2:
@@ -118,6 +119,12 @@ def extrapolate(
     n_iter = kwargs.get("n_iter", 1)
     return_displacement = kwargs.get("return_displacement", False)
     interp_order = kwargs.get("interp_order", 1)
+
+    if "D_prev" in kwargs.keys():
+        warnings.warn(
+            "deprecated argument D_prev is ignored, use displacement_prev instead",
+            DeprecationWarning,
+        )
 
     # if interp_order > 1, apply separate masking to preserve nan and
     # non-precipitation values
