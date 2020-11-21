@@ -13,14 +13,14 @@ Functions to plot motion fields.
 
 import matplotlib.pylab as plt
 import numpy as np
-from pysteps.exceptions import UnsupportedSomercProjection
+from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
 from . import basemaps
 from . import utils
 
 
 def quiver(
-    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs=None, **kwargs,
+    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs={}, map_kwargs={},
 ):
     """Function to plot a motion field as arrows.
 
@@ -34,7 +34,7 @@ def quiver(
         Array of shape (2,m,n) containing the input motion field.
     ax : axis object
         Optional axis object to use for plotting.
-    geodata : dictionary
+    geodata : dictionary or None
         Optional dictionary containing geographical information about
         the field.
 
@@ -74,7 +74,7 @@ def quiver(
 
     Other parameters
     ----------------
-    kwargs: dict
+    map_kwargs: dict
         Optional parameters that need to be passed to
         :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
@@ -84,12 +84,6 @@ def quiver(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-    plot_map = kwargs.get("plot_map", None)
-    if plot_map is not None and geodata is None:
-        raise ValueError("plot_map!=None but geodata=None")
-
-    if quiver_kwargs is None:
-        quiver_kwargs = dict()
 
     # prepare x y coordinates
     reproject = False
@@ -109,7 +103,7 @@ def quiver(
         extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
 
         # check geodata and project if different from axes
-        if ax is not None and plot_map is None:
+        if ax is not None:
             if type(ax).__name__ == "GeoAxesSubplot":
                 try:
                     ccrs = utils.proj4_to_cartopy(geodata["projection"])
@@ -118,8 +112,6 @@ def quiver(
                     # This will work reasonably well for Europe only.
                     t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
                     reproject = True
-            elif type(ax).__name__ == "Basemap":
-                utils.proj4_to_basemap(geodata["projection"])
 
             if reproject:
                 geodata = utils.reproject_geodata(
@@ -136,9 +128,14 @@ def quiver(
         X, Y = np.meshgrid(x, y)
 
     # draw basemaps
-    if plot_map is not None:
+    if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+
+        except MissingOptionalDependency as e:
+            # Cartopy is not installed
+            print(f"{e.__class__}: {e}")
+            ax = plt.axes()
 
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -148,7 +145,8 @@ def quiver(
             extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+
     else:
         ax = plt.gca()
 
@@ -178,7 +176,7 @@ def quiver(
 
 
 def streamplot(
-    UV, ax=None, geodata=None, axis="on", streamplot_kwargs=None, **kwargs,
+    UV, ax=None, geodata=None, axis="on", streamplot_kwargs={}, map_kwargs={},
 ):
     """Function to plot a motion field as streamlines.
 
@@ -195,7 +193,7 @@ def streamplot(
         Array of shape (2, m,n) containing the input motion field.
     ax : axis object
         Optional axis object to use for plotting.
-    geodata : dictionary
+    geodata : dictionary or None
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
@@ -231,7 +229,7 @@ def streamplot(
 
     Other parameters
     ----------------
-    kwargs: dict
+    map_kwargs: dict
         Optional parameters that need to be passed to
         :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
@@ -241,13 +239,6 @@ def streamplot(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-    plot_map = kwargs.get("plot_map", None)
-
-    if plot_map is not None and geodata is None:
-        raise ValueError("plot_map!=None but geodata=None")
-
-    if streamplot_kwargs is None:
-        streamplot_kwargs = dict()
 
     # prepare x y coordinates
     reproject = False
@@ -267,7 +258,7 @@ def streamplot(
         extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
 
         # check geodata and project if different from axes
-        if ax is not None and plot_map is None:
+        if ax is not None:
             if type(ax).__name__ == "GeoAxesSubplot":
                 try:
                     ccrs = utils.proj4_to_cartopy(geodata["projection"])
@@ -276,8 +267,6 @@ def streamplot(
                     # This will work reasonably well for Europe only.
                     t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
                     reproject = True
-            elif type(ax).__name__ == "Basemap":
-                utils.proj4_to_basemap(geodata["projection"])
 
             if reproject:
                 geodata = utils.reproject_geodata(
@@ -292,9 +281,15 @@ def streamplot(
         y = np.arange(UV.shape[1])
 
     # draw basemaps
-    if plot_map is not None:
+    if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+
+        except MissingOptionalDependency as e:
+            # Cartopy is not installed
+            print(f"{e.__class__}: {e}")
+            ax = plt.axes()
+
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -305,7 +300,8 @@ def streamplot(
             x = X[0, :]
             y = Y[:, 0]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+
     else:
         ax = plt.gca()
 

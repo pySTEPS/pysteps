@@ -14,34 +14,29 @@ arg_names_quiver = (
     "axis",
     "step",
     "quiver_kwargs",
-    "plot_map",
-    "drawlonlatlines",
-    "lw",
+    "map_kwargs",
     "upscale",
+    "pass_geodata",
 )
 
 arg_values_quiver = [
-    (None, "off", 10, None, None, False, 0.5, None),
-    ("bom", "on", 10, None, None, False, 0.5, 4000),
-    ("bom", "on", 10, None, "cartopy", True, 0.5, 4000),
-    ("mch", "on", 20, None, "cartopy", False, 0.5, 2000),
-    ("bom", "off", 10, None, "basemap", False, 0.5, 4000),
+    (None, "off", 10, {}, {"drawlonlatlines": False, "lw": 0.5}, None, False),
+    ("bom", "on", 10, {}, {"drawlonlatlines": False, "lw": 0.5}, 4000, False),
+    ("bom", "on", 10, {}, {"drawlonlatlines": True, "lw": 0.5}, 4000, True),
+    ("mch", "on", 20, {}, {"drawlonlatlines": False, "lw": 0.5}, 2000, True),
 ]
 
 
 @pytest.mark.parametrize(arg_names_quiver, arg_values_quiver)
 def test_visualization_motionfields_quiver(
-    source, axis, step, quiver_kwargs, plot_map, drawlonlatlines, lw, upscale,
+    source, axis, step, quiver_kwargs, map_kwargs, upscale, pass_geodata,
 ):
-
-    if plot_map == "cartopy":
-        pytest.importorskip("cartopy")
-    elif plot_map == "basemap":
-        pytest.importorskip("basemap")
 
     if source is not None:
         fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
-        ax = plot_precip_field(fields[-1], geodata=geodata, plot_map=plot_map,)
+        if not pass_geodata:
+            geodata = None
+        ax = plot_precip_field(fields[-1], geodata=geodata)
         oflow_method = motion.get_method("LK")
         UV = oflow_method(fields)
 
@@ -54,49 +49,35 @@ def test_visualization_motionfields_quiver(
         U, V = np.meshgrid(u, v)
         UV = np.concatenate([U[None, :], V[None, :]])
 
-    __ = quiver(
-        UV,
-        ax,
-        geodata,
-        axis,
-        step,
-        quiver_kwargs,
-        plot_map=plot_map,
-        drawlonlatlines=drawlonlatlines,
-        lw=lw,
-    )
+    __ = quiver(UV, ax, geodata, axis, step, quiver_kwargs, map_kwargs=map_kwargs,)
 
 
 arg_names_streamplot = (
     "source",
     "axis",
     "streamplot_kwargs",
-    "plot_map",
-    "drawlonlatlines",
-    "lw",
+    "map_kwargs",
     "upscale",
+    "pass_geodata",
 )
 
 arg_values_streamplot = [
-    (None, "off", None, None, False, 0.5, None),
-    ("bom", "on", None, None, False, 0.5, 4000),
-    ("bom", "on", {"density": 0.1}, "cartopy", True, 0.5, 4000),
+    (None, "off", {}, {"drawlonlatlines": False, "lw": 0.5}, None, False),
+    ("bom", "on", {}, {"drawlonlatlines": False, "lw": 0.5}, 4000, False),
+    ("bom", "on", {"density": 0.5}, {"drawlonlatlines": True, "lw": 0.5}, 4000, True),
 ]
 
 
 @pytest.mark.parametrize(arg_names_streamplot, arg_values_streamplot)
 def test_visualization_motionfields_streamplot(
-    source, axis, streamplot_kwargs, plot_map, drawlonlatlines, lw, upscale,
+    source, axis, streamplot_kwargs, map_kwargs, upscale, pass_geodata
 ):
-
-    if plot_map == "cartopy":
-        pytest.importorskip("cartopy")
-    elif plot_map == "basemap":
-        pytest.importorskip("basemap")
 
     if source is not None:
         fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
-        ax = plot_precip_field(fields[-1], geodata=geodata, plot_map=plot_map,)
+        if not pass_geodata:
+            pass_geodata = None
+        ax = plot_precip_field(fields[-1], geodata=geodata)
         oflow_method = motion.get_method("LK")
         UV = oflow_method(fields)
 
@@ -109,16 +90,7 @@ def test_visualization_motionfields_streamplot(
         U, V = np.meshgrid(u, v)
         UV = np.concatenate([U[None, :], V[None, :]])
 
-    __ = streamplot(
-        UV,
-        ax,
-        geodata,
-        axis,
-        streamplot_kwargs,
-        plot_map=plot_map,
-        drawlonlatlines=drawlonlatlines,
-        lw=lw,
-    )
+    __ = streamplot(UV, ax, geodata, axis, streamplot_kwargs, map_kwargs=map_kwargs,)
 
 
 if __name__ == "__main__":
