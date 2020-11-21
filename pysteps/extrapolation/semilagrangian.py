@@ -2,8 +2,7 @@
 pysteps.extrapolation.semilagrangian
 ====================================
 
-Implementation of the semi-Lagrangian method of Germann et al (2002).
-:cite:`GZ2002`
+Implementation of the semi-Lagrangian method described in :cite:`GZ2002`.
 
 .. autosummary::
     :toctree: ../generated/
@@ -160,10 +159,18 @@ def extrapolate(
         coords_warped = [coords_warped[1, :, :], coords_warped[0, :, :]]
 
         velocity_inc_x = ip.map_coordinates(
-            velocity[0, :, :], coords_warped, mode="nearest", order=1, prefilter=False,
+            velocity[0, :, :],
+            coords_warped,
+            mode="nearest",
+            order=1,
+            prefilter=False,
         )
         velocity_inc_y = ip.map_coordinates(
-            velocity[1, :, :], coords_warped, mode="nearest", order=1, prefilter=False,
+            velocity[1, :, :],
+            coords_warped,
+            mode="nearest",
+            order=1,
+            prefilter=False,
         )
 
         velocity_inc[0, :, :] = velocity_inc_x
