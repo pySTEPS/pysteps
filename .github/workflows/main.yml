@@ -29,7 +29,7 @@ jobs:
       run:
         shell: bash -l {0}
     env:
-      PACKAGES: {{$env.MINIMAL_DEPENDENCIES}} {{$env.OPTIONAL_DEPENDENCIES}} {{$env.TEST_DEPENDENCIES}}
+      PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
         
     steps:
       # Checks-out repository under $GITHUB_WORKSPACE
@@ -48,6 +48,6 @@ jobs:
       # Install packages
       - name:  Conda install
         run: |
-          conda install --quiet {{$env.PACKAGES}}
+          conda install --quiet ${{env.PACKAGES}}
           conda info
           conda list
