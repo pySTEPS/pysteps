@@ -84,7 +84,8 @@ def forecast(
     pass
 
 
-def _compute_convolution_kernel(params, cutoff=6.0):
+# Compute anisotropic Gaussian convolution kernel
+def _compute_convolution_kernel_anisotropic(params, cutoff=6.0):
     phi, sigma1, sigma2 = params[:3]
 
     sigma1 = abs(sigma1)
@@ -114,6 +115,32 @@ def _compute_convolution_kernel(params, cutoff=6.0):
     return np.reshape(result, X.shape)
 
 
+def _compute_convolution_kernel_isotropic(params, cutoff=6.0):
+    sigma = params[0]
+
+    bb_y1, bb_x1, bb_y2, bb_x2 = (
+        -sigma * cutoff,
+        -sigma * cutoff,
+        sigma * cutoff,
+        sigma * cutoff,
+    )
+
+    x = np.arange(int(bb_x1), int(bb_x2) + 1).astype(float)
+    if len(x) % 2 == 0:
+        x = np.arange(int(bb_x1) - 1, int(bb_x2) + 1).astype(float)
+    y = np.arange(int(bb_y1), int(bb_y2) + 1).astype(float)
+    if len(y) % 2 == 0:
+        y = np.arange(int(bb_y1) - 1, int(bb_y2) + 1).astype(float)
+
+    X, Y = np.meshgrid(x / sigma, y / sigma)
+
+    r2 = X * X + Y * Y
+    result = np.exp(-0.5 * r2)
+
+    return result / np.sum(result)
+
+
+# Compute the bounding box of an ellipse
 def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
     r1 = cutoff * sigma1
     r2 = cutoff * sigma2
@@ -156,7 +183,7 @@ def _masked_convolution(field, kernel):
 
 
 # Constrained optimization of AR(1) parameters
-def optimize_ar1_params(field_src, field_dst, weights, num_workers=1):
+def _optimize_ar1_params(field_src, field_dst, weights, num_workers=1):
     def worker(i):
         def objf(p, *args):
             field_ar = p * field_src[0]
