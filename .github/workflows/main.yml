@@ -38,13 +38,16 @@ jobs:
       
       # Install miniconda
       - name: Setup Miniconda
-      - uses: conda-incubator/setup-miniconda@v2.0.0
+        uses: conda-incubator/setup-miniconda@v2.0.0
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           channels: conda-forge, conda-forge/label/testing
           activate-environment: test-environment
-      - run: |
+      
+      # Install packages
+      - name:  Conda install
+        run: |
           conda install --quiet $PACKAGES
           conda info
           conda list
