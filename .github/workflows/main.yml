@@ -1,9 +1,9 @@
 name: CI
 
 env:
-  MINIMAL_DEPENDENCIES: "cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
-  OPTIONAL_DEPENDENCIES: "dask pyfftw cartopy h5py PyWavelets pygrib"
-  TEST_DEPENDENCIES: "pytest pytest-cov codecov"
+  MINIMAL_DEPENDENCIES: cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask
+  OPTIONAL_DEPENDENCIES: dask pyfftw cartopy h5py PyWavelets pygrib
+  TEST_DEPENDENCIES: pytest pytest-cov codecov
 
 # Controls when the action will run. 
 on:
@@ -29,7 +29,7 @@ jobs:
       run:
         shell: bash -l {0}
     env:
-      PACKAGES: "$MINIMAL_DEPENDENCIES $OPTIONAL_DEPENDENCIES $TEST_DEPENDENCIES"
+      PACKAGES: $MINIMAL_DEPENDENCIES $OPTIONAL_DEPENDENCIES $TEST_DEPENDENCIES
         
     steps:
       # Checks-out repository under $GITHUB_WORKSPACE
