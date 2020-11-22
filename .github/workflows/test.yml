@@ -1,4 +1,4 @@
-name: CI
+name: Test Pysteps installation
 
 env:
   MINIMAL_DEPENDENCIES: cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask
