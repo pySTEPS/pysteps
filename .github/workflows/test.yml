@@ -40,9 +40,6 @@ jobs:
           brew update
           brew install gcc@9
           which gcc-9
-          export CC=gcc-9
-          export CXX=g++-9
-          export CXX1X=g++-9
           gcc-9 --version
 
       - name: Setup Miniconda
@@ -62,7 +59,11 @@ jobs:
           conda list
 
       - name: Install pysteps
-        run: pip install ${GITHUB_WORKSPACE}
+        run: |
+          export CC=gcc-9
+          export CXX=g++-9
+          export CXX1X=g++-9 |
+          pip install ${GITHUB_WORKSPACE}
 
       - name: Check imports
         working-directory: ${{github.workspace}}/pysteps_data
