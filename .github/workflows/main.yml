@@ -5,15 +5,11 @@ env:
   OPTIONAL_DEPENDENCIES: dask pyfftw cartopy h5py PyWavelets pygrib
   TEST_DEPENDENCIES: pytest pytest-cov codecov
 
-# Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
-
-  # Allow to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -60,8 +56,6 @@ jobs:
       - name: Install pysteps
         run: pip install ${GITHUB_WORKSPACE}
       - name: Run Tests
-        env:
-          PYSTEPS_BUILD_DIR: ${{env.GITHUB_WORKSPACE}}
-        working-directory: ${{env.HOME}}
         run: |
+          export PYSTEPS_BUILD_DIR=${GITHUB_WORKSPACE}
           bash ${GITHUB_WORKSPACE}/ci/run_tests.sh
