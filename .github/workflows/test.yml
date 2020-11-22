@@ -18,6 +18,10 @@ jobs:
         python-version: [ "3.6" ] # ["3.6", "3.7", "3.8", "3.9"]
       max-parallel: 5
 
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -40,11 +44,7 @@ jobs:
         run: |
           conda install --quiet mamba
           mamba install --quiet ${{env.PACKAGES}}
-      - name: debug
-        run: |
-          which conda
-          which python
-          which pytest
+
       - name: Install pysteps for MacOS
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
@@ -77,6 +77,7 @@ jobs:
           python -c "from pysteps import motion"
           python -c "from pysteps.motion import vet"
           python -c "from pysteps.motion import proesmans"
+
       - name: Run tests
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
