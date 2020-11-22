@@ -5,7 +5,7 @@ env:
   OPTIONAL_DEPENDENCIES: dask pyfftw cartopy h5py PyWavelets pygrib
   TEST_DEPENDENCIES: pytest pytest-cov codecov
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
@@ -31,6 +31,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install gcc for MacOSX
+        if: matrix.os == macos-latest
+        run: |
+          export HOMEBREW_NO_INSTALL_CLEANUP=1
+          brew update-reset
+          brew update
+          brew install gcc@9
+          which gcc-9
+          export CC=gcc-9
+          export CXX=g++-9
+          export CXX1X=g++-9
+          gcc-9 --version
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2.0.0
         with:
@@ -38,7 +50,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           channels: conda-forge, conda-forge/label/testing
           activate-environment: test-environment
-      - name:  Conda install
+      - name:  Install dependencies
         env:
           PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
         run: |
@@ -46,9 +58,9 @@ jobs:
           conda info
           conda list
       - name: Install pysteps
-        run: pip install ${GITHUB_WORKSPACE}    
+        run: pip install ${GITHUB_WORKSPACE}
       - name: Run Tests
         env:
-          PYSTEPS_BUILD_DIR: ${GITHUB_WORKSPACE}
+          PYSTEPS_BUILD_DIR: ${{GITHUB_WORKSPACE}}
         run: |
-          bash ${GITHUB_WORKSPACE}/ci/run_tests.sh
+          bash ${{GITHUB_WORKSPACE}}/ci/run_tests.sh
