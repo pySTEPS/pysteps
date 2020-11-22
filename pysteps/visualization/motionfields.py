@@ -20,11 +20,16 @@ from . import utils
 
 
 def quiver(
-    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs={}, map_kwargs={},
+    UV,
+    ax=None,
+    geodata=None,
+    axis="on",
+    step=20,
+    quiver_kwargs={},
+    map_kwargs={},
 ):
     """Function to plot a motion field as arrows.
 
-    .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
     .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
 
@@ -130,7 +135,11 @@ def quiver(
     # draw basemaps
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -145,7 +154,11 @@ def quiver(
             extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
     else:
         ax = plt.gca()
@@ -163,7 +176,13 @@ def quiver(
 
     # plot quiver
     ax.quiver(
-        X, Y, dx, dy, angles="xy", zorder=1e6, **quiver_kwargs,
+        X,
+        Y,
+        dx,
+        dy,
+        angles="xy",
+        zorder=1e6,
+        **quiver_kwargs,
     )
     if geodata is None or axis == "off":
         axes = plt.gca()
@@ -176,16 +195,17 @@ def quiver(
 
 
 def streamplot(
-    UV, ax=None, geodata=None, axis="on", streamplot_kwargs={}, map_kwargs={},
+    UV,
+    ax=None,
+    geodata=None,
+    axis="on",
+    streamplot_kwargs={},
+    map_kwargs={},
 ):
     """Function to plot a motion field as streamlines.
 
-    .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
-
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
-
     .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
-
 
     Parameters
     ----------
@@ -283,7 +303,11 @@ def streamplot(
     # draw basemaps
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -300,7 +324,11 @@ def streamplot(
             x = X[0, :]
             y = Y[:, 0]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
     else:
         ax = plt.gca()
@@ -314,7 +342,12 @@ def streamplot(
 
     # plot streamplot
     ax.streamplot(
-        x, y, dx, dy, zorder=1e6, **streamplot_kwargs,
+        x,
+        y,
+        dx,
+        dy,
+        zorder=1e6,
+        **streamplot_kwargs,
     )
 
     if geodata is None or axis == "off":
