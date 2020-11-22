@@ -28,9 +28,6 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
-    env:
-      PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
-        
     steps:
       # Checks-out repository under $GITHUB_WORKSPACE
       - name: Checkout
@@ -47,6 +44,8 @@ jobs:
       
       # Install packages
       - name:  Conda install
+        env:
+          PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
         run: |
           conda install --quiet ${{env.PACKAGES}}
           conda info
