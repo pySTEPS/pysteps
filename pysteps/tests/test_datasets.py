@@ -81,7 +81,8 @@ def test_params_file_creation_path(config_dir, file_name, expected_path):
     """Test that the default pysteps parameters file is create in the right place."""
 
     # For windows compatibility
-    config_dir = os.path.normpath(config_dir)
+    if config_dir is not None:
+        config_dir = os.path.normpath(config_dir)
     expected_path = os.path.normpath(expected_path)
 
     pysteps_data_dir = "dummy/path/to/data"
