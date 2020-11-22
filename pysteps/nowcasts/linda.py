@@ -48,6 +48,7 @@ from scipy.signal import convolve
 def forecast(
     precip_fields_fields,
     advection_field,
+    num_timesteps,
     ari_order=1,
     add_perturbations=True,
     n_ens_members=24,
@@ -65,6 +66,8 @@ def forecast(
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs.
+    num_timesteps : int
+        Number of time steps to forecast.
     ari_order : int
         Order of the ARI(p,1) model.
     add_perturbations : bool
@@ -81,7 +84,9 @@ def forecast(
         ensemble member. The time series starts from t0+timestep, where
         timestep is taken from the input fields.
     """
-    pass
+    # iterate each time step
+    for t in range(num_timesteps):
+        pass
 
 
 # Compute anisotropic Gaussian convolution kernel
