@@ -331,7 +331,11 @@ def forecast(
 
         # extrapolate to the current nowcast lead time
         extrap_kwargs.update(
-            {"D_prev": dp, "return_displacement": True, "allow_nonfinite_values": True}
+            {
+                "displacement_prev": dp,
+                "return_displacement": True,
+                "allow_nonfinite_values": True,
+            }
         )
         r_f_, dp = extrapolator(r_f_, velocity, 1, **extrap_kwargs)
 
