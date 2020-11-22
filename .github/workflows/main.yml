@@ -1,0 +1,50 @@
+name: CI
+
+env:
+  MINIMAL_DEPENDENCIES: "cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask"
+  OPTIONAL_DEPENDENCIES: "dask pyfftw cartopy h5py PyWavelets pygrib"
+  TEST_DEPENDENCIES: "pytest pytest-cov codecov"
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allow to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  unit_tests:
+    name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.6"] # ["3.6", "3.7", "3.8", "3.9"]
+    defaults:
+      run:
+        shell: bash -l {0}
+    env:
+      PACKAGES: "$MINIMAL_DEPENDENCIES $OPTIONAL_DEPENDENCIES $TEST_DEPENDENCIES"
+        
+    steps:
+      # Checks-out repository under $GITHUB_WORKSPACE
+      - name: Checkout
+      - uses: actions/checkout@v2
+      
+      # Install miniconda
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2.0.0
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge, conda-forge/label/testing
+          activate-environment: test-environment
+      - run: |
+          conda install --quiet $PACKAGES
+          conda info
+          conda list
