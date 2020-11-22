@@ -58,9 +58,9 @@ jobs:
           conda info
           conda list
       - name: Install pysteps
-        run: pip install ${GITHUB_WORKSPACE}
+        run: pip install ${{GITHUB_WORKSPACE}}
       - name: Run Tests
         env:
-          PYSTEPS_BUILD_DIR: ${{GITHUB_WORKSPACE}}
+          PYSTEPS_BUILD_DIR: ${{env.GITHUB_WORKSPACE}}
         run: |
           bash ${{GITHUB_WORKSPACE}}/ci/run_tests.sh
