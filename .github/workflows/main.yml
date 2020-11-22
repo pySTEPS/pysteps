@@ -20,14 +20,15 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.6"] # ["3.6", "3.7", "3.8", "3.9"]
+        python-version: ["3.6", "3.7", "3.8", "3.9"]
     defaults:
       run:
         shell: bash -l {0}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install gcc for MacOSX
+
+      - name: Install gcc for MacOS
         if: matrix.os == 'macos-latest'
         run: |
           export HOMEBREW_NO_INSTALL_CLEANUP=1
@@ -39,6 +40,7 @@ jobs:
           export CXX=g++-9
           export CXX1X=g++-9
           gcc-9 --version
+
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2.0.0
         with:
@@ -46,6 +48,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           channels: conda-forge, conda-forge/label/testing
           activate-environment: test-environment
+
       - name:  Install dependencies
         env:
           PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
@@ -53,8 +56,17 @@ jobs:
           conda install --quiet ${{env.PACKAGES}}
           conda info
           conda list
+
       - name: Install pysteps
         run: pip install ${GITHUB_WORKSPACE}
+
+      - name: Check imports
+        run: |
+          python -c "import pysteps; print(pysteps.__file__)"
+          python -c "from pysteps import motion"
+          python -c "from pysteps.motion import vet"
+          python -c "from pysteps.motion import proesmans"
+
       - name: Run Tests
         run: |
           export PYSTEPS_BUILD_DIR=${GITHUB_WORKSPACE}
