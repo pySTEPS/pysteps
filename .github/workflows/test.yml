@@ -5,65 +5,70 @@ env:
   OPTIONAL_DEPENDENCIES: dask pyfftw cartopy h5py PyWavelets pygrib
   TEST_DEPENDENCIES: pytest pytest-cov codecov
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-  workflow_dispatch:
+on: [ push ]
 
 jobs:
   unit_tests:
-    name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.6"] # ["3.6", "3.7", "3.8", "3.9"]
+        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+        python-version: [ "3.6" ] # ["3.6", "3.7", "3.8", "3.9"]
       max-parallel: 5
 
-    defaults:
-      run:
-        shell: bash -l {0}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Install gcc for MacOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          export HOMEBREW_NO_INSTALL_CLEANUP=1
-          brew update-reset
-          brew update
-          brew install gcc@9
-          which gcc-9
-          gcc-9 --version
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2.0.0
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          channels: conda-forge, conda-forge/label/testing
+          channels: conda-forge
+          channel-priority: strict
           activate-environment: test-environment
 
-      - name:  Install dependencies
+      - name: Install dependencies
         env:
           PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
+          PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
         run: |
-          conda install --quiet ${{env.PACKAGES}}
-          conda info
-          conda list
-
+          conda install --quiet mamba
+          mamba install --quiet ${{env.PACKAGES}}
+      - name: debug
+        run: |
+          which conda
+          which python
+          which pytest
+      - name: Install pysteps for MacOS
+        if: matrix.os == 'macos-latest'
+        working-directory: ${{github.workspace}}
+        env:
+          CC: gcc-9
+          CXX: g++-9
+          CXX1X: g++-9
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew update-reset
+          brew update
+          brew install gcc@9
+          gcc-9 --version
+          pip install .
       - name: Install pysteps
-        run: |
-          export CC=gcc-9
-          export CXX=g++-9
-          export CXX1X=g++-9 |
-          pip install ${GITHUB_WORKSPACE}
+        if: matrix.os != 'macos-latest'
+        working-directory: ${{github.workspace}}
+        run: pip install .
+
+      - name: Download pysteps data
+        env:
+          PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
+        working-directory: ${{github.workspace}}/ci
+        run: python fetch_pysteps_data.py
 
       - name: Check imports
         working-directory: ${{github.workspace}}/pysteps_data
@@ -72,8 +77,13 @@ jobs:
           python -c "from pysteps import motion"
           python -c "from pysteps.motion import vet"
           python -c "from pysteps.motion import proesmans"
-
-      - name: Run Tests
+      - name: Run tests
+        env:
+          PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
         run: |
-          export PYSTEPS_BUILD_DIR=${GITHUB_WORKSPACE}
-          bash ${GITHUB_WORKSPACE}/ci/run_tests.sh
+          python -c "import pysteps; print(pysteps.__file__)"
+          python -c "from pysteps import motion"
+          python -c "from pysteps.motion import vet"
+          python -c "from pysteps.motion import proesmans"
+          pytest --pyargs pysteps --cov=pysteps -ra;
+        working-directory: ${{github.workspace}}/pysteps_data
