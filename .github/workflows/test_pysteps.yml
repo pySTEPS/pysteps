@@ -5,7 +5,12 @@ env:
   OPTIONAL_DEPENDENCIES: dask pyfftw cartopy h5py PyWavelets
   TEST_DEPENDENCIES: pytest pytest-cov codecov
 
-on: [ push ]
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
   unit_tests:
@@ -15,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
-        python-version: [ "3.6" ] # ["3.6", "3.7", "3.8", "3.9"]
+        python-version: [ "3.6", "3.9"]
       max-parallel: 5
 
     defaults:
