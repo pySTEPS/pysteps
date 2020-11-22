@@ -46,7 +46,7 @@ from scipy.signal import convolve
 
 
 def forecast(
-    precip_fields_fields,
+    precip_fields,
     advection_field,
     num_timesteps,
     ari_order=1,
@@ -79,14 +79,21 @@ def forecast(
     Returns
     -------
     out : numpy.ndarray
-        A four-dimensional array of shape (n_ens_members,n_timesteps,m,n)
+        A four-dimensional array of shape (n_ens_members,num_timesteps, m, n)
         containing a time series of forecast precipitation fields for each
-        ensemble member. The time series starts from t0+timestep, where
+        ensemble member. The time series starts from t0 + timestep, where
         timestep is taken from the input fields.
     """
+    localized_nowcasts = np.empty(
+        (num_features, precip_fields.shape[1], precip_fields.shape[2])
+    )
+    window_weights = _compute_window_weights(
+        feature_coords, precip_fields.shape[1], precip_fields.shape[2], window_radii
+    )
+
     # iterate each time step
     for t in range(num_timesteps):
-        pass
+        np.sum(window_weights * localized_nowcasts, axis=0)
 
 
 # Compute anisotropic Gaussian convolution kernel
@@ -162,6 +169,38 @@ def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
         h = sigma1 * cutoff
 
     return -abs(h), -abs(w), abs(h), abs(w)
+
+
+def _compute_window_weights(coords, grid_height, grid_width, window_radii):
+    coords = coords.astype(float).copy()
+    num_features = coords.shape[0]
+
+    coords[:, 0] /= grid_height
+    coords[:, 1] /= grid_width
+
+    window_radii_1 = window_radii / grid_height
+    window_radii_2 = window_radii / grid_width
+
+    grid_x = (np.arange(grid_width) + 0.5) / grid_width
+    grid_y = (np.arange(grid_height) + 0.5) / grid_height
+
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+
+    w = np.empty((num_features, grid_x.shape[0], grid_x.shape[1]))
+
+    if coords.shape[0] > 1:
+        for i, c in enumerate(coords):
+            dy = c[0] - grid_y
+            dx = c[1] - grid_x
+
+            w[i] = np.exp(
+                -dy * dy / (2 * window_radii_1[i] ** 2)
+                - dx * dx / (2 * window_radii_2[i] ** 2)
+            )
+    else:
+        w[0, :] = np.ones((grid_height, grid_width))
+
+    return w
 
 
 # Get anisotropic convolution kernel parameters from the given parameter vector.
