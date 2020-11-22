@@ -84,6 +84,54 @@ def forecast(
     pass
 
 
+def _compute_convolution_kernel(params, cutoff=6.0):
+    phi, sigma1, sigma2 = params[:3]
+
+    sigma1 = abs(sigma1)
+    sigma2 = abs(sigma2)
+
+    phi_r = phi / 180.0 * np.pi
+    R_inv = np.array([[np.cos(phi_r), np.sin(phi_r)], [-np.sin(phi_r), np.cos(phi_r)]])
+
+    bb_y1, bb_x1, bb_y2, bb_x2 = _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff)
+
+    x = np.arange(int(bb_x1), int(bb_x2) + 1).astype(float)
+    if len(x) % 2 == 0:
+        x = np.arange(int(bb_x1) - 1, int(bb_x2) + 1).astype(float)
+    y = np.arange(int(bb_y1), int(bb_y2) + 1).astype(float)
+    if len(y) % 2 == 0:
+        y = np.arange(int(bb_y1) - 1, int(bb_y2) + 1).astype(float)
+
+    X, Y = np.meshgrid(x, y)
+    XY = np.vstack([X.flatten(), Y.flatten()])
+    XY = np.dot(R_inv, XY)
+
+    x2 = XY[0, :] * XY[0, :]
+    y2 = XY[1, :] * XY[1, :]
+    result = np.exp(-((x2 / sigma1 + y2 / sigma2) ** params[3]))
+    result /= np.sum(result)
+
+    return np.reshape(result, X.shape)
+
+
+def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
+    r1 = cutoff * sigma1
+    r2 = cutoff * sigma2
+    phi_r = phi / 180.0 * np.pi
+
+    if np.abs(phi_r - np.pi / 2) > 1e-6 and np.abs(phi_r - 3 * np.pi / 2) > 1e-6:
+        alpha = np.arctan(-r2 * np.sin(phi_r) / (r1 * np.cos(phi_r)))
+        w = r1 * np.cos(alpha) * np.cos(phi_r) - r2 * np.sin(alpha) * np.sin(phi_r)
+
+        alpha = np.arctan(r2 * np.cos(phi_r) / (r1 * np.sin(phi_r)))
+        h = r1 * np.cos(alpha) * np.sin(phi_r) + r2 * np.sin(alpha) * np.cos(phi_r)
+    else:
+        w = sigma2 * cutoff
+        h = sigma1 * cutoff
+
+    return -abs(h), -abs(w), abs(h), abs(w)
+
+
 # Get anisotropic convolution kernel parameters from the given parameter vector.
 def _get_anisotropic_kernel_params(p):
     theta = np.arctan2(p[1], p[0])
