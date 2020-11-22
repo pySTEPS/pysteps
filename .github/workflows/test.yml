@@ -16,14 +16,18 @@ jobs:
   unit_tests:
     name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.6", "3.7", "3.8", "3.9"]
+        python-version: ["3.6"] # ["3.6", "3.7", "3.8", "3.9"]
+      max-parallel: 5
+
     defaults:
       run:
         shell: bash -l {0}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -61,6 +65,7 @@ jobs:
         run: pip install ${GITHUB_WORKSPACE}
 
       - name: Check imports
+        working-directory: ${{github.workspace}}/pysteps_data
         run: |
           python -c "import pysteps; print(pysteps.__file__)"
           python -c "from pysteps import motion"
