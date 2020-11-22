@@ -34,7 +34,7 @@ jobs:
     steps:
       # Checks-out repository under $GITHUB_WORKSPACE
       - name: Checkout
-      - uses: actions/checkout@v2
+        uses: actions/checkout@v2
       
       # Install miniconda
       - name: Setup Miniconda
