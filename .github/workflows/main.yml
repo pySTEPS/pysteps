@@ -29,11 +29,8 @@ jobs:
       run:
         shell: bash -l {0}
     steps:
-      # Checks-out repository under $GITHUB_WORKSPACE
       - name: Checkout
         uses: actions/checkout@v2
-      
-      # Install miniconda
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2.0.0
         with:
@@ -41,8 +38,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           channels: conda-forge, conda-forge/label/testing
           activate-environment: test-environment
-      
-      # Install packages
       - name:  Conda install
         env:
           PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
@@ -50,3 +45,10 @@ jobs:
           conda install --quiet ${{env.PACKAGES}}
           conda info
           conda list
+      - name: Install pysteps
+        run: pip install ${GITHUB_WORKSPACE}    
+      - name: Run Tests
+        env:
+          PYSTEPS_BUILD_DIR: ${GITHUB_WORKSPACE}
+        run: |
+          bash ${GITHUB_WORKSPACE}/ci/run_tests.sh
