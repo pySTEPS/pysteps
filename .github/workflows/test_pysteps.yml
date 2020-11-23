@@ -20,8 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
-        python-version: [ "3.6", "3.9"]
-      max-parallel: 5
+        python-version: [ "3.6", "3.8"]
+      max-parallel: 6
 
     defaults:
       run:
