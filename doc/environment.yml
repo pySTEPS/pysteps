@@ -1,0 +1,23 @@
+name: pysteps
+channels:
+- conda-forge
+- defaults
+dependencies:
+  - python>=3.6
+  - jsmin
+  - jsonschema
+  - matplotlib
+  - netCDF4
+  - numpy
+  - opencv
+  - pillow
+  - pyproj
+  - scipy
+  - scikit-image
+  - pandas
+  - cartopy
+  - sphinx
+  - numpydoc
+  - sphinxcontrib.bibtex
+  - sphinx_rtd_theme
+  - sphinx_gallery
