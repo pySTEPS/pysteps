@@ -25,7 +25,7 @@ def extrapolate(
     outval=np.nan,
     xy_coords=None,
     allow_nonfinite_values=False,
-    vel_timestep=None,
+    vel_timestep=1,
     **kwargs,
 ):
     """Apply semi-Lagrangian backward extrapolation to a two-dimensional
@@ -42,8 +42,7 @@ def extrapolate(
     timesteps : int or list
         If timesteps is integer, it specifies the number of time steps to
         extrapolate. If a list is given, each element is the desired
-        extrapolation time step from the current time. In this case, the
-        vel_timestep argument must be specified.
+        extrapolation time step from the current time.
     outval : float, optional
         Optional argument for specifying the value for pixels advected from
         outside the domain. If outval is set to 'min', the value is taken as
@@ -79,7 +78,8 @@ def extrapolate(
         the trajectory. Default : False
     vel_timestep : float
         The time step of the velocity field. It is assumed to have the same
-        unit as the timesteps argument.
+        unit as the timesteps argument. Applicable if timeseps is a list.
+        Default : 1.
     interp_order : int
         The order of interpolation to use. Default : 1 (linear). Setting this
         to 0 (nearest neighbor) gives the best computational performance but
