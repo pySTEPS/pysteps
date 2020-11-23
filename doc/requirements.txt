@@ -6,4 +6,6 @@ sphinx_rtd_theme
 sphinx_gallery
 scikit-image
 pandas
+pyproj
+shapely
 cartopy
