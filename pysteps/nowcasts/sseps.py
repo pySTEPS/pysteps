@@ -44,7 +44,7 @@ def forecast(
     R,
     metadata,
     V,
-    n_timesteps,
+    num_timesteps,
     n_ens_members=24,
     n_cascade_levels=6,
     win_size=256,
@@ -97,7 +97,7 @@ def forecast(
         successive windows. If set to 0, no overlap is used.
     war_thr : float
         Threshold for the minimum fraction of rain in a given window.
-    n_timesteps : int
+    num_timesteps : int
         Number of time steps to forecast.
     n_ens_members : int
         The number of ensemble members to generate.
@@ -181,7 +181,7 @@ def forecast(
     -------
     out : ndarray
         If return_output is True, a four-dimensional array of shape
-        (n_ens_members,n_timesteps,m,n) containing a time series of forecast
+        (n_ens_members,num_timesteps,m,n) containing a time series of forecast
         precipitation fields for each ensemble member. Otherwise, a None value
         is returned. The time series starts from t0+timestep, where timestep is
         taken from the input precipitation fields R.
@@ -264,7 +264,7 @@ def forecast(
     print("localization window:      %dx%d" % (win_size[0], win_size[1]))
     print("overlap:                  %.1f" % overlap)
     print("war thr:                  %.2f" % war_thr)
-    print("number of time steps:     %d" % n_timesteps)
+    print("number of time steps:     %d" % num_timesteps)
     print("ensemble size:            %d" % n_ens_members)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
@@ -566,7 +566,7 @@ def forecast(
         starttime_mainloop = time.time()
 
     # iterate each time step
-    for t in range(n_timesteps):
+    for t in range(num_timesteps):
         print("Computing nowcast for time step %d... " % (t + 1), end="")
         sys.stdout.flush()
         if measure_time:
@@ -906,8 +906,7 @@ def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
 
 
 def _get_mask(Size, idxi, idxj, win_type="flat-hanning"):
-    """Compute a mask of zeros with a window at a given position.
-    """
+    """Compute a mask of zeros with a window at a given position."""
 
     idxi = np.array(idxi).astype(int)
     idxj = np.array(idxj).astype(int)

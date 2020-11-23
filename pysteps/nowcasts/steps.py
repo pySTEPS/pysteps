@@ -36,7 +36,7 @@ except ImportError:
 def forecast(
     R,
     V,
-    n_timesteps,
+    num_timesteps,
     n_ens_members=24,
     n_cascade_levels=6,
     R_thr=None,
@@ -78,7 +78,7 @@ def forecast(
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
-    n_timesteps : int
+    num_timesteps : int
       Number of time steps to forecast.
     n_ens_members : int, optional
       The number of ensemble members to generate.
@@ -237,7 +237,7 @@ def forecast(
     -------
     out : ndarray
       If return_output is True, a four-dimensional array of shape
-      (n_ens_members,n_timesteps,m,n) containing a time series of forecast
+      (n_ens_members,num_timesteps,m,n) containing a time series of forecast
       precipitation fields for each ensemble member. Otherwise, a None value
       is returned. The time series starts from t0+timestep, where timestep is
       taken from the input precipitation fields R. If measure_time is True, the
@@ -335,7 +335,7 @@ def forecast(
 
     print("Parameters:")
     print("-----------")
-    print("number of time steps:     %d" % n_timesteps)
+    print("number of time steps:     %d" % num_timesteps)
     print("ensemble size:            %d" % n_ens_members)
     print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
@@ -588,7 +588,7 @@ def forecast(
         starttime_mainloop = time.time()
 
     # iterate each time step
-    for t in range(n_timesteps):
+    for t in range(num_timesteps):
         print("Computing nowcast for time step %d... " % (t + 1), end="")
         sys.stdout.flush()
         if measure_time:

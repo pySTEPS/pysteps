@@ -36,7 +36,7 @@ except ImportError:
 def forecast(
     vil,
     velocity,
-    n_timesteps,
+    num_timesteps,
     rainrate=None,
     n_cascade_levels=8,
     extrap_method="semilagrangian",
@@ -75,7 +75,7 @@ def forecast(
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs. All values are required to be finite.
-    n_timesteps : int
+    num_timesteps : int
         Number of time steps to forecast.
     rainrate : array_like
         Array of shape (m,n) containing the most recently observed rain rate
@@ -123,7 +123,7 @@ def forecast(
     Returns
     -------
     out : ndarray
-        A three-dimensional array of shape (n_timesteps,m,n) containing a time
+        A three-dimensional array of shape (num_timesteps,m,n) containing a time
         series of forecast precipitation fields. The time series starts from
         t0+timestep, where timestep is taken from the input VIL/rain rate
         fields. If measure_time is True, the return value is a three-element
@@ -181,7 +181,7 @@ def forecast(
 
     print("Parameters:")
     print("-----------")
-    print("number of time steps:        %d" % n_timesteps)
+    print("number of time steps:        %d" % num_timesteps)
     print("parallel threads:            %d" % num_workers)
     print("number of cascade levels:    %d" % n_cascade_levels)
     print("order of the ARI(p,1) model: %d" % ar_order)
@@ -301,7 +301,7 @@ def forecast(
 
     r_f = []
     dp = None
-    for t in range(n_timesteps):
+    for t in range(num_timesteps):
         print("Computing nowcast for time step %d... " % (t + 1), end="", flush=True)
 
         if measure_time:
