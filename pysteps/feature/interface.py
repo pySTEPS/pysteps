@@ -36,7 +36,7 @@ def get_method(name):
     +-----------------+-------------------------------------------------------+
     |  tstorm         | Thunderstorm cell detection                           |
     +-----------------+-------------------------------------------------------+
-    |  ShiTomasi      | Shi-Tomasi corner detection                           |
+    |  shitomasi      | Shi-Tomasi corner detection                           |
     +-----------------+-------------------------------------------------------+
     """
     if isinstance(name, str):
