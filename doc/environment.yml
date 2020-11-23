@@ -1,6 +1,7 @@
 name: pysteps
 channels:
 - conda-forge
+- conda-forge/label
 - defaults
 dependencies:
   - python>=3.6
@@ -18,6 +19,6 @@ dependencies:
   - cartopy
   - sphinx
   - numpydoc
-  - sphinxcontrib.bibtex
+  - sphinxcontrib-bibtex
   - sphinx_rtd_theme
-  - sphinx_gallery
+  - sphinx-gallery
