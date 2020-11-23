@@ -86,9 +86,10 @@ def forecast(
 
     extrapolation_method = extrapolation.get_method(extrap_method)
 
-    precip_forecast = extrapolation_method(
-        precip, velocity, num_timesteps, **extrap_kwargs
-    )
+    if timesteps is None:
+        timesteps = num_timesteps
+
+    precip_forecast = extrapolation_method(precip, velocity, timesteps, **extrap_kwargs)
 
     if measure_time:
         computation_time = time.time() - start_time
