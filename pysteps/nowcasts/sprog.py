@@ -33,8 +33,7 @@ except ImportError:
 def forecast(
     R,
     V,
-    num_timesteps,
-    timesteps=None,
+    timesteps,
     n_cascade_levels=6,
     R_thr=None,
     extrap_method="semilagrangian",
@@ -63,12 +62,9 @@ def forecast(
       advection field.
       The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
-    num_timesteps : int
-      Number of time steps to forecast.
-    timesteps : list, optional
-      List of time steps for which the nowcast is computed (relative to the
-      input time step). Use this option if irregular time steps are desired.
-      If given, num_timesteps is ignored.
+    timesteps : int or list
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step).
     n_cascade_levels : int, optional
       The number of cascade levels to use.
     R_thr : float
@@ -170,7 +166,10 @@ def forecast(
 
     print("Parameters:")
     print("-----------")
-    print("number of time steps:     %d" % num_timesteps)
+    if isinstance(timesteps, int):
+        print("number of time steps:     %d" % timesteps)
+    else:
+        print("time steps:               %s" % timesteps)
     print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)

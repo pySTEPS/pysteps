@@ -7,12 +7,14 @@ nowcasts.
 
 The methods in the nowcasts module implement the following interface:
 
-    ``forecast(precip, velocity, num_timesteps, **keywords)``
+    ``forecast(precip, velocity, timesteps, **keywords)``
 
 where precip is a (m,n) array with input precipitation field to be advected and
-velocity is a (2,m,n) array containing  the x- and y-components of
+velocity is a (2,m,n) array containing the x- and y-components of
 the m x n advection field.
-num_timesteps is an integer specifying the number of time steps to forecast.
+timesteps can be an integer or a list. An integer specifies the number of time
+steps to forecast, where the output time step is taken from the inputs.
+Irregular time steps can be given in a list.
 The interface accepts optional keyword arguments specific to the given method.
 
 The output depends on the type of the method.

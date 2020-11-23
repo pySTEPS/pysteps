@@ -36,8 +36,7 @@ except ImportError:
 def forecast(
     R,
     V,
-    num_timesteps,
-    timesteps=None,
+    timesteps,
     n_ens_members=24,
     n_cascade_levels=6,
     R_thr=None,
@@ -79,12 +78,9 @@ def forecast(
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
-    num_timesteps : int
-      Number of time steps to forecast.
-    timesteps : list, optional
-      List of time steps for which the nowcast is computed (relative to the
-      input time step). Use this option if irregular time steps are desired.
-      If given, num_timesteps is ignored.
+    timesteps : int or list
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step).
     n_ens_members : int, optional
       The number of ensemble members to generate.
     n_cascade_levels : int, optional
@@ -340,7 +336,10 @@ def forecast(
 
     print("Parameters:")
     print("-----------")
-    print("number of time steps:     %d" % num_timesteps)
+    if isinstance(timesteps, int):
+        print("number of time steps:     %d" % timesteps)
+    else:
+        print("time steps:               %s" % timesteps)
     print("ensemble size:            %d" % n_ens_members)
     print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)

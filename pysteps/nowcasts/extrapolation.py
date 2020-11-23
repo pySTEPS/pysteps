@@ -18,8 +18,7 @@ from pysteps import extrapolation
 def forecast(
     precip,
     velocity,
-    num_timesteps,
-    timesteps=None,
+    timesteps,
     extrap_method="semilagrangian",
     extrap_kwargs=None,
     measure_time=False,
@@ -38,12 +37,9 @@ def forecast(
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field. The velocities are assumed to represent one time step
       between the inputs.
-    num_timesteps : int
-      Number of time steps to forecast.
-    timesteps : list, optional
-      List of time steps for which the nowcast is computed (relative to the
-      input time step). Use this option if irregular time steps are desired.
-      If given, num_timesteps is ignored.
+    timesteps : int or list
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step).
     extrap_method : str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
@@ -85,9 +81,6 @@ def forecast(
         start_time = time.time()
 
     extrapolation_method = extrapolation.get_method(extrap_method)
-
-    if timesteps is None:
-        timesteps = num_timesteps
 
     precip_forecast = extrapolation_method(precip, velocity, timesteps, **extrap_kwargs)
 
