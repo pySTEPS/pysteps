@@ -27,7 +27,7 @@ jobs:
           pip install black
 
       - name: Black version
-          run: black --version
+        run: black --version
 
       - name: Black check
         working-directory: ${{github.workspace}}
