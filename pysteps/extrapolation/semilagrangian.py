@@ -42,7 +42,8 @@ def extrapolate(
     timesteps : int or list
         If timesteps is integer, it specifies the number of time steps to
         extrapolate. If a list is given, each element is the desired
-        extrapolation time step from the current time.
+        extrapolation time step from the current time. The elements of the list
+        are required to be in ascending order.
     outval : float, optional
         Optional argument for specifying the value for pixels advected from
         outside the domain. If outval is set to 'min', the value is taken as
@@ -112,6 +113,9 @@ def extrapolate(
 
         if np.any(~np.isfinite(velocity)):
             raise ValueError("velocity contains non-finite values")
+
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
 
     # defaults
     verbose = kwargs.get("verbose", False)

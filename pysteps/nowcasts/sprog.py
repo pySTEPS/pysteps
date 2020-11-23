@@ -64,7 +64,8 @@ def forecast(
       inputs. All values are required to be finite.
     timesteps : int or list
       Number of time steps to forecast or a list of time steps for which the
-      forecasts are computed (relative to the input time step).
+      forecasts are computed (relative to the input time step). The elements of
+      the list are required to be in ascending order.
     n_cascade_levels : int, optional
       The number of cascade levels to use.
     R_thr : float
@@ -133,7 +134,7 @@ def forecast(
     :cite:`Seed2003`, :cite:`PCH2019a`
 
     """
-    _check_inputs(R, V, ar_order)
+    _check_inputs(R, V, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -370,7 +371,7 @@ def forecast(
         return R_f
 
 
-def _check_inputs(R, V, ar_order):
+def _check_inputs(R, V, timesteps, ar_order):
     if len(R.shape) != 3:
         raise ValueError("R must be a three-dimensional array")
     if R.shape[0] < ar_order + 1:
@@ -382,6 +383,8 @@ def _check_inputs(R, V, ar_order):
             "dimension mismatch between R and V: shape(R)=%s, shape(V)=%s"
             % (str(R.shape), str(V.shape))
         )
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
 
 
 def _compute_sprog_mask(R, war):

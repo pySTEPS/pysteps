@@ -39,7 +39,8 @@ def forecast(
       between the inputs.
     timesteps : int or list
       Number of time steps to forecast or a list of time steps for which the
-      forecasts are computed (relative to the input time step).
+      forecasts are computed (relative to the input time step). The elements of
+      the list are required to be in ascending order.
     extrap_method : str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
@@ -65,7 +66,7 @@ def forecast(
 
 
     """
-    _check_inputs(precip, velocity)
+    _check_inputs(precip, velocity, timesteps)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -94,7 +95,7 @@ def forecast(
         return precip_forecast
 
 
-def _check_inputs(precip, velocity):
+def _check_inputs(precip, velocity, timesteps):
     if len(precip.shape) != 2:
         raise ValueError("The input precipitation must be a " "two-dimensional array")
     if len(velocity.shape) != 3:
@@ -106,3 +107,5 @@ def _check_inputs(precip, velocity):
             + "shape(precip)=%s, shape(velocity)=%s"
             % (str(precip.shape), str(velocity.shape))
         )
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")

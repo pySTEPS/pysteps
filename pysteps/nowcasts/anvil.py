@@ -77,7 +77,8 @@ def forecast(
         between the inputs. All values are required to be finite.
     timesteps : int or list
         Number of time steps to forecast or a list of time steps for which the
-        forecasts are computed (relative to the input time step).
+        forecasts are computed (relative to the input time step). The elements
+        of the list are required to be in ascending order.
     rainrate : array_like
         Array of shape (m,n) containing the most recently observed rain rate
         field. If set to None, no R(VIL) conversion is done and the outputs
@@ -135,29 +136,7 @@ def forecast(
     ----------
     :cite:`PCLH2020`
     """
-    if len(vil.shape) != 3:
-        raise ValueError(
-            "vil.shape = %s, but a three-dimensional array expected" % str(vil.shape)
-        )
-
-    if rainrate is not None:
-        if len(rainrate.shape) != 2:
-            raise ValueError(
-                "rainrate.shape = %s, but a two-dimensional array expected"
-                % str(rainrate.shape)
-            )
-
-    if vil.shape[0] != ar_order + 2:
-        raise ValueError(
-            "vil.shape[0] = %d, but vil.shape[0] = ar_order + 2 = %d required"
-            % (vil.shape[0], ar_order + 2)
-        )
-
-    if len(velocity.shape) != 3:
-        raise ValueError(
-            "velocity.shape = %s, but a three-dimensional array expected"
-            % str(velocity.shape)
-        )
+    _check_inputs(vil, rainrate, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -357,6 +336,31 @@ def forecast(
         return np.stack(r_f), init_time, mainloop_time
     else:
         return np.stack(r_f)
+
+
+def _check_inputs(vil, rainrate, velocity, timesteps, ar_order):
+    if len(vil.shape) != 3:
+        raise ValueError(
+            "vil.shape = %s, but a three-dimensional array expected" % str(vil.shape)
+        )
+    if rainrate is not None:
+        if len(rainrate.shape) != 2:
+            raise ValueError(
+                "rainrate.shape = %s, but a two-dimensional array expected"
+                % str(rainrate.shape)
+            )
+    if vil.shape[0] != ar_order + 2:
+        raise ValueError(
+            "vil.shape[0] = %d, but vil.shape[0] = ar_order + 2 = %d required"
+            % (vil.shape[0], ar_order + 2)
+        )
+    if len(velocity.shape) != 3:
+        raise ValueError(
+            "velocity.shape = %s, but a three-dimensional array expected"
+            % str(velocity.shape)
+        )
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
 
 
 # optimized version of timeseries.autoregression.estimate_ar_params_yw_localized
