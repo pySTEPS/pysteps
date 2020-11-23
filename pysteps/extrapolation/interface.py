@@ -20,7 +20,7 @@ from outside the domain.
 Optional keyword arguments that are specific to a given extrapolation
 method are passed as a dictionary.
 
-The output of each method is an array R_e that includes the time series of
+The output of each method is an array that contains the time series of
 extrapolated fields of shape (num_timesteps, m, n).
 
 .. currentmodule:: pysteps.extrapolation.interface
@@ -72,7 +72,7 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
 
     References
     ----------
-    :cite:`GZ2002` Germann et al (2002)
+    :cite:`GZ2002`
 
     """
     del velocity, outval  # Unused by _eulerian_persistence
@@ -124,8 +124,8 @@ def get_method(name):
     |  eulerian       | this methods does not apply any advection to the input |
     |                 | precipitation field (Eulerian persistence)             |
     +-----------------+--------------------------------------------------------+
-    | semilagrangian  | implementation of the semi-Lagrangian method of        |
-    |                 | Germann et al. (2002) :cite:`GZ2002`                   |
+    | semilagrangian  | implementation of the semi-Lagrangian method described |
+    |                 | in :cite:`GZ2002`                                      |
     +-----------------+--------------------------------------------------------+
 
     """

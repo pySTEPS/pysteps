@@ -271,7 +271,7 @@ def forecast(
     print("dask imported:            %s" % ("yes" if dask_imported else "no"))
     print("num workers:              %d" % num_workers)
 
-    if vel_pert_method is "bps":
+    if vel_pert_method == "bps":
         vp_par = vel_pert_kwargs.get(
             "p_pert_par", noise.motion.get_default_params_bps_par()
         )
@@ -750,7 +750,9 @@ def forecast(
 
             # advect the recomposed precipitation field to obtain the forecast
             # for time step t
-            extrap_kwargs.update({"D_prev": D[j], "return_displacement": True})
+            extrap_kwargs.update(
+                {"displacement_prev": D[j], "return_displacement": True}
+            )
             R_f_, D_ = extrapolator_method(R_c_, V_, 1, **extrap_kwargs)
             D[j] = D_
             R_f_ = R_f_[0]

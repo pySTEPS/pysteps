@@ -173,7 +173,6 @@ P = excprob(R_f[:, -1, :, :], 0.5)
 plot_precip_field(
     P,
     geodata=metadata,
-    drawlonlatlines=False,
     type="prob",
     units="mm/h",
     probthr=0.5,

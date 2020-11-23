@@ -30,7 +30,6 @@ from . import utils
 def plot_precip_field(
     R,
     type="intensity",
-    map=None,
     geodata=None,
     units="mm/h",
     bbox=None,
@@ -38,11 +37,9 @@ def plot_precip_field(
     probthr=None,
     title=None,
     colorbar=True,
-    drawlonlatlines=False,
-    lw=0.5,
     axis="on",
     cax=None,
-    **kwargs,
+    map_kwargs={},
 ):
     """
     Function to plot a precipitation intensity or probability field with a
@@ -51,10 +48,6 @@ def plot_precip_field(
     .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
 
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
-
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
-
-    .. _mpl_toolkits.basemap: https://matplotlib.org/basemap
 
     Parameters
     ----------
@@ -65,10 +58,7 @@ def plot_precip_field(
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
-    map : {'basemap', 'cartopy'}, optional
-        Optional method for plotting a map: 'basemap' or 'cartopy'. The former
-        uses `mpl_toolkits.basemap`_, while the latter uses cartopy_.
-    geodata : dictionary, optional
+    geodata : dictionary or None, optional
         Optional dictionary containing geographical information about
         the field. Required is map is not None.
 
@@ -103,9 +93,9 @@ def plot_precip_field(
     bbox : tuple, optional
         Four-element tuple specifying the coordinates of the bounding box. Use
         this for plotting a subdomain inside the input grid. The coordinates are
-        of the form (lower left x,lower left y,upper right x,upper right y). If
-        map is not None, the x- and y-coordinates are longitudes and latitudes.
-        Otherwise they represent image pixels.
+        of the form (lower left x, lower left y ,upper right x, upper right y).
+        If 'geodata' is not None, the bbox is in map coordinates, otherwise
+        it represents image pixels.
     colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
     probthr : float, optional
@@ -116,11 +106,6 @@ def plot_precip_field(
         If not None, print the title on top of the plot.
     colorbar : bool, optional
         If set to True, add a colorbar on the right side of the plot.
-    drawlonlatlines : bool, optional
-        If set to True, draw longitude and latitude lines. Applicable if map is
-        'basemap' or 'cartopy'.
-    lw: float, optional
-        Linewidth of the map (administrative boundaries and coastlines).
     axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
     cax : Axes_ object, optional
@@ -129,7 +114,9 @@ def plot_precip_field(
 
     Other parameters
     ----------------
-    Optional parameters are contained in **kwargs. See basemaps.plot_geography.
+    map_kwargs: dict
+        Optional parameters that need to be passed to
+        :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
     Returns
     -------
@@ -137,13 +124,6 @@ def plot_precip_field(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
 
     """
-    if map is not None:
-        FutureWarning(
-            "'map' argument will be renamed to 'plot_map' in 1.4.0. Use 'plot_map' to silence this warning."
-        )
-        plot_map = map
-    else:
-        plot_map = kwargs.pop("plot_map", None)
 
     if type not in ["intensity", "depth", "prob"]:
         raise ValueError(
@@ -155,8 +135,6 @@ def plot_precip_field(
         )
     if type == "prob" and colorbar and probthr is None:
         raise ValueError("type='prob' but probthr not specified")
-    if plot_map is not None and geodata is None:
-        raise ValueError("map!=None but geodata=None")
     if len(R.shape) != 2:
         raise ValueError("the input is not two-dimensional array")
 
@@ -171,8 +149,8 @@ def plot_precip_field(
         else:
             if not PYPROJ_IMPORTED:
                 raise MissingOptionalDependency(
-                    "pyproj package is required to import "
-                    "FMI's radar reflectivity composite "
+                    "pyproj package is required to plot "
+                    "georeferenced precipitation fields "
                     "but it is not installed"
                 )
             pr = pyproj.Proj(geodata["projection"])
@@ -185,16 +163,14 @@ def plot_precip_field(
         origin = "upper"
 
     # plot geography
-    if plot_map is not None:
+    if geodata is not None:
         try:
-            ax = basemaps.plot_geography(
-                plot_map,
-                geodata["projection"],
-                bm_extent,
-                lw=lw,
-                drawlonlatlines=drawlonlatlines,
-                **kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs,)
+            regular_grid = True
+        except MissingOptionalDependency as e:
+            # Cartopy is not installed
+            print(f"{e.__class__}: {e}")
+            ax = plt.axes()
             regular_grid = True
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -209,31 +185,21 @@ def plot_precip_field(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
             regular_grid = geodata["regular_grid"]
 
-            ax = basemaps.plot_geography(
-                plot_map,
-                geodata["projection"],
-                bm_extent,
-                lw=lw,
-                drawlonlatlines=drawlonlatlines,
-                **kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs,)
+
     else:
+        ax = plt.gca()
         regular_grid = True
 
-    if bbox is not None and plot_map is not None:
+    if bbox is not None and geodata is not None:
         x1, y1 = pr(geodata["x1"], geodata["y1"], inverse=True)
         x2, y2 = pr(geodata["x2"], geodata["y2"], inverse=True)
-        if plot_map == "basemap":
-            x1, y1 = ax(x1, y1)
-            x2, y2 = ax(x2, y2)
-        else:
-            x1, y1 = pr(x1, y1)
-            x2, y2 = pr(x2, y2)
+        x1, y1 = pr(x1, y1)
+        x2, y2 = pr(x2, y2)
         field_extent = (x1, x2, y1, y2)
 
     # plot rainfield
     if regular_grid:
-        ax = plt.gca()
         im = _plot_field(
             R, ax, type, units, colorscale, extent=field_extent, origin=origin
         )
@@ -283,19 +249,17 @@ def plot_precip_field(
         else:
             cbar.set_label("P(R > %.1f %s)" % (probthr, units))
 
-    if plot_map is None and bbox is not None:
-        ax = plt.gca()
+    if geodata is None or axis == "off":
+        ax.xaxis.set_ticks([])
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticks([])
+        ax.yaxis.set_ticklabels([])
+
+    if bbox is not None:
         ax.set_xlim(bbox[0], bbox[2])
         ax.set_ylim(bbox[1], bbox[3])
 
-    if geodata is None or axis == "off":
-        axes = plt.gca()
-        axes.xaxis.set_ticks([])
-        axes.xaxis.set_ticklabels([])
-        axes.yaxis.set_ticks([])
-        axes.yaxis.set_ticklabels([])
-
-    return plt.gca()
+    return ax
 
 
 def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
@@ -314,16 +278,12 @@ def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
     else:
         R[R < 1e-3] = np.nan
 
-    vmin, vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
-
     im = ax.imshow(
         R,
         cmap=cmap,
         norm=norm,
         extent=extent,
         interpolation="nearest",
-        vmin=vmin,
-        vmax=vmax,
         origin=origin,
         zorder=1,
     )
