@@ -1,7 +1,6 @@
 name: pysteps
 channels:
 - conda-forge
-- conda-forge/label
 - defaults
 dependencies:
   - python>=3.6
