@@ -3,13 +3,16 @@
 
 version: 2
 
-conda:
-  environment: doc/environment.yml
-
 sphinx:
   configuration: doc/source/conf.py
 
 formats:
     - pdf
 
-
+python:
+  version: 3.8
+  install:
+    - requirements: requirements.txt
+    - requirements: doc/requirements.txt
+    - method: pip
+      path: .
