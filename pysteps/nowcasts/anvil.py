@@ -37,6 +37,7 @@ def forecast(
     vil,
     velocity,
     num_timesteps,
+    timesteps=None,
     rainrate=None,
     n_cascade_levels=8,
     extrap_method="semilagrangian",
@@ -77,6 +78,10 @@ def forecast(
         between the inputs. All values are required to be finite.
     num_timesteps : int
         Number of time steps to forecast.
+    timesteps : list, optional
+        List of time steps for which the nowcast is computed (relative to the
+        input time step). Use this option if irregular time steps are desired.
+        If given, num_timesteps is ignored.
     rainrate : array_like
         Array of shape (m,n) containing the most recently observed rain rate
         field. If set to None, no R(VIL) conversion is done and the outputs

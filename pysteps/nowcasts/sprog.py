@@ -34,6 +34,7 @@ def forecast(
     R,
     V,
     num_timesteps,
+    timesteps=None,
     n_cascade_levels=6,
     R_thr=None,
     extrap_method="semilagrangian",
@@ -64,6 +65,10 @@ def forecast(
       inputs. All values are required to be finite.
     num_timesteps : int
       Number of time steps to forecast.
+    timesteps : list, optional
+      List of time steps for which the nowcast is computed (relative to the
+      input time step). Use this option if irregular time steps are desired.
+      If given, num_timesteps is ignored.
     n_cascade_levels : int, optional
       The number of cascade levels to use.
     R_thr : float

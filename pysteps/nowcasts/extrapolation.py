@@ -19,6 +19,7 @@ def forecast(
     precip,
     velocity,
     num_timesteps,
+    timesteps=None,
     extrap_method="semilagrangian",
     extrap_kwargs=None,
     measure_time=False,
@@ -39,6 +40,10 @@ def forecast(
       between the inputs.
     num_timesteps : int
       Number of time steps to forecast.
+    timesteps : list, optional
+      List of time steps for which the nowcast is computed (relative to the
+      input time step). Use this option if irregular time steps are desired.
+      If given, num_timesteps is ignored.
     extrap_method : str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.

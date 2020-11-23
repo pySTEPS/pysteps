@@ -45,6 +45,7 @@ def forecast(
     metadata,
     V,
     num_timesteps,
+    timesteps=None,
     n_ens_members=24,
     n_cascade_levels=6,
     win_size=256,
@@ -99,6 +100,10 @@ def forecast(
         Threshold for the minimum fraction of rain in a given window.
     num_timesteps : int
         Number of time steps to forecast.
+    timesteps : list, optional
+        List of time steps for which the nowcast is computed (relative to the
+        input time step). Use this option if irregular time steps are desired.
+        If given, num_timesteps is ignored.
     n_ens_members : int
         The number of ensemble members to generate.
     n_cascade_levels : int
