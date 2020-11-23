@@ -45,7 +45,6 @@ importer_kwargs = data_source["importer_kwargs"]
 timestep = data_source["timestep"]
 
 #%% FIND AND READ FILES
-# root_path='/users/mfeldman/pysteps_data/radar/mch'
 fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=20
 )
@@ -58,16 +57,10 @@ timelist = metadata["timestamps"]
 pprint(metadata)
 
 #%% IDENTIFICATION OF THUNDERSTORMS IN SINGLE TIMESTEP
-input_image = Z[5, :, :].copy()
-time = timelist[5]
+input_image = Z[2, :, :].copy()
+time = timelist[0]
 cells_id, labels = tstorm_detect.detection(
     input_image,
-    minref=35,
-    maxref=48,
-    mindiff=6,
-    minsize=50,
-    minmax=41,
-    mindis=10,
     dyn_thresh=True,
     time=time,
 )
@@ -76,32 +69,17 @@ cells_id, labels = tstorm_detect.detection(
 track_list, cell_list, label_list = tstorm_dating.dating(
     input_video=Z,
     timelist=timelist,
-    mintrack=3,
-    cell_list=[],
-    label_list=[],
-    start=0,
-    minref=35,
-    maxref=48,
-    mindiff=6,
-    minsize=50,
-    minmax=41,
-    mindis=10,
     dyn_thresh=True,
 )
 
 #%% PLOTTING
 
 # Plot precipitation field
-plot_precip_field(Z[5, :, :], units=metadata["unit"])
+plot_precip_field(Z[2, :, :], geodata=metadata, units=metadata["unit"])
 
-# Plot the identified cells
-plot_cart_contour(cells_id.cont)
-plt.show()
-#%%
-# Plot tracks
-plot_track(
-    track_list,
-    710,
-    640,
-)
+# Add the identified cells
+plot_cart_contour(cells_id.cont, geodata=metadata)
+
+# Add their tracks
+plot_track(track_list, geodata=metadata)
 plt.show()

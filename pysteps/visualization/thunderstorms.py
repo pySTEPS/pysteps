@@ -20,10 +20,17 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+try:
+    import pyproj
+
+    PYPROJ_IMPORTED = True
+except ImportError:
+    PYPROJ_IMPORTED = False
+
 from pysteps.visualization import plot_precip_field
 
 
-def plot_track(track_list, xsize, ysize, poix=None, poiy=None):
+def plot_track(track_list, geodata=None):
     """
 
     .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
@@ -49,17 +56,33 @@ def plot_track(track_list, xsize, ysize, poix=None, poiy=None):
         Figure axes.
     """
     ax = plt.gca()
-    ax.set_ylim(0, ysize)
-    ax.set_xlim(0, xsize)
-    if poix is not None and poiy is not None:
-        p1 = ax.scatter(poix, poiy, s=None, c="black")
+
+    if geodata is not None:
+
+        def pix2coord(nx, ny):
+            x = geodata["x1"] + geodata["xpixelsize"] * nx
+            if geodata["yorigin"] == "lower":
+                y = geodata["y1"] + geodata["ypixelsize"] * ny
+            else:
+                y = geodata["y2"] - geodata["ypixelsize"] * ny
+            return x, y
+
+    else:
+
+        def pix2coord(nx, ny):
+            return nx, ny
+
     color = iter(plt.cm.spring(np.linspace(0, 1, len(track_list))))
     for track in track_list:
-        p2 = ax.plot(track.max_x, track.max_y, c=next(color))
+        max_x, max_y = pix2coord(track.max_x, track.max_y)
+        p2 = ax.plot(max_x, max_y, c=next(color))
     return ax
 
 
-def plot_cart_contour(contours, poix=None, poiy=None):
+def plot_cart_contour(
+    contours,
+    geodata=None,
+):
     """
     Plots input image with identified cell contours. Optionally points of interest added.
 
@@ -69,11 +92,9 @@ def plot_cart_contour(contours, poix=None, poiy=None):
     ----------
     contours : list or dataframe-element
         list of identified cell contours.
-    poix : array-like, optional
-        1-D array of x-locations of points of interest. The default is None.
-    poiy : array-like, optional
-        1-D array, same length as poix, y-locations of points of interest.
-        The default is None.
+    geodata : dictionary or None, optional
+        Optional dictionary containing geographical information about
+        the field. If not None, plots the contours in a georeferenced frame.
 
     Returns
     -------
@@ -81,10 +102,26 @@ def plot_cart_contour(contours, poix=None, poiy=None):
         Figure axes.
     """
     ax = plt.gca()
-    p1 = ax.scatter(poix, poiy, s=None, c="black")
+
+    if geodata is not None:
+
+        def pix2coord(nx, ny):
+            x = geodata["x1"] + geodata["xpixelsize"] * nx
+            if geodata["yorigin"] == "lower":
+                y = geodata["y1"] + geodata["ypixelsize"] * ny
+            else:
+                y = geodata["y2"] - geodata["ypixelsize"] * ny
+            return x, y
+
+    else:
+
+        def pix2coord(nx, ny):
+            return nx, ny
+
     contours = list(contours)
     for contour in contours:
         for c in contour:
-            p1 = ax.plot(c[:, 1], c[:, 0], color="black")
+            x, y = pix2coord(c[:, 1], c[:, 0])
+            p1 = ax.plot(x, y, color="black")
         # else: p1=plt.plot(contour[:,1], contour[:,0], color='black')
     return ax
