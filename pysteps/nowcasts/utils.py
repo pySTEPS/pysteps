@@ -15,7 +15,7 @@ Module with common utilities used by nowcasts methods.
 import numpy as np
 
 
-def get_binned_timesteps(timesteps):
+def binned_timesteps(timesteps):
     """Compute a binning of the given irregular time steps.
 
     Parameters
