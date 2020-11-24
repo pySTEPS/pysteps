@@ -76,7 +76,7 @@ def detection(
         Minimal difference between two identified maxima within same area to split area
         into two objects. The default is 6 dBZ.
     minsize : float, optional
-        Minimal area for possible detected object. The default is 50 dBZ.
+        Minimal area for possible detected object. The default is 50 pixels.
     minmax : float, optional
         Minimum value of maximum in identified objects. Objects with a maximum lower
         than this will be discarded. The default is 41 dBZ.
@@ -267,17 +267,17 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
         else: min_ref=minref
         ref_unique=cell_unique*ref
         loc=np.where(ref_unique>=min_ref)
-        labels, ngroups = ndi.label(cell_unique)
+        labels1, ngroups = ndi.label(cell_unique)
         c_unique=np.zeros(cells.shape)
         c_unique[loc]=1
-        labels, n_groups = ndi.label(c_unique)
+        labels1, n_groups = ndi.label(c_unique)
         while (len(loc[0])<min_size or n_groups>ngroups) and min_ref>minref:
             min_ref-=1
             ref_unique=cell_unique*ref
             loc=np.where(ref_unique>=min_ref)
             c_unique=np.zeros(cells.shape)
             c_unique[loc]=1
-            labels, n_groups = ndi.label(c_unique)
+            labels1, n_groups = ndi.label(c_unique)
         
         cells_id.x[n] = np.where(c_unique == 1)[1]
         cells_id.y[n] = np.where(c_unique == 1)[0]

@@ -111,7 +111,7 @@ def dating(
         Minimal difference between two identified maxima within same area to split area
         into two objects. The default is 6 dBZ.
     minsize : float, optional
-        Minimal area for possible detected object. The default is 50 dBZ.
+        Minimal area for possible detected object. The default is 50 pixels.
     minmax : float, optional
         Minimum value of maximum in identified objects. Objects with a maximum lower
         than this will be discarded. The default is 41 dBZ.
