@@ -92,10 +92,7 @@ jobs:
         working-directory: ${{github.workspace}}/pysteps_data
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
-        run: |
-          pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
-          pwd
-          ls -l
+        run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
@@ -103,8 +100,7 @@ jobs:
           OS: ${{ matrix.os }}
           PYTHON: ${{ matrix.python-version }}
         with:
-          file: coverage.xml
-          directory: ${{github.workspace}}/pysteps_data
+          file: ${{github.workspace}}/pysteps_data/coverage.xml
           flags: unit_tests
           env_vars: OS,PYTHON
           fail_ci_if_error: true
