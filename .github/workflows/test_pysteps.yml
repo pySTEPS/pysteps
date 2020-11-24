@@ -14,6 +14,7 @@ on:
 
 jobs:
   unit_tests:
+    name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -88,15 +89,16 @@ jobs:
           python -c "from pysteps.motion import proesmans"
 
       - name: Run tests
+        working-directory: ${{github.workspace}}
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
-        run: |
-          python -c "import pysteps; print(pysteps.__file__)"
-          python -c "from pysteps import motion"
-          python -c "from pysteps.motion import vet"
-          python -c "from pysteps.motion import proesmans"
-          pytest --pyargs pysteps --cov=pysteps -ra;
-        working-directory: ${{github.workspace}}/pysteps_data
+        run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml -ra
 
       - name: Upload coverage to Codecov
-        run: codecov
+        working-directory: ${{github.workspace}}
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+          flags: unit_tests
+          fail_ci_if_error: true
+          verbose: true
