@@ -93,6 +93,8 @@ jobs:
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
         run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
+        run: pwd
+        run: ls -l
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
