@@ -95,6 +95,7 @@ jobs:
         run: |
           pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
           mv coverage.xml ${{github.workspace}}
+          ls -l ${{github.workspace}}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
@@ -102,8 +103,7 @@ jobs:
           OS: ${{ matrix.os }}
           PYTHON: ${{ matrix.python-version }}
         with:
-          directory: ${{github.workspace}}
-          file: coverage.xml
+          file: ./coverage.xml
           flags: unit_tests
           env_vars: OS,PYTHON
           fail_ci_if_error: true
