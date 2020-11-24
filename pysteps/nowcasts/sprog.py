@@ -317,7 +317,7 @@ def forecast(
     R_f = []
 
     if isinstance(timesteps, int):
-        timesteps = range(timesteps)
+        timesteps = range(timesteps + 1)
         timestep_type = "int"
     else:
         original_timesteps = [0] + list(timesteps)
