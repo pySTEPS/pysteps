@@ -270,67 +270,41 @@ def _masked_convolution(field, kernel):
 
 
 # Constrained optimization of AR(1) parameters
-def _optimize_ar1_params(field_src, field_dst, weights, num_workers=1):
-    def worker(i):
-        def objf(p, *args):
-            field_ar = p * field_src[0]
-            return np.nansum(weights[i] * (field_dst - field_ar) ** 2.0)
+def _optimize_ar1_params(field_src, field_dst, weights):
+    def objf(p, *args):
+        field_ar = p * field_src[0]
+        return np.nansum(weights * (field_dst - field_ar) ** 2.0)
 
-        bounds = (-0.98, 0.98)
-        p_opt = minimize_scalar(objf, method="bounded", bounds=bounds)
+    bounds = (-0.98, 0.98)
+    p_opt = minimize_scalar(objf, method="bounded", bounds=bounds)
 
-        return i, p_opt.x
-
-    res = []
-    for i in range(weights.shape[0]):
-        res.append(dask.delayed(worker)(i))
-
-    res = dask.compute(*res, num_workers=num_workers, scheduler="multiprocessing")
-
-    psi = np.empty((weights.shape[0], 1))
-    for r in res:
-        psi[r[0]] = r[1]
-
-    return psi
+    return p_opt.x
 
 
 # Constrained optimization of AR(2) parameters
-def _optimize_ar2_params(field_src, field_dst, weights, num_workers=1):
-    def worker(i):
-        def objf(p, *args):
-            field_ar = p[0] * field_src[1] + p[1] * field_src[0]
-            return np.nansum(weights[i] * (field_dst - field_ar) ** 2.0)
+def _optimize_ar2_params(field_src, field_dst, weights):
+    def objf(p, *args):
+        field_ar = p[0] * field_src[1] + p[1] * field_src[0]
+        return np.nansum(weights * (field_dst - field_ar) ** 2.0)
 
-        bounds = [(-1.98, 1.98), (-0.98, 0.98)]
-        constraints = [
-            LinearConstraint(
-                np.array([(1, 1), (-1, 1)]),
-                (-np.inf, -np.inf),
-                (0.98, 0.98),
-                keep_feasible=True,
-            )
-        ]
-        p_opt = minimize(
-            objf,
-            (0.8, 0.0),
-            method="trust-constr",
-            bounds=bounds,
-            constraints=constraints,
+    bounds = [(-1.98, 1.98), (-0.98, 0.98)]
+    constraints = [
+        LinearConstraint(
+            np.array([(1, 1), (-1, 1)]),
+            (-np.inf, -np.inf),
+            (0.98, 0.98),
+            keep_feasible=True,
         )
+    ]
+    p_opt = minimize(
+        objf,
+        (0.8, 0.0),
+        method="trust-constr",
+        bounds=bounds,
+        constraints=constraints,
+    )
 
-        return i, p_opt.x
-
-    res = []
-    for i in range(weights.shape[0]):
-        res.append(dask.delayed(worker)(i))
-
-    res = dask.compute(*res, num_workers=num_workers, scheduler="multiprocessing")
-
-    psi = np.empty((weights.shape[0], 2))
-    for r in res:
-        psi[r[0], :] = r[1]
-
-    return psi
+    return p_opt.x
 
 
 def _optimize_convol_params(
