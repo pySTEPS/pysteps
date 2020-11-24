@@ -33,10 +33,17 @@ the SSFT methodology developed in :cite:`NBSG2017`.
     forecast
 """
 
-import dask
+try:
+    import dask
+
+    DASK_IMPORTED = True
+except ImportError:
+    DASK_IMPORTED = False
 import numpy as np
 from scipy.optimize import least_squares, LinearConstraint, minimize, minimize_scalar
 from scipy.signal import convolve
+from pysteps import extrapolation
+from pysteps import utils
 
 
 def forecast(
