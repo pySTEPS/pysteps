@@ -95,10 +95,10 @@ jobs:
         run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml -ra
 
       - name: Upload coverage to Codecov
-        working-directory: ${{github.workspace}}
         uses: codecov/codecov-action@v1
         with:
-          file: ./coverage.xml
+          file: coverage.xml
+          directory: ${{github.workspace}}
           flags: unit_tests
           fail_ci_if_error: true
           verbose: true
