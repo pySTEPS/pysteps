@@ -316,8 +316,20 @@ def forecast(
 
     R_f = []
 
+    if isinstance(timesteps, int):
+        timesteps = range(timesteps)
+        timestep_type = "int"
+    else:
+        original_timesteps = [0] + list(timesteps)
+        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
+        timestep_type = "list"
+
+    R_f_prev = R.copy()
+    extrap_kwargs["return_displacement"] = True
+    t_diff_sum = np.inf
+
     # iterate each time step
-    for t in range(timesteps):
+    for t in range(len(timesteps)):
         print("Computing nowcast for time step %d... " % (t + 1), end="")
         sys.stdout.flush()
         if measure_time:
@@ -329,31 +341,51 @@ def forecast(
         R_d["cascade_levels"] = [R_c[i][-1, :] for i in range(n_cascade_levels)]
         if domain == "spatial":
             R_d["cascade_levels"] = np.stack(R_d["cascade_levels"])
-        R_c_ = recomp_method(R_d)
+
+        R_f_new = recomp_method(R_d)
 
         if domain == "spectral":
-            R_c_ = fft.irfft2(R_c_)
+            R_f_new = fft.irfft2(R_f_new)
 
-        MASK = _compute_sprog_mask(R_c_, war)
-        R_c_[~MASK] = R_min
+        MASK = _compute_sprog_mask(R_f_new, war)
+        R_f_new[~MASK] = R_min
 
         if probmatching_method == "cdf":
             # adjust the CDF of the forecast to match the most recently
             # observed precipitation field
-            R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
+            R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, R)
         elif probmatching_method == "mean":
-            mu_fct = np.mean(R_c_[MASK])
-            R_c_[MASK] = R_c_[MASK] - mu_fct + mu_0
+            mu_fct = np.mean(R_f_new[MASK])
+            R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0
 
-        R_c_[domain_mask] = np.nan
+        R_f_new[domain_mask] = np.nan
 
-        # advect the recomposed precipitation field to obtain the forecast for
-        # time step t
-        extrap_kwargs.update({"displacement_prev": D, "return_displacement": True})
-        R_f_, D_ = extrapolator_method(R_c_, V, 1, **extrap_kwargs)
-        D = D_
-        R_f_ = R_f_[0]
-        R_f.append(R_f_)
+        if timestep_type == "list":
+            subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
+        else:
+            subtimesteps = []
+
+        if t_diff_sum < 1.0:
+            extrap_kwargs.update({"displacement_prev": D})
+            R_f_ep, D = extrapolator_method(
+                R_f_prev, V, [1.0 - t_diff_sum], **extrap_kwargs
+            )
+            R_f.append(R_f_ep[0])
+
+        t_diff_sum = 0.0
+
+        for t_diff in np.diff(subtimesteps):
+            t_diff_sum += t_diff
+
+            R_f_ip = (1.0 - t_diff_sum) * R_f_prev + t_diff_sum * R_f_new
+
+            # advect the recomposed precipitation field to obtain the forecast
+            # for time step t
+            extrap_kwargs.update({"displacement_prev": D})
+            R_f_ep, D = extrapolator_method(R_f_ip, V, [t_diff], **extrap_kwargs)
+            R_f.append(R_f_ep[0])
+
+        R_f_prev = R_f_new.copy()
 
         if measure_time:
             print("%.2f seconds." % (time.time() - starttime))
