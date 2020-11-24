@@ -89,7 +89,7 @@ jobs:
           python -c "from pysteps.motion import proesmans"
 
       - name: Run tests and coverage report
-        working-directory: ${{github.workspace}}
+        working-directory: ${{github.workspace}}/pysteps_data
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
         run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
@@ -101,7 +101,7 @@ jobs:
           PYTHON: ${{ matrix.python-version }}
         with:
           file: coverage.xml
-          directory: ${{github.workspace}}
+          directory: ${{github.workspace}}/pysteps_data
           flags: unit_tests
           env_vars: OS,PYTHON
           fail_ci_if_error: true
