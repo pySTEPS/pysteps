@@ -27,7 +27,7 @@ def binned_timesteps(timesteps):
     Returns
     -------
     out : list
-        List of length int(np.ceil(timesteps[-1])) containing the bins. Each
+        List of length int(np.ceil(timesteps[-1]))+1 containing the bins. Each
         element is a list containing the indices of the time steps falling in
         the bin (excluding the right edge).
     """
@@ -42,7 +42,7 @@ def binned_timesteps(timesteps):
     timestep_range = np.arange(num_bins + 1)
     bin_idx = np.digitize(timesteps, timestep_range, right=False)
 
-    out = [[] for i in range(num_bins)]
+    out = [[] for i in range(num_bins + 1)]
     for i, bi in enumerate(bin_idx):
         out[bi - 1].append(i)
 
