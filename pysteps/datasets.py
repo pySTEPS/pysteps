@@ -324,7 +324,8 @@ def download_pysteps_data(dir_path, force=True):
     pbar = ShowProgress()
     print("Downloading pysteps-data from github.")
     tmp_file_name, _ = request.urlretrieve(
-        "https://github.com/pySTEPS/pysteps-data/archive/master.zip", reporthook=pbar,
+        "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
+        reporthook=pbar,
     )
     pbar.end(message="Download complete\n")
 
@@ -414,7 +415,7 @@ def create_default_pystepsrc(
         with open(dest_path, "w") as f:
             json.dump(rcparams_json, f, indent=4)
 
-    return dest_path
+    return os.path.normpath(dest_path)
 
 
 def load_dataset(case="fmi", frames=14):
