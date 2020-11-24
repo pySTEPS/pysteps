@@ -20,8 +20,9 @@ def binned_timesteps(timesteps):
 
     Parameters
     ----------
-    timesteps : list
-        The list of time steps in ascending order.
+    timesteps : array_like
+        List or one-dimensional array containing the time steps in ascending
+        order.
 
     Returns
     -------
@@ -30,6 +31,7 @@ def binned_timesteps(timesteps):
         element is a list containing the indices of the time steps falling in
         the bin (excluding the right edge).
     """
+    timesteps = list(timesteps)
     if not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
 

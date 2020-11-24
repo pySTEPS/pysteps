@@ -317,7 +317,7 @@ def forecast(
     R_f = []
 
     # iterate each time step
-    for t in range(num_timesteps):
+    for t in range(timesteps):
         print("Computing nowcast for time step %d... " % (t + 1), end="")
         sys.stdout.flush()
         if measure_time:
