@@ -20,8 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
-        python-version: [ "3.6", "3.8"]
+        os: [ "ubuntu-latest"] #, "macos-latest", "windows-latest" ]
+        python-version: [ "3.6"] #, "3.8"]
       max-parallel: 6
 
     defaults:
@@ -88,17 +88,21 @@ jobs:
           python -c "from pysteps.motion import vet"
           python -c "from pysteps.motion import proesmans"
 
-      - name: Run tests
+      - name: Run tests and coverage report
         working-directory: ${{github.workspace}}
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
-        run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml -ra
+        run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
+        env:
+          OS: ${{ matrix.os }}
+          PYTHON: ${{ matrix.python-version }}
         with:
           file: coverage.xml
           directory: ${{github.workspace}}
           flags: unit_tests
+          env_vars: OS,PYTHON
           fail_ci_if_error: true
           verbose: true
