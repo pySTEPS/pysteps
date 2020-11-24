@@ -52,7 +52,14 @@ def forecast(
     num_timesteps,
     ari_order=1,
     add_perturbations=True,
-    n_ens_members=24,
+    num_ens_members=24,
+    feature_method="blob",
+    feature_kwargs={},
+    kernel_type="anisotropic",
+    interp_window_radius=25,
+    extrap_method="semilagrangian",
+    extrap_kwargs={},
+    num_workers=1,
 ):
     """Generate a nowcast ensemble by using the Lagrangian INtegro-Difference
     equation model with Autoregression (LINDA).
@@ -60,27 +67,62 @@ def forecast(
     Parameters
     ----------
     precip_fields : array_like
-        Array of shape (ari_order+2,m,n) containing the input precipitation
+        Array of shape (ari_order + 2, m, n) containing the input precipitation
         fields ordered by timestamp from oldest to newest. The time steps
         between the inputs are assumed to be regular.
     advection_field : array_like
-        Array of shape (2,m,n) containing the x- and y-components of the
+        Array of shape (2, m, n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs.
     num_timesteps : int
         Number of time steps to forecast.
-    ari_order : int
-        Order of the ARI(p,1) model.
+    ari_order : {1, 2}
+        The order of the ARI(p,1) model.
     add_perturbations : bool
         Set to False to disable perturbations and generate a deterministic
         nowcast.
-    n_ens_members : int
+    num_ens_members : int
         Number of ensemble members.
+    feature_method : {'blob', 'domain' 'grid', 'shitomasi'}
+        Feature detection method:
+
+        +-------------------+-----------------------------------------------------+
+        |    Method name    |                  Description                        |
+        +===================+=====================================================+
+        |  blob             | Laplace of Gaussian (LoG) blob detector implemented |
+        |                   | in scikit-image                                     |
+        +-------------------+-----------------------------------------------------+
+        |  domain           | no feature detection, the model is applied over the |
+        |                   | whole domain without localization                   |
+        +-------------------+-----------------------------------------------------+
+        |  grid             | no feature detection: the coordinates of the        |
+        |                   | localization windows are aligned in a grid          |
+        +-------------------+-----------------------------------------------------+
+        |  shitomasi        | Shi-Tomasi corner detector implemented in OpenCV    |
+        +-------------------+-----------------------------------------------------+
+    feature_kwargs : dict, optional
+        Keyword arguments that are passed as **kwargs for the feature detector.
+    kernel_type : {"anisotropic", "isotropic"}
+        The type of the kernel. Default : 'anisotropic'.
+    interp_window_radius : int
+        The standard deviation of the Gaussian kernel for computing the
+        interpolation weights. Default : 25.
+    extrap_method : str, optional
+        The extrapolation method to use. See the documentation of
+        pysteps.extrapolation.interface.
+    extrap_kwargs : dict, optional
+        Optional dictionary containing keyword arguments for the extrapolation
+        method. See the documentation of pysteps.extrapolation.
+    num_workers : int
+        The number of workers to use for parallel computations. Applicable if
+        dask is installed. When num_workers>1, it is advisable to disable
+        OpenMP by setting the environment variable OMP_NUM_THREADS to 1. This
+        avoids slowdown caused by too many simultaneous threads.
 
     Returns
     -------
     out : numpy.ndarray
-        A four-dimensional array of shape (n_ens_members,num_timesteps, m, n)
+        A four-dimensional array of shape (num_ens_members, num_timesteps, m, n)
         containing a time series of forecast precipitation fields for each
         ensemble member. The time series starts from t0 + timestep, where
         timestep is taken from the input fields.
