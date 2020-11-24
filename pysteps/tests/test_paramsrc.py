@@ -36,14 +36,14 @@ minimal_pystepsrc_file = """
 
 def test_read_paramsrc():
     """Test that the parameter file is read correctly and the resulting
-    pysteps.paramsrc dict can be access by attributes too.
+    pysteps.paramsrc dict can be accessed by attributes too.
     """
 
     with NamedTemporaryFile(mode="w", delete=False) as tmp_paramsrc:
         tmp_paramsrc.write(minimal_pystepsrc_file)
         tmp_paramsrc.flush()
 
-    # Perform a dry run that do not update
+    # Perform a dry run that does not update
     # the internal pysteps.rcparams values.
     rcparams = load_config_file(tmp_paramsrc.name, dryrun=True, verbose=False)
     os.unlink(tmp_paramsrc.name)
