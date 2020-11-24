@@ -271,8 +271,6 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
         c_unique=np.zeros(cells.shape)
         c_unique[loc]=1
         labels, n_groups = ndi.label(c_unique)
-        print(len(loc[0]), min_ref, n_groups)
-        print(len(loc[0])<min_size,min_ref>minref,n_groups>ngroups)
         while (len(loc[0])<min_size or n_groups>ngroups) and min_ref>minref:
             min_ref-=1
             ref_unique=cell_unique*ref
@@ -280,7 +278,6 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
             c_unique=np.zeros(cells.shape)
             c_unique[loc]=1
             labels, n_groups = ndi.label(c_unique)
-            print(len(loc[0]), min_ref, n_groups)
         
         cells_id.x[n] = np.where(c_unique == 1)[1]
         cells_id.y[n] = np.where(c_unique == 1)[0]

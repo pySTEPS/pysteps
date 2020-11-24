@@ -11,11 +11,11 @@ The first section demonstrates thunderstorm cell detection and how to plot conto
 The second section demonstrates detection and tracking in combination,
 as well as how to plot the resulting tracks.
 
-Created on Thu Nov  5 10:29:23 2020
-
 @author: mfeldman
 """
-#%% IMPORT ALL REQUIRED FUNCTIONS
+################################################################################
+# Import all required functions
+# ---------------------------
 
 import os
 import sys
@@ -31,7 +31,17 @@ from pysteps.tracking import tdating as tstorm_dating
 from pysteps.utils import to_reflectivity
 from pysteps.visualization import plot_precip_field, plot_track, plot_cart_contour
 
-#%% LOAD PYSTEPS EXAMPLE DATA
+################################################################################
+# Read the radar input images
+# ---------------------------
+#
+# First, we import a sequence of 36 images of 5-minute radar composites
+# that we will use to produce a 3-hour rainfall accumulation map.
+# We will keep only one frame every 10 minutes, to simulate a longer scanning
+# cycle and thus better highlight the need for advection correction.
+#
+# You need the pysteps-data archive downloaded and the pystepsrc file
+# configured with the data_source paths pointing to data folders.
 
 date = datetime.strptime("201607112100", "%Y%m%d%H%M")
 data_source = rcparams.data_sources["mch"]
@@ -44,7 +54,10 @@ importer_name = data_source["importer"]
 importer_kwargs = data_source["importer_kwargs"]
 timestep = data_source["timestep"]
 
-#%% FIND AND READ FILES
+###############################################################################
+# Load the data from the archive
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=20
 )
@@ -56,23 +69,32 @@ timelist = metadata["timestamps"]
 
 pprint(metadata)
 
-#%% IDENTIFICATION OF THUNDERSTORMS IN SINGLE TIMESTEP
+###############################################################################
+# Example of thunderstorm identification in a single timestep.
+# --------------------------------------------------------------
+# The function tstorm_detect.detection requires a 2-D input image, all further inputs are optional.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 input_image = Z[2, :, :].copy()
-time = timelist[0]
+time = timelist[2]
 cells_id, labels = tstorm_detect.detection(
     input_image,
     dyn_thresh=True,
     time=time,
 )
 
-#%% COMPUTATION OF THUNDERSTORM TRACKS OVER ENTIRE TIMELINE
+###############################################################################
+# Example of thunderstorm tracking over a timeseries. The tstorm-dating function requires the entire pre-loaded time series. The first two timesteps are required to initialize the flow prediction and are not used to compute tracks.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 track_list, cell_list, label_list = tstorm_dating.dating(
     input_video=Z,
     timelist=timelist,
     dyn_thresh=True,
 )
 
-#%% PLOTTING
+###############################################################################
+# Plotting the results
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Plot precipitation field
 plot_precip_field(Z[2, :, :], geodata=metadata, units=metadata["unit"])
@@ -80,6 +102,13 @@ plot_precip_field(Z[2, :, :], geodata=metadata, units=metadata["unit"])
 # Add the identified cells
 plot_cart_contour(cells_id.cont, geodata=metadata)
 
+# Filter the tracks to only contain cells existing in this timestep
+
+IDs=cells_id.ID.values
+track_filt=[]
+for track in track_list:
+    if np.unique(track.ID) in IDs: track_filt.append(track)
+
 # Add their tracks
-plot_track(track_list, geodata=metadata)
+plot_track(track_filt, geodata=metadata)
 plt.show()
