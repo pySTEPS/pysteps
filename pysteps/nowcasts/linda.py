@@ -336,96 +336,54 @@ def _optimize_ar2_params(field_src, field_dst, weights, num_workers=1):
 def _optimize_convol_params(
     field_src,
     field_dst,
-    features,
     weights,
-    mask=None,
+    mask,
     kernel_type="anisotropic",
+    kernel_params={},
     method="trf",
     num_workers=1,
-    kernel_params={},
 ):
-    num_features = weights.shape[0]
-    num_workers = min(num_workers, num_features)
+    mask = np.logical_and(mask, weights > 1e-3)
 
-    def worker(i):
-        def objf(p, *args):
-            i = args[0]
-
-            if kernel_type == "anisotropic":
-                p = _get_anisotropic_kernel_params(p)
-                kernel = _compute_kernel_anisotropic(p, **kernel_params)
-            else:
-                kernel = _compute_kernel_isotropic((p,), **kernel_params)
-
-            field_src_c_ = _masked_convolution(field_src, kernel)
-
-            if kernel_type == "anisotropic" and method == "trf":
-                fval = np.sqrt(weights[i][mask]) * (
-                    field_dst[mask] - field_src_c_[mask]
-                )
-            else:
-                fval = np.sum(
-                    weights[i][mask] * (field_dst[mask] - field_src_c_[mask]) ** 2
-                )
-
-            return fval
-
+    def objf(p, *args):
         if kernel_type == "anisotropic":
-            if method == "lbfgsb":
-                bounds = np.array(
-                    [(-10.0, 10.0), (-10.0, 10.0), (0.1, 10.0), (0.1, 5.0)]
-                )
-                p_opt = minimize(
-                    objf,
-                    np.array((1.0, 1.0, 1.0, 1.0)),
-                    bounds=bounds,
-                    method="L-BFGS-B",
-                    args=(i,),
-                )
-            elif method == "trf":
-                bounds = np.array([(-10.0, -10.0, 0.1, 0.1), (10.0, 10.0, 10.0, 5.0)])
-                p_opt = least_squares(
-                    objf,
-                    np.array((1.0, 1.0, 1.0, 1.0)),
-                    bounds=bounds,
-                    method="trf",
-                    ftol=1e-6,
-                    xtol=1e-6,
-                    gtol=1e-6,
-                    args=(i,),
-                )
-
-            theta, sigma1, sigma2, shape = _get_anisotropic_kernel_params(p_opt.x)
-
-            p_out = theta, sigma1, sigma2, shape
+            p = _get_anisotropic_kernel_params(p)
+            kernel = _compute_kernel_anisotropic(p, **kernel_params)
         else:
-            p_opt = minimize_scalar(
-                objf, bounds=[0.01, 10.0], method="bounded", args=(i,)
-            )
+            kernel = _compute_kernel_isotropic((p,), **kernel_params)
 
-            p_out = p_opt.x
+        field_src_c_ = _masked_convolution(field_src, kernel)
 
-        return i, p_out
-
-    res = []
-    for i in range(num_features):
-        if num_workers > 1:
-            res.append(dask.delayed(worker)(i))
+        if kernel_type == "anisotropic" and method == "trf":
+            fval = np.sqrt(weights[mask]) * (field_dst[mask] - field_src_c_[mask])
         else:
-            res.append(worker(i))
+            fval = np.sum(weights[mask] * (field_dst[mask] - field_src_c_[mask]) ** 2)
 
-    if num_workers > 1:
-        for i in range(num_features):
-            res = dask.compute(
-                *res, num_workers=num_workers, scheduler="multiprocessing"
+        return fval
+
+    if kernel_type == "anisotropic":
+        if method == "lbfgsb":
+            bounds = np.array([(-10.0, 10.0), (-10.0, 10.0), (0.25, 4.0), (0.1, 5.0)])
+            p_opt = minimize(
+                objf,
+                np.array((1.0, 1.0, 1.0, 1.0)),
+                bounds=bounds,
+                method="L-BFGS-B",
             )
-
-    if kernel_type == "isotropic":
-        theta = np.empty((num_features, 1))
+        elif method == "trf":
+            bounds = np.array([(-10.0, -10.0, 0.25, 0.1), (10.0, 10.0, 4.0, 5.0)])
+            p_opt = least_squares(
+                objf,
+                np.array((1.0, 1.0, 1.0, 1.0)),
+                bounds=bounds,
+                method="trf",
+                ftol=1e-6,
+                xtol=1e-6,
+                gtol=1e-6,
+            )
+        p_opt = _get_anisotropic_kernel_params(p_opt.x)
     else:
-        theta = np.empty((num_features, 4))
+        p_opt = minimize_scalar(objf, bounds=[0.01, 10.0], method="bounded")
+        p_opt = p_opt.x
 
-    for r in res:
-        theta[r[0]] = r[1]
-
-    return theta
+    return _compute_kernel_anisotropic(p_opt, **kernel_params)
