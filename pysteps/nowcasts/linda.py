@@ -236,7 +236,7 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radii):
             dy = c[0] - grid_y
             dx = c[1] - grid_x
 
-            w[i] = np.exp(
+            w[i, :] = np.exp(
                 -dy * dy / (2 * window_radii_1[i] ** 2)
                 - dx * dx / (2 * window_radii_2[i] ** 2)
             )
@@ -253,6 +253,16 @@ def _get_anisotropic_kernel_params(p):
     sigma2 = sigma1 * p[2]
 
     return theta, sigma1, sigma2, p[3]
+
+
+# TODO: use the method implemented in pysteps.timeseries.autoregression
+def _iterate_ar_model(input_fields, psi):
+    input_field_new = 0.0
+
+    for i in range(len(psi)):
+        input_field_new += psi[i] * input_fields[-(i + 1), :]
+
+    return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
 
 
 # Compute a 2d convolution by ignoring non-finite values.
