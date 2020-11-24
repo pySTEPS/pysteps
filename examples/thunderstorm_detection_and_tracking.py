@@ -90,7 +90,7 @@ cells_id, labels = tstorm_detect.detection(
 track_list, cell_list, label_list = tstorm_dating.dating(
     input_video=Z,
     timelist=timelist,
-    dyn_thresh=True,
+    dyn_thresh=False,
 )
 
 ###############################################################################
