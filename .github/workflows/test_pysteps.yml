@@ -63,11 +63,11 @@ jobs:
           brew install gcc@9
           gcc-9 --version
           pip install .
-      
+
       - name: Install pygrib (not win)
         if: matrix.os != 'windows-latest'
         run: conda install --quiet pygrib
-        
+
       - name: Install pysteps
         if: matrix.os != 'macos-latest'
         working-directory: ${{github.workspace}}
@@ -97,3 +97,6 @@ jobs:
           python -c "from pysteps.motion import proesmans"
           pytest --pyargs pysteps --cov=pysteps -ra;
         working-directory: ${{github.workspace}}/pysteps_data
+
+      - name: Upload coverage to Codecov
+        run: codecov
