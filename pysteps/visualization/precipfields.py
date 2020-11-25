@@ -165,7 +165,9 @@ def plot_precip_field(
     # plot geography
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"], bm_extent, **map_kwargs,
+            )
             regular_grid = True
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -185,7 +187,9 @@ def plot_precip_field(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
             regular_grid = geodata["regular_grid"]
 
-            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"], bm_extent, **map_kwargs,
+            )
 
     else:
         ax = plt.gca()

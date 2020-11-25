@@ -82,11 +82,7 @@ pprint(metadata)
 
 input_image = Z[2, :, :].copy()
 time = timelist[2]
-cells_id, labels = tstorm_detect.detection(
-    input_image,
-    dyn_thresh=True,
-    time=time,
-)
+cells_id, labels = tstorm_detect.detection(input_image, dyn_thresh=True, time=time,)
 
 ###############################################################################
 # Example of thunderstorm tracking over a timeseries.
@@ -96,9 +92,7 @@ cells_id, labels = tstorm_detect.detection(
 # flow prediction and are not used to compute tracks.
 
 track_list, cell_list, label_list = tstorm_dating.dating(
-    input_video=Z,
-    timelist=timelist,
-    dyn_thresh=True,
+    input_video=Z, timelist=timelist, dyn_thresh=True,
 )
 
 ###############################################################################
@@ -114,10 +108,11 @@ plot_cart_contour(cells_id.cont, geodata=metadata)
 ###############################################################################
 # Filter the tracks to only contain cells existing in this timestep
 
-IDs=cells_id.ID.values
-track_filt=[]
+IDs = cells_id.ID.values
+track_filt = []
 for track in track_list:
-    if np.unique(track.ID) in IDs: track_filt.append(track)
+    if np.unique(track.ID) in IDs:
+        track_filt.append(track)
 
 # Add their tracks
 plot_track(track_filt, geodata=metadata)
@@ -126,29 +121,28 @@ plt.show()
 ################################################################################
 # Evaluating temporal behaviour of cell
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-tlen=[]
-color = iter(plt.cm.ocean(np.linspace(0, .8, len(track_filt))))
+tlen = []
+color = iter(plt.cm.ocean(np.linspace(0, 0.8, len(track_filt))))
 for track in track_filt:
-    plt.plot(np.arange(len(track)),track.max_ref, c=next(color))
+    plt.plot(np.arange(len(track)), track.max_ref, c=next(color))
     tlen.append(len(track))
-plt.xticks(np.arange(max(tlen)+1),labels=np.arange(max(tlen)+1)*5)
-plt.ylabel('maximum reflectivity in dBZ')
-plt.xlabel('time since cell detection in minutes')
+plt.xticks(np.arange(max(tlen) + 1), labels=np.arange(max(tlen) + 1) * 5)
+plt.ylabel("maximum reflectivity in dBZ")
+plt.xlabel("time since cell detection in minutes")
 plt.legend(IDs)
 plt.show()
 
 
-tlen=[]
-color = iter(plt.cm.ocean(np.linspace(0, .8, len(track_filt))))
+tlen = []
+color = iter(plt.cm.ocean(np.linspace(0, 0.8, len(track_filt))))
 for track in track_filt:
-    size=[]
+    size = []
     for ID, t in track.iterrows():
         size.append(len(t.x))
-    plt.plot(np.arange(len(track)),size, c=next(color))
+    plt.plot(np.arange(len(track)), size, c=next(color))
     tlen.append(len(track))
-plt.xticks(np.arange(max(tlen)+1),labels=np.arange(max(tlen)+1)*5)
-plt.ylabel('cell size in pixels')
-plt.xlabel('time since cell detection in minutes')
+plt.xticks(np.arange(max(tlen) + 1), labels=np.arange(max(tlen) + 1) * 5)
+plt.ylabel("cell size in pixels")
+plt.xlabel("time since cell detection in minutes")
 plt.legend(IDs)
 plt.show()
-

@@ -75,10 +75,7 @@ pprint(metadata)
 input_image = Z[2, :, :].copy()
 time = timelist[2]
 cells_id, labels = tstorm_detect.detection(
-    input_image,
-    dyn_thresh=True,
-    minsize=4,
-    time=time,
+    input_image, dyn_thresh=True, minsize=4, time=time,
 )
 
 ###############################################################################
@@ -89,10 +86,7 @@ cells_id, labels = tstorm_detect.detection(
 # flow prediction and are not used to compute tracks.
 
 track_list, cell_list, label_list = tstorm_dating.dating(
-    input_video=Z,
-    timelist=timelist,
-    dyn_thresh=True,
-    minsize=4
+    input_video=Z, timelist=timelist, dyn_thresh=True, minsize=4
 )
 
 ###############################################################################
@@ -107,10 +101,11 @@ plot_cart_contour(cells_id.cont, geodata=metadata)
 
 # Filter the tracks to only contain cells existing in this timestep
 
-IDs=cells_id.ID.values
-track_filt=[]
+IDs = cells_id.ID.values
+track_filt = []
 for track in track_list:
-    if np.unique(track.ID) in IDs: track_filt.append(track)
+    if np.unique(track.ID) in IDs:
+        track_filt.append(track)
 
 # Add their tracks
 plot_track(track_filt, geodata=metadata)
