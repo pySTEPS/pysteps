@@ -5,8 +5,14 @@ pysteps.tracking.tdating
 ========================
 
 Thunderstorm Detection and Tracking (DATing) module
+This module was implemented following the procedures used in the TRT Thunderstorms 
+Radar Tracking algorithm (:cite:'TRT2004') used operationally at MeteoSwiss.
+Modifications include advecting the identified thunderstorms with the optical flow
+obtained from pysteps, as well as additional options in the thresholding.
 
-Created on Wed Nov  4 11:09:44 2020
+References
+...............
+:cite:'TRT2004'
 
 @author: mfeldman
 
@@ -170,7 +176,11 @@ def dating(
 
 
 def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
-
+    """
+    This function performs the actual tracking procedure. First the cells are advected,
+    then overlapped and finally their IDs are matched. If no match is found, a new ID 
+    is assigned.
+    """
     cells_id_new = cells_id.copy()
     cells_ad = advect(cells_id_prev, labels, V1)
     cells_ov, labels = match(cells_ad, labels)
@@ -197,7 +207,9 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
 
 
 def advect(cells_id, labels, V1):
-
+    """
+    This function advects all identified cells with the estimated flow.
+    """
     cells_ad = pd.DataFrame(
         data=None,
         index=range(len(cells_id)),
@@ -243,6 +255,11 @@ def advect(cells_id, labels, V1):
 
 
 def match(cells_ad, labels):
+    """
+    This function matches the advected cells of the previous timestep to the newly 
+    identified ones. A minimal overlap of 40% is required. In case of split of merge, 
+    the larger cell supersedes the smaller one in naming.
+    """
     cells_ov = cells_ad.copy()
     for ID_a, cell_a in cells_ov.iterrows():
         if cell_a.ID == 0 or np.isnan(cell_a.ID):
@@ -265,6 +282,10 @@ def match(cells_ad, labels):
 
 
 def couple_track(cell_list, max_ID, mintrack):
+    """
+    The coupled cell tracks are re-arranged from the list of cells sorted by time, to
+    a list of tracks sorted by ID. Tracks shorter than mintrack are rejected.
+    """
     track_list = []
     for n in range(1, max_ID):
         cell_track = pd.DataFrame(

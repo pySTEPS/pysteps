@@ -5,8 +5,14 @@ pysteps.feature.tstorm
 ======================
 
 Thunderstorm cell detection module, part of Thunderstorm Detection and Tracking (DATing)
+This module was implemented following the procedures used in the TRT Thunderstorms 
+Radar Tracking algorithm (:cite:'TRT2004') used operationally at MeteoSwiss.
+Modifications include advecting the identified thunderstorms with the optical flow
+obtained from pysteps, as well as additional options in the thresholding.
 
-Created on Wed Nov  4 11:09:12 2020
+References
+...............
+:cite:'TRT2004'
 
 @author: mfeldman
 
@@ -53,6 +59,7 @@ def detection(
     minmax=41,
     mindis=10,
     dyn_thresh=False,
+    output_feat=False,
     time="000000000",
 ):
     """
@@ -153,15 +160,20 @@ def detection(
     maxima_dis = np.zeros(maxima.shape)
     maxima_dis[loc_max] = 1
 
-    areas, lines = belonging(input_image, np.nanmin(input_image.flatten()), maxima_dis)
+    areas, lines = breakup(input_image, np.nanmin(input_image.flatten()), maxima_dis)
 
-    if dyn_thresh: cells_id, labels = get_profile_dyn(areas, lines, binary, input_image, loc_max, time, minref, mindiff, minsize)
-    else: cells_id, labels = get_profile(areas, binary, input_image, loc_max, time, minref)
+    if dyn_thresh: cells_id, labels = get_profile_dyn(areas, lines, binary, input_image,
+                                                      loc_max, time, minref, mindiff,
+                                                      minsize)
+    else: cells_id, labels = get_profile(areas, binary, input_image, loc_max, time,
+                                         minref)
 
-    return cells_id, labels
+    if not output_feat: return cells_id, labels
+    if output_feat:
+        return np.column_stack([np.array(cells_id.max_x), np.array(cells_id.max_y)])
 
 
-def belonging(ref, minval, maxima):
+def breakup(ref, minval, maxima):
     """
     This function segments the entire 2-D array into areas belonging to each identified
     maximum according to a watershed algorithm.
@@ -240,7 +252,8 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
 def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_size):
     """
     This function returns the identified cells in a dataframe including their x,y
-    locations, location of their maxima, maximum reflectivity and contours. The lower reflectivity bound is variable
+    locations, location of their maxima, maximum reflectivity and contours. The lower
+    reflectivity bound is variable and can constrain to a tighter, more relevant area.
     """
     lines_bin=lines==0
     ref[np.isnan(ref)]=np.nanmin(ref)

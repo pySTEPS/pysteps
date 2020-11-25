@@ -10,6 +10,14 @@ MeteoSwiss radar data and uses the Cartesian composite of maximum reflectivity o
 The first section demonstrates thunderstorm cell detection and how to plot contours.
 The second section demonstrates detection and tracking in combination,
 as well as how to plot the resulting tracks.
+This module was implemented following the procedures used in the TRT Thunderstorms 
+Radar Tracking algorithm (:cite:'TRT2004') used operationally at MeteoSwiss.
+Modifications include advecting the identified thunderstorms with the optical flow
+obtained from pysteps, as well as additional options in the thresholding.
+
+References
+...............
+:cite:'TRT2004'
 
 @author: mfeldman
 """
