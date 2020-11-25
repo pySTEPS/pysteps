@@ -32,15 +32,16 @@ from pysteps.utils import to_reflectivity
 from pysteps.visualization import plot_precip_field, plot_track, plot_cart_contour
 
 ################################################################################
-# Read the radar input images
+# Example with US MRMS data
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# A series of 20 files containing Swiss Cartesian gridded rainrate are imported. Since the
+# A series of 20 files containing MRMS Cartesian gridded rainrate are imported. Since the
 # algorithm is tuned to Swiss max-reflectivity data, the rainrate is transformed to
 # reflectivity.
+# This example applies the algorithm that was developed on Swiss data to US MRMS data.
 
-date = datetime.strptime("201607112100", "%Y%m%d%H%M")
-data_source = rcparams.data_sources["mch"]
+date = datetime.strptime("201906100000", "%Y%m%d%H%M")
+data_source = rcparams.data_sources["mrms"]
 
 root_path = data_source["root_path"]
 path_fmt = data_source["path_fmt"]
@@ -71,12 +72,12 @@ pprint(metadata)
 # The function tstorm_detect.detection requires a 2-D input image, all further inputs are
 # optional.
 
-
 input_image = Z[2, :, :].copy()
 time = timelist[2]
 cells_id, labels = tstorm_detect.detection(
     input_image,
     dyn_thresh=True,
+    minsize=4,
     time=time,
 )
 
@@ -91,19 +92,19 @@ track_list, cell_list, label_list = tstorm_dating.dating(
     input_video=Z,
     timelist=timelist,
     dyn_thresh=True,
+    minsize=4
 )
 
 ###############################################################################
 # Plotting the results
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-###############################################################################
 # Plot precipitation field
 plot_precip_field(Z[2, :, :], geodata=metadata, units=metadata["unit"])
-###############################################################################
+
 # Add the identified cells
 plot_cart_contour(cells_id.cont, geodata=metadata)
-###############################################################################
+
 # Filter the tracks to only contain cells existing in this timestep
 
 IDs=cells_id.ID.values
@@ -114,33 +115,3 @@ for track in track_list:
 # Add their tracks
 plot_track(track_filt, geodata=metadata)
 plt.show()
-#%%
-################################################################################
-# Evaluating temporal behaviour of cell
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-tlen=[]
-color = iter(plt.cm.ocean(np.linspace(0, .8, len(track_filt))))
-for track in track_filt:
-    plt.plot(np.arange(len(track)),track.max_ref, c=next(color))
-    tlen.append(len(track))
-plt.xticks(np.arange(max(tlen)+1),labels=np.arange(max(tlen)+1)*5)
-plt.ylabel('maximum reflectivity in dBZ')
-plt.xlabel('time since cell detection in minutes')
-plt.legend(IDs)
-plt.show()
-
-
-tlen=[]
-color = iter(plt.cm.ocean(np.linspace(0, .8, len(track_filt))))
-for track in track_filt:
-    size=[]
-    for ID, t in track.iterrows():
-        size.append(len(t.x))
-    plt.plot(np.arange(len(track)),size, c=next(color))
-    tlen.append(len(track))
-plt.xticks(np.arange(max(tlen)+1),labels=np.arange(max(tlen)+1)*5)
-plt.ylabel('cell size in pixels')
-plt.xlabel('time since cell detection in minutes')
-plt.legend(IDs)
-plt.show()
-

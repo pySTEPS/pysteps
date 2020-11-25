@@ -293,7 +293,7 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
         cells_id.max_x[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
         cells_id.max_y[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
         cells_id.max_ref[n] = maxref
-        labels[cells == cell_labels[n]] = ID
+        labels[c_unique == 1] = ID
 
     return cells_id, labels
 
