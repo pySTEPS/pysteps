@@ -71,7 +71,6 @@ def test_lk(
     precip = precip.filled()
 
     # Retrieve motion field
-    pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
     output = oflow_method(
         precip,
