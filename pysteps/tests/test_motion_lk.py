@@ -52,6 +52,14 @@ def test_lk(
     verbose,
 ):
     """Tests Lucas-Kanade optical flow."""
+
+    pytest.importorskip("cv2")
+    if fd_method == "blob":
+        pytest.importorskip("skimage")
+    if fd_method == "tstorm":
+        pytest.importorskip("skimage")
+        pytest.importorskip("pandas")
+
     # inputs
     precip, metadata = get_precipitation_fields(
         num_prev_files=2,
