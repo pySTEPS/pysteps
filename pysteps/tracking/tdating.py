@@ -5,7 +5,7 @@ pysteps.tracking.tdating
 ========================
 
 Thunderstorm Detection and Tracking (DATing) module
-This module was implemented following the procedures used in the TRT Thunderstorms 
+This module was implemented following the procedures used in the TRT Thunderstorms
 Radar Tracking algorithm (:cite:'TRT2004') used operationally at MeteoSwiss.
 Modifications include advecting the identified thunderstorms with the optical flow
 obtained from pysteps, as well as additional options in the thresholding.
@@ -60,8 +60,8 @@ def dating(
     input_video,
     timelist,
     mintrack=3,
-    cell_list=[],
-    label_list=[],
+    cell_list=None,
+    label_list=None,
     start=0,
     minref=35,
     maxref=48,
@@ -88,25 +88,19 @@ def dating(
         List of length t containing string of time and date of each (m,n) field.
     mintrack : int, optional
         minimum length of cell-track to be counted. The default is 3.
-
-    The following optional variables allow expanding an existing list of cells.
-    All three must be filled in to achieve this.
-
-    cell_list : list, optional
+    cell_list : list or None, optional
         If you wish to expand an existing list of cells, insert previous cell-list here.
-        The default is [].
-    label_list : list, optional
+        The default is None.
+        If not None, requires that label_list has the same length.
+    label_list : list or None, optional
         If you wish to expand an existing list of cells, insert previous label-list here.
-        The default is [].
+        The default is None.
+        If not None, requires that cell_list has the same length.
     start : int, optional
         If you wish to expand an existing list of cells, the input video must contain 2
         timesteps prior to the merging. The start can then be set to 2, allowing the
         motion vectors to be formed from the first three grids and continuing the cell
         tracking from there. The default is 0, which initiates a new tracking sequence.
-
-    The following optional variables set the threshold values for the thunderstorm cell
-    detection.
-
     minref : float, optional
         Lower threshold for object detection. Lower values will be set to NaN.
         The default is 35 dBZ.
@@ -127,7 +121,7 @@ def dating(
     dyn_thresh: binary, optional
         Set to True to activate dynamic lower threshold. Restricts contours to more
         meaningful area. The default is False.
-        
+
     Returns
     -------
     track_list : list of dataframes
@@ -148,6 +142,17 @@ def dating(
         raise MissingOptionalDependency(
             "pandas is required for thunderstorm DATing " "but it is not installed"
         )
+
+    # Check arguments
+    if cell_list is None or label_list is None:
+        cell_list = []
+        label_list = []
+    else:
+        if not len(cell_list) == len(label_list):
+            raise ValueError("len(cell_list) != len(label_list)")
+    if start > len(timelist):
+        raise ValueError("start > len(timelist)")
+
     oflow_method = motion.get_method("LK")
     max_ID = 0
     for t in range(start, len(timelist)):
@@ -178,7 +183,7 @@ def dating(
 def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
     """
     This function performs the actual tracking procedure. First the cells are advected,
-    then overlapped and finally their IDs are matched. If no match is found, a new ID 
+    then overlapped and finally their IDs are matched. If no match is found, a new ID
     is assigned.
     """
     cells_id_new = cells_id.copy()
@@ -256,8 +261,8 @@ def advect(cells_id, labels, V1):
 
 def match(cells_ad, labels):
     """
-    This function matches the advected cells of the previous timestep to the newly 
-    identified ones. A minimal overlap of 40% is required. In case of split of merge, 
+    This function matches the advected cells of the previous timestep to the newly
+    identified ones. A minimal overlap of 40% is required. In case of split of merge,
     the larger cell supersedes the smaller one in naming.
     """
     cells_ov = cells_ad.copy()
