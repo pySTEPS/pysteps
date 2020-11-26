@@ -9,7 +9,7 @@ Essentially, SSEPS is a localized version of STEPS.
 For  localization  we  intend  the  use of  a  subset  of  the  observations
 in  order  to  estimate  model parameters that are distributed in space.
 The short-space approach used in :cite:`NBSG2017` is generalized to
-the whole nowcasting system. This essenially boils down to a moving window
+the whole nowcasting system. This essentially boils down to a moving window
 localization of the nowcasting procedure, whereby all parameters are estimated
 over a subdomain of prescribed size.
 
