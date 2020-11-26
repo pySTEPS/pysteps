@@ -23,6 +23,7 @@ lk_arg_names = (
 lk_arg_values = [
     ({}, "shitomasi", True, 3, 30, 3, 20, False),  # defaults
     ({}, "shitomasi", False, 3, 30, 3, 20, True),  # sparse ouput, verbose
+    ({}, "shitomasi", False, 0, 30, 3, 20, False),  # sparse ouput, all outliers
     (
         {},
         "shitomasi",
@@ -33,7 +34,7 @@ lk_arg_values = [
         0,
         False,
     ),  # global outlier detection, no filtering, no declutering
-    ({}, "shitomasi", True, 0, 30, 3, 20, False),  # all points are outliers
+    ({}, "shitomasi", True, 0, 30, 3, 20, False),  # all outliers
     ({}, "blob", True, 3, 30, 3, 20, False),  # blob detection
     ({}, "tstorm", True, 3, 30, 3, 20, False),  # tstorm detection
 ]
@@ -93,3 +94,7 @@ def test_lk(
         assert output[1].ndim == 2
         assert output[0].shape[1] == 2
         assert output[1].shape[1] == 2
+        assert output[0].shape[0] == output[1].shape[0]
+        if nr_std_outlier == 0:
+            assert output[0].shape[0] == 0
+            assert output[1].shape[0] == 0
