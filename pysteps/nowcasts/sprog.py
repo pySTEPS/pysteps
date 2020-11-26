@@ -365,8 +365,10 @@ def forecast(
         else:
             subtimesteps = []
 
+        # advect the recomposed precipitation field to obtain the forecast
+        # for time step t
         if t_diff_sum < 1.0:
-            extrap_kwargs.update({"displacement_prev": D})
+            extrap_kwargs["displacement_prev"] = D
             R_f_ep, D = extrapolator_method(
                 R_f_prev, V, [1.0 - t_diff_sum], **extrap_kwargs
             )
@@ -379,9 +381,7 @@ def forecast(
 
             R_f_ip = (1.0 - t_diff_sum) * R_f_prev + t_diff_sum * R_f_new
 
-            # advect the recomposed precipitation field to obtain the forecast
-            # for time step t
-            extrap_kwargs.update({"displacement_prev": D})
+            extrap_kwargs["displacement_prev"] = D
             R_f_ep, D = extrapolator_method(R_f_ip, V, [t_diff], **extrap_kwargs)
             R_f.append(R_f_ep[0])
 
