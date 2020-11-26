@@ -5,7 +5,7 @@ pysteps.feature.tstorm
 ======================
 
 Thunderstorm cell detection module, part of Thunderstorm Detection and Tracking (DATing)
-This module was implemented following the procedures used in the TRT Thunderstorms 
+This module was implemented following the procedures used in the TRT Thunderstorms
 Radar Tracking algorithm (:cite:'TRT2004') used operationally at MeteoSwiss.
 Modifications include advecting the identified thunderstorms with the optical flow
 obtained from pysteps, as well as additional options in the thresholding.
@@ -90,9 +90,11 @@ def detection(
     mindis : float, optional
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
-    dyn_thresh: binary, optional
+    dyn_thresh: bool, optional
         Set to True to activate dynamic lower threshold. Restricts contours to more
         meaningful area. The default is False.
+    output_feat: bool, optional
+        Set to True to return only the cell coordinates.
     time : string, optional
         Date and time as string. Used to label time in the resulting dataframe.
         The default is '000000000'.
