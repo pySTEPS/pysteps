@@ -83,7 +83,9 @@ pprint(metadata)
 input_image = Z[2, :, :].copy()
 time = timelist[2]
 cells_id, labels = tstorm_detect.detection(input_image, dyn_thresh=True, time=time,)
-
+###############################################################################
+# Properties of one of the identified cells:
+print(cells_id.iloc[0])
 ###############################################################################
 # Example of thunderstorm tracking over a timeseries.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -98,14 +100,12 @@ track_list, cell_list, label_list = tstorm_dating.dating(
 ###############################################################################
 # Plotting the results
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-###############################################################################
 # Plot precipitation field
 plot_precip_field(Z[2, :, :], geodata=metadata, units=metadata["unit"])
-###############################################################################
+
 # Add the identified cells
 plot_cart_contour(cells_id.cont, geodata=metadata)
-###############################################################################
+
 # Filter the tracks to only contain cells existing in this timestep
 
 IDs = cells_id.ID.values
@@ -121,6 +121,7 @@ plt.show()
 ################################################################################
 # Evaluating temporal behaviour of cell
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Maximum reflectivity of cells in time
 tlen = []
 color = iter(plt.cm.ocean(np.linspace(0, 0.8, len(track_filt))))
 for track in track_filt:
@@ -132,7 +133,8 @@ plt.xlabel("time since cell detection in minutes")
 plt.legend(IDs)
 plt.show()
 
-
+###############################################################################
+# Size of cells in time
 tlen = []
 color = iter(plt.cm.ocean(np.linspace(0, 0.8, len(track_filt))))
 for track in track_filt:
