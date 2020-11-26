@@ -587,6 +587,8 @@ def forecast(
     if measure_time:
         starttime_mainloop = time.time()
 
+    extrap_kwargs["return_displacement"] = True
+
     # iterate each time step
     for t in range(n_timesteps):
         print("Computing nowcast for time step %d... " % (t + 1), end="")
@@ -704,10 +706,9 @@ def forecast(
 
             # advect the recomposed precipitation field to obtain the forecast
             # for time step t
-            extrap_kwargs.update(
-                {"displacement_prev": D[j], "return_displacement": True}
-            )
-            R_f_, D_ = extrapolator_method(R_c_, V_, 1, **extrap_kwargs)
+            extrap_kwargs_ = extrap_kwargs.copy()
+            extrap_kwargs_["displacement_prev"] = D[j]
+            R_f_, D_ = extrapolator_method(R_c_, V_, 1, **extrap_kwargs_)
             D[j] = D_
             R_f_ = R_f_[0]
 
