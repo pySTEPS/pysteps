@@ -324,7 +324,7 @@ def forecast(
         timesteps = nowcast_utils.binned_timesteps(original_timesteps)
         timestep_type = "list"
 
-    R_f_prev = R.copy()
+    R_f_prev = R
     extrap_kwargs["return_displacement"] = True
     t_diff_sum = np.inf
 
@@ -385,7 +385,7 @@ def forecast(
             R_f_ep, D = extrapolator_method(R_f_ip, V, [t_diff], **extrap_kwargs)
             R_f.append(R_f_ep[0])
 
-        R_f_prev = R_f_new.copy()
+        R_f_prev = R_f_new
 
         if measure_time:
             print("%.2f seconds." % (time.time() - starttime))
