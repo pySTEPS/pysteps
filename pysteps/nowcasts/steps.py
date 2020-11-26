@@ -745,7 +745,7 @@ def forecast(
                 R_f_ip = (1.0 - t_diff_sum[j]) * R_f_prev[j] + t_diff_sum[j] * R_f_new
                 # TODO: Use generate_vel_noise with the fractional time step
                 # instead of interpolating the advection field
-                V_ip = (1.0 - t_diff_sum[j]) * V_prev[j] + V_new
+                V_ip = (1.0 - t_diff_sum[j]) * V_prev[j] + t_diff_sum[j] * V_new
 
                 extrap_kwargs_["displacement_prev"] = D[j]
                 R_f_ep, D[j] = extrapolator_method(
