@@ -10,14 +10,14 @@ MeteoSwiss radar data and uses the Cartesian composite of maximum reflectivity o
 The first section demonstrates thunderstorm cell detection and how to plot contours.
 The second section demonstrates detection and tracking in combination,
 as well as how to plot the resulting tracks.
-This module was implemented following the procedures used in the TRT Thunderstorms 
-Radar Tracking algorithm (:cite:'TRT2004') used operationally at MeteoSwiss.
+This module was implemented following the procedures used in the TRT Thunderstorms
+Radar Tracking algorithm (:cite:`TRT2004`) used operationally at MeteoSwiss.
 Modifications include advecting the identified thunderstorms with the optical flow
 obtained from pysteps, as well as additional options in the thresholding.
 
 References
-...............
-:cite:'TRT2004'
+..........
+:cite:`TRT2004`
 
 @author: mfeldman
 """
@@ -47,9 +47,11 @@ from pysteps.visualization import plot_precip_field, plot_track, plot_cart_conto
 # algorithm is tuned to Swiss max-reflectivity data, the rainrate is transformed to
 # reflectivity.
 
+# Select the input data
 date = datetime.strptime("201607112100", "%Y%m%d%H%M")
 data_source = rcparams.data_sources["mch"]
 
+# Extract corresponding settings
 root_path = data_source["root_path"]
 path_fmt = data_source["path_fmt"]
 fn_pattern = data_source["fn_pattern"]
@@ -58,17 +60,17 @@ importer_name = data_source["importer"]
 importer_kwargs = data_source["importer_kwargs"]
 timestep = data_source["timestep"]
 
-###############################################################################
 # Load the data from the archive
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=20
 )
-
 importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+
+# Convert to reflectivity
 Z, metadata = to_reflectivity(R, metadata)
+
+# Extract the list of timestamps
 timelist = metadata["timestamps"]
 
 pprint(metadata)
@@ -79,35 +81,44 @@ pprint(metadata)
 # The function tstorm_detect.detection requires a 2-D input image, all further inputs are
 # optional.
 
-
 input_image = Z[2, :, :].copy()
 time = timelist[2]
-cells_id, labels = tstorm_detect.detection(input_image, dyn_thresh=True, time=time,)
+cells_id, labels = tstorm_detect.detection(
+    input_image,
+    dyn_thresh=True,
+    time=time,
+)
+
 ###############################################################################
 # Properties of one of the identified cells:
 print(cells_id.iloc[0])
+
 ###############################################################################
-# Example of thunderstorm tracking over a timeseries.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Example of thunderstorm tracking over a timeseries
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # The tstorm-dating function requires the entire pre-loaded time series.
 # The first two timesteps are required to initialize the
 # flow prediction and are not used to compute tracks.
 
 track_list, cell_list, label_list = tstorm_dating.dating(
-    input_video=Z, timelist=timelist, dyn_thresh=True,
+    input_video=Z,
+    timelist=timelist,
+    dyn_thresh=True,
 )
 
 ###############################################################################
 # Plotting the results
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~
+
 # Plot precipitation field
 plot_precip_field(Z[2, :, :], geodata=metadata, units=metadata["unit"])
+plt.xlabel("Swiss easting [m]")
+plt.ylabel("Swiss northing [m]")
 
 # Add the identified cells
 plot_cart_contour(cells_id.cont, geodata=metadata)
 
 # Filter the tracks to only contain cells existing in this timestep
-
 IDs = cells_id.ID.values
 track_filt = []
 for track in track_list:
@@ -117,11 +128,12 @@ for track in track_list:
 # Add their tracks
 plot_track(track_filt, geodata=metadata)
 plt.show()
-#%%
+
 ################################################################################
 # Evaluating temporal behaviour of cell
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Maximum reflectivity of cells in time
+
 tlen = []
 color = iter(plt.cm.ocean(np.linspace(0, 0.8, len(track_filt))))
 for track in track_filt:
@@ -135,6 +147,7 @@ plt.show()
 
 ###############################################################################
 # Size of cells in time
+
 tlen = []
 color = iter(plt.cm.ocean(np.linspace(0, 0.8, len(track_filt))))
 for track in track_filt:

@@ -6,13 +6,13 @@ pysteps.feature.tstorm
 
 Thunderstorm cell detection module, part of Thunderstorm Detection and Tracking (DATing)
 This module was implemented following the procedures used in the TRT Thunderstorms
-Radar Tracking algorithm (:cite:'TRT2004') used operationally at MeteoSwiss.
+Radar Tracking algorithm (:cite:`TRT2004`) used operationally at MeteoSwiss.
 Modifications include advecting the identified thunderstorms with the optical flow
 obtained from pysteps, as well as additional options in the thresholding.
 
 References
 ...............
-:cite:'TRT2004'
+:cite:`TRT2004`
 
 @author: mfeldman
 
