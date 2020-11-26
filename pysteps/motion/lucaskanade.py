@@ -48,7 +48,7 @@ import warnings
 def dense_lucaskanade(
     input_images,
     lk_kwargs=None,
-    fd_method="ShiTomasi",
+    fd_method="shitomasi",
     fd_kwargs=None,
     interp_method="rbfinterp2d",
     interp_kwargs=None,
@@ -100,7 +100,7 @@ def dense_lucaskanade(
         features tracking algorithm. See the documentation of
         :py:func:`pysteps.tracking.lucaskanade.track_features`.
 
-    fd_method : {"ShiTomasi", "blob"}, optional
+    fd_method : {"shitomasi", "blob", "tstorm"}, optional
       Name of the feature detection routine. See feature detection methods in
       :py:mod:`pysteps.feature`.
 
@@ -205,6 +205,8 @@ def dense_lucaskanade(
 
     if fd_kwargs is None:
         fd_kwargs = dict()
+    if fd_method == "tstorm":
+        fd_kwargs.update({"output_feat": True})
 
     if lk_kwargs is None:
         lk_kwargs = dict()
