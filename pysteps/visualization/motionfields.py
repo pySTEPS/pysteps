@@ -166,7 +166,7 @@ def quiver(
     # reduce number of vectors to plot
     skip = (slice(None, None, step), slice(None, None, step))
     dx = UV[0, :, :][skip]
-    dy = UV[1, :, :][skip]
+    dy = UV[1, :, :][skip].copy()
     X = X[skip]
     Y = Y[skip]
 
@@ -334,7 +334,7 @@ def streamplot(
         ax = plt.gca()
 
     dx = UV[0, :, :]
-    dy = UV[1, :, :]
+    dy = UV[1, :, :].copy()  # Create a copy since dy may be modified
 
     if geodata is None or geodata["yorigin"] == "upper":
         y = y[::-1]
