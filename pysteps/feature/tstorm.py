@@ -234,9 +234,9 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
     cells_id.time = time
     for n in range(len(cell_labels)):
         ID = n + 1
-        cells_id.ID[n] = ID
-        cells_id.x[n] = np.where(cells == cell_labels[n])[1]
-        cells_id.y[n] = np.where(cells == cell_labels[n])[0]
+        cells_id.ID.iloc[n] = ID
+        cells_id.x.iloc[n] = np.where(cells == cell_labels[n])[1]
+        cells_id.y.iloc[n] = np.where(cells == cell_labels[n])[0]
         cell_unique = np.zeros(cells.shape)
         cell_unique[cells == cell_labels[n]] = 1
         contours = skime.find_contours(cell_unique, 0.8)
@@ -247,10 +247,10 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
         maxref = np.nanmax(ref[cells_id.y[n], cells_id.x[n]])
         y, x = np.where(cell_unique * ref == maxref)
         contours = skime.find_contours(cell_unique, 0.8)
-        cells_id.cont[n] = contours
-        cells_id.max_x[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
-        cells_id.max_y[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
-        cells_id.max_ref[n] = maxref
+        cells_id.cont.iloc[n] = contours
+        cells_id.max_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
+        cells_id.max_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
+        cells_id.max_ref.iloc[n] = maxref
         labels[cells == cell_labels[n]] = ID
 
     return cells_id, labels
@@ -275,7 +275,7 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
     cells_id.time = time
     for n in range(len(cell_labels)):
         ID = n + 1
-        cells_id.ID[n] = ID
+        cells_id.ID.iloc[n] = ID
         cell_unique = np.zeros(cells.shape)
         cell_unique[cells == cell_labels[n]] = 1
         max_ref = np.nanmax((ref * cell_unique).flatten())
@@ -301,8 +301,8 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
             c_unique[loc] = 1
             labels1, n_groups = ndi.label(c_unique)
 
-        cells_id.x[n] = np.where(c_unique == 1)[1]
-        cells_id.y[n] = np.where(c_unique == 1)[0]
+        cells_id.x.iloc[n] = np.where(c_unique == 1)[1]
+        cells_id.y.iloc[n] = np.where(c_unique == 1)[0]
         contours = skime.find_contours(c_unique, 0.8)
         maxval = c_unique[loc_max]
         l = np.where(maxval == 1)
@@ -311,10 +311,10 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
         maxref = np.nanmax(ref_unique.flatten())
         y, x = np.where(c_unique * ref == maxref)
         contours = skime.find_contours(c_unique, 0.8)
-        cells_id.cont[n] = contours
-        cells_id.max_x[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
-        cells_id.max_y[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
-        cells_id.max_ref[n] = maxref
+        cells_id.cont.iloc[n] = contours
+        cells_id.max_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
+        cells_id.max_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
+        cells_id.max_ref.iloc[n] = maxref
         labels[c_unique == 1] = ID
 
     return cells_id, labels

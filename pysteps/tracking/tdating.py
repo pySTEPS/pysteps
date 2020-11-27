@@ -201,11 +201,11 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
                 size.append(len(x))
             biggest = np.argmax(size)
             new_ID = new_ID[biggest]
-            cells_id_new.ID[ID] = new_ID
+            cells_id_new.ID.iloc[ID] = new_ID
         else:
             max_ID += 1
             new_ID = max_ID
-            cells_id_new.ID[ID] = new_ID
+            cells_id_new.ID.iloc[ID] = new_ID
         newlabels[labels == ID + 1] = new_ID
         del new_ID
     return cells_id_new, max_ID, newlabels
