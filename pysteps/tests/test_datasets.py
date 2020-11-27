@@ -78,7 +78,12 @@ test_params_paths = [
 
 @pytest.mark.parametrize("config_dir, file_name, expected_path", test_params_paths)
 def test_params_file_creation_path(config_dir, file_name, expected_path):
-    """Test that the default pysteps parameters file is create in the right place."""
+    """Test that the default pysteps parameters file is created in the right place."""
+
+    # For windows compatibility
+    if config_dir is not None:
+        config_dir = os.path.normpath(config_dir)
+    expected_path = os.path.normpath(expected_path)
 
     pysteps_data_dir = "dummy/path/to/data"
     params_file_path = create_default_pystepsrc(

@@ -30,7 +30,6 @@ def quiver(
 ):
     """Function to plot a motion field as arrows.
 
-    .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
     .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
 
@@ -205,12 +204,8 @@ def streamplot(
 ):
     """Function to plot a motion field as streamlines.
 
-    .. _`mpl_toolkits.basemap`: https://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap
-
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
-
     .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
-
 
     Parameters
     ----------

@@ -344,7 +344,7 @@ def forecast(
 
         # advect the recomposed precipitation field to obtain the forecast for
         # time step t
-        extrap_kwargs.update({"D_prev": D, "return_displacement": True})
+        extrap_kwargs.update({"displacement_prev": D, "return_displacement": True})
         R_f_, D_ = extrapolator_method(R_c_, V, 1, **extrap_kwargs)
         D = D_
         R_f_ = R_f_[0]

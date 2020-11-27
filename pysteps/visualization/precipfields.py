@@ -188,7 +188,7 @@ def plot_precip_field(
             ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs,)
 
     else:
-        ax = plt.axes()
+        ax = plt.gca()
         regular_grid = True
 
     if bbox is not None and geodata is not None:

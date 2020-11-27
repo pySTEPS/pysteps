@@ -11,7 +11,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     * - docs
       - |docs|
     * - tests
-      - |travis| |requires| |codecov|
+      - |test| |requires| |codecov| |black|
     * - package
       - |github| |conda| |pypi|
     * - license
@@ -20,14 +20,18 @@ pySTEPS - Python framework for short-term ensemble prediction systems
       - |slack| |contributors| |downloads|
     * - tutorials
       - |colab| |gallery|
- 
+
 .. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
     :target: https://pysteps.readthedocs.io/
 
-.. |travis| image:: https://travis-ci.com/pySTEPS/pysteps.svg?branch=master
-    :alt: Travis
-    :target: https://travis-ci.com/pySTEPS/pysteps
+.. |test| image:: https://github.com/pySTEPS/pysteps/workflows/Test%20Pysteps/badge.svg
+    :alt: Test Pysteps
+    :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Test+Pysteps"
+
+.. |black| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20Black/badge.svg
+    :alt: Check Black
+    :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Check+Black"
 
 .. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/master/graph/badge.svg
     :alt: Coverage
@@ -57,18 +61,18 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :alt: Slack invitation page
     :target: https://pysteps-slackin.herokuapp.com/
 
-.. |contributors| image:: https://img.shields.io/github/contributors/pySTEPS/pysteps   
+.. |contributors| image:: https://img.shields.io/github/contributors/pySTEPS/pysteps
     :alt: GitHub contributors
     :target: https://github.com/pySTEPS/pysteps/graphs/contributors
-    
-.. |downloads| image:: https://img.shields.io/conda/dn/conda-forge/pysteps   
+
+.. |downloads| image:: https://img.shields.io/conda/dn/conda-forge/pysteps
     :alt: Conda downloads
     :target: https://anaconda.org/conda-forge/pysteps
 
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
     :alt: My first nowcast
     :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
-    
+
 .. |gallery| image:: https://img.shields.io/badge/pysteps-Gallery-blue.svg
     :alt: Pysteps gallery
     :target: https://pysteps.readthedocs.io/en/latest/auto_examples/index.html

@@ -90,7 +90,7 @@ def get_method(name, **kwargs):
     +===================+=====================================================+
     |  blob             | blob detection in scale space                       |
     +-------------------+-----------------------------------------------------+
-    |  ShiTomasi        | Shi-Tomasi corner detection                         |
+    |  shitomasi        | Shi-Tomasi corner detection                         |
     +-------------------+-----------------------------------------------------+
     |  morph_opening    | filter small scale noise                            |
     +-------------------+-----------------------------------------------------+
