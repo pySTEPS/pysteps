@@ -135,22 +135,30 @@ plt.show()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Maximum reflectivity of cells in time
 
+# Make an empty list
 tlen = []
+# Get a list of colors that we will use for the plot
 color = iter(plt.cm.ocean(np.linspace(0, 0.8, len(track_filt))))
+# Now, loop through all the tracks and plot the maximum reflectivity of the cell
+# in time.
 for track in track_filt:
     plt.plot(np.arange(len(track)), track.max_ref, c=next(color))
     tlen.append(len(track))
 plt.xticks(np.arange(max(tlen) + 1), labels=np.arange(max(tlen) + 1) * 5)
-plt.ylabel("maximum reflectivity in dBZ")
-plt.xlabel("time since cell detection in minutes")
-plt.legend(IDs)
+plt.ylabel("Maximum reflectivity (dBZ)")
+plt.xlabel("Time since cell detection (min)")
+plt.legend(IDs, loc = "lower right", ncol = 3, title = "Track number")
 plt.show()
 
 ###############################################################################
-# Size of cells in time
+# The size of the thunderstorm cells in time
 
+# Make an empty list
 tlen = []
+# Get a list of colors that we will use for the plot
 color = iter(plt.cm.ocean(np.linspace(0, 0.8, len(track_filt))))
+# Now, loop through all the tracks and plot the cell size of the thunderstorms
+# in time.
 for track in track_filt:
     size = []
     for ID, t in track.iterrows():
@@ -158,7 +166,7 @@ for track in track_filt:
     plt.plot(np.arange(len(track)), size, c=next(color))
     tlen.append(len(track))
 plt.xticks(np.arange(max(tlen) + 1), labels=np.arange(max(tlen) + 1) * 5)
-plt.ylabel("cell size in pixels")
-plt.xlabel("time since cell detection in minutes")
-plt.legend(IDs)
+plt.ylabel("Thunderstorm cell size (pixels)")
+plt.xlabel("Time since cell detection (min)")
+plt.legend(IDs, loc = "upper left", ncol = 3, title = "Track number")
 plt.show()
