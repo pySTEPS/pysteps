@@ -43,9 +43,9 @@ from pysteps.visualization import plot_precip_field, plot_track, plot_cart_conto
 # Read the radar input images
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# A series of 20 files containing Swiss Cartesian gridded rainrate are imported. Since the
-# algorithm is tuned to Swiss max-reflectivity data, the rainrate is transformed to
-# reflectivity.
+# A series of 20 files containing Swiss Cartesian gridded rain rates are imported. Since
+# the algorithm is tuned to Swiss max-reflectivity data, the rain rates are transformed 
+# to reflectivity fields using the 'to_reflectivity' utility in pysteps.utils.
 
 # Select the input data
 date = datetime.strptime("201607112100", "%Y%m%d%H%M")
@@ -67,7 +67,8 @@ fns = io.archive.find_by_date(
 importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Convert to reflectivity
+# Convert to reflectivity (it is possible to give the a- and b- parameters of the
+# Marshall-Palmer relationship here: zr_a = and zr_b =).
 Z, metadata = to_reflectivity(R, metadata)
 
 # Extract the list of timestamps
