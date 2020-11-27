@@ -217,7 +217,6 @@ def forecast(
                 vil[i, :],
                 velocity,
                 vil.shape[0] - 1 - i,
-                allow_nonfinite_values=True,
                 **extrap_kwargs,
             )[-1],
         )
@@ -334,7 +333,6 @@ def forecast(
             {
                 "displacement_prev": dp,
                 "return_displacement": True,
-                "allow_nonfinite_values": True,
             }
         )
         r_f_, dp = extrapolator(r_f_, velocity, 1, **extrap_kwargs)
