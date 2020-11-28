@@ -46,7 +46,7 @@ def detection(
         Array of shape (m, n) containing the input image. Nan values are ignored.
     method : {'log', 'dog', 'doh'}, optional
         The method to use: 'log' = Laplacian of Gaussian, 'dog' = Difference of
-        Gaussian, ''
+        Gaussian, 'doh' = Determinant of Hessian.
     threshold : float, optional
         Detection threshold.
     min_sigma : float, optional
