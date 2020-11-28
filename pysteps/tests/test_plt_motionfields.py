@@ -29,7 +29,13 @@ arg_values_quiver = [
 
 @pytest.mark.parametrize(arg_names_quiver, arg_values_quiver)
 def test_visualization_motionfields_quiver(
-    source, axis, step, quiver_kwargs, map_kwargs, upscale, pass_geodata,
+    source,
+    axis,
+    step,
+    quiver_kwargs,
+    map_kwargs,
+    upscale,
+    pass_geodata,
 ):
 
     if source is not None:
@@ -49,7 +55,15 @@ def test_visualization_motionfields_quiver(
         U, V = np.meshgrid(u, v)
         UV = np.concatenate([U[None, :], V[None, :]])
 
-    __ = quiver(UV, ax, geodata, axis, step, quiver_kwargs, map_kwargs=map_kwargs,)
+    __ = quiver(
+        UV,
+        ax,
+        geodata,
+        axis,
+        step,
+        quiver_kwargs,
+        map_kwargs=map_kwargs,
+    )
 
 
 arg_names_streamplot = (
@@ -90,7 +104,14 @@ def test_visualization_motionfields_streamplot(
         U, V = np.meshgrid(u, v)
         UV = np.concatenate([U[None, :], V[None, :]])
 
-    __ = streamplot(UV, ax, geodata, axis, streamplot_kwargs, map_kwargs=map_kwargs,)
+    __ = streamplot(
+        UV,
+        ax,
+        geodata,
+        axis,
+        streamplot_kwargs,
+        map_kwargs=map_kwargs,
+    )
 
 
 if __name__ == "__main__":

@@ -44,7 +44,12 @@ def test_initialize_bps(variable, expected):
     pixelsperkm = 1
     v = np.ones((8, 8))
     velocity = np.stack([v, v])
-    perturbator = initialize_bps(velocity, pixelsperkm, timestep, seed=seed,)
+    perturbator = initialize_bps(
+        velocity,
+        pixelsperkm,
+        timestep,
+        seed=seed,
+    )
     assert_array_almost_equal(perturbator[variable], expected)
 
 
@@ -55,7 +60,12 @@ def test_generate_bps():
     pixelsperkm = 1
     v = np.ones((8, 8))
     velocity = np.stack([v, v])
-    perturbator = initialize_bps(velocity, pixelsperkm, timestep, seed=seed,)
+    perturbator = initialize_bps(
+        velocity,
+        pixelsperkm,
+        timestep,
+        seed=seed,
+    )
     new_vv = generate_bps(perturbator, timestep)
     expected = np.stack([v * -0.066401, v * 0.050992])
     assert_array_almost_equal(new_vv, expected)

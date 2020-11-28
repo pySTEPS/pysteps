@@ -50,7 +50,16 @@ def test_feature_tstorm_detection(source, dyn_thresh, output_feat, dry_input):
         assert isinstance(output[0], DataFrame)
         assert isinstance(output[1], np.ndarray)
         assert output[0].shape[1] == 8
-        assert list(output[0].columns) == ['ID', 'time', 'x', 'y', 'max_x', 'max_y', 'max_ref', 'cont']
+        assert list(output[0].columns) == [
+            "ID",
+            "time",
+            "x",
+            "y",
+            "max_x",
+            "max_y",
+            "max_ref",
+            "cont",
+        ]
         assert (output[0].time == time).all()
         assert output[1].ndim == 2
         assert output[1].shape == input.shape
