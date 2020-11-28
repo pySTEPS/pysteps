@@ -55,7 +55,7 @@ def detection(
         The maximum standard deviation for the Gaussian kernel.
     overlap : float, optional
         A value between 0 and 1. If the area of two blobs overlaps by a fraction
-        greater than threshold, the smaller blob is eliminated.
+        greater than the value for overlap, the smaller blob is eliminated.
     return_sigmas : bool, optional
         If True, return the standard deviations of the Gaussian kernels
         corresponding to the detected blobs.
