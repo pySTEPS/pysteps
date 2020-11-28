@@ -68,6 +68,8 @@ def forecast(
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
+    else:
+        extrap_kwargs = extrap_kwargs.copy()
 
     if measure_time:
         print(
