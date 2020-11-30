@@ -39,16 +39,9 @@ def plot_track(track_list, geodata=None):
     ----------
     track_list : list
         List of tracks provided by DATing.
-    xsize : int
-        size of domain in x-direction.
-    ysize : int
-        size of domain in y-direction.
-    poix : array of int, optional
-        X-location of points of interest to plot with tracks (e.g. radar locations).
-        The default is None.
-    poiy : array of int, optional
-        Y-location of points of interest to plot with tracks (e.g. radar locations).
-        The default is None.
+    geodata : dictionary or None, optional
+        Optional dictionary containing geographical information about
+        the field. If not None, plots the contours in a georeferenced frame.
 
     Returns
     -------
