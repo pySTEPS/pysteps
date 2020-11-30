@@ -20,9 +20,10 @@ References
     :toctree: ../generated/
 
     detection
-    belonging
+    breakup
     longdistance
     get_profile
+    get_profile_dyn
 """
 
 import numpy as np
