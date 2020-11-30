@@ -79,9 +79,7 @@ def plot_track(track_list, geodata=None):
     return ax
 
 
-def plot_cart_contour(
-    contours, geodata=None,
-):
+def plot_cart_contour(contours, geodata=None):
     """
     Plots input image with identified cell contours. Optionally points of interest added.
 
