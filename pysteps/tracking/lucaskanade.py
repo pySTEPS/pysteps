@@ -3,7 +3,7 @@
 pysteps.tracking.lucaskanade
 ============================
 
-The Lucas-Kanade (LK) local feature tracking module.
+The Lucas-Kanade (LK) feature tracking module.
 
 This module implements the interface to the local `Lucas-Kanade`_ routine
 available in OpenCV_.
@@ -46,7 +46,7 @@ def track_features(
     verbose=False,
 ):
     """
-    Interface to the OpenCV `Lucas-Kanade`_ features tracking algorithm
+    Interface to the OpenCV `Lucas-Kanade`_ feature tracking algorithm
     (cv.calcOpticalFlowPyrLK).
 
     .. _`Lucas-Kanade`:\
@@ -67,11 +67,11 @@ def track_features(
 
     prvs_image : ndarray_ or MaskedArray_
         Array of shape (m, n) containing the first image.
-        Invalid values (Nans or infs) are filled using the min value.
+        Invalid values (Nans or infs) are replaced with the min value.
 
     next_image : ndarray_ or MaskedArray_
         Array of shape (m, n) containing the successive image.
-        Invalid values (Nans or infs) are filled using the min value.
+        Invalid values (Nans or infs) are replaced with the min value.
 
     points : array_like
         Array of shape (p, 2) indicating the pixel coordinates of the
