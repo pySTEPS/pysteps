@@ -42,7 +42,7 @@ try:
     SKIMAGE_IMPORTED = True
 except ImportError:
     SKIMAGE_IMPORTED = False
-if SKIMAGE_IMPORTED == True:
+if SKIMAGE_IMPORTED:
     import skimage.draw as skid
     import skimage.feature as skif
     import skimage.measure as skime
