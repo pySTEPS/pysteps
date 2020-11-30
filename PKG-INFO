@@ -1,8 +1,8 @@
 Metadata-Version: 1.2
-Name: pySteps
-Version: 1.3.2
+Name: pysteps
+Version: 1.4.0
 Summary: Python framework for short-term ensemble prediction systems
-Home-page: http://pypi.python.org/pypi/pySteps/
+Home-page: http://pypi.python.org/pypi/pysteps/
 License: LICENSE
 Description: =======
 pySteps
