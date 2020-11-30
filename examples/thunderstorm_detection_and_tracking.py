@@ -25,8 +25,6 @@ References
 # Import all required functions
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import os
-import sys
 from datetime import datetime
 from pprint import pprint
 
