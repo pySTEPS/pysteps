@@ -80,25 +80,29 @@ def track_features(
     winsize : tuple of int, optional
         The **winSize** parameter in calcOpticalFlowPyrLK_.
         It represents the size of the search window that it is used at each
-        pyramid level.
+        pyramid level. The default is (50, 50).
 
     nr_levels : int, optional
         The **maxLevel** parameter in calcOpticalFlowPyrLK_.
         It represents the 0-based maximal pyramid level number.
+        The default is 3.
 
     criteria : tuple of int, optional
         The **TermCriteria** parameter in calcOpticalFlowPyrLK_ ,
         which specifies the termination criteria of the iterative search
-        algorithm.
+        algorithm. The default is (3, 10, 0).
 
     flags : int, optional
-        Operation flags, see documentation calcOpticalFlowPyrLK_.
+        Operation flags, see documentation calcOpticalFlowPyrLK_. The
+        default is 0.
 
     min_eig_thr : float, optional
-        The **minEigThreshold** parameter in calcOpticalFlowPyrLK_.
+        The **minEigThreshold** parameter in calcOpticalFlowPyrLK_. The
+        default is 1e-4.
 
     verbose : bool, optional
-        Print the number of vectors that have been found.
+        Print the number of vectors that have been found. The default
+        is False.
 
     Returns
     -------
@@ -155,14 +159,14 @@ def track_features(
     # scale between 0 and 255
     im_min = prvs_img.min()
     im_max = prvs_img.max()
-    if im_max - im_min > 1e-8:
+    if (im_max - im_min) > 1e-8:
         prvs_img = (prvs_img.filled() - im_min) / (im_max - im_min) * 255
     else:
         prvs_img = prvs_img.filled() - im_min
 
     im_min = next_img.min()
     im_max = next_img.max()
-    if im_max - im_min > 1e-8:
+    if (im_max - im_min) > 1e-8:
         next_img = (next_img.filled() - im_min) / (im_max - im_min) * 255
     else:
         next_img = next_img.filled() - im_min
