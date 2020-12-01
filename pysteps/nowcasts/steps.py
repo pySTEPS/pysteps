@@ -607,8 +607,21 @@ def forecast(
 
     # iterate each time step
     for t in range(len(timesteps)):
-        print("Computing nowcast for time step %d... " % (t + 1), end="")
-        sys.stdout.flush()
+        if timestep_type == "list":
+            subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
+        else:
+            subtimesteps = []
+
+        if t_diff_sum < 1.0 or len(subtimesteps) > 0:
+            nowcast_time_step = True
+        else:
+            nowcast_time_step = False
+
+        if nowcast_time_step:
+            print(
+                "Computing nowcast for time step %d... " % (t + 1), end="", flush=True
+            )
+
         if measure_time:
             starttime = time.time()
 
@@ -714,11 +727,6 @@ def forecast(
 
             R_f_new[domain_mask] = np.nan
 
-            if timestep_type == "list":
-                subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
-            else:
-                subtimesteps = []
-
             R_f_out = []
             extrap_kwargs_ = extrap_kwargs.copy()
 
@@ -772,10 +780,11 @@ def forecast(
         )
         res = None
 
-        if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
-        else:
-            print("done.")
+        if nowcast_time_step:
+            if measure_time:
+                print("%.2f seconds." % (time.time() - starttime))
+            else:
+                print("done.")
 
         if callback is not None:
             callback(np.stack(R_f_))

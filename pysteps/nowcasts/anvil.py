@@ -303,8 +303,25 @@ def forecast(
     t_diff_sum = np.inf
 
     dp = None
+    t_nowcast = 0
     for t in range(len(timesteps)):
-        print("Computing nowcast for time step %d... " % (t + 1), end="", flush=True)
+        if timestep_type == "list":
+            subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
+        else:
+            subtimesteps = []
+
+        if t_diff_sum < 1.0 or len(subtimesteps) > 0:
+            nowcast_time_step = True
+        else:
+            nowcast_time_step = False
+
+        if nowcast_time_step:
+            print(
+                "Computing nowcast for time step %d... " % (t_nowcast + 1),
+                end="",
+                flush=True,
+            )
+            t_nowcast += 1
 
         if measure_time:
             starttime = time.time()
@@ -330,11 +347,6 @@ def forecast(
                 r_f_new[rainrate_mask] = 0.0
 
         r_f_new[r_f_new < 0.0] = 0.0
-
-        if timestep_type == "list":
-            subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
-        else:
-            subtimesteps = []
 
         if t_diff_sum < 1.0:
             extrap_kwargs["displacement_prev"] = dp
@@ -362,10 +374,11 @@ def forecast(
 
         r_f_prev = r_f_new
 
-        if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
-        else:
-            print("done.")
+        if nowcast_time_step:
+            if measure_time:
+                print("%.2f seconds." % (time.time() - starttime))
+            else:
+                print("done.")
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
