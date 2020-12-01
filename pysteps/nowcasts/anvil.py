@@ -22,6 +22,7 @@ import time
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from pysteps import cascade, extrapolation
+from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.timeseries import autoregression
 from pysteps import utils
 
@@ -162,9 +163,9 @@ def forecast(
     print("Parameters:")
     print("-----------")
     if isinstance(timesteps, int):
-        print("number of time steps:     %d" % timesteps)
+        print("number of time steps:        %d" % timesteps)
     else:
-        print("time steps:               %s" % timesteps)
+        print("time steps:                  %s" % timesteps)
     print("parallel threads:            %d" % num_workers)
     print("number of cascade levels:    %d" % n_cascade_levels)
     print("order of the ARI(p,1) model: %d" % ar_order)
@@ -283,8 +284,24 @@ def forecast(
         starttime_mainloop = time.time()
 
     r_f = []
+
+    if isinstance(timesteps, int):
+        timesteps = range(timesteps + 1)
+        timestep_type = "int"
+    else:
+        original_timesteps = [0] + list(timesteps)
+        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
+        timestep_type = "list"
+
+    if rainrate is not None:
+        r_f_prev = r_vil_a * vil[-1, :] + r_vil_b
+    else:
+        r_f_prev = vil[-1, :]
+    extrap_kwargs["return_displacement"] = True
+    t_diff_sum = np.inf
+
     dp = None
-    for t in range(num_timesteps):
+    for t in range(len(timesteps)):
         print("Computing nowcast for time step %d... " % (t + 1), end="", flush=True)
 
         if measure_time:
@@ -304,30 +321,49 @@ def forecast(
 
         if rainrate is not None:
             # convert VIL to rain rate
-            r_f_ = r_vil_a * vil_f + r_vil_b
+            r_f_new = r_vil_a * vil_f + r_vil_b
         else:
-            r_f_ = vil_f
+            r_f_new = vil_f
             if apply_rainrate_mask:
-                r_f_[rainrate_mask] = 0.0
+                r_f_new[rainrate_mask] = 0.0
 
-        r_f_[r_f_ < 0.0] = 0.0
+        r_f_new[r_f_new < 0.0] = 0.0
 
-        # extrapolate to the current nowcast lead time
-        extrap_kwargs.update(
-            {
-                "displacement_prev": dp,
-                "return_displacement": True,
-                "allow_nonfinite_values": True,
-            }
-        )
-        r_f_, dp = extrapolator(r_f_, velocity, 1, **extrap_kwargs)
+        if timestep_type == "list":
+            subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
+        else:
+            subtimesteps = []
+
+        if t_diff_sum < 1.0:
+            extrap_kwargs["displacement_prev"] = dp
+            r_f_ep, dp = extrapolator(
+                r_f_prev,
+                velocity,
+                [1.0 - t_diff_sum],
+                allow_nonfinite_values=True,
+                **extrap_kwargs,
+            )
+            r_f.append(r_f_ep[0])
+
+        t_diff_sum = 0.0
+
+        for t_diff in np.diff(subtimesteps):
+            t_diff_sum += t_diff
+
+            r_f_ip = (1.0 - t_diff_sum) * r_f_prev + t_diff_sum * r_f_new
+
+            extrap_kwargs["displacement_prev"] = dp
+            r_f_ep, dp = extrapolator(
+                r_f_ip, velocity, [t_diff], allow_nonfinite_values=True, **extrap_kwargs
+            )
+            r_f.append(r_f_ep[0])
+
+        r_f_prev = r_f_new
 
         if measure_time:
             print("%.2f seconds." % (time.time() - starttime))
         else:
             print("done.")
-
-        r_f.append(r_f_[-1])
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
