@@ -295,8 +295,6 @@ def forecast(
     # the AR(p) model
     R_c = [R_c[i][-ar_order:] for i in range(n_cascade_levels)]
 
-    D = None
-
     if probmatching_method == "mean":
         mu_0 = np.mean(R[-1, :, :][R[-1, :, :] >= R_thr])
 
@@ -326,24 +324,30 @@ def forecast(
 
     R_f_prev = R
     extrap_kwargs["return_displacement"] = True
-    t_diff_sum = np.inf
+
+    D = None
+    t_nowcast = 0
+    t_prev = 0.0
 
     # iterate each time step
     for t in range(len(timesteps)):
         if timestep_type == "list":
             subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
         else:
-            subtimesteps = []
+            subtimesteps = [t]
 
-        if t_diff_sum < 1.0 or len(subtimesteps) > 0:
+        if len(subtimesteps) > 1 or t > 0:
             nowcast_time_step = True
         else:
             nowcast_time_step = False
 
         if nowcast_time_step:
             print(
-                "Computing nowcast for time step %d... " % (t + 1), end="", flush=True
+                "Computing nowcast for time step %d... " % (t_nowcast + 1),
+                end="",
+                flush=True,
             )
+            t_nowcast += 1
 
         if measure_time:
             starttime = time.time()
@@ -373,25 +377,42 @@ def forecast(
 
         R_f_new[domain_mask] = np.nan
 
-        # advect the recomposed precipitation field to obtain the forecast
-        # for time step t
-        if t_diff_sum < 1.0:
+        # advect the recomposed precipitation field to obtain the forecast for
+        # the current time step (or subtimesteps of non-integer time steps are
+        # given)
+        for t_sub in subtimesteps:
+            if t_sub > 0:
+                t_diff_prev_int = t_sub - int(t_sub)
+                if t_diff_prev_int > 0.0:
+                    R_f_ip = (
+                        1.0 - t_diff_prev_int
+                    ) * R_f_prev + t_diff_prev_int * R_f_new
+                else:
+                    R_f_ip = R_f_prev
+
+                t_diff_prev = t_sub - t_prev
+                extrap_kwargs["displacement_prev"] = D
+                R_f_ep, D = extrapolator_method(
+                    R_f_ip,
+                    V,
+                    [t_diff_prev],
+                    **extrap_kwargs,
+                )
+                R_f.append(R_f_ep[0])
+                t_prev = t_sub
+
+        # advect the forecast field by one time step if no subtimesteps in the
+        # current interval were found
+        if len(subtimesteps) == 0:
+            t_diff_prev = t + 1 - t_prev
             extrap_kwargs["displacement_prev"] = D
-            R_f_ep, D = extrapolator_method(
-                R_f_prev, V, [1.0 - t_diff_sum], **extrap_kwargs
+            _, D = extrapolator_method(
+                R_f_ip,
+                V,
+                [t_diff_prev],
+                **extrap_kwargs,
             )
-            R_f.append(R_f_ep[0])
-
-        t_diff_sum = 0.0
-
-        for t_diff in np.diff(subtimesteps):
-            t_diff_sum += t_diff
-
-            R_f_ip = (1.0 - t_diff_sum) * R_f_prev + t_diff_sum * R_f_new
-
-            extrap_kwargs["displacement_prev"] = D
-            R_f_ep, D = extrapolator_method(R_f_ip, V, [t_diff], **extrap_kwargs)
-            R_f.append(R_f_ep[0])
+            t_prev = t + 1
 
         R_f_prev = R_f_new
 

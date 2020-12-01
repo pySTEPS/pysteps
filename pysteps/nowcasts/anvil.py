@@ -300,17 +300,18 @@ def forecast(
     else:
         r_f_prev = vil[-1, :]
     extrap_kwargs["return_displacement"] = True
-    t_diff_sum = np.inf
 
     dp = None
     t_nowcast = 0
+    t_prev = 0.0
+
     for t in range(len(timesteps)):
         if timestep_type == "list":
             subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
         else:
-            subtimesteps = []
+            subtimesteps = [t]
 
-        if t_diff_sum < 1.0 or len(subtimesteps) > 0:
+        if len(subtimesteps) > 1 or t > 0:
             nowcast_time_step = True
         else:
             nowcast_time_step = False
@@ -348,29 +349,43 @@ def forecast(
 
         r_f_new[r_f_new < 0.0] = 0.0
 
-        if t_diff_sum < 1.0:
+        # advect the recomposed field to obtain the forecast for the current
+        # time step (or subtimesteps of non-integer time steps are given)
+        for t_sub in subtimesteps:
+            if t_sub > 0:
+                t_diff_prev_int = t_sub - int(t_sub)
+                if t_diff_prev_int > 0.0:
+                    r_f_ip = (
+                        1.0 - t_diff_prev_int
+                    ) * r_f_prev + t_diff_prev_int * r_f_new
+                else:
+                    r_f_ip = r_f_prev
+
+                t_diff_prev = t_sub - t_prev
+                extrap_kwargs["displacement_prev"] = dp
+                r_f_ep, dp = extrapolator(
+                    r_f_ip,
+                    velocity,
+                    [t_diff_prev],
+                    allow_nonfinite_values=True,
+                    **extrap_kwargs,
+                )
+                r_f.append(r_f_ep[0])
+                t_prev = t_sub
+
+        # advect the forecast field by one time step if no subtimesteps in the
+        # current interval were found
+        if len(subtimesteps) == 0:
+            t_diff_prev = t + 1 - t_prev
             extrap_kwargs["displacement_prev"] = dp
-            r_f_ep, dp = extrapolator(
-                r_f_prev,
+            _, dp = extrapolator(
+                r_f_ip,
                 velocity,
-                [1.0 - t_diff_sum],
+                [t_diff_prev],
                 allow_nonfinite_values=True,
                 **extrap_kwargs,
             )
-            r_f.append(r_f_ep[0])
-
-        t_diff_sum = 0.0
-
-        for t_diff in np.diff(subtimesteps):
-            t_diff_sum += t_diff
-
-            r_f_ip = (1.0 - t_diff_sum) * r_f_prev + t_diff_sum * r_f_new
-
-            extrap_kwargs["displacement_prev"] = dp
-            r_f_ep, dp = extrapolator(
-                r_f_ip, velocity, [t_diff], allow_nonfinite_values=True, **extrap_kwargs
-            )
-            r_f.append(r_f_ep[0])
+            t_prev = t + 1
 
         r_f_prev = r_f_new
 
