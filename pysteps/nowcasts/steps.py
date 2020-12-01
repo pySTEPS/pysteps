@@ -433,8 +433,7 @@ def forecast(
         pp = init_noise(R, fft_method=fft, **noise_kwargs)
 
         if noise_stddev_adj == "auto":
-            print("Computing noise adjustment coefficients... ", end="")
-            sys.stdout.flush()
+            print("Computing noise adjustment coefficients... ", end="", flush=True)
             if measure_time:
                 starttime = time.time()
 
@@ -545,6 +544,8 @@ def forecast(
             vps.append(vp_)
 
     D = [None for j in range(n_ens_members)]
+    t_nowcast = 0
+    t_prev = [0.0 for j in range(n_ens_members)]
     R_f = [[] for j in range(n_ens_members)]
 
     if probmatching_method == "mean":
@@ -603,24 +604,26 @@ def forecast(
     extrap_kwargs["return_displacement"] = True
     R_f_prev = [R for i in range(n_ens_members)]
     V_prev = [V for i in range(n_ens_members)]
-    t_diff_sum = [np.inf for i in range(n_ens_members)]
 
     # iterate each time step
     for t in range(len(timesteps)):
         if timestep_type == "list":
             subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
         else:
-            subtimesteps = []
+            subtimesteps = [t]
 
-        if t_diff_sum < 1.0 or len(subtimesteps) > 0:
+        if len(subtimesteps) > 1 or t > 0:
             nowcast_time_step = True
         else:
             nowcast_time_step = False
 
         if nowcast_time_step:
             print(
-                "Computing nowcast for time step %d... " % (t + 1), end="", flush=True
+                "Computing nowcast for time step %d... " % (t_nowcast + 1),
+                end="",
+                flush=True,
             )
+            t_nowcast += 1
 
         if measure_time:
             starttime = time.time()
@@ -736,30 +739,45 @@ def forecast(
             else:
                 V_new = V
 
-            # advect the recomposed precipitation field to obtain the forecast
-            # for time step t
-            if t_diff_sum[j] < 1.0:
+            # advect the recomposed precipitation field to obtain the forecast for
+            # the current time step (or subtimesteps of non-integer time steps are
+            # given)
+            for t_sub in subtimesteps:
+                if t_sub > 0:
+                    t_diff_prev_int = t_sub - int(t_sub)
+                    if t_diff_prev_int > 0.0:
+                        R_f_ip = (1.0 - t_diff_prev_int) * R_f_prev[
+                            j
+                        ] + t_diff_prev_int * R_f_new
+                    else:
+                        R_f_ip = R_f_prev[j]
+                    # TODO: Use generate_vel_noise with the fractional time step
+                    # instead of interpolating the advection field
+                    V_ip = (1.0 - t_diff_prev_int) * V_prev[j] + t_diff_prev_int * V_new
+
+                    t_diff_prev = t_sub - t_prev[j]
+                    extrap_kwargs_["displacement_prev"] = D[j]
+                    R_f_ep, D[j] = extrapolator_method(
+                        R_f_ip,
+                        V_ip,
+                        [t_diff_prev],
+                        **extrap_kwargs_,
+                    )
+                    R_f_out.append(R_f_ep[0])
+                    t_prev[j] = t_sub
+
+            # advect the forecast field by one time step if no subtimesteps in the
+            # current interval were found
+            if len(subtimesteps) == 0:
+                t_diff_prev = t + 1 - t_prev[j]
                 extrap_kwargs_["displacement_prev"] = D[j]
-                R_f_ep, D[j] = extrapolator_method(
-                    R_f_prev[j], V_prev[j], [1.0 - t_diff_sum[j]], **extrap_kwargs_
+                _, D[j] = extrapolator_method(
+                    R_f_prev[j],
+                    V_new,
+                    [t_diff_prev],
+                    **extrap_kwargs_,
                 )
-                R_f_out.append(R_f_ep[0])
-
-            t_diff_sum[j] = 0.0
-
-            for t_diff in np.diff(subtimesteps):
-                t_diff_sum[j] += t_diff
-
-                R_f_ip = (1.0 - t_diff_sum[j]) * R_f_prev[j] + t_diff_sum[j] * R_f_new
-                # TODO: Use generate_vel_noise with the fractional time step
-                # instead of interpolating the advection field
-                V_ip = (1.0 - t_diff_sum[j]) * V_prev[j] + t_diff_sum[j] * V_new
-
-                extrap_kwargs_["displacement_prev"] = D[j]
-                R_f_ep, D[j] = extrapolator_method(
-                    R_f_ip, V_ip, [t_diff], **extrap_kwargs_
-                )
-                R_f_out.append(R_f_ep[0])
+                t_prev[j] = t + 1
 
             R_f_prev[j] = R_f_new
             V_prev[j] = V_new
