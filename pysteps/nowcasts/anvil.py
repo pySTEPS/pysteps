@@ -141,6 +141,8 @@ def forecast(
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
+    else:
+        extrap_kwargs = extrap_kwargs.copy()
 
     if filter_kwargs is None:
         filter_kwargs = dict()
