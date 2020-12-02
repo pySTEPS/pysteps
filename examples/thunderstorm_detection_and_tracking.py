@@ -159,7 +159,6 @@ for track in track_filt:
     tlen.append(len(track))
 plt.xticks(np.arange(max(tlen) + 1), labels=np.arange(max(tlen) + 1) * 5)
 plt.ylabel("Thunderstorm cell size (pixels)")
-plt.ylim([0, 2000])
 plt.xlabel("Time since cell detection (min)")
 plt.legend(IDs, loc="upper left", ncol=3, title="Track number")
 plt.show()
