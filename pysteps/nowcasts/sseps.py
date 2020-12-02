@@ -906,8 +906,7 @@ def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
 
 
 def _get_mask(Size, idxi, idxj, win_type="flat-hanning"):
-    """Compute a mask of zeros with a window at a given position.
-    """
+    """Compute a mask of zeros with a window at a given position."""
 
     idxi = np.array(idxi).astype(int)
     idxj = np.array(idxj).astype(int)

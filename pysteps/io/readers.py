@@ -14,14 +14,14 @@ import numpy as np
 
 
 def read_timeseries(inputfns, importer, **kwargs):
-    """Read a time series of input files using the methods implemented in the 
-    :py:mod:`pysteps.io.importers` module and stack them into a 3d array of 
+    """Read a time series of input files using the methods implemented in the
+    :py:mod:`pysteps.io.importers` module and stack them into a 3d array of
     shape (num_timesteps, height, width).
 
     Parameters
     ----------
     inputfns : tuple
-        Input files returned by a function implemented in the 
+        Input files returned by a function implemented in the
         :py:mod:`pysteps.io.archive` module.
     importer : function
         A function implemented in the :py:mod:`pysteps.io.importers` module.
