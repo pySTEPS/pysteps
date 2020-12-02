@@ -67,8 +67,8 @@ def plot_track(track_list, geodata=None):
 
     color = iter(plt.cm.spring(np.linspace(0, 1, len(track_list))))
     for track in track_list:
-        max_x, max_y = pix2coord(track.max_x, track.max_y)
-        p2 = ax.plot(max_x, max_y, c=next(color))
+        cen_x, cen_y = pix2coord(track.cen_x, track.cen_y)
+        p2 = ax.plot(cen_x, cen_y, c=next(color))
     return ax
 
 

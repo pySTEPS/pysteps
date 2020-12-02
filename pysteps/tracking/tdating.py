@@ -83,11 +83,13 @@ def dating(
     ----------
     input_video : array-like
         Array of shape (t,m,n) containing input image, with t being the temporal
-        dimension and m,n the spatial dimensions. Nan values are ignored.
+        dimension and m,n the spatial dimensions. Thresholds are tuned to maximum
+        reflectivity in dBZ with a spatial resolution of 1 km and a temporal resolution
+        of 5 min. Nan values are ignored.
     timelist : list
         List of length t containing string of time and date of each (m,n) field.
     mintrack : int, optional
-        minimum length of cell-track to be counted. The default is 3.
+        minimum duration of cell-track to be counted. The default is 3 time steps.
     cell_list : list or None, optional
         If you wish to expand an existing list of cells, insert previous cell-list here.
         The default is None.
@@ -126,9 +128,17 @@ def dating(
     -------
     track_list : list of dataframes
         Each dataframe contains the track and properties belonging to one cell ID.
+        Columns of dataframes: ID - cell ID, time - time stamp, x - array of all
+        x-coordinates of cell, y -  array of all y-coordinates of cell, cen_x -
+        x-coordinate of cell centroid, cen_y - y-coordinate of cell centroid, max_ref -
+        maximum (reflectivity) value of cell, cont - cell contours
     cell_list : list of dataframes
         Each dataframe contains the detected cells and properties belonging to one
         timestep. The IDs are already matched to provide a track.
+        Columns of dataframes: ID - cell ID, time - time stamp, x - array of all
+        x-coordinates of cell, y -  array of all y-coordinates of cell, cen_x -
+        x-coordinate of cell centroid, cen_y - y-coordinate of cell centroid, max_ref -
+        maximum (reflectivity) value of cell, cont - cell contours
     label_list : list of arrays
         Each (n,m) array contains the gridded IDs of the cells identified in the
         corresponding timestep. The IDs are already matched to provide a track.
@@ -157,7 +167,15 @@ def dating(
     max_ID = 0
     for t in range(start, len(timelist)):
         cells_id, labels = tstorm_detect.detection(
-            input_video[t, :, :], time=timelist[t]
+            input_video[t, :, :],
+            minref=minref,
+            maxref=maxref,
+            mindiff=mindiff,
+            minsize=minsize,
+            minmax=minmax,
+            mindis=mindis,
+            dyn_thresh=dyn_thresh,
+            time=timelist[t]
         )
         if len(cell_list) < 2:
             cell_list.append(cells_id)
@@ -222,8 +240,8 @@ def advect(cells_id, labels, V1):
             "ID",
             "x",
             "y",
-            "max_x",
-            "max_y",
+            "cen_x",
+            "cen_y",
             "max_ref",
             "cont",
             "t_ID",
@@ -243,14 +261,14 @@ def advect(cells_id, labels, V1):
         new_y[new_y > labels.shape[0] - 1] = labels.shape[0] - 1
         new_x[new_x < 0] = 0
         new_y[new_y < 0] = 0
-        new_max_x = cell.max_x + ad_x
-        new_max_y = cell.max_y + ad_y
+        new_cen_x = cell.cen_x + ad_x
+        new_cen_y = cell.cen_y + ad_y
         cells_ad.x[ID] = new_x
         cells_ad.y[ID] = new_y
         cells_ad.flowx[ID] = ad_x
         cells_ad.flowy[ID] = ad_y
-        cells_ad.max_x[ID] = new_max_x
-        cells_ad.max_y[ID] = new_max_y
+        cells_ad.cen_x[ID] = new_cen_x
+        cells_ad.cen_y[ID] = new_cen_y
         cells_ad.ID[ID] = cell.ID
         cell_unique = np.zeros(labels.shape)
         cell_unique[new_y, new_x] = 1
@@ -296,7 +314,7 @@ def couple_track(cell_list, max_ID, mintrack):
         cell_track = pd.DataFrame(
             data=None,
             index=None,
-            columns=["ID", "time", "x", "y", "max_x", "max_y", "max_ref", "cont"],
+            columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont"],
         )
         for t in range(len(cell_list)):
             mytime = cell_list[t]

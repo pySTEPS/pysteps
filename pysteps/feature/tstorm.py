@@ -92,8 +92,9 @@ def detection(
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
     dyn_thresh: bool, optional
-        Set to True to activate dynamic lower threshold. Restricts contours to more
-        meaningful area. The default is False.
+        Set to True to activate dynamic lower threshold, begins with minref and
+        increases it accordingly. Restricts contours to more meaningful area.
+        The default is False.
     output_feat: bool, optional
         Set to True to return only the cell coordinates.
     time : string, optional
@@ -105,6 +106,10 @@ def detection(
     cells_id : pandas dataframe
         Pandas dataframe containing all detected cells and their respective properties
         corresponding to the input image.
+        Columns of dataframe: ID - cell ID, time - time stamp, x - array of all
+        x-coordinates of cell, y -  array of all y-coordinates of cell, cen_x -
+        x-coordinate of cell centroid, cen_y - y-coordinate of cell centroid, max_ref -
+        maximum (reflectivity) value of cell, cont - cell contours
     labels : array-like
         Array of shape (m,n), grid of labelled cells.
     """
@@ -117,7 +122,7 @@ def detection(
             "pandas is required for thunderstorm DATing " "but it is not installed"
         )
     filt_image = np.zeros(input_image.shape)
-    filt_image[input_image > minref] = input_image[input_image > minref]
+    filt_image[input_image >= minref] = input_image[input_image >= minref]
     filt_image[input_image > maxref] = maxref
     max_image = np.zeros(filt_image.shape)
     max_image[filt_image == maxref] = 1
@@ -134,10 +139,10 @@ def detection(
         ind = np.where(labels == n)
         size = len(ind[0])
         maxval = np.nanmax(input_image[ind])
-        if size < minsize:
+        if size < minsize:                      #removing too small areas
             binary[labels == n] = 0
             labels[labels == n] = 0
-        if maxval < minmax:
+        if maxval < minmax:                     #removing areas with too low max value
             binary[labels == n] = 0
             labels[labels == n] = 0
     filt_image = filt_image * binary
@@ -177,7 +182,7 @@ def detection(
     if not output_feat:
         return cells_id, labels
     if output_feat:
-        return np.column_stack([np.array(cells_id.max_x), np.array(cells_id.max_y)])
+        return np.column_stack([np.array(cells_id.cen_x), np.array(cells_id.cen_ycen_y)])
 
 
 def breakup(ref, minval, maxima):
@@ -230,7 +235,7 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
     cells_id = pd.DataFrame(
         data=None,
         index=range(len(cell_labels)),
-        columns=["ID", "time", "x", "y", "max_x", "max_y", "max_ref", "cont"],
+        columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont"],
     )
     cells_id.time = time
     for n in range(len(cell_labels)):
@@ -249,8 +254,8 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
         y, x = np.where(cell_unique * ref == maxref)
         contours = skime.find_contours(cell_unique, 0.8)
         cells_id.cont.iloc[n] = contours
-        cells_id.max_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
-        cells_id.max_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
+        cells_id.cen_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
+        cells_id.cen_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
         cells_id.max_ref.iloc[n] = maxref
         labels[cells == cell_labels[n]] = ID
 
@@ -271,7 +276,7 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
     cells_id = pd.DataFrame(
         data=None,
         index=range(len(cell_labels)),
-        columns=["ID", "time", "x", "y", "max_x", "max_y", "max_ref", "cont"],
+        columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont"],
     )
     cells_id.time = time
     for n in range(len(cell_labels)):
@@ -313,8 +318,8 @@ def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_
         y, x = np.where(c_unique * ref == maxref)
         contours = skime.find_contours(c_unique, 0.8)
         cells_id.cont.iloc[n] = contours
-        cells_id.max_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
-        cells_id.max_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
+        cells_id.cen_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
+        cells_id.cen_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
         cells_id.max_ref.iloc[n] = maxref
         labels[c_unique == 1] = ID
 
