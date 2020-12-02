@@ -378,7 +378,7 @@ def forecast(
         R_f_new[domain_mask] = np.nan
 
         # advect the recomposed precipitation field to obtain the forecast for
-        # the current time step (or subtimesteps of non-integer time steps are
+        # the current time step (or subtimesteps if non-integer time steps are
         # given)
         for t_sub in subtimesteps:
             if t_sub > 0:

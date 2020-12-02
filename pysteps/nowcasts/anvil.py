@@ -350,7 +350,7 @@ def forecast(
         r_f_new[r_f_new < 0.0] = 0.0
 
         # advect the recomposed field to obtain the forecast for the current
-        # time step (or subtimesteps of non-integer time steps are given)
+        # time step (or subtimesteps if non-integer time steps are given)
         for t_sub in subtimesteps:
             if t_sub > 0:
                 t_diff_prev_int = t_sub - int(t_sub)
