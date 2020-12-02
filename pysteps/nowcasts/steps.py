@@ -545,7 +545,6 @@ def forecast(
 
     D = [None for j in range(n_ens_members)]
     t_nowcast = 0
-    t_prev = [0.0 for j in range(n_ens_members)]
     R_f = [[] for j in range(n_ens_members)]
 
     if probmatching_method == "mean":
@@ -603,7 +602,8 @@ def forecast(
 
     extrap_kwargs["return_displacement"] = True
     R_f_prev = [R for i in range(n_ens_members)]
-    V_prev = [V for i in range(n_ens_members)]
+    t_prev = [0.0 for j in range(n_ens_members)]
+    t_total = [0.0 for j in range(n_ens_members)]
 
     # iterate each time step
     for t in range(len(timesteps)):
@@ -634,7 +634,6 @@ def forecast(
                 # from which the mask is obtained
                 R_m[i] = autoregression.iterate_ar_model(R_m[i], PHI[i, :])
 
-            # R_m_ = nowcast_utils.recompose_cascade(R_m[:, -1, :, :], mu, sigma)
             R_m_d["cascade_levels"] = [R_m[i][-1] for i in range(n_cascade_levels)]
             if domain == "spatial":
                 R_m_d["cascade_levels"] = np.stack(R_m_d["cascade_levels"])
@@ -733,11 +732,7 @@ def forecast(
             R_f_out = []
             extrap_kwargs_ = extrap_kwargs.copy()
 
-            # compute the perturbed motion field
-            if vel_pert_method is not None:
-                V_new = V + generate_vel_noise(vps[j], (t + 1) * timestep)
-            else:
-                V_new = V
+            V_pert = V
 
             # advect the recomposed precipitation field to obtain the forecast for
             # the current time step (or subtimesteps of non-integer time steps are
@@ -751,15 +746,18 @@ def forecast(
                         ] + t_diff_prev_int * R_f_new
                     else:
                         R_f_ip = R_f_prev[j]
-                    # TODO: Use generate_vel_noise with the fractional time step
-                    # instead of interpolating the advection field
-                    V_ip = (1.0 - t_diff_prev_int) * V_prev[j] + t_diff_prev_int * V_new
 
                     t_diff_prev = t_sub - t_prev[j]
+                    t_total[j] += t_diff_prev
+
+                    # compute the perturbed motion field
+                    if vel_pert_method is not None:
+                        V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
+
                     extrap_kwargs_["displacement_prev"] = D[j]
                     R_f_ep, D[j] = extrapolator_method(
                         R_f_ip,
-                        V_ip,
+                        V_pert,
                         [t_diff_prev],
                         **extrap_kwargs_,
                     )
@@ -770,17 +768,22 @@ def forecast(
             # current interval were found
             if len(subtimesteps) == 0:
                 t_diff_prev = t + 1 - t_prev[j]
+                t_total[j] += t_diff_prev
+
+                # compute the perturbed motion field
+                if vel_pert_method is not None:
+                    V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
+
                 extrap_kwargs_["displacement_prev"] = D[j]
                 _, D[j] = extrapolator_method(
                     None,
-                    V_new,
+                    V_pert,
                     [t_diff_prev],
                     **extrap_kwargs_,
                 )
                 t_prev[j] = t + 1
 
             R_f_prev[j] = R_f_new
-            V_prev[j] = V_new
 
             return R_f_out
 
