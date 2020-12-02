@@ -165,9 +165,7 @@ def detection(
 
     areas, lines = breakup(input_image, np.nanmin(input_image.flatten()), maxima_dis)
 
-    cells_id, labels = get_profile(
-            areas, binary, input_image, loc_max, time, minref
-    )
+    cells_id, labels = get_profile(areas, binary, input_image, loc_max, time, minref)
 
     if not output_feat:
         return cells_id, labels
@@ -252,5 +250,3 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
         labels[cells == cell_labels[n]] = ID
 
     return cells_id, labels
-
-
