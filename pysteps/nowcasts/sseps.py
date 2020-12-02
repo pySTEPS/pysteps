@@ -870,9 +870,6 @@ def forecast(
         mainloop_time = time.time() - starttime_mainloop
 
     if return_output:
-        for j in range(n_ens_members):
-            for k in range(len(R_f[j])):
-                print(R_f[j][k].shape)
         outarr = np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
         if measure_time:
             return outarr, init_time, mainloop_time
