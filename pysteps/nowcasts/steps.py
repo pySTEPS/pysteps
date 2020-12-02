@@ -544,8 +544,8 @@ def forecast(
             vps.append(vp_)
 
     D = [None for j in range(n_ens_members)]
-    t_nowcast = 0
     R_f = [[] for j in range(n_ens_members)]
+    t_nowcast = 0
 
     if probmatching_method == "mean":
         mu_0 = np.mean(R[-1, :, :][R[-1, :, :] >= R_thr])
