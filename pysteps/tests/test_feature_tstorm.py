@@ -14,18 +14,17 @@ try:
 except ModuleNotFoundError:
     pass
 
-arg_names = ("source", "dyn_thresh", "output_feat", "dry_input")
+arg_names = ("source", "output_feat", "dry_input")
 
 arg_values = [
-    ("mch", False, False, False),
-    ("mch", True, False, False),
-    ("mch", False, True, False),
-    ("mch", False, False, True),
+    ("mch", False, False),
+    ("mch", True, False),
+    ("mch", False, True),
 ]
 
 
 @pytest.mark.parametrize(arg_names, arg_values)
-def test_feature_tstorm_detection(source, dyn_thresh, output_feat, dry_input):
+def test_feature_tstorm_detection(source, output_feat, dry_input):
 
     pytest.importorskip("skimage")
     pytest.importorskip("pandas")
@@ -38,7 +37,7 @@ def test_feature_tstorm_detection(source, dyn_thresh, output_feat, dry_input):
         input = np.zeros((50, 50))
 
     time = "000"
-    output = detection(input, time=time, dyn_thresh=dyn_thresh, output_feat=output_feat)
+    output = detection(input, time=time, output_feat=output_feat)
 
     if output_feat:
         assert isinstance(output, np.ndarray)
@@ -55,8 +54,8 @@ def test_feature_tstorm_detection(source, dyn_thresh, output_feat, dry_input):
             "time",
             "x",
             "y",
-            "max_x",
-            "max_y",
+            "cen_x",
+            "cen_y",
             "max_ref",
             "cont",
         ]

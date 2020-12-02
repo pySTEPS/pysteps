@@ -171,7 +171,7 @@ def detection(
         return cells_id, labels
     if output_feat:
         return np.column_stack(
-            [np.array(cells_id.cen_x), np.array(cells_id.cen_ycen_y)]
+            [np.array(cells_id.cen_x), np.array(cells_id.cen_y)]
         )
 
 
