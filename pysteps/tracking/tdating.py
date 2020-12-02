@@ -120,9 +120,6 @@ def dating(
     mindis : float, optional
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
-    dyn_thresh: bool, optional
-        Set to True to activate dynamic lower threshold. Restricts contours to more
-        meaningful area. The default is False.
 
     Returns
     -------
@@ -174,7 +171,6 @@ def dating(
             minsize=minsize,
             minmax=minmax,
             mindis=mindis,
-            dyn_thresh=dyn_thresh,
             time=timelist[t],
         )
         if len(cell_list) < 2:

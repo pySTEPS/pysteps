@@ -59,7 +59,6 @@ def detection(
     minsize=50,
     minmax=41,
     mindis=10,
-    dyn_thresh=False,
     output_feat=False,
     time="000000000",
 ):
@@ -91,10 +90,6 @@ def detection(
     mindis : float, optional
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
-    dyn_thresh: bool, optional
-        Set to True to activate dynamic lower threshold, begins with minref and
-        increases it accordingly. Restricts contours to more meaningful area.
-        The default is False.
     output_feat: bool, optional
         Set to True to return only the cell coordinates.
     time : string, optional
@@ -170,14 +165,9 @@ def detection(
 
     areas, lines = breakup(input_image, np.nanmin(input_image.flatten()), maxima_dis)
 
-    if dyn_thresh:
-        cells_id, labels = get_profile_dyn(
-            areas, lines, binary, input_image, loc_max, time, minref, mindiff, minsize
-        )
-    else:
-        cells_id, labels = get_profile(
+    cells_id, labels = get_profile(
             areas, binary, input_image, loc_max, time, minref
-        )
+    )
 
     if not output_feat:
         return cells_id, labels
@@ -264,65 +254,3 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
     return cells_id, labels
 
 
-def get_profile_dyn(areas, lines, binary, ref, loc_max, time, minref, dref, min_size):
-    """
-    This function returns the identified cells in a dataframe including their x,y
-    locations, location of their maxima, maximum reflectivity and contours. The lower
-    reflectivity bound is variable and can constrain to a tighter, more relevant area.
-    """
-    lines_bin = lines == 0
-    ref[np.isnan(ref)] = np.nanmin(ref)
-    cells = areas * binary
-    cell_labels = cells[loc_max]
-    labels = np.zeros(cells.shape)
-    cells_id = pd.DataFrame(
-        data=None,
-        index=range(len(cell_labels)),
-        columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont"],
-    )
-    cells_id.time = time
-    for n in range(len(cell_labels)):
-        ID = n + 1
-        cells_id.ID.iloc[n] = ID
-        cell_unique = np.zeros(cells.shape)
-        cell_unique[cells == cell_labels[n]] = 1
-        max_ref = np.nanmax((ref * cell_unique).flatten())
-        cell_edge = skim.binary_dilation(cell_unique, selem=np.ones([2, 2])) * lines_bin
-        refvec = ref[cell_edge == 1]
-        if len(refvec) > 0:
-            min_ref = np.nanmax(refvec)
-            if max_ref - min_ref < dref:
-                min_ref = max_ref - dref
-        else:
-            min_ref = minref
-        ref_unique = cell_unique * ref
-        loc = np.where(ref_unique >= min_ref)
-        labels1, ngroups = ndi.label(cell_unique)
-        c_unique = np.zeros(cells.shape)
-        c_unique[loc] = 1
-        labels1, n_groups = ndi.label(c_unique)
-        while (len(loc[0]) < min_size or n_groups > ngroups) and min_ref > minref:
-            min_ref -= 1
-            ref_unique = cell_unique * ref
-            loc = np.where(ref_unique >= min_ref)
-            c_unique = np.zeros(cells.shape)
-            c_unique[loc] = 1
-            labels1, n_groups = ndi.label(c_unique)
-
-        cells_id.x.iloc[n] = np.where(c_unique == 1)[1]
-        cells_id.y.iloc[n] = np.where(c_unique == 1)[0]
-        contours = skime.find_contours(c_unique, 0.8)
-        maxval = c_unique[loc_max]
-        l = np.where(maxval == 1)
-        y = loc_max[0][l]
-        x = loc_max[1][l]
-        maxref = np.nanmax(ref_unique.flatten())
-        y, x = np.where(c_unique * ref == maxref)
-        contours = skime.find_contours(c_unique, 0.8)
-        cells_id.cont.iloc[n] = contours
-        cells_id.cen_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
-        cells_id.cen_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
-        cells_id.max_ref.iloc[n] = maxref
-        labels[c_unique == 1] = ID
-
-    return cells_id, labels
