@@ -379,7 +379,7 @@ def forecast(
             t_diff_prev = t + 1 - t_prev
             extrap_kwargs["displacement_prev"] = dp
             _, dp = extrapolator(
-                r_f_ip,
+                None,
                 velocity,
                 [t_diff_prev],
                 allow_nonfinite_values=True,

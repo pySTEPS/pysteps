@@ -407,7 +407,7 @@ def forecast(
             t_diff_prev = t + 1 - t_prev
             extrap_kwargs["displacement_prev"] = D
             _, D = extrapolator_method(
-                R_f_ip,
+                None,
                 V,
                 [t_diff_prev],
                 **extrap_kwargs,
