@@ -35,10 +35,7 @@ def test_visualization_plot_precip_field(source, map_kwargs, pass_geodata):
         metadata = None
 
     ax = plot_precip_field(
-        field,
-        type="intensity",
-        geodata=metadata,
-        map_kwargs=map_kwargs,
+        field, type="intensity", geodata=metadata, map_kwargs=map_kwargs,
     )
 
 

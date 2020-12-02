@@ -175,7 +175,7 @@ def dating(
             minmax=minmax,
             mindis=mindis,
             dyn_thresh=dyn_thresh,
-            time=timelist[t]
+            time=timelist[t],
         )
         if len(cell_list) < 2:
             cell_list.append(cells_id)

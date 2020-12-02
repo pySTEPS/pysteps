@@ -139,10 +139,10 @@ def detection(
         ind = np.where(labels == n)
         size = len(ind[0])
         maxval = np.nanmax(input_image[ind])
-        if size < minsize:                      #removing too small areas
+        if size < minsize:  # removing too small areas
             binary[labels == n] = 0
             labels[labels == n] = 0
-        if maxval < minmax:                     #removing areas with too low max value
+        if maxval < minmax:  # removing areas with too low max value
             binary[labels == n] = 0
             labels[labels == n] = 0
     filt_image = filt_image * binary
@@ -182,7 +182,9 @@ def detection(
     if not output_feat:
         return cells_id, labels
     if output_feat:
-        return np.column_stack([np.array(cells_id.cen_x), np.array(cells_id.cen_ycen_y)])
+        return np.column_stack(
+            [np.array(cells_id.cen_x), np.array(cells_id.cen_ycen_y)]
+        )
 
 
 def breakup(ref, minval, maxima):

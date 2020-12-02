@@ -42,7 +42,7 @@ from pysteps.visualization import plot_precip_field, plot_track, plot_cart_conto
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # A series of 20 files containing Swiss Cartesian gridded rain rates are imported. Since
-# the algorithm is tuned to Swiss max-reflectivity data, the rain rates are transformed 
+# the algorithm is tuned to Swiss max-reflectivity data, the rain rates are transformed
 # to reflectivity fields using the 'to_reflectivity' utility in pysteps.utils.
 
 # Select the input data
@@ -82,11 +82,7 @@ pprint(metadata)
 
 input_image = Z[2, :, :].copy()
 time = timelist[2]
-cells_id, labels = tstorm_detect.detection(
-    input_image,
-    dyn_thresh=True,
-    time=time,
-)
+cells_id, labels = tstorm_detect.detection(input_image, dyn_thresh=False, time=time,)
 
 ###############################################################################
 # Properties of one of the identified cells:
@@ -100,9 +96,7 @@ print(cells_id.iloc[0])
 # flow prediction and are not used to compute tracks.
 
 track_list, cell_list, label_list = tstorm_dating.dating(
-    input_video=Z,
-    timelist=timelist,
-    dyn_thresh=True,
+    input_video=Z, timelist=timelist, dyn_thresh=False,
 )
 
 ###############################################################################
@@ -145,7 +139,7 @@ for track in track_filt:
 plt.xticks(np.arange(max(tlen) + 1), labels=np.arange(max(tlen) + 1) * 5)
 plt.ylabel("Maximum reflectivity (dBZ)")
 plt.xlabel("Time since cell detection (min)")
-plt.legend(IDs, loc = "lower right", ncol = 3, title = "Track number")
+plt.legend(IDs, loc="lower right", ncol=3, title="Track number")
 plt.show()
 
 ###############################################################################
@@ -165,7 +159,7 @@ for track in track_filt:
     tlen.append(len(track))
 plt.xticks(np.arange(max(tlen) + 1), labels=np.arange(max(tlen) + 1) * 5)
 plt.ylabel("Thunderstorm cell size (pixels)")
-plt.ylim([0,2000])
+plt.ylim([0, 2000])
 plt.xlabel("Time since cell detection (min)")
-plt.legend(IDs, loc = "upper left", ncol = 3, title = "Track number")
+plt.legend(IDs, loc="upper left", ncol=3, title="Track number")
 plt.show()
