@@ -51,7 +51,7 @@ def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, min_csi)
     precip_forecast = nowcast_method(
         precip_input,
         retrieved_motion,
-        n_timesteps=3,
+        timesteps=3,
         R_thr=metadata["threshold"],
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,

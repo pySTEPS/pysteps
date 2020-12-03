@@ -48,7 +48,7 @@ def test_anvil_rainrate(n_cascade_levels, ar_order, ar_window_radius, min_csi):
     precip_forecast = nowcast_method(
         precip_input[-(ar_order + 2) :],
         retrieved_motion,
-        n_timesteps=3,
+        timesteps=3,
         rainrate=None,  # no R(VIL) conversion is done
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,

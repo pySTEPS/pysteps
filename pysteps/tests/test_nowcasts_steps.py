@@ -64,7 +64,7 @@ def test_steps(
     precip_forecast = nowcast_method(
         precip_input,
         retrieved_motion,
-        n_timesteps=3,
+        timesteps=3,
         R_thr=metadata["threshold"],
         kmperpixel=2.0,
         timestep=metadata["accutime"],

@@ -59,7 +59,7 @@ def test_sseps(
         metadata,
         retrieved_motion,
         win_size=win_size,
-        n_timesteps=3,
+        timesteps=3,
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
