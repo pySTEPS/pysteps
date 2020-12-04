@@ -8,9 +8,12 @@ radar data.
 
 """
 
-from pylab import *
+import matplotlib.pyplot as plt
+import numpy as np
+
 from datetime import datetime
 from pprint import pprint
+
 from pysteps import io, nowcasts, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob
@@ -85,7 +88,13 @@ V = dense_lucaskanade(R)
 
 # The S-PROG nowcast
 nowcast_method = nowcasts.get_method("sprog")
-R_f = nowcast_method(R[-3:, :, :], V, n_leadtimes, n_cascade_levels=6, R_thr=-10.0,)
+R_f = nowcast_method(
+    R[-3:, :, :],
+    V,
+    n_leadtimes,
+    n_cascade_levels=6,
+    R_thr=-10.0,
+)
 
 # Back-transform to rain rate
 R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
@@ -150,12 +159,14 @@ plot_precip_field(
 # the mean of an ensemble of infinite size.
 
 # Plot some of the realizations
-fig = figure()
+fig = plt.figure()
 for i in range(4):
     ax = fig.add_subplot(221 + i)
+    ax = plot_precip_field(
+        R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
+    )
     ax.set_title("Member %02d" % i)
-    plot_precip_field(R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off")
-tight_layout()
+plt.tight_layout()
 
 ###############################################################################
 # As we can see from these two members of the ensemble, the stochastic forecast
