@@ -137,4 +137,3 @@ plt.tight_layout()
 # 724–738.
 
 # sphinx_gallery_thumbnail_number = 2
-plt.show()
