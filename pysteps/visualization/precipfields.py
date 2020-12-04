@@ -165,11 +165,7 @@ def plot_precip_field(
     # plot geography
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(
-                geodata["projection"],
-                bm_extent,
-                **map_kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs)
             regular_grid = True
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -189,11 +185,7 @@ def plot_precip_field(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
             regular_grid = geodata["regular_grid"]
 
-            ax = basemaps.plot_geography(
-                geodata["projection"],
-                bm_extent,
-                **map_kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs)
 
     else:
         ax = plt.gca()
@@ -243,12 +235,7 @@ def plot_precip_field(
         else:
             extend = "neither"
         cbar = plt.colorbar(
-            im,
-            ticks=clevs,
-            spacing="uniform",
-            extend=extend,
-            shrink=0.8,
-            cax=cax,
+            im, ticks=clevs, spacing="uniform", extend=extend, shrink=0.8, cax=cax
         )
         if clevsStr is not None:
             cbar.ax.set_yticklabels(clevsStr)
@@ -544,9 +531,7 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
 
     # Generate color level strings with correct amount of decimal places
     clevsStr = []
-    clevsStr = _dynamic_formatting_floats(
-        clevs,
-    )
+    clevsStr = _dynamic_formatting_floats(clevs)
 
     return color_list, clevs, clevsStr
 
