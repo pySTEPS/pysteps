@@ -14,8 +14,8 @@ intervention.
     :local:
     :depth: 3
 
-How the plugins work?
-=====================
+How do the plugins work?
+========================
 
 When the plugin is installed, it advertises the new importers to other packages (in our
 case, pysteps) using the python `entry points specification`_.
