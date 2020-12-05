@@ -41,7 +41,7 @@ def extrapolate(
     velocity: array-like
         Array of shape (2,m,n) containing the x- and y-components of the m*n
         advection field. All values are required to be finite by default.
-    timesteps: int or list
+    timesteps: int or list of floats
         If timesteps is integer, it specifies the number of time steps to
         extrapolate. If a list is given, each element is the desired
         extrapolation time step from the current time. The elements of the list
@@ -103,10 +103,10 @@ def extrapolate(
     :cite:`GZ2002`
 
     """
-    if precip is not None and len(precip.shape) != 2:
+    if precip is not None and precip.ndim != 2:
         raise ValueError("precip must be a two-dimensional array")
 
-    if len(velocity.shape) != 3:
+    if velocity.ndim != 3:
         raise ValueError("velocity must be a three-dimensional array")
 
     if precip is not None and not allow_nonfinite_values:

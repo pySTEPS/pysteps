@@ -37,7 +37,7 @@ def forecast(
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field. The velocities are assumed to represent one time step
       between the inputs.
-    timesteps: int or list
+    timesteps: int or list of floats
       Number of time steps to forecast or a list of time steps for which the
       forecasts are computed (relative to the input time step). The elements of
       the list are required to be in ascending order.
@@ -98,9 +98,9 @@ def forecast(
 
 
 def _check_inputs(precip, velocity, timesteps):
-    if len(precip.shape) != 2:
+    if precip.ndim != 2:
         raise ValueError("The input precipitation must be a " "two-dimensional array")
-    if len(velocity.shape) != 3:
+    if velocity.ndim != 3:
         raise ValueError("Input velocity must be a three-dimensional array")
     if precip.shape != velocity.shape[1:3]:
         raise ValueError(

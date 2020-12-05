@@ -97,7 +97,7 @@ def forecast(
         successive windows. If set to 0, no overlap is used.
     war_thr: float
         Threshold for the minimum fraction of rain in a given window.
-    timesteps: int or list
+    timesteps: int or list of floats
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
         of the list are required to be in ascending order.
@@ -818,7 +818,7 @@ def forecast(
 
             # advect the forecast field by one time step if no subtimesteps in the
             # current interval were found
-            if len(subtimesteps) == 0:
+            if not subtimesteps:
                 t_diff_prev = t + 1 - t_prev[j]
                 t_total[j] += t_diff_prev
 
@@ -880,11 +880,11 @@ def forecast(
 
 
 def _check_inputs(R, V, timesteps, ar_order):
-    if len(R.shape) != 3:
+    if R.ndim != 3:
         raise ValueError("R must be a three-dimensional array")
     if R.shape[0] < ar_order + 1:
         raise ValueError("R.shape[0] < ar_order+1")
-    if len(V.shape) != 3:
+    if V.ndim != 3:
         raise ValueError("V must be a three-dimensional array")
     if R.shape[1:3] != V.shape[1:3]:
         raise ValueError(

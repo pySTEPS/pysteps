@@ -76,7 +76,7 @@ def forecast(
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs. All values are required to be finite.
-    timesteps: int or list
+    timesteps: int or list of floats
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
         of the list are required to be in ascending order.
@@ -375,7 +375,7 @@ def forecast(
 
         # advect the forecast field by one time step if no subtimesteps in the
         # current interval were found
-        if len(subtimesteps) == 0:
+        if not subtimesteps:
             t_diff_prev = t + 1 - t_prev
             extrap_kwargs["displacement_prev"] = dp
             _, dp = extrapolator(
@@ -420,7 +420,7 @@ def _check_inputs(vil, rainrate, velocity, timesteps, ar_order):
             "vil.shape[0] = %d, but vil.shape[0] = ar_order + 2 = %d required"
             % (vil.shape[0], ar_order + 2)
         )
-    if len(velocity.shape) != 3:
+    if velocity.ndim != 3:
         raise ValueError(
             "velocity.shape = %s, but a three-dimensional array expected"
             % str(velocity.shape)
