@@ -20,7 +20,9 @@ anvil_arg_values = [
 
 
 @pytest.mark.parametrize(anvil_arg_names, anvil_arg_values)
-def test_anvil_rainrate(n_cascade_levels, ar_order, ar_window_radius, timesteps, min_csi):
+def test_anvil_rainrate(
+    n_cascade_levels, ar_order, ar_window_radius, timesteps, min_csi
+):
     """Tests ANVIL nowcast using rain rate precipitation fields."""
     # inputs
     precip_input, metadata = get_precipitation_fields(
@@ -54,12 +56,15 @@ def test_anvil_rainrate(n_cascade_levels, ar_order, ar_window_radius, timesteps,
     )
 
     assert precip_forecast.ndim == 3
-    assert precip_forecast.shape[0] == (timesteps if isinstance(timesteps, int) else len(timesteps))
+    assert precip_forecast.shape[0] == (
+        timesteps if isinstance(timesteps, int) else len(timesteps)
+    )
 
     result = verification.det_cat_fct(
         precip_forecast[-1], precip_obs[-1], thr=0.1, scores="CSI"
     )["CSI"]
     assert result > min_csi, f"CSI={result:.2f}, required > {min_csi:.2f}"
+
 
 if __name__ == "__main__":
     for n in range(len(anvil_arg_values)):
