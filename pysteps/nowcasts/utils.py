@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.utils
 ======================
@@ -20,7 +21,7 @@ def print_ar_params(PHI):
 
     Parameters
     ----------
-    PHI : array_like
+    PHI: array_like
       Array of shape (n, p) containing the AR(p) parameters for n cascade
       levels.
     """
@@ -56,7 +57,7 @@ def print_corrcoefs(GAMMA):
 
     Parameters
     ----------
-    GAMMA : array_like
+    GAMMA: array_like
       Array of shape (m, n) containing n correlation coefficients for m cascade
       levels.
     """
@@ -92,15 +93,15 @@ def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
 
     Parameters
     ----------
-    R_d : list
+    R_d: list
         List of cascades obtained by calling a method implemented in
         pysteps.cascade.decomposition.
-    n_levels : int
+    n_levels: int
         The number of cascade levels.
 
     Returns
     -------
-    out : tuple
+    out: tuple
         A list of three-dimensional arrays containing the stacked cascade levels.
     """
     R_c = []

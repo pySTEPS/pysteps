@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.motion.interface
 ========================
@@ -44,7 +45,7 @@ _methods[None] = lambda precip, *args, **kw: np.zeros(
 
 def get_method(name):
     """Return a callable function for the optical flow method corresponding to
-    the given name. The available options are:\n\
+    the given name. The available options are:\n
 
     +--------------------------------------------------------------------------+
     | Python-based implementations                                             |

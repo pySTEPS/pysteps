@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 pysteps.feature.tstorm
@@ -28,7 +27,7 @@ References
 
 import numpy as np
 import scipy.ndimage as ndi
-import matplotlib.pyplot as plt
+
 from pysteps.exceptions import MissingOptionalDependency
 
 try:
@@ -38,8 +37,6 @@ try:
 except ImportError:
     SKIMAGE_IMPORTED = False
 if SKIMAGE_IMPORTED:
-    import skimage.draw as skid
-    import skimage.feature as skif
     import skimage.measure as skime
     import skimage.morphology as skim
     import skimage.segmentation as skis
@@ -70,42 +67,42 @@ def detection(
 
     Parameters
     ----------
-    input_image : array-like
+    input_image: array-like
         Array of shape (m,n) containing input image, usually maximum reflectivity in
         dBZ with a resolution of 1 km. Nan values are ignored.
-    minref : float, optional
+    minref: float, optional
         Lower threshold for object detection. Lower values will be set to NaN.
         The default is 35 dBZ.
-    maxref : float, optional
+    maxref: float, optional
         Upper threshold for object detection. Higher values will be set to this value.
         The default is 48 dBZ.
-    mindiff : float, optional
+    mindiff: float, optional
         Minimal difference between two identified maxima within same area to split area
         into two objects. The default is 6 dBZ.
-    minsize : float, optional
+    minsize: float, optional
         Minimal area for possible detected object. The default is 50 pixels.
-    minmax : float, optional
+    minmax: float, optional
         Minimum value of maximum in identified objects. Objects with a maximum lower
         than this will be discarded. The default is 41 dBZ.
-    mindis : float, optional
+    mindis: float, optional
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
     output_feat: bool, optional
         Set to True to return only the cell coordinates.
-    time : string, optional
+    time: string, optional
         Date and time as string. Used to label time in the resulting dataframe.
         The default is '000000000'.
 
     Returns
     -------
-    cells_id : pandas dataframe
+    cells_id: pandas dataframe
         Pandas dataframe containing all detected cells and their respective properties
         corresponding to the input image.
         Columns of dataframe: ID - cell ID, time - time stamp, x - array of all
         x-coordinates of cell, y -  array of all y-coordinates of cell, cen_x -
         x-coordinate of cell centroid, cen_y - y-coordinate of cell centroid, max_ref -
         maximum (reflectivity) value of cell, cont - cell contours
-    labels : array-like
+    labels: array-like
         Array of shape (m,n), grid of labelled cells.
     """
     if not SKIMAGE_IMPORTED:
@@ -233,13 +230,7 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
         cells_id.y.iloc[n] = np.where(cells == cell_labels[n])[0]
         cell_unique = np.zeros(cells.shape)
         cell_unique[cells == cell_labels[n]] = 1
-        contours = skime.find_contours(cell_unique, 0.8)
-        maxval = cell_unique[loc_max]
-        l = np.where(maxval == 1)
-        y = loc_max[0][l]
-        x = loc_max[1][l]
         maxref = np.nanmax(ref[cells_id.y[n], cells_id.x[n]])
-        y, x = np.where(cell_unique * ref == maxref)
         contours = skime.find_contours(cell_unique, 0.8)
         cells_id.cont.iloc[n] = contours
         cells_id.cen_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])

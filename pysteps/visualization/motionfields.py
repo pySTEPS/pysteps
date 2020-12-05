@@ -35,11 +35,11 @@ def quiver(
 
     Parameters
     ----------
-    UV : array-like
+    UV: array-like
         Array of shape (2,m,n) containing the input motion field.
-    ax : axis object
+    ax: axis object
         Optional axis object to use for plotting.
-    geodata : dictionary or None
+    geodata: dictionary or None
         Optional dictionary containing geographical information about
         the field.
 
@@ -68,11 +68,11 @@ def quiver(
         |                | element in the data raster w.r.t. y-axis:          |
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
-    axis : {'off','on'}, optional
+    axis: {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-    step : int
+    step: int
         Optional resample step to control the density of the arrows.
-    quiver_kwargs : dict, optional
+    quiver_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the quiver method.
       See the documentation of matplotlib.pyplot.quiver.
 
@@ -85,9 +85,8 @@ def quiver(
 
     Returns
     -------
-    out : axis object
+    out: axis object
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-
     """
 
     # prepare x y coordinates
@@ -209,11 +208,11 @@ def streamplot(
 
     Parameters
     ----------
-    UV : array-like
+    UV: array-like
         Array of shape (2, m,n) containing the input motion field.
-    ax : axis object
+    ax: axis object
         Optional axis object to use for plotting.
-    geodata : dictionary or None
+    geodata: dictionary or None
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
@@ -241,9 +240,9 @@ def streamplot(
         |                | element in the data raster w.r.t. y-axis:          |
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
-    axis : {'off','on'}, optional
+    axis: {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-    streamplot_kwargs : dict, optional
+    streamplot_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the streamplot method.
       See the documentation of matplotlib.pyplot.streamplot.
 
@@ -255,9 +254,8 @@ def streamplot(
 
     Returns
     -------
-    out : axis object
+    out: axis object
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-
     """
 
     # prepare x y coordinates

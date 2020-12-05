@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.visualization.animations
 ================================
@@ -44,24 +45,24 @@ def animate(
 
     Parameters
     ----------
-    R_obs : array-like
+    R_obs: array-like
         Three-dimensional array containing the time series of observed
         precipitation fields.
 
     Other parameters
     ----------------
-    nloops : int
+    nloops: int
         Optional, the number of loops in the animation.
-    R_fct : array-like
+    R_fct: array-like
         Optional, the three or four-dimensional (for ensembles) array
         containing the time series of forecasted precipitation field.
-    timestep_min : float
+    timestep_min: float
         The time resolution in minutes of the forecast.
-    UV : array-like
+    UV: array-like
         Optional, the motion field used for the forecast.
-    motion_plot : string
+    motion_plot: string
         The method to plot the motion field.
-    geodata : dictionary or None
+    geodata: dictionary or None
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
@@ -90,43 +91,43 @@ def animate(
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
 
-    units : str
+    units: str
         Units of the input array (mm/h or dBZ)
-    colorscale : str
+    colorscale: str
         The *colorscale* argument to
         :py:func:`pysteps.visualization.precipfields.plot_precip_field`.
-    title : str or None
+    title: str or None
         If not None, print the string as title on top of the plot.
-    colorbar : bool
+    colorbar: bool
         If set to True, add a colorbar on the right side of the plot.
-    type : {'ensemble', 'mean', 'prob'}, str
+    type: {'ensemble', 'mean', 'prob'}, str
         Type of the map to animate. 'ensemble' = ensemble members,
         'mean' = ensemble mean, 'prob' = exceedance probability
         (using threshold defined in prob_thrs).
-    prob_thr : float
+    prob_thr: float
         Intensity threshold for the exceedance probability maps. Applicable
         if type = 'prob'.
-    plotanimation : bool
+    plotanimation: bool
         If set to True, visualize the animation (useful when one is only
         interested in saving the individual frames).
-    savefig : bool
+    savefig: bool
         If set to True, save the individual frames to path_outputs.
-    fig_dpi : scalar > 0
+    fig_dpi: scalar > 0
         Resolution of the output figures, see the documentation of
         matplotlib.pyplot.savefig. Applicable if savefig is True.
-    path_outputs : string
+    path_outputs: string
         Path to folder where to save the frames.
-    motion_kwargs : dict
+    motion_kwargs: dict
         Optional keyword arguments that are supplied to
         :py:func:`pysteps.visualization.precipfields.plot_precip_field` or
         :py:func:`pysteps.visualization.motionfields.quiver`.
-    map_kwargs : dict
+    map_kwargs: dict
         Optional keyword arguments that are supplied to
         :py:func:`pysteps.visualization.motionfields.streamplot`.
 
     Returns
     -------
-    ax : fig axes
+    ax: fig axes
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
 

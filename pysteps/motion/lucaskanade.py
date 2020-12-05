@@ -41,7 +41,6 @@ except ImportError:
     CV2_IMPORTED = False
 
 import time
-import warnings
 
 
 @check_input_frames(2)
@@ -81,8 +80,7 @@ def dense_lucaskanade(
 
     Parameters
     ----------
-
-    input_images : ndarray_ or MaskedArray_
+    input_images: ndarray_ or MaskedArray_
         Array of shape (T, m, n) containing a sequence of *T* two-dimensional
         input images of shape (m, n). The indexing order in **input_images** is
         assumed to be (time, latitude, longitude).
@@ -95,29 +93,29 @@ def dense_lucaskanade(
         otherwise the mask of the MaskedArray_ is used. Such mask defines a
         region where features are not detected for the tracking algorithm.
 
-    lk_kwargs : dict, optional
+    lk_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the `Lucas-Kanade`_
         features tracking algorithm. See the documentation of
         :py:func:`pysteps.tracking.lucaskanade.track_features`.
 
-    fd_method : {"shitomasi", "blob", "tstorm"}, optional
+    fd_method: {"shitomasi", "blob", "tstorm"}, optional
       Name of the feature detection routine. See feature detection methods in
       :py:mod:`pysteps.feature`.
 
-    fd_kwargs : dict, optional
+    fd_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the features
         detection algorithm.
         See the documentation of :py:mod:`pysteps.feature`.
 
-    interp_method : {"rbfinterp2d"}, optional
+    interp_method: {"rbfinterp2d"}, optional
       Name of the interpolation method to use. See interpolation methods in
       :py:mod:`pysteps.utils.interpolate`.
 
-    interp_kwargs : dict, optional
+    interp_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the interpolation
         algorithm. See the documentation of :py:mod:`pysteps.utils.interpolate`.
 
-    dense : bool, optional
+    dense: bool, optional
         If True, return the three-dimensional array (2, m, n) containing
         the dense x- and y-components of the motion field.
 
@@ -125,7 +123,7 @@ def dense_lucaskanade(
         arrays, where **xy** defines the vector positions, **uv** defines the
         x and y direction components of the vectors.
 
-    nr_std_outlier : int, optional
+    nr_std_outlier: int, optional
         Maximum acceptable deviation from the mean in terms of number of
         standard deviations. Any sparse vector with a deviation larger than
         this threshold is flagged as outlier and excluded from the
@@ -133,13 +131,13 @@ def dense_lucaskanade(
         See the documentation of
         :py:func:`pysteps.utils.cleansing.detect_outliers`.
 
-    k_outlier : int or None, optional
+    k_outlier: int or None, optional
         The number of nearest neighbours used to localize the outlier detection.
         If set to None, it employs all the data points (global detection).
         See the documentation of
         :py:func:`pysteps.utils.cleansing.detect_outliers`.
 
-    size_opening : int, optional
+    size_opening: int, optional
         The size of the structuring element kernel in pixels. This is used to
         perform a binary morphological opening on the input fields in order to
         filter isolated echoes due to clutter. If set to zero, the filtering
@@ -147,7 +145,7 @@ def dense_lucaskanade(
         See the documentation of
         :py:func:`pysteps.utils.images.morph_opening`.
 
-    decl_scale : int, optional
+    decl_scale: int, optional
         The scale declustering parameter in pixels used to reduce the number of
         redundant sparse vectors before the interpolation.
         Sparse vectors within this declustering scale are averaged together.
@@ -155,13 +153,12 @@ def dense_lucaskanade(
         See the documentation of
         :py:func:`pysteps.utils.cleansing.decluster`.
 
-    verbose : bool, optional
+    verbose: bool, optional
         If set to True, print some information about the program.
 
     Returns
     -------
-
-    out : ndarray_ or tuple
+    out: ndarray_ or tuple
         If **dense=True** (the default), return the advection field having shape
         (2, m, n), where out[0, :, :] contains the x-components of the motion
         vectors and out[1, :, :] contains the y-components.
@@ -177,12 +174,10 @@ def dense_lucaskanade(
 
     See also
     --------
-
     pysteps.motion.lucaskanade.track_features
 
     References
     ----------
-
     Bouguet,  J.-Y.:  Pyramidal  implementation  of  the  affine  Lucas Kanade
     feature tracker description of the algorithm, Intel Corp., 5, 4, 2001
 

@@ -34,15 +34,14 @@ def parse_proj4_string(proj4str):
 
     Parameters
     ----------
-    proj4str : str
+    proj4str: str
       A PROJ.4-compatible projection string.
 
     Returns
     -------
-    out : dict
+    out: dict
       Dictionary, where keys and values are parsed from the projection
       parameter tokens beginning with '+'.
-
     """
     tokens = proj4str.split("+")
 
@@ -61,14 +60,13 @@ def proj4_to_cartopy(proj4str):
 
     Parameters
     ----------
-    proj4str : str
+    proj4str: str
         A PROJ.4-compatible projection string.
 
     Returns
     -------
-    out : object
+    out: object
         Instance of a crs class defined in cartopy.crs.
-
     """
     if not CARTOPY_IMPORTED:
         raise MissingOptionalDependency(
@@ -173,13 +171,13 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
 
     Parameters
     ----------
-    geodata : dictionary
+    geodata: dictionary
         Dictionary containing geographical information about the field.
         It must contain the attributes projection, x1, x2, y1, y2, xpixelsize,
         ypixelsize, as defined in the documentation of pysteps.io.importers.
     t_proj4str: str
         The target PROJ.4-compatible projection string (fallback).
-    return_grid : {None, 'coords', 'quadmesh'}, optional
+    return_grid: {None, 'coords', 'quadmesh'}, optional
         Whether to return the coordinates of the projected grid.
         The default return_grid=None does not compute the grid,
         return_grid='coords' returns the centers of projected grid points,
@@ -188,7 +186,7 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
 
     Returns
     -------
-    geodata : dictionary
+    geodata: dictionary
         Dictionary containing the reprojected geographical information
         and optionally the required X_grid and Y_grid. \n
         It also includes a fixed boolean attribute

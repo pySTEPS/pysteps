@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.datasets
 ================
@@ -96,7 +97,6 @@ class ShowProgress(object):
     >>> pbar = ShowProgress()
     >>> request.urlretrieve("http://python.org/", "/tmp/index.html", pbar)
     >>> pbar.end()
-
     """
 
     def __init__(self, bar_length=20):
@@ -190,17 +190,13 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
         The files are archived following the folder structure defined in
         the pystepsrc file.
         If the directory exists existing MRMS files may be overwritten.
-
-    initial_date : datetime
+    initial_date: datetime
         Beginning of the date period.
-
-    final_date : datetime
+    final_date: datetime
         End of the date period.
-
-    timestep : int or timedelta
+    timestep: int or timedelta
         Timestep between downloaded files in minutes.
-
-    nodelay : bool
+    nodelay: bool
         Do not implement a 5-seconds delay every 30 files downloaded.
     """
 
@@ -297,13 +293,11 @@ def download_pysteps_data(dir_path, force=True):
     ----------
     dir_path: str
         Path to directory where the psyteps data will be placed.
-
-    force : bool
+    force: bool
         If the destination directory exits and force=False, a DirectoryNotEmpty
         exception if raised.
         If force=True, the data will we downloaded in the destination directory and may
         override existing files.
-
     """
 
     # Check if directory exists but is not empty
@@ -358,27 +352,22 @@ def create_default_pystepsrc(
 
     Parameters
     ----------
-
-    pysteps_data_dir : str
+    pysteps_data_dir: str
         Path to the directory with the pysteps data.
-
-    config_dir : str
+    config_dir: str
         Destination directory for the configuration file.
         Default values: $HOME/.pysteps (unix and Mac OS X)
         or $USERPROFILE/pysteps (windows).
         The directory is created if it does not exists.
-
-    file_name : str
+    file_name: str
         Configuration file name. `pystepsrc` by default.
-
-    dryrun : bool
+    dryrun: bool
         Do not create the parameter file, nor create backups of existing files.
         No changes are made in the file system. It just returns the file path.
 
     Returns
     -------
-
-    dest_path : str
+    dest_path: str
         Configuration file path.
     """
 
@@ -438,25 +427,20 @@ def load_dataset(case="fmi", frames=14):
 
     Parameters
     ----------
-
-    case : str
+    case: str
         Case to load.
-
-    frames : int
+    frames: int
         Number composites (radar images).
         Max allowed value: 24 (35 for MRMS product)
         Default: 14
 
     Returns
     -------
-
-    rainrate : array-like
+    rainrate: array-like
         Precipitation data in mm/h. Dimensions: [time, lat, lon]
-
-    metadata : dict
+    metadata: dict
         The metadata observations attributes.
-
-    timestep : number
+    timestep: number
         Time interval between composites in minutes.
     """
 

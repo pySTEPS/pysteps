@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.utils.spectral
 ======================
@@ -25,23 +26,23 @@ def corrcoef(X, Y, shape, use_full_fft=False):
 
     Parameters
     ----------
-    X : array_like
+    X: array_like
         A complex array representing the Fourier transform of a two-dimensional
         array.
-    Y : array_like
+    Y: array_like
         A complex array representing the Fourier transform of a two-dimensional
         array.
-    shape : tuple
+    shape: tuple
         A two-element tuple specifying the shape of the original input arrays
         in the spatial domain.
-    use_full_fft : bool
+    use_full_fft: bool
         If True, X and Y represent the full FFTs of the original arrays.
         Otherwise, they are assumed to contain only the symmetric part, i.e.
         in the format returned by numpy.fft.rfft2.
 
     Returns
     -------
-    out : float
+    out: float
         The correlation coefficient. Gives the same result as
         numpy.corrcoef(X.flatten(), Y.flatten())[0, 1].
     """
@@ -80,16 +81,16 @@ def mean(X, shape):
 
     Parameters
     ----------
-    X : array_like
+    X: array_like
         A complex array representing the Fourier transform of a two-dimensional
         array.
-    shape : tuple
+    shape: tuple
         A two-element tuple specifying the shape of the original input array
         in the spatial domain.
 
     Returns
     -------
-    out : float
+    out: float
         The mean value.
     """
     return np.real(X[0, 0]) / (shape[0] * shape[1])
@@ -101,9 +102,9 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_k
 
     Parameters
     ----------
-    Z : array_like
+    Z: array_like
         A 2d array of shape (M,N) containing the input field.
-    fft_method : object
+    fft_method: object
         A module or object implementing the same methods as numpy.fft and
         scipy.fftpack. If set to None, Z is assumed to represent the shifted
         discrete Fourier transform of the input field, where the origin is at
@@ -111,24 +112,23 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_k
         (see numpy.fft.fftshift or scipy.fftpack.fftshift).
     return_freq: bool
         Whether to also return the Fourier frequencies.
-    d : scalar
+    d: scalar
         Sample spacing (inverse of the sampling rate). Defaults to 1.
         Applicable if return_freq is 'True'.
-    normalize : bool
+    normalize: bool
         If True, normalize the power spectrum so that it sums to one.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
       One-dimensional array containing the RAPSD. The length of the array is
       int(L/2)+1 (if L is even) or int(L/2) (if L is odd), where L=max(M,N).
-    freq : ndarray
+    freq: ndarray
       One-dimensional array containing the Fourier frequencies.
 
     References
     ----------
     :cite:`RC2011`
-
     """
 
     if len(Z.shape) != 2:
@@ -184,12 +184,12 @@ def remove_rain_norain_discontinuity(R):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of any shape to be transformed.
 
     Returns
     -------
-    R : array-like
+    R: array-like
         Array of any shape containing the transformed data.
     """
     R = R.copy()
@@ -207,20 +207,20 @@ def std(X, shape, use_full_fft=False):
 
     Parameters
     ----------
-    X : array_like
+    X: array_like
         A complex array representing the Fourier transform of a two-dimensional
         array.
-    shape : tuple
+    shape: tuple
         A two-element tuple specifying the shape of the original input array
         in the spatial domain.
-    use_full_fft : bool
+    use_full_fft: bool
         If True, X represents the full FFT of the original array. Otherwise, it
         is assumed to contain only the symmetric part, i.e. in the format
         returned by numpy.fft.rfft2.
 
     Returns
     -------
-    out : float
+    out: float
         The standard deviation.
     """
     res = np.sum(np.abs(X) ** 2) - np.real(X[0, 0]) ** 2

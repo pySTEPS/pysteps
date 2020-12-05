@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.io.readers
 ==================
@@ -20,17 +21,17 @@ def read_timeseries(inputfns, importer, **kwargs):
 
     Parameters
     ----------
-    inputfns : tuple
+    inputfns: tuple
         Input files returned by a function implemented in the
         :py:mod:`pysteps.io.archive` module.
-    importer : function
+    importer: function
         A function implemented in the :py:mod:`pysteps.io.importers` module.
-    kwargs : dict
+    kwargs: dict
         Optional keyword arguments for the importer.
 
     Returns
     -------
-    out : tuple
+    out: tuple
         A three-element tuple containing the read data and quality rasters and
         associated metadata. If an input file name is None, the corresponding
         precipitation and quality fields are filled with nan values. If all

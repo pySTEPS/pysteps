@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.decorators
 ==================
@@ -31,9 +32,9 @@ def postprocess_import(fillna=np.nan, dtype="double"):
 
     Parameters
     ----------
-    dtype : str
+    dtype: str
         Default data type for precipitation. Double precision by default.
-    fillna : float or np.nan
+    fillna: float or np.nan
         Default value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
     """
@@ -69,10 +70,10 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         extra_kwargs_doc = """
             Other Parameters
             ----------------
-            dtype : str
+            dtype: str
                 Data-type to which the array is cast.
                 Valid values:  "float32", "float64", "single", and "double".
-            fillna : float or np.nan
+            fillna: float or np.nan
                 Value used to represent the missing data ("No Coverage").
                 By default, np.nan is used.
             """

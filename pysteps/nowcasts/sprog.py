@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.sprog
 ======================
@@ -53,69 +54,69 @@ def forecast(
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
       ordered by timestamp from oldest to newest. The time steps between
       the inputs are assumed to be regular.
-    V : array-like
+    V: array-like
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field.
       The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
-    n_timesteps : int
+    n_timesteps: int
       Number of time steps to forecast.
-    n_cascade_levels : int, optional
+    n_cascade_levels: int, optional
       The number of cascade levels to use.
-    R_thr : float
+    R_thr: float
       The threshold value for minimum observable precipitation intensity.
-    extrap_method : str, optional
+    extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
-    decomp_method : {'fft'}, optional
+    decomp_method: {'fft'}, optional
       Name of the cascade decomposition method to use. See the documentation
       of pysteps.cascade.interface.
-    bandpass_filter_method : {'gaussian', 'uniform'}, optional
+    bandpass_filter_method: {'gaussian', 'uniform'}, optional
       Name of the bandpass filter method to use with the cascade decomposition.
       See the documentation of pysteps.cascade.interface.
-    ar_order : int, optional
+    ar_order: int, optional
       The order of the autoregressive model to use. Must be >= 1.
-    conditional : bool, optional
+    conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are
       below the threshold R_thr.
-    probmatching_method : {'cdf','mean',None}, optional
+    probmatching_method: {'cdf','mean',None}, optional
       Method for matching the conditional statistics of the forecast field
       (areas with precipitation intensity above the threshold R_thr) with those
       of the most recently observed one. 'cdf'=map the forecast CDF to the
       observed one, 'mean'=adjust only the mean value,
       None=no matching applied.
-    num_workers : int, optional
+    num_workers: int, optional
       The number of workers to use for parallel computation. Applicable if dask
       is enabled or pyFFTW is used for computing the FFT.
       When num_workers>1, it is advisable to disable OpenMP by setting
       the environment variable OMP_NUM_THREADS to 1.
       This avoids slowdown caused by too many simultaneous threads.
-    fft_method : str, optional
+    fft_method: str, optional
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
-    domain : {"spatial", "spectral"}
+    domain: {"spatial", "spectral"}
       If "spatial", all computations are done in the spatial domain (the
       classical S-PROG model). If "spectral", the AR(2) models are applied
       directly in the spectral domain to reduce memory footprint and improve
       performance :cite:`PCH2019a`.
-    extrap_kwargs : dict, optional
+    extrap_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
-    filter_kwargs : dict, optional
+    filter_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the filter method.
       See the documentation of pysteps.cascade.bandpass_filters.py.
-    measure_time : bool
+    measure_time: bool
       If set to True, measure, print and return the computation time.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
       A three-dimensional array of shape (n_timesteps,m,n) containing a time
       series of forecast precipitation fields. The time series starts from
       t0+timestep, where timestep is taken from the input precipitation fields

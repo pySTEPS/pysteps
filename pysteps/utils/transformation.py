@@ -16,8 +16,8 @@ Methods for transforming data values.
 
 import numpy as np
 import scipy.stats as scipy_stats
-from scipy.interpolate import interp1d
 import warnings
+from scipy.interpolate import interp1d
 
 warnings.filterwarnings(
     "ignore", category=RuntimeWarning
@@ -43,39 +43,34 @@ def boxcox_transform(
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of any shape to be transformed.
-
-    metadata : dict, optional
+    metadata: dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-
-    Lambda : float, optional
+    Lambda: float, optional
         Parameter Lambda of the Box-Cox transformation.
         It is 0 by default, which produces the log transformation.
 
         Choose Lambda < 1 for positively skewed data, Lambda > 1 for negatively
         skewed data.
-
-    threshold : float, optional
+    threshold: float, optional
         The value that is used for thresholding with the same units as R.
         If None, the threshold contained in metadata is used.
         If no threshold is found in the metadata,
         a value of 0.1 is used as default.
-
-    zerovalue : float, optional
+    zerovalue: float, optional
         The value to be assigned to no rain pixels as defined by the threshold.
         It is equal to the threshold - 1 by default.
-
-    inverse : bool, optional
+    inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
-    R : array-like
+    R: array-like
         Array of any shape containing the (back-)transformed units.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
 
     References
@@ -83,7 +78,6 @@ def boxcox_transform(
     Box, G. E. and Cox, D. R. (1964), An Analysis of Transformations. Journal
     of the Royal Statistical Society: Series B (Methodological), 26: 211-243.
     doi:10.1111/j.2517-6161.1964.tb00553.x
-
     """
 
     R = R.copy()
@@ -170,30 +164,29 @@ def dB_transform(
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of any shape to be (back-)transformed.
-    metadata : dict, optional
+    metadata: dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    threshold : float, optional
+    threshold: float, optional
         Optional value that is used for thresholding with the same units as R.
         If None, the threshold contained in metadata is used.
         If no threshold is found in the metadata,
         a value of 0.1 is used as default.
-    zerovalue : float, optional
+    zerovalue: float, optional
         The value to be assigned to no rain pixels as defined by the threshold.
         It is equal to the threshold - 1 by default.
-    inverse : bool, optional
+    inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
-    R : array-like
+    R: array-like
         Array of any shape containing the (back-)transformed units.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
-
     """
 
     R = R.copy()
@@ -261,18 +254,18 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of any shape to be transformed.
-    metadata : dict, optional
+    metadata: dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    inverse : bool, optional
+    inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Other Parameters
     ----------------
-    a : float, optional
+    a: float, optional
         The offset fraction to be used for plotting positions;
         typically in (0,1).
         The default is 0., that is, it spaces the points evenly in the uniform
@@ -280,9 +273,9 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     Returns
     -------
-    R : array-like
+    R: array-like
         Array of any shape containing the (back-)transformed units.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
 
     References
@@ -291,8 +284,6 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     quantile transformation and its application in a flood forecasting system,
     Hydrol. Earth Syst. Sci., 16, 1085-1094,
     https://doi.org/10.5194/hess-16-1085-2012, 2012.
-
-
     """
 
     # defaults
@@ -315,7 +306,6 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
         metadata = metadata.copy()
 
     if not inverse:
-
         # Plotting positions
         # https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot#Plotting_position
         n = R_.size
@@ -338,7 +328,6 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
         metadata["threshold"] = R__[R__ > 0].min()
 
     else:
-
         f = metadata.pop("inqt")
         R__ = f(R_)
         metadata["transform"] = None
@@ -355,20 +344,20 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of any shape to be transformed.
-    metadata : dict, optional
+    metadata: dict, optional
         Metadata dictionary containing the transform, zerovalue and threshold
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    inverse : bool, optional
+    inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
-    R : array-like
+    R: array-like
         Array of any shape containing the (back-)transformed units.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
 
     """
@@ -382,21 +371,17 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
             metadata = {"transform": None}
         metadata["zerovalue"] = np.nan
         metadata["threshold"] = np.nan
-
     else:
         metadata = metadata.copy()
 
     if not inverse:
-
         # sqrt transform
         R = np.sqrt(R)
 
         metadata["transform"] = "sqrt"
         metadata["zerovalue"] = np.sqrt(metadata["zerovalue"])
         metadata["threshold"] = np.sqrt(metadata["threshold"])
-
     else:
-
         # inverse sqrt transform
         R = R ** 2
 

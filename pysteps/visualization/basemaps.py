@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.visualization.basemaps
 ==============================
@@ -63,7 +64,7 @@ def plot_geography(
 
     Other parameters
     ----------------
-    plot_map : {'cartopy', None}, optional
+    plot_map: {'cartopy', None}, optional
         The type of basemap, either 'cartopy_' or None. If None, the figure
         axis is returned without any basemap drawn. Default ``'cartopy'``.
     scale: {'10m', '50m', '110m'}, optional

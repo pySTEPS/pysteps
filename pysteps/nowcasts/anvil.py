@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.anvil
 ======================
@@ -67,62 +68,62 @@ def forecast(
 
     Parameters
     ----------
-    vil : array_like
+    vil: array_like
         Array of shape (ar_order+2,m,n) containing the input fields ordered by
         timestamp from oldest to newest. The inputs are expected to contain VIL
         or rain rate. The time steps between the inputs are assumed to be regular.
-    velocity : array_like
+    velocity: array_like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs. All values are required to be finite.
-    n_timesteps : int
+    n_timesteps: int
         Number of time steps to forecast.
-    rainrate : array_like
+    rainrate: array_like
         Array of shape (m,n) containing the most recently observed rain rate
         field. If set to None, no R(VIL) conversion is done and the outputs
         are in the same units as the inputs.
-    n_cascade_levels : int, optional
+    n_cascade_levels: int, optional
         The number of cascade levels to use.
-    extrap_method : str, optional
+    extrap_method: str, optional
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
-    ar_order : int, optional
+    ar_order: int, optional
         The order of the autoregressive model to use. The recommended values
         are 1 or 2. Using a higher-order model is strongly discouraged because
         the stationarity of the AR process cannot be guaranteed.
-    ar_window_radius : int, optional
+    ar_window_radius: int, optional
         The radius of the window to use for determining the parameters of the
         autoregressive model. Set to None to disable localization.
-    r_vil_window_radius : int, optional
+    r_vil_window_radius: int, optional
         The radius of the window to use for determining the R(VIL) relation.
         Applicable if rainrate is not None.
-    fft_method : str, optional
+    fft_method: str, optional
         A string defining the FFT method to use (see utils.fft.get_method).
         Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
         the recommended method is 'pyfftw'.
-    apply_rainrate_mask : bool
+    apply_rainrate_mask: bool
         Apply mask to prevent producing precipitation to areas where it was not
         originally observed. Defaults to True. Disabling this may improve some
         verification metrics but increases the number of false alarms. Applicable
         if rainrate is None.
-    num_workers : int, optional
+    num_workers: int, optional
         The number of workers to use for parallel computation. Applicable if
         dask is installed or pyFFTW is used for computing the FFT.
         When num_workers>1, it is advisable to disable OpenMP by setting
         the environment variable OMP_NUM_THREADS to 1.
         This avoids slowdown caused by too many simultaneous threads.
-    extrap_kwargs : dict, optional
+    extrap_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
-    filter_kwargs : dict, optional
+    filter_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the filter method.
         See the documentation of pysteps.cascade.bandpass_filters.py.
-    measure_time : bool, optional
+    measure_time: bool, optional
         If True, measure, print and return the computation time.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
         A three-dimensional array of shape (n_timesteps,m,n) containing a time
         series of forecast precipitation fields. The time series starts from
         t0+timestep, where timestep is taken from the input VIL/rain rate

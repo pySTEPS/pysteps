@@ -51,14 +51,14 @@ def plot_precip_field(
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Two-dimensional array containing the input precipitation field or an
         exceedance probability map.
-    type : {'intensity', 'depth', 'prob'}, optional
+    type: {'intensity', 'depth', 'prob'}, optional
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
-    geodata : dictionary or None, optional
+    geodata: dictionary or None, optional
         Optional dictionary containing geographical information about
         the field. Required is map is not None.
 
@@ -87,28 +87,28 @@ def plot_precip_field(
         |                 | element in the data raster w.r.t. y-axis:         |
         |                 | 'upper' = upper border, 'lower' = lower border    |
         +-----------------+---------------------------------------------------+
-    units : {'mm/h', 'mm', 'dBZ'}, optional
+    units: {'mm/h', 'mm', 'dBZ'}, optional
         Units of the input array. If type is 'prob', this specifies the unit of
         the intensity threshold.
-    bbox : tuple, optional
+    bbox: tuple, optional
         Four-element tuple specifying the coordinates of the bounding box. Use
         this for plotting a subdomain inside the input grid. The coordinates are
         of the form (lower left x, lower left y ,upper right x, upper right y).
         If 'geodata' is not None, the bbox is in map coordinates, otherwise
         it represents image pixels.
-    colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
+    colorscale: {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
-    probthr : float, optional
+    probthr: float, optional
         Intensity threshold to show in the color bar of the exceedance
         probability map.
         Required if type is "prob" and colorbar is True.
-    title : str, optional
+    title: str, optional
         If not None, print the title on top of the plot.
-    colorbar : bool, optional
+    colorbar: bool, optional
         If set to True, add a colorbar on the right side of the plot.
-    axis : {'off','on'}, optional
+    axis: {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-    cax : Axes_ object, optional
+    cax: Axes_ object, optional
         Axes into which the colorbar will be drawn. If no axes is provided
         the colorbar axes are created next to the plot.
 
@@ -120,9 +120,8 @@ def plot_precip_field(
 
     Returns
     -------
-    ax : fig Axes_
+    ax: fig Axes_
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-
     """
 
     if type not in ["intensity", "depth", "prob"]:
@@ -332,29 +331,29 @@ def get_colormap(type, units="mm/h", colorscale="pysteps"):
 
     Parameters
     ----------
-    type : {'intensity', 'depth', 'prob'}, optional
+    type: {'intensity', 'depth', 'prob'}, optional
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
-    units : {'mm/h', 'mm', 'dBZ'}, optional
+    units: {'mm/h', 'mm', 'dBZ'}, optional
         Units of the input array. If type is 'prob', this specifies the unit of
         the intensity threshold.
-    colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
+    colorscale: {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
 
     Returns
     -------
-    cmap : Colormap instance
+    cmap: Colormap instance
         colormap
-    norm : colors.Normalize object
+    norm: colors.Normalize object
         Colors norm
     clevs: list(float)
         List of precipitation values defining the color limits.
     clevsStr: list(str)
         List of precipitation values defining the color limits (with correct
         number of decimals).
-
     """
+
     if type in ["intensity", "depth"]:
         # Get list of colors
         color_list, clevs, clevsStr = _get_colorlist(units, colorscale)
@@ -386,23 +385,22 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
 
     Parameters
     ----------
-    units : str
+    units: str
         Units of the input array (mm/h, mm or dBZ)
-    colorscale : str
+    colorscale: str
         Which colorscale to use (BOM-RF3, pysteps, STEPS-BE)
 
     Returns
     -------
-    color_list : list(str)
+    color_list: list(str)
         List of color strings.
 
-    clevs : list(float)
+    clevs: list(float)
         List of precipitation values defining the color limits.
 
-    clevsStr : list(str)
+    clevsStr: list(str)
         List of precipitation values defining the color limits
         (with correct number of decimals).
-
     """
 
     if colorscale == "BOM-RF3":
@@ -564,11 +562,11 @@ def _dynamic_formatting_floats(floatArray, colorscale="pysteps"):
                 formatting = ",.2f"
             else:
                 formatting = ",.1f"
-        elif label >= 0.01 and label < 0.1:
+        elif 0.01 <= label < 0.1:
             formatting = ",.2f"
-        elif label >= 0.001 and label < 0.01:
+        elif 0.001 <= label < 0.01:
             formatting = ",.3f"
-        elif label >= 0.0001 and label < 0.001:
+        elif 0.0001 <= label < 0.001:
             formatting = ",.4f"
         elif label >= 1 and label.is_integer():
             formatting = "i"

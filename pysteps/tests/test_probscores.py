@@ -8,7 +8,6 @@ from pysteps.postprocessing.ensemblestats import excprob
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.verification import probscores
 
-# precip, _ = import_mch_gif()
 precip = get_precipitation_fields(num_next_files=10, return_raw=True)
 
 # CRPS

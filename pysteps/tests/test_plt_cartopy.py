@@ -7,7 +7,6 @@ from pysteps.utils import to_rainrate
 from pysteps.tests.helpers import get_precipitation_fields
 import matplotlib.pyplot as plt
 
-
 plt_arg_names = ("source", "map_kwargs", "pass_geodata")
 
 plt_arg_values = [
@@ -26,7 +25,6 @@ plt_arg_values = [
 
 @pytest.mark.parametrize(plt_arg_names, plt_arg_values)
 def test_visualization_plot_precip_field(source, map_kwargs, pass_geodata):
-
     field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
     field = field.squeeze()
     field, __ = to_rainrate(field, metadata)
@@ -34,7 +32,7 @@ def test_visualization_plot_precip_field(source, map_kwargs, pass_geodata):
     if not pass_geodata:
         metadata = None
 
-    ax = plot_precip_field(
+    plot_precip_field(
         field,
         type="intensity",
         geodata=metadata,
