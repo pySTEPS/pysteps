@@ -405,12 +405,12 @@ def forecast(
 
 
 def _check_inputs(vil, rainrate, velocity, timesteps, ar_order):
-    if len(vil.shape) != 3:
+    if vil.ndim != 3:
         raise ValueError(
             "vil.shape = %s, but a three-dimensional array expected" % str(vil.shape)
         )
     if rainrate is not None:
-        if len(rainrate.shape) != 2:
+        if rainrate.ndim != 2:
             raise ValueError(
                 "rainrate.shape = %s, but a two-dimensional array expected"
                 % str(rainrate.shape)
