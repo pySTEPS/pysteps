@@ -17,15 +17,14 @@ steps_arg_names = (
 )
 
 steps_arg_values = [
-    (5, 6, 2, None, None, "spatial", 3, 1.55),
-    (5, 6, 2, None, None, "spatial", [3], 1.55),
-    (5, 6, 2, "incremental", None, "spatial", 3, 6.65),
-    (5, 6, 2, "sprog", None, "spatial", 3, 7.65),
-    (5, 6, 2, "obs", None, "spatial", 3, 7.65),
-    (5, 6, 2, None, "cdf", "spatial", 3, 0.70),
-    (5, 6, 2, None, "mean", "spatial", 3, 1.55),
-    (5, 6, 2, None, "mean", "spatial", 3, 1.55),
-    (5, 6, 2, "incremental", "cdf", "spectral", 3, 1.55),
+    (5, 6, 2, None, None, "spatial", 3, 1.30),
+    (5, 6, 2, None, None, "spatial", [3], 1.30),
+    (5, 6, 2, "incremental", None, "spatial", 3, 7.25),
+    (5, 6, 2, "sprog", None, "spatial", 3, 8.35),
+    (5, 6, 2, "obs", None, "spatial", 3, 8.30),
+    (5, 6, 2, None, "cdf", "spatial", 3, 0.60),
+    (5, 6, 2, None, "mean", "spatial", 3, 1.30),
+    (5, 6, 2, "incremental", "cdf", "spectral", 3, 0.60),
 ]
 
 
@@ -82,7 +81,7 @@ def test_steps(
     assert precip_forecast.shape[0] == n_ens_members
     assert precip_forecast.shape[1] == (timesteps if isinstance(timesteps, int) else len(timesteps))
 
-    crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
+    crps = verification.probscores.CRPS(precip_forecast[:, -1], precip_obs[-1])
     assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 
 

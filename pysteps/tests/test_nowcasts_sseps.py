@@ -17,8 +17,8 @@ sseps_arg_names = (
 )
 
 sseps_arg_values = [
-    (5, 6, 2, "incremental", "cdf", 200, 3, 0.8),
-    (5, 6, 2, "incremental", "cdf", 200, [3], 0.8),
+    (5, 6, 2, "incremental", "cdf", 200, 3, 0.60),
+    (5, 6, 2, "incremental", "cdf", 200, [3], 0.60),
 ]
 
 
@@ -73,7 +73,7 @@ def test_sseps(
     assert precip_forecast.shape[0] == n_ens_members
     assert precip_forecast.shape[1] == (timesteps if isinstance(timesteps, int) else len(timesteps))
 
-    crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
+    crps = verification.probscores.CRPS(precip_forecast[:, -1], precip_obs[-1])
     assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 
 
