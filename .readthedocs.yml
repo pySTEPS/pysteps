@@ -6,7 +6,7 @@ version: 2
 sphinx:
   configuration: doc/source/conf.py
 
-formats: 
+formats:
     - pdf
 
 python:
@@ -16,4 +16,3 @@ python:
     - requirements: doc/requirements.txt
     - method: pip
       path: .
-

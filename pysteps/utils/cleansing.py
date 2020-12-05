@@ -151,7 +151,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     thr : float
         The number of standard deviations from the mean used to define an outlier.
 
-    coord : array_like, optional
+    coord : array_like or None, optional
         Array of shape (n, d) containing the coordinates of the input data into
         a space of *d* dimensions.
         Passing ``coord`` requires that ``k`` is not None.
@@ -193,7 +193,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     if nsamples < 2:
         return np.zeros(nsamples, dtype=bool)
 
-    if coord is not None:
+    if coord is not None and k is not None:
 
         coord = np.copy(coord)
         if coord.ndim == 1:
@@ -210,18 +210,11 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                 + "number of coordinates %i!=%i" % (nsamples, coord.shape[0])
             )
 
-        if k is None:
-            raise ValueError("coord is set but k is None")
-
         k = np.min((nsamples, k + 1))
-
-    else:
-        if k is not None:
-            raise ValueError("k is set but coord=None")
 
     # global
 
-    if k is None:
+    if k is None or coord is None:
 
         if nvar == 1:
 
