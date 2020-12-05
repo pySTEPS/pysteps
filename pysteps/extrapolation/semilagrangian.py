@@ -33,32 +33,32 @@ def extrapolate(
 
     Parameters
     ----------
-    precip : array-like or None
+    precip: array-like or None
         Array of shape (m,n) containing the input precipitation field. All
         values are required to be finite by default. If set to None, only the
         displacement field is returned without interpolating the inputs. This
         requires that return_displacement is set to True.
-    velocity : array-like
+    velocity: array-like
         Array of shape (2,m,n) containing the x- and y-components of the m*n
         advection field. All values are required to be finite by default.
-    timesteps : int or list
+    timesteps: int or list
         If timesteps is integer, it specifies the number of time steps to
         extrapolate. If a list is given, each element is the desired
         extrapolation time step from the current time. The elements of the list
         are required to be in ascending order.
-    outval : float, optional
+    outval: float, optional
         Optional argument for specifying the value for pixels advected from
         outside the domain. If outval is set to 'min', the value is taken as
         the minimum value of precip.
-        Default : np.nan
-    xy_coords : ndarray, optional
+        Default: np.nan
+    xy_coords: ndarray, optional
         Array with the coordinates of the grid dimension (2, m, n ).
 
-        * xy_coords[0] : x coordinates
-        * xy_coords[1] : y coordinates
+        * xy_coords[0]: x coordinates
+        * xy_coords[1]: y coordinates
 
         By default, the *xy_coords* are computed for each extrapolation.
-    allow_nonfinite_values : bool, optional
+    allow_nonfinite_values: bool, optional
         If True, allow non-finite values in the precipitation and advection
         fields. This option is useful if the input fields contain a radar mask
         (i.e. pixels with no observations are set to nan).
@@ -66,25 +66,25 @@ def extrapolate(
     Other Parameters
     ----------------
 
-    displacement_prev : array-like
+    displacement_prev: array-like
         Optional initial displacement vector field of shape (2,m,n) for the
         extrapolation.
-        Default : None
-    n_iter : int
+        Default: None
+    n_iter: int
         Number of inner iterations in the semi-Lagrangian scheme. If n_iter > 0,
         the integration is done using the midpoint rule. Otherwise, the advection
         vectors are taken from the starting point of each interval.
-        Default : 1
-    return_displacement : bool
+        Default: 1
+    return_displacement: bool
         If True, return the displacement between the initial input field and
         the one obtained by integrating along the advection field.
-        Default : False
-    vel_timestep : float
+        Default: False
+    vel_timestep: float
         The time step of the velocity field. It is assumed to have the same
         unit as the timesteps argument. Applicable if timeseps is a list.
-        Default : 1.
-    interp_order : int
-        The order of interpolation to use. Default : 1 (linear). Setting this
+        Default: 1.
+    interp_order: int
+        The order of interpolation to use. Default: 1 (linear). Setting this
         to 0 (nearest neighbor) gives the best computational performance but
         may produce visible artefacts. Setting this to 3 (cubic) gives the best
         ability to reproduce small-scale variability but may significantly
@@ -92,7 +92,7 @@ def extrapolate(
 
     Returns
     -------
-    out : array or tuple
+    out: array or tuple
         If return_displacement=False, return a time series extrapolated fields
         of shape (num_timesteps,m,n). Otherwise, return a tuple containing the
         extrapolated fields and the integrated trajectory (displacement) along

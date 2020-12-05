@@ -30,29 +30,29 @@ def forecast(
 
     Parameters
     ----------
-    precip : array-like
+    precip: array-like
       Two-dimensional array of shape (m,n) containing the input precipitation
       field.
-    velocity : array-like
+    velocity: array-like
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field. The velocities are assumed to represent one time step
       between the inputs.
-    timesteps : int or list
+    timesteps: int or list
       Number of time steps to forecast or a list of time steps for which the
       forecasts are computed (relative to the input time step). The elements of
       the list are required to be in ascending order.
-    extrap_method : str, optional
+    extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
-    extrap_kwargs : dict, , optional
+    extrap_kwargs: dict, , optional
       Optional dictionary that is expanded into keyword arguments for the
       extrapolation method.
-    measure_time : bool, optional
+    measure_time: bool, optional
       If True, measure, print, and return the computation time.
 
     Returns
     -------
-    out : ndarray_
+    out: ndarray_
       Three-dimensional array of shape (num_timesteps, m, n) containing a time
       series of nowcast precipitation fields. The time series starts from
       t0 + timestep, where timestep is taken from the advection field velocity.

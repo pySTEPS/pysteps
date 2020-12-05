@@ -70,111 +70,111 @@ def forecast(
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
       ordered by timestamp from oldest to newest. The time steps between the
       inputs are assumed to be regular.
-    V : array-like
+    V: array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
-    timesteps : int or list
+    timesteps: int or list
       Number of time steps to forecast or a list of time steps for which the
       forecasts are computed (relative to the input time step). The elements of
       the list are required to be in ascending order.
-    n_ens_members : int, optional
+    n_ens_members: int, optional
       The number of ensemble members to generate.
-    n_cascade_levels : int, optional
+    n_cascade_levels: int, optional
       The number of cascade levels to use.
-    R_thr : float, optional
+    R_thr: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
-    kmperpixel : float, optional
+    kmperpixel: float, optional
       Spatial resolution of the input data (kilometers/pixel). Required if
       vel_pert_method is not None or mask_method is 'incremental'.
-    timestep : float, optional
+    timestep: float, optional
       Time step of the motion vectors (minutes). Required if vel_pert_method is
       not None or mask_method is 'incremental'.
-    extrap_method : str, optional
+    extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
-    decomp_method : {'fft'}, optional
+    decomp_method: {'fft'}, optional
       Name of the cascade decomposition method to use. See the documentation
       of pysteps.cascade.interface.
-    bandpass_filter_method : {'gaussian', 'uniform'}, optional
+    bandpass_filter_method: {'gaussian', 'uniform'}, optional
       Name of the bandpass filter method to use with the cascade decomposition.
       See the documentation of pysteps.cascade.interface.
-    noise_method : {'parametric','nonparametric','ssft','nested',None}, optional
+    noise_method: {'parametric','nonparametric','ssft','nested',None}, optional
       Name of the noise generator to use for perturbating the precipitation
       field. See the documentation of pysteps.noise.interface. If set to None,
       no noise is generated.
-    noise_stddev_adj : {'auto','fixed',None}, optional
+    noise_stddev_adj: {'auto','fixed',None}, optional
       Optional adjustment for the standard deviations of the noise fields added
       to each cascade level. This is done to compensate incorrect std. dev.
       estimates of casace levels due to presence of no-rain areas. 'auto'=use
       the method implemented in pysteps.noise.utils.compute_noise_stddev_adjs.
       'fixed'= use the formula given in :cite:`BPS2006` (eq. 6), None=disable
       noise std. dev adjustment.
-    ar_order : int, optional
+    ar_order: int, optional
       The order of the autoregressive model to use. Must be >= 1.
-    vel_pert_method : {'bps',None}, optional
+    vel_pert_method: {'bps',None}, optional
       Name of the noise generator to use for perturbing the advection field. See
       the documentation of pysteps.noise.interface. If set to None, the advection
       field is not perturbed.
-    conditional : bool, optional
+    conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
       R_thr.
-    mask_method : {'obs','sprog','incremental',None}, optional
+    mask_method: {'obs','sprog','incremental',None}, optional
       The method to use for masking no precipitation areas in the forecast field.
       The masked pixels are set to the minimum value of the observations.
       'obs' = apply R_thr to the most recently observed precipitation intensity
       field, 'sprog' = use the smoothed forecast field from S-PROG, where the
       AR(p) model has been applied, 'incremental' = iteratively buffer the mask
       with a certain rate (currently it is 1 km/min), None=no masking.
-    probmatching_method : {'cdf','mean',None}, optional
+    probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
       one, 'mean'=adjust only the conditional mean value of the forecast field
       in precipitation areas, None=no matching applied. Using 'mean' requires
       that mask_method is not None.
-    callback : function, optional
+    callback: function, optional
       Optional function that is called after computation of each time step of
       the nowcast. The function takes one argument: a three-dimensional array
       of shape (n_ens_members,h,w), where h and w are the height and width
       of the input field R, respectively. This can be used, for instance,
       writing the outputs into files.
-    return_output : bool, optional
+    return_output: bool, optional
       Set to False to disable returning the outputs as numpy arrays. This can
       save memory if the intermediate results are written to output files using
       the callback function.
-    seed : int, optional
+    seed: int, optional
       Optional seed number for the random generators.
-    num_workers : int, optional
+    num_workers: int, optional
       The number of workers to use for parallel computation. Applicable if dask
       is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
       is advisable to disable OpenMP by setting the environment variable
       OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
       threads.
-    fft_method : str, optional
+    fft_method: str, optional
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
-    domain : {"spatial", "spectral"}
+    domain: {"spatial", "spectral"}
       If "spatial", all computations are done in the spatial domain (the
       classical STEPS model). If "spectral", the AR(2) models and stochastic
       perturbations are applied directly in the spectral domain to reduce
       memory footprint and improve performance :cite:`PCH2019b`.
-    extrap_kwargs : dict, optional
+    extrap_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
-    filter_kwargs : dict, optional
+    filter_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the filter method.
       See the documentation of pysteps.cascade.bandpass_filters.py.
-    noise_kwargs : dict, optional
+    noise_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the initializer of
       the noise generator. See the documentation of pysteps.noise.fftgenerators.
-    vel_pert_kwargs : dict, optional
+    vel_pert_kwargs: dict, optional
       Optional dictionary containing keyword arguments 'p_par' and 'p_perp' for
       the initializer of the velocity perturbator. The choice of the optimal
       parameters depends on the domain and the used optical flow method.
@@ -227,17 +227,17 @@ def forecast(
       and fit_vel_pert_params.py located in the scripts directory.
 
       See pysteps.noise.motion for additional documentation.
-    mask_kwargs : dict
+    mask_kwargs: dict
       Optional dictionary containing mask keyword arguments 'mask_f' and
       'mask_rim', the factor defining the the mask increment and the rim size,
       respectively.
       The mask increment is defined as mask_f*timestep/kmperpixel.
-    measure_time : bool
+    measure_time: bool
       If set to True, measure, print and return the computation time.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
       If return_output is True, a four-dimensional array of shape
       (n_ens_members,num_timesteps,m,n) containing a time series of forecast
       precipitation fields for each ensemble member. Otherwise, a None value
