@@ -12,11 +12,13 @@ sseps_arg_names = (
     "mask_method",
     "probmatching_method",
     "win_size",
+    "timesteps",
     "max_crps",
 )
 
 sseps_arg_values = [
-    (5, 6, 2, "incremental", "cdf", 200, 0.8),
+    (5, 6, 2, "incremental", "cdf", 200, 3, 0.8),
+    (5, 6, 2, "incremental", "cdf", 200, [3], 0.9),
 ]
 
 
@@ -28,6 +30,7 @@ def test_sseps(
     mask_method,
     probmatching_method,
     win_size,
+    timesteps,
     max_crps,
 ):
     """Tests SSEPS nowcast."""
@@ -59,7 +62,7 @@ def test_sseps(
         metadata,
         retrieved_motion,
         win_size=win_size,
-        timesteps=3,
+        timesteps=timesteps,
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
@@ -70,8 +73,7 @@ def test_sseps(
 
     # result
     crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
-    print(f"got CRPS={crps:.1f}, required < {max_crps:.1f}")
-    assert crps < max_crps
+    assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 
 
 if __name__ == "__main__":

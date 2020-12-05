@@ -12,18 +12,20 @@ steps_arg_names = (
     "mask_method",
     "probmatching_method",
     "domain",
+    "timesteps",
     "max_crps",
 )
 
 steps_arg_values = [
-    (5, 6, 2, None, None, "spatial", 1.55),
-    (5, 6, 2, "incremental", None, "spatial", 6.65),
-    (5, 6, 2, "sprog", None, "spatial", 7.65),
-    (5, 6, 2, "obs", None, "spatial", 7.65),
-    (5, 6, 2, None, "cdf", "spatial", 0.70),
-    (5, 6, 2, None, "mean", "spatial", 1.55),
-    (5, 6, 2, None, "mean", "spatial", 1.55),
-    (5, 6, 2, "incremental", "cdf", "spectral", 1.55),
+    (5, 6, 2, None, None, "spatial", 3, 1.55),
+    (5, 6, 2, None, None, "spatial", [3], 1.55),
+    (5, 6, 2, "incremental", None, "spatial", 3, 6.65),
+    (5, 6, 2, "sprog", None, "spatial", 3, 7.65),
+    (5, 6, 2, "obs", None, "spatial", 3, 7.65),
+    (5, 6, 2, None, "cdf", "spatial", 3, 0.70),
+    (5, 6, 2, None, "mean", "spatial", 3, 1.55),
+    (5, 6, 2, None, "mean", "spatial", 3, 1.55),
+    (5, 6, 2, "incremental", "cdf", "spectral", 3, 1.55),
 ]
 
 
@@ -35,6 +37,7 @@ def test_steps(
     mask_method,
     probmatching_method,
     domain,
+    timesteps,
     max_crps,
 ):
     """Tests STEPS nowcast."""
@@ -64,7 +67,7 @@ def test_steps(
     precip_forecast = nowcast_method(
         precip_input,
         retrieved_motion,
-        timesteps=3,
+        timesteps=timesteps,
         R_thr=metadata["threshold"],
         kmperpixel=2.0,
         timestep=metadata["accutime"],
@@ -79,8 +82,7 @@ def test_steps(
 
     # result
     crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
-    print(f"got CRPS={crps:.1f}, required < {max_crps:.1f}")
-    assert crps < max_crps
+    assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 
 
 if __name__ == "__main__":

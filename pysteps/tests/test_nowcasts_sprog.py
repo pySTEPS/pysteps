@@ -10,20 +10,22 @@ sprog_arg_names = (
     "ar_order",
     "probmatching_method",
     "domain",
+    "timesteps",
     "min_csi",
 )
 
 sprog_arg_values = [
-    (6, 1, None, "spatial", 0.5),
-    (6, 2, None, "spatial", 0.5),
-    (6, 2, "cdf", "spatial", 0.5),
-    (6, 2, "mean", "spatial", 0.5),
-    (6, 2, "cdf", "spectral", 0.5),
+    (6, 1, None, "spatial", 3, 0.5),
+    (6, 1, None, "spatial", [3], 0.5),
+    (6, 2, None, "spatial", 3, 0.5),
+    (6, 2, "cdf", "spatial", 3, 0.5),
+    (6, 2, "mean", "spatial", 3, 0.5),
+    (6, 2, "cdf", "spectral", 3, 0.5),
 ]
 
 
 @pytest.mark.parametrize(sprog_arg_names, sprog_arg_values)
-def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, min_csi):
+def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, timesteps, min_csi):
     """Tests SPROG nowcast."""
     # inputs
     precip_input, metadata = get_precipitation_fields(
@@ -51,7 +53,7 @@ def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, min_csi)
     precip_forecast = nowcast_method(
         precip_input,
         retrieved_motion,
-        timesteps=3,
+        timesteps=timesteps,
         R_thr=metadata["threshold"],
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
@@ -63,8 +65,7 @@ def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, min_csi)
     result = verification.det_cat_fct(
         precip_forecast[-1], precip_obs[-1], thr=0.1, scores="CSI"
     )["CSI"]
-    print(f"got CSI={result:.1f}, required > {min_csi:.1f}")
-    assert result > min_csi
+    assert result > min_csi, f"CSI={result:.1f}, required > {min_csi:.1f}"
 
 
 if __name__ == "__main__":
