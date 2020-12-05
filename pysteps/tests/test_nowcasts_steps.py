@@ -56,12 +56,10 @@ def test_steps(
     )[1:, :, :]
     precip_obs = precip_obs.filled()
 
-    # Retrieve motion field
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
     retrieved_motion = oflow_method(precip_input)
 
-    # Run nowcast
     nowcast_method = nowcasts.get_method("steps")
 
     precip_forecast = nowcast_method(
@@ -80,7 +78,10 @@ def test_steps(
         domain=domain,
     )
 
-    # result
+    assert precip_forecast.ndim == 4
+    assert precip_forecast.shape[0] == n_ens_members
+    assert precip_forecast.shape[1] == (timesteps if isinstance(timesteps, int) else len(timesteps))
+
     crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
     assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 

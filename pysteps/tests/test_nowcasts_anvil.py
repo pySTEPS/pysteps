@@ -37,7 +37,6 @@ def test_anvil_rainrate(n_cascade_levels, ar_order, ar_window_radius, timesteps,
     )[1:, :, :]
     precip_obs = precip_obs.filled()
 
-    # Retrieve motion field
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
     retrieved_motion = oflow_method(precip_input)

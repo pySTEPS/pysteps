@@ -42,12 +42,10 @@ def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, timestep
     )[1:, :, :]
     precip_obs = precip_obs.filled()
 
-    # Retrieve motion field
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
     retrieved_motion = oflow_method(precip_input)
 
-    # Run nowcast
     nowcast_method = nowcasts.get_method("sprog")
 
     precip_forecast = nowcast_method(
@@ -61,7 +59,9 @@ def test_sprog(n_cascade_levels, ar_order, probmatching_method, domain, timestep
         domain=domain,
     )
 
-    # result
+    assert precip_forecast.ndim == 3
+    assert precip_forecast.shape[0] == (timesteps if isinstance(timesteps, int) else len(timesteps))
+
     result = verification.det_cat_fct(
         precip_forecast[-1], precip_obs[-1], thr=0.1, scores="CSI"
     )["CSI"]
