@@ -593,11 +593,11 @@ def forecast(
             subtimesteps = [t]
 
         if len(subtimesteps) > 1 or t > 0:
-            nowcast_time_step = True
+            is_nowcast_time_step = True
         else:
-            nowcast_time_step = False
+            is_nowcast_time_step = False
 
-        if nowcast_time_step:
+        if is_nowcast_time_step:
             print(
                 "Computing nowcast for time step %d... " % (t_nowcast + 1),
                 end="",
@@ -853,10 +853,11 @@ def forecast(
         )
         res = None
 
-        if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
-        else:
-            print("done.")
+        if is_nowcast_time_step:
+            if measure_time:
+                print("%.2f seconds." % (time.time() - starttime))
+            else:
+                print("done.")
 
         if callback is not None:
             callback(np.stack(R_f_))
