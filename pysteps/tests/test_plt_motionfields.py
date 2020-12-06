@@ -49,7 +49,11 @@ def test_visualization_motionfields_quiver(
         U, V = np.meshgrid(u, v)
         UV = np.concatenate([U[None, :], V[None, :]])
 
+    UV_orig = UV.copy()
     __ = quiver(UV, ax, geodata, axis, step, quiver_kwargs, map_kwargs=map_kwargs,)
+
+    # Check that quiver does not modify the input data
+    assert np.array_equal(UV, UV_orig)
 
 
 arg_names_streamplot = (
@@ -90,7 +94,11 @@ def test_visualization_motionfields_streamplot(
         U, V = np.meshgrid(u, v)
         UV = np.concatenate([U[None, :], V[None, :]])
 
+    UV_orig = UV.copy()
     __ = streamplot(UV, ax, geodata, axis, streamplot_kwargs, map_kwargs=map_kwargs,)
+
+    # Check that streamplot does not modify the input data
+    assert np.array_equal(UV, UV_orig)
 
 
 if __name__ == "__main__":

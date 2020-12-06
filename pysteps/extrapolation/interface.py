@@ -84,15 +84,7 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
 
     return_displacement = kwargs.get("return_displacement", False)
 
-    extrapolated_precip = np.repeat(
-        precip[
-            np.newaxis,
-            :,
-            :,
-        ],
-        num_timesteps,
-        axis=0,
-    )
+    extrapolated_precip = np.repeat(precip[np.newaxis, :, :,], num_timesteps, axis=0,)
 
     if not return_displacement:
         return extrapolated_precip

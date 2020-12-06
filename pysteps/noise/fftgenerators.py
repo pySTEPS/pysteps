@@ -870,8 +870,7 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
 
 
 def _split_field(idxi, idxj, Segments):
-    """ Split domain field into a number of equally sapced segments.
-    """
+    """Split domain field into a number of equally sapced segments."""
 
     sizei = idxi[1] - idxi[0]
     sizej = idxj[1] - idxj[0]
@@ -898,8 +897,7 @@ def _split_field(idxi, idxj, Segments):
 
 
 def _get_mask(Size, idxi, idxj, win_fun):
-    """Compute a mask of zeros with a window at a given position.
-    """
+    """Compute a mask of zeros with a window at a given position."""
 
     idxi = np.array(idxi).astype(int)
     idxj = np.array(idxj).astype(int)

@@ -7,10 +7,11 @@ from pysteps.utils import conversion
 from pysteps.postprocessing import ensemblestats
 from pysteps.tests.helpers import get_precipitation_fields
 import matplotlib.pyplot as plt
+import numpy as np
 
 plt_arg_names = (
     "source",
-    "type",
+    "plot_type",
     "bbox",
     "colorscale",
     "probthr",
@@ -36,30 +37,30 @@ plt_arg_values = [
 
 @pytest.mark.parametrize(plt_arg_names, plt_arg_values)
 def test_visualization_plot_precip_field(
-    source, type, bbox, colorscale, probthr, title, colorbar, axis,
+    source, plot_type, bbox, colorscale, probthr, title, colorbar, axis,
 ):
-
-    if type == "intensity":
+    if plot_type == "intensity":
 
         field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
         field = field.squeeze()
         field, metadata = conversion.to_rainrate(field, metadata)
 
-    elif type == "depth":
+    elif plot_type == "depth":
 
         field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
         field = field.squeeze()
         field, metadata = conversion.to_raindepth(field, metadata)
 
-    elif type == "prob":
+    elif plot_type == "prob":
 
         field, metadata = get_precipitation_fields(0, 10, True, True, None, source)
         field, metadata = conversion.to_rainrate(field, metadata)
         field = ensemblestats.excprob(field, probthr)
 
+    field_orig = field.copy()
     ax = plot_precip_field(
-        field,
-        type=type,
+        field.copy(),
+        type=plot_type,
         bbox=bbox,
         geodata=None,
         colorscale=colorscale,
@@ -69,6 +70,13 @@ def test_visualization_plot_precip_field(
         colorbar=colorbar,
         axis=axis,
     )
+
+    # Check that plot_precip_field does not modify the input data
+    field_orig = np.ma.masked_invalid(field_orig)
+    field_orig.data[field_orig.mask] = -100
+    field = np.ma.masked_invalid(field)
+    field.data[field.mask] = -100
+    assert np.array_equal(field_orig.data, field.data)
 
 
 if __name__ == "__main__":

@@ -354,7 +354,7 @@ def create_default_pystepsrc(
     pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to respectively
     pystepsrc.1, pystepsrc.2, pystepsrc.2, etc. Finally, after the existing files are
     backed up, the new configuration file is written.
-    
+
     Parameters
     ----------
 
@@ -414,7 +414,7 @@ def create_default_pystepsrc(
         with open(dest_path, "w") as f:
             json.dump(rcparams_json, f, indent=4)
 
-    return dest_path
+    return os.path.normpath(dest_path)
 
 
 def load_dataset(case="fmi", frames=14):
