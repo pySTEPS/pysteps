@@ -19,12 +19,14 @@ available in pySTEPS.
     extrapolation
     datasets
     downscaling
+    feature
     io
     motion
     noise
     nowcasts
     postprocessing
     timeseries
+    tracking
     utils
     verification
     visualization

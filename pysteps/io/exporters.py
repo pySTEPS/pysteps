@@ -393,8 +393,8 @@ def initialize_forecast_exporter_netcdf(
         grids.
 
     metadata: dict
-        Metadata dictionary containing the projection, x1, x2, y1, y2, 
-        unit attributes (projection and variable units) described in the 
+        Metadata dictionary containing the projection, x1, x2, y1, y2,
+        unit attributes (projection and variable units) described in the
         documentation of :py:mod:`pysteps.io.importers`.
 
     n_ens_members : int

@@ -621,8 +621,7 @@ def det_cont_fct_compute(err, scores=""):
 
 
 def _parallel_mean(avg_a, count_a, avg_b, count_b):
-    """Update avg_a with avg_b.
-    """
+    """Update avg_a with avg_b."""
     idx = count_b > 0
     avg_a[idx] = (count_a[idx] * avg_a[idx] + count_b[idx] * avg_b[idx]) / (
         count_a[idx] + count_b[idx]
@@ -646,8 +645,7 @@ def _parallel_var(avg_a, count_a, var_a, avg_b, count_b, var_b):
 
 
 def _parallel_cov(cov_a, avg_xa, avg_ya, count_a, cov_b, avg_xb, avg_yb, count_b):
-    """Update cov_a with cov_b.
-    """
+    """Update cov_a with cov_b."""
     idx = count_b > 0
     deltax = avg_xb - avg_xa
     deltay = avg_yb - avg_ya
