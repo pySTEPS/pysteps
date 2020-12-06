@@ -560,7 +560,6 @@ def forecast(
 
     D = [None for j in range(n_ens_members)]
     R_f = [[] for j in range(n_ens_members)]
-    t_nowcast = 0
 
     if measure_time:
         init_time = time.time() - starttime_init
@@ -592,18 +591,19 @@ def forecast(
         else:
             subtimesteps = [t]
 
-        if len(subtimesteps) > 1 or t > 0:
+        if (timestep_type == "list" and subtimesteps) or (
+            timestep_type == "int" and t > 0
+        ):
             is_nowcast_time_step = True
         else:
             is_nowcast_time_step = False
 
         if is_nowcast_time_step:
             print(
-                "Computing nowcast for time step %d... " % (t_nowcast + 1),
+                "Computing nowcast for time step %d... " % t,
                 end="",
                 flush=True,
             )
-            t_nowcast += 1
 
         if measure_time:
             starttime = time.time()
