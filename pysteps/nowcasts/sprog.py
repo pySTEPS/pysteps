@@ -330,9 +330,9 @@ def forecast(
     t_prev = 0.0
 
     # iterate each time step
-    for t in range(len(timesteps)):
+    for t, subtimestep_idx in enumerate(timesteps):
         if timestep_type == "list":
-            subtimesteps = [original_timesteps[t_] for t_ in timesteps[t]]
+            subtimesteps = [original_timesteps[t_] for t_ in subtimestep_idx]
         else:
             subtimesteps = [t]
 
