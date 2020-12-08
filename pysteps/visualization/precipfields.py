@@ -166,7 +166,9 @@ def plot_precip_field(
     if geodata is not None:
         try:
             ax = basemaps.plot_geography(
-                geodata["projection"], bm_extent, **map_kwargs,
+                geodata["projection"],
+                bm_extent,
+                **map_kwargs,
             )
             regular_grid = True
         except MissingOptionalDependency as e:
@@ -188,7 +190,9 @@ def plot_precip_field(
             regular_grid = geodata["regular_grid"]
 
             ax = basemaps.plot_geography(
-                geodata["projection"], bm_extent, **map_kwargs,
+                geodata["projection"],
+                bm_extent,
+                **map_kwargs,
             )
 
     else:
@@ -239,7 +243,12 @@ def plot_precip_field(
         else:
             extend = "neither"
         cbar = plt.colorbar(
-            im, ticks=clevs, spacing="uniform", extend=extend, shrink=0.8, cax=cax,
+            im,
+            ticks=clevs,
+            spacing="uniform",
+            extend=extend,
+            shrink=0.8,
+            cax=cax,
         )
         if clevsStr is not None:
             cbar.ax.set_yticklabels(clevsStr)
@@ -289,7 +298,7 @@ def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
         extent=extent,
         interpolation="nearest",
         origin=origin,
-        zorder=1,
+        zorder=1e6,
     )
 
     return im
@@ -313,7 +322,7 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale):
 
     vmin, vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
-    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
+    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1e6)
 
     return im
 
@@ -535,7 +544,9 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
 
     # Generate color level strings with correct amount of decimal places
     clevsStr = []
-    clevsStr = _dynamic_formatting_floats(clevs,)
+    clevsStr = _dynamic_formatting_floats(
+        clevs,
+    )
 
     return color_list, clevs, clevsStr
 
