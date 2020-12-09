@@ -1090,7 +1090,7 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
                         ) = _read_mch_hdf5_what_group(dg[1]["what"])
                     elif not what_grp_found:
                         raise DataModelError(
-                            "Non ODIM compilant file: "
+                            "Non ODIM compliant file: "
                             "no what group found from {} "
                             "or its subgroups".format(dg[0])
                         )
@@ -1343,7 +1343,7 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                         ) = _read_opera_hdf5_what_group(dg[1]["what"])
                     elif not what_grp_found:
                         raise DataModelError(
-                            "Non ODIM compilant file: "
+                            "Non ODIM compliant file: "
                             "no what group found from {} "
                             "or its subgroups".format(dg[0])
                         )
@@ -1357,7 +1357,10 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                         if qty_.decode() == qty:
                             precip = np.empty(arr.shape)
                             precip[mask] = arr[mask] * gain + offset
-                            precip[mask_u] = 0.0
+                            if qty != "DBZH":
+                                precip[mask_u] = 0.0
+                            else:
+                                precip[mask_u] = -30.0
                             precip[mask_n] = np.nan
                         elif qty_.decode() == "QIND":
                             quality = np.empty(arr.shape, dtype=float)
