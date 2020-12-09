@@ -6,12 +6,12 @@ pysteps.nowcasts.sseps
 Implementation of the Short-space ensemble prediction system (SSEPS) method.
 Essentially, SSEPS is a localized version of STEPS.
 
-For  localization  we  intend  the  use of  a  subset  of  the  observations
-in  order  to  estimate  model parameters that are distributed in space.
-The short-space approach used in :cite:`NBSG2017` is generalized to
-the whole nowcasting system. This essenially boils down to a moving window
-localization of the nowcasting procedure, whereby all parameters are estimated
-over a subdomain of prescribed size.
+For localization we intend the use of a subset of the observations in order to
+estimate model parameters that are distributed in space. The short-space
+approach used in :cite:`NBSG2017` is generalized to the whole nowcasting system.
+This essentially boils down to a moving window localization of the nowcasting
+procedure, whereby all parameters are estimated over a subdomain of prescribed
+size.
 
 .. autosummary::
     :toctree: ../generated/
@@ -44,7 +44,7 @@ def forecast(
     R,
     metadata,
     V,
-    n_timesteps,
+    timesteps,
     n_ens_members=24,
     n_cascade_levels=6,
     win_size=256,
@@ -78,42 +78,44 @@ def forecast(
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of shape (ar_order+1,m,n) containing the input precipitation fields
         ordered by timestamp from oldest to newest. The time steps between the inputs
         are assumed to be regular, and the inputs are required to have finite values.
-    metadata : dict
+    metadata: dict
         Metadata dictionary containing the accutime, xpixelsize, threshold and
         zerovalue attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`. xpixelsize is assumed to be in meters.
-    V : array-like
+    V: array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
         field. The velocities are assumed to represent one time step between the
         inputs. All values are required to be finite.
-    win_size : int or two-element sequence of ints
+    win_size: int or two-element sequence of ints
         Size-length of the localization window.
-    overlap : float [0,1[
+    overlap: float [0,1[
         A float between 0 and 1 prescribing the level of overlap between
         successive windows. If set to 0, no overlap is used.
-    war_thr : float
+    war_thr: float
         Threshold for the minimum fraction of rain in a given window.
-    n_timesteps : int
-        Number of time steps to forecast.
-    n_ens_members : int
+    timesteps: int or list of floats
+        Number of time steps to forecast or a list of time steps for which the
+        forecasts are computed (relative to the input time step). The elements
+        of the list are required to be in ascending order.
+    n_ens_members: int
         The number of ensemble members to generate.
-    n_cascade_levels : int
+    n_cascade_levels: int
         The number of cascade levels to use.
 
-    extrap_method : {'semilagrangian'}
+    extrap_method: {'semilagrangian'}
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
-    decomp_method : {'fft'}
+    decomp_method: {'fft'}
         Name of the cascade decomposition method to use. See the documentation
         of pysteps.cascade.interface.
-    bandpass_filter_method : {'gaussian', 'uniform'}
+    bandpass_filter_method: {'gaussian', 'uniform'}
         Name of the bandpass filter method to use with the cascade
         decomposition.
-    noise_method : {'parametric','nonparametric','ssft','nested',None}
+    noise_method: {'parametric','nonparametric','ssft','nested',None}
         Name of the noise generator to use for perturbating the precipitation
         field. See the documentation of pysteps.noise.interface. If set to None,
         no noise is generated.
@@ -123,65 +125,65 @@ def forecast(
         Name of the noise generator to use for perturbing the advection field.
         See the documentation of pysteps.noise.interface. If set to None,
         the advection field is not perturbed.
-    mask_method : {'incremental', None}
+    mask_method: {'incremental', None}
         The method to use for masking no precipitation areas in the forecast
         field. The masked pixels are set to the minimum value of the
         observations. 'incremental' = iteratively buffer the mask with a
         certain rate (currently it is 1 km/min), None=no masking.
-    probmatching_method : {'cdf', None}
+    probmatching_method: {'cdf', None}
         Method for matching the statistics of the forecast field with those of
         the most recently observed one. 'cdf'=map the forecast CDF to the
         observed one, None=no matching applied. Using 'mean' requires
         that mask_method is not None.
-    callback : function
+    callback: function
         Optional function that is called after computation of each time step of
         the nowcast. The function takes one argument: a three-dimensional array
         of shape (n_ens_members,h,w), where h and w are the height and width
         of the input field R, respectively. This can be used, for instance,
         writing the outputs into files.
-    return_output : bool
+    return_output: bool
         Set to False to disable returning the outputs as numpy arrays. This can
         save memory if the intermediate results are written to output files
         using the callback function.
-    seed : int
+    seed: int
         Optional seed number for the random generators.
-    num_workers : int
+    num_workers: int
         The number of workers to use for parallel computation. Applicable if
         dask is enabled or pyFFTW is used for computing the FFT.
         When num_workers>1, it is advisable to disable OpenMP by setting the
         environment variable OMP_NUM_THREADS to 1.
         This avoids slowdown caused by too many simultaneous threads.
-    fft_method : str
+    fft_method: str
         A string defining the FFT method to use (see utils.fft.get_method).
         Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
         the recommended method is 'pyfftw'.
-    extrap_kwargs : dict
+    extrap_kwargs: dict
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
-    filter_kwargs : dict
+    filter_kwargs: dict
         Optional dictionary containing keyword arguments for the filter method.
         See the documentation of pysteps.cascade.bandpass_filters.py.
-    noise_kwargs : dict
+    noise_kwargs: dict
         Optional dictionary containing keyword arguments for the initializer of
         the noise generator. See the documentation of
         pysteps.noise.fftgenerators.
-    vel_pert_kwargs : dict
+    vel_pert_kwargs: dict
         Optional dictionary containing keyword arguments "p_pert_par" and
         "p_pert_perp" for the initializer of the velocity perturbator.
         See the documentation of pysteps.noise.motion.
-    mask_kwargs : dict
+    mask_kwargs: dict
         Optional dictionary containing mask keyword arguments 'mask_f' and
         'mask_rim', the factor defining the the mask increment and the rim size,
         respectively.
         The mask increment is defined as mask_f*timestep/kmperpixel.
-    measure_time : bool
+    measure_time: bool
         If set to True, measure, print and return the computation time.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
         If return_output is True, a four-dimensional array of shape
-        (n_ens_members,n_timesteps,m,n) containing a time series of forecast
+        (n_ens_members,num_timesteps,m,n) containing a time series of forecast
         precipitation fields for each ensemble member. Otherwise, a None value
         is returned. The time series starts from t0+timestep, where timestep is
         taken from the input precipitation fields R.
@@ -200,10 +202,12 @@ def forecast(
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`NBSG2017`
 
     """
-    _check_inputs(R, V, ar_order)
+    _check_inputs(R, V, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
+    else:
+        extrap_kwargs = extrap_kwargs.copy()
 
     if filter_kwargs is None:
         filter_kwargs = dict()
@@ -264,7 +268,10 @@ def forecast(
     print("localization window:      %dx%d" % (win_size[0], win_size[1]))
     print("overlap:                  %.1f" % overlap)
     print("war thr:                  %.2f" % war_thr)
-    print("number of time steps:     %d" % n_timesteps)
+    if isinstance(timesteps, int):
+        print("number of time steps:     %d" % timesteps)
+    else:
+        print("time steps:               %s" % timesteps)
     print("ensemble size:            %d" % n_ens_members)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
@@ -449,7 +456,6 @@ def forecast(
     idxm = np.zeros((2, 1), dtype=int)
     idxn = np.zeros((2, 1), dtype=int)
 
-    sys.stdout.flush()
     if measure_time:
         starttime = time.time()
 
@@ -565,10 +571,40 @@ def forecast(
     if measure_time:
         starttime_mainloop = time.time()
 
+    if isinstance(timesteps, int):
+        timesteps = range(timesteps + 1)
+        timestep_type = "int"
+    else:
+        original_timesteps = [0] + list(timesteps)
+        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
+        timestep_type = "list"
+
+    extrap_kwargs["return_displacement"] = True
+    R_f_prev = [R for i in range(n_ens_members)]
+    t_prev = [0.0 for j in range(n_ens_members)]
+    t_total = [0.0 for j in range(n_ens_members)]
+
     # iterate each time step
-    for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t + 1), end="")
-        sys.stdout.flush()
+    for t, subtimestep_idx in enumerate(timesteps):
+        if timestep_type == "list":
+            subtimesteps = [original_timesteps[t_] for t_ in subtimestep_idx]
+        else:
+            subtimesteps = [t]
+
+        if (timestep_type == "list" and subtimesteps) or (
+            timestep_type == "int" and t > 0
+        ):
+            is_nowcast_time_step = True
+        else:
+            is_nowcast_time_step = False
+
+        if is_nowcast_time_step:
+            print(
+                "Computing nowcast for time step %d... " % t,
+                end="",
+                flush=True,
+            )
+
         if measure_time:
             starttime = time.time()
 
@@ -615,7 +651,7 @@ def forecast(
 
             # compute the recomposed precipitation field(s) from the cascades
             # obtained from the AR(p) model(s)
-            R_c_ = _recompose_cascade(R_c, parsglob["mu"], parsglob["sigma"])
+            R_f_new = _recompose_cascade(R_c, parsglob["mu"], parsglob["sigma"])
             R_c = None
 
             # then the local steps
@@ -697,7 +733,7 @@ def forecast(
                             R_c = mu_ = sigma_ = None
                             # R_l_ = _recompose_cascade(R_c[:, :, :], mu[m, n, :], sigma[m, n, :])
                         else:
-                            R_l_ = R_c_[
+                            R_l_ = R_f_new[
                                 idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
                             ].copy()
 
@@ -719,14 +755,14 @@ def forecast(
                 R_l[ind] *= 1 / M_s[ind]
                 R_l[~ind] = R_min
 
-                R_c_ = R_l.copy()
+                R_f_new = R_l.copy()
                 R_l = None
 
             if probmatching_method == "cdf":
                 # adjust the CDF of the forecast to match the most recently
                 # observed precipitation field
-                R_c_[R_c_ < R_thr] = R_min
-                R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
+                R_f_new[R_f_new < R_thr] = R_min
+                R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, R)
 
             if mask_method is not None:
                 # apply the precipitation mask to prevent generation of new
@@ -734,32 +770,74 @@ def forecast(
                 # observed
                 if mask_method == "incremental":
                     MASK_prec = parsglob["MASK_prec"][j].copy()
-                    R_c_ = R_c_.min() + (R_c_ - R_c_.min()) * MASK_prec
+                    R_f_new = R_f_new.min() + (R_f_new - R_f_new.min()) * MASK_prec
                     MASK_prec = None
 
             if mask_method == "incremental":
                 parsglob["MASK_prec"][j] = _compute_incremental_mask(
-                    R_c_ >= R_thr, struct, mask_rim
+                    R_f_new >= R_thr, struct, mask_rim
                 )
 
-            # compute the perturbed motion field
-            if vel_pert_method is not None:
-                V_ = V + generate_vel_noise(vps[j], (t + 1) * timestep)
-            else:
-                V_ = V
+            R_f_out = []
+            extrap_kwargs_ = extrap_kwargs.copy()
+            extrap_kwargs_["xy_coords"] = xy_coords
+            extrap_kwargs_["return_displacement"] = True
 
-            # advect the recomposed precipitation field to obtain the forecast
-            # for time step t
-            extrap_kwargs.update(
-                {"displacement_prev": D[j], "return_displacement": True}
-            )
-            R_f_, D_ = extrapolator_method(R_c_, V_, 1, **extrap_kwargs)
-            D[j] = D_
-            R_f_ = R_f_[0]
+            V_pert = V
 
-            R_f_[R_f_ < R_thr] = R_min
+            # advect the recomposed precipitation field to obtain the forecast for
+            # the current time step (or subtimesteps if non-integer time steps are
+            # given)
+            for t_sub in subtimesteps:
+                if t_sub > 0:
+                    t_diff_prev_int = t_sub - int(t_sub)
+                    if t_diff_prev_int > 0.0:
+                        R_f_ip = (1.0 - t_diff_prev_int) * R_f_prev[
+                            j
+                        ] + t_diff_prev_int * R_f_new
+                    else:
+                        R_f_ip = R_f_prev[j]
 
-            return R_f_
+                    t_diff_prev = t_sub - t_prev[j]
+                    t_total[j] += t_diff_prev
+
+                    # compute the perturbed motion field
+                    if vel_pert_method is not None:
+                        V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
+
+                    extrap_kwargs_["displacement_prev"] = D[j]
+                    R_f_ep, D[j] = extrapolator_method(
+                        R_f_ip,
+                        V_pert,
+                        [t_diff_prev],
+                        **extrap_kwargs_,
+                    )
+                    R_f_ep[0][R_f_ep[0] < R_thr] = R_min
+                    R_f_out.append(R_f_ep[0])
+                    t_prev[j] = t_sub
+
+            # advect the forecast field by one time step if no subtimesteps in the
+            # current interval were found
+            if not subtimesteps:
+                t_diff_prev = t + 1 - t_prev[j]
+                t_total[j] += t_diff_prev
+
+                # compute the perturbed motion field
+                if vel_pert_method is not None:
+                    V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
+
+                extrap_kwargs_["displacement_prev"] = D[j]
+                _, D[j] = extrapolator_method(
+                    None,
+                    V_pert,
+                    [t_diff_prev],
+                    **extrap_kwargs_,
+                )
+                t_prev[j] = t + 1
+
+            R_f_prev[j] = R_f_new
+
+            return R_f_out
 
         res = []
         for j in range(n_ens_members):
@@ -775,10 +853,11 @@ def forecast(
         )
         res = None
 
-        if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
-        else:
-            print("done.")
+        if is_nowcast_time_step:
+            if measure_time:
+                print("%.2f seconds." % (time.time() - starttime))
+            else:
+                print("done.")
 
         if callback is not None:
             callback(np.stack(R_f_))
@@ -786,7 +865,7 @@ def forecast(
 
         if return_output:
             for j in range(n_ens_members):
-                R_f[j].append(R_f_[j])
+                R_f[j].extend(R_f_[j])
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
@@ -801,18 +880,20 @@ def forecast(
         return None
 
 
-def _check_inputs(R, V, ar_order):
-    if len(R.shape) != 3:
+def _check_inputs(R, V, timesteps, ar_order):
+    if R.ndim != 3:
         raise ValueError("R must be a three-dimensional array")
     if R.shape[0] < ar_order + 1:
         raise ValueError("R.shape[0] < ar_order+1")
-    if len(V.shape) != 3:
+    if V.ndim != 3:
         raise ValueError("V must be a three-dimensional array")
     if R.shape[1:3] != V.shape[1:3]:
         raise ValueError(
             "dimension mismatch between R and V: shape(R)=%s, shape(V)=%s"
             % (str(R.shape), str(V.shape))
         )
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
 
 
 def _compute_incremental_mask(Rbin, kr, r):
@@ -846,14 +927,14 @@ def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
 
     Parameters
     ----------
-    win_size : tuple of int
+    win_size: tuple of int
         Size of the tapering window as two-element tuple of integers.
-    win_type : str
+    win_type: str
         Name of the tapering window type (hanning, flat-hanning)
 
     Returns
     -------
-    w2d : array-like
+    w2d: array-like
         A two-dimensional numpy array containing the 2D tapering function.
     """
 

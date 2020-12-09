@@ -33,7 +33,7 @@ except ImportError:
 def forecast(
     R,
     V,
-    n_timesteps,
+    timesteps,
     n_cascade_levels=6,
     R_thr=None,
     extrap_method="semilagrangian",
@@ -53,70 +53,72 @@ def forecast(
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
       ordered by timestamp from oldest to newest. The time steps between
       the inputs are assumed to be regular.
-    V : array-like
+    V: array-like
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field.
       The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
-    n_timesteps : int
-      Number of time steps to forecast.
-    n_cascade_levels : int, optional
+    timesteps: int or list of floats
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step). The elements of
+      the list are required to be in ascending order.
+    n_cascade_levels: int, optional
       The number of cascade levels to use.
-    R_thr : float
+    R_thr: float
       The threshold value for minimum observable precipitation intensity.
-    extrap_method : str, optional
+    extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
-    decomp_method : {'fft'}, optional
+    decomp_method: {'fft'}, optional
       Name of the cascade decomposition method to use. See the documentation
       of pysteps.cascade.interface.
-    bandpass_filter_method : {'gaussian', 'uniform'}, optional
+    bandpass_filter_method: {'gaussian', 'uniform'}, optional
       Name of the bandpass filter method to use with the cascade decomposition.
       See the documentation of pysteps.cascade.interface.
-    ar_order : int, optional
+    ar_order: int, optional
       The order of the autoregressive model to use. Must be >= 1.
-    conditional : bool, optional
+    conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are
       below the threshold R_thr.
-    probmatching_method : {'cdf','mean',None}, optional
+    probmatching_method: {'cdf','mean',None}, optional
       Method for matching the conditional statistics of the forecast field
       (areas with precipitation intensity above the threshold R_thr) with those
       of the most recently observed one. 'cdf'=map the forecast CDF to the
       observed one, 'mean'=adjust only the mean value,
       None=no matching applied.
-    num_workers : int, optional
+    num_workers: int, optional
       The number of workers to use for parallel computation. Applicable if dask
       is enabled or pyFFTW is used for computing the FFT.
       When num_workers>1, it is advisable to disable OpenMP by setting
       the environment variable OMP_NUM_THREADS to 1.
       This avoids slowdown caused by too many simultaneous threads.
-    fft_method : str, optional
+    fft_method: str, optional
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
-    domain : {"spatial", "spectral"}
+    domain: {"spatial", "spectral"}
       If "spatial", all computations are done in the spatial domain (the
       classical S-PROG model). If "spectral", the AR(2) models are applied
       directly in the spectral domain to reduce memory footprint and improve
       performance :cite:`PCH2019a`.
-    extrap_kwargs : dict, optional
+    extrap_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
-    filter_kwargs : dict, optional
+    filter_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the filter method.
       See the documentation of pysteps.cascade.bandpass_filters.py.
-    measure_time : bool
+    measure_time: bool
       If set to True, measure, print and return the computation time.
 
     Returns
     -------
-    out : ndarray
-      A three-dimensional array of shape (n_timesteps,m,n) containing a time
+    out: ndarray
+      A three-dimensional array of shape (num_timesteps,m,n) containing a time
       series of forecast precipitation fields. The time series starts from
       t0+timestep, where timestep is taken from the input precipitation fields
       R. If measure_time is True, the return value is a three-element tuple
@@ -132,7 +134,7 @@ def forecast(
     :cite:`Seed2003`, :cite:`PCH2019a`
 
     """
-    _check_inputs(R, V, ar_order)
+    _check_inputs(R, V, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -165,7 +167,10 @@ def forecast(
 
     print("Parameters:")
     print("-----------")
-    print("number of time steps:     %d" % n_timesteps)
+    if isinstance(timesteps, int):
+        print("number of time steps:     %d" % timesteps)
+    else:
+        print("time steps:               %s" % timesteps)
     print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
@@ -290,8 +295,6 @@ def forecast(
     # the AR(p) model
     R_c = [R_c[i][-ar_order:] for i in range(n_cascade_levels)]
 
-    D = None
-
     if probmatching_method == "mean":
         mu_0 = np.mean(R[-1, :, :][R[-1, :, :] >= R_thr])
 
@@ -311,10 +314,41 @@ def forecast(
 
     R_f = []
 
+    if isinstance(timesteps, int):
+        timesteps = range(timesteps + 1)
+        timestep_type = "int"
+    else:
+        original_timesteps = [0] + list(timesteps)
+        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
+        timestep_type = "list"
+
+    R_f_prev = R
+    extrap_kwargs["return_displacement"] = True
+
+    D = None
+    t_prev = 0.0
+
     # iterate each time step
-    for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t + 1), end="")
-        sys.stdout.flush()
+    for t, subtimestep_idx in enumerate(timesteps):
+        if timestep_type == "list":
+            subtimesteps = [original_timesteps[t_] for t_ in subtimestep_idx]
+        else:
+            subtimesteps = [t]
+
+        if (timestep_type == "list" and subtimesteps) or (
+            timestep_type == "int" and t > 0
+        ):
+            is_nowcast_time_step = True
+        else:
+            is_nowcast_time_step = False
+
+        if is_nowcast_time_step:
+            print(
+                "Computing nowcast for time step %d... " % t,
+                end="",
+                flush=True,
+            )
+
         if measure_time:
             starttime = time.time()
 
@@ -324,36 +358,69 @@ def forecast(
         R_d["cascade_levels"] = [R_c[i][-1, :] for i in range(n_cascade_levels)]
         if domain == "spatial":
             R_d["cascade_levels"] = np.stack(R_d["cascade_levels"])
-        R_c_ = recomp_method(R_d)
+
+        R_f_new = recomp_method(R_d)
 
         if domain == "spectral":
-            R_c_ = fft.irfft2(R_c_)
+            R_f_new = fft.irfft2(R_f_new)
 
-        MASK = _compute_sprog_mask(R_c_, war)
-        R_c_[~MASK] = R_min
+        MASK = _compute_sprog_mask(R_f_new, war)
+        R_f_new[~MASK] = R_min
 
         if probmatching_method == "cdf":
             # adjust the CDF of the forecast to match the most recently
             # observed precipitation field
-            R_c_ = probmatching.nonparam_match_empirical_cdf(R_c_, R)
+            R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, R)
         elif probmatching_method == "mean":
-            mu_fct = np.mean(R_c_[MASK])
-            R_c_[MASK] = R_c_[MASK] - mu_fct + mu_0
+            mu_fct = np.mean(R_f_new[MASK])
+            R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0
 
-        R_c_[domain_mask] = np.nan
+        R_f_new[domain_mask] = np.nan
 
         # advect the recomposed precipitation field to obtain the forecast for
-        # time step t
-        extrap_kwargs.update({"displacement_prev": D, "return_displacement": True})
-        R_f_, D_ = extrapolator_method(R_c_, V, 1, **extrap_kwargs)
-        D = D_
-        R_f_ = R_f_[0]
-        R_f.append(R_f_)
+        # the current time step (or subtimesteps if non-integer time steps are
+        # given)
+        for t_sub in subtimesteps:
+            if t_sub > 0:
+                t_diff_prev_int = t_sub - int(t_sub)
+                if t_diff_prev_int > 0.0:
+                    R_f_ip = (
+                        1.0 - t_diff_prev_int
+                    ) * R_f_prev + t_diff_prev_int * R_f_new
+                else:
+                    R_f_ip = R_f_prev
 
-        if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
-        else:
-            print("done.")
+                t_diff_prev = t_sub - t_prev
+                extrap_kwargs["displacement_prev"] = D
+                R_f_ep, D = extrapolator_method(
+                    R_f_ip,
+                    V,
+                    [t_diff_prev],
+                    **extrap_kwargs,
+                )
+                R_f.append(R_f_ep[0])
+                t_prev = t_sub
+
+        # advect the forecast field by one time step if no subtimesteps in the
+        # current interval were found
+        if not subtimesteps:
+            t_diff_prev = t + 1 - t_prev
+            extrap_kwargs["displacement_prev"] = D
+            _, D = extrapolator_method(
+                None,
+                V,
+                [t_diff_prev],
+                **extrap_kwargs,
+            )
+            t_prev = t + 1
+
+        R_f_prev = R_f_new
+
+        if is_nowcast_time_step:
+            if measure_time:
+                print("%.2f seconds." % (time.time() - starttime))
+            else:
+                print("done.")
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
@@ -366,18 +433,20 @@ def forecast(
         return R_f
 
 
-def _check_inputs(R, V, ar_order):
-    if len(R.shape) != 3:
+def _check_inputs(R, V, timesteps, ar_order):
+    if R.ndim != 3:
         raise ValueError("R must be a three-dimensional array")
     if R.shape[0] < ar_order + 1:
         raise ValueError("R.shape[0] < ar_order+1")
-    if len(V.shape) != 3:
+    if V.ndim != 3:
         raise ValueError("V must be a three-dimensional array")
     if R.shape[1:3] != V.shape[1:3]:
         raise ValueError(
             "dimension mismatch between R and V: shape(R)=%s, shape(V)=%s"
             % (str(R.shape), str(V.shape))
         )
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
 
 
 def _compute_sprog_mask(R, war):

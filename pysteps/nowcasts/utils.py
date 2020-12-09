@@ -15,12 +15,46 @@ Module with common utilities used by nowcasts methods.
 import numpy as np
 
 
+def binned_timesteps(timesteps):
+    """Compute a binning of the given irregular time steps.
+
+    Parameters
+    ----------
+    timesteps: array_like
+        List or one-dimensional array containing the time steps in ascending
+        order.
+
+    Returns
+    -------
+    out: list
+        List of length int(np.ceil(timesteps[-1]))+1 containing the bins. Each
+        element is a list containing the indices of the time steps falling in
+        the bin (excluding the right edge).
+    """
+    timesteps = list(timesteps)
+    if not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
+
+    if np.any(np.array(timesteps) < 0):
+        raise ValueError("negative time steps are not allowed")
+
+    num_bins = int(np.ceil(timesteps[-1]))
+    timestep_range = np.arange(num_bins + 1)
+    bin_idx = np.digitize(timesteps, timestep_range, right=False)
+
+    out = [[] for i in range(num_bins + 1)]
+    for i, bi in enumerate(bin_idx):
+        out[bi - 1].append(i)
+
+    return out
+
+
 def print_ar_params(PHI):
     """Print the parameters of an AR(p) model.
 
     Parameters
     ----------
-    PHI : array_like
+    PHI: array_like
       Array of shape (n, p) containing the AR(p) parameters for n cascade
       levels.
     """
@@ -56,7 +90,7 @@ def print_corrcoefs(GAMMA):
 
     Parameters
     ----------
-    GAMMA : array_like
+    GAMMA: array_like
       Array of shape (m, n) containing n correlation coefficients for m cascade
       levels.
     """
@@ -92,15 +126,15 @@ def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
 
     Parameters
     ----------
-    R_d : list
+    R_d: list
         List of cascades obtained by calling a method implemented in
         pysteps.cascade.decomposition.
-    n_levels : int
+    n_levels: int
         The number of cascade levels.
 
     Returns
     -------
-    out : tuple
+    out: tuple
         A list of three-dimensional arrays containing the stacked cascade levels.
     """
     R_c = []

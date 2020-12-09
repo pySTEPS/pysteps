@@ -18,7 +18,7 @@ from pysteps import extrapolation
 def forecast(
     precip,
     velocity,
-    num_timesteps,
+    timesteps,
     extrap_method="semilagrangian",
     extrap_kwargs=None,
     measure_time=False,
@@ -30,27 +30,29 @@ def forecast(
 
     Parameters
     ----------
-    precip : array-like
+    precip: array-like
       Two-dimensional array of shape (m,n) containing the input precipitation
       field.
-    velocity : array-like
+    velocity: array-like
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field. The velocities are assumed to represent one time step
       between the inputs.
-    num_timesteps : int
-      Number of time steps to forecast.
-    extrap_method : str, optional
+    timesteps: int or list of floats
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step). The elements of
+      the list are required to be in ascending order.
+    extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
-    extrap_kwargs : dict, , optional
+    extrap_kwargs: dict, , optional
       Optional dictionary that is expanded into keyword arguments for the
       extrapolation method.
-    measure_time : bool, optional
+    measure_time: bool, optional
       If True, measure, print, and return the computation time.
 
     Returns
     -------
-    out : ndarray_
+    out: ndarray_
       Three-dimensional array of shape (num_timesteps, m, n) containing a time
       series of nowcast precipitation fields. The time series starts from
       t0 + timestep, where timestep is taken from the advection field velocity.
@@ -64,7 +66,7 @@ def forecast(
 
 
     """
-    _check_inputs(precip, velocity)
+    _check_inputs(precip, velocity, timesteps)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -83,9 +85,7 @@ def forecast(
 
     extrapolation_method = extrapolation.get_method(extrap_method)
 
-    precip_forecast = extrapolation_method(
-        precip, velocity, num_timesteps, **extrap_kwargs
-    )
+    precip_forecast = extrapolation_method(precip, velocity, timesteps, **extrap_kwargs)
 
     if measure_time:
         computation_time = time.time() - start_time
@@ -97,10 +97,10 @@ def forecast(
         return precip_forecast
 
 
-def _check_inputs(precip, velocity):
-    if len(precip.shape) != 2:
+def _check_inputs(precip, velocity, timesteps):
+    if precip.ndim != 2:
         raise ValueError("The input precipitation must be a " "two-dimensional array")
-    if len(velocity.shape) != 3:
+    if velocity.ndim != 3:
         raise ValueError("Input velocity must be a three-dimensional array")
     if precip.shape != velocity.shape[1:3]:
         raise ValueError(
@@ -109,3 +109,5 @@ def _check_inputs(precip, velocity):
             + "shape(precip)=%s, shape(velocity)=%s"
             % (str(precip.shape), str(velocity.shape))
         )
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")

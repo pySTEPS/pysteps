@@ -12,11 +12,13 @@ sseps_arg_names = (
     "mask_method",
     "probmatching_method",
     "win_size",
+    "timesteps",
     "max_crps",
 )
 
 sseps_arg_values = [
-    (5, 6, 2, "incremental", "cdf", 200, 0.8),
+    (5, 6, 2, "incremental", "cdf", 200, 3, 0.60),
+    (5, 6, 2, "incremental", "cdf", 200, [3], 0.60),
 ]
 
 
@@ -28,6 +30,7 @@ def test_sseps(
     mask_method,
     probmatching_method,
     win_size,
+    timesteps,
     max_crps,
 ):
     """Tests SSEPS nowcast."""
@@ -46,12 +49,10 @@ def test_sseps(
     )[1:, :, :]
     precip_obs = precip_obs.filled()
 
-    # Retrieve motion field
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
     retrieved_motion = oflow_method(precip_input)
 
-    # Run nowcast
     nowcast_method = nowcasts.get_method("sseps")
 
     precip_forecast = nowcast_method(
@@ -59,7 +60,7 @@ def test_sseps(
         metadata,
         retrieved_motion,
         win_size=win_size,
-        n_timesteps=3,
+        timesteps=timesteps,
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
@@ -68,10 +69,14 @@ def test_sseps(
         probmatching_method=probmatching_method,
     )
 
-    # result
-    crps = verification.probscores.CRPS(precip_forecast[-1], precip_obs[-1])
-    print(f"got CRPS={crps:.1f}, required < {max_crps:.1f}")
-    assert crps < max_crps
+    assert precip_forecast.ndim == 4
+    assert precip_forecast.shape[0] == n_ens_members
+    assert precip_forecast.shape[1] == (
+        timesteps if isinstance(timesteps, int) else len(timesteps)
+    )
+
+    crps = verification.probscores.CRPS(precip_forecast[:, -1], precip_obs[-1])
+    assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 
 
 if __name__ == "__main__":
