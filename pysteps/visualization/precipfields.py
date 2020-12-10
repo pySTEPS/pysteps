@@ -298,7 +298,7 @@ def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
         extent=extent,
         interpolation="nearest",
         origin=origin,
-        zorder=1e6,
+        zorder=1,
     )
 
     return im
@@ -322,7 +322,7 @@ def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale):
 
     vmin, vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
 
-    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1e6)
+    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
 
     return im
 
