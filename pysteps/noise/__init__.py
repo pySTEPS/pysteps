@@ -3,4 +3,4 @@
 velocity fields."""
 
 from .interface import get_method
-from . import utils
+from . import utils, motion, fftgenerators

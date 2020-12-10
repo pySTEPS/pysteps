@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.extrapolation.interface
 ===============================
@@ -50,7 +51,7 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
         values are required to be finite.
     velocity : array-like
         Not used by the method.
-    timesteps : int or list
+    timesteps : int or list of floats
         Number of time steps or a list of time steps.
     outval : float, optional
         Not used by the method.

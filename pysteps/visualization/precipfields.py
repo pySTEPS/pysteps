@@ -87,28 +87,28 @@ def plot_precip_field(
         |                 | element in the data raster w.r.t. y-axis:         |
         |                 | 'upper' = upper border, 'lower' = lower border    |
         +-----------------+---------------------------------------------------+
-    units: {'mm/h', 'mm', 'dBZ'}, optional
+    units : {'mm/h', 'mm', 'dBZ'}, optional
         Units of the input array. If type is 'prob', this specifies the unit of
         the intensity threshold.
-    bbox: tuple, optional
+    bbox : tuple, optional
         Four-element tuple specifying the coordinates of the bounding box. Use
         this for plotting a subdomain inside the input grid. The coordinates are
         of the form (lower left x, lower left y ,upper right x, upper right y).
         If 'geodata' is not None, the bbox is in map coordinates, otherwise
         it represents image pixels.
-    colorscale: {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
+    colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
-    probthr: float, optional
+    probthr : float, optional
         Intensity threshold to show in the color bar of the exceedance
         probability map.
         Required if type is "prob" and colorbar is True.
-    title: str, optional
+    title : str, optional
         If not None, print the title on top of the plot.
-    colorbar: bool, optional
+    colorbar : bool, optional
         If set to True, add a colorbar on the right side of the plot.
-    axis: {'off','on'}, optional
+    axis : {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-    cax: Axes_ object, optional
+    cax : Axes_ object, optional
         Axes into which the colorbar will be drawn. If no axes is provided
         the colorbar axes are created next to the plot.
 
@@ -120,8 +120,9 @@ def plot_precip_field(
 
     Returns
     -------
-    ax: fig Axes_
+    ax : fig Axes_
         Figure axes. Needed if one wants to add e.g. text inside the plot.
+
     """
 
     if type not in ["intensity", "depth", "prob"]:
@@ -164,16 +165,12 @@ def plot_precip_field(
     # plot geography
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(
-                geodata["projection"],
-                bm_extent,
-                **map_kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs)
             regular_grid = True
         except MissingOptionalDependency as e:
             # Cartopy is not installed
             print(f"{e.__class__}: {e}")
-            ax = plt.axes()
+            ax = plt.gca()
             regular_grid = True
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -188,11 +185,7 @@ def plot_precip_field(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
             regular_grid = geodata["regular_grid"]
 
-            ax = basemaps.plot_geography(
-                geodata["projection"],
-                bm_extent,
-                **map_kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs)
 
     else:
         ax = plt.gca()
@@ -242,12 +235,7 @@ def plot_precip_field(
         else:
             extend = "neither"
         cbar = plt.colorbar(
-            im,
-            ticks=clevs,
-            spacing="uniform",
-            extend=extend,
-            shrink=0.8,
-            cax=cax,
+            im, ticks=clevs, spacing="uniform", extend=extend, shrink=0.8, cax=cax
         )
         if clevsStr is not None:
             cbar.ax.set_yticklabels(clevsStr)
@@ -331,29 +319,29 @@ def get_colormap(type, units="mm/h", colorscale="pysteps"):
 
     Parameters
     ----------
-    type: {'intensity', 'depth', 'prob'}, optional
+    type : {'intensity', 'depth', 'prob'}, optional
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
-    units: {'mm/h', 'mm', 'dBZ'}, optional
+    units : {'mm/h', 'mm', 'dBZ'}, optional
         Units of the input array. If type is 'prob', this specifies the unit of
         the intensity threshold.
-    colorscale: {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
+    colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
 
     Returns
     -------
-    cmap: Colormap instance
+    cmap : Colormap instance
         colormap
-    norm: colors.Normalize object
+    norm : colors.Normalize object
         Colors norm
     clevs: list(float)
         List of precipitation values defining the color limits.
     clevsStr: list(str)
         List of precipitation values defining the color limits (with correct
         number of decimals).
-    """
 
+    """
     if type in ["intensity", "depth"]:
         # Get list of colors
         color_list, clevs, clevsStr = _get_colorlist(units, colorscale)
@@ -385,22 +373,23 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
 
     Parameters
     ----------
-    units: str
+    units : str
         Units of the input array (mm/h, mm or dBZ)
-    colorscale: str
+    colorscale : str
         Which colorscale to use (BOM-RF3, pysteps, STEPS-BE)
 
     Returns
     -------
-    color_list: list(str)
+    color_list : list(str)
         List of color strings.
 
-    clevs: list(float)
+    clevs : list(float)
         List of precipitation values defining the color limits.
 
-    clevsStr: list(str)
+    clevsStr : list(str)
         List of precipitation values defining the color limits
         (with correct number of decimals).
+
     """
 
     if colorscale == "BOM-RF3":
@@ -542,9 +531,7 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
 
     # Generate color level strings with correct amount of decimal places
     clevsStr = []
-    clevsStr = _dynamic_formatting_floats(
-        clevs,
-    )
+    clevsStr = _dynamic_formatting_floats(clevs)
 
     return color_list, clevs, clevsStr
 

@@ -19,7 +19,7 @@ from pysteps import extrapolation
 def forecast(
     precip,
     velocity,
-    num_timesteps,
+    timesteps,
     extrap_method="semilagrangian",
     extrap_kwargs=None,
     measure_time=False,
@@ -38,8 +38,10 @@ def forecast(
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field. The velocities are assumed to represent one time step
       between the inputs.
-    num_timesteps: int
-      Number of time steps to forecast.
+    timesteps: int or list of floats
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step). The elements of
+      the list are required to be in ascending order.
     extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
@@ -62,7 +64,8 @@ def forecast(
     --------
     pysteps.extrapolation.interface
     """
-    _check_inputs(precip, velocity)
+
+    _check_inputs(precip, velocity, timesteps)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -81,9 +84,7 @@ def forecast(
 
     extrapolation_method = extrapolation.get_method(extrap_method)
 
-    precip_forecast = extrapolation_method(
-        precip, velocity, num_timesteps, **extrap_kwargs
-    )
+    precip_forecast = extrapolation_method(precip, velocity, timesteps, **extrap_kwargs)
 
     if measure_time:
         computation_time = time.time() - start_time
@@ -95,10 +96,10 @@ def forecast(
         return precip_forecast
 
 
-def _check_inputs(precip, velocity):
-    if len(precip.shape) != 2:
+def _check_inputs(precip, velocity, timesteps):
+    if precip.ndim != 2:
         raise ValueError("The input precipitation must be a " "two-dimensional array")
-    if len(velocity.shape) != 3:
+    if velocity.ndim != 3:
         raise ValueError("Input velocity must be a three-dimensional array")
     if precip.shape != velocity.shape[1:3]:
         raise ValueError(
@@ -107,3 +108,5 @@ def _check_inputs(precip, velocity):
             + "shape(precip)=%s, shape(velocity)=%s"
             % (str(precip.shape), str(velocity.shape))
         )
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
