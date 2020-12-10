@@ -1358,7 +1358,7 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                             precip = np.empty(arr.shape)
                             precip[mask] = arr[mask] * gain + offset
                             if qty != "DBZH":
-                                precip[mask_u] = 0.0
+                                precip[mask_u] = offset
                             else:
                                 precip[mask_u] = -30.0
                             precip[mask_n] = np.nan
