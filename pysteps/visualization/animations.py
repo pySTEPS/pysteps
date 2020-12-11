@@ -208,23 +208,12 @@ def animate(
                         if type == "prob":
                             figname = os.path.join(
                                 "%s, %s_frame_%02d_binmap_%.1f.%s"
-                                % (
-                                    path_outputs,
-                                    startdate_str,
-                                    i,
-                                    prob_thr,
-                                    fig_format,
-                                )
+                                % (path_outputs, startdate_str, i, prob_thr, fig_format)
                             )
                         else:
                             figname = os.path.join(
                                 "%s, %s_frame_%02d.%s"
-                                % (
-                                    path_outputs,
-                                    startdate_str,
-                                    i,
-                                    fig_format,
-                                )
+                                % (path_outputs, startdate_str, i, fig_format)
                             )
                         plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                         print(figname, "saved.")
@@ -309,34 +298,17 @@ def animate(
                         if type == "prob":
                             figname = os.path.join(
                                 "%s, %s_frame_%02d_probmap_%.1f.%s"
-                                % (
-                                    path_outputs,
-                                    startdate_str,
-                                    i,
-                                    prob_thr,
-                                    fig_format,
-                                )
+                                % (path_outputs, startdate_str, i, prob_thr, fig_format)
                             )
                         elif type == "mean":
                             figname = os.path.join(
                                 "%s, %s_frame_%02d_ensmean.%s"
-                                % (
-                                    path_outputs,
-                                    startdate_str,
-                                    i,
-                                    fig_format,
-                                )
+                                % (path_outputs, startdate_str, i, fig_format)
                             )
                         else:
                             figname = os.path.join(
                                 "%s, %s_member_%02d_frame_%02d.%s"
-                                % (
-                                    path_outputs,
-                                    startdate_str,
-                                    (n + 1),
-                                    i,
-                                    fig_format,
-                                )
+                                % (path_outputs, startdate_str, (n + 1), i, fig_format)
                             )
                         plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
                         print(figname, "saved.")

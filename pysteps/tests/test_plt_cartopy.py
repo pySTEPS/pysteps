@@ -32,12 +32,7 @@ def test_visualization_plot_precip_field(source, map_kwargs, pass_geodata):
     if not pass_geodata:
         metadata = None
 
-    plot_precip_field(
-        field,
-        type="intensity",
-        geodata=metadata,
-        map_kwargs=map_kwargs,
-    )
+    plot_precip_field(field, type="intensity", geodata=metadata, map_kwargs=map_kwargs)
 
 
 if __name__ == "__main__":

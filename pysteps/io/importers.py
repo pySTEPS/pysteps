@@ -217,7 +217,6 @@ def _get_threshold_value(precip):
 
     Returns
     -------
-
     threshold: float
     """
     valid_mask = np.isfinite(precip)
@@ -421,7 +420,6 @@ def import_bom_rf3(filename, **kwargs):
 
     Parameters
     ----------
-
     filename: str
         Name of the file to import.
 
@@ -429,7 +427,6 @@ def import_bom_rf3(filename, **kwargs):
 
     Returns
     -------
-
     out: tuple
         A three-element tuple containing the rainfall field in mm/h imported
         from the Bureau RF3 netcdf, the quality field and the metadata. The
@@ -893,7 +890,6 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
 
     Parameters
     ----------
-
     filename: str
         Name of the file to import.
     product: {"AQC", "CPC", "RZC", "AZC"}
@@ -1272,7 +1268,6 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
 
     Returns
     -------
-
     out: tuple
         A three-element tuple containing the OPERA product for the requested
         quantity and the associated quality field and metadata. The quality

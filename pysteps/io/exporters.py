@@ -376,33 +376,25 @@ def initialize_forecast_exporter_netcdf(
     ----------
     outpath: str
         Output path.
-
     outfnprefix: str
         Prefix for output file names.
-
     startdate: datetime.datetime
         Start date of the forecast.
-
     timestep: int
         Time step of the forecast (minutes).
-
     n_timesteps: int
         Number of time steps in the forecast this argument is ignored if
         incremental is set to 'timestep'.
-
     shape: tuple of int
         Two-element tuple defining the shape (height,width) of the forecast
         grids.
-
     metadata: dict
         Metadata dictionary containing the projection, x1, x2, y1, y2,
         unit attributes (projection and variable units) described in the
         documentation of :py:mod:`pysteps.io.importers`.
-
     n_ens_members: int
         Number of ensemble members in the forecast. This argument is ignored if
         incremental is set to 'member'.
-
     incremental: {None,'timestep','member'}, optional
         Allow incremental writing of datasets into the netCDF files.\n
         The available options are: 'timestep' = write a forecast or a forecast
@@ -416,7 +408,6 @@ def initialize_forecast_exporter_netcdf(
         The return value is a dictionary containing an exporter object. This c
         an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
         to write datasets into the given file format.
-
     """
 
     if not NETCDF4_IMPORTED:
@@ -631,8 +622,8 @@ def export_forecast_dataset(field, exporter):
 
         If the exporter was initialized with num_ens_members=1,
         the num_ens_members dimension is dropped.
-
     """
+
     if exporter["method"] == "netcdf" and not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required for netcdf "
@@ -698,8 +689,8 @@ def close_forecast_files(exporter):
     exporter: dict
         An exporter object created with any initialization method implemented
         in :py:mod:`pysteps.io.exporters`.
-
     """
+
     if exporter["method"] == "geotiff":
         pass  # NOTE: There is no explicit "close" method in GDAL.
         # The files are closed when all objects referencing to the GDAL

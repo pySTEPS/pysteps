@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.visualization.precipfields
 ==================================
@@ -39,7 +40,7 @@ def plot_precip_field(
     colorbar=True,
     axis="on",
     cax=None,
-    map_kwargs={},
+    map_kwargs=None,
 ):
     """
     Function to plot a precipitation intensity or probability field with a
@@ -122,8 +123,10 @@ def plot_precip_field(
     -------
     ax : fig Axes_
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-
     """
+
+    if map_kwargs is None:
+        map_kwargs = {}
 
     if type not in ["intensity", "depth", "prob"]:
         raise ValueError(
@@ -530,7 +533,6 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
         raise ValueError("Invalid colorscale " + colorscale)
 
     # Generate color level strings with correct amount of decimal places
-    clevsStr = []
     clevsStr = _dynamic_formatting_floats(clevs)
 
     return color_list, clevs, clevsStr
