@@ -46,30 +46,30 @@ def downscale(precip, alpha=None, ds_factor=16, threshold=None, return_alpha=Fal
     Parameters
     ----------
 
-    precip : array_like
+    precip: array_like
         Array of shape (m,n) containing the input field.
         The input is expected to contain rain rate values.
 
-    alpha : float, optional
+    alpha: float, optional
         Spectral slope. If none, the slope is estimated from
         the input array.
 
-    ds_factor : int, optional
+    ds_factor: int, optional
         Downscaling factor.
 
-    threshold : float, optional
+    threshold: float, optional
         Set all values lower than the threshold to zero.
 
-    return_alpha : bool, optional
+    return_alpha: bool, optional
         Whether to return the estimated spectral slope `alpha`.
 
 
     Returns
     -------
-    r : array_like
+    r: array_like
         Array of shape (m*ds_factor,n*ds_factor) containing
         the downscaled field.
-    alpha : float
+    alpha: float
         Returned only when `return_alpha=True`.
 
     Notes

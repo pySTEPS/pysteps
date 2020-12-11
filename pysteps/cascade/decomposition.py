@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.cascade.decomposition
 =============================
@@ -81,47 +82,47 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
     Parameters
     ----------
-    field : array_like
+    field: array_like
         Two-dimensional array containing the input field. All values are
         required to be finite.
-    bp_filter : dict
+    bp_filter: dict
         A filter returned by a method implemented in
         :py:mod:`pysteps.cascade.bandpass_filters`.
 
     Other Parameters
     ----------------
-    fft_method : str or tuple
+    fft_method: str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy". This option is not used if input_domain and
         output_domain are both set to "spectral".
-    normalize : bool
+    normalize: bool
         If True, normalize the cascade levels to zero mean and unit variance.
         Requires that compute_stats is True. Implies that compute_stats is True.
         Defaults to False.
-    mask : array_like
+    mask: array_like
         Optional mask to use for computing the statistics for the cascade
         levels. Pixels with mask==False are excluded from the computations.
         This option is not used if output domain is "spectral".
-    input_domain : {"spatial", "spectral"}
+    input_domain: {"spatial", "spectral"}
         The domain of the input field. If "spectral", the input is assumed to
         be in the spectral domain. Defaults to "spatial".
-    output_domain : {"spatial", "spectral"}
+    output_domain: {"spatial", "spectral"}
         If "spatial", the output cascade levels are transformed back to the
         spatial domain by using the inverse FFT. If "spectral", the cascade is
         kept in the spectral domain. Defaults to "spatial".
-    compute_stats : bool
+    compute_stats: bool
         If True, the output dictionary contains the keys "means" and "stds"
         for the mean and standard deviation of each output cascade level.
         Defaults to False.
-    compact_output : bool
+    compact_output: bool
         Applicable if output_domain is "spectral". If set to True, only the
         parts of the Fourier spectrum with non-negligible filter weights are
         stored. Defaults to False.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
         A dictionary described in the module documentation.
         The number of cascade levels is determined from the filter
         (see :py:mod:`pysteps.cascade.bandpass_filters`).
@@ -257,12 +258,12 @@ def recompose_fft(decomp, **kwargs):
 
     Parameters
     ----------
-    decomp : dict
+    decomp: dict
         A cascade decomposition returned by decomposition_fft.
 
     Returns
     -------
-    out : numpy.ndarray
+    out: numpy.ndarray
         A two-dimensional array containing the recomposed cascade.
     """
     levels = decomp["cascade_levels"]

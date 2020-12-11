@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 pysteps.visualization.tstorm
@@ -16,7 +15,6 @@ Created on Wed Nov  4 11:09:44 2020
     plot_track
     plot_cart_contour
 """
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -27,8 +25,6 @@ try:
 except ImportError:
     PYPROJ_IMPORTED = False
 
-from pysteps.visualization import plot_precip_field
-
 
 def plot_track(track_list, geodata=None):
     """
@@ -37,15 +33,15 @@ def plot_track(track_list, geodata=None):
 
     Parameters
     ----------
-    track_list : list
+    track_list: list
         List of tracks provided by DATing.
-    geodata : dictionary or None, optional
+    geodata: dictionary or None, optional
         Optional dictionary containing geographical information about
         the field. If not None, plots the contours in a georeferenced frame.
 
     Returns
     -------
-    ax : fig Axes_
+    ax: fig Axes_
         Figure axes.
     """
     ax = plt.gca()
@@ -68,7 +64,7 @@ def plot_track(track_list, geodata=None):
     color = iter(plt.cm.spring(np.linspace(0, 1, len(track_list))))
     for track in track_list:
         cen_x, cen_y = pix2coord(track.cen_x, track.cen_y)
-        p2 = ax.plot(cen_x, cen_y, c=next(color))
+        ax.plot(cen_x, cen_y, c=next(color))
     return ax
 
 
@@ -80,15 +76,15 @@ def plot_cart_contour(contours, geodata=None):
 
     Parameters
     ----------
-    contours : list or dataframe-element
+    contours: list or dataframe-element
         list of identified cell contours.
-    geodata : dictionary or None, optional
+    geodata: dictionary or None, optional
         Optional dictionary containing geographical information about
         the field. If not None, plots the contours in a georeferenced frame.
 
     Returns
     -------
-    ax : fig Axes_
+    ax: fig Axes_
         Figure axes.
     """
     ax = plt.gca()

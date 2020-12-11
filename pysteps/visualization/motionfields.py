@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.visualization.motionfields
 ==================================
@@ -20,7 +21,7 @@ from . import utils
 
 
 def quiver(
-    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs={}, map_kwargs={},
+    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs=None, map_kwargs=None
 ):
     """Function to plot a motion field as arrows.
 
@@ -29,11 +30,11 @@ def quiver(
 
     Parameters
     ----------
-    UV : array-like
+    UV: array-like
         Array of shape (2,m,n) containing the input motion field.
-    ax : axis object
+    ax: axis object
         Optional axis object to use for plotting.
-    geodata : dictionary or None
+    geodata: dictionary or None
         Optional dictionary containing geographical information about
         the field.
 
@@ -62,11 +63,11 @@ def quiver(
         |                | element in the data raster w.r.t. y-axis:          |
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
-    axis : {'off','on'}, optional
+    axis: {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-    step : int
+    step: int
         Optional resample step to control the density of the arrows.
-    quiver_kwargs : dict, optional
+    quiver_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the quiver method.
       See the documentation of matplotlib.pyplot.quiver.
 
@@ -79,10 +80,14 @@ def quiver(
 
     Returns
     -------
-    out : axis object
+    out: axis object
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-
     """
+
+    if quiver_kwargs is None:
+        quiver_kwargs = {}
+    if map_kwargs is None:
+        map_kwargs = {}
 
     # prepare x y coordinates
     reproject = False
@@ -129,7 +134,7 @@ def quiver(
     # draw basemaps
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
 
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -144,7 +149,7 @@ def quiver(
             extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
             X, Y = geodata["X_grid"], geodata["Y_grid"]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
 
     else:
         ax = plt.gca()
@@ -161,9 +166,7 @@ def quiver(
         dy *= -1
 
     # plot quiver
-    ax.quiver(
-        X, Y, dx, dy, angles="xy", zorder=1e6, **quiver_kwargs,
-    )
+    ax.quiver(X, Y, dx, dy, angles="xy", zorder=1e6, **quiver_kwargs)
     if geodata is None or axis == "off":
         axes = plt.gca()
         axes.xaxis.set_ticks([])
@@ -175,7 +178,7 @@ def quiver(
 
 
 def streamplot(
-    UV, ax=None, geodata=None, axis="on", streamplot_kwargs={}, map_kwargs={},
+    UV, ax=None, geodata=None, axis="on", streamplot_kwargs=None, map_kwargs=None
 ):
     """Function to plot a motion field as streamlines.
 
@@ -184,11 +187,11 @@ def streamplot(
 
     Parameters
     ----------
-    UV : array-like
+    UV: array-like
         Array of shape (2, m,n) containing the input motion field.
-    ax : axis object
+    ax: axis object
         Optional axis object to use for plotting.
-    geodata : dictionary or None
+    geodata: dictionary or None
         Optional dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
@@ -216,9 +219,9 @@ def streamplot(
         |                | element in the data raster w.r.t. y-axis:          |
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
-    axis : {'off','on'}, optional
+    axis: {'off','on'}, optional
         Whether to turn off or on the x and y axis.
-    streamplot_kwargs : dict, optional
+    streamplot_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the streamplot method.
       See the documentation of matplotlib.pyplot.streamplot.
 
@@ -230,10 +233,14 @@ def streamplot(
 
     Returns
     -------
-    out : axis object
+    out: axis object
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-
     """
+
+    if streamplot_kwargs is None:
+        streamplot_kwargs = {}
+    if map_kwargs is None:
+        map_kwargs = {}
 
     # prepare x y coordinates
     reproject = False
@@ -278,7 +285,11 @@ def streamplot(
     # draw basemaps
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(
+                geodata["projection"],
+                extent,
+                **map_kwargs,
+            )
 
         except MissingOptionalDependency as e:
             # Cartopy is not installed
@@ -295,7 +306,7 @@ def streamplot(
             x = X[0, :]
             y = Y[:, 0]
 
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs,)
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
 
     else:
         ax = plt.gca()
@@ -308,9 +319,7 @@ def streamplot(
         dy *= -1
 
     # plot streamplot
-    ax.streamplot(
-        x, y, dx, dy, zorder=1e6, **streamplot_kwargs,
-    )
+    ax.streamplot(x, y, dx, dy, zorder=1e6, **streamplot_kwargs)
 
     if geodata is None or axis == "off":
         axes = plt.gca()

@@ -39,20 +39,16 @@ def morph_opening(input_image, thr, n):
 
     Parameters
     ----------
-
-    input_image : ndarray_ or MaskedArray_
+    input_image: ndarray_ or MaskedArray_
         Array of shape (m, n) containing the input image.
-
-    thr : float
+    thr: float
         The threshold used to convert the image into a binary image.
-
-    n : int
+    n: int
         The structuring element size [pixels].
 
     Returns
     -------
-
-    input_image : ndarray_ or MaskedArray_
+    input_image: ndarray_ or MaskedArray_
         Array of shape (m,n) containing the filtered image.
     """
     if not CV2_IMPORTED:

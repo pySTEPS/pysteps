@@ -217,8 +217,7 @@ def _get_threshold_value(precip):
 
     Returns
     -------
-
-    threshold : float
+    threshold: float
     """
     valid_mask = np.isfinite(precip)
     if valid_mask.any():
@@ -274,7 +273,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
     Parameters
     ----------
-    filename : str
+    filename: str
         Name of the file to import.
     extent: None or array-like
         Longitude and latitude range (in degrees) of the data to be retrieved.
@@ -282,7 +281,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         By default (None), the entire domain is retrieved.
         The extent can be in any form that can be converted to a flat array
         of 4 elements array (e.g., lists or tuples).
-    window_size : array_like or int
+    window_size: array_like or int
         Array containing down-sampling integer factor along each axis.
         If an integer value is given, the same block shape is used for all the
         image dimensions.
@@ -292,13 +291,13 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
     Returns
     -------
-    precipitation : 2D array, float32
+    precipitation: 2D array, float32
         Precipitation field in mm/h. The dimensions are [latitude, longitude].
         The first grid point (0,0) corresponds to the upper left corner of the
         domain, while (last i, last j) denote the lower right corner.
-    quality : None
+    quality: None
         Not implement.
-    metadata : dict
+    metadata: dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
 
@@ -421,16 +420,14 @@ def import_bom_rf3(filename, **kwargs):
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
 
     {extra_kwargs_doc}
 
     Returns
     -------
-
-    out : tuple
+    out: tuple
         A three-element tuple containing the rainfall field in mm/h imported
         from the Bureau RF3 netcdf, the quality field and the metadata. The
         quality field is currently set to None.
@@ -556,16 +553,14 @@ def import_fmi_geotiff(filename, **kwargs):
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
 
     {extra_kwargs_doc}
 
     Returns
     -------
-
-    out : tuple
+    out: tuple
         A three-element tuple containing the precipitation field,
         the associated quality field and metadata.
         The quality field is currently set to None.
@@ -624,26 +619,22 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
-
-    gzipped : bool
+    gzipped: bool
         If True, the input file is treated as a compressed gzip file.
 
     {extra_kwargs_doc}
 
     Returns
     -------
-
-    out : tuple
+    out: tuple
         A three-element tuple containing the reflectivity composite in dBZ
         and the associated quality field and metadata. The quality field is
         currently set to None.
 
     Notes
     -----
-
     Reading georeferencing metadata is supported only for stereographic
     projection. For other projections, the keys related to georeferencing are
     not set.
@@ -755,20 +746,16 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
-
-    qty : {'ACRR', 'DBZH'}
+    qty: {'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identifiers
         are: 'ACRR'=hourly rainfall accumulation (mm) and 'DBZH'=max-reflectivity
         (dBZ). The default value is 'ACRR'.
-
-    accutime : float
+    accutime: float
         The accumulation time of the dataset in minutes. A 5 min accumulation
         is used as default, but hourly, daily and monthly accumulations
         are also available.
-
     pixelsize: float
         The pixel size of a raster cell in kilometers. The default value for the
         KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel
@@ -778,15 +765,13 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
 
     Returns
     -------
-
-    out : tuple
+    out: tuple
         A three-element tuple containing precipitation accumulation [mm] /
         reflectivity [dBZ] of the KNMI product, the associated quality field
         and metadata. The quality field is currently set to None.
 
     Notes
     -----
-
     Every KNMI data type has a slightly different naming convention. The
     standard setup is based on the accumulated rainfall product on 1 km2 spatial
     and 5 min temporal resolution.
@@ -905,11 +890,9 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
-
-    product : {"AQC", "CPC", "RZC", "AZC"}
+    product: {"AQC", "CPC", "RZC", "AZC"}
         The name of the MeteoSwiss QPE product.\n
         Currently supported prducts:
 
@@ -925,18 +908,16 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
         | AZC  |     RZC accumulation       |
         +------+----------------------------+
 
-    unit : {"mm/h", "mm", "dBZ"}
+    unit: {"mm/h", "mm", "dBZ"}
         the physical unit of the data
-
-    accutime : float
+    accutime: float
         the accumulation time in minutes of the data
 
     {extra_kwargs_doc}
 
     Returns
     -------
-
-    out : tuple
+    out: tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
@@ -1029,11 +1010,9 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
-
-    qty : {'RATE', 'ACRR', 'DBZH'}
+    qty: {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
@@ -1043,8 +1022,7 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
 
     Returns
     -------
-
-    out : tuple
+    out: tuple
         A three-element tuple containing the OPERA product for the requested
         quantity and the associated quality field and metadata. The quality
         field is read from the file if it contains a dataset whose quantity
@@ -1176,11 +1154,9 @@ def import_mch_metranet(filename, product, unit, accutime):
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
-
-    product : {"AQC", "CPC", "RZC", "AZC"}
+    product: {"AQC", "CPC", "RZC", "AZC"}
         The name of the MeteoSwiss QPE product.\n
         Currently supported prducts:
 
@@ -1196,10 +1172,9 @@ def import_mch_metranet(filename, product, unit, accutime):
         | AZC  |     RZC accumulation       |
         +------+----------------------------+
 
-    unit : {"mm/h", "mm", "dBZ"}
+    unit: {"mm/h", "mm", "dBZ"}
         the physical unit of the data
-
-    accutime : float
+    accutime: float
         the accumulation time in minutes of the data
 
     {extra_kwargs_doc}
@@ -1207,7 +1182,7 @@ def import_mch_metranet(filename, product, unit, accutime):
     Returns
     -------
 
-    out : tuple
+    out: tuple
         A three-element tuple containing the precipitation field in mm/h imported
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
@@ -1281,11 +1256,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
-
-    qty : {'RATE', 'ACRR', 'DBZH'}
+    qty: {'RATE', 'ACRR', 'DBZH'}
         The quantity to read from the file. The currently supported identitiers
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
@@ -1295,8 +1268,7 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
 
     Returns
     -------
-
-    out : tuple
+    out: tuple
         A three-element tuple containing the OPERA product for the requested
         quantity and the associated quality field and metadata. The quality
         field is read from the file if it contains a dataset whose quantity
@@ -1506,11 +1478,9 @@ def import_saf_crri(filename, extent=None, **kwargs):
 
     Parameters
     ----------
-
-    filename : str
+    filename: str
         Name of the file to import.
-
-    extent : scalars (left, right, bottom, top), optional
+    extent: scalars (left, right, bottom, top), optional
         The spatial extent specified in data coordinates.
         If None, the full extent is imported.
 
@@ -1518,8 +1488,7 @@ def import_saf_crri(filename, extent=None, **kwargs):
 
     Returns
     -------
-
-    out : tuple
+    out: tuple
         A three-element tuple containing the rainfall field in mm/h, the quality
         field and the metadata imported from the CRRI SAF netcdf file.
         The quality field includes values [1, 2, 4, 8, 16, 24, 32] meaning

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Fit STEPS motion perturbation parameters to the output of run_vel_pert_analysis.py
 and optionally plots the results. For a description of the method, see
 :cite:`BPS2006`."""
@@ -8,9 +9,12 @@ from matplotlib import pyplot
 import numpy as np
 from scipy.optimize import curve_fit
 
-argparser = argparse.ArgumentParser(
-    description="Fit STEPS motion perturbation parameters to the results produced by run_vel_pert_analysis.py and optionally plot the results."
+description = (
+    "Fit STEPS motion perturbation parameters to the results produced"
+    " by run_vel_pert_analysis.py and optionally plot the results."
 )
+
+argparser = argparse.ArgumentParser(description=description)
 argparser.add_argument("inputfile", type=str, help="name of the input file")
 argparser.add_argument(
     "--plot",

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.utils
 ======================
@@ -55,8 +56,8 @@ def print_ar_params(PHI):
     Parameters
     ----------
     PHI: array_like
-      Array of shape (n, p) containing the AR(p) parameters for n cascade
-      levels.
+        Array of shape (n, p) containing the AR(p) parameters for n cascade
+        levels.
     """
     print("****************************************")
     print("* AR(p) parameters for cascade levels: *")

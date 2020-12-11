@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.verification.detcontscores
 ==================================
@@ -24,14 +25,11 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
 
     Parameters
     ----------
-
-    pred : array_like
+    pred: array_like
         Array of predictions. NaNs are ignored.
-
-    obs : array_like
+    obs: array_like
         Array of verifying observations. NaNs are ignored.
-
-    scores : {string, list of strings}, optional
+    scores: {string, list of strings}, optional
         The name(s) of the scores. The default, scores="", will compute all
         available scores.
         The available score names are:
@@ -70,7 +68,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
         |            | as in Germann et al. (2006)                            |
         +------------+--------------------------------------------------------+
 
-    axis : {int, tuple of int, None}, optional
+    axis: {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
         If axis is -1 (or any negative integer),
@@ -78,26 +76,22 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
-
-    conditioning : {None, "single", "double"}, optional
+    conditioning: {None, "single", "double"}, optional
         The type of conditioning used for the verification.
         The default, conditioning=None, includes all pairs. With
         conditioning="single", only pairs with either pred or obs > thr are
         included. With conditioning="double", only pairs with both pred and
         obs > thr are included.
-
-    thr : float
+    thr: float
         Optional threshold value for conditioning. Defaults to 0.
 
     Returns
     -------
-
-    result : dict
+    result: dict
         Dictionary containing the verification results.
 
     Notes
     -----
-
     Multiplicative scores can be computed by passing log-tranformed values.
     Note that "scatter" is the only score that will be computed in dB units of
     the multiplicative error, i.e.: 10*log10(pred/obs).
@@ -119,10 +113,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     these cannot be computed using _init, _accum and _compute methods of this
     module.
 
-
     References
     ----------
-
     Germann, U. , Galli, G. , Boscacci, M. and Bolliger, M. (2006), Radar
     precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc.,
     132: 1669-1692. doi:10.1256/qj.05.190
@@ -133,7 +125,6 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
 
     See also
     --------
-
     pysteps.verification.detcatscores.det_cat_fct
     """
 
@@ -220,8 +211,7 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
 
     Parameters
     ----------
-
-    axis : {int, tuple of int, None}, optional
+    axis: {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
         If axis is -1 (or any negative integer),
@@ -229,23 +219,19 @@ def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
-
-    conditioning : {None, "single", "double"}, optional
+    conditioning: {None, "single", "double"}, optional
         The type of conditioning used for the verification.
         The default, conditioning=None, includes all pairs. With
         conditioning="single", only pairs with either pred or obs > thr are
         included. With conditioning="double", only pairs with both pred and
         obs > thr are included.
-
-    thr : float
+    thr: float
         Optional threshold value for conditioning. Defaults to 0.
 
     Returns
     -------
-
-    out : dict
+    out: dict
         The verification error object.
-
     """
 
     err = {}
@@ -281,20 +267,16 @@ def det_cont_fct_accum(err, pred, obs):
 
     Parameters
     ----------
-
-    err : dict
+    err: dict
         A verification error object initialized with
         :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`.
-
-    pred : array_like
+    pred: array_like
         Array of predictions. NaNs are ignored.
-
-    obs : array_like
+    obs: array_like
         Array of verifying observations. NaNs are ignored.
 
     References
     ----------
-
     Chan, Tony F.; Golub, Gene H.; LeVeque, Randall J. (1979), "Updating
     Formulae and a Pairwise Algorithm for Computing Sample Variances.",
     Technical Report STAN-CS-79-773, Department of Computer Science,
@@ -413,14 +395,12 @@ def det_cont_fct_merge(err_1, err_2):
 
     Parameters
     ----------
-
-    err_1 : dict
+    err_1: dict
       A verification error object initialized with
       :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`
       and populated with
       :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
-
-    err_2 : dict
+    err_2: dict
       Another verification error object initialized with
       :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`
       and populated with
@@ -428,8 +408,7 @@ def det_cont_fct_merge(err_1, err_2):
 
     Returns
     -------
-
-    out : dict
+    out: dict
       The merged verification error object.
     """
 
@@ -457,7 +436,7 @@ def det_cont_fct_merge(err_1, err_2):
 
     # update variances
     _parallel_var(
-        err["mobs"], err["n"], err["vobs"], err_2["mobs"], err_2["n"], err_2["vobs"],
+        err["mobs"], err["n"], err["vobs"], err_2["mobs"], err_2["n"], err_2["vobs"]
     )
     _parallel_var(
         err["mpred"],
@@ -500,14 +479,12 @@ def det_cont_fct_compute(err, scores=""):
 
     Parameters
     ----------
-
-    err : dict
+    err: dict
         A verification error object initialized with
         :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
         populated with
         :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
-
-    scores : {string, list of strings}, optional
+    scores: {string, list of strings}, optional
         The name(s) of the scores. The default, scores="", will compute all
         available scores.
         The available score names are:
@@ -543,8 +520,7 @@ def det_cont_fct_compute(err, scores=""):
 
     Returns
     -------
-
-    result : dict
+    result: dict
         Dictionary containing the verification results.
     """
 
@@ -685,7 +661,7 @@ def _scatter(pred, obs, axis=None):
     axis = get_iterable(axis)
 
     # reshape arrays as 2d matrices
-    # rows : samples; columns : variables
+    # rows: samples; columns: variables
     axis = tuple(range(pred.ndim)) if axis is None else axis
     axis = tuple(np.sort(axis))
     for ax in axis:
@@ -739,7 +715,7 @@ def _spearmanr(pred, obs, axis=None):
     axis = get_iterable(axis)
 
     # reshape arrays as 2d matrices
-    # rows : samples; columns : variables
+    # rows: samples; columns: variables
     axis = tuple(range(pred.ndim)) if axis is None else axis
     axis = tuple(np.sort(axis))
     for ax in axis:

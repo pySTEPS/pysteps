@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.io.archive
 ==================
@@ -30,31 +31,31 @@ def find_by_date(
 
     Parameters
     ----------
-    date : datetime.datetime
+    date: datetime.datetime
         The given date.
-    root_path : str
+    root_path: str
         The root path to search the input files.
-    path_fmt : str
+    path_fmt: str
         Path format. It may consist of directory names separated by '/',
         date/time specifiers beginning with '%' (e.g. %Y/%m/%d) and wildcards
         (?) that match any single character.
-    fn_pattern : str
+    fn_pattern: str
         The name pattern of the input files without extension. The pattern can
         contain time specifiers (e.g. %H, %M and %S).
-    fn_ext : str
+    fn_ext: str
         Extension of the input files.
-    timestep : float
+    timestep: float
         Time step between consecutive input files (minutes).
-    num_prev_files : int
+    num_prev_files: int
         Optional, number of previous files to find before the given timestamp.
-    num_next_files : int
+    num_next_files: int
         Optional, number of future files to find after the given timestamp.
-    silent : bool
+    silent: bool
         Optional, whether to suppress all messages from the method.
 
     Returns
     -------
-    out : tuple
+    out: tuple
         If num_prev_files=0 and num_next_files=0, return a pair containing the
         found file name and the corresponding timestamp as a datetime.datetime
         object. Otherwise, return a tuple of two lists, the first one for the

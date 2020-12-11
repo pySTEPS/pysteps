@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.sprog
 ======================
@@ -10,17 +11,15 @@ Implementation of the S-PROG method described in :cite:`Seed2003`
     forecast
 """
 
-import sys
-import time
-
 import numpy as np
+import time
 
 from pysteps import cascade
 from pysteps import extrapolation
 from pysteps import utils
+from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.nowcasts import utils as nowcast_utils
 
 try:
     import dask
@@ -132,8 +131,8 @@ def forecast(
     References
     ----------
     :cite:`Seed2003`, :cite:`PCH2019a`
-
     """
+
     _check_inputs(R, V, timesteps, ar_order)
 
     if extrap_kwargs is None:

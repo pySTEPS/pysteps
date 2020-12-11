@@ -19,11 +19,9 @@ size.
     forecast
 """
 
-import sys
-import time
-
 import numpy as np
 import scipy.ndimage
+import time
 
 from .. import cascade
 from .. import extrapolation
@@ -105,7 +103,6 @@ def forecast(
         The number of ensemble members to generate.
     n_cascade_levels: int
         The number of cascade levels to use.
-
     extrap_method: {'semilagrangian'}
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
@@ -200,8 +197,8 @@ def forecast(
     References
     ----------
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`NBSG2017`
-
     """
+
     _check_inputs(R, V, timesteps, ar_order)
 
     if extrap_kwargs is None:

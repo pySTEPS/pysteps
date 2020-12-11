@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.extrapolation.semilagrangian
 ====================================
@@ -65,7 +66,6 @@ def extrapolate(
 
     Other Parameters
     ----------------
-
     displacement_prev: array-like
         Optional initial displacement vector field of shape (2,m,n) for the
         extrapolation.
@@ -98,11 +98,12 @@ def extrapolate(
         extrapolated fields and the integrated trajectory (displacement) along
         the advection field.
 
+
     References
     ----------
     :cite:`GZ2002`
-
     """
+
     if precip is not None and precip.ndim != 2:
         raise ValueError("precip must be a two-dimensional array")
 
@@ -174,10 +175,10 @@ def extrapolate(
         coords_warped = [coords_warped[1, :, :], coords_warped[0, :, :]]
 
         velocity_inc_x = ip.map_coordinates(
-            velocity[0, :, :], coords_warped, mode="nearest", order=1, prefilter=False,
+            velocity[0, :, :], coords_warped, mode="nearest", order=1, prefilter=False
         )
         velocity_inc_y = ip.map_coordinates(
-            velocity[1, :, :], coords_warped, mode="nearest", order=1, prefilter=False,
+            velocity[1, :, :], coords_warped, mode="nearest", order=1, prefilter=False
         )
 
         velocity_inc[0, :, :] = velocity_inc_x

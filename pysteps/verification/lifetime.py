@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.verification.lifetime
 =============================
@@ -31,14 +32,14 @@ def lifetime(X_s, X_t, rule="1/e"):
 
     Parameters
     ----------
-    X_s : array-like
+    X_s: array-like
         Array with the correlation function.
         Works also with other decaying scores that are defined
         in the range [0,1]=[min_skill,max_skill].
-    X_t : array-like
+    X_t: array-like
         Array with the forecast lead times in the desired unit,
         e.g. [min, hour].
-    rule : str {'1/e', 'trapz', 'simpson'}, optional
+    rule: str {'1/e', 'trapz', 'simpson'}, optional
         Name of the method to integrate the correlation curve. \n
         '1/e' uses the 1/e rule and assumes an exponential decay. It linearly
         interpolates the time when the correlation goes below the value 1/e.
@@ -49,9 +50,8 @@ def lifetime(X_s, X_t, rule="1/e"):
 
     Returns
     -------
-    lf : float
+    lf: float
         Estimated lifetime with same units of X_t.
-
     """
     X_s = X_s.copy()
     X_t = X_t.copy()
@@ -65,7 +65,7 @@ def lifetime_init(rule="1/e"):
 
     Parameters
     ----------
-    rule : str {'1/e', 'trapz', 'simpson'}, optional
+    rule: str {'1/e', 'trapz', 'simpson'}, optional
         Name of the method to integrate the correlation curve. \n
         '1/e' uses the 1/e rule and assumes an exponential decay. It linearly
         interpolates the time when the correlation goes below the value 1/e.
@@ -76,9 +76,8 @@ def lifetime_init(rule="1/e"):
 
     Returns
     -------
-    out : dict
+    out: dict
       The lifetime object.
-
     """
     list_rules = ["trapz", "simpson", "1/e"]
     if rule not in list_rules:
@@ -102,14 +101,13 @@ def lifetime_accum(lifetime, X_s, X_t):
 
     Parameters
     ----------
-    X_s : array-like
+    X_s: array-like
         Array with the correlation function.
         Works also with other decaying scores that are defined
         in the range [0,1]=[min_skill,max_skill].
-    X_t : array-like
+    X_t: array-like
         Array with the forecast lead times in the desired unit,
         e.g. [min, hour].
-
     """
     if lifetime["rule"] == "trapz":
         lf = np.trapz(X_s, x=X_t)
@@ -146,13 +144,12 @@ def lifetime_compute(lifetime):
 
     Parameters
     ----------
-    lifetime : dict
+    lifetime: dict
       A lifetime object created with lifetime_init.
 
     Returns
     -------
-    out : float
+    out: float
       The computed lifetime.
-
     """
     return 1.0 * lifetime["lifetime_sum"] / lifetime["n"]

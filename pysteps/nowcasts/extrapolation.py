@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.extrapolation
 ==============================
@@ -61,11 +62,9 @@ def forecast(
 
     See also
     --------
-
     pysteps.extrapolation.interface
-
-
     """
+
     _check_inputs(precip, velocity, timesteps)
 
     if extrap_kwargs is None:

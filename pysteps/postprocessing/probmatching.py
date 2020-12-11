@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.postprocessing.probmatching
 ===================================
@@ -25,14 +26,14 @@ def compute_empirical_cdf(bin_edges, hist):
 
     Parameters
     ----------
-    bin_edges : array_like
+    bin_edges: array_like
         Coordinates of left edges of the histogram bins.
-    hist : array_like
+    hist: array_like
         Histogram counts for each bin.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
         CDF values corresponding to the bin edges.
 
     """
@@ -57,16 +58,15 @@ def nonparam_match_empirical_cdf(initial_array, target_array):
 
     Parameters
     ----------
-    initial_array : array_like
+    initial_array: array_like
         The initial array whose CDF is to be matched with the target.
-    target_array : array_like
+    target_array: array_like
         The target array.
 
     Returns
     -------
-    output_array : ndarray
+    output_array: ndarray
         The matched array of the same shape as the initial array.
-
     """
 
     if np.any(~np.isfinite(initial_array)):
@@ -130,15 +130,14 @@ def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
 
     Parameters
     ----------
-    bin_edges_1 : array_like
+    bin_edges_1: array_like
         Coordinates of the left bin edges of the source cdf.
-    cdf_1 : array_like
+    cdf_1: array_like
         Values of the source CDF at the bin edges.
-    bin_edges_2 : array_like
+    bin_edges_2: array_like
         Coordinates of the left bin edges of the target cdf.
-    cdf_2 : array_like
+    cdf_2: array_like
         Values of the target CDF at the bin edges.
-
     """
     pmm = {}
 
@@ -158,11 +157,10 @@ def pmm_compute(pmm, x):
 
     Parameters
     ----------
-    pmm : dict
+    pmm: dict
         A PMM object returned by pmm_init.
-    x : float
+    x: float
         The coordinate for which to compute the probability matched value.
-
     """
     mask = np.logical_and(x >= pmm["bin_edges_1"][0], x <= pmm["bin_edges_1"][-1])
     p = pmm["cdf_interpolator"](x[mask])
@@ -182,29 +180,29 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
 
     Parameters
     ----------
-    R : array_like
+    R: array_like
         The initial array to be shift and scaled.
-    f : function
+    f: function
         The inverse transformation that is applied after the shift and scale.
-    rain_fraction_trg : float
+    rain_fraction_trg: float
         The required rain fraction to be matched by shifting.
-    second_moment_trg : float
+    second_moment_trg: float
         The required second moment to be matched by scaling.
         The second_moment is defined as second_moment = var + mean^2.
 
     Other Parameters
     ----------------
-    scale : float
+    scale: float
         Optional initial value of the scale parameter for the Nelder-Mead
         optimisation.
         Typically, this would be the scale parameter estimated the previous
         time step.
-        Default : 1.
-    max_iterations : int
+        Default: 1.
+    max_iterations: int
         Maximum allowed number of iterations and function evaluations.
         More details: https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html
         Deafult: 100.
-    tol : float
+    tol: float
         Tolerance for termination.
         More details: https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html
         Default: 0.05*second_moment_trg, i.e. terminate the search if the error
@@ -212,11 +210,11 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
 
     Returns
     -------
-    shift : float
+    shift: float
         The shift value that produces the required rain fraction.
-    scale : float
+    scale: float
         The scale value that produces the required second_moment.
-    R : array_like
+    R: array_like
         The shifted, scaled and back-transformed array.
     """
 

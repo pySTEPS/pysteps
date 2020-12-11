@@ -13,7 +13,6 @@ import numpy as np
 
 from datetime import datetime
 from pprint import pprint
-
 from pysteps import io, nowcasts, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob

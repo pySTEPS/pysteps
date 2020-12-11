@@ -1,18 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import datetime as dt
-
 import numpy as np
 import pytest
 
 from pysteps.tracking.tdating import dating
 from pysteps.utils import to_reflectivity
 from pysteps.tests.helpers import get_precipitation_fields
-
-try:
-    from pandas import DataFrame
-except ModuleNotFoundError:
-    pass
 
 arg_names = ("source", "dry_input")
 
@@ -25,9 +18,8 @@ arg_values = [
 
 @pytest.mark.parametrize(arg_names, arg_values)
 def test_tracking_tdating_dating(source, dry_input):
-
     pytest.importorskip("skimage")
-    pytest.importorskip("pandas")
+    pandas = pytest.importorskip("pandas")
 
     if not dry_input:
         input, metadata = get_precipitation_fields(0, 2, True, True, 4000, source)
@@ -48,13 +40,13 @@ def test_tracking_tdating_dating(source, dry_input):
     assert isinstance(output[2], list)
     assert len(output[1]) == input.shape[0]
     assert len(output[2]) == input.shape[0]
-    assert isinstance(output[1][0], DataFrame)
+    assert isinstance(output[1][0], pandas.DataFrame)
     assert isinstance(output[2][0], np.ndarray)
     assert output[1][0].shape[1] == 8
     assert output[2][0].shape == input.shape[1:]
     if not dry_input:
         assert len(output[0]) > 0
-        assert isinstance(output[0][0], DataFrame)
+        assert isinstance(output[0][0], pandas.DataFrame)
         assert output[0][0].shape[1] == 8
     else:
         assert len(output[0]) == 0
