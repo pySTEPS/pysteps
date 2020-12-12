@@ -12,6 +12,8 @@ Interface for the io module.
 
     get_method
 """
+import importlib
+
 from pkg_resources import iter_entry_points
 
 from pysteps import io
@@ -47,16 +49,27 @@ def discover_importers():
     The importers found are added to the `pysteps.io.interface_importer_methods`
     dictionary containing the available importers.
     """
-    for entry_point in iter_entry_points(group="pysteps.plugins.importers", name=None):
+
+    # The pkg resources needs to be reload to detect new packages installed during
+    # the execution of the python application. For example, when the plugins are
+    # installed during the tests
+    import pkg_resources
+
+    importlib.reload(pkg_resources)
+
+    for entry_point in pkg_resources.iter_entry_points(
+        group="pysteps.plugins.importers", name=None
+    ):
         _importer = entry_point.load()
 
         importer_function_name = _importer.__name__
         importer_short_name = importer_function_name.replace("import_", "")
 
         _postprocess_kws = getattr(_importer, "postprocess_kws", dict())
-
+        print(f"*****  {importer_short_name}  ; {importer_function_name} *****")
         _importer = postprocess_import(**_postprocess_kws)(_importer)
         if importer_short_name not in _importer_methods:
+            print(f"*****  {importer_short_name}  ; {importer_function_name} *****")
             _importer_methods[importer_short_name] = _importer
         else:
             RuntimeWarning(
