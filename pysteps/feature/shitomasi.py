@@ -37,13 +37,13 @@ def detection(
     **kwargs,
 ):
     """
+    .. _`Shi-Tomasi`:\
+        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+
     Interface to the OpenCV `Shi-Tomasi`_ features detection method to detect
     corners in an image.
 
     Corners are used for local tracking methods.
-
-    .. _`Shi-Tomasi`:\
-        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
@@ -57,7 +57,6 @@ def detection(
     .. _cornerMinEigenVal:\
         https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga3dbce297c1feb859ee36707e1003e0a8
 
-
     Parameters
     ----------
     input_image: ndarray_ or MaskedArray_
@@ -69,40 +68,32 @@ def detection(
 
         The fill value for the masked pixels is taken as the minimum of all
         valid pixels.
-
     max_corners: int, optional
         The ``maxCorners`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the maximum number of points to be tracked (corners).
         If set to zero, all detected corners are used.
-
     quality_level: float, optional
         The ``qualityLevel`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the minimal accepted quality for the image corners.
-
     min_distance: int, optional
         The ``minDistance`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents minimum possible Euclidean distance in pixels between
         corners.
-
     block_size: int, optional
         The ``blockSize`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the window size in pixels used for computing a derivative
         covariation matrix over each pixel neighbourhood.
-
     use_harris: bool, optional
         Whether to use a `Harris detector`_  or cornerMinEigenVal_.
-
     k: float, optional
         Free parameter of the Harris detector.
-
     buffer_mask: int, optional
         A mask buffer width in pixels. This extends the input mask (if any)
         to limit edge effects.
-
     verbose: bool, optional
         Print the number of features detected.
 

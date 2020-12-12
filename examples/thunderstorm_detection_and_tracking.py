@@ -75,8 +75,8 @@ timelist = metadata["timestamps"]
 pprint(metadata)
 
 ###############################################################################
-# Example of thunderstorm identification in a single timestep.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Example of thunderstorm identification in a single timestep
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # The function tstorm_detect.detection requires a 2-D input image, all further inputs are
 # optional.
 
