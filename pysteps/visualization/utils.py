@@ -8,7 +8,6 @@ Miscellaneous utility functions for the visualization module.
     :toctree: ../generated/
 
     parse_proj4_string
-    proj4_to_basemap
     proj4_to_cartopy
     reproject_geodata
 """
@@ -19,15 +18,15 @@ from pysteps.exceptions import UnsupportedSomercProjection
 try:
     import cartopy.crs as ccrs
 
-    cartopy_imported = True
+    CARTOPY_IMPORTED = True
 except ImportError:
-    cartopy_imported = False
+    CARTOPY_IMPORTED = False
 try:
     import pyproj
 
-    pyproj_imported = True
+    PYPROJ_IMPORTED = True
 except ImportError:
-    pyproj_imported = False
+    PYPROJ_IMPORTED = False
 
 
 def parse_proj4_string(proj4str):
@@ -35,15 +34,14 @@ def parse_proj4_string(proj4str):
 
     Parameters
     ----------
-    proj4str : str
+    proj4str: str
       A PROJ.4-compatible projection string.
 
     Returns
     -------
-    out : dict
+    out: dict
       Dictionary, where keys and values are parsed from the projection
       parameter tokens beginning with '+'.
-
     """
     tokens = proj4str.split("+")
 
@@ -56,73 +54,27 @@ def parse_proj4_string(proj4str):
     return result
 
 
-def proj4_to_basemap(proj4str):
-    """Convert a PROJ.4 projection string into a dictionary that can be expanded
-    as keyword arguments to mpl_toolkits.basemap.Basemap.__init__.
-
-    Parameters
-    ----------
-    proj4str : str
-        A PROJ.4-compatible projection string.
-
-    Returns
-    -------
-    out : dict
-        The output dictionary.
-
-    """
-    pdict = parse_proj4_string(proj4str)
-    odict = {}
-
-    for k, v in list(pdict.items()):
-        if k == "proj":
-            # TODO: Make sure that the proj.4 projection type is in all cases
-            # mapped to the corresponding (or closest matching) Basemap
-            # projection.
-            if v == "somerc":
-                raise UnsupportedSomercProjection("unsupported projection:" " somerc")
-            if v not in ["latlon", "latlong", "lonlat", "longlat"]:
-                odict["projection"] = v
-            else:
-                odict["projection"] = "cyl"
-        elif k == "lon_0" or k == "lat_0" or k == "lat_ts":
-            # TODO: Check that east/west and north/south hemispheres are
-            # handled correctly.
-            if v[-1] in ["E", "N", "S", "W"]:
-                v = v[:-1]
-            odict[k] = float(v)
-        elif k == "ellps":
-            odict[k] = v
-        elif k == "R":
-            odict["rsphere"] = float(v)
-        elif k in ["k", "k0"]:
-            odict["k_0"] = float(v)
-
-    return odict
-
-
 def proj4_to_cartopy(proj4str):
     """Convert a PROJ.4 projection string into a Cartopy coordinate reference
     system (crs) object.
 
     Parameters
     ----------
-    proj4str : str
+    proj4str: str
         A PROJ.4-compatible projection string.
 
     Returns
     -------
-    out : object
+    out: object
         Instance of a crs class defined in cartopy.crs.
-
     """
-    if not cartopy_imported:
+    if not CARTOPY_IMPORTED:
         raise MissingOptionalDependency(
             "cartopy package is required for proj4_to_cartopy function "
             "utility but it is not installed"
         )
 
-    if not pyproj_imported:
+    if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
             "pyproj package is required for proj4_to_cartopy function utility "
             "but it is not installed"
@@ -182,11 +134,15 @@ def proj4_to_cartopy(proj4str):
                 cl = ccrs.Stereographic
             elif v == "aea":
                 cl = ccrs.AlbersEqualArea
+            elif v == "aeqd":
+                cl = ccrs.AzimuthalEquidistant
             elif v == "somerc":
                 # Note: ccrs.epsg(2056) doesn't work because the projection
                 # limits are too strict.
                 # We'll use the Stereographic projection as an alternative.
                 cl = ccrs.Stereographic
+            elif v == "geos":
+                cl = ccrs.Geostationary
             else:
                 raise ValueError("unsupported projection: %s" % v)
         elif k in km_proj:
@@ -215,13 +171,13 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
 
     Parameters
     ----------
-    geodata : dictionary
+    geodata: dictionary
         Dictionary containing geographical information about the field.
         It must contain the attributes projection, x1, x2, y1, y2, xpixelsize,
         ypixelsize, as defined in the documentation of pysteps.io.importers.
     t_proj4str: str
         The target PROJ.4-compatible projection string (fallback).
-    return_grid : {None, 'coords', 'quadmesh'}, optional
+    return_grid: {None, 'coords', 'quadmesh'}, optional
         Whether to return the coordinates of the projected grid.
         The default return_grid=None does not compute the grid,
         return_grid='coords' returns the centers of projected grid points,
@@ -230,14 +186,14 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
 
     Returns
     -------
-    geodata : dictionary
+    geodata: dictionary
         Dictionary containing the reprojected geographical information
         and optionally the required X_grid and Y_grid. \n
         It also includes a fixed boolean attribute
         regular_grid=False to indicate
         that the reprojected grid has no regular spacing.
     """
-    if not pyproj_imported:
+    if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
             "pyproj package is required for reproject_geodata function utility"
             " but it is not installed"

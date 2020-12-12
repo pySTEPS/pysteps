@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.io.interface
 ====================
@@ -26,6 +27,7 @@ _importer_methods = dict(
     mch_hdf5=importers.import_mch_hdf5,
     mch_metranet=importers.import_mch_metranet,
     mrms_grib=importers.import_mrms_grib,
+    odim_hdf5=importers.import_odim_hdf5,
     opera_hdf5=importers.import_opera_hdf5,
     knmi_hdf5=importers.import_knmi_hdf5,
     saf_crri=importers.import_saf_crri,
@@ -131,8 +133,7 @@ def get_method(name, method_type):
 
     Parameters
     ----------
-    name : str
-
+    name: str
         Name of the method. The available options are:\n
 
         Importers:
@@ -142,19 +143,19 @@ def get_method(name, method_type):
         +--------------+------------------------------------------------------+
         |     Name     |              Description                             |
         +==============+======================================================+
-        | bom_rf3      |  NefCDF files used in the Boreau of Meterorology     |
-        |              |  archive containing precipitation intensity          |
-        |              |  composites.                                         |
+        | bom_rf3      | NefCDF files used in the Boreau of Meterorology      |
+        |              | archive containing precipitation intensity           |
+        |              | composites.                                          |
         +--------------+------------------------------------------------------+
-        | fmi_geotiff  |  GeoTIFF files used in the Finnish Meteorological    |
-        |              |  Institute (FMI) archive, containing reflectivity    |
-        |              |  composites (dBZ).                                   |
+        | fmi_geotiff  | GeoTIFF files used in the Finnish Meteorological     |
+        |              | Institute (FMI) archive, containing reflectivity     |
+        |              | composites (dBZ).                                    |
         +--------------+------------------------------------------------------+
-        | fmi_pgm      |  PGM files used in the Finnish Meteorological        |
-        |              |  Institute (FMI) archive, containing reflectivity    |
-        |              |  composites (dBZ).                                   |
+        | fmi_pgm      | PGM files used in the Finnish Meteorological         |
+        |              | Institute (FMI) archive, containing reflectivity     |
+        |              | composites (dBZ).                                    |
         +--------------+------------------------------------------------------+
-        | knmi_hdf5    |  HDF5 file format used by KNMI.                      |
+        | knmi_hdf5    | HDF5 file format used by KNMI.                       |
         +--------------+------------------------------------------------------+
         | mch_gif      | GIF files in the MeteoSwiss (MCH) archive containing |
         |              | precipitation composites.                            |
@@ -166,10 +167,13 @@ def get_method(name, method_type):
         +--------------+------------------------------------------------------+
         | mrms_grib    | Grib2 files used by the NSSL's MRMS product          |
         +--------------+------------------------------------------------------+
-        | opera_hdf5   | ODIM HDF5 file format used by Eumetnet/OPERA.        |
+        | odim_hdf5    | HDF5 file conforming to the ODIM specification.      |
         +--------------+------------------------------------------------------+
-        | saf_crri     |  NetCDF SAF CRRI files                               |
-        |              |  containing convective rain rate intensity and other |
+        | opera_hdf5   | Wrapper to "odim_hdf5" to maintain backward          |
+        |              | compatibility with previous pysteps versions.        |
+        +--------------+------------------------------------------------------+
+        | saf_crri     | NetCDF SAF CRRI files containing convective rain     |
+        |              | rate intensity and other                             |
         +--------------+------------------------------------------------------+
 
         Exporters:
@@ -189,8 +193,7 @@ def get_method(name, method_type):
         | netcdf      | NetCDF files conforming to the CF 1.7 specification.  |
         +-------------+-------------------------------------------------------+
 
-    method_type : {'importer', 'exporter'}
-
+    method_type: {'importer', 'exporter'}
         Type of the method (see tables above).
 
     """

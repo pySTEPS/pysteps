@@ -55,13 +55,14 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
-
+doc/_build/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
 # pyenv
 .python-version
+
 
 # Environments
 .env
@@ -72,18 +73,15 @@ ENV/
 env.bak/
 venv.bak/
 
+# Pycharm
+.idea
+
 # Spyder project settings
 .spyderproject
 .spyproject
 
-# IntelliJ Idea family of suites
-.idea
-*.iml
-## File-based project format:
-*.ipr
-*.iws
-## mpeltonen/sbt-idea plugin
-.idea_modules/
+# Rope project settings
+.ropeproject
 
-# IDE settings
-.vscode/
+# mypy
+.mypy_cache/

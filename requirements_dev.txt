@@ -13,8 +13,10 @@ netCDF4
 # Optional dependencies
 dask
 pyfftw
-cartopy
+cartopy>=0.18
 h5py
+scikit-image
+pandas
 
 # Testing
 pytest

@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.verification.ensscores
 ==============================
@@ -24,26 +25,25 @@ def ensemble_skill(X_f, X_o, metric, **kwargs):
 
     Parameters
     ----------
-    X_f : array-like
+    X_f: array-like
         Array of shape (l,m,n) containing the forecast fields of shape (m,n)
         from l ensemble members.
-    X_o : array_like
+    X_o: array_like
         Array of shape (m,n) containing the observed field corresponding to
         the forecast.
-    metric : str
+    metric: str
         The deterministic skill metric to be used (list available in
         :func:`~pysteps.verification.interface.get_method`).
 
     Returns
     -------
-    out : float
+    out: float
         The mean skill of all ensemble members that is used as defintion of
         ensemble skill (as in Zacharov and Rezcova 2009 with the FSS).
 
     References
     ----------
     :cite:`ZR2009`
-
     """
 
     if len(X_f.shape) != 3:
@@ -76,16 +76,16 @@ def ensemble_spread(X_f, metric, **kwargs):
 
     Parameters
     ----------
-    X_f : array-like
+    X_f: array-like
         Array of shape (l,m,n) containing the forecast fields of shape (m,n)
         from l ensemble members.
-    metric : str
+    metric: str
         The deterministic skill metric to be used (list available in
         :func:`~pysteps.verification.interface.get_method`).
 
     Returns
     -------
-    out : float
+    out: float
         The mean skill compted between all possible pairs of
         the ensemble members,
         which can be used as definition of mean ensemble spread (as in Zacharov
@@ -94,7 +94,6 @@ def ensemble_spread(X_f, metric, **kwargs):
     References
     ----------
     :cite:`ZR2009`
-
     """
     if len(X_f.shape) != 3:
         raise ValueError(
@@ -128,21 +127,20 @@ def rankhist(X_f, X_o, X_min=None, normalize=True):
 
     Parameters
     ----------
-    X_f : array-like
+    X_f: array-like
         Array of shape (k,m,n,...) containing the values from an ensemble
         forecast of k members with shape (m,n,...).
-    X_o : array_like
+    X_o: array_like
         Array of shape (m,n,...) containing the observed values corresponding
         to the forecast.
-    X_min : {float,None}
+    X_min: {float,None}
         Threshold for minimum intensity. Forecast-observation pairs, where all
         ensemble members and verifying observations are below X_min, are not
         counted in the rank histogram.
         If set to None, thresholding is not used.
-    normalize : {bool, True}
+    normalize: {bool, True}
         If True, normalize the rank histogram so that
         the bin counts sum to one.
-
     """
 
     X_f = X_f.copy()
@@ -158,10 +156,10 @@ def rankhist_init(num_ens_members, X_min=None):
 
     Parameters
     ----------
-    num_ens_members : int
+    num_ens_members: int
         Number ensemble members in the forecasts to accumulate into the rank
         histogram.
-    X_min : {float,None}
+    X_min: {float,None}
         Threshold for minimum intensity. Forecast-observation pairs, where all
         ensemble members and verifying observations are below X_min, are not
         counted in the rank histogram.
@@ -169,9 +167,8 @@ def rankhist_init(num_ens_members, X_min=None):
 
     Returns
     -------
-    out : dict
+    out: dict
         The rank histogram object.
-
     """
     rankhist = {}
 
@@ -187,15 +184,14 @@ def rankhist_accum(rankhist, X_f, X_o):
 
     Parameters
     ----------
-    rankhist : dict
+    rankhist: dict
       The rank histogram object.
-    X_f : array-like
+    X_f: array-like
         Array of shape (k,m,n,...) containing the values from an ensemble
         forecast of k members with shape (m,n,...).
-    X_o : array_like
+    X_o: array_like
         Array of shape (m,n,...) containing the observed values corresponding
         to the forecast.
-
     """
     if X_f.shape[0] != rankhist["num_ens_members"]:
         raise ValueError(
@@ -255,18 +251,17 @@ def rankhist_compute(rankhist, normalize=True):
 
     Parameters
     ----------
-    rankhist : dict
+    rankhist: dict
         A rank histogram object created with rankhist_init.
-    normalize : bool
+    normalize: bool
         If True, normalize the rank histogram so that
         the bin counts sum to one.
 
     Returns
     -------
-    out : array_like
+    out: array_like
         The counts for the n+1 bins in the rank histogram,
         where n is the number of ensemble members.
-
     """
     if normalize:
         return 1.0 * rankhist["n"] / sum(rankhist["n"])

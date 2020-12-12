@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """Methods for verification of deterministic, probabilistic and ensemble forecasts."""
 
 from .interface import get_method

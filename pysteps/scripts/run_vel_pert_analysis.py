@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Analyze uncertainty of motion field with increasing lead time. The analyses
 are done by comparing initial motion fields to those estimated in the future.
 For a description of the method, see :cite:`BPS2006`."""

@@ -72,6 +72,7 @@ test_geodata = [
     ("y2", 1225544.6588913496, 1e-10),
     ("xpixelsize", 999.674053, 1e-6),
     ("ypixelsize", 999.62859, 1e-5),
+    ("cartesian_unit", "m", None),
     ("yorigin", "upper", None),
 ]
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.timeseries.autoregression
 =================================
@@ -34,16 +35,15 @@ def adjust_lag2_corrcoef1(gamma_1, gamma_2):
 
     Parameters
     ----------
-    gamma_1 : float
+    gamma_1: float
         Lag-1 temporal autocorrelation coeffient.
-    gamma_2 : float
+    gamma_2: float
         Lag-2 temporal autocorrelation coeffient.
 
     Returns
     -------
-    out : float
+    out: float
       The adjusted lag-2 correlation coefficient.
-
     """
     gamma_2 = np.maximum(gamma_2, 2 * gamma_1 * gamma_1 - 1 + 1e-10)
     gamma_2 = np.minimum(gamma_2, 1 - 1e-10)
@@ -58,16 +58,15 @@ def adjust_lag2_corrcoef2(gamma_1, gamma_2):
 
     Parameters
     ----------
-    gamma_1 : float
+    gamma_1: float
         Lag-1 temporal autocorrelation coeffient.
-    gamma_2 : float
+    gamma_2: float
         Lag-2 temporal autocorrelation coeffient.
 
     Returns
     -------
-    out : float
+    out: float
         The adjusted lag-2 correlation coefficient.
-
     """
     gamma_2 = np.maximum(gamma_2, 2 * gamma_1 * gamma_2 - 1)
     gamma_2 = np.maximum(
@@ -83,19 +82,18 @@ def ar_acf(gamma, n=None):
 
     Parameters
     ----------
-    gamma : array-like
+    gamma: array-like
         Array of length p containing the lag-l, l=1,2,...p, temporal
         autocorrelation coefficients.
         The correlation coefficients are assumed to be in ascending
         order with respect to time lag.
-    n : int
+    n: int
         Desired length of ACF array. Must be greater than len(gamma).
 
     Returns
     -------
-    out : array-like
+    out: array-like
         Array containing the ACF values.
-
     """
     ar_order = len(gamma)
     if n == ar_order or n is None:
@@ -132,28 +130,28 @@ def estimate_ar_params_ols(
 
     Parameters
     ----------
-    x : array_like
+    x: array_like
         Array of shape (n,...) containing a time series of length n=p+d+h+1.
         The remaining dimensions are flattened. The rows and columns of x
         represent time steps and samples, respectively.
-    p : int
+    p: int
         The order of the model.
-    d : {0,1}
+    d: {0,1}
         The order of differencing to apply to the time series.
-    check_stationarity : bool
+    check_stationarity: bool
         Check the stationarity of the estimated model.
-    include_constant_term : bool
+    include_constant_term: bool
         Include the constant term :math:`c` to the model.
-    h : int
+    h: int
         If h>0, the fitting is done by using a history of length h in addition
         to the minimal required number of time steps n=p+d+1.
-    lam : float
+    lam: float
         If lam>0, the regression is regularized by adding a penalty term
         (i.e. ridge regression).
 
     Returns
     -------
-    out : list
+    out: list
         The estimated parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
         \dots,\mathbf{\Phi}_{p+1}`. If include_constant_term is True, the
         constant term :math:`c` is added to the beginning of the list.
@@ -162,7 +160,6 @@ def estimate_ar_params_ols(
     -----
     Estimation of the innovation term parameter :math:`\phi_{p+1}` is currently
     implemented for p<=2. If p > 2, :math:`\phi_{p+1}` is set to zero.
-
     """
     n = x.shape[0]
 
@@ -252,33 +249,33 @@ def estimate_ar_params_ols_localized(
 
     Parameters
     ----------
-    x : array_like
+    x: array_like
         Array of shape (n,...) containing a time series of length n=p+d+h+1.
         The remaining dimensions are flattened. The rows and columns of x
         represent time steps and samples, respectively.
-    p : int
+    p: int
         The order of the model.
-    window_radius : float
+    window_radius: float
         Radius of the moving window. If window is 'gaussian', window_radius is
         the standard deviation of the Gaussian filter. If window is 'uniform',
         the size of the window is 2*window_radius+1.
-    d : {0,1}
+    d: {0,1}
         The order of differencing to apply to the time series.
-    include_constant_term : bool
+    include_constant_term: bool
         Include the constant term :math:`c_i` to the model.
-    h : int
+    h: int
         If h>0, the fitting is done by using a history of length h in addition
         to the minimal required number of time steps n=p+d+1.
-    lam : float
+    lam: float
         If lam>0, the regression is regularized by adding a penalty term
         (i.e. ridge regression).
-    window : {"gaussian", "uniform"}
+    window: {"gaussian", "uniform"}
         The weight function to use for the moving window. Applicable if
         window_radius < np.inf. Defaults to 'gaussian'.
 
     Returns
     -------
-    out : list
+    out: list
         List of length p+1 containing the AR(p) parameter fields for for the
         lag-p terms and the innovation term. The parameter fields have the same
         shape as the elements of gamma. Nan values are assigned, where the
@@ -290,7 +287,6 @@ def estimate_ar_params_ols_localized(
     -----
     Estimation of the innovation term parameter :math:`\phi_{p+1}` is currently
     implemented for p<=2. If p > 2, :math:`\phi_{p+1}` is set to a zero array.
-
     """
     n = x.shape[0]
 
@@ -408,21 +404,21 @@ def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
 
     Parameters
     ----------
-    gamma : array_like
+    gamma: array_like
         Array of length p containing the lag-l temporal autocorrelation
         coefficients for l=1,2,...p. The correlation coefficients are assumed
         to be in ascending order with respect to time lag.
-    d : {0,1}
+    d: {0,1}
         The order of differencing. If d=1, the correlation coefficients gamma
         are assumed to be computed from the differenced time series, which is
         also done for the resulting parameter estimates.
-    check_stationarity : bool
+    check_stationarity: bool
         If True, the stationarity of the resulting VAR(p) process is tested. An
         exception is thrown if the process is not stationary.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
         Array of length p+1 containing the AR(p) parameters for for the
         lag-p terms and the innovation term.
 
@@ -431,7 +427,6 @@ def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
     To estimate the parameters of an integrated ARI(p,d) model, compute the
     correlation coefficients gamma by calling
     :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation` with d>0.
-
     """
     if d not in [0, 1]:
         raise ValueError("d = %d, but 0 or 1 required" % d)
@@ -485,18 +480,18 @@ def estimate_ar_params_yw_localized(gamma, d=0):
 
     Parameters
     ----------
-    gamma : array_like
+    gamma: array_like
         A list containing the lag-l temporal autocorrelation coefficient fields
         for l=1,2,...p. The correlation coefficients are assumed to be in
         ascending order with respect to time lag.
-    d : {0,1}
+    d: {0,1}
         The order of differencing. If d=1, the correlation coefficients gamma
         are assumed to be computed from the differenced time series, which is
         also done for the resulting parameter estimates.
 
     Returns
     -------
-    out : list
+    out: list
         List of length p+1 containing the AR(p) parameter fields for for the
         lag-p terms and the innovation term. The parameter fields have the same
         shape as the elements of gamma.
@@ -507,7 +502,6 @@ def estimate_ar_params_yw_localized(gamma, d=0):
     correlation coefficients gamma by calling
     :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation` with d>0
     and window_radius<np.inf.
-
     """
     for i in range(1, len(gamma)):
         if gamma[i].shape != gamma[0].shape:
@@ -567,30 +561,30 @@ def estimate_var_params_ols(
 
     Parameters
     ----------
-    x : array_like
+    x: array_like
         Array of shape (n, q, :) containing a time series of length n=p+d+h+1
         with q-dimensional variables. The remaining dimensions are flattened.
         The remaining dimensions starting from the third one represent the
         samples.
-    p : int
+    p: int
         The order of the model.
-    d : {0,1}
+    d: {0,1}
         The order of differencing to apply to the time series.
-    check_stationarity : bool
+    check_stationarity: bool
         If True, the stationarity of the resulting VAR(p) process is tested. An
         exception is thrown if the process is not stationary.
-    include_constant_term : bool
+    include_constant_term: bool
         Include the constant term :math:`\mathbf{c}` to the model.
-    h : int
+    h: int
         If h>0, the fitting is done by using a history of length h in addition
         to the minimal required number of time steps n=p+d+1.
-    lam : float
+    lam: float
         If lam>0, the regression is regularized by adding a penalty term
         (i.e. ridge regression).
 
     Returns
     -------
-    out : list
+    out: list
         The estimated parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
         \dots,\mathbf{\Phi}_{p+1}`. If include_constant_term is True, the
         constant term :math:`\mathbf{c}` is added to the beginning of the list.
@@ -599,7 +593,6 @@ def estimate_var_params_ols(
     -----
     Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
     currently implemented, and it is set to a zero matrix.
-
     """
     q = x.shape[1]
     n = x.shape[0]
@@ -693,34 +686,34 @@ def estimate_var_params_ols_localized(
 
     Parameters
     ----------
-    x : array_like
+    x: array_like
         Array of shape (n, q, :) containing a time series of length n=p+d+h+1
         with q-dimensional variables. The remaining dimensions are flattened.
         The remaining dimensions starting from the third one represent the
         samples.
-    p : int
+    p: int
         The order of the model.
-    window_radius : float
+    window_radius: float
         Radius of the moving window. If window is 'gaussian', window_radius is
         the standard deviation of the Gaussian filter. If window is 'uniform',
         the size of the window is 2*window_radius+1.
-    d : {0,1}
+    d: {0,1}
         The order of differencing to apply to the time series.
-    include_constant_term : bool
+    include_constant_term: bool
         Include the constant term :math:`\mathbf{c}` to the model.
-    h : int
+    h: int
         If h>0, the fitting is done by using a history of length h in addition
         to the minimal required number of time steps n=p+d+1.
-    lam : float
+    lam: float
         If lam>0, the regression is regularized by adding a penalty term
         (i.e. ridge regression).
-    window : {"gaussian", "uniform"}
+    window: {"gaussian", "uniform"}
         The weight function to use for the moving window. Applicable if
         window_radius < np.inf. Defaults to 'gaussian'.
 
     Returns
     -------
-    out : list
+    out: list
         The estimated parameter matrices :math:`\mathbf{\Phi}_{1,i},
         \mathbf{\Phi}_{2,i},\dots,\mathbf{\Phi}_{p+1,i}`. If
         include_constant_term is True, the constant term :math:`\mathbf{c}_i` is
@@ -731,7 +724,6 @@ def estimate_var_params_ols_localized(
     -----
     Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}` is not
     currently implemented, and it is set to a zero matrix.
-
     """
     q = x.shape[1]
     n = x.shape[0]
@@ -861,23 +853,23 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
 
     Parameters
     ----------
-    gamma : list
+    gamma: list
         List of correlation matrices
         :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_n`.
         To obtain these matrices, use
         :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
         with window_radius=np.inf.
-    d : {0,1}
+    d: {0,1}
         The order of differencing. If d=1, the correlation coefficients gamma
         are assumed to be computed from the differenced time series, which is
         also done for the resulting parameter estimates.
-    check_stationarity : bool
+    check_stationarity: bool
         If True, the stationarity of the resulting VAR(p) process is tested. An
         exception is thrown if the process is not stationary.
 
     Returns
     -------
-    out : list
+    out: list
         List of VAR(p) coefficient matrices :math:`\mathbf{\Phi}_1,
         \mathbf{\Phi}_2,\dots\mathbf{\Phi}_{p+1}`, where the last matrix
         corresponds to the innovation term.
@@ -889,7 +881,6 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
     with d>0. Estimation of the innovation parameter :math:`\mathbf{\Phi}_{p+1}`
     is not currently implemented, and it is set to a zero matrix.
-
     """
     p = len(gamma) - 1
     q = gamma[0].shape[0]
@@ -945,20 +936,20 @@ def estimate_var_params_yw_localized(gamma, d=0):
 
     Parameters
     ----------
-    gamma : list
+    gamma: list
         List of correlation matrices
         :math:`\mathbf{\Gamma}_0,\mathbf{\Gamma}_1,\dots,\mathbf{\Gamma}_n`.
         To obtain these matrices, use
         :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation_multivariate`
         with window_radius<np.inf.
-    d : {0,1}
+    d: {0,1}
         The order of differencing. If d=1, the correlation coefficients gamma
         are assumed to be computed from the differenced time series, which is
         also done for the resulting parameter estimates.
 
     Returns
     -------
-    out : list
+    out: list
         The estimated parameter matrices :math:`\mathbf{\Phi}_{1,i},
         \mathbf{\Phi}_{2,i},\dots,\mathbf{\Phi}_{p+1,i}`. Each element of the
         list has the same shape as those in gamma.
@@ -971,7 +962,6 @@ def estimate_var_params_yw_localized(gamma, d=0):
     with d>0 and window_radius<np.inf. Estimation of the innovation parameter
     :math:`\mathbf{\Phi}_{p+1}` is not currently implemented, and it is set to
     a zero matrix.
-
     """
     p = len(gamma) - 1
     q = gamma[0].shape[2]
@@ -1023,19 +1013,18 @@ def iterate_ar_model(x, phi, eps=None):
 
     Parameters
     ----------
-    x : array_like
+    x: array_like
         Array of shape (n,...), n>=p, containing a time series of a input variable
         x. The elements of x along the first dimension are assumed to be in
         ascending order by time, and the time intervals are assumed to be regular.
-    phi : list
+    phi: list
         List or array of length p+1 specifying the parameters of the AR(p) model.
         The parameters are in ascending order by increasing time lag, and the
         last element is the parameter corresponding to the innovation term eps.
-    eps : array_like
+    eps: array_like
         Optional innovation term for the AR(p) process. The shape of eps is
         expected to be a scalar or x.shape[1:] if len(x.shape)>1. If eps is
         None, the innovation term is not added.
-
     """
     if x.shape[0] < len(phi) - 1:
         raise ValueError(
@@ -1082,19 +1071,18 @@ def iterate_var_model(x, phi, eps=None):
 
     Parameters
     ----------
-    x : array_like
+    x: array_like
         Array of shape (n,q,...), n>=p, containing a q-variate time series of a
         input variable x. The elements of x along the first dimension are
         assumed to be in ascending order by time, and the time intervals are
         assumed to be regular.
-    phi : list
+    phi: list
         List of parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,\dots,
         \mathbf{\Phi}_{p+1}`.
-    eps : array_like
+    eps: array_like
         Optional innovation term for the AR(p) process. The shape of eps is
         expected to be (x.shape[1],) or (x.shape[1],x.shape[2:]) if
         len(x.shape)>2. If eps is None, the innovation term is not added.
-
     """
     if x.shape[0] < len(phi) - 1:
         raise ValueError(
@@ -1141,14 +1129,13 @@ def test_ar_stationarity(phi):
 
     Parameters
     ----------
-    phi : list
+    phi: list
         List of AR(p) parameters :math:`\phi_1,\phi_2,\dots,\phi_p`.
 
     Returns
     -------
-    out : bool
+    out: bool
         True/False if the process is/is not stationary.
-
     """
     r = np.array(
         [
@@ -1166,15 +1153,14 @@ def test_var_stationarity(phi):
 
     Parameters
     ----------
-    phi : list
+    phi: list
         List of VAR(p) parameter matrices :math:`\mathbf{\Phi}_1,\mathbf{\Phi}_2,
         \dots,\mathbf{\Phi}_p`.
 
     Returns
     -------
-    out : bool
+    out: bool
         True/False if the process is/is not stationary.
-
     """
     q = phi[0].shape
     for i in range(1, len(phi)):

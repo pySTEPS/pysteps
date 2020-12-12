@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.visualization.spectral
 ==============================
@@ -31,39 +32,29 @@ def plot_spectrum1d(
 
     Parameters
     ----------
-
     fft_freq: array-like
         1d array containing the Fourier frequencies computed with the function
         :py:func:`pysteps.utils.spectral.rapsd`.
-
     fft_power: array-like
         1d array containing the radially averaged Fourier power spectrum
         computed with the function :py:func:`pysteps.utils.spectral.rapsd`.
-
     x_units: str, optional
         Units of the X variable (distance, e.g. "km").
-
     y_units: str, optional
         Units of the Y variable (amplitude, e.g. "dBR").
-
     wavelength_ticks: array-like, optional
         List of wavelengths where to show xticklabels.
-
     color: str, optional
         Line color.
-
     lw: float, optional
         Line width.
-
     label: str, optional
         Label (for legend).
-
     ax: Axes, optional
         Plot axes.
 
     Returns
     -------
-
     ax: Axes
         Plot axes
     """

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.utils.tapering
 ======================
@@ -23,16 +24,16 @@ def compute_mask_window_function(mask, func, **kwargs):
 
     Parameters
     ----------
-    mask : array_like
+    mask: array_like
         Two-dimensional boolean array containing the mask.
         Pixels with True/False are inside/outside the mask.
-    func : str
+    func: str
         The name of the window function. The currently implemented function is
         'tukey'.
 
     Returns
     -------
-    out : array
+    out: array
         Array containing the tapering weights.
     """
     R = _compute_mask_distances(mask)
@@ -53,18 +54,18 @@ def compute_window_function(m, n, func, **kwargs):
 
     Parameters
     ----------
-    m : int
+    m: int
         Height of the array.
-    n : int
+    n: int
         Width of the array.
-    func : str
+    func: str
         The name of the window function.
         The currently implemented functions are
         'hann' and 'tukey'.
 
     Other Parameters
     ----------------
-    alpha : float
+    alpha: float
         Applicable if func is 'tukey'.
 
     Notes
@@ -75,7 +76,7 @@ def compute_window_function(m, n, func, **kwargs):
 
     Returns
     -------
-    out : array
+    out: array
         Array of shape (m, n) containing the tapering weights.
     """
     X, Y = np.meshgrid(np.arange(n), np.arange(m))

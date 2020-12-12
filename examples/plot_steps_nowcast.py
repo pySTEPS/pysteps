@@ -8,7 +8,9 @@ radar data.
 
 """
 
-from pylab import *
+import matplotlib.pyplot as plt
+import numpy as np
+
 from datetime import datetime
 from pprint import pprint
 from pysteps import io, nowcasts, rcparams
@@ -156,12 +158,14 @@ plot_precip_field(
 # the mean of an ensemble of infinite size.
 
 # Plot some of the realizations
-fig = figure()
+fig = plt.figure()
 for i in range(4):
     ax = fig.add_subplot(221 + i)
+    ax = plot_precip_field(
+        R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
+    )
     ax.set_title("Member %02d" % i)
-    plot_precip_field(R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off")
-tight_layout()
+plt.tight_layout()
 
 ###############################################################################
 # As we can see from these two members of the ensemble, the stochastic forecast
@@ -179,7 +183,6 @@ P = excprob(R_f[:, -1, :, :], 0.5)
 plot_precip_field(
     P,
     geodata=metadata,
-    drawlonlatlines=False,
     type="prob",
     units="mm/h",
     probthr=0.5,

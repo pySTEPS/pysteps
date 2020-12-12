@@ -23,32 +23,26 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
 
     Parameters
     ----------
-
-    coord : array_like
+    coord: array_like
         Array of shape (n, d) containing the coordinates of the input data into
         a space of *d* dimensions.
-
-    input_array : array_like
+    input_array: array_like
         Array of shape (n) or (n, m), where *n* is the number of samples and
         *m* the number of variables.
         All values in ``input_array`` are required to have finite values.
-
-    scale : float or array_like
+    scale: float or array_like
         The ``scale`` parameter in the same units of ``coord``.
         It can be a scalar or an array_like of shape (d).
         Data points within the declustering ``scale`` are aggregated.
-
-    min_samples : int, optional
+    min_samples: int, optional
         The minimum number of samples for computing the median within a given
         cluster.
-
-    verbose : bool, optional
+    verbose: bool, optional
         Print out information.
 
     Returns
     -------
-
-    out : tuple of ndarrays
+    out: tuple of ndarrays
         A two-element tuple (``out_coord``, ``output_array``) containing the
         declustered coordinates (l, d) and input array (l, m), where *l* is
         the new number of samples with *l* <= *n*.
@@ -141,34 +135,27 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
     Parameters
     ----------
-
-    input_array : array_like
+    input_array: array_like
         Array of shape (n) or (n, m), where *n* is the number of samples and
         *m* the number of variables. If *m* > 1, the Mahalanobis distance
         is used.
         All values in ``input_array`` are required to have finite values.
-
-    thr : float
+    thr: float
         The number of standard deviations from the mean used to define an outlier.
-
-    coord : array_like, optional
+    coord: array_like or None, optional
         Array of shape (n, d) containing the coordinates of the input data into
         a space of *d* dimensions.
         Passing ``coord`` requires that ``k`` is not None.
-
-    k : int or None, optional
+    k: int or None, optional
         The number of nearest neighbours used to localize the outlier
-        detection.
-        If set to None (the default), it employs all the data points (global
+        detection. If set to None (the default), it employs all the data points (global
         detection). Setting ``k`` requires that ``coord`` is not None.
-
-    verbose : bool, optional
+    verbose: bool, optional
         Print out information.
 
     Returns
     -------
-
-    out : array_like
+    out: array_like
         A 1-D boolean array of shape (n) with True values indicating the outliers
         detected in ``input_array``.
     """
@@ -186,14 +173,14 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         nvar = input_array.shape[1]
     else:
         raise ValueError(
-            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
-            % coord.ndim
+            f"input_array must have 1 (n) or 2 dimensions (n, m), "
+            f"but it has {coord.ndim}"
         )
 
     if nsamples < 2:
         return np.zeros(nsamples, dtype=bool)
 
-    if coord is not None:
+    if coord is not None and k is not None:
 
         coord = np.copy(coord)
         if coord.ndim == 1:
@@ -201,42 +188,29 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
         elif coord.ndim > 2:
             raise ValueError(
-                "coord must have 2 dimensions (n, d), but it has %i" % coord.ndim
+                "coord must have 2 dimensions (n, d)," f"but it has {coord.ndim}"
             )
 
         if coord.shape[0] != nsamples:
             raise ValueError(
                 "the number of samples in input_array does not match the "
-                + "number of coordinates %i!=%i" % (nsamples, coord.shape[0])
+                f"number of coordinates {nsamples}!={coord.shape[0]}"
             )
-
-        if k is None:
-            raise ValueError("coord is set but k is None")
 
         k = np.min((nsamples, k + 1))
 
-    else:
-        if k is not None:
-            raise ValueError("k is set but coord=None")
-
     # global
 
-    if k is None:
+    if k is None or coord is None:
 
         if nvar == 1:
-
             # univariate
-
             zdata = (input_array - np.mean(input_array)) / np.std(input_array)
             outliers = zdata > thr
-
         else:
-
             # multivariate (mahalanobis distance)
-
             zdata = input_array - np.mean(input_array, axis=0)
             V = np.cov(zdata.T)
-            VI = np.linalg.inv(V)
             try:
                 VI = np.linalg.inv(V)
                 MD = np.sqrt(np.dot(np.dot(zdata, VI), zdata.T).diagonal())
@@ -245,7 +219,6 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
             outliers = MD > thr
 
     # local
-
     else:
 
         tree = scipy.spatial.cKDTree(coord)
@@ -254,18 +227,13 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         for i in range(inds.shape[0]):
 
             if nvar == 1:
-
                 # univariate
-
                 thisdata = input_array[i]
                 neighbours = input_array[inds[i, 1:]]
                 thiszdata = (thisdata - np.mean(neighbours)) / np.std(neighbours)
                 outliers = np.append(outliers, thiszdata > thr)
-
             else:
-
                 # multivariate (mahalanobis distance)
-
                 thisdata = input_array[i, :]
                 neighbours = input_array[inds[i, 1:], :].copy()
                 thiszdata = thisdata - np.mean(neighbours, axis=0)
@@ -279,6 +247,6 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                 outliers = np.append(outliers, MD > thr)
 
     if verbose:
-        print("--- %i outliers detected ---" % np.sum(outliers))
+        print(f"--- {np.sum(outliers)} outliers detected ---")
 
     return outliers

@@ -55,8 +55,7 @@ def initialize_param_2d_fft_filter(field, **kwargs):
 
     Parameters
     ----------
-
-    field : array-like
+    field: array-like
         Two- or three-dimensional array containing one or more input fields.
         All values are required to be finite. If more than one field are passed,
         the average fourier filter is returned. It assumes that fields are stacked
@@ -64,33 +63,27 @@ def initialize_param_2d_fft_filter(field, **kwargs):
 
     Other Parameters
     ----------------
-
-    win_fun : {'hann', 'tukey' or None}
+    win_fun: {'hann', 'tukey' or None}
         Optional tapering function to be applied to the input field, generated with
         :py:func:`pysteps.utils.tapering.compute_window_function`.
         (default None).
-
-    model : {'power-law'}
+    model: {'power-law'}
         The name of the parametric model to be used to fit the power spectrum of
         the input field (default 'power-law').
-
-    weighted : bool
+    weighted: bool
         Whether or not to apply 1/sqrt(power) as weight in the numpy.polyfit()
         function (default False).
-
-    rm_rdisc : bool
+    rm_rdisc: bool
         Whether or not to remove the rain/no-rain disconituity (default False).
         It assumes no-rain pixels are assigned with lowest value.
-
-    fft_method : str or tuple
+    fft_method: str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
 
     Returns
     -------
-
-    out : dict
+    out: dict
         A dictionary containing the keys field, input_shape, model and pars.
         The first is a two-dimensional array of shape (m, int(n/2)+1) that
         defines the filter. The second one is the shape of the input field for
@@ -224,8 +217,7 @@ def initialize_nonparam_2d_fft_filter(field, **kwargs):
 
     Parameters
     ----------
-
-    field : array-like
+    field: array-like
         Two- or three-dimensional array containing one or more input fields.
         All values are required to be finite. If more than one field are passed,
         the average fourier filter is returned. It assumes that fields are stacked
@@ -233,29 +225,24 @@ def initialize_nonparam_2d_fft_filter(field, **kwargs):
 
     Other Parameters
     ----------------
-
-    win_fun : {'hann', 'tukey', None}
+    win_fun: {'hann', 'tukey', None}
         Optional tapering function to be applied to the input field, generated with
         :py:func:`pysteps.utils.tapering.compute_window_function`
         (default 'tukey').
-
-    donorm : bool
+    donorm: bool
         Option to normalize the real and imaginary parts.
-        Default : False
-
-    rm_rdisc : bool
+        Default: False
+    rm_rdisc: bool
         Whether or not to remove the rain/no-rain disconituity (default True).
         It assumes no-rain pixels are assigned with lowest value.
-
-    fft_method : str or tuple
+    fft_method: str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
 
     Returns
     -------
-
-    out : dict
+    out: dict
         A dictionary containing the keys field and input_shape. The first is a
         two-dimensional array of shape (m, int(n/2)+1) that defines the filter.
         The second one is the shape of the input field for the filter.
@@ -333,25 +320,20 @@ def generate_noise_2d_fft_filter(
 
     Parameters
     ----------
-
-    F : dict
+    F: dict
         A filter object returned by
         :py:func:`pysteps.noise.fftgenerators.initialize_param_2d_fft_filter` or
         :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_fft_filter`.
         All values in the filter array are required to be finite.
-
-    randstate : mtrand.RandomState
+    randstate: mtrand.RandomState
         Optional random generator to use. If set to None, use numpy.random.
-
-    seed : int
+    seed: int
         Value to set a seed for the generator. None will not set the seed.
-
-    fft_method : str or tuple
+    fft_method: str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
-
-    domain : {"spatial", "spectral"}
+    domain: {"spatial", "spectral"}
         The domain for the computations: If "spatial", the noise is generated
         in the spatial domain and transformed back to spatial domain after the
         Fourier filtering. If "spectral", the noise field is generated and kept
@@ -359,7 +341,7 @@ def generate_noise_2d_fft_filter(
 
     Returns
     -------
-    N : array-like
+    N: array-like
         A two-dimensional field of stationary correlated noise. The noise field
         is normalized to zero mean and unit variance.
 
@@ -442,8 +424,7 @@ def initialize_nonparam_2d_ssft_filter(field, **kwargs):
 
     Parameters
     ----------
-
-    field : array-like
+    field: array-like
         Two- or three-dimensional array containing one or more input fields.
         All values are required to be finite. If more than one field are passed,
         the average fourier filter is returned. It assumes that fields are stacked
@@ -451,35 +432,29 @@ def initialize_nonparam_2d_ssft_filter(field, **kwargs):
 
     Other Parameters
     ----------------
-    win_size : int or two-element tuple of ints
+    win_size: int or two-element tuple of ints
         Size-length of the window to compute the SSFT (default (128, 128)).
-
-    win_fun : {'hann', 'tukey', None}
+    win_fun: {'hann', 'tukey', None}
         Optional tapering function to be applied to the input field, generated with
         :py:func:`pysteps.utils.tapering.compute_window_function`
         (default 'tukey').
-
-    overlap : float [0,1[
+    overlap: float [0,1[
         The proportion of overlap to be applied between successive windows
         (default 0.3).
-
-    war_thr : float [0,1]
+    war_thr: float [0,1]
         Threshold for the minimum fraction of rain needed for computing the FFT
         (default 0.1).
-
-    rm_rdisc : bool
+    rm_rdisc: bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
-
-    fft_method : str or tuple
+    fft_method: str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
 
     Returns
     -------
-
-    field : array-like
+    field: array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
         It can be passed to
@@ -488,7 +463,6 @@ def initialize_nonparam_2d_ssft_filter(field, **kwargs):
     References
     ----------
     :cite:`NBSG2017`
-
     """
 
     if len(field.shape) < 2 or len(field.shape) > 3:
@@ -584,45 +558,37 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
 
     Parameters
     ----------
-
-    field : array-like
+    field: array-like
         Two- or three-dimensional array containing one or more input fields.
         All values are required to be finite.
         If more than one field are passed, the average fourier filter is returned.
         It assumes that fields are stacked by the first axis: [nr_fields, y, x].
-
-    gridres : float
+    gridres: float
         Grid resolution in km.
 
     Other Parameters
     ----------------
-
-    max_level : int
+    max_level: int
         Localization parameter. 0: global noise, >0: increasing degree of
         localization (default 3).
-
-    win_fun : {'hann', 'tukey', None}
+    win_fun: {'hann', 'tukey', None}
         Optional tapering function to be applied to the input field, generated with
         :py:func:`pysteps.utils.tapering.compute_window_function`
         (default 'tukey').
-
-    war_thr : float [0;1]
+    war_thr: float [0;1]
         Threshold for the minimum fraction of rain needed for computing the FFT
         (default 0.1).
-
-    rm_rdisc : bool
+    rm_rdisc: bool
         Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
         pixels are assigned with lowest value.
-
-    fft_method : str or tuple
+    fft_method: str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
 
     Returns
     -------
-
-    field : array-like
+    field: array-like
         Four-dimensional array containing the 2d fourier filters distributed over
         a 2d spatial grid.
         It can be passed to
@@ -752,42 +718,34 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
 
     Parameters
     ----------
-
-    F : array-like
+    F: array-like
         A filter object returned by
         :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_ssft_filter` or
         :py:func:`pysteps.noise.fftgenerators.initialize_nonparam_2d_nested_filter`.
         The filter is a four-dimensional array containing the 2d fourier filters
         distributed over a 2d spatial grid.
-
-    randstate : mtrand.RandomState
+    randstate: mtrand.RandomState
         Optional random generator to use. If set to None, use numpy.random.
-
-    seed : int
+    seed: int
         Value to set a seed for the generator. None will not set the seed.
 
     Other Parameters
     ----------------
-
-    overlap : float
+    overlap: float
         Percentage overlap [0-1] between successive windows (default 0.2).
-
-    win_fun : {'hann', 'tukey', None}
+    win_fun: {'hann', 'tukey', None}
         Optional tapering function to be applied to the input field, generated with
         :py:func:`pysteps.utils.tapering.compute_window_function`
         (default 'tukey').
-
-    fft_method : str or tuple
+    fft_method: str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
         (see "FFT methods" in :py:func:`pysteps.utils.interface.get_method`).
         Defaults to "numpy".
 
     Returns
     -------
-
-    N : array-like
+    N: array-like
         A two-dimensional numpy array of non-stationary correlated noise.
-
     """
     input_shape = F["input_shape"]
     use_full_fft = F["use_full_fft"]
@@ -870,8 +828,7 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
 
 
 def _split_field(idxi, idxj, Segments):
-    """ Split domain field into a number of equally sapced segments.
-    """
+    """Split domain field into a number of equally sapced segments."""
 
     sizei = idxi[1] - idxi[0]
     sizej = idxj[1] - idxj[0]
@@ -898,8 +855,7 @@ def _split_field(idxi, idxj, Segments):
 
 
 def _get_mask(Size, idxi, idxj, win_fun):
-    """Compute a mask of zeros with a window at a given position.
-    """
+    """Compute a mask of zeros with a window at a given position."""
 
     idxi = np.array(idxi).astype(int)
     idxj = np.array(idxj).astype(int)

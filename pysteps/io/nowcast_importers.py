@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.io.nowcast_importers
 ============================
@@ -90,10 +91,9 @@ def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
 
     Parameters
     ----------
-    filename : str
+    filename: str
         Name of the file to import.
-
-    onerror : str
+    onerror: str
         Define the behavior if an exception is raised during the import.
         - "warn": Print an error message and return (None, None)
         - "raise": Raise an exception
@@ -102,11 +102,11 @@ def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
 
     Returns
     -------
-    precipitation : 2D array, float32
+    precipitation: 2D array, float32
         Precipitation field in mm/h. The dimensions are [latitude, longitude].
         The first grid point (0,0) corresponds to the upper left corner of the
         domain, while (last i, last j) denote the lower right corner.
-    metadata : dict
+    metadata: dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
     if not NETCDF4_IMPORTED:

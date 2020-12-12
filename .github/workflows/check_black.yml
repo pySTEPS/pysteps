@@ -1,0 +1,39 @@
+# This workflow will test the code base using the LATEST version of black
+
+# IMPORTANT: Black is under development. Hence, minor fommatting changes between
+# different version are expected.
+# If this test fails, install the latest version of black and then run black.
+# Preferably, run black only on the files that you have modified.
+# This will faciliate the revision of the proposed changes.
+
+name: Check Black
+
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black
+
+      - name: Black version
+        run: black --version
+
+      - name: Black check
+        working-directory: ${{github.workspace}}
+        run: black --check .

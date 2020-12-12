@@ -9,7 +9,6 @@ Interpolation routines for pysteps.
     :toctree: ../generated/
 
     rbfinterp2d
-
 """
 
 import numpy as np
@@ -34,50 +33,40 @@ def rbfinterp2d(
 
     Parameters
     ----------
-
-    coord : array_like
+    coord: array_like
         Array of shape (n, 2) containing the coordinates of the data points
         into a 2-dimensional space.
-
-    input_array : array_like
+    input_array: array_like
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
-        variables.
-        All values in ``input_array`` are required to have finite values.
-
-    xgrid, ygrid : array_like
+        variables. All values in ``input_array`` are required to have finite values.
+    xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
-
-    rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
+    rbfunction: {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
         The name of one of the available radial basis function based on a
         normalized Euclidian norm as defined in the **Notes** section below.
 
         More details provided in the wikipedia reference page linked below.
-
-    epsilon : float, optional
+    epsilon: float, optional
         The shape parameter used to scale the input to the radial kernel.
 
         A smaller value for ``epsilon`` produces a smoother interpolation. More
         details provided in the wikipedia reference page linked below.
-
-    k : int or None, optional
+    k: int or None, optional
         The number of nearest neighbours used for each target location.
         This can also be useful to to speed-up the interpolation.
         If set to None, it interpolates using all the data points at once.
-
-    nchunks : int, optional
+    nchunks: int, optional
         The number of chunks in which the grid points are split to limit the
         memory usage during the interpolation.
 
     Returns
     -------
-
-    output_array : ndarray_
+    output_array: ndarray_
         The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
 
     Notes
     -----
-
     The coordinates are normalized before computing the Euclidean norms:
 
         x = (x - min(x)) / max[max(x) - min(x), max(y) - min(y)],\n
@@ -87,7 +76,6 @@ def rbfinterp2d(
 
     References
     ----------
-
     Wikipedia contributors, "Radial basis function,"
     Wikipedia, The Free Encyclopedia,
     https://en.wikipedia.org/w/index.php?title=Radial_basis_function&oldid=906155047
