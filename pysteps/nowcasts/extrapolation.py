@@ -45,7 +45,7 @@ def forecast(
     extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
-    extrap_kwargs: dict, , optional
+    extrap_kwargs: dict, optional
       Optional dictionary that is expanded into keyword arguments for the
       extrapolation method.
     measure_time: bool, optional
