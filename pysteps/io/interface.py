@@ -66,14 +66,11 @@ def discover_importers():
         importer_short_name = importer_function_name.replace("import_", "")
 
         _postprocess_kws = getattr(_importer, "postprocess_kws", dict())
-        print(f"*****  {importer_short_name}  ; {importer_function_name} *****")
         _importer = postprocess_import(**_postprocess_kws)(_importer)
         if importer_short_name not in _importer_methods:
-            print(f"*****  {importer_short_name}  ; {importer_function_name} *****")
             _importer_methods[importer_short_name] = _importer
         else:
             RuntimeWarning(
-                ""
                 f"The importer identifier '{importer_short_name}' is already available in"
                 "'pysteps.io.interface._importer_methods'.\n"
                 f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
