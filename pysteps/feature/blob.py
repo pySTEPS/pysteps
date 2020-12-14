@@ -34,11 +34,14 @@ def detection(
     **kwargs,
 ):
     """
+    .. _`feature.blob_*`:\
+    https://scikit-image.org/docs/dev/auto_examples/features_detection/plot_blob.html
+
     Interface to the `feature.blob_*`_ methods implemented in scikit-image. A
     blob is defined as a scale-space maximum of a Gaussian-filtered image.
 
-    .. _`feature.blob_*`:\
-    https://scikit-image.org/docs/dev/auto_examples/features_detection/plot_blob.html
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
 
     Parameters
     ----------

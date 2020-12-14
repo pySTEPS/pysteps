@@ -10,7 +10,7 @@ the behavior of some functions in pysteps.
     :toctree: ../generated/
 
     postprocess_import
-    check_motion_input_image
+    check_input_frames
 """
 import inspect
 from collections import defaultdict
@@ -23,8 +23,9 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     """
     Postprocess the imported precipitation data.
     Operations:
-        - Allow type casting (dtype keyword)
-        - Set invalid or missing data to predefined value (fillna keyword)
+
+    - Allow type casting (dtype keyword)
+    - Set invalid or missing data to predefined value (fillna keyword)
 
     This decorator replaces the text "{extra_kwargs}" in the function's
     docstring with the documentation of the keywords used in the postprocessing.
@@ -37,6 +38,9 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     fillna: float or np.nan
         Default value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
+        If the importer returns a MaskedArray, all the masked values are set to the
+        fillna value. If a numpy array is returned, all the invalid values (nan and inf)
+        are set to the fillna value.
     """
 
     def _postprocess_import(importer):
