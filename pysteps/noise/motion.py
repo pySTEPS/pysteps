@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.noise.motion
 ====================
@@ -61,31 +62,31 @@ def initialize_bps(
 
     Parameters
     ----------
-    V : array_like
+    V: array_like
       Array of shape (2,m,n) containing the x- and y-components of the m*n
       motion field to perturb.
-    p_par : tuple
+    p_par: tuple
       Tuple containing the parameters a,b and c for the standard deviation of
       the perturbations in the direction parallel to the motion vectors. The
       standard deviations are modeled by the function f_par(t) = a*t**b+c,
       where t is lead time. The default values are taken from :cite:`BPS2006`.
-    p_perp : tuple
+    p_perp: tuple
       Tuple containing the parameters a,b and c for the standard deviation of
       the perturbations in the direction perpendicular to the motion vectors.
       The standard deviations are modeled by the function f_par(t) = a*t**b+c,
       where t is lead time. The default values are taken from :cite:`BPS2006`.
-    pixelsperkm : float
+    pixelsperkm: float
       Spatial resolution of the motion field (pixels/kilometer).
-    timestep : float
+    timestep: float
       Time step for the motion vectors (minutes).
-    randstate : mtrand.RandomState
+    randstate: mtrand.RandomState
       Optional random generator to use. If set to None, use numpy.random.
-    seed : int
+    seed: int
       Optional seed number for the random generator.
 
     Returns
     -------
-    out : dict
+    out: dict
       A dictionary containing the perturbator that can be supplied to
       generate_motion_perturbations_bps.
 
@@ -144,14 +145,14 @@ def generate_bps(perturbator, t):
 
     Parameters
     ----------
-    perturbator : dict
+    perturbator: dict
       A dictionary returned by initialize_motion_perturbations_bps.
-    t : float
+    t: float
       Lead time for the perturbation field (minutes).
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
       Array of shape (2,m,n) containing the x- and y-components of the motion
       vector perturbations, where m and n are determined from the perturbator.
 

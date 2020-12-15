@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.visualization.precipfields
 ==================================
@@ -39,7 +40,7 @@ def plot_precip_field(
     colorbar=True,
     axis="on",
     cax=None,
-    map_kwargs={},
+    map_kwargs=None,
 ):
     """
     Function to plot a precipitation intensity or probability field with a
@@ -51,14 +52,14 @@ def plot_precip_field(
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Two-dimensional array containing the input precipitation field or an
         exceedance probability map.
-    type : {'intensity', 'depth', 'prob'}, optional
+    type: {'intensity', 'depth', 'prob'}, optional
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
-    geodata : dictionary or None, optional
+    geodata: dictionary or None, optional
         Optional dictionary containing geographical information about
         the field. Required is map is not None.
 
@@ -122,8 +123,10 @@ def plot_precip_field(
     -------
     ax : fig Axes_
         Figure axes. Needed if one wants to add e.g. text inside the plot.
-
     """
+
+    if map_kwargs is None:
+        map_kwargs = {}
 
     if type not in ["intensity", "depth", "prob"]:
         raise ValueError(
@@ -165,14 +168,12 @@ def plot_precip_field(
     # plot geography
     if geodata is not None:
         try:
-            ax = basemaps.plot_geography(
-                geodata["projection"], bm_extent, **map_kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs)
             regular_grid = True
         except MissingOptionalDependency as e:
             # Cartopy is not installed
             print(f"{e.__class__}: {e}")
-            ax = plt.axes()
+            ax = plt.gca()
             regular_grid = True
         except UnsupportedSomercProjection:
             # Define default fall-back projection for Swiss data(EPSG:3035)
@@ -187,9 +188,7 @@ def plot_precip_field(
             X, Y = geodata["X_grid"], geodata["Y_grid"]
             regular_grid = geodata["regular_grid"]
 
-            ax = basemaps.plot_geography(
-                geodata["projection"], bm_extent, **map_kwargs,
-            )
+            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs)
 
     else:
         ax = plt.gca()
@@ -239,7 +238,7 @@ def plot_precip_field(
         else:
             extend = "neither"
         cbar = plt.colorbar(
-            im, ticks=clevs, spacing="uniform", extend=extend, shrink=0.8, cax=cax,
+            im, ticks=clevs, spacing="uniform", extend=extend, shrink=0.8, cax=cax
         )
         if clevsStr is not None:
             cbar.ax.set_yticklabels(clevsStr)
@@ -534,8 +533,7 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
         raise ValueError("Invalid colorscale " + colorscale)
 
     # Generate color level strings with correct amount of decimal places
-    clevsStr = []
-    clevsStr = _dynamic_formatting_floats(clevs,)
+    clevsStr = _dynamic_formatting_floats(clevs)
 
     return color_list, clevs, clevsStr
 
@@ -553,11 +551,11 @@ def _dynamic_formatting_floats(floatArray, colorscale="pysteps"):
                 formatting = ",.2f"
             else:
                 formatting = ",.1f"
-        elif label >= 0.01 and label < 0.1:
+        elif 0.01 <= label < 0.1:
             formatting = ",.2f"
-        elif label >= 0.001 and label < 0.01:
+        elif 0.001 <= label < 0.01:
             formatting = ",.3f"
-        elif label >= 0.0001 and label < 0.001:
+        elif 0.0001 <= label < 0.001:
             formatting = ",.4f"
         elif label >= 1 and label.is_integer():
             formatting = "i"

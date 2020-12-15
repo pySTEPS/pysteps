@@ -37,13 +37,13 @@ def detection(
     **kwargs,
 ):
     """
+    .. _`Shi-Tomasi`:\
+        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
+
     Interface to the OpenCV `Shi-Tomasi`_ features detection method to detect
     corners in an image.
 
     Corners are used for local tracking methods.
-
-    .. _`Shi-Tomasi`:\
-        https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
 
     .. _MaskedArray:\
         https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
@@ -57,11 +57,9 @@ def detection(
     .. _cornerMinEigenVal:\
         https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga3dbce297c1feb859ee36707e1003e0a8
 
-
     Parameters
     ----------
-
-    input_image : ndarray_ or MaskedArray_
+    input_image: ndarray_ or MaskedArray_
         Array of shape (m, n) containing the input image.
 
         In case of ndarray_, invalid values (Nans or infs) are masked,
@@ -70,53 +68,43 @@ def detection(
 
         The fill value for the masked pixels is taken as the minimum of all
         valid pixels.
-
-    max_corners : int, optional
+    max_corners: int, optional
         The ``maxCorners`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the maximum number of points to be tracked (corners).
         If set to zero, all detected corners are used.
-
-    quality_level : float, optional
+    quality_level: float, optional
         The ``qualityLevel`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the minimal accepted quality for the image corners.
-
-    min_distance : int, optional
+    min_distance: int, optional
         The ``minDistance`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents minimum possible Euclidean distance in pixels between
         corners.
-
-    block_size : int, optional
+    block_size: int, optional
         The ``blockSize`` parameter in the `Shi-Tomasi`_ corner detection
         method.
         It represents the window size in pixels used for computing a derivative
         covariation matrix over each pixel neighbourhood.
-
-    use_harris : bool, optional
+    use_harris: bool, optional
         Whether to use a `Harris detector`_  or cornerMinEigenVal_.
-
-    k : float, optional
+    k: float, optional
         Free parameter of the Harris detector.
-
-    buffer_mask : int, optional
+    buffer_mask: int, optional
         A mask buffer width in pixels. This extends the input mask (if any)
         to limit edge effects.
-
-    verbose : bool, optional
+    verbose: bool, optional
         Print the number of features detected.
 
     Returns
     -------
-
-    points : ndarray_
+    points: ndarray_
         Array of shape (p, 2) indicating the pixel coordinates of *p* detected
         corners.
 
     References
     ----------
-
     Jianbo Shi and Carlo Tomasi. Good features to track. In Computer Vision and
     Pattern Recognition, 1994. Proceedings CVPR'94., 1994 IEEE Computer Society
     Conference on, pages 593–600. IEEE, 1994.
@@ -174,6 +162,6 @@ def detection(
         points = points[:, 0, :]
 
     if verbose:
-        print("--- %i good features to track detected ---" % points.shape[0])
+        print(f"--- {points.shape[0]} good features to track detected ---")
 
     return points

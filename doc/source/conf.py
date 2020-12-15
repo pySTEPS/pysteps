@@ -34,6 +34,9 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinx_gallery.gen_gallery",
 ]
+
+bibtex_bibfiles = ["references.bib"]
+
 # numpydoc_show_class_members = False
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

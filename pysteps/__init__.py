@@ -77,10 +77,10 @@ def config_fname():
     Get the location of the config file.
 
     Looks for pystepsrc file in the following order:
-    - $PWD/pystepsrc : Looks for the file in the current directory
-    - $PYSTEPSRC : If the system variable $PYSTEPSRC is defined and it points
+    - $PWD/pystepsrc: Looks for the file in the current directory
+    - $PYSTEPSRC: If the system variable $PYSTEPSRC is defined and it points
     to a file, it is used..
-    - $PYSTEPSRC/pystepsrc : If $PYSTEPSRC points to a directory, it looks for
+    - $PYSTEPSRC/pystepsrc: If $PYSTEPSRC points to a directory, it looks for
     the pystepsrc file inside that directory.
     - $HOME/.pysteps/pystepsrc (unix and Mac OS X) :
     If the system variable $HOME is defined, it looks
@@ -154,24 +154,20 @@ def load_config_file(params_file=None, verbose=False, dryrun=False):
 
     Parameters
     ----------
-
     params_file: str
         Path to the parameters file to load. If `params_file=None`, it looks
         for a configuration file in the default locations.
-
     verbose: bool
         Print debugging information. False by default.
         This flag is overwritten by the silent_import=False in the
         pysteps configuration file.
-
     dryrun: bool
         If False, perform a dry run that does not update the `pysteps.rcparams`
         attribute.
 
     Returns
     -------
-
-    rcparams : _DotDictify
+    rcparams: _DotDictify
         Configuration parameters loaded from file.
     """
 
@@ -204,7 +200,7 @@ def load_config_file(params_file=None, verbose=False, dryrun=False):
         error_count = 0
         for error in validator.iter_errors(_rcparams):
             error_msg += "\nError in " + "/".join(list(error.path))
-            error_msg += " : " + error.message
+            error_msg += ": " + error.message
             error_count += 1
         if error_count > 0:
             raise RuntimeError(error_msg)
@@ -219,3 +215,6 @@ def load_config_file(params_file=None, verbose=False, dryrun=False):
 
 # Load default configuration
 load_config_file()
+
+# After the sub-modules are loaded, register the discovered importers plugin.
+io.interface.discover_importers()

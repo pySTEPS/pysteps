@@ -43,14 +43,11 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
 
     Parameters
     ----------
-
-    X_f : array_like
+    X_f: array_like
         Array of shape (m, n) containing the forecast field.
-
-    X_o : array_like
+    X_o: array_like
         Array of shape (m, n) containing the verification observation field.
-
-    name : string
+    name: string
         A string indicating the name of the spatial verification score
         to be used:
 
@@ -62,37 +59,31 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
         |  BMSE      | Binary mean squared error                              |
         +------------+--------------------------------------------------------+
 
-    thrs : float or array_like
+    thrs: float or array_like
         Scalar or 1-D array of intensity thresholds for which to compute the
         verification.
-
-    scales : float or array_like, optional
+    scales: float or array_like, optional
         Scalar or 1-D array of spatial scales in pixels,
         required if ``name="FSS"``.
-
-    wavelet : str, optional
+    wavelet: str, optional
         The name of the wavelet function to use in the BMSE.
         Defaults to the Haar wavelet, as described in Casati et al. 2004.
         See the documentation of PyWavelets for a list of available options.
 
     Returns
     -------
-
-    out : array_like
+    out: array_like
         The two-dimensional array containing the intensity-scale skill scores
         for each spatial scale and intensity threshold.
 
     References
     ----------
-
     :cite:`CRS2004`, :cite:`RL2008`, :cite:`EWWM2013`
 
     See also
     --------
-
     pysteps.verification.spatialscores.binary_mse,
     pysteps.verification.spatialscores.fss
-
     """
 
     intscale = intensity_scale_init(name, thrs, scales, wavelet)
@@ -105,8 +96,7 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
 
     Parameters
     ----------
-
-    name : string
+    name: string
         A string indicating the name of the spatial verification score
         to be used:
 
@@ -118,25 +108,21 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
         |  BMSE      | Binary mean squared error                              |
         +------------+--------------------------------------------------------+
 
-    thrs : float or array_like
+    thrs: float or array_like
         Scalar or 1-D array of intensity thresholds for which to compute the
         verification.
-
-    scales : float or array_like, optional
+    scales: float or array_like, optional
         Scalar or 1-D array of spatial scales in pixels,
         required if ``name="FSS"``.
-
-    wavelet : str, optional
+    wavelet: str, optional
         The name of the wavelet function, required if ``name="BMSE"``.
         Defaults to the Haar wavelet, as described in Casati et al. 2004.
         See the documentation of PyWavelets for a list of available options.
 
     Returns
     -------
-
-    out : dict
+    out: dict
         The intensity-scale object.
-
     """
 
     if name.lower() == "fss" and scales is None:
@@ -195,15 +181,12 @@ def intensity_scale_accum(intscale, X_f, X_o):
 
     Parameters
     ----------
-
-    intscale : dict
+    intscale: dict
         The intensity-scale object initialized with
         :py:func:`pysteps.verification.spatialscores.intensity_scale_init`.
-
-    X_f : array_like
+    X_f: array_like
         Array of shape (m, n) containing the forecast field.
-
-    X_o : array_like
+    X_o: array_like
         Array of shape (m, n) containing the verification observation field.
     """
 
@@ -229,14 +212,12 @@ def intensity_scale_merge(intscale_1, intscale_2):
 
     Parameters
     ----------
-
-    intscale_1 : dict
+    intscale_1: dict
         Am intensity-scale object initialized with
         :py:func:`pysteps.verification.spatialscores.intensity_scale_init`
         and populated with
         :py:func:`pysteps.verification.spatialscores.intensity_scale_accum`.
-
-    intscale_2 : dict
+    intscale_2: dict
         Another intensity-scale object initialized with
         :py:func:`pysteps.verification.spatialscores.intensity_scale_init`
         and populated with
@@ -244,8 +225,7 @@ def intensity_scale_merge(intscale_1, intscale_2):
 
     Returns
     -------
-
-    out : dict
+    out: dict
       The merged intensity-scale object.
     """
 
@@ -280,8 +260,7 @@ def intensity_scale_compute(intscale):
 
     Parameters
     ----------
-
-    intscale : dict
+    intscale: dict
         The intensity-scale object initialized with
         :py:func:`pysteps.verification.spatialscores.intensity_scale_init`
         and accumulated with
@@ -289,12 +268,10 @@ def intensity_scale_compute(intscale):
 
     Returns
     -------
-
-    out : array_like
+    out: array_like
         The two-dimensional array of shape (j, k) containing
         the intensity-scale skill scores for **j** spatial scales and
         **k** intensity thresholds.
-
     """
 
     name = intscale["name"]
@@ -323,38 +300,30 @@ def binary_mse(X_f, X_o, thr, wavelet="haar", return_scales=True):
 
     Parameters
     ----------
-
-    X_f : array_like
+    X_f: array_like
         Array of shape (m, n) containing the forecast field.
-
-    X_o : array_like
+    X_o: array_like
         Array of shape (m, n) containing the verification observation field.
-
-    thr : sequence
+    thr: sequence
         The intensity threshold for which to compute the verification.
-
-    wavelet : str, optional
+    wavelet: str, optional
         The name of the wavelet function to use. Defaults to the Haar wavelet,
         as described in Casati et al. 2004. See the documentation of PyWavelets
         for a list of available options.
-
-    return_scales : bool, optional
+    return_scales: bool, optional
         Whether to return the spatial scales resulting from the wavelet
         decomposition.
 
     Returns
     -------
-
-    SS : array
+    SS: array
         One-dimensional array containing the binary MSE for each spatial scale.
-
-    scales : list, optional
+    scales: list, optional
         If ``return_scales=True``, return the spatial scales in pixels resulting
         from the wavelet decomposition.
 
     References
     ----------
-
     :cite:`CRS2004`
     """
 
@@ -368,30 +337,20 @@ def binary_mse_init(thr, wavelet="haar"):
 
     Parameters
     ----------
-
-    thr : float
+    thr: float
         The intensity threshold.
-
-    wavelet : str, optional
+    wavelet: str, optional
         The name of the wavelet function to use. Defaults to the Haar wavelet,
         as described in Casati et al. 2004. See the documentation of PyWavelets
         for a list of available options.
 
     Returns
     -------
-    bmse : dict
+    bmse: dict
         The initialized BMSE verification object.
     """
 
-    bmse = {}
-
-    bmse["thr"] = thr
-    bmse["wavelet"] = wavelet
-    bmse["scales"] = None
-
-    bmse["mse"] = None
-    bmse["eps"] = 0
-    bmse["n"] = 0
+    bmse = dict(thr=thr, wavelet=wavelet, scales=None, mse=None, eps=0, n=0)
 
     return bmse
 
@@ -401,15 +360,12 @@ def binary_mse_accum(bmse, X_f, X_o):
 
     Parameters
     -----------
-
-    bmse : dict
+    bmse: dict
         The BMSE object initialized with
         :py:func:`pysteps.verification.spatialscores.binary_mse_init`.
-
-    X_f : array_like
+    X_f: array_like
         Array of shape (m, n) containing the forecast field.
-
-    X_o : array_like
+    X_o: array_like
         Array of shape (m, n) containing the observation field.
     """
     if not pywt_imported:
@@ -462,14 +418,12 @@ def binary_mse_merge(bmse_1, bmse_2):
 
     Parameters
     ----------
-
-    bmse_1 : dict
+    bmse_1: dict
       A BMSE object initialized with
       :py:func:`pysteps.verification.spatialscores.binary_mse_init`.
       and populated with
       :py:func:`pysteps.verification.spatialscores.binary_mse_accum`.
-
-    bmse_2 : dict
+    bmse_2: dict
       Another BMSE object initialized with
       :py:func:`pysteps.verification.spatialscores.binary_mse_init`.
       and populated with
@@ -477,8 +431,7 @@ def binary_mse_merge(bmse_1, bmse_2):
 
     Returns
     -------
-
-    out : dict
+    out: dict
       The merged BMSE object.
     """
 
@@ -518,24 +471,20 @@ def binary_mse_compute(bmse, return_scales=True):
 
     Parameters
     ----------
-
-    bmse : dict
+    bmse: dict
         The BMSE object initialized with
         :py:func:`pysteps.verification.spatialscores.binary_mse_init`
         and accumulated with
         :py:func:`pysteps.verification.spatialscores.binary_mse_accum`.
-
-    return_scales : bool, optional
+    return_scales: bool, optional
         Whether to return the spatial scales resulting from the wavelet
         decomposition.
 
     Returns
     -------
-
-    BMSE : array_like
+    BMSE: array_like
         One-dimensional array containing the binary MSE for each spatial scale.
-
-    scales : list, optional
+    scales: list, optional
         If ``return_scales=True``, return the spatial scales in pixels resulting
         from the wavelet decomposition.
     """
@@ -564,32 +513,25 @@ def fss(X_f, X_o, thr, scale):
 
     Parameters
     ----------
-
-    X_f : array_like
+    X_f: array_like
         Array of shape (m, n) containing the forecast field.
-
-    X_o : array_like
+    X_o: array_like
         Array of shape (m, n) containing the observation field.
-
-    thr : float
+    thr: float
         The intensity threshold.
-
-    scale : int
+    scale: int
         The spatial scale in pixels. In practice, the scale represents the size
         of the moving window that it is used to compute the fraction of pixels
         above the threshold.
 
     Returns
     -------
-
-    out : float
+    out: float
         The fractions skill score between 0 and 1.
 
     References
     ----------
-
     :cite:`RL2008`, :cite:`EWWM2013`
-
     """
 
     fss = fss_init(thr, scale)
@@ -602,28 +544,19 @@ def fss_init(thr, scale):
 
     Parameters
     ----------
-
-    thr : float
+    thr: float
         The intensity threshold.
-
-    scale : float
+    scale: float
         The spatial scale in pixels. In practice, the scale represents the size
         of the moving window that it is used to compute the fraction of pixels
         above the threshold.
 
     Returns
     -------
-
-    fss : dict
+    fss: dict
         The initialized FSS verification object.
     """
-    fss = {}
-
-    fss["thr"] = thr
-    fss["scale"] = scale
-    fss["sum_fct_sq"] = 0.0
-    fss["sum_fct_obs"] = 0.0
-    fss["sum_obs_sq"] = 0.0
+    fss = dict(thr=thr, scale=scale, sum_fct_sq=0.0, sum_fct_obs=0.0, sum_obs_sq=0.0)
 
     return fss
 
@@ -633,15 +566,12 @@ def fss_accum(fss, X_f, X_o):
 
     Parameters
     -----------
-
-    fss : dict
+    fss: dict
         The FSS object initialized with
         :py:func:`pysteps.verification.spatialscores.fss_init`.
-
-    X_f : array_like
+    X_f: array_like
         Array of shape (m, n) containing the forecast field.
-
-    X_o : array_like
+    X_o: array_like
         Array of shape (m, n) containing the observation field.
     """
     if len(X_f.shape) != 2 or len(X_o.shape) != 2 or X_f.shape != X_o.shape:
@@ -677,14 +607,12 @@ def fss_merge(fss_1, fss_2):
 
     Parameters
     ----------
-
-    fss_1 : dict
+    fss_1: dict
       A FSS object initialized with
       :py:func:`pysteps.verification.spatialscores.fss_init`.
       and populated with
       :py:func:`pysteps.verification.spatialscores.fss_accum`.
-
-    fss_2 : dict
+    fss_2: dict
       Another FSS object initialized with
       :py:func:`pysteps.verification.spatialscores.fss_init`.
       and populated with
@@ -692,8 +620,7 @@ def fss_merge(fss_1, fss_2):
 
     Returns
     -------
-
-    out : dict
+    out: dict
       The merged FSS object.
     """
 
@@ -723,8 +650,7 @@ def fss_compute(fss):
 
     Parameters
     ----------
-
-    fss : dict
+    fss: dict
        An FSS object initialized with
        :py:func:`pysteps.verification.spatialscores.fss_init`
        and accumulated with
@@ -732,8 +658,7 @@ def fss_compute(fss):
 
     Returns
     -------
-
-    out : float
+    out: float
         The computed FSS value.
     """
     numer = fss["sum_fct_sq"] - 2.0 * fss["sum_fct_obs"] + fss["sum_obs_sq"]

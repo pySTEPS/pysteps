@@ -122,6 +122,10 @@ configuration is stored in the `pyproject.toml` file.
 This configuration is automatically load when black is run from any directory in the
 pysteps project.
 
+IMPORTANT: Periodically update the black version used in the pre-commit hook by running::
+
+    pre-commit autoupdate
+
 For more information about git hooks and the pre-commit package see:
 
 - https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks

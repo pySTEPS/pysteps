@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.motion.proesmans
 ========================
@@ -32,32 +33,32 @@ def proesmans(
 
     Parameters
     ----------
-    input_images : array_like
+    input_images: array_like
         Array of shape (2, m, n) containing the first and second input image.
-    lam : float
+    lam: float
         Multiplier of the smoothness term. Smaller values give a smoother motion
         field.
-    num_iter : float
+    num_iter: float
         The number of iterations to use.
-    num_levels : int
+    num_levels: int
         The number of image pyramid levels to use.
-    filter_std : float
+    filter_std: float
         Standard deviation of an optional Gaussian filter that is applied before
         computing the optical flow.
-    verbose : bool, optional
+    verbose: bool, optional
         Verbosity enabled if True (default).
-    full_output : bool, optional
+    full_output: bool, optional
         If True, the output is a two-element tuple containing the
         forward-backward advection and consistency fields. The first element
         is shape (2, 2, m, n), where the index along the first dimension refers
         to the forward and backward advection fields. The second element is an
         array of shape (2, m, n), where the index along the first dimension
         refers to the forward and backward consistency fields.
-        Default : False.
+        Default: False.
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
         If full_output=False, the advection field having shape (2, m, n), where
         out[0, :, :] contains the x-components of the motion vectors and
         out[1, :, :] contains the y-components. The velocities are in units of

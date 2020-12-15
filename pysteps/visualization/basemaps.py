@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.visualization.basemaps
 ==============================
@@ -63,15 +64,15 @@ def plot_geography(
 
     Other parameters
     ----------------
-    plot_map : {'cartopy', None}, optional
+    plot_map: {'cartopy', None}, optional
         The type of basemap, either 'cartopy_' or None. If None, the figure
         axis is returned without any basemap drawn. Default ``'cartopy'``.
     scale: {'10m', '50m', '110m'}, optional
         The scale (resolution). Applicable if 'plot_map' is 'cartopy'.
         The available options are '10m', '50m', and '110m'. Default ``'50m'``.
-    subplot: tuple or SubplotSpec_ instance, optional
-        The cartopy subplot to plot into. Applicable if 'plot_map' is 'cartopy'.
-        Default ``'(1, 1, 1)'``.
+    subplot: tuple of int (nrows, ncols, index) or SubplotSpec_ instance, optional
+        The subplot where to plot the basemap.
+        By the default, the basemap will replace the current axis.
 
     Returns
     -------
@@ -82,7 +83,7 @@ def plot_geography(
     plot_map = kwargs.get("plot_map", "cartopy")
 
     if plot_map is None:
-        return plt.axes()
+        return plt.gca()
 
     if plot_map not in VALID_BASEMAPS:
         raise ValueError(
@@ -104,8 +105,15 @@ def plot_geography(
 
     # if plot_map == "cartopy": # not really an option for the moment
     cartopy_scale = kwargs.get("scale", "50m")
-    cartopy_subplot = kwargs.get("subplot", (1, 1, 1))
+    cartopy_subplot = kwargs.get("subplot", None)
     crs = utils.proj4_to_cartopy(proj4str)
+
+    # Replace current axis
+    if cartopy_subplot is None:
+        cax = plt.gca()
+        cartopy_subplot = cax.get_subplotspec()
+        cax.clear()
+        cax.set_axis_off()
 
     ax = plot_map_cartopy(
         crs,
@@ -127,10 +135,14 @@ def plot_map_cartopy(
     drawlonlatlines=False,
     drawlonlatlabels=True,
     lw=0.5,
-    subplot=(1, 1, 1),
+    subplot=None,
 ):
     """
-    Plot coastlines, countries, rivers and meridians/parallels using Cartopy.
+    Plot coastlines, countries, rivers and meridians/parallels using cartopy_.
+
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
+
+    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
 
     Parameters
     ----------
@@ -149,8 +161,9 @@ def plot_map_cartopy(
         '50m', and '110m'.
     lw: float
         Line width.
-    subplot: scalars (nrows, ncols, index)
-        Subplot dimensions (n_rows, n_cols) and subplot number (index).
+    subplot: tuple of int (nrows, ncols, index) or SubplotSpec_ instance, optional
+        The subplot where to place the basemap.
+        By the default, the basemap will replace the current axis.
 
     Returns
     -------
@@ -163,10 +176,17 @@ def plot_map_cartopy(
             " but it is not installed"
         )
 
+    # Replace current axis
+    if subplot is None:
+        cax = plt.gca()
+        subplot = cax.get_subplotspec()
+        cax.clear()
+        cax.set_axis_off()
+
     if isinstance(subplot, gridspec.SubplotSpec):
         ax = plt.subplot(subplot, projection=crs)
     else:
-        ax = plt.subplot(subplot[0], subplot[1], subplot[2], projection=crs)
+        ax = plt.subplot(*subplot, projection=crs)
 
     ax.add_feature(
         cfeature.NaturalEarthFeature(

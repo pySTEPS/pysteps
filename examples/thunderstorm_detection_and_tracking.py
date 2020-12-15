@@ -75,14 +75,14 @@ timelist = metadata["timestamps"]
 pprint(metadata)
 
 ###############################################################################
-# Example of thunderstorm identification in a single timestep.
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Example of thunderstorm identification in a single timestep
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # The function tstorm_detect.detection requires a 2-D input image, all further inputs are
 # optional.
 
 input_image = Z[2, :, :].copy()
 time = timelist[2]
-cells_id, labels = tstorm_detect.detection(input_image, time=time,)
+cells_id, labels = tstorm_detect.detection(input_image, time=time)
 
 ###############################################################################
 # Properties of one of the identified cells:
@@ -96,7 +96,7 @@ print(cells_id.iloc[0])
 # flow prediction and are not used to compute tracks.
 
 track_list, cell_list, label_list = tstorm_dating.dating(
-    input_video=Z, timelist=timelist,
+    input_video=Z, timelist=timelist
 )
 
 ###############################################################################

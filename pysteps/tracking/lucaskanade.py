@@ -64,71 +64,57 @@ def track_features(
 
     Parameters
     ----------
-
-    prvs_image : ndarray_ or MaskedArray_
+    prvs_image: ndarray_ or MaskedArray_
         Array of shape (m, n) containing the first image.
         Invalid values (Nans or infs) are replaced with the min value.
-
-    next_image : ndarray_ or MaskedArray_
+    next_image: ndarray_ or MaskedArray_
         Array of shape (m, n) containing the successive image.
         Invalid values (Nans or infs) are replaced with the min value.
-
-    points : array_like
+    points: array_like
         Array of shape (p, 2) indicating the pixel coordinates of the
         tracking points (corners).
-
-    winsize : tuple of int, optional
+    winsize: tuple of int, optional
         The **winSize** parameter in calcOpticalFlowPyrLK_.
         It represents the size of the search window that it is used at each
         pyramid level. The default is (50, 50).
-
-    nr_levels : int, optional
+    nr_levels: int, optional
         The **maxLevel** parameter in calcOpticalFlowPyrLK_.
         It represents the 0-based maximal pyramid level number.
         The default is 3.
-
-    criteria : tuple of int, optional
+    criteria: tuple of int, optional
         The **TermCriteria** parameter in calcOpticalFlowPyrLK_ ,
         which specifies the termination criteria of the iterative search
         algorithm. The default is (3, 10, 0).
-
-    flags : int, optional
+    flags: int, optional
         Operation flags, see documentation calcOpticalFlowPyrLK_. The
         default is 0.
-
-    min_eig_thr : float, optional
+    min_eig_thr: float, optional
         The **minEigThreshold** parameter in calcOpticalFlowPyrLK_. The
         default is 1e-4.
-
-    verbose : bool, optional
+    verbose: bool, optional
         Print the number of vectors that have been found. The default
         is False.
 
     Returns
     -------
-
-    xy : ndarray_
+    xy: ndarray_
         Array of shape (d, 2) with the x- and y-coordinates of *d* <= *p*
         detected sparse motion vectors.
-
-    uv : ndarray_
+    uv: ndarray_
         Array of shape (d, 2) with the u- and v-components of *d* <= *p*
         detected sparse motion vectors.
 
     Notes
     -----
-
     The tracking points can be obtained with the
     :py:func:`pysteps.utils.images.ShiTomasi_detection` routine.
 
     See also
     --------
-
     pysteps.motion.lucaskanade.dense_lucaskanade
 
     References
     ----------
-
     Bouguet,  J.-Y.:  Pyramidal  implementation  of  the  affine  Lucas Kanade
     feature tracker description of the algorithm, Intel Corp., 5, 4, 2001
 
@@ -200,6 +186,6 @@ def track_features(
         xy = uv = np.empty(shape=(0, 2))
 
     if verbose:
-        print("--- %i sparse vectors found ---" % xy.shape[0])
+        print(f"--- {xy.shape[0]} sparse vectors found ---")
 
     return xy, uv

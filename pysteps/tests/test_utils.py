@@ -428,7 +428,8 @@ def test_aggregate_fields(data, window_size, axis, method, expected):
     """
 
     assert_array_equal(
-        aggregate_fields(data, window_size, axis=axis, method=method), expected,
+        aggregate_fields(data, window_size, axis=axis, method=method),
+        expected,
     )
 
     # Test the trimming capabilities.

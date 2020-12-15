@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.motion.darts
 ====================
@@ -25,47 +26,47 @@ def DARTS(input_images, **kwargs):
 
     Parameters
     ----------
-    input_images : array-like
+    input_images: array-like
       Array of shape (T,m,n) containing a sequence of T two-dimensional input
       images of shape (m,n).
 
     Other Parameters
     ----------------
-    N_x : int
+    N_x: int
         Number of DFT coefficients to use for the input images, x-axis (default=50).
-    N_y : int
+    N_y: int
         Number of DFT coefficients to use for the input images, y-axis (default=50).
-    N_t : int
+    N_t: int
         Number of DFT coefficients to use for the input images, time axis (default=4).
         N_t must be strictly smaller than T.
-    M_x : int
+    M_x: int
         Number of DFT coefficients to compute for the output advection field,
         x-axis  (default=2).
-    M_y : int
+    M_y: int
         Number of DFT coefficients to compute for the output advection field,
         y-axis (default=2).
-    fft_method : str
+    fft_method: str
         A string defining the FFT method to use, see utils.fft.get_method.
         Defaults to 'numpy'.
-    output_type : {"spatial", "spectral"}
+    output_type: {"spatial", "spectral"}
         The type of the output: "spatial"=apply the inverse FFT to obtain the
         spatial representation of the advection field, "spectral"=return the
         (truncated) DFT representation.
-    n_threads : int
+    n_threads: int
         Number of threads to use for the FFT computation. Applicable if
         fft_method is 'pyfftw'.
-    verbose : bool
+    verbose: bool
         If True, print information messages.
-    lsq_method : {1, 2}
+    lsq_method: {1, 2}
         The method to use for solving the linear equations in the least squares
         sense: 1=numpy.linalg.lstsq, 2=explicit computation of the Moore-Penrose
         pseudoinverse and SVD.
-    verbose : bool
+    verbose: bool
         if set to True, it prints information about the program
 
     Returns
     -------
-    out : ndarray
+    out: ndarray
         Three-dimensional array (2,m,n) containing the dense x- and y-components
         of the motion field in units of pixels / timestep as given by the input
         array R.

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.extrapolation.interface
 ===============================
@@ -50,14 +51,13 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
         values are required to be finite.
     velocity : array-like
         Not used by the method.
-    timesteps : int or list
+    timesteps : int or list of floats
         Number of time steps or a list of time steps.
     outval : float, optional
         Not used by the method.
 
     Other Parameters
     ----------------
-
     return_displacement : bool
         If True, return the total advection velocity (displacement) between the
         initial input field and the advected one integrated along
@@ -84,7 +84,7 @@ def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
 
     return_displacement = kwargs.get("return_displacement", False)
 
-    extrapolated_precip = np.repeat(precip[np.newaxis, :, :,], num_timesteps, axis=0,)
+    extrapolated_precip = np.repeat(precip[np.newaxis, :, :], num_timesteps, axis=0)
 
     if not return_displacement:
         return extrapolated_precip

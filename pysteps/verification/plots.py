@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.verification.plots
 ==========================
@@ -17,7 +18,7 @@ from matplotlib import cm
 import matplotlib.pylab as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
-from . import ensscores, probscores, spatialscores
+from pysteps.verification import ensscores, probscores, spatialscores
 
 
 def plot_intensityscale(intscale, fig=None, vminmax=None, kmperpixel=None, unit=None):
@@ -27,26 +28,26 @@ def plot_intensityscale(intscale, fig=None, vminmax=None, kmperpixel=None, unit=
     Parameters
     ----------
 
-    intscale : dict
+    intscale: dict
         The intensity-scale object initialized with
         :py:func:`pysteps.verification.spatialscores.intensity_scale_init`
         and accumulated with
         :py:func:`pysteps.verification.spatialscores.intensity_scale_accum`.
 
-    fig : matplotlib.figure.Figure, optional
+    fig: matplotlib.figure.Figure, optional
         The figure object to use for plotting. If not supplied, a new
         figure is created.
 
-    vminmax : tuple of floats, optional
+    vminmax: tuple of floats, optional
        The minimum and maximum values for the intensity-scale skill score
        in the plot.
        Defaults to the data extent.
 
-    kmperpixel : float, optional
+    kmperpixel: float, optional
        The conversion factor from pixels to kilometers. If supplied,
        the unit of the shown spatial scales is km instead of pixels.
 
-    unit : string, optional
+    unit: string, optional
        The unit of the intensity thresholds.
     """
     if fig is None:
@@ -88,9 +89,9 @@ def plot_rankhist(rankhist, ax=None):
 
     Parameters
     ----------
-    rankhist : dict
+    rankhist: dict
         A rank histogram object created by ensscores.rankhist_init.
-    ax : axis handle, optional
+    ax: axis handle, optional
         Axis handle for the figure. If set to None, the handle is taken from
         the current figure (matplotlib.pylab.gca()).
 
@@ -118,9 +119,9 @@ def plot_reldiag(reldiag, ax=None):
 
     Parameters
     ----------
-    reldiag : dict
+    reldiag: dict
         A reldiag object created by probscores.reldiag_init.
-    ax : axis handle, optional
+    ax: axis handle, optional
         Axis handle for the figure. If set to None, the handle is taken from
         the current figure (matplotlib.pylab.gca()).
 
@@ -177,12 +178,12 @@ def plot_ROC(ROC, ax=None, opt_prob_thr=False):
 
     Parameters
     ----------
-    ROC : dict
+    ROC: dict
         A ROC curve object created by probscores.ROC_curve_init.
-    ax : axis handle, optional
+    ax: axis handle, optional
         Axis handle for the figure. If set to None, the handle is taken from
         the current figure (matplotlib.pylab.gca()).
-    opt_prob_thr : bool, optional
+    opt_prob_thr: bool, optional
         If set to True, plot the optimal probability threshold that maximizes
         the difference between the hit rate (POD) and false alarm rate (POFD).
 

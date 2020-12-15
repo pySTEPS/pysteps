@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.noise.utils
 ===================
@@ -46,38 +47,37 @@ def compute_noise_stddev_adjs(
 
     Parameters
     ----------
-    R : array_like
+    R: array_like
         The input precipitation field, assumed to be in logarithmic units
         (dBR or reflectivity).
-    R_thr_1 : float
+    R_thr_1: float
         Intensity threshold for precipitation/no precipitation.
-    R_thr_2 : float
+    R_thr_2: float
         Intensity values below R_thr_1 are set to this value.
-    F : dict
+    F: dict
         A bandpass filter dictionary returned by a method defined in
         pysteps.cascade.bandpass_filters. This defines the filter to use and
         the number of cascade levels.
-    decomp_method : function
+    decomp_method: function
         A function defined in pysteps.cascade.decomposition. Specifies the
         method to use for decomposing the observed precipitation field and
         noise field into different spatial scales.
-    num_iter : int
+    num_iter: int
         The number of noise fields to generate.
-    conditional : bool
+    conditional: bool
         If set to True, compute the statistics conditionally by excluding areas
         of no precipitation.
-    num_workers : int
+    num_workers: int
         The number of workers to use for parallel computation. Applicable if
         dask is installed.
-    seed : int
+    seed: int
         Optional seed number for the random generators.
 
     Returns
     -------
-    out : list
+    out: list
         A list containing the standard deviation adjustment factor for each
         cascade level.
-
     """
 
     MASK = R >= R_thr_1

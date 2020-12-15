@@ -49,6 +49,7 @@ jobs:
           PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
         run: |
           conda install --quiet ${{env.PACKAGES}}
+          pip install -U cookiecutter
 
       - name: Install pysteps for MacOS
         if: matrix.os == 'macos-latest'

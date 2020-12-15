@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.decorators
 ==================
@@ -9,7 +10,7 @@ the behavior of some functions in pysteps.
     :toctree: ../generated/
 
     postprocess_import
-    check_motion_input_image
+    check_input_frames
 """
 import inspect
 from collections import defaultdict
@@ -22,8 +23,9 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     """
     Postprocess the imported precipitation data.
     Operations:
-        - Allow type casting (dtype keyword)
-        - Set invalid or missing data to predefined value (fillna keyword)
+
+    - Allow type casting (dtype keyword)
+    - Set invalid or missing data to predefined value (fillna keyword)
 
     This decorator replaces the text "{extra_kwargs}" in the function's
     docstring with the documentation of the keywords used in the postprocessing.
@@ -31,11 +33,14 @@ def postprocess_import(fillna=np.nan, dtype="double"):
 
     Parameters
     ----------
-    dtype : str
+    dtype: str
         Default data type for precipitation. Double precision by default.
-    fillna : float or np.nan
+    fillna: float or np.nan
         Default value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
+        If the importer returns a MaskedArray, all the masked values are set to the
+        fillna value. If a numpy array is returned, all the invalid values (nan and inf)
+        are set to the fillna value.
     """
 
     def _postprocess_import(importer):
@@ -69,10 +74,10 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         extra_kwargs_doc = """
             Other Parameters
             ----------------
-            dtype : str
+            dtype: str
                 Data-type to which the array is cast.
                 Valid values:  "float32", "float64", "single", and "double".
-            fillna : float or np.nan
+            fillna: float or np.nan
                 Value used to represent the missing data ("No Coverage").
                 By default, np.nan is used.
             """
@@ -85,8 +90,10 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         )
 
         # Add extra kwargs docstrings
-        _import_with_postprocessing.__doc__ = _import_with_postprocessing.__doc__.format_map(
-            defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
+        _import_with_postprocessing.__doc__ = (
+            _import_with_postprocessing.__doc__.format_map(
+                defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
+            )
         )
 
         return _import_with_postprocessing

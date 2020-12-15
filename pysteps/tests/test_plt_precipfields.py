@@ -29,7 +29,7 @@ plt_arg_values = [
     ("bom", "intensity", None, "pysteps", None, None, True, "on"),
     ("fmi", "intensity", None, "pysteps", None, None, True, "on"),
     ("knmi", "intensity", None, "pysteps", None, None, True, "on"),
-    ("knmi", "intensity", [300, 300, 500, 500], "pysteps", None, None, True, "on",),
+    ("knmi", "intensity", [300, 300, 500, 500], "pysteps", None, None, True, "on"),
     ("opera", "intensity", None, "pysteps", None, None, True, "on"),
     ("saf", "intensity", None, "pysteps", None, None, True, "on"),
 ]
@@ -37,7 +37,7 @@ plt_arg_values = [
 
 @pytest.mark.parametrize(plt_arg_names, plt_arg_values)
 def test_visualization_plot_precip_field(
-    source, plot_type, bbox, colorscale, probthr, title, colorbar, axis,
+    source, plot_type, bbox, colorscale, probthr, title, colorbar, axis
 ):
     if plot_type == "intensity":
 

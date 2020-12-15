@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 pysteps.tracking.tdating
@@ -26,11 +25,7 @@ References
     couple_track
 """
 
-import copy
-import sys
-
 import numpy as np
-import scipy.ndimage as ndi
 
 import pysteps.feature.tstorm as tstorm_detect
 from pysteps import motion
@@ -43,11 +38,7 @@ try:
 except ImportError:
     SKIMAGE_IMPORTED = False
 if SKIMAGE_IMPORTED:
-    import skimage.draw as skid
-    import skimage.feature as skif
     import skimage.measure as skime
-    import skimage.morphology as skim
-    import skimage.segmentation as skis
 try:
     import pandas as pd
 
@@ -81,62 +72,62 @@ def dating(
 
     Parameters
     ----------
-    input_video : array-like
+    input_video: array-like
         Array of shape (t,m,n) containing input image, with t being the temporal
         dimension and m,n the spatial dimensions. Thresholds are tuned to maximum
         reflectivity in dBZ with a spatial resolution of 1 km and a temporal resolution
         of 5 min. Nan values are ignored.
-    timelist : list
+    timelist: list
         List of length t containing string of time and date of each (m,n) field.
-    mintrack : int, optional
+    mintrack: int, optional
         minimum duration of cell-track to be counted. The default is 3 time steps.
-    cell_list : list or None, optional
+    cell_list: list or None, optional
         If you wish to expand an existing list of cells, insert previous cell-list here.
         The default is None.
         If not None, requires that label_list has the same length.
-    label_list : list or None, optional
+    label_list: list or None, optional
         If you wish to expand an existing list of cells, insert previous label-list here.
         The default is None.
         If not None, requires that cell_list has the same length.
-    start : int, optional
+    start: int, optional
         If you wish to expand an existing list of cells, the input video must contain 2
         timesteps prior to the merging. The start can then be set to 2, allowing the
         motion vectors to be formed from the first three grids and continuing the cell
         tracking from there. The default is 0, which initiates a new tracking sequence.
-    minref : float, optional
+    minref: float, optional
         Lower threshold for object detection. Lower values will be set to NaN.
         The default is 35 dBZ.
-    maxref : float, optional
+    maxref: float, optional
         Upper threshold for object detection. Higher values will be set to this value.
         The default is 48 dBZ.
-    mindiff : float, optional
+    mindiff: float, optional
         Minimal difference between two identified maxima within same area to split area
         into two objects. The default is 6 dBZ.
-    minsize : float, optional
+    minsize: float, optional
         Minimal area for possible detected object. The default is 50 pixels.
-    minmax : float, optional
+    minmax: float, optional
         Minimum value of maximum in identified objects. Objects with a maximum lower
         than this will be discarded. The default is 41 dBZ.
-    mindis : float, optional
+    mindis: float, optional
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
 
     Returns
     -------
-    track_list : list of dataframes
+    track_list: list of dataframes
         Each dataframe contains the track and properties belonging to one cell ID.
         Columns of dataframes: ID - cell ID, time - time stamp, x - array of all
         x-coordinates of cell, y -  array of all y-coordinates of cell, cen_x -
         x-coordinate of cell centroid, cen_y - y-coordinate of cell centroid, max_ref -
         maximum (reflectivity) value of cell, cont - cell contours
-    cell_list : list of dataframes
+    cell_list: list of dataframes
         Each dataframe contains the detected cells and properties belonging to one
         timestep. The IDs are already matched to provide a track.
         Columns of dataframes: ID - cell ID, time - time stamp, x - array of all
         x-coordinates of cell, y -  array of all y-coordinates of cell, cen_x -
         x-coordinate of cell centroid, cen_y - y-coordinate of cell centroid, max_ref -
         maximum (reflectivity) value of cell, cont - cell contours
-    label_list : list of arrays
+    label_list: list of arrays
         Each (n,m) array contains the gridded IDs of the cells identified in the
         corresponding timestep. The IDs are already matched to provide a track.
 

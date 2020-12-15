@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.cascade.bandpass_filters
 ================================
@@ -56,10 +57,10 @@ def filter_uniform(shape, n):
 
     Parameters
     ----------
-    shape : int or tuple
+    shape: int or tuple
         The dimensions (height, width) of the input field. If shape is an int,
         the domain is assumed to have square shape.
-    n : int
+    n: int
         Not used. Needed for compatibility with the filter interface.
 
     """
@@ -91,29 +92,29 @@ def filter_gaussian(
 
     Parameters
     ----------
-    shape : int or tuple
+    shape: int or tuple
         The dimensions (height, width) of the input field. If shape is an int,
         the domain is assumed to have square shape.
-    n : int
+    n: int
         The number of frequency bands to use. Must be greater than 2.
-    l_0 : int
+    l_0: int
         Central frequency of the second band (the first band is always centered
         at zero).
-    gauss_scale : float
+    gauss_scale: float
         Optional scaling prameter. Proportional to the standard deviation of
         the Gaussian weight functions.
-    gauss_scale_0 : float
+    gauss_scale_0: float
         Optional scaling parameter for the Gaussian function corresponding to
         the first frequency band.
-    d : scalar, optional
+    d: scalar, optional
         Sample spacing (inverse of the sampling rate). Defaults to 1.
-    normalize : bool
+    normalize: bool
         If True, normalize the weights so that for any given wavenumber
         they sum to one.
 
     Returns
     -------
-    out : dict
+    out: dict
         A dictionary containing the bandpass filters corresponding to the
         specified frequency bands.
 
