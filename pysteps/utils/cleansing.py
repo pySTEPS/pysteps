@@ -201,7 +201,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
         if nvar == 1:
             # univariate
-            zdata = (input_array - np.mean(input_array)) / np.std(input_array)
+            zdata = np.abs(input_array - np.mean(input_array)) / np.std(input_array)
             outliers = zdata > thr
         else:
             # multivariate (mahalanobis distance)
@@ -227,7 +227,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                 # univariate
                 thisdata = input_array[i]
                 neighbours = input_array[inds[i, 1:]]
-                thiszdata = (thisdata - np.mean(neighbours)) / np.std(neighbours)
+                thiszdata = np.abs(thisdata - np.mean(neighbours)) / np.std(neighbours)
                 outliers = np.append(outliers, thiszdata > thr)
             else:
                 # multivariate (mahalanobis distance)
