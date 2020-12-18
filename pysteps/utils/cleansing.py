@@ -11,6 +11,7 @@ Data cleansing routines for pysteps.
     decluster
     detect_outliers
 """
+import warnings
 
 import numpy as np
 import scipy.spatial
@@ -209,8 +210,9 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
             try:
                 VI = np.linalg.inv(V)
                 MD = np.sqrt(np.dot(np.dot(zdata, VI), zdata.T).diagonal())
-            except np.linalg.LinAlgError:
-                MD = np.zeros(input_array.shape)
+            except np.linalg.LinAlgError as err:
+                warnings.warn(f"{err} during outlier detection")
+                MD = np.zeros(nsamples)
             outliers = MD > thr
 
     # local
@@ -237,7 +239,8 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                 try:
                     VI = np.linalg.inv(V)
                     MD = np.sqrt(np.dot(np.dot(thiszdata, VI), thiszdata.T))
-                except np.linalg.LinAlgError:
+                except np.linalg.LinAlgError as err:
+                    warnings.warn(f"{err} during outlier detection")
                     MD = 0
                 outliers = np.append(outliers, MD > thr)
 
