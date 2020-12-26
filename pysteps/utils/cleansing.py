@@ -11,6 +11,7 @@ Data cleansing routines for pysteps.
     decluster
     detect_outliers
 """
+import warnings
 
 import numpy as np
 import scipy.spatial
@@ -95,12 +96,7 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     coord_ = np.floor(coord / scale)
 
     # keep only unique pairs of the reduced coordinates
-    coordb_ = np.ascontiguousarray(coord_).view(
-        np.dtype((np.void, coord_.dtype.itemsize * coord_.shape[1]))
-    )
-    __, idx = np.unique(coordb_, return_index=True)
-    ucoord_ = coord_[idx]
-    # TODO: why not simply using np.unique(coord_, axis=0) ?
+    ucoord_ = np.unique(coord_, axis=0)
 
     # loop through these unique values and average data points which belong to
     # the same cluster
@@ -120,7 +116,7 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     if verbose:
         print("--- %i samples left after declustering ---" % dinput.shape[0])
 
-    return dcoord.squeeze(), dinput
+    return dcoord, dinput
 
 
 def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
@@ -205,7 +201,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
         if nvar == 1:
             # univariate
-            zdata = (input_array - np.mean(input_array)) / np.std(input_array)
+            zdata = np.abs(input_array - np.mean(input_array)) / np.std(input_array)
             outliers = zdata > thr
         else:
             # multivariate (mahalanobis distance)
@@ -214,8 +210,9 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
             try:
                 VI = np.linalg.inv(V)
                 MD = np.sqrt(np.dot(np.dot(zdata, VI), zdata.T).diagonal())
-            except np.linalg.LinAlgError:
-                MD = np.zeros(input_array.shape)
+            except np.linalg.LinAlgError as err:
+                warnings.warn(f"{err} during outlier detection")
+                MD = np.zeros(nsamples)
             outliers = MD > thr
 
     # local
@@ -230,7 +227,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                 # univariate
                 thisdata = input_array[i]
                 neighbours = input_array[inds[i, 1:]]
-                thiszdata = (thisdata - np.mean(neighbours)) / np.std(neighbours)
+                thiszdata = np.abs(thisdata - np.mean(neighbours)) / np.std(neighbours)
                 outliers = np.append(outliers, thiszdata > thr)
             else:
                 # multivariate (mahalanobis distance)
@@ -242,7 +239,8 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
                 try:
                     VI = np.linalg.inv(V)
                     MD = np.sqrt(np.dot(np.dot(thiszdata, VI), thiszdata.T))
-                except np.linalg.LinAlgError:
+                except np.linalg.LinAlgError as err:
+                    warnings.warn(f"{err} during outlier detection")
                     MD = 0
                 outliers = np.append(outliers, MD > thr)
 
