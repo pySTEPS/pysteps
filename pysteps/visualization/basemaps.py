@@ -281,12 +281,12 @@ def plot_map_cartopy(
         )
 
     if drawlonlatlines:
-        gl = ax.gridlines(
+        grid_lines = ax.gridlines(
             crs=ccrs.PlateCarree(), draw_labels=drawlonlatlabels, dms=True
         )
-        gl.top_labels = gl.right_labels = False
-        gl.y_inline = gl.x_inline = False
-        gl.rotate_labels = False
+        grid_lines.top_labels = grid_lines.right_labels = False
+        grid_lines.y_inline = grid_lines.x_inline = False
+        grid_lines.rotate_labels = False
 
     ax.set_extent(extent, crs)
 
