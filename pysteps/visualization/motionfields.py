@@ -12,16 +12,85 @@ Functions to plot motion fields.
     streamplot
 """
 
-import matplotlib.pylab as plt
 import numpy as np
-from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
 
-from . import basemaps
-from . import utils
+from pysteps.visualization import utils
+
+VALID_PLOT_TYPES = ("quiver", "streamplot", "stream")
+
+
+#################################
+# Motion plots zorder definitions
+# - quiver: 20
+# - stream function: 30
+
+
+def _quiver_or_streamplot(
+    uv_motion_field,
+    plot_type,
+    ax=None,
+    geodata=None,
+    axis="on",
+    step=20,
+    plot_kwargs=None,
+    map_kwargs=None,
+):
+    if plot_type not in VALID_PLOT_TYPES:
+        raise ValueError(
+            f"Invalid plot_type: {plot_type}.\nSupported: {str(VALID_PLOT_TYPES)}"
+        )
+
+    if plot_kwargs is None:
+        plot_kwargs = {}
+    if map_kwargs is None:
+        map_kwargs = {}
+
+    # Assumes the input dimensions are lat/lon
+    _, nlat, nlon = uv_motion_field.shape
+
+    x_grid, y_grid, extent, regular_grid, origin = utils.get_geogrid(
+        nlat, nlon, geodata=geodata
+    )
+
+    ax = utils.get_basemap_axis(extent, ax=ax, geodata=geodata, map_kwargs=map_kwargs)
+
+    ###########################################################
+    # Undersample the number of grid points to use in the plots
+    skip = (slice(None, None, step), slice(None, None, step))
+    dx = uv_motion_field[0, :, :][skip]
+    dy = uv_motion_field[1, :, :][skip].copy()
+    x_grid = x_grid[skip]
+    y_grid = y_grid[skip]
+
+    # The following functions, assume that the yorigin is the bottom left corner since
+    # the x and y grids are constructed using that convention.
+    # If we have yorigin"="upper" we flip the y axes.
+    if geodata is None or geodata["yorigin"] == "upper":
+        y_grid = np.flipud(y_grid)
+        dy *= -1
+
+    if plot_type.lower() == "quiver":
+        ax.quiver(x_grid, y_grid, dx, dy, angles="xy", zorder=20, **plot_kwargs)
+    else:
+        ax.streamplot(x_grid, y_grid, dx, dy, zorder=30, **plot_kwargs)
+
+    if geodata is None or axis == "off":
+        ax.xaxis.set_ticks([])
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticks([])
+        ax.yaxis.set_ticklabels([])
+
+    return ax
 
 
 def quiver(
-    UV, ax=None, geodata=None, axis="on", step=20, quiver_kwargs=None, map_kwargs=None
+    uv_motion_field,
+    ax=None,
+    geodata=None,
+    axis="on",
+    step=20,
+    quiver_kwargs=None,
+    map_kwargs=None,
 ):
     """Function to plot a motion field as arrows.
 
@@ -30,7 +99,7 @@ def quiver(
 
     Parameters
     ----------
-    UV: array-like
+    uv_motion_field: array-like
         Array of shape (2,m,n) containing the input motion field.
     ax: axis object
         Optional axis object to use for plotting.
@@ -84,101 +153,26 @@ def quiver(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
 
-    if quiver_kwargs is None:
-        quiver_kwargs = {}
-    if map_kwargs is None:
-        map_kwargs = {}
-
-    # prepare x y coordinates
-    reproject = False
-    if geodata is not None:
-        xmin = min((geodata["x1"], geodata["x2"]))
-        xmax = max((geodata["x1"], geodata["x2"]))
-        x = np.linspace(xmin, xmax, UV.shape[2])
-        xpixelsize = np.abs(x[1] - x[0])
-        x += xpixelsize / 2.0
-
-        ymin = min((geodata["y1"], geodata["y2"]))
-        ymax = max((geodata["y1"], geodata["y2"]))
-        y = np.linspace(ymin, ymax, UV.shape[1])
-        ypixelsize = np.abs(y[1] - y[0])
-        y += ypixelsize / 2.0
-
-        extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-
-        # check geodata and project if different from axes
-        if ax is not None:
-            if type(ax).__name__ == "GeoAxesSubplot":
-                try:
-                    ccrs = utils.proj4_to_cartopy(geodata["projection"])
-                except UnsupportedSomercProjection:
-                    # Define fall-back projection for Swiss data(EPSG:3035)
-                    # This will work reasonably well for Europe only.
-                    t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-                    reproject = True
-
-            if reproject:
-                geodata = utils.reproject_geodata(
-                    geodata, t_proj4str, return_grid="coords"
-                )
-                extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-                X, Y = geodata["X_grid"], geodata["Y_grid"]
-
-    else:
-        x = np.arange(UV.shape[2])
-        y = np.arange(UV.shape[1])
-
-    if not reproject:
-        X, Y = np.meshgrid(x, y)
-
-    # draw basemaps
-    if geodata is not None:
-        try:
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
-
-        except MissingOptionalDependency as e:
-            # Cartopy is not installed
-            print(f"{e.__class__}: {e}")
-            ax = plt.axes()
-
-        except UnsupportedSomercProjection:
-            # Define default fall-back projection for Swiss data(EPSG:3035)
-            # This will work reasonably well for Europe only.
-            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-            geodata = utils.reproject_geodata(geodata, t_proj4str, return_grid="coords")
-            extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-            X, Y = geodata["X_grid"], geodata["Y_grid"]
-
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
-
-    else:
-        ax = plt.gca()
-
-    # reduce number of vectors to plot
-    skip = (slice(None, None, step), slice(None, None, step))
-    dx = UV[0, :, :][skip]
-    dy = UV[1, :, :][skip].copy()
-    X = X[skip]
-    Y = Y[skip]
-
-    if geodata is None or geodata["yorigin"] == "upper":
-        Y = np.flipud(Y)
-        dy *= -1
-
-    # plot quiver
-    ax.quiver(X, Y, dx, dy, angles="xy", zorder=1e6, **quiver_kwargs)
-    if geodata is None or axis == "off":
-        axes = plt.gca()
-        axes.xaxis.set_ticks([])
-        axes.xaxis.set_ticklabels([])
-        axes.yaxis.set_ticks([])
-        axes.yaxis.set_ticklabels([])
-
-    return plt.gca()
+    return _quiver_or_streamplot(
+        uv_motion_field,
+        "quiver",
+        ax=ax,
+        geodata=geodata,
+        axis=axis,
+        step=step,
+        plot_kwargs=quiver_kwargs,
+        map_kwargs=map_kwargs,
+    )
 
 
 def streamplot(
-    UV, ax=None, geodata=None, axis="on", streamplot_kwargs=None, map_kwargs=None
+    uv_motion_field,
+    ax=None,
+    geodata=None,
+    axis="on",
+    step=20,
+    streamplot_kwargs=None,
+    map_kwargs=None,
 ):
     """Function to plot a motion field as streamlines.
 
@@ -187,7 +181,7 @@ def streamplot(
 
     Parameters
     ----------
-    UV: array-like
+    uv_motion_field: array-like
         Array of shape (2, m,n) containing the input motion field.
     ax: axis object
         Optional axis object to use for plotting.
@@ -221,6 +215,9 @@ def streamplot(
         +----------------+----------------------------------------------------+
     axis: {'off','on'}, optional
         Whether to turn off or on the x and y axis.
+    step: int
+        Optional resample step to control the number of grid points used to compute the
+        stream function.
     streamplot_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the streamplot method.
       See the documentation of matplotlib.pyplot.streamplot.
@@ -237,95 +234,13 @@ def streamplot(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
 
-    if streamplot_kwargs is None:
-        streamplot_kwargs = {}
-    if map_kwargs is None:
-        map_kwargs = {}
-
-    # prepare x y coordinates
-    reproject = False
-    if geodata is not None:
-        xmin = min((geodata["x1"], geodata["x2"]))
-        xmax = max((geodata["x1"], geodata["x2"]))
-        x = np.linspace(xmin, xmax, UV.shape[2])
-        xpixelsize = np.abs(x[1] - x[0])
-        x += xpixelsize / 2.0
-
-        ymin = min((geodata["y1"], geodata["y2"]))
-        ymax = max((geodata["y1"], geodata["y2"]))
-        y = np.linspace(ymin, ymax, UV.shape[1])
-        ypixelsize = np.abs(y[1] - y[0])
-        y += ypixelsize / 2.0
-
-        extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-
-        # check geodata and project if different from axes
-        if ax is not None:
-            if type(ax).__name__ == "GeoAxesSubplot":
-                try:
-                    ccrs = utils.proj4_to_cartopy(geodata["projection"])
-                except UnsupportedSomercProjection:
-                    # Define fall-back projection for Swiss data(EPSG:3035)
-                    # This will work reasonably well for Europe only.
-                    t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-                    reproject = True
-
-            if reproject:
-                geodata = utils.reproject_geodata(
-                    geodata, t_proj4str, return_grid="coords"
-                )
-                extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-                X, Y = geodata["X_grid"], geodata["Y_grid"]
-                x = X[0, :]
-                y = Y[:, 0]
-    else:
-        x = np.arange(UV.shape[2])
-        y = np.arange(UV.shape[1])
-
-    # draw basemaps
-    if geodata is not None:
-        try:
-            ax = basemaps.plot_geography(
-                geodata["projection"],
-                extent,
-                **map_kwargs,
-            )
-
-        except MissingOptionalDependency as e:
-            # Cartopy is not installed
-            print(f"{e.__class__}: {e}")
-            ax = plt.axes()
-
-        except UnsupportedSomercProjection:
-            # Define default fall-back projection for Swiss data(EPSG:3035)
-            # This will work reasonably well for Europe only.
-            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-            geodata = utils.reproject_geodata(geodata, t_proj4str, return_grid="coords")
-            extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-            X, Y = geodata["X_grid"], geodata["Y_grid"]
-            x = X[0, :]
-            y = Y[:, 0]
-
-            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
-
-    else:
-        ax = plt.gca()
-
-    dx = UV[0, :, :]
-    dy = UV[1, :, :].copy()  # Create a copy since dy may be modified
-
-    if geodata is None or geodata["yorigin"] == "upper":
-        y = y[::-1]
-        dy *= -1
-
-    # plot streamplot
-    ax.streamplot(x, y, dx, dy, zorder=1e6, **streamplot_kwargs)
-
-    if geodata is None or axis == "off":
-        axes = plt.gca()
-        axes.xaxis.set_ticks([])
-        axes.xaxis.set_ticklabels([])
-        axes.yaxis.set_ticks([])
-        axes.yaxis.set_ticklabels([])
-
-    return plt.gca()
+    return _quiver_or_streamplot(
+        uv_motion_field,
+        "streamplot",
+        ax=ax,
+        geodata=geodata,
+        axis=axis,
+        step=step,
+        plot_kwargs=streamplot_kwargs,
+        map_kwargs=map_kwargs,
+    )

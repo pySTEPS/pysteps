@@ -12,8 +12,13 @@ Miscellaneous utility functions for the visualization module.
     reproject_geodata
 """
 import numpy as np
+from cartopy.mpl.geoaxes import GeoAxesSubplot
+
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.exceptions import UnsupportedSomercProjection
+import matplotlib.pylab as plt
+
+from pysteps.visualization import basemaps
 
 try:
     import cartopy.crs as ccrs
@@ -249,3 +254,77 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
     geodata["Y_grid"] = Y
 
     return geodata
+
+
+def get_geogrid(nlat, nlon, geodata=None):
+    """
+    Get the geogrid data.
+    If geodata is None, a regular grid is returned. In this case, it is assumed that
+    the origin of the 2D input data is the upper left corner ("upper").
+
+    However, the origin of the x and y grids corresponds to the bottom left of the
+    domain. That is, x and y are sorted in ascending order.
+    """
+    if geodata is not None:
+        regular_grid = geodata.get("regular_grid", True)
+        xmin = min((geodata["x1"], geodata["x2"]))
+        xmax = max((geodata["x1"], geodata["x2"]))
+        x = np.linspace(xmin, xmax, nlon)
+        xpixelsize = np.abs(x[1] - x[0])
+        x += xpixelsize / 2.0
+
+        ymin = min((geodata["y1"], geodata["y2"]))
+        ymax = max((geodata["y1"], geodata["y2"]))
+        y = np.linspace(ymin, ymax, nlat)
+        ypixelsize = np.abs(y[1] - y[0])
+        y += ypixelsize / 2.0
+
+        extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
+        origin = geodata["yorigin"]
+        try:
+            proj4_to_cartopy(geodata["projection"])
+            x_grid, y_grid = np.meshgrid(x, y)
+        except UnsupportedSomercProjection:
+            # Define fall-back projection for Swiss data(EPSG:3035)
+            # This will work reasonably well for Europe only.
+            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+            geodata = reproject_geodata(geodata, t_proj4str, return_grid="coords")
+            extent = (
+                geodata["x1"],
+                geodata["x2"],
+                geodata["y1"],
+                geodata["y2"],
+            )
+            x_grid, y_grid = geodata["X_grid"], geodata["Y_grid"]
+    else:
+        x_grid, y_grid = np.meshgrid(np.arange(nlon), np.arange(nlat))
+        extent = (0, nlon - 1, 0, nlat - 1)
+        regular_grid = True
+        origin = "upper"
+
+    return x_grid, y_grid, extent, regular_grid, origin
+
+
+def get_basemap_axis(extent, geodata=None, ax=None, map_kwargs=None):
+    """
+    Safely get a basemap axis. If ax is None, the current axis is returned.
+
+    If geodata is not None and ax is not a cartopy axis already, create a basemap axis
+    and return it.   Safely get a basemap axis. If ax is None, the current axis is returned.
+
+    If geodata is not None and ax is not a cartopy axis already, create a basemap axis
+    and return it.
+    """
+
+    if map_kwargs is None:
+        map_kwargs = dict()
+
+    if ax is None:
+        # If no axes is passed, use the current axis.
+        ax = plt.gca()
+
+    if (geodata is not None) and (not isinstance(ax, GeoAxesSubplot)):
+        # Check `ax` is not a GeoAxesSubplot axis to avoid overwriting the map.
+        ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
+
+    return ax

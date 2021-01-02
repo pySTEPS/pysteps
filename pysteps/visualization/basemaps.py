@@ -11,6 +11,7 @@ Methods for plotting geographical maps using Cartopy.
     plot_geography
     plot_map_cartopy
 """
+from cartopy.mpl.geoaxes import GeoAxesSubplot
 from matplotlib import gridspec
 import matplotlib.pylab as plt
 import numpy as np
@@ -33,7 +34,18 @@ except ImportError:
 
 from . import utils
 
-VALID_BASEMAPS = ["cartopy"]
+VALID_BASEMAPS = ("cartopy",)
+
+#########################
+# Basemap features zorder
+# - ocean: 0
+# - land: 0
+# - lakes: 0
+# - rivers_lake_centerlines: 0
+# - coastline: 2
+# - cultural: 2
+# - reefs: 2
+# - minor_islands: 2
 
 
 def plot_geography(
@@ -60,7 +72,7 @@ def plot_geography(
         The PROJ.4-compatible projection string.
     extent: scalars (left, right, bottom, top)
         The bounding box in proj4str coordinates.
-    lw: float, optional
+    lw: float, optional`
         Linewidth of the map (administrative boundaries and coastlines).
     drawlonlatlines: bool, optional
         If set to True, draw longitude and latitude lines.
@@ -113,13 +125,6 @@ def plot_geography(
         )
 
     crs = utils.proj4_to_cartopy(proj4str)
-
-    # Replace current axis
-    if subplot is None:
-        cax = plt.gca()
-        subplot = cax.get_subplotspec()
-        cax.clear()
-        cax.set_axis_off()
 
     ax = plot_map_cartopy(
         crs,
@@ -182,17 +187,18 @@ def plot_map_cartopy(
             " but it is not installed"
         )
 
-    # Replace current axis
     if subplot is None:
-        cax = plt.gca()
-        subplot = cax.get_subplotspec()
-        cax.clear()
-        cax.set_axis_off()
-
-    if isinstance(subplot, gridspec.SubplotSpec):
-        ax = plt.subplot(subplot, projection=crs)
+        ax = plt.gca()
     else:
-        ax = plt.subplot(*subplot, projection=crs)
+        if isinstance(subplot, gridspec.SubplotSpec):
+            ax = plt.subplot(subplot, projection=crs)
+        else:
+            ax = plt.subplot(*subplot, projection=crs)
+
+    if not isinstance(ax, GeoAxesSubplot):
+        ax = plt.subplot(ax.get_subplotspec(), projection=crs)
+        # cax.clear()
+        ax.set_axis_off()
 
     ax.add_feature(
         cfeature.NaturalEarthFeature(

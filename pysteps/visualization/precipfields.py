@@ -11,10 +11,13 @@ Methods for plotting precipitation fields.
     plot_precip_field
     get_colormap
 """
+import warnings
 
 import matplotlib.pylab as plt
 from matplotlib import cm, colors  # , gridspec
 import numpy as np
+
+from .utils import get_geogrid, get_basemap_axis
 
 try:
     import pyproj
@@ -27,10 +30,19 @@ from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProje
 from . import basemaps
 from . import utils
 
+PRECIP_VALID_TYPES = ("intensity", "depth", "prob")
+PRECIP_VALID_UNITS = ("mm/h", "mm", "dBZ")
+
+
+############################
+# precipitation plots zorder
+# - precipitation: 10
+
 
 def plot_precip_field(
-    R,
-    type="intensity",
+    precip,
+    ptype="intensity",
+    ax=None,
     geodata=None,
     units="mm/h",
     bbox=None,
@@ -41,6 +53,7 @@ def plot_precip_field(
     axis="on",
     cax=None,
     map_kwargs=None,
+    **kwargs,
 ):
     """
     Function to plot a precipitation intensity or probability field with a
@@ -52,10 +65,10 @@ def plot_precip_field(
 
     Parameters
     ----------
-    R: array-like
+    precip: array-like
         Two-dimensional array containing the input precipitation field or an
         exceedance probability map.
-    type: {'intensity', 'depth', 'prob'}, optional
+    ptype: {'intensity', 'depth', 'prob'}, optional
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
@@ -89,7 +102,7 @@ def plot_precip_field(
         |                 | 'upper' = upper border, 'lower' = lower border    |
         +-----------------+---------------------------------------------------+
     units : {'mm/h', 'mm', 'dBZ'}, optional
-        Units of the input array. If type is 'prob', this specifies the unit of
+        Units of the input array. If ptype is 'prob', this specifies the unit of
         the intensity threshold.
     bbox : tuple, optional
         Four-element tuple specifying the coordinates of the bounding box. Use
@@ -102,7 +115,7 @@ def plot_precip_field(
     probthr : float, optional
         Intensity threshold to show in the color bar of the exceedance
         probability map.
-        Required if type is "prob" and colorbar is True.
+        Required if ptype is "prob" and colorbar is True.
     title : str, optional
         If not None, print the title on top of the plot.
     colorbar : bool, optional
@@ -128,98 +141,64 @@ def plot_precip_field(
     if map_kwargs is None:
         map_kwargs = {}
 
-    if type not in ["intensity", "depth", "prob"]:
-        raise ValueError(
-            "invalid type '%s', must be " + "'intensity', 'depth' or 'prob'" % type
+    if "type" in kwargs:
+        warnings.warn(
+            "The 'type' keyword use to indicate the type of plot will be "
+            "deprecated in version 1.6. Use ptype instead."
         )
-    if units not in ["mm/h", "mm", "dBZ"]:
+        ptype = kwargs.get("ptype")
+
+    if ptype not in PRECIP_VALID_TYPES:
         raise ValueError(
-            "invalid units '%s', must be " + "'mm/h', 'mm' or 'dBZ'" % units
+            f"Invalid precipitation ptype '{ptype}'."
+            f"Supported: {str(PRECIP_VALID_TYPES)}"
         )
-    if type == "prob" and colorbar and probthr is None:
-        raise ValueError("type='prob' but probthr not specified")
-    if len(R.shape) != 2:
-        raise ValueError("the input is not two-dimensional array")
+
+    if units not in PRECIP_VALID_UNITS:
+        raise ValueError(
+            f"Invalid precipitation units '{units}."
+            f"Supported: {str(PRECIP_VALID_UNITS)}"
+        )
+
+    if ptype == "prob" and colorbar and probthr is None:
+        raise ValueError("ptype='prob' but probthr not specified")
+
+    if len(precip.shape) != 2:
+        raise ValueError("The input is not two-dimensional array")
 
     # get colormap and color levels
-    cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
+    cmap, norm, clevs, clevsStr = get_colormap(ptype, units, colorscale)
 
-    # extract extent and origin
-    if geodata is not None:
-        field_extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-        if bbox is None:
-            bm_extent = field_extent
-        else:
-            if not PYPROJ_IMPORTED:
-                raise MissingOptionalDependency(
-                    "pyproj package is required to plot "
-                    "georeferenced precipitation fields "
-                    "but it is not installed"
-                )
-            pr = pyproj.Proj(geodata["projection"])
-            x1, y1 = pr(bbox[0], bbox[1])
-            x2, y2 = pr(bbox[2], bbox[3])
-            bm_extent = (x1, x2, y1, y2)
-        origin = geodata["yorigin"]
-    else:
-        field_extent = (0, R.shape[1] - 1, 0, R.shape[0] - 1)
-        origin = "upper"
+    # Assumes the input dimensions are lat/lon
+    nlat, nlon = precip.shape
 
-    # plot geography
-    if geodata is not None:
-        try:
-            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs)
-            regular_grid = True
-        except MissingOptionalDependency as e:
-            # Cartopy is not installed
-            print(f"{e.__class__}: {e}")
-            ax = plt.gca()
-            regular_grid = True
-        except UnsupportedSomercProjection:
-            # Define default fall-back projection for Swiss data(EPSG:3035)
-            # This will work reasonably well for Europe only.
-            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 "
-            t_proj4str += "+x_0=4321000 +y_0=3210000 +ellps=GRS80 "
-            t_proj4str += "+units=m +no_defs"
-            geodata = utils.reproject_geodata(
-                geodata, t_proj4str, return_grid="quadmesh"
-            )
-            bm_extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-            X, Y = geodata["X_grid"], geodata["Y_grid"]
-            regular_grid = geodata["regular_grid"]
+    x_grid, y_grid, extent, regular_grid, origin = get_geogrid(
+        nlat, nlon, geodata=geodata
+    )
 
-            ax = basemaps.plot_geography(geodata["projection"], bm_extent, **map_kwargs)
-
-    else:
-        ax = plt.gca()
-        regular_grid = True
-
-    if bbox is not None and geodata is not None:
-        x1, y1 = pr(geodata["x1"], geodata["y1"], inverse=True)
-        x2, y2 = pr(geodata["x2"], geodata["y2"], inverse=True)
-        x1, y1 = pr(x1, y1)
-        x2, y2 = pr(x2, y2)
-        field_extent = (x1, x2, y1, y2)
+    ax = get_basemap_axis(extent, ax=ax, geodata=geodata, map_kwargs=map_kwargs)
 
     # plot rainfield
     if regular_grid:
         im = _plot_field(
-            R, ax, type, units, colorscale, extent=field_extent, origin=origin
+            precip, ax, ptype, units, colorscale, extent=extent, origin=origin
         )
     else:
         if origin == "upper":
-            Y = np.flipud(Y)
-        im = _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale)
+            y_grid = np.flipud(y_grid)
+        im = _plot_field_pcolormesh(
+            x_grid, y_grid, precip, ax, ptype, units, colorscale
+        )
 
     # plot radar domain mask
-    mask = np.ones(R.shape)
-    mask[~np.isnan(R)] = np.nan  # Fully transparent within the radar domain
+    mask = np.ones(precip.shape)
+    mask[~np.isnan(precip)] = np.nan  # Fully transparent within the radar domain
     ax.imshow(
         mask,
         cmap=colors.ListedColormap(["gray"]),
         alpha=0.5,
-        zorder=1e6,
-        extent=field_extent,
+        zorder=10,
+        extent=extent,
         origin=origin,
     )
 
@@ -228,12 +207,11 @@ def plot_precip_field(
     #               alpha=0.5, zorder=1e6)
     # TODO: pcolormesh doesn't work properly with the alpha parameter
 
-    if title is not None:
-        plt.title(title)
+    plt.title(title)
 
     # add colorbar
     if colorbar:
-        if type in ["intensity", "depth"]:
+        if ptype in ["intensity", "depth"]:
             extend = "max"
         else:
             extend = "neither"
@@ -243,10 +221,10 @@ def plot_precip_field(
         if clevsStr is not None:
             cbar.ax.set_yticklabels(clevsStr)
 
-        if type == "intensity":
+        if ptype == "intensity":
             cbar.ax.set_title(units, fontsize=10)
             cbar.set_label("Precipitation intensity")
-        elif type == "depth":
+        elif ptype == "depth":
             cbar.ax.set_title(units, fontsize=10)
             cbar.set_label("Precipitation depth")
         else:
@@ -265,69 +243,71 @@ def plot_precip_field(
     return ax
 
 
-def _plot_field(R, ax, type, units, colorscale, extent, origin=None):
-    R = R.copy()
+def _plot_field(precip, ax, ptype, units, colorscale, extent, origin=None):
+    precip = precip.copy()
 
     # Get colormap and color levels
-    cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
+    cmap, norm, clevs, clevsStr = get_colormap(ptype, units, colorscale)
 
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
-    if type in ["intensity", "depth"]:
+    if ptype in ["intensity", "depth"]:
         if units in ["mm/h", "mm"]:
-            R[R < 0.1] = np.nan
+            precip[precip < 0.1] = np.nan
         elif units == "dBZ":
-            R[R < 10] = np.nan
+            precip[precip < 10] = np.nan
     else:
-        R[R < 1e-3] = np.nan
+        precip[precip < 1e-3] = np.nan
 
     im = ax.imshow(
-        R,
+        precip,
         cmap=cmap,
         norm=norm,
         extent=extent,
         interpolation="nearest",
         origin=origin,
-        zorder=1,
+        zorder=10,
     )
 
     return im
 
 
-def _plot_field_pcolormesh(X, Y, R, ax, type, units, colorscale):
-    R = R.copy()
+def _plot_field_pcolormesh(x_grid, y_grid, precip, ax, ptype, units, colorscale):
+    precip = precip.copy()
 
     # Get colormap and color levels
-    cmap, norm, clevs, clevsStr = get_colormap(type, units, colorscale)
+    cmap, norm, clevs, clevsStr = get_colormap(ptype, units, colorscale)
 
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
-    if type in ["intensity", "depth"]:
+    if ptype in ["intensity", "depth"]:
         if units in ["mm/h", "mm"]:
-            R[R < 0.1] = np.nan
+            precip[precip < 0.1] = np.nan
         elif units == "dBZ":
-            R[R < 10] = np.nan
+            precip[precip < 10] = np.nan
     else:
-        R[R < 1e-3] = np.nan
+        precip[precip < 1e-3] = np.nan
 
-    vmin, vmax = [None, None] if type in ["intensity", "depth"] else [0.0, 1.0]
+    vmin, vmax = [None, None] if ptype in ["intensity", "depth"] else [0.0, 1.0]
 
-    im = ax.pcolormesh(X, Y, R, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=1)
+    im = ax.pcolormesh(
+        x_grid, y_grid, precip, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=10
+    )
 
     return im
 
 
-def get_colormap(type, units="mm/h", colorscale="pysteps"):
+def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
     """Function to generate a colormap (cmap) and norm.
 
     Parameters
     ----------
-    type : {'intensity', 'depth', 'prob'}, optional
+    ptype : {'intensity', 'depth', 'prob'}, optional
         Type of the map to plot: 'intensity' = precipitation intensity field,
         'depth' = precipitation depth (accumulation) field,
         'prob' = exceedance probability field.
     units : {'mm/h', 'mm', 'dBZ'}, optional
-        Units of the input array. If type is 'prob', this specifies the unit of
+        Units of the input array. If ptype is 'prob', this specifies the unit of
         the intensity threshold.
     colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
@@ -345,7 +325,7 @@ def get_colormap(type, units="mm/h", colorscale="pysteps"):
         number of decimals).
 
     """
-    if type in ["intensity", "depth"]:
+    if ptype in ["intensity", "depth"]:
         # Get list of colors
         color_list, clevs, clevsStr = _get_colorlist(units, colorscale)
 
@@ -363,7 +343,7 @@ def get_colormap(type, units="mm/h", colorscale="pysteps"):
 
         return cmap, norm, clevs, clevsStr
 
-    elif type == "prob":
+    elif ptype == "prob":
         cmap = plt.get_cmap("OrRd", 10)
         return cmap, colors.Normalize(vmin=0, vmax=1), None, None
     else:
