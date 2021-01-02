@@ -17,7 +17,6 @@ import numpy as np
 import warnings
 from pysteps.exceptions import MissingOptionalDependency
 
-
 try:
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
@@ -34,12 +33,19 @@ except ImportError:
 
 from . import utils
 
-
 VALID_BASEMAPS = ["cartopy"]
 
 
 def plot_geography(
-    proj4str, extent, lw=0.5, drawlonlatlines=False, drawlonlatlabels=True, **kwargs
+    proj4str,
+    extent,
+    lw=0.5,
+    drawlonlatlines=False,
+    drawlonlatlabels=True,
+    plot_map="cartopy",
+    scale="50m",
+    subplot=None,
+    **kwargs,
 ):
     """
     Plot geographical map using cartopy_ in a chosen projection.
@@ -61,9 +67,6 @@ def plot_geography(
     drawlonlatlabels: bool, optional
         If set to True, draw longitude and latitude labels.  Valid only if
         'drawlonlatlines' is True.
-
-    Other parameters
-    ----------------
     plot_map: {'cartopy', None}, optional
         The type of basemap, either 'cartopy_' or None. If None, the figure
         axis is returned without any basemap drawn. Default ``'cartopy'``.
@@ -80,7 +83,13 @@ def plot_geography(
         Cartopy axes.
     """
 
-    plot_map = kwargs.get("plot_map", "cartopy")
+    if len(kwargs) > 0:
+        warnings.warn(
+            "plot_geography: The following keywords are ignored:\n"
+            + str(kwargs)
+            + "\nIn version 1.5, passing unsupported arguments will raise an error.",
+            DeprecationWarning,
+        )
 
     if plot_map is None:
         return plt.gca()
@@ -94,35 +103,32 @@ def plot_geography(
     if plot_map == "cartopy" and not CARTOPY_IMPORTED:
         raise MissingOptionalDependency(
             "the cartopy package is required to plot the geographical map "
-            " but it is not installed"
+            "but it is not installed"
         )
 
     if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
-            "the pyproj package is required to plot the geographical map"
+            "the pyproj package is required to plot the geographical map "
             "but it is not installed"
         )
 
-    # if plot_map == "cartopy": # not really an option for the moment
-    cartopy_scale = kwargs.get("scale", "50m")
-    cartopy_subplot = kwargs.get("subplot", None)
     crs = utils.proj4_to_cartopy(proj4str)
 
     # Replace current axis
-    if cartopy_subplot is None:
+    if subplot is None:
         cax = plt.gca()
-        cartopy_subplot = cax.get_subplotspec()
+        subplot = cax.get_subplotspec()
         cax.clear()
         cax.set_axis_off()
 
     ax = plot_map_cartopy(
         crs,
         extent,
-        cartopy_scale,
+        scale,
         drawlonlatlines=drawlonlatlines,
         drawlonlatlabels=drawlonlatlabels,
         lw=lw,
-        subplot=cartopy_subplot,
+        subplot=subplot,
     )
 
     return ax
