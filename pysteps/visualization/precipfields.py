@@ -146,7 +146,7 @@ def plot_precip_field(
             "The 'type' keyword use to indicate the type of plot will be "
             "deprecated in version 1.6. Use ptype instead."
         )
-        ptype = kwargs.get("ptype")
+        ptype = kwargs.get("type")
 
     if ptype not in PRECIP_VALID_TYPES:
         raise ValueError(
