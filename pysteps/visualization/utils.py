@@ -37,6 +37,44 @@ try:
 except ImportError:
     PYPROJ_IMPORTED = False
 
+CARTOPY_PROJ_KWRDS_TO_PYPROJ = {
+    "lon_0": "central_longitude",
+    "lat_0": "central_latitude",
+    "lat_ts": "true_scale_latitude",
+    "x_0": "false_easting",
+    "y_0": "false_northing",
+    "k": "scale_factor",
+    "zone": "zone",
+}
+
+# Invert the CARTOPY_PROJ_KWRDS_TO_PYPROJ dict
+PYPROJ_PROJ_KWRDS_TO_CARTOPY = {v: k for k, v in CARTOPY_PROJ_KWRDS_TO_PYPROJ.items()}
+
+PYPROJ_GLOB_KWRDS_TO_CARTOPY = {
+    "a": "semimajor_axis",
+    "b": "semiminor_axis",
+    "datum": "datum",
+    "ellps": "ellipse",
+    "f": "flattening",
+    "rf": "inverse_flattening",
+}
+
+PYPROJ_PROJECTION_TO_CARTOPY = dict(
+    tmerc=ccrs.TransverseMercator,
+    laea=ccrs.LambertAzimuthalEqualArea,
+    lcc=ccrs.LambertConformal,
+    merc=ccrs.Mercator,
+    utm=ccrs.UTM,
+    stere=ccrs.Stereographic,
+    aea=ccrs.AlbersEqualArea,
+    aeqd=ccrs.AzimuthalEquidistant,
+    # Note: ccrs.epsg(2056) doesn't work because the projection
+    # limits are too strict.
+    # We'll use the Stereographic projection as an alternative.
+    somerc=ccrs.Stereographic,
+    geos=ccrs.Geostationary,
+)
+
 
 def parse_proj4_string(proj4str):
     """Construct a dictionary from a PROJ.4 projection string.
@@ -61,7 +99,7 @@ def parse_proj4_string(proj4str):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=UserWarning)
-        # Ignore the warning raised by to_dict() about lossing information.
+        # Ignore the warning raised by to_dict() about losing information.
         proj_dict = pyproj.Proj(proj4str).crs.to_dict()
 
     return proj_dict
@@ -105,77 +143,41 @@ def proj4_to_cartopy(proj4str):
     if is_geographic:
         return ccrs.PlateCarree()
 
-    km_proj = {
-        "lon_0": "central_longitude",
-        "lat_0": "central_latitude",
-        "lat_ts": "true_scale_latitude",
-        "x_0": "false_easting",
-        "y_0": "false_northing",
-        "k": "scale_factor",
-        "zone": "zone",
-    }
-    km_globe = {"a": "semimajor_axis", "b": "semiminor_axis"}
-    km_std = {"lat_1": "lat_1", "lat_2": "lat_2"}
+    proj_dict = parse_proj4_string(proj4str)
 
-    kw_proj = {}
-    kw_globe = {}
-    kw_std = {}
-
-    for s in proj.srs.split("+"):
-        s = s.split("=")
-        if len(s) != 2:
-            continue
-        k = s[0].strip()
-        v = s[1].strip()
-        try:
-            v = float(v)
-        except Exception:
-            pass
-
-        if k == "proj":
-            if v == "tmerc":
-                cl = ccrs.TransverseMercator
-            elif v == "laea":
-                cl = ccrs.LambertAzimuthalEqualArea
-            elif v == "lcc":
-                cl = ccrs.LambertConformal
-            elif v == "merc":
-                cl = ccrs.Mercator
-            elif v == "utm":
-                cl = ccrs.UTM
-            elif v == "stere":
-                cl = ccrs.Stereographic
-            elif v == "aea":
-                cl = ccrs.AlbersEqualArea
-            elif v == "aeqd":
-                cl = ccrs.AzimuthalEquidistant
-            elif v == "somerc":
-                # Note: ccrs.epsg(2056) doesn't work because the projection
-                # limits are too strict.
-                # We'll use the Stereographic projection as an alternative.
-                cl = ccrs.Stereographic
-            elif v == "geos":
-                cl = ccrs.Geostationary
-            else:
-                raise ValueError("unsupported projection: %s" % v)
-        elif k in km_proj:
-            kw_proj[km_proj[k]] = v
-        elif k in km_globe:
-            kw_globe[km_globe[k]] = v
-        elif k in km_std:
-            kw_std[km_std[k]] = v
-
+    cartopy_crs_kwargs = dict()
+    globe_kwargs = dict()
+    cartopy_crs = None
     globe = None
-    if kw_globe:
-        globe = ccrs.Globe(**kw_globe)
-    if kw_std:
-        kw_proj["standard_parallels"] = (kw_std["lat_1"], kw_std["lat_2"])
 
-    if cl.__name__ == "Mercator":
-        kw_proj.pop("false_easting", None)
-        kw_proj.pop("false_northing", None)
+    for key, value in proj_dict.items():
+        if key == "proj":
+            if value in PYPROJ_PROJECTION_TO_CARTOPY:
+                cartopy_crs = PYPROJ_PROJECTION_TO_CARTOPY[value]
+            else:
+                raise ValueError(f"Unsupported projection: {value}")
 
-    return cl(globe=globe, **kw_proj)
+        if key in PYPROJ_PROJ_KWRDS_TO_CARTOPY:
+            cartopy_crs_kwargs[PYPROJ_PROJ_KWRDS_TO_CARTOPY[key]] = value
+
+        if key in PYPROJ_GLOB_KWRDS_TO_CARTOPY:
+            globe_kwargs[PYPROJ_GLOB_KWRDS_TO_CARTOPY[key]] = value
+
+    # issubset: <=
+    if {"lat_1", "lat_2"} <= proj_dict.keys():
+        cartopy_crs_kwargs["standard_parallels"] = (
+            proj_dict["lat_1"],
+            proj_dict["lat_2"],
+        )
+
+    if globe_kwargs:
+        globe = ccrs.Globe(**globe_kwargs)
+
+    if isinstance(cartopy_crs, ccrs.Mercator):
+        cartopy_crs_kwargs.pop("false_easting", None)
+        cartopy_crs_kwargs.pop("false_northing", None)
+
+    return cartopy_crs(globe=globe, **cartopy_crs_kwargs)
 
 
 def reproject_geodata(geodata, t_proj4str, return_grid=None):
