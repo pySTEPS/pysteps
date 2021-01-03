@@ -31,9 +31,9 @@ def _quiver_or_streamplot(
     ax=None,
     geodata=None,
     axis="on",
-    step=20,
     plot_kwargs=None,
     map_kwargs=None,
+    step=20,
 ):
     if plot_type not in VALID_PLOT_TYPES:
         raise ValueError(
@@ -170,9 +170,9 @@ def streamplot(
     ax=None,
     geodata=None,
     axis="on",
-    step=20,
     streamplot_kwargs=None,
     map_kwargs=None,
+    step=20,
 ):
     """Function to plot a motion field as streamlines.
 
