@@ -52,15 +52,19 @@ def parse_proj4_string(proj4str):
       Dictionary, where keys and values are parsed from the projection
       parameter tokens beginning with '+'.
     """
-    tokens = proj4str.split("+")
 
-    result = {}
-    for t in tokens[1:]:
-        if "=" in t:
-            k, v = t.split("=")
-            result[k] = v.strip()
+    if not PYPROJ_IMPORTED:
+        raise MissingOptionalDependency(
+            "pyproj package is required for parse_proj4_string function utility "
+            "but it is not installed"
+        )
 
-    return result
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        # Ignore the warning raised by to_dict() about lossing information.
+        proj_dict = pyproj.Proj(proj4str).crs.to_dict()
+
+    return proj_dict
 
 
 def proj4_to_cartopy(proj4str):
