@@ -10,7 +10,11 @@ Miscellaneous utility functions for the visualization module.
     parse_proj4_string
     proj4_to_cartopy
     reproject_geodata
+    get_geogrid
+    get_basemap_axis
 """
+import warnings
+
 import numpy as np
 from cartopy.mpl.geoaxes import GeoAxesSubplot
 
@@ -264,6 +268,57 @@ def get_geogrid(nlat, nlon, geodata=None):
 
     However, the origin of the x and y grids corresponds to the bottom left of the
     domain. That is, x and y are sorted in ascending order.
+
+    Parameters
+    ----------
+    nlat: int
+        Number of grid points along the latitude axis
+    nlon: int
+        Number of grid points along the longitude axis
+    geodata:
+        geodata: dictionary or None
+        Optional dictionary containing geographical information about
+        the field.
+
+        If geodata is not None, it must contain the following key-value pairs:
+
+        .. tabularcolumns:: |p{1.5cm}|L|
+
+        +----------------+----------------------------------------------------+
+        |        Key     |                  Value                             |
+        +================+====================================================+
+        |   projection   | PROJ.4-compatible projection definition            |
+        +----------------+----------------------------------------------------+
+        |    x1          | x-coordinate of the lower-left corner of the data  |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    y1          | y-coordinate of the lower-left corner of the data  |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    x2          | x-coordinate of the upper-right corner of the data |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    y2          | y-coordinate of the upper-right corner of the data |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    yorigin     | a string specifying the location of the first      |
+        |                | element in the data raster w.r.t. y-axis:          |
+        |                | 'upper' = upper border, 'lower' = lower border     |
+        +----------------+----------------------------------------------------+
+
+    Returns
+    -------
+    x_grid: 2D array
+    y_grid: 2D array
+    extent: tuple
+        Four-element tuple specifying the extent of the domain according to
+        (lower left x, upper right x, lower left y, upper right y).
+    regular_grid: bool
+        True is the grid is regular. False otherwise.
+    origin: str
+        Place the [0, 0] index of the array to plot in the upper left or lower left
+        corner of the axes. Note that the vertical axes points upward for 'lower' but
+        downward for 'upper'.
     """
     if geodata is not None:
         regular_grid = geodata.get("regular_grid", True)
@@ -309,11 +364,54 @@ def get_basemap_axis(extent, geodata=None, ax=None, map_kwargs=None):
     """
     Safely get a basemap axis. If ax is None, the current axis is returned.
 
-    If geodata is not None and ax is not a cartopy axis already, create a basemap axis
-    and return it.   Safely get a basemap axis. If ax is None, the current axis is returned.
+    If geodata is not None and ax is not a cartopy axis already, it creates a basemap
+    axis and return it.
 
-    If geodata is not None and ax is not a cartopy axis already, create a basemap axis
-    and return it.
+    Parameters
+    ----------
+    extent: tuple
+        Four-element tuple specifying the extent of the domain according to
+        (lower left x, upper right x, lower left y, upper right y).
+    geodata:
+        geodata: dictionary or None
+        Optional dictionary containing geographical information about
+        the field.
+
+        If geodata is not None, it must contain the following key-value pairs:
+
+        .. tabularcolumns:: |p{1.5cm}|L|
+
+        +----------------+----------------------------------------------------+
+        |        Key     |                  Value                             |
+        +================+====================================================+
+        |   projection   | PROJ.4-compatible projection definition            |
+        +----------------+----------------------------------------------------+
+        |    x1          | x-coordinate of the lower-left corner of the data  |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    y1          | y-coordinate of the lower-left corner of the data  |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    x2          | x-coordinate of the upper-right corner of the data |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    y2          | y-coordinate of the upper-right corner of the data |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    yorigin     | a string specifying the location of the first      |
+        |                | element in the data raster w.r.t. y-axis:          |
+        |                | 'upper' = upper border, 'lower' = lower border     |
+        +----------------+----------------------------------------------------+
+
+    ax: axis object
+        Optional axis object to use for plotting.
+    map_kwargs: dict
+        Optional parameters that need to be passed to
+        :py:func:`pysteps.visualization.basemaps.plot_geography`.
+
+    Returns
+    -------
+    ax: axis object
     """
 
     if map_kwargs is None:
