@@ -144,13 +144,13 @@ def plot_precip_field(
     if "type" in kwargs:
         warnings.warn(
             "The 'type' keyword use to indicate the type of plot will be "
-            "deprecated in version 1.6. Use ptype instead."
+            "deprecated in version 1.6. Use 'ptype' instead."
         )
         ptype = kwargs.get("type")
 
     if ptype not in PRECIP_VALID_TYPES:
         raise ValueError(
-            f"Invalid precipitation ptype '{ptype}'."
+            f"Invalid precipitation type '{ptype}'."
             f"Supported: {str(PRECIP_VALID_TYPES)}"
         )
 
@@ -178,34 +178,16 @@ def plot_precip_field(
 
     ax = get_basemap_axis(extent, ax=ax, geodata=geodata, map_kwargs=map_kwargs)
 
+    precip = np.ma.masked_invalid(precip)
     # plot rainfield
     if regular_grid:
         im = _plot_field(
             precip, ax, ptype, units, colorscale, extent=extent, origin=origin
         )
     else:
-        if origin == "upper":
-            y_grid = np.flipud(y_grid)
-        im = _plot_field_pcolormesh(
-            x_grid, y_grid, precip, ax, ptype, units, colorscale
+        im = _plot_field(
+            precip, ax, ptype, units, colorscale, x_grid=x_grid, y_grid=y_grid
         )
-
-    # plot radar domain mask
-    mask = np.ones(precip.shape)
-    mask[~np.isnan(precip)] = np.nan  # Fully transparent within the radar domain
-    ax.imshow(
-        mask,
-        cmap=colors.ListedColormap(["gray"]),
-        alpha=0.5,
-        zorder=10,
-        extent=extent,
-        origin=origin,
-    )
-
-    # ax.pcolormesh(X, Y, np.flipud(mask),
-    #               cmap=colors.ListedColormap(['gray']),
-    #               alpha=0.5, zorder=1e6)
-    # TODO: pcolormesh doesn't work properly with the alpha parameter
 
     plt.title(title)
 
@@ -243,7 +225,9 @@ def plot_precip_field(
     return ax
 
 
-def _plot_field(precip, ax, ptype, units, colorscale, extent, origin=None):
+def _plot_field(
+    precip, ax, ptype, units, colorscale, extent, origin=None, x_grid=None, y_grid=None
+):
     precip = precip.copy()
 
     # Get colormap and color levels
@@ -253,46 +237,36 @@ def _plot_field(precip, ax, ptype, units, colorscale, extent, origin=None):
     # transparent where no precipitation or the probability is zero
     if ptype in ["intensity", "depth"]:
         if units in ["mm/h", "mm"]:
-            precip[precip < 0.1] = np.nan
+            precip[precip < 0.1] = -100
         elif units == "dBZ":
-            precip[precip < 10] = np.nan
+            precip[precip < 10] = -100
     else:
-        precip[precip < 1e-3] = np.nan
+        precip[precip < 1e-3] = -100
 
-    im = ax.imshow(
-        precip,
-        cmap=cmap,
-        norm=norm,
-        extent=extent,
-        interpolation="nearest",
-        origin=origin,
-        zorder=10,
-    )
-
-    return im
-
-
-def _plot_field_pcolormesh(x_grid, y_grid, precip, ax, ptype, units, colorscale):
-    precip = precip.copy()
-
-    # Get colormap and color levels
-    cmap, norm, clevs, clevsStr = get_colormap(ptype, units, colorscale)
-
-    # Plot precipitation field
-    # transparent where no precipitation or the probability is zero
-    if ptype in ["intensity", "depth"]:
-        if units in ["mm/h", "mm"]:
-            precip[precip < 0.1] = np.nan
-        elif units == "dBZ":
-            precip[precip < 10] = np.nan
+    if (x_grid is None) or (y_grid is None):
+        im = ax.imshow(
+            precip,
+            cmap=cmap,
+            norm=norm,
+            extent=extent,
+            interpolation="nearest",
+            origin=origin,
+            zorder=10,
+        )
     else:
-        precip[precip < 1e-3] = np.nan
-
-    vmin, vmax = [None, None] if ptype in ["intensity", "depth"] else [0.0, 1.0]
-
-    im = ax.pcolormesh(
-        x_grid, y_grid, precip, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, zorder=10
-    )
+        if origin == "upper":
+            y_grid = np.flipud(y_grid)
+        vmin, vmax = [None, None] if ptype in ["intensity", "depth"] else [0.0, 1.0]
+        im = ax.pcolormesh(
+            x_grid,
+            y_grid,
+            precip,
+            cmap=cmap,
+            norm=norm,
+            vmin=vmin,
+            vmax=vmax,
+            zorder=10,
+        )
 
     return im
 
@@ -341,13 +315,16 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
             cmap.set_over("black", 1)
         norm = colors.BoundaryNorm(clevs, cmap.N)
 
+        cmap.set_bad("gray", alpha=0.5)
+        cmap.set_under("white", alpha=0)
+
         return cmap, norm, clevs, clevsStr
 
     elif ptype == "prob":
         cmap = plt.get_cmap("OrRd", 10)
         return cmap, colors.Normalize(vmin=0, vmax=1), None, None
     else:
-        return cm.jet, colors.Normalize(), None, None
+        return cm.get_cmap("jet"), colors.Normalize(), None, None
 
 
 def _get_colorlist(units="mm/h", colorscale="pysteps"):
