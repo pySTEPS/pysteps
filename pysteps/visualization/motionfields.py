@@ -139,10 +139,6 @@ def quiver(
     quiver_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the quiver method.
       See the documentation of matplotlib.pyplot.quiver.
-
-
-    Other parameters
-    ----------------
     map_kwargs: dict
         Optional parameters that need to be passed to
         :py:func:`pysteps.visualization.basemaps.plot_geography`.
