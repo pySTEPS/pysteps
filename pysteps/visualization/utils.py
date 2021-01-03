@@ -37,7 +37,7 @@ try:
 except ImportError:
     PYPROJ_IMPORTED = False
 
-CARTOPY_PROJ_KWRDS_TO_PYPROJ = {
+PYPROJ_PROJ_KWRDS_TO_CARTOPY = {
     "lon_0": "central_longitude",
     "lat_0": "central_latitude",
     "lat_ts": "true_scale_latitude",
@@ -46,9 +46,6 @@ CARTOPY_PROJ_KWRDS_TO_PYPROJ = {
     "k": "scale_factor",
     "zone": "zone",
 }
-
-# Invert the CARTOPY_PROJ_KWRDS_TO_PYPROJ dict
-PYPROJ_PROJ_KWRDS_TO_CARTOPY = {v: k for k, v in CARTOPY_PROJ_KWRDS_TO_PYPROJ.items()}
 
 PYPROJ_GLOB_KWRDS_TO_CARTOPY = {
     "a": "semimajor_axis",
