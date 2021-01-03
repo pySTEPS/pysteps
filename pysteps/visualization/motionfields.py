@@ -48,7 +48,7 @@ def _quiver_or_streamplot(
     # Assumes the input dimensions are lat/lon
     _, nlat, nlon = uv_motion_field.shape
 
-    x_grid, y_grid, extent, _, origin = utils.get_geogrid(nlat, nlon, geodata=geodata)
+    x_grid, y_grid, extent, _, _ = utils.get_geogrid(nlat, nlon, geodata=geodata)
 
     ax = utils.get_basemap_axis(extent, ax=ax, geodata=geodata, map_kwargs=map_kwargs)
 

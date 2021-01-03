@@ -14,21 +14,10 @@ Methods for plotting precipitation fields.
 import warnings
 
 import matplotlib.pylab as plt
-from matplotlib import cm, colors  # , gridspec
 import numpy as np
+from matplotlib import cm, colors
 
-from .utils import get_geogrid, get_basemap_axis
-
-try:
-    import pyproj
-
-    PYPROJ_IMPORTED = True
-except ImportError:
-    PYPROJ_IMPORTED = False
-from pysteps.exceptions import MissingOptionalDependency, UnsupportedSomercProjection
-
-from . import basemaps
-from . import utils
+from pysteps.visualization.utils import get_geogrid, get_basemap_axis
 
 PRECIP_VALID_TYPES = ("intensity", "depth", "prob")
 PRECIP_VALID_UNITS = ("mm/h", "mm", "dBZ")
@@ -228,7 +217,7 @@ def _plot_field(
     precip = precip.copy()
 
     # Get colormap and color levels
-    cmap, norm, clevs, clevsStr = get_colormap(ptype, units, colorscale)
+    cmap, norm, _, _ = get_colormap(ptype, units, colorscale)
 
     # Plot precipitation field
     # transparent where no precipitation or the probability is zero
@@ -291,14 +280,13 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
         Colors norm
     clevs: list(float)
         List of precipitation values defining the color limits.
-    clevsStr: list(str)
+    clevs_str: list(str)
         List of precipitation values defining the color limits (with correct
         number of decimals).
-
     """
     if ptype in ["intensity", "depth"]:
         # Get list of colors
-        color_list, clevs, clevsStr = _get_colorlist(units, colorscale)
+        color_list, clevs, clevs_str = _get_colorlist(units, colorscale)
 
         cmap = colors.LinearSegmentedColormap.from_list(
             "cmap", color_list, len(clevs) - 1
@@ -315,13 +303,13 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
         cmap.set_bad("gray", alpha=0.5)
         cmap.set_under("white", alpha=0)
 
-        return cmap, norm, clevs, clevsStr
+        return cmap, norm, clevs, clevs_str
 
-    elif ptype == "prob":
+    if ptype == "prob":
         cmap = plt.get_cmap("OrRd", 10)
         return cmap, colors.Normalize(vmin=0, vmax=1), None, None
-    else:
-        return cm.get_cmap("jet"), colors.Normalize(), None, None
+
+    return cm.get_cmap("jet"), colors.Normalize(), None, None
 
 
 def _get_colorlist(units="mm/h", colorscale="pysteps"):
@@ -343,10 +331,9 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
     clevs : list(float)
         List of precipitation values defining the color limits.
 
-    clevsStr : list(str)
+    clevs_str : list(str)
         List of precipitation values defining the color limits
         (with correct number of decimals).
-
     """
 
     if colorscale == "BOM-RF3":
@@ -415,9 +402,9 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
             raise ValueError("Wrong units in get_colorlist: %s" % units)
     elif colorscale == "pysteps":
         # pinkHex = '#%02x%02x%02x' % (232, 215, 242)
-        redgreyHex = "#%02x%02x%02x" % (156, 126, 148)
+        redgrey_hex = "#%02x%02x%02x" % (156, 126, 148)
         color_list = [
-            redgreyHex,
+            redgrey_hex,
             "#640064",
             "#AF00AF",
             "#DC00DC",
@@ -487,20 +474,18 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
         raise ValueError("Invalid colorscale " + colorscale)
 
     # Generate color level strings with correct amount of decimal places
-    clevsStr = _dynamic_formatting_floats(clevs)
+    clevs_str = _dynamic_formatting_floats(clevs)
 
-    return color_list, clevs, clevsStr
+    return color_list, clevs, clevs_str
 
 
-def _dynamic_formatting_floats(floatArray, colorscale="pysteps"):
-    """
-    Function to format the floats defining the class limits of the colorbar.
-    """
-    floatArray = np.array(floatArray, dtype=float)
+def _dynamic_formatting_floats(float_array, colorscale="pysteps"):
+    """Function to format the floats defining the class limits of the colorbar."""
+    float_array = np.array(float_array, dtype=float)
 
     labels = []
-    for label in floatArray:
-        if label >= 0.1 and label < 1:
+    for label in float_array:
+        if 0.1 <= label < 1:
             if colorscale == "pysteps":
                 formatting = ",.2f"
             else:
