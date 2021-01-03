@@ -166,9 +166,6 @@ def plot_precip_field(
     if len(precip.shape) != 2:
         raise ValueError("The input is not two-dimensional array")
 
-    # get colormap and color levels
-    cmap, norm, clevs, clevsStr = get_colormap(ptype, units, colorscale)
-
     # Assumes the input dimensions are lat/lon
     nlat, nlon = precip.shape
 
@@ -181,18 +178,18 @@ def plot_precip_field(
     precip = np.ma.masked_invalid(precip)
     # plot rainfield
     if regular_grid:
-        im = _plot_field(
-            precip, ax, ptype, units, colorscale, extent=extent, origin=origin
-        )
+        im = _plot_field(precip, ax, ptype, units, colorscale, extent, origin=origin)
     else:
         im = _plot_field(
-            precip, ax, ptype, units, colorscale, x_grid=x_grid, y_grid=y_grid
+            precip, ax, ptype, units, colorscale, extent, x_grid=x_grid, y_grid=y_grid
         )
 
     plt.title(title)
 
     # add colorbar
     if colorbar:
+        # get colormap and color levels
+        _, _, clevs, clevs_str = get_colormap(ptype, units, colorscale)
         if ptype in ["intensity", "depth"]:
             extend = "max"
         else:
@@ -200,8 +197,8 @@ def plot_precip_field(
         cbar = plt.colorbar(
             im, ticks=clevs, spacing="uniform", extend=extend, shrink=0.8, cax=cax
         )
-        if clevsStr is not None:
-            cbar.ax.set_yticklabels(clevsStr)
+        if clevs_str is not None:
+            cbar.ax.set_yticklabels(clevs_str)
 
         if ptype == "intensity":
             cbar.ax.set_title(units, fontsize=10)
