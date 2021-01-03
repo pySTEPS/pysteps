@@ -235,11 +235,15 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
         else:
             raise ValueError("unknown return_grid value %s" % return_grid)
 
-        X, Y = np.meshgrid(x_coord, y_coord)
+        x_grid, y_grid = np.meshgrid(x_coord, y_coord)
 
-        X, Y = pyproj.transform(s_srs, t_srs, X.flatten(), Y.flatten())
-        X = X.reshape((y_coord.size, x_coord.size))
-        Y = Y.reshape((y_coord.size, x_coord.size))
+        x_grid, y_grid = pyproj.transform(
+            s_srs, t_srs, x_grid.flatten(), y_grid.flatten()
+        )
+        x_grid = x_grid.reshape((y_coord.size, x_coord.size))
+        y_grid = y_grid.reshape((y_coord.size, x_coord.size))
+        geodata["X_grid"] = x_grid
+        geodata["Y_grid"] = y_grid
 
     # Reproject extent on fall-back projection
     x1, y1 = pyproj.transform(s_srs, t_srs, x1, y1)
@@ -254,8 +258,6 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
     geodata["regular_grid"] = False
     geodata["xpixelsize"] = None
     geodata["ypixelsize"] = None
-    geodata["X_grid"] = X
-    geodata["Y_grid"] = Y
 
     return geodata
 
