@@ -857,7 +857,9 @@ def forecast(
                 print("done.")
 
         if callback is not None:
-            callback(np.stack(R_f_))
+            R_f_stacked = np.stack(R_f_)
+            if R_f_stacked.shape[1] > 0:
+                callback(R_f_stacked.squeeze())
             R_f_ = None
 
         if return_output:
