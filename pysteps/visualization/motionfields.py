@@ -8,6 +8,7 @@ Functions to plot motion fields.
 .. autosummary::
     :toctree: ../generated/
 
+    motion_plot
     quiver
     streamplot
 """
@@ -25,9 +26,9 @@ VALID_PLOT_TYPES = ("quiver", "streamplot", "stream")
 # - stream function: 30
 
 
-def _quiver_or_streamplot(
+def motion_plot(
     uv_motion_field,
-    plot_type,
+    plot_type="quiver",
     ax=None,
     geodata=None,
     axis="on",
@@ -35,6 +36,69 @@ def _quiver_or_streamplot(
     map_kwargs=None,
     step=20,
 ):
+    """
+    Function to plot a motion field as arrows (quiver) or as stream lines (streamplot).
+
+    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
+    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
+    .. _quiver_doc: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.htm
+    .. _streamplot_doc: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.streamplot.html
+
+    Parameters
+    ----------
+    uv_motion_field: array-like
+        Array of shape (2,m,n) containing the input motion field.
+    plot_type: str
+        Plot type. "quiver" or "streamplot".
+    ax: axis object
+        Optional axis object to use for plotting.
+    geodata: dictionary or None
+        Optional dictionary containing geographical information about
+        the field.
+
+        If geodata is not None, it must contain the following key-value pairs:
+
+        .. tabularcolumns:: |p{1.5cm}|L|
+
+        +----------------+----------------------------------------------------+
+        |        Key     |                  Value                             |
+        +================+====================================================+
+        |   projection   | PROJ.4-compatible projection definition            |
+        +----------------+----------------------------------------------------+
+        |    x1          | x-coordinate of the lower-left corner of the data  |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    y1          | y-coordinate of the lower-left corner of the data  |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    x2          | x-coordinate of the upper-right corner of the data |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    y2          | y-coordinate of the upper-right corner of the data |
+        |                | raster                                             |
+        +----------------+----------------------------------------------------+
+        |    yorigin     | a string specifying the location of the first      |
+        |                | element in the data raster w.r.t. y-axis:          |
+        |                | 'upper' = upper border, 'lower' = lower border     |
+        +----------------+----------------------------------------------------+
+    axis: {'off','on'}, optional
+        Whether to turn off or on the x and y axis.
+    step: int
+        Optional resample step to control the density of the arrows.
+    plot_kwargs: dict, optional
+      Optional dictionary containing keyword arguments passed to `quiver()` or
+      `streamplot`.
+      For more information, see the quiver_doc_ and stream_plot_doc_ matplotlib's
+      documentation.
+    map_kwargs: dict
+        Optional parameters that need to be passed to
+        :py:func:`pysteps.visualization.basemaps.plot_geography`.
+
+    Returns
+    -------
+    out: axis object
+        Figure axes. Needed if one wants to add e.g. text inside the plot.
+    """
     if plot_type not in VALID_PLOT_TYPES:
         raise ValueError(
             f"Invalid plot_type: {plot_type}.\nSupported: {str(VALID_PLOT_TYPES)}"
@@ -91,65 +155,34 @@ def quiver(
     map_kwargs=None,
 ):
     """Function to plot a motion field as arrows.
+    Wrapper for :func:`pysteps.motionfields.motion_plot` with  `plot_type="quiver"`.
 
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
-    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
+    .. _quiver_doc: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.htm
 
     Parameters
     ----------
     uv_motion_field: array-like
-        Array of shape (2,m,n) containing the input motion field.
-    ax: axis object
-        Optional axis object to use for plotting.
-    geodata: dictionary or None
-        Optional dictionary containing geographical information about
-        the field.
-
-        If geodata is not None, it must contain the following key-value pairs:
-
-        .. tabularcolumns:: |p{1.5cm}|L|
-
-        +----------------+----------------------------------------------------+
-        |        Key     |                  Value                             |
-        +================+====================================================+
-        |   projection   | PROJ.4-compatible projection definition            |
-        +----------------+----------------------------------------------------+
-        |    x1          | x-coordinate of the lower-left corner of the data  |
-        |                | raster                                             |
-        +----------------+----------------------------------------------------+
-        |    y1          | y-coordinate of the lower-left corner of the data  |
-        |                | raster                                             |
-        +----------------+----------------------------------------------------+
-        |    x2          | x-coordinate of the upper-right corner of the data |
-        |                | raster                                             |
-        +----------------+----------------------------------------------------+
-        |    y2          | y-coordinate of the upper-right corner of the data |
-        |                | raster                                             |
-        +----------------+----------------------------------------------------+
-        |    yorigin     | a string specifying the location of the first      |
-        |                | element in the data raster w.r.t. y-axis:          |
-        |                | 'upper' = upper border, 'lower' = lower border     |
-        +----------------+----------------------------------------------------+
-    axis: {'off','on'}, optional
-        Whether to turn off or on the x and y axis.
-    step: int
-        Optional resample step to control the density of the arrows.
+        Array of shape (2, m,n) containing the input motion field.
     quiver_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the quiver method.
-      See the documentation of matplotlib.pyplot.quiver.
-    map_kwargs: dict
-        Optional parameters that need to be passed to
-        :py:func:`pysteps.visualization.basemaps.plot_geography`.
+      This argument is passed to
+      See the quiver_doc_ matplotlib's documentation.
+
+    Other parameters
+    ----------------
+    See :func:`pysteps.motionfields.motion_plot`.
 
     Returns
     -------
     out: axis object
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
+    if quiver_kwargs is None:
+        quiver_kwargs = dict()
 
-    return _quiver_or_streamplot(
+    return motion_plot(
         uv_motion_field,
-        "quiver",
+        plot_type="quiver",
         ax=ax,
         geodata=geodata,
         axis=axis,
@@ -169,58 +202,22 @@ def streamplot(
     step=20,
 ):
     """Function to plot a motion field as streamlines.
+    Wrapper for :func:`pysteps.motionfields.motion_plot` with `plot_type="streamplot"`.
 
-    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html?highlight=subplotspec#matplotlib.gridspec.SubplotSpec
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
+    .. _streamplot_doc: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.streamplot.html
 
     Parameters
     ----------
     uv_motion_field: array-like
         Array of shape (2, m,n) containing the input motion field.
-    ax: axis object
-        Optional axis object to use for plotting.
-    geodata: dictionary or None
-        Optional dictionary containing geographical information about
-        the field.
-        If geodata is not None, it must contain the following key-value pairs:
-
-        .. tabularcolumns:: |p{1.5cm}|L|
-
-        +----------------+----------------------------------------------------+
-        |        Key     |                  Value                             |
-        +================+====================================================+
-        |   projection   | PROJ.4-compatible projection definition            |
-        +----------------+----------------------------------------------------+
-        |    x1          | x-coordinate of the lower-left corner of the data  |
-        |                | raster                                             |
-        +----------------+----------------------------------------------------+
-        |    y1          | y-coordinate of the lower-left corner of the data  |
-        |                | raster                                             |
-        +----------------+----------------------------------------------------+
-        |    x2          | x-coordinate of the upper-right corner of the data |
-        |                | raster                                             |
-        +----------------+----------------------------------------------------+
-        |    y2          | y-coordinate of the upper-right corner of the data |
-        |                | raster                                             |
-        +----------------+----------------------------------------------------+
-        |    yorigin     | a string specifying the location of the first      |
-        |                | element in the data raster w.r.t. y-axis:          |
-        |                | 'upper' = upper border, 'lower' = lower border     |
-        +----------------+----------------------------------------------------+
-    axis: {'off','on'}, optional
-        Whether to turn off or on the x and y axis.
-    step: int
-        Optional resample step to control the number of grid points used to compute the
-        stream function.
     streamplot_kwargs: dict, optional
-      Optional dictionary containing keyword arguments for the streamplot method.
-      See the documentation of matplotlib.pyplot.streamplot.
+      Optional dictionary containing keyword arguments for the quiver method.
+      This argument is passed to
+      See the quiver_doc_ matplotlib's documentation.
 
     Other parameters
     ----------------
-    map_kwargs: dict
-        Optional parameters that need to be passed to
-        :py:func:`pysteps.visualization.basemaps.plot_geography`.
+    See :func:`pysteps.motionfields.motion_plot`.
 
     Returns
     -------
@@ -228,9 +225,12 @@ def streamplot(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
 
-    return _quiver_or_streamplot(
+    if streamplot_kwargs is None:
+        streamplot_kwargs = dict()
+
+    return motion_plot(
         uv_motion_field,
-        "streamplot",
+        plot_type="streamplot",
         ax=ax,
         geodata=geodata,
         axis=axis,
