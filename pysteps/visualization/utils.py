@@ -15,21 +15,37 @@ Miscellaneous utility functions for the visualization module.
 """
 import warnings
 
+import matplotlib.pylab as plt
 import numpy as np
-from cartopy.mpl.geoaxes import GeoAxesSubplot
 
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.exceptions import UnsupportedSomercProjection
-import matplotlib.pylab as plt
-
 from pysteps.visualization import basemaps
 
 try:
     import cartopy.crs as ccrs
+    from cartopy.mpl.geoaxes import GeoAxesSubplot
+
+    PYPROJ_PROJECTION_TO_CARTOPY = dict(
+        tmerc=ccrs.TransverseMercator,
+        laea=ccrs.LambertAzimuthalEqualArea,
+        lcc=ccrs.LambertConformal,
+        merc=ccrs.Mercator,
+        utm=ccrs.UTM,
+        stere=ccrs.Stereographic,
+        aea=ccrs.AlbersEqualArea,
+        aeqd=ccrs.AzimuthalEquidistant,
+        # Note: ccrs.epsg(2056) doesn't work because the projection
+        # limits are too strict.
+        # We'll use the Stereographic projection as an alternative.
+        somerc=ccrs.Stereographic,
+        geos=ccrs.Geostationary,
+    )
 
     CARTOPY_IMPORTED = True
 except ImportError:
     CARTOPY_IMPORTED = False
+    PYPROJ_PROJECTION_TO_CARTOPY = dict()
 try:
     import pyproj
 
@@ -55,22 +71,6 @@ PYPROJ_GLOB_KWRDS_TO_CARTOPY = {
     "f": "flattening",
     "rf": "inverse_flattening",
 }
-
-PYPROJ_PROJECTION_TO_CARTOPY = dict(
-    tmerc=ccrs.TransverseMercator,
-    laea=ccrs.LambertAzimuthalEqualArea,
-    lcc=ccrs.LambertConformal,
-    merc=ccrs.Mercator,
-    utm=ccrs.UTM,
-    stere=ccrs.Stereographic,
-    aea=ccrs.AlbersEqualArea,
-    aeqd=ccrs.AzimuthalEquidistant,
-    # Note: ccrs.epsg(2056) doesn't work because the projection
-    # limits are too strict.
-    # We'll use the Stereographic projection as an alternative.
-    somerc=ccrs.Stereographic,
-    geos=ccrs.Geostationary,
-)
 
 
 def parse_proj4_string(proj4str):

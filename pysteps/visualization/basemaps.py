@@ -11,7 +11,7 @@ Methods for plotting geographical maps using Cartopy.
     plot_geography
     plot_map_cartopy
 """
-from cartopy.mpl.geoaxes import GeoAxesSubplot
+
 from matplotlib import gridspec
 import matplotlib.pylab as plt
 import numpy as np
@@ -21,6 +21,7 @@ from pysteps.exceptions import MissingOptionalDependency
 try:
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
+    from cartopy.mpl.geoaxes import GeoAxesSubplot
 
     CARTOPY_IMPORTED = True
 except ImportError:
@@ -35,6 +36,7 @@ except ImportError:
 from . import utils
 
 VALID_BASEMAPS = ("cartopy",)
+
 
 #########################
 # Basemap features zorder
@@ -142,7 +144,7 @@ def plot_geography(
 def plot_map_cartopy(
     crs,
     extent,
-    scale,
+    cartopy_scale,
     drawlonlatlines=False,
     drawlonlatlabels=True,
     lw=0.5,
@@ -167,7 +169,7 @@ def plot_map_cartopy(
     drawlonlatlabels: bool, optional
         If set to True, draw longitude and latitude labels. Valid only if
         'drawlonlatlines' is True.
-    scale: {'10m', '50m', '110m'}
+    cartopy_scale: {'10m', '50m', '110m'}
         The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'.
     lw: float
@@ -204,7 +206,7 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "physical",
             "ocean",
-            scale="50m" if scale == "10m" else scale,
+            scale="50m" if cartopy_scale == "10m" else cartopy_scale,
             edgecolor="none",
             facecolor=np.array([0.59375, 0.71484375, 0.8828125]),
         ),
@@ -214,7 +216,7 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "physical",
             "land",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor="none",
             facecolor=np.array([0.9375, 0.9375, 0.859375]),
         ),
@@ -224,7 +226,7 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "physical",
             "coastline",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor="black",
             facecolor="none",
             linewidth=lw,
@@ -235,7 +237,7 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "physical",
             "lakes",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor="none",
             facecolor=np.array([0.59375, 0.71484375, 0.8828125]),
         ),
@@ -245,7 +247,7 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "physical",
             "rivers_lake_centerlines",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor=np.array([0.59375, 0.71484375, 0.8828125]),
             facecolor="none",
         ),
@@ -255,14 +257,14 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "cultural",
             "admin_0_boundary_lines_land",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor="black",
             facecolor="none",
             linewidth=lw,
         ),
         zorder=2,
     )
-    if scale in ["10m", "50m"]:
+    if cartopy_scale in ["10m", "50m"]:
         ax.add_feature(
             cfeature.NaturalEarthFeature(
                 "physical",
