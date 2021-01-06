@@ -44,10 +44,10 @@ VALID_BASEMAPS = ("cartopy",)
 # - land: 0
 # - lakes: 0
 # - rivers_lake_centerlines: 0
-# - coastline: 2
-# - cultural: 2
-# - reefs: 2
-# - minor_islands: 2
+# - coastline: 15
+# - cultural: 15
+# - reefs: 15
+# - minor_islands: 15
 
 
 def plot_geography(
@@ -231,7 +231,7 @@ def plot_map_cartopy(
             facecolor="none",
             linewidth=lw,
         ),
-        zorder=2,
+        zorder=15,
     )
     ax.add_feature(
         cfeature.NaturalEarthFeature(
@@ -262,7 +262,7 @@ def plot_map_cartopy(
             facecolor="none",
             linewidth=lw,
         ),
-        zorder=2,
+        zorder=15,
     )
     if cartopy_scale in ["10m", "50m"]:
         ax.add_feature(
@@ -274,7 +274,7 @@ def plot_map_cartopy(
                 facecolor="none",
                 linewidth=lw,
             ),
-            zorder=2,
+            zorder=15,
         )
         ax.add_feature(
             cfeature.NaturalEarthFeature(
@@ -285,7 +285,7 @@ def plot_map_cartopy(
                 facecolor="none",
                 linewidth=lw,
             ),
-            zorder=2,
+            zorder=15,
         )
 
     if drawlonlatlines:
