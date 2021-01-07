@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import os
+from datetime import timedelta
+
+import numpy as np
 import pytest
 
-from pysteps import motion, nowcasts, verification
+from pysteps import io, motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
 
 steps_arg_names = (
@@ -29,7 +33,7 @@ steps_arg_values = [
 
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
-def test_steps(
+def test_steps_skill(
     n_ens_members,
     n_cascade_levels,
     ar_order,
@@ -39,7 +43,7 @@ def test_steps(
     timesteps,
     max_crps,
 ):
-    """Tests STEPS nowcast."""
+    """Tests STEPS nowcast skill."""
     # inputs
     precip_input, metadata = get_precipitation_fields(
         num_prev_files=2,
@@ -87,7 +91,76 @@ def test_steps(
     assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 
 
-if __name__ == "__main__":
-    for n in range(len(steps_arg_values)):
-        test_args = zip(steps_arg_names, steps_arg_values[n])
-        test_steps(**dict((x, y) for x, y in test_args))
+def test_steps_callback(tmp_path):
+    """Test STEPS callback functionality to export the output as a netcdf"""
+    n_ens_members = 2
+    n_timesteps = 3
+
+    precip_input, metadata = get_precipitation_fields(
+        num_prev_files=2,
+        num_next_files=0,
+        return_raw=False,
+        metadata=True,
+        upscale=2000,
+    )
+    precip_input = precip_input.filled()
+    field_shape = (precip_input.shape[1], precip_input.shape[2])
+    startdate = metadata["timestamps"][-1]
+    timestep = metadata["accutime"]
+
+    motion_field = np.zeros((2, *field_shape))
+
+    exporter = io.initialize_forecast_exporter_netcdf(
+        outpath=tmp_path,
+        outfnprefix="test_steps",
+        startdate=startdate,
+        timestep=timestep,
+        n_timesteps=n_timesteps,
+        shape=field_shape,
+        n_ens_members=n_ens_members,
+        metadata=metadata,
+        incremental="timestep",
+    )
+
+    def callback(array):
+        return io.export_forecast_dataset(array, exporter)
+
+    out = nowcasts.get_method("steps")(
+        precip_input,
+        motion_field,
+        timesteps=n_timesteps,
+        R_thr=metadata["threshold"],
+        kmperpixel=2.0,
+        timestep=timestep,
+        seed=42,
+        n_ens_members=n_ens_members,
+        callback=callback,
+        return_output=True,
+    )
+    io.close_forecast_files(exporter)
+
+    # assert that temp folder exists and its size is not zero
+    assert os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0
+
+    # assert that netcdf exists and its size is not zero
+    tmp_file = os.path.join(tmp_path, "test_steps.nc")
+    assert os.path.exists(tmp_file) and os.path.getsize(tmp_file) > 0
+
+    # assert that the file can be read by the nowcast importer
+    out_netcdf, metadata_netcdf = io.import_netcdf_pysteps(tmp_file)
+
+    # assert that the dimensionality of the array is as expected
+    assert out_netcdf.ndim == 4, "Wrong number of dimensions"
+    assert out_netcdf.shape[0] == n_ens_members, "Wrong ensemble size"
+    assert out_netcdf.shape[1] == n_timesteps, "Wrong number of lead times"
+    assert out_netcdf.shape[2:] == field_shape, "Wrong field shape"
+
+    # assert that the saved output is the same as the original output
+    assert out == pytest.approx(out_netcdf), "Wrong output values"
+
+    # assert that leadtimes and timestamps are as expected
+    td = timedelta(minutes=timestep)
+    leadtimes = [(i + 1) * timestep for i in range(n_timesteps)]
+    timestamps = [startdate + (i + 1) * td for i in range(n_timesteps)]
+    assert (metadata_netcdf["leadtimes"] == leadtimes).all(), "Wrong leadtimes"
+    assert (metadata_netcdf["timestamps"] == timestamps).all(), "Wrong timestamps"
