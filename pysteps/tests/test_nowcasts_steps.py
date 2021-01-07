@@ -92,7 +92,7 @@ def test_steps_skill(
 
 
 def test_steps_callback(tmp_path):
-    """Test STEPS callback functionality to export the output as a netcdf"""
+    """Test STEPS callback functionality to export the output as a netcdf."""
     n_ens_members = 2
     n_timesteps = 3
 
@@ -138,9 +138,6 @@ def test_steps_callback(tmp_path):
         return_output=True,
     )
     io.close_forecast_files(exporter)
-
-    # assert that temp folder exists and its size is not zero
-    assert os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0
 
     # assert that netcdf exists and its size is not zero
     tmp_file = os.path.join(tmp_path, "test_steps.nc")
