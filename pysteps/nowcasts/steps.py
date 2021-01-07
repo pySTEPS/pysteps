@@ -810,11 +810,12 @@ def forecast(
             R_f_stacked = np.stack(R_f_)
             if R_f_stacked.shape[1] > 0:
                 callback(R_f_stacked.squeeze())
-            R_f_ = None
 
         if return_output:
             for j in range(n_ens_members):
                 R_f[j].extend(R_f_[j])
+
+        R_f_ = None
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
