@@ -39,10 +39,9 @@ def motion_plot(
     """
     Function to plot a motion field as arrows (quiver) or as stream lines (streamplot).
 
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest/
-    .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
-    .. _quiver_doc: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.htm
-    .. _streamplot_doc: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.streamplot.html
+    .. _`quiver_doc`: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.htm
+
+    .. _`streamplot_doc`: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.streamplot.html
 
     Parameters
     ----------
@@ -88,7 +87,7 @@ def motion_plot(
     plot_kwargs: dict, optional
       Optional dictionary containing keyword arguments passed to `quiver()` or
       `streamplot`.
-      For more information, see the quiver_doc_ and stream_plot_doc_ matplotlib's
+      For more information, see the `quiver_doc`_ and `streamplot_doc`_ matplotlib's
       documentation.
     map_kwargs: dict
         Optional parameters that need to be passed to
@@ -155,9 +154,10 @@ def quiver(
     map_kwargs=None,
 ):
     """Function to plot a motion field as arrows.
-    Wrapper for :func:`pysteps.motionfields.motion_plot` with  `plot_type="quiver"`.
+    Wrapper for :func:`pysteps.visualization.motionfields.motion_plot` passing
+    `plot_type="quiver"`.
 
-    .. _quiver_doc: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.htm
+    .. _`quiver_doc`: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.htm
 
     Parameters
     ----------
@@ -166,15 +166,15 @@ def quiver(
     quiver_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the quiver method.
       This argument is passed to
-      See the quiver_doc_ matplotlib's documentation.
+      See the `quiver_doc`_ matplotlib's documentation.
 
     Other parameters
     ----------------
-    See :func:`pysteps.motionfields.motion_plot`.
+    See :py::func:`pysteps.visualization.motionfields.motion_plot`.
 
     Returns
     -------
-    out: axis object
+    out: axis object0
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
     if quiver_kwargs is None:
@@ -202,9 +202,10 @@ def streamplot(
     step=20,
 ):
     """Function to plot a motion field as streamlines.
-    Wrapper for :func:`pysteps.motionfields.motion_plot` with `plot_type="streamplot"`.
+    Wrapper for :func:`pysteps.visualization.motionfields.motion_plot` passing
+    `plot_type="streamplot"`.
 
-    .. _streamplot_doc: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.streamplot.html
+    .. _`streamplot_doc`: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.streamplot.html
 
     Parameters
     ----------
@@ -213,11 +214,11 @@ def streamplot(
     streamplot_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the quiver method.
       This argument is passed to
-      See the quiver_doc_ matplotlib's documentation.
+      See the `streamplot_doc`_ matplotlib's documentation.
 
     Other parameters
     ----------------
-    See :func:`pysteps.motionfields.motion_plot`.
+    See :py:func:`pysteps.visualization.motionfields.motion_plot`.
 
     Returns
     -------

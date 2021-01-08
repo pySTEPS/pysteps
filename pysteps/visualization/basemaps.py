@@ -62,9 +62,7 @@ def plot_geography(
     **kwargs,
 ):
     """
-    Plot geographical map using cartopy_ in a chosen projection.
-
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
+    Plot geographical map in a chosen projection using cartopy.
 
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
 
@@ -82,8 +80,8 @@ def plot_geography(
         If set to True, draw longitude and latitude labels.  Valid only if
         'drawlonlatlines' is True.
     plot_map: {'cartopy', None}, optional
-        The type of basemap, either 'cartopy_' or None. If None, the figure
-        axis is returned without any basemap drawn. Default ``'cartopy'``.
+        The type of basemap, either 'cartopy' or None. If None, the figure
+        axis is returned without any basemap drawn. Default `'cartopy'`.
     scale: {'10m', '50m', '110m'}, optional
         The scale (resolution). Applicable if 'plot_map' is 'cartopy'.
         The available options are '10m', '50m', and '110m'. Default ``'50m'``.
@@ -93,7 +91,7 @@ def plot_geography(
 
     Returns
     -------
-    ax: fig Axes_
+    ax: fig Axes
         Cartopy axes.
     """
 
@@ -115,16 +113,18 @@ def plot_geography(
         )
 
     if plot_map == "cartopy" and not CARTOPY_IMPORTED:
-        raise MissingOptionalDependency(
-            "the cartopy package is required to plot the geographical map "
-            "but it is not installed"
+        warnings.warn(
+            "The cartopy package is required to plot the geographical map but it is "
+            "not installed. Ignoring the geographic information."
         )
+        return plt.gca()
 
     if not PYPROJ_IMPORTED:
-        raise MissingOptionalDependency(
+        warnings.warn(
             "the pyproj package is required to plot the geographical map "
             "but it is not installed"
         )
+        return plt.gca()
 
     crs = utils.proj4_to_cartopy(proj4str)
 
@@ -151,9 +151,7 @@ def plot_map_cartopy(
     subplot=None,
 ):
     """
-    Plot coastlines, countries, rivers and meridians/parallels using cartopy_.
-
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
+    Plot coastlines, countries, rivers and meridians/parallels using cartopy.
 
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
 
