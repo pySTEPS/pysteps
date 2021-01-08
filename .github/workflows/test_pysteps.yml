@@ -62,7 +62,7 @@ jobs:
         run: |
           brew update-reset
           brew update
-          brew install gcc@9
+          brew install gcc@9 || brew upgrade gcc@9
           gcc-9 --version
           pip install .
 
