@@ -157,7 +157,7 @@ def quiver(
     Wrapper for :func:`pysteps.visualization.motionfields.motion_plot` passing
     `plot_type="quiver"`.
 
-    .. _`quiver_doc`: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.htm
+    .. _`quiver_doc`: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html
 
     Parameters
     ----------
