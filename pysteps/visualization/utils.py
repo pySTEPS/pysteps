@@ -46,6 +46,8 @@ try:
 except ImportError:
     CARTOPY_IMPORTED = False
     PYPROJ_PROJECTION_TO_CARTOPY = dict()
+    GeoAxesSubplot = None
+    ccrs = None
 try:
     import pyproj
 
@@ -325,7 +327,31 @@ def get_geogrid(nlat, nlon, geodata=None):
         corner of the axes. Note that the vertical axes points upward for 'lower' but
         downward for 'upper'.
     """
+
+    # Default behavior: return a simple regular grid
+    def default_regular_grid():
+        x_grid, y_grid = np.meshgrid(np.arange(nlon), np.arange(nlat))
+        extent = (0, nlon - 1, 0, nlat - 1)
+        regular_grid = True
+        origin = "upper"
+        return x_grid, y_grid, extent, regular_grid, origin
+
     if geodata is not None:
+
+        if not CARTOPY_IMPORTED:
+            warnings.warn(
+                "cartopy package is required for the get_geogrid function "
+                "but it is not installed. Ignoring basemap plot."
+            )
+            return default_regular_grid()
+
+        if not PYPROJ_IMPORTED:
+            warnings.warn(
+                "pyproj package is required for the get_geogrid function "
+                "but it is not installed. Ignoring basemap plot."
+            )
+            return default_regular_grid()
+
         regular_grid = geodata.get("regular_grid", True)
         xmin = min((geodata["x1"], geodata["x2"]))
         xmax = max((geodata["x1"], geodata["x2"]))
@@ -356,13 +382,11 @@ def get_geogrid(nlat, nlon, geodata=None):
                 geodata["y2"],
             )
             x_grid, y_grid = geodata["X_grid"], geodata["Y_grid"]
-    else:
-        x_grid, y_grid = np.meshgrid(np.arange(nlon), np.arange(nlat))
-        extent = (0, nlon - 1, 0, nlat - 1)
-        regular_grid = True
-        origin = "upper"
 
-    return x_grid, y_grid, extent, regular_grid, origin
+        return x_grid, y_grid, extent, regular_grid, origin
+
+    # Default behavior
+    return default_regular_grid()
 
 
 def get_basemap_axis(extent, geodata=None, ax=None, map_kwargs=None):
@@ -418,7 +442,6 @@ def get_basemap_axis(extent, geodata=None, ax=None, map_kwargs=None):
     -------
     ax: axis object
     """
-
     if map_kwargs is None:
         map_kwargs = dict()
 
@@ -426,8 +449,24 @@ def get_basemap_axis(extent, geodata=None, ax=None, map_kwargs=None):
         # If no axes is passed, use the current axis.
         ax = plt.gca()
 
-    if (geodata is not None) and (not isinstance(ax, GeoAxesSubplot)):
-        # Check `ax` is not a GeoAxesSubplot axis to avoid overwriting the map.
-        ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
+    # Create the cartopy axis if the axis is not a cartopy axis.
+    if geodata is not None:
+        if not CARTOPY_IMPORTED:
+            warnings.warn(
+                "cartopy package is required for the get_geogrid function "
+                "but it is not installed. Ignoring geographical information."
+            )
+            return ax
+
+        if not PYPROJ_IMPORTED:
+            warnings.warn(
+                "pyproj package is required for the get_geogrid function "
+                "but it is not installed. Ignoring geographical information."
+            )
+            return ax
+
+        if not isinstance(ax, GeoAxesSubplot):
+            # Check `ax` is not a GeoAxesSubplot axis to avoid overwriting the map.
+            ax = basemaps.plot_geography(geodata["projection"], extent, **map_kwargs)
 
     return ax
