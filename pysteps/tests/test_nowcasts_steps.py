@@ -154,7 +154,9 @@ def test_steps_callback(tmp_path):
     assert precip_netcdf.shape[2:] == field_shape, "Wrong field shape"
 
     # assert that the saved output is the same as the original output
-    assert np.allclose(precip_netcdf, precip_output, equal_nan=True), "Wrong output values"
+    assert np.allclose(
+        precip_netcdf, precip_output, equal_nan=True
+    ), "Wrong output values"
 
     # assert that leadtimes and timestamps are as expected
     td = timedelta(minutes=timestep)
