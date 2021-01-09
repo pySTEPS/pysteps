@@ -111,7 +111,7 @@ def test_steps_callback(tmp_path):
     motion_field = np.zeros((2, *field_shape))
 
     exporter = io.initialize_forecast_exporter_netcdf(
-        outpath=tmp_path,
+        outpath=tmp_path.as_posix(),
         outfnprefix="test_steps",
         startdate=startdate,
         timestep=timestep,
@@ -125,7 +125,7 @@ def test_steps_callback(tmp_path):
     def callback(array):
         return io.export_forecast_dataset(array, exporter)
 
-    out = nowcasts.get_method("steps")(
+    precip_output = nowcasts.get_method("steps")(
         precip_input,
         motion_field,
         timesteps=n_timesteps,
@@ -134,6 +134,7 @@ def test_steps_callback(tmp_path):
         timestep=timestep,
         seed=42,
         n_ens_members=n_ens_members,
+        vel_pert_method=None,
         callback=callback,
         return_output=True,
     )
@@ -144,16 +145,16 @@ def test_steps_callback(tmp_path):
     assert os.path.exists(tmp_file) and os.path.getsize(tmp_file) > 0
 
     # assert that the file can be read by the nowcast importer
-    out_netcdf, metadata_netcdf = io.import_netcdf_pysteps(tmp_file)
+    precip_netcdf, metadata_netcdf = io.import_netcdf_pysteps(tmp_file, dtype="float64")
 
     # assert that the dimensionality of the array is as expected
-    assert out_netcdf.ndim == 4, "Wrong number of dimensions"
-    assert out_netcdf.shape[0] == n_ens_members, "Wrong ensemble size"
-    assert out_netcdf.shape[1] == n_timesteps, "Wrong number of lead times"
-    assert out_netcdf.shape[2:] == field_shape, "Wrong field shape"
+    assert precip_netcdf.ndim == 4, "Wrong number of dimensions"
+    assert precip_netcdf.shape[0] == n_ens_members, "Wrong ensemble size"
+    assert precip_netcdf.shape[1] == n_timesteps, "Wrong number of lead times"
+    assert precip_netcdf.shape[2:] == field_shape, "Wrong field shape"
 
     # assert that the saved output is the same as the original output
-    assert out == pytest.approx(out_netcdf), "Wrong output values"
+    assert np.allclose(precip_netcdf, precip_output, equal_nan=True), "Wrong output values"
 
     # assert that leadtimes and timestamps are as expected
     td = timedelta(minutes=timestep)
