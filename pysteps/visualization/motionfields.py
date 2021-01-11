@@ -13,8 +13,6 @@ Functions to plot motion fields.
     streamplot
 """
 
-import numpy as np
-
 from pysteps.visualization import utils
 
 VALID_PLOT_TYPES = ("quiver", "streamplot", "stream")
