@@ -48,6 +48,7 @@ except ImportError:
     PYPROJ_PROJECTION_TO_CARTOPY = dict()
     GeoAxesSubplot = None
     ccrs = None
+
 try:
     import pyproj
 
@@ -202,9 +203,9 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
     -------
     geodata: dictionary
         Dictionary containing the reprojected geographical information
-        and optionally the required X_grid and Y_grid. \n
-        It also includes a fixed boolean attribute
-        regular_grid=False to indicate
+        and optionally the required X_grid and Y_grid.
+
+        It also includes a fixed boolean attribute regular_grid=False to indicate
         that the reprojected grid has no regular spacing.
     """
     if not PYPROJ_IMPORTED:
@@ -273,9 +274,6 @@ def get_geogrid(nlat, nlon, geodata=None):
     If geodata is None, a regular grid is returned. In this case, it is assumed that
     the origin of the 2D input data is the upper left corner ("upper").
 
-    However, the origin of the x and y grids corresponds to the bottom left of the
-    domain. That is, x and y are sorted in ascending order.
-
     Parameters
     ----------
     nlat: int
@@ -316,7 +314,11 @@ def get_geogrid(nlat, nlon, geodata=None):
     Returns
     -------
     x_grid: 2D array
+        X grid with dimensions of (nlat, nlon) with the same `y-origin` as the one
+        specified in the geodata (or "upper" if geodata is None).
     y_grid: 2D array
+        Y grid with dimensions of (nlat, nlon) with the same `y-origin` as the one
+        specified in the geodata (or "upper" if geodata is None).
     extent: tuple
         Four-element tuple specifying the extent of the domain according to
         (lower left x, upper right x, lower left y, upper right y).
@@ -324,52 +326,49 @@ def get_geogrid(nlat, nlon, geodata=None):
         True is the grid is regular. False otherwise.
     origin: str
         Place the [0, 0] index of the array to plot in the upper left or lower left
-        corner of the axes. Note that the vertical axes points upward for 'lower' but
-        downward for 'upper'.
+        corner of the axes.
     """
 
     # Default behavior: return a simple regular grid
-    def default_regular_grid():
+    def default_regular_grid(yorigin="upper"):
         x_grid, y_grid = np.meshgrid(np.arange(nlon), np.arange(nlat))
+        if yorigin == "upper":
+            y_grid = np.flipud(y_grid)
         extent = (0, nlon - 1, 0, nlat - 1)
         regular_grid = True
-        origin = "upper"
-        return x_grid, y_grid, extent, regular_grid, origin
+        return x_grid, y_grid, extent, regular_grid, yorigin
 
     if geodata is not None:
+
+        regular_grid = geodata.get("regular_grid", True)
+        x = np.linspace(geodata["x1"], geodata["x2"], nlon)
+        xpixelsize = np.abs(x[1] - x[0])
+        x += xpixelsize / 2.0
+
+        y = np.linspace(geodata["y1"], geodata["y2"], nlat)
+        ypixelsize = np.abs(y[1] - y[0])
+        y += ypixelsize / 2.0
+
+        extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
+
+        x_grid, y_grid = np.meshgrid(x, y)
 
         if not CARTOPY_IMPORTED:
             warnings.warn(
                 "cartopy package is required for the get_geogrid function "
                 "but it is not installed. Ignoring basemap plot."
             )
-            return default_regular_grid()
+            return x_grid, y_grid, extent, regular_grid, geodata["yorigin"]
 
         if not PYPROJ_IMPORTED:
             warnings.warn(
                 "pyproj package is required for the get_geogrid function "
                 "but it is not installed. Ignoring basemap plot."
             )
-            return default_regular_grid()
+            return x_grid, y_grid, extent, regular_grid, geodata["yorigin"]
 
-        regular_grid = geodata.get("regular_grid", True)
-        xmin = min((geodata["x1"], geodata["x2"]))
-        xmax = max((geodata["x1"], geodata["x2"]))
-        x = np.linspace(xmin, xmax, nlon)
-        xpixelsize = np.abs(x[1] - x[0])
-        x += xpixelsize / 2.0
-
-        ymin = min((geodata["y1"], geodata["y2"]))
-        ymax = max((geodata["y1"], geodata["y2"]))
-        y = np.linspace(ymin, ymax, nlat)
-        ypixelsize = np.abs(y[1] - y[0])
-        y += ypixelsize / 2.0
-
-        extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
-        origin = geodata["yorigin"]
         try:
             proj4_to_cartopy(geodata["projection"])
-            x_grid, y_grid = np.meshgrid(x, y)
         except UnsupportedSomercProjection:
             # Define fall-back projection for Swiss data(EPSG:3035)
             # This will work reasonably well for Europe only.
@@ -383,7 +382,7 @@ def get_geogrid(nlat, nlon, geodata=None):
             )
             x_grid, y_grid = geodata["X_grid"], geodata["Y_grid"]
 
-        return x_grid, y_grid, extent, regular_grid, origin
+        return x_grid, y_grid, extent, regular_grid, geodata["yorigin"]
 
     # Default behavior
     return default_regular_grid()

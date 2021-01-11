@@ -240,8 +240,6 @@ def _plot_field(
             zorder=10,
         )
     else:
-        if origin == "upper":
-            y_grid = np.flipud(y_grid)
         vmin, vmax = [None, None] if ptype in ["intensity", "depth"] else [0.0, 1.0]
         im = ax.pcolormesh(
             x_grid,

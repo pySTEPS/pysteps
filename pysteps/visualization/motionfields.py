@@ -123,11 +123,8 @@ def motion_plot(
     x_grid = x_grid[skip]
     y_grid = y_grid[skip]
 
-    # The following functions, assume that the yorigin is the bottom left corner since
-    # the x and y grids are constructed using that convention.
-    # If we have yorigin"="upper" we flip the y axes.
+    # If we have yorigin"="upper" we flip the y axes for the motion field in the y axis.
     if geodata is None or geodata["yorigin"] == "upper":
-        y_grid = np.flipud(y_grid)
         dy *= -1
 
     if plot_type.lower() == "quiver":
