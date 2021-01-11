@@ -19,7 +19,6 @@ import matplotlib.pylab as plt
 import numpy as np
 
 from pysteps.exceptions import MissingOptionalDependency
-from pysteps.exceptions import UnsupportedSomercProjection
 from pysteps.visualization import basemaps
 
 try:
@@ -329,17 +328,7 @@ def get_geogrid(nlat, nlon, geodata=None):
         corner of the axes.
     """
 
-    # Default behavior: return a simple regular grid
-    def default_regular_grid(yorigin="upper"):
-        x_grid, y_grid = np.meshgrid(np.arange(nlon), np.arange(nlat))
-        if yorigin == "upper":
-            y_grid = np.flipud(y_grid)
-        extent = (0, nlon - 1, 0, nlat - 1)
-        regular_grid = True
-        return x_grid, y_grid, extent, regular_grid, yorigin
-
     if geodata is not None:
-
         regular_grid = geodata.get("regular_grid", True)
         x = np.linspace(geodata["x1"], geodata["x2"], nlon)
         xpixelsize = np.abs(x[1] - x[0])
@@ -353,36 +342,15 @@ def get_geogrid(nlat, nlon, geodata=None):
 
         x_grid, y_grid = np.meshgrid(x, y)
 
-        if not CARTOPY_IMPORTED:
-            warnings.warn(
-                "cartopy package is required for the get_geogrid function "
-                "but it is not installed. Ignoring basemap plot."
-            )
-            return x_grid, y_grid, extent, regular_grid, geodata["yorigin"]
-
-        if not PYPROJ_IMPORTED:
-            warnings.warn(
-                "pyproj package is required for the get_geogrid function "
-                "but it is not installed. Ignoring basemap plot."
-            )
-            return x_grid, y_grid, extent, regular_grid, geodata["yorigin"]
-
-        try:
-            proj4_to_cartopy(geodata["projection"])
-        except UnsupportedSomercProjection:
-            # Define fall-back projection for Swiss data(EPSG:3035)
-            # This will work reasonably well for Europe only.
-            t_proj4str = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
-            geodata = reproject_geodata(geodata, t_proj4str, return_grid="coords")
-            extent = (
-                geodata["x1"],
-                geodata["x2"],
-                geodata["y1"],
-                geodata["y2"],
-            )
-            x_grid, y_grid = geodata["X_grid"], geodata["Y_grid"]
-
         return x_grid, y_grid, extent, regular_grid, geodata["yorigin"]
+
+    # Default behavior: return a simple regular grid
+    # Assume yorigin = upper
+    x_grid, y_grid = np.meshgrid(np.arange(nlon), np.arange(nlat))
+    y_grid = np.flipud(y_grid)
+    extent = (0, nlon - 1, 0, nlat - 1)
+    regular_grid = True
+    return x_grid, y_grid, extent, regular_grid, "upper"
 
     # Default behavior
     return default_regular_grid()
