@@ -15,8 +15,19 @@ Created on Wed Nov  4 11:09:44 2020
     plot_track
     plot_cart_contour
 """
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
+
+try:
+    from cartopy.mpl.geoaxes import GeoAxesSubplot
+
+    CARTOPY_IMPORTED = True
+except ImportError:
+    CARTOPY_IMPORTED = False
+    PYPROJ_PROJECTION_TO_CARTOPY = dict()
+    GeoAxesSubplot = None
 
 try:
     import pyproj
@@ -26,8 +37,9 @@ except ImportError:
     PYPROJ_IMPORTED = False
 
 
-def plot_track(track_list, geodata=None):
+def plot_track(track_list, geodata=None, ref_shape=None):
     """
+    Plot storm tracks.
 
     .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
 
@@ -38,6 +50,12 @@ def plot_track(track_list, geodata=None):
     geodata: dictionary or None, optional
         Optional dictionary containing geographical information about
         the field. If not None, plots the contours in a georeferenced frame.
+    ref_shape: (vertical, horizontal)
+        Shape of the 2D precipitation field used to find the cells' contours.
+        This is only needed only if `geodata=None`.
+
+        IMPORTANT: If `geodata=None` it is assumed that the y-origin of the reference
+        precipitation fields is the upper-left corner (yorigin="upper").
 
     Returns
     -------
@@ -45,32 +63,19 @@ def plot_track(track_list, geodata=None):
         Figure axes.
     """
     ax = plt.gca()
-
-    if geodata is not None:
-
-        def pix2coord(nx, ny):
-            x = geodata["x1"] + geodata["xpixelsize"] * nx
-            if geodata["yorigin"] == "lower":
-                y = geodata["y1"] + geodata["ypixelsize"] * ny
-            else:
-                y = geodata["y2"] - geodata["ypixelsize"] * ny
-            return x, y
-
-    else:
-
-        def pix2coord(nx, ny):
-            return nx, ny
+    pix2coord = _pix2coord_factory(geodata, ref_shape)
 
     color = iter(plt.cm.spring(np.linspace(0, 1, len(track_list))))
     for track in track_list:
         cen_x, cen_y = pix2coord(track.cen_x, track.cen_y)
-        ax.plot(cen_x, cen_y, c=next(color))
+        ax.plot(cen_x, cen_y, c=next(color), zorder=80)
     return ax
 
 
-def plot_cart_contour(contours, geodata=None):
+def plot_cart_contour(contours, geodata=None, ref_shape=None):
     """
-    Plots input image with identified cell contours. Optionally points of interest added.
+    Plots input image with identified cell contours.
+    Also, this function can be user to add points of interest to a plot.
 
     .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
 
@@ -81,6 +86,12 @@ def plot_cart_contour(contours, geodata=None):
     geodata: dictionary or None, optional
         Optional dictionary containing geographical information about
         the field. If not None, plots the contours in a georeferenced frame.
+    ref_shape: (vertical, horizontal)
+        Shape of the 2D precipitation field used to find the cells' contours.
+        This is only needed only if `geodata=None`.
+
+        IMPORTANT: If `geodata=None` it is assumed that the y-origin of the reference
+        precipitation fields is the upper-left corner (yorigin="upper").
 
     Returns
     -------
@@ -88,26 +99,33 @@ def plot_cart_contour(contours, geodata=None):
         Figure axes.
     """
     ax = plt.gca()
-
-    if geodata is not None:
-
-        def pix2coord(nx, ny):
-            x = geodata["x1"] + geodata["xpixelsize"] * nx
-            if geodata["yorigin"] == "lower":
-                y = geodata["y1"] + geodata["ypixelsize"] * ny
-            else:
-                y = geodata["y2"] - geodata["ypixelsize"] * ny
-            return x, y
-
-    else:
-
-        def pix2coord(nx, ny):
-            return nx, ny
+    pix2coord = _pix2coord_factory(geodata, ref_shape)
 
     contours = list(contours)
     for contour in contours:
         for c in contour:
             x, y = pix2coord(c[:, 1], c[:, 0])
-            p1 = ax.plot(x, y, color="black")
-        # else: p1=plt.plot(contour[:,1], contour[:,0], color='black')
+            ax.plot(x, y, color="black", zorder=90)
     return ax
+
+
+def _pix2coord_factory(geodata, ref_shape):
+    """Construct the pix2coord transformation function."""
+
+    if geodata is not None:
+
+        def pix2coord(x_input, y_input):
+            x = geodata["x1"] + geodata["xpixelsize"] * x_input
+            if geodata["yorigin"] == "lower":
+                y = geodata["y1"] + geodata["ypixelsize"] * y_input
+            else:
+                y = geodata["y2"] - geodata["ypixelsize"] * y_input
+            return x, y
+
+    else:
+        # Default pix2coord function when no geographical information is present.
+        def pix2coord(x_input, y_input):
+            # yorigin is "upper" by default
+            return x_input, ref_shape[0] - y_input
+
+    return pix2coord
