@@ -15,26 +15,9 @@ Created on Wed Nov  4 11:09:44 2020
     plot_track
     plot_cart_contour
 """
-import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-try:
-    from cartopy.mpl.geoaxes import GeoAxesSubplot
-
-    CARTOPY_IMPORTED = True
-except ImportError:
-    CARTOPY_IMPORTED = False
-    PYPROJ_PROJECTION_TO_CARTOPY = dict()
-    GeoAxesSubplot = None
-
-try:
-    import pyproj
-
-    PYPROJ_IMPORTED = True
-except ImportError:
-    PYPROJ_IMPORTED = False
 
 
 def plot_track(track_list, geodata=None, ref_shape=None):
