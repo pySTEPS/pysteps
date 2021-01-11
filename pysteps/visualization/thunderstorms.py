@@ -19,6 +19,10 @@ Created on Wed Nov  4 11:09:44 2020
 import matplotlib.pyplot as plt
 import numpy as np
 
+################################
+# track and contour plots zorder
+# - precipitation: 40
+
 
 def plot_track(track_list, geodata=None, ref_shape=None):
     """
@@ -51,7 +55,7 @@ def plot_track(track_list, geodata=None, ref_shape=None):
     color = iter(plt.cm.spring(np.linspace(0, 1, len(track_list))))
     for track in track_list:
         cen_x, cen_y = pix2coord(track.cen_x, track.cen_y)
-        ax.plot(cen_x, cen_y, c=next(color), zorder=80)
+        ax.plot(cen_x, cen_y, c=next(color), zorder=40)
     return ax
 
 
@@ -88,7 +92,7 @@ def plot_cart_contour(contours, geodata=None, ref_shape=None):
     for contour in contours:
         for c in contour:
             x, y = pix2coord(c[:, 1], c[:, 0])
-            ax.plot(x, y, color="black", zorder=90)
+            ax.plot(x, y, color="black", zorder=40)
     return ax
 
 
