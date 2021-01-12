@@ -11,6 +11,7 @@ Methods for plotting precipitation fields.
     plot_precip_field
     get_colormap
 """
+import copy
 import warnings
 
 import matplotlib.pylab as plt
@@ -304,7 +305,8 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
         return cmap, norm, clevs, clevs_str
 
     if ptype == "prob":
-        cmap = plt.get_cmap("OrRd", 10)
+        cmap = copy.copy(plt.get_cmap("OrRd", 10))
+        cmap.set_bad("gray", alpha=0.5)
         return cmap, colors.Normalize(vmin=0, vmax=1), None, None
 
     return cm.get_cmap("jet"), colors.Normalize(), None, None
