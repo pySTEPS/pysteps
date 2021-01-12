@@ -110,6 +110,8 @@ def _pix2coord_factory(geodata, ref_shape):
             return x, y
 
     else:
+        if ref_shape is None:
+            raise ValueError("'ref_shape' can't be None when not geodata is available.")
         # Default pix2coord function when no geographical information is present.
         def pix2coord(x_input, y_input):
             # yorigin is "upper" by default
