@@ -183,7 +183,7 @@ P = excprob(R_f[:, -1, :, :], 0.5)
 plot_precip_field(
     P,
     geodata=metadata,
-    type="prob",
+    ptype="prob",
     units="mm/h",
     probthr=0.5,
     title="Exceedence probability (+ %i min)" % (n_leadtimes * timestep),
