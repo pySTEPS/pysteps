@@ -130,6 +130,9 @@ def motion_plot(
     else:
         ax.streamplot(x_grid, y_grid, dx, dy, zorder=30, **plot_kwargs)
 
+    # Quiver sometimes do not produce tight axes
+    ax.autoscale(enable=True, axis="both", tight=True)
+
     if geodata is None or axis == "off":
         ax.xaxis.set_ticks([])
         ax.xaxis.set_ticklabels([])
