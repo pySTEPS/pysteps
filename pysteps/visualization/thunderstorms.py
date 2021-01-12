@@ -98,7 +98,6 @@ def plot_cart_contour(contours, geodata=None, ref_shape=None):
 
 def _pix2coord_factory(geodata, ref_shape):
     """Construct the pix2coord transformation function."""
-
     if geodata is not None:
 
         def pix2coord(x_input, y_input):
