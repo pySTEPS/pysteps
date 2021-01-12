@@ -125,7 +125,10 @@ def initialize_bps(
     vsf = 60.0 / (timestep * pixelsperkm)
 
     N = linalg.norm(V, axis=0)
-    V_n = V / np.stack([N, N])
+    mask = N > 1e-12
+    V_n = np.empty(V.shape)
+    V_n[:, mask] = V[:, mask] / np.stack([N[mask], N[mask]])
+    V_n[:, ~mask] = 0.0
 
     perturbator["randstate"] = randstate
     perturbator["vsf"] = vsf
