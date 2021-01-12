@@ -220,16 +220,6 @@ def _plot_field(
     # Get colormap and color levels
     cmap, norm, _, _ = get_colormap(ptype, units, colorscale)
 
-    # Plot precipitation field
-    # transparent where no precipitation or the probability is zero
-    if ptype in ["intensity", "depth"]:
-        if units in ["mm/h", "mm"]:
-            precip[precip < 0.1] = -100
-        elif units == "dBZ":
-            precip[precip < 10] = -100
-    else:
-        precip[precip < 1e-3] = -100
-
     if (x_grid is None) or (y_grid is None):
         im = ax.imshow(
             precip,
@@ -307,7 +297,12 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
     if ptype == "prob":
         cmap = copy.copy(plt.get_cmap("OrRd", 10))
         cmap.set_bad("gray", alpha=0.5)
-        return cmap, colors.Normalize(vmin=0, vmax=1), None, None
+        cmap.set_under("white", alpha=0)
+        clevs = np.linspace(0, 1, 11)
+        clevs[0] = 1e-3  # to set zeros to transparent
+        norm = colors.BoundaryNorm(clevs, cmap.N)
+        clevs_str = [f"{clev:.1f}" for clev in clevs]
+        return cmap, norm, clevs, clevs_str
 
     return cm.get_cmap("jet"), colors.Normalize(), None, None
 
