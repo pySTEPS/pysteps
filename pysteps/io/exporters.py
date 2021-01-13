@@ -182,6 +182,9 @@ def initialize_forecast_exporter_geotiff(
 
     """
 
+    if len(shape) != 2:
+        raise ValueError("shape has %d elements, 2 expected" % len(shape))
+
     del kwargs  # kwargs not used
 
     if not GDAL_IMPORTED:
