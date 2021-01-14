@@ -8,6 +8,7 @@ import pytest
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.visualization.animations import animate
 
+
 def test_animate(tmp_path):
 
     # test data
@@ -42,5 +43,12 @@ def test_animate(tmp_path):
     animate(precip, np.stack((precip, precip)), ptype="ensemble")
 
     # save frames
-    animate(precip, np.stack((precip, precip)), display_animation=False, savefig=True, path_outputs=tmp_path, fig_dpi=10)
+    animate(
+        precip,
+        np.stack((precip, precip)),
+        display_animation=False,
+        savefig=True,
+        path_outputs=tmp_path,
+        fig_dpi=10,
+    )
     assert len(os.listdir(tmp_path)) == 9

@@ -19,8 +19,13 @@ import numpy as np
 import pysteps as st
 
 PRECIP_VALID_TYPES = ("ensemble", "mean", "prob")
-PRECIP_DEPRECATED_ARGUMENTS = ("units", "colorbar", "colorscale")  # TODO: remove in version >= 1.6
+PRECIP_DEPRECATED_ARGUMENTS = (
+    "units",
+    "colorbar",
+    "colorscale",
+)  # TODO: remove in version >= 1.6
 MOTION_VALID_METHODS = ("quiver", "streamplot")
+
 
 def animate(
     precip_obs,
@@ -141,7 +146,7 @@ def animate(
     -------
     None
     """
-    
+
     if precip_kwargs is None:
         precip_kwargs = {}
 
@@ -184,7 +189,7 @@ def animate(
             "Use 'ptype' instead."
         )
         ptype = kwargs.get("type")
-        
+
     # TODO: remove in version >= 1.6
     if "timestamps" in kwargs:
         warnings.warn(
@@ -192,7 +197,7 @@ def animate(
             "Use 'timestamps_obs' instead."
         )
         timestamps_obs = kwargs.get("timestamps")
-        
+
     # TODO: remove in version >= 1.6
     if "plotanimation" in kwargs:
         warnings.warn(
@@ -242,7 +247,9 @@ def animate(
 
                     title = title_first_line + "Analysis"
                     if timestamps_obs is not None:
-                        title += f" valid for {timestamps_obs[i].strftime('%Y-%m-%d %H:%M')}"
+                        title += (
+                            f" valid for {timestamps_obs[i].strftime('%Y-%m-%d %H:%M')}"
+                        )
 
                     plt.clf()
                     if ptype == "prob":
@@ -269,7 +276,9 @@ def animate(
 
                     if motion_field is not None:
                         if motion_plot == "quiver":
-                            st.plt.quiver(motion_field, ax=ax, geodata=geodata, **motion_kwargs)
+                            st.plt.quiver(
+                                motion_field, ax=ax, geodata=geodata, **motion_kwargs
+                            )
                         elif motion_plot == "streamplot":
                             st.plt.streamplot(
                                 motion_field, ax=ax, geodata=geodata, **motion_kwargs
@@ -329,7 +338,9 @@ def animate(
 
                     if motion_field is not None:
                         if motion_plot == "quiver":
-                            st.plt.quiver(motion_field, ax=ax, geodata=geodata, **motion_kwargs)
+                            st.plt.quiver(
+                                motion_field, ax=ax, geodata=geodata, **motion_kwargs
+                            )
                         elif motion_plot == "streamplot":
                             st.plt.streamplot(
                                 motion_field, ax=ax, geodata=geodata, **motion_kwargs
