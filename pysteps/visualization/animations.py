@@ -15,7 +15,6 @@ import os
 import warnings
 
 import matplotlib.pylab as plt
-import numpy as np
 import pysteps as st
 
 PRECIP_VALID_TYPES = ("ensemble", "mean", "prob")
@@ -126,11 +125,10 @@ def animate(
         If set to True, save the individual frames into path_outputs.
     fig_dpi: float, optional
         The resolution in dots per inch. Applicable if savefig is True.
+    fig_format: str, optional
+        Filename extension. Applicable if savefig is True.
     path_outputs: string, optional
         Path to folder where to save the frames. Applicable if savefig is True.
-
-    Other parameters
-    ----------------
     precip_kwargs: dict, optional
         Optional parameters that are supplied to
         :py:func:`pysteps.visualization.precipfields.plot_precip_field`.
