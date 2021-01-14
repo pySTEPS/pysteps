@@ -117,6 +117,12 @@ def extrapolate(
         if np.any(~np.isfinite(velocity)):
             raise ValueError("velocity contains non-finite values")
 
+    if precip is not None and np.all(~np.isfinite(precip)):
+        raise ValueError("precip contains only non-finite values")
+
+    if np.all(~np.isfinite(velocity)):
+        raise ValueError("velocity contains only non-finite values")
+
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
 
