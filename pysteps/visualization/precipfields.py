@@ -231,15 +231,12 @@ def _plot_field(
             zorder=10,
         )
     else:
-        vmin, vmax = [None, None] if ptype in ["intensity", "depth"] else [0.0, 1.0]
         im = ax.pcolormesh(
             x_grid,
             y_grid,
             precip,
             cmap=cmap,
             norm=norm,
-            vmin=vmin,
-            vmax=vmax,
             zorder=10,
         )
 
@@ -290,14 +287,14 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
         norm = colors.BoundaryNorm(clevs, cmap.N)
 
         cmap.set_bad("gray", alpha=0.5)
-        cmap.set_under("white", alpha=0)
+        cmap.set_under("none")
 
         return cmap, norm, clevs, clevs_str
 
     if ptype == "prob":
         cmap = copy.copy(plt.get_cmap("OrRd", 10))
         cmap.set_bad("gray", alpha=0.5)
-        cmap.set_under("white", alpha=0)
+        cmap.set_under("none")
         clevs = np.linspace(0, 1, 11)
         clevs[0] = 1e-3  # to set zeros to transparent
         norm = colors.BoundaryNorm(clevs, cmap.N)
