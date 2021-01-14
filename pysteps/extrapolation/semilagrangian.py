@@ -110,8 +110,8 @@ def extrapolate(
     if velocity.ndim != 3:
         raise ValueError("velocity must be a three-dimensional array")
 
-    if precip is not None and not allow_nonfinite_values:
-        if np.any(~np.isfinite(precip)):
+    if not allow_nonfinite_values:
+        if precip is not None and np.any(~np.isfinite(precip)):
             raise ValueError("precip contains non-finite values")
 
         if np.any(~np.isfinite(velocity)):
