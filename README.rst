@@ -9,17 +9,14 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :widths: 10 90
 
     * - docs
-      - |docs|
-    * - tests
-      - |test| |requires| |codecov| |black|
+      - |latest| |colab| |gallery|
+    * - status
+      - |test| |docs| |codecov| |codacy| |black|
     * - package
       - |github| |conda| |pypi|
-    * - license
-      - |license|
     * - community
-      - |slack| |contributors| |downloads|
-    * - tutorials
-      - |colab| |gallery|
+      - |slack| |contributors| |downloads| |license|
+
 
 .. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
@@ -36,10 +33,6 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 .. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/master/graph/badge.svg
     :alt: Coverage
     :target: https://codecov.io/gh/pySTEPS/pysteps
-
-.. |requires| image:: https://requires.io/github/pySTEPS/pysteps/requirements.svg?branch=master
-     :target: https://requires.io/github/pySTEPS/pysteps/requirements/?branch=master
-     :alt: Requirements Status
 
 .. |github| image:: https://img.shields.io/github/release/pySTEPS/pysteps.svg
     :target: https://github.com/pySTEPS/pysteps/releases/latest
@@ -73,9 +66,17 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :alt: My first nowcast
     :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
 
-.. |gallery| image:: https://img.shields.io/badge/pysteps-Gallery-blue.svg
-    :alt: Pysteps gallery
+.. |gallery| image:: https://img.shields.io/badge/example-gallery-blue.svg
+    :alt: pysteps example gallery
     :target: https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
+    
+.. |latest| image:: https://img.shields.io/badge/docs-latest-blue.svg
+    :alt: pysteps documentation
+    :target: https://pysteps.readthedocs.io/en/latest/
+    
+.. |codacy| image:: https://api.codacy.com/project/badge/Grade/6cff9e046c5341a4afebc0347362f8de
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/gh/pySTEPS/pysteps?utm_source=github.com&utm_medium=referral&utm_content=pySTEPS/pysteps&utm_campaign=Badge_Grade
 
 .. end-badges
 
@@ -89,8 +90,8 @@ The aim of pysteps is to serve two different needs. The first is to provide a mo
 The pysteps library supports standard input/output file formats and implements several optical flow methods as well as advanced stochastic generators to produce ensemble nowcasts. In addition, it includes tools for visualizing and post-processing the nowcasts and methods for deterministic, probabilistic, and neighbourhood forecast verification.
 
 
-Run your first nowcast!
------------------------
+Run your first nowcast
+----------------------
 
 Use pysteps to compute and plot an extrapolation nowcast in Google Colab with `this interactive notebook`__.
 
@@ -157,8 +158,3 @@ Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann, A. See
 L. Foresti, 2019: pysteps - a Community-Driven Open-Source Library for Precipitation Nowcasting. *Poster presented at the 3rd European Nowcasting Conference, Madrid, ES*, doi: 10.13140/RG.2.2.31368.67840. [source__]
 
 __ https://www.researchgate.net/publication/332781022_pysteps_-_a_Community-Driven_Open-Source_Library_for_Precipitation_Nowcasting
-
-
-.. image:: https://api.codacy.com/project/badge/Grade/6cff9e046c5341a4afebc0347362f8de
-   :alt: Codacy Badge
-   :target: https://app.codacy.com/gh/pySTEPS/pysteps?utm_source=github.com&utm_medium=referral&utm_content=pySTEPS/pysteps&utm_campaign=Badge_Grade
