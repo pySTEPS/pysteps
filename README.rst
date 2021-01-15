@@ -157,3 +157,8 @@ Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann, A. See
 L. Foresti, 2019: pysteps - a Community-Driven Open-Source Library for Precipitation Nowcasting. *Poster presented at the 3rd European Nowcasting Conference, Madrid, ES*, doi: 10.13140/RG.2.2.31368.67840. [source__]
 
 __ https://www.researchgate.net/publication/332781022_pysteps_-_a_Community-Driven_Open-Source_Library_for_Precipitation_Nowcasting
+
+
+.. image:: https://api.codacy.com/project/badge/Grade/6cff9e046c5341a4afebc0347362f8de
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/gh/pySTEPS/pysteps?utm_source=github.com&utm_medium=referral&utm_content=pySTEPS/pysteps&utm_campaign=Badge_Grade
