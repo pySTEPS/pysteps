@@ -60,7 +60,7 @@ def test_visualization_plot_precip_field(
     field_orig = field.copy()
     ax = plot_precip_field(
         field.copy(),
-        type=plot_type,
+        ptype=plot_type,
         bbox=bbox,
         geodata=None,
         colorscale=colorscale,

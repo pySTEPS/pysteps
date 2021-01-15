@@ -8,7 +8,7 @@ a single radar precipitation field in pysteps.
 
 """
 
-from matplotlib import cm, pyplot
+from matplotlib import cm, pyplot as plt
 import numpy as np
 import os
 from pprint import pprint
@@ -40,6 +40,7 @@ pprint(metadata)
 
 # Plot the rainfall field
 plot_precip_field(R, geodata=metadata)
+plt.show()
 
 # Log-transform the data
 R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
@@ -58,7 +59,7 @@ F = abs(np.fft.fftshift(np.fft.fft2(R)))
 
 # Plot the power spectrum
 M, N = F.shape
-fig, ax = pyplot.subplots()
+fig, ax = plt.subplots()
 im = ax.imshow(
     np.log(F ** 2), vmin=4, vmax=24, cmap=cm.jet, extent=(-N / 2, N / 2, -M / 2, M / 2)
 )
@@ -66,6 +67,7 @@ cb = fig.colorbar(im)
 ax.set_xlabel("Wavenumber $k_x$")
 ax.set_ylabel("Wavenumber $k_y$")
 ax.set_title("Log-power spectrum of R")
+plt.show()
 
 ###############################################################################
 # Cascade decomposition
@@ -81,7 +83,7 @@ filter = filter_gaussian(R.shape, num_cascade_levels)
 
 # Plot the bandpass filter weights
 L = max(N, M)
-fig, ax = pyplot.subplots()
+fig, ax = plt.subplots()
 for k in range(num_cascade_levels):
     ax.semilogx(
         np.linspace(0, L / 2, len(filter["weights_1d"][k, :])),
@@ -97,6 +99,7 @@ ax.set_xticklabels(["%.2f" % cf for cf in filter["central_wavenumbers"]])
 ax.set_xlabel("Radial wavenumber $|\mathbf{k}|$")
 ax.set_ylabel("Normalized weight")
 ax.set_title("Bandpass filter weights")
+plt.show()
 
 ###############################################################################
 # Finally, apply the 2D Gaussian filters to decompose the radar rainfall field
@@ -110,7 +113,7 @@ for i in range(num_cascade_levels):
     sigma = decomp["stds"][i]
     decomp["cascade_levels"][i] = (decomp["cascade_levels"][i] - mu) / sigma
 
-fig, ax = pyplot.subplots(nrows=2, ncols=4)
+fig, ax = plt.subplots(nrows=2, ncols=4)
 
 ax[0, 0].imshow(R, cmap=cm.RdBu_r, vmin=-5, vmax=5)
 ax[0, 1].imshow(decomp["cascade_levels"][0], cmap=cm.RdBu_r, vmin=-3, vmax=3)
@@ -134,6 +137,7 @@ for i in range(2):
     for j in range(4):
         ax[i, j].set_xticks([])
         ax[i, j].set_yticks([])
-pyplot.tight_layout()
+plt.tight_layout()
+plt.show()
 
 # sphinx_gallery_thumbnail_number = 4
