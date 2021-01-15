@@ -61,6 +61,7 @@ R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
 
 # Plot the rainfall field
 plot_precip_field(R[-1, :, :], geodata=metadata)
+plt.show()
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
 # set the fill value to -15 dBR
@@ -104,6 +105,7 @@ plot_precip_field(
     geodata=metadata,
     title="S-PROG (+ %i min)" % (n_leadtimes * timestep),
 )
+plt.show()
 
 ###############################################################################
 # As we can see from the figure above, the forecast produced by S-PROG is a
@@ -150,6 +152,7 @@ plot_precip_field(
     geodata=metadata,
     title="Ensemble mean (+ %i min)" % (n_leadtimes * timestep),
 )
+plt.show()
 
 ###############################################################################
 # The mean of the ensemble displays similar properties as the S-PROG
@@ -166,6 +169,7 @@ for i in range(4):
     )
     ax.set_title("Member %02d" % i)
 plt.tight_layout()
+plt.show()
 
 ###############################################################################
 # As we can see from these two members of the ensemble, the stochastic forecast
@@ -188,5 +192,6 @@ plot_precip_field(
     probthr=0.5,
     title="Exceedence probability (+ %i min)" % (n_leadtimes * timestep),
 )
+plt.show()
 
 # sphinx_gallery_thumbnail_number = 5
