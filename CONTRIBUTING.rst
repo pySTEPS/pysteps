@@ -66,17 +66,9 @@ environments on your local computer.
 Before continuing, Mac OSX users also need to install a more recent compiler.
 See instructions here: :ref:`OSX users <install_osx_users>`.
 
-The developer environment can be installed in two different ways. In case of installation
-or import errors, try both approaches. The first approach starts by creating an empty
-python environment::
-
-    conda create -n pysteps_dev python=3.8
-
-Pip will take care to install the necessary dependencies in this environment (see below).
-
-The second approach creates the environment from
+The developer environment can be created from the file
 `environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
-file in the project's root directory running the command::
+in the project's root directory by running the command::
 
     conda env create -f environment_dev.yml
 
@@ -90,9 +82,15 @@ but yet is still editable from the source tree::
 
     pip install -e <path to local pysteps repo>
 
-If starting from an empty environment, pip will install the necessary dependencies.
 To test if the installation went fine, you can try launching Python and importing
 pysteps :ref:`Import pysteps <_import_pysteps>`.
+
+**Note**: In case of installation or import errors, you can remove the pysteps_dev environment
+and try starting from an empty environment (adapt the Python version as needed)::
+
+    conda create -n pysteps_dev python=3.8
+
+You can then activate it and install pysteps with pip as exaplained above.
 
 Fork the repository
 ~~~~~~~~~~~~~~~~~~~
