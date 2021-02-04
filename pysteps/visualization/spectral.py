@@ -58,14 +58,12 @@ def plot_spectrum1d(
     ax: Axes
         Plot axes
     """
-
     # Check input dimensions
     n_freq = len(fft_freq)
     n_pow = len(fft_power)
     if n_freq != n_pow:
         raise ValueError(
-            "Dimensions of the 1d input arrays must be equal. "
-            + "%s vs %s" % (n_freq, n_pow)
+            f"Dimensions of the 1d input arrays must be equal. {n_freq} vs {n_pow}"
         )
 
     if ax is None:
@@ -73,8 +71,8 @@ def plot_spectrum1d(
 
     # Plot spectrum in log-log scale
     ax.plot(
-        10.0 * np.log10(fft_freq),
-        10.0 * np.log10(fft_power),
+        10 * np.log10(fft_freq),
+        10 * np.log10(fft_power),
         color=color,
         linewidth=lw,
         label=label,
@@ -84,19 +82,19 @@ def plot_spectrum1d(
     # X-axis
     if wavelength_ticks is not None:
         wavelength_ticks = np.array(wavelength_ticks)
-        freq_ticks = 1.0 / wavelength_ticks
-        ax.set_xticks(10.0 * np.log10(freq_ticks))
+        freq_ticks = 1 / wavelength_ticks
+        ax.set_xticks(10 * np.log10(freq_ticks))
         ax.set_xticklabels(wavelength_ticks)
         if x_units is not None:
-            ax.set_xlabel("Wavelength [" + x_units + "]")
+            ax.set_xlabel(f"Wavelength [{x_units}]")
     else:
         if x_units is not None:
-            ax.set_xlabel("Frequency [1/" + x_units + "]")
+            ax.set_xlabel(f"Frequency [1/{x_units}]")
 
     # Y-axis
     if y_units is not None:
-        ax.set_ylabel(
-            r"Power [10log$_{10}(\frac{" + y_units + "^2}{" + x_units + "})$]"
-        )
+        # { -> {{ with f-strings
+        power_units = fr"$10log_{{ 10 }}(\frac{{ {y_units}^2 }}{{ {x_units} }})$"
+        ax.set_ylabel(f"Power {power_units}")
 
     return ax

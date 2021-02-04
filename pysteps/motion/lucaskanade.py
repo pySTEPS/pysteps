@@ -279,9 +279,9 @@ def dense_lucaskanade(
     # interpolation
     xgrid = np.arange(domain_size[1])
     ygrid = np.arange(domain_size[0])
-    UV = interpolation_method(xy, uv, xgrid, ygrid, **interp_kwargs)
+    uvgrid = interpolation_method(xy, uv, xgrid, ygrid, **interp_kwargs)
 
     if verbose:
         print("--- total time: %.2f seconds ---" % (time.time() - t0))
 
-    return UV
+    return uvgrid

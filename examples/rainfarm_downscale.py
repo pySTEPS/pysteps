@@ -46,8 +46,8 @@ precip, metadata = square_domain(precip, metadata, "crop")
 pprint(metadata)
 
 # Plot the original rainfall field
-plt.figure()
 plot_precip_field(precip, geodata=metadata)
+plt.show()
 
 # Assign the fill value to all the Nans
 precip[~np.isfinite(precip)] = metadata["zerovalue"]
@@ -116,7 +116,7 @@ for n in range(num_realizations):
     plt.subplots_adjust(wspace=0, hspace=0)
 
 plt.tight_layout()
-
+plt.show()
 
 ###############################################################################
 # Remarks

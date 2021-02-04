@@ -177,10 +177,10 @@ def _get_grib_projection(grib_msg):
     """Get the projection parameters from the grib file."""
     projparams = grib_msg.projparams
 
-    # pygrib defines the regular lat/lon projections as "cyl", which causes
-    # errors in pyproj and cartopy. Here we replace it for "latlon".
+    # Some versions of pygrib defines the regular lat/lon projections as "cyl",
+    # which causes errors in pyproj and cartopy. Here we replace it for "longlat".
     if projparams["proj"] == "cyl":
-        projparams["proj"] = "latlon"
+        projparams["proj"] = "longlat"
 
     # Grib C tables (3-2)
     # https://apps.ecmwf.int/codes/grib/format/grib2/ctables/3/2

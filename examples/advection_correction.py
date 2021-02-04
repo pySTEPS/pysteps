@@ -17,7 +17,7 @@ precipitation features.
 """
 
 from datetime import datetime
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import numpy as np
 
 from pysteps import io, motion, rcparams
@@ -134,13 +134,13 @@ R_ac /= R.shape[0]
 # correction to account for this spatial shift. The final result is a smoother
 # rainfall accumulation map.
 
-pl.figure(figsize=(9, 4))
-pl.subplot(121)
+plt.figure(figsize=(9, 4))
+plt.subplot(121)
 plot_precip_field(R.mean(axis=0), title="3-h rainfall accumulation")
-pl.subplot(122)
+plt.subplot(122)
 plot_precip_field(R_ac, title="Same with advection correction")
-pl.tight_layout()
-pl.show()
+plt.tight_layout()
+plt.show()
 
 ################################################################################
 # Reference
