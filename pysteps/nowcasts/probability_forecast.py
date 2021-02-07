@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+
 pysteps.nowcasts.probability_forecasts
 ======================================
 
@@ -15,7 +16,6 @@ import numpy as np
 
 from pysteps.extrapolation.semilagrangian import extrapolate
 from pysteps.nowcasts.extrapolation import _check_inputs
-from pysteps.postprocessing.ensemblestats import excprob
 
 
 def forecast(
@@ -27,9 +27,7 @@ def forecast(
     prob_thr,
     method,
 ):
-    """Generate a probability nowcast by ...
-
-    .. _ndarray: http://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+    """Generate a probability nowcast by sampling the neighborhood of
 
     Parameters
     ----------
@@ -80,7 +78,7 @@ def forecast(
     prob_out = np.zeros((len(timesteps), *precip.shape))
     for sample in range(nsamples):
         precip_extrap = []
-        for n, timestep in enumerate(timesteps):
+        for timestep in timesteps:
             if method == "unit_circle":
                 displacement = _sample_unit_circle(*precip.shape) * timestep * slope
             else:
