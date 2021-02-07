@@ -17,6 +17,7 @@ from pysteps.extrapolation.semilagrangian import extrapolate
 from pysteps.nowcasts.extrapolation import _check_inputs
 from pysteps.postprocessing.ensemblestats import excprob
 
+
 def forecast(
     precip,
     velocity,
