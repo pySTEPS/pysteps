@@ -11,16 +11,17 @@ Methods for plotting geographical maps using Cartopy.
     plot_geography
     plot_map_cartopy
 """
+
 from matplotlib import gridspec
 import matplotlib.pylab as plt
 import numpy as np
 import warnings
 from pysteps.exceptions import MissingOptionalDependency
 
-
 try:
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
+    from cartopy.mpl.geoaxes import GeoAxesSubplot
 
     CARTOPY_IMPORTED = True
 except ImportError:
@@ -34,17 +35,34 @@ except ImportError:
 
 from . import utils
 
+VALID_BASEMAPS = ("cartopy",)
 
-VALID_BASEMAPS = ["cartopy"]
+
+#########################
+# Basemap features zorder
+# - ocean: 0
+# - land: 0
+# - lakes: 0
+# - rivers_lake_centerlines: 0
+# - coastline: 15
+# - cultural: 15
+# - reefs: 15
+# - minor_islands: 15
 
 
 def plot_geography(
-    proj4str, extent, lw=0.5, drawlonlatlines=False, drawlonlatlabels=True, **kwargs
+    proj4str,
+    extent,
+    lw=0.5,
+    drawlonlatlines=False,
+    drawlonlatlabels=True,
+    plot_map="cartopy",
+    scale="50m",
+    subplot=None,
+    **kwargs,
 ):
     """
-    Plot geographical map using cartopy_ in a chosen projection.
-
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
+    Plot geographical map in a chosen projection using cartopy.
 
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
 
@@ -54,19 +72,16 @@ def plot_geography(
         The PROJ.4-compatible projection string.
     extent: scalars (left, right, bottom, top)
         The bounding box in proj4str coordinates.
-    lw: float, optional
+    lw: float, optional`
         Linewidth of the map (administrative boundaries and coastlines).
     drawlonlatlines: bool, optional
         If set to True, draw longitude and latitude lines.
     drawlonlatlabels: bool, optional
         If set to True, draw longitude and latitude labels.  Valid only if
         'drawlonlatlines' is True.
-
-    Other parameters
-    ----------------
     plot_map: {'cartopy', None}, optional
-        The type of basemap, either 'cartopy_' or None. If None, the figure
-        axis is returned without any basemap drawn. Default ``'cartopy'``.
+        The type of basemap, either 'cartopy' or None. If None, the figure
+        axis is returned without any basemap drawn. Default `'cartopy'`.
     scale: {'10m', '50m', '110m'}, optional
         The scale (resolution). Applicable if 'plot_map' is 'cartopy'.
         The available options are '10m', '50m', and '110m'. Default ``'50m'``.
@@ -76,11 +91,17 @@ def plot_geography(
 
     Returns
     -------
-    ax: fig Axes_
+    ax: fig Axes
         Cartopy axes.
     """
 
-    plot_map = kwargs.get("plot_map", "cartopy")
+    if len(kwargs) > 0:
+        warnings.warn(
+            "plot_geography: The following keywords are ignored:\n"
+            + str(kwargs)
+            + "\nIn version 1.5, passing unsupported arguments will raise an error.",
+            DeprecationWarning,
+        )
 
     if plot_map is None:
         return plt.gca()
@@ -92,37 +113,29 @@ def plot_geography(
         )
 
     if plot_map == "cartopy" and not CARTOPY_IMPORTED:
-        raise MissingOptionalDependency(
-            "the cartopy package is required to plot the geographical map "
-            " but it is not installed"
+        warnings.warn(
+            "The cartopy package is required to plot the geographical map but it is "
+            "not installed. Ignoring the geographic information."
         )
+        return plt.gca()
 
     if not PYPROJ_IMPORTED:
-        raise MissingOptionalDependency(
-            "the pyproj package is required to plot the geographical map"
+        warnings.warn(
+            "the pyproj package is required to plot the geographical map "
             "but it is not installed"
         )
+        return plt.gca()
 
-    # if plot_map == "cartopy": # not really an option for the moment
-    cartopy_scale = kwargs.get("scale", "50m")
-    cartopy_subplot = kwargs.get("subplot", None)
     crs = utils.proj4_to_cartopy(proj4str)
-
-    # Replace current axis
-    if cartopy_subplot is None:
-        cax = plt.gca()
-        cartopy_subplot = cax.get_subplotspec()
-        cax.clear()
-        cax.set_axis_off()
 
     ax = plot_map_cartopy(
         crs,
         extent,
-        cartopy_scale,
+        scale,
         drawlonlatlines=drawlonlatlines,
         drawlonlatlabels=drawlonlatlabels,
         lw=lw,
-        subplot=cartopy_subplot,
+        subplot=subplot,
     )
 
     return ax
@@ -131,16 +144,14 @@ def plot_geography(
 def plot_map_cartopy(
     crs,
     extent,
-    scale,
+    cartopy_scale,
     drawlonlatlines=False,
     drawlonlatlabels=True,
     lw=0.5,
     subplot=None,
 ):
     """
-    Plot coastlines, countries, rivers and meridians/parallels using cartopy_.
-
-    .. _cartopy: https://scitools.org.uk/cartopy/docs/latest
+    Plot coastlines, countries, rivers and meridians/parallels using cartopy.
 
     .. _SubplotSpec: https://matplotlib.org/api/_as_gen/matplotlib.gridspec.SubplotSpec.html
 
@@ -156,7 +167,7 @@ def plot_map_cartopy(
     drawlonlatlabels: bool, optional
         If set to True, draw longitude and latitude labels. Valid only if
         'drawlonlatlines' is True.
-    scale: {'10m', '50m', '110m'}
+    cartopy_scale: {'10m', '50m', '110m'}
         The scale (resolution) of the map. The available options are '10m',
         '50m', and '110m'.
     lw: float
@@ -176,23 +187,24 @@ def plot_map_cartopy(
             " but it is not installed"
         )
 
-    # Replace current axis
     if subplot is None:
-        cax = plt.gca()
-        subplot = cax.get_subplotspec()
-        cax.clear()
-        cax.set_axis_off()
-
-    if isinstance(subplot, gridspec.SubplotSpec):
-        ax = plt.subplot(subplot, projection=crs)
+        ax = plt.gca()
     else:
-        ax = plt.subplot(*subplot, projection=crs)
+        if isinstance(subplot, gridspec.SubplotSpec):
+            ax = plt.subplot(subplot, projection=crs)
+        else:
+            ax = plt.subplot(*subplot, projection=crs)
+
+    if not isinstance(ax, GeoAxesSubplot):
+        ax = plt.subplot(ax.get_subplotspec(), projection=crs)
+        # cax.clear()
+        ax.set_axis_off()
 
     ax.add_feature(
         cfeature.NaturalEarthFeature(
             "physical",
             "ocean",
-            scale="50m" if scale == "10m" else scale,
+            scale="50m" if cartopy_scale == "10m" else cartopy_scale,
             edgecolor="none",
             facecolor=np.array([0.59375, 0.71484375, 0.8828125]),
         ),
@@ -202,7 +214,7 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "physical",
             "land",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor="none",
             facecolor=np.array([0.9375, 0.9375, 0.859375]),
         ),
@@ -212,18 +224,18 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "physical",
             "coastline",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor="black",
             facecolor="none",
             linewidth=lw,
         ),
-        zorder=2,
+        zorder=15,
     )
     ax.add_feature(
         cfeature.NaturalEarthFeature(
             "physical",
             "lakes",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor="none",
             facecolor=np.array([0.59375, 0.71484375, 0.8828125]),
         ),
@@ -233,7 +245,7 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "physical",
             "rivers_lake_centerlines",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor=np.array([0.59375, 0.71484375, 0.8828125]),
             facecolor="none",
         ),
@@ -243,14 +255,14 @@ def plot_map_cartopy(
         cfeature.NaturalEarthFeature(
             "cultural",
             "admin_0_boundary_lines_land",
-            scale=scale,
+            scale=cartopy_scale,
             edgecolor="black",
             facecolor="none",
             linewidth=lw,
         ),
-        zorder=2,
+        zorder=15,
     )
-    if scale in ["10m", "50m"]:
+    if cartopy_scale in ["10m", "50m"]:
         ax.add_feature(
             cfeature.NaturalEarthFeature(
                 "physical",
@@ -260,7 +272,7 @@ def plot_map_cartopy(
                 facecolor="none",
                 linewidth=lw,
             ),
-            zorder=2,
+            zorder=15,
         )
         ax.add_feature(
             cfeature.NaturalEarthFeature(
@@ -271,16 +283,16 @@ def plot_map_cartopy(
                 facecolor="none",
                 linewidth=lw,
             ),
-            zorder=2,
+            zorder=15,
         )
 
     if drawlonlatlines:
-        gl = ax.gridlines(
+        grid_lines = ax.gridlines(
             crs=ccrs.PlateCarree(), draw_labels=drawlonlatlabels, dms=True
         )
-        gl.top_labels = gl.right_labels = False
-        gl.y_inline = gl.x_inline = False
-        gl.rotate_labels = False
+        grid_lines.top_labels = grid_lines.right_labels = False
+        grid_lines.y_inline = grid_lines.x_inline = False
+        grid_lines.rotate_labels = False
 
     ax.set_extent(extent, crs)
 

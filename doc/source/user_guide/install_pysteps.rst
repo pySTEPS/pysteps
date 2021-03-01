@@ -38,7 +38,9 @@ Other optional dependencies include:
 * `pandas <https://pandas.pydata.org/>`_ and
   `scikit-image <https://scikit-image.org/>`_ (for more advanced feature tracking)
 
-
+**Important**: If you only want to use pysteps, you can continue reading below.
+But, if you want to contribute to pysteps or edit the package, you need to install
+pysteps in development mode: :ref:`Contributing to pysteps <contributor_guidelines>`.
 
 Anaconda install (recommended)
 ------------------------------
@@ -88,9 +90,10 @@ to adhere to the [PEP517 standards](https://www.python.org/dev/peps/pep-0517/).
 Using `pip` instead of `setup.py` guarantees that all the package dependencies
 are properly handled during the installation process.
 
+.. _install_osx_users:
 
-OSX users
-~~~~~~~~~
+OSX users: gcc compiler
+~~~~~~~~~~~~~~~~~~~~~~~
 
 pySTEPS uses Cython extensions that need to be compiled with multi-threading
 support enabled. The default Apple Clang compiler does not support OpenMP.
@@ -131,15 +134,15 @@ the homebrew installation. For example::
 
 Then, you can continue with the normal installation procedure described next.
 
-Installation
-~~~~~~~~~~~~
+Installation using pip
+~~~~~~~~~~~~~~~~~~~~~~
 
 The latest pysteps version in the repository can be installed using pip by
 simply running in a terminal::
 
     pip install git+https://github.com/pySTEPS/pysteps
 
-Or, from a local copy of the repo (global installation)::
+Or, from a local copy of the repo::
 
     git clone https://github.com/pySTEPS/pysteps
     cd pysteps
@@ -147,18 +150,6 @@ Or, from a local copy of the repo (global installation)::
 
 The above commands install the latest version of the **master** branch,
 which is continuously under development.
-
-.. _development_mode_install:
-
-Development mode
-################
-
-The latest version can also be installed in Development Mode, i.e.,
-in such a way that the project appears to be installed,
-but yet is still editable from the source tree::
-
-    pip install -e <path to local pysteps repo>
-
 
 Setting up the user-defined configuration file
 ----------------------------------------------
@@ -176,6 +167,24 @@ that can be accessed as attributes or as items.
 
     Set-up the user-defined configuration file <set_pystepsrc>
     Example pystepsrc file <pystepsrc_example>
+
+.. _import_pysteps:
+
+Final test: import pysteps in Python
+------------------------------------
+
+Activate the pysteps environment::
+
+    conda activate pysteps
+
+Launch Python and import pysteps::
+
+    python
+    >>> import pysteps
+
+**Important**: The Python interpreter must be launched outside of the pysteps directory.
+Otherwise, it confuses the name of the directory with the package name.
+See :ref:`Issue 40 <https://github.com/pySTEPS/pysteps/issues/40>`.
 
 
 

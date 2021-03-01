@@ -31,7 +31,7 @@ def test_io_import_mrms_grib():
         "unit": "mm/h",
         "transform": None,
         "zerovalue": 0,
-        "projection": "+proj=latlon  +ellps=IAU76",
+        "projection": "+proj=longlat  +ellps=IAU76",
         "yorigin": "upper",
         "threshold": 0.1,
         "x1": -129.99499999999998,
