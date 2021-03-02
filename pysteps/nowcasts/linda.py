@@ -542,9 +542,7 @@ def _compute_kernel_anisotropic(params, cutoff=6.0):
     return np.reshape(result, X.shape)
 
 
-def _compute_kernel_isotropic(params, cutoff=6.0):
-    sigma = params[0]
-
+def _compute_kernel_isotropic(sigma, cutoff=6.0):
     bb_y1, bb_x1, bb_y2, bb_x2 = (
         -sigma * cutoff,
         -sigma * cutoff,
@@ -837,7 +835,7 @@ def _estimate_convol_params(
 
     def objf_iso(p, *args):
         i = args[0]
-        kernel = _compute_kernel_isotropic((p,), **kernel_params)
+        kernel = _compute_kernel_isotropic(p, **kernel_params)
 
         field_src_c = _masked_convolution(field_src, kernel)
         fval = np.sum(
