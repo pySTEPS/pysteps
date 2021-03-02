@@ -768,7 +768,7 @@ def _estimate_ar2_params(
     def objf(p, *args):
         i = args[0]
         field_ar = p[0] * field_src[1] + p[1] * field_src[0]
-        return np.nansum(weights[i] * (field_dst - field_ar) ** 2.0)
+        return np.nansum(estim_weights[i] * (field_dst - field_ar) ** 2.0)
 
     bounds = [(-1.98, 1.98), (-0.98, 0.98)]
     constraints = [
@@ -792,19 +792,19 @@ def _estimate_ar2_params(
 
     if DASK_IMPORTED and num_workers > 1:
         res = []
-        for i in range(len(weights)):
+        for i in range(len(estim_weights)):
             res.append(dask.delayed(worker)(i))
 
         psi = dask.compute(*res, num_workers=num_workers, scheduler="threads")
     else:
         psi = []
-        for i in range(len(weights)):
+        for i in range(len(estim_weights)):
             psi.append(worker(i))
 
     psi_out = []
     for i in range(2):
         psi_out.append(
-            np.sum([psi[j][i] * weights[j] for j in range(len(psi))], axis=0)
+            np.sum([psi[j][i] * interp_weights[j] for j in range(len(psi))], axis=0)
         )
 
     return psi_out
