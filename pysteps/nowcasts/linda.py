@@ -193,6 +193,7 @@ def forecast(
         print("time steps:            {}".format(timesteps))
     print("ARI model order:       {}".format(ari_order))
     print("convol. window radius: {}".format(convol_window_radius))
+    print("ARI window radius:     {}".format(ari_window_radius))
     print("interp. window radius: {}".format(interp_window_radius))
     if add_perturbations:
         print("ensemble size:         {}".format(num_ens_members))
@@ -290,7 +291,7 @@ def forecast(
     for i in range(precip_fields_lagr_diff_c.shape[0]):
         for j in range(ari_order - i):
             precip_fields_lagr_diff_c[i] = _composite_convolution(
-                precip_fields_lagr_diff[i],
+                precip_fields_lagr_diff_c[i],
                 kernels_1,
                 interp_weights,
             )
@@ -308,6 +309,7 @@ def forecast(
             precip_fields_lagr_diff_c[-1],
             precip_fields_lagr_diff[-1],
             weights,
+            interp_weights,
             num_workers=num_workers,
         )
     else:
@@ -315,6 +317,7 @@ def forecast(
             precip_fields_lagr_diff_c[-2:],
             precip_fields_lagr_diff[-1],
             weights,
+            interp_weights,
             num_workers=num_workers,
         )
 
@@ -344,8 +347,8 @@ def forecast(
     extrap_kwargs["return_displacement"] = True
     precip_out = []
 
-    for i in range(precip_fields_lagr_diff.shape[1]):
-        for k in range(ari_order - i):
+    for i in range(precip_fields_lagr_diff.shape[0]):
+        for j in range(ari_order - i):
             precip_fields_lagr_diff[i] = _composite_convolution(
                 precip_fields_lagr_diff[i],
                 kernels_1,
@@ -429,7 +432,7 @@ def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=20
 
 # Compute anisotropic Gaussian convolution kernel
 def _compute_kernel_anisotropic(params, cutoff=6.0):
-    phi, sigma1, sigma2 = params[:3]
+    phi, sigma1, sigma2, alpha = params
 
     sigma1 = abs(sigma1)
     sigma2 = abs(sigma2)
@@ -452,7 +455,7 @@ def _compute_kernel_anisotropic(params, cutoff=6.0):
 
     x2 = XY[0, :] * XY[0, :]
     y2 = XY[1, :] * XY[1, :]
-    result = np.exp(-((x2 / sigma1 + y2 / sigma2) ** params[3]))
+    result = np.exp(-((x2 / sigma1 + y2 / sigma2) ** alpha))
     result /= np.sum(result)
 
     return np.reshape(result, X.shape)
@@ -627,15 +630,15 @@ def _iterate_ar_model(input_fields, psi):
 # spatial weights. The weights are assumed to be normalized.
 def _composite_convolution(field, kernels, weights):
     n = len(kernels)
-    field_c = np.empty((n, field.shape[0], field.shape[1]))
+    field_c = 0.0
 
     for i in range(n):
-        field_c[i] = _masked_convolution(field, kernels[i])
+        field_c += weights[i] * _masked_convolution(field, kernels[i])
 
-    return np.sum(weights * field_c, axis=0)
+    return field_c
 
 
-# Compute convolution by ignoring non-finite values.
+# Compute convolution where non-finite values are ignored.
 def _masked_convolution(field, kernel):
     mask = np.isfinite(field)
 
@@ -650,11 +653,13 @@ def _masked_convolution(field, kernel):
 
 
 # Constrained optimization of AR(1) parameters.
-def _estimate_ar1_params(field_src, field_dst, weights, num_workers=1):
+def _estimate_ar1_params(
+    field_src, field_dst, estim_weights, interp_weights, num_workers=1
+):
     def objf(p, *args):
         i = args[0]
         field_ar = p * field_src
-        return np.nansum(weights[i] * (field_dst - field_ar) ** 2.0)
+        return np.nansum(estim_weights[i] * (field_dst - field_ar) ** 2.0)
 
     bounds = (-0.98, 0.98)
 
@@ -663,20 +668,22 @@ def _estimate_ar1_params(field_src, field_dst, weights, num_workers=1):
 
     if DASK_IMPORTED and num_workers > 1:
         res = []
-        for i in range(len(weights)):
+        for i in range(len(estim_weights)):
             res.append(dask.delayed(worker)(i))
 
         psi = dask.compute(*res, num_workers=num_workers, scheduler="threads")
     else:
         psi = []
-        for i in range(len(weights)):
+        for i in range(len(estim_weights)):
             psi.append(worker(i))
 
-    return [np.sum([psi[i] * weights[i] for i in range(len(psi))], axis=0)]
+    return [np.sum([psi[i] * interp_weights[i] for i in range(len(psi))], axis=0)]
 
 
 # Constrained optimization of AR(2) parameters.
-def _estimate_ar2_params(field_src, field_dst, weights, num_workers=1):
+def _estimate_ar2_params(
+    field_src, field_dst, estim_weights, interp_weights, num_workers=1
+):
     def objf(p, *args):
         i = args[0]
         field_ar = p[0] * field_src[1] + p[1] * field_src[0]
