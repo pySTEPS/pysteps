@@ -870,8 +870,6 @@ def _estimate_convol_params(
 
             return _compute_kernel_isotropic(p_opt, **kernel_params)
 
-        return p_opt
-
     if DASK_IMPORTED and num_workers > 1:
         res = []
         for i in range(len(weights)):
