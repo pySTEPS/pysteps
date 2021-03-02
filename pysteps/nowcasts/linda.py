@@ -202,6 +202,8 @@ def forecast(
         print("ensemble size:         {}".format(num_ens_members))
     print("parallel workers:      {}".format(num_workers))
 
+    starttime_init = time.time()
+
     extrapolator = extrapolation.get_method(extrap_method)
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["allow_nonfinite_values"] = True
@@ -410,7 +412,13 @@ def forecast(
                 interp_weights,
             )
 
+    if measure_time:
+        init_time = time.time() - starttime_init
+
     # iterate each time step
+    if measure_time:
+        starttime_mainloop = time.time()
+
     # TODO: Implement using a list instead of a number of fixed timesteps
     for t in range(timesteps):
         print(
@@ -448,7 +456,11 @@ def forecast(
         else:
             print("done.")
 
-    return np.stack(precip_out)
+    if measure_time:
+        mainloop_time = time.time() - starttime_mainloop
+        return np.stack(precip_out), init_time, mainloop_time
+    else:
+        return np.stack(precip_out)
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
