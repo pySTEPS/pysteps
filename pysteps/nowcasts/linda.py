@@ -59,18 +59,19 @@ def forecast(
     precip_fields,
     advection_field,
     timesteps,
-    ari_order=1,
-    add_perturbations=True,
-    num_ens_members=24,
     feature_method="blob",
     feature_kwargs={},
+    ari_order=1,
     kernel_type="anisotropic",
     interp_window_radius=None,
     convol_window_radius=None,
     ari_window_radius=None,
     extrap_method="semilagrangian",
     extrap_kwargs={},
+    add_perturbations=True,
+    num_ens_members=24,
     num_workers=1,
+    measure_time=False,
 ):
     """Generate a nowcast ensemble by using the Lagrangian INtegro-Difference
     equation model with Autoregression (LINDA).
@@ -90,13 +91,6 @@ def forecast(
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
         of the list are required to be in ascending order.
-    ari_order : {1, 2}
-        The order of the ARI(p,1) model.
-    add_perturbations : bool
-        Set to False to disable perturbations and generate a single
-        deterministic nowcast.
-    num_ens_members : int
-        The number of ensemble members to generate.
     feature_method : {'blob', 'domain' 'grid', 'shitomasi'}
         Feature detection method:
 
@@ -119,6 +113,8 @@ def forecast(
     feature_kwargs : dict, optional
         Keyword arguments that are passed as **kwargs for the feature detector.
         See :py:mod:`pysteps.feature.blob` and :py:mod:`pysteps.feature.shitomasi`.
+    ari_order : {1, 2}
+        The order of the ARI(p,1) model.
     kernel_type : {"anisotropic", "isotropic"}
         The type of the kernel. Default : 'anisotropic'.
     interp_window_radius : float
@@ -136,11 +132,18 @@ def forecast(
     extrap_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of :py:mod:`pysteps.extrapolation`.
+    add_perturbations : bool
+        Set to False to disable perturbations and generate a single
+        deterministic nowcast.
+    num_ens_members : int
+        The number of ensemble members to generate.
     num_workers : int
         The number of workers to use for parallel computations. Applicable if
         dask is installed. When num_workers>1, it is advisable to disable
         OpenMP by setting the environment variable OMP_NUM_THREADS to 1. This
         avoids slowdown caused by too many simultaneous threads.
+    measure_time: bool
+        If set to True, measure, print and return the computation time.
 
     Returns
     -------
@@ -209,13 +212,25 @@ def forecast(
         precip_field_ = precip_fields[-1].copy()
         precip_field_[~np.isfinite(precip_field_)] = 0.0
         feature_detector = feature.get_method(feature_method)
+
+        if measure_time:
+            starttime = time.time()
+
         feature_coords = np.fliplr(
             feature_detector(precip_field_, **feature_kwargs)[:, :2]
         )
 
         feature_type = "blobs" if feature_method == "blob" else "corners"
         print("")
-        print("detected features: {} {}".format(feature_coords.shape[0], feature_type))
+        print("Detecting features... ", end="", flush=True)
+        if measure_time:
+            print(
+                "found {} {} in {:.2f} seconds.".format(
+                    feature_coords.shape[0], feature_type, time.time() - starttime
+                )
+            )
+        else:
+            print("found {} {}.".format(feature_coords.shape[0], feature_type))
     elif feature_method == "domain":
         feature_coords = np.zeros((1, 2), dtype=int)
     else:
@@ -247,6 +262,11 @@ def forecast(
     if DASK_IMPORTED and num_workers > 1:
         res = []
 
+    print("Transforming to Lagrangian coordinates... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
+
     for i in range(precip_fields.shape[0] - 1):
         if DASK_IMPORTED and num_workers > 1:
             res.append(dask.delayed(worker)(i))
@@ -256,6 +276,11 @@ def forecast(
     if DASK_IMPORTED and num_workers > 1:
         dask.compute(*res, num_workers=min(num_workers, len(res)), scheduler="threads")
     precip_fields_lagr[-1] = precip_fields[-1]
+
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
 
     # compute advection mask and set nan to pixels, where one or more of the
     # advected input fields has a nan value
@@ -268,6 +293,11 @@ def forecast(
 
     # estimate parameters of the deterministic model (i.e. the convolution and
     # the ARI process)
+
+    print("Estimating the first convolution kernel... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
 
     # estimate convolution kernel for the differenced component
     convol_weights = _compute_window_weights(
@@ -286,6 +316,11 @@ def forecast(
         num_workers=num_workers,
     )
 
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
+
     # compute convolved difference fields
     precip_fields_lagr_diff_c = precip_fields_lagr_diff[:-1].copy()
     for i in range(precip_fields_lagr_diff_c.shape[0]):
@@ -295,6 +330,11 @@ def forecast(
                 kernels_1,
                 interp_weights,
             )
+
+    print("Estimating the ARI(p,1) parameters... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
 
     # estimate ARI(p,1) parameters
     weights = _compute_window_weights(
@@ -321,10 +361,20 @@ def forecast(
             num_workers=num_workers,
         )
 
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
+
     # apply the ARI(p,1) model and integrate the differences
     precip_fields_lagr_diff_c = _iterate_ar_model(precip_fields_lagr_diff_c, psi)
     precip_fct = precip_fields_lagr[-2] + precip_fields_lagr_diff_c[-1]
     precip_fct[precip_fct < 0.0] = 0.0
+
+    print("Estimating the second convolution kernel... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
 
     # estimate the second convolution kernels based on the forecast field
     # computed above
@@ -336,6 +386,11 @@ def forecast(
         kernel_type=kernel_type,
         num_workers=num_workers,
     )
+
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
 
     # compute the nowcast
     # TODO: Use only a subset of the precipitation fields, where the window
@@ -358,6 +413,15 @@ def forecast(
     # iterate each time step
     # TODO: Implement using a list instead of a number of fixed timesteps
     for t in range(timesteps):
+        print(
+            "Computing nowcast for time step %d... " % (t + 1),
+            end="",
+            flush=True,
+        )
+
+        if measure_time:
+            starttime = time.time()
+
         precip_fields_lagr_diff = _iterate_ar_model(precip_fields_lagr_diff, psi)
         precip_fct += precip_fields_lagr_diff[-1]
         for i in range(precip_fields_lagr_diff.shape[0]):
@@ -378,6 +442,11 @@ def forecast(
             precip_out_, advection_field, 1, **extrap_kwargs
         )
         precip_out.append(precip_out_[0])
+
+        if measure_time:
+            print("{:.2f} seconds.".format(time.time() - starttime))
+        else:
+            print("done.")
 
     return np.stack(precip_out)
 
