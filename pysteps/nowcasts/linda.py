@@ -395,8 +395,6 @@ def forecast(
         print("done.")
 
     # compute the nowcast
-    # TODO: Use only a subset of the precipitation fields, where the window
-    # weights is greater than the given threshold (e.g. 1e-3).
     precip_fct = precip_fields[-1].copy()
     precip_fields_lagr_diff = precip_fields_lagr_diff[1:].copy()
 
@@ -480,6 +478,18 @@ def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
+
+
+# Compute a localized convolution by applying a set of kernels with the given
+# spatial weights. The weights are assumed to be normalized.
+def _composite_convolution(field, kernels, weights):
+    n = len(kernels)
+    field_c = 0.0
+
+    for i in range(n):
+        field_c += weights[i] * _masked_convolution(field, kernels[i])
+
+    return field_c
 
 
 # compute the inverse ACF mapping between two distributions
@@ -653,84 +663,6 @@ def _compute_acf(params, m, n, func):
     return c * result
 
 
-# fit a parametric ACF to the given sample estimate
-def _fit_acf(acf, method="trf"):
-    def objf(p, *args):
-        p = _get_anisotropic_kernel_params(p)
-        fitted_acf = _compute_acf(p, acf.shape[0], acf.shape[1], "exp")
-
-        return (acf - fitted_acf).flatten()
-
-    bounds = np.array([(0.01, -10.0, -10.0, 0.1), (10.0, 10.0, 10.0, 10.0)])
-    p_opt = least_squares(
-        objf,
-        np.array((1.0, 1.0, 1.0, 1.0)),
-        bounds=bounds,
-        method="trf",
-        ftol=1e-6,
-        xtol=1e-6,
-        gtol=1e-6,
-    )
-
-    return _compute_acf(
-        _get_anisotropic_kernel_params(p_opt.x), acf.shape[0], acf.shape[1], "exp"
-    )
-
-
-# fit a lognormal distribution by maximizing the log-likelihood function with
-# the constraint that the mean value is one
-def _fit_dist(err, dist, wf, mask):
-    f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p ** 2)))
-    p_opt = minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
-
-    return (p_opt.x, -0.5 * p_opt.x ** 2)
-
-
-# Get anisotropic convolution kernel parameters from the given parameter vector.
-def _get_anisotropic_kernel_params(p):
-    theta = np.arctan2(p[1], p[0])
-    sigma1 = np.sqrt(p[0] * p[0] + p[1] * p[1])
-    sigma2 = sigma1 * p[2]
-
-    return theta, sigma1, sigma2, p[3]
-
-
-# TODO: use the method implemented in pysteps.timeseries.autoregression
-def _iterate_ar_model(input_fields, psi):
-    input_field_new = 0.0
-
-    for i in range(len(psi)):
-        input_field_new += psi[i] * input_fields[-(i + 1), :]
-
-    return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
-
-
-# Compute a localized convolution by applying a set of kernels with the given
-# spatial weights. The weights are assumed to be normalized.
-def _composite_convolution(field, kernels, weights):
-    n = len(kernels)
-    field_c = 0.0
-
-    for i in range(n):
-        field_c += weights[i] * _masked_convolution(field, kernels[i])
-
-    return field_c
-
-
-# Compute convolution where non-finite values are ignored.
-def _masked_convolution(field, kernel):
-    mask = np.isfinite(field)
-
-    field = field.copy()
-    field[~mask] = 0.0
-
-    field_c = np.ones(field.shape) * np.nan
-    field_c[mask] = convolve(field, kernel, mode="same")[mask]
-    field_c[mask] /= convolve(mask.astype(float), kernel, mode="same")[mask]
-
-    return field_c
-
-
 # Constrained optimization of AR(1) parameters.
 def _estimate_ar1_params(
     field_src, field_dst, estim_weights, interp_weights, num_workers=1
@@ -879,3 +811,69 @@ def _estimate_convol_params(
             kernels.append(worker(i))
 
     return kernels
+
+
+# fit a parametric ACF to the given sample estimate
+def _fit_acf(acf, method="trf"):
+    def objf(p, *args):
+        p = _get_anisotropic_kernel_params(p)
+        fitted_acf = _compute_acf(p, acf.shape[0], acf.shape[1], "exp")
+
+        return (acf - fitted_acf).flatten()
+
+    bounds = np.array([(0.01, -10.0, -10.0, 0.1), (10.0, 10.0, 10.0, 10.0)])
+    p_opt = least_squares(
+        objf,
+        np.array((1.0, 1.0, 1.0, 1.0)),
+        bounds=bounds,
+        method="trf",
+        ftol=1e-6,
+        xtol=1e-6,
+        gtol=1e-6,
+    )
+
+    return _compute_acf(
+        _get_anisotropic_kernel_params(p_opt.x), acf.shape[0], acf.shape[1], "exp"
+    )
+
+
+# fit a lognormal distribution by maximizing the log-likelihood function with
+# the constraint that the mean value is one
+def _fit_dist(err, dist, wf, mask):
+    f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p ** 2)))
+    p_opt = minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
+
+    return (p_opt.x, -0.5 * p_opt.x ** 2)
+
+
+# Get anisotropic convolution kernel parameters from the given parameter vector.
+def _get_anisotropic_kernel_params(p):
+    theta = np.arctan2(p[1], p[0])
+    sigma1 = np.sqrt(p[0] * p[0] + p[1] * p[1])
+    sigma2 = sigma1 * p[2]
+
+    return theta, sigma1, sigma2, p[3]
+
+
+# TODO: use the method implemented in pysteps.timeseries.autoregression
+def _iterate_ar_model(input_fields, psi):
+    input_field_new = 0.0
+
+    for i in range(len(psi)):
+        input_field_new += psi[i] * input_fields[-(i + 1), :]
+
+    return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
+
+
+# Compute convolution where non-finite values are ignored.
+def _masked_convolution(field, kernel):
+    mask = np.isfinite(field)
+
+    field = field.copy()
+    field[~mask] = 0.0
+
+    field_c = np.ones(field.shape) * np.nan
+    field_c[mask] = convolve(field, kernel, mode="same")[mask]
+    field_c[mask] /= convolve(mask.astype(float), kernel, mode="same")[mask]
+
+    return field_c
