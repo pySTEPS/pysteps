@@ -153,312 +153,27 @@ def forecast(
         ensemble member. The time series starts from t0 + timestep, where
         timestep is taken from the input fields.
     """
-    _check_inputs(precip_fields, advection_field, timesteps, ari_order)
-
-    precip_fields = precip_fields[-(ari_order + 2) :]
-    input_length = precip_fields.shape[0]
-
-    if interp_window_radius is None:
-        interp_window_radius = 0.2 * np.min(precip_fields.shape[1:])
-    if convol_window_radius is None:
-        convol_window_radius = 0.15 * np.min(precip_fields.shape[1:])
-    if ari_window_radius is None:
-        ari_window_radius = 0.25 * np.min(precip_fields.shape[1:])
-
-    print("Computing LINDA nowcast:")
-    print("------------------------")
-    print("")
-
-    print("Inputs:")
-    print("-------")
-    print(
-        "input dimensions: {}x{}".format(precip_fields.shape[1], precip_fields.shape[2])
-    )
-    print("")
-
-    print("Methods:")
-    print("--------")
-    if add_perturbations:
-        print("nowcast type:     ensemble")
-    else:
-        print("nowcast type:     deterministic")
-    print("feature detector: {}".format(feature_method))
-    print("extrapolator:     {}".format(extrap_method))
-    print("")
-
-    print("Parameters:")
-    print("-----------")
-    if isinstance(timesteps, int):
-        print("number of time steps:  {}".format(timesteps))
-    else:
-        # TODO: implement fractional time steps
-        raise NotImplementedError("fractional time steps not yet implemented")
-        print("time steps:            {}".format(timesteps))
-    print("ARI model order:       {}".format(ari_order))
-    print("convol. window radius: {}".format(convol_window_radius))
-    print("ARI window radius:     {}".format(ari_window_radius))
-    print("interp. window radius: {}".format(interp_window_radius))
-    if add_perturbations:
-        print("ensemble size:         {}".format(num_ens_members))
-    print("parallel workers:      {}".format(num_workers))
-
-    starttime_init = time.time()
-
-    extrapolator = extrapolation.get_method(extrap_method)
-    extrap_kwargs = extrap_kwargs.copy()
-    extrap_kwargs["allow_nonfinite_values"] = True
-
-    # detect features from the most recent input field
-    # TODO: implement the "grid" option
-    if feature_method in {"blob", "shitomasi"}:
-        precip_field_ = precip_fields[-1].copy()
-        precip_field_[~np.isfinite(precip_field_)] = 0.0
-        feature_detector = feature.get_method(feature_method)
-
-        if measure_time:
-            starttime = time.time()
-
-        feature_coords = np.fliplr(
-            feature_detector(precip_field_, **feature_kwargs)[:, :2]
-        )
-
-        feature_type = "blobs" if feature_method == "blob" else "corners"
-        print("")
-        print("Detecting features... ", end="", flush=True)
-        if measure_time:
-            print(
-                "found {} {} in {:.2f} seconds.".format(
-                    feature_coords.shape[0], feature_type, time.time() - starttime
-                )
-            )
-        else:
-            print("found {} {}.".format(feature_coords.shape[0], feature_type))
-    elif feature_method == "domain":
-        feature_coords = np.zeros((1, 2), dtype=int)
-    else:
-        raise NotImplementedError(
-            "feature detector '%s' not implemented" % feature_method
-        )
-
-    # compute interpolation weights
-    interp_weights = _compute_window_weights(
-        feature_coords,
-        precip_fields.shape[1],
-        precip_fields.shape[2],
+    fct_gen = _linda_deterministic_init(
+        precip_fields,
+        advection_field,
+        timesteps,
+        feature_method,
+        feature_kwargs,
+        ari_order,
+        kernel_type,
         interp_window_radius,
-    )
-    interp_weights /= np.sum(interp_weights, axis=0)
-
-    # transform the input fields to the Lagrangian coordinates
-    precip_fields_lagr = np.empty(precip_fields.shape)
-
-    def worker(i):
-        precip_fields_lagr[i, :] = extrapolator(
-            precip_fields[i, :],
-            advection_field,
-            input_length - 1 - i,
-            "min",
-            **extrap_kwargs,
-        )[-1]
-
-    if DASK_IMPORTED and num_workers > 1:
-        res = []
-
-    print("Transforming to Lagrangian coordinates... ", end="", flush=True)
-
-    if measure_time:
-        starttime = time.time()
-
-    for i in range(precip_fields.shape[0] - 1):
-        if DASK_IMPORTED and num_workers > 1:
-            res.append(dask.delayed(worker)(i))
-        else:
-            worker(i)
-
-    if DASK_IMPORTED and num_workers > 1:
-        dask.compute(*res, num_workers=min(num_workers, len(res)), scheduler="threads")
-    precip_fields_lagr[-1] = precip_fields[-1]
-
-    if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
-    else:
-        print("done.")
-
-    # compute advection mask and set nan to pixels, where one or more of the
-    # advected input fields has a nan value
-    mask_adv = np.all(np.isfinite(precip_fields_lagr), axis=0)
-    for i in range(precip_fields_lagr.shape[0]):
-        precip_fields_lagr[i, ~mask_adv] = np.nan
-
-    # compute differenced input fields in the Lagrangian coordinates
-    precip_fields_lagr_diff = np.diff(precip_fields_lagr, axis=0)
-
-    # estimate parameters of the deterministic model (i.e. the convolution and
-    # the ARI process)
-
-    print("Estimating the first convolution kernel... ", end="", flush=True)
-
-    if measure_time:
-        starttime = time.time()
-
-    # estimate convolution kernel for the differenced component
-    convol_weights = _compute_window_weights(
-        feature_coords,
-        precip_fields.shape[1],
-        precip_fields.shape[2],
         convol_window_radius,
-    )
-
-    kernels_1 = _estimate_convol_params(
-        precip_fields_lagr_diff[-2],
-        precip_fields_lagr_diff[-1],
-        convol_weights,
-        mask_adv,
-        kernel_type=kernel_type,
-        num_workers=num_workers,
-    )
-
-    if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
-    else:
-        print("done.")
-
-    # compute convolved difference fields
-    precip_fields_lagr_diff_c = precip_fields_lagr_diff[:-1].copy()
-    for i in range(precip_fields_lagr_diff_c.shape[0]):
-        for j in range(ari_order - i):
-            precip_fields_lagr_diff_c[i] = _composite_convolution(
-                precip_fields_lagr_diff_c[i],
-                kernels_1,
-                interp_weights,
-            )
-
-    print("Estimating the ARI(p,1) parameters... ", end="", flush=True)
-
-    if measure_time:
-        starttime = time.time()
-
-    # estimate ARI(p,1) parameters
-    weights = _compute_window_weights(
-        feature_coords,
-        precip_fields.shape[1],
-        precip_fields.shape[2],
         ari_window_radius,
+        extrap_method,
+        extrap_kwargs,
+        add_perturbations,
+        num_ens_members,
+        num_workers,
+        measure_time,
     )
-
-    if ari_order == 1:
-        psi = _estimate_ar1_params(
-            precip_fields_lagr_diff_c[-1],
-            precip_fields_lagr_diff[-1],
-            weights,
-            interp_weights,
-            num_workers=num_workers,
-        )
-    else:
-        psi = _estimate_ar2_params(
-            precip_fields_lagr_diff_c[-2:],
-            precip_fields_lagr_diff[-1],
-            weights,
-            interp_weights,
-            num_workers=num_workers,
-        )
-
     if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
-    else:
-        print("done.")
-
-    # apply the ARI(p,1) model and integrate the differences
-    precip_fields_lagr_diff_c = _iterate_ar_model(precip_fields_lagr_diff_c, psi)
-    precip_fct = precip_fields_lagr[-2] + precip_fields_lagr_diff_c[-1]
-    precip_fct[precip_fct < 0.0] = 0.0
-
-    print("Estimating the second convolution kernel... ", end="", flush=True)
-
-    if measure_time:
-        starttime = time.time()
-
-    # estimate the second convolution kernels based on the forecast field
-    # computed above
-    kernels_2 = _estimate_convol_params(
-        precip_fct,
-        precip_fields[-1],
-        convol_weights,
-        mask_adv,
-        kernel_type=kernel_type,
-        num_workers=num_workers,
-    )
-
-    if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
-    else:
-        print("done.")
-
-    # compute the nowcast
-    precip_fct = precip_fields[-1].copy()
-    precip_fields_lagr_diff = precip_fields_lagr_diff[1:].copy()
-
-    displacement = None
-    extrap_kwargs["return_displacement"] = True
-    precip_out = []
-
-    for i in range(precip_fields_lagr_diff.shape[0]):
-        for j in range(ari_order - i):
-            precip_fields_lagr_diff[i] = _composite_convolution(
-                precip_fields_lagr_diff[i],
-                kernels_1,
-                interp_weights,
-            )
-
-    if measure_time:
-        init_time = time.time() - starttime_init
-
-    # iterate each time step
-    if measure_time:
-        starttime_mainloop = time.time()
-
-    # TODO: Implement using a list instead of a number of fixed timesteps
-    for t in range(timesteps):
-        print(
-            "Computing nowcast for time step %d... " % (t + 1),
-            end="",
-            flush=True,
-        )
-
-        if measure_time:
-            starttime = time.time()
-
-        precip_fields_lagr_diff = _iterate_ar_model(precip_fields_lagr_diff, psi)
-        precip_fct += precip_fields_lagr_diff[-1]
-        for i in range(precip_fields_lagr_diff.shape[0]):
-            precip_fields_lagr_diff[i] = _composite_convolution(
-                precip_fields_lagr_diff[i],
-                kernels_1,
-                interp_weights,
-            )
-        precip_fct = _composite_convolution(precip_fct, kernels_2, interp_weights)
-
-        precip_out_ = precip_fct.copy()
-        precip_out_[precip_out_ < 0.0] = 0.0
-        precip_out_[~mask_adv] = np.nan
-
-        # advect the forecast field for t time steps
-        extrap_kwargs["displacement_prev"] = displacement
-        precip_out_, displacement = extrapolator(
-            precip_out_, advection_field, 1, **extrap_kwargs
-        )
-        precip_out.append(precip_out_[0])
-
-        if measure_time:
-            print("{:.2f} seconds.".format(time.time() - starttime))
-        else:
-            print("done.")
-
-    if measure_time:
-        mainloop_time = time.time() - starttime_mainloop
-        return np.stack(precip_out), init_time, mainloop_time
-    else:
-        return np.stack(precip_out)
+        fct_gen, init_time = fct_gen
+    return _linda_deterministic_forecast(timesteps, fct_gen)
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
@@ -863,6 +578,363 @@ def _iterate_ar_model(input_fields, psi):
         input_field_new += psi[i] * input_fields[-(i + 1), :]
 
     return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
+
+
+def _linda_deterministic_init(
+    precip_fields,
+    advection_field,
+    timesteps,
+    feature_method,
+    feature_kwargs,
+    ari_order,
+    kernel_type,
+    interp_window_radius,
+    convol_window_radius,
+    ari_window_radius,
+    extrap_method,
+    extrap_kwargs,
+    add_perturbations,
+    num_ens_members,
+    num_workers,
+    measure_time,
+):
+    _check_inputs(precip_fields, advection_field, timesteps, ari_order)
+
+    fct_gen = {}
+    fct_gen["advection_field"] = advection_field
+    fct_gen["ari_order"] = ari_order
+    fct_gen["measure_time"] = measure_time
+    fct_gen["precip_fields"] = precip_fields
+
+    precip_fields = precip_fields[-(ari_order + 2) :]
+    input_length = precip_fields.shape[0]
+
+    if interp_window_radius is None:
+        interp_window_radius = 0.2 * np.min(precip_fields.shape[1:])
+    if convol_window_radius is None:
+        convol_window_radius = 0.15 * np.min(precip_fields.shape[1:])
+    if ari_window_radius is None:
+        ari_window_radius = 0.25 * np.min(precip_fields.shape[1:])
+
+    print("Computing LINDA nowcast:")
+    print("------------------------")
+    print("")
+
+    print("Inputs:")
+    print("-------")
+    print(
+        "input dimensions: {}x{}".format(precip_fields.shape[1], precip_fields.shape[2])
+    )
+    print("")
+
+    print("Methods:")
+    print("--------")
+    if add_perturbations:
+        print("nowcast type:     ensemble")
+    else:
+        print("nowcast type:     deterministic")
+    print("feature detector: {}".format(feature_method))
+    print("extrapolator:     {}".format(extrap_method))
+    print("")
+
+    print("Parameters:")
+    print("-----------")
+    if isinstance(timesteps, int):
+        print("number of time steps:  {}".format(timesteps))
+    else:
+        # TODO: implement fractional time steps
+        raise NotImplementedError("fractional time steps not yet implemented")
+        print("time steps:            {}".format(timesteps))
+    print("ARI model order:       {}".format(ari_order))
+    print("convol. window radius: {}".format(convol_window_radius))
+    print("ARI window radius:     {}".format(ari_window_radius))
+    print("interp. window radius: {}".format(interp_window_radius))
+    if add_perturbations:
+        print("ensemble size:         {}".format(num_ens_members))
+    print("parallel workers:      {}".format(num_workers))
+
+    starttime_init = time.time()
+
+    extrapolator = extrapolation.get_method(extrap_method)
+    extrap_kwargs = extrap_kwargs.copy()
+    extrap_kwargs["allow_nonfinite_values"] = True
+    fct_gen["extrapolator"] = extrapolator
+    fct_gen["extrap_kwargs"] = extrap_kwargs
+
+    # detect features from the most recent input field
+    # TODO: implement the "grid" option
+    if feature_method in {"blob", "shitomasi"}:
+        precip_field_ = precip_fields[-1].copy()
+        precip_field_[~np.isfinite(precip_field_)] = 0.0
+        feature_detector = feature.get_method(feature_method)
+
+        if measure_time:
+            starttime = time.time()
+
+        feature_coords = np.fliplr(
+            feature_detector(precip_field_, **feature_kwargs)[:, :2]
+        )
+
+        feature_type = "blobs" if feature_method == "blob" else "corners"
+        print("")
+        print("Detecting features... ", end="", flush=True)
+        if measure_time:
+            print(
+                "found {} {} in {:.2f} seconds.".format(
+                    feature_coords.shape[0], feature_type, time.time() - starttime
+                )
+            )
+        else:
+            print("found {} {}.".format(feature_coords.shape[0], feature_type))
+    elif feature_method == "domain":
+        feature_coords = np.zeros((1, 2), dtype=int)
+    else:
+        raise NotImplementedError(
+            "feature detector '%s' not implemented" % feature_method
+        )
+
+    # compute interpolation weights
+    interp_weights = _compute_window_weights(
+        feature_coords,
+        precip_fields.shape[1],
+        precip_fields.shape[2],
+        interp_window_radius,
+    )
+    interp_weights /= np.sum(interp_weights, axis=0)
+    fct_gen["interp_weights"] = interp_weights
+
+    # transform the input fields to the Lagrangian coordinates
+    precip_fields_lagr = np.empty(precip_fields.shape)
+
+    def worker(i):
+        precip_fields_lagr[i, :] = extrapolator(
+            precip_fields[i, :],
+            advection_field,
+            input_length - 1 - i,
+            "min",
+            **extrap_kwargs,
+        )[-1]
+
+    if DASK_IMPORTED and num_workers > 1:
+        res = []
+
+    print("Transforming to Lagrangian coordinates... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
+
+    for i in range(precip_fields.shape[0] - 1):
+        if DASK_IMPORTED and num_workers > 1:
+            res.append(dask.delayed(worker)(i))
+        else:
+            worker(i)
+
+    if DASK_IMPORTED and num_workers > 1:
+        dask.compute(*res, num_workers=min(num_workers, len(res)), scheduler="threads")
+    precip_fields_lagr[-1] = precip_fields[-1]
+
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
+
+    # compute advection mask and set nan to pixels, where one or more of the
+    # advected input fields has a nan value
+    mask_adv = np.all(np.isfinite(precip_fields_lagr), axis=0)
+    fct_gen["mask_adv"] = mask_adv
+    for i in range(precip_fields_lagr.shape[0]):
+        precip_fields_lagr[i, ~mask_adv] = np.nan
+
+    # compute differenced input fields in the Lagrangian coordinates
+    precip_fields_lagr_diff = np.diff(precip_fields_lagr, axis=0)
+    fct_gen["precip_fields_lagr_diff"] = precip_fields_lagr_diff
+
+    # estimate parameters of the deterministic model (i.e. the convolution and
+    # the ARI process)
+
+    print("Estimating the first convolution kernel... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
+
+    # estimate convolution kernel for the differenced component
+    convol_weights = _compute_window_weights(
+        feature_coords,
+        precip_fields.shape[1],
+        precip_fields.shape[2],
+        convol_window_radius,
+    )
+
+    kernels_1 = _estimate_convol_params(
+        precip_fields_lagr_diff[-2],
+        precip_fields_lagr_diff[-1],
+        convol_weights,
+        mask_adv,
+        kernel_type=kernel_type,
+        num_workers=num_workers,
+    )
+    fct_gen["kernels_1"] = kernels_1
+
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
+
+    # compute convolved difference fields
+    precip_fields_lagr_diff_c = precip_fields_lagr_diff[:-1].copy()
+    for i in range(precip_fields_lagr_diff_c.shape[0]):
+        for j in range(ari_order - i):
+            precip_fields_lagr_diff_c[i] = _composite_convolution(
+                precip_fields_lagr_diff_c[i],
+                kernels_1,
+                interp_weights,
+            )
+
+    print("Estimating the ARI(p,1) parameters... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
+
+    # estimate ARI(p,1) parameters
+    weights = _compute_window_weights(
+        feature_coords,
+        precip_fields.shape[1],
+        precip_fields.shape[2],
+        ari_window_radius,
+    )
+
+    if ari_order == 1:
+        psi = _estimate_ar1_params(
+            precip_fields_lagr_diff_c[-1],
+            precip_fields_lagr_diff[-1],
+            weights,
+            interp_weights,
+            num_workers=num_workers,
+        )
+    else:
+        psi = _estimate_ar2_params(
+            precip_fields_lagr_diff_c[-2:],
+            precip_fields_lagr_diff[-1],
+            weights,
+            interp_weights,
+            num_workers=num_workers,
+        )
+    fct_gen["psi"] = psi
+
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
+
+    # apply the ARI(p,1) model and integrate the differences
+    precip_fields_lagr_diff_c = _iterate_ar_model(precip_fields_lagr_diff_c, psi)
+    precip_fct = precip_fields_lagr[-2] + precip_fields_lagr_diff_c[-1]
+    precip_fct[precip_fct < 0.0] = 0.0
+
+    print("Estimating the second convolution kernel... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
+
+    # estimate the second convolution kernels based on the forecast field
+    # computed above
+    kernels_2 = _estimate_convol_params(
+        precip_fct,
+        precip_fields[-1],
+        convol_weights,
+        mask_adv,
+        kernel_type=kernel_type,
+        num_workers=num_workers,
+    )
+    fct_gen["kernels_2"] = kernels_2
+
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
+
+    if measure_time:
+        return fct_gen, time.time() - starttime_init
+    else:
+        return fct_gen
+
+
+def _linda_deterministic_forecast(timesteps, fct_gen):
+    # compute the nowcast
+    advection_field = fct_gen["advection_field"]
+    ari_order = fct_gen["ari_order"]
+    extrapolator = fct_gen["extrapolator"]
+    extrap_kwargs = fct_gen["extrap_kwargs"].copy()
+    interp_weights = fct_gen["interp_weights"]
+    kernels_1 = fct_gen["kernels_1"]
+    kernels_2 = fct_gen["kernels_2"]
+    mask_adv = fct_gen["mask_adv"]
+    measure_time = fct_gen["measure_time"]
+    precip_fields = fct_gen["precip_fields"]
+    precip_fields_lagr_diff = fct_gen["precip_fields_lagr_diff"]
+    psi = fct_gen["psi"]
+
+    precip_fct = precip_fields[-1].copy()
+    precip_fields_lagr_diff = precip_fields_lagr_diff[1:].copy()
+
+    displacement = None
+    extrap_kwargs["return_displacement"] = True
+    precip_out = []
+
+    for i in range(precip_fields_lagr_diff.shape[0]):
+        for j in range(ari_order - i):
+            precip_fields_lagr_diff[i] = _composite_convolution(
+                precip_fields_lagr_diff[i],
+                kernels_1,
+                interp_weights,
+            )
+
+    # iterate each time step
+    if measure_time:
+        starttime_mainloop = time.time()
+
+    # TODO: Implement using a list instead of a number of fixed timesteps
+    for t in range(timesteps):
+        print(
+            "Computing nowcast for time step %d... " % (t + 1),
+            end="",
+            flush=True,
+        )
+
+        if measure_time:
+            starttime = time.time()
+
+        precip_fields_lagr_diff = _iterate_ar_model(precip_fields_lagr_diff, psi)
+        precip_fct += precip_fields_lagr_diff[-1]
+        for i in range(precip_fields_lagr_diff.shape[0]):
+            precip_fields_lagr_diff[i] = _composite_convolution(
+                precip_fields_lagr_diff[i],
+                kernels_1,
+                interp_weights,
+            )
+        precip_fct = _composite_convolution(precip_fct, kernels_2, interp_weights)
+
+        precip_out_ = precip_fct.copy()
+        precip_out_[precip_out_ < 0.0] = 0.0
+        precip_out_[~mask_adv] = np.nan
+
+        # advect the forecast field for t time steps
+        extrap_kwargs["displacement_prev"] = displacement
+        precip_out_, displacement = extrapolator(
+            precip_out_, advection_field, 1, **extrap_kwargs
+        )
+        precip_out.append(precip_out_[0])
+
+        if measure_time:
+            print("{:.2f} seconds.".format(time.time() - starttime))
+        else:
+            print("done.")
+
+    if measure_time:
+        mainloop_time = time.time() - starttime_mainloop
+        return np.stack(precip_out), mainloop_time
+    else:
+        return np.stack(precip_out)
 
 
 # Compute convolution where non-finite values are ignored.
