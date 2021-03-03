@@ -150,8 +150,9 @@ def forecast(
     out : numpy.ndarray
         A four-dimensional array of shape (num_ens_members, num_timesteps, m, n)
         containing a time series of forecast precipitation fields for each
-        ensemble member. The time series starts from t0 + timestep, where
-        timestep is taken from the input fields.
+        ensemble member. If add_perturbations is False, the first dimension is
+        dropped. The time series starts from t0 + timestep, where timestep is
+        taken from the input fields.
     """
     fct_gen = _linda_deterministic_init(
         precip_fields,
@@ -172,8 +173,17 @@ def forecast(
         measure_time,
     )
     if measure_time:
-        fct_gen, init_time = fct_gen
-    return _linda_deterministic_forecast(timesteps, fct_gen)
+        fct_gen, precip_fields_lagr_diff, init_time = fct_gen
+    else:
+        fct_gen, precip_fields_lagr_diff = fct_gen
+    if not add_perturbations:
+        return _linda_deterministic_forecast(
+            precip_fields, precip_fields_lagr_diff, timesteps, fct_gen
+        )
+    else:
+        precip_fct_det = _linda_deterministic_forecast(
+            precip_fields[:-1], precip_fields_lagr_diff[:-1], timesteps, fct_gen
+        )
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
@@ -604,7 +614,6 @@ def _linda_deterministic_init(
     fct_gen["advection_field"] = advection_field
     fct_gen["ari_order"] = ari_order
     fct_gen["measure_time"] = measure_time
-    fct_gen["precip_fields"] = precip_fields
 
     precip_fields = precip_fields[-(ari_order + 2) :]
     input_length = precip_fields.shape[0]
@@ -747,7 +756,6 @@ def _linda_deterministic_init(
 
     # compute differenced input fields in the Lagrangian coordinates
     precip_fields_lagr_diff = np.diff(precip_fields_lagr, axis=0)
-    fct_gen["precip_fields_lagr_diff"] = precip_fields_lagr_diff
 
     # estimate parameters of the deterministic model (i.e. the convolution and
     # the ARI process)
@@ -854,12 +862,14 @@ def _linda_deterministic_init(
         print("done.")
 
     if measure_time:
-        return fct_gen, time.time() - starttime_init
+        return fct_gen, precip_fields_lagr_diff, time.time() - starttime_init
     else:
-        return fct_gen
+        return fct_gen, precip_fields_lagr_diff
 
 
-def _linda_deterministic_forecast(timesteps, fct_gen):
+def _linda_deterministic_forecast(
+    precip_fields, precip_fields_lagr_diff, timesteps, fct_gen
+):
     # compute the nowcast
     advection_field = fct_gen["advection_field"]
     ari_order = fct_gen["ari_order"]
@@ -870,8 +880,6 @@ def _linda_deterministic_forecast(timesteps, fct_gen):
     kernels_2 = fct_gen["kernels_2"]
     mask_adv = fct_gen["mask_adv"]
     measure_time = fct_gen["measure_time"]
-    precip_fields = fct_gen["precip_fields"]
-    precip_fields_lagr_diff = fct_gen["precip_fields_lagr_diff"]
     psi = fct_gen["psi"]
 
     precip_fct = precip_fields[-1].copy()
@@ -879,7 +887,7 @@ def _linda_deterministic_forecast(timesteps, fct_gen):
 
     displacement = None
     extrap_kwargs["return_displacement"] = True
-    precip_out = []
+    precip_fct_out = []
 
     for i in range(precip_fields_lagr_diff.shape[0]):
         for j in range(ari_order - i):
@@ -914,16 +922,16 @@ def _linda_deterministic_forecast(timesteps, fct_gen):
             )
         precip_fct = _composite_convolution(precip_fct, kernels_2, interp_weights)
 
-        precip_out_ = precip_fct.copy()
-        precip_out_[precip_out_ < 0.0] = 0.0
-        precip_out_[~mask_adv] = np.nan
+        precip_fct_out_ = precip_fct.copy()
+        precip_fct_out_[precip_fct_out_ < 0.0] = 0.0
+        precip_fct_out_[~mask_adv] = np.nan
 
         # advect the forecast field for t time steps
         extrap_kwargs["displacement_prev"] = displacement
-        precip_out_, displacement = extrapolator(
-            precip_out_, advection_field, 1, **extrap_kwargs
+        precip_fct_out_, displacement = extrapolator(
+            precip_fct_out_, advection_field, 1, **extrap_kwargs
         )
-        precip_out.append(precip_out_[0])
+        precip_fct_out.append(precip_fct_out_[0])
 
         if measure_time:
             print("{:.2f} seconds.".format(time.time() - starttime))
@@ -932,9 +940,9 @@ def _linda_deterministic_forecast(timesteps, fct_gen):
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
-        return np.stack(precip_out), mainloop_time
+        return np.stack(precip_fct_out), mainloop_time
     else:
-        return np.stack(precip_out)
+        return np.stack(precip_fct_out)
 
 
 # Compute convolution where non-finite values are ignored.
