@@ -66,10 +66,13 @@ def forecast(
     interp_window_radius=None,
     convol_window_radius=None,
     ari_window_radius=None,
+    errdist_window_radius=None,
+    acf_window_radius=None,
     extrap_method="semilagrangian",
     extrap_kwargs={},
     add_perturbations=True,
     num_ens_members=24,
+    seed=None,
     num_workers=1,
     measure_time=False,
 ):
@@ -126,6 +129,12 @@ def forecast(
     ari_window_radius : float
         The standard deviation of the Gaussian window for estimating the
         ARI parameters. Default : 0.25 * min(m, n).
+    errdist_window_radius : float
+        The standard deviation of the Gaussian window for estimating the
+        forecast error distribution. Default : 0.15 * min(m, n).
+    acf_window_radius : float
+        The standard deviation of the Gaussian window for estimating the
+        forecast error ACF. Default : 0.25 * min(m, n).
     extrap_method : str, optional
         The extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`.
@@ -137,6 +146,8 @@ def forecast(
         deterministic nowcast.
     num_ens_members : int
         The number of ensemble members to generate.
+    seed : int
+        Optional seed for the random generator.
     num_workers : int
         The number of workers to use for parallel computations. Applicable if
         dask is installed. When num_workers>1, it is advisable to disable
@@ -154,6 +165,63 @@ def forecast(
         dropped. The time series starts from t0 + timestep, where timestep is
         taken from the input fields.
     """
+    _check_inputs(precip_fields, advection_field, timesteps, ari_order)
+
+    if interp_window_radius is None:
+        interp_window_radius = 0.2 * np.min(precip_fields.shape[1:])
+    if convol_window_radius is None:
+        convol_window_radius = 0.15 * np.min(precip_fields.shape[1:])
+    if ari_window_radius is None:
+        ari_window_radius = 0.25 * np.min(precip_fields.shape[1:])
+    if add_perturbations:
+        if errdist_window_radius is None:
+            errdist_window_radius = 0.15 * min(
+                precip_fields.shape[1], precip_fields.shape[2]
+            )
+        if acf_window_radius is None:
+            acf_window_radius = 0.25 * min(
+                precip_fields.shape[1], precip_fields.shape[2]
+            )
+
+    print("Computing LINDA nowcast:")
+    print("------------------------")
+    print("")
+
+    print("Inputs:")
+    print("-------")
+    print(
+        "input dimensions: {}x{}".format(precip_fields.shape[1], precip_fields.shape[2])
+    )
+    print("")
+
+    print("Methods:")
+    print("--------")
+    if add_perturbations:
+        print("nowcast type:     ensemble")
+    else:
+        print("nowcast type:     deterministic")
+    print("feature detector: {}".format(feature_method))
+    print("extrapolator:     {}".format(extrap_method))
+    print("")
+
+    print("Parameters:")
+    print("-----------")
+    if isinstance(timesteps, int):
+        print("number of time steps:      {}".format(timesteps))
+    else:
+        # TODO: implement fractional time steps
+        raise NotImplementedError("fractional time steps not yet implemented")
+        print("time steps:                {}".format(timesteps))
+    print("ARI model order:           {}".format(ari_order))
+    print("convol. window radius:     {}".format(convol_window_radius))
+    print("ARI window radius:         {}".format(ari_window_radius))
+    print("interp. window radius:     {}".format(interp_window_radius))
+    if add_perturbations:
+        print("error dist. window radius: {}".format(errdist_window_radius))
+        print("error ACF window radius:   {}".format(acf_window_radius))
+        print("ensemble size:             {}".format(num_ens_members))
+    print("parallel workers:          {}".format(num_workers))
+
     fct_gen = _linda_deterministic_init(
         precip_fields,
         advection_field,
@@ -178,12 +246,54 @@ def forecast(
         fct_gen, precip_fields_lagr_diff = fct_gen
     if not add_perturbations:
         return _linda_deterministic_forecast(
-            precip_fields, precip_fields_lagr_diff, timesteps, fct_gen
+            precip_fields,
+            precip_fields_lagr_diff[1:],
+            timesteps,
+            fct_gen,
+            measure_time,
+            True,
         )
     else:
+        print("Estimating forecast errors... ", end="", flush=True)
+
+        if measure_time:
+            starttime = time.time()
+
         precip_fct_det = _linda_deterministic_forecast(
-            precip_fields[:-1], precip_fields_lagr_diff[:-1], timesteps, fct_gen
+            precip_fields[:-1],
+            precip_fields_lagr_diff[:-1],
+            1,
+            fct_gen,
+            False,
+            False,
         )
+
+        # compute multiplicative forecast errors
+        err = precip_fct_det[-1] / precip_fields[-1]
+
+        # mask small values
+        mask = np.logical_or(
+            np.logical_and(precip_fct_det[-1] >= 1.0, precip_fields[-1] >= 0.5),
+            np.logical_and(precip_fct_det[-1] >= 0.5, precip_fields[-1] >= 1.0),
+        )
+        err[~mask] = np.nan
+
+        if measure_time:
+            print("{:.2f} seconds.".format(time.time() - starttime))
+        else:
+            print("done.")
+
+        pert_gen = _init_perturbation_generator(
+            err,
+            fct_gen,
+            errdist_window_radius,
+            acf_window_radius,
+            interp_window_radius,
+            measure_time,
+            num_workers,
+        )
+
+        # TODO: implement computation of nowcast ensemble here
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
@@ -319,40 +429,8 @@ def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
     return -abs(h), -abs(w), abs(h), abs(w)
 
 
-def _compute_window_weights(coords, grid_height, grid_width, window_radius):
-    coords = coords.astype(float).copy()
-    num_features = coords.shape[0]
-
-    coords[:, 0] /= grid_height
-    coords[:, 1] /= grid_width
-
-    window_radius_1 = window_radius / grid_height
-    window_radius_2 = window_radius / grid_width
-
-    grid_x = (np.arange(grid_width) + 0.5) / grid_width
-    grid_y = (np.arange(grid_height) + 0.5) / grid_height
-
-    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
-
-    w = np.empty((num_features, grid_x.shape[0], grid_x.shape[1]))
-
-    if coords.shape[0] > 1:
-        for i, c in enumerate(coords):
-            dy = c[0] - grid_y
-            dx = c[1] - grid_x
-
-            w[i, :] = np.exp(
-                -dy * dy / (2 * window_radius_1 ** 2)
-                - dx * dx / (2 * window_radius_2 ** 2)
-            )
-    else:
-        w[0, :] = np.ones((grid_height, grid_width))
-
-    return w
-
-
 # compute a parametric ACF
-def _compute_acf(params, m, n, func):
+def _compute_parametric_acf(params, m, n, func):
     c, phi, sigma1, sigma2 = params
 
     sigma1 = abs(sigma1)
@@ -386,6 +464,47 @@ def _compute_acf(params, m, n, func):
         result = np.exp(-r2)
 
     return c * result
+
+
+def _compute_window_weights(coords, grid_height, grid_width, window_radius):
+    coords = coords.astype(float).copy()
+    num_features = coords.shape[0]
+
+    coords[:, 0] /= grid_height
+    coords[:, 1] /= grid_width
+
+    window_radius_1 = window_radius / grid_height
+    window_radius_2 = window_radius / grid_width
+
+    grid_x = (np.arange(grid_width) + 0.5) / grid_width
+    grid_y = (np.arange(grid_height) + 0.5) / grid_height
+
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+
+    w = np.empty((num_features, grid_x.shape[0], grid_x.shape[1]))
+
+    if coords.shape[0] > 1:
+        for i, c in enumerate(coords):
+            dy = c[0] - grid_y
+            dx = c[1] - grid_x
+
+            w[i, :] = np.exp(
+                -dy * dy / (2 * window_radius_1 ** 2)
+                - dx * dx / (2 * window_radius_2 ** 2)
+            )
+    else:
+        w[0, :] = np.ones((grid_height, grid_width))
+
+    return w
+
+
+# compute sample ACF from FFT
+def _compute_sample_acf(field):
+    # TODO: let user choose the FFT method
+    field_fft = np.fft.rfft2((field - np.mean(field)) / np.std(field))
+    fft_abs = np.abs(field_fft * np.conj(field_fft))
+
+    return np.fft.irfft2(fft_abs, s=field.shape) / (field.shape[0] * field.shape[1])
 
 
 # Constrained optimization of AR(1) parameters.
@@ -542,7 +661,7 @@ def _estimate_convol_params(
 def _fit_acf(acf, method="trf"):
     def objf(p, *args):
         p = _get_anisotropic_kernel_params(p)
-        fitted_acf = _compute_acf(p, acf.shape[0], acf.shape[1], "exp")
+        fitted_acf = _compute_parametric_acf(p, acf.shape[0], acf.shape[1], "exp")
 
         return (acf - fitted_acf).flatten()
 
@@ -557,7 +676,7 @@ def _fit_acf(acf, method="trf"):
         gtol=1e-6,
     )
 
-    return _compute_acf(
+    return _compute_parametric_acf(
         _get_anisotropic_kernel_params(p_opt.x), acf.shape[0], acf.shape[1], "exp"
     )
 
@@ -571,6 +690,46 @@ def _fit_dist(err, dist, wf, mask):
     return (p_opt.x, -0.5 * p_opt.x ** 2)
 
 
+# Generate perturbations based on the estimated forecast error statistics.
+# TODO: restrict the perturbation generation inside the radar mask
+def _generate_perturbations(pert_gen, num_workers, seed):
+    m, n = pert_gen["m"], pert_gen["n"]
+    dist_param = pert_gen["dist_param"]
+    std = pert_gen["std"]
+    acf_fft_ampl = pert_gen["acf_fft_ampl"]
+    weights = pert_gen["weights"]
+
+    noise_field = stats.norm.rvs(size=(m, n), random_state=seed)
+    noise_field_fft = np.fft.rfft2(noise_field)
+
+    output_field = np.zeros((m, n))
+
+    def worker(i):
+        if std[i] > 0.0:
+            filtered_noise = np.fft.irfft2(acf_fft_ampl[i] * noise_field_fft, s=(m, n))
+            filtered_noise /= np.std(filtered_noise)
+            filtered_noise = stats.lognorm.ppf(
+                stats.norm.cdf(filtered_noise), *dist_param[i]
+            )
+        else:
+            filtered_noise = np.ones(weights[i].shape)
+
+        return weights[i] * filtered_noise
+
+    if DASK_IMPORTED and num_workers > 1:
+        res = []
+        for i in range(weights.shape[0]):
+            res.append(dask.delayed(worker)(i))
+        res = dask.compute(*res, num_workers=num_workers, scheduler="threads")
+        for r in res:
+            output_field += r
+    else:
+        for i in range(weights.shape[0]):
+            output_field += worker(i)
+
+    return output_field
+
+
 # Get anisotropic convolution kernel parameters from the given parameter vector.
 def _get_anisotropic_kernel_params(p):
     theta = np.arctan2(p[1], p[0])
@@ -578,6 +737,107 @@ def _get_anisotropic_kernel_params(p):
     sigma2 = sigma1 * p[2]
 
     return theta, sigma1, sigma2, p[3]
+
+
+def _init_perturbation_generator(
+    fct_err,
+    fct_gen,
+    errdist_window_radius,
+    acf_window_radius,
+    interp_window_radius,
+    measure_time,
+    num_workers,
+):
+    pert_gen = {}
+    pert_gen["m"] = fct_err.shape[0]
+    pert_gen["n"] = fct_err.shape[1]
+
+    feature_coords = fct_gen["feature_coords"]
+
+    print("Estimating perturbation parameters... ", end="", flush=True)
+
+    if measure_time:
+        starttime = time.time()
+
+    mask_finite = np.isfinite(fct_err)
+
+    fct_err = fct_err.copy()
+    fct_err[~mask_finite] = 1.0
+
+    weights_dist = _compute_window_weights(
+        feature_coords,
+        fct_err.shape[0],
+        fct_err.shape[1],
+        errdist_window_radius,
+    )
+
+    acf_winfunc = _window_tukey if feature_coords.shape[0] > 1 else _window_uniform
+
+    def worker(i):
+        weights_acf = acf_winfunc(
+            fct_err.shape[0],
+            fct_err.shape[1],
+            feature_coords[i, 0],
+            feature_coords[i, 1],
+            acf_window_radius,
+            acf_window_radius,
+        )
+
+        mask = np.logical_and(mask_finite, weights_dist[i] > 0.1)
+        if np.sum(mask) > 10 and np.sum(np.abs(fct_err[mask] - 1.0) >= 1e-3) > 10:
+            distpar = _fit_dist(fct_err, stats.lognorm, weights_dist[i], mask)
+            inv_acf_mapping = _compute_inverse_acf_mapping(stats.lognorm, distpar)
+            mask_acf = weights_acf > 1e-4
+            std = _weighted_std(fct_err[mask_acf], weights_dist[i][mask_acf])
+            acf = inv_acf_mapping(
+                _compute_sample_acf(weights_acf * (fct_err - 1.0) / std)
+            )
+            acf = _fit_acf(acf)
+        else:
+            distpar = None
+            std = None
+            acf = None
+
+        return distpar, std, np.sqrt(np.abs(np.fft.rfft2(acf)))
+
+    dist_params = []
+    stds = []
+    acf_fft_ampl = []
+
+    if DASK_IMPORTED and num_workers > 1:
+        res = []
+        for i in range(feature_coords.shape[0]):
+            res.append(dask.delayed(worker)(i))
+        res = dask.compute(*res, num_workers=num_workers, scheduler="multiprocessing")
+        for r in res:
+            dist_params.append(r[0])
+            stds.append(r[1])
+            acf_fft_ampl.append(r[2])
+    else:
+        for i in range(feature_coords.shape[0]):
+            r = worker(i)
+            dist_params.append(r[0])
+            stds.append(r[1])
+            acf_fft_ampl.append(r[2])
+
+    pert_gen["dist_param"] = dist_params
+    pert_gen["std"] = stds
+    pert_gen["acf_fft_ampl"] = acf_fft_ampl
+
+    weights = _compute_window_weights(
+        feature_coords,
+        fct_err.shape[0],
+        fct_err.shape[1],
+        interp_window_radius,
+    )
+    pert_gen["weights"] = weights / np.sum(weights, axis=0)
+
+    if measure_time:
+        print("{:.2f} seconds.".format(time.time() - starttime))
+    else:
+        print("done.")
+
+    return pert_gen
 
 
 # TODO: use the method implemented in pysteps.timeseries.autoregression
@@ -590,6 +850,7 @@ def _iterate_ar_model(input_fields, psi):
     return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
 
 
+# Initialize deterministic LINDA nowcast.
 def _linda_deterministic_init(
     precip_fields,
     advection_field,
@@ -608,8 +869,6 @@ def _linda_deterministic_init(
     num_workers,
     measure_time,
 ):
-    _check_inputs(precip_fields, advection_field, timesteps, ari_order)
-
     fct_gen = {}
     fct_gen["advection_field"] = advection_field
     fct_gen["ari_order"] = ari_order
@@ -617,50 +876,6 @@ def _linda_deterministic_init(
 
     precip_fields = precip_fields[-(ari_order + 2) :]
     input_length = precip_fields.shape[0]
-
-    if interp_window_radius is None:
-        interp_window_radius = 0.2 * np.min(precip_fields.shape[1:])
-    if convol_window_radius is None:
-        convol_window_radius = 0.15 * np.min(precip_fields.shape[1:])
-    if ari_window_radius is None:
-        ari_window_radius = 0.25 * np.min(precip_fields.shape[1:])
-
-    print("Computing LINDA nowcast:")
-    print("------------------------")
-    print("")
-
-    print("Inputs:")
-    print("-------")
-    print(
-        "input dimensions: {}x{}".format(precip_fields.shape[1], precip_fields.shape[2])
-    )
-    print("")
-
-    print("Methods:")
-    print("--------")
-    if add_perturbations:
-        print("nowcast type:     ensemble")
-    else:
-        print("nowcast type:     deterministic")
-    print("feature detector: {}".format(feature_method))
-    print("extrapolator:     {}".format(extrap_method))
-    print("")
-
-    print("Parameters:")
-    print("-----------")
-    if isinstance(timesteps, int):
-        print("number of time steps:  {}".format(timesteps))
-    else:
-        # TODO: implement fractional time steps
-        raise NotImplementedError("fractional time steps not yet implemented")
-        print("time steps:            {}".format(timesteps))
-    print("ARI model order:       {}".format(ari_order))
-    print("convol. window radius: {}".format(convol_window_radius))
-    print("ARI window radius:     {}".format(ari_window_radius))
-    print("interp. window radius: {}".format(interp_window_radius))
-    if add_perturbations:
-        print("ensemble size:         {}".format(num_ens_members))
-    print("parallel workers:      {}".format(num_workers))
 
     starttime_init = time.time()
 
@@ -701,6 +916,7 @@ def _linda_deterministic_init(
         raise NotImplementedError(
             "feature detector '%s' not implemented" % feature_method
         )
+    fct_gen["feature_coords"] = feature_coords
 
     # compute interpolation weights
     interp_weights = _compute_window_weights(
@@ -867,8 +1083,10 @@ def _linda_deterministic_init(
         return fct_gen, precip_fields_lagr_diff
 
 
+# Compute deterministic LINDA nowcast.
+# TODO: implement option to add perturbations
 def _linda_deterministic_forecast(
-    precip_fields, precip_fields_lagr_diff, timesteps, fct_gen
+    precip_fields, precip_fields_lagr_diff, timesteps, fct_gen, measure_time, print_info
 ):
     # compute the nowcast
     advection_field = fct_gen["advection_field"]
@@ -879,11 +1097,9 @@ def _linda_deterministic_forecast(
     kernels_1 = fct_gen["kernels_1"]
     kernels_2 = fct_gen["kernels_2"]
     mask_adv = fct_gen["mask_adv"]
-    measure_time = fct_gen["measure_time"]
     psi = fct_gen["psi"]
 
     precip_fct = precip_fields[-1].copy()
-    precip_fields_lagr_diff = precip_fields_lagr_diff[1:].copy()
 
     displacement = None
     extrap_kwargs["return_displacement"] = True
@@ -903,11 +1119,12 @@ def _linda_deterministic_forecast(
 
     # TODO: Implement using a list instead of a number of fixed timesteps
     for t in range(timesteps):
-        print(
-            "Computing nowcast for time step %d... " % (t + 1),
-            end="",
-            flush=True,
-        )
+        if print_info:
+            print(
+                "Computing nowcast for time step %d... " % (t + 1),
+                end="",
+                flush=True,
+            )
 
         if measure_time:
             starttime = time.time()
@@ -933,10 +1150,11 @@ def _linda_deterministic_forecast(
         )
         precip_fct_out.append(precip_fct_out_[0])
 
-        if measure_time:
-            print("{:.2f} seconds.".format(time.time() - starttime))
-        else:
-            print("done.")
+        if print_info:
+            if measure_time:
+                print("{:.2f} seconds.".format(time.time() - starttime))
+            else:
+                print("done.")
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
@@ -957,3 +1175,48 @@ def _masked_convolution(field, kernel):
     field_c[mask] /= convolve(mask.astype(float), kernel, mode="same")[mask]
 
     return field_c
+
+
+# Compute standard deviation of forecast errors with spatially varying weights.
+# Values close to zero are omitted.
+def _weighted_std(f, w):
+    mask = np.abs(f - 1.0) > 1e-4
+    c = (w[mask].size - 1.0) / w[mask].size
+
+    return np.sqrt(np.sum(w[mask] * (f[mask] - 1.0) ** 2.0) / (c * np.sum(w[mask])))
+
+
+# Tukey window function centered at the given coordinates.
+def _window_tukey(m, n, ci, cj, ri, rj, alpha=0.5):
+    j, i = np.meshgrid(np.arange(n), np.arange(m))
+
+    di = np.abs(i - ci)
+    dj = np.abs(j - cj)
+
+    mask1 = np.logical_and(di <= ri, dj <= rj)
+
+    w1 = np.empty(di.shape)
+    mask2 = di <= alpha * ri
+    mask12 = np.logical_and(mask1, ~mask2)
+    w1[mask12] = 0.5 * (
+        1.0 + np.cos(np.pi * (di[mask12] - alpha * ri) / ((1.0 - alpha) * ri))
+    )
+    w1[np.logical_and(mask1, mask2)] = 1.0
+
+    w2 = np.empty(dj.shape)
+    mask2 = dj <= alpha * rj
+    mask12 = np.logical_and(mask1, ~mask2)
+    w2[mask12] = 0.5 * (
+        1.0 + np.cos(np.pi * (dj[mask12] - alpha * rj) / ((1.0 - alpha) * rj))
+    )
+    w2[np.logical_and(mask1, mask2)] = 1.0
+
+    weights = np.zeros((m, n))
+    weights[mask1] = w1[mask1] * w2[mask1]
+
+    return weights
+
+
+# Uniform window function with all values set to one.
+def _window_uniform(m, n, ci, cj, ri, rj):
+    return np.ones((m, n))
