@@ -183,19 +183,19 @@ def forecast(
                 precip_fields.shape[1], precip_fields.shape[2]
             )
 
-    print("Computing LINDA nowcast:")
-    print("------------------------")
+    print("Computing LINDA nowcast")
+    print("-----------------------")
     print("")
 
-    print("Inputs:")
-    print("-------")
+    print("Inputs")
+    print("------")
     print(
         "input dimensions: {}x{}".format(precip_fields.shape[1], precip_fields.shape[2])
     )
     print("")
 
-    print("Methods:")
-    print("--------")
+    print("Methods")
+    print("-------")
     if add_perturbations:
         print("nowcast type:     ensemble")
     else:
@@ -204,8 +204,8 @@ def forecast(
     print("extrapolator:     {}".format(extrap_method))
     print("")
 
-    print("Parameters:")
-    print("-----------")
+    print("Parameters")
+    print("----------")
     if isinstance(timesteps, int):
         print("number of time steps:      {}".format(timesteps))
     else:
@@ -251,6 +251,7 @@ def forecast(
             timesteps,
             fct_gen,
             None,
+            None,
             measure_time,
             True,
         )
@@ -265,6 +266,7 @@ def forecast(
             precip_fields_lagr_diff[:-1],
             1,
             fct_gen,
+            None,
             None,
             False,
             False,
@@ -295,13 +297,14 @@ def forecast(
             num_workers,
         )
 
-        def worker():
+        def worker(seed):
             return _linda_forecast(
                 precip_fields,
                 precip_fields_lagr_diff[1:],
                 timesteps,
                 fct_gen,
                 pert_gen,
+                seed,
                 False,
                 False,
             )
@@ -310,15 +313,20 @@ def forecast(
         # TODO: implement measurement of computation time
         precip_fct_ensemble = []
 
+        rs = np.random.RandomState(seed)
+
         if DASK_IMPORTED and num_workers > 1:
             res = []
             for i in range(num_ens_members):
-                res.append(dask.delayed(worker)())
+                seed = rs.randint(0, high=1e9)
+                res.append(dask.delayed(worker)(seed))
             precip_fct_ensemble = dask.compute(
                 *res, num_workers=num_workers, scheduler="threads"
             )
         else:
-            precip_fct_ensemble.append(worker())
+            for i in range(num_ens_members):
+                seed = rs.randint(0, high=1e9)
+                precip_fct_ensemble.append(worker(seed))
 
         return np.stack(precip_fct_ensemble), 0.0
 
@@ -887,6 +895,7 @@ def _linda_forecast(
     timesteps,
     fct_gen,
     pert_gen,
+    seed,
     measure_time,
     print_info,
 ):
@@ -903,6 +912,7 @@ def _linda_forecast(
     num_workers = fct_gen["num_workers"]
 
     precip_fct = precip_fields[-1].copy()
+    precip_fields_lagr_diff = precip_fields_lagr_diff.copy()
 
     displacement = None
     extrap_kwargs["return_displacement"] = True
@@ -919,6 +929,9 @@ def _linda_forecast(
     # iterate each time step
     if measure_time:
         starttime_mainloop = time.time()
+
+    if pert_gen is not None:
+        rs = np.random.RandomState(seed)
 
     # TODO: Implement using a list instead of a number of fixed timesteps
     for t in range(timesteps):
@@ -949,7 +962,8 @@ def _linda_forecast(
         # apply perturbations
         if pert_gen is not None:
             # TODO: implement supplying seed number
-            pert_field = _generate_perturbations(pert_gen, num_workers, None)
+            seed = rs.randint(0, high=1e9)
+            pert_field = _generate_perturbations(pert_gen, num_workers, seed)
             precip_fct_out_ *= pert_field
 
         # advect the forecast field for t time steps
@@ -1239,7 +1253,7 @@ def _window_tukey(m, n, ci, cj, ri, rj, alpha=0.5):
 
     mask1 = np.logical_and(di <= ri, dj <= rj)
 
-    w1 = np.empty(di.shape)
+    w1 = np.zeros(di.shape)
     mask2 = di <= alpha * ri
     mask12 = np.logical_and(mask1, ~mask2)
     w1[mask12] = 0.5 * (
@@ -1247,7 +1261,7 @@ def _window_tukey(m, n, ci, cj, ri, rj, alpha=0.5):
     )
     w1[np.logical_and(mask1, mask2)] = 1.0
 
-    w2 = np.empty(dj.shape)
+    w2 = np.zeros(dj.shape)
     mask2 = dj <= alpha * rj
     mask12 = np.logical_and(mask1, ~mask2)
     w2[mask12] = 0.5 * (
