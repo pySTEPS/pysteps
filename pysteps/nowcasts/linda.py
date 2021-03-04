@@ -295,16 +295,32 @@ def forecast(
             num_workers,
         )
 
-        # TODO: implement computation of nowcast ensemble here
-        return _linda_forecast(
-            precip_fields,
-            precip_fields_lagr_diff[1:],
-            timesteps,
-            fct_gen,
-            pert_gen,
-            measure_time,
-            True,
-        )
+        def worker():
+            return _linda_forecast(
+                precip_fields,
+                precip_fields_lagr_diff[1:],
+                timesteps,
+                fct_gen,
+                pert_gen,
+                False,
+                False,
+            )
+
+        # TODO: implement printing
+        # TODO: implement measurement of computation time
+        precip_fct_ensemble = []
+
+        if DASK_IMPORTED and num_workers > 1:
+            res = []
+            for i in range(num_ens_members):
+                res.append(dask.delayed(worker)())
+            precip_fct_ensemble = dask.compute(
+                *res, num_workers=num_workers, scheduler="threads"
+            )
+        else:
+            precip_fct_ensemble.append(worker())
+
+        return np.stack(precip_fct_ensemble), 0.0
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
