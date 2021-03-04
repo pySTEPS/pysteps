@@ -222,7 +222,7 @@ def forecast(
         print("ensemble size:             {}".format(num_ens_members))
     print("parallel workers:          {}".format(num_workers))
 
-    fct_gen = _linda_deterministic_init(
+    fct_gen = _linda_init(
         precip_fields,
         advection_field,
         timesteps,
@@ -245,11 +245,12 @@ def forecast(
     else:
         fct_gen, precip_fields_lagr_diff = fct_gen
     if not add_perturbations:
-        return _linda_deterministic_forecast(
+        return _linda_forecast(
             precip_fields,
             precip_fields_lagr_diff[1:],
             timesteps,
             fct_gen,
+            None,
             measure_time,
             True,
         )
@@ -259,11 +260,12 @@ def forecast(
         if measure_time:
             starttime = time.time()
 
-        precip_fct_det = _linda_deterministic_forecast(
+        precip_fct_det = _linda_forecast(
             precip_fields[:-1],
             precip_fields_lagr_diff[:-1],
             1,
             fct_gen,
+            None,
             False,
             False,
         )
@@ -294,6 +296,15 @@ def forecast(
         )
 
         # TODO: implement computation of nowcast ensemble here
+        return _linda_forecast(
+            precip_fields,
+            precip_fields_lagr_diff[1:],
+            timesteps,
+            fct_gen,
+            pert_gen,
+            measure_time,
+            True,
+        )
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
@@ -327,7 +338,7 @@ def _composite_convolution(field, kernels, weights):
     return field_c
 
 
-# compute the inverse ACF mapping between two distributions
+# Compute the inverse ACF mapping between two distributions.
 def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=20):
     phi = (
         lambda x1, x2, rho: 1.0
@@ -356,7 +367,7 @@ def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=20
     return interp1d(np.hstack([-1.0, rho_2, 1.0]), np.hstack([-1.0, rho_1, 1.0]))
 
 
-# Compute anisotropic Gaussian convolution kernel
+# Compute anisotropic Gaussian convolution kernel.
 def _compute_kernel_anisotropic(params, cutoff=6.0):
     phi, sigma1, sigma2, alpha = params
 
@@ -410,7 +421,7 @@ def _compute_kernel_isotropic(sigma, cutoff=6.0):
     return result / np.sum(result)
 
 
-# Compute the bounding box of an ellipse
+# Compute the bounding box of an ellipse.
 def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
     r1 = cutoff * sigma1
     r2 = cutoff * sigma2
@@ -429,7 +440,7 @@ def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
     return -abs(h), -abs(w), abs(h), abs(w)
 
 
-# compute a parametric ACF
+# Compute parametric ACF.
 def _compute_parametric_acf(params, m, n, func):
     c, phi, sigma1, sigma2 = params
 
@@ -466,6 +477,7 @@ def _compute_parametric_acf(params, m, n, func):
     return c * result
 
 
+# Compute interpolation weights.
 def _compute_window_weights(coords, grid_height, grid_width, window_radius):
     coords = coords.astype(float).copy()
     num_features = coords.shape[0]
@@ -498,7 +510,7 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radius):
     return w
 
 
-# compute sample ACF from FFT
+# Compute sample ACF from FFT.
 def _compute_sample_acf(field):
     # TODO: let user choose the FFT method
     field_fft = np.fft.rfft2((field - np.mean(field)) / np.std(field))
@@ -584,6 +596,7 @@ def _estimate_ar2_params(
     return psi_out
 
 
+# Estimation of convolution kernel.
 def _estimate_convol_params(
     field_src,
     field_dst,
@@ -657,7 +670,7 @@ def _estimate_convol_params(
     return kernels
 
 
-# fit a parametric ACF to the given sample estimate
+# Fit a parametric ACF to the given sample estimate.
 def _fit_acf(acf, method="trf"):
     def objf(p, *args):
         p = _get_anisotropic_kernel_params(p)
@@ -681,8 +694,8 @@ def _fit_acf(acf, method="trf"):
     )
 
 
-# fit a lognormal distribution by maximizing the log-likelihood function with
-# the constraint that the mean value is one
+# Fit a lognormal distribution by maximizing the log-likelihood function with
+# the constraint that the mean value is one.
 def _fit_dist(err, dist, wf, mask):
     f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p ** 2)))
     p_opt = minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
@@ -840,6 +853,7 @@ def _init_perturbation_generator(
     return pert_gen
 
 
+# Iterate autoregressive process.
 # TODO: use the method implemented in pysteps.timeseries.autoregression
 def _iterate_ar_model(input_fields, psi):
     input_field_new = 0.0
@@ -850,8 +864,100 @@ def _iterate_ar_model(input_fields, psi):
     return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
 
 
-# Initialize deterministic LINDA nowcast.
-def _linda_deterministic_init(
+# Compute LINDA nowcast.
+def _linda_forecast(
+    precip_fields,
+    precip_fields_lagr_diff,
+    timesteps,
+    fct_gen,
+    pert_gen,
+    measure_time,
+    print_info,
+):
+    # compute the nowcast
+    advection_field = fct_gen["advection_field"]
+    ari_order = fct_gen["ari_order"]
+    extrapolator = fct_gen["extrapolator"]
+    extrap_kwargs = fct_gen["extrap_kwargs"].copy()
+    interp_weights = fct_gen["interp_weights"]
+    kernels_1 = fct_gen["kernels_1"]
+    kernels_2 = fct_gen["kernels_2"]
+    mask_adv = fct_gen["mask_adv"]
+    psi = fct_gen["psi"]
+    num_workers = fct_gen["num_workers"]
+
+    precip_fct = precip_fields[-1].copy()
+
+    displacement = None
+    extrap_kwargs["return_displacement"] = True
+    precip_fct_out = []
+
+    for i in range(precip_fields_lagr_diff.shape[0]):
+        for j in range(ari_order - i):
+            precip_fields_lagr_diff[i] = _composite_convolution(
+                precip_fields_lagr_diff[i],
+                kernels_1,
+                interp_weights,
+            )
+
+    # iterate each time step
+    if measure_time:
+        starttime_mainloop = time.time()
+
+    # TODO: Implement using a list instead of a number of fixed timesteps
+    for t in range(timesteps):
+        if print_info:
+            print(
+                "Computing nowcast for time step %d... " % (t + 1),
+                end="",
+                flush=True,
+            )
+
+        if measure_time:
+            starttime = time.time()
+
+        precip_fields_lagr_diff = _iterate_ar_model(precip_fields_lagr_diff, psi)
+        precip_fct += precip_fields_lagr_diff[-1]
+        for i in range(precip_fields_lagr_diff.shape[0]):
+            precip_fields_lagr_diff[i] = _composite_convolution(
+                precip_fields_lagr_diff[i],
+                kernels_1,
+                interp_weights,
+            )
+        precip_fct = _composite_convolution(precip_fct, kernels_2, interp_weights)
+
+        precip_fct_out_ = precip_fct.copy()
+        precip_fct_out_[precip_fct_out_ < 0.0] = 0.0
+        precip_fct_out_[~mask_adv] = np.nan
+
+        # apply perturbations
+        if pert_gen is not None:
+            # TODO: implement supplying seed number
+            pert_field = _generate_perturbations(pert_gen, num_workers, None)
+            precip_fct_out_ *= pert_field
+
+        # advect the forecast field for t time steps
+        extrap_kwargs["displacement_prev"] = displacement
+        precip_fct_out_, displacement = extrapolator(
+            precip_fct_out_, advection_field, 1, **extrap_kwargs
+        )
+        precip_fct_out.append(precip_fct_out_[0])
+
+        if print_info:
+            if measure_time:
+                print("{:.2f} seconds.".format(time.time() - starttime))
+            else:
+                print("done.")
+
+    if measure_time:
+        mainloop_time = time.time() - starttime_mainloop
+        return np.stack(precip_fct_out), mainloop_time
+    else:
+        return np.stack(precip_fct_out)
+
+
+# Initialize LINDA nowcast model.
+def _linda_init(
     precip_fields,
     advection_field,
     timesteps,
@@ -872,6 +978,8 @@ def _linda_deterministic_init(
     fct_gen = {}
     fct_gen["advection_field"] = advection_field
     fct_gen["ari_order"] = ari_order
+    fct_gen["add_perturbations"] = add_perturbations
+    fct_gen["num_workers"] = num_workers
     fct_gen["measure_time"] = measure_time
 
     precip_fields = precip_fields[-(ari_order + 2) :]
@@ -1081,86 +1189,6 @@ def _linda_deterministic_init(
         return fct_gen, precip_fields_lagr_diff, time.time() - starttime_init
     else:
         return fct_gen, precip_fields_lagr_diff
-
-
-# Compute deterministic LINDA nowcast.
-# TODO: implement option to add perturbations
-def _linda_deterministic_forecast(
-    precip_fields, precip_fields_lagr_diff, timesteps, fct_gen, measure_time, print_info
-):
-    # compute the nowcast
-    advection_field = fct_gen["advection_field"]
-    ari_order = fct_gen["ari_order"]
-    extrapolator = fct_gen["extrapolator"]
-    extrap_kwargs = fct_gen["extrap_kwargs"].copy()
-    interp_weights = fct_gen["interp_weights"]
-    kernels_1 = fct_gen["kernels_1"]
-    kernels_2 = fct_gen["kernels_2"]
-    mask_adv = fct_gen["mask_adv"]
-    psi = fct_gen["psi"]
-
-    precip_fct = precip_fields[-1].copy()
-
-    displacement = None
-    extrap_kwargs["return_displacement"] = True
-    precip_fct_out = []
-
-    for i in range(precip_fields_lagr_diff.shape[0]):
-        for j in range(ari_order - i):
-            precip_fields_lagr_diff[i] = _composite_convolution(
-                precip_fields_lagr_diff[i],
-                kernels_1,
-                interp_weights,
-            )
-
-    # iterate each time step
-    if measure_time:
-        starttime_mainloop = time.time()
-
-    # TODO: Implement using a list instead of a number of fixed timesteps
-    for t in range(timesteps):
-        if print_info:
-            print(
-                "Computing nowcast for time step %d... " % (t + 1),
-                end="",
-                flush=True,
-            )
-
-        if measure_time:
-            starttime = time.time()
-
-        precip_fields_lagr_diff = _iterate_ar_model(precip_fields_lagr_diff, psi)
-        precip_fct += precip_fields_lagr_diff[-1]
-        for i in range(precip_fields_lagr_diff.shape[0]):
-            precip_fields_lagr_diff[i] = _composite_convolution(
-                precip_fields_lagr_diff[i],
-                kernels_1,
-                interp_weights,
-            )
-        precip_fct = _composite_convolution(precip_fct, kernels_2, interp_weights)
-
-        precip_fct_out_ = precip_fct.copy()
-        precip_fct_out_[precip_fct_out_ < 0.0] = 0.0
-        precip_fct_out_[~mask_adv] = np.nan
-
-        # advect the forecast field for t time steps
-        extrap_kwargs["displacement_prev"] = displacement
-        precip_fct_out_, displacement = extrapolator(
-            precip_fct_out_, advection_field, 1, **extrap_kwargs
-        )
-        precip_fct_out.append(precip_fct_out_[0])
-
-        if print_info:
-            if measure_time:
-                print("{:.2f} seconds.".format(time.time() - starttime))
-            else:
-                print("done.")
-
-    if measure_time:
-        mainloop_time = time.time() - starttime_mainloop
-        return np.stack(precip_fct_out), mainloop_time
-    else:
-        return np.stack(precip_fct_out)
 
 
 # Compute convolution where non-finite values are ignored.
