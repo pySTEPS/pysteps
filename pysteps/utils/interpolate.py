@@ -15,18 +15,41 @@ import numpy as np
 import scipy.spatial
 
 
+# TODO: Implement wrapper to scipy's RBF method.
 def rbfinterp2d(
     coord,
     input_array,
     xgrid,
     ygrid,
-    rbfunction="gaussian",
+    weighting_function="gaussian",
     epsilon=10,
     k=50,
     nchunks=5,
 ):
-    """Fast 2-D grid interpolation of a sparse (multivariate) array using a
-    radial basis function.
+    return idw_interp2d(
+        coord,
+        input_array,
+        xgrid,
+        ygrid,
+        weighting_function,
+        epsilon,
+        k,
+        nchunks,
+    )
+
+
+def idwinterp2d(
+    coord,
+    input_array,
+    xgrid,
+    ygrid,
+    weighting_function="gaussian",
+    epsilon=10,
+    k=50,
+    nchunks=5,
+):
+    """Fast 2-D grid inverse distance weighting interpolation of a sparse
+    (multivariate) array.
 
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
@@ -42,13 +65,13 @@ def rbfinterp2d(
         variables. All values in ``input_array`` are required to have finite values.
     xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
-    rbfunction: {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
-        The name of one of the available radial basis function based on a
+    weighting_function: {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
+        The name of one of the available weighting functions based on a
         normalized Euclidian norm as defined in the **Notes** section below.
 
-        More details provided in the wikipedia reference page linked below.
     epsilon: float, optional
-        The shape parameter used to scale the input to the radial kernel.
+        The shape parameter used to scale the input distance in the weighting
+        function.
 
         A smaller value for ``epsilon`` produces a smoother interpolation. More
         details provided in the wikipedia reference page linked below.
@@ -74,15 +97,9 @@ def rbfinterp2d(
 
     where the min and max values are taken as the 2nd and 98th percentiles.
 
-    References
-    ----------
-    Wikipedia contributors, "Radial basis function,"
-    Wikipedia, The Free Encyclopedia,
-    https://en.wikipedia.org/w/index.php?title=Radial_basis_function&oldid=906155047
-    (accessed August 19, 2019).
     """
 
-    _rbfunctions = [
+    _wfunction = [
         "nearest",
         "gaussian",
         "inverse quadratic",
@@ -141,12 +158,12 @@ def rbfinterp2d(
     dextent = np.max(np.diff(qcoord, axis=0))
     coord = (coord - qcoord[0, :]) / dextent
 
-    rbfunction = rbfunction.lower()
-    if rbfunction not in _rbfunctions:
+    weighting_function = weighting_function.lower()
+    if weighting_function not in _wfunction:
         raise ValueError(
-            "Unknown rbfunction '{}'\n".format(rbfunction)
+            "Unknown weighting_function '{}'\n".format(weighting_function)
             + "The available rbfunctions are: "
-            + str(_rbfunctions)
+            + str(_wfunction)
         ) from None
 
     # generate the target grid
@@ -197,16 +214,16 @@ def rbfinterp2d(
         else:
 
             # the interpolation weights
-            if rbfunction == "gaussian":
+            if weighting_function == "gaussian":
                 w = np.exp(-((d * epsilon) ** 2))
 
-            elif rbfunction == "inverse quadratic":
+            elif weighting_function == "inverse quadratic":
                 w = 1.0 / (1 + (epsilon * d) ** 2)
 
-            elif rbfunction == "inverse multiquadric":
+            elif weighting_function == "inverse multiquadric":
                 w = 1.0 / np.sqrt(1 + (epsilon * d) ** 2)
 
-            elif rbfunction == "bump":
+            elif weighting_function == "bump":
                 w = np.exp(-1.0 / (1 - (epsilon * d) ** 2))
                 w[d >= 1 / epsilon] = 0.0
 
