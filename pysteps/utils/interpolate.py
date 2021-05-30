@@ -21,20 +21,20 @@ def rbfinterp2d(
     input_array,
     xgrid,
     ygrid,
-    weighting_function="gaussian",
+    rbfunction="gaussian",
     epsilon=10,
     k=50,
     nchunks=5,
 ):
-    return idw_interp2d(
+    return idwinterp2d(
         coord,
         input_array,
         xgrid,
         ygrid,
-        weighting_function,
-        epsilon,
-        k,
-        nchunks,
+        weighting_function=rbfunction,
+        epsilon=epsilon,
+        k=k,
+        nchunks=nchunks,
     )
 
 
