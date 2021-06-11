@@ -11,9 +11,11 @@ Interpolation routines for pysteps.
     rbfinterp2d
 """
 
+import warnings
+
 import numpy as np
 import scipy.spatial
-
+from scipy.interpolate import Rbf
 
 # TODO: Implement wrapper to scipy's RBF method.
 def rbfinterp2d(
@@ -21,21 +23,59 @@ def rbfinterp2d(
     input_array,
     xgrid,
     ygrid,
-    rbfunction="gaussian",
-    epsilon=10,
-    k=50,
-    nchunks=5,
+    **kwargs
 ):
-    return idwinterp2d(
-        coord,
-        input_array,
-        xgrid,
-        ygrid,
-        weighting_function=rbfunction,
-        epsilon=epsilon,
-        k=k,
-        nchunks=nchunks,
-    )
+    """Radial basis function interpolation of a sparse (multivariate) array.
+
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+    .. _`scipy.interpolate.Rbf`:\
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Rbf.html
+
+    This method wraps the `scipy.interpolate.Rbf`_ class.
+
+    Parameters
+    ----------
+    coord: array_like
+        Array of shape (n, 2) containing the coordinates of the data points
+        into a 2-dimensional space.
+    input_array: array_like
+        Array of shape (n) or (n, m) containing the values of the data points,
+        where *n* is the number of data points and *m* the number of co-located
+        variables. All values in ``input_array`` are required to have finite values.
+    xgrid, ygrid: array_like
+        1D arrays representing the coordinates of the 2-D output grid.
+
+    Returns
+    -------
+    output_array: ndarray_
+        The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
+
+    """
+    deprecated_args = ["rbfunction", "epsilon", "k", "nchunks"]
+    deprecated_args = [arg for arg in deprecated_args if arg in list(kwargs.keys())]
+    if deprecated_args:
+        warnings.warn(
+            "rbfinterp2d: The following keyword arguments are deprecated:\n"
+            + str(deprecated_args)
+            + "\nIn version 1.6, passing unsupported arguments will raise an error.",
+            DeprecationWarning,
+        )
+
+    if input_array.ndim == 1:
+        nvar = 1
+        input_array = input_array[:, None]
+
+    elif input_array.ndim == 2:
+        nvar = input_array.shape[1]
+
+    xgrid, ygrid = np.meshgrid(xgrid, ygrid)
+    output_array = np.zeros((nvar, *xgrid.shape))
+    for n in range(nvar):
+        rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array[:, n])
+        output_array[n, :, :] = rbfi(xgrid, ygrid)
+
+    return output_array
 
 
 def idwinterp2d(
