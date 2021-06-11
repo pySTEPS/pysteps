@@ -56,19 +56,16 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
         )
 
     if input_array.ndim == 1:
-        nvar = 1
-        input_array = input_array[:, None]
-
-    elif input_array.ndim == 2:
-        nvar = input_array.shape[1]
+        mode = "1-D"
+    else:
+        mode = "N-D"
 
     xgrid, ygrid = np.meshgrid(xgrid, ygrid)
-    output_array = np.zeros((nvar, *xgrid.shape))
-    for n in range(nvar):
-        rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array[:, n])
-        output_array[n, :, :] = rbfi(xgrid, ygrid)
+    # TODO: catch np.linalg.LinAlgError
+    rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array, mode=mode)
+    output_array = rbfi(xgrid, ygrid)
 
-    return output_array
+    return np.moveaxis(output_array, -1, 0).squeeze()
 
 
 def idwinterp2d(
