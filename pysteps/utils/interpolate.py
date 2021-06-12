@@ -40,30 +40,33 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
 
+    Keyword Arguments
+    -----------------
+    Any of the parameters from the original `scipy.interpolate.Rbf`_ class.
+
     Returns
     -------
     output_array: ndarray_
         The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
 
     """
-    deprecated_args = ["rbfunction", "epsilon", "k", "nchunks"]
+    deprecated_args = ["rbfunction", "k", "nchunks"]
     deprecated_args = [arg for arg in deprecated_args if arg in list(kwargs.keys())]
     if deprecated_args:
         warnings.warn(
             "rbfinterp2d: The following keyword arguments are deprecated:\n"
-            + str(deprecated_args)
-            + "\nIn version 1.6, passing unsupported arguments will raise an error.",
+            + str(deprecated_args),
             DeprecationWarning,
         )
 
     if input_array.ndim == 1:
-        mode = "1-D"
+        kwargs["mode"] = "1-D"
     else:
-        mode = "N-D"
+        kwargs["mode"] = "N-D"
 
     xgrid, ygrid = np.meshgrid(xgrid, ygrid)
     # TODO: catch np.linalg.LinAlgError
-    rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array, mode=mode)
+    rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array, **kwargs)
     output_array = rbfi(xgrid, ygrid)
 
     return np.moveaxis(output_array, -1, 0).squeeze()
@@ -129,7 +132,6 @@ def idwinterp2d(
     where the min and max values are taken as the 2nd and 98th percentiles.
 
     """
-
     _wfunction = [
         "nearest",
         "gaussian",
