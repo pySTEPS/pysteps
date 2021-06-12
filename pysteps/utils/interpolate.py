@@ -64,10 +64,10 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     else:
         kwargs["mode"] = "N-D"
 
-    xgrid, ygrid = np.meshgrid(xgrid, ygrid)
+    xgridv, ygridv = np.meshgrid(xgrid, ygrid)
     # TODO: catch np.linalg.LinAlgError
     rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array, **kwargs)
-    output_array = rbfi(xgrid, ygrid)
+    output_array = rbfi(xgridv, ygridv)
 
     return np.moveaxis(output_array, -1, 0).squeeze()
 
@@ -77,10 +77,10 @@ def idwinterp2d(
     input_array,
     xgrid,
     ygrid,
-    weighting_function="gaussian",
-    epsilon=10,
-    k=50,
+    power=1,
+    k=20,
     nchunks=5,
+    **kwargs
 ):
     """Fast 2-D grid inverse distance weighting interpolation of a sparse
     (multivariate) array.
@@ -99,16 +99,8 @@ def idwinterp2d(
         variables. All values in ``input_array`` are required to have finite values.
     xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
-    weighting_function: {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
-        The name of one of the available weighting functions based on a
-        normalized Euclidian norm as defined in the **Notes** section below.
-
-    epsilon: float, optional
-        The shape parameter used to scale the input distance in the weighting
-        function.
-
-        A smaller value for ``epsilon`` produces a smoother interpolation. More
-        details provided in the wikipedia reference page linked below.
+    power: positive float, optional
+        The power parameter used to comptute the distance weights as w = d^(-power).
     k: int or None, optional
         The number of nearest neighbours used for each target location.
         This can also be useful to to speed-up the interpolation.
@@ -122,23 +114,7 @@ def idwinterp2d(
     output_array: ndarray_
         The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
 
-    Notes
-    -----
-    The coordinates are normalized before computing the Euclidean norms:
-
-        x = (x - min(x)) / max[max(x) - min(x), max(y) - min(y)],\n
-        y = (y - min(y)) / max[max(x) - min(x), max(y) - min(y)],
-
-    where the min and max values are taken as the 2nd and 98th percentiles.
-
     """
-    _wfunction = [
-        "nearest",
-        "gaussian",
-        "inverse quadratic",
-        "inverse multiquadric",
-        "bump",
-    ]
 
     input_array = np.copy(input_array)
 
@@ -159,7 +135,6 @@ def idwinterp2d(
         )
 
     npoints = input_array.shape[0]
-
     if npoints == 0:
         raise ValueError(
             "input_array (n, m) must contain at least one sample, but it has %i"
@@ -177,33 +152,18 @@ def idwinterp2d(
 
     if coord.ndim != 2:
         raise ValueError(
-            "coord must have 2 dimensions (n, 2), but it has %i" % coord.ndim
+            f"coord must have 2 dimensions (n, 2), but it has {coord.ndim}"
         )
 
     if npoints != coord.shape[0]:
         raise ValueError(
             "the number of samples in the input_array does not match the "
-            + "number of coordinates %i!=%i" % (npoints, coord.shape[0])
+            f"number of coordinates {npoints}!={coord.shape[0]}"
         )
 
-    # normalize coordinates
-    qcoord = np.percentile(coord, [2, 98], axis=0)
-    dextent = np.max(np.diff(qcoord, axis=0))
-    coord = (coord - qcoord[0, :]) / dextent
-
-    weighting_function = weighting_function.lower()
-    if weighting_function not in _wfunction:
-        raise ValueError(
-            "Unknown weighting_function '{}'\n".format(weighting_function)
-            + "The available rbfunctions are: "
-            + str(_wfunction)
-        ) from None
-
     # generate the target grid
-    X, Y = np.meshgrid(xgrid, ygrid)
-    grid = np.column_stack((X.ravel(), Y.ravel()))
-    # normalize the grid coordinates
-    grid = (grid - qcoord[0, :]) / dextent
+    xgridv, ygridv = np.meshgrid(xgrid, ygrid)
+    gridv = np.column_stack((xgridv.ravel(), ygridv.ravel()))
 
     # k-nearest interpolation
     if k is not None and k > 0:
@@ -217,57 +177,43 @@ def idwinterp2d(
 
     # split grid points in n chunks
     if nchunks > 1:
-        subgrids = np.array_split(grid, nchunks, 0)
+        subgrids = np.array_split(gridv, nchunks, 0)
         subgrids = [x for x in subgrids if x.size > 0]
 
     else:
-        subgrids = [grid]
+        subgrids = [gridv]
 
     # loop subgrids
     i0 = 0
-    output_array = np.zeros((grid.shape[0], nvar))
+    output_array = np.zeros((gridv.shape[0], nvar))
     for i, subgrid in enumerate(subgrids):
         idelta = subgrid.shape[0]
 
         if k == 0:
             # use all points
-            d = scipy.spatial.distance.cdist(coord, subgrid, "euclidean").transpose()
+            dist = scipy.spatial.distance.cdist(coord, subgrid, "euclidean").transpose()
             inds = np.arange(npoints)[None, :] * np.ones(
                 (subgrid.shape[0], npoints)
             ).astype(int)
 
         else:
             # use k-nearest neighbours
-            d, inds = tree.query(subgrid, k=k)
+            dist, inds = tree.query(subgrid, k=k)
 
         if k == 1:
             # nearest neighbour
             output_array[i0 : (i0 + idelta), :] = input_array[inds, :]
 
         else:
-
-            # the interpolation weights
-            if weighting_function == "gaussian":
-                w = np.exp(-((d * epsilon) ** 2))
-
-            elif weighting_function == "inverse quadratic":
-                w = 1.0 / (1 + (epsilon * d) ** 2)
-
-            elif weighting_function == "inverse multiquadric":
-                w = 1.0 / np.sqrt(1 + (epsilon * d) ** 2)
-
-            elif weighting_function == "bump":
-                w = np.exp(-1.0 / (1 - (epsilon * d) ** 2))
-                w[d >= 1 / epsilon] = 0.0
-
-            if not np.all(np.sum(w, axis=1)):
-                w[np.sum(w, axis=1) == 0, :] = 1.0
+            # compute distance-based weights
+            weights = 1 / np.power(dist + 1e-6, power)
+            weights = weights / np.sum(weights, axis=1, keepdims=True)
 
             # interpolate
-            for j in range(nvar):
-                output_array[i0 : (i0 + idelta), j] = np.sum(
-                    w * input_array[inds, j], axis=1
-                ) / np.sum(w, axis=1)
+            output_array[i0 : (i0 + idelta),] = np.sum(
+                input_array[inds, :] * weights[..., None],
+                axis=1,
+            )
 
         i0 += idelta
 
