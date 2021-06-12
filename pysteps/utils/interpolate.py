@@ -17,6 +17,7 @@ import numpy as np
 import scipy.spatial
 from scipy.interpolate import Rbf
 
+
 def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     """Radial basis function interpolation of a sparse (multivariate) array.
 
