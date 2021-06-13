@@ -72,16 +72,7 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     return np.moveaxis(output_array, -1, 0).squeeze()
 
 
-def idwinterp2d(
-    coord,
-    input_array,
-    xgrid,
-    ygrid,
-    power=1,
-    k=20,
-    nchunks=5,
-    **kwargs
-):
+def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kwargs):
     """Fast 2-D grid inverse distance weighting interpolation of a sparse
     (multivariate) array.
 
@@ -115,7 +106,6 @@ def idwinterp2d(
         The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
 
     """
-
     input_array = np.copy(input_array)
 
     if np.any(~np.isfinite(input_array)):
