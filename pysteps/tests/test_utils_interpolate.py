@@ -53,11 +53,6 @@ def test_wrong_inputs(interp_method):
     with pytest.raises(ValueError):
         interp(np.random.rand(10, 1), input_array, xgrid, ygrid)
 
-    # zero samples
-    with pytest.raises(ValueError):
-        input_no_samples = input_array[0, :][None, :]
-        interp(coord, input_no_samples, xgrid, ygrid)
-
     # wrong number of coordinates
     with pytest.raises(ValueError):
         interp(np.random.rand(9, 2), input_array, xgrid, ygrid)
