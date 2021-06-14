@@ -8,6 +8,7 @@ Interpolation routines for pysteps.
 .. autosummary::
     :toctree: ../generated/
 
+    idwinterp2d
     rbfinterp2d
 """
 
@@ -21,63 +22,8 @@ from pysteps.decorators import preamble_interpolation
 
 
 @preamble_interpolation
-def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
-    """Radial basis function interpolation of a sparse (multivariate) array.
-
-    .. _ndarray:\
-    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
-    .. _`scipy.interpolate.Rbf`:\
-    https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Rbf.html
-
-    This method wraps the `scipy.interpolate.Rbf`_ class.
-
-    Parameters
-    ----------
-    coord: array_like
-        Array of shape (n, 2) containing the coordinates of the data points
-        into a 2-dimensional space.
-    input_array: array_like
-        Array of shape (n) or (n, m) containing the values of the data points,
-        where *n* is the number of data points and *m* the number of co-located
-        variables. All values in ``input_array`` are required to have finite values.
-    xgrid, ygrid: array_like
-        1D arrays representing the coordinates of the 2-D output grid.
-
-    Keyword Arguments
-    -----------------
-    Any of the parameters from the original `scipy.interpolate.Rbf`_ class.
-
-    Returns
-    -------
-    output_array: ndarray_
-        The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
-
-    """
-    deprecated_args = ["rbfunction", "k", "nchunks"]
-    deprecated_args = [arg for arg in deprecated_args if arg in list(kwargs.keys())]
-    if deprecated_args:
-        warnings.warn(
-            "rbfinterp2d: The following keyword arguments are deprecated:\n"
-            + str(deprecated_args),
-            DeprecationWarning,
-        )
-
-    if input_array.ndim == 1:
-        kwargs["mode"] = "1-D"
-    else:
-        kwargs["mode"] = "N-D"
-
-    xgridv, ygridv = np.meshgrid(xgrid, ygrid)
-    rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array, **kwargs)
-    output_array = rbfi(xgridv, ygridv)
-
-    return np.moveaxis(output_array, -1, 0).squeeze()
-
-
-@preamble_interpolation
 def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kwargs):
-    """Fast 2-D grid inverse distance weighting interpolation of a sparse
-    (multivariate) array.
+    """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
@@ -107,7 +53,6 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
     -------
     output_array: ndarray_
         The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
-
     """
     if input_array.ndim == 1:
         nvar = 1
@@ -172,5 +117,58 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
 
     # reshape to final grid size
     output_array = output_array.reshape(ygrid.size, xgrid.size, nvar)
+
+    return np.moveaxis(output_array, -1, 0).squeeze()
+
+
+@preamble_interpolation
+def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
+    """Radial basis function interpolation of a sparse (multivariate) array.
+
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+    .. _`scipy.interpolate.Rbf`:\
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Rbf.html
+
+    This method wraps the `scipy.interpolate.Rbf`_ class.
+
+    Parameters
+    ----------
+    coord: array_like
+        Array of shape (n, 2) containing the coordinates of the data points
+        into a 2-dimensional space.
+    input_array: array_like
+        Array of shape (n) or (n, m) containing the values of the data points,
+        where *n* is the number of data points and *m* the number of co-located
+        variables. All values in ``input_array`` are required to have finite values.
+    xgrid, ygrid: array_like
+        1D arrays representing the coordinates of the 2-D output grid.
+
+    Keyword Arguments
+    -----------------
+    Any of the parameters from the original `scipy.interpolate.Rbf`_ class.
+
+    Returns
+    -------
+    output_array: ndarray_
+        The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
+    """
+    deprecated_args = ["rbfunction", "k", "nchunks"]
+    deprecated_args = [arg for arg in deprecated_args if arg in list(kwargs.keys())]
+    if deprecated_args:
+        warnings.warn(
+            "rbfinterp2d: The following keyword arguments are deprecated:\n"
+            + str(deprecated_args),
+            DeprecationWarning,
+        )
+
+    if input_array.ndim == 1:
+        kwargs["mode"] = "1-D"
+    else:
+        kwargs["mode"] = "N-D"
+
+    xgridv, ygridv = np.meshgrid(xgrid, ygrid)
+    rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array, **kwargs)
+    output_array = rbfi(xgridv, ygridv)
 
     return np.moveaxis(output_array, -1, 0).squeeze()

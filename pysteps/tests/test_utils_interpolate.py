@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pysteps.utils import get_method, interpolate
+from pysteps.utils import get_method
 
 
 interp_methods = (
@@ -37,36 +37,30 @@ def test_wrong_inputs(interp_method):
     with pytest.raises(ValueError):
         input_with_nans = input_array.copy()
         input_with_nans[0, 0] = np.nan
-        output = interp(coord, input_with_nans, xgrid, ygrid)
+        interp(coord, input_with_nans, xgrid, ygrid)
 
     # nan in the input coordinates
     with pytest.raises(ValueError):
         coord_with_nans = coord.copy()
         coord_with_nans[0, 0] = np.nan
-        output = interp(coord_with_nans, input_array, xgrid, ygrid)
+        interp(coord_with_nans, input_array, xgrid, ygrid)
 
     # too many dimensions in the input values
     with pytest.raises(ValueError):
-        output = interp(coord, np.random.rand(10, 2, 1), xgrid, ygrid)
+        interp(coord, np.random.rand(10, 2, 1), xgrid, ygrid)
 
     # wrong number of dimensions in the input coordinates
     with pytest.raises(ValueError):
-        output = interp(np.random.rand(10, 1), input_array, xgrid, ygrid)
+        interp(np.random.rand(10, 1), input_array, xgrid, ygrid)
 
     # zero samples
     with pytest.raises(ValueError):
-        output = interp(
-            coord,
-            input_array[
-                0,
-            ][None, :],
-            xgrid,
-            ygrid,
-        )
+        input_no_samples = input_array[0, :][None, :]
+        interp(coord, input_no_samples, xgrid, ygrid)
 
     # wrong number of coordinates
     with pytest.raises(ValueError):
-        output = interp(np.random.rand(9, 2), input_array, xgrid, ygrid)
+        interp(np.random.rand(9, 2), input_array, xgrid, ygrid)
 
 
 @pytest.mark.parametrize("interp_method", interp_methods)
@@ -79,24 +73,8 @@ def test_one_sample_input(interp_method):
 
     # one sample returns uniform grids
     output = interp(coord, input_array, xgrid, ygrid)
-    assert (
-        output[
-            0,
-        ].max()
-        == output[
-            0,
-        ].min()
-        == 1
-    )
-    assert (
-        output[
-            1,
-        ].max()
-        == output[
-            1,
-        ].min()
-        == 2
-    )
+    assert output[0, ...].max() == output[0, ...].min() == 1
+    assert output[1, ...].max() == output[1, ...].min() == 2
 
 
 @pytest.mark.parametrize("interp_method", interp_methods)
