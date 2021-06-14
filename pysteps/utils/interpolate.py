@@ -17,7 +17,10 @@ import numpy as np
 import scipy.spatial
 from scipy.interpolate import Rbf
 
+from pysteps.decorators import preamble_interpolation
 
+
+@preamble_interpolation
 def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     """Radial basis function interpolation of a sparse (multivariate) array.
 
@@ -65,13 +68,13 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
         kwargs["mode"] = "N-D"
 
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
-    # TODO: catch np.linalg.LinAlgError
     rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array, **kwargs)
     output_array = rbfi(xgridv, ygridv)
 
     return np.moveaxis(output_array, -1, 0).squeeze()
 
 
+@preamble_interpolation
 def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kwargs):
     """Fast 2-D grid inverse distance weighting interpolation of a sparse
     (multivariate) array.
@@ -106,11 +109,6 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
         The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
 
     """
-    input_array = np.copy(input_array)
-
-    if np.any(~np.isfinite(input_array)):
-        raise ValueError("input_array contains non-finite values")
-
     if input_array.ndim == 1:
         nvar = 1
         input_array = input_array[:, None]
@@ -118,38 +116,7 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
     elif input_array.ndim == 2:
         nvar = input_array.shape[1]
 
-    else:
-        raise ValueError(
-            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
-            % input_array.ndim
-        )
-
     npoints = input_array.shape[0]
-    if npoints == 0:
-        raise ValueError(
-            "input_array (n, m) must contain at least one sample, but it has %i"
-            % npoints
-        )
-
-    # only one sample, return uniform fields
-    elif npoints == 1:
-        output_array = np.ones((nvar, ygrid.size, xgrid.size))
-        for i in range(nvar):
-            output_array[i, :, :] *= input_array[:, i]
-        return output_array
-
-    coord = np.copy(coord)
-
-    if coord.ndim != 2:
-        raise ValueError(
-            f"coord must have 2 dimensions (n, 2), but it has {coord.ndim}"
-        )
-
-    if npoints != coord.shape[0]:
-        raise ValueError(
-            "the number of samples in the input_array does not match the "
-            f"number of coordinates {npoints}!={coord.shape[0]}"
-        )
 
     # generate the target grid
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
@@ -161,7 +128,6 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
 
         # create cKDTree object to represent source grid
         tree = scipy.spatial.cKDTree(coord)
-
     else:
         k = 0
 
@@ -169,7 +135,6 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
     if nchunks > 1:
         subgrids = np.array_split(gridv, nchunks, 0)
         subgrids = [x for x in subgrids if x.size > 0]
-
     else:
         subgrids = [gridv]
 
@@ -185,7 +150,6 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
             inds = np.arange(npoints)[None, :] * np.ones(
                 (subgrid.shape[0], npoints)
             ).astype(int)
-
         else:
             # use k-nearest neighbours
             dist, inds = tree.query(subgrid, k=k)
@@ -193,7 +157,6 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
         if k == 1:
             # nearest neighbour
             output_array[i0 : (i0 + idelta), :] = input_array[inds, :]
-
         else:
             # compute distance-based weights
             weights = 1 / np.power(dist + 1e-6, power)
