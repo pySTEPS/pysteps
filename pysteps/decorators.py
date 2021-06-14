@@ -11,6 +11,7 @@ the behavior of some functions in pysteps.
 
     postprocess_import
     check_input_frames
+    preamble_interpolation
 """
 import inspect
 from collections import defaultdict
@@ -142,65 +143,103 @@ def check_input_frames(
     return _check_input_frames
 
 
-def preamble_interpolation(interpolator):
+def preamble_interpolation(nchunks=4):
     """
     Check that all the inputs have the correct shape, and that all values are
     finite.
     """
+    def _preamble_interpolation(interpolator):
+        @wraps(interpolator)
+        def _interpolator_with_preamble(coord, input_array, xgrid, ygrid, **kwargs):
+            nonlocal nchunks  # https://stackoverflow.com/questions/5630409/
 
-    @wraps(interpolator)
-    def wrapper_decorator(coord, input_array, xgrid, ygrid, **kwargs):
+            input_array = input_array.copy()
+            coord = coord.copy()
 
-        input_array = input_array.copy()
-        coord = coord.copy()
+            input_ndims = input_array.ndim
+            input_nvars = 1 if input_ndims == 1 else input_array.shape[1]
+            input_nsamples = input_array.shape[0]
 
-        input_ndims = input_array.ndim
-        input_nvars = 1 if input_ndims == 1 else input_array.shape[1]
-        input_nsamples = input_array.shape[0]
+            coord_ndims = coord.ndim
+            coord_nsamples = coord.shape[0]
 
-        coord_ndims = coord.ndim
-        coord_nsamples = coord.shape[0]
+            grid_shape = (ygrid.size, xgrid.size)
 
-        grid_shape = (ygrid.size, xgrid.size)
+            if np.any(~np.isfinite(input_array)):
+                raise ValueError("input_array contains non-finite values")
+            if np.any(~np.isfinite(coord)):
+                raise ValueError("coord contains non-finite values")
 
-        if np.any(~np.isfinite(input_array)):
-            raise ValueError("input_array contains non-finite values")
-        if np.any(~np.isfinite(coord)):
-            raise ValueError("coord contains non-finite values")
+            if input_ndims > 2:
+                raise ValueError(
+                    f"input_array must have 1 (n) or 2 dimensions (n, m), but it has {input_ndims}"
+                )
+            if not coord_ndims == 2:
+                raise ValueError(
+                    f"coord must have 2 dimensions (n, 2), but it has {coord_ndims}"
+                )
 
-        if input_ndims > 2:
-            raise ValueError(
-                f"input_array must have 1 (n) or 2 dimensions (n, m), but it has {input_ndims}"
+            if not input_nsamples == coord_nsamples:
+                raise ValueError(
+                    "the number of samples in the input_array does not match the "
+                    f"number of coordinates {input_nsamples}!={coord_nsamples}"
+                )
+
+            # only one sample, return uniform output
+            if input_nsamples == 1:
+                output_array = np.ones((input_nvars,) + grid_shape)
+                for n, v in enumerate(input_array[0, ...]):
+                    output_array[n, ...] *= v
+                return output_array.squeeze()
+
+            # all equal elements, return uniform output
+            if input_array.max() == input_array.min():
+                return np.ones((input_nvars,) + grid_shape) * input_array.ravel()[0]
+
+            # split grid in n chunks
+            nchunks = int(kwargs.get("nchunks", nchunks) ** 0.5)
+            if nchunks > 1:
+                subxgrids = np.array_split(xgrid, nchunks)
+                subxgrids = [x for x in subxgrids if x.size > 0]
+                subygrids = np.array_split(ygrid, nchunks)
+                subygrids = [y for y in subygrids if y.size > 0]
+            else:
+                subxgrids = [xgrid]
+                subygrids = [ygrid]
+
+            indx = indy = 0
+            interpolated = np.zeros((input_nvars,) + grid_shape)
+            for subxgrid, subygrid in zip(subxgrids, subygrids):
+                deltax = subxgrid.size
+                deltay = subygrid.size
+                interpolated[
+                    :, indy : (indy + deltay), indx : (indx + deltax)
+                ] = interpolator(coord, input_array, subxgrid, subygrid, **kwargs)
+                indx += deltax
+                indy += deltay
+
+            return interpolated
+
+        extra_kwargs_doc = """
+            nchunks: int, optional
+                Split and process the destination grid in nchunks.
+                Useful for large grids to limit the memory footprint.
+            """
+
+        # Clean up indentation from docstrings for the
+        # docstrings to be merged correctly.
+        extra_kwargs_doc = inspect.cleandoc(extra_kwargs_doc)
+        _interpolator_with_preamble.__doc__ = inspect.cleandoc(
+            _interpolator_with_preamble.__doc__
+        )
+
+        # Add extra kwargs docstrings
+        _interpolator_with_preamble.__doc__ = (
+            _interpolator_with_preamble.__doc__.format_map(
+                defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
             )
-        if not coord_ndims == 2:
-            raise ValueError(
-                f"coord must have 2 dimensions (n, 2), but it has {coord_ndims}"
-            )
+        )
 
-        if not input_nsamples == coord_nsamples:
-            raise ValueError(
-                "the number of samples in the input_array does not match the "
-                f"number of coordinates {input_nsamples}!={coord_nsamples}"
-            )
+        return _interpolator_with_preamble
 
-        # only one sample, return uniform output
-        if input_nsamples == 1:
-            output_array = np.ones((input_nvars,) + grid_shape)
-            for n, v in enumerate(
-                input_array[
-                    0,
-                ]
-            ):
-                output_array[
-                    n,
-                ] *= v
-            return output_array.squeeze()
-
-        # all equal elements, return uniform output
-        if input_array.max() == input_array.min():
-            return np.ones((input_nvars,) + grid_shape) * input_array.ravel()[0]
-
-        interpolated = interpolator(coord, input_array, xgrid, ygrid, **kwargs)
-        return interpolated
-
-    return wrapper_decorator
+    return _preamble_interpolation

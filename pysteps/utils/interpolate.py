@@ -21,7 +21,7 @@ from scipy.interpolate import Rbf
 from pysteps.decorators import preamble_interpolation
 
 
-@preamble_interpolation
+@preamble_interpolation()
 def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kwargs):
     """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
@@ -45,9 +45,10 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
         The number of nearest neighbours used for each target location.
         This can also be useful to to speed-up the interpolation.
         If set to None, it interpolates using all the data points at once.
-    nchunks: int, optional
-        The number of chunks in which the grid points are split to limit the
-        memory usage during the interpolation.
+
+    Keyword Arguments
+    -----------------
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -76,44 +77,29 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
     else:
         k = 0
 
-    # split grid points in n chunks
-    if nchunks > 1:
-        subgrids = np.array_split(gridv, nchunks, 0)
-        subgrids = [x for x in subgrids if x.size > 0]
+    if k == 0:
+        # use all points
+        dist = scipy.spatial.distance.cdist(coord, gridv, "euclidean").transpose()
+        inds = np.arange(npoints)[None, :] * np.ones((gridv.shape[0], npoints)).astype(
+            int
+        )
     else:
-        subgrids = [gridv]
+        # use k-nearest neighbours
+        dist, inds = tree.query(gridv, k=k)
 
-    # loop subgrids
-    i0 = 0
-    output_array = np.zeros((gridv.shape[0], nvar))
-    for i, subgrid in enumerate(subgrids):
-        idelta = subgrid.shape[0]
+    if k == 1:
+        # nearest neighbour
+        output_array = input_array[inds, :]
+    else:
+        # compute distance-based weights
+        weights = 1 / np.power(dist + 1e-6, power)
+        weights = weights / np.sum(weights, axis=1, keepdims=True)
 
-        if k == 0:
-            # use all points
-            dist = scipy.spatial.distance.cdist(coord, subgrid, "euclidean").transpose()
-            inds = np.arange(npoints)[None, :] * np.ones(
-                (subgrid.shape[0], npoints)
-            ).astype(int)
-        else:
-            # use k-nearest neighbours
-            dist, inds = tree.query(subgrid, k=k)
-
-        if k == 1:
-            # nearest neighbour
-            output_array[i0 : (i0 + idelta), :] = input_array[inds, :]
-        else:
-            # compute distance-based weights
-            weights = 1 / np.power(dist + 1e-6, power)
-            weights = weights / np.sum(weights, axis=1, keepdims=True)
-
-            # interpolate
-            output_array[i0 : (i0 + idelta),] = np.sum(
-                input_array[inds, :] * weights[..., None],
-                axis=1,
-            )
-
-        i0 += idelta
+        # interpolate
+        output_array = np.sum(
+            input_array[inds, :] * weights[..., None],
+            axis=1,
+        )
 
     # reshape to final grid size
     output_array = output_array.reshape(ygrid.size, xgrid.size, nvar)
@@ -121,7 +107,7 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
     return np.moveaxis(output_array, -1, 0).squeeze()
 
 
-@preamble_interpolation
+@preamble_interpolation(nchunks=0)
 def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     """Radial basis function interpolation of a sparse (multivariate) array.
 
@@ -147,13 +133,14 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     Keyword Arguments
     -----------------
     Any of the parameters from the original `scipy.interpolate.Rbf`_ class.
+    {extra_kwargs_doc}
 
     Returns
     -------
     output_array: ndarray_
         The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
     """
-    deprecated_args = ["rbfunction", "k", "nchunks"]
+    deprecated_args = ["rbfunction", "k"]
     deprecated_args = [arg for arg in deprecated_args if arg in list(kwargs.keys())]
     if deprecated_args:
         warnings.warn(
