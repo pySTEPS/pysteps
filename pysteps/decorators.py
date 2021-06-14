@@ -177,10 +177,6 @@ def preamble_interpolation(interpolator):
                 f"coord must have 2 dimensions (n, 2), but it has {coord_ndims}"
             )
 
-        if input_nsamples == 0:
-            raise ValueError(
-                f"input_array (n, m) must contain at least one sample, but it has {nsamples}"
-            )
         if not input_nsamples == coord_nsamples:
             raise ValueError(
                 "the number of samples in the input_array does not match the "
