@@ -49,9 +49,13 @@ def test_wrong_inputs(interp_method):
     with pytest.raises(ValueError):
         interp(coord, np.random.rand(10, 2, 1), xgrid, ygrid)
 
-    # wrong number of dimensions in the input coordinates
+    # wrong dimension size in the input coordinates
     with pytest.raises(ValueError):
         interp(np.random.rand(10, 1), input_array, xgrid, ygrid)
+
+    # wrong number of dimensions in the input coordinates
+    with pytest.raises(ValueError):
+        interp(np.random.rand(10, 2, 1), input_array, xgrid, ygrid)
 
     # wrong number of coordinates
     with pytest.raises(ValueError):
