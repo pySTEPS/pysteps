@@ -15,14 +15,16 @@ Interpolation routines for pysteps.
 import warnings
 
 import numpy as np
-import scipy.spatial
 from scipy.interpolate import Rbf
+from scipy.spatial import cKDTree
+from scipy.spatial.distance import cdist
+
 
 from pysteps.decorators import preamble_interpolation
 
 
 @preamble_interpolation()
-def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kwargs):
+def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=1, **kwargs):
     """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
@@ -41,9 +43,8 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
         1D arrays representing the coordinates of the 2-D output grid.
     power: positive float, optional
         The power parameter used to comptute the distance weights as w = d^(-power).
-    k: int or None, optional
+    k: positive int or None, optional
         The number of nearest neighbours used for each target location.
-        This can also be useful to to speed-up the interpolation.
         If set to None, it interpolates using all the data points at once.
 
     Keyword Arguments
@@ -68,38 +69,29 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=20, nchunks=5, **kw
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
     gridv = np.column_stack((xgridv.ravel(), ygridv.ravel()))
 
-    # k-nearest interpolation
-    if k is not None and k > 0:
+    if k is not None:
         k = int(np.min((k, npoints)))
-
-        # create cKDTree object to represent source grid
-        tree = scipy.spatial.cKDTree(coord)
+        tree = cKDTree(coord)
+        dist, inds = tree.query(gridv, k=k)
+        if dist.ndim == 1:
+            dist = dist[..., None]
+            inds = inds[..., None]
     else:
-        k = 0
-
-    if k == 0:
         # use all points
-        dist = scipy.spatial.distance.cdist(coord, gridv, "euclidean").transpose()
+        dist = cdist(coord, gridv, "euclidean").transpose()
         inds = np.arange(npoints)[None, :] * np.ones((gridv.shape[0], npoints)).astype(
             int
         )
-    else:
-        # use k-nearest neighbours
-        dist, inds = tree.query(gridv, k=k)
 
-    if k == 1:
-        # nearest neighbour
-        output_array = input_array[inds, :]
-    else:
-        # compute distance-based weights
-        weights = 1 / np.power(dist + 1e-6, power)
-        weights = weights / np.sum(weights, axis=1, keepdims=True)
+    # compute distance-based weights
+    weights = 1 / np.power(dist + 1e-6, power)
+    weights = weights / np.sum(weights, axis=1, keepdims=True)
 
-        # interpolate
-        output_array = np.sum(
-            input_array[inds, :] * weights[..., None],
-            axis=1,
-        )
+    # interpolate
+    output_array = np.sum(
+        input_array[inds, :] * weights[..., None],
+        axis=1,
+    )
 
     # reshape to final grid size
     output_array = output_array.reshape(ygrid.size, xgrid.size, nvar)
