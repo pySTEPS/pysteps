@@ -14,6 +14,7 @@ the behavior of some functions in pysteps.
     preamble_interpolation
 """
 import inspect
+import uuid
 from collections import defaultdict
 from functools import wraps
 
@@ -204,6 +205,10 @@ def preamble_interpolation(nchunks=4):
                 subxgrids = [x for x in subxgrids if x.size > 0]
                 subygrids = np.array_split(ygrid, nchunks)
                 subygrids = [y for y in subygrids if y.size > 0]
+
+                # generate a unique identifier to be used for caching
+                # intermediate results
+                kwargs["hkey"] = uuid.uuid1().int
             else:
                 subxgrids = [xgrid]
                 subygrids = [ygrid]
@@ -246,3 +251,32 @@ def preamble_interpolation(nchunks=4):
         return _interpolator_with_preamble
 
     return _preamble_interpolation
+
+
+def memoize(maxsize=10):
+    """
+    LRU cache decorator implementation for any arbitrary input since
+    caching is purely based on the optional keyword argument 'hkey'.
+    """
+
+    def _memoize(func):
+        cache = dict()
+        hkeys = []
+
+        @wraps(func)
+        def _func_with_cache(*args, **kwargs):
+            hkey = kwargs.pop("hkey", None)
+            if hkey in cache:
+                return cache[hkey]
+            result = func(*args, **kwargs)
+            if hkey is not None:
+                cache[hkey] = result
+                hkeys.append(hkey)
+                if len(hkeys) > maxsize:
+                    cache.pop(hkeys.pop(0))
+
+            return result
+
+        return _func_with_cache
+
+    return _memoize

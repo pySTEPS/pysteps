@@ -20,11 +20,11 @@ from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 
 
-from pysteps.decorators import preamble_interpolation
+from pysteps.decorators import memoize, preamble_interpolation
 
 
 @preamble_interpolation()
-def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=1, **kwargs):
+def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=50, **kwargs):
     """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
@@ -71,7 +71,7 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=1, k=1, **kwargs):
 
     if k is not None:
         k = int(np.min((k, npoints)))
-        tree = cKDTree(coord)
+        tree = _cKDTree_cached(coord, hkey=kwargs.get("hkey", None))
         dist, inds = tree.query(gridv, k=k)
         if dist.ndim == 1:
             dist = dist[..., None]
@@ -147,7 +147,19 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
         kwargs["mode"] = "N-D"
 
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
-    rbfi = Rbf(*np.split(coord, coord.shape[1], 1), input_array, **kwargs)
+    rbfi = _Rbf_cached(*np.split(coord, coord.shape[1], 1), input_array, **kwargs)
     output_array = rbfi(xgridv, ygridv)
 
     return np.moveaxis(output_array, -1, 0).squeeze()
+
+
+@memoize()
+def _cKDTree_cached(*args, **kwargs):
+    """Add LRU cache to cKDTree class"""
+    return cKDTree(*args)
+
+
+@memoize()
+def _Rbf_cached(*args, **kwargs):
+    """Add LRU cache to Rbf class"""
+    return Rbf(*args, **kwargs)
