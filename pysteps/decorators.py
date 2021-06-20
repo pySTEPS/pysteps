@@ -148,6 +148,7 @@ def preamble_interpolation(nchunks=4):
     Check that all the inputs have the correct shape, and that all values are
     finite.
     """
+
     def _preamble_interpolation(interpolator):
         @wraps(interpolator)
         def _interpolator_with_preamble(coord, input_array, xgrid, ygrid, **kwargs):
@@ -207,16 +208,18 @@ def preamble_interpolation(nchunks=4):
                 subxgrids = [xgrid]
                 subygrids = [ygrid]
 
-            indx = indy = 0
             interpolated = np.zeros((input_nvars,) + grid_shape)
-            for subxgrid, subygrid in zip(subxgrids, subygrids):
+            indx = 0
+            for subxgrid in subxgrids:
                 deltax = subxgrid.size
-                deltay = subygrid.size
-                interpolated[
-                    :, indy : (indy + deltay), indx : (indx + deltax)
-                ] = interpolator(coord, input_array, subxgrid, subygrid, **kwargs)
+                indy = 0
+                for subygrid in subygrids:
+                    deltay = subygrid.size
+                    interpolated[
+                        :, indy : (indy + deltay), indx : (indx + deltax)
+                    ] = interpolator(coord, input_array, subxgrid, subygrid, **kwargs)
+                    indy += deltay
                 indx += deltax
-                indy += deltay
 
             return interpolated
 
