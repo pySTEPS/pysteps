@@ -24,7 +24,7 @@ from pysteps.decorators import memoize, preamble_interpolation
 
 
 @preamble_interpolation()
-def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=50, **kwargs):
+def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
     """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
@@ -42,7 +42,8 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=50, **kwargs):
     xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
     power: positive float, optional
-        The power parameter used to comptute the distance weights as w = d^(-power).
+        The power parameter used to comptute the distance weights as
+        ``weight = distance ** (-power)``.
     k: positive int or None, optional
         The number of nearest neighbours used for each target location.
         If set to None, it interpolates using all the data points at once.
@@ -69,6 +70,11 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=50, **kwargs):
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
     gridv = np.column_stack((xgridv.ravel(), ygridv.ravel()))
 
+    # grid mean resolution
+    x_res = np.gradient(xgrid)
+    y_res = np.gradient(ygrid)
+    mean_res = np.mean(np.abs([x_res.mean(), y_res.mean()]))
+
     if k is not None:
         k = int(np.min((k, npoints)))
         tree = _cKDTree_cached(coord, hkey=kwargs.get("hkey", None))
@@ -84,7 +90,8 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=50, **kwargs):
         )
 
     # compute distance-based weights
-    weights = 1 / np.power(dist + 1e-6, power)
+    dist = dist / mean_res + 0.5
+    weights = 1 / np.power(dist, power)
     weights = weights / np.sum(weights, axis=1, keepdims=True)
 
     # interpolate
