@@ -510,14 +510,14 @@ def initialize_forecast_exporter_netcdf(
     pr = pyproj.Proj(metadata["projection"])
     lon, lat = pr(x_2d.flatten(), y_2d.flatten(), inverse=True)
 
-    var_lon = ncf.createVariable("lon", np.float, dimensions=("y", "x"))
+    var_lon = ncf.createVariable("lon", float, dimensions=("y", "x"))
     var_lon[:] = lon.reshape(shape)
     var_lon.standard_name = "longitude"
     var_lon.long_name = "longitude coordinate"
     # TODO(exporters): Don't hard-code the unit.
     var_lon.units = "degrees_east"
 
-    var_lat = ncf.createVariable("lat", np.float, dimensions=("y", "x"))
+    var_lat = ncf.createVariable("lat", float, dimensions=("y", "x"))
     var_lat[:] = lat.reshape(shape)
     var_lat.standard_name = "latitude"
     var_lat.long_name = "latitude coordinate"
@@ -533,14 +533,14 @@ def initialize_forecast_exporter_netcdf(
     ) = _convert_proj4_to_grid_mapping(metadata["projection"])
     # skip writing the grid mapping if a matching name was not found
     if grid_mapping_var_name is not None:
-        var_gm = ncf.createVariable(grid_mapping_var_name, np.int, dimensions=())
+        var_gm = ncf.createVariable(grid_mapping_var_name, int, dimensions=())
         var_gm.grid_mapping_name = grid_mapping_name
         for i in grid_mapping_params.items():
             var_gm.setncattr(i[0], i[1])
 
     if incremental == "member" or n_ens_gt_one:
         var_ens_num = ncf.createVariable(
-            "ens_number", np.int, dimensions=("ens_number",)
+            "ens_number", int, dimensions=("ens_number",)
         )
         if incremental != "member":
             var_ens_num[:] = list(range(1, n_ens_members + 1))
@@ -548,7 +548,7 @@ def initialize_forecast_exporter_netcdf(
         var_ens_num.standard_name = "realization"
         var_ens_num.units = ""
 
-    var_time = ncf.createVariable("time", np.int, dimensions=("time",))
+    var_time = ncf.createVariable("time", int, dimensions=("time",))
     if incremental != "timestep":
         var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
     var_time.long_name = "forecast time"

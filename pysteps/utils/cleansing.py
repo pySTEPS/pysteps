@@ -78,7 +78,7 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
         )
 
     if np.isscalar(scale):
-        scale = np.float(scale)
+        scale = float(scale)
     else:
         scale = np.copy(scale)
         if scale.ndim != 1:

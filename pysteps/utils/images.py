@@ -5,10 +5,6 @@ pysteps.utils.images
 
 Image processing routines for pysteps.
 
-.. _`Shi-Tomasi`:\
-    https://docs.opencv.org/3.4.1/dd/d1a/group__imgproc__feature.html#ga1d6bb77486c8f92d79c8793ad995d541
-
-
 .. autosummary::
     :toctree: ../generated/
 
