@@ -23,11 +23,11 @@ def test_memoize():
     # maxsize exceeded
     t0 = time.monotonic()
     out = _slow_function(0, hkey=0)
-    assert time.monotonic() - t0 > 1
+    assert time.monotonic() - t0 >= 1
     assert out == 0
 
     # no hash
     t0 = time.monotonic()
     out = _slow_function(1)
-    assert time.monotonic() - t0 > 1
+    assert time.monotonic() - t0 >= 1
     assert out == 1
