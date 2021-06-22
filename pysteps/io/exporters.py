@@ -539,9 +539,7 @@ def initialize_forecast_exporter_netcdf(
             var_gm.setncattr(i[0], i[1])
 
     if incremental == "member" or n_ens_gt_one:
-        var_ens_num = ncf.createVariable(
-            "ens_number", int, dimensions=("ens_number",)
-        )
+        var_ens_num = ncf.createVariable("ens_number", int, dimensions=("ens_number",))
         if incremental != "member":
             var_ens_num[:] = list(range(1, n_ens_members + 1))
         var_ens_num.long_name = "ensemble member"
