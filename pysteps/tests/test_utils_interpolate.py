@@ -12,7 +12,20 @@ interp_methods = (
 
 
 @pytest.mark.parametrize("interp_method", interp_methods)
-def test_output(interp_method):
+def test_interp_univariate(interp_method):
+    coord = np.random.rand(10, 2)
+    input_array = np.random.rand(10)
+    xgrid, ygrid = np.linspace(0, 1, 10), np.linspace(0, 1, 10)
+
+    interp = get_method(interp_method)
+    output = interp(coord, input_array, xgrid, ygrid)
+
+    assert isinstance(output, np.ndarray)
+    assert output.ndim == 2
+    assert output.shape == (ygrid.size, xgrid.size)
+
+@pytest.mark.parametrize("interp_method", interp_methods)
+def test_interp_multivariate(interp_method):
     coord = np.random.rand(10, 2)
     input_array = np.random.rand(10, 2)
     xgrid, ygrid = np.linspace(0, 1, 10), np.linspace(0, 1, 10)
@@ -24,7 +37,6 @@ def test_output(interp_method):
     assert output.ndim == 3
     assert output.shape[0] == 2
     assert output.shape[1:] == (ygrid.size, xgrid.size)
-
 
 @pytest.mark.parametrize("interp_method", interp_methods)
 def test_wrong_inputs(interp_method):

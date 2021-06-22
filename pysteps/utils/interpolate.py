@@ -55,7 +55,8 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
     Returns
     -------
     output_array: ndarray_
-        The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
+        The interpolated field(s) having shape (``ygrid.size``, ``xgrid.size``)
+        or (*m*, ``ygrid.size``, ``xgrid.size``).
     """
     if input_array.ndim == 1:
         nvar = 1
@@ -137,7 +138,8 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     Returns
     -------
     output_array: ndarray_
-        The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
+        The interpolated field(s) having shape (``ygrid.size``, ``xgrid.size``)
+        or (*m*, ``ygrid.size``, ``xgrid.size``).
     """
     deprecated_args = ["rbfunction", "k"]
     deprecated_args = [arg for arg in deprecated_args if arg in list(kwargs.keys())]

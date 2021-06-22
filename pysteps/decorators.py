@@ -227,7 +227,7 @@ def preamble_interpolation(nchunks=4):
                     indy += deltay
                 indx += deltax
 
-            return interpolated
+            return interpolated.squeeze()
 
         extra_kwargs_doc = """
             nchunks: int, optional
