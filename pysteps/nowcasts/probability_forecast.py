@@ -13,21 +13,21 @@ Implementation of probability nowcasting methods.
 """
 
 import numpy as np
+from scipy import signal
 
-from pysteps.extrapolation.semilagrangian import extrapolate
-from pysteps.nowcasts.extrapolation import _check_inputs
+from pysteps.nowcasts import extrapolation
 
 
 def forecast(
     precip,
     velocity,
     timesteps,
-    slope,
-    nsamples,
-    prob_thr,
-    method,
+    threshold,
+    extrap_method="semilagrangian",
+    extrap_kwargs=None,
+    neighborhood_slope=5,
 ):
-    """Generate a probability nowcast by sampling the neighborhood of
+    """Generate a probability nowcast by a local lagrangian approach.
 
     Parameters
     ----------
@@ -42,13 +42,11 @@ def forecast(
       Number of time steps to forecast or a list of time steps for which the
       forecasts are computed (relative to the input time step). The elements of
       the list are required to be in ascending order.
-    slope: float
-      Slope (pixels / timestep) specifying the optimum spatial scale as a function of lead time.
-    nsamples: int
-      Number of realizations.
-    prob_thr: float
-        Intensity threshold for which the exceedance probabilities are computed.
-    method: {"unit_circle", "gaussian_mv"}
+    threshold: float
+      Intensity threshold for which the exceedance probabilities are computed.
+   neighborhood_slope: float, optional
+      Slope (pixels / timestep) specifying the spatial scale of a function
+      of lead time.
 
     Returns
     -------
@@ -56,76 +54,49 @@ def forecast(
       Three-dimensional array of shape (num_timesteps, m, n) containing a time
       series of nowcast exceedence probabilities. The time series starts from
       t0 + timestep, where timestep is taken from the advection field velocity.
-
-    See also
-    --------
-    pysteps.extrapolation.interface
-
     """
-
-    _check_inputs(precip, velocity, timesteps)
-
     if isinstance(timesteps, int):
         timesteps = np.arange(1, timesteps + 1)
-    elif np.any(np.diff(timesteps) <= 0.0):
-        raise ValueError("the given timestep sequence is not monotonously increasing")
-
-    x_values, y_values = np.meshgrid(
-        np.arange(precip.shape[1]), np.arange(precip.shape[0])
+    precip_forecast = extrapolation.forecast(
+        precip,
+        velocity,
+        timesteps,
+        extrap_method,
+        extrap_kwargs,
     )
-    xy_coords = np.stack([x_values, y_values])
-
-    prob_out = np.zeros((len(timesteps), *precip.shape))
-    for sample in range(nsamples):
-        precip_extrap = []
-        for timestep in timesteps:
-            if method == "unit_circle":
-                displacement = _sample_unit_circle(*precip.shape) * timestep * slope
-            else:
-                displacement = _sample_mv_gaussian(*precip.shape) * timestep * slope
-            xy_coords_ = xy_coords + displacement
-            precip_extrap.append(
-                extrapolate(
-                    precip,
-                    velocity,
-                    [timestep],
-                    outval="min",
-                    xy_coords=xy_coords_,
-                )[0]
-            )
-        prob_out += np.stack(precip_extrap) >= prob_thr
-    return prob_out / nsamples
+    nanmask = np.isnan(precip_forecast)
+    precip_forecast[nanmask] = np.nanmin(precip_forecast)
+    precip_forecast = (precip_forecast > threshold).astype(float)
+    valid_pixels = (~nanmask).astype(float)
+    for i, timestep in enumerate(timesteps):
+        scale = timestep * neighborhood_slope
+        if scale == 0: continue
+        kernel = _get_kernel(scale)
+        kernel_sum = signal.convolve(valid_pixels[i, ], kernel, mode="same")
+        precip_forecast[i, ] = signal.convolve(precip_forecast[i, ], kernel, mode="same")
+        precip_forecast[i, ] /= kernel_sum
+    precip_forecast[nanmask] = np.nan
+    return precip_forecast
 
 
-def _sample_unit_circle(m, n):
-    """
-    Source
-    ------
-    https://stackoverflow.com/questions/46996866/sampling-uniformly-within-the-unit-circle
+def _get_kernel(size):
+    """Generate a circular kernel.
 
     Parameters
     ----------
-    m: float
-        Number of rows.
-    n: float
-        Number of columns.
-    """
-    length = np.sqrt(np.random.uniform(0, 1, size=(m, n)))
-    angle = np.pi * np.random.uniform(0, 2, size=(m, n))
-    dx = length * np.cos(angle)
-    dy = length * np.sin(angle)
-    return np.stack((dx, dy))
+    size : int
+        Size of the circular kernel (its diameter). For size < 5, the kernel is
+        a square instead of a circle.
 
+    Returns
+    -------
+    2-D array with kernel values
+    """
+    middle = max((int(size / 2), 1))
+    if size < 5:
+        return np.ones((size, size), dtype=np.float32)
+    else:
+        xx, yy = np.mgrid[:size, :size]
+        circle = (xx - middle) ** 2 + (yy - middle) ** 2
+        return np.asarray(circle <= (middle ** 2), dtype=np.float32)
 
-def _sample_mv_gaussian(m, n):
-    """
-    Parameters
-    ----------
-    m: float
-        Number of rows.
-    n: float
-        Number of columns.
-    """
-    mean = [0, 0]
-    cov = np.array([[1, 0], [0, 1]])
-    return np.random.multivariate_normal(mean, cov, (n, m)).T / 1.96
