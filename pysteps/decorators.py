@@ -12,6 +12,7 @@ the behavior of some functions in pysteps.
     postprocess_import
     check_input_frames
     preamble_interpolation
+    memoize
 """
 import inspect
 import uuid

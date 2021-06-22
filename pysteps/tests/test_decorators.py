@@ -6,7 +6,7 @@ from pysteps.decorators import memoize
 
 def test_memoize():
     @memoize(maxsize=1)
-    def _slow_function(x):
+    def _slow_function(x, **kwargs):
         time.sleep(1)
         return x
 

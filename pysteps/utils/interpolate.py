@@ -162,11 +162,11 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
 
 @memoize()
 def _cKDTree_cached(*args, **kwargs):
-    """Add LRU cache to cKDTree class"""
+    """Add LRU cache to cKDTree class."""
     return cKDTree(*args)
 
 
 @memoize()
 def _Rbf_cached(*args, **kwargs):
-    """Add LRU cache to Rbf class"""
+    """Add LRU cache to Rbf class."""
     return Rbf(*args, **kwargs)
