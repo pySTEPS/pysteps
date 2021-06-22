@@ -48,8 +48,8 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
         The number of nearest neighbours used for each target location.
         If set to None, it interpolates using all the data points at once.
 
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     {extra_kwargs_doc}
 
     Returns
@@ -129,8 +129,8 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
 
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     Any of the parameters from the original `scipy.interpolate.Rbf`_ class.
     {extra_kwargs_doc}
 
