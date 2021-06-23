@@ -107,7 +107,7 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
     return np.moveaxis(output_array, -1, 0).squeeze()
 
 
-@preamble_interpolation(nchunks=0)
+@preamble_interpolation()
 def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     """Radial basis function interpolation of a sparse (multivariate) array.
 

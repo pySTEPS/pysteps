@@ -256,8 +256,8 @@ def preamble_interpolation(nchunks=4):
 
 def memoize(maxsize=10):
     """
-    LRU cache decorator implementation for any arbitrary input since
-    caching is purely based on the optional keyword argument 'hkey'.
+    LRU cache decorator for any arbitrary input since caching is purely based on
+    the optional keyword argument 'hkey'.
     """
 
     def _memoize(func):
