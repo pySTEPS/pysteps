@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 
-pysteps.nowcasts.probability_forecasts
+pysteps.nowcasts.lagrangian_probability
 ======================================
 
-Implementation of probability nowcasting methods.
+Implementation of Lagrangian probability nowcasting methods.
 
 .. autosummary::
     :toctree: ../generated/
@@ -25,35 +25,42 @@ def forecast(
     threshold,
     extrap_method="semilagrangian",
     extrap_kwargs=None,
-    neighborhood_slope=5,
+    slope=5,
 ):
     """Generate a probability nowcast by a local lagrangian approach.
 
     Parameters
     ----------
     precip: array-like
-      Two-dimensional array of shape (m,n) containing the input precipitation
-      field.
+       Two-dimensional array of shape (m,n) containing the input precipitation
+       field.
     velocity: array-like
-      Array of shape (2,m,n) containing the x- and y-components of the
-      advection field. The velocities are assumed to represent one time step
-      between the inputs.
+       Array of shape (2,m,n) containing the x- and y-components of the
+       advection field. The velocities are assumed to represent one time step
+       between the inputs.
     timesteps: int or list of floats
-      Number of time steps to forecast or a list of time steps for which the
-      forecasts are computed (relative to the input time step). The elements of
-      the list are required to be in ascending order.
+       Number of time steps to forecast or a list of time steps for which the
+       forecasts are computed (relative to the input time step). The elements of
+       the list are required to be in ascending order.
     threshold: float
-      Intensity threshold for which the exceedance probabilities are computed.
-   neighborhood_slope: float, optional
-      Slope (pixels / timestep) specifying the spatial scale of a function
-      of lead time.
+       Intensity threshold for which the exceedance probabilities are computed.
+    slope: float, optional
+       The slope of the relationship between optimum scale and lead time in
+       pixel / timesteps.
 
     Returns
     -------
     out: ndarray_
-      Three-dimensional array of shape (num_timesteps, m, n) containing a time
-      series of nowcast exceedence probabilities. The time series starts from
-      t0 + timestep, where timestep is taken from the advection field velocity.
+        Three-dimensional array of shape (num_timesteps, m, n) containing a time
+        series of nowcast exceedence probabilities. The time series starts from
+        t0 + timestep, where timestep is taken from the advection field velocity.
+
+    References
+    ----------
+    Germann, U. and I. Zawadzki, 2004:
+    Scale Dependence of the Predictability of Precipitation from Continental
+    Radar Images. Part II: Probability Forecasts.
+    Journal of Applied Meteorology, 43(1), 74-89.
     """
     if isinstance(timesteps, int):
         timesteps = np.arange(1, timesteps + 1)
@@ -69,12 +76,21 @@ def forecast(
     precip_forecast = (precip_forecast > threshold).astype(float)
     valid_pixels = (~nanmask).astype(float)
     for i, timestep in enumerate(timesteps):
-        scale = timestep * neighborhood_slope
-        if scale == 0: continue
+        scale = timestep * slope
+        if scale == 0:
+            continue
         kernel = _get_kernel(scale)
-        kernel_sum = signal.convolve(valid_pixels[i, ], kernel, mode="same")
-        precip_forecast[i, ] = signal.convolve(precip_forecast[i, ], kernel, mode="same")
-        precip_forecast[i, ] /= kernel_sum
+        kernel_sum = signal.convolve(
+            valid_pixels[i, ...],
+            kernel,
+            mode="same",
+        )
+        precip_forecast[i, ...] = signal.convolve(
+            precip_forecast[i, ...],
+            kernel,
+            mode="same",
+        )
+        precip_forecast[i, ...] /= kernel_sum
     precip_forecast[nanmask] = np.nan
     return precip_forecast
 
@@ -99,4 +115,3 @@ def _get_kernel(size):
         xx, yy = np.mgrid[:size, :size]
         circle = (xx - middle) ** 2 + (yy - middle) ** 2
         return np.asarray(circle <= (middle ** 2), dtype=np.float32)
-
