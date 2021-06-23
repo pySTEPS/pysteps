@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-from datetime import datetime
 import numpy as np
 
 from pysteps.nowcasts.lagrangian_probability import forecast
@@ -38,15 +36,10 @@ def test_real_case():
         upscale=2000,
     )
 
-    precip_obs = get_precipitation_fields(
-        num_prev_files=0, num_next_files=3, return_raw=False, upscale=2000
-    )[1:, :, :]
-
     # motion
     motion = dense_lucaskanade(precip)
 
     # parameters
-    nleadtimes = 6
     timesteps = [1, 2, 3]
     thr = 1  # mm / h
     slope = 1 * metadata["accutime"]  # min-1
