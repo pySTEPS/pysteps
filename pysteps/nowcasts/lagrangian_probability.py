@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-
 pysteps.nowcasts.lagrangian_probability
 ======================================
 
@@ -27,7 +26,8 @@ def forecast(
     extrap_kwargs=None,
     slope=5,
 ):
-    """Generate a probability nowcast by a local lagrangian approach.
+    """
+    Generate a probability nowcast by a local lagrangian approach.
 
     Parameters
     ----------
@@ -91,12 +91,14 @@ def forecast(
             mode="same",
         )
         precip_forecast[i, ...] /= kernel_sum
+    precip_forecast = np.clip(precip_forecast, 0, 1)
     precip_forecast[nanmask] = np.nan
     return precip_forecast
 
 
 def _get_kernel(size):
-    """Generate a circular kernel.
+    """
+    Generate a circular kernel.
 
     Parameters
     ----------
