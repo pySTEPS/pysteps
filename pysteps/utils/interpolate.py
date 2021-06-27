@@ -20,10 +20,10 @@ from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 
 
-from pysteps.decorators import memoize, preamble_interpolation
+from pysteps.decorators import memoize, prepare_interpolator
 
 
-@preamble_interpolation()
+@prepare_interpolator()
 def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
     """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
@@ -107,7 +107,7 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
     return np.moveaxis(output_array, -1, 0).squeeze()
 
 
-@preamble_interpolation()
+@prepare_interpolator()
 def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
     """Radial basis function interpolation of a sparse (multivariate) array.
 

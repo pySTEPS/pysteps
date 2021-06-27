@@ -11,7 +11,7 @@ the behavior of some functions in pysteps.
 
     postprocess_import
     check_input_frames
-    preamble_interpolation
+    prepare_interpolator
     memoize
 """
 import inspect
@@ -150,7 +150,7 @@ def check_input_frames(
     return _check_input_frames
 
 
-def preamble_interpolation(nchunks=4):
+def prepare_interpolator(nchunks=4):
     """
     Check that all the inputs have the correct shape, and that all values are
     finite. It also split the destination grid in  `nchunks` parts, and process each
