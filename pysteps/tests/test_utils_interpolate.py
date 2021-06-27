@@ -23,6 +23,7 @@ def test_interp_univariate(interp_method):
     assert isinstance(output, np.ndarray)
     assert output.ndim == 2
     assert output.shape == (ygrid.size, xgrid.size)
+    assert np.isfinite(output).all()
 
 
 @pytest.mark.parametrize("interp_method", interp_methods)
@@ -38,6 +39,7 @@ def test_interp_multivariate(interp_method):
     assert output.ndim == 3
     assert output.shape[0] == 2
     assert output.shape[1:] == (ygrid.size, xgrid.size)
+    assert np.isfinite(output).all()
 
 
 @pytest.mark.parametrize("interp_method", interp_methods)
@@ -87,6 +89,7 @@ def test_one_sample_input(interp_method):
 
     # one sample returns uniform grids
     output = interp(coord, input_array, xgrid, ygrid)
+    assert np.isfinite(output).all()
     assert output[0, ...].max() == output[0, ...].min() == 1
     assert output[1, ...].max() == output[1, ...].min() == 2
 
@@ -101,6 +104,7 @@ def test_uniform_input(interp_method):
     # same value across all variables
     input_array = np.ones((10, 2))
     output = interp(coord, input_array, xgrid, ygrid)
+    assert np.isfinite(output).all()
     assert output.max() == output.min() == input_array.ravel()[0]
 
     # # same value in one variable only
@@ -121,6 +125,7 @@ def test_idwinterp2d_k1():
     assert output.ndim == 3
     assert output.shape[0] == 2
     assert output.shape[1:] == (ygrid.size, xgrid.size)
+    assert np.isfinite(output).all()
 
 
 def test_idwinterp2d_kNone():
@@ -135,3 +140,4 @@ def test_idwinterp2d_kNone():
     assert output.ndim == 3
     assert output.shape[0] == 2
     assert output.shape[1:] == (ygrid.size, xgrid.size)
+    assert np.isfinite(output).all()
