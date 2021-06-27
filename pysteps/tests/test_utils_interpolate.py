@@ -107,3 +107,31 @@ def test_uniform_input(interp_method):
     # input_array = np.vstack((np.ones(10), np.random.rand(10))).T
     # output = interp(coord, input_array, xgrid, ygrid)
     # assert output[0,].max() == output[0,].min() == input_array[0,0]
+
+
+def test_idwinterp2d_k1():
+    coord = np.random.rand(10, 2)
+    input_array = np.random.rand(10, 2)
+    xgrid, ygrid = np.linspace(0, 1, 10), np.linspace(0, 1, 10)
+
+    interp = get_method("idwinterp2d")
+    output = interp(coord, input_array, xgrid, ygrid, k=1)
+
+    assert isinstance(output, np.ndarray)
+    assert output.ndim == 3
+    assert output.shape[0] == 2
+    assert output.shape[1:] == (ygrid.size, xgrid.size)
+
+
+def test_idwinterp2d_kNone():
+    coord = np.random.rand(10, 2)
+    input_array = np.random.rand(10, 2)
+    xgrid, ygrid = np.linspace(0, 1, 10), np.linspace(0, 1, 10)
+
+    interp = get_method("idwinterp2d")
+    output = interp(coord, input_array, xgrid, ygrid, k=None)
+
+    assert isinstance(output, np.ndarray)
+    assert output.ndim == 3
+    assert output.shape[0] == 2
+    assert output.shape[1:] == (ygrid.size, xgrid.size)
