@@ -22,6 +22,23 @@ from functools import wraps
 import numpy as np
 
 
+def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
+    """
+    Update the functions docstrings by replacing the `{extra_kwargs_doc}` occurences in
+    the docstring by the `extra_kwargs_doc_text` value.
+    """
+    # Clean up indentation from docstrings for the
+    # docstrings to be merged correctly.
+    extra_kwargs_doc = inspect.cleandoc(extra_kwargs_doc_text)
+    target_func.__doc__ = inspect.cleandoc(target_func.__doc__)
+
+    # Add extra kwargs docstrings
+    target_func.__doc__ = target_func.__doc__.format_map(
+        defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
+    )
+    return target_func
+
+
 def postprocess_import(fillna=np.nan, dtype="double"):
     """
     Postprocess the imported precipitation data.
@@ -85,19 +102,7 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                 By default, np.nan is used.
             """
 
-        # Clean up indentation from docstrings for the
-        # docstrings to be merged correctly.
-        extra_kwargs_doc = inspect.cleandoc(extra_kwargs_doc)
-        _import_with_postprocessing.__doc__ = inspect.cleandoc(
-            _import_with_postprocessing.__doc__
-        )
-
-        # Add extra kwargs docstrings
-        _import_with_postprocessing.__doc__ = (
-            _import_with_postprocessing.__doc__.format_map(
-                defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
-            )
-        )
+        _add_extra_kwrds_to_docstrings(_import_with_postprocessing, extra_kwargs_doc)
 
         return _import_with_postprocessing
 
@@ -148,7 +153,8 @@ def check_input_frames(
 def preamble_interpolation(nchunks=4):
     """
     Check that all the inputs have the correct shape, and that all values are
-    finite.
+    finite. It also split the destination grid in  `nchunks` parts, and process each
+    part independently.
     """
 
     def _preamble_interpolation(interpolator):
@@ -235,19 +241,7 @@ def preamble_interpolation(nchunks=4):
                 Useful for large grids to limit the memory footprint.
             """
 
-        # Clean up indentation from docstrings for the
-        # docstrings to be merged correctly.
-        extra_kwargs_doc = inspect.cleandoc(extra_kwargs_doc)
-        _interpolator_with_preamble.__doc__ = inspect.cleandoc(
-            _interpolator_with_preamble.__doc__
-        )
-
-        # Add extra kwargs docstrings
-        _interpolator_with_preamble.__doc__ = (
-            _interpolator_with_preamble.__doc__.format_map(
-                defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
-            )
-        )
+        _add_extra_kwrds_to_docstrings(_interpolator_with_preamble, extra_kwargs_doc)
 
         return _interpolator_with_preamble
 
@@ -256,8 +250,9 @@ def preamble_interpolation(nchunks=4):
 
 def memoize(maxsize=10):
     """
-    LRU cache decorator for any arbitrary input since caching is purely based on
-    the optional keyword argument 'hkey'.
+    Add a Last Recently Use (LRU) cache to a given functions.
+    The cache can be usied for any arbitrary input since caching is
+    purely based on the optional keyword argument 'hkey'.
     """
 
     def _memoize(func):
