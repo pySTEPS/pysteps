@@ -24,7 +24,7 @@ from pysteps.decorators import memoize, prepare_interpolator
 
 
 @prepare_interpolator()
-def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
+def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
     """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
@@ -32,18 +32,17 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
 
     Parameters
     ----------
-    coord: array_like
+    xy_coord: array_like
         Array of shape (n, 2) containing the coordinates of the data points
         into a 2-dimensional space.
-    input_array: array_like
+    values: array_like
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
-        variables. All values in ``input_array`` are required to have finite values.
+        variables. All values in ``values`` are required to have finite values.
     xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
     power: positive float, optional
         The power parameter used to compute the distance weights as
-
         ``weight = distance ** (-power)``.
     k: positive int or None, optional
         The number of nearest neighbours used for each target location.
@@ -59,14 +58,14 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
         The interpolated field(s) having shape (``ygrid.size``, ``xgrid.size``)
         or (*m*, ``ygrid.size``, ``xgrid.size``).
     """
-    if input_array.ndim == 1:
+    if values.ndim == 1:
         nvar = 1
-        input_array = input_array[:, None]
+        values = values[:, None]
 
-    elif input_array.ndim == 2:
-        nvar = input_array.shape[1]
+    elif values.ndim == 2:
+        nvar = values.shape[1]
 
-    npoints = input_array.shape[0]
+    npoints = values.shape[0]
 
     # generate the target grid
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
@@ -79,14 +78,14 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
 
     if k is not None:
         k = int(np.min((k, npoints)))
-        tree = _cKDTree_cached(coord, hkey=kwargs.get("hkey", None))
+        tree = _cKDTree_cached(xy_coord, hkey=kwargs.get("hkey", None))
         dist, inds = tree.query(gridv, k=k)
         if dist.ndim == 1:
             dist = dist[..., None]
             inds = inds[..., None]
     else:
         # use all points
-        dist = cdist(coord, gridv, "euclidean").transpose()
+        dist = cdist(xy_coord, gridv, "euclidean").transpose()
         inds = np.arange(npoints)[None, :] * np.ones((gridv.shape[0], npoints)).astype(
             int
         )
@@ -98,7 +97,7 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
 
     # interpolate
     output_array = np.sum(
-        input_array[inds, :] * weights[..., None],
+        values[inds, :] * weights[..., None],
         axis=1,
     )
 
@@ -109,7 +108,7 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
 
 
 @prepare_interpolator()
-def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
+def rbfinterp2d(xy_coord, values, xgrid, ygrid, **kwargs):
     """Radial basis function interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
@@ -121,13 +120,13 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
 
     Parameters
     ----------
-    coord: array_like
+    xy_coord: array_like
         Array of shape (n, 2) containing the coordinates of the data points
         into a 2-dimensional space.
-    input_array: array_like
+    values: array_like
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
-        variables. All values in ``input_array`` are required to have finite values.
+        variables. All values in ``values`` are required to have finite values.
     xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
 
@@ -151,13 +150,13 @@ def rbfinterp2d(coord, input_array, xgrid, ygrid, **kwargs):
             DeprecationWarning,
         )
 
-    if input_array.ndim == 1:
+    if values.ndim == 1:
         kwargs["mode"] = "1-D"
     else:
         kwargs["mode"] = "N-D"
 
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
-    rbfi = _Rbf_cached(*np.split(coord, coord.shape[1], 1), input_array, **kwargs)
+    rbfi = _Rbf_cached(*np.split(xy_coord, xy_coord.shape[1], 1), values, **kwargs)
     output_array = rbfi(xgridv, ygridv)
 
     return np.moveaxis(output_array, -1, 0).squeeze()
