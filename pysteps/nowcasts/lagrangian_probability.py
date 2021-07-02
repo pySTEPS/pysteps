@@ -27,7 +27,8 @@ def forecast(
     slope=5,
 ):
     """
-    Generate a probability nowcast by a local lagrangian approach.
+    Generate a probability nowcast by a local lagrangian approach. The ouput is
+    the probability of exceeding one or more intensity thresholds.
 
     Parameters
     ----------
@@ -46,7 +47,8 @@ def forecast(
        Intensity threshold for which the exceedance probabilities are computed.
     slope: float, optional
        The slope of the relationship between optimum scale and lead time in
-       pixel / timesteps.
+       pixel / timesteps. Germann and Zawadzki (2004) found the optimal slope
+       to be equal to 1 km/minute.
 
     Returns
     -------
@@ -62,6 +64,7 @@ def forecast(
     Radar Images. Part II: Probability Forecasts.
     Journal of Applied Meteorology, 43(1), 74-89.
     """
+    # Compute deterministic extrapolation forecast
     if isinstance(timesteps, int):
         timesteps = np.arange(1, timesteps + 1)
     precip_forecast = extrapolation.forecast(
@@ -71,10 +74,14 @@ def forecast(
         extrap_method,
         extrap_kwargs,
     )
+
+    # Ignore missing values
     nanmask = np.isnan(precip_forecast)
-    precip_forecast[nanmask] = np.nanmin(precip_forecast)
-    precip_forecast = (precip_forecast > threshold).astype(float)
+    precip_forecast[nanmask] = threshold
     valid_pixels = (~nanmask).astype(float)
+
+    # Compute exceedance probabilities using a neighborhood approach
+    precip_forecast = (precip_forecast > threshold).astype(float)
     for i, timestep in enumerate(timesteps):
         scale = timestep * slope
         if scale == 0:
