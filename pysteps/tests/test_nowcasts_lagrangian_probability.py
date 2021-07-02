@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
 from pysteps.nowcasts.lagrangian_probability import forecast
 from pysteps.tests.helpers import get_precipitation_fields
@@ -23,6 +24,13 @@ def test_numerical_example():
     assert fct.shape[1:] == precip.shape
     assert fct.max() <= 1.0
     assert fct.min() >= 0.0
+
+    # slope = 0 should return a binary field
+    fct = forecast(precip, velocity, timesteps, thr, slope=0)
+    ref = (np.repeat(precip[None, ...], timesteps, axis=0) >= thr).astype(float)
+    assert np.allclose(fct, fct.astype(bool))
+    assert np.allclose(fct, ref)
+
 
 
 def test_real_case():
@@ -55,3 +63,18 @@ def test_real_case():
     assert fct.shape[1:] == precip.shape[1:]
     assert np.nanmax(fct) <= 1.0
     assert np.nanmin(fct) >= 0.0
+
+
+def test_wrong_inputs():
+
+    # dummy inputs
+    precip = np.zeros((3, 3))
+    velocity = np.zeros((2, *precip.shape))
+
+    # timesteps must be > 0
+    with pytest.raises(ValueError):
+            forecast(precip, velocity, 0, 1)
+
+    # timesteps must be a sorted list
+    with pytest.raises(ValueError):
+            forecast(precip, velocity, [2, 1], 1)
