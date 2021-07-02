@@ -39,7 +39,7 @@ The metadata dictionary contains the following recommended key-value pairs:
 |   ypixelsize     | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
 |   cartesian_unit | the physical unit of the cartesian x- and y-coordinates: |
-|                  | e.g. 'm' or 'km'                                         | 
+|                  | e.g. 'm' or 'km'                                         |
 +------------------+----------------------------------------------------------+
 |   yorigin        | a string specifying the location of the first element in |
 |                  | the data raster w.r.t. y-axis:                           |
@@ -934,12 +934,12 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
     metadata = geodata
 
     # import gif file
-    B = Image.open(filename)
+    img = Image.open(filename)
 
     if product.lower() in ["azc", "rzc", "precip"]:
 
         # convert 8-bit GIF colortable to RGB values
-        Brgb = B.convert("RGB")
+        img_rgb = img.convert("RGB")
 
         # load lookup table
         if product.lower() == "azc":
@@ -954,12 +954,12 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
         lut = dict(zip(zip(lut[:, 1], lut[:, 2], lut[:, 3]), lut[:, -1]))
 
         # apply lookup table conversion
-        precip = np.zeros(len(Brgb.getdata()))
-        for i, dn in enumerate(Brgb.getdata()):
+        precip = np.zeros(len(img_rgb.getdata()))
+        for i, dn in enumerate(img_rgb.getdata()):
             precip[i] = lut.get(dn, np.nan)
 
         # convert to original shape
-        width, height = B.size
+        width, height = img.size
         precip = precip.reshape(height, width)
 
         # set values outside observational range to NaN,
@@ -970,7 +970,7 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
     elif product.lower() in ["aqc", "cpc", "acquire ", "combiprecip"]:
 
         # convert digital numbers to physical values
-        B = np.array(B, dtype=int)
+        img = np.array(img).astype(int)
 
         # build lookup table [mm/5min]
         lut = np.zeros(256)
@@ -985,7 +985,7 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
                 lut[i] = (10.0 ** ((i - 71.5) / 20.0) / a) ** (1.0 / b)
 
         # apply lookup table
-        precip = lut[B]
+        precip = lut[img]
 
     else:
         raise ValueError("unknown product %s" % product)
