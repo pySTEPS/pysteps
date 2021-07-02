@@ -32,7 +32,6 @@ def test_numerical_example():
     assert np.allclose(fct, ref)
 
 
-
 def test_real_case():
     """"""
     # inputs
@@ -73,8 +72,8 @@ def test_wrong_inputs():
 
     # timesteps must be > 0
     with pytest.raises(ValueError):
-            forecast(precip, velocity, 0, 1)
+        forecast(precip, velocity, 0, 1)
 
     # timesteps must be a sorted list
     with pytest.raises(ValueError):
-            forecast(precip, velocity, [2, 1], 1)
+        forecast(precip, velocity, [2, 1], 1)
