@@ -45,7 +45,6 @@ _nowcast_methods["lagrangian_probability"] = lagrangian_probability.forecast
 _nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["sseps"] = sseps.forecast
 _nowcast_methods["steps"] = steps.forecast
-_nowcast_methods["steps"] = steps.forecast
 
 
 def get_method(name):
