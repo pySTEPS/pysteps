@@ -28,7 +28,8 @@ def forecast(
 ):
     """
     Generate a probability nowcast by a local lagrangian approach. The ouput is
-    the probability of exceeding one or more intensity thresholds.
+    the probability of exceeding one or more intensity thresholds, i.e.
+    P(precip>=threshold).
 
     Parameters
     ----------
@@ -80,11 +81,11 @@ def forecast(
 
     # Ignore missing values
     nanmask = np.isnan(precip_forecast)
-    precip_forecast[nanmask] = threshold
+    precip_forecast[nanmask] = threshold - 1
     valid_pixels = (~nanmask).astype(float)
 
     # Compute exceedance probabilities using a neighborhood approach
-    precip_forecast = (precip_forecast > threshold).astype(float)
+    precip_forecast = (precip_forecast >= threshold).astype(float)
     for i, timestep in enumerate(timesteps):
         scale = timestep * slope
         if scale == 0:
