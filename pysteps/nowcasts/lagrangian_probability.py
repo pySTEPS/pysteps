@@ -40,9 +40,10 @@ def forecast(
        advection field. The velocities are assumed to represent one time step
        between the inputs.
     timesteps: int or list of floats
-       Number of time steps to forecast or a list of time steps for which the
-       forecasts are computed (relative to the input time step). The elements of
-       the list are required to be in ascending order.
+       Number of time steps to forecast or a sorted list of time steps for which
+       the forecasts are computed (relative to the input time step).
+       The number of time steps has to be a positive integer.
+       The elements of the list are required to be in ascending order.
     threshold: float
        Intensity threshold for which the exceedance probabilities are computed.
     slope: float, optional
@@ -65,8 +66,10 @@ def forecast(
     Journal of Applied Meteorology, 43(1), 74-89.
     """
     # Compute deterministic extrapolation forecast
-    if isinstance(timesteps, int):
+    if isinstance(timesteps, int) and timesteps > 0:
         timesteps = np.arange(1, timesteps + 1)
+    elif not isinstance(timesteps, list):
+        raise ValueError(f"invalid value for argument 'timesteps': {timesteps}")
     precip_forecast = extrapolation.forecast(
         precip,
         velocity,
