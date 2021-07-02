@@ -68,8 +68,8 @@ def get_method(name):
     |  lagrangian or  | this approach extrapolates the last observation       |
     |  extrapolation  | using the motion field (Lagrangian persistence)       |
     +-----------------+-------------------------------------------------------+
-    |  probability    | this approach computes a local lagrangian probability |
-    |                 | forecasts.                                            |
+    |  lagrangian_\   | this approach computes local lagrangian probability   |
+    |  probability    | forecasts of threshold exceedences.                   |
     +-----------------+-------------------------------------------------------+
     |  sprog          | the S-PROG method described in :cite:`Seed2003`       |
     +-----------------+-------------------------------------------------------+
