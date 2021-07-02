@@ -42,7 +42,8 @@ def idwinterp2d(coord, input_array, xgrid, ygrid, power=0.5, k=20, **kwargs):
     xgrid, ygrid: array_like
         1D arrays representing the coordinates of the 2-D output grid.
     power: positive float, optional
-        The power parameter used to comptute the distance weights as
+        The power parameter used to compute the distance weights as
+
         ``weight = distance ** (-power)``.
     k: positive int or None, optional
         The number of nearest neighbours used for each target location.
