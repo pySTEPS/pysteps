@@ -38,20 +38,13 @@ for n, frame in enumerate(out):
     plt.yticks([])
 plt.show()
 
-plt.imshow(out[2], interpolation="nearest", vmin=0, vmax=1)
-plt.title(f"t={timesteps[2]}")
-plt.xticks([])
-plt.yticks([])
-plt.colorbar()
-plt.show()
-
 ###############################################################################
 # Real-data example
 # -----------------
 
 from datetime import datetime
 
-from pysteps import io, rcparams, utils, nowcasts
+from pysteps import io, rcparams, utils
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.verification import reldiag_init, reldiag_accum, plot_reldiag
 
@@ -95,10 +88,13 @@ for n, frame in enumerate(fct):
     plt.yticks([])
 plt.show()
 
+################################################################################
+# Let's plot one single leadtime in more detail.
+
 plt.imshow(fct[2], interpolation="nearest", vmin=0, vmax=1)
 plt.xticks([])
 plt.yticks([])
-plt.colorbar()
+plt.colorbar(label="Exceedance probability, P(R>=1 mm/h)")
 plt.show()
 
 ###############################################################################
@@ -131,4 +127,4 @@ plt.show()
 # Radar Images. Part II: Probability Forecasts.
 # Journal of Applied Meteorology, 43(1), 74-89.
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 3
