@@ -961,10 +961,10 @@ def _linda_forecast(
 
         # apply perturbations
         if pert_gen is not None:
-            # TODO: implement supplying seed number
             seed = rs.randint(0, high=1e9)
             pert_field = _generate_perturbations(pert_gen, num_workers, seed)
             precip_fct_out_ *= pert_field
+            # TODO: Perturb the advection field.
 
         # advect the forecast field for t time steps
         extrap_kwargs["displacement_prev"] = displacement
