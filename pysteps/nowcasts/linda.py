@@ -347,8 +347,9 @@ def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
         raise ValueError("timesteps is not in ascending order")
 
 
-# Compute a localized convolution by applying a set of kernels with the given
-# spatial weights. The weights are assumed to be normalized.
+# compute a localized convolution by applying a set of kernels with the given
+# spatial weights
+# the weights are assumed to be normalized
 def _composite_convolution(field, kernels, weights):
     n = len(kernels)
     field_c = 0.0
@@ -359,7 +360,7 @@ def _composite_convolution(field, kernels, weights):
     return field_c
 
 
-# Compute the bounding box of an ellipse.
+# compute the bounding box of an ellipse
 def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
     r1 = cutoff * sigma1
     r2 = cutoff * sigma2
@@ -378,15 +379,15 @@ def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
     return -abs(h), -abs(w), abs(h), abs(w)
 
 
-# Compute the inverse ACF mapping between two distributions.
-def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=20):
+# compute the inverse ACF mapping between two distributions
+def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=10):
     phi = (
         lambda x1, x2, rho: 1.0
         / (2 * np.pi * np.sqrt(1 - rho ** 2))
         * np.exp(-(x1 ** 2 + x2 ** 2 - 2 * rho * x1 * x2) / (2 * (1 - rho ** 2)))
     )
 
-    rho_1 = np.linspace(-0.999, 0.999, n_intervals)
+    rho_1 = np.linspace(-0.9, 0.9, n_intervals)
     rho_2 = np.empty(len(rho_1))
 
     mu = target_dist.mean(*target_dist_params)
@@ -401,10 +402,10 @@ def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=20
             * (cdf_trans(x2) - mu)
             * phi(x1, x2, rho_1_)
         )
-        opts = {"epsabs": 1e-4, "epsrel": 1e-4, "limit": 1}
+        opts = {"epsabs": 1e-8, "epsrel": 1e-8, "limit": 1}
         rho_2[i] = nquad(f, (int_range, int_range), opts=opts)[0] / (sigma * sigma)
 
-    return interp1d(np.hstack([-1.0, rho_2, 1.0]), np.hstack([-1.0, rho_1, 1.0]))
+    return interp1d(rho_2, rho_1, fill_value="extrapolate")
 
 
 # compute anisotropic Gaussian convolution kernel
@@ -488,7 +489,7 @@ def _compute_parametric_acf(params, m, n):
     return c * result
 
 
-# Compute sample ACF from FFT.
+# compute sample ACF from FFT
 def _compute_sample_acf(field):
     # TODO: let user choose the FFT method
     field_fft = np.fft.rfft2((field - np.mean(field)) / np.std(field))
@@ -497,7 +498,7 @@ def _compute_sample_acf(field):
     return np.fft.irfft2(fft_abs, s=field.shape) / (field.shape[0] * field.shape[1])
 
 
-# Compute interpolation weights.
+# compute interpolation weights
 def _compute_window_weights(coords, grid_height, grid_width, window_radius):
     coords = coords.astype(float).copy()
     num_features = coords.shape[0]
@@ -530,7 +531,7 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radius):
     return w
 
 
-# Constrained optimization of AR(1) parameters.
+# constrained optimization of AR(1) parameters
 def _estimate_ar1_params(
     field_src, field_dst, estim_weights, interp_weights, num_workers=1
 ):
@@ -558,7 +559,7 @@ def _estimate_ar1_params(
     return [np.sum([psi[i] * interp_weights[i] for i in range(len(psi))], axis=0)]
 
 
-# Constrained optimization of AR(2) parameters.
+# constrained optimization of AR(2) parameters
 def _estimate_ar2_params(
     field_src, field_dst, estim_weights, interp_weights, num_workers=1
 ):
@@ -712,7 +713,7 @@ def _fit_dist(err, dist, wf, mask):
     return (p_opt.x, -0.5 * p_opt.x ** 2)
 
 
-# Generate perturbations based on the estimated forecast error statistics.
+# generate perturbations based on the estimated forecast error statistics
 # TODO: restrict the perturbation generation inside the radar mask
 def _generate_perturbations(pert_gen, num_workers, seed):
     m, n = pert_gen["m"], pert_gen["n"]
@@ -863,7 +864,7 @@ def _init_perturbation_generator(
     return pert_gen
 
 
-# Iterate autoregressive process.
+# iterate autoregressive process
 # TODO: use the method implemented in pysteps.timeseries.autoregression
 def _iterate_ar_model(input_fields, psi):
     input_field_new = 0.0
@@ -874,7 +875,7 @@ def _iterate_ar_model(input_fields, psi):
     return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
 
 
-# Compute LINDA nowcast.
+# compute LINDA nowcast
 def _linda_forecast(
     precip_fields,
     precip_fields_lagr_diff,
@@ -885,7 +886,6 @@ def _linda_forecast(
     measure_time,
     print_info,
 ):
-    # compute the nowcast
     advection_field = fct_gen["advection_field"]
     ari_order = fct_gen["ari_order"]
     extrapolator = fct_gen["extrapolator"]
@@ -972,7 +972,7 @@ def _linda_forecast(
         return np.stack(precip_fct_out)
 
 
-# Initialize LINDA nowcast model.
+# initialize LINDA nowcast model
 def _linda_init(
     precip_fields,
     advection_field,
@@ -1206,7 +1206,7 @@ def _linda_init(
         return fct_gen, precip_fields_lagr_diff
 
 
-# Compute convolution where non-finite values are ignored.
+# compute "masked" convolution where non-finite values are ignored
 def _masked_convolution(field, kernel):
     mask = np.isfinite(field)
 
@@ -1220,8 +1220,8 @@ def _masked_convolution(field, kernel):
     return field_c
 
 
-# Compute standard deviation of forecast errors with spatially varying weights.
-# Values close to zero are omitted.
+# compute standard deviation of forecast errors with spatially varying weights
+# values close to zero are omitted
 def _weighted_std(f, w):
     mask = np.abs(f - 1.0) > 1e-4
     c = (w[mask].size - 1.0) / w[mask].size
@@ -1229,7 +1229,7 @@ def _weighted_std(f, w):
     return np.sqrt(np.sum(w[mask] * (f[mask] - 1.0) ** 2.0) / (c * np.sum(w[mask])))
 
 
-# Tukey window function centered at the given coordinates.
+# Tukey window function centered at the given coordinates
 def _window_tukey(m, n, ci, cj, ri, rj, alpha=0.5):
     j, i = np.meshgrid(np.arange(n), np.arange(m))
 
@@ -1260,6 +1260,6 @@ def _window_tukey(m, n, ci, cj, ri, rj, alpha=0.5):
     return weights
 
 
-# Uniform window function with all values set to one.
+# uniform window function with all values set to one
 def _window_uniform(m, n, ci, cj, ri, rj):
     return np.ones((m, n))
