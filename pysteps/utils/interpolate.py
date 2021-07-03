@@ -71,11 +71,6 @@ def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
     gridv = np.column_stack((xgridv.ravel(), ygridv.ravel()))
 
-    # grid mean resolution
-    x_res = np.gradient(xgrid)
-    y_res = np.gradient(ygrid)
-    mean_res = np.mean(np.abs([x_res.mean(), y_res.mean()]))
-
     if k is not None:
         k = int(np.min((k, npoints)))
         tree = _cKDTree_cached(xy_coord, hkey=kwargs.get("hkey", None))
@@ -90,8 +85,14 @@ def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
             int
         )
 
+    # convert geographical distances to number of pixels
+    x_res = np.gradient(xgrid)
+    y_res = np.gradient(ygrid)
+    mean_res = np.mean(np.abs([x_res.mean(), y_res.mean()]))
+    dist /= mean_res
+
     # compute distance-based weights
-    dist = dist / mean_res + 0.5
+    dist += 0.5  # avoid zero distances
     weights = 1 / np.power(dist, power)
     weights = weights / np.sum(weights, axis=1, keepdims=True)
 
