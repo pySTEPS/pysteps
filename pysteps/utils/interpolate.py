@@ -38,9 +38,9 @@ def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
     values: array_like
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
-        variables. All values in ``values`` are required to have finite values.
+        variables. All values in ``values`` are required to be finite.
     xgrid, ygrid: array_like
-        1D arrays representing the coordinates of the 2-D output grid.
+        1-D arrays representing the coordinates of the 2-D output grid.
     power: positive float, optional
         The power parameter used to compute the distance weights as
         ``weight = distance ** (-power)``.
