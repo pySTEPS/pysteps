@@ -5,7 +5,7 @@ pysteps.nowcasts.linda
 This module implements the Lagrangian INtegro-Difference equation model with
 Autoregression (LINDA). The model combines extrapolation, S-PROG, STEPS, ANVIL,
 integro-difference equation (IDE) and cell tracking methods. It can produce
-both deterministic and probabilistic nowcasts. LINDA is particularly designed
+both deterministic and probabilistic nowcasts. LINDA is specifically designed
 for nowcasting intense localized rainfall. For this purpose, it is expected to
 give better forecast skill than S-PROG or STEPS.
 
@@ -94,7 +94,7 @@ def forecast(
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
         of the list are required to be in ascending order.
-    feature_method : {'blob', 'domain' 'grid', 'shitomasi'}
+    feature_method : {'blob', 'domain' 'shitomasi'}
         Feature detection method:
 
         +-------------------+-----------------------------------------------------+
@@ -105,9 +105,6 @@ def forecast(
         +-------------------+-----------------------------------------------------+
         |  domain           | no feature detection, the model is applied over the |
         |                   | whole domain without localization                   |
-        +-------------------+-----------------------------------------------------+
-        |  grid             | no feature detection: the coordinates of the        |
-        |                   | localization windows are aligned in a grid          |
         +-------------------+-----------------------------------------------------+
         |  shitomasi        | Shi-Tomasi corner detector implemented in OpenCV    |
         +-------------------+-----------------------------------------------------+
@@ -1024,7 +1021,6 @@ def _linda_init(
     fct_gen["extrap_kwargs"] = extrap_kwargs
 
     # detect features from the most recent input field
-    # TODO: implement the "grid" option
     if feature_method in {"blob", "shitomasi"}:
         precip_field_ = precip_fields[-1].copy()
         precip_field_[~np.isfinite(precip_field_)] = 0.0
