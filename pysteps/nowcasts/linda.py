@@ -484,7 +484,7 @@ def _compute_parametric_acf(params, m, n):
     r2 = np.reshape(
         grid_xy[0, :] * grid_xy[0, :] + grid_xy[1, :] * grid_xy[1, :], grid_x.shape
     )
-    result = np.exp(-0.5 * r2)
+    result = np.exp(-np.sqrt(r2))
 
     return c * result
 
