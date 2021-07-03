@@ -100,7 +100,7 @@ def get_method(name, **kwargs):
     |  rbfinterp2d      | Radial Basis Function (RBF) interpolation of a      |
     |                   | (multivariate) array over a 2D grid.                |
     +-------------------+-----------------------------------------------------+
-    |  idwinterp2d      | Inverse distance weighting interpolation of a       |
+    |  idwinterp2d      | Inverse distance weighting (IDW) interpolation of a |
     |                   | (multivariate) array over a 2D grid.                |
     +-------------------+-----------------------------------------------------+
 
