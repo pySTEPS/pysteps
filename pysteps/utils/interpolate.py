@@ -33,8 +33,8 @@ def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
     Parameters
     ----------
     xy_coord: array_like
-        Array of shape (n, 2) containing the coordinates of the data points
-        into a 2-dimensional space.
+        Array of shape (n, 2) containing the coordinates of the data points in
+        a 2-dimensional space.
     values: array_like
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
