@@ -273,6 +273,7 @@ def forecast(
         err = precip_fct_det[-1] / precip_fields[-1]
 
         # mask small values
+        # TODO: make the thresholds configurable
         mask = np.logical_or(
             np.logical_and(precip_fct_det[-1] >= 1.0, precip_fields[-1] >= 0.5),
             np.logical_and(precip_fct_det[-1] >= 0.5, precip_fields[-1] >= 1.0),
@@ -359,6 +360,25 @@ def _composite_convolution(field, kernels, weights):
     return field_c
 
 
+# Compute the bounding box of an ellipse.
+def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
+    r1 = cutoff * sigma1
+    r2 = cutoff * sigma2
+    phi_r = phi / 180.0 * np.pi
+
+    if np.abs(phi_r - np.pi / 2) > 1e-6 and np.abs(phi_r - 3 * np.pi / 2) > 1e-6:
+        alpha = np.arctan(-r2 * np.sin(phi_r) / (r1 * np.cos(phi_r)))
+        w = r1 * np.cos(alpha) * np.cos(phi_r) - r2 * np.sin(alpha) * np.sin(phi_r)
+
+        alpha = np.arctan(r2 * np.cos(phi_r) / (r1 * np.sin(phi_r)))
+        h = r1 * np.cos(alpha) * np.sin(phi_r) + r2 * np.sin(alpha) * np.cos(phi_r)
+    else:
+        w = sigma2 * cutoff
+        h = sigma1 * cutoff
+
+    return -abs(h), -abs(w), abs(h), abs(w)
+
+
 # Compute the inverse ACF mapping between two distributions.
 def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=20):
     phi = (
@@ -442,25 +462,6 @@ def _compute_kernel_isotropic(sigma, cutoff=6.0):
     return result / np.sum(result)
 
 
-# Compute the bounding box of an ellipse.
-def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
-    r1 = cutoff * sigma1
-    r2 = cutoff * sigma2
-    phi_r = phi / 180.0 * np.pi
-
-    if np.abs(phi_r - np.pi / 2) > 1e-6 and np.abs(phi_r - 3 * np.pi / 2) > 1e-6:
-        alpha = np.arctan(-r2 * np.sin(phi_r) / (r1 * np.cos(phi_r)))
-        w = r1 * np.cos(alpha) * np.cos(phi_r) - r2 * np.sin(alpha) * np.sin(phi_r)
-
-        alpha = np.arctan(r2 * np.cos(phi_r) / (r1 * np.sin(phi_r)))
-        h = r1 * np.cos(alpha) * np.sin(phi_r) + r2 * np.sin(alpha) * np.cos(phi_r)
-    else:
-        w = sigma2 * cutoff
-        h = sigma1 * cutoff
-
-    return -abs(h), -abs(w), abs(h), abs(w)
-
-
 # Compute parametric ACF.
 def _compute_parametric_acf(params, m, n, func):
     c, phi, sigma1, sigma2 = params
@@ -498,6 +499,15 @@ def _compute_parametric_acf(params, m, n, func):
     return c * result
 
 
+# Compute sample ACF from FFT.
+def _compute_sample_acf(field):
+    # TODO: let user choose the FFT method
+    field_fft = np.fft.rfft2((field - np.mean(field)) / np.std(field))
+    fft_abs = np.abs(field_fft * np.conj(field_fft))
+
+    return np.fft.irfft2(fft_abs, s=field.shape) / (field.shape[0] * field.shape[1])
+
+
 # Compute interpolation weights.
 def _compute_window_weights(coords, grid_height, grid_width, window_radius):
     coords = coords.astype(float).copy()
@@ -529,15 +539,6 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radius):
         w[0, :] = np.ones((grid_height, grid_width))
 
     return w
-
-
-# Compute sample ACF from FFT.
-def _compute_sample_acf(field):
-    # TODO: let user choose the FFT method
-    field_fft = np.fft.rfft2((field - np.mean(field)) / np.std(field))
-    fft_abs = np.abs(field_fft * np.conj(field_fft))
-
-    return np.fft.irfft2(fft_abs, s=field.shape) / (field.shape[0] * field.shape[1])
 
 
 # Constrained optimization of AR(1) parameters.
