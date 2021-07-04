@@ -24,7 +24,9 @@ from pysteps.decorators import memoize, prepare_interpolator
 
 
 @prepare_interpolator()
-def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
+def idwinterp2d(
+    xy_coord, values, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **kwargs
+):
     """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
@@ -47,6 +49,9 @@ def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
     k: positive int or None, optional
         The number of nearest neighbours used for each target location.
         If set to None, it interpolates using all the data points at once.
+    dist_offset: float, optional
+        A small, positive constant that is added to distances to avoid zero
+        values. It has units of pixels.
 
     Other Parameters
     ----------------
@@ -92,7 +97,7 @@ def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
     dist /= mean_res
 
     # compute distance-based weights
-    dist += 0.5  # avoid zero distances
+    dist += dist_offset  # avoid zero distances
     weights = 1 / np.power(dist, power)
     weights = weights / np.sum(weights, axis=1, keepdims=True)
 
