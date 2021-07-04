@@ -252,7 +252,7 @@ def prepare_interpolator(nchunks=4):
 
 def memoize(maxsize=10):
     """
-    Add a Last Recently Used (LRU) cache to any function.
+    Add a Least Recently Used (LRU) cache to any function.
     Caching is purely based on the optional keyword argument 'hkey', which needs
     to be a hashable.
 
