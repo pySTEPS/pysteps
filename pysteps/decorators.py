@@ -159,51 +159,53 @@ def prepare_interpolator(nchunks=4):
 
     def _preamble_interpolation(interpolator):
         @wraps(interpolator)
-        def _interpolator_with_preamble(coord, input_array, xgrid, ygrid, **kwargs):
+        def _interpolator_with_preamble(xy_coord, values, xgrid, ygrid, **kwargs):
             nonlocal nchunks  # https://stackoverflow.com/questions/5630409/
 
-            input_array = input_array.copy()
-            coord = coord.copy()
+            values = values.copy()
+            xy_coord = xy_coord.copy()
 
-            input_ndims = input_array.ndim
-            input_nvars = 1 if input_ndims == 1 else input_array.shape[1]
-            input_nsamples = input_array.shape[0]
+            input_ndims = values.ndim
+            input_nvars = 1 if input_ndims == 1 else values.shape[1]
+            input_nsamples = values.shape[0]
 
-            coord_ndims = coord.ndim
-            coord_nsamples = coord.shape[0]
+            coord_ndims = xy_coord.ndim
+            coord_nsamples = xy_coord.shape[0]
 
             grid_shape = (ygrid.size, xgrid.size)
 
-            if np.any(~np.isfinite(input_array)):
-                raise ValueError("input_array contains non-finite values")
-            if np.any(~np.isfinite(coord)):
-                raise ValueError("coord contains non-finite values")
+            if np.any(~np.isfinite(values)):
+                raise ValueError("argument 'values' contains non-finite values")
+            if np.any(~np.isfinite(xy_coord)):
+                raise ValueError("argument 'xy_coord' contains non-finite values")
 
             if input_ndims > 2:
                 raise ValueError(
-                    f"input_array must have 1 (n) or 2 dimensions (n, m), but it has {input_ndims}"
+                    "argument 'values' must have 1 (n) or 2 dimensions (n, m), "
+                    f"but it has {input_ndims}"
                 )
             if not coord_ndims == 2:
                 raise ValueError(
-                    f"coord must have 2 dimensions (n, 2), but it has {coord_ndims}"
+                    "argument 'xy_coord' must have 2 dimensions (n, 2), "
+                    f"but it has {coord_ndims}"
                 )
 
             if not input_nsamples == coord_nsamples:
                 raise ValueError(
-                    "the number of samples in the input_array does not match the "
+                    "the number of samples in argument 'values' does not match the "
                     f"number of coordinates {input_nsamples}!={coord_nsamples}"
                 )
 
             # only one sample, return uniform output
             if input_nsamples == 1:
                 output_array = np.ones((input_nvars,) + grid_shape)
-                for n, v in enumerate(input_array[0, ...]):
+                for n, v in enumerate(values[0, ...]):
                     output_array[n, ...] *= v
                 return output_array.squeeze()
 
             # all equal elements, return uniform output
-            if input_array.max() == input_array.min():
-                return np.ones((input_nvars,) + grid_shape) * input_array.ravel()[0]
+            if values.max() == values.min():
+                return np.ones((input_nvars,) + grid_shape) * values.ravel()[0]
 
             # split grid in n chunks
             nchunks = int(kwargs.get("nchunks", nchunks) ** 0.5)
@@ -229,7 +231,7 @@ def prepare_interpolator(nchunks=4):
                     deltay = subygrid.size
                     interpolated[
                         :, indy : (indy + deltay), indx : (indx + deltax)
-                    ] = interpolator(coord, input_array, subxgrid, subygrid, **kwargs)
+                    ] = interpolator(xy_coord, values, subxgrid, subygrid, **kwargs)
                     indy += deltay
                 indx += deltax
 
