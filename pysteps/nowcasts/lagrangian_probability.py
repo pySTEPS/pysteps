@@ -3,7 +3,8 @@
 pysteps.nowcasts.lagrangian_probability
 ======================================
 
-Implementation of Lagrangian probability nowcasting methods.
+Implementation of the local Lagrangian probability nowcasting technique
+described in :cite:`GZ2004`.
 
 .. autosummary::
     :toctree: ../generated/
@@ -12,7 +13,7 @@ Implementation of Lagrangian probability nowcasting methods.
 """
 
 import numpy as np
-from scipy import signal
+from scipy.signal import convolve
 
 from pysteps.nowcasts import extrapolation
 
@@ -28,15 +29,15 @@ def forecast(
 ):
     """
     Generate a probability nowcast by a local lagrangian approach. The ouput is
-    the probability of exceeding one or more intensity thresholds, i.e.
+    the probability of exceeding a given intensity threshold, i.e.
     P(precip>=threshold).
 
     Parameters
     ----------
-    precip: array-like
+    precip: array_like
        Two-dimensional array of shape (m,n) containing the input precipitation
        field.
-    velocity: array-like
+    velocity: array_like
        Array of shape (2,m,n) containing the x- and y-components of the
        advection field. The velocities are assumed to represent one time step
        between the inputs.
@@ -50,11 +51,11 @@ def forecast(
     slope: float, optional
        The slope of the relationship between optimum scale and lead time in
        pixel / timesteps. Germann and Zawadzki (2004) found the optimal slope
-       to be equal to 1 km/minute.
+       to be equal to 1 km / minute.
 
     Returns
     -------
-    out: ndarray_
+    out: ndarray
         Three-dimensional array of shape (num_timesteps, m, n) containing a time
         series of nowcast exceedence probabilities. The time series starts from
         t0 + timestep, where timestep is taken from the advection field velocity.
@@ -91,12 +92,12 @@ def forecast(
         if scale == 0:
             continue
         kernel = _get_kernel(scale)
-        kernel_sum = signal.convolve(
+        kernel_sum = convolve(
             valid_pixels[i, ...],
             kernel,
             mode="same",
         )
-        precip_forecast[i, ...] = signal.convolve(
+        precip_forecast[i, ...] = convolve(
             precip_forecast[i, ...],
             kernel,
             mode="same",
