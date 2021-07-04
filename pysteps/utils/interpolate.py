@@ -32,14 +32,14 @@ def idwinterp2d(xy_coord, values, xgrid, ygrid, power=0.5, k=20, **kwargs):
 
     Parameters
     ----------
-    xy_coord: array_like
+    xy_coord: ndarray_
         Array of shape (n, 2) containing the coordinates of the data points in
         a 2-dimensional space.
-    values: array_like
+    values: ndarray_
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
-        variables. All values in ``values`` are required to be finite.
-    xgrid, ygrid: array_like
+        variables. All elements in ``values`` are required to be finite.
+    xgrid, ygrid: ndarray_
         1-D arrays representing the coordinates of the 2-D output grid.
     power: positive float, optional
         The power parameter used to compute the distance weights as
@@ -121,14 +121,14 @@ def rbfinterp2d(xy_coord, values, xgrid, ygrid, **kwargs):
 
     Parameters
     ----------
-    xy_coord: array_like
+    xy_coord: ndarray_
         Array of shape (n, 2) containing the coordinates of the data points in
         a 2-dimensional space.
-    values: array_like
+    values: ndarray_
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
         variables. All values in ``values`` are required to be finite.
-    xgrid, ygrid: array_like
+    xgrid, ygrid: ndarray_
         1-D arrays representing the coordinates of the 2-D output grid.
 
     Other Parameters
