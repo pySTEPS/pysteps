@@ -205,7 +205,14 @@ def test_noise_interface():
 def test_nowcasts_interface():
     """Test the nowcasts module interface."""
 
-    from pysteps.nowcasts import anvil, sprog, steps, sseps, extrapolation
+    from pysteps.nowcasts import (
+        anvil,
+        sprog,
+        steps,
+        sseps,
+        extrapolation,
+        lagrangian_probability,
+    )
 
     method_getter = pysteps.nowcasts.interface.get_method
 
@@ -213,6 +220,8 @@ def test_nowcasts_interface():
         ("anvil", anvil.forecast),
         ("extrapolation", extrapolation.forecast),
         ("lagrangian", extrapolation.forecast),
+        ("probability", lagrangian_probability.forecast),
+        ("lagrangian_probability", lagrangian_probability.forecast),
         ("sprog", sprog.forecast),
         ("sseps", sseps.forecast),
         ("steps", steps.forecast),
