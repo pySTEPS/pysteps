@@ -49,7 +49,7 @@ def dense_lucaskanade(
     lk_kwargs=None,
     fd_method="shitomasi",
     fd_kwargs=None,
-    interp_method="rbfinterp2d",
+    interp_method="idwinterp2d",
     interp_kwargs=None,
     dense=True,
     nr_std_outlier=3,

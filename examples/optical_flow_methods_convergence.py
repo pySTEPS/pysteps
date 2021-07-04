@@ -290,7 +290,7 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
         axis=0
     )
 
-    cmap = get_cmap("jet")
+    cmap = get_cmap("jet").copy()
     cmap.set_under("grey", alpha=0.25)
     cmap.set_over("none")
 
