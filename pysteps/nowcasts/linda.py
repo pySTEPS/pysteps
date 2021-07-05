@@ -17,9 +17,9 @@ The model consists of the following components:
 4. convolution to account for loss of predictability
 5. stochastic perturbations to simulate forecast errors
 
-To allow localization to cells containing intense rainfall, LINDA utilizes a
-sparse feature-based representation of the input rain rate fields. Building on
-extrapolation nowcast, the temporal evolution of rainfall is modeled in the
+LINDA utilizes a sparse feature-based representation of the input rain rate
+fields. This allows localization to cells containing intense rainfall. Building
+on extrapolation nowcast, the temporal evolution of rainfall is modeled in the
 Lagrangian coordinates. Using the ARI process is adapted from ANVIL
 :cite:`PCLH2020`, and the convolution is adapted from the integro-difference
 equation (IDE) models proposed in :cite:`FW2005` and :cite:`XWF2005`. The
@@ -63,15 +63,15 @@ def forecast(
     feature_kwargs={},
     ari_order=1,
     kernel_type="anisotropic",
-    interp_window_radius=None,
-    convol_window_radius=None,
-    ari_window_radius=None,
+    localization_window_radius=None,
     errdist_window_radius=None,
     acf_window_radius=None,
     extrap_method="semilagrangian",
     extrap_kwargs={},
     add_perturbations=True,
-    num_ens_members=24,
+    num_ens_members=40,
+    vel_pert_method="bps",
+    vel_pert_kwargs=None,
     seed=None,
     num_workers=1,
     measure_time=False,
@@ -113,23 +113,17 @@ def forecast(
     feature_kwargs : dict, optional
         Keyword arguments that are passed as **kwargs for the feature detector.
         See :py:mod:`pysteps.feature.blob` and :py:mod:`pysteps.feature.shitomasi`.
-    ari_order : {1, 2}
+    ari_order : {1, 2}, optional
         The order of the ARI(p,1) model.
-    kernel_type : {"anisotropic", "isotropic"}
+    kernel_type : {"anisotropic", "isotropic"}, optional
         The type of the kernel. Default : 'anisotropic'.
-    interp_window_radius : float
-        The standard deviation of the Gaussian kernel for computing the
-        interpolation weights. Default : 0.2 * min(m, n).
-    convol_window_radius : float
-        The standard deviation of the Gaussian window for estimating the
-        convolution parameters. Default : 0.15 * min(m, n).
-    ari_window_radius : float
-        The standard deviation of the Gaussian window for estimating the
-        ARI parameters. Default : 0.25 * min(m, n).
-    errdist_window_radius : float
+    localization_window_radius : float, optional
+        The standard deviation of the Gaussian localization window.
+        Default : 0.2 * min(m, n).
+    errdist_window_radius : float, optional
         The standard deviation of the Gaussian window for estimating the
         forecast error distribution. Default : 0.15 * min(m, n).
-    acf_window_radius : float
+    acf_window_radius : float, optional
         The standard deviation of the Gaussian window for estimating the
         forecast error ACF. Default : 0.25 * min(m, n).
     extrap_method : str, optional
@@ -137,20 +131,31 @@ def forecast(
         :py:mod:`pysteps.extrapolation.interface`.
     extrap_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
-        method. See the documentation of :py:mod:`pysteps.extrapolation`.
+        method. See :py:mod:`pysteps.extrapolation`.
     add_perturbations : bool
         Set to False to disable perturbations and generate a single
         deterministic nowcast.
-    num_ens_members : int
-        The number of ensemble members to generate.
-    seed : int
+    num_ens_members : int, optional
+        The number of ensemble members to generate. Default: 40.
+    vel_pert_method: {'bps', None}, optional
+        Name of the generator to use for perturbing the advection field. See
+        :py:mod:`pysteps.noise.interface`.
+    vel_pert_kwargs: dict, optional
+        Optional dictionary containing keyword arguments 'p_par' and 'p_perp'
+        for the initializer of the velocity perturbator. The choice of the
+        optimal parameters depends on the domain and the used optical flow
+        method. See :py:func:`pysteps.nowcasts.steps.forecast`.
+    kmperpixel: float, optional
+        Spatial resolution of the input data (kilometers/pixel). Required if
+        vel_pert_method is not None.
+    seed : int, optional
         Optional seed for the random generator.
-    num_workers : int
+    num_workers : int, optional
         The number of workers to use for parallel computations. Applicable if
         dask is installed. When num_workers>1, it is advisable to disable
         OpenMP by setting the environment variable OMP_NUM_THREADS to 1. This
         avoids slowdown caused by too many simultaneous threads.
-    measure_time: bool
+    measure_time: bool, optional
         If set to True, measure, print and return the computation time.
 
     Returns
@@ -164,12 +169,8 @@ def forecast(
     """
     _check_inputs(precip_fields, advection_field, timesteps, ari_order)
 
-    if interp_window_radius is None:
-        interp_window_radius = 0.2 * np.min(precip_fields.shape[1:])
-    if convol_window_radius is None:
-        convol_window_radius = 0.15 * np.min(precip_fields.shape[1:])
-    if ari_window_radius is None:
-        ari_window_radius = 0.25 * np.min(precip_fields.shape[1:])
+    if localization_window_radius is None:
+        localization_window_radius = 0.2 * np.min(precip_fields.shape[1:])
     if add_perturbations:
         if errdist_window_radius is None:
             errdist_window_radius = 0.15 * min(
@@ -209,10 +210,8 @@ def forecast(
         # TODO: implement fractional time steps
         raise NotImplementedError("fractional time steps not yet implemented")
         print("time steps:                {}".format(timesteps))
-    print("ARI model order:           {}".format(ari_order))
-    print("convol. window radius:     {}".format(convol_window_radius))
-    print("ARI window radius:         {}".format(ari_window_radius))
-    print("interp. window radius:     {}".format(interp_window_radius))
+    print("ARI model order:               {}".format(ari_order))
+    print("localization window radius:    {}".format(localization_window_radius))
     if add_perturbations:
         print("error dist. window radius: {}".format(errdist_window_radius))
         print("error ACF window radius:   {}".format(acf_window_radius))
@@ -227,9 +226,7 @@ def forecast(
         feature_kwargs,
         ari_order,
         kernel_type,
-        interp_window_radius,
-        convol_window_radius,
-        ari_window_radius,
+        localization_window_radius,
         extrap_method,
         extrap_kwargs,
         add_perturbations,
@@ -290,7 +287,7 @@ def forecast(
             fct_gen,
             errdist_window_radius,
             acf_window_radius,
-            interp_window_radius,
+            localization_window_radius,
             measure_time,
             num_workers,
         )
@@ -330,8 +327,6 @@ def forecast(
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
-    if not isinstance(timesteps, int):
-        raise ValueError("only integer timestep are currently supported")
     if ari_order not in [1, 2]:
         raise ValueError(f"ari_order {ari_order} given, 1 or 2 required")
     if len(precip_fields.shape) != 3:
@@ -346,8 +341,8 @@ def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
                 precip_fields.shape, advection_field.shape
             )
         )
-    # if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
-    #    raise ValueError("timesteps is not in ascending order")
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
 
 
 # compute a localized convolution by applying a set of kernels with the given
@@ -984,9 +979,7 @@ def _linda_init(
     feature_kwargs,
     ari_order,
     kernel_type,
-    interp_window_radius,
-    convol_window_radius,
-    ari_window_radius,
+    localization_window_radius,
     extrap_method,
     extrap_kwargs,
     add_perturbations,
@@ -1049,7 +1042,7 @@ def _linda_init(
         feature_coords,
         precip_fields.shape[1],
         precip_fields.shape[2],
-        interp_window_radius,
+        localization_window_radius,
     )
     interp_weights /= np.sum(interp_weights, axis=0)
     fct_gen["interp_weights"] = interp_weights
@@ -1112,7 +1105,7 @@ def _linda_init(
         feature_coords,
         precip_fields.shape[1],
         precip_fields.shape[2],
-        convol_window_radius,
+        localization_window_radius,
     )
 
     kernels_1 = _estimate_convol_params(
@@ -1150,7 +1143,7 @@ def _linda_init(
         feature_coords,
         precip_fields.shape[1],
         precip_fields.shape[2],
-        ari_window_radius,
+        localization_window_radius,
     )
 
     if ari_order == 1:
