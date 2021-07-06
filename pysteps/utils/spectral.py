@@ -122,7 +122,7 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_k
     -------
     out: ndarray
       One-dimensional array containing the RAPSD. The length of the array is
-      int(L/2)+1 (if L is even) or int(L/2) (if L is odd), where L=max(M,N).
+      int(L/2) (if L is even) or int(L/2)+1 (if L is odd), where L=max(M,N).
     freq: ndarray
       One-dimensional array containing the Fourier frequencies.
 
