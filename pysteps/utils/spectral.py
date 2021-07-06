@@ -146,7 +146,7 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_k
     R = np.sqrt(XC * XC + YC * YC).round()
     L = max(Z.shape[0], Z.shape[1])
 
-    if L % 2 == 0:
+    if L % 2 == 1:
         r_range = np.arange(0, int(L / 2) + 1)
     else:
         r_range = np.arange(0, int(L / 2))
