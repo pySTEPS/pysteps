@@ -72,6 +72,8 @@ def forecast(
     num_ens_members=40,
     vel_pert_method="bps",
     vel_pert_kwargs=None,
+    kmperpixel=None,
+    timestep=None,
     seed=None,
     num_workers=1,
     measure_time=False,
@@ -148,6 +150,9 @@ def forecast(
     kmperpixel: float, optional
         Spatial resolution of the input data (kilometers/pixel). Required if
         vel_pert_method is not None.
+    timestep: float, optional
+      Time step of the motion vectors (minutes). Required if vel_pert_method is
+      not None.
     seed : int, optional
         Optional seed for the random generator.
     num_workers : int, optional
@@ -180,6 +185,13 @@ def forecast(
             acf_window_radius = 0.25 * min(
                 precip_fields.shape[1], precip_fields.shape[2]
             )
+        if vel_pert_method is not None:
+            if kmperpixel is None:
+                raise ValueError("vel_pert_method is set but kmperpixel is None")
+            if timestep is None:
+                raise ValueError("vel_pert_method is set but timestep is None")
+        if vel_pert_kwargs is None:
+            vel_pert_kwargs = dict()
 
     print("Computing LINDA nowcast")
     print("-----------------------")
@@ -230,6 +242,8 @@ def forecast(
         extrap_method,
         extrap_kwargs,
         add_perturbations,
+        vel_pert_method,
+        vel_pert_kwargs,
         num_ens_members,
         num_workers,
         measure_time,
@@ -983,6 +997,8 @@ def _linda_init(
     extrap_method,
     extrap_kwargs,
     add_perturbations,
+    vel_pert_method,
+    vel_pert_kwargs,
     num_ens_members,
     num_workers,
     measure_time,
