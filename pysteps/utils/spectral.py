@@ -96,19 +96,21 @@ def mean(X, shape):
     return np.real(X[0, 0]) / (shape[0] * shape[1])
 
 
-def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_kwargs):
+def rapsd(
+    field, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_kwargs
+):
     """Compute radially averaged power spectral density (RAPSD) from the given
     2D input field.
 
     Parameters
     ----------
-    Z: array_like
-        A 2d array of shape (M,N) containing the input field.
+    field: array_like
+        A 2d array of shape (m, n) containing the input field.
     fft_method: object
         A module or object implementing the same methods as numpy.fft and
-        scipy.fftpack. If set to None, Z is assumed to represent the shifted
-        discrete Fourier transform of the input field, where the origin is at
-        the center of the array
+        scipy.fftpack. If set to None, field is assumed to represent the
+        shifted discrete Fourier transform of the input field, where the
+        origin is at the center of the array
         (see numpy.fft.fftshift or scipy.fftpack.fftshift).
     return_freq: bool
         Whether to also return the Fourier frequencies.
@@ -122,7 +124,7 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_k
     -------
     out: ndarray
       One-dimensional array containing the RAPSD. The length of the array is
-      int(L/2) (if L is even) or int(L/2)+1 (if L is odd), where L=max(M,N).
+      int(l/2) (if l is even) or int(l/2)+1 (if l is odd), where l=max(m,n).
     freq: ndarray
       One-dimensional array containing the Fourier frequencies.
 
@@ -131,37 +133,37 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_k
     :cite:`RC2011`
     """
 
-    if len(Z.shape) != 2:
+    if len(field.shape) != 2:
         raise ValueError(
-            f"{len(Z.shape)} dimensions are found, but the number "
+            f"{len(field.shape)} dimensions are found, but the number "
             "of dimensions should be 2"
         )
 
-    if np.sum(np.isnan(Z)) > 0:
+    if np.sum(np.isnan(field)) > 0:
         raise ValueError("input array Z should not contain nans")
 
-    M, N = Z.shape
+    m, n = field.shape
 
-    YC, XC = arrays.compute_centred_coord_array(M, N)
-    R = np.sqrt(XC * XC + YC * YC).round()
-    L = max(Z.shape[0], Z.shape[1])
+    yc, xc = arrays.compute_centred_coord_array(m, n)
+    r_grid = np.sqrt(xc * xc + yc * yc).round()
+    l = max(field.shape[0], field.shape[1])
 
-    if L % 2 == 1:
-        r_range = np.arange(0, int(L / 2) + 1)
+    if l % 2 == 1:
+        r_range = np.arange(0, int(l / 2) + 1)
     else:
-        r_range = np.arange(0, int(L / 2))
+        r_range = np.arange(0, int(l / 2))
 
     if fft_method is not None:
-        F = fft_method.fftshift(fft_method.fft2(Z, **fft_kwargs))
-        F = np.abs(F) ** 2 / F.size
+        psd = fft_method.fftshift(fft_method.fft2(field, **fft_kwargs))
+        psd = np.abs(psd) ** 2 / psd.size
     else:
-        F = Z
+        psd = field
 
     result = []
     for r in r_range:
-        MASK = R == r
-        F_vals = F[MASK]
-        result.append(np.mean(F_vals))
+        mask = r_grid == r
+        psd_vals = psd[mask]
+        result.append(np.mean(psd_vals))
 
     result = np.array(result)
 
@@ -169,7 +171,7 @@ def rapsd(Z, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_k
         result /= np.sum(result)
 
     if return_freq:
-        freq = np.fft.fftfreq(L, d=d)
+        freq = np.fft.fftfreq(l, d=d)
         freq = freq[r_range]
         return result, freq
     else:
