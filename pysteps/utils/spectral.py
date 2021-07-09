@@ -139,7 +139,7 @@ def rapsd(
         )
 
     if np.sum(np.isnan(field)) > 0:
-        raise ValueError("input array Z should not contain nans")
+        raise ValueError("input field should not contain nans")
 
     m, n = field.shape
 
