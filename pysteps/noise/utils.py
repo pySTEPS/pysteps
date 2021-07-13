@@ -11,15 +11,28 @@ Miscellaneous utility functions related to generation of stochastic perturbation
 """
 
 import numpy as np
+
 try:
     import dask
+
     dask_imported = True
 except ImportError:
     dask_imported = False
 
-def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
-                              noise_filter, noise_generator, num_iter,
-                              conditional=True, num_workers=1, seed=None):
+
+def compute_noise_stddev_adjs(
+    R,
+    R_thr_1,
+    R_thr_2,
+    F,
+    decomp_method,
+    noise_filter,
+    noise_generator,
+    num_iter,
+    conditional=True,
+    num_workers=1,
+    seed=None,
+):
     """Apply a scale-dependent adjustment factor to the noise fields used in STEPS.
 
     Simulates the effect of applying a precipitation mask to a Gaussian noise
@@ -73,13 +86,13 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
     R[~np.isfinite(R)] = R_thr_2
     R[~MASK] = R_thr_2
     if not conditional:
-        mu, sigma = np.mean(R),np.std(R)
+        mu, sigma = np.mean(R), np.std(R)
     else:
-        mu, sigma = np.mean(R[MASK]),np.std(R[MASK])
+        mu, sigma = np.mean(R[MASK]), np.std(R[MASK])
     R -= mu
 
     MASK_ = MASK if conditional else None
-    decomp_R = decomp_method(R, F, MASK=MASK_)
+    decomp_R = decomp_method(R, F, mask=MASK_)
 
     if dask_imported and num_workers > 1:
         res = []
@@ -93,6 +106,7 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
         seed = np.random.randint(0, high=1e9)
 
     for k in range(num_iter):
+
         def worker():
             # generate Gaussian white noise field, filter it using the chosen
             # method, multiply it with the standard deviation of the observed
@@ -104,7 +118,7 @@ def compute_noise_stddev_adjs(R, R_thr_1, R_thr_2, F, decomp_method,
             # subtract the mean and decompose the masked noise field into a
             # cascade
             N -= mu
-            decomp_N = decomp_method(N, F, MASK=MASK_)
+            decomp_N = decomp_method(N, F, mask=MASK_)
 
             return decomp_N["stds"]
 

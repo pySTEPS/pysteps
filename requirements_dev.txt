@@ -6,7 +6,6 @@ pillow
 pyproj
 scipy
 matplotlib
-attrdict
 jsmin
 jsonschema
 netCDF4
@@ -15,7 +14,6 @@ netCDF4
 dask
 pyfftw
 cartopy
-basemap
 h5py
 
 # Testing

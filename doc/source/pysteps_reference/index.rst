@@ -14,8 +14,10 @@ available in pySTEPS.
     :maxdepth: 2
     :caption: Pysteps modules
 
+    pysteps
     cascade
     extrapolation
+    datasets
     io
     motion
     noise

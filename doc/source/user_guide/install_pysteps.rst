@@ -1,3 +1,5 @@
+.. _install_pysteps:
+
 Installing pysteps
 ==================
 
@@ -6,82 +8,97 @@ Dependencies
 
 The pysteps package needs the following dependencies
 
-* python_>=3.6
-* attrdict_
-* jsmin_
-* jsonschema_
-* matplotlib_
-* netCDF4_
-* numpy_
-* opencv_
-* pillow_
-* pyproj_
-* scipy_
+* `python >=3.6 <http://www.python.org/>`_
+* `jsonschema <https://pypi.org/project/jsonschema/>`_
+* `matplotlib <http://matplotlib.org/>`_
+* `netCDF4 <https://pypi.org/project/netCDF4/>`_
+* `numpy <http://www.numpy.org/>`_
+* `opencv <https://opencv.org/>`_
+* `pillow <https://python-pillow.org/>`_
+* `pyproj <https://jswhit.github.io/pyproj/>`_
+* `scipy <https://www.scipy.org/>`_
 
-.. _python : http://www.python.org/
-.. _attrdict : https://pypi.org/project/attrdict/
-.. _jsmin : https://pypi.org/project/jsmin/
-.. _jsonschema : https://pypi.org/project/jsonschema/
-.. _matplotlib: http://matplotlib.org/
-.. _netCDF4: https://pypi.org/project/netCDF4/
-.. _numpy: http://www.numpy.org/
-.. _opencv: https://opencv.org/
-.. _pillow: https://python-pillow.org/
-.. _pyproj: https://jswhit.github.io/pyproj/
-.. _scipy: https://www.scipy.org/
 
-Additionally, the following packages can be installed for better computational efficiency:
+Additionally, the following packages can be installed for better computational
+efficiency:
 
-* dask_ and toolz_ (for code parallelisation)
-* pyfftw_ (for faster FFT computation)
+* `dask <https://dask.org/>`_ and
+  `toolz <https://github.com/pytoolz/toolz/>`_ (for code parallelization)
+* `pyfftw <https://hgomersall.github.io/pyFFTW/>`_ (for faster FFT computation)
 
-.. _dask: https://dask.org/
-.. _toolz: https://github.com/pytoolz/toolz/
-.. _pyfftw: https://hgomersall.github.io/pyFFTW/
 
 Other optional dependencies include:
 
-* cartopy_ or basemap_ (for georeferenced visualization)
-* h5py_ (for importing HDF5 data)
-* pywavelets_ (for intensity-scale verification)
-* cython_ (for the variational echo tracking method)
+* `cartopy <https://scitools.org.uk/cartopy/docs/v0.16/>`_ (for geo-referenced
+  visualization)
+* `h5py <https://www.h5py.org/>`_ (for importing HDF5 data)
+* `pygrib <https://jswhit.github.io/pygrib/docs/index.html>`_ (for importing MRMS data)
+* `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
+  (for intensity-scale verification)
 
-.. _basemap: https://matplotlib.org/basemap/
-.. _cartopy: https://scitools.org.uk/cartopy/docs/v0.16/
-.. _h5py: https://www.h5py.org/
-.. _pywavelets: https://pywavelets.readthedocs.io/en/latest/
-.. _cython: https://cython.org/
 
-Note that cython also requires a C compiler. See https://cython.readthedocs.io/en/latest/src/quickstart/install.html for instructions.
 
-We recommend that you create a conda environment using the available
-`environment.yml`_ file to install the most important dependencies::
+Anaconda install (recommended)
+------------------------------
 
-    conda env create -f environment.yml
-    conda activate pysteps
+Conda is an open-source package management system and environment management
+system that runs on Windows, macOS, and Linux.
+Conda quickly installs, runs, and updates packages and their dependencies.
+It also allows you to easily create, save, load, or switch between different
+environments on your local computer.
 
-.. _environment.yml: \
-     https://github.com/pySTEPS/pysteps/blob/master/environment.yml
+Since version 1.0, pySTEPS is available in conda-forge, a community-driven
+package repository for anaconda.
 
-This will allow running pysteps with the basic functionality.
+There are two installation alternatives using anaconda: install pySTEPS in a
+pre-existing environment or install it new environment.
+
+New environment
+~~~~~~~~~~~~~~~
+
+In a terminal, to create a new conda environment and install pySTEPS, run::
+
+    $ conda create -n pysteps
+    $ source activate pysteps
+
+This will create and activate the new python environment. The next step is to
+add the conda-forge channel where the pySTEPS package is located::
+
+    $ conda config --env --prepend channels conda-forge
+
+Let's set this channel as the priority one::
+
+    $ conda config --env --set channel_priority strict
+
+The latter step is not strictly necessary but is recommended since
+the conda-forge and the default Anaconda channels are not 100% compatible.
+
+Finally, to install pySTEPS and all its dependencies run::
+
+    $ conda install pysteps
+
 
 Install from source
 -------------------
 
-**IMPORTANT**: installing from source requires numpy to be installed.
+The recommended way to install pysteps from the source is using `pip`
+to adhere to the [PEP517 standards](https://www.python.org/dev/peps/pep-0517/).
+Using `pip` instead of `setup.py` guarantees that all the package dependencies
+are properly handled during the installation process.
+
 
 OSX users
 ~~~~~~~~~
 
-Pysteps uses Cython extensions that need to be compiled with multi-threading
-support enabled. The default Apple Clang compiler does not support OpenMP,
-so using the default compiler would have disabled multi-threading and you will
-get the following error during the installation::
+pySTEPS uses Cython extensions that need to be compiled with multi-threading
+support enabled. The default Apple Clang compiler does not support OpenMP.
+Hence, using the default compiler would have disabled multi-threading and may raise
+the following error during the installation::
 
     clang: error: unsupported option '-fopenmp'
     error: command 'gcc' failed with exit status 1
 
-To solve this issue, obtain the lastest gcc version with
+To solve this issue, obtain the latest gcc version with
 Homebrew_ that has multi-threading enabled::
 
     brew install gcc
@@ -100,7 +117,8 @@ First, check that the homebrew's gcc is detected::
     which gcc-8
 
 This should point to the homebrew's gcc installation.
-Under certain circunstances, homebrew does not add the symbolic links for the
+
+Under certain circumstances, Homebrew_ does not add the symbolic links for the
 gcc executables under /usr/local/bin.
 If that is the case, specify the CC and CCX variables using the full path to
 the homebrew installation. For example::
@@ -109,175 +127,57 @@ the homebrew installation. For example::
     export CXX=/usr/local/Cellar/gcc/8.3.0/bin/g++-8
 
 
-Then, you can continue with the normal installation procedure.
+Then, you can continue with the normal installation procedure described next.
 
 Installation
 ~~~~~~~~~~~~
-
-The installer needs numpy to compile the Cython extensions.
-If numpy is not installed you can run in a terminal::
-
-    pip install numpy
 
 The latest pysteps version in the repository can be installed using pip by
 simply running in a terminal::
 
     pip install git+https://github.com/pySTEPS/pysteps
 
-Or, to install it using setup.py run (global installation)::
+Or, from a local copy of the repo (global installation)::
 
     git clone https://github.com/pySTEPS/pysteps
     cd pysteps
-    python setup.py install
+    pip install .
 
-For `user installation`_::
+The above commands install the latest version of the **master** branch,
+which is continuously under development.
 
-    python setup.py install --user
+.. _development_mode_install:
 
-.. _user installation: \
-    https://docs.python.org/2/install/#alternate-installation-the-user-scheme
+Development mode
+################
 
-If you want to install the package in a specific directory run::
+The latest version can also be installed in Development Mode, i.e.,
+in such a way that the project appears to be installed,
+but yet is still editable from the source tree::
 
-    python setup.py install --prefix=/path/to/local/dir
-
-
-Non-anaconda users or minimal anaconda environments
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The installation using **setup.py** will try to to install the minimum
-dependencies needed to run the program correctly.
-If you are not using the recommended conda environment (defined in
-environment.yml) or you are working with a minimal python distribution,
-you may get the following error during the installation::
-
-    ModuleNotFoundError: No module named 'Cython'
-
-This means that Cython is not installed, which is needed to build some of the
-dependencies of pysteps.
-
-For non-anaconda users, you can install Cython using::
-
-    pip install Cython
-
-Anaconda users can install Cython using::
-
-    conda install cython
+    pip install -e <path to local pysteps repo>
 
 
 Setting up the user-defined configuration file
 ----------------------------------------------
 
+.. _JSON: https://en.wikipedia.org/wiki/JSON
+
 The pysteps package allows the users to customize the default settings
 and configuration.
-The configuration parameters used by default are stored in
-pysteps.rcparams AttrDict_, which are loaded from a pystepsrc JSON_ file
-located in the system.
-The configuration parameters can be accessed as attributes or as items
-in a dictionary. For e.g., to retrieve the default parameters
-the following ways are equivalent::
+The configuration parameters used by default are loaded from a user-defined
+JSON_ file and then stored in the **pysteps.rcparams**, a dictionary-like object
+that can be accessed as attributes or as items.
 
-    import pysteps
+.. toctree::
+    :maxdepth: 1
 
-    # Retrieve the colorscale for plots
-    colorscale = pysteps.rcparams['plot']['colorscale']
-    colorscale = pysteps.rcparams.plot.colorscale
-
-    # Retrieve the the root directory of the fmi data
-    pysteps.rcparams['data_sources']['fmi']['root_path']
-    pysteps.rcparams.data_sources.fmi.root_path
-
-    # -----------------------------------------------------------------
-    # A less wordy alternative
-    # -----------------------------------------------------------------
-    from pysteps import rcparams
-    colorscale = rcparams['plot']['colorscale']
-    colorscale = rcparams.plot.colorscale
-
-    fmi_root_path = rcparams['data_sources']['fmi']['root_path']
-    fmi_root_path = rcparams.data_sources.fmi.root_path
-
-When the pysteps package imported, it looks for **pystepsrc** file in the
-following order:
-
-- **$PWD/pystepsrc** : Looks for the file in the current directory
-- **$PYSTEPSRC** : If the system variable $PYSTEPSRC is defined and it
-  points to a file, it is used.
-- **$PYSTEPSRC/pystepsrc** : If $PYSTEPSRC points to a directory, it looks for the
-  pystepsrc file inside that directory.
-- **$HOME/.pysteps/pystepsrc** (unix and Mac OS X) : If the system variable $HOME is defined, it looks
-  for the configuration file in this path.
-- **$USERPROFILE/pysteps/pystepsrc** (windows only): It looks for the configuration file
-  in the pysteps directory located user's home directory.
-- Lastly, it looks inside the library in pysteps/pystepsrc for a
-  system-defined copy.
-
-.. _JSON: https://en.wikipedia.org/wiki/JSON
-.. _AttrDict: https://pypi.org/project/attrdict/
+    Set-up the user-defined configuration file <set_pystepsrc>
+    Example pystepsrc file <pystepsrc_example>
 
 
-The recommended method to setup the configuration files is to edit a copy
-of the default **pystepsrc** file that is distributed with the package
-and place that copy inside the user home folder.
 
 
-Linux and OSX users
-~~~~~~~~~~~~~~~~~~~
-
-For Linux and OSX users, the recommended way to customize the pysteps
-configuration is place the pystepsrc parameters file in the users home folder
-${HOME} in the following path: **${HOME}/.pysteps/pystepsrc**
-
-This are the steps to setup up the configuration file in that directory:
-
-1. Create the directory if it does not exist. Type in a terminal::
-
-    $> mkdir -p ${HOME}/.pysteps
-
-2. Find the location of the library's pystepsrc file used at the moment.
-When we import pysteps in a python interpreter,
-the configuration file loaded is shown::
-
-    import pysteps
-    "Pysteps configuration file found at: /path/to/pysteps/library/pystepsrc"
-
-3.Copy the library's default rc file to that directory. In a terminal type::
-
-    $> cp /path/to/pysteps/library/pystepsrc ${HOME}/.pysteps/pystepsrc
-
-4. Edit the file with the text editor of your preference
-5. Check that the location of the library's pystepsrc file used at the moment.::
-
-     import pysteps
-     "Pysteps configuration file found at: /home/user_name/.pysteps/pystepsrc"
 
 
-Windows
-~~~~~~~
 
-For windows users, the recommended way to customize the pysteps
-configuration is place the pystepsrc parameters file in the users folder
-(defined in the %USERPROFILE% environment variable) in the following path:
-**%USERPROFILE%/pysteps/pystepsrc**
-
-The following steps are needed to setup up the configuration file in that directory:
-
-1. Create the directory if it does not exist. Type in a terminal::
-
-    $> mkdir -p %USERPROFILE%/pysteps
-
-2. Find the location of the library's pystepsrc file used at the moment. When
-the pystep is imported, the configuration file loaded is shown::
-
-    import pysteps
-    "Pysteps configuration file found at: /path/to/pysteps/library/pystepsrc"
-
-3.Copy the library's default rc file to that directory. In a terminal type::
-
-    $> cp /path/to/pysteps/library/pystepsrc %USERPROFILE%/pysteps/pystepsrc
-
-4. Edit the file with the text editor of your preference
-5. Check that the location of the library's pystepsrc file used at the moment::
-
-     import pysteps
-     "Pysteps configuration file found at: /home/user_name/.pysteps/pystepsrc"

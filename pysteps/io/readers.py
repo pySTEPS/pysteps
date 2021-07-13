@@ -12,6 +12,7 @@ Module with the reader functions.
 
 import numpy as np
 
+
 def read_timeseries(inputfns, importer, **kwargs):
     """Read a time series of input files using the methods implemented in the 
     :py:mod:`pysteps.io.importers` module and stack them into a 3d array of 
@@ -39,7 +40,7 @@ def read_timeseries(inputfns, importer, **kwargs):
     """
 
     # check for missing data
-    Rref = None
+    precip_ref = None
     if all(ifn is None for ifn in inputfns):
         return None, None, None
     else:
@@ -47,32 +48,32 @@ def read_timeseries(inputfns, importer, **kwargs):
             return None, None, None
         for ifn in inputfns[0]:
             if ifn is not None:
-                Rref, Qref, metadata = importer(ifn, **kwargs)
+                precip_ref, quality_ref, metadata = importer(ifn, **kwargs)
                 break
 
-    if Rref is None:
+    if precip_ref is None:
         return None, None, None
 
-    R = []
-    Q = []
+    precip = []
+    quality = []
     timestamps = []
-    for i,ifn in enumerate(inputfns[0]):
+    for i, ifn in enumerate(inputfns[0]):
         if ifn is not None:
-            R_, Q_, _ = importer(ifn, **kwargs)
-            R.append(R_)
-            Q.append(Q_)
+            precip_, quality_, _ = importer(ifn, **kwargs)
+            precip.append(precip_)
+            quality.append(quality_)
             timestamps.append(inputfns[1][i])
         else:
-            R.append(Rref*np.nan)
-            if Qref is not None:
-                Q.append(Qref*np.nan)
+            precip.append(precip_ref * np.nan)
+            if quality_ref is not None:
+                quality.append(quality_ref * np.nan)
             else:
-                Q.append(None)
+                quality.append(None)
             timestamps.append(inputfns[1][i])
 
     # Replace this with stack?
-    R = np.concatenate([R_[None, :, :] for R_ in R])
-    #TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
+    precip = np.concatenate([precip_[None, :, :] for precip_ in precip])
+    # TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
     metadata["timestamps"] = np.array(timestamps)
 
-    return R, Q, metadata
+    return precip, quality, metadata

@@ -6,7 +6,7 @@ Implementation of the S-PROG method described in :cite:`Seed2003`
 
 .. autosummary::
     :toctree: ../generated/
-    
+
     forecast
 """
 
@@ -30,30 +30,45 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
-             extrap_method="semilagrangian", decomp_method="fft",
-             bandpass_filter_method="gaussian", ar_order=2, conditional=False,
-             probmatching_method="mean", num_workers=1, fft_method="numpy",
-             extrap_kwargs=None, filter_kwargs=None, measure_time=False):
+def forecast(
+    R,
+    V,
+    n_timesteps,
+    n_cascade_levels=6,
+    R_thr=None,
+    extrap_method="semilagrangian",
+    decomp_method="fft",
+    bandpass_filter_method="gaussian",
+    ar_order=2,
+    conditional=False,
+    probmatching_method="mean",
+    num_workers=1,
+    fft_method="numpy",
+    domain="spatial",
+    extrap_kwargs=None,
+    filter_kwargs=None,
+    measure_time=False,
+):
     """Generate a nowcast by using the Spectral Prognosis (S-PROG) method.
 
     Parameters
     ----------
     R : array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
-      ordered by timestamp from oldest to newest. The time steps between the inputs
-      are assumed to be regular, and the inputs are required to have finite values.
+      ordered by timestamp from oldest to newest. The time steps between
+      the inputs are assumed to be regular, and the inputs are required to have
+      finite values.
     V : array-like
-      Array of shape (2,m,n) containing the x- and y-components of the advection
-      field. The velocities are assumed to represent one time step between the
+      Array of shape (2,m,n) containing the x- and y-components of the
+      advection field.
+      The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
     n_timesteps : int
       Number of time steps to forecast.
     n_cascade_levels : int, optional
       The number of cascade levels to use.
-    R_thr : float, optional
-      Specifies the threshold value for minimum observable precipitation
-      intensity. Required if mask_method is not None or conditional is True.
+    R_thr : float
+      The threshold value for minimum observable precipitation intensity.
     extrap_method : str, optional
       Name of the extrapolation method to use. See the documentation of
       pysteps.extrapolation.interface.
@@ -67,23 +82,29 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
       The order of the autoregressive model to use. Must be >= 1.
     conditional : bool, optional
       If set to True, compute the statistics of the precipitation field
-      conditionally by excluding pixels where the values are below the threshold
-      R_thr.
+      conditionally by excluding pixels where the values are
+      below the threshold R_thr.
     probmatching_method : {'cdf','mean',None}, optional
       Method for matching the conditional statistics of the forecast field
       (areas with precipitation intensity above the threshold R_thr) with those
       of the most recently observed one. 'cdf'=map the forecast CDF to the
-      observed one, 'mean'=adjust only the mean value, None=no matching applied.
+      observed one, 'mean'=adjust only the mean value,
+      None=no matching applied.
     num_workers : int, optional
       The number of workers to use for parallel computation. Applicable if dask
-      is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
-      is advisable to disable OpenMP by setting the environment variable
-      OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
-      threads.
+      is enabled or pyFFTW is used for computing the FFT.
+      When num_workers>1, it is advisable to disable OpenMP by setting
+      the environment variable OMP_NUM_THREADS to 1.
+      This avoids slowdown caused by too many simultaneous threads.
     fft_method : str, optional
       A string defining the FFT method to use (see utils.fft.get_method).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
+    domain : {"spatial", "spectral"}
+      If "spatial", all computations are done in the spatial domain (the
+      classical S-PROG model). If "spectral", the AR(2) models are applied
+      directly in the spectral domain to reduce memory footprint and improve
+      performance :cite:`PCH2019a`.
     extrap_kwargs : dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
@@ -109,7 +130,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     References
     ----------
-    :cite:`Seed2003`
+    :cite:`Seed2003`, :cite:`PCH2019a`
 
     """
     _check_inputs(R, V, ar_order)
@@ -125,9 +146,6 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
-
-    if conditional and R_thr is None:
-        raise ValueError("conditional=True but R_thr is not set")
 
     print("Computing S-PROG nowcast:")
     print("-------------------------")
@@ -146,6 +164,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     print("conditional statistics: %s" % ("yes" if conditional else "no"))
     print("probability matching:   %s" % probmatching_method)
     print("FFT method:             %s" % fft_method)
+    print("domain:                 %s" % domain)
     print("")
 
     print("Parameters:")
@@ -154,9 +173,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
-
-    if conditional:
-        print("precip. intensity threshold: %g" % R_thr)
+    print("precip. intensity threshold: %g" % R_thr)
 
     if measure_time:
         starttime_init = time.time()
@@ -169,35 +186,36 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     filter_method = cascade.get_method(bandpass_filter_method)
     filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
 
-    decomp_method = cascade.get_method(decomp_method)
+    decomp_method, recomp_method = cascade.get_method(decomp_method)
 
     extrapolator_method = extrapolation.get_method(extrap_method)
 
-    R = R[-(ar_order + 1):, :, :].copy()
+    R = R[-(ar_order + 1) :, :, :].copy()
     R_min = R.min()
 
     if conditional:
-        MASK_thr = np.logical_and.reduce([R[i, :, :] >= R_thr for i in range(R.shape[0])])
+        MASK_thr = np.logical_and.reduce(
+            [R[i, :, :] >= R_thr for i in range(R.shape[0])]
+        )
     else:
         MASK_thr = None
 
     # initialize the extrapolator
-    x_values, y_values = np.meshgrid(np.arange(R.shape[2]),
-                                     np.arange(R.shape[1]))
+    x_values, y_values = np.meshgrid(np.arange(R.shape[2]), np.arange(R.shape[1]))
 
     xy_coords = np.stack([x_values, y_values])
 
     extrap_kwargs = extrap_kwargs.copy()
-    extrap_kwargs['xy_coords'] = xy_coords
+    extrap_kwargs["xy_coords"] = xy_coords
 
     # advect the previous precipitation fields to the same position with the
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     res = list()
 
     def f(R, i):
-        return extrapolator_method(R[i, :, :], V, ar_order - i,
-                                   "min",
-                                   **extrap_kwargs)[-1]
+        return extrapolator_method(R[i, :, :], V, ar_order - i, "min", **extrap_kwargs)[
+            -1
+        ]
 
     for i in range(ar_order):
         if not DASK_IMPORTED:
@@ -212,18 +230,39 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
     for i in range(ar_order + 1):
-        R_ = decomp_method(R[i, :, :], filter, MASK=MASK_thr, fft_method=fft)
+        R_ = decomp_method(
+            R[i, :, :],
+            filter,
+            mask=MASK_thr,
+            fft_method=fft,
+            output_domain=domain,
+            normalize=True,
+            compute_stats=True,
+            compact_output=True,
+        )
         R_d.append(R_)
 
-    # normalize the cascades and rearrange them into a four-dimensional array
-    # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c, mu, sigma = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
+    # rearrange the cascade levels into a four-dimensional array of shape
+    # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
+    R_c = nowcast_utils.stack_cascades(
+        R_d, n_cascade_levels, convert_to_full_arrays=True
+    )
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     GAMMA = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
-        R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order + 1)])
-        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_, MASK=MASK_thr)
+        if domain == "spatial":
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], mask=MASK_thr)
+        else:
+            GAMMA[i, :] = correlation.temporal_autocorrelation(
+                R_c[i], domain="spectral", x_shape=R.shape[1:]
+            )
+
+    R_c = nowcast_utils.stack_cascades(
+        R_d, n_cascade_levels, convert_to_full_arrays=False
+    )
+
+    R_d = R_d[-1]
 
     nowcast_utils.print_corrcoefs(GAMMA)
 
@@ -243,7 +282,7 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
-    R_c = R_c[:, -ar_order:, :, :]
+    R_c = [R_c[i][-ar_order:] for i in range(n_cascade_levels)]
 
     D = None
 
@@ -274,12 +313,15 @@ def forecast(R, V, n_timesteps, n_cascade_levels=6, R_thr=None,
             starttime = time.time()
 
         for i in range(n_cascade_levels):
-            # use a separate AR(p) model for the non-perturbed forecast,
-            # from which the mask is obtained
-            R_c[i, :, :, :] = \
-                autoregression.iterate_ar_model(R_c[i, :, :, :], PHI[i, :])
+            R_c[i] = autoregression.iterate_ar_model(R_c[i], PHI[i, :])
 
-        R_c_ = nowcast_utils.recompose_cascade(R_c[:, -1, :, :], mu, sigma)
+        R_d["cascade_levels"] = [R_c[i][-1, :] for i in range(n_cascade_levels)]
+        if domain == "spatial":
+            R_d["cascade_levels"] = np.stack(R_d["cascade_levels"])
+        R_c_ = recomp_method(R_d)
+
+        if domain == "spectral":
+            R_c_ = fft.irfft2(R_c_)
 
         MASK = _compute_sprog_mask(R_c_, war)
         R_c_[~MASK] = R_min
@@ -324,8 +366,10 @@ def _check_inputs(R, V, ar_order):
     if len(V.shape) != 3:
         raise ValueError("V must be a three-dimensional array")
     if R.shape[1:3] != V.shape[1:3]:
-        raise ValueError("dimension mismatch between R and V: shape(R)=%s, shape(V)=%s" % \
-                         (str(R.shape), str(V.shape)))
+        raise ValueError(
+            "dimension mismatch between R and V: shape(R)=%s, shape(V)=%s"
+            % (str(R.shape), str(V.shape))
+        )
 
 
 def _compute_sprog_mask(R, war):

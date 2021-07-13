@@ -3,8 +3,7 @@ channels:
 - conda-forge
 - defaults
 dependencies:
-  - python=3.6
-  - attrdict
+  - python>=3.6
   - jsmin
   - jsonschema
   - matplotlib

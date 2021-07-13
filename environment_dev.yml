@@ -1,0 +1,30 @@
+# pysteps development environment
+name: pysteps_dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.6
+  - pip
+  - jsmin
+  - jsonschema
+  - matplotlib
+  - netCDF4
+  - numpy
+  - opencv
+  - pillow
+  - pyproj
+  - scipy
+  - pytest
+  - pywavelets
+  - cython
+  - dask
+  - pyfftw
+  - h5py
+  - PyWavelets
+  - pygrib
+  - black
+  - pytest-cov
+  - codecov
+  - pre_commit
+

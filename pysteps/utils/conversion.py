@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.utils.conversion
 ========================
@@ -12,17 +13,17 @@ Methods for converting physical units.
     to_reflectivity
 """
 
-import numpy as np
+# import numpy as np
 import warnings
+from . import transformation
 
 # TODO: This should not be done. Instead fix the code so that it doesn't
 # produce the warnings.
 # to deactivate warnings for comparison operators with NaNs
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-from . import transformation
 
-def to_rainrate(R, metadata, a=None, b=None):
+def to_rainrate(R, metadata, zr_a=None, zr_b=None):
     """Convert to rain rate [mm/h].
 
     Parameters
@@ -35,9 +36,12 @@ def to_rainrate(R, metadata, a=None, b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if a=b=None.
-    a,b : float, optional
-        The a and b coefficients of the Z-R relationship.
+        zr_a and zr_b attributes are also required,
+        but only if zr_a = zr_b = None.
+        If missing, it defaults to Marshall–Palmer relation,
+        that is, zr_a = 200.0 and zr_b = 1.6.
+    zr_a, zr_b : float, optional
+        The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
@@ -53,19 +57,19 @@ def to_rainrate(R, metadata, a=None, b=None):
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] is "dB":
+        if metadata["transform"] == "dB":
 
             R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
-        elif metadata["transform"] in  ["BoxCox", "log"]:
+        elif metadata["transform"] in ["BoxCox", "log"]:
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
-        elif metadata["transform"] is "NQT":
+        elif metadata["transform"] == "NQT":
 
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
-        elif metadata["transform"] is "sqrt":
+        elif metadata["transform"] == "sqrt":
 
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
@@ -73,50 +77,53 @@ def to_rainrate(R, metadata, a=None, b=None):
 
             raise ValueError("Unknown transformation %s" % metadata["transform"])
 
-
     if metadata["unit"] == "mm/h":
 
         pass
 
     elif metadata["unit"] == "mm":
 
-        threshold = metadata["threshold"] # convert the threshold, too
-        zerovalue = metadata["zerovalue"] # convert the zerovalue, too
+        threshold = metadata["threshold"]  # convert the threshold, too
+        zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
-        R = R/float(metadata["accutime"])*60.0
-        threshold = threshold/float(metadata["accutime"])*60.0
-        zerovalue = zerovalue/float(metadata["accutime"])*60.0
+        R = R / float(metadata["accutime"]) * 60.0
+        threshold = threshold / float(metadata["accutime"]) * 60.0
+        zerovalue = zerovalue / float(metadata["accutime"]) * 60.0
 
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
 
     elif metadata["unit"] == "dBZ":
 
-        threshold = metadata["threshold"] # convert the threshold, too
-        zerovalue = metadata["zerovalue"] # convert the zerovalue, too
+        threshold = metadata["threshold"]  # convert the threshold, too
+        zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
         # Z to R
-        if a is None:
-            a = metadata.get("zr_a", 316.0)
-        if b is None:
-            b = metadata.get("zr_b", 1.5)
-        R = (R/a)**(1.0/b)
-        threshold = (threshold/a)**(1.0/b)
-        zerovalue = (zerovalue/a)**(1.0/b)
+        if zr_a is None:
+            zr_a = metadata.get("zr_a", 200.0)  # default to Marshall–Palmer
+        if zr_b is None:
+            zr_b = metadata.get("zr_b", 1.6)  # default to Marshall–Palmer
+        R = (R / zr_a) ** (1.0 / zr_b)
+        threshold = (threshold / zr_a) ** (1.0 / zr_b)
+        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b)
 
-        metadata["zr_a"] = a
-        metadata["zr_b"] = b
+        metadata["zr_a"] = zr_a
+        metadata["zr_b"] = zr_b
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
 
     else:
-        raise ValueError("Cannot convert unit %s and transform %s to mm/h" % (metadata["unit"], metadata["transform"]))
+        raise ValueError(
+            "Cannot convert unit %s and transform %s to mm/h"
+            % (metadata["unit"], metadata["transform"])
+        )
 
     metadata["unit"] = "mm/h"
 
     return R, metadata
 
-def to_raindepth(R, metadata, a=None, b=None):
+
+def to_raindepth(R, metadata, zr_a=None, zr_b=None):
     """Convert to rain depth [mm].
 
     Parameters
@@ -129,9 +136,12 @@ def to_raindepth(R, metadata, a=None, b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if a=b=None.
-    a,b : float, optional
-        The a and b coefficients of the Z-R relationship.
+        zr_a and zr_b attributes are also required,
+        but only if zr_a = zr_b = None.
+        If missing, it defaults to Marshall–Palmer relation, that is,
+        zr_a = 200.0 and zr_b = 1.6.
+    zr_a, zr_b : float, optional
+        The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
@@ -147,7 +157,7 @@ def to_raindepth(R, metadata, a=None, b=None):
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] is "dB":
+        if metadata["transform"] == "dB":
 
             R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
@@ -155,16 +165,15 @@ def to_raindepth(R, metadata, a=None, b=None):
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
-        elif metadata["transform"] is "NQT":
+        elif metadata["transform"] == "NQT":
 
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
-        elif metadata["transform"] is "sqrt":
+        elif metadata["transform"] == "sqrt":
 
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
         else:
-
             raise ValueError("Unknown transformation %s" % metadata["transform"])
 
     if metadata["unit"] == "mm" and metadata["transform"] is None:
@@ -172,43 +181,47 @@ def to_raindepth(R, metadata, a=None, b=None):
 
     elif metadata["unit"] == "mm/h":
 
-        threshold = metadata["threshold"] # convert the threshold, too
-        zerovalue = metadata["zerovalue"] # convert the zerovalue, too
+        threshold = metadata["threshold"]  # convert the threshold, too
+        zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
-        R = R/60.0*metadata["accutime"]
-        threshold = threshold/60.0*metadata["accutime"]
-        zerovalue = zerovalue/60.0*metadata["accutime"]
+        R = R / 60.0 * metadata["accutime"]
+        threshold = threshold / 60.0 * metadata["accutime"]
+        zerovalue = zerovalue / 60.0 * metadata["accutime"]
 
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
 
     elif metadata["unit"] == "dBZ":
 
-        threshold = metadata["threshold"] # convert the threshold, too
-        zerovalue = metadata["zerovalue"] # convert the zerovalue, too
+        threshold = metadata["threshold"]  # convert the threshold, too
+        zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
         # Z to R
-        if a is None:
-            a = metadata.get("zr_a", 316.0)
-        if b is None:
-            b = metadata.get("zr_b", 1.5)
-        R = (R/a)**(1.0/b)/60.0*metadata["accutime"]
-        threshold = (threshold/a)**(1.0/b)/60.0*metadata["accutime"]
-        zerovalue = (zerovalue/a)**(1.0/b)/60.0*metadata["accutime"]
+        if zr_a is None:
+            zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall–Palmer
+        if zr_b is None:
+            zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
+        R = (R / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
+        threshold = (threshold / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
+        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
 
-        metadata["zr_a"] = a
-        metadata["zr_b"] = b
+        metadata["zr_a"] = zr_a
+        metadata["zr_b"] = zr_b
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
 
     else:
-        raise ValueError("Cannot convert unit %s and transform %s to mm" % (metadata["unit"], metadata["transform"]))
+        raise ValueError(
+            "Cannot convert unit %s and transform %s to mm"
+            % (metadata["unit"], metadata["transform"])
+        )
 
     metadata["unit"] = "mm"
 
     return R, metadata
 
-def to_reflectivity(R, metadata, a=None, b=None):
+
+def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
     """Convert to reflectivity [dBZ].
 
     Parameters
@@ -221,9 +234,12 @@ def to_reflectivity(R, metadata, a=None, b=None):
         :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required, but only if a=b=None.
-    a,b : float, optional
-        The a and b coefficients of the Z-R relationship.
+        zr_a and zr_b attributes are also required,
+        but only if zr_a = zr_b = None.
+        If missing, it defaults to Marshall–Palmer relation, that is,
+        zr_a = 200.0 and zr_b = 1.6.
+    zr_a, zr_b : float, optional
+        The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
@@ -239,7 +255,7 @@ def to_reflectivity(R, metadata, a=None, b=None):
 
     if metadata["transform"] is not None:
 
-        if metadata["transform"] is "dB":
+        if metadata["transform"] == "dB":
 
             R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
@@ -247,11 +263,11 @@ def to_reflectivity(R, metadata, a=None, b=None):
 
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
-        elif metadata["transform"] is "NQT":
+        elif metadata["transform"] == "NQT":
 
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
-        elif metadata["transform"] is "sqrt":
+        elif metadata["transform"] == "sqrt":
 
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
@@ -261,15 +277,17 @@ def to_reflectivity(R, metadata, a=None, b=None):
 
     if metadata["unit"] == "mm/h":
 
-        # R to Z
-        if a is None:
-            a = metadata.get("zr_a", 316.0)
-        if b is None:
-            b = metadata.get("zr_b", 1.5)
+        # Z to R
+        if zr_a is None:
+            zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall–Palmer
+        if zr_b is None:
+            zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
 
-        R = a*R**b
-        metadata["threshold"] = a*metadata["threshold"]**b
-        metadata["zerovalue"] = a*metadata["zerovalue"]**b
+        R = zr_a * R ** zr_b
+        metadata["threshold"] = zr_a * metadata["threshold"] ** zr_b
+        metadata["zerovalue"] = zr_a * metadata["zerovalue"] ** zr_b
+        metadata["zr_a"] = zr_a
+        metadata["zr_b"] = zr_b
 
         # Z to dBZ
         R, metadata = transformation.dB_transform(R, metadata)
@@ -279,14 +297,16 @@ def to_reflectivity(R, metadata, a=None, b=None):
         # depth to rate
         R, metadata = to_rainrate(R, metadata)
 
-        # R to Z
-        if a is None:
-            a = metadata.get("zr_a", 316.0)
-        if b is None:
-            b = metadata.get("zr_b", 1.5)
-        R = a*R**b
-        metadata["threshold"] = a*metadata["threshold"]**b
-        metadata["zerovalue"] = a*metadata["zerovalue"]**b
+        # Z to R
+        if zr_a is None:
+            zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall-Palmer
+        if zr_b is None:
+            zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall-Palmer
+        R = zr_a * R ** zr_b
+        metadata["threshold"] = zr_a * metadata["threshold"] ** zr_b
+        metadata["zerovalue"] = zr_a * metadata["zerovalue"] ** zr_b
+        metadata["zr_a"] = zr_a
+        metadata["zr_b"] = zr_b
 
         # Z to dBZ
         R, metadata = transformation.dB_transform(R, metadata)
@@ -298,7 +318,10 @@ def to_reflectivity(R, metadata, a=None, b=None):
 
     else:
 
-        raise ValueError("Cannot convert unit %s and transform %s to mm/h" % (metadata["unit"], metadata["transform"]))
+        raise ValueError(
+            "Cannot convert unit %s and transform %s to mm/h"
+            % (metadata["unit"], metadata["transform"])
+        )
 
     metadata["unit"] = "dBZ"
 

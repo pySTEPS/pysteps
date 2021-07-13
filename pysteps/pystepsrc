@@ -1,5 +1,7 @@
 // pysteps configuration
 {
+    // "silent_import" : whether to suppress the initial pysteps message
+    "silent_import": false,
     "outputs": {
         // path_outputs : path where to save results (figures, forecasts, etc)
         "path_outputs": "./"
@@ -46,12 +48,21 @@
                 "accutime": 5
             }
         },
+        "mrms": {
+            "root_path": "./mrms",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "PrecipRate_00.00_%Y%m%d-%H%M%S",
+            "fn_ext": "grib2",
+            "importer": "mrms_grib",
+            "timestep": 2,
+            "importer_kwargs": {}
+        },
         "opera": {
             "root_path": "./radar/OPERA",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "T_PAAH21_C_EUOC_%Y%m%d%H%M%S",
             "fn_ext": "hdf",
-            "importer": "odim_hdf5",
+            "importer": "opera_hdf5",
             "timestep": 15,
             "importer_kwargs": {}
         },
@@ -63,8 +74,21 @@
             "importer": "knmi_hdf5",
             "timestep": 5,
             "importer_kwargs": {
-                "accutime": 5
+                "accutime": 5,
+                "qty": "ACRR",
+                "pixelsize": 1000.0
 			}
+        },
+        "saf": {
+            "root_path": "./saf",
+            "path_fmt": "%Y%m%d/CRR",
+            "fn_pattern": "S_NWC_CRR_MSG4_Europe-VISIR_%Y%m%dT%H%M00Z",
+            "fn_ext": "nc",
+            "importer": "saf_crri",
+            "timestep": 15,
+            "importer_kwargs": {
+                "gzipped": true
+            }
         }
     }
 }

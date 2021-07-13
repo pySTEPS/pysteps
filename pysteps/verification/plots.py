@@ -17,42 +17,52 @@ from matplotlib import cm
 import matplotlib.pylab as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
-from . import ensscores, probscores
+from . import ensscores, probscores, spatialscores
 
-def plot_intensityscale(iss, fig=None, vmin=-2, vmax=1, kmperpixel=None, unit=None):
+
+def plot_intensityscale(intscale, fig=None, vminmax=None, kmperpixel=None, unit=None):
     """Plot a intensity-scale verification table with a color bar and axis
     labels.
 
     Parameters
     ----------
-    iss : dict
-        An intensity-scale verification results dictionary returned by
-        pysteps.verification.spatialscores.intensity_scale.
+
+    intscale : dict
+        The intensity-scale object initialized with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_init`
+        and accumulated with
+        :py:func:`pysteps.verification.spatialscores.intensity_scale_accum`.
+
     fig : matplotlib.figure.Figure, optional
         The figure object to use for plotting. If not supplied, a new
         figure is created.
-    vmin : float, optional
-       The minimum value for the intensity-scale skill score in the plot.
-       Defaults to -2.
-    vmax : float, optional
-       The maximum value for the intensity-scale skill score in the plot.
-       Defaults to 1.
+
+    vminmax : tuple of floats, optional
+       The minimum and maximum values for the intensity-scale skill score
+       in the plot.
+       Defaults to the data extent.
+
     kmperpixel : float, optional
        The conversion factor from pixels to kilometers. If supplied,
        the unit of the shown spatial scales is km instead of pixels.
+
     unit : string, optional
        The unit of the intensity thresholds.
-
     """
     if fig is None:
         fig = plt.figure()
 
     ax = fig.gca()
 
-    im = ax.imshow(iss["SS"], vmin=vmin, vmax=vmax, interpolation="nearest",
-                   cmap=cm.jet)
+    SS = spatialscores.intensity_scale_compute(intscale)
+
+    vmin = vmax = None
+    if vminmax is not None:
+        vmin = np.min(vminmax)
+        vmax = np.max(vminmax)
+    im = ax.imshow(SS, vmin=vmin, vmax=vmax, interpolation="nearest", cmap=cm.jet)
     cb = fig.colorbar(im)
-    cb.set_label(iss["label"])
+    cb.set_label(intscale["label"])
 
     if unit is None:
         ax.set_xlabel("Intensity threshold")
@@ -63,13 +73,13 @@ def plot_intensityscale(iss, fig=None, vmin=-2, vmax=1, kmperpixel=None, unit=No
     else:
         ax.set_ylabel("Spatial scale [km]")
 
-    ax.set_xticks(np.arange(iss["SS"].shape[1]))
-    ax.set_xticklabels(iss["thrs"])
-    ax.set_yticks(np.arange(iss["SS"].shape[0]))
+    ax.set_xticks(np.arange(SS.shape[1]))
+    ax.set_xticklabels(intscale["thrs"])
+    ax.set_yticks(np.arange(SS.shape[0]))
     if kmperpixel is None:
-        scales = iss["scales"]
+        scales = intscale["scales"]
     else:
-        scales = np.array(iss["scales"]) * kmperpixel
+        scales = np.array(intscale["scales"]) * kmperpixel
     ax.set_yticklabels(scales)
 
 
@@ -90,17 +100,17 @@ def plot_rankhist(rankhist, ax=None):
 
     r = ensscores.rankhist_compute(rankhist)
     x = np.linspace(0, 1, rankhist["num_ens_members"] + 1)
-    ax.bar(x, r, width=1.0/len(x), align="edge", color="gray", edgecolor="black")
+    ax.bar(x, r, width=1.0 / len(x), align="edge", color="gray", edgecolor="black")
 
     ax.set_xticks(x[::3] + (x[1] - x[0]))
     ax.set_xticklabels(np.arange(1, len(x))[::3])
-    ax.set_xlim(0, 1+1.0/len(x))
-    ax.set_ylim(0, np.max(r)*1.25)
+    ax.set_xlim(0, 1 + 1.0 / len(x))
+    ax.set_ylim(0, np.max(r) * 1.25)
 
     ax.set_xlabel("Rank of observation (among ensemble members)")
     ax.set_ylabel("Relative frequency")
 
-    ax.grid(True, axis='y', ls=':')
+    ax.grid(True, axis="y", ls=":")
 
 
 def plot_reldiag(reldiag, ax=None):
@@ -109,7 +119,7 @@ def plot_reldiag(reldiag, ax=None):
     Parameters
     ----------
     reldiag : dict
-        A ROC curve object created by probscores.reldiag_init.
+        A reldiag object created by probscores.reldiag_init.
     ax : axis handle, optional
         Axis handle for the figure. If set to None, the handle is taken from
         the current figure (matplotlib.pylab.gca()).
@@ -130,7 +140,7 @@ def plot_reldiag(reldiag, ax=None):
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
 
-    ax.grid(True, ls=':')
+    ax.grid(True, ls=":")
 
     ax.set_xlabel("Forecast probability")
     ax.set_ylabel("Observed relative frequency")
@@ -138,8 +148,14 @@ def plot_reldiag(reldiag, ax=None):
     # Plot sharpness diagram into an inset figure.
     iax = inset_axes(ax, width="35%", height="20%", loc=4, borderpad=3.5)
     bw = reldiag["bin_edges"][2] - reldiag["bin_edges"][1]
-    iax.bar(reldiag["bin_edges"][:-1], reldiag["sample_size"], width=bw,
-            align="edge", color="gray", edgecolor="black")
+    iax.bar(
+        reldiag["bin_edges"][:-1],
+        reldiag["sample_size"],
+        width=bw,
+        align="edge",
+        color="gray",
+        edgecolor="black",
+    )
     iax.set_yscale("log", basey=10)
     iax.set_xticks(reldiag["bin_edges"])
     iax.set_xticklabels(["%.1f" % max(v, 1e-6) for v in reldiag["bin_edges"]])
@@ -149,7 +165,7 @@ def plot_reldiag(reldiag, ax=None):
 
     iax.set_yticks([int(t_) for t_ in t])
     iax.set_xlim(0.0, 1.0)
-    iax.set_ylim(t[0], 5*t[-1])
+    iax.set_ylim(t[0], 5 * t[-1])
     iax.set_ylabel("log10(samples)")
     iax.yaxis.tick_right()
     iax.yaxis.set_label_position("right")
@@ -167,7 +183,7 @@ def plot_ROC(ROC, ax=None, opt_prob_thr=False):
         Axis handle for the figure. If set to None, the handle is taken from
         the current figure (matplotlib.pylab.gca()).
     opt_prob_thr : bool, optional
-        If set to True, plot the optimal probability threshold that maximizes 
+        If set to True, plot the optimal probability threshold that maximizes
         the difference between the hit rate (POD) and false alarm rate (POFD).
 
     """
@@ -182,15 +198,21 @@ def plot_ROC(ROC, ax=None, opt_prob_thr=False):
     ax.set_ylim(0, 1)
     ax.set_xlabel("False alarm rate (POFD)")
     ax.set_ylabel("Probability of detection (POD)")
-    ax.grid(True, ls=':')
+    ax.grid(True, ls=":")
 
     ax.plot(POFD, POD, "kD-")
 
     if opt_prob_thr:
         opt_prob_thr_idx = np.argmax(np.array(POD) - np.array(POFD))
-        ax.scatter([POFD[opt_prob_thr_idx]], [POD[opt_prob_thr_idx]], c='r', s=150,
-                   facecolors=None, edgecolors='r')
+        ax.scatter(
+            [POFD[opt_prob_thr_idx]],
+            [POD[opt_prob_thr_idx]],
+            c="r",
+            s=150,
+            facecolors=None,
+            edgecolors="r",
+        )
 
-    for p_thr_,x,y in zip(p_thr, POFD, POD):
+    for p_thr_, x, y in zip(p_thr, POFD, POD):
         if p_thr_ > 0.05 and p_thr_ < 0.95:
-            ax.text(x+0.02, y-0.02, "%.2f" % p_thr_, fontsize=7)
+            ax.text(x + 0.02, y - 0.02, "%.2f" % p_thr_, fontsize=7)

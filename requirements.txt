@@ -1,12 +1,9 @@
-
-python>=3.6
 numpy
 opencv-python
 pillow
 pyproj
 scipy
 matplotlib
-attrdict
 jsmin
 jsonschema
 netCDF4

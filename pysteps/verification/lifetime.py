@@ -2,7 +2,8 @@
 pysteps.verification.lifetime
 =============================
 
-Estimation of precipitation lifetime from a decaying verification score function
+Estimation of precipitation lifetime from
+a decaying verification score function
 (e.g. autocorrelation function).
 
 .. autosummary::
@@ -18,7 +19,8 @@ from math import exp
 import numpy as np
 from scipy.integrate import simps
 
-def lifetime(X_s, X_t, rule='1/e'):
+
+def lifetime(X_s, X_t, rule="1/e"):
     """
     Compute the average lifetime by integrating the correlation function
     as a function of lead time. When not using the 1/e rule, the correlation
@@ -34,7 +36,8 @@ def lifetime(X_s, X_t, rule='1/e'):
         Works also with other decaying scores that are defined
         in the range [0,1]=[min_skill,max_skill].
     X_t : array-like
-        Array with the forecast lead times in the desired unit, e.g. [min, hour].
+        Array with the forecast lead times in the desired unit,
+        e.g. [min, hour].
     rule : str {'1/e', 'trapz', 'simpson'}, optional
         Name of the method to integrate the correlation curve. \n
         '1/e' uses the 1/e rule and assumes an exponential decay. It linearly
@@ -57,7 +60,7 @@ def lifetime(X_s, X_t, rule='1/e'):
     return lifetime_compute(life)
 
 
-def lifetime_init(rule='1/e'):
+def lifetime_init(rule="1/e"):
     """Initialize a lifetime object.
 
     Parameters
@@ -77,11 +80,13 @@ def lifetime_init(rule='1/e'):
       The lifetime object.
 
     """
-    list_rules = ['trapz', 'simpson', '1/e']
+    list_rules = ["trapz", "simpson", "1/e"]
     if rule not in list_rules:
-        raise ValueError("Unknown rule %s for integration.\n" % rule
-                        + "The available methods are: "
-                        + str(list_rules))
+        raise ValueError(
+            "Unknown rule %s for integration.\n" % rule
+            + "The available methods are: "
+            + str(list_rules)
+        )
 
     lifetime = {}
     lifetime["lifetime_sum"] = 0.0
@@ -102,15 +107,16 @@ def lifetime_accum(lifetime, X_s, X_t):
         Works also with other decaying scores that are defined
         in the range [0,1]=[min_skill,max_skill].
     X_t : array-like
-        Array with the forecast lead times in the desired unit, e.g. [min, hour].
+        Array with the forecast lead times in the desired unit,
+        e.g. [min, hour].
 
     """
-    if lifetime["rule"] == 'trapz':
+    if lifetime["rule"] == "trapz":
         lf = np.trapz(X_s, x=X_t)
     elif lifetime["rule"] == "simpson":
         lf = simps(X_s, x=X_t)
-    elif lifetime["rule"] == '1/e':
-        euler_number = 1.0/exp(1.0)
+    elif lifetime["rule"] == "1/e":
+        euler_number = 1.0 / exp(1.0)
         X_s_ = np.array(X_s)
 
         is_euler_reached = np.sum(X_s_ <= euler_number) > 0
@@ -118,8 +124,11 @@ def lifetime_accum(lifetime, X_s, X_t):
             idx_b = np.argmax(X_s_ <= euler_number)
             if idx_b > 0:
                 idx_a = idx_b - 1
-                fraction_score = (euler_number - X_s[idx_b])*(X_t[idx_a] - X_t[idx_b])\
-                    /(X_s[idx_a] - X_s[idx_b])
+                fraction_score = (
+                    (euler_number - X_s[idx_b])
+                    * (X_t[idx_a] - X_t[idx_b])
+                    / (X_s[idx_a] - X_s[idx_b])
+                )
                 lf = X_t[idx_b] + fraction_score
             else:
                 # if all values are below the 1/e value, return min lead time
@@ -146,4 +155,4 @@ def lifetime_compute(lifetime):
       The computed lifetime.
 
     """
-    return 1.0*lifetime["lifetime_sum"]/lifetime["n"]
+    return 1.0 * lifetime["lifetime_sum"] / lifetime["n"]

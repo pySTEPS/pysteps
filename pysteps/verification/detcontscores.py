@@ -10,6 +10,7 @@ Forecast evaluation and skill scores for deterministic continuous forecasts.
     det_cont_fct
     det_cont_fct_init
     det_cont_fct_accum
+    det_cont_fct_merge
     det_cont_fct_compute
 """
 
@@ -18,11 +19,12 @@ import numpy as np
 from scipy.stats import spearmanr
 
 
-def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
+def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     """Calculate simple and skill scores for deterministic continuous forecasts.
 
     Parameters
     ----------
+
     pred : array_like
         Array of predictions. NaNs are ignored.
 
@@ -39,7 +41,9 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
-        |  beta      | linear regression slope (conditional bias)             |
+        |  beta1     | linear regression slope (type 1 conditional bias)      |
+        +------------+--------------------------------------------------------+
+        |  beta2     | linear regression slope (type 2 conditional bias)      |
         +------------+--------------------------------------------------------+
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
@@ -52,6 +56,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         |  ME        | mean error or bias                                     |
         +------------+--------------------------------------------------------+
         |  MSE       | mean squared error                                     |
+        +------------+--------------------------------------------------------+
+        |  NMSE      | normalized mean squared error                          |
         +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
@@ -67,20 +73,25 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
     axis : {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
-        If axis is -1 (or any negative integer), the integration is not performed
+        If axis is -1 (or any negative integer),
+        the integration is not performed
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
 
-    conditioning : {None, 'single', 'double'}, optional
-        The type of conditioning on zeros used for the verification.
-        The default, conditioning=None, includes zero pairs. With
-        conditioning='single', only pairs with either pred or obs > 0 are
-        included. With conditioning='double', only pairs with both pred and
-        obs > 0 are included.
+    conditioning : {None, "single", "double"}, optional
+        The type of conditioning used for the verification.
+        The default, conditioning=None, includes all pairs. With
+        conditioning="single", only pairs with either pred or obs > thr are
+        included. With conditioning="double", only pairs with both pred and
+        obs > thr are included.
+
+    thr : float
+        Optional threshold value for conditioning. Defaults to 0.
 
     Returns
     -------
+
     result : dict
         Dictionary containing the verification results.
 
@@ -89,14 +100,23 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
 
     Multiplicative scores can be computed by passing log-tranformed values.
     Note that "scatter" is the only score that will be computed in dB units of
-    the multiplicative error, i.e.: 10log10(pred/obs).
+    the multiplicative error, i.e.: 10*log10(pred/obs).
 
-    The debiased RMSE is computed as DRMSE = sqrt(RMSE - ME^2)
+    beta1 measures the degree of conditional bias of the observations given the
+    forecasts (type 1).
 
-    The reduction of variance score is computed as RV = 1 - MSE/Var(obs)
+    beta2 measures the degree of conditional bias of the forecasts given the
+    observations (type 2).
+
+    The normalized MSE is computed as
+    NMSE = E[(pred - obs)^2]/E[(pred + obs)^2].
+
+    The debiased RMSE is computed as DRMSE = sqrt(MSE - ME^2).
+
+    The reduction of variance score is computed as RV = 1 - MSE/Var(obs).
 
     Score names denoted by * can only be computed offline, meaning that the
-    these cannot be update using _init, _accum and _compute methods of this
+    these cannot be computed using _init, _accum and _compute methods of this
     module.
 
 
@@ -107,15 +127,19 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
     precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc.,
     132: 1669-1692. doi:10.1256/qj.05.190
 
+    Potts, J. (2012), Chapter 2 - Basic concepts. Forecast verification: a
+    practitioner’s guide in atmospheric sciences, I. T. Jolliffe, and D. B.
+    Stephenson, Eds., Wiley-Blackwell, 11–29.
+
     See also
     --------
-    pysteps.verification.detcatscores.det_cat_fct
 
+    pysteps.verification.detcatscores.det_cat_fct
     """
 
     # catch case of single score passed as string
     def get_iterable(x):
-        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+        if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
             return x
         else:
             return (x,)
@@ -139,7 +163,7 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
     onresult = {}
     if onscores:
 
-        err = det_cont_fct_init(axis=axis, conditioning=conditioning)
+        err = det_cont_fct_init(axis=axis, conditioning=conditioning, thr=thr)
         det_cont_fct_accum(err, pred, obs)
         onresult = det_cont_fct_compute(err, onscores)
 
@@ -159,9 +183,9 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
         # conditioning
         if conditioning is not None:
             if conditioning == "single":
-                idx = np.logical_or(obs > 0, pred > 0)
+                idx = np.logical_or(obs > thr, pred > thr)
             elif conditioning == "double":
-                idx = np.logical_and(obs > 0, pred > 0)
+                idx = np.logical_and(obs > thr, pred > thr)
             else:
                 raise ValueError("unkown conditioning %s" % conditioning)
             obs[~idx] = np.nan
@@ -191,30 +215,37 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None):
     return result
 
 
-def det_cont_fct_init(axis=None, conditioning=None):
+def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
     """Initialize a verification error object.
 
     Parameters
     ----------
+
     axis : {int, tuple of int, None}, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
-        If axis is -1 (or any negative integer), the integration is not performed
+        If axis is -1 (or any negative integer),
+        the integration is not performed
         and scores are computed on all of the elements in the input arrays.\n
         If axis is a tuple of ints, the integration is performed on all of the
         axes specified in the tuple.
 
-    conditioning : {None, 'single', 'double'}, optional
-        The type of conditioning on zeros used for the verification.
-        The default, conditioning=None, includes zero pairs. With
-        conditioning='single', only pairs with either pred or obs > 0 are
-        included. With conditioning='double', only pairs with both pred and
-        obs > 0 are included.
+    conditioning : {None, "single", "double"}, optional
+        The type of conditioning used for the verification.
+        The default, conditioning=None, includes all pairs. With
+        conditioning="single", only pairs with either pred or obs > thr are
+        included. With conditioning="double", only pairs with both pred and
+        obs > thr are included.
+
+    thr : float
+        Optional threshold value for conditioning. Defaults to 0.
 
     Returns
     -------
+
     out : dict
         The verification error object.
+
     """
 
     err = {}
@@ -222,7 +253,7 @@ def det_cont_fct_init(axis=None, conditioning=None):
     # catch case of axis passed as integer
     def get_iterable(x):
         if x is None or (
-            isinstance(x, collections.Iterable) and not isinstance(x, int)
+            isinstance(x, collections.abc.Iterable) and not isinstance(x, int)
         ):
             return x
         else:
@@ -230,6 +261,7 @@ def det_cont_fct_init(axis=None, conditioning=None):
 
     err["axis"] = get_iterable(axis)
     err["conditioning"] = conditioning
+    err["thr"] = thr
     err["cov"] = None
     err["vobs"] = None
     err["vpred"] = None
@@ -237,6 +269,7 @@ def det_cont_fct_init(axis=None, conditioning=None):
     err["mpred"] = None
     err["me"] = None
     err["mse"] = None
+    err["mss"] = None  # mean square sum, i.e. E[(pred + obs)^2]
     err["mae"] = None
     err["n"] = None
 
@@ -248,6 +281,7 @@ def det_cont_fct_accum(err, pred, obs):
 
     Parameters
     ----------
+
     err : dict
         A verification error object initialized with
         :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`.
@@ -260,6 +294,7 @@ def det_cont_fct_accum(err, pred, obs):
 
     References
     ----------
+
     Chan, Tony F.; Golub, Gene H.; LeVeque, Randall J. (1979), "Updating
     Formulae and a Pairwise Algorithm for Computing Sample Variances.",
     Technical Report STAN-CS-79-773, Department of Computer Science,
@@ -267,7 +302,6 @@ def det_cont_fct_accum(err, pred, obs):
 
     Schubert, Erich; Gertz, Michael (2018-07-09). "Numerically stable parallel
     computation of (co-)variance". ACM: 10. doi:10.1145/3221269.3223036.
-
     """
 
     pred = np.asarray(pred.copy())
@@ -298,6 +332,7 @@ def det_cont_fct_accum(err, pred, obs):
         err["mpred"] = np.zeros(nshape)
         err["me"] = np.zeros(nshape)
         err["mse"] = np.zeros(nshape)
+        err["mss"] = np.zeros(nshape)
         err["mae"] = np.zeros(nshape)
         err["n"] = np.zeros(nshape)
 
@@ -305,16 +340,17 @@ def det_cont_fct_accum(err, pred, obs):
         # check dimensions
         if err["cov"].shape != nshape:
             raise ValueError(
-                "the shape of the input arrays does not match the shape of the "
+                "the shape of the input arrays does not match "
+                + "the shape of the "
                 + "verification object %s!=%s" % (nshape, err["cov"].shape)
             )
 
     # conditioning
     if err["conditioning"] is not None:
         if err["conditioning"] == "single":
-            idx = np.logical_or(obs > 0, pred > 0)
+            idx = np.logical_or(obs > err["thr"], pred > err["thr"])
         elif err["conditioning"] == "double":
-            idx = np.logical_and(obs > 0, pred > 0)
+            idx = np.logical_and(obs > err["thr"], pred > err["thr"])
         else:
             raise ValueError("unkown conditioning %s" % err["conditioning"])
         obs[~idx] = np.nan
@@ -329,6 +365,7 @@ def det_cont_fct_accum(err, pred, obs):
 
     # compute residuals
     res = pred - obs
+    sum = pred + obs
     n = np.sum(np.isfinite(res), axis=axis)
 
     # new means
@@ -336,6 +373,7 @@ def det_cont_fct_accum(err, pred, obs):
     mpred = np.nanmean(pred, axis=axis)
     me = np.nanmean(res, axis=axis)
     mse = np.nanmean(res ** 2, axis=axis)
+    mss = np.nanmean(sum ** 2, axis=axis)
     mae = np.nanmean(np.abs(res), axis=axis)
 
     # expand axes for broadcasting
@@ -352,23 +390,108 @@ def det_cont_fct_accum(err, pred, obs):
     mpred = mpred.squeeze()
 
     # update variances
-    err["vobs"] = _parallel_var(err["mobs"], err["n"], err["vobs"], mobs, n, vobs)
-    err["vpred"] = _parallel_var(err["mpred"], err["n"], err["vpred"], mpred, n, vpred)
+    _parallel_var(err["mobs"], err["n"], err["vobs"], mobs, n, vobs)
+    _parallel_var(err["mpred"], err["n"], err["vpred"], mpred, n, vpred)
 
     # update covariance
-    err["cov"] = _parallel_cov(
-        err["cov"], err["mobs"], err["mpred"], err["n"], cov, mobs, mpred, n
-    )
+    _parallel_cov(err["cov"], err["mobs"], err["mpred"], err["n"], cov, mobs, mpred, n)
 
     # update means
-    err["mobs"] = _parallel_mean(err["mobs"], err["n"], mobs, n)
-    err["mpred"] = _parallel_mean(err["mpred"], err["n"], mpred, n)
-    err["me"] = _parallel_mean(err["me"], err["n"], me, n)
-    err["mse"] = _parallel_mean(err["mse"], err["n"], mse, n)
-    err["mae"] = _parallel_mean(err["mae"], err["n"], mae, n)
+    _parallel_mean(err["mobs"], err["n"], mobs, n)
+    _parallel_mean(err["mpred"], err["n"], mpred, n)
+    _parallel_mean(err["me"], err["n"], me, n)
+    _parallel_mean(err["mse"], err["n"], mse, n)
+    _parallel_mean(err["mss"], err["n"], mss, n)
+    _parallel_mean(err["mae"], err["n"], mae, n)
 
     # update number of samples
     err["n"] += n
+
+
+def det_cont_fct_merge(err_1, err_2):
+    """Merge two verification error objects.
+
+    Parameters
+    ----------
+
+    err_1 : dict
+      A verification error object initialized with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`
+      and populated with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
+
+    err_2 : dict
+      Another verification error object initialized with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_init`
+      and populated with
+      :py:func:`pysteps.verification.detcontscores.det_cont_fct_accum`.
+
+    Returns
+    -------
+
+    out : dict
+      The merged verification error object.
+    """
+
+    # checks
+    if err_1["axis"] != err_2["axis"]:
+        raise ValueError(
+            "cannot merge: the axis are not same %s!=%s"
+            % (err_1["axis"], err_2["axis"])
+        )
+    if err_1["conditioning"] != err_2["conditioning"]:
+        raise ValueError(
+            "cannot merge: the conditioning is not same %s!=%s"
+            % (err_1["conditioning"], err_2["conditioning"])
+        )
+    if err_1["thr"] != err_2["thr"]:
+        raise ValueError(
+            "cannot merge: the threshold is not same %s!=%s"
+            % (err_1["thr"], err_2["thr"])
+        )
+    if err_1["cov"] is None or err_2["cov"] is None:
+        raise ValueError("cannot merge: no data found")
+
+    # merge the two verification error objects
+    err = err_1.copy()
+
+    # update variances
+    _parallel_var(
+        err["mobs"], err["n"], err["vobs"], err_2["mobs"], err_2["n"], err_2["vobs"],
+    )
+    _parallel_var(
+        err["mpred"],
+        err["n"],
+        err["vpred"],
+        err_2["mpred"],
+        err_2["n"],
+        err_2["vpred"],
+    )
+
+    # update covariance
+    _parallel_cov(
+        err["cov"],
+        err["mobs"],
+        err["mpred"],
+        err["n"],
+        err_2["cov"],
+        err_2["mobs"],
+        err_2["mpred"],
+        err_2["n"],
+    )
+
+    # update means
+    _parallel_mean(err["mobs"], err["n"], err_2["mobs"], err_2["n"])
+    _parallel_mean(err["mpred"], err["n"], err_2["mpred"], err_2["n"])
+    _parallel_mean(err["me"], err["n"], err_2["me"], err_2["n"])
+    _parallel_mean(err["mse"], err["n"], err_2["mse"], err_2["n"])
+    _parallel_mean(err["mss"], err["n"], err_2["mss"], err_2["n"])
+    _parallel_mean(err["mae"], err["n"], err_2["mae"], err_2["n"])
+
+    # update number of samples
+    err["n"] += err_2["n"]
+
+    return err
 
 
 def det_cont_fct_compute(err, scores=""):
@@ -377,6 +500,7 @@ def det_cont_fct_compute(err, scores=""):
 
     Parameters
     ----------
+
     err : dict
         A verification error object initialized with
         :py:func:`pysteps.verification.detcontscores.det_cont_fct_init` and
@@ -393,7 +517,9 @@ def det_cont_fct_compute(err, scores=""):
         +------------+--------------------------------------------------------+
         | Name       | Description                                            |
         +============+========================================================+
-        |  beta      | linear regression slope (conditional bias)             |
+        |  beta1      | linear regression slope (type 1 conditional bias)     |
+        +------------+--------------------------------------------------------+
+        |  beta2      | linear regression slope (type 2 conditional bias)     |
         +------------+--------------------------------------------------------+
         |  corr_p    | pearson's correleation coefficien (linear correlation) |
         +------------+--------------------------------------------------------+
@@ -406,6 +532,8 @@ def det_cont_fct_compute(err, scores=""):
         +------------+--------------------------------------------------------+
         |  MSE       | mean squared error                                     |
         +------------+--------------------------------------------------------+
+        |  NMSE      | normalized mean squared error                          |
+        +------------+--------------------------------------------------------+
         |  RMSE      | root mean squared error                                |
         +------------+--------------------------------------------------------+
         |  RV        | reduction of variance                                  |
@@ -415,13 +543,14 @@ def det_cont_fct_compute(err, scores=""):
 
     Returns
     -------
+
     result : dict
         Dictionary containing the verification results.
     """
 
     # catch case of single score passed as string
     def get_iterable(x):
-        if isinstance(x, collections.Iterable) and not isinstance(x, str):
+        if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
             return x
         else:
             return (x,)
@@ -451,6 +580,11 @@ def det_cont_fct_compute(err, scores=""):
             MSE = err["mse"]
             result["MSE"] = MSE
 
+        # normalized mean squared error
+        if score_ in ["nmse", ""]:
+            NMSE = err["mse"] / err["mss"]
+            result["NMSE"] = NMSE
+
         # root mean squared error
         if score_ in ["rmse", ""]:
             RMSE = np.sqrt(err["mse"])
@@ -461,17 +595,23 @@ def det_cont_fct_compute(err, scores=""):
             corr_p = err["cov"] / np.sqrt(err["vobs"]) / np.sqrt(err["vpred"])
             result["corr_p"] = corr_p
 
-        # beta (linear regression slope)
-        if score_ in ["beta", ""]:
-            beta = err["cov"] / err["vpred"]
-            result["beta"] = beta
+        # beta1 (linear regression slope)
+        if score_ in ["beta", "beta1", ""]:
+            beta1 = err["cov"] / err["vpred"]
+            result["beta1"] = beta1
+
+        # beta2 (linear regression slope)
+        if score_ in ["beta2", ""]:
+            beta2 = err["cov"] / err["vobs"]
+            result["beta2"] = beta2
 
         # debiased RMSE
         if score_ in ["drmse", ""]:
             RMSE_d = np.sqrt(err["mse"] - err["me"] ** 2)
             result["DRMSE"] = RMSE_d
 
-        # reduction of variance (Brier Score, Nash-Sutcliffe efficiency coefficient,
+        # reduction of variance
+        # (Brier Score, Nash-Sutcliffe efficiency coefficient,
         # MSE skill score)
         if score_ in ["rv", "brier_score", "nse", ""]:
             RV = 1.0 - err["mse"] / err["vobs"]
@@ -481,25 +621,48 @@ def det_cont_fct_compute(err, scores=""):
 
 
 def _parallel_mean(avg_a, count_a, avg_b, count_b):
-    return (count_a * avg_a + count_b * avg_b) / (count_a + count_b)
+    """Update avg_a with avg_b.
+    """
+    idx = count_b > 0
+    avg_a[idx] = (count_a[idx] * avg_a[idx] + count_b[idx] * avg_b[idx]) / (
+        count_a[idx] + count_b[idx]
+    )
 
 
 def _parallel_var(avg_a, count_a, var_a, avg_b, count_b, var_b):
-    # source: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    """Update var_a with var_b.
+    source: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    """
+    idx = count_b > 0
     delta = avg_b - avg_a
     m_a = var_a * count_a
     m_b = var_b * count_b
-    M2 = m_a + m_b + delta ** 2 * count_a * count_b / (count_a + count_b)
-    return M2 / (count_a + count_b)
+    var_a[idx] = (
+        m_a[idx]
+        + m_b[idx]
+        + delta[idx] ** 2 * count_a[idx] * count_b[idx] / (count_a[idx] + count_b[idx])
+    )
+    var_a[idx] = var_a[idx] / (count_a[idx] + count_b[idx])
 
 
 def _parallel_cov(cov_a, avg_xa, avg_ya, count_a, cov_b, avg_xb, avg_yb, count_b):
+    """Update cov_a with cov_b.
+    """
+    idx = count_b > 0
     deltax = avg_xb - avg_xa
     deltay = avg_yb - avg_ya
     c_a = cov_a * count_a
     c_b = cov_b * count_b
-    C2 = c_a + c_b + deltax * deltay * count_a * count_b / (count_a + count_b)
-    return C2 / (count_a + count_b)
+    cov_a[idx] = (
+        c_a[idx]
+        + c_b[idx]
+        + deltax[idx]
+        * deltay[idx]
+        * count_a[idx]
+        * count_b[idx]
+        / (count_a[idx] + count_b[idx])
+    )
+    cov_a[idx] = cov_a[idx] / (count_a[idx] + count_b[idx])
 
 
 def _uniquelist(mylist):
@@ -515,7 +678,7 @@ def _scatter(pred, obs, axis=None):
     # catch case of axis passed as integer
     def get_iterable(x):
         if x is None or (
-            isinstance(x, collections.Iterable) and not isinstance(x, int)
+            isinstance(x, collections.abc.Iterable) and not isinstance(x, int)
         ):
             return x
         else:
@@ -538,9 +701,9 @@ def _scatter(pred, obs, axis=None):
     # compute multiplicative erros in dB
     q = 10 * np.log10(pred / obs)
 
-    # nans are given zero weight and are set to -9999
+    # nans are given zero weight and are set equal to (min value - 1)
     idkeep = np.isfinite(q)
-    q[~idkeep] = -9999
+    q[~idkeep] = q[idkeep].min() - 1
     obs[~idkeep] = 0
 
     # compute scatter along rows
@@ -569,7 +732,7 @@ def _spearmanr(pred, obs, axis=None):
     # catch case of axis passed as integer
     def get_iterable(x):
         if x is None or (
-            isinstance(x, collections.Iterable) and not isinstance(x, int)
+            isinstance(x, collections.abc.Iterable) and not isinstance(x, int)
         ):
             return x
         else:
@@ -589,8 +752,18 @@ def _spearmanr(pred, obs, axis=None):
     pred = np.reshape(pred, (np.prod(shp_rows), -1))
     obs = np.reshape(obs, (np.prod(shp_rows), -1))
 
-    corr_s = spearmanr(pred, obs, axis=0, nan_policy="omit")[0]
-    if corr_s.size > 1:
-        corr_s = np.diag(corr_s, pred.shape[1]).reshape(shp_cols)
+    # apply only with more than 2 valid samples
+    # although this does not seem to solve the error
+    # "ValueError: The input must have at least 3 entries!" ...
+    corr_s = np.zeros(pred.shape[1]) * np.nan
+    nsamp = np.sum(np.logical_and(np.isfinite(pred), np.isfinite(obs)), axis=0)
+    idx = nsamp > 2
+    if np.any(idx):
+        corr_s_ = spearmanr(pred[:, idx], obs[:, idx], axis=0, nan_policy="omit")[0]
 
-    return float(corr_s) if corr_s.size == 1 else corr_s
+        if corr_s_.size > 1:
+            corr_s[idx] = np.diag(corr_s_, idx.sum())
+        else:
+            corr_s = corr_s_
+
+    return float(corr_s) if corr_s.size == 1 else corr_s.reshape(shp_cols)

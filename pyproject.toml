@@ -1,0 +1,27 @@
+[build-system]
+requires = [
+    "wheel",
+    "setuptools>=40.8.0",
+    "Cython>=0.29.2",
+    "numpy>=1.13"
+]
+# setuptools 40.8.0 is the first version of setuptools that offers
+# a PEP 517 backend that closely mimics directly executing setup.py.
+build-backend = "setuptools.build_meta:__legacy__"
+#https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
+
+
+# Define black parameters for the project
+# https://black.readthedocs.io/en/stable/pyproject_toml.html#configuration-format
+[tool.black]
+target-version = ['py36']
+line-length = 88
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | _build
+  | build
+  | dist
+)/
+'''

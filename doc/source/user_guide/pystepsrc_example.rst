@@ -1,0 +1,95 @@
+.. _pystepsrc_example:
+
+Example of pystepsrc file
+=========================
+
+Below you can find the default pystepsrc file.
+The lines starting with "//" are comments and they are ignored.
+
+.. code::
+
+    // pysteps configuration
+    {
+        // "silent_import" : whether to suppress the initial pysteps message
+        "silent_import": false,
+        "outputs": {
+            // path_outputs : path where to save results (figures, forecasts, etc)
+            "path_outputs": "./"
+        },
+        "plot": {
+            // "motion_plot" : "streamplot" or "quiver"
+            "motion_plot": "quiver",
+            // "colorscale" :  "BOM-RF3", "pysteps" or "STEPS-BE"
+            "colorscale": "pysteps"
+        },
+        "data_sources": {
+            "bom": {
+                "root_path": "./radar/bom",
+                "path_fmt": "prcp-cscn/2/%Y/%m/%d",
+                "fn_pattern": "2_%Y%m%d_%H%M00.prcp-cscn",
+                "fn_ext": "nc",
+                "importer": "bom_rf3",
+                "timestep": 6,
+                "importer_kwargs": {
+                    "gzipped": true
+                }
+            },
+            "fmi": {
+                "root_path": "./radar/fmi",
+                "path_fmt": "%Y%m%d",
+                "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.lowest_FIN_SUOMI1",
+                "fn_ext": "pgm.gz",
+                "importer": "fmi_pgm",
+                "timestep": 5,
+                "importer_kwargs": {
+                    "gzipped": true
+                }
+            },
+            "mch": {
+                "root_path": "./radar/mch",
+                "path_fmt": "%Y%m%d",
+                "fn_pattern": "AQC%y%j%H%M?_00005.801",
+                "fn_ext": "gif",
+                "importer": "mch_gif",
+                "timestep": 5,
+                "importer_kwargs": {
+                    "product": "AQC",
+                    "unit": "mm",
+                    "accutime": 5
+                }
+            },
+            "opera": {
+                "root_path": "./radar/OPERA",
+                "path_fmt": "%Y%m%d",
+                "fn_pattern": "T_PAAH21_C_EUOC_%Y%m%d%H%M%S",
+                "fn_ext": "hdf",
+                "importer": "opera_hdf5",
+                "timestep": 15,
+                "importer_kwargs": {}
+            },
+            "knmi": {
+                "root_path": "./radar/KNMI",
+                "path_fmt": "%Y/%m",
+                "fn_pattern": "RAD_NL25_RAP_5min_%Y%m%d%H%M",
+                "fn_ext": "h5",
+                "importer": "knmi_hdf5",
+                "timestep": 5,
+                "importer_kwargs": {
+                    "accutime": 5,
+                    "qty": "ACRR",
+                    "pixelsize": 1000.0
+                }
+            },
+            "saf": {
+                "root_path": "./saf",
+                "path_fmt": "%Y%m%d/CRR",
+                "fn_pattern": "S_NWC_CRR_MSG4_Europe-VISIR_%Y%m%dT%H%M00Z",
+                "fn_ext": "nc",
+                "importer": "saf_crri",
+                "timestep": 15,
+                "importer_kwargs": {
+                    "gzipped": true
+                }
+            }
+        }
+    }

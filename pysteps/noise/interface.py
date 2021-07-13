@@ -10,28 +10,38 @@ Interface for the noise module.
     get_method
 """
 
-from pysteps.noise.fftgenerators import (initialize_param_2d_fft_filter,
-                                         generate_noise_2d_fft_filter,
-                                         initialize_nonparam_2d_fft_filter,
-                                         initialize_nonparam_2d_ssft_filter,
-                                         generate_noise_2d_ssft_filter,
-                                         initialize_nonparam_2d_nested_filter)
+from pysteps.noise.fftgenerators import (
+    initialize_param_2d_fft_filter,
+    generate_noise_2d_fft_filter,
+    initialize_nonparam_2d_fft_filter,
+    initialize_nonparam_2d_ssft_filter,
+    generate_noise_2d_ssft_filter,
+    initialize_nonparam_2d_nested_filter,
+)
 from pysteps.noise.motion import initialize_bps, generate_bps
 
 _noise_methods = dict()
 
-_noise_methods['parametric'] = (initialize_param_2d_fft_filter,
-                                generate_noise_2d_fft_filter)
+_noise_methods["parametric"] = (
+    initialize_param_2d_fft_filter,
+    generate_noise_2d_fft_filter,
+)
 
-_noise_methods['nonparametric'] = (initialize_nonparam_2d_fft_filter,
-                                   generate_noise_2d_fft_filter)
-_noise_methods['ssft'] = (initialize_nonparam_2d_ssft_filter,
-                          generate_noise_2d_ssft_filter)
+_noise_methods["nonparametric"] = (
+    initialize_nonparam_2d_fft_filter,
+    generate_noise_2d_fft_filter,
+)
+_noise_methods["ssft"] = (
+    initialize_nonparam_2d_ssft_filter,
+    generate_noise_2d_ssft_filter,
+)
 
-_noise_methods['nested'] = (initialize_nonparam_2d_nested_filter,
-                            generate_noise_2d_ssft_filter)
+_noise_methods["nested"] = (
+    initialize_nonparam_2d_nested_filter,
+    generate_noise_2d_ssft_filter,
+)
 
-_noise_methods['bps'] = (initialize_bps, generate_bps)
+_noise_methods["bps"] = (initialize_bps, generate_bps)
 
 
 def get_method(name):
@@ -70,13 +80,17 @@ def get_method(name):
     if isinstance(name, str):
         name = name.lower()
     else:
-        raise TypeError("Only strings supported for the method's names.\n"
-                        + "Available names:"
-                        + str(list(_noise_methods.keys()))) from None
+        raise TypeError(
+            "Only strings supported for the method's names.\n"
+            + "Available names:"
+            + str(list(_noise_methods.keys()))
+        ) from None
 
     try:
         return _noise_methods[name]
     except KeyError:
-        raise ValueError("Unknown method {}\n".format(name)
-                         + "The available methods are:"
-                         + str(list(_noise_methods.keys()))) from None
+        raise ValueError(
+            "Unknown method {}\n".format(name)
+            + "The available methods are:"
+            + str(list(_noise_methods.keys()))
+        ) from None
