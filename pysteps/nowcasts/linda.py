@@ -13,7 +13,7 @@ The model consists of the following components:
 
 1. feature detection to identify rain cells
 2. advection-based extrapolation
-3. autoregressive integrated ARI(p,1) process for growth and decay
+3. autoregressive integrated ARI(p,1) process for growth and decay of rainfall
 4. convolution to account for loss of predictability
 5. stochastic perturbations to simulate forecast errors
 
@@ -48,7 +48,7 @@ except ImportError:
 import numpy as np
 from scipy.integrate import nquad
 from scipy.interpolate import interp1d
-from scipy.optimize import least_squares, LinearConstraint, minimize, minimize_scalar
+from scipy import optimize as opt
 from scipy.signal import convolve
 from scipy import stats
 from pysteps import extrapolation
@@ -78,8 +78,8 @@ def forecast(
     num_workers=1,
     measure_time=False,
 ):
-    """Generate a deterministic nowcast or ensemble by using the Lagrangian
-    INtegro-Difference equation model with Autoregression (LINDA).
+    """Generate a deterministic or ensemble nowcast by using the Lagrangian
+    INtegro-Difference equation model with Autoregression (LINDA) model.
 
     Parameters
     ----------
@@ -555,7 +555,7 @@ def _estimate_ar1_params(
     bounds = (-0.98, 0.98)
 
     def worker(i):
-        return minimize_scalar(objf, method="bounded", bounds=bounds, args=(i,)).x
+        return opt.minimize_scalar(objf, method="bounded", bounds=bounds, args=(i,)).x
 
     if DASK_IMPORTED and num_workers > 1:
         res = []
@@ -582,7 +582,7 @@ def _estimate_ar2_params(
 
     bounds = [(-1.98, 1.98), (-0.98, 0.98)]
     constraints = [
-        LinearConstraint(
+        opt.LinearConstraint(
             np.array([(1, 1), (-1, 1)]),
             (-np.inf, -np.inf),
             (0.98, 0.98),
@@ -591,7 +591,7 @@ def _estimate_ar2_params(
     ]
 
     def worker(i):
-        return minimize(
+        return opt.minimize(
             objf,
             (0.8, 0.0),
             method="trust-constr",
@@ -660,7 +660,7 @@ def _estimate_convol_params(
     def worker(i):
         if kernel_type == "anisotropic":
             bounds = ((-np.inf, 0.1, 0.2), (np.inf, 10.0, 5.0))
-            p_opt = least_squares(
+            p_opt = opt.least_squares(
                 objf_aniso,
                 np.array((0.0, 1.0, 1.0)),
                 bounds=bounds,
@@ -674,7 +674,7 @@ def _estimate_convol_params(
 
             return _compute_kernel_anisotropic(p_opt, **kernel_params)
         else:
-            p_opt = minimize_scalar(
+            p_opt = opt.minimize_scalar(
                 objf_iso, bounds=[0.01, 10.0], method="bounded", args=(i,)
             )
             p_opt = p_opt.x
@@ -703,7 +703,7 @@ def _fit_acf(acf):
         return (acf - fitted_acf).flatten()
 
     bounds = ((0.01, -np.inf, 0.1, 0.2), (10.0, np.inf, 10.0, 5.0))
-    p_opt = least_squares(
+    p_opt = opt.least_squares(
         objf,
         np.array((1.0, 0.0, 1.0, 1.0)),
         bounds=bounds,
@@ -720,7 +720,7 @@ def _fit_acf(acf):
 # the constraint that the mean value is one
 def _fit_dist(err, dist, wf, mask):
     f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p ** 2)))
-    p_opt = minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
+    p_opt = opt.minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
 
     return (p_opt.x, -0.5 * p_opt.x ** 2)
 
