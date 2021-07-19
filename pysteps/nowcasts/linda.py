@@ -289,6 +289,7 @@ def forecast(
             fct_gen,
             None,
             None,
+            None,
             measure_time,
             True,
         )
@@ -303,6 +304,7 @@ def forecast(
             precip_fields_lagr_diff[:-1],
             1,
             fct_gen,
+            None,
             None,
             None,
             False,
@@ -325,7 +327,7 @@ def forecast(
         else:
             print("done.")
 
-        pert_gen = _init_perturbation_generator(
+        precip_pert_gen = _init_perturbation_generator(
             err,
             fct_gen,
             errdist_window_radius,
@@ -335,13 +337,34 @@ def forecast(
             num_workers,
         )
 
+        if vel_pert_method == "bps":
+            init_vel_noise, generate_vel_noise = noise.get_method("bps")
+
+            vp_par = vel_pert_kwargs["vp_par"]
+            vp_perp = vel_pert_kwargs["vp_perp"]
+
+            kwargs = {
+                "p_par": vp_par,
+                "p_perp": vp_perp,
+            }
+            vel_pert_gen = {
+                "gen_func": generate_vel_noise,
+                "init_func": lambda seed: init_vel_noise(
+                    advection_field, 1.0 / kmperpixel, timestep, seed=seed, **kwargs
+                ),
+                "timestep": timestep,
+            }
+        else:
+            vel_pert_gen = None
+
         def worker(seed):
             return _linda_forecast(
                 precip_fields,
                 precip_fields_lagr_diff[1:],
                 timesteps,
                 fct_gen,
-                pert_gen,
+                precip_pert_gen,
+                vel_pert_gen,
                 seed,
                 False,
                 False,
@@ -922,7 +945,8 @@ def _linda_forecast(
     precip_fields_lagr_diff,
     timesteps,
     fct_gen,
-    pert_gen,
+    precip_pert_gen,
+    vel_pert_gen,
     seed,
     measure_time,
     print_info,
@@ -936,10 +960,6 @@ def _linda_forecast(
     kernels_2 = fct_gen["kernels_2"]
     mask_adv = fct_gen["mask_adv"]
     psi = fct_gen["psi"]
-    vel_pert_method = fct_gen["vel_pert_method"]
-    vel_pert_kwargs = fct_gen["vel_pert_kwargs"]
-    kmperpixel = fct_gen["kmperpixel"]
-    timestep = fct_gen["timestep"]
     num_workers = fct_gen["num_workers"]
 
     precip_fct = precip_fields[-1].copy()
@@ -961,26 +981,12 @@ def _linda_forecast(
     if measure_time:
         starttime_mainloop = time.time()
 
-    if pert_gen is not None:
+    if precip_pert_gen is not None:
         rs_precip = np.random.RandomState(seed)
 
-    if vel_pert_method == "bps":
-        init_vel_noise, generate_vel_noise = noise.get_method(vel_pert_method)
-
-        vp_par = vel_pert_kwargs["vp_par"]
-        vp_perp = vel_pert_kwargs["vp_perp"]
-
-        rs_adv = np.random.RandomState(seed)
-
-        # initialize the perturbation generator for the motion field
-        kwargs = {
-            "randstate": rs_adv,
-            "p_par": vp_par,
-            "p_perp": vp_perp,
-        }
-        vp = init_vel_noise(advection_field, 1.0 / kmperpixel, timestep, **kwargs)
-    else:
-        vp = None
+    if vel_pert_gen is not None:
+        vel_pert_gen = vel_pert_gen.copy()
+        vel_pert_gen["gen_obj"] = vel_pert_gen["init_func"](seed)
 
     # TODO: Implement using a list instead of a number of fixed timesteps
     for t in range(timesteps):
@@ -1009,15 +1015,15 @@ def _linda_forecast(
         precip_fct_out_[~mask_adv] = np.nan
 
         # apply perturbations
-        if pert_gen is not None:
+        if precip_pert_gen is not None:
             seed = rs_precip.randint(0, high=1e9)
-            pert_field = _generate_perturbations(pert_gen, num_workers, seed)
+            pert_field = _generate_perturbations(precip_pert_gen, num_workers, seed)
             precip_fct_out_ *= pert_field
 
         # compute the perturbed motion field
-        if vp is not None:
-            advection_field_pert = advection_field + generate_vel_noise(
-                vp, (t + 1) * timestep
+        if vel_pert_gen is not None:
+            advection_field_pert = advection_field + vel_pert_gen["gen_func"](
+                vel_pert_gen["gen_obj"], (t + 1) * vel_pert_gen["timestep"]
             )
         else:
             advection_field_pert = advection_field
@@ -1066,10 +1072,6 @@ def _linda_init(
     fct_gen["advection_field"] = advection_field
     fct_gen["ari_order"] = ari_order
     fct_gen["add_perturbations"] = add_perturbations
-    fct_gen["vel_pert_method"] = vel_pert_method
-    fct_gen["vel_pert_kwargs"] = vel_pert_kwargs
-    fct_gen["kmperpixel"] = kmperpixel
-    fct_gen["timestep"] = timestep
     fct_gen["num_workers"] = num_workers
     fct_gen["measure_time"] = measure_time
 
