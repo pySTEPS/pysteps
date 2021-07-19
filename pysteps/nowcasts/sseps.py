@@ -230,9 +230,9 @@ def forecast(
         )
 
     if np.isscalar(win_size):
-        win_size = (np.int(win_size), np.int(win_size))
+        win_size = (int(win_size), int(win_size))
     else:
-        win_size = tuple([np.int(win_size[i]) for i in range(2)])
+        win_size = tuple([int(win_size[i]) for i in range(2)])
 
     timestep = metadata["accutime"]
     kmperpixel = metadata["xpixelsize"] / 1000

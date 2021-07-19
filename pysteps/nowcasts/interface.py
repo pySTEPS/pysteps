@@ -32,14 +32,17 @@ The time step of the output is taken from the inputs.
 """
 
 from pysteps.extrapolation.interface import eulerian_persistence
-from pysteps.nowcasts import anvil, sprog, linda, steps, sseps, extrapolation
+from pysteps.nowcasts import anvil, extrapolation, linda, sprog, steps, sseps
+from pysteps.nowcasts import lagrangian_probability
 
 _nowcast_methods = dict()
 _nowcast_methods["anvil"] = anvil.forecast
 _nowcast_methods["eulerian"] = eulerian_persistence
 _nowcast_methods["extrapolation"] = extrapolation.forecast
 _nowcast_methods["lagrangian"] = extrapolation.forecast
+_nowcast_methods["lagrangian_probability"] = lagrangian_probability.forecast
 _nowcast_methods["linda"] = linda.forecast
+_nowcast_methods["probability"] = lagrangian_probability.forecast
 _nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["sseps"] = sseps.forecast
 _nowcast_methods["steps"] = steps.forecast
@@ -68,6 +71,9 @@ def get_method(name):
     +-----------------+-------------------------------------------------------+
     |  linda          | the LINDA method developed in :cite:`PCN2021`         |
     +-----------------+-------------------------------------------------------+
+    |  lagrangian_\   | this approach computes local lagrangian probability   |
+    |  probability    | forecasts of threshold exceedences                    |
+    +-----------------+-------------------------------------------------------+
     |  sprog          | the S-PROG method described in :cite:`Seed2003`       |
     +-----------------+-------------------------------------------------------+
     |  steps          | the STEPS stochastic nowcasting method described in   |
@@ -77,9 +83,6 @@ def get_method(name):
     |  sseps          | short-space ensemble prediction system (SSEPS).       |
     |                 | Essentially, this is a localization of STEPS.         |
     +-----------------+-------------------------------------------------------+
-
-    steps and sseps produce stochastic nowcasts, and the other methods are
-    deterministic.
     """
     if isinstance(name, str):
         name = name.lower()

@@ -144,7 +144,7 @@ def initialize_param_2d_fft_filter(field, **kwargs):
         L = max(M, N)
 
         # wavenumbers
-        if L % 2 == 0:
+        if L % 2 == 1:
             wn = np.arange(0, int(L / 2) + 1)
         else:
             wn = np.arange(0, int(L / 2))
