@@ -81,7 +81,7 @@ def get_method(name):
     |                 |                                                       |
     +-----------------+-------------------------------------------------------+
     |  sseps          | short-space ensemble prediction system (SSEPS).       |
-    |                 | Essentially, this is a localization of STEPS.         |
+    |                 | Essentially, this is a localization of STEPS          |
     +-----------------+-------------------------------------------------------+
     """
     if isinstance(name, str):

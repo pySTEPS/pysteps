@@ -51,8 +51,7 @@ from scipy.interpolate import interp1d
 from scipy import optimize as opt
 from scipy.signal import convolve
 from scipy import stats
-from pysteps import extrapolation
-from pysteps import feature
+from pysteps import extrapolation, feature, noise
 
 
 def forecast(
@@ -202,35 +201,59 @@ def forecast(
     print("Inputs")
     print("------")
     print(
-        "input dimensions: {}x{}".format(precip_fields.shape[1], precip_fields.shape[2])
+        "dimensions:           {}x{}".format(
+            precip_fields.shape[1], precip_fields.shape[2]
+        )
     )
+    print("number of time steps: {}".format(precip_fields.shape[0]))
     print("")
 
     print("Methods")
     print("-------")
     if add_perturbations:
-        print("nowcast type:     ensemble")
+        print("nowcast type:         ensemble")
     else:
-        print("nowcast type:     deterministic")
-    print("feature detector: {}".format(feature_method))
-    print("extrapolator:     {}".format(extrap_method))
+        print("nowcast type:         deterministic")
+    print("feature detector:     {}".format(feature_method))
+    print("extrapolator:         {}".format(extrap_method))
+    print("kernel type:          {}".format(kernel_type))
+    if add_perturbations and vel_pert_method is not None:
+        print("velocity perturbator: {}".format(vel_pert_method))
     print("")
 
     print("Parameters")
     print("----------")
     if isinstance(timesteps, int):
-        print("number of time steps:      {}".format(timesteps))
+        print("number of time steps:       {}".format(timesteps))
     else:
         # TODO: implement fractional time steps
         raise NotImplementedError("fractional time steps not yet implemented")
-        print("time steps:                {}".format(timesteps))
-    print("ARI model order:               {}".format(ari_order))
-    print("localization window radius:    {}".format(localization_window_radius))
+        print("time steps:                 {}".format(timesteps))
+    print("ARI model order:            {}".format(ari_order))
+    print("localization window radius: {}".format(localization_window_radius))
     if add_perturbations:
-        print("error dist. window radius: {}".format(errdist_window_radius))
-        print("error ACF window radius:   {}".format(acf_window_radius))
-        print("ensemble size:             {}".format(num_ens_members))
-    print("parallel workers:          {}".format(num_workers))
+        print("error dist. window radius:  {}".format(errdist_window_radius))
+        print("error ACF window radius:    {}".format(acf_window_radius))
+        print("ensemble size:              {}".format(num_ens_members))
+        print("parallel workers:           {}".format(num_workers))
+        print("seed:                       {}".format(seed))
+        if vel_pert_method == "bps":
+            vp_par = vel_pert_kwargs.get(
+                "p_par", noise.motion.get_default_params_bps_par()
+            )
+            vp_perp = vel_pert_kwargs.get(
+                "p_perp", noise.motion.get_default_params_bps_perp()
+            )
+            print(
+                "velocity perturbations, parallel:      {:.2f}, {:.2f}, {:.2f}".format(
+                    vp_par[0], vp_par[1], vp_par[2]
+                )
+            )
+            print(
+                "velocity perturbations, perpendicular: {:.2f}, {:.2f}, {:.2f}".format(
+                    vp_perp[0], vp_perp[1], vp_perp[2]
+                )
+            )
 
     fct_gen = _linda_init(
         precip_fields,
