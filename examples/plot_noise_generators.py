@@ -3,11 +3,11 @@
 Generation of stochastic noise
 ==============================
 
-This example script shows how to run the stochastic noise field generators 
+This example script shows how to run the stochastic noise field generators
 included in pysteps.
 
 These noise fields are used as perturbation terms during an extrapolation
-nowcast in order to represent the uncertainty in the evolution of the rainfall 
+nowcast in order to represent the uncertainty in the evolution of the rainfall
 field.
 """
 
@@ -67,7 +67,7 @@ Fp = initialize_param_2d_fft_filter(R)
 
 # Compute the observed and fitted 1D PSD
 L = np.max(Fp["input_shape"])
-if L % 2 == 0:
+if L % 2 == 1:
     wn = np.arange(0, int(L / 2) + 1)
 else:
     wn = np.arange(0, int(L / 2))
