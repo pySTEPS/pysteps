@@ -32,7 +32,7 @@ The time step of the output is taken from the inputs.
 """
 
 from pysteps.extrapolation.interface import eulerian_persistence
-from pysteps.nowcasts import anvil, sprog, steps, sseps, extrapolation
+from pysteps.nowcasts import anvil, sprog, steps, sseps, extrapolation, linear_blending
 from pysteps.nowcasts import lagrangian_probability
 
 _nowcast_methods = dict()
@@ -45,6 +45,7 @@ _nowcast_methods["lagrangian_probability"] = lagrangian_probability.forecast
 _nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["sseps"] = sseps.forecast
 _nowcast_methods["steps"] = steps.forecast
+_nowcast_methods["linear blending"] = linear_blending.forecast
 
 
 def get_method(name):
@@ -79,6 +80,9 @@ def get_method(name):
     +-----------------+-------------------------------------------------------+
     |  sseps          | short-space ensemble prediction system (SSEPS).       |
     |                 | Essentially, this is a localization of STEPS.         |
+    +-----------------+-------------------------------------------------------+
+    |  linear         | the linear blending of a nowcast method with other    |
+    |  blending       | data (e.g. NWP data).                                 |
     +-----------------+-------------------------------------------------------+
     """
     if isinstance(name, str):

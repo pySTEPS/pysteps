@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.lagrangian_probability
-======================================
+=======================================
 
 Implementation of the local Lagrangian probability nowcasting technique
 described in :cite:`GZ2004`.
