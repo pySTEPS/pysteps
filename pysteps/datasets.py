@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.datasets
 ================
@@ -96,7 +97,6 @@ class ShowProgress(object):
     >>> pbar = ShowProgress()
     >>> request.urlretrieve("http://python.org/", "/tmp/index.html", pbar)
     >>> pbar.end()
-
     """
 
     def __init__(self, bar_length=20):
@@ -190,17 +190,13 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
         The files are archived following the folder structure defined in
         the pystepsrc file.
         If the directory exists existing MRMS files may be overwritten.
-
-    initial_date : datetime
+    initial_date: datetime
         Beginning of the date period.
-
-    final_date : datetime
+    final_date: datetime
         End of the date period.
-
-    timestep : int or timedelta
+    timestep: int or timedelta
         Timestep between downloaded files in minutes.
-
-    nodelay : bool
+    nodelay: bool
         Do not implement a 5-seconds delay every 30 files downloaded.
     """
 
@@ -258,7 +254,6 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
             os.makedirs(sub_dir)
 
         # Generate files URL from https://mtarchive.geol.iastate.edu
-
         dest_file_name = datetime.strftime(
             current_date, "PrecipRate_00.00_%Y%m%d-%H%M%S.grib2"
         )
@@ -271,25 +266,23 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
 
         file_url = archive_url + datetime.strftime(current_date, rel_url_fmt)
 
-        tmp_file = NamedTemporaryFile()
         try:
             print(f"Downloading {file_url} ", end="")
-            request.urlretrieve(
-                file_url, tmp_file.name,
-            )
+            tmp_file_name, _ = request.urlretrieve(file_url)
             print("DONE")
+
+            dest_file_path = os.path.join(sub_dir, dest_file_name)
+
+            # Uncompress the data
+            with gzip.open(tmp_file_name, "rb") as f_in:
+                with open(dest_file_path, "wb") as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+
+            current_date = current_date + timedelta(seconds=60 * 2)
+            counter += 1
+
         except HTTPError as err:
             print(err)
-
-        dest_file_path = os.path.join(sub_dir, dest_file_name)
-
-        # Uncompress the data
-        with gzip.open(tmp_file.name, "rb") as f_in:
-            with open(dest_file_path, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
-
-        current_date = current_date + timedelta(seconds=60 * 2)
-        counter += 1
 
 
 def download_pysteps_data(dir_path, force=True):
@@ -300,15 +293,12 @@ def download_pysteps_data(dir_path, force=True):
     ----------
     dir_path: str
         Path to directory where the psyteps data will be placed.
-
-    force : bool
+    force: bool
         If the destination directory exits and force=False, a DirectoryNotEmpty
         exception if raised.
         If force=True, the data will we downloaded in the destination directory and may
         override existing files.
-
     """
-    tmp_file = NamedTemporaryFile()
 
     # Check if directory exists but is not empty
     if os.path.exists(dir_path) and os.path.isdir(dir_path):
@@ -324,17 +314,16 @@ def download_pysteps_data(dir_path, force=True):
     # The http response from github can either contain Content-Length (size of the file)
     # or use chunked Transfer-Encoding.
     # If Transfer-Encoding is chunked, then the Content-Length is not available since
-    # the content is dynamically generated and we can't know the length a pr_iori easily.
+    # the content is dynamically generated and we can't know the length a priori easily.
     pbar = ShowProgress()
     print("Downloading pysteps-data from github.")
-    request.urlretrieve(
+    tmp_file_name, _ = request.urlretrieve(
         "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
-        tmp_file.name,
-        pbar,
+        reporthook=pbar,
     )
     pbar.end(message="Download complete\n")
 
-    with ZipFile(tmp_file.name, "r") as zip_obj:
+    with ZipFile(tmp_file_name, "r") as zip_obj:
         tmp_dir = TemporaryDirectory()
 
         # Extract all the contents of zip file in the temp directory
@@ -360,30 +349,25 @@ def create_default_pystepsrc(
     pystepsrc, pystepsrc.1, pystepsrc.2, etc. exist, they are renamed to respectively
     pystepsrc.1, pystepsrc.2, pystepsrc.2, etc. Finally, after the existing files are
     backed up, the new configuration file is written.
-    
+
     Parameters
     ----------
-
-    pysteps_data_dir : str
+    pysteps_data_dir: str
         Path to the directory with the pysteps data.
-
-    config_dir : str
+    config_dir: str
         Destination directory for the configuration file.
         Default values: $HOME/.pysteps (unix and Mac OS X)
         or $USERPROFILE/pysteps (windows).
         The directory is created if it does not exists.
-
-    file_name : str
+    file_name: str
         Configuration file name. `pystepsrc` by default.
-
-    dryrun : bool
+    dryrun: bool
         Do not create the parameter file, nor create backups of existing files.
         No changes are made in the file system. It just returns the file path.
 
     Returns
     -------
-
-    dest_path : str
+    dest_path: str
         Configuration file path.
     """
 
@@ -420,7 +404,7 @@ def create_default_pystepsrc(
         with open(dest_path, "w") as f:
             json.dump(rcparams_json, f, indent=4)
 
-    return dest_path
+    return os.path.normpath(dest_path)
 
 
 def load_dataset(case="fmi", frames=14):
@@ -443,25 +427,20 @@ def load_dataset(case="fmi", frames=14):
 
     Parameters
     ----------
-
-    case : str
+    case: str
         Case to load.
-
-    frames : int
+    frames: int
         Number composites (radar images).
         Max allowed value: 24 (35 for MRMS product)
         Default: 14
 
     Returns
     -------
-
-    rainrate : array-like
+    rainrate: array-like
         Precipitation data in mm/h. Dimensions: [time, lat, lon]
-
-    metadata : dict
+    metadata: dict
         The metadata observations attributes.
-
-    timestep : number
+    timestep: number
         Time interval between composites in minutes.
     """
 

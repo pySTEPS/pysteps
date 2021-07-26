@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.verification.interface
 ==============================
@@ -119,7 +120,6 @@ def get_method(name, type="deterministic"):
 
     Notes
     -----
-
     Multiplicative scores can be computed by passing log-tranformed values.
     Note that "scatter" is the only score that will be computed in dB units of
     the multiplicative error, i.e.: 10*log10(pred/obs).
@@ -143,7 +143,6 @@ def get_method(name, type="deterministic"):
 
     References
     ----------
-
     Germann, U. , Galli, G. , Boscacci, M. and Bolliger, M. (2006), Radar
     precipitation measurement in a mountainous region. Q.J.R. Meteorol. Soc.,
     132: 1669-1692. doi:10.1256/qj.05.190
@@ -151,7 +150,6 @@ def get_method(name, type="deterministic"):
     Potts, J. (2012), Chapter 2 - Basic concepts. Forecast verification: a
     practitioner’s guide in atmospheric sciences, I. T. Jolliffe, and D. B.
     Stephenson, Eds., Wiley-Blackwell, 11–29.
-
     """
 
     if name is None:

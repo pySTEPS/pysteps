@@ -36,6 +36,7 @@ test_metadata_bom = [
     ("y2", 128000.0, 0.1),
     ("xpixelsize", 500.0, 0.1),
     ("ypixelsize", 500.0, 0.1),
+    ("cartesian_unit", "m", None),
     ("yorigin", "upper", None),
     ("institution", "Commonwealth of Australia, Bureau of Meteorology", None),
 ]
@@ -65,6 +66,7 @@ test_geodata_bom = [
     ("y2", 128000.0, 0.1),
     ("xpixelsize", 500.0, 0.1),
     ("ypixelsize", 500.0, 0.1),
+    ("cartesian_unit", "m", None),
     ("yorigin", "upper", None),
     ("institution", "Commonwealth of Australia, Bureau of Meteorology", None),
 ]

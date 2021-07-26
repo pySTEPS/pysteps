@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.anvil
 ======================
@@ -22,6 +23,7 @@ import time
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from pysteps import cascade, extrapolation
+from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.timeseries import autoregression
 from pysteps import utils
 
@@ -36,7 +38,7 @@ except ImportError:
 def forecast(
     vil,
     velocity,
-    n_timesteps,
+    timesteps,
     rainrate=None,
     n_cascade_levels=8,
     extrap_method="semilagrangian",
@@ -44,20 +46,21 @@ def forecast(
     ar_window_radius=50,
     r_vil_window_radius=3,
     fft_method="numpy",
+    apply_rainrate_mask=True,
     num_workers=1,
     extrap_kwargs=None,
     filter_kwargs=None,
     measure_time=False,
 ):
     """Generate a nowcast by using the autoregressive nowcasting using VIL
-    (ANVIL) method. The key features of ANVIL are:
+    (ANVIL) method. ANVIL is built on top of an extrapolation-based nowcast.
+    The key features are:
 
-    1) Extrapolation-based nowcast.
-    2) Growth and decay: implemented by using a cascade decomposition and
+    1) Growth and decay: implemented by using a cascade decomposition and
        a multiscale autoregressive integrated ARI(p,1) model. Instead of the
        original time series, the ARI model is applied to the differenced one
        corresponding to time derivatives.
-    4) Originally designed for using integrated liquid (VIL) as the input data.
+    2) Originally designed for using integrated liquid (VIL) as the input data.
        In this case, the rain rate (R) is obtained from VIL via an empirical
        relation. This implementation is more general so that the input can be
        any two-dimensional precipitation field.
@@ -66,58 +69,65 @@ def forecast(
 
     Parameters
     ----------
-    vil : array_like
+    vil: array_like
         Array of shape (ar_order+2,m,n) containing the input fields ordered by
-        timestamp from oldest to newest. The time steps between the inputs are
-        assumed to be regular.
-    velocity : array_like
+        timestamp from oldest to newest. The inputs are expected to contain VIL
+        or rain rate. The time steps between the inputs are assumed to be regular.
+    velocity: array_like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs. All values are required to be finite.
-    n_timesteps : int
-        Number of time steps to forecast.
-    rainrate : array_like
+    timesteps: int or list of floats
+        Number of time steps to forecast or a list of time steps for which the
+        forecasts are computed (relative to the input time step). The elements
+        of the list are required to be in ascending order.
+    rainrate: array_like
         Array of shape (m,n) containing the most recently observed rain rate
         field. If set to None, no R(VIL) conversion is done and the outputs
         are in the same units as the inputs.
-    n_cascade_levels : int, optional
+    n_cascade_levels: int, optional
         The number of cascade levels to use.
-    extrap_method : str, optional
+    extrap_method: str, optional
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
-    ar_order : int, optional
+    ar_order: int, optional
         The order of the autoregressive model to use. The recommended values
         are 1 or 2. Using a higher-order model is strongly discouraged because
         the stationarity of the AR process cannot be guaranteed.
-    ar_window_radius : int, optional
+    ar_window_radius: int, optional
         The radius of the window to use for determining the parameters of the
-        autoregressive model.
-    r_vil_window_radius : int, optional
+        autoregressive model. Set to None to disable localization.
+    r_vil_window_radius: int, optional
         The radius of the window to use for determining the R(VIL) relation.
         Applicable if rainrate is not None.
-    fft_method : str, optional
+    fft_method: str, optional
         A string defining the FFT method to use (see utils.fft.get_method).
         Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
         the recommended method is 'pyfftw'.
-    num_workers : int, optional
+    apply_rainrate_mask: bool
+        Apply mask to prevent producing precipitation to areas where it was not
+        originally observed. Defaults to True. Disabling this may improve some
+        verification metrics but increases the number of false alarms. Applicable
+        if rainrate is None.
+    num_workers: int, optional
         The number of workers to use for parallel computation. Applicable if
         dask is installed or pyFFTW is used for computing the FFT.
         When num_workers>1, it is advisable to disable OpenMP by setting
         the environment variable OMP_NUM_THREADS to 1.
         This avoids slowdown caused by too many simultaneous threads.
-    extrap_kwargs : dict, optional
+    extrap_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
-    filter_kwargs : dict, optional
+    filter_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the filter method.
         See the documentation of pysteps.cascade.bandpass_filters.py.
-    measure_time : bool, optional
+    measure_time: bool, optional
         If True, measure, print and return the computation time.
 
     Returns
     -------
-    out : ndarray
-        A three-dimensional array of shape (n_timesteps,m,n) containing a time
+    out: ndarray
+        A three-dimensional array of shape (num_timesteps,m,n) containing a time
         series of forecast precipitation fields. The time series starts from
         t0+timestep, where timestep is taken from the input VIL/rain rate
         fields. If measure_time is True, the return value is a three-element
@@ -128,32 +138,12 @@ def forecast(
     ----------
     :cite:`PCLH2020`
     """
-    if len(vil.shape) != 3:
-        raise ValueError(
-            "vil.shape = %s, but a three-dimensional array expected" % str(vil.shape)
-        )
-
-    if rainrate is not None:
-        if len(rainrate.shape) != 2:
-            raise ValueError(
-                "rainrate.shape = %s, but a two-dimensional array expected"
-                % str(rainrate.shape)
-            )
-
-    if vil.shape[0] != ar_order + 2:
-        raise ValueError(
-            "vil.shape[0] = %d, but vil.shape[0] = ar_order + 2 = %d required"
-            % (vil.shape[0], ar_order + 2)
-        )
-
-    if len(velocity.shape) != 3:
-        raise ValueError(
-            "velocity.shape = %s, but a three-dimensional array expected"
-            % str(velocity.shape)
-        )
+    _check_inputs(vil, rainrate, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
+    else:
+        extrap_kwargs = extrap_kwargs.copy()
 
     if filter_kwargs is None:
         filter_kwargs = dict()
@@ -175,11 +165,18 @@ def forecast(
 
     print("Parameters:")
     print("-----------")
-    print("number of time steps:        %d" % n_timesteps)
+    if isinstance(timesteps, int):
+        print("number of time steps:        %d" % timesteps)
+    else:
+        print("time steps:                  %s" % timesteps)
     print("parallel threads:            %d" % num_workers)
     print("number of cascade levels:    %d" % n_cascade_levels)
     print("order of the ARI(p,1) model: %d" % ar_order)
-    print("ARI(p,1) window radius:      %d" % ar_window_radius)
+    if type(ar_window_radius) == int:
+        print("ARI(p,1) window radius:      %d" % ar_window_radius)
+    else:
+        print("ARI(p,1) window radius:      none")
+
     print("R(VIL) window radius:        %d" % r_vil_window_radius)
 
     if measure_time:
@@ -187,6 +184,9 @@ def forecast(
 
     m, n = vil.shape[1:]
     vil = vil.copy()
+
+    if rainrate is None and apply_rainrate_mask:
+        rainrate_mask = vil[-1, :] < 0.1
 
     if rainrate is not None:
         # determine the coefficients fields of the relation R=a*VIL+b by
@@ -226,6 +226,9 @@ def forecast(
     mask = np.isfinite(vil[0, :])
     for i in range(1, vil.shape[0]):
         mask = np.logical_and(mask, np.isfinite(vil[i, :]))
+
+    if rainrate is None and apply_rainrate_mask:
+        rainrate_mask = np.logical_and(rainrate_mask, mask)
 
     # apply cascade decomposition to the advected input fields
     bp_filter_method = cascade.get_method("gaussian")
@@ -284,9 +287,43 @@ def forecast(
         starttime_mainloop = time.time()
 
     r_f = []
+
+    if isinstance(timesteps, int):
+        timesteps = range(timesteps + 1)
+        timestep_type = "int"
+    else:
+        original_timesteps = [0] + list(timesteps)
+        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
+        timestep_type = "list"
+
+    if rainrate is not None:
+        r_f_prev = r_vil_a * vil[-1, :] + r_vil_b
+    else:
+        r_f_prev = vil[-1, :]
+    extrap_kwargs["return_displacement"] = True
+
     dp = None
-    for t in range(n_timesteps):
-        print("Computing nowcast for time step %d... " % (t + 1), end="", flush=True)
+    t_prev = 0.0
+
+    for t, subtimestep_idx in enumerate(timesteps):
+        if timestep_type == "list":
+            subtimesteps = [original_timesteps[t_] for t_ in subtimestep_idx]
+        else:
+            subtimesteps = [t]
+
+        if (timestep_type == "list" and subtimesteps) or (
+            timestep_type == "int" and t > 0
+        ):
+            is_nowcast_time_step = True
+        else:
+            is_nowcast_time_step = False
+
+        if is_nowcast_time_step:
+            print(
+                "Computing nowcast for time step %d... " % t,
+                end="",
+                flush=True,
+            )
 
         if measure_time:
             starttime = time.time()
@@ -305,22 +342,59 @@ def forecast(
 
         if rainrate is not None:
             # convert VIL to rain rate
-            r_f_ = r_vil_a * vil_f + r_vil_b
+            r_f_new = r_vil_a * vil_f + r_vil_b
         else:
-            r_f_ = vil_f
+            r_f_new = vil_f
+            if apply_rainrate_mask:
+                r_f_new[rainrate_mask] = 0.0
 
-        # extrapolate to the current nowcast lead time
-        extrap_kwargs.update(
-            {"D_prev": dp, "return_displacement": True, "allow_nonfinite_values": True}
-        )
-        r_f_, dp = extrapolator(r_f_, velocity, 1, **extrap_kwargs)
+        r_f_new[r_f_new < 0.0] = 0.0
 
-        if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
-        else:
-            print("done.")
+        # advect the recomposed field to obtain the forecast for the current
+        # time step (or subtimesteps if non-integer time steps are given)
+        for t_sub in subtimesteps:
+            if t_sub > 0:
+                t_diff_prev_int = t_sub - int(t_sub)
+                if t_diff_prev_int > 0.0:
+                    r_f_ip = (
+                        1.0 - t_diff_prev_int
+                    ) * r_f_prev + t_diff_prev_int * r_f_new
+                else:
+                    r_f_ip = r_f_prev
 
-        r_f.append(r_f_[-1])
+                t_diff_prev = t_sub - t_prev
+                extrap_kwargs["displacement_prev"] = dp
+                r_f_ep, dp = extrapolator(
+                    r_f_ip,
+                    velocity,
+                    [t_diff_prev],
+                    allow_nonfinite_values=True,
+                    **extrap_kwargs,
+                )
+                r_f.append(r_f_ep[0])
+                t_prev = t_sub
+
+        # advect the forecast field by one time step if no subtimesteps in the
+        # current interval were found
+        if not subtimesteps:
+            t_diff_prev = t + 1 - t_prev
+            extrap_kwargs["displacement_prev"] = dp
+            _, dp = extrapolator(
+                None,
+                velocity,
+                [t_diff_prev],
+                allow_nonfinite_values=True,
+                **extrap_kwargs,
+            )
+            t_prev = t + 1
+
+        r_f_prev = r_f_new
+
+        if is_nowcast_time_step:
+            if measure_time:
+                print("%.2f seconds." % (time.time() - starttime))
+            else:
+                print("done.")
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
@@ -329,6 +403,31 @@ def forecast(
         return np.stack(r_f), init_time, mainloop_time
     else:
         return np.stack(r_f)
+
+
+def _check_inputs(vil, rainrate, velocity, timesteps, ar_order):
+    if vil.ndim != 3:
+        raise ValueError(
+            "vil.shape = %s, but a three-dimensional array expected" % str(vil.shape)
+        )
+    if rainrate is not None:
+        if rainrate.ndim != 2:
+            raise ValueError(
+                "rainrate.shape = %s, but a two-dimensional array expected"
+                % str(rainrate.shape)
+            )
+    if vil.shape[0] != ar_order + 2:
+        raise ValueError(
+            "vil.shape[0] = %d, but vil.shape[0] = ar_order + 2 = %d required"
+            % (vil.shape[0], ar_order + 2)
+        )
+    if velocity.ndim != 3:
+        raise ValueError(
+            "velocity.shape = %s, but a three-dimensional array expected"
+            % str(velocity.shape)
+        )
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps is not in ascending order")
 
 
 # optimized version of timeseries.autoregression.estimate_ar_params_yw_localized
@@ -372,11 +471,18 @@ def _moving_window_corrcoef(x, y, window_radius):
     y[~mask] = 0.0
     mask = mask.astype(float)
 
-    n = gaussian_filter(mask, window_radius, mode="constant")
+    if window_radius is not None:
+        n = gaussian_filter(mask, window_radius, mode="constant")
 
-    ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
-    ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
-    sxy = gaussian_filter(x * y, window_radius, mode="constant")
+        ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
+        ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
+        sxy = gaussian_filter(x * y, window_radius, mode="constant")
+    else:
+        n = np.mean(mask)
+
+        ssx = np.mean(x ** 2)
+        ssy = np.mean(y ** 2)
+        sxy = np.mean(x * y)
 
     stdx = np.sqrt(ssx / n)
     stdy = np.sqrt(ssy / n)

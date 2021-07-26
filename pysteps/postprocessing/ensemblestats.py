@@ -22,22 +22,18 @@ def mean(X, ignore_nan=False, X_thr=None):
 
     Parameters
     ----------
-
-    X : array_like
+    X: array_like
         Array of shape (k, m, n) containing a k-member ensemble of forecast
         fields of shape (m, n).
-
-    ignore_nan : bool
+    ignore_nan: bool
         If True, ignore nan values.
-
-    X_thr : float
+    X_thr: float
         Optional threshold for computing the ensemble mean.
         Values below **X_thr** are ignored.
 
     Returns
     -------
-
-    out : ndarray
+    out: ndarray
         Array of shape (m, n) containing the ensemble mean.
     """
 
@@ -67,22 +63,18 @@ def excprob(X, X_thr, ignore_nan=False):
 
     Parameters
     ----------
-
-    X : array_like
+    X: array_like
         Array of shape (k, m, n, ...) containing an k-member ensemble of
         forecasts with shape (m, n, ...).
-
-    X_thr : float or a sequence of floats
+    X_thr: float or a sequence of floats
         Intensity threshold(s) for which the exceedance probabilities are
         computed.
-
-    ignore_nan : bool
+    ignore_nan: bool
         If True, ignore nan values.
 
     Returns
     -------
-
-    out : ndarray
+    out: ndarray
         Array of shape (len(X_thr), m, n) containing the exceedance
         probabilities for the given intensity thresholds.
         If len(X_thr)=1, the first dimension is dropped.
@@ -93,8 +85,7 @@ def excprob(X, X_thr, ignore_nan=False):
 
     if X_ndim < 3:
         raise Exception(
-            "Number of dimensions of X should be 3 or more."
-            + " It was: {}".format(X_ndim)
+            f"Number of dimensions of X should be 3 or more. It was: {X_ndim}"
         )
 
     P = []
@@ -110,6 +101,7 @@ def excprob(X, X_thr, ignore_nan=False):
 
         X_[X >= x] = 1.0
         X_[X < x] = 0.0
+        X_[~np.isfinite(X)] = np.nan
 
         if ignore_nan:
             P.append(np.nanmean(X_, axis=0))
@@ -127,29 +119,25 @@ def banddepth(X, thr=None, norm=False):
     k-member ensemble data set.
 
     Implementation of the exact fast algorithm for computing the modified band
-    detpth as described in Sun et al (2012).
+    depth as described in Sun et al (2012).
 
     Parameters
     ----------
-
-    X : array_like
+    X: array_like
         Array of shape (k, m, ...) representing an ensemble of *k* members
         (i.e., samples) with shape (m, ...).
-
-    thr : float
+    thr: float
         Optional threshold for excluding pixels that have no samples equal or
         above the **thr** value.
 
     Returns
     -------
-
-    out : array_like
+    out: array_like
         Array of shape *k* containing the (normalized) band depth values for
         each ensemble member.
 
     References
     ----------
-
     Lopez-Pintado, Sara, and Juan Romo. 2009. "On the Concept of Depth for
     Functional Data." Journal of the American Statistical Association
     104 (486): 718–34. https://doi.org/10.1198/jasa.2009.0108.

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.motion.constant
 =======================
@@ -9,7 +10,6 @@ correlation between two images.
     :toctree: ../generated/
 
     constant
-
 """
 
 import numpy as np
@@ -23,13 +23,13 @@ def constant(R, **kwargs):
 
     Parameters
     ----------
-    R : array_like
+    R: array_like
       Array of shape (T,m,n) containing a sequence of T two-dimensional input
       images of shape (m,n). If T > 2, two last elements along axis 0 are used.
 
     Returns
     -------
-    out : array_like
+    out: array_like
         The constant advection field having shape (2, m, n), where out[0, :, :]
         contains the x-components of the motion vectors and out[1, :, :]
         contains the y-components.

@@ -8,232 +8,173 @@ Interpolation routines for pysteps.
 .. autosummary::
     :toctree: ../generated/
 
+    idwinterp2d
     rbfinterp2d
-
 """
 
+import warnings
+
 import numpy as np
-import scipy.spatial
+from scipy.interpolate import Rbf
+from scipy.spatial import cKDTree
+from scipy.spatial.distance import cdist
 
 
-def rbfinterp2d(
-    coord,
-    input_array,
-    xgrid,
-    ygrid,
-    rbfunction="gaussian",
-    epsilon=10,
-    k=50,
-    nchunks=5,
+from pysteps.decorators import memoize, prepare_interpolator
+
+
+@prepare_interpolator()
+def idwinterp2d(
+    xy_coord, values, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **kwargs
 ):
-    """Fast 2-D grid interpolation of a sparse (multivariate) array using a
-    radial basis function.
+    """Inverse distance weighting interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
 
     Parameters
     ----------
-
-    coord : array_like
-        Array of shape (n, 2) containing the coordinates of the data points
-        into a 2-dimensional space.
-
-    input_array : array_like
+    xy_coord: ndarray_
+        Array of shape (n, 2) containing the coordinates of the data points in
+        a 2-dimensional space.
+    values: ndarray_
         Array of shape (n) or (n, m) containing the values of the data points,
         where *n* is the number of data points and *m* the number of co-located
-        variables.
-        All values in ``input_array`` are required to have finite values.
-
-    xgrid, ygrid : array_like
-        1D arrays representing the coordinates of the 2-D output grid.
-
-    rbfunction : {"gaussian", "multiquadric", "inverse quadratic", "inverse multiquadric", "bump"}, optional
-        The name of one of the available radial basis function based on a
-        normalized Euclidian norm as defined in the **Notes** section below.
-
-        More details provided in the wikipedia reference page linked below.
-
-    epsilon : float, optional
-        The shape parameter used to scale the input to the radial kernel.
-
-        A smaller value for ``epsilon`` produces a smoother interpolation. More
-        details provided in the wikipedia reference page linked below.
-
-    k : int or None, optional
+        variables. All elements in ``values`` are required to be finite.
+    xgrid, ygrid: ndarray_
+        1-D arrays representing the coordinates of the 2-D output grid.
+    power: positive float, optional
+        The power parameter used to compute the distance weights as
+        ``weight = distance ** (-power)``.
+    k: positive int or None, optional
         The number of nearest neighbours used for each target location.
-        This can also be useful to to speed-up the interpolation.
         If set to None, it interpolates using all the data points at once.
+    dist_offset: float, optional
+        A small, positive constant that is added to distances to avoid zero
+        values. It has units of pixels.
 
-    nchunks : int, optional
-        The number of chunks in which the grid points are split to limit the
-        memory usage during the interpolation.
+    Other Parameters
+    ----------------
+    {extra_kwargs_doc}
 
     Returns
     -------
-
-    output_array : ndarray_
-        The interpolated field(s) having shape (*m*, ``ygrid.size``, ``xgrid.size``).
-
-    Notes
-    -----
-
-    The coordinates are normalized before computing the Euclidean norms:
-
-        x = (x - min(x)) / max[max(x) - min(x), max(y) - min(y)],\n
-        y = (y - min(y)) / max[max(x) - min(x), max(y) - min(y)],
-
-    where the min and max values are taken as the 2nd and 98th percentiles.
-
-    References
-    ----------
-
-    Wikipedia contributors, "Radial basis function,"
-    Wikipedia, The Free Encyclopedia,
-    https://en.wikipedia.org/w/index.php?title=Radial_basis_function&oldid=906155047
-    (accessed August 19, 2019).
+    output_array: ndarray_
+        The interpolated field(s) having shape (``ygrid.size``, ``xgrid.size``)
+        or (*m*, ``ygrid.size``, ``xgrid.size``).
     """
-
-    _rbfunctions = [
-        "nearest",
-        "gaussian",
-        "inverse quadratic",
-        "inverse multiquadric",
-        "bump",
-    ]
-
-    input_array = np.copy(input_array)
-
-    if np.any(~np.isfinite(input_array)):
-        raise ValueError("input_array contains non-finite values")
-
-    if input_array.ndim == 1:
+    if values.ndim == 1:
         nvar = 1
-        input_array = input_array[:, None]
+        values = values[:, None]
 
-    elif input_array.ndim == 2:
-        nvar = input_array.shape[1]
+    elif values.ndim == 2:
+        nvar = values.shape[1]
 
-    else:
-        raise ValueError(
-            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
-            % input_array.ndim
-        )
-
-    npoints = input_array.shape[0]
-
-    if npoints == 0:
-        raise ValueError(
-            "input_array (n, m) must contain at least one sample, but it has %i"
-            % npoints
-        )
-
-    # only one sample, return uniform fields
-    elif npoints == 1:
-        output_array = np.ones((nvar, ygrid.size, xgrid.size))
-        for i in range(nvar):
-            output_array[i, :, :] *= input_array[:, i]
-        return output_array
-
-    coord = np.copy(coord)
-
-    if coord.ndim != 2:
-        raise ValueError(
-            "coord must have 2 dimensions (n, 2), but it has %i" % coord.ndim
-        )
-
-    if npoints != coord.shape[0]:
-        raise ValueError(
-            "the number of samples in the input_array does not match the "
-            + "number of coordinates %i!=%i" % (npoints, coord.shape[0])
-        )
-
-    # normalize coordinates
-    qcoord = np.percentile(coord, [2, 98], axis=0)
-    dextent = np.max(np.diff(qcoord, axis=0))
-    coord = (coord - qcoord[0, :]) / dextent
-
-    rbfunction = rbfunction.lower()
-    if rbfunction not in _rbfunctions:
-        raise ValueError(
-            "Unknown rbfunction '{}'\n".format(rbfunction)
-            + "The available rbfunctions are: "
-            + str(_rbfunctions)
-        ) from None
+    npoints = values.shape[0]
 
     # generate the target grid
-    X, Y = np.meshgrid(xgrid, ygrid)
-    grid = np.column_stack((X.ravel(), Y.ravel()))
-    # normalize the grid coordinates
-    grid = (grid - qcoord[0, :]) / dextent
+    xgridv, ygridv = np.meshgrid(xgrid, ygrid)
+    gridv = np.column_stack((xgridv.ravel(), ygridv.ravel()))
 
-    # k-nearest interpolation
-    if k is not None and k > 0:
+    if k is not None:
         k = int(np.min((k, npoints)))
-
-        # create cKDTree object to represent source grid
-        tree = scipy.spatial.cKDTree(coord)
-
+        tree = _cKDTree_cached(xy_coord, hkey=kwargs.get("hkey", None))
+        dist, inds = tree.query(gridv, k=k)
+        if dist.ndim == 1:
+            dist = dist[..., None]
+            inds = inds[..., None]
     else:
-        k = 0
+        # use all points
+        dist = cdist(xy_coord, gridv, "euclidean").transpose()
+        inds = np.arange(npoints)[None, :] * np.ones((gridv.shape[0], npoints)).astype(
+            int
+        )
 
-    # split grid points in n chunks
-    if nchunks > 1:
-        subgrids = np.array_split(grid, nchunks, 0)
-        subgrids = [x for x in subgrids if x.size > 0]
+    # convert geographical distances to number of pixels
+    x_res = np.gradient(xgrid)
+    y_res = np.gradient(ygrid)
+    mean_res = np.mean(np.abs([x_res.mean(), y_res.mean()]))
+    dist /= mean_res
 
-    else:
-        subgrids = [grid]
+    # compute distance-based weights
+    dist += dist_offset  # avoid zero distances
+    weights = 1 / np.power(dist, power)
+    weights = weights / np.sum(weights, axis=1, keepdims=True)
 
-    # loop subgrids
-    i0 = 0
-    output_array = np.zeros((grid.shape[0], nvar))
-    for i, subgrid in enumerate(subgrids):
-        idelta = subgrid.shape[0]
-
-        if k == 0:
-            # use all points
-            d = scipy.spatial.distance.cdist(coord, subgrid, "euclidean").transpose()
-            inds = np.arange(npoints)[None, :] * np.ones(
-                (subgrid.shape[0], npoints)
-            ).astype(int)
-
-        else:
-            # use k-nearest neighbours
-            d, inds = tree.query(subgrid, k=k)
-
-        if k == 1:
-            # nearest neighbour
-            output_array[i0 : (i0 + idelta), :] = input_array[inds, :]
-
-        else:
-
-            # the interpolation weights
-            if rbfunction == "gaussian":
-                w = np.exp(-((d * epsilon) ** 2))
-
-            elif rbfunction == "inverse quadratic":
-                w = 1.0 / (1 + (epsilon * d) ** 2)
-
-            elif rbfunction == "inverse multiquadric":
-                w = 1.0 / np.sqrt(1 + (epsilon * d) ** 2)
-
-            elif rbfunction == "bump":
-                w = np.exp(-1.0 / (1 - (epsilon * d) ** 2))
-                w[d >= 1 / epsilon] = 0.0
-
-            if not np.all(np.sum(w, axis=1)):
-                w[np.sum(w, axis=1) == 0, :] = 1.0
-
-            # interpolate
-            for j in range(nvar):
-                output_array[i0 : (i0 + idelta), j] = np.sum(
-                    w * input_array[inds, j], axis=1
-                ) / np.sum(w, axis=1)
-
-        i0 += idelta
+    # interpolate
+    output_array = np.sum(
+        values[inds, :] * weights[..., None],
+        axis=1,
+    )
 
     # reshape to final grid size
     output_array = output_array.reshape(ygrid.size, xgrid.size, nvar)
 
     return np.moveaxis(output_array, -1, 0).squeeze()
+
+
+@prepare_interpolator()
+def rbfinterp2d(xy_coord, values, xgrid, ygrid, **kwargs):
+    """Radial basis function interpolation of a sparse (multivariate) array.
+
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+    .. _`scipy.interpolate.Rbf`:\
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Rbf.html
+
+    This method wraps the `scipy.interpolate.Rbf`_ class.
+
+    Parameters
+    ----------
+    xy_coord: ndarray_
+        Array of shape (n, 2) containing the coordinates of the data points in
+        a 2-dimensional space.
+    values: ndarray_
+        Array of shape (n) or (n, m) containing the values of the data points,
+        where *n* is the number of data points and *m* the number of co-located
+        variables. All values in ``values`` are required to be finite.
+    xgrid, ygrid: ndarray_
+        1-D arrays representing the coordinates of the 2-D output grid.
+
+    Other Parameters
+    ----------------
+    Any of the parameters from the original `scipy.interpolate.Rbf`_ class.
+    {extra_kwargs_doc}
+
+    Returns
+    -------
+    output_array: ndarray_
+        The interpolated field(s) having shape (``ygrid.size``, ``xgrid.size``)
+        or (*m*, ``ygrid.size``, ``xgrid.size``).
+    """
+    deprecated_args = ["rbfunction", "k"]
+    deprecated_args = [arg for arg in deprecated_args if arg in list(kwargs.keys())]
+    if deprecated_args:
+        warnings.warn(
+            "rbfinterp2d: The following keyword arguments are deprecated:\n"
+            + str(deprecated_args),
+            DeprecationWarning,
+        )
+
+    if values.ndim == 1:
+        kwargs["mode"] = "1-D"
+    else:
+        kwargs["mode"] = "N-D"
+
+    xgridv, ygridv = np.meshgrid(xgrid, ygrid)
+    rbfi = _Rbf_cached(*np.split(xy_coord, xy_coord.shape[1], 1), values, **kwargs)
+    output_array = rbfi(xgridv, ygridv)
+
+    return np.moveaxis(output_array, -1, 0).squeeze()
+
+
+@memoize()
+def _cKDTree_cached(*args, **kwargs):
+    """Add LRU cache to cKDTree class."""
+    return cKDTree(*args)
+
+
+@memoize()
+def _Rbf_cached(*args, **kwargs):
+    """Add LRU cache to Rbf class."""
+    return Rbf(*args, **kwargs)

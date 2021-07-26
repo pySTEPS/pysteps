@@ -1,0 +1,108 @@
+name: Test Pysteps
+
+env:
+  MINIMAL_DEPENDENCIES: cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask
+  OPTIONAL_DEPENDENCIES: pyfftw cartopy h5py PyWavelets pandas scikit-image
+  TEST_DEPENDENCIES: pytest pytest-cov
+
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  unit_tests:
+    name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+        python-version: [ "3.6", "3.8" ]
+      max-parallel: 6
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2.0.0
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge
+          channel-priority: flexible
+          activate-environment: test-environment
+
+      - name: Install dependencies
+        env:
+          PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
+          PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
+        run: |
+          conda install --quiet ${{env.PACKAGES}}
+          pip install -U cookiecutter
+
+      - name: Install pysteps for MacOS
+        if: matrix.os == 'macos-latest'
+        working-directory: ${{github.workspace}}
+        env:
+          CC: gcc-9
+          CXX: g++-9
+          CXX1X: g++-9
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew update-reset
+          brew update
+          gcc-9 --version || brew install gcc@9
+          pip install .
+
+      - name: Install pygrib (not win)
+        if: matrix.os != 'windows-latest'
+        run: conda install --quiet pygrib
+
+      - name: Install pysteps
+        if: matrix.os != 'macos-latest'
+        working-directory: ${{github.workspace}}
+        run: pip install .
+
+      - name: Download pysteps data
+        env:
+          PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
+        working-directory: ${{github.workspace}}/ci
+        run: python fetch_pysteps_data.py
+
+      - name: Check imports
+        working-directory: ${{github.workspace}}/pysteps_data
+        run: |
+          python -c "import pysteps; print(pysteps.__file__)"
+          python -c "from pysteps import motion"
+          python -c "from pysteps.motion import vet"
+          python -c "from pysteps.motion import proesmans"
+
+      - name: Run tests and coverage report
+        working-directory: ${{github.workspace}}/pysteps_data
+        env:
+          PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
+        run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
+
+      - name: Upload coverage to Codecov (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v1
+        env:
+          OS: ${{ matrix.os }}
+          PYTHON: ${{ matrix.python-version }}
+        with:
+          file: ${{github.workspace}}/pysteps_data/coverage.xml
+          flags: unit_tests
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+          verbose: true

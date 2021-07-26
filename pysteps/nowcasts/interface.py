@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.interface
 ==========================
@@ -7,12 +8,14 @@ nowcasts.
 
 The methods in the nowcasts module implement the following interface:
 
-    ``forecast(precip, velocity, num_timesteps, **keywords)``
+    ``forecast(precip, velocity, timesteps, **keywords)``
 
 where precip is a (m,n) array with input precipitation field to be advected and
-velocity is a (2,m,n) array containing  the x- and y-components of
+velocity is a (2,m,n) array containing the x- and y-components of
 the m x n advection field.
-num_timesteps is an integer specifying the number of time steps to forecast.
+timesteps can be an integer or a list. An integer specifies the number of time
+steps to forecast, where the output time step is taken from the inputs.
+Irregular time steps can be given in a list.
 The interface accepts optional keyword arguments specific to the given method.
 
 The output depends on the type of the method.
@@ -30,12 +33,15 @@ The time step of the output is taken from the inputs.
 
 from pysteps.extrapolation.interface import eulerian_persistence
 from pysteps.nowcasts import anvil, sprog, steps, sseps, extrapolation
+from pysteps.nowcasts import lagrangian_probability
 
 _nowcast_methods = dict()
 _nowcast_methods["anvil"] = anvil.forecast
 _nowcast_methods["eulerian"] = eulerian_persistence
 _nowcast_methods["extrapolation"] = extrapolation.forecast
 _nowcast_methods["lagrangian"] = extrapolation.forecast
+_nowcast_methods["probability"] = lagrangian_probability.forecast
+_nowcast_methods["lagrangian_probability"] = lagrangian_probability.forecast
 _nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["sseps"] = sseps.forecast
 _nowcast_methods["steps"] = steps.forecast
@@ -62,6 +68,9 @@ def get_method(name):
     |  lagrangian or  | this approach extrapolates the last observation       |
     |  extrapolation  | using the motion field (Lagrangian persistence)       |
     +-----------------+-------------------------------------------------------+
+    |  lagrangian_\   | this approach computes local lagrangian probability   |
+    |  probability    | forecasts of threshold exceedences.                   |
+    +-----------------+-------------------------------------------------------+
     |  sprog          | the S-PROG method described in :cite:`Seed2003`       |
     +-----------------+-------------------------------------------------------+
     |  steps          | the STEPS stochastic nowcasting method described in   |
@@ -71,9 +80,6 @@ def get_method(name):
     |  sseps          | short-space ensemble prediction system (SSEPS).       |
     |                 | Essentially, this is a localization of STEPS.         |
     +-----------------+-------------------------------------------------------+
-
-    steps and sseps produce stochastic nowcasts, and the other methods are
-    deterministic.
     """
     if isinstance(name, str):
         name = name.lower()

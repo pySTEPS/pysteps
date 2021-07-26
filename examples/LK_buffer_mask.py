@@ -169,16 +169,9 @@ plt.show()
 # By comparing the velocity of the motion fields, we can easily notice
 # the negative bias that is introduced by the the erroneous interpretation of
 # velocities near the maximum range of the radars.
-# Please note that we are setting a small shape parameter ``epsilon`` for the
-# interpolation routine. This will produce a smoother motion field.
 
-interp_kwargs = {"epsilon": 5}  # use a small shape parameter for interpolation
-UV1 = dense_lucaskanade(
-    R, dense=True, fd_kwargs=fd_kwargs1, interp_kwargs=interp_kwargs
-)
-UV2 = dense_lucaskanade(
-    R, dense=True, fd_kwargs=fd_kwargs2, interp_kwargs=interp_kwargs
-)
+UV1 = dense_lucaskanade(R, dense=True, fd_kwargs=fd_kwargs1)
+UV2 = dense_lucaskanade(R, dense=True, fd_kwargs=fd_kwargs2)
 
 V1 = np.sqrt(UV1[0] ** 2 + UV1[1] ** 2)
 V2 = np.sqrt(UV2[0] ** 2 + UV2[1] ** 2)
@@ -213,7 +206,7 @@ R_f2 = transformation.dB_transform(R_f2, threshold=-10.0, inverse=True)[0]
 
 # Find the veriyfing observations in the archive
 fns = io.archive.find_by_date(
-    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_next_files=12,
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_next_files=12
 )
 
 # Read and convert the radar composites

@@ -34,6 +34,9 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinx_gallery.gen_gallery",
 ]
+
+bibtex_bibfiles = ["references.bib"]
+
 # numpydoc_show_class_members = False
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -145,6 +148,7 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["../_static"]
+html_css_files = ["../_static/pysteps.css"]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

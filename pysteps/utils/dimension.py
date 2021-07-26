@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.utils.dimension
 =======================
@@ -17,7 +18,7 @@ Functions to manipulate array dimensions.
 import numpy as np
 
 _aggregation_methods = dict(
-    sum=np.sum, mean=np.mean, nanmean=np.nanmean, nansum=np.nansum,
+    sum=np.sum, mean=np.mean, nanmean=np.nanmean, nansum=np.nansum
 )
 
 
@@ -26,36 +27,35 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of shape (t,m,n) or (l,t,m,n) containing
         a time series of (ensemble) input fields.
         They must be evenly spaced in time.
-    metadata : dict
+    metadata: dict
         Metadata dictionary containing the timestamps and unit attributes as
         described in the documentation of :py:mod:`pysteps.io.importers`.
-    time_window_min : float or None
+    time_window_min: float or None
         The length in minutes of the time window that is used to
         aggregate the fields.
         The time spanned by the t dimension of R must be a multiple of
         time_window_min.
         If set to None, it returns a copy of the original R and metadata.
-    ignore_nan : bool, optional
+    ignore_nan: bool, optional
         If True, ignore nan values.
 
     Returns
     -------
-    outputarray : array-like
+    outputarray: array-like
         The new array of aggregated fields of shape (k,m,n) or (l,k,m,n), where
         k = t*delta/time_window_min and delta is the time interval between two
         successive timestamps.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
 
     See also
     --------
     pysteps.utils.dimension.aggregate_fields_space,
     pysteps.utils.dimension.aggregate_fields
-
     """
 
     R = R.copy()
@@ -122,14 +122,14 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of shape (m,n), (t,m,n) or (l,t,m,n) containing a single field or
         a time series of (ensemble) input fields.
-    metadata : dict
+    metadata: dict
         Metadata dictionary containing the xpixelsize, ypixelsize and unit
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    space_window : float or None
+    space_window: float or None
         The length of the space window that is used to upscale the fields.
         The space_window unit is the same used in the geographical projection
         of R
@@ -137,23 +137,22 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
         The space spanned by the m and n dimensions of R must be a multiple of
         space_window.
         If set to None, it returns a copy of the original R and metadata.
-    ignore_nan : bool, optional
+    ignore_nan: bool, optional
         If True, ignore nan values.
 
     Returns
     -------
-    outputarray : array-like
+    outputarray: array-like
         The new array of aggregated fields of shape (k,j), (t,k,j)
         or (l,t,k,j),
         where k = m*ypixelsize/space_window and j = n*xpixelsize/space_window.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
 
     See also
     --------
     pysteps.utils.dimension.aggregate_fields_time,
     pysteps.utils.dimension.aggregate_fields
-
     """
 
     R = R.copy()
@@ -221,9 +220,9 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
 
     Parameters
     ----------
-    data : array-like
+    data: array-like
         Array of any shape containing the input fields.
-    window_size : int or tuple of ints
+    window_size: int or tuple of ints
         The length of the window that is used to aggregate the fields.
         If a single integer value is given, the same window is used for
         all the selected axis.
@@ -233,15 +232,15 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
         to aggregate the fields along each axis. In this case,
         the number of elements of 'window_size' must be the same as the elements
         in the ``axis`` argument.
-    axis : int or array-like of ints
+    axis: int or array-like of ints
         Axis or axes where to perform the aggregation.
         If this is a tuple of ints, the aggregation is performed over multiple
         axes, instead of a single axis
-    method : string, optional
+    method: string, optional
         Optional argument that specifies the operation to use
         to aggregate the values within the window.
         Default to mean operator.
-    trim : bool
+    trim: bool
          In case that the ``data`` is not perfectly divisible by
          ``window_size`` along the selected axis:
 
@@ -251,7 +250,7 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
 
     Returns
     -------
-    new_array : array-like
+    new_array: array-like
         The new aggregated array with shape[axis] = k,
         where k = R.shape[axis] / window_size.
 
@@ -338,14 +337,14 @@ def clip_domain(R, metadata, extent=None):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of shape (m,n) or (t,m,n) containing the input fields.
-    metadata : dict
+    metadata: dict
         Metadata dictionary containing the x1, x2, y1, y2,
         xpixelsize, ypixelsize,
         zerovalue and yorigin attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    extent : scalars (left, right, bottom, top), optional
+    extent: scalars (left, right, bottom, top), optional
         The extent of the bounding box in data coordinates to be used to clip
         the data.
         Note that the direction of the vertical axis and thus the default
@@ -355,11 +354,10 @@ def clip_domain(R, metadata, extent=None):
 
     Returns
     -------
-    R : array-like
+    R: array-like
         the clipped array
-    metadata : dict
+    metadata: dict
         the metadata with updated attributes.
-
     """
 
     R = R.copy()
@@ -450,31 +448,30 @@ def square_domain(R, metadata, method="pad", inverse=False):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of shape (m,n) or (t,m,n) containing the input fields.
-    metadata : dict
+    metadata: dict
         Metadata dictionary containing the x1, x2, y1, y2,
         xpixelsize, ypixelsize,
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    method : {'pad', 'crop'}, optional
+    method: {'pad', 'crop'}, optional
         Either pad or crop.
         If pad, an equal number of zeros is added to both ends of its shortest
         side in order to produce a square domain.
         If crop, an equal number of pixels is removed
         to both ends of its longest side in order to produce a square domain.
         Note that the crop method involves an irreversible loss of data.
-    inverse : bool, optional
+    inverse: bool, optional
         Perform the inverse method to recover the original domain shape.
         After a crop, the inverse is performed by padding the field with zeros.
 
     Returns
     -------
-    R : array-like
+    R: array-like
         the reshape dataset
-    metadata : dict
+    metadata: dict
         the metadata with updated attributes.
-
     """
 
     R = R.copy()

@@ -63,9 +63,12 @@ Conda quickly installs, runs and updates packages and their dependencies.
 It also allows to easily create, save, load and switch between different
 environments on your local computer.
 
-The developer environment can be created using the
+Before continuing, Mac OSX users also need to install a more recent compiler.
+See instructions here: :ref:`OSX users <install_osx_users>`.
+
+The developer environment can be created from the file
 `environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
-file in the project's root directory running the command::
+in the project's root directory by running the command::
 
     conda env create -f environment_dev.yml
 
@@ -73,12 +76,21 @@ This will create the **pysteps_dev** environment that can be activated using::
 
     conda activate pysteps_dev
 
-Once the environment is created, the package can be installed in development
-mode, in such a way that the project appears to be installed,
-but yet is still editable from the source tree.
-See instructions in the :ref:`Installing pysteps <development_mode_install>`
-section.
+Once the environment is activated, the latest version of pysteps can be installed
+in development mode, in such a way that the project appears to be installed,
+but yet is still editable from the source tree::
 
+    pip install -e <path to local pysteps repo>
+
+To test if the installation went fine, you can try launching Python and importing
+pysteps :ref:`Import pysteps <_import_pysteps>`.
+
+**Note**: In case of installation or import errors, you can remove the pysteps_dev environment
+and try starting from an empty environment (adapt the Python version as needed)::
+
+    conda create -n pysteps_dev python=3.8
+
+You can then activate it and install pysteps with pip as exaplained above.
 
 Fork the repository
 ~~~~~~~~~~~~~~~~~~~
@@ -121,6 +133,10 @@ To ensure that the same configuration is used in every development environment, 
 configuration is stored in the `pyproject.toml` file.
 This configuration is automatically load when black is run from any directory in the
 pysteps project.
+
+IMPORTANT: Periodically update the black version used in the pre-commit hook by running::
+
+    pre-commit autoupdate
 
 For more information about git hooks and the pre-commit package see:
 

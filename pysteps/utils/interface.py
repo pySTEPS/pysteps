@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.utils.interface
 =======================
@@ -88,9 +89,7 @@ def get_method(name, **kwargs):
     +-------------------+-----------------------------------------------------+
     |     Name          |              Description                            |
     +===================+=====================================================+
-    |  ShiTomasi        | Shi-Tomasi corner detection on an image             |
-    +-------------------+-----------------------------------------------------+
-    |  morph_opening    | filter small scale noise on an image                |
+    |  morph_opening    | filter small scale noise                            |
     +-------------------+-----------------------------------------------------+
 
     Interpolation methods:
@@ -98,8 +97,11 @@ def get_method(name, **kwargs):
     +-------------------+-----------------------------------------------------+
     |     Name          |              Description                            |
     +===================+=====================================================+
-    |  rbfinterp2d      | fast kernel interpolation of a (multivariate) array |
-    |                   | over a 2D grid using a radial basis function        |
+    |  rbfinterp2d      | Radial Basis Function (RBF) interpolation of a      |
+    |                   | (multivariate) array over a 2D grid.                |
+    +-------------------+-----------------------------------------------------+
+    |  idwinterp2d      | Inverse distance weighting (IDW) interpolation of a |
+    |                   | (multivariate) array over a 2D grid.                |
     +-------------------+-----------------------------------------------------+
 
     Additional keyword arguments are passed to the initializer of the FFT
@@ -179,11 +181,11 @@ def get_method(name, **kwargs):
     methods_objects["upscale"] = dimension.aggregate_fields_space
 
     # image processing methods
-    methods_objects["shitomasi"] = images.shitomasi_detection
     methods_objects["morph_opening"] = images.morph_opening
 
     # interpolation methods
     methods_objects["rbfinterp2d"] = interpolate.rbfinterp2d
+    methods_objects["idwinterp2d"] = interpolate.idwinterp2d
 
     # spectral methods
     methods_objects["rapsd"] = spectral.rapsd

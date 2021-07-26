@@ -127,7 +127,7 @@ def create_motion_field(input_precip, motion_type):
 
     input_precip: numpy array (lat, lon)
 
-    motion_type : str
+    motion_type: str
         The supported motion fields are:
 
             - linear_x: (u=2, v=0)
@@ -183,7 +183,7 @@ def create_observations(input_precip, motion_type, num_times=9):
     input_precip: numpy array (lat, lon)
         Input precipitation field.
 
-    motion_type : str
+    motion_type: str
         The supported motion fields are:
 
             - linear_x: (u=2, v=0)
@@ -196,7 +196,7 @@ def create_observations(input_precip, motion_type, num_times=9):
 
     Returns
     -------
-    synthetic_observations : numpy array
+    synthetic_observations: numpy array
         Sequence of observations
     """
 
@@ -253,7 +253,7 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
     optflow_method_name: str
         Optical flow method name
 
-    motion_type : str
+    motion_type: str
         The supported motion fields are:
 
             - linear_x: (u=2, v=0)
@@ -290,7 +290,7 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
         axis=0
     )
 
-    cmap = get_cmap("jet")
+    cmap = get_cmap("jet").copy()
     cmap.set_under("grey", alpha=0.25)
     cmap.set_over("none")
 

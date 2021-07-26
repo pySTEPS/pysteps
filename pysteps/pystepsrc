@@ -76,7 +76,7 @@
             "importer_kwargs": {
                 "accutime": 5,
                 "qty": "ACRR",
-                "pixelsize": 1000.0
+                "pixelsize": 1.0
 			}
         },
         "saf": {

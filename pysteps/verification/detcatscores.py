@@ -1,3 +1,4 @@
+# -- coding: utf-8 --
 """
 pysteps.verification.detcatscores
 =================================
@@ -20,23 +21,19 @@ import numpy as np
 
 
 def det_cat_fct(pred, obs, thr, scores="", axis=None):
-
     """Calculate simple and skill scores for deterministic categorical
     (dichotomous) forecasts.
 
     Parameters
     ----------
-    pred : array_like
+    pred: array_like
         Array of predictions. NaNs are ignored.
-
-    obs : array_like
+    obs: array_like
         Array of verifying observations. NaNs are ignored.
-
-    thr : float
+    thr: float
         The threshold that is applied to predictions and observations in order
         to define events vs no events (yes/no).
-
-    scores : {string, list of strings}, optional
+    scores: {string, list of strings}, optional
         The name(s) of the scores. The default, scores="", will compute all
         available scores.
         The available score names are:
@@ -51,6 +48,8 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
         |  BIAS      | frequency bias                                         |
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
+        +------------+--------------------------------------------------------+
+        |  ETS       | equitable threat score                                 |
         +------------+--------------------------------------------------------+
         |  F1        | the harmonic mean of precision and sensitivity         |
         +------------+--------------------------------------------------------+
@@ -73,7 +72,7 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
         |  SEDI      | symmetric extremal dependency index                    |
         +------------+--------------------------------------------------------+
 
-    axis : None or int or tuple of ints, optional
+    axis: None or int or tuple of ints, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
         If axis is -1 (or any negative integer),
@@ -84,14 +83,12 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
 
     Returns
     -------
-    result : dict
+    result: dict
         Dictionary containing the verification results.
 
     See also
     --------
     pysteps.verification.detcontscores.det_cont_fct
-
-
     """
 
     contab = det_cat_fct_init(thr, axis)
@@ -104,12 +101,10 @@ def det_cat_fct_init(thr, axis=None):
 
     Parameters
     ----------
-
-    thr : float
+    thr: float
         threshold that is applied to predictions and observations in order
         to define events vs no events (yes/no).
-
-    axis : None or int or tuple of ints, optional
+    axis: None or int or tuple of ints, optional
         Axis or axes along which a score is integrated. The default, axis=None,
         will integrate all of the elements of the input arrays.\n
         If axis is -1 (or any negative integer),
@@ -120,8 +115,7 @@ def det_cat_fct_init(thr, axis=None):
 
     Returns
     -------
-
-    out : dict
+    out: dict
       The contingency table object.
     """
 
@@ -152,17 +146,13 @@ def det_cat_fct_accum(contab, pred, obs):
 
     Parameters
     ----------
-
-    contab : dict
+    contab: dict
       A contingency table object initialized with
       pysteps.verification.detcatscores.det_cat_fct_init.
-
-    pred : array_like
+    pred: array_like
         Array of predictions. NaNs are ignored.
-
-    obs : array_like
+    obs: array_like
         Array of verifying observations. NaNs are ignored.
-
     """
 
     pred = np.asarray(pred.copy())
@@ -229,14 +219,12 @@ def det_cat_fct_merge(contab_1, contab_2):
 
     Parameters
     ----------
-
-    contab_1 : dict
+    contab_1: dict
       A contingency table object initialized with
       :py:func:`pysteps.verification.detcatscores.det_cat_fct_init`
       and populated with
       :py:func:`pysteps.verification.detcatscores.det_cat_fct_accum`.
-
-    contab_2 : dict
+    contab_2: dict
       Another contingency table object initialized with
       :py:func:`pysteps.verification.detcatscores.det_cat_fct_init`
       and populated with
@@ -244,8 +232,7 @@ def det_cat_fct_merge(contab_1, contab_2):
 
     Returns
     -------
-
-    out : dict
+    out: dict
       The merged contingency table object.
     """
 
@@ -279,12 +266,11 @@ def det_cat_fct_compute(contab, scores=""):
 
     Parameters
     ----------
-    contab : dict
+    contab: dict
       A contingency table object initialized with
       pysteps.verification.detcatscores.det_cat_fct_init and populated with
       pysteps.verification.detcatscores.det_cat_fct_accum.
-
-    scores : {string, list of strings}, optional
+    scores: {string, list of strings}, optional
         The name(s) of the scores. The default, scores="", will compute all
         available scores.
         The available score names a
@@ -299,6 +285,8 @@ def det_cat_fct_compute(contab, scores=""):
         |  BIAS      | frequency bias                                         |
         +------------+--------------------------------------------------------+
         |  CSI       | critical success index (threat score)                  |
+        +------------+--------------------------------------------------------+
+        |  ETS       | equitable threat score                                 |
         +------------+--------------------------------------------------------+
         |  F1        | the harmonic mean of precision and sensitivity         |
         +------------+--------------------------------------------------------+
@@ -323,9 +311,8 @@ def det_cat_fct_compute(contab, scores=""):
 
     Returns
     -------
-    result : dict
+    result: dict
         Dictionary containing the verification results.
-
     """
 
     # catch case of single score passed as string

@@ -3,15 +3,15 @@
 Generation of stochastic noise
 ==============================
 
-This example script shows how to run the stochastic noise field generators 
+This example script shows how to run the stochastic noise field generators
 included in pysteps.
 
 These noise fields are used as perturbation terms during an extrapolation
-nowcast in order to represent the uncertainty in the evolution of the rainfall 
+nowcast in order to represent the uncertainty in the evolution of the rainfall
 field.
 """
 
-from matplotlib import cm, pyplot
+from matplotlib import cm, pyplot as plt
 import numpy as np
 import os
 from pprint import pprint
@@ -44,6 +44,7 @@ pprint(metadata)
 
 # Plot the rainfall field
 plot_precip_field(R, geodata=metadata)
+plt.show()
 
 # Log-transform the data
 R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
@@ -66,7 +67,7 @@ Fp = initialize_param_2d_fft_filter(R)
 
 # Compute the observed and fitted 1D PSD
 L = np.max(Fp["input_shape"])
-if L % 2 == 0:
+if L % 2 == 1:
     wn = np.arange(0, int(L / 2) + 1)
 else:
     wn = np.arange(0, int(L / 2))
@@ -79,7 +80,7 @@ b1 = Fp["pars"][2]
 b2 = Fp["pars"][3]
 
 # Plot the observed power spectrum and the model
-fig, ax = pyplot.subplots()
+fig, ax = plt.subplots()
 plot_scales = [512, 256, 128, 64, 32, 16, 8, 4]
 plot_spectrum1d(
     freq,
@@ -101,11 +102,12 @@ plot_spectrum1d(
     label="Fit",
     wavelength_ticks=plot_scales,
 )
-pyplot.legend()
+plt.legend()
 ax.set_title(
     "Radially averaged log-power spectrum of R\n"
     r"$\omega_0=%.0f km, \beta_1=%.1f, \beta_2=%.1f$" % (w0, b1, b2)
 )
+plt.show()
 
 ###############################################################################
 # Nonparametric filter
@@ -136,7 +138,7 @@ for k in range(num_realizations):
 
 # Plot the generated noise fields
 
-fig, ax = pyplot.subplots(nrows=2, ncols=3)
+fig, ax = plt.subplots(nrows=2, ncols=3)
 
 # parametric noise
 ax[0, 0].imshow(Np[0], cmap=cm.RdBu_r, vmin=-3, vmax=3)
@@ -152,7 +154,8 @@ for i in range(2):
     for j in range(3):
         ax[i, j].set_xticks([])
         ax[i, j].set_yticks([])
-pyplot.tight_layout()
+plt.tight_layout()
+plt.show()
 
 ###############################################################################
 # The above figure highlights the main limitation of the parametric approach

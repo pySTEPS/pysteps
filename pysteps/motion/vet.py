@@ -65,16 +65,13 @@ def get_padding(dimension_size, sectors):
 
     Parameters
     ----------
-
-    dimension_size : int
+    dimension_size: int
         Actual dimension size.
-
-    sectors : int
+    sectors: int
         number of sectors over which the the image will be divided.
 
     Returns
     -------
-
     pad_before , pad_after: int, int
         Padding at each side of the image for the corresponding dimension.
     """
@@ -111,7 +108,6 @@ def morph(image, displacement, gradient=False):
     .. _`Beezley and Mandel (2008)`: http://dx.doi.org/10.1111/\
     j.1600-0870.2007.00275.x
 
-
     The displacement field in x and y directions and the image must have the
     same dimensions.
 
@@ -123,36 +119,27 @@ def morph(image, displacement, gradient=False):
 
     Parameters
     ----------
-
-    image : ndarray (ndim = 2)
+    image: ndarray (ndim = 2)
         Image to morph
-
-    displacement : ndarray (ndim = 3)
+    displacement: ndarray (ndim = 3)
         Displacement field to be applied (Warping). The first dimension
         corresponds to the coordinate to displace.
 
         The dimensions are: displacement [ i/x (0) or j/y (1) ,
         i index of pixel, j index of pixel ]
-
-
-    gradient : bool, optional
+    gradient: bool, optional
         If True, the gradient of the morphing function is returned.
-
 
     Returns
     -------
-
-    image : ndarray (float64 ,ndim = 2)
+    image: ndarray (float64 ,ndim = 2)
         Morphed image.
-
-    mask : ndarray (int8 ,ndim = 2)
+    mask: ndarray (int8 ,ndim = 2)
         Invalid values mask. Points outside the boundaries are masked.
         Values greater than 1, indicate masked values.
-
-    gradient_values : ndarray (float64 ,ndim = 3), optional
+    gradient_values: ndarray (float64 ,ndim = 3), optional
         If gradient keyword is True, the gradient of the function is also
         returned.
-
     """
 
     if not isinstance(image, MaskedArray):
@@ -197,16 +184,12 @@ def vet_cost_function(
     dimensions of the input image and sectors shape (see parameters section
     below for more details).
 
-
-
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
 
-
     Parameters
     ----------
-
-    sector_displacement_1d : ndarray_
+    sector_displacement_1d: ndarray_
         Array of displacements to apply to each sector. The dimensions are:
         sector_displacement_2d
         [ x (0) or y (1) displacement, i index of sector, j index of sector ].
@@ -214,8 +197,7 @@ def vet_cost_function(
         input image and the block shape.
         The shape should be (2, mx, my) where mx and my are the numbers of
         sectors in the x and the y dimension.
-
-    input_images : ndarray_
+    input_images: ndarray_
         Input images, sequence of 2D arrays, or 3D arrays.
         The first dimension represents the images time dimension.
 
@@ -225,36 +207,28 @@ def vet_cost_function(
 
         The expected dimensions are (2,nx,ny).
         Be aware the the 2D images dimensions correspond to (lon,lat) or (x,y).
-
-    blocks_shape : ndarray_ (ndim=2)
+    blocks_shape: ndarray_ (ndim=2)
         Number of sectors in each dimension (x and y).
         blocks_shape.shape = (mx,my)
-
-    mask : ndarray_ (ndim=2)
+    mask: ndarray_ (ndim=2)
         Data mask. If is True, the data is marked as not valid and is not
         used in the computations.
-
-    smooth_gain : float
+    smooth_gain: float
         Smoothness constrain gain
-
-    debug : bool, optional
+    debug: bool, optional
         If True, print debugging information.
-
-    gradient : bool, optional
+    gradient: bool, optional
         If True, the gradient of the morphing function is returned.
 
     Returns
     -------
+    penalty or gradient values.
 
-    penalty or  gradient values.
-
-    penalty : float
+    penalty: float
         Value of the cost function
-
-    gradient_values : ndarray (float64 ,ndim = 3), optional
+    gradient_values: ndarray (float64 ,ndim = 3), optional
         If gradient keyword is True, the gradient of the function is also
         returned.
-
     """
 
     sector_displacement_2d = sector_displacement_1d.reshape(
@@ -391,8 +365,7 @@ def vet(
 
     Parameters
     ----------
-
-    input_images : ndarray_ or MaskedArray
+    input_images: ndarray_ or MaskedArray
         Input images, sequence of 2D arrays, or 3D arrays.
         The first dimension represents the images time dimension.
 
@@ -401,17 +374,14 @@ def vet(
         The second is the target image.
 
         The expected dimensions are (2,ni,nj).
-
-    sectors : list or array, optional
+    sectors: list or array, optional
         Number of sectors on each dimension used in the scaling procedure.
         If dimension is 1, the same sectors will be used both image dimensions
         (x and y). If **sectors** is a 1D array, the same number of sectors
         is used in both dimensions.
-
-    smooth_gain : float, optional
+    smooth_gain: float, optional
         Smooth gain factor
-
-    first_guess : ndarray_, optional
+    first_guess: ndarray_, optional
         The shape of the first guess should have the same shape as the initial
         sectors shapes used in the scaling procedure.
         If first_guess is not present zeros are used as first guess.
@@ -419,46 +389,38 @@ def vet(
         E.g.:
             If the first sector shape in the scaling procedure is (ni,nj), then
             the first_guess should have (2, ni, nj ) shape.
-
-    intermediate_steps : bool, optional
+    intermediate_steps: bool, optional
         If True, also return a list with the first guesses obtained during the
         scaling procedure. False, by default.
-
-    verbose : bool, optional
+    verbose: bool, optional
         Verbosity enabled if True (default).
-
-    indexing : str, optional
+    indexing: str, optional
         Input indexing order.'ij' and 'xy' indicates that the
         dimensions of the input are (time, longitude, latitude), while
         'yx' indicates (time, latitude, longitude).
         The displacement field dimensions are ordered accordingly in a way that
         the first dimension indicates the displacement along x (0) or y (1).
         That is, UV displacements are always returned.
-
-    padding : int
+    padding: int
         Padding width in grid points. A border is added to the input array
         to reduce the effects of the minimization at the border.
-
-    options : dict, optional
+    options: dict, optional
         A dictionary of solver options.
         See `scipy minimization`_ function for more details.
 
     Returns
     -------
-
-    displacement_field : ndarray_
+    displacement_field: ndarray_
         Displacement Field (2D array representing the transformation) that
         warps the template image into the input image.
         The dimensions are (2,ni,nj), where the first
         dimension indicates the displacement along x (0) or y (1) in units of
         pixels / timestep as given by the input_images array.
-
-    intermediate_steps : list of ndarray_
+    intermediate_steps: list of ndarray_
         List with the first guesses obtained during the scaling procedure.
 
     References
     ----------
-
     Laroche, S., and I. Zawadzki, 1995:
     Retrievals of horizontal winds from single-Doppler clear-air data by
     methods of cross-correlation and variational analysis.
@@ -472,7 +434,6 @@ def vet(
     doi: 10.1175/1520-0493(2002)130<2859:SDOTPO>2.0.CO;2.
 
     Nocedal, J, and S J Wright. 2006. Numerical Optimization. Springer New York.
-
     """
 
     if verbose:
@@ -513,20 +474,25 @@ def vet(
             + "Supported values: {0}".format(str(valid_indexing))
         )
 
-    # Get mask
-    if isinstance(input_images, MaskedArray):
-        mask = numpy.ma.getmaskarray(input_images)
-    else:
-        # Mask invalid data
-        if padding > 0:
-            padding_tuple = ((0, 0), (padding, padding), (padding, padding))
-
-            input_images = numpy.pad(
-                input_images, padding_tuple, "constant", constant_values=numpy.nan
-            )
-
+    # Convert input_images to a MaskedArray if it is a regular ndarray
+    if not isinstance(input_images, MaskedArray):
         input_images = numpy.ma.masked_invalid(input_images)
-        mask = numpy.ma.getmaskarray(input_images)
+
+    mask = numpy.ma.getmaskarray(input_images)
+
+    if padding > 0:
+        padding_tuple = ((0, 0), (padding, padding), (padding, padding))
+
+        input_images_data = numpy.pad(
+            numpy.ma.getdata(input_images),
+            padding_tuple,
+            "constant",
+            constant_values=numpy.nan,
+        )
+
+        mask = numpy.pad(mask, padding_tuple, "constant", constant_values=True)
+
+        input_images = numpy.ma.MaskedArray(data=input_images_data, mask=mask)
 
     input_images.data[mask] = 0  # Remove any Nan from the raw data
 

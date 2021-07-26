@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.visualization.animations
 ================================
@@ -10,57 +11,72 @@ Functions to produce animations for pysteps.
     animate
 """
 
+import os
+import warnings
+
 import matplotlib.pylab as plt
-import numpy as np
 import pysteps as st
 
+PRECIP_VALID_TYPES = ("ensemble", "mean", "prob")
+PRECIP_DEPRECATED_ARGUMENTS = (
+    "units",
+    "colorbar",
+    "colorscale",
+)  # TODO: remove in version >= 1.6
+MOTION_VALID_METHODS = ("quiver", "streamplot")
 
-# TODO: Add documentation for the output files.
+
 def animate(
-    R_obs,
-    nloops=2,
-    timestamps=None,
-    R_fct=None,
-    timestep_min=5,
-    UV=None,
+    precip_obs,
+    precip_fct=None,
+    timestamps_obs=None,
+    timestep_min=None,
+    motion_field=None,
+    ptype="ensemble",
     motion_plot="quiver",
     geodata=None,
-    map=None,
-    colorscale="pysteps",
-    units="mm/h",
-    colorbar=True,
-    type="ensemble",
+    title=None,
     prob_thr=None,
-    plotanimation=True,
+    display_animation=True,
+    nloops=1,
+    time_wait=0.2,
     savefig=False,
-    fig_dpi=150,
+    fig_dpi=100,
     fig_format="png",
     path_outputs="",
+    precip_kwargs=None,
+    motion_kwargs=None,
+    map_kwargs=None,
     **kwargs,
 ):
     """Function to animate observations and forecasts in pysteps.
 
+    It also allows to export the individual frames as figures, which
+    is useful for constructing animated GIFs or similar.
+
+    .. _Axes: https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes
+
     Parameters
     ----------
-    R_obs : array-like
+    precip_obs: array-like
         Three-dimensional array containing the time series of observed
         precipitation fields.
-
-    Other parameters
-    ----------------
-    nloops : int
-        Optional, the number of loops in the animation.
-    R_fct : array-like
-        Optional, the three or four-dimensional (for ensembles) array
+    precip_fct: array-like, optional
+        The three or four-dimensional (for ensembles) array
         containing the time series of forecasted precipitation field.
-    timestep_min : float
+    timestamps_obs: list of datetimes, optional
+        List of datetime objects corresponding to the time stamps of
+        the fields in precip_obs.
+    timestep_min: float, optional
         The time resolution in minutes of the forecast.
-    UV : array-like
-        Optional, the motion field used for the forecast.
-    motion_plot : string
-        The method to plot the motion field.
-    geodata : dictionary
-        Optional dictionary containing geographical information about
+    motion_field: array-like, optional
+        Three-dimensional array containing the u and v components of
+        the motion field.
+    motion_plot: string, optional
+        The method to plot the motion field. See plot methods in
+        :py:mod:`pysteps.visualization.motionfields`.
+    geodata: dictionary or None, optional
+        Dictionary containing geographical information about
         the field.
         If geodata is not None, it must contain the following key-value pairs:
 
@@ -88,66 +104,135 @@ def animate(
         |                | 'upper' = upper border, 'lower' = lower border     |
         +----------------+----------------------------------------------------+
 
-    map : str
-        Optional method for plotting a map.
-        See pysteps.visualization.precipifields.plot_precip.field.
-    units : str
-        Units of the input array (mm/h or dBZ)
-    colorscale : str
-        Which colorscale to use.
-    title : str
-        If not None, print the title on top of the plot.
-    colorbar : bool
-        If set to True, add a colorbar on the right side of the plot.
-    type : {'ensemble', 'mean', 'prob'}, str
-        Type of the map to animate. 'ensemble' = ensemble members,
+    title: str or None, optional
+        If not None, print the string as title on top of the plot.
+    ptype: {'ensemble', 'mean', 'prob'}, str, optional
+        Type of the plot to animate. 'ensemble' = ensemble members,
         'mean' = ensemble mean, 'prob' = exceedance probability
         (using threshold defined in prob_thrs).
-    prob_thr : float
+    prob_thr: float, optional
         Intensity threshold for the exceedance probability maps. Applicable
-        if type = 'prob'.
-    plotanimation : bool
-        If set to True, visualize the animation (useful when one is only
-        interested in saving the individual frames).
-    savefig : bool
-        If set to True, save the individual frames to path_outputs.
-    fig_dpi : scalar > 0
-        Resolution of the output figures, see the documentation of
-        matplotlib.pyplot.savefig. Applicable if savefig is True.
-    path_outputs : string
-        Path to folder where to save the frames.
-    kwargs : dict
-        Optional keyword arguments that are supplied to plot_precip_field
-        and quiver/streamplot.
+        if ptype = 'prob'.
+    display_animation: bool, optional
+        If set to True, display the animation (set to False if only
+        interested in saving the animation frames).
+    nloops: int, optional
+        The number of loops in the animation.
+    time_wait: float, optional
+        The time in seconds between one frame and the next. Applicable
+        if display_animation is True.
+    savefig: bool, optional
+        If set to True, save the individual frames into path_outputs.
+    fig_dpi: float, optional
+        The resolution in dots per inch. Applicable if savefig is True.
+    fig_format: str, optional
+        Filename extension. Applicable if savefig is True.
+    path_outputs: string, optional
+        Path to folder where to save the frames. Applicable if savefig is True.
+    precip_kwargs: dict, optional
+        Optional parameters that are supplied to
+        :py:func:`pysteps.visualization.precipfields.plot_precip_field`.
+    motion_kwargs: dict, optional
+        Optional parameters that are supplied to
+        :py:func:`pysteps.visualization.motionfields.quiver` or
+        :py:func:`pysteps.visualization.motionfields.streamplot`.
+    map_kwargs: dict, optional
+        Optional parameters that need to be passed to
+        :py:func:`pysteps.visualization.basemaps.plot_geography`.
 
     Returns
     -------
-    ax : fig axes
-        Figure axes. Needed if one wants to add e.g. text inside the plot.
+    None
     """
-    if timestamps is not None:
-        startdate_str = timestamps[-1].strftime("%Y%m%d%H%M")
-    else:
-        startdate_str = None
 
-    if R_fct is not None:
-        if len(R_fct.shape) == 3:
-            R_fct = R_fct[None, :, :, :]
+    if precip_kwargs is None:
+        precip_kwargs = {}
 
-    if R_fct is not None:
-        n_lead_times = R_fct.shape[1]
-        n_members = R_fct.shape[0]
+    if motion_kwargs is None:
+        motion_kwargs = {}
+
+    if map_kwargs is None:
+        map_kwargs = {}
+
+    if precip_fct is not None:
+        if len(precip_fct.shape) == 3:
+            precip_fct = precip_fct[None, ...]
+        n_lead_times = precip_fct.shape[1]
+        n_members = precip_fct.shape[0]
     else:
         n_lead_times = 0
         n_members = 1
 
-    if type == "prob" and prob_thr is None:
-        raise ValueError("type 'prob' needs a prob_thr value")
+    if title is not None and isinstance(title, str):
+        title_first_line = title + "\n"
+    else:
+        title_first_line = ""
 
-    if type != "ensemble":
+    if motion_plot not in MOTION_VALID_METHODS:
+        raise ValueError(
+            f"Invalid motion plot method '{motion_plot}'."
+            f"Supported: {str(MOTION_VALID_METHODS)}"
+        )
+
+    if ptype not in PRECIP_VALID_TYPES:
+        raise ValueError(
+            f"Invalid precipitation type '{ptype}'."
+            f"Supported: {str(PRECIP_VALID_TYPES)}"
+        )
+
+    # TODO: remove in version >= 1.6
+    if "type" in kwargs:
+        warnings.warn(
+            "The 'type' keyword will be deprecated in version 1.6. "
+            "Use 'ptype' instead."
+        )
+        ptype = kwargs.get("type")
+
+    # TODO: remove in version >= 1.6
+    if "timestamps" in kwargs:
+        warnings.warn(
+            "The 'timestamps' keyword will be deprecated in version 1.6. "
+            "Use 'timestamps_obs' instead."
+        )
+        timestamps_obs = kwargs.get("timestamps")
+
+    # TODO: remove in version >= 1.6
+    if "plotanimation" in kwargs:
+        warnings.warn(
+            "The 'plotanimation' keyword will be deprecated in version 1.6. "
+            "Use 'display_animation' instead."
+        )
+        display_animation = kwargs.get("timestamps")
+
+    # TODO: remove in version >= 1.6
+    for depr_key in PRECIP_DEPRECATED_ARGUMENTS:
+        if depr_key in kwargs:
+            warnings.warn(
+                f"The {depr_key} argument will be deprecated in version 1.6. "
+                "Add it to 'precip_kwargs' instead."
+            )
+            precip_kwargs[depr_key] = kwargs.get(depr_key)
+
+    if timestamps_obs is not None:
+        if len(timestamps_obs) != precip_obs.shape[0]:
+            raise ValueError(
+                f"The number of timestamps does not match the size of precip_obs: "
+                f"{len(timestamps_obs)} != {precip_obs.shape[0]}"
+            )
+        if precip_fct is not None:
+            reftime_str = timestamps_obs[-1].strftime("%Y%m%d%H%M")
+        else:
+            reftime_str = timestamps_obs[0].strftime("%Y%m%d%H%M")
+    else:
+        reftime_str = None
+
+    if ptype == "prob" and prob_thr is None:
+        raise ValueError("ptype 'prob' needs a prob_thr value")
+
+    if ptype != "ensemble":
         n_members = 1
 
-    n_obs = R_obs.shape[0]
+    n_obs = precip_obs.shape[0]
 
     loop = 0
     while loop < nloops:
@@ -156,135 +241,110 @@ def animate(
                 plt.clf()
 
                 # Observations
-                if i < n_obs and (plotanimation or n == 0):
+                if i < n_obs and (display_animation or n == 0):
 
-                    title = ""
-                    if timestamps is not None:
-                        title += timestamps[i].strftime("%Y-%m-%d %H:%M\n")
+                    title = title_first_line + "Analysis"
+                    if timestamps_obs is not None:
+                        title += (
+                            f" valid for {timestamps_obs[i].strftime('%Y-%m-%d %H:%M')}"
+                        )
 
                     plt.clf()
-                    if type == "prob":
-                        title += "Observed Probability"
-                        R_obs_ = R_obs[np.newaxis, ::]
-                        P_obs = st.postprocessing.ensemblestats.excprob(
-                            R_obs_[:, i, :, :], prob_thr
+                    if ptype == "prob":
+                        prob_field = st.postprocessing.ensemblestats.excprob(
+                            precip_obs[None, i, ...], prob_thr
                         )
                         ax = st.plt.plot_precip_field(
-                            P_obs,
-                            type="prob",
-                            map=map,
+                            prob_field,
+                            ptype="prob",
                             geodata=geodata,
-                            units=units,
                             probthr=prob_thr,
                             title=title,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
+                            **precip_kwargs,
                         )
                     else:
-                        title += "Observed Rainfall"
                         ax = st.plt.plot_precip_field(
-                            R_obs[i, :, :],
-                            map=map,
+                            precip_obs[i, :, :],
                             geodata=geodata,
-                            units=units,
-                            colorscale=colorscale,
                             title=title,
-                            colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
+                            **precip_kwargs,
                         )
 
-                    if UV is not None and motion_plot is not None:
-                        if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
-                        elif motion_plot.lower() == "streamplot":
-                            st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
+                    if motion_field is not None:
+                        if motion_plot == "quiver":
+                            st.plt.quiver(
+                                motion_field, ax=ax, geodata=geodata, **motion_kwargs
+                            )
+                        elif motion_plot == "streamplot":
+                            st.plt.streamplot(
+                                motion_field, ax=ax, geodata=geodata, **motion_kwargs
+                            )
 
                     if savefig & (loop == 0):
-                        if type == "prob":
-                            figname = "%s/%s_frame_%02d_binmap_%.1f.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                i,
-                                prob_thr,
-                                fig_format,
-                            )
-                        else:
-                            figname = "%s/%s_frame_%02d.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                i,
-                                fig_format,
-                            )
-                        plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
-                        print(figname, "saved.")
+                        figtags = [reftime_str, ptype, f"f{i:02d}"]
+                        figname = "_".join([tag for tag in figtags if tag])
+                        filename = os.path.join(path_outputs, f"{figname}.{fig_format}")
+                        plt.savefig(filename, bbox_inches="tight", dpi=fig_dpi)
+                        print("saved: ", filename)
 
                 # Forecasts
-                elif i >= n_obs and R_fct is not None:
+                elif i >= n_obs and precip_fct is not None:
 
-                    title = ""
-                    if timestamps is not None:
-                        title += timestamps[-1].strftime("%Y-%m-%d %H:%M\n")
-                    leadtime = "+%02d min" % ((1 + i - n_obs) * timestep_min)
+                    title = title_first_line + "Forecast"
+                    if timestamps_obs is not None:
+                        title += f" valid for {timestamps_obs[-1].strftime('%Y-%m-%d %H:%M')}"
+                    if timestep_min is not None:
+                        title += " +%02d min" % ((1 + i - n_obs) * timestep_min)
+                    else:
+                        title += " +%02d" % (1 + i - n_obs)
 
                     plt.clf()
-                    if type == "prob":
-                        title += "Forecast Probability"
-                        P = st.postprocessing.ensemblestats.excprob(
-                            R_fct[:, i - n_obs, :, :], prob_thr
+                    if ptype == "prob":
+                        prob_field = st.postprocessing.ensemblestats.excprob(
+                            precip_fct[:, i - n_obs, :, :], prob_thr
                         )
                         ax = st.plt.plot_precip_field(
-                            P,
-                            type="prob",
-                            map=map,
+                            prob_field,
+                            ptype="prob",
                             geodata=geodata,
-                            units=units,
                             probthr=prob_thr,
                             title=title,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
+                            **precip_kwargs,
                         )
-                    elif type == "mean":
-                        title += "Forecast Ensemble Mean"
-                        EM = st.postprocessing.ensemblestats.mean(
-                            R_fct[:, i - n_obs, :, :]
+                    elif ptype == "mean":
+                        ens_mean = st.postprocessing.ensemblestats.mean(
+                            precip_fct[:, i - n_obs, :, :]
                         )
                         ax = st.plt.plot_precip_field(
-                            EM,
-                            map=map,
+                            ens_mean,
                             geodata=geodata,
-                            units=units,
                             title=title,
-                            colorscale=colorscale,
-                            colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
+                            **precip_kwargs,
                         )
                     else:
-                        title += "Forecast Rainfall"
                         ax = st.plt.plot_precip_field(
-                            R_fct[n, i - n_obs, :, :],
-                            map=map,
+                            precip_fct[n, i - n_obs, ...],
                             geodata=geodata,
-                            units=units,
                             title=title,
-                            colorscale=colorscale,
-                            colorbar=colorbar,
-                            **kwargs,
+                            map_kwargs=map_kwargs,
+                            **precip_kwargs,
                         )
 
-                    if UV is not None and motion_plot is not None:
-                        if motion_plot.lower() == "quiver":
-                            st.plt.quiver(UV, ax=ax, geodata=geodata, **kwargs)
-                        elif motion_plot.lower() == "streamplot":
-                            st.plt.streamplot(UV, ax=ax, geodata=geodata, **kwargs)
+                    if motion_field is not None:
+                        if motion_plot == "quiver":
+                            st.plt.quiver(
+                                motion_field, ax=ax, geodata=geodata, **motion_kwargs
+                            )
+                        elif motion_plot == "streamplot":
+                            st.plt.streamplot(
+                                motion_field, ax=ax, geodata=geodata, **motion_kwargs
+                            )
 
-                    if leadtime is not None:
-                        plt.text(
-                            0.99,
-                            0.99,
-                            leadtime,
-                            transform=ax.transAxes,
-                            ha="right",
-                            va="top",
-                        )
-                    if type == "ensemble" and n_members > 1:
+                    if ptype == "ensemble" and n_members > 1:
                         plt.text(
                             0.01,
                             0.99,
@@ -295,37 +355,17 @@ def animate(
                         )
 
                     if savefig & (loop == 0):
-                        if type == "prob":
-                            figname = "%s/%s_frame_%02d_probmap_%.1f.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                i,
-                                prob_thr,
-                                fig_format,
-                            )
-                        elif type == "mean":
-                            figname = "%s/%s_frame_%02d_ensmean.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                i,
-                                fig_format,
-                            )
-                        else:
-                            figname = "%s/%s_member_%02d_frame_%02d.%s" % (
-                                path_outputs,
-                                startdate_str,
-                                (n + 1),
-                                i,
-                                fig_format,
-                            )
-                        plt.savefig(figname, bbox_inches="tight", dpi=fig_dpi)
-                        print(figname, "saved.")
+                        figtags = [reftime_str, ptype, f"f{i:02d}", f"m{n + 1:02d}"]
+                        figname = "_".join([tag for tag in figtags if tag])
+                        filename = os.path.join(path_outputs, f"{figname}.{fig_format}")
+                        plt.savefig(filename, bbox_inches="tight", dpi=fig_dpi)
+                        print("saved: ", filename)
 
-                if plotanimation:
-                    plt.pause(0.2)
+                if display_animation:
+                    plt.pause(time_wait)
 
-            if plotanimation:
-                plt.pause(0.5)
+            if display_animation:
+                plt.pause(2 * time_wait)
 
         loop += 1
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.timeseries.correlation
 ==============================
@@ -37,37 +38,37 @@ def temporal_autocorrelation(
 
     Parameters
     ----------
-    x : array_like
+    x: array_like
         Array of shape (n, ...), where each row contains one sample from the
         time series :math:`x_i`. The inputs are assumed to be in increasing
         order with respect to time, and the time step is assumed to be regular.
         All inputs are required to have finite values. The remaining dimensions
         after the first one are flattened before computing the correlation
         coefficients.
-    d : {0,1}
+    d: {0,1}
         The order of differencing. If d=1, the input time series is differenced
         before computing the correlation coefficients. In this case, a time
         series of length n+1 is needed for computing the n-1 coefficients.
-    domain : {"spatial", "spectral"}
+    domain: {"spatial", "spectral"}
         The domain of the time series x. If domain is "spectral", the elements
         of x are assumed to represent the FFTs of the original elements.
-    x_shape : tuple
+    x_shape: tuple
         The shape of the original arrays in the spatial domain before applying
         the FFT. Required if domain is "spectral".
-    mask : array_like
+    mask: array_like
         Optional mask to use for computing the correlation coefficients. Input
         elements with mask==False are excluded from the computations. The shape
         of the mask is expected to be x.shape[1:]. Applicable if domain is
         "spatial".
-    use_full_fft : bool
+    use_full_fft: bool
         If True, x represents the full FFTs of the original arrays. Otherwise,
         the elements of x are assumed to contain only the symmetric part, i.e.
         in the format returned by numpy.fft.rfft2. Applicable if domain is
         'spectral'. Defaults to False.
-    window : {"gaussian", "uniform"}
+    window: {"gaussian", "uniform"}
         The weight function to use for the moving window. Applicable if
         window_radius < np.inf. Defaults to 'gaussian'.
-    window_radius : float
+    window_radius: float
         If window_radius < np.inf, the correlation coefficients are computed in
         a moving window. Defaults to np.inf (i.e. the coefficients are computed
         over the whole domain). If window is 'gaussian', window_radius is the
@@ -76,7 +77,7 @@ def temporal_autocorrelation(
 
     Returns
     -------
-    out : list
+    out: list
         List of length n-1 containing the temporal autocorrelation coefficients
         :math:`\gamma_i` for time lags :math:`l=1,2,...,n-1`. If
         window_radius<np.inf, the elements of the list are arrays of shape
@@ -140,24 +141,24 @@ def temporal_autocorrelation_multivariate(
 
     Parameters
     ----------
-    x : array_like
+    x: array_like
         Array of shape (n, q, ...) containing the time series :math:`\mathbf{x}_i`.
         The inputs are assumed to be in increasing order with respect to time,
         and the time step is assumed to be regular. All inputs are required to
         have finite values. The remaining dimensions after the second one are
         flattened before computing the correlation coefficients.
-    d : {0,1}
+    d: {0,1}
         The order of differencing. If d=1, the input time series is differenced
         before computing the correlation coefficients. In this case, a time
         series of length n+1 is needed for computing the n-1 coefficients.
-    mask : array_like
+    mask: array_like
         Optional mask to use for computing the correlation coefficients. Input
         elements with mask==False are excluded from the computations. The shape
         of the mask is expected to be x.shape[2:].
-    window : {"gaussian", "uniform"}
+    window: {"gaussian", "uniform"}
         The weight function to use for the moving window. Applicable if
         window_radius < np.inf. Defaults to 'gaussian'.
-    window_radius : float
+    window_radius: float
         If window_radius < np.inf, the correlation coefficients are computed in
         a moving window. Defaults to np.inf (i.e. the correlations are computed
         over the whole domain). If window is 'gaussian', window_radius is the
@@ -166,7 +167,7 @@ def temporal_autocorrelation_multivariate(
 
     Returns
     -------
-    out : list
+    out: list
         List of correlation matrices :math:`\Gamma_0,\Gamma_1,\dots,\Gamma_{n-1}`
         of shape (q,q). If window_radius<np.inf, the elements of the list are
         arrays of shape (x.shape[2:],q,q). In this case, nan values are assigned,

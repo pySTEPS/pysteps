@@ -16,14 +16,18 @@ available in pySTEPS.
 
     pysteps
     cascade
+    decorators
     extrapolation
     datasets
+    downscaling
+    feature
     io
     motion
     noise
     nowcasts
     postprocessing
     timeseries
+    tracking
     utils
     verification
     visualization

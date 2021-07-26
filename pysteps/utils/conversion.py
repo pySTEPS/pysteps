@@ -13,7 +13,6 @@ Methods for converting physical units.
     to_reflectivity
 """
 
-# import numpy as np
 import warnings
 from . import transformation
 
@@ -28,9 +27,9 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of any shape to be (back-)transformed.
-    metadata : dict
+    metadata: dict
         Metadata dictionary containing the accutime, transform, unit, threshold
         and zerovalue attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
@@ -40,16 +39,15 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
         but only if zr_a = zr_b = None.
         If missing, it defaults to Marshall–Palmer relation,
         that is, zr_a = 200.0 and zr_b = 1.6.
-    zr_a, zr_b : float, optional
+    zr_a, zr_b: float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
-    R : array-like
+    R: array-like
         Array of any shape containing the converted units.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
-
     """
 
     R = R.copy()
@@ -128,9 +126,9 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of any shape to be (back-)transformed.
-    metadata : dict
+    metadata: dict
         Metadata dictionary containing the accutime, transform, unit, threshold
         and zerovalue attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
@@ -140,16 +138,15 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
         but only if zr_a = zr_b = None.
         If missing, it defaults to Marshall–Palmer relation, that is,
         zr_a = 200.0 and zr_b = 1.6.
-    zr_a, zr_b : float, optional
+    zr_a, zr_b: float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
-    R : array-like
+    R: array-like
         Array of any shape containing the converted units.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
-
     """
 
     R = R.copy()
@@ -226,9 +223,9 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    R : array-like
+    R: array-like
         Array of any shape to be (back-)transformed.
-    metadata : dict
+    metadata: dict
         Metadata dictionary containing the accutime, transform, unit, threshold
         and zerovalue attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
@@ -238,16 +235,15 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
         but only if zr_a = zr_b = None.
         If missing, it defaults to Marshall–Palmer relation, that is,
         zr_a = 200.0 and zr_b = 1.6.
-    zr_a, zr_b : float, optional
+    zr_a, zr_b: float, optional
         The a and b coefficients of the Z-R relationship (Z = a*R^b).
 
     Returns
     -------
-    R : array-like
+    R: array-like
         Array of any shape containing the converted units.
-    metadata : dict
+    metadata: dict
         The metadata with updated attributes.
-
     """
 
     R = R.copy()
@@ -293,7 +289,6 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
         R, metadata = transformation.dB_transform(R, metadata)
 
     elif metadata["unit"] == "mm":
-
         # depth to rate
         R, metadata = to_rainrate(R, metadata)
 
@@ -312,17 +307,13 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
         R, metadata = transformation.dB_transform(R, metadata)
 
     elif metadata["unit"] == "dBZ":
-
         # Z to dBZ
         R, metadata = transformation.dB_transform(R, metadata)
 
     else:
-
         raise ValueError(
             "Cannot convert unit %s and transform %s to mm/h"
             % (metadata["unit"], metadata["transform"])
         )
-
     metadata["unit"] = "dBZ"
-
     return R, metadata
