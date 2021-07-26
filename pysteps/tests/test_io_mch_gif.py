@@ -12,7 +12,7 @@ pytest.importorskip("PIL")
 
 root_path = pysteps.rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20170131", "AQC170310945F_00005.801.gif")
-precip_ds = pysteps.io.import_mch_gif(filename, "AQC", 5.0)
+precip_ds = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
 
 
 def test_io_import_mch_gif_shape():
@@ -22,10 +22,18 @@ def test_io_import_mch_gif_shape():
     assert precip_ds.precipitation.shape == (640, 710)
 
 
+expected_proj1 = (
+    "+proj=somerc  +lon_0=7.43958333333333 "
+    "+lat_0=46.9524055555556 +k_0=1 "
+    "+x_0=600000 +y_0=200000 +ellps=bessel "
+    "+towgs84=674.374,15.056,405.346,0,0,0,0 "
+    "+units=m +no_defs"
+)
+
 # list of (variable,expected,tolerance) tuples
 test_dataset_attrs = [
-    ("crs", "EPSG:21781", None),
-    ("institution", "MeteoSwiss (NMC Switzerland)", None),
+    ("projection", expected_proj1, None),
+    ("institution", "MeteoSwiss", None),
 ]
 
 
@@ -37,10 +45,16 @@ def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
 
 # list of (variable,expected,tolerance) tuples
 test_array_attrs = [
-    ("standard_name", "rainfall_rate", None),
-    ("long_name", "Precipitation intensity", None),
-    ("units", "mm h-1", None),
-    ("radar_product", "AQC", None),
+    ("standard_name", "precipitation_rate", None),
+    ("long_name", "Precipitation product", None),
+    ("accutime", 5.0, 0.1),
+    ("unit", "mm", None),
+    ("transform", None, None),
+    ("zerovalue", 0.0, None),
+    ("threshold", 0.0009628129986471908, 1e-19),
+    ("product", "AQC", None),
+    ("zr_a", 316.0, None),
+    ("zr_b", 1.5, None),
 ]
 
 
@@ -50,7 +64,7 @@ def test_io_import_mch_gif_array_attrs(variable, expected, tolerance):
     smart_assert(precip_ds.precipitation.attrs[variable], expected, tolerance)
 
 
-expected_proj = (
+expected_proj2 = (
     "+proj=somerc  +lon_0=7.43958333333333 +lat_0=46.9524055555556 "
     "+k_0=1 +x_0=600000 +y_0=200000 +ellps=bessel "
     "+towgs84=674.374,15.056,405.346,0,0,0,0 "
@@ -59,7 +73,7 @@ expected_proj = (
 
 # test_geodata: list of (variable,expected,tolerance) tuples
 test_geodata = [
-    ("projection", expected_proj, None),
+    ("projection", expected_proj2, None),
     ("x1", 255000.0, 0.1),
     ("y1", -160000.0, 0.1),
     ("x2", 965000.0, 0.1),

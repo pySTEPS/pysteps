@@ -68,7 +68,62 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
 
-            precip_ds = importer(*args, **kwargs)
+            precip, quality, metadata = importer(*args, **kwargs)
+
+            x1 = metadata["x1"]
+            y1 = metadata["y1"]
+            xsize = metadata["xpixelsize"]
+            ysize = metadata["ypixelsize"]
+            x = np.arange(x1 + xsize // 2, x1 + xsize * precip.shape[1], xsize)
+            y = np.arange(y1 + ysize // 2, y1 + ysize * precip.shape[0], ysize)
+
+            ds = xr.Dataset(
+                    data_vars=dict(
+                        precipitation=(("y", "x"), precip),
+                    ),
+                    coords=dict(
+                        x=(("x"), x),
+                        y=(("y"), y),
+                    ),
+                )
+            if quality is not None:
+                ds["quality"] = (("y", "x"), quality)
+
+            ds.precipitation.attrs.update(
+                {
+                    "standard_name": "precipitation_rate",
+                    "long_name": "Precipitation product",
+                    "product": metadata.get("product", None),
+                    "unit": metadata["unit"],
+                    "accutime": metadata["accutime"],
+                    "transform": metadata["transform"],
+                    "zerovalue": metadata["zerovalue"],
+                    "threshold": metadata["threshold"],
+                    "zr_a": metadata.get("zr_a", None),
+                    "zr_b": metadata.get("zr_b", None),
+                }
+            )
+
+            ds.x.attrs.update(
+                {
+                    "standard_name": "projection_x_coordinate",
+                    "units": metadata["cartesian_unit"]
+                }
+            )
+
+            ds.y.attrs.update(
+                {
+                    "standard_name": "projection_y_coordinate",
+                    "units": metadata["cartesian_unit"]
+                }
+            )
+
+            ds.attrs.update(
+                {
+                    "institution": metadata["institution"],
+                    "projection": metadata["projection"],
+                }
+            )
 
             _dtype = kwargs.get("dtype", dtype)
 
@@ -80,11 +135,11 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                 )
             _fillna = kwargs.get("fillna", fillna)
             if _fillna is not np.nan:
-                precip_ds.precipitation.fillna(_fillna)
+                ds.precipitation.fillna(_fillna)
 
-            precip_ds["precipitation"] = precip_ds.precipitation.astype(_dtype)
+            ds["precipitation"] = ds.precipitation.astype(_dtype)
 
-            return precip_ds
+            return ds
 
         extra_kwargs_doc = """
             Other Parameters

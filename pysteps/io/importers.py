@@ -885,7 +885,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
 
 
 @postprocess_import()
-def import_mch_gif(filename, product, accutime, **kwargs):
+def import_mch_gif(filename, product, unit, accutime, **kwargs):
     """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
 
@@ -909,6 +909,8 @@ def import_mch_gif(filename, product, accutime, **kwargs):
         | AZC  |     RZC accumulation       |
         +------+----------------------------+
 
+    unit: {"mm/h", "mm", "dBZ"}
+        the physical unit of the data
     accutime: float
         the accumulation time in minutes of the data
 
@@ -916,9 +918,10 @@ def import_mch_gif(filename, product, accutime, **kwargs):
 
     Returns
     -------
-    out: xr.Dataset
-        An xarray Dataset containing the precipitation field in mm/h imported
-        from a MeteoSwiss gif file.
+    out: tuple
+        A three-element tuple containing the precipitation field in mm/h imported
+        from a MeteoSwiss gif file and the associated quality field and metadata.
+        The quality field is currently set to None.
     """
     if not PIL_IMPORTED:
         raise MissingOptionalDependency(
@@ -927,7 +930,9 @@ def import_mch_gif(filename, product, accutime, **kwargs):
             "but it is not installed"
         )
 
-    metadata = _import_mch_geodata()
+    geodata = _import_mch_geodata()
+
+    metadata = geodata
 
     # import gif file
     img = Image.open(filename)
@@ -986,60 +991,17 @@ def import_mch_gif(filename, product, accutime, **kwargs):
     else:
         raise ValueError("unknown product %s" % product)
 
-    x1 = metadata["x1"]
-    y1 = metadata["y1"]
-    xsize = metadata["xpixelsize"]
-    ysize = metadata["ypixelsize"]
-    x = np.arange(x1 + xsize // 2, x1 + xsize * precip.shape[1], xsize)
-    y = np.arange(y1 + ysize // 2, y1 + ysize * precip.shape[0], ysize)
+    metadata["accutime"] = accutime
+    metadata["unit"] = unit
+    metadata["transform"] = None
+    metadata["zerovalue"] = np.nanmin(precip)
+    metadata["threshold"] = _get_threshold_value(precip)
+    metadata["institution"] = "MeteoSwiss"
+    metadata["product"] = product
+    metadata["zr_a"] = 316.0
+    metadata["zr_b"] = 1.5
 
-    # convert to mm/h and flip image upside-down
-    precip = precip * 60 / accutime
-    precip = precip[::-1, :]
-
-    ds = xr.Dataset(
-        data_vars=dict(
-            precipitation=(["y", "x"], precip),
-        ),
-        coords=dict(
-            x=(["x"], x),
-            y=(["y"], y),
-        ),
-    )
-
-    ds.precipitation.attrs.update(
-        {
-            "standard_name": "rainfall_rate",
-            "long_name": f"Precipitation intensity",
-            "units": "mm h-1",
-            "radar_product": product,
-        }
-    )
-
-    ds.x.attrs.update(
-        {
-            "standard_name": "projection_x_coordinate",
-            "long_name": "Swiss easting",
-            "units": "m",
-        }
-    )
-
-    ds.y.attrs.update(
-        {
-            "standard_name": "projection_y_coordinate",
-            "long_name": "Swiss northing",
-            "units": "m",
-        }
-    )
-
-    ds.attrs.update(
-        {
-            "institution": "MeteoSwiss (NMC Switzerland)",
-            "crs": "EPSG:21781",
-        }
-    )
-
-    return ds
+    return precip, None, metadata
 
 
 @postprocess_import()
