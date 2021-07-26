@@ -88,7 +88,6 @@ Available Importers
 import gzip
 import os
 from functools import partial
-from tkinter.constants import X
 
 import numpy as np
 import xarray as xr
