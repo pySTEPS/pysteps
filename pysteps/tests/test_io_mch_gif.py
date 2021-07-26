@@ -22,7 +22,7 @@ def test_io_import_mch_gif_shape():
     assert precip_ds.precipitation.shape == (640, 710)
 
 
-expected_proj1 = (
+expected_proj = (
     "+proj=somerc  +lon_0=7.43958333333333 "
     "+lat_0=46.9524055555556 +k_0=1 "
     "+x_0=600000 +y_0=200000 +ellps=bessel "
@@ -32,7 +32,7 @@ expected_proj1 = (
 
 # list of (variable,expected,tolerance) tuples
 test_dataset_attrs = [
-    ("projection", expected_proj1, None),
+    ("projection", expected_proj, None),
     ("institution", "MeteoSwiss", None),
 ]
 
@@ -50,11 +50,11 @@ test_array_attrs = [
     ("accutime", 5.0, 0.1),
     ("unit", "mm", None),
     ("transform", None, None),
-    ("zerovalue", 0.0, None),
+    ("zerovalue", 0.0, 0.1),
     ("threshold", 0.0009628129986471908, 1e-19),
     ("product", "AQC", None),
-    ("zr_a", 316.0, None),
-    ("zr_b", 1.5, None),
+    ("zr_a", 316.0, 0.1),
+    ("zr_b", 1.5, 0.1),
 ]
 
 
@@ -63,17 +63,9 @@ def test_io_import_mch_gif_array_attrs(variable, expected, tolerance):
     """Test the importer MCH GIF."""
     smart_assert(precip_ds.precipitation.attrs[variable], expected, tolerance)
 
-
-expected_proj2 = (
-    "+proj=somerc  +lon_0=7.43958333333333 +lat_0=46.9524055555556 "
-    "+k_0=1 +x_0=600000 +y_0=200000 +ellps=bessel "
-    "+towgs84=674.374,15.056,405.346,0,0,0,0 "
-    "+units=m +no_defs"
-)
-
 # test_geodata: list of (variable,expected,tolerance) tuples
 test_geodata = [
-    ("projection", expected_proj2, None),
+    ("projection", expected_proj, None),
     ("x1", 255000.0, 0.1),
     ("y1", -160000.0, 0.1),
     ("x2", 965000.0, 0.1),
