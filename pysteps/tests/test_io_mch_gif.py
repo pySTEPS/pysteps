@@ -13,13 +13,6 @@ pytest.importorskip("PIL")
 root_path = pysteps.rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20170131", "AQC170310945F_00005.801.gif")
 precip_ds = pysteps.io.import_mch_gif(filename, "AQC", 5.0)
-print(precip_ds)
-
-precip_ds.precipitation.plot()
-import matplotlib.pyplot as plt
-
-plt.tight_layout()
-plt.savefig("test_mch.png")
 
 
 def test_io_import_mch_gif_shape():
