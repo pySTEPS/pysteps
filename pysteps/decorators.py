@@ -16,6 +16,7 @@ the behavior of some functions in pysteps.
 """
 import inspect
 import uuid
+import xarray as xr
 from collections import defaultdict
 from functools import wraps
 
@@ -67,7 +68,7 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
 
-            precip, *other_args = importer(*args, **kwargs)
+            precip_ds = importer(*args, **kwargs)
 
             _dtype = kwargs.get("dtype", dtype)
 
@@ -77,19 +78,13 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                     "The selected precision does not correspond to a valid value."
                     "The accepted values are: " + str(accepted_precisions)
                 )
+            _fillna = kwargs.get("fillna", fillna)
+            if _fillna is not np.nan:
+                precip_ds.precipitation.fillna(_fillna)
 
-            if isinstance(precip, np.ma.MaskedArray):
-                invalid_mask = np.ma.getmaskarray(precip)
-                precip.data[invalid_mask] = fillna
-            else:
-                # If plain numpy arrays are used, the importers should indicate
-                # the invalid values with np.nan.
-                _fillna = kwargs.get("fillna", fillna)
-                if _fillna is not np.nan:
-                    mask = ~np.isfinite(precip)
-                    precip[mask] = _fillna
+            precip_ds["precipitation"] = precip_ds.precipitation.astype(_dtype)
 
-            return (precip.astype(_dtype),) + tuple(other_args)
+            return precip_ds
 
         extra_kwargs_doc = """
             Other Parameters
