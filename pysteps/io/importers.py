@@ -397,9 +397,11 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     x2, y2 = pr(lr_lon, ul_lat)
 
     metadata = dict(
+        institution="NOAA National Severe Storms Laboratory",
         xpixelsize=grib_msg["iDirectionIncrementInDegrees"] * window_size[0],
         ypixelsize=grib_msg["jDirectionIncrementInDegrees"] * window_size[1],
         unit="mm/h",
+        accutime=2.0,
         transform=None,
         zerovalue=0,
         projection=proj_def.strip(),
