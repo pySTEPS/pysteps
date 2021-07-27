@@ -532,11 +532,16 @@ def _compute_parametric_acf(params, m, n):
         [[np.cos(phi_r), np.sin(phi_r)], [-np.sin(phi_r), np.cos(phi_r)]]
     )
 
-    if m % 2 != 0 or n % 2 != 0:
-        raise ValueError("m and n must be even")
-
-    x = np.fft.ifftshift(np.arange(-int(n / 2), int(n / 2)))
-    y = np.fft.ifftshift(np.arange(-int(m / 2), int(m / 2)))
+    if n % 2 == 0:
+        n_max = int(n / 2)
+    else:
+        n_max = int(n / 2) + 1
+    x = np.fft.ifftshift(np.arange(-int(n / 2), n_max))
+    if m % 2 == 0:
+        m_max = int(m / 2)
+    else:
+        m_max = int(m / 2) + 1
+    y = np.fft.ifftshift(np.arange(-int(m / 2), m_max))
 
     grid_x, grid_y = np.meshgrid(x, y)
     grid_xy = np.vstack([grid_x.flatten(), grid_y.flatten()])
