@@ -2,6 +2,7 @@
 
 import os
 
+import numpy as np
 import pytest
 import xarray as xr
 from numpy.testing import assert_array_almost_equal
@@ -52,6 +53,11 @@ def test_io_import_mrms_grib():
         else:
             assert metadata[key] == expected_array_metadata[key]
 
+
+    x = np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
+    y = np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+    assert y.size == precip_full.shape[0]
+    assert x.size == precip_full.shape[1]
 
     # The full latitude range is (20.005, 54.995)
     # The full longitude range is (230.005, 299.995)
