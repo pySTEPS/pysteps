@@ -115,18 +115,18 @@ def forecast(
         Keyword arguments that are passed as **kwargs for the feature detector.
         See :py:mod:`pysteps.feature.blob` and :py:mod:`pysteps.feature.shitomasi`.
     ari_order : {1, 2}, optional
-        The order of the ARI(p, 1) model.
+        The order of the ARI(p, 1) model. Default: 1
     kernel_type : {"anisotropic", "isotropic"}, optional
-        The type of the kernel. Default: 'anisotropic'.
+        The type of the kernel. Default: 'anisotropic'
     localization_window_radius : float, optional
         The standard deviation of the Gaussian localization window.
         Default: 0.2 * min(m, n)
     errdist_window_radius : float, optional
         The standard deviation of the Gaussian window for estimating the
-        forecast error distribution. Default: 0.15 * min(m, n).
+        forecast error distribution. Default: 0.15 * min(m, n)
     acf_window_radius : float, optional
         The standard deviation of the Gaussian window for estimating the
-        forecast error ACF. Default: 0.25 * min(m, n).
+        forecast error ACF. Default: 0.25 * min(m, n)
     extrap_method : str, optional
         The extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`. Default: 'semilagrangian'
@@ -137,10 +137,10 @@ def forecast(
         Set to False to disable perturbations and generate a single
         deterministic nowcast. Default: True
     num_ens_members : int, optional
-        The number of ensemble members to generate. Default: 40.
+        The number of ensemble members to generate. Default: 40
     vel_pert_method: {'bps', None}, optional
         Name of the generator to use for perturbing the advection field. See
-        :py:mod:`pysteps.noise.interface`. Default: 'bps'.
+        :py:mod:`pysteps.noise.interface`. Default: 'bps'
     vel_pert_kwargs: dict, optional
         Optional dictionary containing keyword arguments 'p_par' and 'p_perp'
         for the initializer of the velocity perturbator. The choice of the
@@ -159,10 +159,10 @@ def forecast(
         The number of workers to use for parallel computations. Applicable if
         dask is installed. When num_workers>1, it is advisable to disable
         OpenMP by setting the environment variable OMP_NUM_THREADS to 1. This
-        avoids slowdown caused by too many simultaneous threads. Default: 1.
+        avoids slowdown caused by too many simultaneous threads. Default: 1
     measure_time: bool, optional
         If set to True, measure, print and return the computation time.
-        Default: False.
+        Default: False
 
     Returns
     -------
