@@ -179,7 +179,6 @@ def get_precipitation_fields(
         # Mask invalid values
         reference_field = np.ma.masked_invalid(reference_field)
 
-
         if log_transform:
             # Log-transform the data [dBR]
             reference_field, ref_metadata = stp.utils.dB_transform(
