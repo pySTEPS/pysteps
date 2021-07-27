@@ -68,6 +68,7 @@ def forecast(
     extrap_method="semilagrangian",
     extrap_kwargs={},
     add_perturbations=True,
+    pert_thrs=(0.5, 1.0),
     num_ens_members=40,
     vel_pert_method="bps",
     vel_pert_kwargs=None,
@@ -136,6 +137,9 @@ def forecast(
     add_perturbations : bool
         Set to False to disable perturbations and generate a single
         deterministic nowcast. Default: True
+    pert_thrs : float
+        Two-element tuple containing the threshold values for estimating the
+        perturbation parameters (mm/h). Default: (0.5, 1.0)
     num_ens_members : int, optional
         The number of ensemble members to generate. Default: 40
     vel_pert_method: {'bps', None}, optional
@@ -317,8 +321,12 @@ def forecast(
         # mask small values
         # TODO: make the thresholds configurable
         mask = np.logical_or(
-            np.logical_and(precip_fct_det[-1] >= 1.0, precip_fields[-1] >= 0.5),
-            np.logical_and(precip_fct_det[-1] >= 0.5, precip_fields[-1] >= 1.0),
+            np.logical_and(
+                precip_fct_det[-1] >= pert_thrs[1], precip_fields[-1] >= pert_thrs[0]
+            ),
+            np.logical_and(
+                precip_fct_det[-1] >= pert_thrs[0], precip_fields[-1] >= pert_thrs[1]
+            ),
         )
         err[~mask] = np.nan
 
