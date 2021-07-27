@@ -32,16 +32,16 @@ def test_linda(add_perturbations, kernel_type, measure_time, min_csi, max_crps):
     precip_input, metadata = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
-        return_raw=True,
         metadata=True,
         upscale=2000,
+        log_transform=False,
     )
 
     precip_obs = get_precipitation_fields(
         num_prev_files=0,
         num_next_files=3,
-        return_raw=True,
         upscale=2000,
+        log_transform=False,
     )[1:, :, :]
 
     oflow_method = motion.get_method("LK")

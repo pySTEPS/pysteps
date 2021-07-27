@@ -30,6 +30,7 @@ def get_precipitation_fields(
     metadata=False,
     upscale=None,
     source="mch",
+    log_transform=True,
     **importer_kwargs,
 ):
     """
@@ -76,13 +77,16 @@ def get_precipitation_fields(
         If True, also return file metadata.
 
     upscale: float or None, optional
-        Upscale fields in space.
+        Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not modified.
         If it is a float, represents the length of the space window that is
         used to upscale the fields.
 
     source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
         Name of the data source to be used.
+
+    log_transform: bool
+        Whether to ltransform the output to dB.
 
     Other Parameters
     ----------------
@@ -156,12 +160,6 @@ def get_precipitation_fields(
         fns, importer, **_importer_kwargs
     )
 
-    # Upscale data
-    if upscale:
-        reference_field, ref_metadata = aggregate_fields_space(
-            reference_field, ref_metadata, upscale
-        )
-
     if not return_raw:
 
         if (num_prev_files == 0) and (num_next_files == 0):
@@ -173,17 +171,24 @@ def get_precipitation_fields(
             reference_field, ref_metadata
         )
 
+        # Upscale data
+        reference_field, ref_metadata = aggregate_fields_space(
+            reference_field, ref_metadata, upscale
+        )
+
         # Mask invalid values
         reference_field = np.ma.masked_invalid(reference_field)
 
-        # Log-transform the data [dBR]
-        reference_field, ref_metadata = stp.utils.dB_transform(
-            reference_field, ref_metadata, threshold=0.1, zerovalue=-15.0
-        )
 
-        # Set missing values with the fill value
-        np.ma.set_fill_value(reference_field, -15.0)
-        reference_field.data[reference_field.mask] = -15.0
+        if log_transform:
+            # Log-transform the data [dBR]
+            reference_field, ref_metadata = stp.utils.dB_transform(
+                reference_field, ref_metadata, threshold=0.1, zerovalue=-15.0
+            )
+
+            # Set missing values with the fill value
+            np.ma.set_fill_value(reference_field, -15.0)
+            reference_field.data[reference_field.mask] = -15.0
 
     if metadata:
         return reference_field, ref_metadata
