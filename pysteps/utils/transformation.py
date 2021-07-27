@@ -19,13 +19,17 @@ import scipy.stats as scipy_stats
 import warnings
 from scipy.interpolate import interp1d
 
+from . import dataarray_accessor
+
+
 warnings.filterwarnings(
     "ignore", category=RuntimeWarning
 )  # To deactivate warnings for comparison operators with NaNs
 
 
+@dataarray_accessor
 def boxcox_transform(
-    R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False
+    da, Lambda=None, threshold=None, zerovalue=None, inverse=False
 ):
     """The one-parameter Box-Cox transformation.
 
@@ -38,23 +42,19 @@ def boxcox_transform(
 
     Parameters
     ----------
-    R: array-like
-        Array of any shape to be transformed.
-    metadata: dict, optional
-        Metadata dictionary containing the transform, zerovalue and threshold
-        attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
-    Lambda: float, optional
+    da: xr.DataArray
+        Array of any shape to be (back-)transformed.
+
+    boxcox_lambda: float, optional
         Parameter Lambda of the Box-Cox transformation.
         It is 0 by default, which produces the log transformation.
 
-        Choose Lambda < 1 for positively skewed data, Lambda > 1 for negatively
-        skewed data.
+        Choose boxcox_lambda < 1 for positively skewed data, boxcox_lambda > 1
+        for negatively skewed data.
     threshold: float, optional
-        The value that is used for thresholding with the same units as R.
+        The value that is used for thresholding with the same units as da.
         If None, the threshold contained in metadata is used.
-        If no threshold is found in the metadata,
-        a value of 0.1 is used as default.
+        If no threshold is found in the attributes, a value of 0.1 is used as default.
     zerovalue: float, optional
         The value to be assigned to no rain pixels as defined by the threshold.
         It is equal to the threshold - 1 by default.
@@ -63,10 +63,8 @@ def boxcox_transform(
 
     Returns
     -------
-    R: array-like
-        Array of any shape containing the (back-)transformed units.
-    metadata: dict
-        The metadata with updated attributes.
+    da: xr.DataArray
+        DataArray containing the (back-)transformed units.
 
     References
     ----------
@@ -74,25 +72,14 @@ def boxcox_transform(
     of the Royal Statistical Society: Series B (Methodological), 26: 211-243.
     doi:10.1111/j.2517-6161.1964.tb00553.x
     """
-
-    R = R.copy()
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "BoxCox"}
-        else:
-            metadata = {"transform": None}
-
-    else:
-        metadata = metadata.copy()
+    da = da.copy()
 
     if not inverse:
+        da = _back_transform(da)
+        metadata = da.attrs
 
-        if metadata["transform"] == "BoxCox":
-            return R, metadata
-
-        if Lambda is None:
-            Lambda = metadata.get("BoxCox_lambda", 0.0)
+        if boxcox_lambda is None:
+            boxcox_lambda = metadata.get("boxcox_lambda", 0.0)
 
         if threshold is None:
             threshold = metadata.get("threshold", 0.1)
@@ -379,3 +366,21 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
         metadata["threshold"] = metadata["threshold"] ** 2
 
     return R, metadata
+
+
+
+def _back_transform(da):
+    """Remove any existing transformation."""
+    transform = da.precipitation.attrs.get("transform")
+    if transform is not None:
+        if transform == "dB":
+            da = da.pysteps.dB_transform(inverse=True)
+        elif transform in ["BoxCox", "log"]:
+            da = da.pysteps.boxcox_transform(inverse=True)
+        elif transform == "NQT":
+            da = da.pysteps.NQ_transform(inverse=True)
+        elif transform == "sqrt":
+            da = da.pysteps.sqrt_transform(inverse=True)
+        else:
+            raise ValueError(f"Unknown transformation {transform}.")
+    return da
