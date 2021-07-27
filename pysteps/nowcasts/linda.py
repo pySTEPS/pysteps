@@ -38,6 +38,7 @@ the short-space Fourier transform (SSFT) methodology developed in
 """
 
 import time
+import warnings
 
 try:
     import dask
@@ -52,6 +53,8 @@ from scipy import optimize as opt
 from scipy.signal import convolve
 from scipy import stats
 from pysteps import extrapolation, feature, noise
+
+warnings.filterwarnings("ignore")
 
 
 def forecast(
