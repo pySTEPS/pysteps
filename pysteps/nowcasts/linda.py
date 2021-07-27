@@ -389,7 +389,7 @@ def forecast(
                 seed = rs.randint(0, high=1e9)
                 precip_fct_ensemble.append(worker(seed))
 
-        return np.stack(precip_fct_ensemble), 0.0
+        return np.stack(precip_fct_ensemble)
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
