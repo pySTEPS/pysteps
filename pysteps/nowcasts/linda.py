@@ -1115,6 +1115,11 @@ def _linda_init(
             )
         else:
             print("found {} {}.".format(feature_coords.shape[0], feature_type))
+
+        if len(feature_coords) == 0:
+            raise ValueError(
+                "no features found, check input data and feature detector configuration"
+            )
     elif feature_method == "domain":
         feature_coords = np.zeros((1, 2), dtype=int)
     else:
