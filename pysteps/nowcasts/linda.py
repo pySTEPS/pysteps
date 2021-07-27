@@ -319,7 +319,6 @@ def forecast(
         err = precip_fct_det[-1] / precip_fields[-1]
 
         # mask small values
-        # TODO: make the thresholds configurable
         mask = np.logical_or(
             np.logical_and(
                 precip_fct_det[-1] >= pert_thrs[1], precip_fields[-1] >= pert_thrs[0]
@@ -378,8 +377,6 @@ def forecast(
                 False,
             )
 
-        # TODO: implement printing
-        # TODO: implement measurement of computation time
         precip_fct_ensemble = []
 
         rs = np.random.RandomState(seed)
@@ -1001,7 +998,6 @@ def _linda_forecast(
         vel_pert_gen = vel_pert_gen.copy()
         vel_pert_gen["gen_obj"] = vel_pert_gen["init_func"](seed)
 
-    # TODO: Implement using a list instead of a number of fixed timesteps
     for t in range(timesteps):
         if print_info:
             print(
