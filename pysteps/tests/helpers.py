@@ -76,9 +76,8 @@ def get_precipitation_fields(
         If True, also return file metadata.
 
     upscale: float or None, optional
-        Upscale fields in space during the pre-processing steps.
-        If it is None, the precipitation field is not
-        modified.
+        Upscale fields in space.
+        If it is None, the precipitation field is not modified.
         If it is a float, represents the length of the space window that is
         used to upscale the fields.
 
@@ -157,6 +156,12 @@ def get_precipitation_fields(
         fns, importer, **_importer_kwargs
     )
 
+    # Upscale data
+    if upscale:
+        reference_field, ref_metadata = aggregate_fields_space(
+            reference_field, ref_metadata, upscale
+        )
+
     if not return_raw:
 
         if (num_prev_files == 0) and (num_next_files == 0):
@@ -166,11 +171,6 @@ def get_precipitation_fields(
         # Convert to mm/h
         reference_field, ref_metadata = stp.utils.to_rainrate(
             reference_field, ref_metadata
-        )
-
-        # Upscale data to 2 km
-        reference_field, ref_metadata = aggregate_fields_space(
-            reference_field, ref_metadata, upscale
         )
 
         # Mask invalid values

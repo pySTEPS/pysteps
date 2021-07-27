@@ -4,7 +4,7 @@ import pytest
 from pysteps import motion, verification
 from pysteps.nowcasts.linda import forecast
 from pysteps.tests.helpers import get_precipitation_fields
-from pysteps.utils import aggregate_fields_space
+
 
 linda_arg_names = (
     "add_perturbations",
@@ -16,30 +16,34 @@ linda_arg_names = (
 
 linda_arg_values = [
     (False, "anisotropic", False, 0.5, None),
-    (True, "isotropic", True, None, 0.1),
+    (False, "isotropic", False, 0.5, None),
+    (True, "anisotropic", True, None, 0.1),
 ]
 
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
 def test_linda(add_perturbations, kernel_type, measure_time, min_csi, max_crps):
     """Tests LINDA nowcast."""
+
+    pytest.importorskip("cv2")
+    pytest.importorskip("skimage")
+
     # inputs
-    precip_input, metadata_raw = get_precipitation_fields(
+    precip_input, metadata = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
         return_raw=True,
         metadata=True,
+        upscale=2000,
     )
-    precip_input, metadata = aggregate_fields_space(precip_input, metadata_raw, 2000)
 
     precip_obs = get_precipitation_fields(
         num_prev_files=0,
         num_next_files=3,
         return_raw=True,
+        upscale=2000,
     )[1:, :, :]
-    precip_obs, _ = aggregate_fields_space(precip_obs, metadata_raw, 2000)
 
-    pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
     retrieved_motion = oflow_method(precip_input)
 
@@ -53,6 +57,7 @@ def test_linda(add_perturbations, kernel_type, measure_time, min_csi, max_crps):
         kmperpixel=2.0,
         timestep=metadata["accutime"],
         measure_time=measure_time,
+        num_ens_members=5,
     )
 
     if not add_perturbations:
@@ -66,7 +71,7 @@ def test_linda(add_perturbations, kernel_type, measure_time, min_csi, max_crps):
         assert csi > min_csi, f"CSI={csi:.1f}, required > {min_csi:.1f}"
     else:
         assert precip_forecast.ndim == 4
-        assert precip_forecast.shape[0] == 40
+        assert precip_forecast.shape[0] == 5
         assert precip_forecast.shape[1] == 3
         assert precip_forecast.shape[2:] == precip_input.shape[1:]
 
