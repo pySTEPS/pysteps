@@ -17,7 +17,7 @@ linda_arg_names = (
 linda_arg_values = [
     (False, "anisotropic", False, 0.5, None),
     (False, "isotropic", False, 0.5, None),
-    (True, "anisotropic", True, None, 0.1),
+    (True, "anisotropic", True, None, 0.3),
 ]
 
 
