@@ -69,6 +69,7 @@ def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer FMI PMG."""
     smart_assert(data_array.attrs[variable], expected, tolerance)
 
+
 # test_geodata: list of (variable,expected,tolerance) tuples
 test_geodata = [
     ("projection", expected_proj, None),

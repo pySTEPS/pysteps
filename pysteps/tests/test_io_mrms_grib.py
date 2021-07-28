@@ -19,9 +19,7 @@ def test_io_import_mrms_grib():
     filename = os.path.join(
         root_path, "2019/06/10/", "PrecipRate_00.00_20190610-000000.grib2"
     )
-    precip_full = pysteps.io.import_mrms_grib(
-        filename, fillna=0, window_size=1
-    )
+    precip_full = pysteps.io.import_mrms_grib(filename, fillna=0, window_size=1)
 
     assert isinstance(precip_full, xr.DataArray)
     assert precip_full.shape == (3500, 7000)
@@ -63,8 +61,7 @@ def test_io_import_mrms_grib():
 
     assert precip_clipped.shape == (500, 1000)
     assert_array_almost_equal(
-        precip_clipped,
-        precip_full.isel(y=slice(2000, 2500), x=slice(2000,3000))
+        precip_clipped, precip_full.isel(y=slice(2000, 2500), x=slice(2000, 3000))
     )
     del precip_clipped
 
@@ -93,7 +90,6 @@ def test_io_import_mrms_grib():
     #     y1=20.03500099914261,
     #     y2=54.985000000285794,
     # )
-
 
     # # Remove the threshold keyword from the test when the window_size>1 is used.
     # # The threshold is computed automatically from the minimum valid precipitation values.

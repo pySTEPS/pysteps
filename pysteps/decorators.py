@@ -91,7 +91,6 @@ def postprocess_import(fillna=np.nan, dtype="double"):
 
             return data_array
 
-
         extra_kwargs_doc = """
             Other Parameters
             ----------------
@@ -324,14 +323,14 @@ def _to_xarray(array, metadata):
     data_array.x.attrs.update(
         {
             "standard_name": "projection_x_coordinate",
-            "units": metadata["cartesian_unit"]
+            "units": metadata["cartesian_unit"],
         }
     )
 
     data_array.y.attrs.update(
         {
             "standard_name": "projection_y_coordinate",
-            "units": metadata["cartesian_unit"]
+            "units": metadata["cartesian_unit"],
         }
     )
 

@@ -147,9 +147,7 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    data_array = io.read_timeseries(
-        fns, importer, **_importer_kwargs
-    )
+    data_array = io.read_timeseries(fns, importer, **_importer_kwargs)
 
     if not return_raw:
 
@@ -158,22 +156,16 @@ def get_precipitation_fields(
             reference_field = np.squeeze(data_array)
 
         # Convert to mm/h
-        data_array = stp.utils.to_rainrate(
-            data_array
-        )
+        data_array = stp.utils.to_rainrate(data_array)
 
         # Upscale data to 2 km
-        data_array = aggregate_fields_space(
-            data_array, upscale
-        )
+        data_array = aggregate_fields_space(data_array, upscale)
 
         # Mask invalid values
         data_array = np.ma.masked_invalid(data_array)
 
         # Log-transform the data [dBR]
-        data_array = stp.utils.dB_transform(
-            data_array, threshold=0.1, zerovalue=-15.0
-        )
+        data_array = stp.utils.dB_transform(data_array, threshold=0.1, zerovalue=-15.0)
 
         # Set missing values with the fill value
         np.ma.set_fill_value(reference_field, -15.0)

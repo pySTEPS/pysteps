@@ -41,6 +41,7 @@ def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer Bom RF3."""
     smart_assert(data_array.attrs[variable], expected, tolerance)
 
+
 # test_geodata: list of (variable,expected,tolerance) tuples
 test_geodata_bom = [
     ("projection", expected_proj, None),
