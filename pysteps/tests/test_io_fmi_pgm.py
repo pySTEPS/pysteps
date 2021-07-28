@@ -17,14 +17,13 @@ filename = os.path.join(
     "20160928",
     "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz",
 )
-precip_ds = pysteps.io.import_fmi_pgm(filename, gzipped=True)
+data_array = pysteps.io.import_fmi_pgm(filename, gzipped=True)
 
 
 def test_io_import_fmi_pgm_shape():
     """Test the importer FMI PGM."""
-    assert isinstance(precip_ds, xr.Dataset)
-    assert "precipitation" in precip_ds
-    assert precip_ds.precipitation.shape == (1226, 760)
+    assert isinstance(data_array, xr.DataArray)
+    assert data_array.shape == (1226, 760)
 
 
 expected_proj = (
@@ -33,20 +32,9 @@ expected_proj = (
     "+y_0=3395677.920 +no_defs"
 )
 
-test_dataset_attrs = [
+test_attrs = [
     ("projection", expected_proj, None),
     ("institution", "Finnish Meteorological Institute", None),
-]
-
-
-@pytest.mark.parametrize("variable, expected, tolerance", test_dataset_attrs)
-def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
-    """Test the importer FMI PMG."""
-    smart_assert(precip_ds.attrs[variable], expected, tolerance)
-
-
-# test_metadata: list of (variable,expected) tuples
-test_array_attrs = [
     # ("composite_area", ["FIN"]),
     # ("projection_name", ["SUOMI1"]),
     # ("radar", ["LUO", "1", "26.9008", "67.1386"]),
@@ -76,11 +64,10 @@ test_array_attrs = [
 ]
 
 
-@pytest.mark.parametrize("variable, expected, tolerance", test_array_attrs)
-def test_io_import_fmi_pmg_metadata(variable, expected, tolerance):
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
+def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer FMI PMG."""
-    smart_assert(precip_ds.precipitation.attrs[variable], expected, tolerance)
-
+    smart_assert(data_array.attrs[variable], expected, tolerance)
 
 # test_geodata: list of (variable,expected,tolerance) tuples
 test_geodata = [

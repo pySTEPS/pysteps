@@ -27,7 +27,6 @@ def get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=False,
-    metadata=False,
     upscale=None,
     source="mch",
     **importer_kwargs,
@@ -72,9 +71,6 @@ def get_precipitation_fields(
         The pre-processing steps are: 1) Convert to mm/h,
         2) Mask invalid values, 3) Log-transform the data [dBR].
 
-    metadata: bool, optional
-        If True, also return file metadata.
-
     upscale: float or None, optional
         Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not
@@ -93,9 +89,7 @@ def get_precipitation_fields(
 
     Returns
     -------
-    reference_field : array
-
-    metadata : dict
+    data_array : xr.DataArray
     """
 
     if source == "bom":
@@ -153,7 +147,7 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    reference_field, __, ref_metadata = io.read_timeseries(
+    data_array = io.read_timeseries(
         fns, importer, **_importer_kwargs
     )
 
@@ -161,34 +155,31 @@ def get_precipitation_fields(
 
         if (num_prev_files == 0) and (num_next_files == 0):
             # Remove time dimension
-            reference_field = np.squeeze(reference_field)
+            reference_field = np.squeeze(data_array)
 
         # Convert to mm/h
-        reference_field, ref_metadata = stp.utils.to_rainrate(
-            reference_field, ref_metadata
+        data_array = stp.utils.to_rainrate(
+            data_array
         )
 
         # Upscale data to 2 km
-        reference_field, ref_metadata = aggregate_fields_space(
-            reference_field, ref_metadata, upscale
+        data_array = aggregate_fields_space(
+            data_array, upscale
         )
 
         # Mask invalid values
-        reference_field = np.ma.masked_invalid(reference_field)
+        data_array = np.ma.masked_invalid(data_array)
 
         # Log-transform the data [dBR]
-        reference_field, ref_metadata = stp.utils.dB_transform(
-            reference_field, ref_metadata, threshold=0.1, zerovalue=-15.0
+        data_array = stp.utils.dB_transform(
+            data_array, threshold=0.1, zerovalue=-15.0
         )
 
         # Set missing values with the fill value
         np.ma.set_fill_value(reference_field, -15.0)
         reference_field.data[reference_field.mask] = -15.0
 
-    if metadata:
-        return reference_field, ref_metadata
-
-    return reference_field
+    return data_array
 
 
 def smart_assert(actual_value, expected, tolerance=None):

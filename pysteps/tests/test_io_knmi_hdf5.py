@@ -13,14 +13,13 @@ pytest.importorskip("h5py")
 
 root_path = pysteps.rcparams.data_sources["knmi"]["root_path"]
 filename = os.path.join(root_path, "2010/08", "RAD_NL25_RAP_5min_201008260000.h5")
-precip_ds = pysteps.io.import_knmi_hdf5(filename)
+data_array = pysteps.io.import_knmi_hdf5(filename)
 
 
 def test_io_import_knmi_hdf5_shape():
     """Test the importer KNMI HDF5."""
-    assert isinstance(precip_ds, xr.Dataset)
-    assert "precipitation" in precip_ds
-    assert precip_ds.precipitation.shape == (765, 700)
+    assert isinstance(data_array, xr.DataArray)
+    assert data_array.shape == (765, 700)
 
 
 # test_metadata: list of (variable,expected, tolerance) tuples
@@ -32,19 +31,9 @@ expected_proj = (
 )
 
 # list of (variable,expected,tolerance) tuples
-test_dataset_attrs = [
+test_attrs = [
     ("projection", expected_proj, None),
     ("institution", "KNMI - Royal Netherlands Meteorological Institute", None),
-]
-
-
-@pytest.mark.parametrize("variable, expected, tolerance", test_dataset_attrs)
-def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
-    """Test the importer KNMI HDF5."""
-    smart_assert(precip_ds.attrs[variable], expected, tolerance)
-
-
-test_array_attrs = [
     ("accutime", 5.0, 1e-10),
     ("unit", "mm", None),
     ("transform", None, None),
@@ -55,7 +44,7 @@ test_array_attrs = [
 ]
 
 
-@pytest.mark.parametrize("variable,expected,tolerance", test_array_attrs)
+@pytest.mark.parametrize("variable,expected,tolerance", test_attrs)
 def test_io_import_knmi_hdf5_metadata(variable, expected, tolerance):
     """Test the importer KNMI HDF5."""
-    smart_assert(precip_ds.precipitation.attrs[variable], expected, tolerance)
+    smart_assert(data_array.attrs[variable], expected, tolerance)

@@ -13,14 +13,13 @@ pytest.importorskip("h5py")
 
 root_path = pysteps.rcparams.data_sources["opera"]["root_path"]
 filename = os.path.join(root_path, "20180824", "T_PAAH21_C_EUOC_20180824180000.hdf")
-precip_ds = pysteps.io.import_opera_hdf5(filename)
+data_array = pysteps.io.import_opera_hdf5(filename)
 
 
 def test_io_import_opera_hdf5_shape():
     """Test the importer OPERA HDF5."""
-    assert isinstance(precip_ds, xr.Dataset)
-    assert "precipitation" in precip_ds
-    assert precip_ds.precipitation.shape == (2200, 1900)
+    assert isinstance(data_array, xr.DataArray)
+    assert data_array.shape == (2200, 1900)
 
 
 # test_metadata: list of (variable,expected, tolerance) tuples
@@ -33,18 +32,9 @@ expected_proj = (
 )
 
 # list of (variable,expected,tolerance) tuples
-test_dataset_attrs = [
+test_attrs = [
     ("projection", expected_proj, None),
     ("institution", "Odyssey datacentre", None),
-]
-
-@pytest.mark.parametrize("variable, expected, tolerance", test_dataset_attrs)
-def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
-    """Test the importer OPERA HDF5."""
-    smart_assert(precip_ds.attrs[variable], expected, tolerance)
-
-
-test_array_attrs = [
     ("accutime", 15.0, 1e-10),
     ("unit", "mm/h", None),
     ("transform", None, None),
@@ -52,8 +42,7 @@ test_array_attrs = [
     ("threshold", 0.01, 1e-10),
 ]
 
-
-@pytest.mark.parametrize("variable,expected,tolerance", test_array_attrs)
-def test_io_import_opera_hdf5_metadata(variable, expected, tolerance):
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
+def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer OPERA HDF5."""
-    smart_assert(precip_ds.precipitation.attrs[variable], expected, tolerance)
+    smart_assert(data_array.attrs[variable], expected, tolerance)

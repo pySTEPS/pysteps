@@ -12,14 +12,13 @@ pytest.importorskip("PIL")
 
 root_path = pysteps.rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20170131", "AQC170310945F_00005.801.gif")
-precip_ds = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
+data_array = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
 
 
 def test_io_import_mch_gif_shape():
     """Test the importer MCH GIF."""
-    assert isinstance(precip_ds, xr.Dataset)
-    assert "precipitation" in precip_ds
-    assert precip_ds.precipitation.shape == (640, 710)
+    assert isinstance(data_array, xr.DataArray)
+    assert data_array.shape == (640, 710)
 
 
 expected_proj = (
@@ -31,20 +30,9 @@ expected_proj = (
 )
 
 # list of (variable,expected,tolerance) tuples
-test_dataset_attrs = [
+test_attrs = [
     ("projection", expected_proj, None),
     ("institution", "MeteoSwiss", None),
-]
-
-
-@pytest.mark.parametrize("variable, expected, tolerance", test_dataset_attrs)
-def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
-    """Test the importer MCH GIF."""
-    smart_assert(precip_ds.attrs[variable], expected, tolerance)
-
-
-# list of (variable,expected,tolerance) tuples
-test_array_attrs = [
     ("standard_name", "precipitation_rate", None),
     ("long_name", "Precipitation product", None),
     ("accutime", 5.0, 0.1),
@@ -52,16 +40,16 @@ test_array_attrs = [
     ("transform", None, None),
     ("zerovalue", 0.0, 0.1),
     ("threshold", 0.0009628129986471908, 1e-19),
-    ("product", "AQC", None),
     ("zr_a", 316.0, 0.1),
     ("zr_b", 1.5, 0.1),
 ]
 
 
-@pytest.mark.parametrize("variable, expected, tolerance", test_array_attrs)
-def test_io_import_mch_gif_array_attrs(variable, expected, tolerance):
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
+def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer MCH GIF."""
-    smart_assert(precip_ds.precipitation.attrs[variable], expected, tolerance)
+    smart_assert(data_array.attrs[variable], expected, tolerance)
+
 
 # test_geodata: list of (variable,expected,tolerance) tuples
 test_geodata = [

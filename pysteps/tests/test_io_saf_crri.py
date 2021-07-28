@@ -46,32 +46,23 @@ rel_path = "20180601/CRR"
 filename = os.path.join(
     root_path, rel_path, "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc"
 )
-precip_ds = pysteps.io.import_saf_crri(filename)
+data_array = pysteps.io.import_saf_crri(filename)
 
 # list of (variable,expected,tolerance) tuples
-test_dataset_attrs = [
+test_attrs = [
     ("projection", expected_proj, None),
     ("institution", "Agencia Estatal de Meteorología (AEMET)", None),
-]
-
-
-@pytest.mark.parametrize("variable, expected, tolerance", test_dataset_attrs)
-def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
-    """Test the importer SAF CRRI."""
-    smart_assert(precip_ds.attrs[variable], expected, tolerance)
-
-
-test_array_attrs = [
     ("transform", None, None),
     ("zerovalue", 0.0, 0.1),
     ("unit", "mm/h", None),
     ("accutime", None, None),
 ]
 
-@pytest.mark.parametrize("variable, expected, tolerance", test_array_attrs)
-def test_io_import_saf_crri_metadata(variable, expected, tolerance):
+
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
+def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer SAF CRRI."""
-    smart_assert(precip_ds.precipitation.attrs[variable], expected, tolerance)
+    smart_assert(data_array.attrs[variable], expected, tolerance)
 
 
 test_extent_crri = [
@@ -95,17 +86,17 @@ def test_io_import_saf_crri_extent(extent, expected_extent, expected_shape, tole
     filename = os.path.join(
         root_path, rel_path, "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc"
     )
-    precip_ds = pysteps.io.import_saf_crri(filename, extent=extent)
+    data_array = pysteps.io.import_saf_crri(filename, extent=extent)
 
-    xgridsize = np.diff(precip_ds.x)[0]
-    ygridsize = np.diff(precip_ds.y)[0]
+    xgridsize = np.diff(data_array.x)[0]
+    ygridsize = np.diff(data_array.y)[0]
     extent_out = (
-        precip_ds.x.min() - xgridsize / 2,
-        precip_ds.x.max() + xgridsize / 2,
-        precip_ds.y.min() - ygridsize / 2,
-        precip_ds.y.max() + ygridsize / 2,
+        data_array.x.min() - xgridsize / 2,
+        data_array.x.max() + xgridsize / 2,
+        data_array.y.min() - ygridsize / 2,
+        data_array.y.max() + ygridsize / 2,
     )
     print([int(out) for out in extent_out])
     smart_assert(extent_out, expected_extent, tolerance)
 
-    smart_assert(precip_ds.precipitation.shape, expected_shape, tolerance)
+    smart_assert(data_array.shape, expected_shape, tolerance)

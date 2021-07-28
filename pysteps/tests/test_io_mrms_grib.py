@@ -23,41 +23,25 @@ def test_io_import_mrms_grib():
         filename, fillna=0, window_size=1
     )
 
-    assert isinstance(precip_full, xr.Dataset)
-    assert "precipitation" in precip_full
-    assert precip_full.precipitation.shape == (3500, 7000)
-    assert precip_full.precipitation.dtype == "single"
+    assert isinstance(precip_full, xr.DataArray)
+    assert precip_full.shape == (3500, 7000)
+    assert precip_full.dtype == "single"
 
-    expected_global_metadata = {
+    expected_attrs = {
         "institution": "NOAA National Severe Storms Laboratory",
         "projection": "+proj=longlat  +ellps=IAU76",
-    }
-    metadata = precip_full.attrs
-    for key, value in expected_global_metadata.items():
-        if isinstance(value, float):
-            assert_array_almost_equal(metadata[key], expected_global_metadata[key])
-        else:
-            assert metadata[key] == expected_global_metadata[key]
-
-    expected_array_metadata = {
         "unit": "mm/h",
         "accutime": 2.0,
         "transform": None,
         "zerovalue": 0,
         "threshold": 0.1,
     }
-    metadata = precip_full.precipitation.attrs
-    for key, value in expected_array_metadata.items():
+    metadata = precip_full.attrs
+    for key, value in expected_attrs.items():
         if isinstance(value, float):
-            assert_array_almost_equal(metadata[key], expected_array_metadata[key])
+            assert_array_almost_equal(metadata[key], expected_attrs[key])
         else:
-            assert metadata[key] == expected_array_metadata[key]
-
-
-    x = np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
-    y = np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
-    assert y.size == precip_full.shape[0]
-    assert x.size == precip_full.shape[1]
+            assert metadata[key] == expected_attrs[key]
 
     # The full latitude range is (20.005, 54.995)
     # The full longitude range is (230.005, 299.995)
@@ -66,9 +50,9 @@ def test_io_import_mrms_grib():
     precip_full2 = pysteps.io.import_mrms_grib(
         filename, fillna=0, extent=(220, 300, 20, 55), window_size=1
     )
-    assert precip_full2.precipitation.shape == (3500, 7000)
+    assert precip_full2.shape == (3500, 7000)
 
-    assert_array_almost_equal(precip_full.precipitation, precip_full2.precipitation)
+    assert_array_almost_equal(precip_full, precip_full2)
 
     del precip_full2
 
@@ -77,25 +61,25 @@ def test_io_import_mrms_grib():
         filename, fillna=0, extent=(250, 260, 30, 35), window_size=1
     )
 
-    assert precip_clipped.precipitation.shape == (500, 1000)
+    assert precip_clipped.shape == (500, 1000)
     assert_array_almost_equal(
-        precip_clipped.precipitation,
-        precip_full.precipitation.isel(y=slice(2000, 2500), x=slice(2000,3000))
+        precip_clipped,
+        precip_full.isel(y=slice(2000, 2500), x=slice(2000,3000))
     )
     del precip_clipped
 
     precip_single = pysteps.io.import_mrms_grib(filename, dtype="double", fillna=0)
-    assert precip_single.precipitation.dtype == "double"
+    assert precip_single.dtype == "double"
     del precip_single
 
     precip_single = pysteps.io.import_mrms_grib(filename, dtype="single", fillna=0)
-    assert precip_single.precipitation.dtype == "single"
+    assert precip_single.dtype == "single"
     del precip_single
 
     precip_donwscaled = pysteps.io.import_mrms_grib(
         filename, dtype="single", fillna=0, window_size=2
     )
-    assert precip_donwscaled.precipitation.shape == (3500 / 2, 7000 / 2)
+    assert precip_donwscaled.shape == (3500 / 2, 7000 / 2)
 
     precip_donwscaled = pysteps.io.import_mrms_grib(
         filename, dtype="single", fillna=0, window_size=3

@@ -68,62 +68,11 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
 
-            precip, quality, metadata = importer(*args, **kwargs)
+            data_array = importer(*args, **kwargs)
 
-            x1 = metadata["x1"]
-            y1 = metadata["y1"]
-            xsize = metadata["xpixelsize"]
-            ysize = metadata["ypixelsize"]
-            x = np.arange(x1 + xsize // 2, x1 + xsize * precip.shape[1], xsize)
-            y = np.arange(y1 + ysize // 2, y1 + ysize * precip.shape[0], ysize)
-
-            ds = xr.Dataset(
-                    data_vars=dict(
-                        precipitation=(("y", "x"), precip),
-                    ),
-                    coords=dict(
-                        x=(("x"), x),
-                        y=(("y"), y),
-                    ),
-                )
-            if quality is not None:
-                ds["quality"] = (("y", "x"), quality)
-
-            ds.precipitation.attrs.update(
-                {
-                    "standard_name": "precipitation_rate",
-                    "long_name": "Precipitation product",
-                    "product": metadata.get("product", None),
-                    "unit": metadata["unit"],
-                    "accutime": metadata["accutime"],
-                    "transform": metadata["transform"],
-                    "zerovalue": metadata["zerovalue"],
-                    "threshold": metadata["threshold"],
-                    "zr_a": metadata.get("zr_a", None),
-                    "zr_b": metadata.get("zr_b", None),
-                }
-            )
-
-            ds.x.attrs.update(
-                {
-                    "standard_name": "projection_x_coordinate",
-                    "units": metadata["cartesian_unit"]
-                }
-            )
-
-            ds.y.attrs.update(
-                {
-                    "standard_name": "projection_y_coordinate",
-                    "units": metadata["cartesian_unit"]
-                }
-            )
-
-            ds.attrs.update(
-                {
-                    "institution": metadata["institution"],
-                    "projection": metadata["projection"],
-                }
-            )
+            if not isinstance(data_array, xr.DataArray):
+                array, _, metadata = data_array
+                data_array = _to_xarray(array, metadata)
 
             _dtype = kwargs.get("dtype", dtype)
 
@@ -133,13 +82,15 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                     "The selected precision does not correspond to a valid value."
                     "The accepted values are: " + str(accepted_precisions)
                 )
+
             _fillna = kwargs.get("fillna", fillna)
             if _fillna is not np.nan:
-                ds.precipitation.fillna(_fillna)
+                data_array = data_array.fillna(_fillna)
 
-            ds["precipitation"] = ds.precipitation.astype(_dtype)
+            data_array = data_array.astype(_dtype)
 
-            return ds
+            return data_array
+
 
         extra_kwargs_doc = """
             Other Parameters
@@ -333,3 +284,55 @@ def memoize(maxsize=10):
         return _func_with_cache
 
     return _memoize
+
+
+def _to_xarray(array, metadata):
+    """Convert to xarray DataArray."""
+    x1, x2 = metadata["x1"], metadata["x2"]
+    y1, y2 = metadata["y1"], metadata["y2"]
+    xsize, ysize = metadata["xpixelsize"], metadata["ypixelsize"]
+    # x_coords = np.arange(x1, x2, xsize) + xsize / 2
+    # y_coords = np.arange(y1, y2, ysize) + ysize / 2
+    x_coords = np.arange(x1, x1 + xsize * array.shape[1], xsize) + xsize / 2
+    y_coords = np.arange(y1, y1 + ysize * array.shape[0], ysize) + ysize / 2
+
+    data_array = xr.DataArray(
+        data=array,
+        dims=("y", "x"),
+        coords=dict(
+            x=("x", x_coords),
+            y=("y", y_coords),
+        ),
+    )
+
+    data_array.attrs.update(
+        {
+            "standard_name": "precipitation_rate",
+            "long_name": "Precipitation product",
+            "unit": metadata["unit"],
+            "accutime": metadata["accutime"],
+            "transform": metadata["transform"],
+            "zerovalue": metadata["zerovalue"],
+            "threshold": metadata["threshold"],
+            "zr_a": metadata.get("zr_a", None),
+            "zr_b": metadata.get("zr_b", None),
+            "institution": metadata["institution"],
+            "projection": metadata["projection"],
+        }
+    )
+
+    data_array.x.attrs.update(
+        {
+            "standard_name": "projection_x_coordinate",
+            "units": metadata["cartesian_unit"]
+        }
+    )
+
+    data_array.y.attrs.update(
+        {
+            "standard_name": "projection_y_coordinate",
+            "units": metadata["cartesian_unit"]
+        }
+    )
+
+    return data_array

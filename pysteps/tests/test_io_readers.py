@@ -32,7 +32,7 @@ def test_read_timeseries_mch():
     )
 
     importer = pysteps.io.get_method(importer_name, "importer")
-    precip_ds = pysteps.io.read_timeseries(fns, importer, **importer_kwargs)
+    data_array = pysteps.io.read_timeseries(fns, importer, **importer_kwargs)
 
-    assert isinstance(precip_ds, xr.Dataset)
-    assert precip_ds.t.size == 3
+    assert isinstance(data_array, xr.DataArray)
+    assert data_array.t.size == 3
