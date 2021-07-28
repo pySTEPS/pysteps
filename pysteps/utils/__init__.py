@@ -1,6 +1,4 @@
 """Miscellaneous utility functions."""
-from functools import partial, wraps
-
 
 from .arrays import *
 from .cleansing import *
