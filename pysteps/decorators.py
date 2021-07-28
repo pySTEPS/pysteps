@@ -306,8 +306,6 @@ def _to_xarray(array, metadata):
 
     data_array.attrs.update(
         {
-            "standard_name": "precipitation_rate",
-            "long_name": "Precipitation product",
             "unit": metadata["unit"],
             "accutime": metadata["accutime"],
             "transform": metadata["transform"],

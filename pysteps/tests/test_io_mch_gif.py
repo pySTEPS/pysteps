@@ -33,8 +33,6 @@ expected_proj = (
 test_attrs = [
     ("projection", expected_proj, None),
     ("institution", "MeteoSwiss", None),
-    ("standard_name", "precipitation_rate", None),
-    ("long_name", "Precipitation product", None),
     ("accutime", 5.0, 0.1),
     ("unit", "mm", None),
     ("transform", None, None),

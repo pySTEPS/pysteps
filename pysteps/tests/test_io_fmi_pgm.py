@@ -52,8 +52,6 @@ test_attrs = [
     # ("bottomleft", ["18.600000", "57.930000"]),
     # ("topright", ["34.903000", "69.005000"]),
     # ("missingval", 255),
-    ("standard_name", "precipitation_rate", None),
-    ("long_name", "Precipitation product", None),
     ("accutime", 5.0, 0.1),
     ("unit", "dBZ", None),
     ("transform", "dB", None),
