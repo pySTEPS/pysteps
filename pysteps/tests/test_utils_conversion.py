@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import pytest
+import xarray as xr
 from numpy.testing import assert_array_almost_equal
-
-from pysteps.utils import conversion
 
 # to_rainrate
 test_data = [
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
-            "transform": None,
             "unit": "mm/h",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([1]),
+        1.0,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": None,
@@ -28,65 +25,70 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([12]),
+        12.0,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "mm/h",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([1.25892541]),
+        1.2589,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "mm",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([15.10710494]),
+        15.1071,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "dBZ",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([0.04210719]),
+        0.0421,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "log",
+            "offset": 0.0,
             "unit": "mm/h",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([2.71828183]),
+        2.7183,
     ),
     (
-        np.array([1.0]),
+        1.0,
         {
             "accutime": 5,
             "transform": "log",
+            "offset": 0.0,
             "unit": "mm",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([32.61938194]),
+        32.6194,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "sqrt",
@@ -94,10 +96,10 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([1]),
+        1.0,
     ),
     (
-        np.array([1.0]),
+        1.0,
         {
             "accutime": 5,
             "transform": "sqrt",
@@ -105,21 +107,24 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([12.0]),
+        12.0,
     ),
 ]
 
 
-@pytest.mark.parametrize("R, metadata, expected", test_data)
-def test_to_rainrate(R, metadata, expected):
+@pytest.mark.parametrize("data, attrs, expected", test_data)
+def test_to_rainrate(data, attrs, expected):
     """Test the to_rainrate."""
-    assert_array_almost_equal(conversion.to_rainrate(R, metadata)[0], expected)
+    data_array = xr.DataArray([data], dims="x", attrs=attrs)
+    output = data_array.pysteps.to_rainrate()
+    assert output.attrs.get("unit") == "mm/h"
+    assert_array_almost_equal(output.values, [expected], decimal=4)
 
 
 # to_raindepth
 test_data = [
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": None,
@@ -127,10 +132,10 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([0.08333333]),
+        0.0833,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": None,
@@ -138,65 +143,70 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([1]),
+        1.0,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "mm/h",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([0.10491045]),
+        0.1049,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "mm",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([1.25892541]),
+        1.2589,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "dBZ",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([0.00350893]),
+        0.00353,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "log",
+            "offset": 0.0,
             "unit": "mm/h",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([0.22652349]),
+        0.2265,
     ),
     (
-        np.array([1.0]),
+        1.0,
         {
             "accutime": 5,
             "transform": "log",
+            "offset": 0.0,
             "unit": "mm",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([2.71828183]),
+        2.7183,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "sqrt",
@@ -204,10 +214,10 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([0.08333333]),
+        0.0833,
     ),
     (
-        np.array([1.0]),
+        1.0,
         {
             "accutime": 5,
             "transform": "sqrt",
@@ -215,21 +225,24 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([1.0]),
+        1.0,
     ),
 ]
 
 
-@pytest.mark.parametrize("R, metadata, expected", test_data)
-def test_to_raindepth(R, metadata, expected):
+@pytest.mark.parametrize("data, attrs, expected", test_data)
+def test_to_raindepth(data, attrs, expected):
     """Test the to_raindepth."""
-    assert_array_almost_equal(conversion.to_raindepth(R, metadata)[0], expected)
+    data_array = xr.DataArray([data], dims="x", attrs=attrs)
+    output = data_array.pysteps.to_raindepth()
+    assert output.attrs.get("unit") == "mm"
+    assert_array_almost_equal(output.values, [expected], decimal=4)
 
 
 # to_reflectivity
 test_data = [
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": None,
@@ -237,10 +250,10 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([23.01029996]),
+        23.0103,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": None,
@@ -248,65 +261,70 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([40.27719989]),
+        40.2772,
     ),
     (
-        np.array([1]),
+        1,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "mm/h",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([24.61029996]),
+        24.6103,
     ),
     (
-        np.array([1]),
+        1,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "mm",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([41.87719989]),
+        41.8772,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "dB",
+            "offset": 0.0,
             "unit": "dBZ",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([1]),
+        1.0,
     ),
     (
-        np.array([1]),
+        1.0,
         {
             "accutime": 5,
             "transform": "log",
+            "offset": 0.0,
             "unit": "mm/h",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([29.95901167]),
+        29.9590,
     ),
     (
-        np.array([1.0]),
+        1.0,
         {
             "accutime": 5,
             "transform": "log",
+            "offset": 0.0,
             "unit": "mm",
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([47.2259116]),
+        47.2259,
     ),
     (
-        np.array([1]),
+        1,
         {
             "accutime": 5,
             "transform": "sqrt",
@@ -314,10 +332,10 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([23.01029996]),
+        23.0103,
     ),
     (
-        np.array([1.0]),
+        1.0,
         {
             "accutime": 5,
             "transform": "sqrt",
@@ -325,12 +343,15 @@ test_data = [
             "threshold": 0,
             "zerovalue": 0,
         },
-        np.array([40.27719989]),
+        40.2772,
     ),
 ]
 
 
-@pytest.mark.parametrize("R, metadata, expected", test_data)
-def test_to_reflectivity(R, metadata, expected):
+@pytest.mark.parametrize("data, attrs, expected", test_data)
+def test_to_reflectivity(data, attrs, expected):
     """Test the to_reflectivity."""
-    assert_array_almost_equal(conversion.to_reflectivity(R, metadata)[0], expected)
+    data_array = xr.DataArray([data], dims="x", attrs=attrs)
+    output = data_array.pysteps.to_reflectivity(offset=0.0)
+    assert output.attrs.get("unit") == "dBZ"
+    assert_array_almost_equal(output.values, [expected], decimal=4)
