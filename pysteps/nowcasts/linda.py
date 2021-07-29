@@ -208,38 +208,32 @@ def forecast(
 
     print("Inputs")
     print("------")
-    print(
-        "dimensions:           {}x{}".format(
-            precip_fields.shape[1], precip_fields.shape[2]
-        )
-    )
-    print("number of time steps: {}".format(precip_fields.shape[0]))
+    print(f"dimensions:           {precip_fields.shape[1]}x{precip_fields.shape[2]}")
+    print(f"number of time steps: {precip_fields.shape[0]}")
     print("")
 
     print("Methods")
     print("-------")
-    if add_perturbations:
-        print("nowcast type:         ensemble")
-    else:
-        print("nowcast type:         deterministic")
-    print("feature detector:     {}".format(feature_method))
-    print("extrapolator:         {}".format(extrap_method))
-    print("kernel type:          {}".format(kernel_type))
+    nowcast_type = "ensemble" if add_perturbations else "deterministic"
+    print(f"nowcast type:         {nowcast_type}")
+    print(f"feature detector:     {feature_method}")
+    print(f"extrapolator:         {extrap_method}")
+    print(f"kernel type:          {kernel_type}")
     if add_perturbations and vel_pert_method is not None:
-        print("velocity perturbator: {}".format(vel_pert_method))
+        print(f"velocity perturbator: {vel_pert_method}")
     print("")
 
     print("Parameters")
     print("----------")
-    print("number of time steps:       {}".format(timesteps))
-    print("ARI model order:            {}".format(ari_order))
-    print("localization window radius: {}".format(localization_window_radius))
+    print(f"number of time steps:       {timesteps}")
+    print(f"ARI model order:            {ari_order}")
+    print(f"localization window radius: {localization_window_radius}")
     if add_perturbations:
-        print("error dist. window radius:  {}".format(errdist_window_radius))
-        print("error ACF window radius:    {}".format(acf_window_radius))
-        print("ensemble size:              {}".format(num_ens_members))
-        print("parallel workers:           {}".format(num_workers))
-        print("seed:                       {}".format(seed))
+        print(f"error dist. window radius:  {errdist_window_radius}")
+        print(f"error ACF window radius:    {acf_window_radius}")
+        print(f"ensemble size:              {num_ens_members}")
+        print(f"parallel workers:           {num_workers}")
+        print(f"seed:                       {seed}")
         if vel_pert_method == "bps":
             vp_par = vel_pert_kwargs.get(
                 "p_par", noise.motion.get_default_params_bps_par()
@@ -248,14 +242,10 @@ def forecast(
                 "p_perp", noise.motion.get_default_params_bps_perp()
             )
             print(
-                "velocity perturbations, parallel:      {:.2f}, {:.2f}, {:.2f}".format(
-                    vp_par[0], vp_par[1], vp_par[2]
-                )
+                f"velocity perturbations, parallel:      {vp_par[0]:.2f}, {vp_par[1]:.2f}, {vp_par[2]:.2f}"
             )
             print(
-                "velocity perturbations, perpendicular: {:.2f}, {:.2f}, {:.2f}".format(
-                    vp_perp[0], vp_perp[1], vp_perp[2]
-                )
+                f"velocity perturbations, perpendicular: {vp_perp[0]:.2f}, {vp_perp[1]:.2f}, {vp_perp[2]:.2f}"
             )
             vel_pert_kwargs = vel_pert_kwargs.copy()
             vel_pert_kwargs["vp_par"] = vp_par
@@ -328,7 +318,7 @@ def forecast(
         err[~mask] = np.nan
 
         if measure_time:
-            print("{:.2f} seconds.".format(time.time() - starttime))
+            print(f"{time.time() - starttime:.2f} seconds.")
         else:
             print("done.")
 
@@ -406,9 +396,7 @@ def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
         raise ValueError("advection_field must be a three-dimensional array")
     if precip_fields.shape[1:3] != advection_field.shape[1:3]:
         raise ValueError(
-            "dimension mismatch between precip_fields and advection_field: precip_fields.shape={}, advection_field.shape={}".format(
-                precip_fields.shape, advection_field.shape
-            )
+            f"dimension mismatch between precip_fields and advection_field: precip_fields.shape={precip_fields.shape}, advection_field.shape={advection_field.shape}"
         )
     if not isinstance(timesteps, int):
         raise ValueError("timesteps is not an integer")
@@ -929,7 +917,7 @@ def _init_perturbation_generator(
     pert_gen["weights"] = weights / np.sum(weights, axis=0)
 
     if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
+        print(f"{time.time() - starttime:.2f} seconds.")
     else:
         print("done.")
 
@@ -1044,7 +1032,7 @@ def _linda_forecast(
 
         if print_info:
             if measure_time:
-                print("{:.2f} seconds.".format(time.time() - starttime))
+                print(f"{time.time() - starttime:.2f} seconds.")
             else:
                 print("done.")
 
@@ -1110,12 +1098,10 @@ def _linda_init(
         print("Detecting features... ", end="", flush=True)
         if measure_time:
             print(
-                "found {} {} in {:.2f} seconds.".format(
-                    feature_coords.shape[0], feature_type, time.time() - starttime
-                )
+                f"found {feature_coords.shape[0]} {feature_type} in {time.time() - starttime:.2f} seconds."
             )
         else:
-            print("found {} {}.".format(feature_coords.shape[0], feature_type))
+            print(f"found {feature_coords.shape[0]} {feature_type}.")
 
         if len(feature_coords) == 0:
             raise ValueError(
@@ -1170,7 +1156,7 @@ def _linda_init(
     precip_fields_lagr[-1] = precip_fields[-1]
 
     if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
+        print(f"{time.time() - starttime:.2f} seconds.")
     else:
         print("done.")
 
@@ -1211,7 +1197,7 @@ def _linda_init(
     fct_gen["kernels_1"] = kernels_1
 
     if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
+        print(f"{time.time() - starttime:.2f} seconds.")
     else:
         print("done.")
 
@@ -1257,7 +1243,7 @@ def _linda_init(
     fct_gen["psi"] = psi
 
     if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
+        print(f"{time.time() - starttime:.2f} seconds.")
     else:
         print("done.")
 
@@ -1284,7 +1270,7 @@ def _linda_init(
     fct_gen["kernels_2"] = kernels_2
 
     if measure_time:
-        print("{:.2f} seconds.".format(time.time() - starttime))
+        print(f"{time.time() - starttime:.2f} seconds.")
     else:
         print("done.")
 
