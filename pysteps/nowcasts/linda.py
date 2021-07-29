@@ -95,10 +95,8 @@ def forecast(
         Array of shape (2, m, n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs.
-    timesteps : int or list of floats
-        Number of time steps to forecast or a list of time steps for which the
-        forecasts are computed (relative to the input time step). The elements
-        of the list are required to be in ascending order.
+    timesteps : int
+        Number of time steps to forecast.
     feature_method : {'blob', 'domain' 'shitomasi'}
         Feature detection method:
 
@@ -230,12 +228,7 @@ def forecast(
 
     print("Parameters")
     print("----------")
-    if isinstance(timesteps, int):
-        print("number of time steps:       {}".format(timesteps))
-    else:
-        # TODO: implement fractional time steps
-        raise NotImplementedError("fractional time steps not yet implemented")
-        print("time steps:                 {}".format(timesteps))
+    print("number of time steps:       {}".format(timesteps))
     print("ARI model order:            {}".format(ari_order))
     print("localization window radius: {}".format(localization_window_radius))
     if add_perturbations:
@@ -415,8 +408,8 @@ def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
                 precip_fields.shape, advection_field.shape
             )
         )
-    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
-        raise ValueError("timesteps is not in ascending order")
+    if not isinstance(timesteps, int):
+        raise ValueError("timesteps is not an integer")
 
 
 # compute a localized convolution by applying a set of kernels with the given
