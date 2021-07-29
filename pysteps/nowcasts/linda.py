@@ -261,7 +261,6 @@ def forecast(
     fct_gen = _linda_init(
         precip_fields,
         advection_field,
-        timesteps,
         feature_method,
         feature_kwargs,
         ari_order,
@@ -1057,7 +1056,6 @@ def _linda_forecast(
 def _linda_init(
     precip_fields,
     advection_field,
-    timesteps,
     feature_method,
     feature_kwargs,
     ari_order,
