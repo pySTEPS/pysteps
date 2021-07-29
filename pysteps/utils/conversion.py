@@ -12,11 +12,15 @@ Methods for converting physical units.
     to_raindepth
     to_reflectivity
 """
+from typing import Any
+
+import xarray as xr
+
 from .decorators import dataarray_utils
 
 
 @dataarray_utils
-def to_rainrate(data_array, **kwargs):
+def to_rainrate(data_array: xr.DataArray, **kwargs: Any) -> xr.DataArray:
     """Convert to rain rates [mm/h].
 
     Parameters
@@ -69,7 +73,7 @@ def to_rainrate(data_array, **kwargs):
 
 
 @dataarray_utils
-def to_raindepth(data_array, **kwargs):
+def to_raindepth(data_array: xr.DataArray, **kwargs: Any) -> xr.DataArray:
     """Convert to rain depth [mm].
 
     Parameters
@@ -108,7 +112,9 @@ def to_raindepth(data_array, **kwargs):
 
 
 @dataarray_utils
-def to_reflectivity(data_array, offset=0.01, **kwargs):
+def to_reflectivity(
+    data_array: xr.DataArray, offset: float = 0.01, **kwargs: Any
+) -> xr.DataArray:
     """Convert to reflectivity [dBZ].
 
     Parameters

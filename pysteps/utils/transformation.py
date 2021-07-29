@@ -14,6 +14,7 @@ Methods for transforming data values.
     sqrt_transform
 """
 from functools import partial
+from typing import Any, Optional
 
 import numpy as np
 import xarray as xr
@@ -23,7 +24,12 @@ from .decorators import dataarray_utils
 
 
 @dataarray_utils
-def boxcox_transform(data_array, boxcox_lambda=0.0, offset=0.01, inverse=False):
+def boxcox_transform(
+    data_array: xr.DataArray,
+    boxcox_lambda: float = 0.0,
+    offset: float = 0.01,
+    inverse: bool = False,
+) -> xr.DataArray:
     """The one-parameter Box-Cox transformation.
 
     The Box-Cox transform is a well-known power transformation introduced by
@@ -105,7 +111,9 @@ def boxcox_transform(data_array, boxcox_lambda=0.0, offset=0.01, inverse=False):
 
 
 @dataarray_utils
-def db_transform(data_array, offset=0.01, inverse=False):
+def db_transform(
+    data_array: xr.DataArray, offset: float = 0.01, inverse: bool = False
+) -> xr.DataArray:
     """Transform to/from decibel (dB).
 
     Parameters
@@ -152,7 +160,12 @@ def db_transform(data_array, offset=0.01, inverse=False):
 
 
 @dataarray_utils
-def nq_transform(data_array, nq_a=0.0, template=None, inverse=False):
+def nq_transform(
+    data_array: xr.DataArray,
+    nq_a: float = 0.0,
+    template: Optional[Any] = None,
+    inverse: bool = False,
+) -> xr.DataArray:
     """The normal quantile transformation as in Bogner et al (2012).
     Zero rain vales are set to zero in norm space.
 
@@ -248,7 +261,7 @@ def nq_transform(data_array, nq_a=0.0, template=None, inverse=False):
 
 
 @dataarray_utils
-def sqrt_transform(data_array, inverse=False):
+def sqrt_transform(data_array: xr.DataArray, inverse: bool = False) -> xr.DataArray:
     """Square-root transform.
 
     Parameters
@@ -299,7 +312,7 @@ _methods["sqrt"] = partial(sqrt_transform, inverse=True)
 
 
 @dataarray_utils
-def back_transform(da):
+def back_transform(data_array: xr.DataArray) -> xr.DataArray:
     """
     Remove any existing data transformation.
 
@@ -313,7 +326,7 @@ def back_transform(da):
     data_array: xr.DataArray
         DataArray containing back-transformed units.
     """
-    transform = da.attrs.get("transform")
+    transform = data_array.attrs.get("transform")
     try:
         inverse_method = _methods[transform]
     except KeyError:
@@ -321,4 +334,4 @@ def back_transform(da):
             f"Unknown transformation {transform}. "
             f"The available methods are: {list(_methods.keys())}"
         )
-    return inverse_method(da)
+    return inverse_method(data_array)
