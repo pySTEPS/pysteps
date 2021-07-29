@@ -683,8 +683,8 @@ def _estimate_convol_params(
     num_workers=1,
 ):
     masks = []
-    for i in range(len(weights)):
-        masks.append(np.logical_and(mask, weights[i] > 1e-3))
+    for weight in weights:
+        masks.append(np.logical_and(mask, weight > 1e-3))
 
     def objf_aniso(p, *args):
         i = args[0]
