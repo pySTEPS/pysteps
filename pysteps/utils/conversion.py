@@ -12,16 +12,7 @@ Methods for converting physical units.
     to_raindepth
     to_reflectivity
 """
-import warnings
-
 from .decorators import dataarray_utils
-
-
-# TODO: This should not be done. Instead fix the code so that it doesn't
-# produce the warnings.
-# to deactivate warnings for comparison operators with NaNs
-warnings.filterwarnings("ignore", category=RuntimeWarning)
-
 
 
 @dataarray_utils
