@@ -62,7 +62,7 @@ def forecast(
     advection_field,
     timesteps,
     feature_method="blob",
-    feature_kwargs={},
+    feature_kwargs=None,
     ari_order=1,
     kernel_type="anisotropic",
     localization_window_radius=None,
@@ -179,6 +179,9 @@ def forecast(
         taken from the input fields.
     """
     _check_inputs(precip_fields, advection_field, timesteps, ari_order)
+
+    if feature_kwargs is None:
+        feature_kwargs = dict()
 
     if localization_window_radius is None:
         localization_window_radius = 0.2 * np.min(precip_fields.shape[1:])
