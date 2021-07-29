@@ -73,7 +73,7 @@ def forecast(
     add_perturbations=True,
     pert_thrs=(0.5, 1.0),
     num_ens_members=40,
-    vel_pert_method="bps",
+    vel_pert_method=None,
     vel_pert_kwargs=None,
     kmperpixel=None,
     timestep=None,
@@ -145,7 +145,7 @@ def forecast(
         The number of ensemble members to generate. Default: 40
     vel_pert_method: {'bps', None}, optional
         Name of the generator to use for perturbing the advection field. See
-        :py:mod:`pysteps.noise.interface`. Default: 'bps'
+        :py:mod:`pysteps.noise.interface`. Default: None
     vel_pert_kwargs: dict, optional
         Optional dictionary containing keyword arguments 'p_par' and 'p_perp'
         for the initializer of the velocity perturbator. The choice of the
