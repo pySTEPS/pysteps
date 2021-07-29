@@ -69,7 +69,7 @@ def forecast(
     errdist_window_radius=None,
     acf_window_radius=None,
     extrap_method="semilagrangian",
-    extrap_kwargs={},
+    extrap_kwargs=None,
     add_perturbations=True,
     pert_thrs=(0.5, 1.0),
     num_ens_members=40,
@@ -182,6 +182,8 @@ def forecast(
 
     if feature_kwargs is None:
         feature_kwargs = dict()
+    if extrap_kwargs is None:
+        extrap_kwargs = dict()
 
     if localization_window_radius is None:
         localization_window_radius = 0.2 * np.min(precip_fields.shape[1:])
