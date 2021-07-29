@@ -618,7 +618,7 @@ def _estimate_ar1_params(
         for i in range(len(estim_weights)):
             psi.append(worker(i))
 
-    return [np.sum([psi[i] * interp_weights[i] for i in range(len(psi))], axis=0)]
+    return [np.sum([psi_ * interp_weights[i] for i, psi_ in enumerate(psi)], axis=0)]
 
 
 # constrained optimization of AR(2) parameters
