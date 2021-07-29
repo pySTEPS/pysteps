@@ -468,7 +468,9 @@ def _compute_kernel_anisotropic(params, cutoff=6.0):
     phi, sigma1, sigma2 = params
 
     phi_r = phi / 180.0 * np.pi
-    R_inv = np.array([[np.cos(phi_r), np.sin(phi_r)], [-np.sin(phi_r), np.cos(phi_r)]])
+    rot_inv = np.array(
+        [[np.cos(phi_r), np.sin(phi_r)], [-np.sin(phi_r), np.cos(phi_r)]]
+    )
 
     bb_y1, bb_x1, bb_y2, bb_x2 = _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff)
 
@@ -479,15 +481,15 @@ def _compute_kernel_anisotropic(params, cutoff=6.0):
     if len(y) % 2 == 0:
         y = np.arange(int(bb_y1) - 1, int(bb_y2) + 1).astype(float)
 
-    X, Y = np.meshgrid(x, y)
-    XY = np.vstack([X.flatten(), Y.flatten()])
-    XY = np.dot(R_inv, XY)
+    x_grid, y_grid = np.meshgrid(x, y)
+    xy_grid = np.vstack([x_grid.flatten(), y_grid.flatten()])
+    xy_grid = np.dot(rot_inv, xy_grid)
 
-    x2 = XY[0, :] * XY[0, :]
-    y2 = XY[1, :] * XY[1, :]
+    x2 = xy_grid[0, :] * xy_grid[0, :]
+    y2 = xy_grid[1, :] * xy_grid[1, :]
     result = np.exp(-(x2 / sigma1 ** 2 + y2 / sigma2 ** 2))
 
-    return np.reshape(result / np.sum(result), X.shape)
+    return np.reshape(result / np.sum(result), x_grid.shape)
 
 
 # compute isotropic Gaussian convolution kernel
@@ -506,9 +508,9 @@ def _compute_kernel_isotropic(sigma, cutoff=6.0):
     if len(y) % 2 == 0:
         y = np.arange(int(bb_y1) - 1, int(bb_y2) + 1).astype(float)
 
-    X, Y = np.meshgrid(x / sigma, y / sigma)
+    x_grid, y_grid = np.meshgrid(x / sigma, y / sigma)
 
-    r2 = X * X + Y * Y
+    r2 = x_grid * x_grid + y_grid * y_grid
     result = np.exp(-0.5 * r2)
 
     return result / np.sum(result)
