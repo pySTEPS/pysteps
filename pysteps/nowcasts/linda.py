@@ -931,8 +931,8 @@ def _init_perturbation_generator(
 def _iterate_ar_model(input_fields, psi):
     input_field_new = 0.0
 
-    for i in range(len(psi)):
-        input_field_new += psi[i] * input_fields[-(i + 1), :]
+    for i, psi_ in enumerate(psi):
+        input_field_new += psi_ * input_fields[-(i + 1), :]
 
     return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
 
