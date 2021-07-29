@@ -52,12 +52,12 @@ def boxcox_transform(
         Choose boxcox_lambda < 1 for positively skewed data, boxcox_lambda > 1
         for negatively skewed data.
 
-    inverse: bool
-        If set to True, it performs the inverse transform. False by default.
-
     offset: float
         A small constant offset which prevents the division by zero or the
         computation of log(0).
+
+    inverse: bool
+        If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
@@ -126,6 +126,9 @@ def db_transform(
         A small constant offset which prevents the division by zero or the
         computation of log(0).
 
+    inverse: bool
+        If set to True, it performs the inverse transform. False by default.
+
     Returns
     -------
     data_array: xr.DataArray
@@ -180,13 +183,14 @@ def nq_transform(
         The default is 0, that is, it spaces the points evenly in the uniform
         distribution.
 
-    inverse: bool
-        If set to True, it performs the inverse transform. False by default.
-
     template: array_like, optional
         Array of any shape containing the samples to build the target empirical
         distribution.
         Required if inverse is True.
+
+    inverse: bool
+        If set to True, it performs the inverse transform. False by default.
+
 
     Returns
     -------
