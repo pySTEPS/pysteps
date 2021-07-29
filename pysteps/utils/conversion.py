@@ -16,7 +16,7 @@ from .decorators import dataarray_utils
 
 
 @dataarray_utils
-def to_rainrate(data_array, zr_a=None, zr_b=None):
+def to_rainrate(data_array, **kwargs):
     """Convert to rain rates [mm/h].
 
     Parameters
@@ -24,11 +24,18 @@ def to_rainrate(data_array, zr_a=None, zr_b=None):
     data_array : xr.DataArray
         DataArray to be converted.
 
-    zr_a, zr_b: float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
-        Used only if converting from dBZ.
-        It defaults to Marshall-Palmer if the coefficients are not specified in
-        the attributes of the variable being converted.
+    Other parameters
+    ----------------
+    accutime: float
+        The accumulation time in minutes, used if converting from rain depth.
+        If not passed as an argument, the accutime specified in the
+        attributes of the input xr.DataArray is used.
+
+    zr_a, zr_b: float
+        The a and b coefficients of the Z-R relationship (Z = a*R^b), used if
+        converting from dBZ.
+        If not passed as arguments nor included as attributes in the input
+        xr.DataArray, the default Marshall-Palmer is used (a=200, b=1.6).
 
     Returns
     -------
@@ -39,9 +46,9 @@ def to_rainrate(data_array, zr_a=None, zr_b=None):
     attrs = data_array.attrs
 
     units = attrs["unit"]
-    accutime = attrs["accutime"]
-    zr_a = zr_a if zr_a is not None else attrs.get("zr_a", 200.0)
-    zr_b = zr_b if zr_b is not None else attrs.get("zr_b", 1.6)
+    accutime = kwargs.get("accutime", data_array.attrs["accutime"])
+    zr_a = kwargs.get("zr_a", data_array.attrs.get("zr_a", 200.0))
+    zr_b = kwargs.get("zr_b", data_array.attrs.get("zr_b", 1.6))
 
     if units == "mm/h":
         pass
@@ -62,7 +69,7 @@ def to_rainrate(data_array, zr_a=None, zr_b=None):
 
 
 @dataarray_utils
-def to_raindepth(data_array, zr_a=None, zr_b=None):
+def to_raindepth(data_array, **kwargs):
     """Convert to rain depth [mm].
 
     Parameters
@@ -70,21 +77,29 @@ def to_raindepth(data_array, zr_a=None, zr_b=None):
     data_array : xr.DataArray
         DataArray to be converted.
 
-    zr_a, zr_b: float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
-        Used only if converting from dBZ.
-        It defaults to Marshall-Palmer if the coefficients are not specified in
-        the attributes of the variable being converted.
+    Other parameters
+    ----------------
+    accutime: float
+        The accumulation time in minutes.
+        If not passed as an argument, the accutime specified in the
+        attributes of the input xr.DataArray is used.
+
+    zr_a, zr_b: float
+        The a and b coefficients of the Z-R relationship (Z = a*R^b), used if
+        converting from dBZ.
+        If not passed as arguments nor include as attributes in the input
+        xr.DataArray, the default Marshall-Palmer is used (a=200, b=1.6).
 
     Returns
     -------
     data_array : xr.DataArray
         DataArray with units converted to mm.
     """
-    data_array = data_array.pysteps.to_rainrate(zr_a, zr_b)
+    data_array = data_array.pysteps.to_rainrate(**kwargs)
     attrs = data_array.attrs
 
-    data_array = data_array / 60.0 * attrs["accutime"]
+    accutime = kwargs.get("accutime", attrs["accutime"])
+    data_array = data_array / 60.0 * accutime
 
     attrs.update({"unit": "mm"})
     data_array.attrs = attrs
@@ -93,7 +108,7 @@ def to_raindepth(data_array, zr_a=None, zr_b=None):
 
 
 @dataarray_utils
-def to_reflectivity(data_array, zr_a=None, zr_b=None, offset=0.01):
+def to_reflectivity(data_array, offset=0.01, **kwargs):
     """Convert to reflectivity [dBZ].
 
     Parameters
@@ -101,26 +116,32 @@ def to_reflectivity(data_array, zr_a=None, zr_b=None, offset=0.01):
     data_array : xr.DataArray
         DataArray to be converted.
 
-    zr_a, zr_b: float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
-        Used only if converting from dBZ.
-        It defaults to Marshall-Palmer if the coefficients are not specified in
-        the attributes of the variable being converted.
-
     offset: float
         A small constant offset which prevents the division by zero or the
         computation of log(0).
+
+    Other parameters
+    ----------------
+    accutime: float
+        The accumulation time in minutes, used if converting from rain depth.
+        If not passed as an argument, the accutime specified in the
+        attributes of the input xr.DataArray is used.
+
+    zr_a, zr_b: float
+        The a and b coefficients of the Z-R relationship `Z = a * R ** b`.
+        If not passed as arguments nor include as attributes in the input
+        xr.DataArray, the default Marshall-Palmer is used (a=200, b=1.6).
 
     Returns
     -------
     data_array : xr.DataArray
         DataArray with units converted to dBZ.
     """
-    data_array = data_array.pysteps.to_rainrate(zr_a, zr_b)
+    data_array = data_array.pysteps.to_rainrate(**kwargs)
     attrs = data_array.attrs
 
-    zr_a = zr_a if zr_a is not None else data_array.attrs.get("zr_a", 200.0)
-    zr_b = zr_b if zr_b is not None else data_array.attrs.get("zr_b", 1.6)
+    zr_a = kwargs.get("zr_a", attrs.get("zr_a", 200.0))
+    zr_b = kwargs.get("zr_b", attrs.get("zr_b", 1.6))
     data_array = zr_a * data_array ** zr_b
 
     attrs.update({"unit": "dBZ"})
