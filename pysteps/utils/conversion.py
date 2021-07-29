@@ -15,7 +15,6 @@ Methods for converting physical units.
 import warnings
 
 from .decorators import dataarray_utils
-from .transformation import _back_transform
 
 
 # TODO: This should not be done. Instead fix the code so that it doesn't
@@ -45,7 +44,7 @@ def to_rainrate(data_array, zr_a=None, zr_b=None):
     data_array : xr.DataArray
         DataArray with units converted to mm/h.
     """
-    data_array = _back_transform(data_array)
+    data_array = data_array.pysteps.back_transform()
     attrs = data_array.attrs
 
     units = attrs["unit"]

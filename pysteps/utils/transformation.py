@@ -74,7 +74,7 @@ def boxcox_transform(data_array, boxcox_lambda=0.0, offset=0.01, inverse=False):
 
     if not inverse:
 
-        data_array = _back_transform(data_array)
+        data_array = data_array.pysteps.back_transform()
         data_array += offset
         if boxcox_lambda == 0.0:
             data_array = np.log(data_array)
@@ -132,7 +132,7 @@ def db_transform(data_array, offset=0.01, inverse=False):
     attrs = data_array.attrs
 
     if not inverse:
-        data_array = _back_transform(data_array)
+        data_array = data_array.pysteps.back_transform()
         data_array += offset
         data_array = 10.0 * np.log10(data_array)
 
@@ -197,7 +197,7 @@ def nq_transform(data_array, nq_a=0.0, template=None, inverse=False):
 
     if not inverse:
 
-        data_array = _back_transform(data_array)
+        data_array = data_array.pysteps.back_transform()
 
         # Resolve ties at random
         data_array += np.random.random(data_array.shape) / 1e10
@@ -274,7 +274,7 @@ def sqrt_transform(data_array, inverse=False):
     attrs = data_array.attrs
 
     if not inverse:
-        data_array = _back_transform(data_array)
+        data_array = data_array.pysteps.back_transform()
         data_array = np.sqrt(data_array)
 
         attrs.update(
@@ -295,18 +295,36 @@ def sqrt_transform(data_array, inverse=False):
     return data_array
 
 
-def _back_transform(da):
-    """Remove any existing transformation."""
-    inverse_methods = {
-        None: lambda x: x.copy(),
-        "dB": partial(db_transform, inverse=True),
-        "boxcox": partial(boxcox_transform, inverse=True),
-        "log": partial(boxcox_transform, inverse=True, boxcox_lambda=0.0),
-        "nq": partial(nq_transform, inverse=True),
-        "sqrt": partial(sqrt_transform, inverse=True),
-    }
+_methods = dict()
+_methods[None] = lambda x: x.copy()
+_methods["dB"] = partial(db_transform, inverse=True)
+_methods["boxcox"] = partial(boxcox_transform, inverse=True)
+_methods["log"] = partial(boxcox_transform, inverse=True, boxcox_lambda=0.0)
+_methods["nq"] = partial(nq_transform, inverse=True)
+_methods["sqrt"] = partial(sqrt_transform, inverse=True)
+
+
+@dataarray_utils
+def back_transform(da):
+    """
+    Remove any existing data transformation.
+
+    Parameters
+    ----------
+    data_array: xr.DataArray
+        Array of any shape to be back-transformed.
+
+    Returns
+    -------
+    data_array: xr.DataArray
+        DataArray containing back-transformed units.
+    """
     transform = da.attrs.get("transform")
-    inverse_method = inverse_methods.get(transform)
-    if inverse_method is None:
-        raise ValueError(f"unknown transformation {transform}.")
+    try:
+        inverse_method = _methods[transform]
+    except KeyError:
+        raise ValueError(
+            f"Unknown transformation {transform}. "
+            f"The available methods are: {list(_methods.keys())}"
+        )
     return inverse_method(da)
