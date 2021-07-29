@@ -8,6 +8,7 @@ Methods for transforming data values.
 .. autosummary::
     :toctree: ../generated/
 
+    back_transform
     boxcox_transform
     db_transform
     nq_transform
