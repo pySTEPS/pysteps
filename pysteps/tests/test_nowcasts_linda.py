@@ -96,8 +96,8 @@ def test_linda_wrong_inputs():
         )
 
     # fractional time steps not yet implemented
-    with pytest.raises(NotImplementedError):
-        forecast(precip, velocity, [1.0, 2.0], vel_pert_method=None)
+    # with pytest.raises(NotImplementedError):
+    #    forecast(precip, velocity, [1.0, 2.0], vel_pert_method=None)
 
     # ari_order 1 or 2 required
     with pytest.raises(ValueError):
