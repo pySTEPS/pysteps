@@ -118,9 +118,3 @@ def test_linda_wrong_inputs():
     # dimension mismatch between precip_fields and advection_field
     with pytest.raises(ValueError):
         forecast(np.zeros((3, 2, 3)), velocity, 1, vel_pert_method=None)
-
-
-if __name__ == "__main__":
-    for n in range(len(linda_arg_values)):
-        test_args = zip(linda_arg_names, linda_arg_values[n])
-        test_linda(**dict((x, y) for x, y in test_args))

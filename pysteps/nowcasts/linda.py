@@ -373,14 +373,14 @@ def forecast(
 
         if DASK_IMPORTED and num_workers > 1:
             res = []
-            for i in range(num_ens_members):
+            for _ in range(num_ens_members):
                 seed = rs.randint(0, high=1e9)
                 res.append(dask.delayed(worker)(seed))
             precip_fct_ensemble = dask.compute(
                 *res, num_workers=num_workers, scheduler="threads"
             )
         else:
-            for i in range(num_ens_members):
+            for _ in range(num_ens_members):
                 seed = rs.randint(0, high=1e9)
                 precip_fct_ensemble.append(worker(seed))
 
@@ -679,10 +679,12 @@ def _estimate_convol_params(
     weights,
     mask,
     kernel_type="anisotropic",
-    kernel_params={},
+    kernel_params=None,
     num_workers=1,
 ):
     """Estimation of convolution kernel."""
+    if kernel_params is None:
+        kernel_params = {}
     masks = []
     for weight in weights:
         masks.append(np.logical_and(mask, weight > 1e-3))
@@ -932,9 +934,9 @@ def _init_perturbation_generator(
     return pert_gen
 
 
-# iterate autoregressive process
 # TODO: use the method implemented in pysteps.timeseries.autoregression
 def _iterate_ar_model(input_fields, psi):
+    """Iterate autoregressive process."""
     input_field_new = 0.0
 
     for i, psi_ in enumerate(psi):
@@ -943,7 +945,6 @@ def _iterate_ar_model(input_fields, psi):
     return np.concatenate([input_fields[1:, :], input_field_new[np.newaxis, :]])
 
 
-# compute LINDA nowcast
 def _linda_forecast(
     precip_fields,
     precip_fields_lagr_diff,
@@ -955,6 +956,7 @@ def _linda_forecast(
     measure_time,
     print_info,
 ):
+    """Compute LINDA nowcast."""
     advection_field = fct_gen["advection_field"]
     ari_order = fct_gen["ari_order"]
     extrapolator = fct_gen["extrapolator"]
@@ -974,7 +976,7 @@ def _linda_forecast(
     precip_fct_out = []
 
     for i in range(precip_fields_lagr_diff.shape[0]):
-        for j in range(ari_order - i):
+        for _ in range(ari_order - i):
             precip_fields_lagr_diff[i] = _composite_convolution(
                 precip_fields_lagr_diff[i],
                 kernels_1,
@@ -1051,7 +1053,6 @@ def _linda_forecast(
         return np.stack(precip_fct_out)
 
 
-# initialize LINDA nowcast model
 def _linda_init(
     precip_fields,
     advection_field,
@@ -1070,6 +1071,7 @@ def _linda_init(
     num_workers,
     measure_time,
 ):
+    """Initialize LINDA nowcast model."""
     fct_gen = {}
     fct_gen["advection_field"] = advection_field
     fct_gen["ari_order"] = ari_order
@@ -1288,8 +1290,8 @@ def _linda_init(
         return fct_gen, precip_fields_lagr_diff
 
 
-# compute "masked" convolution where non-finite values are ignored
 def _masked_convolution(field, kernel):
+    """Compute "masked" convolution where non-finite values are ignored."""
     mask = np.isfinite(field)
 
     field = field.copy()
@@ -1302,17 +1304,19 @@ def _masked_convolution(field, kernel):
     return field_c
 
 
-# compute standard deviation of forecast errors with spatially varying weights
-# values close to zero are omitted
 def _weighted_std(f, w):
+    """
+    Compute standard deviation of forecast errors with spatially varying weights
+    values close to zero are omitted.
+    """
     mask = np.abs(f - 1.0) > 1e-4
     c = (w[mask].size - 1.0) / w[mask].size
 
     return np.sqrt(np.sum(w[mask] * (f[mask] - 1.0) ** 2.0) / (c * np.sum(w[mask])))
 
 
-# Tukey window function centered at the given coordinates
 def _window_tukey(m, n, ci, cj, ri, rj, alpha=0.5):
+    """Tukey window function centered at the given coordinates."""
     j, i = np.meshgrid(np.arange(n), np.arange(m))
 
     di = np.abs(i - ci)
@@ -1342,6 +1346,6 @@ def _window_tukey(m, n, ci, cj, ri, rj, alpha=0.5):
     return weights
 
 
-# uniform window function with all values set to one
 def _window_uniform(m, n, ci, cj, ri, rj):
+    """Uniform window function with all values set to one."""
     return np.ones((m, n))
