@@ -10,9 +10,11 @@ def _make_accessor(func, accessor_class):
     """
     Turn functions for xarray objects into accessors.
     """
+
     @wraps(func)
     def method(accessor, *args, **kwargs):
         return func(accessor._data, *args, **kwargs)
+
     setattr(accessor_class, func.__name__, method)
     return func
 
@@ -25,5 +27,6 @@ class DataArrayUtils:
 
     def __init__(self, da: xr.DataArray):
         self._data = da
+
 
 dataarray_utils = partial(_make_accessor, accessor_class=DataArrayUtils)
