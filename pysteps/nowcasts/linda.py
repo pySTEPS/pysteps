@@ -404,10 +404,9 @@ def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
         raise ValueError("timesteps is not an integer")
 
 
-# compute a localized convolution by applying a set of kernels with the given
-# spatial weights
-# the weights are assumed to be normalized
 def _composite_convolution(field, kernels, weights):
+    """Compute a localized convolution by applying a set of kernels with the
+    given spatial weights. The weights are assumed to be normalized."""
     n = len(kernels)
     field_c = 0.0
 
@@ -417,8 +416,8 @@ def _composite_convolution(field, kernels, weights):
     return field_c
 
 
-# compute the bounding box of an ellipse
 def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
+    """Compute the bounding box of an ellipse."""
     r1 = cutoff * sigma1
     r2 = cutoff * sigma2
     phi_r = phi / 180.0 * np.pi
@@ -436,8 +435,8 @@ def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
     return -abs(h), -abs(w), abs(h), abs(w)
 
 
-# compute the inverse ACF mapping between two distributions
 def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=10):
+    """Compute the inverse ACF mapping between two distributions."""
     phi = (
         lambda x1, x2, rho: 1.0
         / (2 * np.pi * np.sqrt(1 - rho ** 2))
@@ -465,8 +464,8 @@ def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=10
     return interp1d(rho_2, rho_1, fill_value="extrapolate")
 
 
-# compute anisotropic Gaussian convolution kernel
 def _compute_kernel_anisotropic(params, cutoff=6.0):
+    """Compute anisotropic Gaussian convolution kernel."""
     phi, sigma1, sigma2 = params
 
     phi_r = phi / 180.0 * np.pi
@@ -494,8 +493,8 @@ def _compute_kernel_anisotropic(params, cutoff=6.0):
     return np.reshape(result / np.sum(result), x_grid.shape)
 
 
-# compute isotropic Gaussian convolution kernel
 def _compute_kernel_isotropic(sigma, cutoff=6.0):
+    """Compute isotropic Gaussian convolution kernel."""
     bb_y1, bb_x1, bb_y2, bb_x2 = (
         -sigma * cutoff,
         -sigma * cutoff,
@@ -518,8 +517,8 @@ def _compute_kernel_isotropic(sigma, cutoff=6.0):
     return result / np.sum(result)
 
 
-# compute parametric ACF
 def _compute_parametric_acf(params, m, n):
+    """Compute parametric ACF."""
     c, phi, sigma1, sigma2 = params
 
     phi_r = phi / 180.0 * np.pi
@@ -553,8 +552,8 @@ def _compute_parametric_acf(params, m, n):
     return c * result
 
 
-# compute sample ACF from FFT
 def _compute_sample_acf(field):
+    """Compute sample ACF from FFT."""
     # TODO: let user choose the FFT method
     field_fft = np.fft.rfft2((field - np.mean(field)) / np.std(field))
     fft_abs = np.abs(field_fft * np.conj(field_fft))
@@ -562,8 +561,8 @@ def _compute_sample_acf(field):
     return np.fft.irfft2(fft_abs, s=field.shape) / (field.shape[0] * field.shape[1])
 
 
-# compute interpolation weights
 def _compute_window_weights(coords, grid_height, grid_width, window_radius):
+    """Compute interpolation weights."""
     coords = coords.astype(float).copy()
     num_features = coords.shape[0]
 
@@ -595,10 +594,11 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radius):
     return w
 
 
-# constrained optimization of AR(1) parameters
 def _estimate_ar1_params(
     field_src, field_dst, estim_weights, interp_weights, num_workers=1
 ):
+    """Constrained optimization of AR(1) parameters."""
+
     def objf(p, *args):
         i = args[0]
         field_ar = p * field_src
@@ -623,10 +623,11 @@ def _estimate_ar1_params(
     return [np.sum([psi_ * interp_weights[i] for i, psi_ in enumerate(psi)], axis=0)]
 
 
-# constrained optimization of AR(2) parameters
 def _estimate_ar2_params(
     field_src, field_dst, estim_weights, interp_weights, num_workers=1
 ):
+    """Constrained optimization of AR(2) parameters."""
+
     def objf(p, *args):
         i = args[0]
         field_ar = p[0] * field_src[1] + p[1] * field_src[0]
@@ -672,7 +673,6 @@ def _estimate_ar2_params(
     return psi_out
 
 
-# estimation of convolution kernel
 def _estimate_convol_params(
     field_src,
     field_dst,
@@ -682,6 +682,7 @@ def _estimate_convol_params(
     kernel_params={},
     num_workers=1,
 ):
+    """Estimation of convolution kernel."""
     masks = []
     for weight in weights:
         masks.append(np.logical_and(mask, weight > 1e-3))
@@ -746,8 +747,9 @@ def _estimate_convol_params(
     return kernels
 
 
-# fit a parametric ACF to the given sample estimate
 def _fit_acf(acf):
+    """Fit a parametric ACF to the given sample estimate."""
+
     def objf(p, *args):
         p = _get_acf_params(p)
         fitted_acf = _compute_parametric_acf(p, acf.shape[0], acf.shape[1])
@@ -768,18 +770,18 @@ def _fit_acf(acf):
     return _compute_parametric_acf(_get_acf_params(p_opt.x), acf.shape[0], acf.shape[1])
 
 
-# fit a lognormal distribution by maximizing the log-likelihood function with
-# the constraint that the mean value is one
 def _fit_dist(err, dist, wf, mask):
+    """Fit a lognormal distribution by maximizing the log-likelihood function
+    with the constraint that the mean value is one."""
     f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p ** 2)))
     p_opt = opt.minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
 
     return (p_opt.x, -0.5 * p_opt.x ** 2)
 
 
-# generate perturbations based on the estimated forecast error statistics
 # TODO: restrict the perturbation generation inside the radar mask
 def _generate_perturbations(pert_gen, num_workers, seed):
+    """Generate perturbations based on the estimated forecast error statistics."""
     m, n = pert_gen["m"], pert_gen["n"]
     dist_param = pert_gen["dist_param"]
     std = pert_gen["std"]
@@ -817,13 +819,14 @@ def _generate_perturbations(pert_gen, num_workers, seed):
     return output_field
 
 
-# get ACF parameters from the given parameter vector
 def _get_acf_params(p):
+    """Get ACF parameters from the given parameter vector."""
     return p[0], p[1], p[2], p[3] * p[2]
 
 
-# get anisotropic convolution kernel parameters from the given parameter vector
 def _get_anisotropic_kernel_params(p):
+    """Get anisotropic convolution kernel parameters from the given parameter
+    vector."""
     return p[0], p[1], p[2] * p[1]
 
 
@@ -836,6 +839,7 @@ def _init_perturbation_generator(
     measure_time,
     num_workers,
 ):
+    """Initialize the perturbabion generator."""
     pert_gen = {}
     pert_gen["m"] = fct_err.shape[0]
     pert_gen["n"] = fct_err.shape[1]
