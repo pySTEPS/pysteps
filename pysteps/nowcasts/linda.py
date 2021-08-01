@@ -162,9 +162,7 @@ def forecast(
         Optional seed for the random generators.
     num_workers : int, optional
         The number of workers to use for parallel computations. Applicable if
-        dask is installed. When num_workers>1, it is advisable to disable
-        OpenMP by setting the environment variable OMP_NUM_THREADS to 1. This
-        avoids slowdown caused by too many simultaneous threads. Default: 1
+        dask is installed. Default: 1
     measure_time: bool, optional
         If set to True, measure, print and return the computation time.
         Default: False
@@ -185,6 +183,11 @@ def forecast(
     It is recommended to choose the feature detector parameters so that the
     number of features is around 20-40. This gives a good tradeoff between
     localization and computation time.
+
+    It is highly recommented to set num_workers>1 to reduce computation time.
+    In this case, it is advisable to disable OpenMP by setting the environment
+    variable OMP_NUM_THREADS to 1. This avoids slowdown caused by too many
+    simultaneous threads.
     """
     _check_inputs(precip_fields, advection_field, timesteps, ari_order)
 
