@@ -24,7 +24,9 @@ linda_arg_values = [
 
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
-def test_linda(add_perturbations, kernel_type, vel_pert_method, measure_time, min_csi, max_crps):
+def test_linda(
+    add_perturbations, kernel_type, vel_pert_method, measure_time, min_csi, max_crps
+):
     """Tests LINDA nowcast."""
 
     pytest.importorskip("cv2")
@@ -107,7 +109,7 @@ def test_linda_wrong_inputs():
     # fractional time steps not yet implemented
     # timesteps is not an integer
     with pytest.raises(ValueError):
-       forecast(precip, velocity, [1.0, 2.0])
+        forecast(precip, velocity, [1.0, 2.0])
 
     # ari_order 1 or 2 required
     with pytest.raises(ValueError):
