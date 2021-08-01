@@ -3,7 +3,7 @@ pysteps.feature.interface
 =========================
 
 Interface for the feature detection module. It returns a callable function for
-detecting features.
+detecting features from two-dimensional images.
 
 .. autosummary::
     :toctree: ../generated/
@@ -22,10 +22,7 @@ _detection_methods["shitomasi"] = shitomasi.detection
 
 
 def get_method(name):
-    """Return a callable function for computing detection.
-
-    Description:
-    Return a callable function for detecting features on input images .
+    """Return a callable function for feature detection.
 
     Implemented methods:
 
