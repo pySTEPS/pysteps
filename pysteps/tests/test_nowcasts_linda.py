@@ -10,22 +10,23 @@ linda_arg_names = (
     "add_perturbations",
     "kernel_type",
     "vel_pert_method",
+    "num_workers",
     "measure_time",
     "min_csi",
     "max_crps",
 )
 
 linda_arg_values = [
-    (False, "anisotropic", None, False, 0.5, None),
-    (False, "isotropic", None, True, 0.5, None),
-    (True, "anisotropic", None, True, None, 0.3),
-    (True, "isotropic", "bps", False, None, 0.3),
+    (False, "anisotropic", None, 1, False, 0.5, None),
+    (False, "isotropic", None, 5, True, 0.5, None),
+    (True, "anisotropic", None, 1, True, None, 0.3),
+    (True, "isotropic", "bps", 5, True, None, 0.3),
 ]
 
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
 def test_linda(
-    add_perturbations, kernel_type, vel_pert_method, measure_time, min_csi, max_crps
+    add_perturbations, kernel_type, vel_pert_method, num_workers, measure_time, min_csi, max_crps
 ):
     """Tests LINDA nowcast."""
 
@@ -65,6 +66,8 @@ def test_linda(
         timestep=metadata["accutime"],
         measure_time=measure_time,
         num_ens_members=5,
+        num_workers=num_workers,
+        seed=42,
     )
     if measure_time:
         assert len(precip_forecast) == 3
