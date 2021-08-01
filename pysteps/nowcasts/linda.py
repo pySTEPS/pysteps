@@ -730,7 +730,7 @@ def _estimate_perturbation_params(
     measure_time,
     num_workers,
 ):
-    """Estimate the perturbation generator parameters."""
+    """Estimate perturbation generator parameters from forecast errors."""
     pert_gen = {}
     pert_gen["m"] = fct_err.shape[0]
     pert_gen["n"] = fct_err.shape[1]
