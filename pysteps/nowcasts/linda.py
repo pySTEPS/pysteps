@@ -272,10 +272,6 @@ def forecast(
         extrap_method,
         extrap_kwargs,
         add_perturbations,
-        vel_pert_method,
-        vel_pert_kwargs,
-        kmperpixel,
-        timestep,
         num_workers,
         measure_time,
     )
@@ -1086,10 +1082,6 @@ def _linda_init(
     extrap_method,
     extrap_kwargs,
     add_perturbations,
-    vel_pert_method,
-    vel_pert_kwargs,
-    kmperpixel,
-    timestep,
     num_workers,
     measure_time,
 ):
