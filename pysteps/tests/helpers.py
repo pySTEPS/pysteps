@@ -31,6 +31,7 @@ def get_precipitation_fields(
     upscale=None,
     source="mch",
     log_transform=True,
+    clip=None,
     **importer_kwargs,
 ):
     """
@@ -76,6 +77,10 @@ def get_precipitation_fields(
     metadata: bool, optional
         If True, also return file metadata.
 
+    clip: scalars (left, right, bottom, top), optional
+        The extent of the bounding box in data coordinates to be used to clip
+        the data.
+
     upscale: float or None, optional
         Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not modified.
@@ -86,7 +91,7 @@ def get_precipitation_fields(
         Name of the data source to be used.
 
     log_transform: bool
-        Whether to ltransform the output to dB.
+        Whether to transform the output to dB.
 
     Other Parameters
     ----------------
@@ -169,6 +174,11 @@ def get_precipitation_fields(
         # Convert to mm/h
         reference_field, ref_metadata = stp.utils.to_rainrate(
             reference_field, ref_metadata
+        )
+
+        # Clip domain
+        reference_field, ref_metadata = stp.utils.clip_domain(
+            reference_field, ref_metadata, clip
         )
 
         # Upscale data

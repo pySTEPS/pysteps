@@ -9,20 +9,22 @@ from pysteps.tests.helpers import get_precipitation_fields
 linda_arg_names = (
     "add_perturbations",
     "kernel_type",
+    "vel_pert_method",
     "measure_time",
     "min_csi",
     "max_crps",
 )
 
 linda_arg_values = [
-    (False, "anisotropic", False, 0.5, None),
-    (False, "isotropic", False, 0.5, None),
-    (True, "anisotropic", True, None, 0.3),
+    (False, "anisotropic", None, False, 0.5, None),
+    (False, "isotropic", None, True, 0.5, None),
+    (True, "anisotropic", None, True, None, 0.3),
+    (True, "isotropic", "bps", False, None, 0.3),
 ]
 
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
-def test_linda(add_perturbations, kernel_type, measure_time, min_csi, max_crps):
+def test_linda(add_perturbations, kernel_type, vel_pert_method, measure_time, min_csi, max_crps):
     """Tests LINDA nowcast."""
 
     pytest.importorskip("cv2")
@@ -33,14 +35,16 @@ def test_linda(add_perturbations, kernel_type, measure_time, min_csi, max_crps):
         num_prev_files=2,
         num_next_files=0,
         metadata=True,
-        upscale=2000,
+        clip=(354000, 866000, -96000, 416000),
+        upscale=4000,
         log_transform=False,
     )
 
     precip_obs = get_precipitation_fields(
         num_prev_files=0,
         num_next_files=3,
-        upscale=2000,
+        clip=(354000, 866000, -96000, 416000),
+        upscale=4000,
         log_transform=False,
     )[1:, :, :]
 
@@ -52,13 +56,18 @@ def test_linda(add_perturbations, kernel_type, measure_time, min_csi, max_crps):
         retrieved_motion,
         3,
         kernel_type=kernel_type,
+        vel_pert_method=vel_pert_method,
         feature_kwargs={"threshold": 1.5, "min_sigma": 2, "max_sigma": 10},
         add_perturbations=add_perturbations,
-        kmperpixel=2.0,
+        kmperpixel=4.0,
         timestep=metadata["accutime"],
         measure_time=measure_time,
         num_ens_members=5,
     )
+    if measure_time:
+        assert len(precip_forecast) == 3
+        assert isinstance(precip_forecast[1], float)
+        precip_forecast = precip_forecast[0]
 
     if not add_perturbations:
         assert precip_forecast.ndim == 3
@@ -96,25 +105,26 @@ def test_linda_wrong_inputs():
         )
 
     # fractional time steps not yet implemented
-    # with pytest.raises(NotImplementedError):
-    #    forecast(precip, velocity, [1.0, 2.0], vel_pert_method=None)
+    # timesteps is not an integer
+    with pytest.raises(ValueError):
+       forecast(precip, velocity, [1.0, 2.0])
 
     # ari_order 1 or 2 required
     with pytest.raises(ValueError):
-        forecast(precip, velocity, 1, vel_pert_method=None, ari_order=3)
+        forecast(precip, velocity, 1, ari_order=3)
 
     # precip_fields must be a three-dimensional array
     with pytest.raises(ValueError):
-        forecast(np.zeros((3, 3, 3, 3)), velocity, 1, vel_pert_method=None)
+        forecast(np.zeros((3, 3, 3, 3)), velocity, 1)
 
     # precip_fields.shape[0] < ari_order+2
     with pytest.raises(ValueError):
-        forecast(np.zeros((4, 3, 3)), velocity, 1, vel_pert_method=None, ari_order=1)
+        forecast(np.zeros((4, 3, 3)), velocity, 1, ari_order=1)
 
     # advection_field must be a three-dimensional array
     with pytest.raises(ValueError):
-        forecast(precip, velocity[0], 1, vel_pert_method=None)
+        forecast(precip, velocity[0], 1)
 
     # dimension mismatch between precip_fields and advection_field
     with pytest.raises(ValueError):
-        forecast(np.zeros((3, 2, 3)), velocity, 1, vel_pert_method=None)
+        forecast(np.zeros((3, 2, 3)), velocity, 1)

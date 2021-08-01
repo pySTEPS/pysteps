@@ -1230,7 +1230,7 @@ def _linda_init(
     # compute convolved difference fields
     precip_fields_lagr_diff_c = precip_fields_lagr_diff[:-1].copy()
     for i in range(precip_fields_lagr_diff_c.shape[0]):
-        for j in range(ari_order - i):
+        for _ in range(ari_order - i):
             precip_fields_lagr_diff_c[i] = _composite_convolution(
                 precip_fields_lagr_diff_c[i],
                 kernels_1,
