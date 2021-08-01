@@ -794,7 +794,7 @@ def _estimate_perturbation_params(
         res = []
         for i in range(feature_coords.shape[0]):
             res.append(dask.delayed(worker)(i))
-        res = dask.compute(*res, num_workers=num_workers, scheduler="multiprocessing")
+        res = dask.compute(*res, num_workers=num_workers, scheduler="threads")
         for r in res:
             dist_params.append(r[0])
             stds.append(r[1])
