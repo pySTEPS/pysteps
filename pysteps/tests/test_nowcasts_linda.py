@@ -26,7 +26,13 @@ linda_arg_values = [
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
 def test_linda(
-    add_perturbations, kernel_type, vel_pert_method, num_workers, measure_time, min_csi, max_crps
+    add_perturbations,
+    kernel_type,
+    vel_pert_method,
+    num_workers,
+    measure_time,
+    min_csi,
+    max_crps,
 ):
     """Tests LINDA nowcast."""
 
