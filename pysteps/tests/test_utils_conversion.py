@@ -57,7 +57,7 @@ test_data = [
             "accutime": 5,
             "transform": "dB",
             "offset": 0.0,
-            "unit": "dBZ",
+            "unit": "Z",
             "threshold": 0,
             "zerovalue": 0,
         },
@@ -175,7 +175,7 @@ test_data = [
             "accutime": 5,
             "transform": "dB",
             "offset": 0.0,
-            "unit": "dBZ",
+            "unit": "Z",
             "threshold": 0,
             "zerovalue": 0,
         },
@@ -293,7 +293,7 @@ test_data = [
             "accutime": 5,
             "transform": "dB",
             "offset": 0.0,
-            "unit": "dBZ",
+            "unit": "Z",
             "threshold": 0,
             "zerovalue": 0,
         },
@@ -353,5 +353,5 @@ def test_to_reflectivity(data, attrs, expected):
     """Test the to_reflectivity."""
     data_array = xr.DataArray([data], dims="x", attrs=attrs)
     output = data_array.pysteps.to_reflectivity(offset=0.0)
-    assert output.attrs.get("unit") == "dBZ"
+    assert output.attrs.get("unit") == "Z"
     assert_array_almost_equal(output.values, [expected], decimal=4)

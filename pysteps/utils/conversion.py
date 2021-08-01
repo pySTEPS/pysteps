@@ -37,7 +37,7 @@ def to_rainrate(data_array: xr.DataArray, **kwargs: Any) -> xr.DataArray:
 
     zr_a, zr_b: float
         The a and b coefficients of the Z-R relationship (Z = a*R^b), used if
-        converting from dBZ.
+        converting from Z units.
         If not passed as arguments nor included as attributes in the input
         xr.DataArray, the default Marshall-Palmer is used (a=200, b=1.6).
 
@@ -60,7 +60,7 @@ def to_rainrate(data_array: xr.DataArray, **kwargs: Any) -> xr.DataArray:
     elif units == "mm":
         data_array = data_array / float(accutime) * 60.0
 
-    elif units == "dBZ":
+    elif units == "Z":
         data_array = (data_array / zr_a) ** (1.0 / zr_b)
 
     else:
@@ -113,18 +113,21 @@ def to_raindepth(data_array: xr.DataArray, **kwargs: Any) -> xr.DataArray:
 
 @dataarray_utils
 def to_reflectivity(
-    data_array: xr.DataArray, offset: float = 0.01, **kwargs: Any
+    data_array: xr.DataArray, to_decibels: bool = True, offset: float = 0.01, **kwargs: Any
 ) -> xr.DataArray:
-    """Convert to reflectivity [dBZ].
+    """Convert to linear reflectivity [Z] or dBZ units.
 
     Parameters
     ----------
     data_array : xr.DataArray
         DataArray to be converted.
 
+    to_decibels: bool
+        If true, transform to decibels [dB].
+
     offset: float
         A small constant offset which prevents the division by zero or the
-        computation of log(0).
+        computation of log(0). Used if to_decibels is True.
 
     Other parameters
     ----------------
@@ -141,7 +144,7 @@ def to_reflectivity(
     Returns
     -------
     data_array : xr.DataArray
-        DataArray with units converted to dBZ.
+        DataArray with units converted to Z or dBZ units.
     """
     data_array = data_array.pysteps.to_rainrate(**kwargs)
     attrs = data_array.attrs
@@ -150,7 +153,10 @@ def to_reflectivity(
     zr_b = kwargs.get("zr_b", attrs.get("zr_b", 1.6))
     data_array = zr_a * data_array ** zr_b
 
-    attrs.update({"unit": "dBZ"})
+    attrs.update({"unit": "Z"})
     data_array.attrs = attrs
 
-    return data_array.pysteps.db_transform(offset=offset)
+    if to_decibels:
+        return data_array.pysteps.db_transform(offset=offset)
+    else:
+        return data_array
