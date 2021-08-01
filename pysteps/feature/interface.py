@@ -11,9 +11,9 @@ The feature detectors implement the following interface:
 
 The input is a two-dimensional image. Additional arguments to the specific
 method can be given via **keywords. The output is an array of shape (n, m),
-where each row corresponds to one feature. The first two columns are the
-coordinates (row, column) of the n detected features, and additional information
-can be specified in the remaining columns.
+where each row corresponds to one of the n features. The first two columns
+contain the coordinates (x, y) of the features, and additional information can
+be specified in the remaining columns.
 
 .. autosummary::
     :toctree: ../generated/
