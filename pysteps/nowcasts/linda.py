@@ -179,6 +179,12 @@ def forecast(
         taken from the input fields. If measure_time is True, the return value
         is a three-element tuple containing the nowcast array, the initialization
         time of the nowcast generator and the time used in the main loop (seconds).
+
+    Notes
+    -----
+    It is recommended to choose the feature detector parameters so that the
+    number of features is around 20-40. This gives a good tradeoff between
+    localization and computation time.
     """
     _check_inputs(precip_fields, advection_field, timesteps, ari_order)
 
