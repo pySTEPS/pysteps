@@ -261,7 +261,7 @@ def forecast(
             vel_pert_kwargs["vp_par"] = vp_par
             vel_pert_kwargs["vp_perp"] = vp_perp
 
-    fct_gen = _linda_init(
+    fct_gen = _linda_deterministic_init(
         precip_fields,
         advection_field,
         feature_method,
@@ -272,10 +272,6 @@ def forecast(
         extrap_method,
         extrap_kwargs,
         add_perturbations,
-        vel_pert_method,
-        vel_pert_kwargs,
-        kmperpixel,
-        timestep,
         num_workers,
         measure_time,
     )
@@ -300,74 +296,27 @@ def forecast(
         else:
             return fct
     else:
-        print("Estimating forecast errors... ", end="", flush=True)
-
-        if measure_time:
-            starttime = time.time()
-
-        precip_fct_det = _linda_forecast(
-            precip_fields[:-1],
-            precip_fields_lagr_diff[:-1],
-            1,
+        pert_gen = _linda_perturbation_init(
+            precip_fields,
+            precip_fields_lagr_diff,
+            advection_field,
             fct_gen,
-            None,
-            None,
-            None,
-            False,
-            False,
-        )
-
-        # compute multiplicative forecast errors
-        err = precip_fct_det[-1] / precip_fields[-1]
-
-        # mask small values
-        mask = np.logical_or(
-            np.logical_and(
-                precip_fct_det[-1] >= pert_thrs[1], precip_fields[-1] >= pert_thrs[0]
-            ),
-            np.logical_and(
-                precip_fct_det[-1] >= pert_thrs[0], precip_fields[-1] >= pert_thrs[1]
-            ),
-        )
-        err[~mask] = np.nan
-
-        if measure_time:
-            pert_estim_time = time.time() - starttime
-            init_time += pert_estim_time
-
-            print(f"{pert_estim_time:.2f} seconds.")
-        else:
-            print("done.")
-
-        precip_pert_gen = _init_perturbation_generator(
-            err,
-            fct_gen,
+            pert_thrs,
+            localization_window_radius,
             errdist_window_radius,
             acf_window_radius,
-            localization_window_radius,
-            measure_time,
+            vel_pert_method,
+            vel_pert_kwargs,
+            kmperpixel,
+            timestep,
             num_workers,
+            measure_time,
         )
-
-        if vel_pert_method == "bps":
-            init_vel_noise, generate_vel_noise = noise.get_method("bps")
-
-            vp_par = vel_pert_kwargs["vp_par"]
-            vp_perp = vel_pert_kwargs["vp_perp"]
-
-            kwargs = {
-                "p_par": vp_par,
-                "p_perp": vp_perp,
-            }
-            vel_pert_gen = {
-                "gen_func": generate_vel_noise,
-                "init_func": lambda seed: init_vel_noise(
-                    advection_field, 1.0 / kmperpixel, timestep, seed=seed, **kwargs
-                ),
-                "timestep": timestep,
-            }
+        if measure_time:
+            precip_pert_gen, vel_pert_gen, pert_init_time = pert_gen
+            init_time += pert_init_time
         else:
-            vel_pert_gen = None
+            precip_pert_gen, vel_pert_gen = pert_gen
 
         def worker(seed):
             return _linda_forecast(
@@ -772,90 +721,7 @@ def _estimate_convol_params(
     return kernels
 
 
-def _fit_acf(acf):
-    """Fit a parametric ACF to the given sample estimate."""
-
-    def objf(p, *args):
-        p = _get_acf_params(p)
-        fitted_acf = _compute_parametric_acf(p, acf.shape[0], acf.shape[1])
-
-        return (acf - fitted_acf).flatten()
-
-    bounds = ((0.01, -np.inf, 0.1, 0.2), (10.0, np.inf, 10.0, 5.0))
-    p_opt = opt.least_squares(
-        objf,
-        np.array((1.0, 0.0, 1.0, 1.0)),
-        bounds=bounds,
-        method="trf",
-        ftol=1e-6,
-        xtol=1e-4,
-        gtol=1e-6,
-    )
-
-    return _compute_parametric_acf(_get_acf_params(p_opt.x), acf.shape[0], acf.shape[1])
-
-
-def _fit_dist(err, dist, wf, mask):
-    """Fit a lognormal distribution by maximizing the log-likelihood function
-    with the constraint that the mean value is one."""
-    f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p ** 2)))
-    p_opt = opt.minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
-
-    return (p_opt.x, -0.5 * p_opt.x ** 2)
-
-
-# TODO: restrict the perturbation generation inside the radar mask
-def _generate_perturbations(pert_gen, num_workers, seed):
-    """Generate perturbations based on the estimated forecast error statistics."""
-    m, n = pert_gen["m"], pert_gen["n"]
-    dist_param = pert_gen["dist_param"]
-    std = pert_gen["std"]
-    acf_fft_ampl = pert_gen["acf_fft_ampl"]
-    weights = pert_gen["weights"]
-
-    noise_field = stats.norm.rvs(size=(m, n), random_state=seed)
-    noise_field_fft = np.fft.rfft2(noise_field)
-
-    output_field = np.zeros((m, n))
-
-    def worker(i):
-        if std[i] > 0.0:
-            filtered_noise = np.fft.irfft2(acf_fft_ampl[i] * noise_field_fft, s=(m, n))
-            filtered_noise /= np.std(filtered_noise)
-            filtered_noise = stats.lognorm.ppf(
-                stats.norm.cdf(filtered_noise), *dist_param[i]
-            )
-        else:
-            filtered_noise = np.ones(weights[i].shape)
-
-        return weights[i] * filtered_noise
-
-    if DASK_IMPORTED and num_workers > 1:
-        res = []
-        for i in range(weights.shape[0]):
-            res.append(dask.delayed(worker)(i))
-        res = dask.compute(*res, num_workers=num_workers, scheduler="threads")
-        for r in res:
-            output_field += r
-    else:
-        for i in range(weights.shape[0]):
-            output_field += worker(i)
-
-    return output_field
-
-
-def _get_acf_params(p):
-    """Get ACF parameters from the given parameter vector."""
-    return p[0], p[1], p[2], p[3] * p[2]
-
-
-def _get_anisotropic_kernel_params(p):
-    """Get anisotropic convolution kernel parameters from the given parameter
-    vector."""
-    return p[0], p[1], p[2] * p[1]
-
-
-def _init_perturbation_generator(
+def _estimate_perturbation_params(
     fct_err,
     fct_gen,
     errdist_window_radius,
@@ -864,7 +730,7 @@ def _init_perturbation_generator(
     measure_time,
     num_workers,
 ):
-    """Initialize the perturbabion generator."""
+    """Estimate the perturbation generator parameters."""
     pert_gen = {}
     pert_gen["m"] = fct_err.shape[0]
     pert_gen["n"] = fct_err.shape[1]
@@ -955,6 +821,89 @@ def _init_perturbation_generator(
         print("done.")
 
     return pert_gen
+
+
+def _fit_acf(acf):
+    """Fit a parametric ACF to the given sample estimate."""
+
+    def objf(p, *args):
+        p = _get_acf_params(p)
+        fitted_acf = _compute_parametric_acf(p, acf.shape[0], acf.shape[1])
+
+        return (acf - fitted_acf).flatten()
+
+    bounds = ((0.01, -np.inf, 0.1, 0.2), (10.0, np.inf, 10.0, 5.0))
+    p_opt = opt.least_squares(
+        objf,
+        np.array((1.0, 0.0, 1.0, 1.0)),
+        bounds=bounds,
+        method="trf",
+        ftol=1e-6,
+        xtol=1e-4,
+        gtol=1e-6,
+    )
+
+    return _compute_parametric_acf(_get_acf_params(p_opt.x), acf.shape[0], acf.shape[1])
+
+
+def _fit_dist(err, dist, wf, mask):
+    """Fit a lognormal distribution by maximizing the log-likelihood function
+    with the constraint that the mean value is one."""
+    f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p ** 2)))
+    p_opt = opt.minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
+
+    return (p_opt.x, -0.5 * p_opt.x ** 2)
+
+
+# TODO: restrict the perturbation generation inside the radar mask
+def _generate_perturbations(pert_gen, num_workers, seed):
+    """Generate perturbations based on the estimated forecast error statistics."""
+    m, n = pert_gen["m"], pert_gen["n"]
+    dist_param = pert_gen["dist_param"]
+    std = pert_gen["std"]
+    acf_fft_ampl = pert_gen["acf_fft_ampl"]
+    weights = pert_gen["weights"]
+
+    noise_field = stats.norm.rvs(size=(m, n), random_state=seed)
+    noise_field_fft = np.fft.rfft2(noise_field)
+
+    output_field = np.zeros((m, n))
+
+    def worker(i):
+        if std[i] > 0.0:
+            filtered_noise = np.fft.irfft2(acf_fft_ampl[i] * noise_field_fft, s=(m, n))
+            filtered_noise /= np.std(filtered_noise)
+            filtered_noise = stats.lognorm.ppf(
+                stats.norm.cdf(filtered_noise), *dist_param[i]
+            )
+        else:
+            filtered_noise = np.ones(weights[i].shape)
+
+        return weights[i] * filtered_noise
+
+    if DASK_IMPORTED and num_workers > 1:
+        res = []
+        for i in range(weights.shape[0]):
+            res.append(dask.delayed(worker)(i))
+        res = dask.compute(*res, num_workers=num_workers, scheduler="threads")
+        for r in res:
+            output_field += r
+    else:
+        for i in range(weights.shape[0]):
+            output_field += worker(i)
+
+    return output_field
+
+
+def _get_acf_params(p):
+    """Get ACF parameters from the given parameter vector."""
+    return p[0], p[1], p[2], p[3] * p[2]
+
+
+def _get_anisotropic_kernel_params(p):
+    """Get anisotropic convolution kernel parameters from the given parameter
+    vector."""
+    return p[0], p[1], p[2] * p[1]
 
 
 # TODO: use the method implemented in pysteps.timeseries.autoregression
@@ -1075,7 +1024,7 @@ def _linda_forecast(
         return np.stack(precip_fct_out)
 
 
-def _linda_init(
+def _linda_deterministic_init(
     precip_fields,
     advection_field,
     feature_method,
@@ -1086,14 +1035,10 @@ def _linda_init(
     extrap_method,
     extrap_kwargs,
     add_perturbations,
-    vel_pert_method,
-    vel_pert_kwargs,
-    kmperpixel,
-    timestep,
     num_workers,
     measure_time,
 ):
-    """Initialize LINDA nowcast model."""
+    """Initialize the deterministic LINDA nowcast model."""
     fct_gen = {}
     fct_gen["advection_field"] = advection_field
     fct_gen["ari_order"] = ari_order
@@ -1310,6 +1255,95 @@ def _linda_init(
         return fct_gen, precip_fields_lagr_diff, time.time() - starttime_init
     else:
         return fct_gen, precip_fields_lagr_diff
+
+
+def _linda_perturbation_init(
+    precip_fields,
+    precip_fields_lagr_diff,
+    advection_field,
+    fct_gen,
+    pert_thrs,
+    localization_window_radius,
+    errdist_window_radius,
+    acf_window_radius,
+    vel_pert_method,
+    vel_pert_kwargs,
+    kmperpixel,
+    timestep,
+    num_workers,
+    measure_time,
+):
+    """Initialize the LINDA perturbation generator."""
+    if measure_time:
+        starttime = time.time()
+
+    print("Estimating forecast errors... ", end="", flush=True)
+
+    precip_fct_det = _linda_forecast(
+        precip_fields[:-1],
+        precip_fields_lagr_diff[:-1],
+        1,
+        fct_gen,
+        None,
+        None,
+        None,
+        False,
+        False,
+    )
+
+    # compute multiplicative forecast errors
+    err = precip_fct_det[-1] / precip_fields[-1]
+
+    # mask small precipitation intensities
+    mask = np.logical_or(
+        np.logical_and(
+            precip_fct_det[-1] >= pert_thrs[1], precip_fields[-1] >= pert_thrs[0]
+        ),
+        np.logical_and(
+            precip_fct_det[-1] >= pert_thrs[0], precip_fields[-1] >= pert_thrs[1]
+        ),
+    )
+    err[~mask] = np.nan
+
+    if measure_time:
+        print(f"{time.time() - starttime:.2f} seconds.")
+    else:
+        print("done.")
+
+    pert_gen = _estimate_perturbation_params(
+        err,
+        fct_gen,
+        errdist_window_radius,
+        acf_window_radius,
+        localization_window_radius,
+        measure_time,
+        num_workers,
+    )
+
+    if vel_pert_method == "bps":
+        init_vel_noise, generate_vel_noise = noise.get_method("bps")
+
+        vp_par = vel_pert_kwargs["vp_par"]
+        vp_perp = vel_pert_kwargs["vp_perp"]
+
+        kwargs = {
+            "p_par": vp_par,
+            "p_perp": vp_perp,
+        }
+        vel_pert_gen = {
+            "gen_func": generate_vel_noise,
+            "init_func": lambda seed: init_vel_noise(
+                advection_field, 1.0 / kmperpixel, timestep, seed=seed, **kwargs
+            ),
+            "timestep": timestep,
+        }
+    else:
+        vel_pert_gen = None
+
+    if measure_time:
+        return pert_gen, vel_pert_gen, time.time() - starttime
+    else:
+        return pert_gen, vel_pert_gen
 
 
 def _masked_convolution(field, kernel):
