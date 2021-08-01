@@ -153,7 +153,7 @@ def get_precipitation_fields(
 
         if (num_prev_files == 0) and (num_next_files == 0):
             # Remove time dimension
-            reference_field = np.squeeze(data_array)
+            data_array = np.squeeze(data_array)
 
         # Convert to mm/h
         data_array = stp.utils.to_rainrate(data_array)
@@ -168,8 +168,8 @@ def get_precipitation_fields(
         data_array = stp.utils.dB_transform(data_array, threshold=0.1, zerovalue=-15.0)
 
         # Set missing values with the fill value
-        np.ma.set_fill_value(reference_field, -15.0)
-        reference_field.data[reference_field.mask] = -15.0
+        np.ma.set_fill_value(data_array, -15.0)
+        data_array.data[data_array.mask] = -15.0
 
     return data_array
 

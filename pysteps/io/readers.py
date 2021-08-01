@@ -32,8 +32,8 @@ def read_timeseries(input_fns, importer, **kwargs):
 
     Returns
     -------
-    out: xr.Dataset
-        A xarray Dataset containing the read data and quality rasters and
+    out: xr.DataArray
+        A xarray DataArray containing the data rasters and
         associated metadata. If an input file name is None, the corresponding
         fields are filled with nan values.
         If all input file names are None or if the length of the file name list

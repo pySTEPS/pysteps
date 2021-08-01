@@ -19,11 +19,11 @@ def test_io_import_mrms_grib():
     filename = os.path.join(
         root_path, "2019/06/10/", "PrecipRate_00.00_20190610-000000.grib2"
     )
-    precip_full = pysteps.io.import_mrms_grib(filename, fillna=0, window_size=1)
+    data_Array = pysteps.io.import_mrms_grib(filename, fillna=0, window_size=1)
 
-    assert isinstance(precip_full, xr.DataArray)
-    assert precip_full.shape == (3500, 7000)
-    assert precip_full.dtype == "single"
+    assert isinstance(data_Array, xr.DataArray)
+    assert data_Array.shape == (3500, 7000)
+    assert data_Array.dtype == "single"
 
     expected_attrs = {
         "institution": "NOAA National Severe Storms Laboratory",
@@ -34,7 +34,7 @@ def test_io_import_mrms_grib():
         "zerovalue": 0,
         "threshold": 0.1,
     }
-    metadata = precip_full.attrs
+    metadata = data_Array.attrs
     for key, value in expected_attrs.items():
         if isinstance(value, float):
             assert_array_almost_equal(metadata[key], expected_attrs[key])
@@ -50,7 +50,7 @@ def test_io_import_mrms_grib():
     )
     assert precip_full2.shape == (3500, 7000)
 
-    assert_array_almost_equal(precip_full, precip_full2)
+    assert_array_almost_equal(data_Array, precip_full2)
 
     del precip_full2
 
@@ -61,7 +61,7 @@ def test_io_import_mrms_grib():
 
     assert precip_clipped.shape == (500, 1000)
     assert_array_almost_equal(
-        precip_clipped, precip_full.isel(y=slice(2000, 2500), x=slice(2000, 3000))
+        precip_clipped, data_Array.isel(y=slice(2000, 2500), x=slice(2000, 3000))
     )
     del precip_clipped
 
