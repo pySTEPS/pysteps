@@ -172,11 +172,13 @@ def forecast(
     Returns
     -------
     out : numpy.ndarray
-        A four-dimensional array of shape (num_ens_members, num_timesteps, m, n)
+        A four-dimensional array of shape (num_ens_members, timesteps, m, n)
         containing a time series of forecast precipitation fields for each
         ensemble member. If add_perturbations is False, the first dimension is
         dropped. The time series starts from t0 + timestep, where timestep is
-        taken from the input fields.
+        taken from the input fields. If measure_time is True, the return value
+        is a three-element tuple containing the nowcast array, the initialization
+        time of the nowcast generator and the time used in the main loop (seconds).
     """
     _check_inputs(precip_fields, advection_field, timesteps, ari_order)
 
@@ -276,7 +278,7 @@ def forecast(
     else:
         fct_gen, precip_fields_lagr_diff = fct_gen
     if not add_perturbations:
-        return _linda_forecast(
+        fct = _linda_forecast(
             precip_fields,
             precip_fields_lagr_diff[1:],
             timesteps,
@@ -287,6 +289,10 @@ def forecast(
             measure_time,
             True,
         )
+        if measure_time:
+            return fct[0], init_time, fct[1]
+        else:
+            return fct
     else:
         print("Estimating forecast errors... ", end="", flush=True)
 
@@ -320,7 +326,10 @@ def forecast(
         err[~mask] = np.nan
 
         if measure_time:
-            print(f"{time.time() - starttime:.2f} seconds.")
+            pert_estim_time = time.time() - starttime
+            init_time += pert_estim_time
+
+            print(f"{pert_estim_time:.2f} seconds.")
         else:
             print("done.")
 
@@ -371,6 +380,9 @@ def forecast(
 
         rs = np.random.RandomState(seed)
 
+        if measure_time:
+            fct_comp_starttime = time.time()
+
         if DASK_IMPORTED and num_workers > 1:
             res = []
             for _ in range(num_ens_members):
@@ -384,7 +396,12 @@ def forecast(
                 seed = rs.randint(0, high=1e9)
                 precip_fct_ensemble.append(worker(seed))
 
-        return np.stack(precip_fct_ensemble)
+        fct = np.stack(precip_fct_ensemble)
+
+        if measure_time:
+            return fct, init_time, time.time() - fct_comp_starttime
+        else:
+            return fct
 
 
 def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
@@ -975,6 +992,9 @@ def _linda_forecast(
     extrap_kwargs["return_displacement"] = True
     precip_fct_out = []
 
+    if measure_time:
+        starttime_fct_comp = time.time()
+
     for i in range(precip_fields_lagr_diff.shape[0]):
         for _ in range(ari_order - i):
             precip_fields_lagr_diff[i] = _composite_convolution(
@@ -983,10 +1003,6 @@ def _linda_forecast(
                 interp_weights,
             )
 
-    # iterate each time step
-    if measure_time:
-        starttime_mainloop = time.time()
-
     if precip_pert_gen is not None:
         rs_precip = np.random.RandomState(seed)
 
@@ -994,6 +1010,7 @@ def _linda_forecast(
         vel_pert_gen = vel_pert_gen.copy()
         vel_pert_gen["gen_obj"] = vel_pert_gen["init_func"](seed)
 
+    # iterate each time step
     for t in range(timesteps):
         if print_info:
             print(
@@ -1047,8 +1064,7 @@ def _linda_forecast(
                 print("done.")
 
     if measure_time:
-        mainloop_time = time.time() - starttime_mainloop
-        return np.stack(precip_fct_out), mainloop_time
+        return np.stack(precip_fct_out), time.time() - starttime_fct_comp
     else:
         return np.stack(precip_fct_out)
 
