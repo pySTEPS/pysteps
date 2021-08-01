@@ -98,12 +98,12 @@ def test_linda_wrong_inputs():
 
     # vel_pert_method is set but kmperpixel is None
     with pytest.raises(ValueError):
-        forecast(precip, velocity, 1.0, vel_pert_method="bps", kmperpixel=None)
+        forecast(precip, velocity, 1, vel_pert_method="bps", kmperpixel=None)
 
     # vel_pert_method is set but timestep is None
     with pytest.raises(ValueError):
         forecast(
-            precip, velocity, 1.0, vel_pert_method="bps", kmperpixel=1, timestep=None
+            precip, velocity, 1, vel_pert_method="bps", kmperpixel=1, timestep=None
         )
 
     # fractional time steps not yet implemented
@@ -121,7 +121,7 @@ def test_linda_wrong_inputs():
 
     # precip_fields.shape[0] < ari_order+2
     with pytest.raises(ValueError):
-        forecast(np.zeros((4, 3, 3)), velocity, 1, ari_order=1)
+        forecast(np.zeros((2, 3, 3)), velocity, 1, ari_order=1)
 
     # advection_field must be a three-dimensional array
     with pytest.raises(ValueError):
