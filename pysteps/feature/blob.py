@@ -49,6 +49,11 @@ def detection(
     ----------
     input_image: array_like
         Array of shape (m, n) containing the input image. Nan values are ignored.
+    max_num_features : int, optional
+        The maximum number of blobs to detect. Set to None for no restriction.
+        If specified, the most significant blobs are chosen based on their
+        intensities in the corresponding Laplacian of Gaussian (LoG)-filtered
+        images.
     method: {'log', 'dog', 'doh'}, optional
         The method to use: 'log' = Laplacian of Gaussian, 'dog' = Difference of
         Gaussian, 'doh' = Determinant of Hessian.

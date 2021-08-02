@@ -74,8 +74,9 @@ def detection(
         It represents the maximum number of points to be tracked (corners).
         If set to zero, all detected corners are used.
     max_num_features: int, optional
-        If specified, this argument is substituted for max_corners. Added for
-        compatibility with the feature detector interface.
+        If specified, this argument is substituted for max_corners. Set to None
+        for no restriction. Added for compatibility with the feature detector
+        interface.
     quality_level: float, optional
         The ``qualityLevel`` parameter in the `Shi-Tomasi`_ corner detection
         method.
