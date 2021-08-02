@@ -70,7 +70,7 @@ def test_feature_tstorm_detection(source, output_feat, dry_input, max_num_featur
         assert output[1].shape == input.shape
         if not dry_input:
             assert output[0].shape[0] > 0
-            assert list(output[0].ID) == list(np.unique(output[1]))[1:]
+            assert sorted(list(output[0].ID)) == sorted(list(np.unique(output[1]))[1:])
         else:
             assert output[0].shape[0] == 0
             assert output[1].sum() == 0
