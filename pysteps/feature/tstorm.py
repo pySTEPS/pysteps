@@ -173,7 +173,9 @@ def detection(
         if max_num_features is None:
             return cells_id, labels
         else:
-            return cells_id[idx[:max_num_features]], labels[idx[:max_num_features]]
+            for i in idx[max_num_features:]:
+                labels[labels == cells_id.ID[i]] = 0
+            return cells_id.loc[idx[:max_num_features]], labels
     if output_feat:
         out = np.column_stack([np.array(cells_id.cen_x), np.array(cells_id.cen_y)])
         if max_num_features is not None:
