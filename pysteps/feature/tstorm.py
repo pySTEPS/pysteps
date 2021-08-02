@@ -170,7 +170,7 @@ def detection(
         idx = np.argsort(cells_id.area.to_numpy())[::-1]
 
     if not output_feat:
-        if max_num_features is not None:
+        if max_num_features is None:
             return cells_id, labels
         else:
             return cells_id[idx[:max_num_features]], labels[idx[:max_num_features]]
