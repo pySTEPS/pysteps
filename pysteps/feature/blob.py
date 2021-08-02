@@ -26,7 +26,7 @@ except ImportError:
 
 def detection(
     input_image,
-    max_num_features=1000,
+    max_num_features=None,
     method="log",
     threshold=0.5,
     min_sigma=3,
@@ -97,7 +97,7 @@ def detection(
         **kwargs,
     )
 
-    if blobs.shape[0] > max_num_features:
+    if max_num_features is not None and blobs.shape[0] > max_num_features:
         blob_intensities = []
         for i in range(blobs.shape[0]):
             gl_image = -gaussian_laplace(input_image, blobs[i, 2])

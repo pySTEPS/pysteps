@@ -15,6 +15,14 @@ where each row corresponds to one of the n features. The first two columns
 contain the coordinates (x, y) of the features, and additional information can
 be specified in the remaining columns.
 
+All implemented methods support the following keyword arguments:
+
++------------------+-----------------------------------------------------+
+|       Key        |                Value                                |
++==================+=====================================================+
+| max_num_features | maximum number of features to detect                |
++------------------+-----------------------------------------------------+
+
 .. autosummary::
     :toctree: ../generated/
 
