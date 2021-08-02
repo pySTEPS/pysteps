@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 pysteps.feature.tstorm
 ======================
@@ -49,6 +48,7 @@ except ImportError:
 
 def detection(
     input_image,
+    max_num_features=None,
     minref=35,
     maxref=48,
     mindiff=6,
@@ -69,6 +69,9 @@ def detection(
     input_image: array-like
         Array of shape (m,n) containing input image, usually maximum reflectivity in
         dBZ with a resolution of 1 km. Nan values are ignored.
+    max_num_features : int, optional
+        The maximum number of cells to detect. Set to None for no restriction.
+        If specified, the most significant cells are chosen based on their area.
     minref: float, optional
         Lower threshold for object detection. Lower values will be set to NaN.
         The default is 35 dBZ.
@@ -163,10 +166,20 @@ def detection(
 
     cells_id, labels = get_profile(areas, binary, input_image, loc_max, time, minref)
 
+    if max_num_features is not None:
+        idx = np.argsort(cells_id.area.to_numpy())[::-1]
+
     if not output_feat:
-        return cells_id, labels
+        if max_num_features is not None:
+            return cells_id, labels
+        else:
+            return cells_id[idx[:max_num_features]], labels[idx[:max_num_features]]
     if output_feat:
-        return np.column_stack([np.array(cells_id.cen_x), np.array(cells_id.cen_y)])
+        out = np.column_stack([np.array(cells_id.cen_x), np.array(cells_id.cen_y)])
+        if max_num_features is not None:
+            out = out[idx[:max_num_features], :]
+
+        return out
 
 
 def breakup(ref, minval, maxima):
@@ -219,7 +232,7 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
     cells_id = pd.DataFrame(
         data=None,
         index=range(len(cell_labels)),
-        columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont"],
+        columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont", "area"],
     )
     cells_id.time = time
     for n in range(len(cell_labels)):
@@ -235,6 +248,7 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
         cells_id.cen_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
         cells_id.cen_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
         cells_id.max_ref.iloc[n] = maxref
+        cells_id.area.iloc[n] = len(cells_id.x.iloc[n])
         labels[cells == cell_labels[n]] = ID
 
     return cells_id, labels
