@@ -3,24 +3,22 @@ import numpy as np
 from pysteps import feature
 from pysteps.tests.helpers import get_precipitation_fields
 
-methods = ["blob", "shitomasi"]
+arg_names = ["method", "max_num_features"]
+arg_values = [("blob", None), ("blob", 5), ("shitomasi", None), ("shitomasi", 5)]
 
 
-@pytest.mark.parametrize("method", methods)
-def test_feature(method):
+@pytest.mark.parametrize(arg_names, arg_values)
+def test_feature(method, max_num_features):
     input, metadata = get_precipitation_fields(0, 0, True, True, None, "mch")
 
     detector = feature.get_method(method)
 
-    output = detector(input.squeeze())
+    kwargs = {"max_num_features": max_num_features}
+    output = detector(input.squeeze(), **kwargs)
 
     assert isinstance(output, np.ndarray)
     assert output.ndim == 2
     assert output.shape[0] > 0
+    if max_num_features is not None:
+        assert output.shape[0] <= max_num_features
     assert output.shape[1] == 2
-
-
-# TODO: remove this
-if __name__ == "__main__":
-    test_feature("blob")
-    test_feature("shitomasi")
