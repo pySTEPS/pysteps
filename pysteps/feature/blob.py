@@ -105,7 +105,7 @@ def detection(
     if max_num_features is not None and blobs.shape[0] > max_num_features:
         blob_intensities = []
         for i in range(blobs.shape[0]):
-            gl_image = -gaussian_laplace(input_image, blobs[i, 2])
+            gl_image = -gaussian_laplace(input_image, blobs[i, 2]) * blobs[i, 2] ** 2
             blob_intensities.append(gl_image[int(blobs[i, 0]), int(blobs[i, 1])])
         idx = np.argsort(blob_intensities)[::-1]
         blobs = blobs[idx[:max_num_features], :]
