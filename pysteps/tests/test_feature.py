@@ -9,12 +9,12 @@ arg_values = [("blob", None), ("blob", 5), ("shitomasi", None), ("shitomasi", 5)
 
 @pytest.mark.parametrize(arg_names, arg_values)
 def test_feature(method, max_num_features):
-    input, _ = get_precipitation_fields(0, 0, True, True, None, "mch")
+    input_field, _ = get_precipitation_fields(0, 0, True, True, None, "mch")
 
     detector = feature.get_method(method)
 
     kwargs = {"max_num_features": max_num_features}
-    output = detector(input.squeeze(), **kwargs)
+    output = detector(input_field.squeeze(), **kwargs)
 
     assert isinstance(output, np.ndarray)
     assert output.ndim == 2
