@@ -62,6 +62,7 @@ def forecast(
     advection_field,
     timesteps,
     feature_method="blob",
+    max_num_features=25,
     feature_kwargs=None,
     ari_order=1,
     kernel_type="anisotropic",
@@ -114,6 +115,10 @@ def forecast(
         +-------------------+-----------------------------------------------------+
 
         Default: 'blob'
+    max_num_features : int, optional
+        Maximum number of features to use. It is recommended to set this between
+        20 and 50, which gives a good tradeoff between localization and
+        computation time. Default: 25
     feature_kwargs : dict, optional
         Keyword arguments that are passed as **kwargs for the feature detector.
         See :py:mod:`pysteps.feature.blob` and :py:mod:`pysteps.feature.shitomasi`.
@@ -274,6 +279,7 @@ def forecast(
         precip_fields,
         advection_field,
         feature_method,
+        max_num_features,
         feature_kwargs,
         ari_order,
         kernel_type,
@@ -1040,6 +1046,7 @@ def _linda_deterministic_init(
     precip_fields,
     advection_field,
     feature_method,
+    max_num_features,
     feature_kwargs,
     ari_order,
     kernel_type,
@@ -1077,6 +1084,9 @@ def _linda_deterministic_init(
 
         if measure_time:
             starttime = time.time()
+
+        feature_kwargs = feature_kwargs.copy()
+        feature_kwargs["max_num_features"] = max_num_features
 
         feature_coords = np.fliplr(
             feature_detector(precip_field_, **feature_kwargs)[:, :2]
