@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 pysteps.feature.shitomasi
 =========================
@@ -27,6 +26,7 @@ except ImportError:
 def detection(
     input_image,
     max_corners=1000,
+    max_num_features=None,
     quality_level=0.01,
     min_distance=10,
     block_size=5,
@@ -73,6 +73,10 @@ def detection(
         method.
         It represents the maximum number of points to be tracked (corners).
         If set to zero, all detected corners are used.
+    max_num_features: int, optional
+        If specified, this argument is substituted for max_corners. Set to None
+        for no restriction. Added for compatibility with the feature detector
+        interface.
     quality_level: float, optional
         The ``qualityLevel`` parameter in the `Shi-Tomasi`_ corner detection
         method.
@@ -148,7 +152,7 @@ def detection(
     mask = (-1 * mask + 1).astype("uint8")
 
     params = dict(
-        maxCorners=max_corners,
+        maxCorners=max_num_features if max_num_features is not None else max_corners,
         qualityLevel=quality_level,
         minDistance=min_distance,
         blockSize=block_size,
