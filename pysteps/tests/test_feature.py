@@ -9,7 +9,7 @@ arg_values = [("blob", None), ("blob", 5), ("shitomasi", None), ("shitomasi", 5)
 
 @pytest.mark.parametrize(arg_names, arg_values)
 def test_feature(method, max_num_features):
-    input, metadata = get_precipitation_fields(0, 0, True, True, None, "mch")
+    input, _ = get_precipitation_fields(0, 0, True, True, None, "mch")
 
     detector = feature.get_method(method)
 
