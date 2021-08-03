@@ -42,12 +42,12 @@ def test_tracking_tdating_dating(source, dry_input):
     assert len(output[2]) == input.shape[0]
     assert isinstance(output[1][0], pandas.DataFrame)
     assert isinstance(output[2][0], np.ndarray)
-    assert output[1][0].shape[1] == 8
+    assert output[1][0].shape[1] == 9
     assert output[2][0].shape == input.shape[1:]
     if not dry_input:
         assert len(output[0]) > 0
         assert isinstance(output[0][0], pandas.DataFrame)
-        assert output[0][0].shape[1] == 8
+        assert output[0][0].shape[1] == 9
     else:
         assert len(output[0]) == 0
         assert output[1][0].shape[0] == 0
