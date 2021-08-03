@@ -14,6 +14,8 @@ Module with the reader functions.
 import numpy as np
 import xarray as xr
 
+from pysteps.decorators import _xarray2legacy
+
 
 def read_timeseries(input_fns, importer, **kwargs):
     """Read a time series of input files using the methods implemented in the
@@ -39,7 +41,8 @@ def read_timeseries(input_fns, importer, **kwargs):
         If all input file names are None or if the length of the file name list
         is zero, None is returned.
     """
-
+    legacy = kwargs.get("legacy", False)
+    kwargs["legacy"] = False
     # check for missing data
     precip_ref = None
     if all(ifn is None for ifn in input_fns):
@@ -68,5 +71,8 @@ def read_timeseries(input_fns, importer, **kwargs):
 
     precip = xr.concat(precip, "t")
     precip = precip.assign_coords({"t": timestamps})
+
+    if legacy:
+        return _xarray2legacy(precip)
 
     return precip

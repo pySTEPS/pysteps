@@ -89,6 +89,8 @@ def postprocess_import(fillna=np.nan, dtype="double"):
 
             data_array = data_array.astype(_dtype)
 
+            if kwargs.get("legacy", False):
+                return _xarray2legacy(data_array)
             return data_array
 
         extra_kwargs_doc = """
@@ -315,6 +317,11 @@ def _to_xarray(array, metadata):
             "zr_b": metadata.get("zr_b", None),
             "institution": metadata["institution"],
             "projection": metadata["projection"],
+            #
+            # TODO: Remove before final 2.0 version
+            "yorigin": metadata["yorigin"],
+            "xpixelsize": metadata["xpixelsize"],
+            "ypixelsize": metadata["ypixelsize"],
         }
     )
 
@@ -322,6 +329,10 @@ def _to_xarray(array, metadata):
         {
             "standard_name": "projection_x_coordinate",
             "units": metadata["cartesian_unit"],
+            #
+            # TODO: Remove before final 2.0 version
+            "x1": x1,
+            "x2": x2,
         }
     )
 
@@ -329,7 +340,29 @@ def _to_xarray(array, metadata):
         {
             "standard_name": "projection_y_coordinate",
             "units": metadata["cartesian_unit"],
+            #
+            # TODO: Remove before final 2.0 version
+            "y1": y1,
+            "y2": y2,
         }
     )
 
     return data_array
+
+
+# TODO: Remove before final 2.0 version
+def _xarray2legacy(data_array):
+    """
+    Convert the new DataArrays to the legacy format used in pysteps v1.*
+    """
+    _array = data_array.values
+
+    metadata = data_array.x.attrs.copy()
+    metadata.update(**data_array.y.attrs)
+    metadata.update(**data_array.attrs)
+
+    if "t" in data_array.coords:
+        print(data_array["t"])
+        metadata["timestamps"] = data_array["t"]
+
+    return _array, None, metadata
