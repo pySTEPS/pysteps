@@ -79,6 +79,7 @@ def forecast(
     timestep=None,
     seed=None,
     num_workers=1,
+    use_multiprocessing=False,
     measure_time=False,
 ):
     """Generate a deterministic or ensemble nowcast by using the Lagrangian
@@ -163,6 +164,11 @@ def forecast(
     num_workers : int, optional
         The number of workers to use for parallel computations. Applicable if
         dask is installed. Default: 1
+    use_multiprocessing : bool, optional
+        Set to True to improve the performance of certain parallelized parts of
+        the code. If set to True, the main script calling linda.forecast must
+        be enclosed within the 'if __name__ == "__main__":' block.
+        Default: False
     measure_time: bool, optional
         If set to True, measure, print and return the computation time.
         Default: False
@@ -313,6 +319,7 @@ def forecast(
             kmperpixel,
             timestep,
             num_workers,
+            use_multiprocessing,
             measure_time,
         )
         if measure_time:
@@ -732,6 +739,7 @@ def _estimate_perturbation_params(
     interp_window_radius,
     measure_time,
     num_workers,
+    use_multiprocessing,
 ):
     """Estimate perturbation generator parameters from forecast errors."""
     pert_gen = {}
@@ -794,7 +802,8 @@ def _estimate_perturbation_params(
         res = []
         for i in range(feature_coords.shape[0]):
             res.append(dask.delayed(worker)(i))
-        res = dask.compute(*res, num_workers=num_workers, scheduler="threads")
+        scheduler = "threads" if not use_multiprocessing else "multiprocessing"
+        res = dask.compute(*res, num_workers=num_workers, scheduler=scheduler)
         for r in res:
             dist_params.append(r[0])
             stds.append(r[1])
@@ -1274,6 +1283,7 @@ def _linda_perturbation_init(
     kmperpixel,
     timestep,
     num_workers,
+    use_multiprocessing,
     measure_time,
 ):
     """Initialize the LINDA perturbation generator."""
@@ -1321,6 +1331,7 @@ def _linda_perturbation_init(
         localization_window_radius,
         measure_time,
         num_workers,
+        use_multiprocessing,
     )
 
     if vel_pert_method == "bps":
