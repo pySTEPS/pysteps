@@ -72,7 +72,7 @@ def forecast(
     extrap_kwargs=None,
     add_perturbations=True,
     pert_thrs=(0.5, 1.0),
-    num_ens_members=40,
+    num_ens_members=10,
     vel_pert_method=None,
     vel_pert_kwargs=None,
     kmperpixel=None,
@@ -142,7 +142,7 @@ def forecast(
         Two-element tuple containing the threshold values for estimating the
         perturbation parameters (mm/h). Default: (0.5, 1.0)
     num_ens_members : int, optional
-        The number of ensemble members to generate. Default: 40
+        The number of ensemble members to generate. Default: 10
     vel_pert_method: {'bps', None}, optional
         Name of the generator to use for perturbing the advection field. See
         :py:mod:`pysteps.noise.interface`. Default: None
