@@ -11,6 +11,7 @@ import pytest
 
 import pysteps as stp
 from pysteps import io, rcparams
+from pysteps.decorators import _to_xarray, _xarray2legacy
 from pysteps.utils import aggregate_fields_space
 
 _reference_dates = dict()
@@ -27,8 +28,10 @@ def get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=False,
+    metadata=False,
     upscale=None,
     source="mch",
+    legacy=True,
     **importer_kwargs,
 ):
     """
@@ -147,31 +150,45 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    data_array = io.read_timeseries(fns, importer, **_importer_kwargs)
+    reference_field = io.read_timeseries(fns, importer, **_importer_kwargs)
+
+    reference_field, _, ref_metadata = _xarray2legacy(reference_field)
 
     if not return_raw:
 
         if (num_prev_files == 0) and (num_next_files == 0):
             # Remove time dimension
-            data_array = np.squeeze(data_array)
+            reference_field = np.squeeze(reference_field)
 
         # Convert to mm/h
-        data_array = stp.utils.to_rainrate(data_array)
+        reference_field, ref_metadata = stp.utils.to_rainrate(
+            reference_field, ref_metadata
+        )
 
         # Upscale data to 2 km
-        data_array = aggregate_fields_space(data_array, upscale)
+        reference_field, ref_metadata = aggregate_fields_space(
+            reference_field, ref_metadata, upscale
+        )
 
         # Mask invalid values
-        data_array = np.ma.masked_invalid(data_array)
+        reference_field = np.ma.masked_invalid(reference_field)
 
         # Log-transform the data [dBR]
-        data_array = stp.utils.dB_transform(data_array, threshold=0.1, zerovalue=-15.0)
+        reference_field, ref_metadata = stp.utils.dB_transform(
+            reference_field, ref_metadata, threshold=0.1, zerovalue=-15.0
+        )
 
         # Set missing values with the fill value
-        np.ma.set_fill_value(data_array, -15.0)
-        data_array.data[data_array.mask] = -15.0
+        np.ma.set_fill_value(reference_field, -15.0)
+        reference_field.data[reference_field.mask] = -15.0
 
-    return data_array
+    if legacy or metadata:
+        if metadata:
+            return reference_field, ref_metadata
+        else:
+            return reference_field
+
+    return _to_xarray(reference_field, ref_metadata)
 
 
 def smart_assert(actual_value, expected, tolerance=None):
