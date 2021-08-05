@@ -45,9 +45,9 @@ def dummy_nwp(R, n_leadtimes, max=20, mean=0, sigma=0.25, speed=100):
 ###############################################################################
 # Set nowcast parameters
 n_ens_members = 20
-n_leadtimes = 12
-start_blending = 20  # in minutes
-end_blending = 40  # in minutes
+n_leadtimes = 18
+start_blending = 30  # in minutes
+end_blending = 60  # in minutes
 seed = 24
 
 # Read precipitation field
@@ -75,7 +75,7 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to rain rate
 R, metadata = conversion.to_rainrate(R, metadata)
@@ -91,7 +91,7 @@ R_nwp = dummy_nwp(R[-1, :, :], n_leadtimes + 1, max=7, mean=4, speed=0.2 * 350)
 R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
 
 # Set missing values with the fill value
-R[~np.isfinite(R)] = -15.0
+# R[~np.isfinite(R)] = -15.0
 
 # Nicely print the metadata
 pprint(metadata)

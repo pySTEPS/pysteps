@@ -132,6 +132,10 @@ def forecast(
                 R_blended[i, :, :] = (
                     weight_nwp * R_nwp[i, :, :] + weight_nowcast * R_nowcast[i, :, :]
                 )
+
+            # Find where the NaN values are and replace them with NWP data
+            nan_indices = np.isnan(R_blended)
+            R_blended[nan_indices] = R_nwp[nan_indices]
     else:
         # If no NWP data is given, the blended field is simply equal to the nowcast field
         R_blended = R_nowcast
