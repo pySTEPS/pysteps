@@ -44,7 +44,7 @@ def dummy_nwp(R, n_leadtimes, max=20, mean=0, sigma=0.25, speed=100):
 
 ###############################################################################
 # Set nowcast parameters
-n_ens_members = 20
+n_ens_members = 10
 n_leadtimes = 18
 start_blending = 30  # in minutes
 end_blending = 60  # in minutes
@@ -127,8 +127,29 @@ R_blended = forecast(
     nowcast_kwargs=nowcast_kwargs,
 )
 
+"""
+extrap_kwargs = {"allow_nonfinite_values": True}
+nowcast_kwargs = {"extrap_kwargs": extrap_kwargs}
+
+# Calculate the blended precipitation field
+R_blended = forecast(
+    R[-1, :, :],
+    V,
+    n_leadtimes,
+    timestep,
+    "extrapolation",
+    R_nwp=R_nwp[1: :, :],
+    start_blending=start_blending,
+    end_blending=end_blending,
+    nowcast_kwargs=nowcast_kwargs,
+)
+"""
+
 # Calculate the ensemble average
-R_blended_mean = np.mean(R_blended[:, :, :, :], axis=0)
+if len(R_blended.shape) == 4:
+    R_blended_mean = np.mean(R_blended[:, :, :, :], axis=0)
+else:
+    R_blended_mean = np.copy(R_blended)
 
 # Plot the blended field
 for i in range(n_leadtimes):

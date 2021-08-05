@@ -33,10 +33,10 @@ def test_linear_blending(
     timestep, start_blending, end_blending, n_timesteps, controltime, nowcast_method, V
 ):
     """Tests if the linear blending function is correct. For the nowcast data a precipitation field
-    which is constant over time is taken where one half of the field has no rain and the other half
-    has a set value. For the NWP data a similar field is taken with the only difference
-    being that now the other half of the field is zero. After blending the blended field should
-    have a constant value over the entire field at the timestep right in the middle between the start
+    which is constant over time is taken. One half of the field has no rain and the other half
+    has a set value. For the NWP data a similar field is taken, the only difference
+    being that now the other half of the field is zero. The blended field should have a
+    constant value over the entire field at the timestep right in the middle between the start
     of the blending and the end of the blending. This assertion is checked to see if the
     linear blending function works well."""
 
