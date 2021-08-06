@@ -8,10 +8,14 @@ nowcasts using Swiss radar data.
 
 """
 
+from datetime import datetime
+import warnings
+
+warnings.simplefilter("ignore")
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from datetime import datetime
 from pysteps import io, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.nowcasts import linda
