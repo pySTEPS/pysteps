@@ -26,16 +26,16 @@ date = datetime.strptime("201701311200", "%Y%m%d%H%M")
 data_source = "mch"
 
 # Read the data source information from rcparams
-rcparams = rcparams.data_sources[data_source]
+datasource_params = rcparams.data_sources[data_source]
 
 # Find the radar files in the archive
 fns = io.find_by_date(
     date,
-    rcparams["root_path"],
-    rcparams["path_fmt"],
-    rcparams["fn_pattern"],
-    rcparams["fn_ext"],
-    rcparams["timestep"],
+    datasource_params["root_path"],
+    datasource_params["path_fmt"],
+    datasource_params["fn_pattern"],
+    datasource_params["fn_ext"],
+    datasource_params["timestep"],
     num_prev_files=2,
 )
 
