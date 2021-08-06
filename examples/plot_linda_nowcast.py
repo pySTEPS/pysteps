@@ -40,9 +40,9 @@ fns = io.find_by_date(
 )
 
 # Read the data from the archive
-importer = io.get_method(rcparams["importer"], "importer")
+importer = io.get_method(datasource_params["importer"], "importer")
 reflectivity, _, metadata = io.read_timeseries(
-    fns, importer, **rcparams["importer_kwargs"]
+    fns, importer, **datasource_params["importer_kwargs"]
 )
 
 # Convert reflectivity to rain rate
