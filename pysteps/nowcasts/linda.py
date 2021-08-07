@@ -88,18 +88,18 @@ def forecast(
 
     Parameters
     ----------
-    precip_fields : array_like
+    precip_fields: array_like
         Array of shape (ari_order + 2, m, n) containing the input rain rate
         or reflectivity fields (in linear scale) ordered by timestamp from
         oldest to newest. The time steps between the inputs are assumed to be
         regular.
-    advection_field : array_like
+    advection_field: array_like
         Array of shape (2, m, n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs.
-    timesteps : int
+    timesteps: int
         Number of time steps to forecast.
-    feature_method : {'blob', 'domain' 'shitomasi'}
+    feature_method: {'blob', 'domain' 'shitomasi'}
         Feature detection method:
 
         +-------------------+-----------------------------------------------------+
@@ -115,39 +115,39 @@ def forecast(
         +-------------------+-----------------------------------------------------+
 
         Default: 'blob'
-    max_num_features : int, optional
+    max_num_features: int, optional
         Maximum number of features to use. It is recommended to set this between
         20 and 50, which gives a good tradeoff between localization and
         computation time. Default: 25
-    feature_kwargs : dict, optional
+    feature_kwargs: dict, optional
         Keyword arguments that are passed as **kwargs for the feature detector.
         See :py:mod:`pysteps.feature.blob` and :py:mod:`pysteps.feature.shitomasi`.
-    ari_order : {1, 2}, optional
+    ari_order: {1, 2}, optional
         The order of the ARI(p, 1) model. Default: 1
-    kernel_type : {"anisotropic", "isotropic"}, optional
+    kernel_type: {"anisotropic", "isotropic"}, optional
         The type of the kernel. Default: 'anisotropic'
-    localization_window_radius : float, optional
+    localization_window_radius: float, optional
         The standard deviation of the Gaussian localization window.
         Default: 0.2 * min(m, n)
-    errdist_window_radius : float, optional
+    errdist_window_radius: float, optional
         The standard deviation of the Gaussian window for estimating the
         forecast error distribution. Default: 0.15 * min(m, n)
-    acf_window_radius : float, optional
+    acf_window_radius: float, optional
         The standard deviation of the Gaussian window for estimating the
         forecast error ACF. Default: 0.25 * min(m, n)
-    extrap_method : str, optional
+    extrap_method: str, optional
         The extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`. Default: 'semilagrangian'
-    extrap_kwargs : dict, optional
+    extrap_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See :py:mod:`pysteps.extrapolation`.
-    add_perturbations : bool
+    add_perturbations: bool
         Set to False to disable perturbations and generate a single
         deterministic nowcast. Default: True
-    pert_thrs : float
+    pert_thrs: float
         Two-element tuple containing the threshold values for estimating the
         perturbation parameters (mm/h). Default: (0.5, 1.0)
-    num_ens_members : int, optional
+    num_ens_members: int, optional
         The number of ensemble members to generate. Default: 10
     vel_pert_method: {'bps', None}, optional
         Name of the generator to use for perturbing the advection field. See
@@ -164,12 +164,12 @@ def forecast(
     timestep: float, optional
         Time step of the motion vectors (minutes). Required if vel_pert_method
         is not None.
-    seed : int, optional
+    seed: int, optional
         Optional seed for the random generators.
-    num_workers : int, optional
+    num_workers: int, optional
         The number of workers to use for parallel computations. Applicable if
         dask is installed. Default: 1
-    use_multiprocessing : bool, optional
+    use_multiprocessing: bool, optional
         Set to True to improve the performance of certain parallelized parts of
         the code. If set to True, the main script calling linda.forecast must
         be enclosed within the 'if __name__ == "__main__":' block.
@@ -180,7 +180,7 @@ def forecast(
 
     Returns
     -------
-    out : numpy.ndarray
+    out: numpy.ndarray
         A four-dimensional array of shape (num_ens_members, timesteps, m, n)
         containing a time series of forecast precipitation fields for each
         ensemble member. If add_perturbations is False, the first dimension is
