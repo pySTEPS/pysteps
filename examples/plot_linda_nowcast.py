@@ -18,8 +18,8 @@ import numpy as np
 
 from pysteps import io, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
-from pysteps.nowcasts import linda
-from pysteps.utils import conversion, dimension
+from pysteps.nowcasts import linda, sprog
+from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 
 ###############################################################################
@@ -56,6 +56,7 @@ rainrate, metadata = conversion.to_rainrate(reflectivity, metadata)
 rainrate, metadata = dimension.aggregate_fields_space(rainrate, metadata, 2000)
 
 # Plot the most recent rain rate field
+plt.figure()
 plot_precip_field(rainrate[-1, :, :], geodata=metadata)
 plt.show()
 
@@ -72,7 +73,7 @@ advection = dense_lucaskanade(rainrate, verbose=True)
 
 # Compute 30-minute LINDA nowcast with 8 parallel workers
 # Restrict the number of features to 15 to reduce computation time
-rainrate_nowcast = linda.forecast(
+nowcast_linda = linda.forecast(
     rainrate,
     advection,
     6,
@@ -82,12 +83,41 @@ rainrate_nowcast = linda.forecast(
     measure_time=True,
 )[0]
 
-# Plot the nowcast
+# Compute S-PROG nowcast for comparison
+rainrate_db, _ = transformation.dB_transform(
+    rainrate, metadata, threshold=0.1, zerovalue=-15.0
+)
+nowcast_sprog = sprog.forecast(
+    rainrate_db[-3:, :, :],
+    advection,
+    6,
+    n_cascade_levels=6,
+    R_thr=-10.0,
+)
+
+# Convert reflectivity nowcast to rain rate
+nowcast_sprog = transformation.dB_transform(
+    nowcast_sprog, threshold=-10.0, inverse=True
+)[0]
+
+# Plot the nowcasts
+fig = plt.figure()
+ax = fig.add_subplot(1, 2, 1)
 plot_precip_field(
-    rainrate_nowcast[-1, :, :],
+    nowcast_linda[-1, :, :],
+    ax=ax,
     geodata=metadata,
     title="LINDA-D (+ 30 min)",
 )
+
+ax = fig.add_subplot(1, 2, 2)
+plot_precip_field(
+    nowcast_sprog[-1, :, :],
+    ax=ax,
+    geodata=metadata,
+    title="S-PROG (+ 30 min)",
+)
+
 plt.show()
 
 ###############################################################################
