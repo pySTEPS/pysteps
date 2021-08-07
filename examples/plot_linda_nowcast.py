@@ -121,6 +121,13 @@ plot_precip_field(
 plt.show()
 
 ###############################################################################
+# The above figure shows that the filtering scheme implemented in LINDA preserves
+# small-scale and band-shaped features better than S-PROG. This is because the
+# former uses a localized elliptical convolution kernel instead of the
+# cascade-based autoregressive process, where the parameters are estimated over
+# the whole domain.
+
+###############################################################################
 # Probabilistic nowcast (LINDA-P)
 # -------------------------------
 
