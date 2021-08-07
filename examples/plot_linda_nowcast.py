@@ -18,7 +18,7 @@ import numpy as np
 
 from pysteps import io, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
-from pysteps.nowcasts import linda, sprog
+from pysteps.nowcasts import linda, sprog, steps
 from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 
@@ -68,8 +68,8 @@ plt.show()
 advection = dense_lucaskanade(rainrate, verbose=True)
 
 ###############################################################################
-# Deterministic nowcast (LINDA-D)
-# -------------------------------
+# Deterministic nowcast
+# ---------------------
 
 # Compute 30-minute LINDA nowcast with 8 parallel workers
 # Restrict the number of features to 15 to reduce computation time
@@ -105,16 +105,12 @@ fig = plt.figure()
 ax = fig.add_subplot(1, 2, 1)
 plot_precip_field(
     nowcast_linda[-1, :, :],
-    ax=ax,
-    geodata=metadata,
     title="LINDA-D (+ 30 min)",
 )
 
 ax = fig.add_subplot(1, 2, 2)
 plot_precip_field(
     nowcast_sprog[-1, :, :],
-    ax=ax,
-    geodata=metadata,
     title="S-PROG (+ 30 min)",
 )
 
@@ -128,11 +124,11 @@ plt.show()
 # the whole domain.
 
 ###############################################################################
-# Probabilistic nowcast (LINDA-P)
-# -------------------------------
+# Probabilistic nowcast
+# ---------------------
 
 # Compute 30-minute LINDA nowcast ensemble with 40 members and 8 parallel workers
-rainrate_nowcast = linda.forecast(
+nowcast_linda = linda.forecast(
     rainrate,
     advection,
     6,
@@ -143,22 +139,48 @@ rainrate_nowcast = linda.forecast(
     measure_time=True,
 )[0]
 
-# Plot the ensemble mean
-rainrate_ensemble_mean = np.mean(rainrate_nowcast[:, -1, :, :], axis=0)
-plot_precip_field(
-    rainrate_ensemble_mean,
-    geodata=metadata,
-    title="LINDA ensemble mean (+ 30 min)",
+# Compute 40-member STEPS nowcast for comparison
+nowcast_steps = steps.forecast(
+    rainrate_db[-3:, :, :],
+    advection,
+    6,
+    40,
+    n_cascade_levels=6,
+    R_thr=-10.0,
+    mask_method="incremental",
+    kmperpixel=2.0,
+    timestep=datasource_params["timestep"],
+    vel_pert_method=None,
 )
-plt.show()
 
-# Plot four ensemble members
+# Convert reflectivity nowcast to rain rate
+nowcast_steps = transformation.dB_transform(
+    nowcast_steps, threshold=-10.0, inverse=True
+)[0]
+
+# Plot two ensemble members of both nowcasts
 fig = plt.figure()
-for i in range(4):
-    ax = fig.add_subplot(221 + i)
+for i in range(2):
+    ax = fig.add_subplot(2, 2, i + 1)
     ax = plot_precip_field(
-        rainrate_nowcast[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
+        nowcast_linda[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
     )
-    ax.set_title(f"Member {i:02d}")
+    ax.set_title(f"LINDA Member {i+1}")
+
+for i in range(2):
+    ax = fig.add_subplot(2, 2, 3 + i)
+    ax = plot_precip_field(
+        nowcast_steps[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
+    )
+    ax.set_title(f"STEPS Member {i+1}")
+
+###############################################################################
+# The above figure shows the main difference between LINDA and STEPS. In
+# addition to the convolution kernel, another improvement in LINDA is a
+# localized perturbation generator using the short-space Fourier transform
+# (SSFT) and a spatially variable marginal distribution. As a result, the
+# LINDA ensemble members preserve the anisotropic and small-scale structures
+# considerably better than STEPS.
+
 plt.tight_layout()
 plt.show()
