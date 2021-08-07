@@ -56,7 +56,7 @@ rainrate, metadata = dimension.aggregate_fields_space(rainrate, metadata, 2000)
 
 # Plot the most recent rain rate field
 plt.figure()
-plot_precip_field(rainrate[-1, :, :], geodata=metadata)
+plot_precip_field(rainrate[-1, :, :])
 plt.show()
 
 ###############################################################################
