@@ -104,7 +104,7 @@ fig = plt.figure(figsize=(9, 4))
 ax = fig.add_subplot(1, 2, 1)
 plot_precip_field(
     nowcast_linda[-1, :, :],
-    title="LINDA-D (+ 30 min)",
+    title="LINDA (+ 30 min)",
 )
 
 ax = fig.add_subplot(1, 2, 2)
