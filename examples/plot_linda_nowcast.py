@@ -14,7 +14,6 @@ import warnings
 warnings.simplefilter("ignore")
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 from pysteps import io, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
