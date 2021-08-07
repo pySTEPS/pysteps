@@ -101,7 +101,7 @@ nowcast_sprog = transformation.dB_transform(
 )[0]
 
 # Plot the nowcasts
-fig = plt.figure()
+fig = plt.figure(figsize=(9, 4))
 ax = fig.add_subplot(1, 2, 1)
 plot_precip_field(
     nowcast_linda[-1, :, :],
