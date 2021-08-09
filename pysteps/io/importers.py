@@ -556,12 +556,21 @@ def _import_bom_rf3_geodata_xr(ds_in,
         if ds_in.x.units == "km":
             factor_scale = 1000.0
 
+    if factor_scale != 1.0:
+        ds_in['x'] = ds_in.x*1000.
+        ds_in.x.attrs.update({'units': 'm'})        
+        ds_in['y'] = ds_in.y*1000.
+        ds_in.y.attrs.update({'units': 'm'})        
+
+    cartesian_unit = ds_in.x.units
+
     # Add metadata needed by pySTEPS as attrs in X and Y variables
 
     ds_in.x.attrs.update({
         # TODO: Remove before final 2.0 version
         "x1": xmin * factor_scale,
         "x2": xmax * factor_scale,
+        "cartesian_unit": cartesian_unit,
         }
         )
 
@@ -569,6 +578,7 @@ def _import_bom_rf3_geodata_xr(ds_in,
         # TODO: Remove before final 2.0 version
         "y1": ymin * factor_scale,
         "y2": ymax * factor_scale,
+        "cartesian_unit": cartesian_unit,
         }
         )
 
