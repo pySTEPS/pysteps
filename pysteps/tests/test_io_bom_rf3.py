@@ -67,3 +67,58 @@ def test_io_import_bom_rf3_geodata(variable, expected, tolerance):
     filename = os.path.join(root_path, rel_path, "2_20180616_100000.prcp-cscn.nc")
     geodata = pysteps.io.importers._import_bom_rf3_geodata(filename)
     smart_assert(geodata[variable], expected, tolerance)
+
+
+# TEST XARRAY IMPLEMENTATION
+data_array_xr = pysteps.io.import_bom_rf3_xr(filename)
+
+
+def test_io_import_bom_rf3_xarray():
+    """Test the importer Bom RF3."""
+    assert isinstance(data_array_xr, xr.DataArray)
+
+
+def test_io_import_bom_rf3_xarray_shape():
+    """Test the importer Bom RF3."""
+    assert isinstance(data_array_xr, xr.DataArray)
+    assert data_array_xr.shape == (512, 512)
+
+
+test_attrs_xr = [
+    ("projection", expected_proj, None),
+    ("institution", "Commonwealth of Australia, Bureau of Meteorology", None),
+    ("transform", None, None),
+    ("zerovalue", 0.0, 0.1),
+    ("unit", "mm", None),
+    ("accutime", 6, 0.1),
+    ("zr_a", None, None),
+    ("zr_b", None, None),
+    ("xpixelsize", 500.0, 0.1),
+    ("ypixelsize", 500.0, 0.1),
+    ("units", "mm", None),
+    ("yorigin", "upper", None),
+]
+
+
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr)
+def test_io_import_bom_rf3_xarray_attrs(variable, expected, tolerance):
+    """Test the importer Bom RF3."""
+    smart_assert(data_array_xr.attrs[variable], expected, tolerance)
+
+test_attrs_xr_coords = [
+    ("projection", expected_proj, None),
+    ("institution", "Commonwealth of Australia, Bureau of Meteorology", None),
+    ("transform", None, None),
+    ("zerovalue", 0.0, 0.1),
+    ("unit", "mm", None),
+    ("accutime", 6, 0.1),
+    ("zr_a", None, None),
+    ("zr_b", None, None),
+    ("xpixelsize", 500.0, 0.1),
+    ("ypixelsize", 500.0, 0.1),
+    ("units", "mm", None),
+    ("yorigin", "upper", None),
+]
+
+
+
