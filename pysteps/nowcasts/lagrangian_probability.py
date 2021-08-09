@@ -50,7 +50,7 @@ def forecast(
        Intensity threshold for which the exceedance probabilities are computed.
     slope: float, optional
        The slope of the relationship between optimum scale and lead time in
-       pixel / timesteps. Germann and Zawadzki (2004) found the optimal slope
+       pixels / timestep. Germann and Zawadzki (2004) found the optimal slope
        to be equal to 1 km / minute.
 
     Returns

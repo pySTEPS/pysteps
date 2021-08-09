@@ -33,6 +33,11 @@ def test_io_import_mrms_grib():
         "transform": None,
         "zerovalue": 0,
         "threshold": 0.1,
+        "x1": -129.99999999999997,
+        "x2": -60.00000199999991,
+        "y1": 20.000001,
+        "y2": 55.00000000000001,
+        "cartesian_unit": "degrees",
     }
     metadata = data_Array.attrs
     for key, value in expected_attrs.items():
@@ -40,6 +45,11 @@ def test_io_import_mrms_grib():
             assert_array_almost_equal(metadata[key], expected_attrs[key])
         else:
             assert metadata[key] == expected_attrs[key]
+
+    x = np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
+    y = np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+    assert y.size == precip_full.shape[0]
+    assert x.size == precip_full.shape[1]
 
     # The full latitude range is (20.005, 54.995)
     # The full longitude range is (230.005, 299.995)
@@ -81,6 +91,22 @@ def test_io_import_mrms_grib():
     precip_donwscaled = pysteps.io.import_mrms_grib(
         filename, dtype="single", fillna=0, window_size=3
     )
+    print(metadata)
+    expected_metadata.update(
+        xpixelsize=0.03,
+        ypixelsize=0.03,
+        x1=-130.00000000028575,
+        x2=-60.01000199942843,
+        y1=20.02000099914261,
+        y2=55.000000000285794,
+    )
+
+    # Remove the threshold keyword from the test when the window_size>1 is used.
+    # The threshold is computed automatically from the minimum valid precipitation values.
+    # The minimum value is affected by the the block_averaging (window_size=3 keyword)
+    # of the precipitation fields. Hence, the "threshold" value will depend on the
+    # precipitation pattern (i.e. the file being read).
+    expected_metadata.pop("threshold", None)
 
     # expected_metadata.update(
     #     xpixelsize=0.03,
