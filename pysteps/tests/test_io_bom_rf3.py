@@ -37,7 +37,7 @@ test_attrs = [
 
 
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
-def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
+def test_io_import_bom_rf3_dataset_attrs(variable, expected, tolerance):
     """Test the importer Bom RF3."""
     smart_assert(data_array.attrs[variable], expected, tolerance)
 
