@@ -105,20 +105,28 @@ def test_io_import_bom_rf3_xarray_attrs(variable, expected, tolerance):
     """Test the importer Bom RF3."""
     smart_assert(data_array_xr.attrs[variable], expected, tolerance)
 
-test_attrs_xr_coords = [
-    ("projection", expected_proj, None),
-    ("institution", "Commonwealth of Australia, Bureau of Meteorology", None),
-    ("transform", None, None),
-    ("zerovalue", 0.0, 0.1),
-    ("unit", "mm", None),
-    ("accutime", 6, 0.1),
-    ("zr_a", None, None),
-    ("zr_b", None, None),
-    ("xpixelsize", 500.0, 0.1),
-    ("ypixelsize", 500.0, 0.1),
-    ("units", "mm", None),
-    ("yorigin", "upper", None),
+
+test_attrs_xr_coord_x = [
+    ("units", "m", None),
+    ("x1", -128000.0, 0.1),
+    ("x2", 127500.0, 0.1),
 ]
 
 
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_x)
+def test_io_import_bom_rf3_xarray_attrs_coordx(variable, expected, tolerance):
+    """Test the importer Bom RF3."""
+    smart_assert(data_array_xr.x, expected, tolerance)
 
+
+test_attrs_xr_coord_y = [
+    ("units", "m", None),
+    ("y1", -127500.0, 0.1),
+    ("y2", 128000.0, 0.1),
+]
+
+
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_y)
+def test_io_import_bom_rf3_xarray_attrs_coordy(variable, expected, tolerance):
+    """Test the importer Bom RF3."""
+    smart_assert(data_array_xr.y, expected, tolerance)
