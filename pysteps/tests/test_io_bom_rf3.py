@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import numpy as np
 
 import xarray as xr
 import pytest
@@ -91,7 +92,7 @@ test_attrs_xr = [
     ("transform", None, None),
     ("zerovalue", 0.0, 0.1),
     ("unit", "mm", None),
-    ("accutime", 6, 0.1),
+    ("accutime", np.timedelta64(6,'m'), None),
     ("zr_a", None, None),
     ("zr_b", None, None),
     ("xpixelsize", 500.0, 0.1),
