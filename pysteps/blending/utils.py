@@ -13,6 +13,7 @@ Module with common utilities used by blending methods.
 
 import numpy as np
 from pysteps import cascade
+from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps import utils
 
 
@@ -112,12 +113,20 @@ def blend_optical_flows(flows, weights):
     return combined_flows
 
 
-def decompose_NWP(R_NWP, decomp_method="fft", fft_method="numpy", domain="spatial"):
+def decompose_NWP(
+    output,
+    R_NWP,
+    num_cascade_levels,
+    decomp_method="fft",
+    fft_method="numpy",
+    domain="spatial",
+):
 
+    filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
     fft = utils.get_method(fft_method, shape=R_NWP.shape[1:], n_threads=1)
     decomp_method, _ = cascade.get_method(decomp_method)
 
-    for i in range(len(R_nwp.shape[0])):
+    for i in range(R_NWP.shape[0]):
         R_ = decomp_method(
             R_NWP[i, :, :],
             filter,
@@ -128,7 +137,4 @@ def decompose_NWP(R_NWP, decomp_method="fft", fft_method="numpy", domain="spatia
             compact_output=True,
         )
 
-        print(R_)
-        np.save("NWP_{}".format(i), R_)
-
-    return None
+        np.save(output + "NWP_{}".format(i), R_)
