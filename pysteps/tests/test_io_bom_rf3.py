@@ -81,7 +81,7 @@ def test_io_import_bom_rf3_xarray():
 def test_io_import_bom_rf3_xarray_shape():
     """Test the importer Bom RF3."""
     assert isinstance(data_array_xr, xr.DataArray)
-    assert data_array_xr.shape == (512, 512)
+    assert data_array_xr.shape == (1, 512, 512)
 
 
 test_attrs_xr = [
@@ -116,7 +116,7 @@ test_attrs_xr_coord_x = [
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_x)
 def test_io_import_bom_rf3_xarray_attrs_coordx(variable, expected, tolerance):
     """Test the importer Bom RF3."""
-    smart_assert(data_array_xr.x, expected, tolerance)
+    smart_assert(data_array_xr.x.attrs[variable], expected, tolerance)
 
 
 test_attrs_xr_coord_y = [
@@ -129,4 +129,4 @@ test_attrs_xr_coord_y = [
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_y)
 def test_io_import_bom_rf3_xarray_attrs_coordy(variable, expected, tolerance):
     """Test the importer Bom RF3."""
-    smart_assert(data_array_xr.y, expected, tolerance)
+    smart_assert(data_array_xr.y.attrs[variable], expected, tolerance)
