@@ -584,7 +584,7 @@ def _import_bom_rf3_geodata_xr(ds_in,
         )
 
     # Add metadata needed by pySTEPS as attrs in rainfall variable
-    da_rainfall = ds_in[varname]
+    da_rainfall = ds_in[varname].isel(valid_time=0)
 
     ds_in[varname].attrs.update(
         {"transform": None,
@@ -595,7 +595,7 @@ def _import_bom_rf3_geodata_xr(ds_in,
          "zr_b": None,
          "zerovalue": np.nanmin(da_rainfall),
          "institution": "Commonwealth of Australia, Bureau of Meteorology",
-         "threshold": _get_threshold_value(da_rainfall),
+         "threshold": _get_threshold_value(da_rainfall.values),
          # TODO(_import_bom_rf3_geodata_xr): Remove before final 2.0 version
          "yorigin": "upper",
          "xpixelsize": xpixelsize.value,
