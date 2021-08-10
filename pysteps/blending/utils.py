@@ -12,6 +12,8 @@ Module with common utilities used by blending methods.
 """
 
 import numpy as np
+from pysteps import cascade
+from pysteps import utils
 
 
 def stack_cascades(R_d, donorm=True):
@@ -108,3 +110,25 @@ def blend_optical_flows(flows, weights):
     combined_flows = np.sum(all_c_wn, axis=-1)
     # combined_flows [2, m, n]
     return combined_flows
+
+
+def decompose_NWP(R_NWP, decomp_method="fft", fft_method="numpy", domain="spatial"):
+
+    fft = utils.get_method(fft_method, shape=R_NWP.shape[1:], n_threads=1)
+    decomp_method, _ = cascade.get_method(decomp_method)
+
+    for i in range(len(R_nwp.shape[0])):
+        R_ = decomp_method(
+            R_NWP[i, :, :],
+            filter,
+            fft_method=fft,
+            output_domain=domain,
+            normalize=True,
+            compute_stats=True,
+            compact_output=True,
+        )
+
+        print(R_)
+        np.save("NWP_{}".format(i), R_)
+
+    return None
