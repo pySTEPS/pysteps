@@ -90,7 +90,7 @@ def calculate_weights(correlations):
 def blend_cascades(cascades_norm, weights):
     """Calculate blended normalized cascades using STEPS weights following eq. 
     10 in :cite:`BPS2006`.
-
+    
     Parameters
     ----------
     cascades_norm : array-like
