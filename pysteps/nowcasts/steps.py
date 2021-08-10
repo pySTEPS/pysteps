@@ -463,6 +463,8 @@ def forecast(
         if noise_stddev_adj is not None:
             print("noise std. dev. coeffs:   %s" % str(noise_std_coeffs))
 
+    print("Hallo")
+
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
     for i in range(ar_order + 1):
