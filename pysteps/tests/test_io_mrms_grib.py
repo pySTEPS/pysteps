@@ -2,6 +2,7 @@
 
 import os
 
+import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
 
@@ -34,10 +35,10 @@ def test_io_import_mrms_grib():
         "projection": "+proj=longlat  +ellps=IAU76",
         "yorigin": "upper",
         "threshold": 0.1,
-        "x1": -129.99499999999998,
-        "x2": -60.00500199999991,
-        "y1": 20.005001,
-        "y2": 54.995000000000005,
+        "x1": -129.99999999999997,
+        "x2": -60.00000199999991,
+        "y1": 20.000001,
+        "y2": 55.00000000000001,
         "cartesian_unit": "degrees",
     }
 
@@ -46,6 +47,11 @@ def test_io_import_mrms_grib():
             assert_array_almost_equal(metadata[key], expected_metadata[key])
         else:
             assert metadata[key] == expected_metadata[key]
+
+    x = np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
+    y = np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+    assert y.size == precip_full.shape[0]
+    assert x.size == precip_full.shape[1]
 
     # The full latitude range is (20.005, 54.995)
     # The full longitude range is (230.005, 299.995)
@@ -89,10 +95,10 @@ def test_io_import_mrms_grib():
     expected_metadata.update(
         xpixelsize=0.03,
         ypixelsize=0.03,
-        x1=-129.98500000028577,
-        x2=-60.02500199942843,
-        y1=20.03500099914261,
-        y2=54.985000000285794,
+        x1=-130.00000000028575,
+        x2=-60.01000199942843,
+        y1=20.02000099914261,
+        y2=55.000000000285794,
     )
 
     # Remove the threshold keyword from the test when the window_size>1 is used.

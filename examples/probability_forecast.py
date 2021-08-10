@@ -14,10 +14,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pysteps.nowcasts.lagrangian_probability import forecast
+from pysteps.visualization import plot_precip_field
 
 ###############################################################################
 # Numerical example
 # -----------------
+#
+# First, we use some dummy data to show the basic principle of this approach.
+# The probability forecast is produced by sampling a spatial neighborhood that is
+# increased as a function of lead time. As a result, the edges of
+# the yellow square becomes more and more smooth as t increases. This represents
+# the strong loss of predictability with lead time of any extrapolation nowcast.
 
 # parameters
 precip = np.zeros((100, 100))
@@ -41,6 +48,11 @@ plt.show()
 ###############################################################################
 # Real-data example
 # -----------------
+#
+# We now apply the same method to real data. We use a slope of 1 km / minute
+# as suggested by  Germann and Zawadzki (2004), meaning that after 30 minutes,
+# the probabilities are computed by using all pixels within a neighborhood of 30
+# kilometers.
 
 from datetime import datetime
 
@@ -89,12 +101,18 @@ for n, frame in enumerate(fct):
 plt.show()
 
 ################################################################################
-# Let's plot one single leadtime in more detail.
+# Let's plot one single leadtime in more detail using the pysteps visualization
+# functionality.
 
-plt.imshow(fct[2], interpolation="nearest", vmin=0, vmax=1)
-plt.xticks([])
-plt.yticks([])
-plt.colorbar(label="Exceedance probability, P(R>=1 mm/h)")
+plt.close()
+# Plot the field of probabilities
+plot_precip_field(
+    fct[2],
+    geodata=metadata,
+    ptype="prob",
+    probthr=thr,
+    title="Exceedence probability (+ %i min)" % (nleadtimes * timestep),
+)
 plt.show()
 
 ###############################################################################
