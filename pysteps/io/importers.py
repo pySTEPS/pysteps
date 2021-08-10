@@ -540,28 +540,26 @@ def _import_bom_rf3_geodata_xr(ds_in,
 
     # get the units of precipitation
     units = None
-    if "units" in ds_in[varname]:
+    if "units" in ds_in[varname].attrs:
         units = ds_in[varname].units
         if units in ("kg m-2", "mm"):
             units = "mm"
-
+            ds_in[varname].attrs.update({'units': units})
     # get spatial boundaries and pixelsize
-    xmin = ds_in.x.min()
-    xmax = ds_in.x.max()
-    ymin = ds_in.y.min()
-    ymax = ds_in.y.max()
+    # move to meters if coordiantes in kilometers
+    if "units" in ds_in.x.attrs:
+        if ds_in.x.units == "km":
+            ds_in['x'] = ds_in.x*1000.
+            ds_in.x.attrs.update({'units': 'm'})
+            ds_in['y'] = ds_in.y*1000.
+            ds_in.y.attrs.update({'units': 'm'})
+
+    xmin = ds_in.x.min().values
+    xmax = ds_in.x.max().values
+    ymin = ds_in.y.min().values
+    ymax = ds_in.y.max().values
     xpixelsize = abs(ds_in.x[1] - ds_in.x[0])
     ypixelsize = abs(ds_in.y[1] - ds_in.y[0])
-    factor_scale = 1.0
-    if "units" in ds_in.x:
-        if ds_in.x.units == "km":
-            factor_scale = 1000.0
-
-    if factor_scale != 1.0:
-        ds_in['x'] = ds_in.x*1000.
-        ds_in.x.attrs.update({'units': 'm'})
-        ds_in['y'] = ds_in.y*1000.
-        ds_in.y.attrs.update({'units': 'm'})
 
     cartesian_unit = ds_in.x.units
 
@@ -569,16 +567,16 @@ def _import_bom_rf3_geodata_xr(ds_in,
 
     ds_in.x.attrs.update({
         # TODO: Remove before final 2.0 version
-        "x1": xmin * factor_scale,
-        "x2": xmax * factor_scale,
+        "x1": xmin,
+        "x2": xmax,
         "cartesian_unit": cartesian_unit,
         }
         )
 
     ds_in.y.attrs.update({
         # TODO: Remove before final 2.0 version
-        "y1": ymin * factor_scale,
-        "y2": ymax * factor_scale,
+        "y1": ymin,
+        "y2": ymax,
         "cartesian_unit": cartesian_unit,
         }
         )
