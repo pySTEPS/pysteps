@@ -114,12 +114,15 @@ def blend_optical_flows(flows, weights):
 
 
 def decompose_NWP(
-    output,
+    temp_output,
     R_NWP,
     num_cascade_levels,
     decomp_method="fft",
     fft_method="numpy",
     domain="spatial",
+    normalize=True,
+    compute_stats=True,
+    compact_output=True,
 ):
 
     filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
@@ -132,9 +135,11 @@ def decompose_NWP(
             filter,
             fft_method=fft,
             output_domain=domain,
-            normalize=True,
-            compute_stats=True,
-            compact_output=True,
+            normalize=normalize,
+            compute_stats=compute_stats,
+            compact_output=compact_output,
         )
 
-        np.save(output + "NWP_{}".format(i), R_)
+        np.save(temp_output + "NWP_{}".format(i), R_)
+
+        return None
