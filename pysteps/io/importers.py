@@ -535,7 +535,8 @@ def _import_bom_rf3_geodata_xr(ds_in,
     time_step = None
     if start_time is not None:
         if valid_time is not None:
-            time_step = (valid_time - start_time).seconds // 60
+            time_step = (valid_time - start_time)
+            time_step = time_step.values.astype('timedelta64[m]')
 
     # get the units of precipitation
     units = None
