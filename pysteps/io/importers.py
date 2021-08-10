@@ -559,9 +559,9 @@ def _import_bom_rf3_geodata_xr(ds_in,
 
     if factor_scale != 1.0:
         ds_in['x'] = ds_in.x*1000.
-        ds_in.x.attrs.update({'units': 'm'})        
+        ds_in.x.attrs.update({'units': 'm'})
         ds_in['y'] = ds_in.y*1000.
-        ds_in.y.attrs.update({'units': 'm'})        
+        ds_in.y.attrs.update({'units': 'm'})
 
     cartesian_unit = ds_in.x.units
 
@@ -598,8 +598,8 @@ def _import_bom_rf3_geodata_xr(ds_in,
          "threshold": _get_threshold_value(da_rainfall.values),
          # TODO(_import_bom_rf3_geodata_xr): Remove before final 2.0 version
          "yorigin": "upper",
-         "xpixelsize": xpixelsize.value,
-         "ypixelsize": ypixelsize.value,
+         "xpixelsize": xpixelsize.values,
+         "ypixelsize": ypixelsize.values,
          }
         )
 
