@@ -35,7 +35,7 @@ timestep = rcparams.data_sources[data_source]["timestep"]
 
 # Find the radar files in the archive
 fns = io.find_by_date(
-    date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_prev_files=5
+    date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_prev_files=12
 )
 
 # Read the data from the archive
@@ -50,8 +50,14 @@ R_NWP, metadata = transformation.dB_transform(
     R_NWP, metadata, threshold=0.1, zerovalue=-15.0
 )
 
+# Fill in the missing data with the threshold value
 R_NWP[~np.isfinite(R_NWP)] = metadata["zerovalue"]
 
-temp_output = rcparams.outputs["temp_outputs"]
+# Find the location to save the NWP files
+NWP_output = rcparams.outputs["NWP_outputs"]
 
-decompose_NWP(temp_output, R_NWP, 8)
+# Define the start time of the NWP forecast
+start_time = metadata['timestamps'][0]
+
+# Decompose the NWP and save to netCDF file
+decompose_NWP(NWP_output, R_NWP, start_time, 5, num_cascade_levels)
