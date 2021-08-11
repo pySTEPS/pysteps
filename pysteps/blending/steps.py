@@ -23,7 +23,7 @@ import numpy as np
 
 
 def calculate_ratios(correlations):
-    """Calculate explain variance ratios from correlation.
+    """Calculate explained variance ratios from correlation.
 
     Parameters
     ----------
