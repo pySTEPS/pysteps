@@ -15,6 +15,8 @@ import numpy as np
 from pysteps import cascade
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps import utils
+import os
+import netCDF4
 
 
 def stack_cascades(R_d, donorm=True):
@@ -114,7 +116,7 @@ def blend_optical_flows(flows, weights):
 
 
 def decompose_NWP(
-    temp_output,
+    NWP_output,
     R_NWP,
     num_cascade_levels,
     decomp_method="fft",
@@ -125,6 +127,25 @@ def decompose_NWP(
     compact_output=True,
 ):
 
+    # Make a NetCDF file
+    outfn = os.path.join(NWP_output, "NWP_cascade" + ".nc")
+    ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
+
+    # Set attributes of decomposition method
+    ncf.domain = domain
+    ncf.normalized = int(normalize)
+    ncf.compact_output = int(compact_output)
+
+    # Create dimensions
+    time_dim = ncf.createDimension('time', R_NWP.shape[0])
+    casc_dim = ncf.createDimension('cascade levels', num_cascade_levels)
+    x_dim = ncf.createDimension('x', R_NWP.shape[1])
+    y_dim = ncf.createDimension('y', R_NWP.shape[2])
+
+    # Create variable (decomposed cascade)
+    R_d = ncf.createVariable('R_d', np.float64, ('time', 'cascade levels', 'x', 'y'))
+
+    # Decompose the NWP data
     filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
     fft = utils.get_method(fft_method, shape=R_NWP.shape[1:], n_threads=1)
     decomp_method, _ = cascade.get_method(decomp_method)
@@ -140,6 +161,7 @@ def decompose_NWP(
             compact_output=compact_output,
         )
 
-        np.save(temp_output + "NWP_{}".format(i), R_)
+        # Save data to netCDF file
+        R_d[i, :, :, :] = R_["cascade_levels"]
 
-        return None
+    ncf.close()
