@@ -12,6 +12,7 @@ Module with common utilities used by blending methods.
 """
 
 import numpy as np
+from datetime import datetime, timedelta
 from pysteps import cascade
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps import utils
@@ -118,6 +119,8 @@ def blend_optical_flows(flows, weights):
 def decompose_NWP(
     NWP_output,
     R_NWP,
+    start_time,
+    timestep,
     num_cascade_levels,
     decomp_method="fft",
     fft_method="numpy",
@@ -135,15 +138,21 @@ def decompose_NWP(
     ncf.domain = domain
     ncf.normalized = int(normalize)
     ncf.compact_output = int(compact_output)
+    ncf.start_time = start_time.strftime("%Y%m%d%H%M%S")
+    ncf.timestep = timestep
 
     # Create dimensions
     time_dim = ncf.createDimension('time', R_NWP.shape[0])
     casc_dim = ncf.createDimension('cascade levels', num_cascade_levels)
     x_dim = ncf.createDimension('x', R_NWP.shape[1])
     y_dim = ncf.createDimension('y', R_NWP.shape[2])
+    means_dim = ncf.createDimension('means', num_cascade_levels)
+    stds_dim = ncf.createDimension('stds', num_cascade_levels)
 
     # Create variable (decomposed cascade)
     R_d = ncf.createVariable('R_d', np.float64, ('time', 'cascade levels', 'x', 'y'))
+    means = ncf.createVariable('means', np.float64, ('time', 'means'))
+    stds = ncf.createVariable('stds', np.float64, ('time', 'stds'))
 
     # Decompose the NWP data
     filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
@@ -163,5 +172,36 @@ def decompose_NWP(
 
         # Save data to netCDF file
         R_d[i, :, :, :] = R_["cascade_levels"]
+        means[i, :] = R_["means"]
+        stds[i, :] = R_["stds"]
 
     ncf.close()
+
+
+def load_NWP(NWP_output, analysis_time, n_timesteps):
+    outfn = os.path.join(NWP_output, "NWP_cascade" + ".nc")
+    ncf = netCDF4.Dataset(outfn, "r", format="NETCDF4")
+
+    decomp_dict = dict()
+    decomp_dict["domain"] = ncf.domain
+    decomp_dict["normalized"] = bool(ncf.normalized)
+    decomp_dict["compact_output"] = bool(ncf.compact_output)
+
+    start_time = ncf.start_time
+    start_time = datetime.strptime(start_time, "%Y%m%d%H%M%S")
+    timestep = ncf.timestep
+    timestep = timedelta(minutes=int(timestep))
+
+    start_i = (analysis_time - start_time) // timestep + 1
+    end_i = start_i + n_timesteps
+
+    R_d = list()
+
+    for i in range(start_i, end_i):
+        decomp_dict_ = decomp_dict.copy()
+        cascade_levels = ncf.variables["R_d"][i, :, :, :]
+        assert not cascade_levels.mask
+        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels, np.nan)
+        R_d.append(decomp_dict_)
+
+    return R_d
