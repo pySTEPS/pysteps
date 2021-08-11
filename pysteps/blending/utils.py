@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 pysteps.blending.utils
 ======================
@@ -108,3 +109,4 @@ def blend_optical_flows(flows, weights):
     combined_flows = np.sum(all_c_wn, axis=-1)
     # combined_flows [2, m, n]
     return combined_flows
+
