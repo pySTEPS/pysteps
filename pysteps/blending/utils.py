@@ -130,15 +130,18 @@ def decompose_NWP(
     compact_output=True,
 ):
 
+    # Convert start time to string
+    start_time = start_time.strftime("%Y%m%d%H%M%S")
+
     # Make a NetCDF file
-    outfn = os.path.join(NWP_output, "NWP_cascade" + ".nc")
+    outfn = os.path.join(NWP_output, "NWP_cascade_" + start_time + ".nc")
     ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
 
     # Set attributes of decomposition method
     ncf.domain = domain
     ncf.normalized = int(normalize)
     ncf.compact_output = int(compact_output)
-    ncf.start_time = start_time.strftime("%Y%m%d%H%M%S")
+    ncf.start_time = start_time
     ncf.timestep = timestep
 
     # Create dimensions
@@ -149,7 +152,7 @@ def decompose_NWP(
     means_dim = ncf.createDimension('means', num_cascade_levels)
     stds_dim = ncf.createDimension('stds', num_cascade_levels)
 
-    # Create variable (decomposed cascade)
+    # Create variables (decomposed cascade, means and standard deviations)
     R_d = ncf.createVariable('R_d', np.float64, ('time', 'cascade levels', 'x', 'y'))
     means = ncf.createVariable('means', np.float64, ('time', 'means'))
     stds = ncf.createVariable('stds', np.float64, ('time', 'stds'))
@@ -175,33 +178,54 @@ def decompose_NWP(
         means[i, :] = R_["means"]
         stds[i, :] = R_["stds"]
 
+    # Close the file
     ncf.close()
 
 
 def load_NWP(NWP_output, analysis_time, n_timesteps):
-    outfn = os.path.join(NWP_output, "NWP_cascade" + ".nc")
-    ncf = netCDF4.Dataset(outfn, "r", format="NETCDF4")
 
+    # Open the file
+    ncf = netCDF4.Dataset(NWP_output, "r", format="NETCDF4")
+
+    # Initialise the decomposition dictionary
     decomp_dict = dict()
     decomp_dict["domain"] = ncf.domain
     decomp_dict["normalized"] = bool(ncf.normalized)
     decomp_dict["compact_output"] = bool(ncf.compact_output)
 
+    # Convert the start time and the timestep to datetime and timedelta type
     start_time = ncf.start_time
     start_time = datetime.strptime(start_time, "%Y%m%d%H%M%S")
     timestep = ncf.timestep
     timestep = timedelta(minutes=int(timestep))
 
+    # Find the indices corresponding with the required analysis time
     start_i = (analysis_time - start_time) // timestep + 1
     end_i = start_i + n_timesteps
 
+    # Initialise the list of dictionaries which will serve as the output (cf: the STEPS function)
     R_d = list()
 
     for i in range(start_i, end_i):
         decomp_dict_ = decomp_dict.copy()
+
         cascade_levels = ncf.variables["R_d"][i, :, :, :]
+
+        # In the netcdf file this is saved as a masked array, so we're checking if there is no mask
         assert not cascade_levels.mask
-        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels, np.nan)
+
+        means = ncf.variables["means"][i, :]
+        assert not means.mask
+
+        stds = ncf.variables["stds"][i, :]
+        assert not stds.mask
+
+        # Save the values in the dictionary as normal arrays with the filled method
+        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels)
+        decomp_dict_["means"] = np.ma.filled(means)
+        decomp_dict_["stds"] = np.ma.filled(stds)
+
+        # Append the output list
         R_d.append(decomp_dict_)
 
     return R_d
