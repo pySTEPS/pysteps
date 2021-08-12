@@ -117,9 +117,10 @@ def blend_optical_flows(flows, weights):
 
 
 def decompose_NWP(
-    NWP_output,
     R_NWP,
-    start_time,
+    NWP_output,
+    NWP_model,
+    analysis_time,
     timestep,
     num_cascade_levels,
     decomp_method="fft",
@@ -131,31 +132,33 @@ def decompose_NWP(
 ):
 
     # Convert start time to string
-    start_time = start_time.strftime("%Y%m%d%H%M%S")
+    analysis_time = analysis_time.strftime("%Y%m%d%H%M%S")
 
     # Make a NetCDF file
-    outfn = os.path.join(NWP_output, "NWP_cascade_" + start_time + ".nc")
+    outfn = os.path.join(
+        NWP_output, "cascade_" + NWP_model + "_" + analysis_time + ".nc"
+    )
     ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
 
     # Set attributes of decomposition method
     ncf.domain = domain
     ncf.normalized = int(normalize)
     ncf.compact_output = int(compact_output)
-    ncf.start_time = start_time
+    ncf.analysis_time = analysis_time
     ncf.timestep = timestep
 
     # Create dimensions
-    time_dim = ncf.createDimension('time', R_NWP.shape[0])
-    casc_dim = ncf.createDimension('cascade levels', num_cascade_levels)
-    x_dim = ncf.createDimension('x', R_NWP.shape[1])
-    y_dim = ncf.createDimension('y', R_NWP.shape[2])
-    means_dim = ncf.createDimension('means', num_cascade_levels)
-    stds_dim = ncf.createDimension('stds', num_cascade_levels)
+    time_dim = ncf.createDimension("time", R_NWP.shape[0])
+    casc_dim = ncf.createDimension("cascade levels", num_cascade_levels)
+    x_dim = ncf.createDimension("x", R_NWP.shape[1])
+    y_dim = ncf.createDimension("y", R_NWP.shape[2])
+    means_dim = ncf.createDimension("means", num_cascade_levels)
+    stds_dim = ncf.createDimension("stds", num_cascade_levels)
 
     # Create variables (decomposed cascade, means and standard deviations)
-    R_d = ncf.createVariable('R_d', np.float64, ('time', 'cascade levels', 'x', 'y'))
-    means = ncf.createVariable('means', np.float64, ('time', 'means'))
-    stds = ncf.createVariable('stds', np.float64, ('time', 'stds'))
+    R_d = ncf.createVariable("R_d", np.float64, ("time", "cascade levels", "x", "y"))
+    means = ncf.createVariable("means", np.float64, ("time", "means"))
+    stds = ncf.createVariable("stds", np.float64, ("time", "stds"))
 
     # Decompose the NWP data
     filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
@@ -182,7 +185,7 @@ def decompose_NWP(
     ncf.close()
 
 
-def load_NWP(NWP_output, analysis_time, n_timesteps):
+def load_NWP(NWP_output, start_time, n_timesteps):
 
     # Open the file
     ncf = netCDF4.Dataset(NWP_output, "r", format="NETCDF4")
@@ -193,15 +196,16 @@ def load_NWP(NWP_output, analysis_time, n_timesteps):
     decomp_dict["normalized"] = bool(ncf.normalized)
     decomp_dict["compact_output"] = bool(ncf.compact_output)
 
-    # Convert the start time and the timestep to datetime and timedelta type
-    start_time = ncf.start_time
-    start_time = datetime.strptime(start_time, "%Y%m%d%H%M%S")
+    # Convert the analysis time and the timestep to datetime and timedelta type
+    analysis_time = ncf.analysis_time
+    analysis_time = datetime.strptime(analysis_time, "%Y%m%d%H%M%S")
     timestep = ncf.timestep
     timestep = timedelta(minutes=int(timestep))
 
-    # Find the indices corresponding with the required analysis time
-    start_i = (analysis_time - start_time) // timestep + 1
-    end_i = start_i + n_timesteps
+    # Find the indices corresponding with the required start and end time
+    start_i = (start_time - analysis_time) // timestep
+    assert analysis_time + start_i * timestep == start_time
+    end_i = start_i + n_timesteps + 1
 
     # Initialise the list of dictionaries which will serve as the output (cf: the STEPS function)
     R_d = list()
