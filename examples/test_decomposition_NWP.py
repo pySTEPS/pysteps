@@ -57,7 +57,7 @@ R_NWP[~np.isfinite(R_NWP)] = metadata["zerovalue"]
 NWP_output = rcparams.outputs["NWP_outputs"]
 
 # Define the start time of the NWP forecast
-start_time = metadata['timestamps'][0]
+analysis_time = metadata["timestamps"][0]
 
 # Decompose the NWP and save to netCDF file
-decompose_NWP(NWP_output, R_NWP, start_time, 5, num_cascade_levels)
+decompose_NWP(R_NWP, NWP_output, "alaro13_01", analysis_time, 5, num_cascade_levels)
