@@ -5,7 +5,7 @@
     "outputs": {
         // path_outputs : path where to save results (figures, forecasts, etc)
         "path_outputs": "./",
-        "temp_outputs": "./"
+        "NWP_outputs": "./"
     },
     "plot": {
         // "motion_plot" : "streamplot" or "quiver"
