@@ -142,9 +142,8 @@ def decompose_NWP(
       The location where to save the file with the NWP cascade
     NWP_model: str
       The name of the NWP model
-    analysis_time: datetime, str
-      The analysis time of the NWP forecast. If not given as a datetime type, the
-      string is expected to have the following format: %Y%m%d%H%M%S
+    analysis_time: datetime
+      The analysis time of the NWP forecast
     timestep: int
       Timestep in minutes between subsequent NWP forecast fields
     num_cascade_levels:
@@ -241,9 +240,8 @@ def load_NWP(NWP_output, start_time, n_timesteps):
     ----------
     NWP_output: str
       Path to the saved netCDF files containing the decomposed NWP data
-    start_time: datetime, str
-      The start time of the nowcasting. If not given as a datetime type, the
-      string is expected to have the following format: %Y%m%d%H%M%S
+    start_time: datetime
+      The start time of the nowcasting
     n_timesteps: int
       Number of time steps to forecast
 
