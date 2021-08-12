@@ -130,6 +130,57 @@ def decompose_NWP(
     compute_stats=True,
     compact_output=True,
 ):
+    """Decomposed the NWP forecast data into cascades and saves it in
+    a netCDF file
+
+    Parameters
+    ----------
+    R_NWP: array-like
+      Array of dimension (n_timesteps, x, y) containing the precipiation forecast
+      from some NWP model.
+    NWP_output: str
+      The location where to save the file with the NWP cascade
+    NWP_model: str
+      The name of the NWP model
+    analysis_time: datetime, str
+      The analysis time of the NWP forecast. If not given as a datetime type, the
+      string is expected to have the following format: %Y%m%d%H%M%S
+    timestep: int
+      Timestep in minutes between subsequent NWP forecast fields
+    num_cascade_levels:
+      The number of frequency bands to use. Must be greater than 2.
+
+    Other Parameters
+    ----------------
+    decomp_method: str
+      A string defining the decomposition method to use. Defaults to "fft".
+    fft_method: str or tuple
+      A string or a (function,kwargs) tuple defining the FFT method to use
+      (see :py:func:`pysteps.utils.interface.get_method`).
+      Defaults to "numpy". This option is not used if input_domain and
+      output_domain are both set to "spectral".
+    domain: {"spatial", "spectral"}
+      If "spatial", the output cascade levels are transformed back to the
+      spatial domain by using the inverse FFT. If "spectral", the cascade is
+      kept in the spectral domain. Defaults to "spatial".
+    normalize: bool
+      If True, normalize the cascade levels to zero mean and unit variance.
+      Requires that compute_stats is True. Implies that compute_stats is True.
+      Defaults to False.
+    compute_stats: bool
+      If True, the output dictionary contains the keys "means" and "stds"
+      for the mean and standard deviation of each output cascade level.
+      Defaults to False.
+    compact_output: bool
+      Applicable if output_domain is "spectral". If set to True, only the
+      parts of the Fourier spectrum with non-negligible filter weights are
+      stored. Defaults to False.
+
+
+    Returns
+    -------
+    Nothing
+    """
 
     # Convert start time to string
     analysis_time = analysis_time.strftime("%Y%m%d%H%M%S")
@@ -184,6 +235,25 @@ def decompose_NWP(
 
 
 def load_NWP(NWP_output, start_time, n_timesteps):
+    """Loads the decomposed NWP data from the netCDF files
+
+    Parameters
+    ----------
+    NWP_output: str
+      Path to the saved netCDF files containing the decomposed NWP data
+    start_time: datetime, str
+      The start time of the nowcasting. If not given as a datetime type, the
+      string is expected to have the following format: %Y%m%d%H%M%S
+    n_timesteps: int
+      Number of time steps to forecast
+
+    Returns
+    -------
+    R_d: list
+      A list of dictionaries with each element in the list corresponding to
+      a different time step. Each dictionary has the same structure as the
+      output of the decomposition function
+    """
 
     # Open the file
     ncf = netCDF4.Dataset(NWP_output, "r", format="NETCDF4")
