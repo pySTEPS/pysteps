@@ -11,6 +11,8 @@ dimensional model fields with the latest observation field.
 
     spatial_correlation
     lt_dependent_cor_nwp
+    lt_dependent_cor_extrapolation
+    clim_regr_values
 """
 
 import numpy as np
@@ -61,7 +63,7 @@ def spatial_correlation(obs, mod):
 
 
 def lt_dependent_cor_nwp(lt, correlations, clim_regr_file=None):
-    """Determine the correlation of the model field for lead time lt and
+    """Determine the correlation of a model field for lead time lt and
     cascade k, by assuming that the correlation determined at t=0 regresses 
     towards the climatological values.
     
@@ -104,8 +106,52 @@ def lt_dependent_cor_nwp(lt, correlations, clim_regr_file=None):
     return rho
 
 
-#TODO: Add a lt_dependent_cor_extrapolation for the nowcast
+def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=None):
+    """Determine the correlation of the extrapolation (nowcast) component for 
+    lead time lt and cascade k, by assuming that the correlation determined at 
+    t=0 regresses towards the climatological values.
+    
 
+    Parameters
+    ----------
+    PHI : array-like
+        Array of shape [n_cascade_levels, ar_order + 1] containing per
+        cascade level the autoregression parameters.
+    correlations : array-like, optional
+        Array of shape [n_cascade_levels] containing per cascade_level the
+        latest available correlation from the extrapolation component that can 
+        be found from the AR-2 model.
+    correlations_prev : array-like, optional
+        Similar to correlations, but from the timestep before that.
+
+    Returns
+    -------
+    rho : array-like
+        Array of shape [n_cascade_levels] containing, for lead time lt, per 
+        cascade_level the correlation of the extrapolation component.
+    
+    References
+    ----------
+    :cite:`BPS2004`
+    :cite:`BPS2006`
+
+    """
+    # Check if correlations_prev exists, if not, we set it to 1.0
+    if correlations_prev is None:
+        correlations_prev = np.repeat(1.0, PHI.shape[0])
+    # Same for correlations at first time step, we set it to 
+    # phi1 / (1 - phi2), see BPS2004
+    if correlations is None:
+        correlations = PHI[:, 0] / (1.0 - PHI[:, 1])
+        
+    # Calculate the correlation for lead time lt
+    rho = PHI[:, 0] * correlations + PHI[:, 1] * correlations_prev
+    
+    # Finally, set the current correlations array as the previous one for the
+    # next time step
+    rho_prev = correlations
+    
+    return rho, rho_prev
 
 #TODO: Make sure the initial values also work for n_cascade_levels != 8.
 def clim_regr_values(n_cascade_levels, clim_regr_file=None):
