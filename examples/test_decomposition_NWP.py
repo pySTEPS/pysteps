@@ -10,6 +10,7 @@ from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 from pysteps.blending.utils import decompose_NWP
 from pysteps.cascade.bandpass_filters import filter_gaussian
+import xarray as xr
 
 num_cascade_levels = 8
 
@@ -40,7 +41,10 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-R_NWP, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+R_NWP = io.read_timeseries(fns, importer, legacy=False, **importer_kwargs)
+print(R_NWP)
+
+assert False
 
 # Convert to rain rate
 R_NWP, metadata = conversion.to_rainrate(R_NWP, metadata)
