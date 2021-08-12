@@ -48,7 +48,7 @@ filenames = io.archive.find_by_date(
 # Read the input time series
 importer = io.get_method(importer_name, "importer")
 rainrate_field, quality, metadata = io.read_timeseries(
-    filenames, importer, **importer_kwargs
+    filenames, importer, legacy=True, **importer_kwargs
 )
 
 # Convert to rain rate (mm/h)
@@ -118,8 +118,8 @@ filenames = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_next_files=3
 )
 
-refobs_field, quality, metadata = io.read_timeseries(
-    filenames, importer, **importer_kwargs
+refobs_field, _, metadata = io.read_timeseries(
+    filenames, importer, legacy=True, **importer_kwargs
 )
 
 refobs_field, metadata = utils.to_rainrate(refobs_field[-1], metadata)

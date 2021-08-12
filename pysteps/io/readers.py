@@ -12,16 +12,19 @@ Module with the reader functions.
 """
 
 import numpy as np
+import xarray as xr
+
+from pysteps.decorators import _xarray2legacy
 
 
-def read_timeseries(inputfns, importer, **kwargs):
+def read_timeseries(input_fns, importer, **kwargs):
     """Read a time series of input files using the methods implemented in the
-    :py:mod:`pysteps.io.importers` module and stack them into a 3d array of
-    shape (num_timesteps, height, width).
+    :py:mod:`pysteps.io.importers` module and concatenate them into a 3d array
+    of shape (t, y, x).
 
     Parameters
     ----------
-    inputfns: tuple
+    input_fns: tuple
         Input files returned by a function implemented in the
         :py:mod:`pysteps.io.archive` module.
     importer: function
@@ -31,50 +34,45 @@ def read_timeseries(inputfns, importer, **kwargs):
 
     Returns
     -------
-    out: tuple
-        A three-element tuple containing the read data and quality rasters and
+    out: xr.DataArray
+        A xarray DataArray containing the data rasters and
         associated metadata. If an input file name is None, the corresponding
-        precipitation and quality fields are filled with nan values. If all
-        input file names are None or if the length of the file name list is
-        zero, a three-element tuple containing None values is returned.
-
+        fields are filled with nan values.
+        If all input file names are None or if the length of the file name list
+        is zero, None is returned.
     """
-
+    legacy = kwargs.get("legacy", False)
+    kwargs["legacy"] = False
     # check for missing data
     precip_ref = None
-    if all(ifn is None for ifn in inputfns):
-        return None, None, None
+    if all(ifn is None for ifn in input_fns):
+        return None
     else:
-        if len(inputfns[0]) == 0:
-            return None, None, None
-        for ifn in inputfns[0]:
+        if len(input_fns[0]) == 0:
+            return None
+        for ifn in input_fns[0]:
             if ifn is not None:
-                precip_ref, quality_ref, metadata = importer(ifn, **kwargs)
+                precip_ref = importer(ifn, **kwargs)
                 break
 
     if precip_ref is None:
-        return None, None, None
+        return None
 
     precip = []
-    quality = []
     timestamps = []
-    for i, ifn in enumerate(inputfns[0]):
+    for i, ifn in enumerate(input_fns[0]):
         if ifn is not None:
-            precip_, quality_, _ = importer(ifn, **kwargs)
+            precip_ = importer(ifn, **kwargs)
             precip.append(precip_)
-            quality.append(quality_)
-            timestamps.append(inputfns[1][i])
+            timestamps.append(input_fns[1][i])
         else:
-            precip.append(precip_ref * np.nan)
-            if quality_ref is not None:
-                quality.append(quality_ref * np.nan)
-            else:
-                quality.append(None)
-            timestamps.append(inputfns[1][i])
+            precip.append(xr.full_like(precip_ref, np.nan))
+            timestamps.append(input_fns[1][i])
 
-    # Replace this with stack?
-    precip = np.concatenate([precip_[None, :, :] for precip_ in precip])
-    # TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
-    metadata["timestamps"] = np.array(timestamps)
+    precip = xr.concat(precip, "t")
+    precip = precip.assign_coords({"t": timestamps})
 
-    return precip, quality, metadata
+    if legacy:
+        return _xarray2legacy(precip)
+
+    return precip

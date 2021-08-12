@@ -30,7 +30,7 @@ root_path = rcparams.data_sources["fmi"]["root_path"]
 filename = os.path.join(
     root_path, "20160928", "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz"
 )
-R, _, metadata = io.import_fmi_pgm(filename, gzipped=True)
+R, _, metadata = io.import_fmi_pgm(filename, gzipped=True, legacy=True)
 
 # Convert to rain rate
 R, metadata = conversion.to_rainrate(R, metadata)
