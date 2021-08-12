@@ -11,6 +11,7 @@ import pytest
 
 import pysteps as stp
 from pysteps import io, rcparams
+from pysteps.decorators import _to_xarray, _xarray2legacy
 from pysteps.utils import aggregate_fields_space
 
 _reference_dates = dict()
@@ -30,6 +31,7 @@ def get_precipitation_fields(
     metadata=False,
     upscale=None,
     source="mch",
+    legacy=True,
     log_transform=True,
     clip=None,
     **importer_kwargs,
@@ -74,6 +76,8 @@ def get_precipitation_fields(
         The pre-processing steps are: 1) Convert to mm/h,
         2) Mask invalid values, 3) Log-transform the data [dBR].
 
+<<<<<<< HEAD
+=======
     metadata: bool, optional
         If True, also return file metadata.
 
@@ -81,6 +85,7 @@ def get_precipitation_fields(
         The extent of the bounding box in data coordinates to be used to clip
         the data.
 
+>>>>>>> master
     upscale: float or None, optional
         Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not modified.
@@ -101,9 +106,7 @@ def get_precipitation_fields(
 
     Returns
     -------
-    reference_field : array
-
-    metadata : dict
+    data_array : xr.DataArray
     """
 
     if source == "bom":
@@ -161,9 +164,9 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    reference_field, __, ref_metadata = io.read_timeseries(
-        fns, importer, **_importer_kwargs
-    )
+    reference_field = io.read_timeseries(fns, importer, **_importer_kwargs)
+
+    reference_field, _, ref_metadata = _xarray2legacy(reference_field)
 
     if not return_raw:
 
@@ -199,10 +202,13 @@ def get_precipitation_fields(
             np.ma.set_fill_value(reference_field, -15.0)
             reference_field.data[reference_field.mask] = -15.0
 
-    if metadata:
-        return reference_field, ref_metadata
+    if legacy or metadata:
+        if metadata:
+            return reference_field, ref_metadata
+        else:
+            return reference_field
 
-    return reference_field
+    return _to_xarray(reference_field, ref_metadata)
 
 
 def smart_assert(actual_value, expected, tolerance=None):

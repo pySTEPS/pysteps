@@ -90,6 +90,7 @@ import os
 from functools import partial
 
 import numpy as np
+import xarray as xr
 from matplotlib.pyplot import imread
 
 from pysteps.decorators import postprocess_import

@@ -34,7 +34,9 @@ from pysteps.visualization import plot_precip_field, plot_spectrum1d
 # Import the example radar composite
 root_path = rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20160711", "AQC161932100V_00005.801.gif")
-R, _, metadata = io.import_mch_gif(filename, product="AQC", unit="mm", accutime=5.0)
+R, _, metadata = io.import_mch_gif(
+    filename, product="AQC", unit="mm", accutime=5.0, legacy=True
+)
 
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)

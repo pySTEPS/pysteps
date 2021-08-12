@@ -2,6 +2,8 @@
 
 import os
 
+import numpy as np
+import xarray as xr
 import pytest
 
 import pysteps
@@ -36,30 +38,31 @@ def test_io_import_saf_crri_geodata(variable, expected, tolerance):
         root_path, rel_path, "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc"
     )
     geodata = pysteps.io.importers._import_saf_crri_geodata(filename)
-    print(variable, geodata[variable], expected, tolerance)
     smart_assert(geodata[variable], expected, tolerance)
 
 
-test_metadata_crri = [
+root_path = pysteps.rcparams.data_sources["saf"]["root_path"]
+rel_path = "20180601/CRR"
+filename = os.path.join(
+    root_path, rel_path, "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc"
+)
+data_array = pysteps.io.import_saf_crri(filename)
+
+# list of (variable,expected,tolerance) tuples
+test_attrs = [
+    ("projection", expected_proj, None),
+    ("institution", "Agencia Estatal de Meteorología (AEMET)", None),
     ("transform", None, None),
     ("zerovalue", 0.0, 0.1),
     ("unit", "mm/h", None),
     ("accutime", None, None),
-    ("institution", "Agencia Estatal de Meteorología (AEMET)", None),
 ]
 
 
-@pytest.mark.parametrize("variable, expected, tolerance", test_metadata_crri)
-def test_io_import_saf_crri_metadata(variable, expected, tolerance):
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
+def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer SAF CRRI."""
-    root_path = pysteps.rcparams.data_sources["saf"]["root_path"]
-    rel_path = "20180601/CRR"
-    filename = os.path.join(
-        root_path, rel_path, "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc"
-    )
-    _, _, metadata = pysteps.io.import_saf_crri(filename)
-    print(variable, metadata[variable], expected, tolerance)
-    smart_assert(metadata[variable], expected, tolerance)
+    smart_assert(data_array.attrs[variable], expected, tolerance)
 
 
 test_extent_crri = [
@@ -83,22 +86,17 @@ def test_io_import_saf_crri_extent(extent, expected_extent, expected_shape, tole
     filename = os.path.join(
         root_path, rel_path, "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc"
     )
-    precip, _, metadata = pysteps.io.import_saf_crri(filename, extent=extent)
-    extent_out = (metadata["x1"], metadata["x2"], metadata["y1"], metadata["y2"])
+    data_array = pysteps.io.import_saf_crri(filename, extent=extent)
 
-    print(extent, extent_out, expected_extent)
+    xgridsize = np.diff(data_array.x)[0]
+    ygridsize = np.diff(data_array.y)[0]
+    extent_out = (
+        data_array.x.min() - xgridsize / 2,
+        data_array.x.max() + xgridsize / 2,
+        data_array.y.min() - ygridsize / 2,
+        data_array.y.max() + ygridsize / 2,
+    )
+    print([int(out) for out in extent_out])
     smart_assert(extent_out, expected_extent, tolerance)
-    print(precip.shape, expected_shape)
-    smart_assert(precip.shape, expected_shape, tolerance)
 
-
-if __name__ == "__main__":
-
-    for i, args in enumerate(test_geodata_crri):
-        test_io_import_saf_crri_geodata(args[0], args[1], args[2])
-
-    for i, args in enumerate(test_metadata_crri):
-        test_io_import_saf_crri_metadata(args[0], args[1], args[2])
-
-    for i, args in enumerate(test_extent_crri):
-        test_io_import_saf_crri_extent(args[0], args[1], args[2], args[3])
+    smart_assert(data_array.shape, expected_shape, tolerance)
