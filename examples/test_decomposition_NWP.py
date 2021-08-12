@@ -10,7 +10,6 @@ from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 from pysteps.blending.utils import decompose_NWP
 from pysteps.cascade.bandpass_filters import filter_gaussian
-import xarray as xr
 
 num_cascade_levels = 8
 
@@ -41,10 +40,9 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-R_NWP = io.read_timeseries(fns, importer, legacy=False, **importer_kwargs)
-print(R_NWP)
-
-assert False
+print("Hier")
+R_NWP, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+print("tussen")
 
 # Convert to rain rate
 R_NWP, metadata = conversion.to_rainrate(R_NWP, metadata)
@@ -64,4 +62,11 @@ NWP_output = rcparams.outputs["NWP_outputs"]
 analysis_time = metadata["timestamps"][0]
 
 # Decompose the NWP and save to netCDF file
-decompose_NWP(R_NWP, NWP_output, "alaro13_01", analysis_time, 5, num_cascade_levels)
+decompose_NWP(
+    R_NWP,
+    NWP_output,
+    "alaro13_01",
+    analysis_time,
+    metadata["timestamps"],
+    num_cascade_levels,
+)

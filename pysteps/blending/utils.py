@@ -122,7 +122,7 @@ def decompose_NWP(
     NWP_output,
     NWP_model,
     analysis_time,
-    timestep,
+    valid_times,
     num_cascade_levels,
     decomp_method="fft",
     fft_method="numpy",
@@ -182,7 +182,13 @@ def decompose_NWP(
     Nothing
     """
 
+    # Initialise array with valid time
+
+    assert False
+    valid_times = valid_times.strftime("%Y%m%d%H%M%S")
+
     # Convert start time to string
+    analysis_time = metadata["timestamps"]
     analysis_time = analysis_time.strftime("%Y%m%d%H%M%S")
 
     # Make a NetCDF file
