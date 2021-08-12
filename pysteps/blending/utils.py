@@ -57,12 +57,12 @@ def stack_cascades(R_d, donorm=True):
 
 
 def normalize_cascade(cascade):
-    """Normalizes a cascade (again).    
+    """Normalizes a cascade (again).
 
     Parameters
     ----------
     cascade : array-like
-      An array of shape [scale_level, y, x] 
+      An array of shape [scale_level, y, x]
       containing per scale level a cascade that has to be normalized (again).
 
     Returns
@@ -72,12 +72,12 @@ def normalize_cascade(cascade):
 
     """
     # Determine the mean and standard dev. of the combined cascade
-    mu = np.mean(cascade, axis=(1,2))
-    sigma = np.std(cascade, axis=(1,2))
+    mu = np.mean(cascade, axis=(1, 2))
+    sigma = np.std(cascade, axis=(1, 2))
     # Normalize the cascade
-    out = [(cascade[i] - mu[i]) / sigma[i] for i in range(cascade.shape[0])]    
+    out = [(cascade[i] - mu[i]) / sigma[i] for i in range(cascade.shape[0])]
     out = np.stack(out)
-    
+
     return out
 
 
@@ -135,4 +135,3 @@ def blend_optical_flows(flows, weights):
     combined_flows = np.sum(all_c_wn, axis=-1)
     # combined_flows [2, m, n]
     return combined_flows
-
