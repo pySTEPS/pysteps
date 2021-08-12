@@ -17,10 +17,15 @@ is possible with this code, but we recommend the use of just two models.
     blend_means_sigmas
     recompose_cascade
 
+References
+----------
+:cite:`BPS2004`
+:cite:`BPS2006`
+:cite:`SPN2013`
 """
 
 import numpy as np
-
+from pysteps.blending import utils
 
 def calculate_ratios(correlations):
     """Calculate explained variance ratios from correlation.
@@ -63,8 +68,16 @@ def calculate_weights(correlations):
       containing the weights to be used in STEPS blending for
       each original component plus an addtional noise component, scale level, 
       and optionally along [y, x] dimensions.
+      
+    Notes
+    -----
+    The weights in the BPS method can sum op to more than 1.0. Hence, the 
+    blended cascade has the be (re-)normalized (mu = 0, sigma = 1.0) first 
+    before the blended cascade can be recomposed.
     """
     # correlations: [component, scale, ...]
+    # Check if the correlations are positive, otherwise rho = 10e-5
+    correlations = np.where(correlations < 10e-5, 10e-5, correlations)
     # Calculate weights for each source
     ratios = calculate_ratios(correlations)
     # ratios: [component, scale, ...]
@@ -72,14 +85,10 @@ def calculate_weights(correlations):
     # total_ratios: [scale, ...] - the denominator of eq. 11 & 12 in BPS2006 
     weights = correlations * np.sqrt(ratios/total_ratios)
     # weights: [component, scale, ...]
-    # Calculate the weight of the noise component. This is different from
-    # BPS 2006, as the sum of the weights should equal 1 here.
-    noise_weight = 1.0 - np.sum(weights, axis=0)
-    # noise_weight: [scale, ...]
-    
-    # Original BPS2006 method in the following two lines
-    # total_square_weights = np.sum(np.square(weights), axis=0)
-    # noise_weight = np.sqrt(1.0 - total_square_weights) 
+    # Calculate the weight of the noise component.    
+    # Original BPS2006 method in the following two lines (eq. 13)
+    total_square_weights = np.sum(np.square(weights), axis=0)
+    noise_weight = np.sqrt(1.0 - total_square_weights) 
     #TODO: determine the weights method and/or add different functions
     
     # Finally, add the noise_weights to the weights variable. 
@@ -87,6 +96,8 @@ def calculate_weights(correlations):
     return weights
 
 
+#TODO: Make sure that where the radar rainfall data has no data, the NWP
+# data is used.
 def blend_cascades(cascades_norm, weights):
     """Calculate blended normalized cascades using STEPS weights following eq. 
     10 in :cite:`BPS2006`.
@@ -124,17 +135,17 @@ def blend_cascades(cascades_norm, weights):
 
 def blend_means_sigmas(means, sigmas, weights):
     """Calculate the blended means and sigmas, the normalization parameters 
-    needed to recompose the cascade. This procedure is similar to the
-    blending of the normalized cascades and uses the same weights.
+    needed to recompose the cascade. This procedure uses the weights of the
+    blending of the normalized cascades and follows eq. 32 and 33 in BPS2004.
     
 
     Parameters
     ----------
     means : array-like
-      Array of shape [number_components + 1, scale_level, ...]
+      Array of shape [number_components, scale_level, ...]
       with the mean for each component (NWP, nowcasts, noise).
     sigmas : array-like
-      Array of shape [number_components + 1, scale_level, ...]
+      Array of shape [number_components, scale_level, ...]
       with the standard deviation for each component.
     weights : array-like
       An array of shape [number_components + 1, scale_level, ...]
@@ -154,7 +165,7 @@ def blend_means_sigmas(means, sigmas, weights):
       similar to combined_means, but containing the standard deviations.
 
     """
-    # Check if the dimensions are the same
+    # Check if the dimensions are the same   
     diff_dims = weights.ndim - means.ndim
     if diff_dims:
         for i in range(diff_dims):
@@ -163,10 +174,22 @@ def blend_means_sigmas(means, sigmas, weights):
     if diff_dims:
         for i in range(diff_dims):
             sigmas = np.expand_dims(sigmas, axis=sigmas.ndim)
+    # Weight should have one component more (the noise component) than the 
+    # means and sigmas. Check this
+    if weights.shape[0] - means.shape[0] != 1 or weights.shape[0] - sigmas.shape[0] != 1:
+        raise ValueError("The weights array does not have one (noise) component more than mu and sigma")
+    else:
+        # Throw away the last component, which is the noise component
+        weights = weights[:-1]
+    
     # Combine (blend) the means and sigmas
-    combined_means = np.sum((weights * means), axis=0)
-    combined_sigmas = np.sum((weights * sigmas), axis=0)
-    #TODO: substract covarainces to weigthed sigmas
+    combined_means = np.zeros(weights.shape[1])
+    combined_sigmas = np.zeros(weights.shape[1])
+    total_weight = np.sum((weights), axis=0)
+    for i in range(weights.shape[0]):
+        combined_means += (weights[i] / total_weight) * means[i]
+        combined_sigmas += (weights[i] / total_weight) * sigmas[i]
+    #TODO: substract covarainces to weigthed sigmas - still necessary?
 
     return combined_means, combined_sigmas
 
@@ -193,10 +216,18 @@ def recompose_cascade(combined_cascade, combined_mean, combined_sigma):
 
     Returns
     -------
-    out : TYPE
-        DESCRIPTION.
-
+    out: array-like
+        A two-dimensional array containing the recomposed cascade.
+        
+    Notes
+    -----
+    The combined_cascade is made with weights that do not have to sum up to
+    1.0. Therefore, the combined_cascade is first normalized again using
+    pysteps.blending.steps.normalize_cascade.
     """
+    # First, normalize the combined_cascade again
+    combined_cascade = utils.normalize_cascade(combined_cascade)
+    # Now, renormalize it with the blended sigma and mean values
     renorm = (combined_cascade * combined_sigma) + combined_mean
     # print(renorm.shape)
     out = np.sum(renorm, axis=0)
