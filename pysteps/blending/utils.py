@@ -152,13 +152,11 @@ def decompose_NWP(
     casc_dim = ncf.createDimension("cascade levels", num_cascade_levels)
     x_dim = ncf.createDimension("x", R_NWP.shape[1])
     y_dim = ncf.createDimension("y", R_NWP.shape[2])
-    means_dim = ncf.createDimension("means", num_cascade_levels)
-    stds_dim = ncf.createDimension("stds", num_cascade_levels)
 
     # Create variables (decomposed cascade, means and standard deviations)
     R_d = ncf.createVariable("R_d", np.float64, ("time", "cascade levels", "x", "y"))
-    means = ncf.createVariable("means", np.float64, ("time", "means"))
-    stds = ncf.createVariable("stds", np.float64, ("time", "stds"))
+    means = ncf.createVariable("means", np.float64, ("time", "cascade levels"))
+    stds = ncf.createVariable("stds", np.float64, ("time", "cascade levels"))
 
     # Decompose the NWP data
     filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
