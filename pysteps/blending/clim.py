@@ -2,7 +2,7 @@
 pysteps.blending.clim
 =====================
 
-Module with methods to read, write and compute past and climatological model skill.
+Module with methods to read, write and compute past and climatological model weights.
 
 .. autosummary::
     :toctree: ../generated/
@@ -12,13 +12,14 @@ Module with methods to read, write and compute past and climatological model ski
 """
 
 import numpy as np
+from os.path import exists
 
 
 def save_weights(current_weights, validtime, model_names, outdir_path, window_length):
     """
-    Add the current NWP weights/skills to update today's daily average weight. If
-    the day is over, update the list of daily average weights covering a
-    rolling window.
+    Add the current NWP weights to update today's daily average weight. If the
+    day is over, update the list of daily average weights covering a rolling
+    window.
 
     Parameters
     ----------
@@ -30,7 +31,7 @@ def save_weights(current_weights, validtime, model_names, outdir_path, window_le
     outdir_path: string
       Path to folder where the historical weights are stored.
     window_length: int
-      Length of window over which to compute the climatological weights (in days).
+      Length of window (in days) over which to compute the climatological weights.
 
     Returns
     -------
@@ -38,10 +39,19 @@ def save_weights(current_weights, validtime, model_names, outdir_path, window_le
 
     """
 
-    # TODO everywhere:  error catching
+    n_cascade_levels = current_weights.shape[1]
 
     # Load weights_today, a dictionary containing {mean_weights, n, last_validtime}
-    weights_today = np.load(outdir_path + "NWP_weights_today.bin")
+    weights_today_file = outdir_path + "NWP_weights_today.bin"
+    weights_today = (
+        exists(weights_today_file)
+        and load(weights_today_file)
+        or {
+            "mean_weights": np.copy(current_weights),
+            "n": 0,
+            "last_validtime": validtime,
+        }
+    )
 
     # Load the past weights which is an array with dimensions day x model x scale_level
     past_weights = np.load(outdir_path + "NWP_weights_window.bin")
@@ -54,7 +64,7 @@ def save_weights(current_weights, validtime, model_names, outdir_path, window_le
         # Remove oldest if the number of entries exceeds the window length.
         if past_weights.shape[0] > window_length:
             past_weights = np.delete(past_weights, 0, axis=0)
-        # TODO also write out last_validtime.date() in this file?
+        # FIXME also write out last_validtime.date() in this file?
         # In that case it will need pickling or netcdf.
         # Write out the past weights within the rolling window.
         np.save(outdir_path + "NWP_weights_window.bin", past_weights)
@@ -77,8 +87,8 @@ def save_weights(current_weights, validtime, model_names, outdir_path, window_le
 
 def calc_clim_weights(model_names, outdir_path):
     """
-    Return the climatological skill based on the weights in the rolling
-    window. This is done using a geometric mean.
+    Return the climatological weights based on the daily average weights in the
+    rolling window. This is done using a geometric mean.
 
     Parameters
     ----------
