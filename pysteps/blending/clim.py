@@ -15,14 +15,35 @@ import numpy as np
 from os.path import exists
 
 
-def get_default_weights(n_models, n_cascade_levels):
+def get_default_weights(n_cascade_levels, n_models=1):
     """
-    BPS2004
+    Get the default weights as given in BPS2004.
+
+    Parameters
+    ----------
+    n_cascade_levels: int
+      Number of cascade levels.
+    nmodels: int, optional
+      Number of NWP models
+
+    Returns
+    -------
+    default_weights: array-like
+      Array of shape [model, scale_level] containing the climatological weights.
+
     """
+
     default_weights = np.array(
         [0.848, 0.537, 0.237, 0.065, 0.020, 0.0044, 0.0052, 0.0040]
     )
-    return default_weights
+    n_weights = default_weights.shape[0]
+    if n_cascade_levels < n_weights:
+        default_weights = default_weights[0:n_cascade_levels]
+    elif n_cascade_levels > n_weights:
+        default_weights = np.append(
+            default_weights, np.repeat(1e-4, n_cascade_levels - n_weights)
+        )
+    return np.resize(default_weights, (n_models, n_cascade_levels))
 
 
 def save_weights(current_weights, validtime, outdir_path, window_length=30):
