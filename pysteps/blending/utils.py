@@ -218,6 +218,7 @@ def decompose_NWP(
     means = ncf.createVariable("means", np.float64, ("time", "cascade_levels"))
     stds = ncf.createVariable("stds", np.float64, ("time", "cascade_levels"))
     v_times = ncf.createVariable("valid_times", np.float64, ("time",))
+    v_times.units = "nanoseconds since 1970-01-01 00:00:00"
 
     # The valid times are saved as an array of floats, because netCDF files can't handle datetime types
     v_times[:] = np.array([np.float64(valid_times[i]) for i in range(len(valid_times))])
