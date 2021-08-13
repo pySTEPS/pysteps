@@ -144,10 +144,14 @@ def decompose_NWP(
       The location where to save the file with the NWP cascade
     NWP_model: str
       The name of the NWP model
-    analysis_time: datetime
-      The analysis time of the NWP forecast
+    analysis_time: numpy.datetime64
+      The analysis time of the NWP forecast. The analysis time is assumed to be a
+      numpy.datetime64 type as imported by the pysteps importer
     timestep: int
       Timestep in minutes between subsequent NWP forecast fields
+    valid_times: array_like
+      Array containing the valid times of the NWP forecast fields. The times are
+      assumed to be numpy.datetime64 types as imported by the pysteps importer
     num_cascade_levels:
       The number of frequency bands to use. Must be greater than 2.
 
@@ -191,8 +195,8 @@ def decompose_NWP(
     )
     ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
 
-    # Convert times to string
-    zero_time = np.datetime64("1900-01-01T00:00:00", "ns")
+    # Express times relative to the zero time
+    zero_time = np.datetime64("1970-01-01T00:00:00", "ns")
     valid_times = np.array(valid_times) - zero_time
     analysis_time = analysis_time - zero_time
 
@@ -214,7 +218,9 @@ def decompose_NWP(
     means = ncf.createVariable("means", np.float64, ("time", "cascade_levels"))
     stds = ncf.createVariable("stds", np.float64, ("time", "cascade_levels"))
     v_times = ncf.createVariable("valid_times", np.float64, ("time",))
-    v_times[:] = np.array([int(valid_times[i]) for i in range(len(valid_times))])
+
+    # The valid times are saved as an array of floats, because netCDF files can't handle datetime types
+    v_times[:] = np.array([np.float64(valid_times[i]) for i in range(len(valid_times))])
 
     # Decompose the NWP data
     filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
@@ -248,8 +254,8 @@ def load_NWP(NWP_output, start_time, n_timesteps):
     ----------
     NWP_output: str
       Path to the saved netCDF files containing the decomposed NWP data
-    start_time: datetime
-      The start time of the nowcasting
+    start_time: numpy.datetime64
+      The start time of the nowcasting. Assumed to be a numpy.datetime64 type
     n_timesteps: int
       Number of time steps to forecast
 
@@ -270,14 +276,18 @@ def load_NWP(NWP_output, start_time, n_timesteps):
     decomp_dict["normalized"] = bool(ncf.normalized)
     decomp_dict["compact_output"] = bool(ncf.compact_output)
 
-    # Convert the analysis time and the timestep to datetime64 and timedelta64 type
-    zero_time = np.datetime64("1900-01-01T00:00:00", "ns")
+    # Convert the start time and the timestep to datetime64 and timedelta64 type
+    zero_time = np.datetime64("1970-01-01T00:00:00", "ns")
     analysis_time = np.timedelta64(int(ncf.analysis_time), "ns") + zero_time
+
     timestep = ncf.timestep
     timestep = np.timedelta64(timestep, "m")
+
     valid_times = ncf.variables["valid_times"][:]
     valid_times = np.array([np.timedelta64(int(valid_times[i]), "ns") for i in range(len(valid_times))])
     valid_times = valid_times + zero_time
+
+    # Add the valid times to the output
     decomp_dict["valid_times"] = valid_times
 
     # Find the indices corresponding with the required start and end time
