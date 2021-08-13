@@ -16,6 +16,7 @@ dimensional model fields with the latest observation field.
 """
 
 import numpy as np
+from pysteps.blending import clim
 
 
 def spatial_correlation(obs, mod):
@@ -154,20 +155,20 @@ def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=Non
     return rho, rho_prev
 
 
-# TODO: Make sure the initial values also work for n_cascade_levels != 8.
-def clim_regr_values(n_cascade_levels, clim_regr_file=None):
+def clim_regr_values(n_cascade_levels, outdir_path, skill_kwargs=None):
     """Obtains the climatological correlation values and regression parameters
-    from a file called ... in ... If this file is not present yet, the values
-    from :cite:`BPS2004`.
+    from a file called NWP_weights_window.bin in the outdir_path. If this file
+    is not present yet, the values from :cite:`BPS2004` are used.
 
 
     Parameters
     ----------
     n_cascade_levels : int
         The number of cascade levels to use.
-    clim_regr_file : str, optional
-        Location of the file with the climatological correlation values
-        and regression parameters.
+    outdir_path: str
+        Path to folder where the historical weights are stored.
+    skill_kwargs : dict, optional
+        Dictionary containing e.g. the nmodels and window_length parameters.
 
     Returns
     -------
@@ -178,32 +179,57 @@ def clim_regr_values(n_cascade_levels, clim_regr_file=None):
         pysteps.blending.skill_scores.get_clim_skill_scores.
     regr_pars : array-like
         Array of shape [2, n_cascade_levels] containing the regression
-        parameters for the auto-correlation coefficients, obtained by calling
-        a method implemented in
-        pysteps.blending.skill_scores.get_clim_skill_scores.
+        parameters. These are fixed values that should be hard-coded in this
+        function. Unless changed by the user, the standard values from
+        `BPS2004` are used.
+
+    Notes
+    -----
+    The literature climatological values assume 8 cascade levels. In case
+    less or more cascade levels are used, the script will handle this by taking
+    the first n values or extending the array with a small value. This is not
+    ideal, but will be fixed once the clim_regr_file is made. Hence, this
+    requires a warm-up period of the model.
+    In addition, the regression parameter values (eq. 24 in BPS2004) are hard-
+    coded and can only be optimized by the user after (re)fitting of the
+    equation.
 
     """
-    if clim_regr_file is not None:
-        # TODO: Finalize this function when the I/O skill file system has been
-        # set up (work in progress by Lesley).
-
-        # 1. Open the file
-
-        # 2. Get the climatological correlation values and the regression
-        # parameters
-        clim_cor_values = ...
-        regr_pars = ...
-
-    else:
-        # Get the values from BPS2004
+    # First, obtain climatological skill values
+    try:
+        clim_cor_values = clim.calc_clim_weights(
+            outdir_path, n_cascade_levels, **skill_kwargs
+        )
+    except FileNotFoundError:
+        # The climatological skill values file does not exist yet, so we'll
+        # use the default values from BPS2004.
         clim_cor_values = np.array(
             [0.848, 0.537, 0.237, 0.065, 0.020, 0.0044, 0.0052, 0.0040]
         )
-        regr_pars = np.array(
-            [
-                [130.0, 165.0, 120.0, 55.0, 50.0, 15.0, 15.0, 10.0],
-                [155.0, 220.0, 200.0, 75.0, 10e4, 10e4, 10e4, 10e4],
-            ]
+
+    # Check if clim_cor_values has only one dimension, otherwise it has
+    # returned the skill values for multiple models
+    if clim_cor_values.ndim != 1:
+        raise IndexError(
+            "The climatological cor. values of multiple models were returned, but only one model should be specified. Make sure to pass the argument nmodels in the function"
         )
+
+    # Also check whether the number of cascade_levels is correct
+    if clim_cor_values.shape[0] > n_cascade_levels:
+        clim_cor_values = clim_cor_values[0:n_cascade_levels]
+    elif clim_cor_values.shape[0] < n_cascade_levels:
+        # Get the number of cascade levels that is missing
+        n_extra_lev = n_cascade_levels - clim_cor_values.shape[0]
+        # Append the array with correlation values of 10e-4
+        clim_cor_values = np.append(clim_cor_values, np.repeat(10e-4, n_extra_lev))
+
+    # Get the regression parameters (L in eq. 24 in BPS2004) - Hard coded,
+    # change to own values when present.
+    regr_pars = np.array(
+        [
+            [130.0, 165.0, 120.0, 55.0, 50.0, 15.0, 15.0, 10.0],
+            [155.0, 220.0, 200.0, 75.0, 10e4, 10e4, 10e4, 10e4],
+        ]
+    )
 
     return clim_cor_values, regr_pars
