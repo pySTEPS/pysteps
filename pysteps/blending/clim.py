@@ -15,7 +15,17 @@ import numpy as np
 from os.path import exists
 
 
-def save_weights(current_weights, validtime, model_names, outdir_path, window_length):
+def get_default_weights(n_models, n_cascade_levels):
+    """
+    BPS2004
+    """
+    default_weights = np.array(
+        [0.848, 0.537, 0.237, 0.065, 0.020, 0.0044, 0.0052, 0.0040]
+    )
+    return default_weights
+
+
+def save_weights(current_weights, validtime, outdir_path, window_length=30):
     """
     Add the current NWP weights to update today's daily average weight. If the
     day is over, update the list of daily average weights covering a rolling
@@ -26,11 +36,9 @@ def save_weights(current_weights, validtime, model_names, outdir_path, window_le
     current_weights: array-like
       Array of shape [model, scale_level, ...]
       containing the current weights of the different NWP models per cascade level.
-    model_names : list of strings
-      List containing unique identifiers for each NWP model.
     outdir_path: string
       Path to folder where the historical weights are stored.
-    window_length: int
+    window_length: int, optional
       Length of window (in days) over which to compute the climatological weights.
 
     Returns
@@ -85,31 +93,37 @@ def save_weights(current_weights, validtime, model_names, outdir_path, window_le
     return None
 
 
-def calc_clim_weights(model_names, outdir_path):
+def calc_clim_weights(outdir_path, n_cascade_levels, nmodels=1, window_length=30):
     """
     Return the climatological weights based on the daily average weights in the
     rolling window. This is done using a geometric mean.
 
     Parameters
     ----------
-    weights: array-like
-      Array of shape [model, scale_level, ...]
-      containing the current weights of the different NWP models per cascade level.
-    model_names : list of strings
-      List containing unique identifiers for each NWP model.
     outdir_path: string
       Path to folder where the historical weights are stored.
-    window_length: int
-      Length of window over which to compute the climatological weights (in days).
+    n_cascade_levels: int
+      Number of cascade levels.
+    nmodels: int, optional
+      Number of NWP models
+    window_length: int, optional
+      Length of window (in days) over which to compute the climatological weights.
 
     Returns
     -------
     climatological_mean_weights: array-like
-      Array containing the climatological weights.
+      Array of shape [model, scale_level, ...] containing the climatological weights.
 
     """
 
+    # past_weights has dimensions date x model x scale_level  x ....
     past_weights = np.load(outdir_path + "NWP_weights_window.bin")
+    # check if there's enough data to compute the climatological skill
+    if past_weights.shape[0] < window_length:
+        return get_default_weights(nmodels, n_cascade_levels)
+    # reduce window if necessary
+    else:
+        past_weights = past_weights[-window_length:]
 
     # Calculate climatological weights from the past_weights using the
     # geometric mean.
