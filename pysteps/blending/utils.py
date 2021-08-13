@@ -122,6 +122,7 @@ def decompose_NWP(
     NWP_output,
     NWP_model,
     analysis_time,
+    timestep,
     valid_times,
     num_cascade_levels,
     decomp_method="fft",
@@ -182,27 +183,25 @@ def decompose_NWP(
     Nothing
     """
 
-    # Initialise array with valid time
-
-    assert False
-    valid_times = valid_times.strftime("%Y%m%d%H%M%S")
-
-    # Convert start time to string
-    analysis_time = metadata["timestamps"]
-    analysis_time = analysis_time.strftime("%Y%m%d%H%M%S")
-
     # Make a NetCDF file
+    date_string = np.datetime_as_string(analysis_time, "s")
     outfn = os.path.join(
-        NWP_output, "cascade_" + NWP_model + "_" + analysis_time + ".nc"
+        NWP_output, "cascade_" + NWP_model + "_" + date_string[:4] + date_string[5:7] + date_string[8:10]
+                    + date_string[11:13] + date_string[14:16] + date_string[17:19] + ".nc"
     )
     ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
+
+    # Convert times to string
+    zero_time = np.datetime64("1900-01-01T00:00:00", "ns")
+    valid_times = np.array(valid_times) - zero_time
+    analysis_time = analysis_time - zero_time
 
     # Set attributes of decomposition method
     ncf.domain = domain
     ncf.normalized = int(normalize)
     ncf.compact_output = int(compact_output)
-    ncf.analysis_time = analysis_time
-    ncf.timestep = timestep
+    ncf.analysis_time = int(analysis_time)
+    ncf.timestep = int(timestep)
 
     # Create dimensions
     time_dim = ncf.createDimension("time", R_NWP.shape[0])
@@ -214,6 +213,8 @@ def decompose_NWP(
     R_d = ncf.createVariable("R_d", np.float64, ("time", "cascade_levels", "x", "y"))
     means = ncf.createVariable("means", np.float64, ("time", "cascade_levels"))
     stds = ncf.createVariable("stds", np.float64, ("time", "cascade_levels"))
+    v_times = ncf.createVariable("valid_times", np.float64, ("time",))
+    v_times[:] = np.array([int(valid_times[i]) for i in range(len(valid_times))])
 
     # Decompose the NWP data
     filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
@@ -269,11 +270,15 @@ def load_NWP(NWP_output, start_time, n_timesteps):
     decomp_dict["normalized"] = bool(ncf.normalized)
     decomp_dict["compact_output"] = bool(ncf.compact_output)
 
-    # Convert the analysis time and the timestep to datetime and timedelta type
-    analysis_time = ncf.analysis_time
-    analysis_time = datetime.strptime(analysis_time, "%Y%m%d%H%M%S")
+    # Convert the analysis time and the timestep to datetime64 and timedelta64 type
+    zero_time = np.datetime64("1900-01-01T00:00:00", "ns")
+    analysis_time = np.timedelta64(int(ncf.analysis_time), "ns") + zero_time
     timestep = ncf.timestep
-    timestep = timedelta(minutes=int(timestep))
+    timestep = np.timedelta64(timestep, "m")
+    valid_times = ncf.variables["valid_times"][:]
+    valid_times = np.array([np.timedelta64(int(valid_times[i]), "ns") for i in range(len(valid_times))])
+    valid_times = valid_times + zero_time
+    decomp_dict["valid_times"] = valid_times
 
     # Find the indices corresponding with the required start and end time
     start_i = (start_time - analysis_time) // timestep

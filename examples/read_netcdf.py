@@ -1,9 +1,9 @@
 import os, netCDF4
-from datetime import datetime
+import numpy as np
 from pysteps import rcparams
 from pysteps.blending.utils import load_NWP
 
-NWP_output = rcparams.outputs["NWP_outputs"] + "NWP_cascade_20170131110000.nc"
-analysis_time = datetime.strptime("20170131112000", "%Y%m%d%H%M%S")
+NWP_output = rcparams.outputs["NWP_outputs"] + "cascade_alaro13_01_20170131110000.nc"
+start_time = np.datetime64("2017-01-31T11:20")
 
-print(load_NWP(NWP_output, analysis_time, 4))
+print(load_NWP(NWP_output, start_time, 4))

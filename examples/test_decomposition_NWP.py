@@ -40,9 +40,7 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-print("Hier")
 R_NWP, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
-print("tussen")
 
 # Convert to rain rate
 R_NWP, metadata = conversion.to_rainrate(R_NWP, metadata)
@@ -67,6 +65,7 @@ decompose_NWP(
     NWP_output,
     "alaro13_01",
     analysis_time,
+    5,
     metadata["timestamps"],
     num_cascade_levels,
 )
