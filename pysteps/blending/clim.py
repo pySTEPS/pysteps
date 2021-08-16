@@ -12,12 +12,14 @@ Module with methods to read, write and compute past and climatological model wei
 """
 
 import numpy as np
-from os.path import exists
+from os.path import exists, join
 
 
 def get_default_weights(n_cascade_levels, n_models=1):
     """
     Get the default weights as given in BPS2004.
+    Take subset of n_cascade_levels or add entries with small values (1e-4) if
+    n_cascade_levels differs from 8.
 
     Parameters
     ----------
@@ -71,10 +73,10 @@ def save_weights(current_weights, validtime, outdir_path, window_length=30):
     n_cascade_levels = current_weights.shape[1]
 
     # Load weights_today, a dictionary containing {mean_weights, n, last_validtime}
-    weights_today_file = outdir_path + "NWP_weights_today.bin"
+    weights_today_file = join(outdir_path, "NWP_weights_today.npy")
     weights_today = (
         exists(weights_today_file)
-        and load(weights_today_file)
+        and np.load(weights_today_file)
         or {
             "mean_weights": np.copy(current_weights),
             "n": 0,
@@ -83,33 +85,39 @@ def save_weights(current_weights, validtime, outdir_path, window_length=30):
     )
 
     # Load the past weights which is an array with dimensions day x model x scale_level
-    past_weights = np.load(outdir_path + "NWP_weights_window.bin")
+    past_weights_file = join(outdir_path, "NWP_weights_window.npy")
+    past_weights = exists(past_weights_file) and np.load(past_weights_file) or None
 
     # First check if we have started a new day wrt the last written weights, in which
     # case we should update the daily weights file and reset daily statistics.
-    if weights_today.last_validtime.date() < validtime.date():
+    if weights_today["last_validtime"].date() < validtime.date():
         # Append weights to the list of the past X daily averages.
-        past_weights = np.append(past_weights, [weights_today.mean_weights], axis=0)
+        past_weights = (
+            past_weights
+            and np.append(past_weights, [weights_today["mean_weights"]], axis=0)
+            or np.array([weights_today["mean_weights"]])
+        )
+        print(past_weights.shape)
         # Remove oldest if the number of entries exceeds the window length.
         if past_weights.shape[0] > window_length:
             past_weights = np.delete(past_weights, 0, axis=0)
         # FIXME also write out last_validtime.date() in this file?
         # In that case it will need pickling or netcdf.
         # Write out the past weights within the rolling window.
-        np.save(outdir_path + "NWP_weights_window.bin", past_weights)
+        np.save(past_weights_file, past_weights)
         # Reset statistics for today.
-        weights_today.n = 0
-        weights_today.mean_weights = 0
+        weights_today["n"] = 0
+        weights_today["mean_weights"] = 0
 
     # Reset today's weights if needed and/or compute online average from the
     # current weights using numerically stable algorithm
-    weights_today.n += 1
-    weights_today.mean_weights += (
-        current_weights - weights_today.mean_weights
-    ) / weights_today.n
-    weights_today.last_validtime = validtime
+    weights_today["n"] += 1
+    weights_today["mean_weights"] += (
+        current_weights - weights_today["mean_weights"]
+    ) / weights_today["n"]
+    weights_today["last_validtime"] = validtime
 
-    np.save(outdir_path + "NWP_weights_today.bin", weights_today, allow_pickle=True)
+    np.save(weights_today_file, weights_today, allow_pickle=True)
 
     return None
 
@@ -136,11 +144,11 @@ def calc_clim_weights(outdir_path, n_cascade_levels, nmodels=1, window_length=30
       Array of shape [model, scale_level, ...] containing the climatological weights.
 
     """
-
+    past_weights_file = join(outdir_path, "NWP_weights_window.npy")
     # past_weights has dimensions date x model x scale_level  x ....
-    past_weights = np.load(outdir_path + "NWP_weights_window.bin")
+    past_weights = exists(past_weights_file) and np.load(past_weights_file) or None
     # check if there's enough data to compute the climatological skill
-    if past_weights.shape[0] < window_length:
+    if not past_weights or past_weights.shape[0] < window_length:
         return get_default_weights(nmodels, n_cascade_levels)
     # reduce window if necessary
     else:
