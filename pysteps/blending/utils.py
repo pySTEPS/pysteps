@@ -82,7 +82,8 @@ def normalize_cascade(cascade):
 
 
 def blend_optical_flows(flows, weights):
-    """Combine advection fields using given weights.
+    """Combine advection fields using given weights. Following :cite:`BPS2006`
+    the second level of the cascade is used for the weights
 
     Parameters
     ----------
