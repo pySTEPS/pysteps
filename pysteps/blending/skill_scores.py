@@ -228,6 +228,7 @@ def clim_regr_values(n_cascade_levels, outdir_path, skill_kwargs=dict()):
 
     # Get the regression parameters (L in eq. 24 in BPS2004) - Hard coded,
     # change to own values when present.
+    # TODO: Regression pars for different cascade levels
     regr_pars = np.array(
         [
             [130.0, 165.0, 120.0, 55.0, 50.0, 15.0, 15.0, 10.0],

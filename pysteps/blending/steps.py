@@ -11,6 +11,7 @@ is possible with this code, but we recommend the use of just two models.
 .. autosummary::
     :toctree: ../generated/
 
+    forecast
     calculate_ratios
     calculate_weights
     blend_cascades
@@ -26,6 +27,12 @@ References
 
 import numpy as np
 from pysteps.blending import utils
+
+
+def forecast():
+    # TODO: ..
+
+    return ...
 
 
 def calculate_ratios(correlations):
