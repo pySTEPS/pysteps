@@ -16,7 +16,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from pysteps import cascade
 from pysteps.cascade.bandpass_filters import filter_gaussian
-from pysteps import utils
+from pysteps import utils, rcparams
 import os
 import netCDF4
 
@@ -119,12 +119,12 @@ def blend_optical_flows(flows, weights):
 
 def decompose_NWP(
     R_NWP,
-    NWP_output,
     NWP_model,
     analysis_time,
     timestep,
     valid_times,
-    num_cascade_levels,
+    num_cascade_levels=8,
+    output_path=rcparams.outputs["path_workdir"],
     decomp_method="fft",
     fft_method="numpy",
     domain="spatial",
@@ -140,8 +140,6 @@ def decompose_NWP(
     R_NWP: array-like
       Array of dimension (n_timesteps, x, y) containing the precipiation forecast
       from some NWP model.
-    NWP_output: str
-      The location where to save the file with the NWP cascade
     NWP_model: str
       The name of the NWP model
     analysis_time: numpy.datetime64
@@ -152,8 +150,11 @@ def decompose_NWP(
     valid_times: array_like
       Array containing the valid times of the NWP forecast fields. The times are
       assumed to be numpy.datetime64 types as imported by the pysteps importer
-    num_cascade_levels:
-      The number of frequency bands to use. Must be greater than 2.
+    num_cascade_levels: int, optional
+      The number of frequency bands to use. Must be greater than 2. Defaults to 8.
+    output_path: str, optional
+      The location where to save the file with the NWP cascade. Defaults to the
+      path_workdir specified in the rcparams file.
 
     Other Parameters
     ----------------
@@ -190,8 +191,17 @@ def decompose_NWP(
     # Make a NetCDF file
     date_string = np.datetime_as_string(analysis_time, "s")
     outfn = os.path.join(
-        NWP_output, "cascade_" + NWP_model + "_" + date_string[:4] + date_string[5:7] + date_string[8:10]
-                    + date_string[11:13] + date_string[14:16] + date_string[17:19] + ".nc"
+        output_path,
+        "cascade_"
+        + NWP_model
+        + "_"
+        + date_string[:4]
+        + date_string[5:7]
+        + date_string[8:10]
+        + date_string[11:13]
+        + date_string[14:16]
+        + date_string[17:19]
+        + ".nc",
     )
     ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
 
@@ -248,17 +258,18 @@ def decompose_NWP(
     ncf.close()
 
 
-def load_NWP(NWP_output, start_time, n_timesteps):
+def load_NWP(start_time, n_timesteps, output_path=rcparams.outputs["path_workdir"]):
     """Loads the decomposed NWP data from the netCDF files
 
     Parameters
     ----------
-    NWP_output: str
-      Path to the saved netCDF files containing the decomposed NWP data
     start_time: numpy.datetime64
       The start time of the nowcasting. Assumed to be a numpy.datetime64 type
     n_timesteps: int
       Number of time steps to forecast
+    output_path: str, optional
+      Path to the saved netCDF files containing the decomposed NWP data.
+      Defaults to the path_workdir specified in the rcparams file.
 
     Returns
     -------
@@ -269,7 +280,7 @@ def load_NWP(NWP_output, start_time, n_timesteps):
     """
 
     # Open the file
-    ncf = netCDF4.Dataset(NWP_output, "r", format="NETCDF4")
+    ncf = netCDF4.Dataset(output_path, "r", format="NETCDF4")
 
     # Initialise the decomposition dictionary
     decomp_dict = dict()
@@ -285,7 +296,9 @@ def load_NWP(NWP_output, start_time, n_timesteps):
     timestep = np.timedelta64(timestep, "m")
 
     valid_times = ncf.variables["valid_times"][:]
-    valid_times = np.array([np.timedelta64(int(valid_times[i]), "ns") for i in range(len(valid_times))])
+    valid_times = np.array(
+        [np.timedelta64(int(valid_times[i]), "ns") for i in range(len(valid_times))]
+    )
     valid_times = valid_times + zero_time
 
     # Add the valid times to the output

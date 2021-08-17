@@ -62,10 +62,10 @@ analysis_time = metadata["timestamps"][0]
 # Decompose the NWP and save to netCDF file
 decompose_NWP(
     R_NWP,
-    NWP_output,
     "alaro13_01",
     analysis_time,
     5,
     metadata["timestamps"],
     num_cascade_levels,
+    NWP_output,
 )
