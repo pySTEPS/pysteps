@@ -114,10 +114,10 @@ def import_bom_nwp_xr(filename, **kwargs):
     ds = _import_bom_nwp_data_xr(filename, **kwargs)
     ds_meta = _import_bom_nwp_geodata_xr(ds, **kwargs)
 
-    # rename time to t if exists
+    # rename varname_time (def: time) to t
     varname_time = kwargs.get('varname_time', 'time')
-    if varname_time in ds_meta:
-        ds_meta = ds_meta.rename({varname_time: 't'})
+    ds_meta = ds_meta.rename({varname_time: 't'})
+    varname_time = 't'
 
     # if data variable is named accum_prcp
     # it is assumed that NWP rainfall data is accumulated
