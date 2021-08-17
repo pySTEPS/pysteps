@@ -29,7 +29,7 @@ def test_io_import_bom_nwp_xarray():
 def test_io_import_bom_nwp_xarray_shape():
     """Test the importer Bom NWP shape."""
     assert isinstance(data_array_xr, xr.DataArray)
-    assert data_array_xr.shape == (216, 512, 512)
+    assert data_array_xr.shape == (144, 512, 512)
 
 
 test_attrs_xr = [
