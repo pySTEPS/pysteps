@@ -66,11 +66,13 @@ requirements = [
     "scipy",
     "matplotlib",
     "jsonschema",
+    "xarray",
+    "bottleneck",
 ]
 
 setup(
     name="pysteps",
-    version="1.4.1",
+    version="1.5.0",
     author="PySteps developers",
     packages=find_packages(),
     license="LICENSE",

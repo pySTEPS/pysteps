@@ -207,11 +207,12 @@ def test_nowcasts_interface():
 
     from pysteps.nowcasts import (
         anvil,
+        extrapolation,
+        lagrangian_probability,
+        linda,
         sprog,
         steps,
         sseps,
-        extrapolation,
-        lagrangian_probability,
     )
 
     method_getter = pysteps.nowcasts.interface.get_method
@@ -220,6 +221,7 @@ def test_nowcasts_interface():
         ("anvil", anvil.forecast),
         ("extrapolation", extrapolation.forecast),
         ("lagrangian", extrapolation.forecast),
+        ("linda", linda.forecast),
         ("probability", lagrangian_probability.forecast),
         ("lagrangian_probability", lagrangian_probability.forecast),
         ("sprog", sprog.forecast),

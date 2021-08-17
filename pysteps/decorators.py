@@ -16,6 +16,7 @@ the behavior of some functions in pysteps.
 """
 import inspect
 import uuid
+import xarray as xr
 from collections import defaultdict
 from functools import wraps
 
@@ -67,7 +68,11 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
 
-            precip, *other_args = importer(*args, **kwargs)
+            data_array = importer(*args, **kwargs)
+
+            if not isinstance(data_array, xr.DataArray):
+                array, _, metadata = data_array
+                data_array = _to_xarray(array, metadata)
 
             _dtype = kwargs.get("dtype", dtype)
 
@@ -78,18 +83,15 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                     "The accepted values are: " + str(accepted_precisions)
                 )
 
-            if isinstance(precip, np.ma.MaskedArray):
-                invalid_mask = np.ma.getmaskarray(precip)
-                precip.data[invalid_mask] = fillna
-            else:
-                # If plain numpy arrays are used, the importers should indicate
-                # the invalid values with np.nan.
-                _fillna = kwargs.get("fillna", fillna)
-                if _fillna is not np.nan:
-                    mask = ~np.isfinite(precip)
-                    precip[mask] = _fillna
+            _fillna = kwargs.get("fillna", fillna)
+            if _fillna is not np.nan:
+                data_array = data_array.fillna(_fillna)
 
-            return (precip.astype(_dtype),) + tuple(other_args)
+            data_array = data_array.astype(_dtype)
+
+            if kwargs.get("legacy", False):
+                return _xarray2legacy(data_array)
+            return data_array
 
         extra_kwargs_doc = """
             Other Parameters
@@ -283,3 +285,84 @@ def memoize(maxsize=10):
         return _func_with_cache
 
     return _memoize
+
+
+def _to_xarray(array, metadata):
+    """Convert to xarray DataArray."""
+    x1, x2 = metadata["x1"], metadata["x2"]
+    y1, y2 = metadata["y1"], metadata["y2"]
+    xsize, ysize = metadata["xpixelsize"], metadata["ypixelsize"]
+    # x_coords = np.arange(x1, x2, xsize) + xsize / 2
+    # y_coords = np.arange(y1, y2, ysize) + ysize / 2
+    x_coords = np.arange(x1, x1 + xsize * array.shape[1], xsize) + xsize / 2
+    y_coords = np.arange(y1, y1 + ysize * array.shape[0], ysize) + ysize / 2
+
+    data_array = xr.DataArray(
+        data=array,
+        dims=("y", "x"),
+        coords=dict(
+            x=("x", x_coords),
+            y=("y", y_coords),
+        ),
+    )
+
+    data_array.attrs.update(
+        {
+            "unit": metadata["unit"],
+            "accutime": metadata["accutime"],
+            "transform": metadata["transform"],
+            "zerovalue": metadata["zerovalue"],
+            "threshold": metadata["threshold"],
+            "zr_a": metadata.get("zr_a", None),
+            "zr_b": metadata.get("zr_b", None),
+            "institution": metadata["institution"],
+            "projection": metadata["projection"],
+            #
+            # TODO: Remove before final 2.0 version
+            "yorigin": metadata["yorigin"],
+            "xpixelsize": metadata["xpixelsize"],
+            "ypixelsize": metadata["ypixelsize"],
+        }
+    )
+
+    data_array.x.attrs.update(
+        {
+            "standard_name": "projection_x_coordinate",
+            "units": metadata["cartesian_unit"],
+            #
+            # TODO: Remove before final 2.0 version
+            "x1": x1,
+            "x2": x2,
+        }
+    )
+
+    data_array.y.attrs.update(
+        {
+            "standard_name": "projection_y_coordinate",
+            "units": metadata["cartesian_unit"],
+            #
+            # TODO: Remove before final 2.0 version
+            "y1": y1,
+            "y2": y2,
+        }
+    )
+
+    return data_array
+
+
+# TODO: Remove before final 2.0 version
+def _xarray2legacy(data_array):
+    """
+    Convert the new DataArrays to the legacy format used in pysteps v1.*
+    """
+    _array = data_array.values
+
+    metadata = data_array.x.attrs.copy()
+    metadata.update(**data_array.y.attrs)
+    metadata.update(**data_array.attrs)
+
+    if "t" in data_array.coords:
+        print(data_array["t"])
+        metadata["timestamps"] = data_array["t"]
+
+    return _array, None, metadata
