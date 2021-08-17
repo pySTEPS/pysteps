@@ -89,6 +89,17 @@
             "importer_kwargs": {
                 "gzipped": true
             }
+        },
+        "bom_nwp": {
+            "root_path": "./nwp/bom",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "%Y%m%d_%H00_regrid_short",
+            "fn_ext": "nc",
+            "importer": "bom_nwp",
+            "timestep": 10,
+            "importer_kwargs": {
+                "gzipped": true
+            }
         }
     }
 }

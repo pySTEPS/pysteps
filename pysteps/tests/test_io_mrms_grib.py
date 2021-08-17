@@ -25,7 +25,7 @@ def test_io_import_mrms_grib():
     assert data_Array.shape == (3500, 7000)
     assert data_Array.dtype == "single"
 
-    expected_attrs = {
+    expected_metadata = {
         "institution": "NOAA National Severe Storms Laboratory",
         "projection": "+proj=longlat  +ellps=IAU76",
         "unit": "mm/h",
@@ -37,17 +37,20 @@ def test_io_import_mrms_grib():
         "x2": -60.00000199999991,
         "y1": 20.000001,
         "y2": 55.00000000000001,
-        "cartesian_unit": "degrees",
+        "units": "degrees",
     }
     metadata = data_Array.attrs
-    for key, value in expected_attrs.items():
+    metadata.update(**data_Array.x.attrs)
+    metadata.update(**data_Array.y.attrs)
+    for key, value in expected_metadata.items():
         if isinstance(value, float):
-            assert_array_almost_equal(metadata[key], expected_attrs[key])
+            assert_array_almost_equal(metadata[key], expected_metadata[key])
         else:
-            assert metadata[key] == expected_attrs[key]
+            assert metadata[key] == expected_metadata[key]
 
     x = np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
     y = np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+    precip_full = data_Array.values
     assert y.size == precip_full.shape[0]
     assert x.size == precip_full.shape[1]
 
