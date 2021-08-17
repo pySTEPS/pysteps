@@ -14,9 +14,10 @@ Module with methods to read, write and compute past and climatological model wei
 import numpy as np
 from os.path import exists, join
 import pickle
+from pysteps import rcparams
 
 
-def get_default_weights(n_cascade_levels, n_models=1):
+def get_default_weights(n_cascade_levels=8, n_models=1):
     """
     Get the default weights as given in BPS2004.
     Take subset of n_cascade_levels or add entries with small values (1e-4) if
@@ -49,7 +50,12 @@ def get_default_weights(n_cascade_levels, n_models=1):
     return np.resize(default_weights, (n_models, n_cascade_levels))
 
 
-def save_weights(current_weights, validtime, outdir_path, window_length=30):
+def save_weights(
+    current_weights,
+    validtime,
+    outdir_path=rcparams.outputs["path_workdir"],
+    window_length=30,
+):
     """
     Add the current NWP weights to update today's daily average weight. If the
     day is over, update the list of daily average weights covering a rolling
@@ -125,7 +131,12 @@ def save_weights(current_weights, validtime, outdir_path, window_length=30):
     return None
 
 
-def calc_clim_weights(outdir_path, n_cascade_levels, nmodels=1, window_length=30):
+def calc_clim_weights(
+    outdir_path=rcparams.outputs["path_workdir"],
+    n_cascade_levels=8,
+    nmodels=1,
+    window_length=30,
+):
     """
     Return the climatological weights based on the daily average weights in the
     rolling window. This is done using a geometric mean.
