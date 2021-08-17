@@ -496,13 +496,15 @@ def import_bom_rf3_xr(filename, **kwargs):
 def _import_bom_rf3_data_xr(filename, **kwargs,):
 
     varname_time = kwargs.get('varname_time', 'valid_time')
-    chunks = kwargs.get('chunks', {varname_time: 1})
+    # Tested in python3.6 and chunks did not work properly
+    # commenting next line until find the reason
+    # chunks = kwargs.get('chunks', {varname_time: 1})
 
     ds_rainfall = xr.open_mfdataset(
         filename,
         combine='nested',
         concat_dim=varname_time,
-        chunks=chunks,
+        # chunks=chunks,
         lock=False,
         parallel=True,
         )
