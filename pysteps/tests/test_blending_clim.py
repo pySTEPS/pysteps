@@ -6,6 +6,8 @@ from pysteps.blending.clim import save_weights, calc_clim_weights
 import random
 from datetime import datetime, timedelta
 from os.path import join, exists
+import pickle
+from numpy.testing import assert_array_equal
 
 random.seed(12356)
 n_cascade_levels = 7
@@ -36,7 +38,7 @@ def generate_fixed_weights(n_cascade_levels, n_models=1):
 
 clim_arg_names = ("startdatestr", "enddatestr", "n_models", "expected_weights_today")
 
-test_enddates = ["20210701235500", "20210702010000", "20200930235500"]
+test_enddates = ["20210701235500", "20210702000000", "20200930235500"]
 
 clim_arg_values = [
     (
@@ -50,7 +52,7 @@ clim_arg_values = [
         },
     ),
     (
-        "20210701230000",
+        "20210701235500",
         "20210702000000",
         1,
         {
@@ -117,20 +119,25 @@ def test_save_weights(
 
     while currentdate <= enddate:
         current_weights = generate_fixed_weights(n_cascade_levels, n_models)
+        print("Saving weights: ", current_weights, currentdate, outdir_path)
         save_weights(current_weights, currentdate, outdir_path, window_length=2)
         currentdate += timestep
 
-    weights_today_file = join(outdir_path, "NWP_weights_today.npy")
+    weights_today_file = join(outdir_path, "NWP_weights_today.pkl")
     assert exists(weights_today_file)
-
-    weights_today = load(weights_today_file)
+    with open(weights_today_file, "rb") as f:
+        weights_today = pickle.load(f)
 
     # Check type
     assert type(weights_today) == type({})
     assert "mean_weights" in weights_today
     assert "n" in weights_today
     assert "last_validtime" in weights_today
-    assertEqual(weights_today, expected_weights_today)
+    assert_array_equal(
+        weights_today["mean_weights"], expected_weights_today["mean_weights"]
+    )
+    assert weights_today["n"] == expected_weights_today["n"]
+    assert weights_today["last_validtime"] == expected_weights_today["last_validtime"]
 
 
 if __name__ == "__main__":
