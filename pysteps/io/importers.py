@@ -483,8 +483,8 @@ def import_bom_rf3_xr(filename, **kwargs):
             "but it is not installed"
         )
 
-    ds = _import_bom_rf3_data_xr(filename)
-    ds_meta = _import_bom_rf3_geodata_xr(ds)
+    ds = _import_bom_rf3_data_xr(filename, **kwargs,)
+    ds_meta = _import_bom_rf3_geodata_xr(ds, **kwargs,)
 
     # rename valid_time to t if exists
     if 'valid_time' in ds_meta:
@@ -493,7 +493,7 @@ def import_bom_rf3_xr(filename, **kwargs):
     return ds_meta.precipitation
 
 
-def _import_bom_rf3_data_xr(filename):
+def _import_bom_rf3_data_xr(filename, **kwargs,):
 
     ds_rainfall = xr.open_mfdataset(
         filename,
@@ -505,8 +505,11 @@ def _import_bom_rf3_data_xr(filename):
 
 
 def _import_bom_rf3_geodata_xr(ds_in,
-                               varname='precipitation',
+                               **kwargs,
                                ):
+
+    # select a default varname if none is passed
+    varname = kwargs.get('varname', 'precipitation')
 
     # extract useful information
     # projection
