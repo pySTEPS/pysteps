@@ -224,7 +224,9 @@ def decompose_NWP(
     y_dim = ncf.createDimension("y", R_NWP.shape[2])
 
     # Create variables (decomposed cascade, means and standard deviations)
-    R_d = ncf.createVariable("R_d", np.float64, ("time", "cascade_levels", "x", "y"))
+    R_d = ncf.createVariable(
+        "pr_decomposed", np.float64, ("time", "cascade_levels", "x", "y")
+    )
     means = ncf.createVariable("means", np.float64, ("time", "cascade_levels"))
     stds = ncf.createVariable("stds", np.float64, ("time", "cascade_levels"))
     v_times = ncf.createVariable("valid_times", np.float64, ("time",))
@@ -315,7 +317,7 @@ def load_NWP(start_time, n_timesteps, output_path=rcparams.outputs["path_workdir
     for i in range(start_i, end_i):
         decomp_dict_ = decomp_dict.copy()
 
-        cascade_levels = ncf.variables["R_d"][i, :, :, :]
+        cascade_levels = ncf.variables["pr_decomposed"][i, :, :, :]
 
         # In the netcdf file this is saved as a masked array, so we're checking if there is no mask
         assert not cascade_levels.mask
