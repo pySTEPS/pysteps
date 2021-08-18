@@ -9,7 +9,8 @@ Module with common utilities used by blending methods.
     :toctree: ../generated/
 
     stack_cascades
-    recompose_cascade
+    normalize_cascade
+    blend_optical_flows
 """
 
 import numpy as np
@@ -61,8 +62,34 @@ def stack_cascades(R_d, donorm=True):
     return np.stack(R_c), np.stack(mu_c), np.stack(sigma_c)
 
 
+def normalize_cascade(cascade):
+    """Normalizes a cascade (again).
+
+    Parameters
+    ----------
+    cascade : array-like
+      An array of shape [scale_level, y, x]
+      containing per scale level a cascade that has to be normalized (again).
+
+    Returns
+    -------
+    out : array-like
+        The normalized cascade with the same shape as cascade.
+
+    """
+    # Determine the mean and standard dev. of the combined cascade
+    mu = np.mean(cascade, axis=(1, 2))
+    sigma = np.std(cascade, axis=(1, 2))
+    # Normalize the cascade
+    out = [(cascade[i] - mu[i]) / sigma[i] for i in range(cascade.shape[0])]
+    out = np.stack(out)
+
+    return out
+
+
 def blend_optical_flows(flows, weights):
-    """Combine advection fields using given weights.
+    """Combine advection fields using given weights. Following :cite:`BPS2006`
+    the second level of the cascade is used for the weights
 
     Parameters
     ----------
