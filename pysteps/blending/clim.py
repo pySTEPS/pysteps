@@ -7,6 +7,7 @@ Module with methods to read, write and compute past and climatological model wei
 .. autosummary::
     :toctree: ../generated/
 
+    get_default_weights    
     save_weights
     calc_clim_weights
 """
@@ -25,9 +26,9 @@ def get_default_weights(n_cascade_levels=8, n_models=1):
 
     Parameters
     ----------
-    n_cascade_levels: int
+    n_cascade_levels: int, optional
       Number of cascade levels.
-    nmodels: int, optional
+    n_models: int, optional
       Number of NWP models
 
     Returns
@@ -132,8 +133,8 @@ def save_weights(
 
 
 def calc_clim_weights(
-    outdir_path=rcparams.outputs["path_workdir"],
     n_cascade_levels=8,
+    outdir_path=rcparams.outputs["path_workdir"],
     nmodels=1,
     window_length=30,
 ):
@@ -143,10 +144,10 @@ def calc_clim_weights(
 
     Parameters
     ----------
-    outdir_path: string
-      Path to folder where the historical weights are stored.
-    n_cascade_levels: int
+    n_cascade_levels: int, optional
       Number of cascade levels.
+    outdir_path: string, optional
+      Path to folder where the historical weights are stored.
     nmodels: int, optional
       Number of NWP models
     window_length: int, optional
@@ -162,9 +163,11 @@ def calc_clim_weights(
     # past_weights has dimensions date x model x scale_level  x ....
     if exists(past_weights_file):
         past_weights = np.load(past_weights_file)
+    else:
+        past_weights = None
     # check if there's enough data to compute the climatological skill
     if not past_weights or past_weights.shape[0] < window_length:
-        return get_default_weights(nmodels, n_cascade_levels)
+        return get_default_weights(n_cascade_levels, nmodels)
     # reduce window if necessary
     else:
         past_weights = past_weights[-window_length:]
