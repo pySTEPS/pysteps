@@ -11,6 +11,8 @@ Module with common utilities used by blending methods.
     stack_cascades
     normalize_cascade
     blend_optical_flows
+    decompose_NWP
+    load_NWP
 """
 
 import numpy as np
@@ -159,13 +161,13 @@ def decompose_NWP(
     compute_stats=True,
     compact_output=True,
 ):
-    """Decomposed the NWP forecast data into cascades and saves it in
+    """Decomposes the NWP forecast data into cascades and saves it in
     a netCDF file
 
     Parameters
     ----------
     R_NWP: array-like
-      Array of dimension (n_timesteps, x, y) containing the precipiation forecast
+      Array of dimension (n_timesteps, x, y) containing the precipitation forecast
       from some NWP model.
     NWP_model: str
       The name of the NWP model
@@ -185,26 +187,26 @@ def decompose_NWP(
 
     Other Parameters
     ----------------
-    decomp_method: str
+    decomp_method: str, optional
       A string defining the decomposition method to use. Defaults to "fft".
-    fft_method: str or tuple
+    fft_method: str or tuple, optional
       A string or a (function,kwargs) tuple defining the FFT method to use
       (see :py:func:`pysteps.utils.interface.get_method`).
       Defaults to "numpy". This option is not used if input_domain and
       output_domain are both set to "spectral".
-    domain: {"spatial", "spectral"}
+    domain: {"spatial", "spectral"}, optional
       If "spatial", the output cascade levels are transformed back to the
       spatial domain by using the inverse FFT. If "spectral", the cascade is
       kept in the spectral domain. Defaults to "spatial".
-    normalize: bool
+    normalize: bool, optional
       If True, normalize the cascade levels to zero mean and unit variance.
       Requires that compute_stats is True. Implies that compute_stats is True.
       Defaults to False.
-    compute_stats: bool
+    compute_stats: bool, optional
       If True, the output dictionary contains the keys "means" and "stds"
       for the mean and standard deviation of each output cascade level.
       Defaults to False.
-    compact_output: bool
+    compact_output: bool, optional
       Applicable if output_domain is "spectral". If set to True, only the
       parts of the Fourier spectrum with non-negligible filter weights are
       stored. Defaults to False.
@@ -263,14 +265,14 @@ def decompose_NWP(
     v_times[:] = np.array([np.float64(valid_times[i]) for i in range(len(valid_times))])
 
     # Decompose the NWP data
-    filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
+    filter_g = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
     fft = utils.get_method(fft_method, shape=R_NWP.shape[1:], n_threads=1)
     decomp_method, _ = cascade_get_method(decomp_method)
 
     for i in range(R_NWP.shape[0]):
         R_ = decomp_method(
             R_NWP[i, :, :],
-            filter,
+            filter_g,
             fft_method=fft,
             output_domain=domain,
             normalize=normalize,
