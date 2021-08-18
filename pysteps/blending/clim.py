@@ -27,9 +27,9 @@ def get_default_weights(n_cascade_levels=8, n_models=1):
     Parameters
     ----------
     n_cascade_levels: int, optional
-      Number of cascade levels.
+      Number of cascade levels. Defaults to 8.
     n_models: int, optional
-      Number of NWP models
+      Number of NWP models. Defaults to 1.
 
     Returns
     -------
@@ -66,11 +66,17 @@ def save_weights(
     ----------
     current_weights: array-like
       Array of shape [model, scale_level, ...]
-      containing the current weights of the different NWP models per cascade level.
-    outdir_path: string
-      Path to folder where the historical weights are stored.
+      containing the current weights of the different NWP models per cascade
+      level.
+    validtime: datetime
+      Datetime object containing the date and time at for which the current
+      weights are valid.
+    outdir_path: string, optional
+      Path to folder where the historical weights are stored. Defaults to
+      path_workdir from rcparams.
     window_length: int, optional
-      Length of window (in days) over which to compute the climatological weights.
+      Length of window (in days) of daily weights that should be retained.
+      Defaults to 30.
 
     Returns
     -------
@@ -135,7 +141,7 @@ def save_weights(
 def calc_clim_weights(
     n_cascade_levels=8,
     outdir_path=rcparams.outputs["path_workdir"],
-    nmodels=1,
+    n_models=1,
     window_length=30,
 ):
     """
@@ -147,16 +153,19 @@ def calc_clim_weights(
     n_cascade_levels: int, optional
       Number of cascade levels.
     outdir_path: string, optional
-      Path to folder where the historical weights are stored.
-    nmodels: int, optional
-      Number of NWP models
+      Path to folder where the historical weights are stored. Defaults to
+      path_workdir from rcparams.
+    n_models: int, optional
+      Number of NWP models. Defaults to 1.
     window_length: int, optional
-      Length of window (in days) over which to compute the climatological weights.
+      Length of window (in days) over which to compute the climatological
+      weights. Defaults to 30.
 
     Returns
     -------
     climatological_mean_weights: array-like
-      Array of shape [model, scale_level, ...] containing the climatological weights.
+      Array of shape [model, scale_level, ...] containing the climatological
+      (geometric) mean weights.
 
     """
     past_weights_file = join(outdir_path, "NWP_weights_window.npy")
@@ -167,7 +176,7 @@ def calc_clim_weights(
         past_weights = None
     # check if there's enough data to compute the climatological skill
     if not past_weights or past_weights.shape[0] < window_length:
-        return get_default_weights(n_cascade_levels, nmodels)
+        return get_default_weights(n_cascade_levels, n_models)
     # reduce window if necessary
     else:
         past_weights = past_weights[-window_length:]
