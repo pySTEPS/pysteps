@@ -54,7 +54,7 @@ R_NWP, metadata = transformation.dB_transform(
 R_NWP[~np.isfinite(R_NWP)] = metadata["zerovalue"]
 
 # Find the location to save the NWP files
-NWP_output = rcparams.outputs["NWP_outputs"]
+NWP_output = rcparams.outputs["path_workdir"]
 
 # Define the start time of the NWP forecast
 analysis_time = metadata["timestamps"][0]
