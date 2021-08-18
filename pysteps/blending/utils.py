@@ -15,7 +15,7 @@ Module with common utilities used by blending methods.
 
 import numpy as np
 from datetime import datetime, timedelta
-from pysteps import cascade
+from pysteps.cascade import get_method as cascade_get_method
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps import utils, rcparams
 import os
@@ -265,7 +265,7 @@ def decompose_NWP(
     # Decompose the NWP data
     filter = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
     fft = utils.get_method(fft_method, shape=R_NWP.shape[1:], n_threads=1)
-    decomp_method, _ = cascade.get_method(decomp_method)
+    decomp_method, _ = cascade_get_method(decomp_method)
 
     for i in range(R_NWP.shape[0]):
         R_ = decomp_method(
