@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# Test the importer for NWP data from the Royal Meteorological Institute of
+# Belgium (ALARO/AROME data in netCDF output).
+
 import os
 import numpy as np
 
@@ -13,11 +16,10 @@ pytest.importorskip("netCDF4")
 
 root_path = pysteps.rcparams.data_sources["rmi_nwp"]["root_path"]
 rel_path = os.path.join("2021", "07", "04")
-filename = os.path.join(root_path, rel_path, "ao13_2021070412_radar512_5min.nc")
-print(filename)
+filename = os.path.join(root_path, rel_path, "ao13_2021070412_native_5min.nc")
 data_array_xr = pysteps.io.import_rmi_nwp_xr(filename)
 
-expected_proj = "+proj=stere +lon_0=4.368 +lat_0=90 +lon_ts=0 +lat_ts=50 +ellps=sphere +x_0=356406 +y_0=3698905"
+expected_proj = "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 +a=6371229 +es=0 +lat_0=50.8 +x_0=365950 +y_0=-365950"
 
 
 def test_io_import_rmi_nwp_xarray():
@@ -28,7 +30,7 @@ def test_io_import_rmi_nwp_xarray():
 def test_io_import_rmi_nwp_xarray_shape():
     """Test the importer RMI NWP shape."""
     assert isinstance(data_array_xr, xr.DataArray)
-    assert data_array_xr.shape == (12, 512, 512)
+    assert data_array_xr.shape == (12, 564, 564)
 
 
 test_attrs_xr = [
@@ -40,8 +42,8 @@ test_attrs_xr = [
     ("accutime", np.timedelta64(5, "m"), None),
     ("zr_a", None, None),
     ("zr_b", None, None),
-    ("xpixelsize", 1058.0, 0.1),
-    ("ypixelsize", 1058.0, 0.1),
+    ("xpixelsize", 1300.0, 0.1),
+    ("ypixelsize", 1300.0, 0.1),
     ("units", "mm", None),
     ("yorigin", "upper", None),
 ]
@@ -56,7 +58,7 @@ def test_io_import_rmi_nwp_xarray_attrs(variable, expected, tolerance):
 test_attrs_xr_coord_x = [
     ("units", "m", None),
     ("x1", 0, 0.1),
-    ("x2", 540638.0, 0.1),
+    ("x2", 731900.0, 0.1),
 ]
 
 
@@ -68,7 +70,7 @@ def test_io_import_rmi_nwp_xarray_attrs_coordx(variable, expected, tolerance):
 
 test_attrs_xr_coord_y = [
     ("units", "m", None),
-    ("y1", -540638.0, 0.1),
+    ("y1", -731900.0, 0.1),
     ("y2", 0.0, 0.1),
 ]
 
