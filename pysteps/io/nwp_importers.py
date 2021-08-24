@@ -115,25 +115,25 @@ def import_bom_nwp_xr(filename, **kwargs):
     ds_meta = _import_bom_nwp_geodata_xr(ds, **kwargs)
 
     # rename varname_time (def: time) to t
-    varname_time = kwargs.get('varname_time', 'time')
-    ds_meta = ds_meta.rename({varname_time: 't'})
-    varname_time = 't'
+    varname_time = kwargs.get("varname_time", "time")
+    ds_meta = ds_meta.rename({varname_time: "t"})
+    varname_time = "t"
 
     # if data variable is named accum_prcp
     # it is assumed that NWP rainfall data is accumulated
     # so it needs to be disagregated by time step
-    varname = kwargs.get('varname', 'accum_prcp')
-    if varname == 'accum_prcp':
+    varname = kwargs.get("varname", "accum_prcp")
+    if varname == "accum_prcp":
         print("Rainfall values are accumulated. Disagreagating by time step")
         accum_prcp = ds_meta[varname]
-        precipitation = (accum_prcp - accum_prcp.shift({varname_time: 1}))
-        precipitation = precipitation.dropna(varname_time, 'all')
+        precipitation = accum_prcp - accum_prcp.shift({varname_time: 1})
+        precipitation = precipitation.dropna(varname_time, "all")
         # update/copy attributes
-        precipitation.name = 'precipitation'
+        precipitation.name = "precipitation"
         # copy attributes
         precipitation.attrs.update({**accum_prcp.attrs})
         # update attributes
-        precipitation.attrs.update({'standard_name': "precipitation_amount"})
+        precipitation.attrs.update({"standard_name": "precipitation_amount"})
     else:
         precipitation = ds_meta[varname]
 
@@ -142,27 +142,28 @@ def import_bom_nwp_xr(filename, **kwargs):
 
 def _import_bom_nwp_data_xr(filename, **kwargs):
 
-    varname_time = kwargs.get('varname_time', 'time')
-    chunks = kwargs.get('chunks', {varname_time: 1})
+    varname_time = kwargs.get("varname_time", "time")
+    chunks = kwargs.get("chunks", {varname_time: 1})
 
     ds_rainfall = xr.open_mfdataset(
         filename,
-        combine='nested',
+        combine="nested",
         concat_dim=varname_time,
         chunks=chunks,
         lock=False,
         parallel=True,
-        )
+    )
 
     return ds_rainfall
 
 
-def _import_bom_nwp_geodata_xr(ds_in,
-                               **kwargs,
-                               ):
+def _import_bom_nwp_geodata_xr(
+    ds_in,
+    **kwargs,
+):
 
-    varname = kwargs.get('varname', 'accum_prcp')
-    varname_time = kwargs.get('varname_time', 'time')
+    varname = kwargs.get("varname", "accum_prcp")
+    varname_time = kwargs.get("varname_time", "time")
 
     # extract useful information
     # projection
@@ -185,7 +186,7 @@ def _import_bom_nwp_geodata_xr(ds_in,
     delta_time = time - time.shift({varname_time: 1})
     # assuming first valid delta_time is representative of all time steps
     time_step = delta_time[1]
-    time_step = time_step.values.astype('timedelta64[m]')
+    time_step = time_step.values.astype("timedelta64[m]")
 
     # get the units of precipitation
     units = None
@@ -193,15 +194,15 @@ def _import_bom_nwp_geodata_xr(ds_in,
         units = ds_in[varname].units
         if units in ("kg m-2", "mm"):
             units = "mm"
-            ds_in[varname].attrs.update({'units': units})
+            ds_in[varname].attrs.update({"units": units})
     # get spatial boundaries and pixelsize
     # move to meters if coordiantes in kilometers
     if "units" in ds_in.x.attrs:
         if ds_in.x.units == "km":
-            ds_in['x'] = ds_in.x*1000.
-            ds_in.x.attrs.update({'units': 'm'})
-            ds_in['y'] = ds_in.y*1000.
-            ds_in.y.attrs.update({'units': 'm'})
+            ds_in["x"] = ds_in.x * 1000.0
+            ds_in.x.attrs.update({"units": "m"})
+            ds_in["y"] = ds_in.y * 1000.0
+            ds_in.y.attrs.update({"units": "m"})
 
     xmin = ds_in.x.min().values
     xmax = ds_in.x.max().values
@@ -214,41 +215,44 @@ def _import_bom_nwp_geodata_xr(ds_in,
 
     # Add metadata needed by pySTEPS as attrs in X and Y variables
 
-    ds_in.x.attrs.update({
-        # TODO: Remove before final 2.0 version
-        "x1": xmin,
-        "x2": xmax,
-        "cartesian_unit": cartesian_unit,
+    ds_in.x.attrs.update(
+        {
+            # TODO: Remove before final 2.0 version
+            "x1": xmin,
+            "x2": xmax,
+            "cartesian_unit": cartesian_unit,
         }
-        )
+    )
 
-    ds_in.y.attrs.update({
-        # TODO: Remove before final 2.0 version
-        "y1": ymin,
-        "y2": ymax,
-        "cartesian_unit": cartesian_unit,
+    ds_in.y.attrs.update(
+        {
+            # TODO: Remove before final 2.0 version
+            "y1": ymin,
+            "y2": ymax,
+            "cartesian_unit": cartesian_unit,
         }
-        )
+    )
 
     # Add metadata needed by pySTEPS as attrs in rainfall variable
     da_rainfall = ds_in[varname].isel({varname_time: 0})
 
     ds_in[varname].attrs.update(
-        {"transform": None,
-         "unit": units,  # copy 'units' in 'unit' for legacy reasons
-         "projection": projdef,
-         "accutime": time_step,
-         "zr_a": None,
-         "zr_b": None,
-         "zerovalue": np.nanmin(da_rainfall),
-         "institution": "Commonwealth of Australia, Bureau of Meteorology",
-         "threshold": _get_threshold_value(da_rainfall.values),
-         # TODO(_import_bom_rf3_geodata_xr): Remove before final 2.0 version
-         "yorigin": "upper",
-         "xpixelsize": xpixelsize.values,
-         "ypixelsize": ypixelsize.values,
-         }
-        )
+        {
+            "transform": None,
+            "unit": units,  # copy 'units' in 'unit' for legacy reasons
+            "projection": projdef,
+            "accutime": time_step,
+            "zr_a": None,
+            "zr_b": None,
+            "zerovalue": np.nanmin(da_rainfall),
+            "institution": "Commonwealth of Australia, Bureau of Meteorology",
+            "threshold": _get_threshold_value(da_rainfall.values),
+            # TODO(_import_bom_rf3_geodata_xr): Remove before final 2.0 version
+            "yorigin": "upper",
+            "xpixelsize": xpixelsize.values,
+            "ypixelsize": ypixelsize.values,
+        }
+    )
 
     return ds_in
 
