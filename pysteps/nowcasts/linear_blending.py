@@ -25,6 +25,7 @@ def forecast(
     R_nwp=None,
     start_blending=120,
     end_blending=240,
+    fill_nwp=True,
     nowcast_kwargs=dict(),
 ):
 
@@ -60,6 +61,9 @@ def forecast(
       Time stamp (in minutes) after which the blending should end. Between
       start_blending and end_blending the nowcasts and NWP data are linearly
       merged with each other. After end_blending only the NWP data is used.
+    fill_nwp: bool, optional
+      Standard value is True. If True, the NWP data will be used to fill in the
+      no data mask of the nowcast.
     nowcast_kwargs: dict, optional
       Dictionary containing keyword arguments for the nowcast method.
 
@@ -163,8 +167,9 @@ def forecast(
                 )
 
             # Find where the NaN values are and replace them with NWP data
-            nan_indices = np.isnan(R_blended)
-            R_blended[nan_indices] = R_nwp[nan_indices]
+            if fill_nwp:
+                nan_indices = np.isnan(R_blended)
+                R_blended[nan_indices] = R_nwp[nan_indices]
     else:
         # If no NWP data is given, the blended field is simply equal to the nowcast field
         R_blended = R_nowcast
