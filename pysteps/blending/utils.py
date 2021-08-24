@@ -10,6 +10,8 @@ Module with common utilities used by blending methods.
 
     stack_cascades
     normalize_cascade
+    blend_cascades
+    recompose_cascade
     blend_optical_flows
 """
 
@@ -21,9 +23,9 @@ def stack_cascades(R_d, donorm=True):
 
     Parameters
     ----------
-    R_d : list
-      List of cascades obtained by calling a method implemented in
-      pysteps.cascade.decomposition.
+    R_d : dict
+      Dictionary containing a list of cascades obtained by calling a method
+      implemented in pysteps.cascade.decomposition.
     donorm : bool
       If True, normalize the cascade levels before stacking.
 
@@ -78,6 +80,111 @@ def normalize_cascade(cascade):
     out = [(cascade[i] - mu[i]) / sigma[i] for i in range(cascade.shape[0])]
     out = np.stack(out)
 
+    return out
+
+
+def blend_cascades(cascades_norm, weights):
+    """Calculate blended normalized cascades using STEPS weights following eq.
+    10 in :cite:`BPS2006`.
+
+    Parameters
+    ----------
+    cascades_norm : array-like
+      Array of shape [number_components + 1, scale_level, ...]
+      with normalized cascades components for each component
+      (NWP, nowcasts, noise) and scale level, obtained by calling a method
+      implemented in pysteps.blending.utils.stack_cascades
+
+    weights : array-like
+      An array of shape [number_components + 1, scale_level, ...]
+      containing the weights to be used in this routine
+      for each component plus noise, scale level, and optionally [y, x]
+      dimensions, obtained by calling a method implemented in
+      pysteps.blending.steps.calculate_weights
+
+    Returns
+    -------
+    combined_cascade : array-like
+      An array of shape [scale_level, y, x]
+      containing per scale level (cascade) the weighted combination of
+      cascades from multiple components (NWP, nowcasts and noise) to be used
+      in STEPS blending.
+    """
+    # check inputs
+    if isinstance(cascades_norm, (list, tuple)):
+        cascades_norm = np.stack(cascades_norm)
+
+    if isinstance(weights, (list, tuple)):
+        weights = np.asarray(weights)
+
+    # check weights dimensions match number of sources
+    num_sources = cascades_norm.shape[0]
+    num_sources_klevels = cascades_norm.shape[1]
+    num_weights = weights.shape[0]
+    num_weights_klevels = weights.shape[1]
+
+    if num_weights != num_sources:
+        raise ValueError(
+            "dimension mismatch between cascades and weights.\n"
+            "weights dimension must match the number of components in cascades.\n"
+            f"number of models={num_sources}, number of weights={num_weights}"
+        )
+    if num_weights_klevels != num_sources_klevels:
+        raise ValueError(
+            "dimension mismatch between cascades and weights.\n"
+            "weights cascade levels dimension must match the number of cascades in cascades_norm.\n"
+            f"number of cascade levels={num_sources_klevels}, number of weights={num_weights_klevels}"
+        )
+
+    # cascade_norm component, scales, y, x
+    # weights component, scales, ....
+    # Reshape weights to make the calculation possible with numpy
+    all_c_wn = weights.reshape(num_weights, num_weights_klevels, 1, 1) * cascades_norm
+    combined_cascade = np.sum(all_c_wn, axis=0)
+    # combined_cascade [scale, ...]
+    return combined_cascade
+
+
+def recompose_cascade(combined_cascade, combined_mean, combined_sigma):
+    """Recompose the cascades into a transformed rain rate field.
+
+
+    Parameters
+    ----------
+    combined_cascade : array-like
+      An array of shape [scale_level, y, x]
+      containing per scale level (cascade) the weighted combination of
+      cascades from multiple components (NWP, nowcasts and noise) to be used
+      in STEPS blending.
+    combined_mean : array-like
+      An array of shape [scale_level, ...]
+      similar to combined_cascade, but containing the normalization parameter
+      mean.
+    combined_sigma : array-like
+      An array of shape [scale_level, ...]
+      similar to combined_cascade, but containing the normalization parameter
+      standard deviation.
+
+    Returns
+    -------
+    out: array-like
+        A two-dimensional array containing the recomposed cascade.
+
+    Notes
+    -----
+    The combined_cascade is made with weights that do not have to sum up to
+    1.0. Therefore, the combined_cascade is first normalized again using
+    normalize_cascade.
+    """
+    # First, normalize the combined_cascade again
+    combined_cascade = normalize_cascade(combined_cascade)
+    # Now, renormalize it with the blended sigma and mean values
+    renorm = (
+        combined_cascade * combined_sigma.reshape(combined_cascade.shape[0], 1, 1)
+    ) + combined_mean.reshape(combined_mean.shape[0], 1, 1)
+    # print(renorm.shape)
+    out = np.sum(renorm, axis=0)
+    # print(out.shape)
     return out
 
 
