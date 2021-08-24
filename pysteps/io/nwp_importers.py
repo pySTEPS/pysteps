@@ -69,7 +69,8 @@ Available Importers
 .. autosummary::
     :toctree: ../generated/
 
-    import_bom_nwp
+    import_bom_nwp_xr
+    import_rmi_nwp_xr
 """
 
 import numpy as np
@@ -88,7 +89,7 @@ except ImportError:
 
 @postprocess_import()
 def import_bom_nwp_xr(filename, **kwargs):
-    """Import a NetCDF with NWP rainfall forecasts regrided to a BoM Rainfields3
+    """Import a NetCDF with NWP rainfall forecasts regridded to a BoM Rainfields3
     using xarray.
 
     Parameters
@@ -107,7 +108,7 @@ def import_bom_nwp_xr(filename, **kwargs):
 
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
-            "netCDF4 package is required to import BoM NWP regrided rainfall "
+            "netCDF4 package is required to import BoM NWP regridded rainfall "
             "products but it is not installed"
         )
 
@@ -124,7 +125,7 @@ def import_bom_nwp_xr(filename, **kwargs):
     # so it needs to be disagregated by time step
     varname = kwargs.get("varname", "accum_prcp")
     if varname == "accum_prcp":
-        print("Rainfall values are accumulated. Disagreagating by time step")
+        print("Rainfall values are accumulated. Disaggregating by time step")
         accum_prcp = ds_meta[varname]
         precipitation = accum_prcp - accum_prcp.shift({varname_time: 1})
         precipitation = precipitation.dropna(varname_time, "all")
@@ -294,7 +295,7 @@ def import_rmi_nwp_xr(filename, **kwargs):
     # so it needs to be disagregated by time step
     varname = kwargs.get("varname", "precipitation")
     if varname == "accum_prcp":
-        print("Rainfall values are accumulated. Disagreagating by time step")
+        print("Rainfall values are accumulated. Disaggregating by time step")
         accum_prcp = ds_meta[varname]
         precipitation = accum_prcp - accum_prcp.shift({varname_time: 1})
         precipitation = precipitation.dropna(varname_time, "all")
@@ -417,7 +418,7 @@ def _import_rmi_nwp_geodata_xr(
 
 def _get_threshold_value(precip):
     """
-    Get the the rain/no rain threshold with the same unit, transformation and
+    Get the rain/no rain threshold with the same unit, transformation and
     accutime of the data.
     If all the values are NaNs, the returned value is `np.nan`.
     Otherwise, np.min(precip[precip > precip.min()]) is returned.
