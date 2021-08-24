@@ -154,23 +154,14 @@ def test_steps_blending(
 
     assert R_d_models.ndim == 2, "Wrong number of dimensions in R_d_models"
 
-    # Also obtain the fields from the second cascade for the velocity field
-    R_NWP_lev2 = []
-    for n_model in range(R_d_models.shape[0]):
-        R_NWP_lev2_ = []
-        for t in range(R_d_models.shape[1]):
-            R_NWP_lev2_.append(R_d_models[n_model, t]["cascade_levels"][1])
-        R_NWP_lev2.append(R_NWP_lev2_)
-    R_NWP_lev2 = np.array(R_NWP_lev2)
-
     ###
     # Determine the velocity fields
     ###
     oflow_method = pysteps.motion.get_method("lucaskanade")
     V_radar = oflow_method(R_input)
     V_NWP = []
-    for n_model in range(R_NWP_lev2.shape[0]):
-        V_NWP_ = oflow_method(R_NWP_lev2[n_model, :])
+    for n_model in range(R_NWP.shape[0]):
+        V_NWP_ = oflow_method(R_NWP[n_model, :])
         V_NWP.append(V_NWP_)
 
     V_NWP = np.stack(V_NWP)

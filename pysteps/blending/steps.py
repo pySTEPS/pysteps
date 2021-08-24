@@ -105,10 +105,9 @@ def forecast(
       inputs. All values are required to be finite.
     V_models: array-like
       Array of shape (n_models,2,m,n) containing the x- and y-components of the
-      advection field for the (NWP) model fields at cascade level 2. The
-      velocities are assumed to represent one time step between the inputs and
-      should be based on multiple lead times in the forecast. All values are
-      required to be finite.
+      advection field for the (NWP) model fields. The velocities are assumed to
+      represent one time step between the inputs and should be based on multiple
+      lead times in the forecast. All values are required to be finite.
     timesteps: int or list of floats
       Number of time steps to forecast or a list of time steps for which the
       forecasts are computed (relative to the input time step). The elements of
