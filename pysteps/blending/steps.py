@@ -104,10 +104,9 @@ def forecast(
       field. The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
     V_models: array-like
-      Array of shape (n_models,2,m,n) containing the x- and y-components of the
-      advection field for the (NWP) model fields. The velocities are assumed to
-      represent one time step between the inputs and should be based on multiple
-      lead times in the forecast. All values are required to be finite.
+      Array of shape (n_models,timestep,2,m,n) containing the x- and y-components
+      of the advection field for the (NWP) model field per forecast lead time.
+      All values are required to be finite.
     timesteps: int or list of floats
       Number of time steps to forecast or a list of time steps for which the
       forecasts are computed (relative to the input time step). The elements of
@@ -643,7 +642,7 @@ def forecast(
                 sigma_models = np.repeat(
                     sigma_models[:, :, :], n_ens_members_max, axis=0
                 )
-                V_models = np.repeat(V_models[:, :, :], n_ens_members_max, axis=0)
+                V_models = np.repeat(V_models[:, :, :, :], n_ens_members_max, axis=0)
 
             elif n_model_members == n_ens_members_min:
                 repeats = [
@@ -844,7 +843,7 @@ def forecast(
             if blend_nwp_members == True:
                 rho_nwp_fc = [
                     blending.skill_scores.lt_dependent_cor_nwp(
-                        lt=(t + 1) * int(timestep),
+                        lt=(t * int(timestep)),
                         correlations=rho_nwp_models[n_model],
                         **clim_kwargs,
                     )
@@ -855,7 +854,7 @@ def forecast(
                 rho_fc = np.concatenate((rho_extr[None, :], rho_nwp_fc), axis=0)
             else:
                 rho_nwp_fc = blending.skill_scores.lt_dependent_cor_nwp(
-                    lt=(t + 1) * int(timestep),
+                    lt=(t * int(timestep)),
                     correlations=rho_nwp_models[j],
                     **clim_kwargs,
                 )
@@ -975,10 +974,10 @@ def forecast(
                     # Stack the perturbed extrapolation and the NWP velocities
                     if blend_nwp_members == True:
                         V_stack = np.concatenate(
-                            (V_pert[None, :, :, :], V_models), axis=0
+                            (V_pert[None, :, :, :], V_models[:, t, :, :, :]), axis=0
                         )
                     else:
-                        V_model_ = V_models[j, :, :, :]
+                        V_model_ = V_models[j, t, :, :, :]
                         V_stack = np.concatenate(
                             (V_pert[None, :, :, :], V_model_[None, :, :, :]), axis=0
                         )
@@ -1041,9 +1040,11 @@ def forecast(
 
                 # Stack the perturbed extrapolation and the NWP velocities
                 if blend_nwp_members == True:
-                    V_stack = np.concatenate((V_pert[None, :, :, :], V_models), axis=0)
+                    V_stack = np.concatenate(
+                        (V_pert[None, :, :, :], V_models[:, t, :, :, :]), axis=0
+                    )
                 else:
-                    V_model_ = V_models[j, :, :, :]
+                    V_model_ = V_models[j, t, :, :, :]
                     V_stack = np.concatenate(
                         (V_pert[None, :, :, :], V_model_[None, :, :, :]), axis=0
                     )
@@ -1393,9 +1394,9 @@ def _check_inputs(R, R_d_models, V, V_models, timesteps, ar_order):
         )
     if V.ndim != 3:
         raise ValueError("V must be a three-dimensional array")
-    if V_models.ndim != 4:
-        raise ValueError("V_models must be a four-dimensional array")
-    if V.shape[0] != 2 or V_models.shape[1] != 2:
+    if V_models.ndim != 5:
+        raise ValueError("V_models must be a five-dimensional array")
+    if V.shape[0] != 2 or V_models.shape[2] != 2:
         raise ValueError(
             "V and V_models must have an x- and y-component, check the shape"
         )

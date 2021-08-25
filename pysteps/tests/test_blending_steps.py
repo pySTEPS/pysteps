@@ -160,13 +160,22 @@ def test_steps_blending(
     oflow_method = pysteps.motion.get_method("lucaskanade")
     V_radar = oflow_method(R_input)
     V_NWP = []
+    # Loop through the models
     for n_model in range(R_NWP.shape[0]):
-        V_NWP_ = oflow_method(R_NWP[n_model, :])
-        V_NWP.append(V_NWP_)
+        # Loop through the timesteps. We need two images to construct a motion
+        # field, so we can start from timestep 1. Timestep 0 will be the same
+        # as timestep 0.
+        _V_NWP_ = []
+        for t in range(1, R_NWP.shape[1]):
+            V_NWP_ = oflow_method(R_NWP[n_model, t - 1 : t + 1, :])
+            _V_NWP_.append(V_NWP_)
+            V_NWP_ = None
+        _V_NWP_ = np.insert(_V_NWP_, 0, _V_NWP_[0], axis=0)
+        V_NWP.append(_V_NWP_)
 
     V_NWP = np.stack(V_NWP)
 
-    assert V_NWP.ndim == 4, "V_NWP must be a four-dimensional array"
+    assert V_NWP.ndim == 5, "V_NWP must be a five-dimensional array"
 
     ###
     # The nowcasting
