@@ -71,7 +71,7 @@ Available Importers
 
     import_bom_nwp_xr
     import_rmi_nwp_xr
-    import_knmi_nwp
+    import_knmi_nwp_xr
 """
 
 import numpy as np
