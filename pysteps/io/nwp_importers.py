@@ -554,7 +554,7 @@ def _import_knmi_nwp_geodata_xr(
             "institution": ds_in.attrs["institution"],
             "threshold": _get_threshold_value(da_rainfall.values),
             # TODO(_import_bom_rf3_geodata_xr): Remove before final 2.0 version
-            "yorigin": "upper",
+            "yorigin": "lower",
             "xpixelsize": xpixelsize.values,
             "ypixelsize": ypixelsize.values,
         }
