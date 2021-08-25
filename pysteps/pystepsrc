@@ -112,6 +112,17 @@
             "importer_kwargs": {
                 "gzipped": true
             }
+        },
+        "knmi_nwp": {
+            "root_path": "./nwp/knmi",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "%Y%m%d_%H00_Pforecast_Harmonie",
+            "fn_ext": "nc",
+            "importer": "knmi_nwp",
+            "timestep": 60,
+            "importer_kwargs": {
+                "gzipped": true
+            }
         }
     }
 }
