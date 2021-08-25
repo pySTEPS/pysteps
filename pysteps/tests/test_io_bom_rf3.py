@@ -65,8 +65,7 @@ def test_io_import_bom_rf3_geodata(variable, expected, tolerance):
     """Test the importer Bom RF3."""
     root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
     rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
-    filename = os.path.join(root_path, rel_path,
-                            "2_20180616_100000.prcp-cscn.nc")
+    filename = os.path.join(root_path, rel_path, "2_20180616_100000.prcp-cscn.nc")
     geodata = pysteps.io.importers._import_bom_rf3_geodata(filename)
     smart_assert(geodata[variable], expected, tolerance)
 
@@ -92,7 +91,7 @@ test_attrs_xr = [
     ("transform", None, None),
     ("zerovalue", 0.0, 0.1),
     ("unit", "mm", None),
-    ("accutime", np.timedelta64(6,'m'), None),
+    ("accutime", np.timedelta64(6, "m"), None),
     ("zr_a", None, None),
     ("zr_b", None, None),
     ("xpixelsize", 500.0, 0.1),
@@ -115,8 +114,7 @@ test_attrs_xr_coord_x = [
 ]
 
 
-@pytest.mark.parametrize("variable, expected, tolerance",
-                         test_attrs_xr_coord_x)
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_x)
 def test_io_import_bom_rf3_xarray_attrs_coordx(variable, expected, tolerance):
     """Test the importer Bom RF3."""
     smart_assert(data_array_xr.x.attrs[variable], expected, tolerance)
@@ -129,8 +127,7 @@ test_attrs_xr_coord_y = [
 ]
 
 
-@pytest.mark.parametrize("variable, expected, tolerance",
-                         test_attrs_xr_coord_y)
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_y)
 def test_io_import_bom_rf3_xarray_attrs_coordy(variable, expected, tolerance):
     """Test the importer Bom RF3."""
     smart_assert(data_array_xr.y.attrs[variable], expected, tolerance)

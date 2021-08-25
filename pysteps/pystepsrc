@@ -100,6 +100,17 @@
             "timestep": 10,
             "importer_kwargs": {
                 "gzipped": true
+	    }
+        },
+        "rmi_nwp": {
+            "root_path": "./nwp/rmi",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "ao13_%Y%m%d%H_native_5min",
+            "fn_ext": "nc",
+            "importer": "rmi_nwp",
+            "timestep": 5,
+            "importer_kwargs": {
+                "gzipped": true
             }
         }
     }
