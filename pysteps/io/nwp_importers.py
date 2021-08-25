@@ -417,6 +417,7 @@ def _import_rmi_nwp_geodata_xr(
     return ds_in
 
 
+@postprocess_import()
 def import_knmi_nwp_xr(filename, **kwargs):
     """Import a NetCDF with HARMONIE NWP rainfall forecasts from KNMI using
     xarray.
@@ -455,7 +456,6 @@ def import_knmi_nwp_xr(filename, **kwargs):
     varname = kwargs.get("varname", "P_fc")
     if varname == "P_fc":
         precipitation = ds_meta[varname]
-        precipitation = precipitation.dropna(varname_time, "all")
         # update/copy attributes
         precipitation.name = "precipitation"
         # update attributes
