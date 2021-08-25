@@ -4,7 +4,8 @@
     "silent_import": false,
     "outputs": {
         // path_outputs : path where to save results (figures, forecasts, etc)
-        "path_outputs": "./"
+        "path_outputs": "./",
+        "path_workdir": "./tmp/"
     },
     "plot": {
         // "motion_plot" : "streamplot" or "quiver"
@@ -97,6 +98,17 @@
             "fn_ext": "nc",
             "importer": "bom_nwp",
             "timestep": 10,
+            "importer_kwargs": {
+                "gzipped": true
+            }
+        },
+        "knmi_nwp": {
+            "root_path": "./nwp/knmi",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "%Y%m%d_%H00_Pforecast_Harmonie",
+            "fn_ext": "nc",
+            "importer": "knmi_nwp",
+            "timestep": 60,
             "importer_kwargs": {
                 "gzipped": true
             }
