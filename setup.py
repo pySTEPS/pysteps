@@ -67,7 +67,7 @@ requirements = [
     "matplotlib",
     "jsonschema",
     "xarray",
-    "bottleneck"
+    "bottleneck",
 ]
 
 setup(
