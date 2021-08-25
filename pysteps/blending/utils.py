@@ -289,18 +289,17 @@ def decompose_NWP(
     ncf.close()
 
 
-def load_NWP(start_time, n_timesteps, output_path=rcparams.outputs["path_workdir"]):
+def load_NWP(input_nc_path, start_time, n_timesteps):
     """Loads the decomposed NWP data from the netCDF files
 
     Parameters
     ----------
+    input_nc_path: str
+      Path to the saved netCDF file containing the decomposed NWP data.
     start_time: numpy.datetime64
       The start time of the nowcasting. Assumed to be a numpy.datetime64 type
     n_timesteps: int
       Number of time steps to forecast
-    output_path: str, optional
-      Path to the saved netCDF files containing the decomposed NWP data.
-      Defaults to the path_workdir specified in the rcparams file.
 
     Returns
     -------
@@ -311,7 +310,7 @@ def load_NWP(start_time, n_timesteps, output_path=rcparams.outputs["path_workdir
     """
 
     # Open the file
-    ncf = netCDF4.Dataset(output_path, "r", format="NETCDF4")
+    ncf = netCDF4.Dataset(input_nc_path, "r", format="NETCDF4")
 
     # Initialise the decomposition dictionary
     decomp_dict = dict()
