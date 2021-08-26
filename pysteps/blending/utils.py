@@ -19,7 +19,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from pysteps.cascade import get_method as cascade_get_method
 from pysteps.cascade.bandpass_filters import filter_gaussian
-from pysteps import utils, rcparams
+from pysteps import rcparams
+from pysteps.utils import get_method as utils_get_method
 import os
 import netCDF4
 
@@ -266,7 +267,7 @@ def decompose_NWP(
 
     # Decompose the NWP data
     filter_g = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
-    fft = utils.get_method(fft_method, shape=R_NWP.shape[1:], n_threads=1)
+    fft = utils_get_method(fft_method, shape=R_NWP.shape[1:], n_threads=1)
     decomp_method, _ = cascade_get_method(decomp_method)
 
     for i in range(R_NWP.shape[0]):
