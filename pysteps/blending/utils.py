@@ -238,6 +238,7 @@ def blend_optical_flows(flows, weights):
     # flows dimension sources, 2, m, n
     # weights dimension sources
     # move source axis to last to allow broadcasting
+    # TODO: Check if broadcasting has worked well
     all_c_wn = weights * np.moveaxis(flows, 0, -1)
     # sum uses last axis
     combined_flows = np.sum(all_c_wn, axis=-1)

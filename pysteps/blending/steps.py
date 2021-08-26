@@ -17,7 +17,6 @@ is possible with this code, but we recommend the use of just two models.
     blend_means_sigmas
     _check_inputs
     _compute_incremental_mask
-    _compute_sprog_mask
 
 References
 ----------
@@ -159,13 +158,12 @@ def forecast(
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
       R_thr.
-    mask_method: {'obs','sprog','incremental',None}, optional
+    mask_method: {'obs','incremental',None}, optional
       The method to use for masking no precipitation areas in the forecast field.
       The masked pixels are set to the minimum value of the observations.
       'obs' = apply R_thr to the most recently observed precipitation intensity
-      field, 'sprog' = use the smoothed forecast field from S-PROG, where the
-      AR(p) model has been applied, 'incremental' = iteratively buffer the mask
-      with a certain rate (currently it is 1 km/min), None=no masking.
+      field, 'incremental' = iteratively buffer the mask with a certain rate
+      (currently it is 1 km/min), None=no masking.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -328,10 +326,9 @@ def forecast(
     if np.any(~np.isfinite(V)):
         raise ValueError("V contains non-finite values")
 
-    if mask_method not in ["obs", "sprog", "incremental", None]:
+    if mask_method not in ["obs", "incremental", None]:
         raise ValueError(
-            "unknown mask method %s: must be 'obs', 'sprog' or 'incremental' or None"
-            % mask_method
+            "unknown mask method %s: must be 'obs', 'incremental' or None" % mask_method
         )
 
     if conditional and R_thr is None:
@@ -552,8 +549,8 @@ def forecast(
     sigma_extrapolation = np.array(R_d["stds"])
     R_d = [R_d.copy() for j in range(n_ens_members)]
 
-    # Finally, also stack the (NPW) model cascades in separate normalized
-    # cascades and return the means and sigmas.
+    # Also stack the (NWP) model cascades in separate normalized cascades and
+    # return the means and sigmas.
     # The normalized model cascade should have the shape:
     # [n_models, n_timesteps, n_cascade_levels, m, n]
     R_models = []
@@ -574,6 +571,19 @@ def forecast(
     sigma_models = np.stack(sigma_models)
 
     R_models_, mu_models_, sigma_models_ = None, None, None
+
+    # Finally, recompose the (NWP) model cascades to have rainfall fields per
+    # model and time step, which will be used in the probability matching steps.
+    # Recomposed cascade will have shape: [n_models, n_timesteps, m, n]
+    R_models_pm = []
+    for i in range(R_d_models.shape[0]):
+        R_models_pm_ = []
+        for time_step in range(R_d_models.shape[1]):
+            R_models_pm_.append(recomp_method(R_d_models[i, time_step]))
+        R_models_pm.append(R_models_pm_)
+
+    R_models_pm = np.stack(R_models_pm)
+    R_models_pm_ = None
 
     ###
     # 4. Estimate AR parameters for the radar rainfall field
@@ -643,6 +653,10 @@ def forecast(
                     sigma_models[:, :, :], n_ens_members_max, axis=0
                 )
                 V_models = np.repeat(V_models[:, :, :, :], n_ens_members_max, axis=0)
+                # For the prob. matching
+                R_models_pm = np.repeat(
+                    R_models_pm[:, :, :, :], n_ens_members_max, axis=0
+                )
 
             elif n_model_members == n_ens_members_min:
                 repeats = [
@@ -654,6 +668,8 @@ def forecast(
                     mu_models = np.repeat(mu_models, repeats, axis=0)
                     sigma_models = np.repeat(sigma_models, repeats, axis=0)
                     V_models = np.repeat(V_models, repeats, axis=0)
+                    # For the prob. matching
+                    R_models_pm = np.repeat(R_models_pm, repeats, axis=0)
 
         R_c = [
             [R_c[j].copy() for j in range(n_cascade_levels)]
@@ -708,35 +724,17 @@ def forecast(
     D = np.stack([np.full(n_cascade_levels, None) for j in range(n_ens_members)])
     R_f = [[] for j in range(n_ens_members)]
 
-    if probmatching_method == "mean":
-        mu_0 = np.mean(R[-1, :, :][R[-1, :, :] >= R_thr])
+    if mask_method == "incremental":
+        # First, get mask parameters
+        mask_rim = mask_kwargs.get("mask_rim", 10)
+        mask_f = mask_kwargs.get("mask_f", 1.0)
+        # initialize the structuring element
+        struct = scipy.ndimage.generate_binary_structure(2, 1)
+        # iterate it to expand it nxn;
+        n = mask_f * timestep / kmperpixel
+        struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
 
-    R_m = None
-
-    if mask_method is not None:
-        MASK_prec = R[-1, :, :] >= R_thr
-
-        if mask_method == "obs":
-            pass
-        elif mask_method == "sprog":
-            # compute the wet area ratio and the precipitation mask
-            war = 1.0 * np.sum(MASK_prec) / (R.shape[1] * R.shape[2])
-            R_m = [R_c[0][i].copy() for i in range(n_cascade_levels)]
-            R_m_d = R_d[0].copy()
-        elif mask_method == "incremental":
-            # get mask parameters
-            mask_rim = mask_kwargs.get("mask_rim", 10)
-            mask_f = mask_kwargs.get("mask_f", 1.0)
-            # initialize the structuring element
-            struct = scipy.ndimage.generate_binary_structure(2, 1)
-            # iterate it to expand it nxn
-            n = mask_f * timestep / kmperpixel
-            struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
-            # initialize precip mask for each member
-            MASK_prec = _compute_incremental_mask(MASK_prec, struct, mask_rim)
-            MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
-
-    if noise_method is None and R_m is None:
+    if noise_method is None:
         R_m = [R_c[0][i].copy() for i in range(n_cascade_levels)]
 
     fft_objs = []
@@ -781,7 +779,6 @@ def forecast(
 
     extrap_kwargs["return_displacement"] = True
     R_f_prev = R_c
-    Yn_prev = Yn_c
     t_prev = [0.0 for j in range(n_ens_members)]
     t_total = [0.0 for j in range(n_ens_members)]
 
@@ -808,23 +805,6 @@ def forecast(
 
         if measure_time:
             starttime = time.time()
-
-        # Determine the mask in case the S-PROG masking method is followed
-        if noise_method is None or mask_method == "sprog":
-            for i in range(n_cascade_levels):
-                # use a separate AR(p) model for the non-perturbed forecast,
-                # from which the mask is obtained
-                R_m[i] = autoregression.iterate_ar_model(R_m[i], PHI[i, :])
-
-            R_m_d["cascade_levels"] = [R_m[i][-1] for i in range(n_cascade_levels)]
-            if domain == "spatial":
-                R_m_d["cascade_levels"] = np.stack(R_m_d["cascade_levels"])
-            R_m_ = recomp_method(R_m_d)
-            if domain == "spectral":
-                R_m_ = fft.irfft2(R_m_)
-
-            if mask_method == "sprog":
-                MASK_prec = _compute_sprog_mask(R_m_, war)
 
         ###
         # 8.1.1 Determine the skill of the components for lead time (t0 + t)
@@ -932,13 +912,13 @@ def forecast(
 
             ###
             # 8.4 Perturb and blend the advection fields +
-            # advect the extrapolation and noise cascade to the current time
-            # step (or subtimesteps if non-integer time steps are given)
+            # advect the extrapolation cascade to the current time step
+            # (or subtimesteps if non-integer time steps are given)
             ###
             extrap_kwargs_ = extrap_kwargs.copy()
             V_pert = V
             R_f_ep_out = []
-            Yn_f_ep_out = []
+            R_pb_ep = []
 
             for t_sub in subtimesteps:
                 if t_sub > 0:
@@ -949,19 +929,13 @@ def forecast(
                             + t_diff_prev_int * R_c[j][i][-1, :]
                             for i in range(n_cascade_levels)
                         ]
-                        Yn_ip = [
-                            (1.0 - t_diff_prev_int) * Yn_prev[j][i][-1, :]
-                            + t_diff_prev_int * Yn_c[j][i][-1, :]
-                            for i in range(n_cascade_levels)
-                        ]
+
                     else:
                         R_f_ip = [
                             R_f_prev[j][i][-1, :] for i in range(n_cascade_levels)
                         ]
-                        Yn_ip = [Yn_prev[j][i][-1, :] for i in range(n_cascade_levels)]
 
                     R_f_ip = np.stack(R_f_ip)
-                    Yn_ip = np.stack(Yn_ip)
 
                     t_diff_prev = t_sub - t_prev[j]
                     t_total[j] += t_diff_prev
@@ -994,8 +968,9 @@ def forecast(
 
                     # Extrapolate it to the next time step
                     R_f_ep = np.zeros(R_f_ip.shape)
-                    Yn_f_ep = np.zeros(Yn_ip.shape)
 
+                    min_R_f_ip = np.min(R_f_ip)
+                    # min_Yn_ip = np.min(Yn_ip)
                     for i in range(n_cascade_levels):
                         extrap_kwargs_["displacement_prev"] = D[j][i]
                         # First, extrapolate the extrapolation component
@@ -1005,27 +980,39 @@ def forecast(
                             [t_diff_prev],
                             **extrap_kwargs_,
                         )
-                        # then, extrapolate the noise component
-                        Yn_f_ep_, __ = extrapolator_method(
-                            Yn_ip[i],
-                            V_blended,
-                            [t_diff_prev],
-                            **extrap_kwargs_,
-                        )
+
                         R_f_ep[i] = R_f_ep_[0]
-                        Yn_f_ep[i] = Yn_f_ep_[0]
+
+                    # Make sure we have no nans left
+                    nan_indices = np.isnan(R_f_ep)
+                    R_f_ep[nan_indices] = min_R_f_ip
 
                     R_f_ep_out.append(R_f_ep)
-                    Yn_f_ep_out.append(Yn_f_ep)
+
+                    # Finally, also extrapolate the previous radar rainfall
+                    # field. This will be blended with the rainfall field(s)
+                    # of the (NWP) model(s) for Lagrangian blended prob. matching
+                    min_R = np.min(R)
+                    R_pb_ep_, __ = extrapolator_method(
+                        R,
+                        V_blended,
+                        [t_diff_prev],
+                        **extrap_kwargs_,
+                    )
+
+                    # Make sure we have no nans left
+                    R_pb_ep__ = R_pb_ep_[0]
+                    nan_indices = np.isnan(R_pb_ep__)
+                    R_pb_ep__[nan_indices] = min_R
+                    R_pb_ep.append(R_pb_ep__)
 
                     t_prev[j] = t_sub
 
                 R_f_prev[j] = R_c[j]
-                Yn_prev[j] = Yn_c[j]
 
             if len(R_f_ep_out) > 0:
                 R_f_ep_out = np.stack(R_f_ep_out)
-                Yn_f_ep_out = np.stack(Yn_f_ep_out)
+                R_pb_ep = np.stack(R_pb_ep)
 
             # advect the forecast field by one time step if no subtimesteps in the
             # current interval were found
@@ -1083,16 +1070,16 @@ def forecast(
                         cascades_stacked = np.concatenate(
                             (
                                 R_f_ep_out[None, t_index],
-                                R_models[None, j, t],
-                                Yn_f_ep_out[None, t_index],
+                                R_models[:, t],
+                                Yn_c[None, j, :, -1, :],
                             ),
                             axis=0,
                         )  # [(extr_field, n_model_fields, noise), n_cascade_levels, ...]
                         means_stacked = np.concatenate(
-                            (mu_extrapolation[None, :], mu_models[None, j, t]), axis=0
+                            (mu_extrapolation[None, :], mu_models[:, t]), axis=0
                         )
                         sigmas_stacked = np.concatenate(
-                            (sigma_extrapolation[None, :], sigma_models[None, j, t]),
+                            (sigma_extrapolation[None, :], sigma_models[:, t]),
                             axis=0,
                         )
                     else:
@@ -1100,7 +1087,7 @@ def forecast(
                             (
                                 R_f_ep_out[None, t_index],
                                 R_models[None, j, t],
-                                Yn_f_ep_out[None, t_index],
+                                Yn_c[None, j, :, -1, :],
                             ),
                             axis=0,
                         )  # [(extr_field, n_model_fields, noise), n_cascade_levels, ...]
@@ -1160,46 +1147,97 @@ def forecast(
 
                     ###
                     # 8.7 Post-processing steps - use the mask and fill no data with
-                    # the blended NWP forecast
+                    # the blended NWP forecast. Probability matching following
+                    # Lagrangian blended probability matching which uses the
+                    # latest extrapolated radar rainfall field blended with the
+                    # nwp model(s) rainfall forecast fields as 'benchmark'.
                     ###
-                    # TODO: Check this - Originally, the masking and probability matching
-                    # took place prior to the extrapolation step. Is it correct in this
-                    # 'new' way?
+                    # TODO: Check probability matching method
+                    # 8.7.1 first blend the extrapolated rainfall field with
+                    # the NWP rainfall forecast for this time step using the
+                    # weights at scale level 2.
+                    weights_pm = weights[:-1, 1]  # Weights without noise, level 2
+                    weights_pm_normalized = weights_pm / np.sum(weights_pm)
+                    # Stack the fields
+                    if blend_nwp_members == True:
+                        R_pb_stacked = np.concatenate(
+                            (
+                                R_pb_ep[None, t_index],
+                                R_models_pm[:, t],
+                            ),
+                            axis=0,
+                        )
+                    else:
+                        R_pb_stacked = np.concatenate(
+                            (
+                                R_pb_ep[None, t_index],
+                                R_models_pm[None, j, t],
+                            ),
+                            axis=0,
+                        )
+                    # Blend it
+                    R_pb_blended = np.sum(
+                        weights_pm_normalized.reshape(
+                            weights_pm_normalized.shape[0], 1, 1
+                        )
+                        * R_pb_stacked,
+                        axis=0,
+                    )
+
+                    # Only keep the extrapolation component where radar data
+                    # initially was present.
+                    # Replace any NaN-values with the forecast without
+                    # extrapolation
+                    R_f_new[domain_mask] = np.nan
+                    # R_pb_blended[domain_mask] = np.nan
+
+                    nan_indices = np.isnan(R_f_new)
+                    R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
+                    # nan_indices = np.isnan(R_pb_blended)
+                    # R_pb_blended[nan_indices] = R_models_pm[0, t][nan_indices]
+
+                    # 8.7.2. Apply the masking and prob. matching
                     if mask_method is not None:
                         # apply the precipitation mask to prevent generation of new
                         # precipitation into areas where it was not originally
                         # observed
                         R_cmin = R_f_new.min()
                         if mask_method == "incremental":
+                            # The incremental mask is slightly different from
+                            # the implementation in the non-blended steps.py, as
+                            # it is not based on the last forecast, but instead
+                            # on R_pb_blended. Therefore, the buffer does not
+                            # increase over time.
+                            # Get the mask for this forecast
+                            MASK_prec = R_pb_blended >= R_thr
+                            # Buffer the mask
+                            MASK_prec = _compute_incremental_mask(
+                                MASK_prec, struct, mask_rim
+                            )
+                            # Get the final mask
                             R_f_new = R_cmin + (R_f_new - R_cmin) * MASK_prec[j]
                             MASK_prec_ = R_f_new > R_cmin
-                        else:
-                            MASK_prec_ = MASK_prec
+                        elif mask_method == "obs":
+                            # The mask equals the most recent benchmark
+                            # rainfall field
+                            MASK_prec_ = R_pb_blended >= R_thr
 
                         # Set to min value outside of mask
                         R_f_new[~MASK_prec_] = R_cmin
 
-                    # TODO: Change prob matching method!
                     if probmatching_method == "cdf":
-                        # adjust the CDF of the forecast to match the most recently
-                        # observed precipitation field
-                        R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, R)
+                        # adjust the CDF of the forecast to match the most recent
+                        # benchmark rainfall field (R_pb_blended)
+                        R_f_new = probmatching.nonparam_match_empirical_cdf(
+                            R_f_new, R_pb_blended
+                        )
                     elif probmatching_method == "mean":
+                        # Use R_pb_blended as benchmark field and
+                        mu_0 = np.mean(R_pb_blended[R_pb_blended >= R_thr])
                         MASK = R_f_new >= R_thr
                         mu_fct = np.mean(R_f_new[MASK])
                         R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0
 
-                    if mask_method == "incremental":
-                        MASK_prec[j] = _compute_incremental_mask(
-                            R_f_new >= R_thr, struct, mask_rim
-                        )
-
-                    R_f_new[domain_mask] = np.nan
-
-                    # Finally, replace any NaN-values with the forecast without
-                    # extrapolation
-                    nan_indices = np.isnan(R_f_new)
-                    R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
                     R_f_out.append(R_f_new)
 
             return R_f_out
@@ -1439,24 +1477,3 @@ def _compute_incremental_mask(Rbin, kr, r):
         mask += Rd
     # normalize between 0 and 1
     return mask / mask.max()
-
-
-def _compute_sprog_mask(R, war):
-    # obtain the CDF from the non-perturbed forecast that is
-    # scale-filtered by the AR(p) model
-    R_s = R.flatten()
-
-    # compute the threshold value R_pct_thr corresponding to the
-    # same fraction of precipitation pixels (forecast values above
-    # R_thr) as in the most recently observed precipitation field
-    R_s.sort(kind="quicksort")
-    x = 1.0 * np.arange(1, len(R_s) + 1)[::-1] / len(R_s)
-    i = np.argmin(abs(x - war))
-    # handle ties
-    if R_s[i] == R_s[i + 1]:
-        i = np.where(R_s == R_s[i])[0][-1] + 1
-    R_pct_thr = R_s[i]
-
-    # determine a mask using the above threshold value to preserve the
-    # wet-area ratio
-    return R >= R_pct_thr

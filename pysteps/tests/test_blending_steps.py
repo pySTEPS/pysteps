@@ -16,22 +16,23 @@ steps_arg_names = (
     "n_cascade_levels",
     "mask_method",
     "probmatching_method",
+    "blend_nwp_members",
     "expected_n_ens_members",
 )
 
 steps_arg_values = [
-    (1, 3, 4, 8, None, None, 4),
-    (1, 3, 4, 8, "obs", None, 4),
-    (1, 3, 4, 8, "sprog", None, 4),
-    (1, 3, 4, 8, "incremental", None, 4),
-    (1, 3, 4, 8, None, "mean", 4),
-    (1, 3, 4, 8, None, "cdf", 4),
-    (1, 3, 4, 8, "incremental", "cdf", 4),
-    (1, 3, 4, 6, "incremental", "cdf", 4),
-    (1, 3, 4, 9, "incremental", "cdf", 4),
-    (2, 3, 10, 8, "incremental", "cdf", 10),
-    (5, 3, 4, 8, "incremental", "cdf", 5),
-    (1, 10, 1, 8, "incremental", "cdf", 1),
+    (1, 3, 4, 8, None, None, False, 4),
+    (1, 3, 4, 8, "obs", None, False, 4),
+    (1, 3, 4, 8, "incremental", None, False, 4),
+    (1, 3, 4, 8, None, "mean", False, 4),
+    (1, 3, 4, 8, None, "cdf", False, 4),
+    (1, 3, 4, 8, "incremental", "cdf", False, 4),
+    (1, 3, 4, 6, "incremental", "cdf", False, 4),
+    (1, 3, 4, 9, "incremental", "cdf", False, 4),
+    (2, 3, 10, 8, "incremental", "cdf", False, 10),
+    (5, 3, 4, 8, "incremental", "cdf", False, 5),
+    (1, 10, 1, 8, "incremental", "cdf", False, 1),
+    (5, 3, 2, 8, "incremental", "cdf", True, 2),
 ]
 
 
@@ -43,6 +44,7 @@ def test_steps_blending(
     n_cascade_levels,
     mask_method,
     probmatching_method,
+    blend_nwp_members,
     expected_n_ens_members,
 ):
     ###
@@ -50,35 +52,39 @@ def test_steps_blending(
     ###
     # Initialise dummy NWP data
     R_NWP = np.zeros((n_models, n_timesteps + 1, 200, 200))
-    print(R_NWP.shape)
 
     for i in range(R_NWP.shape[1]):
-        R_NWP[:, i, :, 26 + 2 * i] = 0.5
-        R_NWP[:, i, :, 27 + 2 * i] = 0.5
-        R_NWP[:, i, :, 28 + 2 * i] = 0.5
-        R_NWP[:, i, :, 29 + 2 * i] = 0.5
-        R_NWP[:, i, :, 30 + 2 * i] = 1.0
-        R_NWP[:, i, :, 31 + 2 * i] = 1.0
-        R_NWP[:, i, :, 32 + 2 * i] = 5.0
-        R_NWP[:, i, :, 35 + 2 * i] = 5.0
-        R_NWP[:, i, :, 36 + 2 * i] = 5.0
-        R_NWP[:, i, :, 37 + 2 * i] = 5.0
-        R_NWP[:, i, :, 38 + 2 * i] = 1.0
-        R_NWP[:, i, :, 39 + 2 * i] = 1.0
-        R_NWP[:, i, :, 40 + 2 * i] = 1.0
-        R_NWP[:, i, :, 41 + 2 * i] = 0.5
-        R_NWP[:, i, :, 41 + 2 * i] = 0.5
-        R_NWP[:, i, :, 42 + 2 * i] = 0.5
+        R_NWP[:, i, 5:175, 23 + 2 * i] = 0.5
+        R_NWP[:, i, 5:175, 24 + 2 * i] = 0.5
+        R_NWP[:, i, 5:175, 25 + 2 * i] = 0.5
+        R_NWP[:, i, 5:175, 26 + 2 * i] = 0.5
+        R_NWP[:, i, 5:175, 27 + 2 * i] = 1.0
+        R_NWP[:, i, 5:175, 28 + 2 * i] = 1.0
+        R_NWP[:, i, 5:175, 29 + 2 * i] = 5.0
+        R_NWP[:, i, 5:175, 30 + 2 * i] = 5.0
+        R_NWP[:, i, 5:175, 31 + 2 * i] = 5.0
+        R_NWP[:, i, 5:175, 32 + 2 * i] = 5.0
+        R_NWP[:, i, 5:175, 33 + 2 * i] = 1.0
+        R_NWP[:, i, 5:175, 34 + 2 * i] = 1.0
+        R_NWP[:, i, 5:175, 35 + 2 * i] = 1.0
+        R_NWP[:, i, 5:175, 36 + 2 * i] = 0.5
+        R_NWP[:, i, 5:175, 37 + 2 * i] = 0.5
+        R_NWP[:, i, 5:175, 38 + 2 * i] = 0.5
 
     # Define dummy nowcast input data
     R_input = np.zeros((3, 200, 200))
 
     for i in range(3):
-        R_input[i, :, 35 + 1 * i] = 0.5
-        R_input[i, :, 36 + 1 * i] = 1.0
-        R_input[i, :, 37 + 1 * i] = 5.0
-        R_input[i, :, 38 + 1 * i] = 1.0
-        R_input[i, :, 39 + 1 * i] = 0.5
+        R_input[i, 5:150, 31 + 1 * i] = 0.5
+        R_input[i, 5:150, 32 + 1 * i] = 1.0
+        R_input[i, 5:150, 33 + 1 * i] = 5.0
+        R_input[i, 5:150, 34 + 1 * i] = 5.0
+        R_input[i, 5:150, 35 + 1 * i] = 4.5
+        R_input[i, 5:150, 37 + 1 * i] = 4.5
+        R_input[i, 5:150, 38 + 1 * i] = 4.0
+        R_input[i, 5:150, 39 + 1 * i] = 2.0
+        R_input[i, 5:150, 40 + 1 * i] = 1.0
+        R_input[i, 5:150, 41 + 1 * i] = 0.5
 
     metadata = dict()
     metadata["unit"] = "mm/h"
@@ -189,7 +195,7 @@ def test_steps_blending(
         timestep=5.0,
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
-        blend_nwp_members=False,
+        blend_nwp_members=blend_nwp_members,
         R_thr=metadata["threshold"],
         kmperpixel=1.0,
         extrap_method="semilagrangian",
