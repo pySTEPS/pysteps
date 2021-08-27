@@ -54,37 +54,47 @@ def test_steps_blending(
     R_NWP = np.zeros((n_models, n_timesteps + 1, 200, 200))
 
     for i in range(R_NWP.shape[1]):
-        R_NWP[:, i, 5:175, 23 + 2 * i] = 0.5
-        R_NWP[:, i, 5:175, 24 + 2 * i] = 0.5
-        R_NWP[:, i, 5:175, 25 + 2 * i] = 0.5
-        R_NWP[:, i, 5:175, 26 + 2 * i] = 0.5
-        R_NWP[:, i, 5:175, 27 + 2 * i] = 1.0
-        R_NWP[:, i, 5:175, 28 + 2 * i] = 1.0
-        R_NWP[:, i, 5:175, 29 + 2 * i] = 5.0
-        R_NWP[:, i, 5:175, 30 + 2 * i] = 5.0
-        R_NWP[:, i, 5:175, 31 + 2 * i] = 5.0
-        R_NWP[:, i, 5:175, 32 + 2 * i] = 5.0
-        R_NWP[:, i, 5:175, 33 + 2 * i] = 1.0
-        R_NWP[:, i, 5:175, 34 + 2 * i] = 1.0
-        R_NWP[:, i, 5:175, 35 + 2 * i] = 1.0
-        R_NWP[:, i, 5:175, 36 + 2 * i] = 0.5
-        R_NWP[:, i, 5:175, 37 + 2 * i] = 0.5
-        R_NWP[:, i, 5:175, 38 + 2 * i] = 0.5
+        R_NWP[:, i, 30:185, 30 + 1 * i] = 0.1
+        R_NWP[:, i, 30:185, 31 + 1 * i] = 0.1
+        R_NWP[:, i, 30:185, 32 + 1 * i] = 1.0
+        R_NWP[:, i, 30:185, 33 + 1 * i] = 5.0
+        R_NWP[:, i, 30:185, 34 + 1 * i] = 5.0
+        R_NWP[:, i, 30:185, 35 + 1 * i] = 4.5
+        R_NWP[:, i, 30:185, 36 + 1 * i] = 4.5
+        R_NWP[:, i, 30:185, 37 + 1 * i] = 4.0
+        R_NWP[:, i, 30:185, 38 + 1 * i] = 2.0
+        R_NWP[:, i, 30:185, 39 + 1 * i] = 1.0
+        R_NWP[:, i, 30:185, 40 + 1 * i] = 0.5
+        R_NWP[:, i, 30:185, 41 + 1 * i] = 0.1
 
     # Define dummy nowcast input data
     R_input = np.zeros((3, 200, 200))
 
-    for i in range(3):
+    for i in range(2):
+        R_input[i, 5:150, 30 + 1 * i] = 0.1
         R_input[i, 5:150, 31 + 1 * i] = 0.5
-        R_input[i, 5:150, 32 + 1 * i] = 1.0
+        R_input[i, 5:150, 32 + 1 * i] = 0.5
         R_input[i, 5:150, 33 + 1 * i] = 5.0
         R_input[i, 5:150, 34 + 1 * i] = 5.0
         R_input[i, 5:150, 35 + 1 * i] = 4.5
-        R_input[i, 5:150, 37 + 1 * i] = 4.5
-        R_input[i, 5:150, 38 + 1 * i] = 4.0
-        R_input[i, 5:150, 39 + 1 * i] = 2.0
-        R_input[i, 5:150, 40 + 1 * i] = 1.0
-        R_input[i, 5:150, 41 + 1 * i] = 0.5
+        R_input[i, 5:150, 36 + 1 * i] = 4.5
+        R_input[i, 5:150, 37 + 1 * i] = 4.0
+        R_input[i, 5:150, 38 + 1 * i] = 1.0
+        R_input[i, 5:150, 39 + 1 * i] = 0.5
+        R_input[i, 5:150, 40 + 1 * i] = 0.5
+        R_input[i, 5:150, 41 + 1 * i] = 0.1
+    R_input[2, 10:155, 30 + 1 * 2] = 0.1
+    R_input[2, 10:155, 31 + 1 * 2] = 0.1
+    R_input[2, 10:155, 32 + 1 * 2] = 1.0
+    R_input[2, 10:155, 33 + 1 * 2] = 5.0
+    R_input[2, 10:155, 34 + 1 * 2] = 5.0
+    R_input[2, 10:155, 35 + 1 * 2] = 4.5
+    R_input[2, 10:155, 36 + 1 * 2] = 4.5
+    R_input[2, 10:155, 37 + 1 * 2] = 4.0
+    R_input[2, 10:155, 38 + 1 * 2] = 2.0
+    R_input[2, 10:155, 39 + 1 * 2] = 1.0
+    R_input[2, 10:155, 40 + 1 * 3] = 0.5
+    R_input[2, 10:155, 41 + 1 * 3] = 0.1
 
     metadata = dict()
     metadata["unit"] = "mm/h"
@@ -204,7 +214,7 @@ def test_steps_blending(
         noise_method="nonparametric",
         noise_stddev_adj="auto",
         ar_order=2,
-        vel_pert_method="bps",
+        vel_pert_method=None,
         conditional=False,
         probmatching_method=probmatching_method,
         mask_method=mask_method,

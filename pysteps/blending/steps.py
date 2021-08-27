@@ -725,12 +725,12 @@ def forecast(
     R_f = [[] for j in range(n_ens_members)]
 
     if mask_method == "incremental":
-        # First, get mask parameters
+        # get mask parameters
         mask_rim = mask_kwargs.get("mask_rim", 10)
         mask_f = mask_kwargs.get("mask_f", 1.0)
         # initialize the structuring element
         struct = scipy.ndimage.generate_binary_structure(2, 1)
-        # iterate it to expand it nxn;
+        # iterate it to expand it nxn
         n = mask_f * timestep / kmperpixel
         struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
 
@@ -756,6 +756,7 @@ def forecast(
         for n_model in range(R_models.shape[0])
     ]
     rho_nwp_models = np.stack(rho_nwp_models)
+
     # Also initizalize the current and previous extrapolation forecast scale
     # for the nowcasting component
     rho_extr_prev = None
@@ -1158,6 +1159,12 @@ def forecast(
                     # weights at scale level 2.
                     weights_pm = weights[:-1, 1]  # Weights without noise, level 2
                     weights_pm_normalized = weights_pm / np.sum(weights_pm)
+                    weights_pm_mod_only = weights[
+                        1:-1, 1
+                    ]  # Weights without noise, level 2
+                    weights_pm_normalized_mod_only = weights_pm_mod_only / np.sum(
+                        weights_pm_mod_only
+                    )
                     # Stack the fields
                     if blend_nwp_members == True:
                         R_pb_stacked = np.concatenate(
@@ -1183,18 +1190,31 @@ def forecast(
                         * R_pb_stacked,
                         axis=0,
                     )
+                    if blend_nwp_members == True:
+                        R_pb_blended_mod_only = np.sum(
+                            weights_pm_normalized_mod_only.reshape(
+                                weights_pm_normalized_mod_only.shape[0], 1, 1
+                            )
+                            * R_models_pm[:, t],
+                            axis=0,
+                        )
+                    else:
+                        R_pb_blended_mod_only = R_models_pm[j, t]
 
                     # Only keep the extrapolation component where radar data
                     # initially was present.
                     # Replace any NaN-values with the forecast without
                     # extrapolation
                     R_f_new[domain_mask] = np.nan
-                    # R_pb_blended[domain_mask] = np.nan
+                    # TODO: Check if the domain masking below is necessary and how
+                    # to implement it. Current commented implementation filters
+                    # away too much when prob matching is used...
+                    # R_pb_blended[domain_mask] = np.nan # Also make sure the 'benchmark''  only uses the NWP forecast outside the radar domain.
 
                     nan_indices = np.isnan(R_f_new)
                     R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
                     # nan_indices = np.isnan(R_pb_blended)
-                    # R_pb_blended[nan_indices] = R_models_pm[0, t][nan_indices]
+                    # R_pb_blended[nan_indices] = R_pb_blended_mod_only[nan_indices]
 
                     # 8.7.2. Apply the masking and prob. matching
                     if mask_method is not None:
@@ -1215,7 +1235,7 @@ def forecast(
                                 MASK_prec, struct, mask_rim
                             )
                             # Get the final mask
-                            R_f_new = R_cmin + (R_f_new - R_cmin) * MASK_prec[j]
+                            R_f_new = R_cmin + (R_f_new - R_cmin) * MASK_prec
                             MASK_prec_ = R_f_new > R_cmin
                         elif mask_method == "obs":
                             # The mask equals the most recent benchmark
