@@ -83,24 +83,23 @@ def test_steps_blending(
         R_input[i, 5:150, 39 + 1 * i] = 0.5
         R_input[i, 5:150, 40 + 1 * i] = 0.5
         R_input[i, 5:150, 41 + 1 * i] = 0.1
-    R_input[2, 10:155, 30 + 1 * 2] = 0.1
-    R_input[2, 10:155, 31 + 1 * 2] = 0.1
-    R_input[2, 10:155, 32 + 1 * 2] = 1.0
-    R_input[2, 10:155, 33 + 1 * 2] = 5.0
-    R_input[2, 10:155, 34 + 1 * 2] = 5.0
-    R_input[2, 10:155, 35 + 1 * 2] = 4.5
-    R_input[2, 10:155, 36 + 1 * 2] = 4.5
-    R_input[2, 10:155, 37 + 1 * 2] = 4.0
-    R_input[2, 10:155, 38 + 1 * 2] = 2.0
-    R_input[2, 10:155, 39 + 1 * 2] = 1.0
-    R_input[2, 10:155, 40 + 1 * 3] = 0.5
-    R_input[2, 10:155, 41 + 1 * 3] = 0.1
+    R_input[2, 30:155, 30 + 1 * 2] = 0.1
+    R_input[2, 30:155, 31 + 1 * 2] = 0.1
+    R_input[2, 30:155, 32 + 1 * 2] = 1.0
+    R_input[2, 30:155, 33 + 1 * 2] = 5.0
+    R_input[2, 30:155, 34 + 1 * 2] = 5.0
+    R_input[2, 30:155, 35 + 1 * 2] = 4.5
+    R_input[2, 30:155, 36 + 1 * 2] = 4.5
+    R_input[2, 30:155, 37 + 1 * 2] = 4.0
+    R_input[2, 30:155, 38 + 1 * 2] = 2.0
+    R_input[2, 30:155, 39 + 1 * 2] = 1.0
+    R_input[2, 30:155, 40 + 1 * 3] = 0.5
+    R_input[2, 30:155, 41 + 1 * 3] = 0.1
 
     metadata = dict()
-    metadata["unit"] = "mm/h"
+    metadata["unit"] = "mm"
     metadata["transformation"] = "dB"
     metadata["accutime"] = 5.0
-    metadata["unit"] = "mm"
     metadata["transform"] = "dB"
     metadata["zerovalue"] = 0.0
     metadata["threshold"] = 0.01
@@ -115,14 +114,14 @@ def test_steps_blending(
     R_NWP[R_NWP < metadata["threshold"]] = 0.0
 
     # convert the data
-    converter = pysteps.utils.get_method(metadata["unit"])
-    R_input, metadata = converter(R_input, metadata)
-    R_NWP, _ = converter(R_NWP, metadata)
+    converter = pysteps.utils.get_method("mm/h")
+    R_input, _ = converter(R_input, metadata)
+    R_NWP, metadata = converter(R_NWP, metadata)
 
     # transform the data
     transformer = pysteps.utils.get_method(metadata["transformation"])
-    R_input, metadata = transformer(R_input, metadata)
-    R_NWP, _ = transformer(R_NWP, metadata)
+    R_input, _ = transformer(R_input, metadata)
+    R_NWP, metadata = transformer(R_NWP, metadata)
 
     # set NaN equal to zero
     R_input[~np.isfinite(R_input)] = metadata["zerovalue"]

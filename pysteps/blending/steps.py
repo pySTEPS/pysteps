@@ -815,6 +815,8 @@ def forecast(
             PHI=PHI, correlations=rho_extr, correlations_prev=rho_extr_prev
         )
 
+        print("rho :", rho_extr)
+
         # the nowcast iteration for each ensemble member
         def worker(j):
             ###
@@ -1104,6 +1106,8 @@ def forecast(
                     R_f_blended = blending.utils.blend_cascades(
                         cascades_norm=cascades_stacked, weights=weights
                     )
+                    if j == 0:
+                        print(weights)
                     # Also blend the cascade without the extrapolation component
                     R_f_blended_mod_only = blending.utils.blend_cascades(
                         cascades_norm=cascades_stacked[1:, :],
@@ -1206,15 +1210,17 @@ def forecast(
                     # Replace any NaN-values with the forecast without
                     # extrapolation
                     R_f_new[domain_mask] = np.nan
-                    # TODO: Check if the domain masking below is necessary and how
-                    # to implement it. Current commented implementation filters
-                    # away too much when prob matching is used...
-                    # R_pb_blended[domain_mask] = np.nan # Also make sure the 'benchmark''  only uses the NWP forecast outside the radar domain.
+                    # TODO: Check if the domain masking below is necessary
+                    R_pb_blended[
+                        domain_mask
+                    ] = (
+                        np.nan
+                    )  # Also make sure the 'benchmark''  only uses the NWP forecast outside the radar domain.
 
                     nan_indices = np.isnan(R_f_new)
                     R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
-                    # nan_indices = np.isnan(R_pb_blended)
-                    # R_pb_blended[nan_indices] = R_pb_blended_mod_only[nan_indices]
+                    nan_indices = np.isnan(R_pb_blended)
+                    R_pb_blended[nan_indices] = R_pb_blended_mod_only[nan_indices]
 
                     # 8.7.2. Apply the masking and prob. matching
                     if mask_method is not None:
