@@ -14,7 +14,6 @@ Interface for the utils module.
 from . import arrays
 from . import cleansing
 from . import conversion
-from . import dimension
 from . import fft
 from . import images
 from . import interpolate
@@ -56,20 +55,6 @@ def get_method(name, **kwargs):
     +-------------------+-----------------------------------------------------+
     | dbz or            | convert to reflectivity [dBZ]                       |
     | reflectivity      |                                                     |
-    +-------------------+-----------------------------------------------------+
-
-    Dimension methods:
-
-    +-------------------+-----------------------------------------------------+
-    |     Name          |              Description                            |
-    +===================+=====================================================+
-    |  accumulate       | aggregate fields in time                            |
-    +-------------------+-----------------------------------------------------+
-    |  clip             | resize the field domain by geographical coordinates |
-    +-------------------+-----------------------------------------------------+
-    |  square           | either pad or crop the data to get a square domain  |
-    +-------------------+-----------------------------------------------------+
-    |  upscale          | upscale the field                                   |
     +-------------------+-----------------------------------------------------+
 
     FFT methods (wrappers to different implementations):
@@ -173,12 +158,6 @@ def get_method(name, **kwargs):
     methods_objects["raindepth"] = conversion.to_raindepth
     methods_objects["dbz"] = conversion.to_reflectivity
     methods_objects["reflectivity"] = conversion.to_reflectivity
-
-    # dimension methods
-    methods_objects["accumulate"] = dimension.aggregate_fields_time
-    methods_objects["clip"] = dimension.clip_domain
-    methods_objects["square"] = dimension.square_domain
-    methods_objects["upscale"] = dimension.aggregate_fields_space
 
     # image processing methods
     methods_objects["morph_opening"] = images.morph_opening

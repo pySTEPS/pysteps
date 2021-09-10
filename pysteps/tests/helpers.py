@@ -11,7 +11,6 @@ import pytest
 
 import pysteps as stp
 from pysteps import io, rcparams
-from pysteps.utils import aggregate_fields_space
 
 _reference_dates = dict()
 _reference_dates["bom"] = datetime(2018, 6, 16, 10, 0)
@@ -169,9 +168,8 @@ def get_precipitation_fields(
         )
 
         # Upscale data to 2 km
-        reference_field, ref_metadata = aggregate_fields_space(
-            reference_field, ref_metadata, upscale
-        )
+        reference_field = reference_field.coarsen(x=2, y=2).mean()
+
 
         # Mask invalid values
         reference_field = np.ma.masked_invalid(reference_field)

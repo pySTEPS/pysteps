@@ -246,7 +246,6 @@ def test_utils_interface():
     from pysteps.utils import arrays
     from pysteps.utils import cleansing
     from pysteps.utils import conversion
-    from pysteps.utils import dimension
     from pysteps.utils import images
     from pysteps.utils import interpolate
     from pysteps.utils import spectral
@@ -264,10 +263,6 @@ def test_utils_interface():
         ("raindepth", conversion.to_raindepth),
         ("dbz", conversion.to_reflectivity),
         ("reflectivity", conversion.to_reflectivity),
-        ("accumulate", dimension.aggregate_fields_time),
-        ("clip", dimension.clip_domain),
-        ("square", dimension.square_domain),
-        ("upscale", dimension.aggregate_fields_space),
         ("morph_opening", images.morph_opening),
         ("rbfinterp2d", interpolate.rbfinterp2d),
         ("rapsd", spectral.rapsd),

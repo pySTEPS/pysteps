@@ -3,7 +3,7 @@
 Ensemble verification
 =====================
 
-In this tutorial we perform a verification of a probabilistic extrapolation nowcast 
+In this tutorial we perform a verification of a probabilistic extrapolation nowcast
 using MeteoSwiss radar data.
 
 """
@@ -15,7 +15,7 @@ from pprint import pprint
 from pysteps import io, nowcasts, rcparams, verification
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing import ensemblestats
-from pysteps.utils import conversion, dimension, transformation
+from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
 
 
@@ -62,7 +62,7 @@ R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 R, metadata = conversion.to_rainrate(R, metadata)
 
 # Upscale data to 2 km
-R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
+R = R.coarsen(x=2, y=2).mean()
 
 # Plot the rainfall field
 plot_precip_field(R[-1, :, :], geodata=metadata)
@@ -148,7 +148,7 @@ R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
 R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o)
 
 # Upscale data to 2 km
-R_o, metadata_o = dimension.aggregate_fields_space(R_o, metadata_o, 2000)
+R_o = R_o.coarsen(x=2, y=2).mean()
 
 # Compute the verification for the last lead time
 

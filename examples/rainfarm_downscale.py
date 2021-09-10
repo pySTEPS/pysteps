@@ -18,7 +18,7 @@ import os
 from pprint import pprint
 
 from pysteps import io, rcparams
-from pysteps.utils import aggregate_fields_space, square_domain, to_rainrate
+from pysteps.utils import to_rainrate
 from pysteps.downscaling import rainfarm
 from pysteps.visualization import plot_precip_field
 
@@ -39,9 +39,6 @@ precip, _, metadata = io.import_mch_gif(
 # Convert to mm/h
 precip, metadata = to_rainrate(precip, metadata)
 
-# Reduce to a square domain
-precip, metadata = square_domain(precip, metadata, "crop")
-
 # Nicely print the metadata
 pprint(metadata)
 
@@ -60,8 +57,7 @@ precip[~np.isfinite(precip)] = metadata["zerovalue"]
 # a lower resolution. We are going to use an upscaling factor of 16 x.
 
 upscaling_factor = 16
-upscale_to = metadata["xpixelsize"] * upscaling_factor  # upscaling factor : 16 x
-precip_lr, metadata_lr = aggregate_fields_space(precip, metadata, upscale_to)
+precip_lr = precip.coarsen(x=upscaling_factor, y=upscaling_factor).mean()
 
 # Plot the upscaled rainfall field
 plt.figure()

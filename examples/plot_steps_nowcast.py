@@ -16,7 +16,7 @@ from pprint import pprint
 from pysteps import io, nowcasts, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob
-from pysteps.utils import conversion, dimension, transformation
+from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
 
 # Set nowcast parameters
@@ -57,8 +57,7 @@ R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 R, metadata = conversion.to_rainrate(R, metadata)
 
 # Upscale data to 2 km to limit memory usage
-R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
-
+R = R.coarsen(x=2, y=2).mean()
 # Plot the rainfall field
 plot_precip_field(R[-1, :, :], geodata=metadata)
 plt.show()

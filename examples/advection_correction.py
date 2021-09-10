@@ -7,7 +7,7 @@ the advection correction procedure described in Anagnostou and Krajewski (1999).
 
 Advection correction is a temporal interpolation procedure that is often used
 when estimating rainfall accumulations to correct for the shift of rainfall patterns
-between consecutive radar rainfall maps. This shift becomes particularly 
+between consecutive radar rainfall maps. This shift becomes particularly
 significant for long radar scanning cycles and in presence of fast moving
 precipitation features.
 
@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pysteps import io, motion, rcparams
-from pysteps.utils import conversion, dimension
+from pysteps.utils import conversion
 from pysteps.visualization import plot_precip_field
 from scipy.ndimage import map_coordinates
 
@@ -65,8 +65,8 @@ R, __, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 # Convert to mm/h
 R, metadata = conversion.to_rainrate(R, metadata)
 
-# Upscale to 2 km (simply to reduce the memory demand)
-R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
+# Upscale to double the native resolution (simply to reduce the memory demand)
+R, metadata = R.coarsen(x=2, y=2).mean()
 
 # Keep only one frame every 10 minutes (i.e., every 2 timesteps)
 # (to highlight the need for advection correction)
