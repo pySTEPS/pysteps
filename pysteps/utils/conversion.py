@@ -60,7 +60,7 @@ def to_rainrate(data_array: xr.DataArray, **kwargs: Any) -> xr.DataArray:
     elif units == "mm":
         data_array = data_array / float(accutime) * 60.0
 
-    elif units == "Z":
+    elif units == "Z" or units == "dBZ":
         data_array = (data_array / zr_a) ** (1.0 / zr_b)
 
     else:
@@ -154,9 +154,11 @@ def to_reflectivity(
     data_array = zr_a * data_array ** zr_b
 
     attrs.update({"unit": "Z"})
-    data_array.attrs = attrs
 
     if to_decibels:
-        return data_array.pysteps.db_transform(offset=offset)
-    else:
-        return data_array
+        attrs.update({"unit": "dBZ"})
+        data_array = data_array.pysteps.db_transform(offset=offset)
+
+    data_array.attrs = attrs
+
+    return data_array
