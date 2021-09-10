@@ -28,12 +28,10 @@ def test_decompose_recompose():
     precip, _, metadata = pysteps.io.import_bom_rf3(filename)
 
     # Convert to rain rate from mm
-    precip, metadata = pysteps.utils.to_rainrate(precip, metadata)
+    precip = precip.pysteps.to_rainrate()
 
     # Log-transform the data
-    precip, metadata = pysteps.utils.dB_transform(
-        precip, metadata, threshold=0.1, zerovalue=-15.0
-    )
+    precip = precip.pysteps.db_transform()
 
     # Set Nans as the fill value
     precip[~np.isfinite(precip)] = metadata["zerovalue"]

@@ -59,7 +59,7 @@ importer = io.get_method(importer_name, "importer")
 R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+R = R.pysteps.to_rainrate()
 
 # Upscale data to 2 km
 R = R.coarsen(x=2, y=2).mean()
@@ -68,9 +68,8 @@ R = R.coarsen(x=2, y=2).mean()
 plot_precip_field(R[-1, :, :], geodata=metadata)
 plt.show()
 
-# Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
-# set the fill value to -15 dBR
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+# Log-transform the data to unit of dBR
+R = R.pysteps.db_transform()
 
 # Set missing values with the fill value
 R[~np.isfinite(R)] = -15.0
@@ -107,7 +106,7 @@ R_f = nowcast_method(
 )
 
 # Back-transform to rain rates
-R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
+R_f = R_f.pysteps.db_transform(inverse=True)
 
 # Plot some of the realizations
 fig = plt.figure()
@@ -145,7 +144,7 @@ fns = io.archive.find_by_date(
 R_o, _, metadata_o = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to mm/h
-R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o)
+R_o = R_o.pysteps.to_rainrate()
 
 # Upscale data to 2 km
 R_o = R_o.coarsen(x=2, y=2).mean()

@@ -43,18 +43,18 @@ def test_visualization_plot_precip_field(
 
         field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
         field = field.squeeze()
-        field, metadata = conversion.to_rainrate(field, metadata)
+        field = field.pysteps.to_rainrate()
 
     elif plot_type == "depth":
 
         field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
         field = field.squeeze()
-        field, metadata = conversion.to_raindepth(field, metadata)
+        field = field.pysteps.to_raindepth()
 
     elif plot_type == "prob":
 
         field, metadata = get_precipitation_fields(0, 10, True, True, None, source)
-        field, metadata = conversion.to_rainrate(field, metadata)
+        field = field.pysteps.to_rainrate()
         field = ensemblestats.excprob(field, probthr)
 
     field_orig = field.copy()

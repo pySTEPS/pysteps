@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pysteps.feature.tstorm import detection
-from pysteps.utils import to_reflectivity
 from pysteps.tests.helpers import get_precipitation_fields
 
 try:
@@ -31,7 +30,7 @@ def test_feature_tstorm_detection(source, output_feat, dry_input, max_num_featur
     if not dry_input:
         input, metadata = get_precipitation_fields(0, 0, True, True, None, source)
         input = input.squeeze()
-        input, __ = to_reflectivity(input, metadata)
+        input = input.pysteps.to_reflectivity()
     else:
         input = np.zeros((50, 50))
 

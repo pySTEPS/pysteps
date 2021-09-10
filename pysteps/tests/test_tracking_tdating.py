@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pysteps.tracking.tdating import dating
-from pysteps.utils import to_reflectivity
 from pysteps.tests.helpers import get_precipitation_fields
 
 arg_names = ("source", "dry_input")
@@ -23,7 +22,7 @@ def test_tracking_tdating_dating(source, dry_input):
 
     if not dry_input:
         input, metadata = get_precipitation_fields(0, 2, True, True, 4000, source)
-        input, __ = to_reflectivity(input, metadata)
+        input = input.pysteps.to_reflectivity())
     else:
         input = np.zeros((3, 50, 50))
         metadata = {"timestamps": ["00", "01", "02"]}

@@ -39,7 +39,7 @@ R, _, metadata = io.import_mch_gif(
 )
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+R, = R.pystpes.to_rainrate()
 
 # Nicely print the metadata
 pprint(metadata)
@@ -49,7 +49,7 @@ plot_precip_field(R, geodata=metadata)
 plt.show()
 
 # Log-transform the data
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+R = R.pysteps.db_transform()
 
 # Assign the fill value to all the Nans
 R[~np.isfinite(R)] = metadata["zerovalue"]

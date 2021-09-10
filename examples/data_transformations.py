@@ -23,7 +23,6 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 from pysteps import io, rcparams
-from pysteps.utils import conversion, transformation
 from scipy.stats import skew
 
 ###############################################################################
@@ -64,7 +63,7 @@ Z, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwarg
 Z = Z[Z > metadata["zerovalue"]].flatten()
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(Z, metadata)
+R = Z.pysteps.to_rainrate()
 
 ###############################################################################
 # Test data transformations
@@ -120,12 +119,12 @@ labels = []
 skw = []
 
 # Test a range of values for the transformation parameter Lambda
-Lambdas = np.linspace(-0.4, 0.4, 11)
-for i, Lambda in enumerate(Lambdas):
-    R_, _ = transformation.boxcox_transform(R, metadata, Lambda)
+lambdas = np.linspace(-0.4, 0.4, 11)
+for i, this_lambda in enumerate(lambdas):
+    R_ = R.pysteps.boxcox_transform(boxcox_lambda=this_lambda)
     R_ = (R_ - np.mean(R_)) / np.std(R_)
     data.append(R_)
-    labels.append("{0:.2f}".format(Lambda))
+    labels.append("{0:.2f}".format(this_lambda))
     skw.append(skew(R_))  # skewness
 
 # Plot the transformed data distribution as a function of lambda
@@ -136,9 +135,9 @@ plt.show()
 
 # Best lambda
 idx_best = np.argmin(np.abs(skw))
-Lambda = Lambdas[idx_best]
+best_lambda = lambdas[idx_best]
 
-print("Best parameter lambda: %.2f\n(skewness = %.2f)" % (Lambda, skw[idx_best]))
+print("Best parameter lambda: %.2f\n(skewness = %.2f)" % (best_lambda, skw[idx_best]))
 
 ###############################################################################
 # Compare data transformations
@@ -162,7 +161,7 @@ skw.append(skew(R))
 # ~~~~~~~~~~~~
 # We transform the rainfall data into dB units: 10*log(R)
 
-R_, _ = transformation.dB_transform(R, metadata)
+R_ = R.pysteps.db_transform()
 data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("dB")
 skw.append(skew(R_))
@@ -172,7 +171,7 @@ skw.append(skew(R_))
 # ~~~~~~~~~~~~~~~~~~~~~
 # Transform the data using the square-root: sqrt(R)
 
-R_, _ = transformation.sqrt_transform(R, metadata)
+R_ = R.pysteps.sqrt_transform()
 data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("sqrt")
 skw.append(skew(R_))
@@ -182,9 +181,9 @@ skw.append(skew(R_))
 # ~~~~~~~~~~~~~~~~~
 # We now apply the Box-Cox transform using the best parameter lambda found above.
 
-R_, _ = transformation.boxcox_transform(R, metadata, Lambda)
+R_ = R.pysteps.boxcox_transform(best_lambda)
 data.append((R_ - np.mean(R_)) / np.std(R_))
-labels.append("Box-Cox\n($\lambda=$%.2f)" % Lambda)
+labels.append("Box-Cox\n($\lambda=$%.2f)" % best_lambda)
 skw.append(skew(R_))
 
 ###############################################################################
@@ -195,7 +194,7 @@ skw.append(skew(R_))
 #
 # .. _`Bogner et al (2012)`: http://dx.doi.org/10.5194/hess-16-1085-2012
 
-R_, _ = transformation.NQ_transform(R, metadata)
+R_ = R.pysteps.nq_transform()
 data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("NQ")
 skw.append(skew(R_))

@@ -63,10 +63,10 @@ importer = io.get_method(importer_name, "importer")
 R, __, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+R = R.pysteps.to_rainrate()
 
 # Upscale to double the native resolution (simply to reduce the memory demand)
-R, metadata = R.coarsen(x=2, y=2).mean()
+R = R.coarsen(x=2, y=2).mean()
 
 # Keep only one frame every 10 minutes (i.e., every 2 timesteps)
 # (to highlight the need for advection correction)

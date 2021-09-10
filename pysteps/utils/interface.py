@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 pysteps.utils.interface
 =======================
@@ -173,10 +174,10 @@ def get_method(name, **kwargs):
     # transformation methods
     methods_objects["boxcox"] = transformation.boxcox_transform
     methods_objects["box-cox"] = transformation.boxcox_transform
-    methods_objects["db"] = transformation.dB_transform
-    methods_objects["decibel"] = transformation.dB_transform
+    methods_objects["db"] = transformation.db_transform
+    methods_objects["decibel"] = transformation.db_transform
     methods_objects["log"] = transformation.boxcox_transform
-    methods_objects["nqt"] = transformation.NQ_transform
+    methods_objects["nqt"] = transformation.nq_transform
     methods_objects["sqrt"] = transformation.sqrt_transform
 
     # FFT methods

@@ -483,6 +483,6 @@ def load_dataset(case="fmi", frames=14):
     )
 
     # Convert to rain rate
-    precip, metadata = conversion.to_rainrate(reflectivity, metadata)
+    precip = reflectivity.pysteps.to_rainrate()
 
     return precip, metadata, data_source["timestep"]

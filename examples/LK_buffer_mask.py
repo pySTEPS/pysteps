@@ -64,7 +64,7 @@ del quality  # Not used
 # ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+R = R.pysteps.to_rainrate()
 
 # Keep the reference frame in mm/h and its mask (for plotting purposes)
 ref_mm = R[0, :, :].copy()
@@ -72,7 +72,7 @@ mask = np.ones(ref_mm.shape)
 mask[~np.isnan(ref_mm)] = np.nan
 
 # Log-transform the data [dBR]
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+R = R.pysteps.db_transform()
 
 # Keep the reference frame in dBR (for plotting purposes)
 ref_dbr = R[0].copy()
@@ -201,8 +201,8 @@ R_f1 = extrapolate(R[-1], UV1, 12)
 R_f2 = extrapolate(R[-1], UV2, 12)
 
 # Back-transform to rain rate
-R_f1 = transformation.dB_transform(R_f1, threshold=-10.0, inverse=True)[0]
-R_f2 = transformation.dB_transform(R_f2, threshold=-10.0, inverse=True)[0]
+R_f1 = R_f1.pysteps.db_transform(inverse=True)
+R_f2 = R_f2.pysteps.db_transform(inverse=True)
 
 # Find the veriyfing observations in the archive
 fns = io.archive.find_by_date(
@@ -211,7 +211,7 @@ fns = io.archive.find_by_date(
 
 # Read and convert the radar composites
 R_o, _, metadata_o = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
-R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o)
+R_o = R_o.pysteps.to_rainrate()
 
 # Compute Spearman correlation
 skill = verification.get_method("corr_s")

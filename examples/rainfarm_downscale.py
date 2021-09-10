@@ -18,7 +18,6 @@ import os
 from pprint import pprint
 
 from pysteps import io, rcparams
-from pysteps.utils import to_rainrate
 from pysteps.downscaling import rainfarm
 from pysteps.visualization import plot_precip_field
 
@@ -37,7 +36,7 @@ precip, _, metadata = io.import_mch_gif(
 )
 
 # Convert to mm/h
-precip, metadata = to_rainrate(precip, metadata)
+precip = precip.pysteps.to_rainrate()
 
 # Nicely print the metadata
 pprint(metadata)

@@ -2,8 +2,8 @@
 Optical flow
 ============
 
-This tutorial offers a short overview of the optical flow routines available in 
-pysteps and it will cover how to compute and plot the motion field from a 
+This tutorial offers a short overview of the optical flow routines available in
+pysteps and it will cover how to compute and plot the motion field from a
 sequence of radar images.
 """
 
@@ -56,13 +56,13 @@ del quality  # Not used
 # ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+R = R.pysteps.to_rainrate()
 
 # Store the reference frame
 R_ = R[-1, :, :].copy()
 
 # Log-transform the data [dBR]
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+R = R.pysteps.db_transform()
 
 # Nicely print the metadata
 pprint(metadata)

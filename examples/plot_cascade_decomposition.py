@@ -3,7 +3,7 @@
 Cascade decomposition
 =====================
 
-This example script shows how to compute and plot the cascade decompositon of 
+This example script shows how to compute and plot the cascade decompositon of
 a single radar precipitation field in pysteps.
 
 """
@@ -33,7 +33,7 @@ filename = os.path.join(
 R, _, metadata = io.import_fmi_pgm(filename, gzipped=True, legacy=True)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+R = R.pysteps.to_rainrate()
 
 # Nicely print the metadata
 pprint(metadata)
@@ -43,7 +43,7 @@ plot_precip_field(R, geodata=metadata)
 plt.show()
 
 # Log-transform the data
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+R = R.pysteps.db_transform()
 
 ###############################################################################
 # 2D Fourier spectrum

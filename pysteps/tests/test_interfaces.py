@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+pysteps/tests/test_interfaces.py# -*- coding: utf-8 -*-
 
 import numpy
 import pytest
@@ -271,10 +271,10 @@ def test_utils_interface():
         ("rm_rdisc", spectral.remove_rain_norain_discontinuity),
         ("boxcox", transformation.boxcox_transform),
         ("box-cox", transformation.boxcox_transform),
-        ("db", transformation.dB_transform),
-        ("decibel", transformation.dB_transform),
+        ("db", transformation.db_transform),
+        ("decibel", transformation.db_transform),
         ("log", transformation.boxcox_transform),
-        ("nqt", transformation.NQ_transform),
+        ("nqt", transformation.nq_transform),
         ("sqrt", transformation.sqrt_transform),
     ]
 

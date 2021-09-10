@@ -34,7 +34,6 @@ import numpy as np
 from pysteps import io, rcparams
 from pysteps.feature import tstorm as tstorm_detect
 from pysteps.tracking import tdating as tstorm_dating
-from pysteps.utils import to_reflectivity
 from pysteps.visualization import plot_precip_field, plot_track, plot_cart_contour
 
 ################################################################################
@@ -43,7 +42,7 @@ from pysteps.visualization import plot_precip_field, plot_track, plot_cart_conto
 #
 # A series of 20 files containing Swiss Cartesian gridded rain rates are imported. Since
 # the algorithm is tuned to Swiss max-reflectivity data, the rain rates are transformed
-# to reflectivity fields using the 'to_reflectivity' utility in pysteps.utils.
+# to reflectivity fields.
 
 # Select the input data
 date = datetime.strptime("201607112100", "%Y%m%d%H%M")
@@ -67,7 +66,7 @@ R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwarg
 
 # Convert to reflectivity (it is possible to give the a- and b- parameters of the
 # Marshall-Palmer relationship here: zr_a = and zr_b =).
-Z, metadata = to_reflectivity(R, metadata)
+Z = R.pysteps.to_reflectivity()
 
 # Extract the list of timestamps
 timelist = metadata["timestamps"]
