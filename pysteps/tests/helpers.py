@@ -9,8 +9,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pysteps as stp
 from pysteps import io, rcparams
+from pysteps.decorators import _xarray2legacy
 
 _reference_dates = dict()
 _reference_dates["bom"] = datetime(2018, 6, 16, 10, 0)
@@ -27,74 +27,81 @@ def get_precipitation_fields(
     num_next_files=0,
     return_raw=False,
     metadata=False,
-    upscale=None,
+    coarsen=None,
     source="mch",
+    legacy=True,
+    log_transform=True,
+    clip=None,
     **importer_kwargs,
 ):
     """
-    Get a precipitation field from the archive to be used as reference.
+        Get a precipitation field from the archive to be used as reference.
 
-    Source: bom
-    Reference time: 2018/06/16 10000 UTC
+        Source: bom
+        Reference time: 2018/06/16 10000 UTC
 
-    Source: fmi
-    Reference time: 2016/09/28 1600 UTC
+        Source: fmi
+        Reference time: 2016/09/28 1600 UTC
 
-    Source: knmi
-    Reference time: 2010/08/26 0000 UTC
+        Source: knmi
+        Reference time: 2010/08/26 0000 UTC
 
-    Source: mch
-    Reference time: 2015/05/15 1630 UTC
+        Source: mch
+        Reference time: 2015/05/15 1630 UTC
 
-    Source: opera
-    Reference time: 2018/08/24 1800 UTC
+        Source: opera
+        Reference time: 2018/08/24 1800 UTC
 
-    Source: saf
-    Reference time: 2018/06/01 0700 UTC
+        Source: saf
+        Reference time: 2018/06/01 0700 UTC
 
-    Source: mrms
-    Reference time: 2019/06/10 0000 UTC
+        Source: mrms
+        Reference time: 2019/06/10 0000 UTC
 
-    Parameters
-    ----------
+        Parameters
+        ----------
 
-    num_prev_files: int, optional
-        Number of previous times (files) to return with respect to the
-        reference time.
+        num_prev_files: int, optional
+            Number of previous times (files) to return with respect to the
+            reference time.
 
-    num_next_files: int, optional
-        Number of future times (files) to return with respect to the
-        reference time.
+        num_next_files: int, optional
+            Number of future times (files) to return with respect to the
+            reference time.
 
-    return_raw: bool, optional
-        Do not preprocess the precipitation fields. False by default.
-        The pre-processing steps are: 1) Convert to mm/h,
-        2) Mask invalid values, 3) Log-transform the data [dBR].
+        return_raw: bool, optional
+            Do not preprocess the precipitation fields. False by default.
+            The pre-processing steps are: 1) Convert to mm/h,
+            2) Mask invalid values, 3) Log-transform the data [dBR].
 
-    metadata: bool, optional
-        If True, also return file metadata.
+        metadata: bool, optional
+            If True, also return file metadata.
 
-    upscale: float or None, optional
-        Upscale fields in space during the pre-processing steps.
-        If it is None, the precipitation field is not
-        modified.
-        If it is a float, represents the length of the space window that is
-        used to upscale the fields.
+        clip: scalars (left, right, bottom, top), optional
+            The extent of the bounding box in data coordinates to be used to clip
+            the data.
 
-    source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
-        Name of the data source to be used.
+        coarsen: float or None, optional
+            Upscale fields in space during the pre-processing steps.
+            If it is None, the precipitation field is not modified.
+            If it is a float, represents the the window size that is used to
+            upscale the fields.
 
-    Other Parameters
-    ----------------
+        source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
+            Name of the data source to be used.
 
-    importer_kwargs : dict
-        Additional keyword arguments passed to the importer.
+        log_transform: bool
+            Whether to transform the output to dB.
 
-    Returns
-    -------
-    reference_field : array
+        Other Parameters
+        ----------------
 
-    metadata : dict
+        importer_kwargs : dict
+            Additional keyword arguments passed to the importer.
+
+        Returns
+        -------
+        data_array : xr.DataArray
     """
 
     if source == "bom":
@@ -152,39 +159,38 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    reference_field, __, ref_metadata = io.read_timeseries(
-        fns, importer, **_importer_kwargs
-    )
+    reference_field = io.read_timeseries(fns, importer, **_importer_kwargs)
 
     if not return_raw:
 
         if (num_prev_files == 0) and (num_next_files == 0):
             # Remove time dimension
-            reference_field = np.squeeze(reference_field)
+            reference_field = reference_field.squeeze("t")
 
         # Convert to mm/h
-        reference_field, ref_metadata = stp.utils.to_rainrate(
-            reference_field, ref_metadata
-        )
+        reference_field = reference_field.pysteps.to_rainrate()
 
-        # Upscale data to 2 km
-        reference_field = reference_field.coarsen(x=2, y=2).mean()
+        # Clip domain
+        if clip:
+            reference_field = reference_field.sel(
+                x=slice(clip[0], clip[1]),
+                y=slice(clip[2], clip[3]),
+            )
 
+        # Coarsen data
+        if coarsen:
+            reference_field = reference_field.coarsen(x=coarsen, y=coarsen).mean()
 
-        # Mask invalid values
-        reference_field = np.ma.masked_invalid(reference_field)
+        if log_transform:
+            # Log-transform the data [dBR]
+            reference_field = reference_field.pysteps.db_transform()
 
-        # Log-transform the data [dBR]
-        reference_field, ref_metadata = stp.utils.dB_transform(
-            reference_field, ref_metadata, threshold=0.1, zerovalue=-15.0
-        )
-
-        # Set missing values with the fill value
-        np.ma.set_fill_value(reference_field, -15.0)
-        reference_field.data[reference_field.mask] = -15.0
-
-    if metadata:
-        return reference_field, ref_metadata
+    if legacy or metadata:
+        reference_field, _, ref_metadata = _xarray2legacy(reference_field)
+        if metadata:
+            return reference_field, ref_metadata
+        else:
+            return reference_field
 
     return reference_field
 

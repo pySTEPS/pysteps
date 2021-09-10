@@ -48,7 +48,7 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+Z, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to rain rate
 R, metadata = conversion.to_rainrate(Z, metadata)
@@ -113,7 +113,7 @@ fns = io.archive.find_by_date(
     num_next_files=n_leadtimes,
 )
 # Read the radar composites
-R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
+R_o, _, metadata_o = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o, 223.0, 1.53)
 
 # Compute fractions skill score (FSS) for all lead times, a set of scales and 1 mm/h

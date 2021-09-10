@@ -1,10 +1,27 @@
-# -*- coding: utf-8 -*-
 """
 pysteps.feature.interface
 =========================
 
 Interface for the feature detection module. It returns a callable function for
-detecting features.
+detecting features from two-dimensional images.
+
+The feature detectors implement the following interface:
+
+    ``detection(input_image, **keywords)``
+
+The input is a two-dimensional image. Additional arguments to the specific
+method can be given via **keywords. The output is an array of shape (n, m),
+where each row corresponds to one of the n features. The first two columns
+contain the coordinates (x, y) of the features, and additional information can
+be specified in the remaining columns.
+
+All implemented methods support the following keyword arguments:
+
++------------------+-----------------------------------------------------+
+|       Key        |                Value                                |
++==================+=====================================================+
+| max_num_features | maximum number of features to detect                |
++------------------+-----------------------------------------------------+
 
 .. autosummary::
     :toctree: ../generated/
@@ -23,10 +40,7 @@ _detection_methods["shitomasi"] = shitomasi.detection
 
 
 def get_method(name):
-    """Return a callable function for computing detection.
-
-    Description:
-    Return a callable function for detecting features on input images .
+    """Return a callable function for feature detection.
 
     Implemented methods:
 
