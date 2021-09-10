@@ -57,13 +57,13 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-Z, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
-
-# Keep only positive rainfall values
-Z = Z[Z > metadata["zerovalue"]].flatten()
+precip = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to rain rate
-R = Z.pysteps.to_rainrate()
+precip = precip.pysteps.to_rainrate()
+
+# Keep only positive rainfall values
+precip = precip.where(precip > 0)
 
 ###############################################################################
 # Test data transformations
@@ -73,15 +73,20 @@ R = Z.pysteps.to_rainrate()
 # corresponding skewness
 def plot_distribution(data, labels, skw):
 
-    N = len(data)
-    fig, ax1 = plt.subplots()
+    # Extract and flatten the arrays
+    data = [da.values.flatten() for da in data]
+    # Keep finite values only
+    data = [da[np.isfinite(da)] for da in data]
+
+    n_points = len(data)
+    _, ax1 = plt.subplots()
     ax2 = ax1.twinx()
 
-    ax2.plot(np.arange(N + 2), np.zeros(N + 2), ":r")
+    ax2.plot(np.arange(n_points + 2), np.zeros(n_points + 2), ":r")
     ax1.boxplot(data, labels=labels, sym="", medianprops={"color": "k"})
 
     ymax = []
-    for i in range(N):
+    for i in range(n_points):
         y = skw[i]
         x = i + 1
         ax2.plot(x, y, "*r", ms=10, markeredgecolor="k")
@@ -121,11 +126,11 @@ skw = []
 # Test a range of values for the transformation parameter Lambda
 lambdas = np.linspace(-0.4, 0.4, 11)
 for i, this_lambda in enumerate(lambdas):
-    R_ = R.pysteps.boxcox_transform(boxcox_lambda=this_lambda)
-    R_ = (R_ - np.mean(R_)) / np.std(R_)
-    data.append(R_)
+    precip_ = precip.pysteps.boxcox_transform(boxcox_lambda=this_lambda)
+    precip_ = (precip_ - np.mean(precip_)) / np.std(precip_)
+    data.append(precip_)
     labels.append("{0:.2f}".format(this_lambda))
-    skw.append(skew(R_))  # skewness
+    skw.append(skew(precip_, axis=None, nan_policy="omit"))  # skewness
 
 # Plot the transformed data distribution as a function of lambda
 plot_distribution(data, labels, skw)
@@ -152,39 +157,39 @@ skw = []
 # ~~~~~~~~~~
 # First, let's have a look at the original rain rate values.
 
-data.append((R - np.mean(R)) / np.std(R))
-labels.append("R")
-skw.append(skew(R))
+data.append((precip - np.mean(precip)) / np.std(precip))
+labels.append("precip")
+skw.append(skew(precip, axis=None, nan_policy="omit"))
 
 ###############################################################################
 # dB transform
 # ~~~~~~~~~~~~
-# We transform the rainfall data into dB units: 10*log(R)
+# We transform the rainfall data into dB units: 10*log(precip)
 
-R_ = R.pysteps.db_transform()
-data.append((R_ - np.mean(R_)) / np.std(R_))
+precip_ = precip.pysteps.db_transform()
+data.append((precip_ - np.mean(precip_)) / np.std(precip_))
 labels.append("dB")
-skw.append(skew(R_))
+skw.append(skew(precip_, axis=None, nan_policy="omit"))
 
 ###############################################################################
 # Square-root transform
 # ~~~~~~~~~~~~~~~~~~~~~
-# Transform the data using the square-root: sqrt(R)
+# Transform the data using the square-root: sqrt(precip)
 
-R_ = R.pysteps.sqrt_transform()
-data.append((R_ - np.mean(R_)) / np.std(R_))
+precip_ = precip.pysteps.sqrt_transform()
+data.append((precip_ - np.mean(precip_)) / np.std(precip_))
 labels.append("sqrt")
-skw.append(skew(R_))
+skw.append(skew(precip_, axis=None, nan_policy="omit"))
 
 ###############################################################################
 # Box-Cox transform
 # ~~~~~~~~~~~~~~~~~
 # We now apply the Box-Cox transform using the best parameter lambda found above.
 
-R_ = R.pysteps.boxcox_transform(best_lambda)
-data.append((R_ - np.mean(R_)) / np.std(R_))
+precip_ = precip.pysteps.boxcox_transform(best_lambda)
+data.append((precip_ - np.mean(precip_)) / np.std(precip_))
 labels.append("Box-Cox\n($\lambda=$%.2f)" % best_lambda)
-skw.append(skew(R_))
+skw.append(skew(precip_, axis=None, nan_policy="omit"))
 
 ###############################################################################
 # Normal quantile transform
@@ -194,14 +199,14 @@ skw.append(skew(R_))
 #
 # .. _`Bogner et al (2012)`: http://dx.doi.org/10.5194/hess-16-1085-2012
 
-R_ = R.pysteps.nq_transform()
-data.append((R_ - np.mean(R_)) / np.std(R_))
+precip_ = precip.pysteps.nq_transform()
+data.append((precip_ - np.mean(precip_)) / np.std(precip_))
 labels.append("NQ")
-skw.append(skew(R_))
+skw.append(skew(precip_, axis=None, nan_policy="omit"))
 
 ###############################################################################
 # By plotting all the results, we can notice first of all the strongly asymmetric
-# distribution of the original data (R) and that all transformations manage to
+# distribution of the original data (precip) and that all transformations manage to
 # reduce its skewness. Among these, the Box-Cox transform (using the best parameter
 # lambda) and the normal quantile (NQ) transform provide the best correction.
 # Despite not producing a perfectly symmetric distribution, the square-root (sqrt)

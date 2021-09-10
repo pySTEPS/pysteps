@@ -51,22 +51,22 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+precip, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to rain rate
-R = R.pysteps.to_rainrate()
+precip = precip.pysteps.to_rainrate()
 
 # Upscale data to 2 km to limit memory usage
-R = R.coarsen(x=2, y=2).mean()
+precip = precip.coarsen(x=2, y=2).mean()
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata)
+plot_precip_field(precip[-1, :, :], geodata=metadata)
 plt.show()
 
 # Log-transform the data to unit of dBR
-R = R.pysteps.db_transform()
+precip = precip.pysteps.db_transform()
 
 # Set missing values with the fill value
-R[~np.isfinite(R)] = -15.0
+precip[~np.isfinite(precip)] = -15.0
 
 # Nicely print the metadata
 pprint(metadata)
@@ -82,12 +82,12 @@ pprint(metadata)
 # progressively remove the unpredictable spatial scales during the forecast.
 
 # Estimate the motion field
-V = dense_lucaskanade(R)
+V = dense_lucaskanade(precip)
 
 # The S-PROG nowcast
 nowcast_method = nowcasts.get_method("sprog")
 R_f = nowcast_method(
-    R[-3:, :, :],
+    precip[-3:, :, :],
     V,
     n_leadtimes,
     n_cascade_levels=6,
@@ -125,7 +125,7 @@ plt.show()
 # The STEPS nowcast
 nowcast_method = nowcasts.get_method("steps")
 R_f = nowcast_method(
-    R[-3:, :, :],
+    precip[-3:, :, :],
     V,
     n_leadtimes,
     n_ens_members,

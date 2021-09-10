@@ -62,11 +62,11 @@ fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=20
 )
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+precip, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to reflectivity (it is possible to give the a- and b- parameters of the
 # Marshall-Palmer relationship here: zr_a = and zr_b =).
-Z = R.pysteps.to_reflectivity()
+reflectivity = precip.pysteps.to_reflectivity()
 
 # Extract the list of timestamps
 timelist = metadata["timestamps"]
@@ -79,7 +79,7 @@ pprint(metadata)
 # The function tstorm_detect.detection requires a 2-D input image, all further inputs are
 # optional.
 
-input_image = Z[2, :, :].copy()
+input_image = reflectivity[2, :, :].copy()
 time = timelist[2]
 cells_id, labels = tstorm_detect.detection(input_image, time=time)
 
@@ -95,7 +95,7 @@ print(cells_id.iloc[0])
 # flow prediction and are not used to compute tracks.
 
 track_list, cell_list, label_list = tstorm_dating.dating(
-    input_video=Z, timelist=timelist
+    input_video=reflectivity, timelist=timelist
 )
 
 ###############################################################################
@@ -103,7 +103,7 @@ track_list, cell_list, label_list = tstorm_dating.dating(
 # ~~~~~~~~~~~~~~~~~~~~
 
 # Plot precipitation field
-plot_precip_field(Z[2, :, :], geodata=metadata, units=metadata["unit"])
+plot_precip_field(reflectivity[2, :, :], geodata=metadata, units=metadata["unit"])
 plt.xlabel("Swiss easting [m]")
 plt.ylabel("Swiss northing [m]")
 

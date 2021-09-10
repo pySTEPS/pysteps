@@ -48,20 +48,20 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-Z, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+reflectivity, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to rain rate
-R = Z.pysteps.to_rainrate()
+precip = reflectivity.pysteps.to_rainrate()
 
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata)
+plot_precip_field(precip[-1, :, :], geodata=metadata)
 plt.show()
 
 # Store the last frame for plotting it later later
-R_ = R[-1, :, :].copy()
+R_ = precip[-1, :, :].copy()
 
 # Log-transform the data to unit of dBR
-R = R.pysteps.db_transform()
+precip = precip.pysteps.db_transform()
 
 # Nicely print the metadata
 pprint(metadata)
@@ -77,12 +77,12 @@ pprint(metadata)
 
 # Estimate the motion field with Lucas-Kanade
 oflow_method = motion.get_method("LK")
-V = oflow_method(R[-3:, :, :])
+V = oflow_method(precip[-3:, :, :])
 
 # Extrapolate the last radar observation
 extrapolate = nowcasts.get_method("extrapolation")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-R_f = extrapolate(R[-1, :, :], V, n_leadtimes)
+precip[~np.isfinite(precip)] = metadata["zerovalue"]
+R_f = extrapolate(precip[-1, :, :], V, n_leadtimes)
 
 # Back-transform to rain rate
 R_f = R_f.pysteps.db_transform(inverse=True)
