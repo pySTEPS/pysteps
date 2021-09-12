@@ -275,7 +275,7 @@ def initialize_forecast_exporter_kineros(
         grids.
 
     metadata: dict
-        Metadata dictionary containing the projection,x1,x2,y1,y2 and unit
+        Metadata dictionary containing the projection,bounding_box and unit
         attributes described in the documentation of
         :py:mod:`pysteps.io.importers`.
 
@@ -424,6 +424,9 @@ def initialize_forecast_exporter_netcdf(
             "pyproj package is required for netcdf " "exporters but it is not installed"
         )
 
+    if not isinstance(startdate, datetime):
+        raise ValueError("argument 'stardate' must be a python datetime object")
+
     if incremental not in [None, "timestep", "member"]:
         raise ValueError(
             f"unknown option {incremental}: incremental must be "
@@ -483,9 +486,9 @@ def initialize_forecast_exporter_netcdf(
     else:
         raise ValueError("unknown unit %s" % metadata["unit"])
 
-    xr = np.linspace(metadata["x1"], metadata["x2"], w + 1)[:-1]
+    xr = np.linspace(*metadata["bounding_box"][:2], w + 1)[:-1]
     xr += 0.5 * (xr[1] - xr[0])
-    yr = np.linspace(metadata["y1"], metadata["y2"], h + 1)[:-1]
+    yr = np.linspace(*metadata["bounding_box"][2:], h + 1)[:-1]
     yr += 0.5 * (yr[1] - yr[0])
 
     # flip yr vector if yorigin is upper
@@ -497,14 +500,14 @@ def initialize_forecast_exporter_netcdf(
     var_xc.axis = "X"
     var_xc.standard_name = "projection_x_coordinate"
     var_xc.long_name = "x-coordinate in Cartesian system"
-    var_xc.units = metadata["cartesian_unit"]
+    var_xc.units = metadata.get("cartesian_unit", "m")
 
     var_yc = ncf.createVariable("y", np.float32, dimensions=("y",))
     var_yc[:] = yr
     var_yc.axis = "Y"
     var_yc.standard_name = "projection_y_coordinate"
     var_yc.long_name = "y-coordinate in Cartesian system"
-    var_yc.units = metadata["cartesian_unit"]
+    var_yc.units = metadata.get("cartesian_unit")
 
     x_2d, y_2d = np.meshgrid(xr, yr)
     pr = pyproj.Proj(metadata["projection"])
@@ -550,8 +553,7 @@ def initialize_forecast_exporter_netcdf(
     if incremental != "timestep":
         var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
     var_time.long_name = "forecast time"
-    startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
-    var_time.units = "seconds since %s" % startdate_str
+    var_time.units = f"seconds since {startdate: %Y-%m-%d %H:%M:%S}"
 
     if incremental == "member" or n_ens_gt_one:
         var_f = ncf.createVariable(
@@ -868,10 +870,10 @@ def _create_geotiff_file(outfn, driver, shape, metadata, num_bands):
         gdal.GDT_Float32,
         ["COMPRESS=DEFLATE", "PREDICTOR=3"],
     )
-
-    sx = (metadata["x2"] - metadata["x1"]) / shape[1]
-    sy = (metadata["y2"] - metadata["y1"]) / shape[0]
-    dst.SetGeoTransform([metadata["x1"], sx, 0.0, metadata["y2"], 0.0, -sy])
+    x1, x2, y1, y2 = metadata["bounding_box"]
+    sx = (x2 - x1) / shape[1]
+    sy = (y2 - y1) / shape[0]
+    dst.SetGeoTransform([x1, sx, 0.0, y2, 0.0, -sy])
 
     sr = osr.SpatialReference()
     sr.ImportFromProj4(metadata["projection"])

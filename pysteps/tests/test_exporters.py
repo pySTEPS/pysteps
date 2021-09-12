@@ -5,7 +5,7 @@ import tempfile
 from datetime import datetime
 
 import numpy as np
-import pytest
+import pandas as pd
 from numpy.testing import assert_array_almost_equal
 
 from pysteps.io import import_netcdf_pysteps
@@ -14,11 +14,6 @@ from pysteps.io.exporters import close_forecast_files
 from pysteps.io.exporters import export_forecast_dataset
 from pysteps.io.exporters import initialize_forecast_exporter_netcdf
 from pysteps.tests.helpers import get_precipitation_fields, get_invalid_mask
-
-# TODO: Fix tests for xarray fields
-pytestmark = pytest.mark.skip(
-    "Needs migration to xarray. Problem with cartesian_unit attribute."
-)
 
 
 def test_get_geotiff_filename():
@@ -43,21 +38,15 @@ def test_io_export_netcdf_one_member_one_time_step():
     """Test the export netcdf.
     Also, test that the exported file can be read by the importer."""
 
-    pytest.importorskip("pyproj")
-
-    precip, metadata = get_precipitation_fields(
-        return_raw=True, metadata=True, source="fmi"
-    )
-    precip = precip.squeeze()
-
+    precip = get_precipitation_fields(source="fmi")
     invalid_mask = get_invalid_mask(precip)
 
     # save it back to disk
     with tempfile.TemporaryDirectory() as outpath:
         outfnprefix = "test_netcdf_out"
         file_path = os.path.join(outpath, outfnprefix + ".nc")
-        startdate = metadata["timestamps"][0]
-        timestep = metadata["accutime"]
+        startdate = pd.to_datetime(precip.t.values).to_pydatetime()
+        timestep = precip.attrs.get("accutime")
         n_timesteps = 1
         shape = precip.shape
         exporter = initialize_forecast_exporter_netcdf(
@@ -67,10 +56,10 @@ def test_io_export_netcdf_one_member_one_time_step():
             timestep,
             n_timesteps,
             shape,
-            metadata,
+            precip.attrs,
             n_ens_members=1,
         )
-        export_forecast_dataset(precip[np.newaxis, :], exporter)
+        export_forecast_dataset(precip.expand_dims("t"), exporter)
         close_forecast_files(exporter)
 
         # assert if netcdf file was saved and file size is not zero
@@ -79,15 +68,15 @@ def test_io_export_netcdf_one_member_one_time_step():
         # Test that the file can be read by the nowcast_importer
         output_file_path = os.path.join(outpath, f"{outfnprefix}.nc")
 
-        precip_new, _ = import_netcdf_pysteps(output_file_path)
+        precip_new = import_netcdf_pysteps(output_file_path)
 
         assert_array_almost_equal(precip, precip_new.data)
         assert precip_new.dtype == "single"
 
-        precip_new, _ = import_netcdf_pysteps(output_file_path, dtype="double")
+        precip_new = import_netcdf_pysteps(output_file_path, dtype="double")
         assert_array_almost_equal(precip, precip_new.data)
         assert precip_new.dtype == "double"
 
-        precip_new, _ = import_netcdf_pysteps(output_file_path, fillna=-1000)
+        precip_new = import_netcdf_pysteps(output_file_path, fillna=-1000)
         new_invalid_mask = precip_new == -1000
         assert (new_invalid_mask == invalid_mask).all()

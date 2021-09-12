@@ -40,7 +40,7 @@ def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
     return target_func
 
 
-def postprocess_import(fillna=np.nan, dtype="double"):
+def postprocess_import(fillna=np.nan, dtype="float32"):
     """
     Postprocess the imported precipitation data.
     Operations:
@@ -55,7 +55,7 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     Parameters
     ----------
     dtype: str
-        Default data type for precipitation. Double precision by default.
+        Default data type for precipitation. Float precision by default.
     fillna: float or np.nan
         Default value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
@@ -67,7 +67,6 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     def _postprocess_import(importer):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
-
             data_array = importer(*args, **kwargs)
 
             if not isinstance(data_array, xr.DataArray):
@@ -308,6 +307,7 @@ def _to_xarray(array, metadata):
 
     data_array.attrs.update(
         {
+            # TODO: Revise this list before final 2.0 version ?
             "unit": metadata["unit"],
             "accutime": metadata["accutime"],
             "transform": metadata["transform"],
@@ -315,13 +315,13 @@ def _to_xarray(array, metadata):
             "threshold": metadata["threshold"],
             "zr_a": metadata.get("zr_a", None),
             "zr_b": metadata.get("zr_b", None),
-            "institution": metadata["institution"],
+            "institution": metadata.get("institution", None),
             "projection": metadata["projection"],
-            #
-            # TODO: Remove before final 2.0 version
+            "bounding_box": (x1, x2, y1, y2),
             "yorigin": metadata["yorigin"],
             "xpixelsize": metadata["xpixelsize"],
             "ypixelsize": metadata["ypixelsize"],
+            "cartesian_unit": metadata["cartesian_unit"],
         }
     )
 
@@ -329,10 +329,6 @@ def _to_xarray(array, metadata):
         {
             "standard_name": "projection_x_coordinate",
             "units": metadata["cartesian_unit"],
-            #
-            # TODO: Remove before final 2.0 version
-            "x1": x1,
-            "x2": x2,
         }
     )
 
@@ -340,10 +336,6 @@ def _to_xarray(array, metadata):
         {
             "standard_name": "projection_y_coordinate",
             "units": metadata["cartesian_unit"],
-            #
-            # TODO: Remove before final 2.0 version
-            "y1": y1,
-            "y2": y2,
         }
     )
 

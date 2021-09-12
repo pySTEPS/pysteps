@@ -6,8 +6,6 @@ from numpy.testing import assert_array_almost_equal
 
 from pysteps.verification import det_cat_fct
 
-# TODO: Fix tests for xarray fields
-pytestmark = pytest.mark.skip("Needs migration to xarray")
 
 # CREATE A LARGE DATASET TO MATCH
 # EXAMPLES IN

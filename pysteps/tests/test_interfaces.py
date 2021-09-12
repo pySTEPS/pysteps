@@ -1,4 +1,4 @@
-pysteps/tests/test_interfaces.py# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import numpy
 import pytest

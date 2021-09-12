@@ -6,40 +6,36 @@ import pytest
 
 from pysteps.tests.helpers import get_precipitation_fields
 
-default_dtypes = dict(
-    fmi="double",
-    knmi="double",
-    mch="double",
-    opera="double",
-    saf="double",
-    mrms="single",
-)
+DEFAULT_DTYPE = "float32"
 
-
-@pytest.mark.parametrize("source, default_dtype", default_dtypes.items())
-def test_postprocess_import_decorator(source, default_dtype):
+def test_postprocess_import_decorator():
     """Test the postprocessing decorator for the importers."""
-    import_data = partial(get_precipitation_fields, return_raw=True, source=source)
+    import_data = partial(get_precipitation_fields, source="mch")
 
     precip = import_data()
     invalid_mask = ~np.isfinite(precip)
 
-    assert precip.dtype == default_dtype
+    assert precip.dtype == DEFAULT_DTYPE
 
-    if default_dtype == "single":
-        dtype = "double"
+    if DEFAULT_DTYPE == "float32":
+        dtype = "float64"
     else:
-        dtype = "single"
+        dtype = "float32"
 
-    precip = import_data(dtype=dtype)
+    precip = import_data(importer_kwargs=dict(dtype=dtype))
 
     assert precip.dtype == dtype
+
+    # Test that equivalent dtypes are handled correctly
+    for dtype1, dtype2 in zip(["float64", "float32",], ["double", "single"]):
+        precip = import_data(importer_kwargs=dict(dtype=dtype1))
+        assert precip.dtype == dtype2
 
     # Test that invalid types are handled correctly
     for dtype in ["int", "int64"]:
         with pytest.raises(ValueError):
-            _ = import_data(dtype=dtype)
+            import_data(importer_kwargs=dict(dtype=dtype))
 
-    precip = import_data(fillna=-1000)
+    precip = import_data(importer_kwargs=dict(fillna=-1000))
     new_invalid_mask = precip == -1000
     assert (new_invalid_mask == invalid_mask).all()

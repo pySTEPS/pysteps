@@ -6,11 +6,11 @@ from pysteps import downscaling
 from pysteps.tests.helpers import get_precipitation_fields
 
 # load and preprocess input field
-precip, metadata = get_precipitation_fields(
-    num_prev_files=0, num_next_files=0, return_raw=False, metadata=True
+PRECIP = get_precipitation_fields(
+    source="bom",
+    filled=True,
+    convert_to="mm/h",
 )
-precip = precip.filled()
-
 
 rainfarm_arg_names = ("alpha", "ds_factor", "threshold", "return_alpha")
 
@@ -22,15 +22,15 @@ rainfarm_arg_values = [(1.0, 1, 0, False), (1, 2, 0, False), (1, 4, 0, False)]
 def test_rainfarm_shape(alpha, ds_factor, threshold, return_alpha):
     """Test that the output of rainfarm is consistent with the downscaling factor."""
 
-    precip_lr = precip.coarsen(x=ds_factor, x=ds_factor).mean()
+    precip_lr = PRECIP.coarsen(x=ds_factor, y=ds_factor).mean()
 
     rainfarm = downscaling.get_method("rainfarm")
 
     precip_hr = rainfarm(precip_lr, alpha, ds_factor, threshold, return_alpha)
 
-    assert precip_hr.ndim == precip.ndim
-    assert precip_hr.shape[0] == precip.shape[0]
-    assert precip_hr.shape[1] == precip.shape[1]
+    assert precip_hr.ndim == PRECIP.ndim
+    assert precip_hr.shape[0] == PRECIP.shape[0]
+    assert precip_hr.shape[1] == PRECIP.shape[1]
 
 
 rainfarm_arg_values = [(1.0, 2, 0, True), (None, 2, 0, True)]
@@ -40,7 +40,7 @@ rainfarm_arg_values = [(1.0, 2, 0, True), (None, 2, 0, True)]
 def test_rainfarm_alpha(alpha, ds_factor, threshold, return_alpha):
     """Test that rainfarm computes and returns alpha."""
 
-    precip_lr = precip.coarsen(x=ds_factor, y=ds_factor).mean()
+    precip_lr = PRECIP.coarsen(x=ds_factor, y=ds_factor).mean()
     rainfarm = downscaling.get_method("rainfarm")
 
     precip_hr = rainfarm(precip_lr, alpha, ds_factor, threshold, return_alpha)

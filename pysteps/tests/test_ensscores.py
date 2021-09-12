@@ -7,13 +7,15 @@ from numpy.testing import assert_array_almost_equal
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.verification import ensscores
 
-precip = get_precipitation_fields(num_next_files=10, return_raw=True)
+PRECIP = get_precipitation_fields(
+    num_next_files=10,
+)
 np.random.seed(42)
 
 # rankhist
 test_data = [
-    (precip[:10], precip[-1], None, True, 11),
-    (precip[:10], precip[-1], None, False, 11),
+    (PRECIP.isel(t=slice(0, 10)), PRECIP.isel(t=-1), None, True, 11),
+    (PRECIP.isel(t=slice(0, 10)), PRECIP.isel(t=-1), None, False, 11),
 ]
 
 
@@ -28,14 +30,14 @@ def test_rankhist_size(X_f, X_o, X_min, normalize, expected):
 # ensemble_skill
 test_data = [
     (
-        precip[:10],
-        precip[-1],
+        PRECIP.isel(t=slice(0, 10)),
+        PRECIP.isel(t=-1),
         "RMSE",
         {"axis": None, "conditioning": "single"},
         0.26054151,
     ),
-    (precip[:10], precip[-1], "CSI", {"thr": 1.0, "axis": None}, 0.22017924),
-    (precip[:10], precip[-1], "FSS", {"thr": 1.0, "scale": 10}, 0.63239752),
+    (PRECIP.isel(t=slice(0, 10)), PRECIP.isel(t=-1), "CSI", {"thr": 1.0, "axis": None}, 0.22017924),
+    (PRECIP.isel(t=slice(0, 10)), PRECIP.isel(t=-1), "FSS", {"thr": 1.0, "scale": 10}, 0.63239752),
 ]
 
 
@@ -49,9 +51,9 @@ def test_ensemble_skill(X_f, X_o, metric, kwargs, expected):
 
 # ensemble_spread
 test_data = [
-    (precip, "RMSE", {"axis": None, "conditioning": "single"}, 0.22635757),
-    (precip, "CSI", {"thr": 1.0, "axis": None}, 0.25218158),
-    (precip, "FSS", {"thr": 1.0, "scale": 10}, 0.70235667),
+    (PRECIP, "RMSE", {"axis": None, "conditioning": "single"}, 0.22635757),
+    (PRECIP, "CSI", {"thr": 1.0, "axis": None}, 0.25218158),
+    (PRECIP, "FSS", {"thr": 1.0, "scale": 10}, 0.70235667),
 ]
 
 

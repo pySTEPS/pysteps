@@ -11,44 +11,42 @@ from pysteps import nowcasts
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps.cascade.bandpass_filters import filter_uniform
 from pysteps.cascade.decomposition import decomposition_fft, recompose_fft
-from pysteps.tests.helpers import smart_assert
+from pysteps.tests.helpers import smart_assert, get_precipitation_fields
 
-# TODO: Fix tests for xarray fields
-pytestmark = pytest.mark.skip("Needs migration to xarray")
+
+PRECIP = get_precipitation_fields(
+    source="bom",
+    convert_to="mm/h",
+    transform_to="db",
+    coarsen=2,
+    filled=True,
+)
 
 
 def test_decompose_recompose():
     """Tests cascade decomposition."""
 
-    pytest.importorskip("netCDF4")
-
-    root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
-    rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
-    filename = os.path.join(root_path, rel_path, "2_20180616_120000.prcp-cscn.nc")
-    precip, _, metadata = pysteps.io.import_bom_rf3(filename)
-
-    # Convert to rain rate from mm
-    precip = precip.pysteps.to_rainrate()
-
-    # Log-transform the data
-    precip = precip.pysteps.db_transform()
-
-    # Set Nans as the fill value
-    precip[~np.isfinite(precip)] = metadata["zerovalue"]
-
     # Set number of cascade levels
     num_cascade_levels = 9
 
     # Construct the Gaussian bandpass filters
-    _filter = filter_gaussian(precip.shape, num_cascade_levels)
+    _filter = filter_gaussian(PRECIP.shape, num_cascade_levels)
 
     # Decompose precip
-    decomp = decomposition_fft(precip, _filter)
+    decomp = decomposition_fft(PRECIP, _filter)
+
+    assert all(key in decomp for key in ("cascade_levels", "means", "stds"))
+    assert decomp["cascade_levels"].shape[0] == num_cascade_levels
+    assert decomp["cascade_levels"].shape[1:] == PRECIP.shape
+    assert isinstance(decomp["means"], list)
+    assert isinstance(decomp["stds"], list)
+    assert len(decomp["means"]) == num_cascade_levels
+    assert len(decomp["stds"]) == num_cascade_levels
 
     # Recomposed precip from decomp
     recomposed = recompose_fft(decomp)
-    # Assert
-    assert_array_almost_equal(recomposed.squeeze(), precip)
+
+    assert_array_almost_equal(recomposed, PRECIP)
 
 
 test_metadata_filter = [

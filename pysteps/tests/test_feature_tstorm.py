@@ -28,15 +28,13 @@ def test_feature_tstorm_detection(source, output_feat, dry_input, max_num_featur
     pytest.importorskip("pandas")
 
     if not dry_input:
-        input, metadata = get_precipitation_fields(0, 0, True, True, None, source)
-        input = input.squeeze()
-        input = input.pysteps.to_reflectivity()
+        input_image = get_precipitation_fields(source=source, convert_to="reflectivity")
     else:
-        input = np.zeros((50, 50))
+        input_image = np.zeros((50, 50))
 
     time = "000"
     output = detection(
-        input, time=time, output_feat=output_feat, max_num_features=max_num_features
+        input_image, time=time, output_feat=output_feat, max_num_features=max_num_features
     )
 
     if output_feat:
@@ -66,7 +64,7 @@ def test_feature_tstorm_detection(source, output_feat, dry_input, max_num_featur
         ]
         assert (output[0].time == time).all()
         assert output[1].ndim == 2
-        assert output[1].shape == input.shape
+        assert output[1].shape == input_image.shape
         if not dry_input:
             assert output[0].shape[0] > 0
             assert sorted(list(output[0].ID)) == sorted(list(np.unique(output[1]))[1:])

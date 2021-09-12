@@ -13,8 +13,6 @@ from pysteps.datasets import (
 )
 from pysteps.exceptions import DirectoryNotEmpty
 
-# TODO: Fix tests for xarray fields
-pytestmark = pytest.mark.skip("Needs migration to xarray")
 
 _datasets_opt_deps = dict(
     fmi=["pyproj"],
