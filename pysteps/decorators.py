@@ -55,7 +55,7 @@ def postprocess_import(fillna=np.nan, dtype="float32"):
     Parameters
     ----------
     dtype: str
-        Default data type for precipitation. Float precision by default.
+        Default data type for precipitation. Float32 precision by default.
     fillna: float or np.nan
         Default value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
