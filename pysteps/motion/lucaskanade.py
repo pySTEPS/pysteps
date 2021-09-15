@@ -99,7 +99,7 @@ def dense_lucaskanade(
         detection algorithm.
         See the documentation of :py:mod:`pysteps.feature`.
 
-    interp_method: {"rbfinterp2d"}, optional
+    interp_method: {"idwinterp2d", "rbfinterp2d"}, optional
       Name of the interpolation method to use. See interpolation methods in
       :py:mod:`pysteps.utils.interpolate`.
 
