@@ -32,13 +32,6 @@ from pysteps.tracking.lucaskanade import track_features
 from pysteps.utils.cleansing import decluster, detect_outliers
 from pysteps.utils.images import morph_opening
 
-try:
-    import cv2
-
-    CV2_IMPORTED = True
-except ImportError:
-    CV2_IMPORTED = False
-
 import time
 
 
