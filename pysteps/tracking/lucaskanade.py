@@ -24,8 +24,6 @@ from numpy.ma.core import MaskedArray
 
 from pysteps.exceptions import MissingOptionalDependency
 
-from pysteps import utils
-
 try:
     import cv2
 
