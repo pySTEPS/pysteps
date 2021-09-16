@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from rasterio import Affine as A
 from rasterio.warp import reproject, Resampling
 import xarray as xr
@@ -28,26 +30,22 @@ def reprojection(R_src, R_dst):
 
     # Extract the grid info from R_src
     src_crs = R_src.attrs["projection"]
-    x_src = R_src.x
-    y_src = R_src.y
-    x1_src = np.min(x_src)
-    y2_src = np.max(y_src)
+    x1_src = R_src.x.attrs["x1"]
+    y2_src = R_src.y.attrs["y2"]
     xpixelsize_src = R_src.attrs["xpixelsize"]
     ypixelsize_src = R_src.attrs["ypixelsize"]
-    src_transform = A.translation(x1_src, y2_src) * A.scale(
-        xpixelsize_src, -ypixelsize_src
+    src_transform = A.translation(float(x1_src), float(y2_src)) * A.scale(
+        float(xpixelsize_src), float(-ypixelsize_src)
     )
 
     # Extract the grid info from R_dst
     dst_crs = R_dst.attrs["projection"]
-    x_dst = R_dst.x
-    y_dst = R_dst.y
-    x1_dst = np.min(x_dst)
-    y2_dst = np.max(y_dst)
+    x1_dst = R_dst.x.attrs["x1"]
+    y2_dst = R_dst.y.attrs["y2"]
     xpixelsize_dst = R_dst.attrs["xpixelsize"]
     ypixelsize_dst = R_dst.attrs["ypixelsize"]
-    dst_transform = A.translation(x1_dst, y2_dst) * A.scale(
-        xpixelsize_dst, -ypixelsize_dst
+    dst_transform = A.translation(float(x1_dst), float(y2_dst)) * A.scale(
+        float(xpixelsize_dst), float(-ypixelsize_dst)
     )
 
     # Initialise the reprojected (x)array
@@ -55,9 +53,12 @@ def reprojection(R_src, R_dst):
 
     # For every timestep, reproject the precipitation field of R_src to
     # the domain of R_dst
+    if R_src.attrs["yorigin"] != R_dst.attrs["yorigin"]:
+        R_src = R_src[:, ::-1, :]
+
     for i in range(R_src.shape[0]):
         reproject(
-            R_src[i, :, :],
+            R_src.values[i, :, :],
             R_rprj[i, :, :],
             src_transform=src_transform,
             src_crs=src_crs,

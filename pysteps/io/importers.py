@@ -917,7 +917,7 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
 
 
 @postprocess_import()
-def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs):
+def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwargs):
     """Import a precipitation or reflectivity field (and optionally the quality
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
 
@@ -1013,7 +1013,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
-    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
+    proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
     pr = pyproj.Proj(proj4str)
     metadata["projection"] = proj4str
 
@@ -1044,7 +1044,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     metadata["y2"] = y2
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
-    metadata["cartesian_unit"] = "km"
+    metadata["cartesian_unit"] = "m"
     metadata["yorigin"] = "upper"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
