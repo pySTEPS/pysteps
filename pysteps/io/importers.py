@@ -934,8 +934,8 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwa
         is used as default, but hourly, daily and monthly accumulations
         are also available.
     pixelsize: float
-        The pixel size of a raster cell in kilometers. The default value for the
-        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel
+        The pixel size of a raster cell in meters. The default value for the
+        KNMI datasets is a 1000 m grid cell size, but datasets with 2400 m pixel
         size are also available.
 
     {extra_kwargs_doc}
