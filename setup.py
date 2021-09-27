@@ -68,6 +68,7 @@ requirements = [
     "jsonschema",
     "xarray",
     "bottleneck",
+    "rasterio",
 ]
 
 setup(
