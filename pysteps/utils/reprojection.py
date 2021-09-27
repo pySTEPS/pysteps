@@ -1,64 +1,76 @@
 # -*- coding: utf-8 -*-
+"""
+pysteps.utils.reprojection
+==================
 
+Reprojection tool to reproject the grid and adjust the grid cell size of an 
+input field to a destination field.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    reprojection
+"""
 from rasterio import Affine as A
 from rasterio.warp import reproject, Resampling
 import xarray as xr
 import numpy as np
 
 
-def reprojection(R_src, R_dst):
-    """Reprojects precipitation fields to the domain of another precipiation
+def reprojection(src_array, dst_array):
+    """Reprojects precipitation fields to the domain of another precipitation
     field.
 
     Parameters
     ----------
-    R_src: xarray
-        Three-dimensional xarray with dimensions (t, x, y) containing a
-        time series of precipitation fields. These precipitaiton fields
+    src_array: xr.DataArray
+        Three-dimensional xarray DataArray with dimensions (t, x, y) containing
+        a time series of precipitation fields. These precipitation fields
         will be reprojected.
-    R_dst: xarray
-        Xarray containing a precipitation field or a time series of precipitation
-        fields. The xarray R_src will be reprojected to the domain of R_dst.
+    dst_array: xr.DataArray
+        Xarray DataArray containing a precipitation field or a time series of
+        precipitation fields. The xarray src_array will be reprojected to the
+        domain of dst_array.
 
     Returns
     -------
-    R_rprj: xarray
-        Three-dimensional xarray with dimensions (t, x, y) containing the
-        precipitation fields of R_src, but reprojected to the domain of
-        R_dst.
+    R_rprj: xr.DataArray
+        Three-dimensional xarray DataArray with dimensions (t, x, y) containing
+        the precipitation fields of src_array, but reprojected to the domain of
+        dst_array.
     """
 
-    # Extract the grid info from R_src
-    src_crs = R_src.attrs["projection"]
-    x1_src = R_src.x.attrs["x1"]
-    y2_src = R_src.y.attrs["y2"]
-    xpixelsize_src = R_src.attrs["xpixelsize"]
-    ypixelsize_src = R_src.attrs["ypixelsize"]
+    # Extract the grid info from src_array
+    src_crs = src_array.attrs["projection"]
+    x1_src = src_array.x.attrs["x1"]
+    y2_src = src_array.y.attrs["y2"]
+    xpixelsize_src = src_array.attrs["xpixelsize"]
+    ypixelsize_src = src_array.attrs["ypixelsize"]
     src_transform = A.translation(float(x1_src), float(y2_src)) * A.scale(
         float(xpixelsize_src), float(-ypixelsize_src)
     )
 
-    # Extract the grid info from R_dst
-    dst_crs = R_dst.attrs["projection"]
-    x1_dst = R_dst.x.attrs["x1"]
-    y2_dst = R_dst.y.attrs["y2"]
-    xpixelsize_dst = R_dst.attrs["xpixelsize"]
-    ypixelsize_dst = R_dst.attrs["ypixelsize"]
+    # Extract the grid info from dst_array
+    dst_crs = dst_array.attrs["projection"]
+    x1_dst = dst_array.x.attrs["x1"]
+    y2_dst = dst_array.y.attrs["y2"]
+    xpixelsize_dst = dst_array.attrs["xpixelsize"]
+    ypixelsize_dst = dst_array.attrs["ypixelsize"]
     dst_transform = A.translation(float(x1_dst), float(y2_dst)) * A.scale(
         float(xpixelsize_dst), float(-ypixelsize_dst)
     )
 
     # Initialise the reprojected (x)array
-    R_rprj = np.zeros((R_src.shape[0], R_dst.shape[-2], R_dst.shape[-1]))
+    R_rprj = np.zeros((src_array.shape[0], dst_array.shape[-2], dst_array.shape[-1]))
 
-    # For every timestep, reproject the precipitation field of R_src to
-    # the domain of R_dst
-    if R_src.attrs["yorigin"] != R_dst.attrs["yorigin"]:
-        R_src = R_src[:, ::-1, :]
+    # For every timestep, reproject the precipitation field of src_array to
+    # the domain of dst_array
+    if src_array.attrs["yorigin"] != dst_array.attrs["yorigin"]:
+        src_array = src_array[:, ::-1, :]
 
-    for i in range(R_src.shape[0]):
+    for i in range(src_array["t"].shape[0]):
         reproject(
-            R_src.values[i, :, :],
+            src_array.values[i, :, :],
             R_rprj[i, :, :],
             src_transform=src_transform,
             src_crs=src_crs,
@@ -68,20 +80,20 @@ def reprojection(R_src, R_dst):
             dst_nodata=np.nan,
         )
 
-    # Assign the necessary attributes from R_src and R_dst to R_rprj
+    # Assign the necessary attributes from src_array and dst_array to R_rprj
     R_rprj = xr.DataArray(
         data=R_rprj,
         dims=("t", "y", "x"),
         coords=dict(
-            t=("t", R_src.coords["t"].data),
-            x=("x", R_dst.coords["x"].data),
-            y=("y", R_dst.coords["y"].data),
+            t=("t", src_array.coords["t"].data),
+            x=("x", dst_array.coords["x"].data),
+            y=("y", dst_array.coords["y"].data),
         ),
     )
-    R_rprj.attrs.update(R_src.attrs)
-    R_rprj.x.attrs.update(R_dst.x.attrs)
-    R_rprj.y.attrs.update(R_dst.y.attrs)
+    R_rprj.attrs.update(src_array.attrs)
+    R_rprj.x.attrs.update(dst_array.x.attrs)
+    R_rprj.y.attrs.update(dst_array.y.attrs)
     for key in ["projection", "yorigin", "xpixelsize", "ypixelsize"]:
-        R_rprj.attrs[key] = R_dst.attrs[key]
+        R_rprj.attrs[key] = dst_array.attrs[key]
 
     return R_rprj
