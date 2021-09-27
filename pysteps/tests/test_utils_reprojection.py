@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-import numpy as np
 import xarray as xr
 import pytest
 import pysteps
 from pysteps.utils import reprojection
-from np.testing import assert_array_equal
 
 root_path_radar = pysteps.rcparams.data_sources["knmi"]["root_path"]
 root_path_nwp = pysteps.rcparams.data_sources["knmi_nwp"]["root_path"]
@@ -68,10 +66,10 @@ def test_utils_reprojection(
         nwp_array_xr_reproj.x.attrs["x2"] == radar_array_xr.x.attrs["x2"]
     ), "x-value upper right corner is not equal to radar composite"
     assert (
-        nwp_array_xr_reproj.x.attrs["y1"] == radar_array_xr.x.attrs["y1"]
+        nwp_array_xr_reproj.y.attrs["y1"] == radar_array_xr.y.attrs["y1"]
     ), "y-value lower left corner is not equal to radar composite"
     assert (
-        nwp_array_xr_reproj.x.attrs["y2"] == radar_array_xr.x.attrs["y2"]
+        nwp_array_xr_reproj.y.attrs["y2"] == radar_array_xr.y.attrs["y2"]
     ), "y-value upper right corner is not equal to radar composite"
 
     assert (
