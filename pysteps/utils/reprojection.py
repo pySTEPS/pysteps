@@ -11,10 +11,18 @@ input field to a destination field.
 
     reprojection
 """
-from rasterio import Affine as A
-from rasterio.warp import reproject, Resampling
+from pysteps.exceptions import MissingOptionalDependency
 import xarray as xr
 import numpy as np
+
+try:
+    import rasterio
+
+    RASTERIO_IMPORTED = True
+except ImportError:
+    RASTERIO_IMPORTED = False
+from rasterio import Affine as A
+from rasterio.warp import reproject, Resampling
 
 
 def reprojection(src_array, dst_array):
@@ -39,6 +47,12 @@ def reprojection(src_array, dst_array):
         the precipitation fields of src_array, but reprojected to the domain of
         dst_array.
     """
+
+    if not RASTERIO_IMPORTED:
+        raise MissingOptionalDependency(
+            "rasterio package is required for the reprojection tool, but it is"
+            "not installed"
+        )
 
     # Extract the grid info from src_array
     src_crs = src_array.attrs["projection"]
