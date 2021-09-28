@@ -483,41 +483,51 @@ def import_bom_rf3_xr(filename, **kwargs):
             "but it is not installed"
         )
 
-    ds = _import_bom_rf3_data_xr(filename, **kwargs,)
-    ds_meta = _import_bom_rf3_geodata_xr(ds, **kwargs,)
+    ds = _import_bom_rf3_data_xr(
+        filename,
+        **kwargs,
+    )
+    ds_meta = _import_bom_rf3_geodata_xr(
+        ds,
+        **kwargs,
+    )
 
     # rename valid_time to t if exists
-    if 'valid_time' in ds_meta:
-        ds_meta = ds_meta.rename({'valid_time': 't'})
+    if "valid_time" in ds_meta:
+        ds_meta = ds_meta.rename({"valid_time": "t"})
 
     return ds_meta.precipitation
 
 
-def _import_bom_rf3_data_xr(filename, **kwargs,):
+def _import_bom_rf3_data_xr(
+    filename,
+    **kwargs,
+):
 
-    varname_time = kwargs.get('varname_time', 'valid_time')
+    varname_time = kwargs.get("varname_time", "valid_time")
     # Tested in python3.6 and chunks did not work properly
     # commenting next line until find the reason
     # chunks = kwargs.get('chunks', {varname_time: 1})
 
     ds_rainfall = xr.open_mfdataset(
         filename,
-        combine='nested',
+        combine="nested",
         concat_dim=varname_time,
         # chunks=chunks,
         lock=False,
         parallel=True,
-        )
+    )
 
     return ds_rainfall
 
 
-def _import_bom_rf3_geodata_xr(ds_in,
-                               **kwargs,
-                               ):
+def _import_bom_rf3_geodata_xr(
+    ds_in,
+    **kwargs,
+):
 
     # select a default varname if none is passed
-    varname = kwargs.get('varname', 'precipitation')
+    varname = kwargs.get("varname", "precipitation")
 
     # extract useful information
     # projection
@@ -547,7 +557,7 @@ def _import_bom_rf3_geodata_xr(ds_in,
     if start_time is not None:
         if valid_time is not None:
             time_step = (valid_time - start_time).isel(valid_time=0)
-            time_step = time_step.values.astype('timedelta64[m]')
+            time_step = time_step.values.astype("timedelta64[m]")
 
     # get the units of precipitation
     units = None
@@ -555,15 +565,15 @@ def _import_bom_rf3_geodata_xr(ds_in,
         units = ds_in[varname].units
         if units in ("kg m-2", "mm"):
             units = "mm"
-            ds_in[varname].attrs.update({'units': units})
+            ds_in[varname].attrs.update({"units": units})
     # get spatial boundaries and pixelsize
     # move to meters if coordiantes in kilometers
     if "units" in ds_in.x.attrs:
         if ds_in.x.units == "km":
-            ds_in['x'] = ds_in.x*1000.
-            ds_in.x.attrs.update({'units': 'm'})
-            ds_in['y'] = ds_in.y*1000.
-            ds_in.y.attrs.update({'units': 'm'})
+            ds_in["x"] = ds_in.x * 1000.0
+            ds_in.x.attrs.update({"units": "m"})
+            ds_in["y"] = ds_in.y * 1000.0
+            ds_in.y.attrs.update({"units": "m"})
 
     xmin = ds_in.x.min().values
     xmax = ds_in.x.max().values
@@ -576,41 +586,44 @@ def _import_bom_rf3_geodata_xr(ds_in,
 
     # Add metadata needed by pySTEPS as attrs in X and Y variables
 
-    ds_in.x.attrs.update({
-        # TODO: Remove before final 2.0 version
-        "x1": xmin,
-        "x2": xmax,
-        "cartesian_unit": cartesian_unit,
+    ds_in.x.attrs.update(
+        {
+            # TODO: Remove before final 2.0 version
+            "x1": xmin,
+            "x2": xmax,
+            "cartesian_unit": cartesian_unit,
         }
-        )
+    )
 
-    ds_in.y.attrs.update({
-        # TODO: Remove before final 2.0 version
-        "y1": ymin,
-        "y2": ymax,
-        "cartesian_unit": cartesian_unit,
+    ds_in.y.attrs.update(
+        {
+            # TODO: Remove before final 2.0 version
+            "y1": ymin,
+            "y2": ymax,
+            "cartesian_unit": cartesian_unit,
         }
-        )
+    )
 
     # Add metadata needed by pySTEPS as attrs in rainfall variable
     da_rainfall = ds_in[varname].isel(valid_time=0)
 
     ds_in[varname].attrs.update(
-        {"transform": None,
-         "unit": units,  # copy 'units' in 'unit' for legacy reasons
-         "projection": projdef,
-         "accutime": time_step,
-         "zr_a": None,
-         "zr_b": None,
-         "zerovalue": np.nanmin(da_rainfall),
-         "institution": "Commonwealth of Australia, Bureau of Meteorology",
-         "threshold": _get_threshold_value(da_rainfall.values),
-         # TODO(_import_bom_rf3_geodata_xr): Remove before final 2.0 version
-         "yorigin": "upper",
-         "xpixelsize": xpixelsize.values,
-         "ypixelsize": ypixelsize.values,
-         }
-        )
+        {
+            "transform": None,
+            "unit": units,  # copy 'units' in 'unit' for legacy reasons
+            "projection": projdef,
+            "accutime": time_step,
+            "zr_a": None,
+            "zr_b": None,
+            "zerovalue": np.nanmin(da_rainfall),
+            "institution": "Commonwealth of Australia, Bureau of Meteorology",
+            "threshold": _get_threshold_value(da_rainfall.values),
+            # TODO(_import_bom_rf3_geodata_xr): Remove before final 2.0 version
+            "yorigin": "upper",
+            "xpixelsize": xpixelsize.values,
+            "ypixelsize": ypixelsize.values,
+        }
+    )
 
     return ds_in
 
@@ -681,8 +694,7 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        valid_time = netCDF4.num2date(times[:], units=times.units,
-                                      calendar=calendar)
+        valid_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     start_time = None
     if "start_time" in ds_rainfall.variables.keys():
@@ -690,8 +702,7 @@ def _import_bom_rf3_geodata(filename):
         calendar = "standard"
         if "calendar" in times.ncattrs():
             calendar = times.calendar
-        start_time = netCDF4.num2date(times[:], units=times.units,
-                                      calendar=calendar)
+        start_time = netCDF4.num2date(times[:], units=times.units, calendar=calendar)
 
     time_step = None
 

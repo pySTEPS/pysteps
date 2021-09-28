@@ -16,9 +16,7 @@ rel_path = os.path.join("2020", "10", "31")
 filename = os.path.join(root_path, rel_path, "20201031_0000_regrid_short.nc")
 data_array_xr = pysteps.io.import_bom_nwp_xr(filename)
 
-expected_proj = (
-    "+proj=aea  +lon_0=153.240 +lat_0=-27.718 +lat_1=-26.200 +lat_2=-29.300"
-)
+expected_proj = "+proj=aea  +lon_0=153.240 +lat_0=-27.718 +lat_1=-26.200 +lat_2=-29.300"
 
 
 def test_io_import_bom_nwp_xarray():
@@ -38,7 +36,7 @@ test_attrs_xr = [
     ("transform", None, None),
     ("zerovalue", 0.0, 0.1),
     ("unit", "mm", None),
-    ("accutime", np.timedelta64(10, 'm'), None),
+    ("accutime", np.timedelta64(10, "m"), None),
     ("zr_a", None, None),
     ("zr_b", None, None),
     ("xpixelsize", 500.0, 0.1),
@@ -61,8 +59,7 @@ test_attrs_xr_coord_x = [
 ]
 
 
-@pytest.mark.parametrize("variable, expected, tolerance",
-                         test_attrs_xr_coord_x)
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_x)
 def test_io_import_bom_nwp_xarray_attrs_coordx(variable, expected, tolerance):
     """Test the importer Bom NWP."""
     smart_assert(data_array_xr.x.attrs[variable], expected, tolerance)
@@ -75,8 +72,7 @@ test_attrs_xr_coord_y = [
 ]
 
 
-@pytest.mark.parametrize("variable, expected, tolerance",
-                         test_attrs_xr_coord_y)
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_y)
 def test_io_import_bom_nwp_xarray_attrs_coordy(variable, expected, tolerance):
     """Test the importer Bom NWP."""
     smart_assert(data_array_xr.y.attrs[variable], expected, tolerance)
