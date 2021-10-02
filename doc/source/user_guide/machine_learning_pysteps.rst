@@ -97,7 +97,7 @@ The comparison of methods from different types should only be done carefully and
      - :py:mod:`pysteps.nowcasts.lagrangian_probability` or probabilities derived from :py:mod:`pysteps.nowcasts.steps`/:py:mod:`~pysteps.nowcasts.sseps`
      - Reliability diagram (predicted vs observed quantile), probability integral transform (PIT) histogram
    * - Probabilistic (ensemble-based)
-     - GANs, VAEs, etc
-     - Ensemble and probabilities derived from :py:mod:`pysteps.nowcasts.steps`/:py:mod:`~pysteps.nowcasts.sseps`
+     - GANs (Ravuri et al., 2021), VAEs, etc
+     - Ensemble and probabilities derived from :py:mod:`pysteps.nowcasts.steps`/:py:mod:`~pysteps.nowcasts.linda`
      - Probabilistic verification: reliability diagrams, continuous ranked probability scores (CRPS), etc.
        Ensemble verification: rank histograms, spread-error relationships, etc
