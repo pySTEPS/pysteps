@@ -3,7 +3,6 @@
 from .arrays import *
 from .cleansing import *
 from .conversion import *
-from .decorators import *
 from .images import *
 from .interface import get_method
 from .interpolate import *
