@@ -13,20 +13,20 @@ Utility methods for creating and processing arrays.
 import numpy as np
 
 
-def compute_centred_coord_array(M, N):
+def compute_centred_coord_array(height, width):
     """Compute a 2D coordinate array, where the origin is at the center.
 
     Parameters
     ----------
-    M : int
+    height : int
       The height of the array.
-    N : int
+    width : int
       The width of the array.
 
     Returns
     -------
-    out : ndarray
-      The coordinate array.
+    out : tuple of ndarray
+      The two coordinate arrays.
 
     Examples
     --------
@@ -40,16 +40,16 @@ def compute_centred_coord_array(M, N):
 
     """
 
-    if M % 2 == 1:
-        s1 = np.s_[-int(M / 2) : int(M / 2) + 1]
+    if height % 2 == 1:
+        s1 = np.s_[-int(height / 2) : int(height / 2) + 1]
     else:
-        s1 = np.s_[-int(M / 2) : int(M / 2)]
+        s1 = np.s_[-int(height / 2) : int(height / 2)]
 
-    if N % 2 == 1:
-        s2 = np.s_[-int(N / 2) : int(N / 2) + 1]
+    if width % 2 == 1:
+        s2 = np.s_[-int(width / 2) : int(width / 2) + 1]
     else:
-        s2 = np.s_[-int(N / 2) : int(N / 2)]
+        s2 = np.s_[-int(width / 2) : int(width / 2)]
 
-    YC, XC = np.ogrid[s1, s2]
+    y_coordinates, x_coordinates = np.ogrid[s1, s2]
 
-    return YC, XC
+    return y_coordinates, x_coordinates
