@@ -16,7 +16,7 @@ from typing import Any
 
 import xarray as xr
 
-from .decorators import dataarray_utils
+from pysteps.accessors import dataarray_utils
 
 
 @dataarray_utils

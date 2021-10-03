@@ -21,7 +21,7 @@ import numpy as np
 import xarray as xr
 from scipy.stats import norm
 
-from .decorators import dataarray_utils
+from pysteps.accessors import dataarray_utils
 
 
 @dataarray_utils
