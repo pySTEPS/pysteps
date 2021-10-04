@@ -9,4 +9,3 @@ jsonschema
 netCDF4
 xarray
 bottleneck
-rasterio

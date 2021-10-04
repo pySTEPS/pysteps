@@ -14,4 +14,3 @@ dependencies:
   - pyproj
   - scipy
   - xarray
-  - rasterio
