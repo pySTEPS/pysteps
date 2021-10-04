@@ -17,12 +17,12 @@ import numpy as np
 
 try:
     import rasterio
+    from rasterio import Affine as A
+    from rasterio.warp import reproject, Resampling
 
     RASTERIO_IMPORTED = True
 except ImportError:
     RASTERIO_IMPORTED = False
-from rasterio import Affine as A
-from rasterio.warp import reproject, Resampling
 
 
 def reprojection(src_array, dst_array):
@@ -84,7 +84,7 @@ def reprojection(src_array, dst_array):
 
     for i in range(src_array["t"].shape[0]):
         reproject(
-            src_array.values[i, :, :],
+            src_array.isel(t=i).values,
             R_rprj[i, :, :],
             src_transform=src_transform,
             src_crs=src_crs,
@@ -104,6 +104,13 @@ def reprojection(src_array, dst_array):
             y=("y", dst_array.coords["y"].data),
         ),
     )
+
+    # xr.apply_ufunc(reproject, src_array, input_core_dims=[["y", "x"]], output_core_dims=[["y", "x"]],
+    #                 kwargs={'destination': R_rprj, 'src_transform': src_transform, 'src_crs': src_crs, 'dst_transform': dst_transform, 'dst_crs': dst_crs, 'resampling': Resampling.nearest, 'dst_nodata': np.nan},
+    #                 dask='allowed',
+    #                 exclude_dims=set(("y","x",)),
+    #                 vectorize=True,)
+
     R_rprj.attrs.update(src_array.attrs)
     R_rprj.x.attrs.update(dst_array.x.attrs)
     R_rprj.y.attrs.update(dst_array.y.attrs)
