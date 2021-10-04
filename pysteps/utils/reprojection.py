@@ -15,14 +15,13 @@ from pysteps.exceptions import MissingOptionalDependency
 import xarray as xr
 import numpy as np
 
-# try:
-import rasterio
-from rasterio import Affine as A
-from rasterio.warp import reproject, Resampling
+try:
+    from rasterio import Affine as A
+    from rasterio.warp import reproject, Resampling
 
-RASTERIO_IMPORTED = True
-# except ImportError:
-# RASTERIO_IMPORTED = False
+    RASTERIO_IMPORTED = True
+except ImportError:
+    RASTERIO_IMPORTED = False
 
 
 def reprojection(src_array, dst_array):
