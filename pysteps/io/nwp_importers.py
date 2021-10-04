@@ -538,7 +538,8 @@ def _import_knmi_nwp_geodata_xr(
         + float(ypixelsize) / 2
     )
 
-    cartesian_unit = ds_in.x.units
+    cartesian_unit_x = ds_in.x.units
+    cartesian_unit_y = ds_in.y.units
 
     # Assign new coordinates that are in the middle of the cell
     ds_in = ds_in.assign_coords(x=x_coords, y=y_coords)
@@ -549,7 +550,7 @@ def _import_knmi_nwp_geodata_xr(
             # TODO: Remove before final 2.0 version
             "x1": xmin,
             "x2": xmax,
-            "cartesian_unit": cartesian_unit,
+            "cartesian_unit": cartesian_unit_x,
         }
     )
 
@@ -558,7 +559,7 @@ def _import_knmi_nwp_geodata_xr(
             # TODO: Remove before final 2.0 version
             "y1": ymin,
             "y2": ymax,
-            "cartesian_unit": cartesian_unit,
+            "cartesian_unit": cartesian_unit_y,
         }
     )
 

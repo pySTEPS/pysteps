@@ -42,7 +42,7 @@ def reprojection(src_array, dst_array):
 
     Returns
     -------
-    R_rprj: xr.DataArray
+    r_rprj: xr.DataArray
         Three-dimensional xarray DataArray with dimensions (t, x, y) containing
         the precipitation fields of src_array, but reprojected to the domain of
         dst_array.
@@ -75,7 +75,7 @@ def reprojection(src_array, dst_array):
     )
 
     # Initialise the reprojected (x)array
-    R_rprj = np.zeros((src_array.shape[0], dst_array.shape[-2], dst_array.shape[-1]))
+    r_rprj = np.zeros((src_array.shape[0], dst_array.shape[-2], dst_array.shape[-1]))
 
     # For every timestep, reproject the precipitation field of src_array to
     # the domain of dst_array
@@ -85,7 +85,7 @@ def reprojection(src_array, dst_array):
     for i in range(src_array["t"].shape[0]):
         reproject(
             src_array.isel(t=i).values,
-            R_rprj[i, :, :],
+            r_rprj[i, :, :],
             src_transform=src_transform,
             src_crs=src_crs,
             dst_transform=dst_transform,
@@ -95,8 +95,8 @@ def reprojection(src_array, dst_array):
         )
 
     # Assign the necessary attributes from src_array and dst_array to R_rprj
-    R_rprj = xr.DataArray(
-        data=R_rprj,
+    r_rprj = xr.DataArray(
+        data=r_rprj,
         dims=("t", "y", "x"),
         coords=dict(
             t=("t", src_array.coords["t"].data),
@@ -111,10 +111,10 @@ def reprojection(src_array, dst_array):
     #                 exclude_dims=set(("y","x",)),
     #                 vectorize=True,)
 
-    R_rprj.attrs.update(src_array.attrs)
-    R_rprj.x.attrs.update(dst_array.x.attrs)
-    R_rprj.y.attrs.update(dst_array.y.attrs)
+    r_rprj.attrs.update(src_array.attrs)
+    r_rprj.x.attrs.update(dst_array.x.attrs)
+    r_rprj.y.attrs.update(dst_array.y.attrs)
     for key in ["projection", "yorigin", "xpixelsize", "ypixelsize"]:
-        R_rprj.attrs[key] = dst_array.attrs[key]
+        r_rprj.attrs[key] = dst_array.attrs[key]
 
-    return R_rprj
+    return r_rprj
