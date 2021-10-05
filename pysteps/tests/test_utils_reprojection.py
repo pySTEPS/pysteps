@@ -6,6 +6,8 @@ import pytest
 import pysteps
 from pysteps.utils import reprojection
 
+pytest.importorskip("rasterio")
+
 root_path_radar = pysteps.rcparams.data_sources["knmi"]["root_path"]
 root_path_nwp = pysteps.rcparams.data_sources["knmi_nwp"]["root_path"]
 
