@@ -2,7 +2,7 @@ name: Test Pysteps
 
 env:
   MINIMAL_DEPENDENCIES: cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask
-  OPTIONAL_DEPENDENCIES: pyfftw cartopy h5py PyWavelets pandas scikit-image rasterio
+  OPTIONAL_DEPENDENCIES: pyfftw cartopy h5py PyWavelets pandas scikit-image rasterio gdal
   TEST_DEPENDENCIES: pytest pytest-cov
 
 on:
