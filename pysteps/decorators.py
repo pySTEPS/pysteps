@@ -160,83 +160,97 @@ def prepare_interpolator(nchunks=4):
 
     def _preamble_interpolation(interpolator):
         @wraps(interpolator)
-        def _interpolator_with_preamble(xy_coord, values, xgrid, ygrid, **kwargs):
+        def _interpolator_with_preamble(sparse_data, xgrid, ygrid, **kwargs):
             nonlocal nchunks  # https://stackoverflow.com/questions/5630409/
 
-            values = values.copy()
-            xy_coord = xy_coord.copy()
+            if not isinstance(sparse_data, (xr.Dataset, xr.DataArray)):
+                raise ValueError(
+                    "sparse_data must be an instance of xarray's Dataset or DataArray"
+                )
 
-            input_ndims = values.ndim
-            input_nvars = 1 if input_ndims == 1 else values.shape[1]
-            input_nsamples = values.shape[0]
+            if "sample" not in sparse_data.dims:
+                raise ValueError("missing dimension 'sample'")
 
-            coord_ndims = xy_coord.ndim
-            coord_nsamples = xy_coord.shape[0]
+            if not all([d in ("sample", "variable") for d in sparse_data.dims]):
+                raise ValueError(
+                    "sparse_data must have either dimension ('sample') or "
+                    f"('sample', 'variable'), but it has {sparse_data.dims}"
+                )
+
+            if not ("x" in sparse_data.coords and "y" in sparse_data.coords):
+                raise ValueError("missing coordinates 'x' and 'y'")
+
+            sparse_data = sparse_data.copy()
+
+            if isinstance(sparse_data, xr.Dataset):
+                sparse_data = sparse_data.to_array(name="convert_to_dataset")
+            elif "variable" not in sparse_data.dims:
+                sparse_data = sparse_data.expand_dims("variable")
+
+            sparse_data = sparse_data.transpose("sample", "variable")
+
+            # drop missing values
+            sparse_data = sparse_data.dropna(dim="sample")
+            sparse_data = sparse_data.drop_isel(sample=np.isnan(sparse_data.x))
+            sparse_data = sparse_data.drop_isel(sample=np.isnan(sparse_data.y))
+
+            input_nvars = sparse_data.sizes["variable"]
+            input_nsamples = sparse_data.sizes["sample"]
+            input_dtype = sparse_data.dtype
 
             grid_shape = (ygrid.size, xgrid.size)
-
-            if np.any(~np.isfinite(values)):
-                raise ValueError("argument 'values' contains non-finite values")
-            if np.any(~np.isfinite(xy_coord)):
-                raise ValueError("argument 'xy_coord' contains non-finite values")
-
-            if input_ndims > 2:
-                raise ValueError(
-                    "argument 'values' must have 1 (n) or 2 dimensions (n, m), "
-                    f"but it has {input_ndims}"
-                )
-            if not coord_ndims == 2:
-                raise ValueError(
-                    "argument 'xy_coord' must have 2 dimensions (n, 2), "
-                    f"but it has {coord_ndims}"
-                )
-
-            if not input_nsamples == coord_nsamples:
-                raise ValueError(
-                    "the number of samples in argument 'values' does not match the "
-                    f"number of coordinates {input_nsamples}!={coord_nsamples}"
-                )
+            output_grid = xr.DataArray(
+                np.zeros((input_nvars,) + grid_shape, dtype=input_dtype),
+                dims=("variable", "y", "x"),
+                coords={"y": ("y", ygrid), "x": ("x", xgrid)},
+            )
+            output_grid = output_grid.assign_coords(
+                sparse_data.drop_vars(("x", "y", "sample"), errors="ignore").coords
+            )
+            output_grid = output_grid.assign_attrs(sparse_data.attrs)
 
             # only one sample, return uniform output
             if input_nsamples == 1:
-                output_array = np.ones((input_nvars,) + grid_shape)
-                for n, v in enumerate(values[0, ...]):
-                    output_array[n, ...] *= v
-                return output_array.squeeze()
+                for n, v in enumerate(sparse_data.isel(sample=0)):
+                    output_grid[dict(variable=n)] += v
 
             # all equal elements, return uniform output
-            if values.max() == values.min():
-                return np.ones((input_nvars,) + grid_shape) * values.ravel()[0]
+            elif sparse_data.max() == sparse_data.min():
+                output_grid += sparse_data.values.ravel()[0]
 
-            # split grid in n chunks
-            nchunks = int(kwargs.get("nchunks", nchunks) ** 0.5)
-            if nchunks > 1:
-                subxgrids = np.array_split(xgrid, nchunks)
-                subxgrids = [x for x in subxgrids if x.size > 0]
-                subygrids = np.array_split(ygrid, nchunks)
-                subygrids = [y for y in subygrids if y.size > 0]
-
-                # generate a unique identifier to be used for caching
-                # intermediate results
-                kwargs["hkey"] = uuid.uuid1().int
+            # actual interpolation
             else:
-                subxgrids = [xgrid]
-                subygrids = [ygrid]
+                # split grid in n chunks
+                nchunks = int(kwargs.get("nchunks", nchunks) ** 0.5)
+                if nchunks > 1:
+                    subxgrids = np.array_split(xgrid, nchunks)
+                    subxgrids = [x for x in subxgrids if x.size > 0]
+                    subygrids = np.array_split(ygrid, nchunks)
+                    subygrids = [y for y in subygrids if y.size > 0]
 
-            interpolated = np.zeros((input_nvars,) + grid_shape)
-            indx = 0
-            for subxgrid in subxgrids:
-                deltax = subxgrid.size
-                indy = 0
-                for subygrid in subygrids:
-                    deltay = subygrid.size
-                    interpolated[
-                        :, indy : (indy + deltay), indx : (indx + deltax)
-                    ] = interpolator(xy_coord, values, subxgrid, subygrid, **kwargs)
-                    indy += deltay
-                indx += deltax
+                    # generate a unique identifier to be used for caching
+                    # intermediate results
+                    kwargs["hkey"] = uuid.uuid1().int
+                else:
+                    subxgrids = [xgrid]
+                    subygrids = [ygrid]
 
-            return interpolated.squeeze()
+                indx = 0
+                for subxgrid in subxgrids:
+                    deltax = subxgrid.size
+                    indy = 0
+                    for subygrid in subygrids:
+                        deltay = subygrid.size
+                        output_grid[
+                            :, indy : (indy + deltay), indx : (indx + deltax)
+                        ] = interpolator(sparse_data, subxgrid, subygrid, **kwargs)
+                        indy += deltay
+                    indx += deltax
+
+            if "convert_to_dataset" == sparse_data.name:
+                output_grid = output_grid.to_dataset(dim="variable")
+
+            return output_grid.squeeze()
 
         extra_kwargs_doc = """
             nchunks: int, optional

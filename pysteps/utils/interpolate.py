@@ -15,6 +15,8 @@ Interpolation routines for pysteps.
 import warnings
 
 import numpy as np
+import xarray as xr
+from pandas import MultiIndex
 from scipy.interpolate import Rbf
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
@@ -24,25 +26,17 @@ from pysteps.decorators import memoize, prepare_interpolator
 
 
 @prepare_interpolator()
-def idwinterp2d(
-    xy_coord, values, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **kwargs
-):
-    """Inverse distance weighting interpolation of a sparse (multivariate) array.
-
-    .. _ndarray:\
-    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+def idwinterp2d(sparse_data, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **kwargs):
+    """
+    Gridding of sparse data with inverse distance weighting interpolation.
+    Samples with missing values or coordinates are dropped.
 
     Parameters
     ----------
-    xy_coord: ndarray_
-        Array of shape (n, 2) containing the coordinates of the data points in
-        a 2-dimensional space.
-    values: ndarray_
-        Array of shape (n) or (n, m) containing the values of the data points,
-        where *n* is the number of data points and *m* the number of co-located
-        variables. All elements in ``values`` are required to be finite.
-    xgrid, ygrid: ndarray_
-        1-D arrays representing the coordinates of the 2-D output grid.
+    sparse_data: xr.DataArray
+        The sparse dataset with dimension "sample" and coordinates ("x", "y").
+    xgrid, ygrid: array_like
+        1-D arrays representing the coordinates of the 2-D target grid.
     power: positive float, optional
         The power parameter used to compute the distance weights as
         ``weight = distance ** (-power)``.
@@ -59,18 +53,11 @@ def idwinterp2d(
 
     Returns
     -------
-    output_array: ndarray_
-        The interpolated field(s) having shape (``ygrid.size``, ``xgrid.size``)
-        or (*m*, ``ygrid.size``, ``xgrid.size``).
+    output_grid: xr.DataArray
+        The dataset interpolated on the target grid.
     """
-    if values.ndim == 1:
-        nvar = 1
-        values = values[:, None]
-
-    elif values.ndim == 2:
-        nvar = values.shape[1]
-
-    npoints = values.shape[0]
+    npoints = sparse_data.sizes["sample"]
+    xy_coord = np.column_stack((sparse_data.x.values, sparse_data.y.values))
 
     # generate the target grid
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
@@ -89,6 +76,7 @@ def idwinterp2d(
         inds = np.arange(npoints)[None, :] * np.ones((gridv.shape[0], npoints)).astype(
             int
         )
+    inds = xr.DataArray(inds, dims=("grid", "neighbor"))
 
     # convert geographical distances to number of pixels
     x_res = np.gradient(xgrid)
@@ -100,17 +88,17 @@ def idwinterp2d(
     dist += dist_offset  # avoid zero distances
     weights = 1 / np.power(dist, power)
     weights = weights / np.sum(weights, axis=1, keepdims=True)
+    weights = xr.DataArray(weights, dims=("grid", "neighbor"))
 
     # interpolate
-    output_array = np.sum(
-        values[inds, :] * weights[..., None],
-        axis=1,
-    )
+    output_array = (sparse_data[inds] * weights).sum("neighbor")
+    output_array = output_array.astype(sparse_data.dtype)
 
-    # reshape to final grid size
-    output_array = output_array.reshape(ygrid.size, xgrid.size, nvar)
+    # assign multi-index coordinate for the grid
+    grid = MultiIndex.from_product([ygrid, xgrid], names=("y", "x"))
+    output_array = output_array.assign_coords({"grid": grid})
 
-    return np.moveaxis(output_array, -1, 0).squeeze()
+    return output_array.unstack("grid")  # reshape as grid
 
 
 @prepare_interpolator()
