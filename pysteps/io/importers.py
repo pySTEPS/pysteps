@@ -1581,7 +1581,16 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         x2 = ur_x
         y2 = ur_y
 
+    dataset1 = f["dataset1"]
+
     if "xscale" in where.attrs.keys() and "yscale" in where.attrs.keys():
+        xpixelsize = where.attrs["xscale"]
+        ypixelsize = where.attrs["yscale"]
+    elif (
+        "xscale" in dataset1["where"].attrs.keys()
+        and "yscale" in dataset1["where"].attrs.keys()
+    ):
+        where = dataset1["where"]
         xpixelsize = where.attrs["xscale"]
         ypixelsize = where.attrs["yscale"]
     else:
@@ -1619,6 +1628,8 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         "zerovalue": np.nanmin(precip),
         "threshold": _get_threshold_value(precip),
     }
+
+    metadata.update(kwargs)
 
     f.close()
 
