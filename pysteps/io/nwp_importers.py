@@ -188,7 +188,7 @@ def _import_bom_nwp_geodata_xr(
     delta_time = time - time.shift({varname_time: 1})
     # assuming first valid delta_time is representative of all time steps
     time_step = delta_time[1]
-    time_step = time_step.values.astype("timedelta64[m]")
+    time_step = time_step.values.astype("timedelta64[m]").astype(int)
 
     # get the units of precipitation
     units = None
@@ -216,7 +216,6 @@ def _import_bom_nwp_geodata_xr(
     cartesian_unit = ds_in.x.units
 
     # Add metadata needed by pySTEPS as attrs in X and Y variables
-
     ds_in.x.attrs.update(
         {
             # TODO: Remove before final 2.0 version
@@ -346,7 +345,7 @@ def _import_rmi_nwp_geodata_xr(
     delta_time = time - time.shift({varname_time: 1})
     # assuming first valid delta_time is representative of all time steps
     time_step = delta_time[1]
-    time_step = time_step.values.astype("timedelta64[m]")
+    time_step = time_step.values.astype("timedelta64[m]").astype(int)
 
     # get the units of precipitation
     units = None
@@ -386,7 +385,6 @@ def _import_rmi_nwp_geodata_xr(
     ds_in = ds_in.assign_coords(x=x_coords, y=y_coords)
 
     # Add metadata needed by pySTEPS as attrs in X and Y variables
-
     ds_in.x.attrs.update(
         {
             # TODO: Remove before final 2.0 version
@@ -511,7 +509,7 @@ def _import_knmi_nwp_geodata_xr(
     delta_time = time - time.shift({varname_time: 1})
     # Assuming first valid delta_time is representative of all time steps
     time_step = delta_time[1]
-    time_step = time_step.values.astype("timedelta64[m]")
+    time_step = time_step.values.astype("timedelta64[m]").astype(int)
 
     # Get the units of precipitation
     units = None
