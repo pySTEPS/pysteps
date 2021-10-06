@@ -26,19 +26,11 @@ import numpy as np
 from numpy.ma.core import MaskedArray
 
 from pysteps.decorators import check_input_frames
-from pysteps.exceptions import MissingOptionalDependency
 
 from pysteps import utils, feature
 from pysteps.tracking.lucaskanade import track_features
 from pysteps.utils.cleansing import decluster, detect_outliers
 from pysteps.utils.images import morph_opening
-
-try:
-    import cv2
-
-    CV2_IMPORTED = True
-except ImportError:
-    CV2_IMPORTED = False
 
 import time
 
@@ -107,7 +99,7 @@ def dense_lucaskanade(
         detection algorithm.
         See the documentation of :py:mod:`pysteps.feature`.
 
-    interp_method: {"rbfinterp2d"}, optional
+    interp_method: {"idwinterp2d", "rbfinterp2d"}, optional
       Name of the interpolation method to use. See interpolation methods in
       :py:mod:`pysteps.utils.interpolate`.
 
@@ -132,7 +124,7 @@ def dense_lucaskanade(
         :py:func:`pysteps.utils.cleansing.detect_outliers`.
 
     k_outlier: int or None, optional
-        The number of nearest neighbours used to localize the outlier detection.
+        The number of nearest neighbors used to localize the outlier detection.
         If set to None, it employs all the data points (global detection).
         See the documentation of
         :py:func:`pysteps.utils.cleansing.detect_outliers`.
@@ -141,7 +133,7 @@ def dense_lucaskanade(
         The size of the structuring element kernel in pixels. This is used to
         perform a binary morphological opening on the input fields in order to
         filter isolated echoes due to clutter. If set to zero, the filtering
-        is not perfomed.
+        is not performed.
         See the documentation of
         :py:func:`pysteps.utils.images.morph_opening`.
 
@@ -149,7 +141,7 @@ def dense_lucaskanade(
         The scale declustering parameter in pixels used to reduce the number of
         redundant sparse vectors before the interpolation.
         Sparse vectors within this declustering scale are averaged together.
-        If set to less than 2 pixels, the declustering is not perfomed.
+        If set to less than 2 pixels, the declustering is not performed.
         See the documentation of
         :py:func:`pysteps.utils.cleansing.decluster`.
 

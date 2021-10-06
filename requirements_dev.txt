@@ -19,6 +19,7 @@ cartopy>=0.18
 h5py
 scikit-image
 pandas
+rasterio
 
 # Testing
 pytest

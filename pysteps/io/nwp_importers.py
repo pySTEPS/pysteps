@@ -371,7 +371,19 @@ def _import_rmi_nwp_geodata_xr(
     xpixelsize = abs(ds_in.x[1] - ds_in.x[0])
     ypixelsize = abs(ds_in.y[1] - ds_in.y[0])
 
+    x_coords = (
+        np.arange(xmin, xmin + float(xpixelsize) * ds_in.x.shape[0], float(xpixelsize))
+        + float(xpixelsize) / 2
+    )
+    y_coords = (
+        np.arange(ymin, ymin + float(ypixelsize) * ds_in.y.shape[0], float(ypixelsize))
+        + float(ypixelsize) / 2
+    )
+
     cartesian_unit = ds_in.x.units
+
+    # Assign new coordinates that are in the middle of the cell
+    ds_in = ds_in.assign_coords(x=x_coords, y=y_coords)
 
     # Add metadata needed by pySTEPS as attrs in X and Y variables
 
@@ -517,16 +529,28 @@ def _import_knmi_nwp_geodata_xr(
     xpixelsize = abs(ds_in.x[1] - ds_in.x[0])
     ypixelsize = abs(ds_in.y[1] - ds_in.y[0])
 
-    cartesian_unit = ds_in.x.units
+    x_coords = (
+        np.arange(xmin, xmin + float(xpixelsize) * ds_in.x.shape[0], float(xpixelsize))
+        + float(xpixelsize) / 2
+    )
+    y_coords = (
+        np.arange(ymin, ymin + float(ypixelsize) * ds_in.y.shape[0], float(ypixelsize))
+        + float(ypixelsize) / 2
+    )
+
+    cartesian_unit_x = ds_in.x.units
+    cartesian_unit_y = ds_in.y.units
+
+    # Assign new coordinates that are in the middle of the cell
+    ds_in = ds_in.assign_coords(x=x_coords, y=y_coords)
 
     # Add metadata needed by pySTEPS as attrs in X and Y variables
-
     ds_in.x.attrs.update(
         {
             # TODO: Remove before final 2.0 version
             "x1": xmin,
             "x2": xmax,
-            "cartesian_unit": cartesian_unit,
+            "cartesian_unit": cartesian_unit_x,
         }
     )
 
@@ -535,12 +559,14 @@ def _import_knmi_nwp_geodata_xr(
             # TODO: Remove before final 2.0 version
             "y1": ymin,
             "y2": ymax,
-            "cartesian_unit": cartesian_unit,
+            "cartesian_unit": cartesian_unit_y,
         }
     )
 
     # Add metadata needed by pySTEPS as attrs in rainfall variable
     da_rainfall = ds_in[varname].isel({varname_time: 0})
+    # Set values below 0.0 to 0.0
+    da_rainfall = da_rainfall.where(da_rainfall >= 0.0, 0.0)
 
     ds_in[varname].attrs.update(
         {
