@@ -107,7 +107,7 @@ def rbfinterp2d(sparse_data, xgrid, ygrid, **kwargs):
     .. _`scipy.interpolate.RBFInterpolator`:\
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RBFInterpolator.html
 
-    This method wraps the `scipy.interpolate.RBFInterpolator   `_ class.
+    This method wraps the `scipy.interpolate.RBFInterpolator`_ class.
 
     Parameters
     ----------
@@ -132,9 +132,7 @@ def rbfinterp2d(sparse_data, xgrid, ygrid, **kwargs):
     gridv = np.column_stack((xgridv.ravel(), ygridv.ravel()))
 
     # interpolate
-    rbfi = _Rbf_cached(
-        np.column_stack((sparse_data.x, sparse_data.y)), sparse_data, **kwargs
-    )
+    rbfi = _Rbf_cached(sparse_data, **kwargs)
     output_array = xr.DataArray(
         rbfi(gridv),
         dims=("grid", "variable"),
@@ -153,10 +151,12 @@ def rbfinterp2d(sparse_data, xgrid, ygrid, **kwargs):
 @memoize()
 def _cKDTree_cached(*args, **kwargs):
     """Add LRU cache to cKDTree class."""
-    return cKDTree(*args)
+    return cKDTree(*args, **kwargs)
 
 
 @memoize()
-def _Rbf_cached(*args, **kwargs):
+def _Rbf_cached(sparse_data, **kwargs):
     """Add LRU cache to Rbf class."""
-    return RBFInterpolator(*args, **kwargs)
+    data_coords = np.column_stack((sparse_data.x, sparse_data.y))
+    data_values = sparse_data.values
+    return RBFInterpolator(data_coords, data_values, **kwargs)
