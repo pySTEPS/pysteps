@@ -12,12 +12,10 @@ Interpolation routines for pysteps.
     rbfinterp2d
 """
 
-import warnings
-
 import numpy as np
 import xarray as xr
 from pandas import MultiIndex
-from scipy.interpolate import Rbf
+from scipy.interpolate import RBFInterpolator
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 
@@ -28,7 +26,7 @@ from pysteps.decorators import memoize, prepare_interpolator
 @prepare_interpolator()
 def idwinterp2d(sparse_data, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **kwargs):
     """
-    Gridding of sparse data with inverse distance weighting interpolation.
+    Gridding of sparse data points with inverse distance weighting (IDW).
     Samples with missing values or coordinates are dropped.
 
     Parameters
@@ -36,7 +34,8 @@ def idwinterp2d(sparse_data, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **k
     sparse_data: xr.DataArray
         The sparse dataset with dimension "sample" and coordinates ("x", "y").
     xgrid, ygrid: array_like
-        1-D arrays representing the coordinates of the 2-D target grid.
+        1-D arrays representing the coordinates of the 2-D target grid at which
+        to interpolate data.
     power: positive float, optional
         The power parameter used to compute the distance weights as
         ``weight = distance ** (-power)``.
@@ -102,27 +101,21 @@ def idwinterp2d(sparse_data, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **k
 
 
 @prepare_interpolator()
-def rbfinterp2d(xy_coord, values, xgrid, ygrid, **kwargs):
-    """Radial basis function interpolation of a sparse (multivariate) array.
+def rbfinterp2d(sparse_data, xgrid, ygrid, **kwargs):
+    """Gridding of sparse data points with radial basis functions (RBF).
 
-    .. _ndarray:\
-    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
-    .. _`scipy.interpolate.Rbf`:\
-    https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Rbf.html
+    .. _`scipy.interpolate.RBFInterpolator`:\
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RBFInterpolator.html
 
-    This method wraps the `scipy.interpolate.Rbf`_ class.
+    This method wraps the `scipy.interpolate.RBFInterpolator   `_ class.
 
     Parameters
     ----------
-    xy_coord: ndarray_
-        Array of shape (n, 2) containing the coordinates of the data points in
-        a 2-dimensional space.
-    values: ndarray_
-        Array of shape (n) or (n, m) containing the values of the data points,
-        where *n* is the number of data points and *m* the number of co-located
-        variables. All values in ``values`` are required to be finite.
-    xgrid, ygrid: ndarray_
-        1-D arrays representing the coordinates of the 2-D output grid.
+    sparse_data: xr.DataArray
+        The sparse dataset with dimension "sample" and coordinates ("x", "y").
+    xgrid, ygrid: array_like
+        1-D arrays representing the coordinates of the 2-D target grid at which
+        to interpolate data.
 
     Other Parameters
     ----------------
@@ -131,29 +124,30 @@ def rbfinterp2d(xy_coord, values, xgrid, ygrid, **kwargs):
 
     Returns
     -------
-    output_array: ndarray_
-        The interpolated field(s) having shape (``ygrid.size``, ``xgrid.size``)
-        or (*m*, ``ygrid.size``, ``xgrid.size``).
+    output_grid: xr.DataArray
+        The dataset interpolated on the target grid.
     """
-    deprecated_args = ["rbfunction", "k"]
-    deprecated_args = [arg for arg in deprecated_args if arg in list(kwargs.keys())]
-    if deprecated_args:
-        warnings.warn(
-            "rbfinterp2d: The following keyword arguments are deprecated:\n"
-            + str(deprecated_args),
-            DeprecationWarning,
-        )
-
-    if values.ndim == 1:
-        kwargs["mode"] = "1-D"
-    else:
-        kwargs["mode"] = "N-D"
-
+    # generate the target grid
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
-    rbfi = _Rbf_cached(*np.split(xy_coord, xy_coord.shape[1], 1), values, **kwargs)
-    output_array = rbfi(xgridv, ygridv)
+    gridv = np.column_stack((xgridv.ravel(), ygridv.ravel()))
 
-    return np.moveaxis(output_array, -1, 0).squeeze()
+    # interpolate
+    rbfi = _Rbf_cached(
+        np.column_stack((sparse_data.x, sparse_data.y)), sparse_data, **kwargs
+    )
+    output_array = xr.DataArray(
+        rbfi(gridv),
+        dims=("grid", "variable"),
+        coords=sparse_data.drop_vars(("x", "y", "sample"), errors="ignore").coords,
+        attrs=sparse_data.attrs,
+    )
+    output_array = output_array.astype(sparse_data.dtype)
+
+    # assign multi-index coordinate for the grid
+    grid = MultiIndex.from_product([ygrid, xgrid], names=("y", "x"))
+    output_array = output_array.assign_coords({"grid": grid})
+
+    return output_array.unstack("grid")  # reshape as grid
 
 
 @memoize()
@@ -165,4 +159,4 @@ def _cKDTree_cached(*args, **kwargs):
 @memoize()
 def _Rbf_cached(*args, **kwargs):
     """Add LRU cache to Rbf class."""
-    return Rbf(*args, **kwargs)
+    return RBFInterpolator(*args, **kwargs)

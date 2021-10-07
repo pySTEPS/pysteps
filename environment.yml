@@ -12,5 +12,5 @@ dependencies:
   - opencv
   - pillow
   - pyproj
-  - scipy
+  - scipy>=1.7
   - xarray

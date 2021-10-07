@@ -180,6 +180,9 @@ def prepare_interpolator(nchunks=4):
             if not ("x" in sparse_data.coords and "y" in sparse_data.coords):
                 raise ValueError("missing coordinates 'x' and 'y'")
 
+            if np.isnan(xgrid).any() or np.isnan(ygrid).any():
+                raise ValueError("Target grid coordinates contain missing values")
+
             sparse_data = sparse_data.copy()
 
             if isinstance(sparse_data, xr.Dataset):

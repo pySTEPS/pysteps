@@ -8,7 +8,7 @@ from pysteps.utils import get_method
 
 interp_methods = (
     "idwinterp2d",
-    # "rbfinterp2d",
+    "rbfinterp2d",
 )
 
 
@@ -136,6 +136,14 @@ def test_wrong_inputs(interp_method):
     with pytest.raises(ValueError):
         interp(sparse_data.drop_vars("x"), xgrid, ygrid)
         interp(sparse_data.drop_vars("y"), xgrid, ygrid)
+
+    # missing values in target coordinates
+    with pytest.raises(ValueError):
+        xgridn, ygridn = xgrid.copy(), ygrid.copy()
+        xgridn[0] = np.nan
+        ygridn[0] = np.nan
+        interp(sparse_data, xgridn, ygrid)
+        interp(sparse_data, xgrid, ygridn)
 
 
 @pytest.mark.parametrize("interp_method", interp_methods)
