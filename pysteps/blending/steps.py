@@ -751,7 +751,9 @@ def forecast(
     ###
     rho_nwp_models = [
         blending.skill_scores.spatial_correlation(
-            obs=R_c[0, :, -1, :, :], mod=R_models[n_model, 0, :, :, :]
+            obs=R_c[0, :, -1, :, :],
+            mod=R_models[n_model, 0, :, :, :],
+            domain_mask=domain_mask,
         )
         for n_model in range(R_models.shape[0])
     ]

@@ -19,7 +19,7 @@ import numpy as np
 from pysteps.blending import clim
 
 
-def spatial_correlation(obs, mod):
+def spatial_correlation(obs, mod, domain_mask):
     """Determine the spatial correlation between the cascade of the latest
     available observed (radar) rainfall field and a time-synchronous cascade
     derived from a model (generally NWP) field. Both fields are assumed to use
@@ -34,6 +34,9 @@ def spatial_correlation(obs, mod):
     mod : array-like
         Array of shape [cascade_level, y, x] with per cascade_level the
         normalized cascade of the model field.
+    domain_mask : array-like
+        Boolean array of shape [y, x] indicating which cells fall outside the
+        radar domain.
 
     Returns
     -------
@@ -51,15 +54,22 @@ def spatial_correlation(obs, mod):
     rho = []
     # Fill rho per cascade level, so loop through the cascade levels
     for cascade_level in range(0, obs.shape[0]):
+        # Only calculate the skill for the pixels within the radar domain
+        # (as that is where there are observations)
+        obs_cascade_level = obs[cascade_level, :, :]
+        mod_cascade_level = mod[cascade_level, :, :]
+        obs_cascade_level[domain_mask] = np.nan
+        mod_cascade_level[domain_mask] = np.nan
+
         # Flatten both arrays
-        obs_1d = obs[cascade_level, :, :].flatten()
-        mod_1d = mod[cascade_level, :, :].flatten()
+        obs_1d = obs_cascade_level.flatten()
+        mod_1d = mod_cascade_level.flatten()
         # Calculate the correlation between the two
-        cov = np.sum(
-            (mod_1d - np.mean(mod_1d)) * (obs_1d - np.mean(obs_1d))
+        cov = np.nansum(
+            (mod_1d - np.nanmean(mod_1d)) * (obs_1d - np.nanmean(obs_1d))
         )  # Without 1/n, as this cancels out (same for stdx and -y)
-        std_obs = np.sqrt(np.sum((obs_1d - np.mean(obs_1d)) ** 2.0))
-        std_mod = np.sqrt(np.sum((mod_1d - np.mean(mod_1d)) ** 2.0))
+        std_obs = np.sqrt(np.nansum((obs_1d - np.nanmean(obs_1d)) ** 2.0))
+        std_mod = np.sqrt(np.nansum((mod_1d - np.nanmean(mod_1d)) ** 2.0))
         rho.append(cov / (std_mod * std_obs))
 
     return rho
