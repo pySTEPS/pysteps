@@ -31,4 +31,3 @@ dependencies:
   - scikit-image
   - pandas
   - xarray
-  - rasterio

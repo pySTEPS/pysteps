@@ -53,7 +53,7 @@ def test_io_import_knmi_nwp_xarray_attrs(variable, expected, tolerance):
 
 
 test_attrs_xr_coord_x = [
-    ("cartesian_unit", "degrees_east", None),
+    ("units", "degrees_east", None),
     ("x1", 0.0, 0.0001),
     ("x2", 11.063, 0.0001),
 ]
@@ -66,7 +66,7 @@ def test_io_import_knmi_nwp_xarray_attrs_coordx(variable, expected, tolerance):
 
 
 test_attrs_xr_coord_y = [
-    ("cartesian_unit", "degrees_north", None),
+    ("units", "degrees_north", None),
     ("y1", 49.0, 0.0001),
     ("y2", 55.877, 0.0001),
 ]
