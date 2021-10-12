@@ -63,7 +63,7 @@ external_modules = cythonize(extensions, force=True, language_level=3)
 requirements = [
     "numpy",
     "jsmin",
-    "scipy>=1.7",
+    "scipy",
     "matplotlib",
     "jsonschema",
     "xarray",

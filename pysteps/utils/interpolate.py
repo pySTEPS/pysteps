@@ -15,12 +15,20 @@ Interpolation routines for pysteps.
 import numpy as np
 import xarray as xr
 from pandas import MultiIndex
-from scipy.interpolate import RBFInterpolator
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 
-
 from pysteps.decorators import memoize, prepare_interpolator
+from pysteps.exceptions import MissingOptionalDependency
+
+# only scipy>=1.7
+try:
+    from scipy.interpolate import RBFInterpolator
+
+    RBF_IMPORTED = True
+except ImportError:
+    from scipy import __version__ as scipy_version
+    RBF_IMPORTED = False
 
 
 @prepare_interpolator()
@@ -107,7 +115,8 @@ def rbfinterp2d(sparse_data, xgrid, ygrid, **kwargs):
     .. _`scipy.interpolate.RBFInterpolator`:\
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RBFInterpolator.html
 
-    This method wraps the `scipy.interpolate.RBFInterpolator`_ class.
+    This method wraps the `scipy.interpolate.RBFInterpolator`_ class available
+    from scipy's version 1.7 onwards.
 
     Parameters
     ----------
@@ -127,6 +136,13 @@ def rbfinterp2d(sparse_data, xgrid, ygrid, **kwargs):
     output_grid: xr.DataArray
         The dataset interpolated on the target grid.
     """
+    if not RBF_IMPORTED:
+        raise MissingOptionalDependency(
+            "Scipy's RBFInterpolate could not be imported. "
+            "Check your scipy installation: "
+            f"we found version {scipy_version} (should be >=1.7)"
+        )
+
     # generate the target grid
     xgridv, ygridv = np.meshgrid(xgrid, ygrid)
     gridv = np.column_stack((xgridv.ravel(), ygridv.ravel()))

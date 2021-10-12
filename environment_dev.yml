@@ -14,7 +14,7 @@ dependencies:
   - opencv
   - pillow
   - pyproj
-  - scipy>=1.7
+  - scipy
   - pytest
   - pywavelets
   - cython
