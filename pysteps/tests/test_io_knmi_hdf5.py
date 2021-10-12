@@ -25,9 +25,7 @@ def test_io_import_knmi_hdf5_shape():
 # test_metadata: list of (variable,expected, tolerance) tuples
 
 expected_proj = (
-    "+proj=stere +lat_0=90 +lon_0=0.0 "
-    "+lat_ts=60.0 +a=6378.137 +b=6356.752 +x_0=0 "
-    "+y_0=0"
+    "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
 )
 
 # list of (variable,expected,tolerance) tuples

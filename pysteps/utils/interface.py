@@ -18,6 +18,7 @@ from . import conversion
 from . import fft
 from . import images
 from . import interpolate
+from . import reprojection
 from . import spectral
 from . import tapering
 from . import transformation
@@ -166,6 +167,9 @@ def get_method(name, **kwargs):
     # interpolation methods
     methods_objects["rbfinterp2d"] = interpolate.rbfinterp2d
     methods_objects["idwinterp2d"] = interpolate.idwinterp2d
+
+    # reprojection methods
+    methods_objects["reprojection"] = reprojection.reprojection
 
     # spectral methods
     methods_objects["rapsd"] = spectral.rapsd

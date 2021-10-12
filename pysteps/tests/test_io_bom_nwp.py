@@ -56,7 +56,7 @@ def test_io_import_bom_nwp_xarray_attrs(variable, expected, tolerance):
 
 
 test_attrs_xr_coord_x = [
-    ("units", "m", None),
+    ("cartesian_unit", "m", None),
     ("x1", -127750.0, 0.1),
     ("x2", 127750.0, 0.1),
 ]
@@ -69,7 +69,7 @@ def test_io_import_bom_nwp_xarray_attrs_coordx(variable, expected, tolerance):
 
 
 test_attrs_xr_coord_y = [
-    ("units", "m", None),
+    ("cartesian_unit", "m", None),
     ("y1", -127750.0, 0.1),
     ("y2", 127750.0, 0.1),
 ]

@@ -15,3 +15,4 @@ Implementation of miscellaneous utility functions.
 .. automodule:: pysteps.utils.spectral
 .. automodule:: pysteps.utils.tapering
 .. automodule:: pysteps.utils.transformation
+.. automodule:: pysteps.utils.reprojection
