@@ -17,7 +17,7 @@ pytest.importorskip("netCDF4")
 try:
     root_path = pysteps.rcparams.data_sources["rmi_nwp"]["root_path"]
 except KeyError:
-    pytest.skip("all tests still WIP")
+    pytestmark = pytest.mark.skip("all tests still WIP")
 else:
     rel_path = os.path.join("2021", "07", "04")
     filename = os.path.join(root_path, rel_path, "ao13_2021070412_native_5min.nc")

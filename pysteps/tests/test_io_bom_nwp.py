@@ -14,7 +14,7 @@ pytest.importorskip("netCDF4")
 try:
     root_path = pysteps.rcparams.data_sources["bom_nwp"]["root_path"]
 except KeyError:
-    pytest.skip("all tests still WIP")
+    pytestmark = pytest.mark.skip("all tests still WIP")
 else:
     rel_path = os.path.join("2020", "10", "31")
     filename = os.path.join(root_path, rel_path, "20201031_0000_regrid_short.nc")
