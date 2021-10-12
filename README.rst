@@ -13,7 +13,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     * - status
       - |test| |docs| |codecov| |codacy| |black|
     * - package
-      - |github| |conda| |pypi|
+      - |github| |conda| |pypi| |zenodo|
     * - community
       - |slack| |contributors| |downloads| |license|
 
@@ -77,6 +77,10 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 .. |codacy| image:: https://api.codacy.com/project/badge/Grade/6cff9e046c5341a4afebc0347362f8de
    :alt: Codacy Badge
    :target: https://app.codacy.com/gh/pySTEPS/pysteps?utm_source=github.com&utm_medium=referral&utm_content=pySTEPS/pysteps&utm_campaign=Badge_Grade
+
+.. |zenodo| image:: https://zenodo.org/badge/140263418.svg
+   :alt: DOI
+   :target: https://zenodo.org/badge/latestdoi/140263418
 
 .. end-badges
 
