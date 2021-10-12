@@ -14,7 +14,7 @@ pytest.importorskip("netCDF4")
 try:
     root_path = pysteps.rcparams.data_sources["knmi_nwp"]["root_path"]
 except KeyError:
-    marker = pytest.mark.skip("all tests still WIP")
+    pytest.skip("all tests still WIP")
 else:
     rel_path = os.path.join("2018", "09", "05")
     filename = os.path.join(root_path, rel_path, "20180905_0600_Pforecast_Harmonie.nc")
@@ -23,13 +23,11 @@ else:
 expected_proj = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 
 
-@marker
 def test_io_import_knmi_nwp_xarray():
     """Test the KNMI NWP Harmonie importer."""
     assert isinstance(data_array_xr, xr.DataArray)
 
 
-@marker
 def test_io_import_knmi_nwp_xarray_shape():
     """Test the importer KNMI NWP shape."""
     assert isinstance(data_array_xr, xr.DataArray)
@@ -52,7 +50,6 @@ test_attrs_xr = [
 ]
 
 
-@marker
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr)
 def test_io_import_knmi_nwp_xarray_attrs(variable, expected, tolerance):
     """Test the KNMI Harmonie NWP importer."""
@@ -66,7 +63,6 @@ test_attrs_xr_coord_x = [
 ]
 
 
-@marker
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_x)
 def test_io_import_knmi_nwp_xarray_attrs_coordx(variable, expected, tolerance):
     """Test the grid of the KNMI Harmonie NWP importer in the x-direction."""
@@ -80,7 +76,6 @@ test_attrs_xr_coord_y = [
 ]
 
 
-@marker
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_y)
 def test_io_import_knmi_nwp_xarray_attrs_coordy(variable, expected, tolerance):
     """Test the grid of the KNMI Harmonie NWP importer in the y-direction."""

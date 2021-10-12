@@ -14,7 +14,7 @@ pytest.importorskip("netCDF4")
 try:
     root_path = pysteps.rcparams.data_sources["bom_nwp"]["root_path"]
 except KeyError:
-    marker = pytest.mark.skip("all tests still WIP")
+    pytest.skip("all tests still WIP")
 else:
     rel_path = os.path.join("2020", "10", "31")
     filename = os.path.join(root_path, rel_path, "20201031_0000_regrid_short.nc")
@@ -22,13 +22,11 @@ else:
 
 expected_proj = "+proj=aea  +lon_0=153.240 +lat_0=-27.718 +lat_1=-26.200 +lat_2=-29.300"
 
-@marker
 def test_io_import_bom_nwp_xarray():
     """Test the importer Bom NWP."""
     assert isinstance(data_array_xr, xr.DataArray)
 
 
-@marker
 def test_io_import_bom_nwp_xarray_shape():
     """Test the importer Bom NWP shape."""
     assert isinstance(data_array_xr, xr.DataArray)
@@ -51,7 +49,6 @@ test_attrs_xr = [
 ]
 
 
-@marker
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr)
 def test_io_import_bom_nwp_xarray_attrs(variable, expected, tolerance):
     """Test the importer Bom RF3."""
@@ -65,7 +62,6 @@ test_attrs_xr_coord_x = [
 ]
 
 
-@marker
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_x)
 def test_io_import_bom_nwp_xarray_attrs_coordx(variable, expected, tolerance):
     """Test the importer Bom NWP."""
@@ -79,7 +75,6 @@ test_attrs_xr_coord_y = [
 ]
 
 
-@marker
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs_xr_coord_y)
 def test_io_import_bom_nwp_xarray_attrs_coordy(variable, expected, tolerance):
     """Test the importer Bom NWP."""
