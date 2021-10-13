@@ -9,12 +9,13 @@ Data cleansing routines for pysteps.
     :toctree: ../generated/
 
     decluster
-    detect_outliers
+    remove_outliers
 """
 import warnings
 
 import numpy as np
-import scipy.spatial
+import xarray as xr
+from scipy.spatial import cKDTree
 
 
 def decluster(coord, input_array, scale, min_samples=1, verbose=False):
@@ -119,7 +120,36 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
     return dcoord, dinput
 
 
-def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
+def _compute_standard_score(samples, neighbours=None):
+    """
+    Compute standard score in one or more dimensionsby using the
+    Mahalanobis distance to generalize to multi-dimensions.
+    """
+    if neighbours is None:
+        neighbours = samples
+
+    neighbours_mean = neighbours.mean("sample")
+    samples = samples - neighbours_mean
+    neighbours = neighbours - neighbours_mean
+    cov_matrix = np.cov(neighbours.transpose("variable", ...))
+    cov_matrix = np.atleast_2d(cov_matrix)
+    try:
+        # Mahalanobis distance
+        cov_matrix_inv = np.linalg.inv(cov_matrix)
+        maha_dist = np.dot(
+            np.dot(samples.transpose(..., "variable"), cov_matrix_inv),
+            samples.transpose("variable", ...)
+        ).diagonal()
+        maha_dist = np.sqrt(maha_dist)
+
+    except np.linalg.LinAlgError as err:
+        warnings.warn(f"{err} during outlier detection")
+        maha_dist = np.zeros(samples.sizes["sample"])
+
+    return maha_dist
+
+
+def remove_outliers(sparse_data, thr, k=None, verbose=False):
     """Detect outliers in a (multivariate and georeferenced) dataset.
 
     Assume a (multivariate) Gaussian distribution and detect outliers based on
@@ -155,96 +185,35 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         A 1-D boolean array of shape (n) with True values indicating the outliers
         detected in ``input_array``.
     """
+    sparse_data = sparse_data.copy()
 
-    input_array = np.copy(input_array)
+    if np.any(~np.isfinite(sparse_data)):
+        raise ValueError("sparse_data contains non-finite values")
 
-    if np.any(~np.isfinite(input_array)):
-        raise ValueError("input_array contains non-finite values")
+    nsample = sparse_data.sizes["sample"]
 
-    if input_array.ndim == 1:
-        nsamples = input_array.size
-        nvar = 1
-    elif input_array.ndim == 2:
-        nsamples = input_array.shape[0]
-        nvar = input_array.shape[1]
+    if nsample < 2:
+        zvalues = xr.zeros_like(sparse_data)
+
     else:
-        raise ValueError(
-            f"input_array must have 1 (n) or 2 dimensions (n, m), "
-            f"but it has {coord.ndim}"
-        )
+        # global
+        if k is None:
+            zvalues = _compute_standard_score(sparse_data)
 
-    if nsamples < 2:
-        return np.zeros(nsamples, dtype=bool)
-
-    if coord is not None and k is not None:
-
-        coord = np.copy(coord)
-        if coord.ndim == 1:
-            coord = coord[:, None]
-
-        elif coord.ndim > 2:
-            raise ValueError(
-                "coord must have 2 dimensions (n, d)," f"but it has {coord.ndim}"
-            )
-
-        if coord.shape[0] != nsamples:
-            raise ValueError(
-                "the number of samples in input_array does not match the "
-                f"number of coordinates {nsamples}!={coord.shape[0]}"
-            )
-
-        k = np.min((nsamples, k + 1))
-
-    # global
-
-    if k is None or coord is None:
-
-        if nvar == 1:
-            # univariate
-            zdata = np.abs(input_array - np.mean(input_array)) / np.std(input_array)
-            outliers = zdata > thr
+        # local neighborhood
         else:
-            # multivariate (mahalanobis distance)
-            zdata = input_array - np.mean(input_array, axis=0)
-            V = np.cov(zdata.T)
-            try:
-                VI = np.linalg.inv(V)
-                MD = np.sqrt(np.dot(np.dot(zdata, VI), zdata.T).diagonal())
-            except np.linalg.LinAlgError as err:
-                warnings.warn(f"{err} during outlier detection")
-                MD = np.zeros(nsamples)
-            outliers = MD > thr
+            k = np.min((nsample, k + 1))
+            coords = np.column_stack((sparse_data.x, sparse_data.y))
+            tree = cKDTree(coords)
+            __, inds = tree.query(coords, k=k)
+            zvalues = np.zeros(shape=nsample)
+            for i in range(inds.shape[0]):
+                this_sample = sparse_data.isel(sample=[i])
+                neighbours = sparse_data.isel(sample=inds[i, 1:])
+                zvalues[i] = _compute_standard_score(this_sample, neighbours)
 
-    # local
-    else:
-
-        tree = scipy.spatial.cKDTree(coord)
-        __, inds = tree.query(coord, k=k)
-        outliers = np.empty(shape=0, dtype=bool)
-        for i in range(inds.shape[0]):
-
-            if nvar == 1:
-                # univariate
-                thisdata = input_array[i]
-                neighbours = input_array[inds[i, 1:]]
-                thiszdata = np.abs(thisdata - np.mean(neighbours)) / np.std(neighbours)
-                outliers = np.append(outliers, thiszdata > thr)
-            else:
-                # multivariate (mahalanobis distance)
-                thisdata = input_array[i, :]
-                neighbours = input_array[inds[i, 1:], :].copy()
-                thiszdata = thisdata - np.mean(neighbours, axis=0)
-                neighbours = neighbours - np.mean(neighbours, axis=0)
-                V = np.cov(neighbours.T)
-                try:
-                    VI = np.linalg.inv(V)
-                    MD = np.sqrt(np.dot(np.dot(thiszdata, VI), thiszdata.T))
-                except np.linalg.LinAlgError as err:
-                    warnings.warn(f"{err} during outlier detection")
-                    MD = 0
-                outliers = np.append(outliers, MD > thr)
-
+    outliers = zvalues >= thr
     if verbose:
-        print(f"--- {np.sum(outliers)} outliers detected ---")
+        print(f"... removed {outliers.sum()} outliers")
 
-    return outliers
+    return sparse_data.isel(sample=~outliers)

@@ -20,6 +20,7 @@ available in OpenCV_.
 """
 
 import numpy as np
+import xarray as xr
 from numpy.ma.core import MaskedArray
 
 from pysteps.exceptions import MissingOptionalDependency
@@ -186,4 +187,15 @@ def track_features(
     if verbose:
         print(f"--- {xy.shape[0]} sparse vectors found ---")
 
-    return xy, uv
+    sparse_vectors = xr.DataArray(
+        uv,
+        dims=("sample", "variable"),
+        coords={
+            "x": ("sample", xy[:, 0]),
+            "y": ("sample", xy[:, 1]),
+            "variable": ("variable", ["u", "v"]),
+        },
+        attrs=dict(units="pixels / timestep"),
+    )
+
+    return sparse_vectors
