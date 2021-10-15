@@ -24,7 +24,7 @@ from pysteps.visualization import plot_precip_field
 # Read the radar images and the NWP forecast
 # ------------------------------------------
 #
-# First, we import a sequence of 3 images of 5-minute radar composites
+# First, we import a sequence of 3 images of 10-minute radar composites
 # and the corresponding NWP rainfall forecast that was available at that time.
 #
 # You need the pysteps-data archive downloaded and the pystepsrc file
@@ -32,7 +32,7 @@ from pysteps.visualization import plot_precip_field
 
 # Selected case
 date_radar = datetime.strptime("202010310400", "%Y%m%d%H%M")
-# The last NWP forecast was issued at 12:00 (and already gives the correct start time in pysteps data)
+# The last NWP forecast was issued at 00:00
 date_nwp = datetime.strptime("202010310000", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["bom"]
 nwp_data_source = rcparams.data_sources["bom_nwp"]
