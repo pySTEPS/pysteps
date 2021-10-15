@@ -2,7 +2,11 @@
 pysteps.blending.clim
 =====================
 
-Module with methods to read, write and compute past and climatological model weights.
+Module with methods to read, write and compute past and climatological NWP model 
+skill scores. The module stores the average daily skill score for the past t days
+and updates it every day. The resulting average climatological skill score is
+the skill the NWP model skill regresses to during the blended forecast. If no
+climatological values are present, the default skill from :cite:`BPS2006` is used.
 
 .. autosummary::
     :toctree: ../generated/
@@ -20,7 +24,7 @@ from pysteps import rcparams
 
 def get_default_weights(n_cascade_levels=8, n_models=1):
     """
-    Get the default weights as given in BPS2004.
+    Get the default climatological skill values as given in :cite:`BPS2006`.
     Take subset of n_cascade_levels or add entries with small values (1e-4) if
     n_cascade_levels differs from 8.
 
@@ -34,7 +38,8 @@ def get_default_weights(n_cascade_levels=8, n_models=1):
     Returns
     -------
     default_weights: array-like
-      Array of shape [model, scale_level] containing the climatological weights.
+      Array of shape [model, scale_level] containing the climatological skill
+      values.
 
     """
 
@@ -58,9 +63,8 @@ def save_weights(
     window_length=30,
 ):
     """
-    Add the current NWP weights to update today's daily average weight. If the
-    day is over, update the list of daily average weights covering a rolling
-    window.
+    Add the current NWP skill to update today's daily average skill. If the day
+    is over, update the list of daily average skill covering a rolling window.
 
     Parameters
     ----------
@@ -145,7 +149,7 @@ def calc_clim_weights(
     window_length=30,
 ):
     """
-    Return the climatological weights based on the daily average weights in the
+    Return the climatological skill based on the daily average skill in the
     rolling window. This is done using a geometric mean.
 
     Parameters

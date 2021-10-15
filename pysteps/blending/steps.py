@@ -4,9 +4,37 @@ pysteps.blending.steps
 ======================
 
 Implementation of the STEPS stochastic blending method as described in
-:cite:`BPS2006`. The method assumes the presence of one NWP model or ensemble
-member to be blended with one nowcast. More models, such as in :cite:`SPN2013`
-is possible with this code, but we recommend the use of just two models.
+:cite:`BPS2004`, :cite:`BPS2006` and :cite:`SPN2013`. The STEPS blending method
+consists of the following main steps:
+    1. Set the radar rainfall fields in a Lagrangian space.
+    2. Initialize the noise method.
+    3. Perform the cascade decomposition for the input radar rainfall fields. 
+    The method assumes that the cascade decomposition of the NWP model fields is
+    already done prior to calling the function, as the NWP model fields are 
+    generally not updated with the same frequency (which is more efficient). A 
+    method to decompose and store the NWP model fields whenever a new NWP model
+    field is present, is present in pysteps.blending.utils.decompose_NWP.
+    4. Estimate AR parameters for the extrapolation nowcast and noise cascade.
+    5. Before starting the forecast loop, determine which NWP models will be 
+    combined with which nowcast ensemble members. The number of output ensemble
+    members equals the maximum number of (ensemble) members in the input, which 
+    can be either the defined number of (nowcast) ensemble members or the number
+    of NWP models/members.
+    6. Initialize all the random generators.
+    7. Calculate the initial skill of the NWP model forecasts at t=0.
+    8. Start the forecasting loop
+        8.1 Determine the skill and weights of the forecasting components (
+            extrapolation, NWP and noise) for that lead time. 
+        8.2 Regress the extrapolation and noise cascades separately to the 
+            subsequent time step.
+        8.3 Extrapolat the extrapolation and noise cascades to the current time
+            step.
+        8.4 Blend the cascades.
+        8.5 Recompose the cascade to a rainfall field. 
+        8.6 Post-processing steps (masking and probability matching, which are
+                                   different from the original blended STEPS
+                                   implementation).
+
 
 .. autosummary::
     :toctree: ../generated/
@@ -18,11 +46,6 @@ is possible with this code, but we recommend the use of just two models.
     _check_inputs
     _compute_incremental_mask
 
-References
-----------
-:cite:`BPS2004`
-:cite:`BPS2006`
-:cite:`SPN2013`
 """
 
 import numpy as np
@@ -291,7 +314,7 @@ def forecast(
 
     References
     ----------
-    :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
+    :cite:`Seed2003`, :cite:`BPS2004`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
 
     Notes
     -----
@@ -449,8 +472,8 @@ def forecast(
         MASK_thr = None
 
     ###
-    # 1. Start with the radar rainfall field extrapolation to get the
-    # different time steps in a Lagrangian space
+    # 1. Start with the radar rainfall fields. We want the fields in a
+    # Lagrangian space
     ###
     # advect the previous precipitation fields to the same position with the
     # most recent one (i.e. transform them into the Lagrangian coordinates)

@@ -3,7 +3,7 @@
 pysteps.blending.utils
 ======================
 
-Module with common utilities used by blending methods.
+Module with common utilities used by the blending methods.
 
 .. autosummary::
     :toctree: ../generated/
