@@ -22,7 +22,7 @@ def forecast(
     timesteps,
     timestep,
     nowcast_method,
-    R_nwp=None,
+    precip_nwp=None,
     start_blending=120,
     end_blending=240,
     fill_nwp=True,
@@ -47,13 +47,13 @@ def forecast(
       The time difference (in minutes) between consecutive forecast fields.
     nowcast_method: {'anvil', 'eulerian', 'lagrangian', 'extrapolation', 'lagrangian_probability', 'sprog', 'steps', 'sseps'}
       Name of the nowcast method used to forecast the precipitation.
-    R_nwp: array_like or NoneType, optional
+    precip_nwp: array_like or NoneType, optional
       Array of shape (timesteps, m, n) in the case of no ensemble or
       of shape (n_ens_members, timesteps, m, n) in the case of an ensemble
       containing the NWP precipitation fields ordered by timestamp from oldest
       to newest. The time steps between the inputs are assumed to be regular
       (and identical to the time step between the nowcasts). If no NWP
-      data is given the value of R_nwp is None and no blending will be performed.
+      data is given the value of precip_nwp is None and no blending will be performed.
     start_blending: int, optional
       Time stamp (in minutes) after which the blending should start. Before this
       only the nowcast data is used.
@@ -78,30 +78,32 @@ def forecast(
 
     # Calculate the nowcasts
     nowcast_method_func = nowcasts.get_method(nowcast_method)
-    R_nowcast = nowcast_method_func(
+    precip_nowcast = nowcast_method_func(
         precip,
         velocity,
         timesteps,
         **nowcast_kwargs,
     )
 
-    # Transform the precipitation back to mm/h
-    R_nowcast = transformation.dB_transform(R_nowcast, threshold=-10.0, inverse=True)[0]
+    # Make sure that precip_nowcast and precip_nwp are in mm/h
+    precip_nowcast = transformation.dB_transform(
+        precip_nowcast, threshold=-10.0, inverse=True
+    )[0]
 
     # Check if NWP data is given as input
-    if R_nwp is not None:
+    if precip_nwp is not None:
 
-        if len(R_nowcast.shape) == 4:
-            n_ens_members_nowcast = R_nowcast.shape[0]
+        if len(precip_nowcast.shape) == 4:
+            n_ens_members_nowcast = precip_nowcast.shape[0]
             if n_ens_members_nowcast == 1:
-                R_nowcast = np.squeeze(R_nowcast)
+                precip_nowcast = np.squeeze(precip_nowcast)
         else:
             n_ens_members_nowcast = 1
 
-        if len(R_nwp.shape) == 4:
-            n_ens_members_nwp = R_nwp.shape[0]
+        if len(precip_nwp.shape) == 4:
+            n_ens_members_nwp = precip_nwp.shape[0]
             if n_ens_members_nwp == 1:
-                R_nwp = np.squeeze(R_nwp)
+                precip_nwp = np.squeeze(precip_nwp)
         else:
             n_ens_members_nwp = 1
 
@@ -110,10 +112,12 @@ def forecast(
 
         if n_ens_members_min != n_ens_members_max:
             if n_ens_members_nwp == 1:
-                R_nwp = np.repeat(R_nwp[np.newaxis, :, :], n_ens_members_max, axis=0)
+                precip_nwp = np.repeat(
+                    precip_nwp[np.newaxis, :, :], n_ens_members_max, axis=0
+                )
             elif n_ens_members_nowcast == 1:
-                R_nowcast = np.repeat(
-                    R_nowcast[np.newaxis, :, :], n_ens_members_max, axis=0
+                precip_nowcast = np.repeat(
+                    precip_nowcast[np.newaxis, :, :], n_ens_members_max, axis=0
                 )
             else:
                 repeats = [
@@ -122,19 +126,19 @@ def forecast(
                 ]
 
                 if n_ens_members_nwp == n_ens_members_min:
-                    R_nwp = np.repeat(R_nwp, repeats, axis=0)
+                    precip_nwp = np.repeat(precip_nwp, repeats, axis=0)
                 elif n_ens_members_nowcast == n_ens_members_min:
-                    R_nowcast = np.repeat(R_nowcast, repeats, axis=0)
+                    precip_nowcast = np.repeat(precip_nowcast, repeats, axis=0)
 
         # Check if dimensions are correct
         assert (
-            R_nwp.shape == R_nowcast.shape
-        ), "The dimensions of R_nowcast and R_nwp need to be identical: dimension of R_nwp = {} and dimension of R_nowcast = {}".format(
-            R_nwp.shape, R_nowcast.shape
+            precip_nwp.shape == precip_nowcast.shape
+        ), "The dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {} and dimension of precip_nowcast = {}".format(
+            precip_nwp.shape, precip_nowcast.shape
         )
 
         # Initialise output
-        R_blended = np.zeros_like(R_nowcast)
+        R_blended = np.zeros_like(precip_nowcast)
 
         # Calculate the weights
         for i in range(timesteps):
@@ -154,24 +158,25 @@ def forecast(
             # Calculate weight_nowcast
             weight_nowcast = 1.0 - weight_nwp
 
-            # Calculate output by combining R_nwp and R_nowcast,
+            # Calculate output by combining precip_nwp and precip_nowcast,
             # while distinguishing between ensemble and non-ensemble methods
             if n_ens_members_max == 1:
                 R_blended[i, :, :] = (
-                    weight_nwp * R_nwp[i, :, :] + weight_nowcast * R_nowcast[i, :, :]
+                    weight_nwp * precip_nwp[i, :, :]
+                    + weight_nowcast * precip_nowcast[i, :, :]
                 )
             else:
                 R_blended[:, i, :, :] = (
-                    weight_nwp * R_nwp[:, i, :, :]
-                    + weight_nowcast * R_nowcast[:, i, :, :]
+                    weight_nwp * precip_nwp[:, i, :, :]
+                    + weight_nowcast * precip_nowcast[:, i, :, :]
                 )
 
             # Find where the NaN values are and replace them with NWP data
             if fill_nwp:
                 nan_indices = np.isnan(R_blended)
-                R_blended[nan_indices] = R_nwp[nan_indices]
+                R_blended[nan_indices] = precip_nwp[nan_indices]
     else:
         # If no NWP data is given, the blended field is simply equal to the nowcast field
-        R_blended = R_nowcast
+        R_blended = precip_nowcast
 
     return R_blended
