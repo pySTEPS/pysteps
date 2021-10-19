@@ -43,7 +43,7 @@ regr_pars_9lev = np.array(
 )
 
 # Set the dummy observation and model values
-dummy_2d_array = np.array([[1, 2], [3, 4]])
+dummy_2d_array = np.array([[1.0, 2.0], [3.0, 4.0]])
 obs_8lev = np.repeat(dummy_2d_array[None, :, :], 8, axis=0)
 obs_6lev = np.repeat(dummy_2d_array[None, :, :], 6, axis=0)
 obs_9lev = np.repeat(dummy_2d_array[None, :, :], 9, axis=0)
@@ -213,8 +213,10 @@ def test_blending_skill_scores(
     extrapolation field.
 
     """
+    domain_mask = np.full(obs[0, :, :].shape, False, dtype=bool)
+
     # Calculate the spatial correlation of the given model field
-    correlations_t0 = np.array(spatial_correlation(obs, mod))
+    correlations_t0 = np.array(spatial_correlation(obs, mod, domain_mask))
 
     # Check if the field has the same number of cascade levels as the model
     # field and as the given n_cascade_levels
