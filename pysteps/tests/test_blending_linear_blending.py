@@ -86,7 +86,7 @@ def test_linear_blending(
         timestep,
         nowcast_method,
         r_nwp,
-        dict({"unit": "mm/h"}),
+        dict({"unit": "mm/h", "transform": None}),
         start_blending=start_blending,
         end_blending=end_blending,
     )
