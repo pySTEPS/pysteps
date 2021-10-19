@@ -9,7 +9,6 @@ Module with common utilities used by the blending methods.
     :toctree: ../generated/
 
     stack_cascades
-    normalize_cascade
     blend_cascades
     recompose_cascade
     blend_optical_flows
@@ -65,31 +64,6 @@ def stack_cascades(R_d, donorm=True):
         mu_c.append(mu_)
         sigma_c.append(sigma_)
     return np.stack(R_c), np.stack(mu_c), np.stack(sigma_c)
-
-
-def normalize_cascade(cascade):
-    """Normalizes a cascade (again).
-
-    Parameters
-    ----------
-    cascade : array-like
-      An array of shape [scale_level, y, x]
-      containing per scale level a cascade that has to be normalized (again).
-
-    Returns
-    -------
-    out : array-like
-        The normalized cascade with the same shape as cascade.
-
-    """
-    # Determine the mean and standard dev. of the combined cascade
-    mu = np.mean(cascade, axis=(1, 2))
-    sigma = np.std(cascade, axis=(1, 2))
-    # Normalize the cascade
-    out = [(cascade[i] - mu[i]) / sigma[i] for i in range(cascade.shape[0])]
-    out = np.stack(out)
-
-    return out
 
 
 def blend_cascades(cascades_norm, weights):
@@ -179,15 +153,8 @@ def recompose_cascade(combined_cascade, combined_mean, combined_sigma):
     out: array-like
         A two-dimensional array containing the recomposed cascade.
 
-    Notes
-    -----
-    The combined_cascade is made with weights that do not have to sum up to
-    1.0. Therefore, the combined_cascade is first normalized again using
-    normalize_cascade.
     """
-    # First, normalize the combined_cascade again
-    combined_cascade = normalize_cascade(combined_cascade)
-    # Now, renormalize it with the blended sigma and mean values
+    # Renormalize with the blended sigma and mean values
     renorm = (
         combined_cascade * combined_sigma.reshape(combined_cascade.shape[0], 1, 1)
     ) + combined_mean.reshape(combined_mean.shape[0], 1, 1)
