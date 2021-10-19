@@ -14,4 +14,3 @@ Implementation of deterministic and ensemble nowcasting methods.
 .. automodule:: pysteps.nowcasts.sseps
 .. automodule:: pysteps.nowcasts.steps
 .. automodule:: pysteps.nowcasts.utils
-.. automodule:: pysteps.nowcasts.linear_blending

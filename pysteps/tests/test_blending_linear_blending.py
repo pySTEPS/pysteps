@@ -2,9 +2,9 @@
 
 import numpy as np
 import pytest
-from pysteps.nowcasts.linear_blending import forecast
+from pysteps.blending.linear_blending import forecast
 from numpy.testing import assert_array_almost_equal
-from pysteps.utils import conversion, transformation
+from pysteps.utils import transformation
 
 # Test function arguments
 linear_arg_values = [
@@ -61,47 +61,49 @@ def test_linear_blending(
     ), "Control time needs to be a multiple of the time step"
 
     # Initialise dummy NWP data
-    R_NWP = np.zeros((n_timesteps, 200, 200))
+    r_nwp = np.zeros((n_timesteps, 200, 200))
 
     for i in range(100):
-        R_NWP[:, i, :] = 11.0
+        r_nwp[:, i, :] = 11.0
 
     # Define nowcast input data
-    R_input = np.zeros((200, 200))
+    r_input = np.zeros((200, 200))
 
     for i in range(100, 200):
-        R_input[i, :] = 11.0
+        r_input[i, :] = 11.0
 
     # Transform from mm/h to dB
-    R_input, _ = transformation.dB_transform(
-        R_input, None, threshold=0.1, zerovalue=-15.0
+    r_input, _ = transformation.dB_transform(
+        r_input, None, threshold=0.1, zerovalue=-15.0
     )
 
     # Calculate the blended field
-    R_blended = forecast(
-        R_input,
+    r_blended = forecast(
+        r_input,
+        dict({"unit": "mm/h", "transform": "dB"}),
         V,
         n_timesteps,
         timestep,
         nowcast_method,
-        R_NWP,
+        r_nwp,
+        dict({"unit": "mm/h"}),
         start_blending=start_blending,
         end_blending=end_blending,
     )
 
     # Assert that the blended field has the expected dimension
-    assert R_blended.shape == (
+    assert r_blended.shape == (
         n_timesteps,
         200,
         200,
     ), "The shape of the blended array does not have the expected value. The shape is {}".format(
-        R_blended.shape
+        r_blended.shape
     )
 
     # Assert that the blended field at the control time step is equal to
     # a constant field with the expected value.
     assert_array_almost_equal(
-        R_blended[controltime // timestep - 1],
+        r_blended[controltime // timestep - 1],
         np.ones((200, 200)) * 5.5,
         err_msg="The blended array does not have the expected value",
     )

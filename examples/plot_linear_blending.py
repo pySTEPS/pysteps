@@ -3,43 +3,48 @@
 """
 Plot linear blending
 ====================
+
+This tutorial shows how to construct a simple linear blending between an ensemble 
+nowcast and a dummy Numerical Weather Prediction (NWP) rainfall forecast.
 """
 
-from matplotlib import cm, pyplot as plt
+# TODO: Make xarray ready for pysteps-v2
+
+from matplotlib import pyplot as plt
 import numpy as np
 from pprint import pprint
+from datetime import datetime
 from pysteps.motion.lucaskanade import dense_lucaskanade
-from pysteps import io, rcparams, nowcasts
+from pysteps import io, rcparams
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
-from datetime import datetime
 from pysteps.utils import dimension
-from pysteps.nowcasts.linear_blending import forecast
+from pysteps.blending.linear_blending import forecast
 
 
 def gaussian(x, max, mean, sigma):
     return max * np.exp(-(x - mean) * (x - mean) / sigma / sigma / 2)
 
 
-def dummy_nwp(R, n_leadtimes, max=20, mean=0, sigma=0.25, speed=100):
+def dummy_nwp(precip, n_leadtimes, max=20, mean=0, sigma=0.25, speed=100):
     """Generates dummy NWP data with the same dimension as the input
-    precipitation field R. The NWP data is a vertical line with a Gaussian
+    precipitation field precip. The NWP data is a vertical line with a Gaussian
     profile moving to the left"""
 
-    # R is original radar image
-    rows = R.shape[0]
-    cols = R.shape[1]
+    # precip is original radar image
+    rows = precip.shape[0]
+    cols = precip.shape[1]
 
     # Initialise the dummy NWP data
-    R_nwp = np.zeros((n_leadtimes, rows, cols))
+    precip_nwp = np.zeros((n_leadtimes, rows, cols))
     x = np.linspace(-5, 5, cols)
 
     for n in range(n_leadtimes):
         for i in range(rows):
-            R_nwp[n, i, :] = gaussian(x, max, mean, sigma)
+            precip_nwp[n, i, :] = gaussian(x, max, mean, sigma)
         mean -= speed / rows
 
-    return R_nwp
+    return precip_nwp
 
 
 ###############################################################################
@@ -75,23 +80,44 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+precip = io.read_timeseries(fns, importer, legacy=False, **importer_kwargs)
+
+# Get the metadata
+metadata = precip.x.attrs.copy()
+metadata.update(**precip.y.attrs)
+metadata.update(**precip.attrs)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+precip, metadata = conversion.to_rainrate(precip, metadata)
 
 # Upscale data to 2 km to limit memory usage
-R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
+precip, metadata = dimension.aggregate_fields_space(precip, metadata, 2000)
 
 # Import the dummy NWP data (vertical line moving to the left)
-R_nwp = dummy_nwp(R[-1, :, :], n_leadtimes + 1, max=7, mean=4, speed=0.2 * 350)
+precip_nwp = dummy_nwp(
+    precip[-1, :, :], n_leadtimes + 1, max=7, mean=4, speed=0.2 * 350
+)
+metadata_nwp = metadata.copy()
+
+# Plot the radar rainfall field and the first time step of the dummy NWP forecast.
+date_str = datetime.strftime(date, "%Y-%m-%d %H:%M")
+plt.figure(figsize=(10, 5))
+plt.subplot(121)
+plot_precip_field(
+    precip[-1, :, :], geodata=metadata, title=f"Radar observation at {date_str}"
+)
+plt.subplot(122)
+plot_precip_field(
+    precip_nwp[0, :, :], geodata=metadata_nwp, title=f"Dummy NWP forecast at {date_str}"
+)
+plt.tight_layout()
+plt.show()
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
 # set the fill value to -15 dBR
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
-
-# Set missing values with the fill value
-# R[~np.isfinite(R)] = -15.0
+precip, metadata = transformation.dB_transform(
+    precip, metadata, threshold=0.1, zerovalue=-15.0
+)
 
 # Nicely print the metadata
 pprint(metadata)
@@ -100,7 +126,7 @@ pprint(metadata)
 # Linear blending of nowcast and NWP data
 
 # Estimate the motion field
-V = dense_lucaskanade(R)
+velocity = dense_lucaskanade(precip)
 
 # Define nowcast keyword arguments
 nowcast_kwargs = {
@@ -115,13 +141,15 @@ nowcast_kwargs = {
 }
 
 # Calculate the blended precipitation field
-R_blended = forecast(
-    R[-3:, :, :],
-    V,
-    n_leadtimes,
-    timestep,
-    "steps",
-    R_nwp=R_nwp[1:, :, :],
+precip_blended = forecast(
+    precip=precip[-3:, :, :],
+    precip_metadata=metadata,
+    velocity=velocity,
+    timesteps=n_leadtimes,
+    timestep=timestep,
+    nowcast_method="steps",
+    precip_nwp=precip_nwp[1:, :, :],
+    precip_nwp_metadata=metadata_nwp,
     start_blending=start_blending,
     end_blending=end_blending,
     nowcast_kwargs=nowcast_kwargs,
@@ -132,13 +160,13 @@ extrap_kwargs = {"allow_nonfinite_values": True}
 nowcast_kwargs = {"extrap_kwargs": extrap_kwargs}
 
 # Calculate the blended precipitation field
-R_blended = forecast(
-    R[-1, :, :],
+precip_blended = forecast(
+    precip[-1, :, :],
     V,
     n_leadtimes,
     timestep,
     "extrapolation",
-    R_nwp=R_nwp[1: :, :],
+    precip_nwp=precip_nwp[1: :, :],
     start_blending=start_blending,
     end_blending=end_blending,
     nowcast_kwargs=nowcast_kwargs,
@@ -146,15 +174,15 @@ R_blended = forecast(
 """
 
 # Calculate the ensemble average
-if len(R_blended.shape) == 4:
-    R_blended_mean = np.mean(R_blended[:, :, :, :], axis=0)
+if len(precip_blended.shape) == 4:
+    precip_blended_mean = np.mean(precip_blended[:, :, :, :], axis=0)
 else:
-    R_blended_mean = np.copy(R_blended)
+    precip_blended_mean = np.copy(precip_blended)
 
 # Plot the blended field
-for i in range(n_leadtimes):
+for i in range(0, n_leadtimes, 3):
     plot_precip_field(
-        R_blended_mean[i, :, :],
+        precip_blended_mean[i, :, :],
         geodata=metadata,
         title="Blended field (+ %i min)" % ((i + 1) * timestep),
     )
