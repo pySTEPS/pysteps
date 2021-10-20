@@ -744,7 +744,9 @@ def forecast(
             vp_ = init_vel_noise(V, 1.0 / kmperpixel, timestep, **kwargs)
             vps.append(vp_)
 
+    # Empty arrays for the previous displacements and the forecast cascade
     D = np.stack([np.full(n_cascade_levels, None) for j in range(n_ens_members)])
+    D_pb = np.stack([None for j in range(n_ens_members)])
     R_f = [[] for j in range(n_ens_members)]
 
     if mask_method == "incremental":
@@ -942,6 +944,7 @@ def forecast(
             # (or subtimesteps if non-integer time steps are given)
             ###
             extrap_kwargs_ = extrap_kwargs.copy()
+            extrap_kwargs_pb = extrap_kwargs.copy()
             V_pert = V
             R_f_ep_out = []
             R_pb_ep = []
@@ -1015,15 +1018,16 @@ def forecast(
 
                     R_f_ep_out.append(R_f_ep)
 
-                    # Finally, also extrapolate the previous radar rainfall
+                    # Finally, also extrapolate the initial radar rainfall
                     # field. This will be blended with the rainfall field(s)
                     # of the (NWP) model(s) for Lagrangian blended prob. matching
                     min_R = np.min(R)
-                    R_pb_ep_, __ = extrapolator_method(
+                    extrap_kwargs_pb["displacement_prev"] = D_pb[j]
+                    R_pb_ep_, D_pb[j] = extrapolator_method(
                         R,
                         V_blended,
                         [t_diff_prev],
-                        **extrap_kwargs_,
+                        **extrap_kwargs_pb,
                     )
 
                     # Make sure we have no nans left
@@ -1072,6 +1076,7 @@ def forecast(
                     ],  # [(extr_field, n_model_fields), cascade_level=2]
                 )
 
+                # Extrapolate the extrapolation cascade
                 for i in range(n_cascade_levels):
                     extrap_kwargs_["displacement_prev"] = D[j][i]
                     _, D[j][i] = extrapolator_method(
@@ -1080,6 +1085,17 @@ def forecast(
                         [t_diff_prev],
                         **extrap_kwargs_,
                     )
+
+                # Also extrapolate the radar observation, used for the probability
+                # matching and post-processing steps
+                extrap_kwargs_pb["displacement_prev"] = D_pb[j]
+                _, D_pb[j] = extrapolator_method(
+                    None,
+                    V_blended,
+                    [t_diff_prev],
+                    **extrap_kwargs_pb,
+                )
+
                 t_prev[j] = t + 1
 
             ###
@@ -1161,7 +1177,8 @@ def forecast(
                         combined_mean=means_blended,
                         combined_sigma=sigmas_blended,
                     )
-                    # The recomposed cascade without the extrapolation (for NaN filling)
+                    # The recomposed cascade without the extrapolation (for NaN filling
+                    # outside the radar domain)
                     R_f_new_mod_only = blending.utils.recompose_cascade(
                         combined_cascade=R_f_blended_mod_only,
                         combined_mean=means_blended_mod_only,
@@ -1185,6 +1202,7 @@ def forecast(
                     # weights at scale level 2.
                     weights_pm = weights[:-1, 1]  # Weights without noise, level 2
                     weights_pm_normalized = weights_pm / np.sum(weights_pm)
+                    # And the weights for outside the radar domain
                     weights_pm_mod_only = weights[
                         1:-1, 1
                     ]  # Weights without noise, level 2
