@@ -161,8 +161,8 @@ to follow:
 * Avoid extraneous whitespace.
 * Don’t use whitespace to line up assignment operators (=, :).
 * Avoid writing multiple statements in the same line.
-* For the naming conventions, we recomend the following recomendations from
-  the `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_:
+* For the naming conventions, we recomend following the recomendations from
+  the `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_, summarized as follows:
 
    .. raw:: html
 
@@ -241,6 +241,7 @@ to follow:
           </tr>
 
         </table>
+   (source: `Section 3.16.4, Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_)
 
 - Ignore returned variables:
 
@@ -407,14 +408,14 @@ pushed, any errors introduced in that commit will be noticed after the stable in
 In addition, other developers start working on a new feature from master from a potentially broken state.
 
 Instead, it is recommended to work on each new feature in its own branch, which can be pushed to the central repository
-for backup/collaboration. When you’re done with the feature's development work, you can merge the feature branch into the master or submit a Pull Request. This approach has two main advantages:
+for backup/collaboration. When you’re done with the feature's development work, you can merge the feature branch into the
+master or submit a Pull Request. This approach has two main advantages:
 
 - Every commit on the feature branch is tested via GitHub Actions.
   If the tests fail, they do not affect the **master** branch.
 
-- Once the new feature, improvement, or bug correction is finished and the all
-  tests passed, the commits history can be squashed into a single commit and
-  then merged into the master branch.
+- Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
+  then merged into the master branch. Squashing the commits helps to keep a clean commit history in the main branch.
 
 This helps approach helps to keep the commits history clean and allows
 experimentation in the branch without compromising the stability of the package.
