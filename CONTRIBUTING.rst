@@ -12,20 +12,26 @@ There are many ways to contribute to pysteps:
 * code contributions, new features, or bug fixes
 * contribute with usage examples
 
-Our main forum for discussion is the project's
-`GitHub issue tracker <https://github.com/python/mypy/issues>`_.
-This is the right place to start a discussion, report a bug, or request a new
-feature.
-
 Workflow for code contributions
 -------------------------------
 
-We welcome all kinds of contributions! From documentation updates, bug fixes, or new features.
-To submit changes to the repository, we use the usual
+We welcome all kinds of contributions, like documentation updates, bug fixes, or new features.
+The workflow for the contibutions uses the usual
 `GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
 
+If you have ideas for new contributions to the project, feel free to get in touch with the pysteps community on our
+`pysteps slack`__.
+To get access to it, you need to ask for an invitation or you can use the automatic invitation page `here`__.
+The slack channel is a great place for preliminary discussions about new features or functionalities.
+Another place were you can report bugs and suggest new enhancemenets is the
+`project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
+
+__ https://pysteps.slack.com/
+__ https://pysteps-slackin.herokuapp.com/
+
+
 First Time Contributors
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 If you are interested in helping to improve pysteps,
 the best way to get started is by looking for "Good First Issue" in the
@@ -44,7 +50,7 @@ In a nutshell, the main steps to follow for contributing to pysteps are:
 
 
 Setting up the Development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------
 
 The recommended way to setup up the developer environment is the Anaconda
 (commonly referred to as Conda).
@@ -102,13 +108,13 @@ If you are new to GitHub, below you can find a list of helpful tutorials:
 Install pre-commit hooks
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Once you cloned the repository and the development environment is installed (and active),
-install the git pre-commit hook by executing the following command in the repository's
+After setting up your development environment, install the git pre-commit hook by executing the following command in the repository's
 root::
 
     pre-commit install
 
-The pre-commit hooks are scripts executed automatically in every commit to identify simple issues with the code. When an issue is identified (the pre-commit script exits with non-zero status), the hook aborts the commit and prints the error.
+The pre-commit hooks are scripts executed automatically in every commit to identify simple issues with the code.
+When an issue is identified (the pre-commit script exits with non-zero status), the hook aborts the commit and prints the error.
 Currently, Pysteps only tests that the code to be committed complies with black's format style.
 In case that the commit is aborted, you only need to run black in the entire source code.
 This can be done by running :code:`black .` or :code:`pre-commit run --all-files`.
@@ -140,20 +146,11 @@ For more information on how to create and work with branches, see
 
 
 Code Style
-~~~~~~~~~~
+----------
 
 We strongly suggest following the
 `PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`_.
-Note that this is not strictly enforced yet, since many source files in pysteps
-are not PEP8 compliant.
-However, we encourage new contributions to be compliant at least with the coding style
-summarized next.
-
-Coding style summary
-^^^^^^^^^^^^^^^^^^^^
-
-For quick reference, these are the most important good coding practices
-to follow:
+Since PEP8 is a set of recommendations, these are the most important good coding practices for the pystep project:
 
 * Always use four spaces for indentation (don’t use tabs).
 * Max line-length: 88 characters (note that we don't use the PEP8's 79 value).
@@ -243,9 +240,7 @@ to follow:
         </table>
    (source: `Section 3.16.4, Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_)
 
-- Ignore returned variables:
-
-  If you need to ignore part of the variables returned by a function,
+- If you need to ignore part of the variables returned by a function,
   use "_" (single underscore) or __ (double underscore)::
 
     precip, __, metadata = import_bom_rf3('example_file.bom')
@@ -287,9 +282,10 @@ For more suggestions on good coding practices for python, check these guidelines
 
 **Using Black auto-formatter**
 
-To ensure a minimal style consistency, in pysteps we use
-`black <https://black.readthedocs.io/en/stable/>`_ to auto-format to the code.
-The black configuration used in the pysteps project is defined in the pyproject.toml, and it is automatically detected by black.
+To ensure a minimal style consistency, we use
+`black <https://black.readthedocs.io/en/stable/>`_ to auto-format to the source code.
+The black configuration used in the pysteps project is defined in the pyproject.toml,
+and it is automatically detected by black.
 
 Black can be installed using any of the following::
 
@@ -303,11 +299,10 @@ Black can be installed using any of the following::
 Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`_
 for more information.
 
-
 **Docstrings**
 
 Every module, function, or class must have a docstring that describe its
-purpose and how to use it, following the conventions described in the
+purpose and how to use it. The docstrings follows the conventions described in the
 `PEP 257 <https://www.python.org/dev/peps/pep-0257/#multi-line-docstrings>`_
 and the
 `Numpy's docstrings format <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
@@ -340,10 +335,14 @@ Here is an example of a docstring::
         """
 
 
+Contributions guidelines
+------------------------
+
+The collaborator guidelines used in pysteps closely were largely inspired by those suggested in the
+`MyPy project <https://github.com/python/mypy>`_.
+
 Collaborators guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following collaborator guidelines were adapted from the `MyPy <https://github.com/python/mypy>`_ contributing guide.
 
 As a collaborator, all your new contributions should be made in a new branch under your forked repository.
 Working on the master branch is reserved for Core Contributors only to submit small changes only.
@@ -354,13 +353,13 @@ the **pysteps** repository.
 **IMPORTANT**
 However, for contribution requires a significant amount of work, we strongly suggest tagging the issues with
 the **enhancement** tag to encourage discussions.
-The discussions resulting from that issue will help clarify the best way to approach the suggested changes or
-discuss potential concerns about the proposed changes.
+The discussions will help clarify the best way to approach the suggested changes or raise potential concerns.
 
-To include the contributions for collaborators, we use the usual
-`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_. Once your proposed changes are ready,
-you need to create a pull request (PR) from your fork in your GitHub account. Afterward, core contributors will review your proposed changes, provide feedback in the PR discussion, and sometimes request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main
-branch.
+For code contributions, collaboratos can use the usual
+`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
+Once your proposed changes are ready, you need to create a pull request (PR) from your fork in your GitHub account.
+Afterward, core contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
+request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main branch.
 
 **Important:**
 It is strongly suggested that each PR only address a single objective (e.g., fix a bug, improve documentation, etc.).
@@ -374,10 +373,9 @@ Testing your changes
 Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass.
 See the :ref:`testing_pysteps` for the instruction to run the tests.
 
-Although it is not strictly needed, we suggest creating minimal tests for
-new contributions to ensure that it achieves the desired behavior.
-Pysteps uses the pytest framework that it is easy to use and also
-supports complex functional testing for applications and libraries.
+Although it is not strictly needed, we suggest creating minimal tests for new contributions to ensure that it achieves
+the desired behavior. Pysteps uses the pytest framework that it is easy to use and also supports complex functional
+testing for applications and libraries.
 Check the `pytests official documentation <https://docs.pytest.org/en/latest/index.html>`_ for more information.
 
 The tests should be placed under the
@@ -389,9 +387,8 @@ descriptive name.
 A quick way to get familiar with the pytest syntax and the testing procedures
 is checking the python scripts present in the pysteps test module.
 
-
 Core developer guidelines
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Working directly on the master branch is discouraged and is reserved only
 for small changes and updates that do not compromise the stability of the code.
@@ -417,9 +414,6 @@ master or submit a Pull Request. This approach has two main advantages:
 - Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
   then merged into the master branch. Squashing the commits helps to keep a clean commit history in the main branch.
 
-This helps approach helps to keep the commits history clean and allows
-experimentation in the branch without compromising the stability of the package.
-
 
 Processing pull requests
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -432,11 +426,11 @@ project:
 
 * Always wait for tests to pass before merging PRs.
 * Always use "`Squash and merge`_"  to merge PRs.
-* Make sure that the subject of the commit message summarizes the objective of the PR and has no trailing dot.
-* Write a new commit message before merging that describes a detailed description of the changes introduced by the PR.
-  Try to keep the maximum line length under 80 characters. Split lines if necessary.
+* Make sure that the subject of the commit message summarizes the objective of the PR and does not finish with a dot.
+* Write a new commit message before merging that provides a detailed description of the changes introduced by the PR.
+  Try to keep the maximum line length under 80 characters, spplitting lines if necessary.
   **IMPORTANT:** Make sure that the commit message doesn't contain the branch's commit history!
-  Also, if the PR fixes an issue, mention it explicitly.
+  Also, if the PR fixes an issue, mention this explicitly.
 * Use the imperative mood in the subject line (e.g. "Fix typo in README").
 
 After the PR is merged, the merged branch can be safely deleted.
