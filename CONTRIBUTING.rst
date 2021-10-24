@@ -161,8 +161,8 @@ to follow:
 * Avoid extraneous whitespace.
 * Don’t use whitespace to line up assignment operators (=, :).
 * Avoid writing multiple statements in the same line.
-* For the naming conventions, we follow the
-  `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_ recomendations:
+* For the naming conventions, we recomend the following recomendations from
+  the `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_:
 
    .. raw:: html
 
@@ -287,7 +287,8 @@ For more suggestions on good coding practices for python, check these guidelines
 **Using Black auto-formatter**
 
 To ensure a minimal style consistency, in pysteps we use
-`black <https://black.readthedocs.io/en/stable/>`_ to auto-format to the code. The black configuration used in the pysteps project is defined in the pyproject.toml, and it is automatically detected by black.
+`black <https://black.readthedocs.io/en/stable/>`_ to auto-format to the code.
+The black configuration used in the pysteps project is defined in the pyproject.toml, and it is automatically detected by black.
 
 Black can be installed using any of the following::
 
@@ -350,20 +351,27 @@ They are the only ones who accept pull requests and push commits directly to
 the **pysteps** repository.
 
 **IMPORTANT**
-However, for contribution requires a significant amount of work, we strongly suggest opening with the **enhancement** tag to encourage discussions.  The discussions resulting from that issue will help clarify the best way to approach the suggested changes or discuss potential concerns about the proposed changes.
+However, for contribution requires a significant amount of work, we strongly suggest tagging the issues with
+the **enhancement** tag to encourage discussions.
+The discussions resulting from that issue will help clarify the best way to approach the suggested changes or
+discuss potential concerns about the proposed changes.
 
 To include the contributions for collaborators, we use the usual
-`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_. Once your proposed changes are ready, you need to create a pull request (PR) from your fork in your GitHub account. Afterward, core contributors will review your proposed changes, provide feedback in the PR discussion, and sometimes request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main
+`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_. Once your proposed changes are ready,
+you need to create a pull request (PR) from your fork in your GitHub account. Afterward, core contributors will review your proposed changes, provide feedback in the PR discussion, and sometimes request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main
 branch.
 
 **Important:**
-It is strongly suggested that each PR only address a single objective (e.g., fix a bug, improve documentation, etc.). This will help to reduce the time needed to process the PR. For changes outside the PR's objectives, we highly recommend opening a new PR.
+It is strongly suggested that each PR only address a single objective (e.g., fix a bug, improve documentation, etc.).
+This will help to reduce the time needed to process the PR. For changes outside the PR's objectives, we highly
+recommend opening a new PR.
 
 
 Testing your changes
 ~~~~~~~~~~~~~~~~~~~~
 
-Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass. See the :ref:`testing_pysteps` for the instruction to run the tests.
+Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass.
+See the :ref:`testing_pysteps` for the instruction to run the tests.
 
 Although it is not strictly needed, we suggest creating minimal tests for
 new contributions to ensure that it achieves the desired behavior.
@@ -398,7 +406,8 @@ Since the tests take around 10 minutes and are run after the commit was
 pushed, any errors introduced in that commit will be noticed after the stable in the master branch was compromised.
 In addition, other developers start working on a new feature from master from a potentially broken state.
 
-Instead, it is recommended to work on each new feature in its own branch, which can be pushed to the central repository for backup/collaboration. When you’re done with the feature's development work, you can merge the feature branch into the master or submit a Pull Request. This approach has two main advantages:
+Instead, it is recommended to work on each new feature in its own branch, which can be pushed to the central repository
+for backup/collaboration. When you’re done with the feature's development work, you can merge the feature branch into the master or submit a Pull Request. This approach has two main advantages:
 
 - Every commit on the feature branch is tested via GitHub Actions.
   If the tests fail, they do not affect the **master** branch.
