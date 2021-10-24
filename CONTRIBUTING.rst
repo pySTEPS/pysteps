@@ -20,14 +20,12 @@ The workflow for the contibutions uses the usual
 `GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
 
 If you have ideas for new contributions to the project, feel free to get in touch with the pysteps community on our
-`pysteps slack`__.
-To get access to it, you need to ask for an invitation or you can use the automatic invitation page `here`__.
+`pysteps slack <https://pysteps.slack.com/>`__.
+To get access to it, you need to ask for an invitation or you can use the automatic invitation page
+`here <https://pysteps-slackin.herokuapp.com/>`__.
 The slack channel is a great place for preliminary discussions about new features or functionalities.
 Another place were you can report bugs and suggest new enhancemenets is the
 `project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
-
-__ https://pysteps.slack.com/
-__ https://pysteps-slackin.herokuapp.com/
 
 
 First Time Contributors
@@ -58,7 +56,7 @@ Conda quickly installs, runs, and updates packages and their dependencies.
 It also allows you to create, save, load, and switch between different environments on your local computer.
 
 Before continuing, Mac OSX users also need to install a more recent compiler.
-See instructions here: :ref:`OSX users <install_osx_users>`.
+See instructions `here <https://pysteps.readthedocs.io/en/latest/user_guide/install_pysteps.html#install-osx-users>`__.
 
 The developer environment can be created from the file
 `environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
@@ -76,15 +74,10 @@ but yet is still editable from the source tree::
 
     pip install -e <path to local pysteps repo>
 
-To test if the installation went fine, you can try launching Python and importing
-pysteps :ref:`Import pysteps <_import_pysteps>`.
+To test if the installation went fine, you can try importing pysteps from the python interpreter by running::
 
-**Note**: In case of installation or import errors, you can remove the pysteps_dev environment
-and try starting from an empty environment (adapt the Python version as needed)::
+    python -c "import pysteps"
 
-    conda create -n pysteps_dev python=3.8
-
-You can then activate it and install pysteps with pip as explained above.
 
 Fork the repository
 ~~~~~~~~~~~~~~~~~~~
@@ -142,24 +135,24 @@ Core Contributors are developers that actively work and maintain the repository.
 They are the only ones who accept pull requests and push commits directly to the pysteps repository.
 
 For more information on how to create and work with branches, see
-`"Branches in a Nutshell" <https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`_ in the Git documentation
+`"Branches in a Nutshell" <https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`__ in the Git documentation
 
 
 Code Style
 ----------
 
 We strongly suggest following the
-`PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`_.
+`PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`__.
 Since PEP8 is a set of recommendations, these are the most important good coding practices for the pystep project:
 
 * Always use four spaces for indentation (don’t use tabs).
-* Max line-length: 88 characters (note that we don't use the PEP8's 79 value).
-* Always indent wrapped code for readability.
-* Avoid extraneous whitespace.
-* Don’t use whitespace to line up assignment operators (=, :).
+* Max line-length: 88 characters (note that we don't use the PEP8's 79 value). Enforced by `black`.
+* Always indent wrapped code for readability. Enforced by `black`.
+* Avoid extraneous whitespace. Enforced by `black`.
+* Don’t use whitespace to line up assignment operators (=, :). Enforced by `black`.
 * Avoid writing multiple statements in the same line.
-* For the naming conventions, we recomend following the recomendations from
-  the `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_, summarized as follows:
+* Naming conventions should follow the recomendations from
+  the `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__, summarized as follows:
 
    .. raw:: html
 
@@ -238,7 +231,7 @@ Since PEP8 is a set of recommendations, these are the most important good coding
           </tr>
 
         </table>
-   (source: `Section 3.16.4, Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_)
+   (source: `Section 3.16.4, Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__)
 
 - If you need to ignore part of the variables returned by a function,
   use "_" (single underscore) or __ (double underscore)::
@@ -247,7 +240,7 @@ Since PEP8 is a set of recommendations, these are the most important good coding
     precip2, _, metadata2 = import_bom_rf3('example_file2.bom')
 
 
-- Zen of Python (`PEP 20 <https://www.python.org/dev/peps/pep-0020/>`_), the guiding principles for Python’s
+- Zen of Python (`PEP 20 <https://www.python.org/dev/peps/pep-0020/>`__), the guiding principles for Python’s
   design::
 
     >>> import this
@@ -275,15 +268,15 @@ Since PEP8 is a set of recommendations, these are the most important good coding
 
 For more suggestions on good coding practices for python, check these guidelines:
 
-- `The Hitchhiker's Guide to Python <https://docs.python-guide.org/writing/style/>`_
-- `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_
-- `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
+- `The Hitchhiker's Guide to Python <https://docs.python-guide.org/writing/style/>`__
+- `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__
+- `PEP8 <https://www.python.org/dev/peps/pep-0008/>`__
 
 
 **Using Black auto-formatter**
 
 To ensure a minimal style consistency, we use
-`black <https://black.readthedocs.io/en/stable/>`_ to auto-format to the source code.
+`black <https://black.readthedocs.io/en/stable/>`__ to auto-format to the source code.
 The black configuration used in the pysteps project is defined in the pyproject.toml,
 and it is automatically detected by black.
 
@@ -296,16 +289,16 @@ Black can be installed using any of the following::
 
     pip install black
 
-Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`_
+Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`__
 for more information.
 
 **Docstrings**
 
 Every module, function, or class must have a docstring that describe its
 purpose and how to use it. The docstrings follows the conventions described in the
-`PEP 257 <https://www.python.org/dev/peps/pep-0257/#multi-line-docstrings>`_
+`PEP 257 <https://www.python.org/dev/peps/pep-0257/#multi-line-docstrings>`__
 and the
-`Numpy's docstrings format <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
+`Numpy's docstrings format <https://numpydoc.readthedocs.io/en/latest/format.html>`__.
 
 Here is a summary of the most important rules:
 
@@ -338,8 +331,8 @@ Here is an example of a docstring::
 Contributions guidelines
 ------------------------
 
-The collaborator guidelines used in pysteps closely were largely inspired by those suggested in the
-`MyPy project <https://github.com/python/mypy>`_.
+The collaborator guidelines used in pysteps closely were largely inspired by those of the
+`MyPy project <https://github.com/python/mypy>`__.
 
 Collaborators guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -356,7 +349,7 @@ the **enhancement** tag to encourage discussions.
 The discussions will help clarify the best way to approach the suggested changes or raise potential concerns.
 
 For code contributions, collaboratos can use the usual
-`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
+`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`__.
 Once your proposed changes are ready, you need to create a pull request (PR) from your fork in your GitHub account.
 Afterward, core contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
 request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main branch.
@@ -371,7 +364,8 @@ Testing your changes
 ~~~~~~~~~~~~~~~~~~~~
 
 Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass.
-See the :ref:`testing_pysteps` for the instruction to run the tests.
+See the `Testing pySTEPS <https://pysteps.readthedocs.io/en/latest/developer_guide/test_pysteps.html#testing-pysteps>`__
+for detailed instruction to run the tests.
 
 Although it is not strictly needed, we suggest creating minimal tests for new contributions to ensure that it achieves
 the desired behavior. Pysteps uses the pytest framework that it is easy to use and also supports complex functional
@@ -448,17 +442,15 @@ Core developers should follow the steps to prepare a new release (version):
     * If new dependencies were added to pysteps since the last release, add
       them to the **environment.yml, requirements.txt**, and
       **requirements_dev.txt** files.
-
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
-
 #. Generating the source distribution for new pysteps version and upload it to
    the `Python Package Index <https://pypi.org/>`_ (PyPI).
-   See :ref:`pypi_relase` for a detailed description of this process.
-
+   See `Packaging the pysteps project <https://pysteps.readthedocs.io/en/latest/developer_guide/pypi.html#pypi-relase>`__
+   for a detailed description of this process.
 #. Update the conda-forge pysteps-feedstock following this guidelines:
-   :ref:`update_conda_feedstock`
+   `Updating the conda-forge pysteps-feedstock <https://pysteps.readthedocs.io/en/latest/developer_guide/update_conda_forge.html#update-conda-feedstock>`__
 
 
 Credits
