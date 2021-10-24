@@ -163,13 +163,6 @@ to follow:
 * Avoid writing multiple statements in the same line.
 * For the naming conventions, we follow the
   `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_ recomendations:
-  "Function names, variable names, and filenames should be descriptive and self-explanatory.
-  Avoid using abbreviations that are ambiguous or unfamiliar to readers outside your project, and do not abbreviate
-  by deleting letters within a word.
-  Avoid single-letter variables if possible and use more verbose names for clarity. An exception for this are indexes
-  in loops (*i, j, k, etc*)."
-
-  These recomendations are summarized below (adapted from Google's style guide):
 
    .. raw:: html
 
