@@ -23,8 +23,8 @@ If you have ideas for new contributions to the project, feel free to get in touc
 `pysteps slack <https://pysteps.slack.com/>`__.
 To get access to it, you need to ask for an invitation or you can use the automatic invitation page
 `here <https://pysteps-slackin.herokuapp.com/>`__.
-The slack channel is a great place for preliminary discussions about new features or functionalities.
-Another place were you can report bugs and suggest new enhancemenets is the
+Our slack channel is a great place for preliminary discussions about new features or functionalities.
+Another place where you can report bugs and suggest new enhancements is the
 `project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
 
 
@@ -143,7 +143,7 @@ Code Style
 
 We strongly suggest following the
 `PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`__.
-Since PEP8 is a set of recommendations, these are the most important good coding practices for the pystep project:
+Since PEP8 is a set of recommendations, these are the most important good coding practices for the pysteps project:
 
 * Always use four spaces for indentation (don’t use tabs).
 * Max line-length: 88 characters (note that we don't use the PEP8's 79 value). Enforced by `black`.
@@ -331,7 +331,7 @@ Here is an example of a docstring::
 Contributions guidelines
 ------------------------
 
-The collaborator guidelines used in pysteps closely were largely inspired by those of the
+The collaborator guidelines used in pysteps were largely inspired by those of the
 `MyPy project <https://github.com/python/mypy>`__.
 
 Collaborators guidelines
@@ -344,8 +344,8 @@ They are the only ones who accept pull requests and push commits directly to
 the **pysteps** repository.
 
 **IMPORTANT**
-However, for contribution requires a significant amount of work, we strongly suggest tagging the issues with
-the **enhancement** tag to encourage discussions.
+However, for contribution requires a significant amount of work, we strongly suggest opening a new issue with
+the **enhancement** or **discussion** tag to encourage discussions.
 The discussions will help clarify the best way to approach the suggested changes or raise potential concerns.
 
 For code contributions, collaboratos can use the usual
@@ -355,7 +355,7 @@ Afterward, core contributors will review your proposed changes, provide feedback
 request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main branch.
 
 **Important:**
-It is strongly suggested that each PR only address a single objective (e.g., fix a bug, improve documentation, etc.).
+It is strongly suggested that each PR only addresses a single objective (e.g., fix a bug, improve documentation, etc.).
 This will help to reduce the time needed to process the PR. For changes outside the PR's objectives, we highly
 recommend opening a new PR.
 
@@ -394,8 +394,8 @@ The pysteps repository uses the GitHub Actions service to run tests every time y
 In that way, your modifications along with the entire library are tested.
 
 Pushing untested or work-in-progress changes to the master branch can potentially introduce bugs or break the stability of the package.
-Since the tests take around 10 minutes and are run after the commit was
-pushed, any errors introduced in that commit will be noticed after the stable in the master branch was compromised.
+Since the tests triggered by a commit to the master branch take around 20 minutes, any errors introduced there
+will be noticed after the stablility of the master branch was compromised.
 In addition, other developers start working on a new feature from master from a potentially broken state.
 
 Instead, it is recommended to work on each new feature in its own branch, which can be pushed to the central repository
