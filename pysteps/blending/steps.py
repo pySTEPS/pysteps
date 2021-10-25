@@ -746,6 +746,7 @@ def forecast(
 
     # Empty arrays for the previous displacements and the forecast cascade
     D = np.stack([np.full(n_cascade_levels, None) for j in range(n_ens_members)])
+    D_Yn = np.stack([np.full(n_cascade_levels, None) for j in range(n_ens_members)])
     D_pb = np.stack([None for j in range(n_ens_members)])
     R_f = [[] for j in range(n_ens_members)]
 
@@ -807,6 +808,7 @@ def forecast(
 
     extrap_kwargs["return_displacement"] = True
     R_f_prev = R_c
+    Yn_prev = Yn_c
     t_prev = [0.0 for j in range(n_ens_members)]
     t_total = [0.0 for j in range(n_ens_members)]
 
@@ -939,16 +941,20 @@ def forecast(
             EPS_ = None
 
             ###
-            # 8.4 Perturb and blend the advection fields +
-            # advect the extrapolation cascade to the current time step
+            # 8.4 Perturb and blend the advection fields + advect the
+            # extrapolation and noise cascade to the current time step
             # (or subtimesteps if non-integer time steps are given)
             ###
+            # Settings and initialize the output
             extrap_kwargs_ = extrap_kwargs.copy()
+            extrap_kwargs_noise = extrap_kwargs.copy()
             extrap_kwargs_pb = extrap_kwargs.copy()
             V_pert = V
             R_f_ep_out = []
+            Yn_ep_out = []
             R_pb_ep = []
 
+            # Extrapolate per sub time step
             for t_sub in subtimesteps:
                 if t_sub > 0:
                     t_diff_prev_int = t_sub - int(t_sub)
@@ -958,19 +964,28 @@ def forecast(
                             + t_diff_prev_int * R_c[j][i][-1, :]
                             for i in range(n_cascade_levels)
                         ]
+                        Yn_ip = [
+                            (1.0 - t_diff_prev_int) * Yn_prev[j][i][-1, :]
+                            + t_diff_prev_int * Yn_c[j][i][-1, :]
+                            for i in range(n_cascade_levels)
+                        ]
 
                     else:
                         R_f_ip = [
                             R_f_prev[j][i][-1, :] for i in range(n_cascade_levels)
                         ]
+                        Yn_ip = [Yn_prev[j][i][-1, :] for i in range(n_cascade_levels)]
 
                     R_f_ip = np.stack(R_f_ip)
+                    Yn_ip = np.stack(Yn_ip)
 
                     t_diff_prev = t_sub - t_prev[j]
                     t_total[j] += t_diff_prev
 
                     # compute the perturbed motion field - include the NWP
-                    # velocities and the weights
+                    # velocities and the weights. Note that we only perturb
+                    # the extrapolation velocity field, as the NWP velocity
+                    # field is present per time step
                     if vel_pert_method is not None:
                         V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
 
@@ -995,13 +1010,16 @@ def forecast(
                         ],  # [(extr_field, n_model_fields), cascade_level=2]
                     )
 
-                    # Extrapolate it to the next time step
+                    # Extrapolate both cascades to the next time step
                     R_f_ep = np.zeros(R_f_ip.shape)
+                    Yn_ep = np.zeros(Yn_ip.shape)
 
                     min_R_f_ip = np.min(R_f_ip)
-                    # min_Yn_ip = np.min(Yn_ip)
+                    min_Yn_ip = np.min(Yn_ip)
+
                     for i in range(n_cascade_levels):
                         extrap_kwargs_["displacement_prev"] = D[j][i]
+                        extrap_kwargs_noise["displacement_prev"] = D_Yn[j][i]
                         # First, extrapolate the extrapolation component
                         R_f_ep_, D[j][i] = extrapolator_method(
                             R_f_ip[i],
@@ -1009,14 +1027,28 @@ def forecast(
                             [t_diff_prev],
                             **extrap_kwargs_,
                         )
-
                         R_f_ep[i] = R_f_ep_[0]
+
+                        # Then, extrapolate the noise component
+                        Yn_ep_, D_Yn[j][i] = extrapolator_method(
+                            Yn_ip[i],
+                            V_blended,
+                            [t_diff_prev],
+                            **extrap_kwargs_noise,
+                        )
+                        Yn_ep[i] = Yn_ep_[0]
 
                     # Make sure we have no nans left
                     nan_indices = np.isnan(R_f_ep)
                     R_f_ep[nan_indices] = min_R_f_ip
+                    nan_indices = np.isnan(Yn_ep)
+                    Yn_ep[nan_indices] = min_Yn_ip
 
+                    # Append the results to the output lists
                     R_f_ep_out.append(R_f_ep)
+                    Yn_ep_out.append(Yn_ep)
+                    R_f_ep_ = None
+                    Yn_ep_ = None
 
                     # Finally, also extrapolate the initial radar rainfall
                     # field. This will be blended with the rainfall field(s)
@@ -1042,6 +1074,7 @@ def forecast(
 
             if len(R_f_ep_out) > 0:
                 R_f_ep_out = np.stack(R_f_ep_out)
+                Yn_ep_out = np.stack(Yn_ep_out)
                 R_pb_ep = np.stack(R_pb_ep)
 
             # advect the forecast field by one time step if no subtimesteps in the
@@ -1076,14 +1109,22 @@ def forecast(
                     ],  # [(extr_field, n_model_fields), cascade_level=2]
                 )
 
-                # Extrapolate the extrapolation cascade
+                # Extrapolate the extrapolation and noise cascade
                 for i in range(n_cascade_levels):
                     extrap_kwargs_["displacement_prev"] = D[j][i]
+                    extrap_kwargs_noise["displacement_prev"] = D_Yn[j][i]
                     _, D[j][i] = extrapolator_method(
                         None,
                         V_blended,
                         [t_diff_prev],
                         **extrap_kwargs_,
+                    )
+
+                    _, D_Yn[j][i] = extrapolator_method(
+                        None,
+                        V_blended,
+                        [t_diff_prev],
+                        **extrap_kwargs_noise,
                     )
 
                 # Also extrapolate the radar observation, used for the probability
@@ -1113,7 +1154,7 @@ def forecast(
                             (
                                 R_f_ep_out[None, t_index],
                                 R_models[:, t],
-                                Yn_c[None, j, :, -1, :],
+                                Yn_ep_out[None, t_index],
                             ),
                             axis=0,
                         )  # [(extr_field, n_model_fields, noise), n_cascade_levels, ...]
@@ -1129,7 +1170,7 @@ def forecast(
                             (
                                 R_f_ep_out[None, t_index],
                                 R_models[None, j, t],
-                                Yn_c[None, j, :, -1, :],
+                                Yn_ep_out[None, t_index],
                             ),
                             axis=0,
                         )  # [(extr_field, n_model_fields, noise), n_cascade_levels, ...]
@@ -1255,7 +1296,7 @@ def forecast(
                         domain_mask
                     ] = (
                         np.nan
-                    )  # Also make sure the 'benchmark''  only uses the NWP forecast outside the radar domain.
+                    )  # Also make sure the 'benchmark' only uses the NWP forecast outside the radar domain.
 
                     nan_indices = np.isnan(R_f_new)
                     R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
