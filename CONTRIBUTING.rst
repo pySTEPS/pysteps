@@ -2,41 +2,34 @@ Contributing to Pysteps
 =======================
 
 Welcome! pySTEPS is a community-driven initiative for developing and
-maintaining an easy to use, modular, free and open source Python
+maintaining an easy to use, modular, free and open-source Python
 framework for short-term ensemble prediction systems.
-
-
-If you haven't already, take a look at the project's
-`README.rst file <README.rst>`_ and the
-`pysteps documentation <https://pysteps.github.io/>`_.
 
 There are many ways to contribute to pysteps:
 
-- contributing bug reports and feature requests
-- contributing documentation
-- code contributions new features or bug fixes
-- contribute with usage examples
-
-Our main forum for discussion is the project's
-`GitHub issue tracker <https://github.com/python/mypy/issues>`_.
-This is the right place to start a discussion, report a bug, or request a new
-feature.
-
+* contributing bug reports and feature requests
+* contributing documentation
+* code contributions, new features, or bug fixes
+* contribute with usage examples
 
 Workflow for code contributions
 -------------------------------
 
-We welcome all kind of contributions, from documentation updates, a bug fix,
-or a new feature.
-If your new feature will take a lot of work,
-we recommend creating an issue with the **enhancement** tag to encourage
-discussions.
+We welcome all kinds of contributions, like documentation updates, bug fixes, or new features.
+The workflow for the contibutions uses the usual
+`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
 
-We use the usual
-`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_,
-which may be familiar to you if you've contributed to other projects on GitHub.
+If you have ideas for new contributions to the project, feel free to get in touch with the pysteps community on our
+`pysteps slack <https://pysteps.slack.com/>`__.
+To get access to it, you need to ask for an invitation or you can use the automatic invitation page
+`here <https://pysteps-slackin.herokuapp.com/>`__.
+Our slack channel is a great place for preliminary discussions about new features or functionalities.
+Another place where you can report bugs and suggest new enhancements is the
+`project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
 
-**First Time Contributors**
+
+First Time Contributors
+-----------------------
 
 If you are interested in helping to improve pysteps,
 the best way to get started is by looking for "Good First Issue" in the
@@ -44,27 +37,26 @@ the best way to get started is by looking for "Good First Issue" in the
 
 In a nutshell, the main steps to follow for contributing to pysteps are:
 
-- Setting up the development environment
-- Fork the repository
-- Install pre-commit hooks
-- Create a new branch for each contribution
-- Read the Code Style guide
-- Work on your changes
-- Test your changes
-- Push to your fork repository and create a new PR in GitHub.
+* Setting up the development environment
+* Fork the repository
+* Install pre-commit hooks
+* Create a new branch for each contribution
+* Read the Code Style guide
+* Work on your changes
+* Test your changes
+* Push to your fork repository and create a new PR in GitHub.
 
 
 Setting up the Development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------
 
 The recommended way to setup up the developer environment is the Anaconda
-(commonly referred as Conda).
-Conda quickly installs, runs and updates packages and their dependencies.
-It also allows to easily create, save, load and switch between different
-environments on your local computer.
+(commonly referred to as Conda).
+Conda quickly installs, runs, and updates packages and their dependencies.
+It also allows you to create, save, load, and switch between different environments on your local computer.
 
 Before continuing, Mac OSX users also need to install a more recent compiler.
-See instructions here: :ref:`OSX users <install_osx_users>`.
+See instructions `here <https://pysteps.readthedocs.io/en/latest/user_guide/install_pysteps.html#install-osx-users>`__.
 
 The developer environment can be created from the file
 `environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
@@ -82,32 +74,26 @@ but yet is still editable from the source tree::
 
     pip install -e <path to local pysteps repo>
 
-To test if the installation went fine, you can try launching Python and importing
-pysteps :ref:`Import pysteps <_import_pysteps>`.
+To test if the installation went fine, you can try importing pysteps from the python interpreter by running::
 
-**Note**: In case of installation or import errors, you can remove the pysteps_dev environment
-and try starting from an empty environment (adapt the Python version as needed)::
+    python -c "import pysteps"
 
-    conda create -n pysteps_dev python=3.8
-
-You can then activate it and install pysteps with pip as exaplained above.
 
 Fork the repository
 ~~~~~~~~~~~~~~~~~~~
 
-Once you have set the development environment, the next step is creating your
-local copy of the repository where you will commit your modifications.
+Once you have set the development environment, the next step is creating your local copy of the repository, where you will commit your modifications.
 The steps to follow are:
 
-1. Set up Git in your computer.
-2. Create a GitHub account (if you don't have one).
-3. Fork the repository in your GitHub.
-4. Clone local copy of your fork. For example::
+#. Set up Git on your computer.
+#. Create a GitHub account (if you don't have one).
+#. Fork the repository in your GitHub.
+#. Clone a local copy of your fork. For example::
 
     git clone https://github.com/<your-account>/pysteps.git
 
 Done!, now you have a local copy of pysteps git repository.
-If you are new to GitHub, below you can find a list of useful tutorials:
+If you are new to GitHub, below you can find a list of helpful tutorials:
 
 - http://rogerdudler.github.io/git-guide/index.html
 - https://www.atlassian.com/git/tutorials
@@ -115,30 +101,26 @@ If you are new to GitHub, below you can find a list of useful tutorials:
 Install pre-commit hooks
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Once you cloned the repository and the development environment is installed (and active),
-install the git pre-commit hook by executing the following command in the repository's
+After setting up your development environment, install the git pre-commit hook by executing the following command in the repository's
 root::
 
     pre-commit install
 
-The pre-commit hooks are scripts that are executed in every commit automatically to
-identify simple issues with the code. If an issue is identified (the pre-commit script
-exits with non-zero status), the hook aborts the commit and print the error.
-Currently, Pysteps only test the code to be committed complies with black's autoformat.
+The pre-commit hooks are scripts executed automatically in every commit to identify simple issues with the code.
+When an issue is identified (the pre-commit script exits with non-zero status), the hook aborts the commit and prints the error.
+Currently, Pysteps only tests that the code to be committed complies with black's format style.
 In case that the commit is aborted, you only need to run black in the entire source code.
 This can be done by running :code:`black .` or :code:`pre-commit run --all-files`.
-The latter is recommended since it indicates if the commit contained any formatting errors
-(that are automatically corrected).
-To ensure that the same configuration is used in every development environment, black's
-configuration is stored in the `pyproject.toml` file.
-This configuration is automatically load when black is run from any directory in the
+The latter is recommended since it indicates if the commit contained any formatting errors (that are automatically corrected).
+Black's configuration is stored in the `pyproject.toml` file to ensure that the same configuration is used in every development environment.
+This configuration is automatically loaded when black is run from any directory in the
 pysteps project.
 
 IMPORTANT: Periodically update the black version used in the pre-commit hook by running::
 
     pre-commit autoupdate
 
-For more information about git hooks and the pre-commit package see:
+For more information about git hooks and the pre-commit package, see:
 
 - https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
 - https://pre-commit.com/
@@ -147,55 +129,32 @@ For more information about git hooks and the pre-commit package see:
 Create a new branch
 ~~~~~~~~~~~~~~~~~~~
 
-As a collaborator, all the new contributions that you want should be done in a
-new branch under your forked repository.
+As a collaborator, all the new contributions you want should be made in a new branch under your forked repository.
 Working on the master branch is reserved for Core Contributors only.
 Core Contributors are developers that actively work and maintain the repository.
-They are the only ones who accept pull requests and push commits directly to
-the pysteps repository.
+They are the only ones who accept pull requests and push commits directly to the pysteps repository.
 
 For more information on how to create and work with branches, see
-`"Branches in a Nutshell" <https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`_ in the Git documentation
+`"Branches in a Nutshell" <https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`__ in the Git documentation
 
 
 Code Style
-~~~~~~~~~~
+----------
 
-We strongly suggest to follow the
-`PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`_.
-Note that this is not strictly enforced yet, since many source files in pysteps
-are not PEP8 compliant.
-However, we encourage new contributions to be compliant at least with the coding style
-summarized next.
+We strongly suggest following the
+`PEP8 coding standards <https://www.python.org/dev/peps/pep-0008/>`__.
+Since PEP8 is a set of recommendations, these are the most important good coding practices for the pysteps project:
 
-Coding style summary
-^^^^^^^^^^^^^^^^^^^^
+* Always use four spaces for indentation (don’t use tabs).
+* Max line-length: 88 characters (note that we don't use the PEP8's 79 value). Enforced by `black`.
+* Always indent wrapped code for readability. Enforced by `black`.
+* Avoid extraneous whitespace. Enforced by `black`.
+* Don’t use whitespace to line up assignment operators (=, :). Enforced by `black`.
+* Avoid writing multiple statements in the same line.
+* Naming conventions should follow the recomendations from
+  the `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__, summarized as follows:
 
-For quick reference, these are the most important good coding practices
-to follow:
-
-- Always use 4 spaces for indentation (don’t use tabs).
-- Write UTF-8 (add **# -*- coding: utf-8 -*-** at the top of each file).
-- Max line-length: 88 characters (note that we don't use the PEP8's 79 value).
-- Always indent wrapped code for readability.
-- Avoid extraneous whitespace.
-- Don’t use whitespace to line up assignment operators (=, :).
-- Spaces around = for assignment.
-- No spaces around = for default parameter values (keywords).
-- Spaces around mathematical operators, but group them sensibly.
-- No multiple statements on the same line.
-- Naming conventions:
-
-   Function names, variable names, and filenames should be descriptive and self
-   explanatory. Avoid using abbreviations that are ambiguous or unfamiliar to
-   readers outside your project, and do not abbreviate by deleting letters
-   within a word.
-   Avoid single letter variables if possible and use more verbose names for
-   clarity. An exception for this are indexes in loops (*i, j, k, etc*).
-
-   The following table summarizes the conventions:
-
-    .. raw:: html
+   .. raw:: html
 
         <table rules="all" border="1" cellspacing="2" cellpadding="2">
 
@@ -272,20 +231,16 @@ to follow:
           </tr>
 
         </table>
+   (source: `Section 3.16.4, Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__)
 
-    Source: `Google's python style guide
-    <http://google.github.io/styleguide/pyguide.html>`_
-
-- Ignore returned variables:
-
-  If you need to ignore part to the variables returned by a function,
+- If you need to ignore part of the variables returned by a function,
   use "_" (single underscore) or __ (double underscore)::
 
     precip, __, metadata = import_bom_rf3('example_file.bom')
     precip2, _, metadata2 = import_bom_rf3('example_file2.bom')
 
 
-- Zen of Python (PEP 20), the guiding principles for Python’s
+- Zen of Python (`PEP 20 <https://www.python.org/dev/peps/pep-0020/>`__), the guiding principles for Python’s
   design::
 
     >>> import this
@@ -311,19 +266,21 @@ to follow:
     If the implementation is easy to explain, it may be a good idea.
     Namespaces are one honking great idea -- let's do more of those!
 
-For a detailed description of a pythonic code style check these guidelines:
+For more suggestions on good coding practices for python, check these guidelines:
 
-- `The Hitchhiker's Guide to Python <https://docs.python-guide.org/writing/style/>`_
-- `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`_
-- `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
+- `The Hitchhiker's Guide to Python <https://docs.python-guide.org/writing/style/>`__
+- `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__
+- `PEP8 <https://www.python.org/dev/peps/pep-0008/>`__
 
 
-**Auto-formatters**
+**Using Black auto-formatter**
 
-Hand-formatting code according the PEP8 style guide can be a tedious process if it is done
-manually. To make our lives easy, in pysteps, we use
-`black <https://black.readthedocs.io/en/stable/>`_ to auto-format the code using its
-default configuration. Black can be installed using any of the following::
+To ensure a minimal style consistency, we use
+`black <https://black.readthedocs.io/en/stable/>`__ to auto-format to the source code.
+The black configuration used in the pysteps project is defined in the pyproject.toml,
+and it is automatically detected by black.
+
+Black can be installed using any of the following::
 
     conda install black
 
@@ -332,25 +289,23 @@ default configuration. Black can be installed using any of the following::
 
     pip install black
 
-Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`_
+Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`__
 for more information.
-
 
 **Docstrings**
 
 Every module, function, or class must have a docstring that describe its
-purpose and how to use it, following the conventions described in the
-`PEP 257 <https://www.python.org/dev/peps/pep-0257/#multi-line-docstrings>`_
+purpose and how to use it. The docstrings follows the conventions described in the
+`PEP 257 <https://www.python.org/dev/peps/pep-0257/#multi-line-docstrings>`__
 and the
-`Numpy's docstrings format <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
+`Numpy's docstrings format <https://numpydoc.readthedocs.io/en/latest/format.html>`__.
 
 Here is a summary of the most important rules:
 
-- One-line docstrings Triple quotes are used even though the string fits on one line.
-  This makes it easy to later expand it.
-- A one-line docstring is a phrase ending in a period.
-- All docstrings should be written in imperative ("""Return some value.""")
-  mood rather than descriptive mood ("""Returns some value.""").
+- Always use triple quotes for doctrings, even if it fits a single line.
+- For one-line docstring, end the phrase with a period.
+- Use imperative mood for all docstrings ("""Return some value.""") rather than descriptive mood
+  ("""Returns some value.""").
 
 Here is an example of a docstring::
 
@@ -373,80 +328,49 @@ Here is an example of a docstring::
         """
 
 
-Working on changes
-~~~~~~~~~~~~~~~~~~
+Contributions guidelines
+------------------------
 
-**IMPORTANT**
+The collaborator guidelines used in pysteps were largely inspired by those of the
+`MyPy project <https://github.com/python/mypy>`__.
 
-If your changes will take a significant amount of work,
-we highly recommend opening an issue first, explaining what you want
-to do and why. It is better to start the discussions early, in case other
-contributors disagree with what you would like to do or have ideas
-that will help you do it.
+Collaborators guidelines
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-**Collaborators guidelines**
-
-As a collaborator, all the new contributions that you want should be done in a
-new branch under your forked repository.
-Working on the master branch is reserved for Core Contributors only.
+As a collaborator, all your new contributions should be made in a new branch under your forked repository.
+Working on the master branch is reserved for Core Contributors only to submit small changes only.
 Core Contributors are developers that actively work and maintain the repository.
 They are the only ones who accept pull requests and push commits directly to
 the **pysteps** repository.
 
-To include the contributions for collaborators, we use the usual
-`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
-In their simplest form, pull requests are a mechanism for
-a collaborator to notify to the pysteps project about a completed feature".
+**IMPORTANT**
+However, for contribution requires a significant amount of work, we strongly suggest opening a new issue with
+the **enhancement** or **discussion** tag to encourage discussions.
+The discussions will help clarify the best way to approach the suggested changes or raise potential concerns.
 
-Once your proposed changes are ready, you need to create a pull request via
-your GitHub account. Afterward, the core developers review the code and merge
-it into the master branch.
-Be aware that pull requests are more than just a notification, they are also
-an excellent place for discussing the proposed feature. If there is any problem
-with the changes, the other project collaborators can post feedback and the
-author of the commit can even fix the problems by pushing follow-up commits to
-feature branch.
+For code contributions, collaboratos can use the usual
+`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`__.
+Once your proposed changes are ready, you need to create a pull request (PR) from your fork in your GitHub account.
+Afterward, core contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
+request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main branch.
 
-Do not squash your commits after you have submitted a pull request, as this
-erases context during the review.
-The commits will be squashed when the pull request is merged.
-
-To keep you forked repository clean, we suggest deleting branches for
-once the Pull Requests (PRs) are accepted and merged.
-
-Once you've created a pull request, you can push commits from your topic branch
-to add them to your existing pull request.
-These commits will appear in chronological order within your pull request and
-the changes will be visible in the "Files changed" tab.
-
-Other contributors can review your proposed changes, add review comments,
-contribute to the pull request discussion, and even add commits to the pull
-request.
-
-**Important:** each PR should should only address a single objective
-(e.g. fix a bug, improve documentation, etc).
-Pushing changes to an open PR that are outside its objective are highly
-discouraged.
-Under this circumstances, the recommended way to proceed is creating a new PR
-for changes, clearly explaining their goal.
+**Important:**
+It is strongly suggested that each PR only addresses a single objective (e.g., fix a bug, improve documentation, etc.).
+This will help to reduce the time needed to process the PR. For changes outside the PR's objectives, we highly
+recommend opening a new PR.
 
 
 Testing your changes
 ~~~~~~~~~~~~~~~~~~~~
 
-Before committing changes or creating pull requests, check that the all the
-tests in the pysteps suite pass.
-See the :ref:`testing_pysteps` for the instruction to run the tests.
+Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass.
+See the `Testing pySTEPS <https://pysteps.readthedocs.io/en/latest/developer_guide/test_pysteps.html#testing-pysteps>`__
+for detailed instruction to run the tests.
 
-
-Although it is not strictly needed, we suggest creating minimal tests for
-new contributions to ensure that it achieves the desired behavior.
-Pysteps uses the pytest framework, that it is easy to use and also
-supports complex functional testing for applications and libraries.
-Check the
-`pytests official documentation <https://docs.pytest.org/en/latest/index.html>`_
-for more information.
+Although it is not strictly needed, we suggest creating minimal tests for new contributions to ensure that it achieves
+the desired behavior. Pysteps uses the pytest framework that it is easy to use and also supports complex functional
+testing for applications and libraries.
+Check the `pytests official documentation <https://docs.pytest.org/en/latest/index.html>`_ for more information.
 
 The tests should be placed under the
 `pysteps.tests <https://github.com/pySTEPS/pysteps/tree/master/pysteps/tests>`_
@@ -457,9 +381,8 @@ descriptive name.
 A quick way to get familiar with the pytest syntax and the testing procedures
 is checking the python scripts present in the pysteps test module.
 
-
 Core developer guidelines
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Working directly on the master branch is discouraged and is reserved only
 for small changes and updates that do not compromise the stability of the code.
@@ -467,33 +390,23 @@ The *master* branch is a production branch that is ready to be deployed
 (cloned, installed, and ready to use).
 In consequence, this master branch is meant to be stable.
 
-The pysteps repository uses a Travis CI, a Continuous Integration service that
-automatically runs a series of tests every time you commit to GitHub.
-In that way, your modifications along with the entire package is tested.
+The pysteps repository uses the GitHub Actions service to run tests every time you commit to GitHub.
+In that way, your modifications along with the entire library are tested.
 
-Pushing untested or work-in-progress changes to the master branch can potentially
-introduce bugs or brake the stability of the package.
-Since the tests takes around 10 minutes and the are run after the commit was
-pushed, any errors introduced in that commit will be noticed after the stable
-in the master branch was compromised.
-In addition, other developers start working on a new feature from master,
-they may start a potentially broken state.
+Pushing untested or work-in-progress changes to the master branch can potentially introduce bugs or break the stability of the package.
+Since the tests triggered by a commit to the master branch take around 20 minutes, any errors introduced there
+will be noticed after the stablility of the master branch was compromised.
+In addition, other developers start working on a new feature from master from a potentially broken state.
 
-Instead, it is recommended to work on each new feature in its own branch,
-which can be pushed to the central repository for backup/collaboration.
-When you’re done with the development work on the feature, then you can merge
-the feature branch into the master or submit a Pull Request.
-This approach has two main advantages:
+Instead, it is recommended to work on each new feature in its own branch, which can be pushed to the central repository
+for backup/collaboration. When you’re done with the feature's development work, you can merge the feature branch into the
+master or submit a Pull Request. This approach has two main advantages:
 
-- Every commit on the feature branch is tested using Travis CI.
+- Every commit on the feature branch is tested via GitHub Actions.
   If the tests fail, they do not affect the **master** branch.
 
-- Once the new feature, improvement, or bug correction is finished and the all
-  tests passed, the commits history can be squashed into a single commit and
-  then merged into the master branch.
-
-This helps approach helps to keep the commits history clean and allows
-experimentation in the branch without compromising the stability of the package.
+- Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
+  then merged into the master branch. Squashing the commits helps to keep a clean commit history in the main branch.
 
 
 Processing pull requests
@@ -501,43 +414,27 @@ Processing pull requests
 
 .. _`Squash and merge`: https://github.com/blog/2141-squash-your-commits
 
-Core developers should follow these rules when processing pull requests:
+To process the pull request, we follow similar rules to those used in the
+`mypy <https://github.com/python/mypy/blob/master/CONTRIBUTING.md#core-developer-guidelines>`_
+project:
 
 * Always wait for tests to pass before merging PRs.
-* Use "`Squash and merge`_"
-  to merge PRs.
-* Delete branches for merged PRs (by core devs pushing to the main repo).
-* Edit the final commit message before merging to conform to the following
-  style to help having a clean `git log` output:
+* Always use "`Squash and merge`_"  to merge PRs.
+* Make sure that the subject of the commit message summarizes the objective of the PR and does not finish with a dot.
+* Write a new commit message before merging that provides a detailed description of the changes introduced by the PR.
+  Try to keep the maximum line length under 80 characters, spplitting lines if necessary.
+  **IMPORTANT:** Make sure that the commit message doesn't contain the branch's commit history!
+  Also, if the PR fixes an issue, mention this explicitly.
+* Use the imperative mood in the subject line (e.g. "Fix typo in README").
 
-    * When merging a multi-commit PR make sure that the commit message doesn't
-      contain the local history from the committer and the review history from
-      the PR. Edit the message to only describe the end state of the PR.
-
-    * Make sure there is a *single* newline at the end of the commit message.
-      This way there is a single empty line between commits in `git log`
-      output.
-
-    * Split lines as needed so that the maximum line length of the commit
-      message is under 80 characters, including the subject line.
-
-    * Capitalize the subject and each paragraph.
-
-    * Make sure that the subject of the commit message has no trailing dot.
-
-    * Use the imperative mood in the subject line (e.g. "Fix typo in README").
-
-    * If the PR fixes an issue, make sure something like "Fixes #xxx." occurs
-      in the body of the message (not in the subject).
-
+After the PR is merged, the merged branch can be safely deleted.
 
 Preparing a new release
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Core developers should follow the steps to prepare a new release (version):
 
-1. Before creating the actual release in GitHub, be sure that every item in the
-   following checklist was followed:
+1. Before creating the actual release in GitHub, be sure that every item in the following checklist was followed:
 
     * In the file setup.py, update the **version="X.X.X"** keyword in the setup
       function.
@@ -545,24 +442,22 @@ Core developers should follow the steps to prepare a new release (version):
     * If new dependencies were added to pysteps since the last release, add
       them to the **environment.yml, requirements.txt**, and
       **requirements_dev.txt** files.
-
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
-
 #. Generating the source distribution for new pysteps version and upload it to
    the `Python Package Index <https://pypi.org/>`_ (PyPI).
-   See :ref:`pypi_relase` for a detailed description of this process.
-
+   See `Packaging the pysteps project <https://pysteps.readthedocs.io/en/latest/developer_guide/pypi.html#pypi-relase>`__
+   for a detailed description of this process.
 #. Update the conda-forge pysteps-feedstock following this guidelines:
-   :ref:`update_conda_feedstock`
+   `Updating the conda-forge pysteps-feedstock <https://pysteps.readthedocs.io/en/latest/developer_guide/update_conda_forge.html#update-conda-feedstock>`__
 
 
 Credits
 -------
 
-This documents was based in contributors guides of two Python
-open source projects:
+This document was based on contributors guides of two Python
+open-source projects:
 
 * Py-Art_: Copyright (c) 2013, UChicago Argonne, LLC.
   `License <https://github.com/ARM-DOE/pyart/blob/master/LICENSE.txt>`_.
