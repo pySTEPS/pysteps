@@ -27,7 +27,7 @@ consists of the following main steps:
             extrapolation, NWP and noise) for that lead time. 
         8.2 Regress the extrapolation and noise cascades separately to the 
             subsequent time step.
-        8.3 Extrapolat the extrapolation and noise cascades to the current time
+        8.3 Extrapolate the extrapolation and noise cascades to the current time
             step.
         8.4 Blend the cascades.
         8.5 Recompose the cascade to a rainfall field. 
@@ -479,13 +479,17 @@ def forecast(
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
-    extrap_kwargs["allow_nonfinite_values"] = True
     res = list()
 
     def f(R, i):
-        return extrapolator_method(R[i, :, :], V, ar_order - i, "min", **extrap_kwargs)[
-            -1
-        ]
+        return extrapolator_method(
+            R[i, :, :],
+            V,
+            ar_order - i,
+            "min",
+            allow_nonfinite_values=True,
+            **extrap_kwargs,
+        )[-1]
 
     for i in range(ar_order):
         if not DASK_IMPORTED:
@@ -952,7 +956,7 @@ def forecast(
             V_pert = V
             R_f_ep_out = []
             Yn_ep_out = []
-            R_pb_ep = []
+            R_pm_ep = []
 
             # Extrapolate per sub time step
             for t_sub in subtimesteps:
@@ -1014,17 +1018,18 @@ def forecast(
                     R_f_ep = np.zeros(R_f_ip.shape)
                     Yn_ep = np.zeros(Yn_ip.shape)
 
-                    min_R_f_ip = np.min(R_f_ip)
-                    min_Yn_ip = np.min(Yn_ip)
-
                     for i in range(n_cascade_levels):
                         extrap_kwargs_["displacement_prev"] = D[j][i]
                         extrap_kwargs_noise["displacement_prev"] = D_Yn[j][i]
+
                         # First, extrapolate the extrapolation component
+                        # Apply the domain mask to the extrapolation component
+                        R_f_ip[i][domain_mask] = np.NaN
                         R_f_ep_, D[j][i] = extrapolator_method(
                             R_f_ip[i],
                             V_blended,
                             [t_diff_prev],
+                            allow_nonfinite_values=True,
                             **extrap_kwargs_,
                         )
                         R_f_ep[i] = R_f_ep_[0]
@@ -1034,15 +1039,10 @@ def forecast(
                             Yn_ip[i],
                             V_blended,
                             [t_diff_prev],
+                            allow_nonfinite_values=True,
                             **extrap_kwargs_noise,
                         )
                         Yn_ep[i] = Yn_ep_[0]
-
-                    # Make sure we have no nans left
-                    nan_indices = np.isnan(R_f_ep)
-                    R_f_ep[nan_indices] = min_R_f_ip
-                    nan_indices = np.isnan(Yn_ep)
-                    Yn_ep[nan_indices] = min_Yn_ip
 
                     # Append the results to the output lists
                     R_f_ep_out.append(R_f_ep)
@@ -1053,20 +1053,19 @@ def forecast(
                     # Finally, also extrapolate the initial radar rainfall
                     # field. This will be blended with the rainfall field(s)
                     # of the (NWP) model(s) for Lagrangian blended prob. matching
-                    min_R = np.min(R)
+                    # min_R = np.min(R)
                     extrap_kwargs_pb["displacement_prev"] = D_pb[j]
-                    R_pb_ep_, D_pb[j] = extrapolator_method(
-                        R,
+                    # Apply the domain mask to the extrapolation component
+                    R_ = R.copy()
+                    R_[domain_mask] = np.NaN
+                    R_pm_ep_, D_pb[j] = extrapolator_method(
+                        R_,
                         V_blended,
                         [t_diff_prev],
+                        allow_nonfinite_values=True,
                         **extrap_kwargs_pb,
                     )
-
-                    # Make sure we have no nans left
-                    R_pb_ep__ = R_pb_ep_[0]
-                    nan_indices = np.isnan(R_pb_ep__)
-                    R_pb_ep__[nan_indices] = min_R
-                    R_pb_ep.append(R_pb_ep__)
+                    R_pm_ep.append(R_pm_ep_[0])
 
                     t_prev[j] = t_sub
 
@@ -1075,7 +1074,7 @@ def forecast(
             if len(R_f_ep_out) > 0:
                 R_f_ep_out = np.stack(R_f_ep_out)
                 Yn_ep_out = np.stack(Yn_ep_out)
-                R_pb_ep = np.stack(R_pb_ep)
+                R_pm_ep = np.stack(R_pm_ep)
 
             # advect the forecast field by one time step if no subtimesteps in the
             # current interval were found
@@ -1117,6 +1116,7 @@ def forecast(
                         None,
                         V_blended,
                         [t_diff_prev],
+                        allow_nonfinite_values=True,
                         **extrap_kwargs_,
                     )
 
@@ -1124,6 +1124,7 @@ def forecast(
                         None,
                         V_blended,
                         [t_diff_prev],
+                        allow_nonfinite_values=True,
                         **extrap_kwargs_noise,
                     )
 
@@ -1134,6 +1135,7 @@ def forecast(
                     None,
                     V_blended,
                     [t_diff_prev],
+                    allow_nonfinite_values=True,
                     **extrap_kwargs_pb,
                 )
 
@@ -1238,9 +1240,10 @@ def forecast(
                     # nwp model(s) rainfall forecast fields as 'benchmark'.
                     ###
                     # TODO: Check probability matching method
-                    # 8.7.1 first blend the extrapolated rainfall field with
-                    # the NWP rainfall forecast for this time step using the
-                    # weights at scale level 2.
+                    # 8.7.1 first blend the extrapolated rainfall field (the field
+                    # that is only used for post-processing steps) with the NWP
+                    # rainfall forecast for this time step using the weights
+                    # at scale level 2.
                     weights_pm = weights[:-1, 1]  # Weights without noise, level 2
                     weights_pm_normalized = weights_pm / np.sum(weights_pm)
                     # And the weights for outside the radar domain
@@ -1252,31 +1255,31 @@ def forecast(
                     )
                     # Stack the fields
                     if blend_nwp_members == True:
-                        R_pb_stacked = np.concatenate(
+                        R_pm_stacked = np.concatenate(
                             (
-                                R_pb_ep[None, t_index],
+                                R_pm_ep[None, t_index],
                                 R_models_pm[:, t],
                             ),
                             axis=0,
                         )
                     else:
-                        R_pb_stacked = np.concatenate(
+                        R_pm_stacked = np.concatenate(
                             (
-                                R_pb_ep[None, t_index],
+                                R_pm_ep[None, t_index],
                                 R_models_pm[None, j, t],
                             ),
                             axis=0,
                         )
                     # Blend it
-                    R_pb_blended = np.sum(
+                    R_pm_blended = np.sum(
                         weights_pm_normalized.reshape(
                             weights_pm_normalized.shape[0], 1, 1
                         )
-                        * R_pb_stacked,
+                        * R_pm_stacked,
                         axis=0,
                     )
                     if blend_nwp_members == True:
-                        R_pb_blended_mod_only = np.sum(
+                        R_pm_blended_mod_only = np.sum(
                             weights_pm_normalized_mod_only.reshape(
                                 weights_pm_normalized_mod_only.shape[0], 1, 1
                             )
@@ -1284,24 +1287,23 @@ def forecast(
                             axis=0,
                         )
                     else:
-                        R_pb_blended_mod_only = R_models_pm[j, t]
+                        R_pm_blended_mod_only = R_models_pm[j, t]
 
-                    # Only keep the extrapolation component where radar data
-                    # initially was present.
-                    # Replace any NaN-values with the forecast without
-                    # extrapolation
-                    R_f_new[domain_mask] = np.nan
-                    # TODO: Check if the domain masking below is necessary
-                    R_pb_blended[
-                        domain_mask
-                    ] = (
-                        np.nan
-                    )  # Also make sure the 'benchmark' only uses the NWP forecast outside the radar domain.
-
+                    # The extrapolation components are NaN outside the advected
+                    # radar domain. This results in NaN values in the blended
+                    # forecast outside the radar domain. Therefore, fill these
+                    # areas with the "..._mod_only" blended forecasts, consisting
+                    # of the NWP and noise components.
                     nan_indices = np.isnan(R_f_new)
                     R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
-                    nan_indices = np.isnan(R_pb_blended)
-                    R_pb_blended[nan_indices] = R_pb_blended_mod_only[nan_indices]
+                    nan_indices = np.isnan(R_pm_blended)
+                    R_pm_blended[nan_indices] = R_pm_blended_mod_only[nan_indices]
+                    # Finally, fill the remaining nan values, if present, with
+                    # the minimum value in the forecast
+                    nan_indices = np.isnan(R_f_new)
+                    R_f_new[nan_indices] = np.nanmin(R_f_new)
+                    nan_indices = np.isnan(R_pm_blended)
+                    R_pm_blended[nan_indices] = np.nanmin(R_pm_blended)
 
                     # 8.7.2. Apply the masking and prob. matching
                     if mask_method is not None:
@@ -1313,10 +1315,10 @@ def forecast(
                             # The incremental mask is slightly different from
                             # the implementation in the non-blended steps.py, as
                             # it is not based on the last forecast, but instead
-                            # on R_pb_blended. Therefore, the buffer does not
+                            # on R_pm_blended. Therefore, the buffer does not
                             # increase over time.
                             # Get the mask for this forecast
-                            MASK_prec = R_pb_blended >= R_thr
+                            MASK_prec = R_pm_blended >= R_thr
                             # Buffer the mask
                             MASK_prec = _compute_incremental_mask(
                                 MASK_prec, struct, mask_rim
@@ -1327,20 +1329,20 @@ def forecast(
                         elif mask_method == "obs":
                             # The mask equals the most recent benchmark
                             # rainfall field
-                            MASK_prec_ = R_pb_blended >= R_thr
+                            MASK_prec_ = R_pm_blended >= R_thr
 
                         # Set to min value outside of mask
                         R_f_new[~MASK_prec_] = R_cmin
 
                     if probmatching_method == "cdf":
                         # adjust the CDF of the forecast to match the most recent
-                        # benchmark rainfall field (R_pb_blended)
+                        # benchmark rainfall field (R_pm_blended)
                         R_f_new = probmatching.nonparam_match_empirical_cdf(
-                            R_f_new, R_pb_blended
+                            R_f_new, R_pm_blended
                         )
                     elif probmatching_method == "mean":
-                        # Use R_pb_blended as benchmark field and
-                        mu_0 = np.mean(R_pb_blended[R_pb_blended >= R_thr])
+                        # Use R_pm_blended as benchmark field and
+                        mu_0 = np.mean(R_pm_blended[R_pm_blended >= R_thr])
                         MASK = R_f_new >= R_thr
                         mu_fct = np.mean(R_f_new[MASK])
                         R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0

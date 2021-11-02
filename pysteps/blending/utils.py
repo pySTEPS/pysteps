@@ -74,9 +74,8 @@ def blend_cascades(cascades_norm, weights):
     ----------
     cascades_norm : array-like
       Array of shape [number_components + 1, scale_level, ...]
-      with normalized cascades components for each component
-      (NWP, nowcasts, noise) and scale level, obtained by calling a method
-      implemented in pysteps.blending.utils.stack_cascades
+      with the cascade for each component (NWP, nowcasts, noise) and scale level,
+      obtained by calling a method implemented in pysteps.blending.utils.stack_cascades
 
     weights : array-like
       An array of shape [number_components + 1, scale_level, ...]
