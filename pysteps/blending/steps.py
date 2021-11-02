@@ -1247,8 +1247,8 @@ def forecast(
                     weights_pm = weights[:-1, 1]  # Weights without noise, level 2
                     weights_pm_normalized = weights_pm / np.sum(weights_pm)
                     # And the weights for outside the radar domain
-                    weights_pm_mod_only = weights[
-                        1:-1, 1
+                    weights_pm_mod_only = weights_model_only[
+                        :-1, 1
                     ]  # Weights without noise, level 2
                     weights_pm_normalized_mod_only = weights_pm_mod_only / np.sum(
                         weights_pm_mod_only
