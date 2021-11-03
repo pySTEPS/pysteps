@@ -1021,6 +1021,7 @@ def forecast(
                     for i in range(n_cascade_levels):
                         extrap_kwargs_["displacement_prev"] = D[j][i]
                         extrap_kwargs_noise["displacement_prev"] = D_Yn[j][i]
+                        extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
 
                         # First, extrapolate the extrapolation component
                         # Apply the domain mask to the extrapolation component
@@ -1112,6 +1113,8 @@ def forecast(
                 for i in range(n_cascade_levels):
                     extrap_kwargs_["displacement_prev"] = D[j][i]
                     extrap_kwargs_noise["displacement_prev"] = D_Yn[j][i]
+                    extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
+
                     _, D[j][i] = extrapolator_method(
                         None,
                         V_blended,
