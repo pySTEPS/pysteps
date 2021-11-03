@@ -2,34 +2,34 @@
 """
 pysteps.blending.interface
 ==========================
-
 Interface for the blending module. It returns a callable function for computing
 blended nowcasts with NWP models.
 
 .. autosummary::
     :toctree: ../generated/
-
     get_method
 """
 
+from pysteps.blending import linear_blending
 from pysteps.blending import steps
 
 _blending_methods = dict()
+_blending_methods["linear_blending"] = linear_blending.forecast
 _blending_methods["steps"] = steps.forecast
 
 
 def get_method(name):
     """Return a callable function for computing nowcasts.
-
     Description:
     Return a callable function for computing deterministic or ensemble
     precipitation nowcasts.
-
     Implemented methods:
-
     +-----------------+-------------------------------------------------------+
     |     Name        |              Description                              |
     +=================+=======================================================+
+    +-----------------+-------------------------------------------------------+
+    |  linear         | the linear blending of a nowcast method with other    |
+    |  blending       | data (e.g. NWP data).                                 |
     +-----------------+-------------------------------------------------------+
     |  steps          | the STEPS stochastic nowcasting blending method       |
     |                 | described in :cite:`Seed2003`, :cite:`BPS2006` and    |

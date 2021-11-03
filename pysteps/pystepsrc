@@ -6,7 +6,6 @@
         // path_outputs : path where to save results (figures, forecasts, etc)
         "path_outputs": "./",
         "path_workdir": "./tmp/"
-
     },
     "plot": {
         // "motion_plot" : "streamplot" or "quiver"
