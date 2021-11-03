@@ -1446,21 +1446,34 @@ def calculate_weights(correlations):
     # correlations: [component, scale, ...]
     # Check if the correlations are positive, otherwise rho = 10e-5
     correlations = np.where(correlations < 10e-5, 10e-5, correlations)
-    # Calculate weights for each source
-    ratios = calculate_ratios(correlations)
-    # ratios: [component, scale, ...]
-    total_ratios = np.sum(ratios, axis=0)
-    # total_ratios: [scale, ...] - the denominator of eq. 11 & 12 in BPS2006
-    weights = correlations * np.sqrt(ratios / total_ratios)
-    # weights: [component, scale, ...]
-    # Calculate the weight of the noise component.
-    # Original BPS2006 method in the following two lines (eq. 13)
-    total_square_weights = np.sum(np.square(weights), axis=0)
-    noise_weight = np.sqrt(1.0 - total_square_weights)
-    # TODO: determine the weights method and/or add different functions
 
-    # Finally, add the noise_weights to the weights variable.
-    weights = np.concatenate((weights, noise_weight[None, ...]), axis=0)
+    # If we merge more than one component with the noise cascade, we follow
+    # the weights impolementation in either :cite:`BPS2006` or :cite:`SPN2013`.
+    if correlations.shape[0] > 1:
+        # Calculate weights for each source
+        ratios = calculate_ratios(correlations)
+        # ratios: [component, scale, ...]
+        total_ratios = np.sum(ratios, axis=0)
+        # total_ratios: [scale, ...] - the denominator of eq. 11 & 12 in BPS2006
+        weights = correlations * np.sqrt(ratios / total_ratios)
+        # weights: [component, scale, ...]
+        # Calculate the weight of the noise component.
+        # Original BPS2006 method in the following two lines (eq. 13)
+        total_square_weights = np.sum(np.square(weights), axis=0)
+        noise_weight = np.sqrt(1.0 - total_square_weights)
+        # TODO: determine the weights method and/or add different functions
+        # Finally, add the noise_weights to the weights variable.
+        weights = np.concatenate((weights, noise_weight[None, ...]), axis=0)
+
+    # Otherwise, the weight equals the correlation on that scale level and
+    # the noise component weight equals 1 - this weight. This only occurs for
+    # the weights calculation outside the radar domain where in the case of 1
+    # NWP model or ensemble member, no blending of multiple models has to take
+    # place
+    else:
+        noise_weight = 1.0 - correlations
+        weights = np.concatenate((correlations, noise_weight), axis=0)
+
     return weights
 
 
