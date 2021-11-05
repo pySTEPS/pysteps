@@ -667,6 +667,41 @@ def fss_compute(fss):
     return 1.0 - numer / denom
 
 
+def sal(X_f, X_o):
+    """
+    Compute the structure, amplitude, location (SAL) score for a deterministic forecast field
+    and the corresponding observation field.
+
+    Parameters
+    ----------
+    X_f: array_like
+        Array of shape (m, n) containing the forecast field.
+    X_o: array_like
+        Array of shape (m, n) containing the observation field.
+
+    Returns
+    -------
+    out: tuple of float
+        A three-element tuple.
+
+    References
+    ----------
+    """
+
+    sal = sal_init()
+    sal_accum(sal, X_f, X_o)
+    return sal_compute(fss)
+
+def sal_init():
+    ...
+
+def sal_accum():
+    ...
+
+def sal_compute():
+    ...
+
+
 def _wavelet_decomp(X, w):
     c = pywt.wavedec2(X, w)
 
