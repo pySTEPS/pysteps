@@ -15,10 +15,11 @@ import warnings
 
 import numpy as np
 import xarray as xr
+from pandas import MultiIndex
 from scipy.spatial import cKDTree
 
 
-def decluster(coord, input_array, scale, min_samples=1, verbose=False):
+def decluster(sparse_data, scale, verbose=False):
     """Decluster a set of sparse data points by aggregating, that is, taking
     the median value of all values lying within a certain distance (i.e., a
     cluster).
@@ -32,13 +33,10 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
         Array of shape (n) or (n, m), where *n* is the number of samples and
         *m* the number of variables.
         All values in ``input_array`` are required to have finite values.
-    scale: float or array_like
+    scale: float
         The ``scale`` parameter in the same units of ``coord``.
         It can be a scalar or an array_like of shape (d).
         Data points within the declustering ``scale`` are aggregated.
-    min_samples: int, optional
-        The minimum number of samples for computing the median within a given
-        cluster.
     verbose: bool, optional
         Print out information.
 
@@ -49,81 +47,34 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
         declustered coordinates (l, d) and input array (l, m), where *l* is
         the new number of samples with *l* <= *n*.
     """
+    sparse_data = sparse_data.copy()
 
-    coord = np.copy(coord)
-    input_array = np.copy(input_array)
-
-    # check inputs
-    if np.any(~np.isfinite(input_array)):
-        raise ValueError("input_array contains non-finite values")
-
-    if input_array.ndim == 1:
-        nvar = 1
-        input_array = input_array[:, None]
-    elif input_array.ndim == 2:
-        nvar = input_array.shape[1]
-    else:
-        raise ValueError(
-            "input_array must have 1 (n) or 2 dimensions (n, m), but it has %i"
-            % input_array.ndim
-        )
-
-    if coord.ndim != 2:
-        raise ValueError(
-            "coord must have 2 dimensions (n, d), but it has %i" % coord.ndim
-        )
-    if coord.shape[0] != input_array.shape[0]:
-        raise ValueError(
-            "the number of samples in the input_array does not match the "
-            + "number of coordinates %i!=%i" % (input_array.shape[0], coord.shape[0])
-        )
-
-    if np.isscalar(scale):
-        scale = float(scale)
-    else:
-        scale = np.copy(scale)
-        if scale.ndim != 1:
-            raise ValueError(
-                "scale must have 1 dimension (d), but it has %i" % scale.ndim
-            )
-        if scale.shape[0] != coord.shape[1]:
-            raise ValueError(
-                "scale must have %i elements, but it has %i"
-                % (coord.shape[1], scale.shape[0])
-            )
-        scale = scale[None, :]
-
-    # reduce original coordinates
-    coord_ = np.floor(coord / scale)
-
-    # keep only unique pairs of the reduced coordinates
-    ucoord_ = np.unique(coord_, axis=0)
-
-    # loop through these unique values and average data points which belong to
-    # the same cluster
-    dinput = np.empty(shape=(0, nvar))
-    dcoord = np.empty(shape=(0, coord.shape[1]))
-    for i in range(ucoord_.shape[0]):
-        idx = np.all(coord_ == ucoord_[i, :], axis=1)
-        npoints = np.sum(idx)
-        if npoints >= min_samples:
-            dinput = np.append(
-                dinput, np.median(input_array[idx, :], axis=0)[None, :], axis=0
-            )
-            dcoord = np.append(
-                dcoord, np.median(coord[idx, :], axis=0)[None, :], axis=0
-            )
+    # this is a bit of a hack, necessary to use groupby on a arbitrary set of
+    # multi-index coordinates
+    # I could
+    x = sparse_data.x.values
+    y = sparse_data.y.values
+    reduced_coords = MultiIndex.from_arrays(
+        (x // scale, y // scale), names=("xr", "yr")
+    )
+    sparse_data = sparse_data.assign_coords({"sample": reduced_coords})
+    ds = sparse_data.to_dataset(name="name")
+    ds = ds.reset_coords(("x", "y"))
+    ds = ds.groupby("sample").median()
+    ds = ds.drop_vars("sample")
+    ds = ds.set_coords(("x", "y"))
+    sparse_data = ds["name"]
 
     if verbose:
-        print("--- %i samples left after declustering ---" % dinput.shape[0])
+        print(f"... {sparse_data.sizes['sample']} samples left after declustering")
 
-    return dcoord, dinput
+    return sparse_data
 
 
 def _compute_standard_score(samples, neighbours=None):
     """
-    Compute standard score in one or more dimensionsby using the
-    Mahalanobis distance to generalize to multi-dimensions.
+    Compute standard score in one or more dimensions by using the
+    Mahalanobis distance.
     """
     if neighbours is None:
         neighbours = samples
@@ -138,7 +89,7 @@ def _compute_standard_score(samples, neighbours=None):
         cov_matrix_inv = np.linalg.inv(cov_matrix)
         maha_dist = np.dot(
             np.dot(samples.transpose(..., "variable"), cov_matrix_inv),
-            samples.transpose("variable", ...)
+            samples.transpose("variable", ...),
         ).diagonal()
         maha_dist = np.sqrt(maha_dist)
 
@@ -185,11 +136,10 @@ def remove_outliers(sparse_data, thr, k=None, verbose=False):
         A 1-D boolean array of shape (n) with True values indicating the outliers
         detected in ``input_array``.
     """
-    sparse_data = sparse_data.copy()
-
     if np.any(~np.isfinite(sparse_data)):
         raise ValueError("sparse_data contains non-finite values")
 
+    sparse_data = sparse_data.copy()
     nsample = sparse_data.sizes["sample"]
 
     if nsample < 2:

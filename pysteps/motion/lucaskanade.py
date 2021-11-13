@@ -178,7 +178,6 @@ def dense_lucaskanade(
     an application to stereo vision, in: Proceedings of the 1981 DARPA Imaging
     Understanding Workshop, pp. 121–130, 1981.
     """
-
     input_images = input_images.copy()
 
     if verbose:
@@ -214,7 +213,7 @@ def dense_lucaskanade(
             "x": ("sample", np.empty(0)),
             "y": ("sample", np.empty(0)),
         },
-        attrs={"units": "pixels / timestep"}
+        attrs={"unit": "pixels / timestep"}
     )
     for n in range(nr_fields - 1):
 
@@ -223,14 +222,14 @@ def dense_lucaskanade(
         next_img = input_images.isel(t=n + 1)
 
         # features detection
-        points = detect_features(prvs_img, **fd_kwargs).astype(np.float32)
+        features = detect_features(prvs_img, **fd_kwargs)
 
         # skip loop if no features to track
-        if points.shape[0] == 0:
+        if features.size == 0:
             continue
 
         # get sparse u, v vectors with Lucas-Kanade tracking
-        vectors_ = track_features(prvs_img, next_img, points, **lk_kwargs)
+        vectors_ = track_features(prvs_img, next_img, features, **lk_kwargs)
 
         # stack vectors
         sparse_vectors = xr.concat((sparse_vectors, vectors_), "sample")
@@ -263,7 +262,7 @@ def dense_lucaskanade(
 
     # decluster sparse motion vectors
     if decl_scale > 1:
-        sparse_vectors = decluster(sparse_vectors, decl_scale, 1, verbose)
+        sparse_vectors = decluster(sparse_vectors, decl_scale, verbose)
 
     # return zero motion field if no sparse vectors are left for interpolation
     if not sparse_vectors.sizes["sample"]:
@@ -279,8 +278,8 @@ def dense_lucaskanade(
         )
 
     # interpolation
-    xgrid = np.arange(domain_size[1])
-    ygrid = np.arange(domain_size[0])
+    xgrid = input_images.x
+    ygrid = input_images.y
     dense_vectors = interpolate_vectors(sparse_vectors, xgrid, ygrid, **interp_kwargs)
 
     if verbose:

@@ -36,7 +36,7 @@ except ImportError:
 def track_features(
     prvs_image,
     next_image,
-    points,
+    features,
     winsize=(50, 50),
     nr_levels=3,
     criteria=(3, 10, 0),
@@ -69,7 +69,7 @@ def track_features(
     next_image: ndarray_ or MaskedArray_
         Array of shape (m, n) containing the successive image.
         Invalid values (Nans or infs) are replaced with the min value.
-    points: array_like
+    features: array_like
         Array of shape (p, 2) indicating the pixel coordinates of the
         tracking points (corners).
     winsize: tuple of int, optional
@@ -130,7 +130,7 @@ def track_features(
 
     prvs_img = prvs_image.copy()
     next_img = next_image.copy()
-    p0 = np.copy(points)
+    p0 = np.stack(features.values)
 
     # Check if a MaskedArray is used. If not, mask the ndarray
     if not isinstance(prvs_img, MaskedArray):

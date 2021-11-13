@@ -38,7 +38,7 @@ def not_raises(_exception):
         raise pytest.fail("DID RAISE {0}".format(_exception))
 
 
-reference_field = get_precipitation_fields(num_prev_files=0)
+reference_field = get_precipitation_fields(num_prev_files=0, transform_to="db")
 
 
 def _create_motion_field(input_precip, motion_type):
@@ -151,6 +151,7 @@ def _create_observations(input_precip, motion_type, num_times=9):
         synthetic_observations,
         dims=("t", "x", "y"),
         coords={"x": input_precip.x, "y": input_precip.y},
+        attrs=input_precip.attrs
     )
 
     # Swap  back to (y, x)
@@ -231,12 +232,10 @@ def test_optflow_method_convergence(
     else:
         retrieved_motion = oflow_method(precip_obs, verbose=False)
 
-    precip_data = precip_obs.pysteps.db_transform(precip_obs.max("t"), inverse=True)
+    precip_data = precip_obs.max("t").pysteps.to_rainrate()
     precip_data = precip_data.fillna(0)
 
-    precip_mask = (uniform_filter(precip_data, size=20) > 0.1) & ~precip_obs.mask.any(
-        axis=0
-    )
+    precip_mask = (uniform_filter(precip_data, size=20) > 0.1) & ~precip_obs.isnull().any("t").values
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
     # a relative RMSE measure.

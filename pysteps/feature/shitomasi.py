@@ -11,6 +11,7 @@ Shi-Tomasi features detection method to detect corners in an image.
 """
 
 import numpy as np
+import xarray as xr
 from numpy.ma.core import MaskedArray
 
 from pysteps.exceptions import MissingOptionalDependency
@@ -119,10 +120,12 @@ def detection(
             "routine but it is not installed"
         )
 
-    input_image = np.copy(input_image)
-
     if input_image.ndim != 2:
         raise ValueError("input_image must be a two-dimensional array")
+
+    input_image = input_image.copy()
+    shape = input_image.shape
+    features = input_image.stack(feature=("x", "y")).feature
 
     # Check if a MaskedArray is used. If not, mask the ndarray
     if not isinstance(input_image, MaskedArray):
@@ -161,11 +164,12 @@ def detection(
     )
     points = cv2.goodFeaturesToTrack(input_image, mask=mask, **params)
     if points is None:
-        points = np.empty(shape=(0, 2))
+        points = np.empty(shape=(0, 2), dtype=int)
     else:
-        points = points[:, 0, :]
+        points = points[:, 0, :].astype(int)
 
     if verbose:
-        print(f"--- {points.shape[0]} good features to track detected ---")
+        print(f"... {points.shape[0]} features detected")
 
-    return points
+    idx = np.ravel_multi_index((points[:, 1], points[:, 0]), shape)
+    return features.isel(feature=idx)
