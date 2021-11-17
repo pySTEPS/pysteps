@@ -17,22 +17,23 @@ steps_arg_names = (
     "mask_method",
     "probmatching_method",
     "blend_nwp_members",
+    "weights_method",
     "expected_n_ens_members",
 )
 
 steps_arg_values = [
-    (1, 3, 4, 8, None, None, False, 4),
-    (1, 3, 4, 8, "obs", None, False, 4),
-    (1, 3, 4, 8, "incremental", None, False, 4),
-    (1, 3, 4, 8, None, "mean", False, 4),
-    (1, 3, 4, 8, None, "cdf", False, 4),
-    (1, 3, 4, 8, "incremental", "cdf", False, 4),
-    (1, 3, 4, 6, "incremental", "cdf", False, 4),
-    (1, 3, 4, 9, "incremental", "cdf", False, 4),
-    (2, 3, 10, 8, "incremental", "cdf", False, 10),
-    (5, 3, 4, 8, "incremental", "cdf", False, 5),
-    (1, 10, 1, 8, "incremental", "cdf", False, 1),
-    (5, 3, 2, 8, "incremental", "cdf", True, 2),
+    (1, 3, 4, 8, None, None, False, "spn", 4),
+    (1, 3, 4, 8, "obs", None, False, "spn", 4),
+    (1, 3, 4, 8, "incremental", None, False, "spn", 4),
+    (1, 3, 4, 8, None, "mean", False, "spn", 4),
+    (1, 3, 4, 8, None, "cdf", False, "spn", 4),
+    (1, 3, 4, 8, "incremental", "cdf", False, "spn", 4),
+    (1, 3, 4, 6, "incremental", "cdf", False, "bps", 4),
+    (1, 3, 4, 9, "incremental", "cdf", False, "spn", 4),
+    (2, 3, 10, 8, "incremental", "cdf", False, "spn", 10),
+    (5, 3, 4, 8, "incremental", "cdf", False, "spn", 5),
+    (1, 10, 1, 8, "incremental", "cdf", False, "spn", 1),
+    (5, 3, 2, 8, "incremental", "cdf", True, "spn", 2),
 ]
 
 
@@ -45,6 +46,7 @@ def test_steps_blending(
     mask_method,
     probmatching_method,
     blend_nwp_members,
+    weights_method,
     expected_n_ens_members,
 ):
     ###
@@ -53,19 +55,20 @@ def test_steps_blending(
     # Initialise dummy NWP data
     R_NWP = np.zeros((n_models, n_timesteps + 1, 200, 200))
 
-    for i in range(R_NWP.shape[1]):
-        R_NWP[:, i, 30:185, 30 + 1 * i] = 0.1
-        R_NWP[:, i, 30:185, 31 + 1 * i] = 0.1
-        R_NWP[:, i, 30:185, 32 + 1 * i] = 1.0
-        R_NWP[:, i, 30:185, 33 + 1 * i] = 5.0
-        R_NWP[:, i, 30:185, 34 + 1 * i] = 5.0
-        R_NWP[:, i, 30:185, 35 + 1 * i] = 4.5
-        R_NWP[:, i, 30:185, 36 + 1 * i] = 4.5
-        R_NWP[:, i, 30:185, 37 + 1 * i] = 4.0
-        R_NWP[:, i, 30:185, 38 + 1 * i] = 2.0
-        R_NWP[:, i, 30:185, 39 + 1 * i] = 1.0
-        R_NWP[:, i, 30:185, 40 + 1 * i] = 0.5
-        R_NWP[:, i, 30:185, 41 + 1 * i] = 0.1
+    for n_model in range(n_models):
+        for i in range(R_NWP.shape[1]):
+            R_NWP[n_model, i, 30:185, 30 + 1 * (i + 1) * n_model] = 0.1
+            R_NWP[n_model, i, 30:185, 31 + 1 * (i + 1) * n_model] = 0.1
+            R_NWP[n_model, i, 30:185, 32 + 1 * (i + 1) * n_model] = 1.0
+            R_NWP[n_model, i, 30:185, 33 + 1 * (i + 1) * n_model] = 5.0
+            R_NWP[n_model, i, 30:185, 34 + 1 * (i + 1) * n_model] = 5.0
+            R_NWP[n_model, i, 30:185, 35 + 1 * (i + 1) * n_model] = 4.5
+            R_NWP[n_model, i, 30:185, 36 + 1 * (i + 1) * n_model] = 4.5
+            R_NWP[n_model, i, 30:185, 37 + 1 * (i + 1) * n_model] = 4.0
+            R_NWP[n_model, i, 30:185, 38 + 1 * (i + 1) * n_model] = 2.0
+            R_NWP[n_model, i, 30:185, 39 + 1 * (i + 1) * n_model] = 1.0
+            R_NWP[n_model, i, 30:185, 40 + 1 * (i + 1) * n_model] = 0.5
+            R_NWP[n_model, i, 30:185, 41 + 1 * (i + 1) * n_model] = 0.1
 
     # Define dummy nowcast input data
     R_input = np.zeros((3, 200, 200))
@@ -214,6 +217,7 @@ def test_steps_blending(
         noise_stddev_adj="auto",
         ar_order=2,
         vel_pert_method=None,
+        weights_method=weights_method,
         conditional=False,
         probmatching_method=probmatching_method,
         mask_method=mask_method,

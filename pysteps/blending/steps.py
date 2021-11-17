@@ -41,7 +41,8 @@ consists of the following main steps:
 
     forecast
     calculate_ratios
-    calculate_weights
+    calculate_weights_bps
+    calculate_weights_spn
     blend_means_sigmas
     _check_inputs
     _compute_incremental_mask
@@ -88,6 +89,7 @@ def forecast(
     noise_stddev_adj=None,
     ar_order=2,
     vel_pert_method="bps",
+    weights_method="spn",
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
@@ -177,6 +179,10 @@ def forecast(
       Name of the noise generator to use for perturbing the advection field. See
       the documentation of pysteps.noise.interface. If set to None, the advection
       field is not perturbed.
+    weights_method: {'bps','spn'}, optional
+        The calculation method of the blending weights. Options are the method
+        by :cite:`BPS2006` and the covariance-based method by :cite:`SPN2013`.
+        Defaults to spn.
     conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
@@ -322,7 +328,7 @@ def forecast(
     noise method. It is recommended to use the non-parameteric noise method.
 
     2. If blend_nwp_members is True, the BPS2006 method for the weights is
-    suboptimal. It is recommended to change this method to SPN2013 later.
+    suboptimal. It is recommended to use the SPN2013 method instead.
     """
 
     # 0.1 Start with some checks
@@ -400,6 +406,7 @@ def forecast(
     print("noise generator:        %s" % noise_method)
     print("noise adjustment:       %s" % ("yes" if noise_stddev_adj else "no"))
     print("velocity perturbator:   %s" % vel_pert_method)
+    print("weights method:         %s" % weights_method)
     print("conditional statistics: %s" % ("yes" if conditional else "no"))
     print("precip. mask method:    %s" % mask_method)
     print("probability matching:   %s" % probmatching_method)
@@ -880,11 +887,50 @@ def forecast(
             ###
             # 8.2 Determine the weights per component
             ###
+            # Weights following the bps method. These are needed for the velocity
+            # weights prior to the advection step. If weights method spn is
+            # selected, weights will be overwritten with those weights prior to
+            # blending step.
             # weight = [(extr_field, n_model_fields, noise), n_cascade_levels, ...]
-            weights = calculate_weights(rho_fc)
-            # Also determine the weights of the components without the extrapolation
-            # cascade, in case this is no data or outside the mask.
-            weights_model_only = calculate_weights(rho_fc[1:, :])
+            weights = calculate_weights_bps(rho_fc)
+
+            # The model only weights
+            if weights_method == "bps":
+                # Determine the weights of the components without the extrapolation
+                # cascade, in case this is no data or outside the mask.
+                weights_model_only = calculate_weights_bps(rho_fc[1:, :])
+            elif weights_method == "spn":
+                # Only the weights of the components without the extrapolation
+                # cascade will be determined here. The full set of weights are
+                # determined after the extrapolation step in this method.
+                if blend_nwp_members == True and R_models.shape[0] > 1:
+                    weights_model_only = np.zeros(
+                        (R_models.shape[0] + 1, n_cascade_levels)
+                    )
+                    for i in range(n_cascade_levels):
+                        # Determine the normalized covariance matrix (containing)
+                        # the cross-correlations between the models
+                        cov = np.corrcoef(
+                            np.stack(
+                                [
+                                    R_models[n_model, t, i, :, :].flatten()
+                                    for n_model in range(R_models.shape[0])
+                                ]
+                            )
+                        )
+                        print(cov.shape)
+                        print(rho_fc[1:, i].shape)
+                        # Determine the weights for this cascade level
+                        weights_model_only[:, i] = calculate_weights_spn(
+                            correlations=rho_fc[1:, i], cov=cov
+                        )
+                else:
+                    # Same as correlation and noise is 1 - correlation
+                    weights_model_only = calculate_weights_bps(rho_fc[1:, :])
+            else:
+                raise ValueError(
+                    "Unknown weights method %s: must be 'bps' or 'spn'" % weights_method
+                )
 
             ###
             # 8.3 Determine the noise cascade and regress this to the subsequent
@@ -1148,6 +1194,7 @@ def forecast(
             # 8.5 Blend the cascades
             ###
             R_f_out = []
+
             for t_sub in subtimesteps:
                 # TODO: does it make sense to use sub time steps - check if it works?
                 if t_sub > 0:
@@ -1186,6 +1233,29 @@ def forecast(
                             (sigma_extrapolation[None, :], sigma_models[None, j, t]),
                             axis=0,
                         )
+
+                    # First determine the blending weights if method is spn. The
+                    # weights for method bps have already been determined.
+                    if weights_method == "spn":
+                        weights = np.zeros(
+                            (cascades_stacked.shape[0], n_cascade_levels)
+                        )
+                        for i in range(n_cascade_levels):
+                            # Determine the normalized covariance matrix (containing)
+                            # the cross-correlations between the models
+                            cascades_stacked_ = np.stack(
+                                [
+                                    cascades_stacked[n_model, i, :, :].flatten()
+                                    for n_model in range(cascades_stacked.shape[0] - 1)
+                                ]
+                            )  # -1 to exclude the noise component
+                            cov = np.ma.corrcoef(
+                                np.ma.masked_invalid(cascades_stacked_)
+                            )
+                            # Determine the weights for this cascade level
+                            weights[:, i] = calculate_weights_spn(
+                                correlations=rho_fc[:, i], cov=cov
+                            )
 
                     # Blend the extrapolation, (NWP) model(s) and noise cascades
                     R_f_blended = blending.utils.blend_cascades(
@@ -1422,8 +1492,8 @@ def calculate_ratios(correlations):
     return out
 
 
-def calculate_weights(correlations):
-    """Calculate blending weights for STEPS blending from correlation.
+def calculate_weights_bps(correlations):
+    """Calculate BPS blending weights for STEPS blending from correlation.
 
     Parameters
     ----------
@@ -1440,11 +1510,13 @@ def calculate_weights(correlations):
       each original component plus an addtional noise component, scale level,
       and optionally along [y, x] dimensions.
 
+    References
+    ----------
+    :cite:`BPS2006`
+
     Notes
     -----
-    The weights in the BPS method can sum op to more than 1.0. Hence, the
-    blended cascade has the be (re-)normalized (mu = 0, sigma = 1.0) first
-    before the blended cascade can be recomposed.
+    The weights in the BPS method can sum op to more than 1.0.
     """
     # correlations: [component, scale, ...]
     # Check if the correlations are positive, otherwise rho = 10e-5
@@ -1464,7 +1536,6 @@ def calculate_weights(correlations):
         # Original BPS2006 method in the following two lines (eq. 13)
         total_square_weights = np.sum(np.square(weights), axis=0)
         noise_weight = np.sqrt(1.0 - total_square_weights)
-        # TODO: determine the weights method and/or add different functions
         # Finally, add the noise_weights to the weights variable.
         weights = np.concatenate((weights, noise_weight[None, ...]), axis=0)
 
@@ -1474,6 +1545,65 @@ def calculate_weights(correlations):
     # NWP model or ensemble member, no blending of multiple models has to take
     # place
     else:
+        noise_weight = 1.0 - correlations
+        weights = np.concatenate((correlations, noise_weight), axis=0)
+
+    return weights
+
+
+def calculate_weights_spn(correlations, cov):
+    """Calculate SPN blending weights for STEPS blending from correlation.
+
+    Parameters
+    ----------
+    correlations : array-like
+      Array of shape [n_components]
+      containing correlation (skills) for each component (NWP models and nowcast).
+    cov : array-like
+        Array of shape [n_components, n_components] containing the covariance
+        matrix of the models that will be blended. If cov is set to None and
+        correlations only contains one model, the weight equals the correlation
+        on that scale level and the noise component weight equals 1 - this weight.
+
+    Returns
+    -------
+    weights : array-like
+      Array of shape [component+1]
+      containing the weights to be used in STEPS blending for each original
+      component plus an addtional noise component.
+
+    References
+    ----------
+    :cite:`SPN2013`
+    """
+    if correlations.shape[0] > 1:
+        if isinstance(cov, type(None)):
+            raise ValueError("cov must contain a covariance matrix")
+        else:
+            # Make a numpy matrix out of cov and get the inverse
+            cov_matrix = np.asmatrix(cov)
+            cov_matrix_inv = cov_matrix.getI()
+            # The component weights are the dot product between cov_matrix_inv
+            # and cor_vec
+            weights = cov_matrix_inv.dot(correlations)
+            # Calculate the noise weight
+            if weights.dot(correlations) > 1.0:
+                noise_weight = np.array([0])
+            else:
+                noise_weight = np.asarray(np.sqrt(1 - weights.dot(correlations)))[0]
+            # Make sure the weights are positive, otherwise weight = 0.0
+            weights = np.where(weights < 0.0, 0.0, weights)[0]
+            # Finally, add the noise_weights to the weights variable.
+            weights = np.concatenate((weights, noise_weight), axis=0)
+
+    # Otherwise, the weight equals the correlation on that scale level and
+    # the noise component weight equals 1 - this weight. This only occurs for
+    # the weights calculation outside the radar domain where in the case of 1
+    # NWP model or ensemble member, no blending of multiple models has to take
+    # place
+    else:
+        # Check if the correlations are positive, otherwise rho = 10e-5
+        correlations = np.where(correlations < 10e-5, 10e-5, correlations)
         noise_weight = 1.0 - correlations
         weights = np.concatenate((correlations, noise_weight), axis=0)
 
@@ -1499,7 +1629,7 @@ def blend_means_sigmas(means, sigmas, weights):
       containing the weights to be used in this routine
       for each component plus noise, scale level, and optionally [y, x]
       dimensions, obtained by calling a method implemented in
-      pysteps.blending.steps.calculate_weights
+      pysteps.blending.steps.calculate_weights_...
 
     Returns
     -------
