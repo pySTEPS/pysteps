@@ -1,12 +1,11 @@
 # coding: utf-8
-# coding: utf-8
 
 """
 ANVIL nowcast
 =============
 
 This example demonstrates how to use ANVIL and the advantages compared to
-extrapolation nowcast and S-PROG.
+extrapolation nowcast and S-PROG
 
 Load the libraries.
 """
@@ -18,7 +17,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pysteps import motion, io, rcparams, utils
 from pysteps.nowcasts import anvil, extrapolation, sprog
-from pysteps.utils import transformation
 from pysteps.visualization import plot_precip_field
 
 ###############################################################################
@@ -48,9 +46,7 @@ filenames = io.archive.find_by_date(
 
 # Read the input time series
 importer = io.get_method(importer_name, "importer")
-rainrate_field, quality, metadata = io.read_timeseries(
-    filenames, importer, legacy=True, **importer_kwargs
-)
+rainrate_field = io.read_timeseries(filenames, importer, **importer_kwargs)
 
 # Convert to rain rate (mm/h)
 rainrate_field = rainrate_field.pysteps.to_rainrate()
