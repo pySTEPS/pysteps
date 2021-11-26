@@ -225,8 +225,8 @@ def test_optflow_method_convergence(
 
         retrieved_motion = oflow_method(precip_obs, verbose=False)
 
-    precip_data, _ = stp.utils.dB_transform(precip_obs.max(axis=0), inverse=True)
-    precip_data.data[precip_data.mask] = 0
+    precip_data = precip_obs.pysteps.db_transform(precip_obs.max("t"), inverse=True)
+    precip_data = precip_data.fillna(0)
 
     precip_mask = (uniform_filter(precip_data, size=20) > 0.1) & ~precip_obs.mask.any(
         axis=0

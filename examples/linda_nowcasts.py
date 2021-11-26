@@ -83,9 +83,7 @@ nowcast_linda = linda.forecast(
 )[0]
 
 # Compute S-PROG nowcast for comparison
-rainrate_db, _ = transformation.dB_transform(
-    rainrate, metadata, threshold=0.1, zerovalue=-15.0
-)
+rainrate_db = rainrate.pysteps.db_transform()
 nowcast_sprog = sprog.forecast(
     rainrate_db[-3:, :, :],
     advection,
@@ -95,9 +93,7 @@ nowcast_sprog = sprog.forecast(
 )
 
 # Convert reflectivity nowcast to rain rate
-nowcast_sprog = transformation.dB_transform(
-    nowcast_sprog, threshold=-10.0, inverse=True
-)[0]
+nowcast_sprog = nowcast_sprog.pysteps.db_transform(inverse=True)
 
 # Plot the nowcasts
 fig = plt.figure(figsize=(9, 4))
@@ -153,9 +149,7 @@ nowcast_steps = steps.forecast(
 )
 
 # Convert reflectivity nowcast to rain rate
-nowcast_steps = transformation.dB_transform(
-    nowcast_steps, threshold=-10.0, inverse=True
-)[0]
+nowcast_steps = nowcast_steps.pysteps.db_transform(inverse=True)
 
 # Plot two ensemble members of both nowcasts
 fig = plt.figure()

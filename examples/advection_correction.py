@@ -7,7 +7,7 @@ the advection correction procedure described in Anagnostou and Krajewski (1999).
 
 Advection correction is a temporal interpolation procedure that is often used
 when estimating rainfall accumulations to correct for the shift of rainfall patterns
-between consecutive radar rainfall maps. This shift becomes particularly 
+between consecutive radar rainfall maps. This shift becomes particularly
 significant for long radar scanning cycles and in presence of fast moving
 precipitation features.
 
@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pysteps import io, motion, rcparams
-from pysteps.utils import conversion, dimension
 from pysteps.visualization import plot_precip_field
 from scipy.ndimage import map_coordinates
 
@@ -60,17 +59,18 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-R, __, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+precip = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+precip = precip.pysteps.to_rainrate()
 
-# Upscale to 2 km (simply to reduce the memory demand)
-R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
+# Upscale to double the native resolution (simply to reduce the memory demand)
+precip = precip.coarsen(x=2, y=2).mean()
 
 # Keep only one frame every 10 minutes (i.e., every 2 timesteps)
 # (to highlight the need for advection correction)
-R = R[::2]
+precip = precip.isel(t=slice(0, None, 2))
+
 
 ################################################################################
 # Advection correction
@@ -84,9 +84,9 @@ R = R[::2]
 # going to use the Lucas-Kanade optical flow routine available in pysteps.
 
 
-def advection_correction(R, T=5, t=1):
+def advection_correction(precip, T=5, t=1):
     """
-    R = np.array([qpe_previous, qpe_current])
+    precip = np.array([qpe_previous, qpe_current])
     T = time between two observations (5 min)
     t = interpolation timestep (1 min)
     """
@@ -94,20 +94,20 @@ def advection_correction(R, T=5, t=1):
     # Evaluate advection
     oflow_method = motion.get_method("LK")
     fd_kwargs = {"buffer_mask": 10}  # avoid edge effects
-    V = oflow_method(np.log(R), fd_kwargs=fd_kwargs)
+    V = oflow_method(np.log(precip), fd_kwargs=fd_kwargs)
 
     # Perform temporal interpolation
-    Rd = np.zeros((R[0].shape))
+    Rd = np.zeros((precip[0].shape))
     x, y = np.meshgrid(
-        np.arange(R[0].shape[1], dtype=float), np.arange(R[0].shape[0], dtype=float)
+        np.arange(precip[0].shape[1], dtype=float), np.arange(precip[0].shape[0], dtype=float)
     )
     for i in range(t, T + t, t):
 
         pos1 = (y - i / T * V[1], x - i / T * V[0])
-        R1 = map_coordinates(R[0], pos1, order=1)
+        R1 = map_coordinates(precip[0], pos1, order=1)
 
         pos2 = (y + (T - i) / T * V[1], x + (T - i) / T * V[0])
-        R2 = map_coordinates(R[1], pos2, order=1)
+        R2 = map_coordinates(precip[1], pos2, order=1)
 
         Rd += (T - i) * R1 + i * R2
 
@@ -118,10 +118,10 @@ def advection_correction(R, T=5, t=1):
 # Finally, we apply the advection correction to the whole sequence of radar
 # images and produce the rainfall accumulation map.
 
-R_ac = R[0].copy()
-for i in range(R.shape[0] - 1):
-    R_ac += advection_correction(R[i : (i + 2)], T=10, t=1)
-R_ac /= R.shape[0]
+R_ac = precip[0].copy()
+for i in range(precip.shape[0] - 1):
+    R_ac += advection_correction(precip[i : (i + 2)], T=10, t=1)
+R_ac /= precip.shape[0]
 
 ###############################################################################
 # Results
@@ -136,7 +136,7 @@ R_ac /= R.shape[0]
 
 plt.figure(figsize=(9, 4))
 plt.subplot(121)
-plot_precip_field(R.mean(axis=0), title="3-h rainfall accumulation")
+plot_precip_field(precip.mean(axis=0), title="3-h rainfall accumulation")
 plt.subplot(122)
 plot_precip_field(R_ac, title="Same with advection correction")
 plt.tight_layout()

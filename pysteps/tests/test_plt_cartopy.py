@@ -3,7 +3,6 @@
 import pytest
 
 from pysteps.visualization import plot_precip_field
-from pysteps.utils import to_rainrate
 from pysteps.tests.helpers import get_precipitation_fields
 import matplotlib.pyplot as plt
 
@@ -27,7 +26,7 @@ plt_arg_values = [
 def test_visualization_plot_precip_field(source, map_kwargs, pass_geodata):
     field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
     field = field.squeeze()
-    field, __ = to_rainrate(field, metadata)
+    field = field.pysteps.to_rainrate()
 
     if not pass_geodata:
         metadata = None

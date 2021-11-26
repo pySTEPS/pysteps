@@ -115,6 +115,7 @@ def detection(
         raise MissingOptionalDependency(
             "pandas is required for thunderstorm DATing " "but it is not installed"
         )
+    input_image = np.copy(input_image)
     filt_image = np.zeros(input_image.shape)
     filt_image[input_image >= minref] = input_image[input_image >= minref]
     filt_image[input_image > maxref] = maxref

@@ -11,7 +11,7 @@ Image processing routines for pysteps.
     morph_opening
 """
 import numpy as np
-from numpy.ma.core import MaskedArray
+import xarray as xr
 
 from pysteps.exceptions import MissingOptionalDependency
 
@@ -23,28 +23,24 @@ except ImportError:
     CV2_IMPORTED = False
 
 
-def morph_opening(input_image, thr, n):
-    """Filter out small scale noise on the image by applying a binary
-    morphological opening, that is, erosion followed by dilation.
-
-    .. _MaskedArray:\
-        https://docs.scipy.org/doc/numpy/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray
-
-    .. _ndarray:\
-    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+def morph_opening(input_array, thr, kernel):
+    """Filter out small scale noise on one image or sequence of images
+    by applying a binary morphological opening, that is, erosion followed
+    by dilation.
 
     Parameters
     ----------
-    input_image: ndarray_ or MaskedArray_
-        Array of shape (m, n) containing the input image.
+    input_array: xr.DataArray
+        Image or sequence of images as an array with dimensions (y, x) or (t, y, x).
     thr: float
-        The threshold used to convert the image into a binary image.
-    n: int
-        The structuring element size [pixels].
+        The threshold used to distinguish features from the background.
+    kernel: int or 2D array_like
+        The size of a rounded structuring element in number of pixels or
+        an arbitrary kernel as a two-dimensional array.
 
     Returns
     -------
-    input_image: ndarray_ or MaskedArray_
+    input_image: xr.DataArray
         Array of shape (m,n) containing the filtered image.
     """
     if not CV2_IMPORTED:
@@ -53,32 +49,39 @@ def morph_opening(input_image, thr, n):
             "routine but it is not installed"
         )
 
-    input_image = input_image.copy()
-
-    # Check if a MaskedArray is used. If not, mask the ndarray
-    to_ndarray = False
-    if not isinstance(input_image, MaskedArray):
-        to_ndarray = True
-        input_image = np.ma.masked_invalid(input_image)
-
-    np.ma.set_fill_value(input_image, input_image.min())
+    input_array = input_array.copy()
+    fill_value = input_array.attrs.get("zerovalue", input_array.min())
 
     # Convert to binary image
-    field_bin = np.ndarray.astype(input_image.filled() > thr, "uint8")
+    field_bin = (input_array > thr).astype(np.uint8)
 
-    # Build a structuring element of size n
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
+    # Build a structuring element
+    if isinstance(kernel, int):
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE,
+            (kernel, kernel)
+        )
+    else:
+        kernel = np.array(kernel, dtype=np.uint8)
+
+    if "t" not in field_bin.dims:
+        field_bin = field_bin.expand_dims("t")
 
     # Apply morphological opening (i.e. erosion then dilation)
-    field_bin_out = cv2.morphologyEx(field_bin, cv2.MORPH_OPEN, kernel)
+    field_bin_out = xr.apply_ufunc(
+        cv2.morphologyEx,
+        field_bin.groupby("t"),
+        cv2.MORPH_OPEN,
+        kernel,
+    )
 
     # Build mask to be applied on the original image
-    mask = (field_bin - field_bin_out) > 0
+    mask_remove = (field_bin - field_bin_out) > 0
+
+    if mask_remove.t.size == 1:
+        mask_remove = mask_remove.squeeze("t")
 
     # Filter out small isolated pixels based on mask
-    input_image[mask] = np.nanmin(input_image)
-
-    if to_ndarray:
-        input_image = np.array(input_image)
+    input_image = input_array.where(~mask_remove, fill_value)
 
     return input_image

@@ -61,14 +61,12 @@ def test_lk(
         pytest.importorskip("pandas")
 
     # inputs
-    precip, metadata = get_precipitation_fields(
+    precip = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
-        return_raw=False,
-        metadata=True,
-        upscale=2000,
+        coarsen=2,
+        filled=True,
     )
-    precip = precip.filled()
 
     # Retrieve motion field
     oflow_method = motion.get_method("LK")

@@ -3,7 +3,7 @@
 Extrapolation nowcast
 =====================
 
-This tutorial shows how to compute and plot an extrapolation nowcast using 
+This tutorial shows how to compute and plot an extrapolation nowcast using
 Finnish radar data.
 
 """
@@ -48,21 +48,20 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-Z, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+reflectivity, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(Z, metadata)
+precip = reflectivity.pysteps.to_rainrate()
 
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata)
+plot_precip_field(precip[-1, :, :], geodata=metadata)
 plt.show()
 
 # Store the last frame for plotting it later later
-R_ = R[-1, :, :].copy()
+R_ = precip[-1, :, :].copy()
 
-# Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
-# set the fill value to -15 dBR
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+# Log-transform the data to unit of dBR
+precip = precip.pysteps.db_transform()
 
 # Nicely print the metadata
 pprint(metadata)
@@ -78,15 +77,15 @@ pprint(metadata)
 
 # Estimate the motion field with Lucas-Kanade
 oflow_method = motion.get_method("LK")
-V = oflow_method(R[-3:, :, :])
+V = oflow_method(precip[-3:, :, :])
 
 # Extrapolate the last radar observation
 extrapolate = nowcasts.get_method("extrapolation")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-R_f = extrapolate(R[-1, :, :], V, n_leadtimes)
+precip[~np.isfinite(precip)] = metadata["zerovalue"]
+R_f = extrapolate(precip[-1, :, :], V, n_leadtimes)
 
 # Back-transform to rain rate
-R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
+R_f = R_f.pysteps.db_transform(inverse=True)
 
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata)
@@ -114,7 +113,7 @@ fns = io.archive.find_by_date(
 )
 # Read the radar composites
 R_o, _, metadata_o = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
-R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o, 223.0, 1.53)
+R_o = R_o.pysteps.to_rainrate(zr_a=223.0, zr_b=1.53)
 
 # Compute fractions skill score (FSS) for all lead times, a set of scales and 1 mm/h
 fss = verification.get_method("FSS")

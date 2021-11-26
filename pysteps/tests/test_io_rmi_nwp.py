@@ -14,10 +14,14 @@ from pysteps.tests.helpers import smart_assert
 
 pytest.importorskip("netCDF4")
 
-root_path = pysteps.rcparams.data_sources["rmi_nwp"]["root_path"]
-rel_path = os.path.join("2021", "07", "04")
-filename = os.path.join(root_path, rel_path, "ao13_2021070412_native_5min.nc")
-data_array_xr = pysteps.io.import_rmi_nwp_xr(filename)
+try:
+    root_path = pysteps.rcparams.data_sources["rmi_nwp"]["root_path"]
+except KeyError:
+    pytestmark = pytest.mark.skip("all tests still WIP")
+else:
+    rel_path = os.path.join("2021", "07", "04")
+    filename = os.path.join(root_path, rel_path, "ao13_2021070412_native_5min.nc")
+    data_array_xr = pysteps.io.import_rmi_nwp_xr(filename)
 
 expected_proj = "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 +a=6371229 +es=0 +lat_0=50.8 +x_0=365950 +y_0=-365950"
 

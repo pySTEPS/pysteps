@@ -8,10 +8,9 @@ PRECIP = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=False,
-    metadata=False,
     upscale=2000,
 )
-PRECIP = PRECIP.filled()
+PRECIP = PRECIP.fillna(PRECIP.min())
 
 
 def test_noise_param_2d_fft_filter():

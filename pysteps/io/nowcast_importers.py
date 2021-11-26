@@ -106,6 +106,8 @@ def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
         Precipitation field in mm/h. The dimensions are [latitude, longitude].
         The first grid point (0,0) corresponds to the upper left corner of the
         domain, while (last i, last j) denote the lower right corner.
+    quality: None
+        Not implement.
     metadata: dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
@@ -205,9 +207,13 @@ def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
         metadata["zerovalue"] = np.nanmin(precip)
         metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
 
+        metadata["institution"] = ds.getncattr("institution")
+
+        metadata["cartesian_unit"] = ds["x"].getncattr("units")
+
         ds.close()
 
-        return precip, metadata
+        return precip, None, metadata
     except Exception as er:
         if onerror == "warn":
             print("There was an error processing the file", er)

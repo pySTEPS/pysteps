@@ -75,7 +75,7 @@ date = datetime.strptime("201607112100", "%Y%m%d%H%M")
 fns = io.find_by_date(date, root, fmt, pattern, ext, timestep, num_prev_files=2)
 importer = io.get_method(importer_name, "importer")
 precip, __, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
-precip, metadata = utils.to_rainrate(precip, metadata)
+precip = precip.pysteps.to_rainrate()
 # precip[np.isnan(precip)] = 0
 
 # motion
@@ -124,8 +124,8 @@ importer = io.get_method(importer_name, "importer")
 fns = io.find_by_date(
     date, root, fmt, pattern, ext, timestep, num_next_files=nleadtimes
 )
-obs, __, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
-obs, metadata = utils.to_rainrate(obs, metadata)
+obs = io.read_timeseries(fns, importer, **importer_kwargs)
+obs = obs.pysteps.to_rainrate()
 obs[np.isnan(obs)] = 0
 
 # reliability diagram

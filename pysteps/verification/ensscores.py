@@ -143,8 +143,8 @@ def rankhist(X_f, X_o, X_min=None, normalize=True):
         the bin counts sum to one.
     """
 
-    X_f = X_f.copy()
-    X_o = X_o.copy()
+    X_f = np.copy(X_f)
+    X_o = np.copy(X_o)
     num_ens_members = X_f.shape[0]
     rhist = rankhist_init(num_ens_members, X_min)
     rankhist_accum(rhist, X_f, X_o)

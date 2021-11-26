@@ -74,7 +74,7 @@ reference_field = np.squeeze(reference_field)  # Remove time dimension
 # ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
-reference_field, metadata = stp.utils.to_rainrate(reference_field, metadata)
+reference_field = reference_field.pysteps.to_rainrate()
 
 # Mask invalid values
 reference_field = np.ma.masked_invalid(reference_field)
@@ -84,9 +84,7 @@ plot_precip_field(reference_field, title="Reference field")
 plt.show()
 
 # Log-transform the data [dBR]
-reference_field, metadata = stp.utils.dB_transform(
-    reference_field, metadata, threshold=0.1, zerovalue=-15.0
-)
+reference_field = reference_field.pysteps.db_transform()
 
 print("Precip. pattern shape: " + str(reference_field.shape))
 
@@ -281,7 +279,7 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
         f"{(time.perf_counter() - elapsed_time):.1f} [s]"
     )
 
-    precip_obs, _ = stp.utils.dB_transform(precip_obs, inverse=True)
+    precip_obs = precip_obs.pysteps.db_transform(inverse=True)
 
     precip_data = precip_obs.max(axis=0)
     precip_data.data[precip_data.mask] = 0

@@ -579,9 +579,9 @@ def fss_accum(fss, X_f, X_o):
         message += " having the same shape"
         raise ValueError(message)
 
-    X_f = X_f.copy()
+    X_f = np.copy(X_f)
     X_f[~np.isfinite(X_f)] = fss["thr"] - 1
-    X_o = X_o.copy()
+    X_o = np.copy(X_o)
     X_o[~np.isfinite(X_o)] = fss["thr"] - 1
 
     # Convert to binary fields with the given intensity threshold

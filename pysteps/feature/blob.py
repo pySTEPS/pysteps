@@ -93,6 +93,8 @@ def detection(
     else:
         detector = feature.blob_doh
 
+    input_image = np.copy(input_image)
+
     blobs = detector(
         input_image,
         min_sigma=min_sigma,

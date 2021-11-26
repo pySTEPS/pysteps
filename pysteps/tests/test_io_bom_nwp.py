@@ -11,13 +11,16 @@ from pysteps.tests.helpers import smart_assert
 
 pytest.importorskip("netCDF4")
 
-root_path = pysteps.rcparams.data_sources["bom_nwp"]["root_path"]
-rel_path = os.path.join("2020", "10", "31")
-filename = os.path.join(root_path, rel_path, "20201031_0000_regrid_short.nc")
-data_array_xr = pysteps.io.import_bom_nwp_xr(filename)
+try:
+    root_path = pysteps.rcparams.data_sources["bom_nwp"]["root_path"]
+except KeyError:
+    pytestmark = pytest.mark.skip("all tests still WIP")
+else:
+    rel_path = os.path.join("2020", "10", "31")
+    filename = os.path.join(root_path, rel_path, "20201031_0000_regrid_short.nc")
+    data_array_xr = pysteps.io.import_bom_nwp_xr(filename)
 
 expected_proj = "+proj=aea  +lon_0=153.240 +lat_0=-27.718 +lat_1=-26.200 +lat_2=-29.300"
-
 
 def test_io_import_bom_nwp_xarray():
     """Test the importer Bom NWP."""

@@ -2,8 +2,8 @@
 Optical flow
 ============
 
-This tutorial offers a short overview of the optical flow routines available in 
-pysteps and it will cover how to compute and plot the motion field from a 
+This tutorial offers a short overview of the optical flow routines available in
+pysteps and it will cover how to compute and plot the motion field from a
 sequence of radar images.
 """
 
@@ -47,7 +47,7 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-R, quality, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+precip, quality, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 del quality  # Not used
 
@@ -56,13 +56,13 @@ del quality  # Not used
 # ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+precip = precip.pysteps.to_rainrate()
 
 # Store the reference frame
-R_ = R[-1, :, :].copy()
+R_ = precip[-1, :, :].copy()
 
 # Log-transform the data [dBR]
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip = precip.pysteps.db_transform()
 
 # Nicely print the metadata
 pprint(metadata)
@@ -78,7 +78,7 @@ pprint(metadata)
 # field of motion vectors.
 
 oflow_method = motion.get_method("LK")
-V1 = oflow_method(R[-3:, :, :])
+V1 = oflow_method(precip[-3:, :, :])
 
 # Plot the motion field on top of the reference frame
 plot_precip_field(R_, geodata=metadata, title="LK")
@@ -97,7 +97,7 @@ plt.show()
 # at minimizing a cost function between the displaced and the reference image.
 
 oflow_method = motion.get_method("VET")
-V2 = oflow_method(R[-3:, :, :])
+V2 = oflow_method(precip[-3:, :, :])
 
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="VET")
@@ -116,8 +116,8 @@ plt.show()
 # estimating the motion, here we are going to use all the available 10 fields.
 
 oflow_method = motion.get_method("DARTS")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-V3 = oflow_method(R)  # needs longer training sequence
+precip[~np.isfinite(precip)] = metadata["zerovalue"]
+V3 = oflow_method(precip)  # needs longer training sequence
 
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="DARTS")
@@ -133,8 +133,8 @@ plt.show()
 # inconsitency during the solution of the optical flow equations.
 
 oflow_method = motion.get_method("proesmans")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-V4 = oflow_method(R[-2:, :, :])
+precip[~np.isfinite(precip)] = metadata["zerovalue"]
+V4 = oflow_method(precip[-2:, :, :])
 
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="Proesmans")

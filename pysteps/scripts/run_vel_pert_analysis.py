@@ -96,7 +96,7 @@ while curdate <= enddate:
     R[~np.isfinite(R)] = metadata["zerovalue"]
     if use_precip_mask:
         MASK = np.any(R < R_min, axis=0)
-    R = transformation.dB_transform(R)[0]
+    R = R.pysteps.db_transform()
 
     if args.oflow == "vet":
         R_ = R[-2:, :, :]

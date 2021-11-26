@@ -11,10 +11,14 @@ from pysteps.tests.helpers import smart_assert
 
 pytest.importorskip("netCDF4")
 
-root_path = pysteps.rcparams.data_sources["knmi_nwp"]["root_path"]
-rel_path = os.path.join("2018", "09", "05")
-filename = os.path.join(root_path, rel_path, "20180905_0600_Pforecast_Harmonie.nc")
-data_array_xr = pysteps.io.import_knmi_nwp_xr(filename)
+try:
+    root_path = pysteps.rcparams.data_sources["knmi_nwp"]["root_path"]
+except KeyError:
+    pytestmark = pytest.mark.skip("all tests still WIP")
+else:
+    rel_path = os.path.join("2018", "09", "05")
+    filename = os.path.join(root_path, rel_path, "20180905_0600_Pforecast_Harmonie.nc")
+    data_array_xr = pysteps.io.import_knmi_nwp_xr(filename)
 
 expected_proj = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 

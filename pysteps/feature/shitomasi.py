@@ -119,7 +119,7 @@ def detection(
             "routine but it is not installed"
         )
 
-    input_image = input_image.copy()
+    input_image = np.copy(input_image)
 
     if input_image.ndim != 2:
         raise ValueError("input_image must be a two-dimensional array")

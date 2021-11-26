@@ -14,12 +14,11 @@ field.
 from matplotlib import cm, pyplot as plt
 import numpy as np
 import os
-from pprint import pprint
 from pysteps import io, rcparams
 from pysteps.noise.fftgenerators import initialize_param_2d_fft_filter
 from pysteps.noise.fftgenerators import initialize_nonparam_2d_fft_filter
 from pysteps.noise.fftgenerators import generate_noise_2d_fft_filter
-from pysteps.utils import conversion, rapsd, transformation
+from pysteps.utils import rapsd
 from pysteps.visualization import plot_precip_field, plot_spectrum1d
 
 ###############################################################################
@@ -34,25 +33,23 @@ from pysteps.visualization import plot_precip_field, plot_spectrum1d
 # Import the example radar composite
 root_path = rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20160711", "AQC161932100V_00005.801.gif")
-R, _, metadata = io.import_mch_gif(
-    filename, product="AQC", unit="mm", accutime=5.0, legacy=True
-)
+precip = io.import_mch_gif(filename, product="AQC", unit="mm", accutime=5.0)
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+precip = precip.pysteps.to_rainrate()
 
 # Nicely print the metadata
-pprint(metadata)
+print(precip)
 
 # Plot the rainfall field
-plot_precip_field(R, geodata=metadata)
+plot_precip_field(precip)
 plt.show()
 
 # Log-transform the data
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip = precip.pysteps.db_transform()
 
-# Assign the fill value to all the Nans
-R[~np.isfinite(R)] = metadata["zerovalue"]
+# Assign a fill value to all the Nans
+precip = precip.fillna(precip.min())
 
 ###############################################################################
 # Parametric filter
@@ -65,28 +62,30 @@ R[~np.isfinite(R)] = metadata["zerovalue"]
 # slopes (beta1 and beta2) and one breaking point
 
 # Fit the parametric PSD to the observation
-Fp = initialize_param_2d_fft_filter(R)
+filter_parametric = initialize_param_2d_fft_filter(precip.values)
 
 # Compute the observed and fitted 1D PSD
-L = np.max(Fp["input_shape"])
-if L % 2 == 1:
-    wn = np.arange(0, int(L / 2) + 1)
+size = np.max(filter_parametric["input_shape"])
+if size % 2 == 1:
+    wn = np.arange(0, int(size / 2) + 1)
 else:
-    wn = np.arange(0, int(L / 2))
-R_, freq = rapsd(R, fft_method=np.fft, return_freq=True)
-f = np.exp(Fp["model"](np.log(wn), *Fp["pars"]))
+    wn = np.arange(0, int(size / 2))
+spectrum_1d, freq = rapsd(precip, fft_method=np.fft, return_freq=True)
+spectrum_1d_param = np.exp(
+    filter_parametric["model"](np.log(wn), *filter_parametric["pars"])
+)
 
 # Extract the scaling break in km, beta1 and beta2
-w0 = L / np.exp(Fp["pars"][0])
-b1 = Fp["pars"][2]
-b2 = Fp["pars"][3]
+scaling_break = size / np.exp(filter_parametric["pars"][0])
+beta_1 = filter_parametric["pars"][2]
+beta_2 = filter_parametric["pars"][3]
 
 # Plot the observed power spectrum and the model
 fig, ax = plt.subplots()
 plot_scales = [512, 256, 128, 64, 32, 16, 8, 4]
 plot_spectrum1d(
     freq,
-    R_,
+    spectrum_1d,
     x_units="km",
     y_units="dBR",
     color="k",
@@ -96,7 +95,7 @@ plot_spectrum1d(
 )
 plot_spectrum1d(
     freq,
-    f,
+    spectrum_1d_param,
     x_units="km",
     y_units="dBR",
     color="r",
@@ -106,8 +105,8 @@ plot_spectrum1d(
 )
 plt.legend()
 ax.set_title(
-    "Radially averaged log-power spectrum of R\n"
-    r"$\omega_0=%.0f km, \beta_1=%.1f, \beta_2=%.1f$" % (w0, b1, b2)
+    "Radially averaged log-power spectrum of precip\n"
+    f"scale break={scaling_break:.0f} km, beta_1={beta_1:.1f}, beta_2={beta_2:.1f}"
 )
 plt.show()
 
@@ -116,9 +115,9 @@ plt.show()
 # --------------------
 #
 # In the nonparametric approach,  the Fourier filter is obtained directly
-# from the power spectrum of the observed precipitation field R.
+# from the power spectrum of the observed precipitation field precip.
 
-Fnp = initialize_nonparam_2d_fft_filter(R)
+filter_nonparametric = initialize_nonparam_2d_fft_filter(precip.values)
 
 ###############################################################################
 # Noise generator
@@ -131,26 +130,29 @@ Fnp = initialize_nonparam_2d_fft_filter(R)
 seed = 42
 num_realizations = 3
 
-# Generate noise
-Np = []
+# Generate noise = []
+samples_param = []
+samples_nonparam = []
 Nnp = []
 for k in range(num_realizations):
-    Np.append(generate_noise_2d_fft_filter(Fp, seed=seed + k))
-    Nnp.append(generate_noise_2d_fft_filter(Fnp, seed=seed + k))
+    samples_param.append(generate_noise_2d_fft_filter(filter_parametric, seed=seed + k))
+    samples_nonparam.append(
+        generate_noise_2d_fft_filter(filter_nonparametric, seed=seed + k)
+    )
 
 # Plot the generated noise fields
 
 fig, ax = plt.subplots(nrows=2, ncols=3)
 
 # parametric noise
-ax[0, 0].imshow(Np[0], cmap=cm.RdBu_r, vmin=-3, vmax=3)
-ax[0, 1].imshow(Np[1], cmap=cm.RdBu_r, vmin=-3, vmax=3)
-ax[0, 2].imshow(Np[2], cmap=cm.RdBu_r, vmin=-3, vmax=3)
+ax[0, 0].imshow(samples_param[0], cmap=cm.RdBu_r, vmin=-3, vmax=3)
+ax[0, 1].imshow(samples_param[1], cmap=cm.RdBu_r, vmin=-3, vmax=3)
+ax[0, 2].imshow(samples_param[2], cmap=cm.RdBu_r, vmin=-3, vmax=3)
 
 # nonparametric noise
-ax[1, 0].imshow(Nnp[0], cmap=cm.RdBu_r, vmin=-3, vmax=3)
-ax[1, 1].imshow(Nnp[1], cmap=cm.RdBu_r, vmin=-3, vmax=3)
-ax[1, 2].imshow(Nnp[2], cmap=cm.RdBu_r, vmin=-3, vmax=3)
+ax[1, 0].imshow(samples_nonparam[0], cmap=cm.RdBu_r, vmin=-3, vmax=3)
+ax[1, 1].imshow(samples_nonparam[1], cmap=cm.RdBu_r, vmin=-3, vmax=3)
+ax[1, 2].imshow(samples_nonparam[2], cmap=cm.RdBu_r, vmin=-3, vmax=3)
 
 for i in range(2):
     for j in range(3):

@@ -16,7 +16,7 @@ from pprint import pprint
 from pysteps import io, nowcasts, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob
-from pysteps.utils import conversion, dimension, transformation
+from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
 
 # Set nowcast parameters
@@ -51,24 +51,22 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+precip, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+precip = precip.pysteps.to_rainrate()
 
 # Upscale data to 2 km to limit memory usage
-R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
-
+precip = precip.coarsen(x=2, y=2).mean()
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata)
+plot_precip_field(precip[-1, :, :], geodata=metadata)
 plt.show()
 
-# Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
-# set the fill value to -15 dBR
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+# Log-transform the data to unit of dBR
+precip = precip.pysteps.db_transform()
 
 # Set missing values with the fill value
-R[~np.isfinite(R)] = -15.0
+precip[~np.isfinite(precip)] = -15.0
 
 # Nicely print the metadata
 pprint(metadata)
@@ -84,12 +82,12 @@ pprint(metadata)
 # progressively remove the unpredictable spatial scales during the forecast.
 
 # Estimate the motion field
-V = dense_lucaskanade(R)
+V = dense_lucaskanade(precip)
 
 # The S-PROG nowcast
 nowcast_method = nowcasts.get_method("sprog")
 R_f = nowcast_method(
-    R[-3:, :, :],
+    precip[-3:, :, :],
     V,
     n_leadtimes,
     n_cascade_levels=6,
@@ -97,7 +95,7 @@ R_f = nowcast_method(
 )
 
 # Back-transform to rain rate
-R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
+R_f = R_f.pysteps.db_transform(inverse=True)
 
 # Plot the S-PROG forecast
 plot_precip_field(
@@ -127,7 +125,7 @@ plt.show()
 # The STEPS nowcast
 nowcast_method = nowcasts.get_method("steps")
 R_f = nowcast_method(
-    R[-3:, :, :],
+    precip[-3:, :, :],
     V,
     n_leadtimes,
     n_ens_members,
@@ -142,7 +140,7 @@ R_f = nowcast_method(
 )
 
 # Back-transform to rain rates
-R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
+R_f = R_f.pysteps.db_transform(inverse=True)
 
 
 # Plot the ensemble mean

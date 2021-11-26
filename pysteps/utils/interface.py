@@ -14,7 +14,6 @@ Interface for the utils module.
 from . import arrays
 from . import cleansing
 from . import conversion
-from . import dimension
 from . import fft
 from . import images
 from . import interpolate
@@ -57,20 +56,6 @@ def get_method(name, **kwargs):
     +-------------------+-----------------------------------------------------+
     | dbz or            | convert to reflectivity [dBZ]                       |
     | reflectivity      |                                                     |
-    +-------------------+-----------------------------------------------------+
-
-    Dimension methods:
-
-    +-------------------+-----------------------------------------------------+
-    |     Name          |              Description                            |
-    +===================+=====================================================+
-    |  accumulate       | aggregate fields in time                            |
-    +-------------------+-----------------------------------------------------+
-    |  clip             | resize the field domain by geographical coordinates |
-    +-------------------+-----------------------------------------------------+
-    |  square           | either pad or crop the data to get a square domain  |
-    +-------------------+-----------------------------------------------------+
-    |  upscale          | upscale the field                                   |
     +-------------------+-----------------------------------------------------+
 
     FFT methods (wrappers to different implementations):
@@ -154,8 +139,8 @@ def get_method(name, **kwargs):
 
     name = name.lower()
 
-    def donothing(R, metadata=None, *args, **kwargs):
-        return R.copy(), {} if metadata is None else metadata.copy()
+    def donothing(data_array, *args, **kwargs):
+        return data_array.copy()
 
     methods_objects = dict()
     methods_objects["none"] = donothing
@@ -175,12 +160,6 @@ def get_method(name, **kwargs):
     methods_objects["dbz"] = conversion.to_reflectivity
     methods_objects["reflectivity"] = conversion.to_reflectivity
 
-    # dimension methods
-    methods_objects["accumulate"] = dimension.aggregate_fields_time
-    methods_objects["clip"] = dimension.clip_domain
-    methods_objects["square"] = dimension.square_domain
-    methods_objects["upscale"] = dimension.aggregate_fields_space
-
     # image processing methods
     methods_objects["morph_opening"] = images.morph_opening
 
@@ -198,10 +177,10 @@ def get_method(name, **kwargs):
     # transformation methods
     methods_objects["boxcox"] = transformation.boxcox_transform
     methods_objects["box-cox"] = transformation.boxcox_transform
-    methods_objects["db"] = transformation.dB_transform
-    methods_objects["decibel"] = transformation.dB_transform
+    methods_objects["db"] = transformation.db_transform
+    methods_objects["decibel"] = transformation.db_transform
     methods_objects["log"] = transformation.boxcox_transform
-    methods_objects["nqt"] = transformation.NQ_transform
+    methods_objects["nqt"] = transformation.nq_transform
     methods_objects["sqrt"] = transformation.sqrt_transform
 
     # FFT methods

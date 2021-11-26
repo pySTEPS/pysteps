@@ -2,189 +2,72 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_almost_equal
-
-from pysteps.utils import transformation
-
-# boxcox_transform
-test_data = [
-    (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        None,
-        None,
-        None,
-        False,
-        np.array([0]),
-    ),
-    (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": "BoxCox",
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        None,
-        None,
-        None,
-        True,
-        np.array([np.exp(1)]),
-    ),
-    (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        1.0,
-        None,
-        None,
-        False,
-        np.array([0]),
-    ),
-    (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": "BoxCox",
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        1.0,
-        None,
-        None,
-        True,
-        np.array([2.0]),
-    ),
-]
+import xarray as xr
 
 
-@pytest.mark.parametrize(
-    "R, metadata, Lambda, threshold, zerovalue, inverse, expected", test_data
+xr.set_options(keep_attrs=True)
+
+
+data_array = xr.DataArray(
+    np.random.randn(10, 10),
+    coords={"x": np.arange(10), "y": np.arange(10)},
+    dims=("y", "x"),
+    attrs={"unit": "dummy"},
 )
-def test_boxcox_transform(R, metadata, Lambda, threshold, zerovalue, inverse, expected):
-    """Test the boxcox_transform."""
-    assert_array_almost_equal(
-        transformation.boxcox_transform(
-            R, metadata, Lambda, threshold, zerovalue, inverse
-        )[0],
-        expected,
-    )
+data_array = data_array.where(data_array > -1)
+data_array = xr.where(data_array < 0, 0, data_array)
 
 
-# dB_transform
-test_data = [
-    (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        None,
-        None,
-        False,
-        np.array([0]),
-    ),
-    (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": "dB",
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        None,
-        None,
-        True,
-        np.array([1.25892541]),
-    ),
-]
+test_args = [(1.0, 0.01), (0.0, 0.01)]
 
 
-@pytest.mark.parametrize(
-    "R, metadata, threshold, zerovalue, inverse, expected", test_data
-)
-def test_dB_transform(R, metadata, threshold, zerovalue, inverse, expected):
-    """Test the dB_transform."""
-    assert_array_almost_equal(
-        transformation.dB_transform(R, metadata, threshold, zerovalue, inverse)[0],
-        expected,
-    )
+@pytest.mark.parametrize("boxcox_lambda, offset", test_args)
+def test_boxcox_transform(boxcox_lambda, offset):
+
+    data_transformed = data_array.pysteps.boxcox_transform(boxcox_lambda, offset)
+    assert data_transformed.attrs.get("boxcox_lambda") == boxcox_lambda
+    assert data_transformed.attrs.get("offset") == offset
+    assert data_transformed.attrs.get("transform") == "BoxCox"
+    assert data_transformed.attrs.get("unit") == "dummy"
+
+    data_back = data_transformed.pysteps.boxcox_transform(inverse=True)
+    assert data_back.attrs.get("transform") is None
+    assert data_back.attrs.get("unit") == "dummy"
+    assert "offset" not in data_back.attrs
+    xr.testing.assert_allclose(data_back, data_array)
 
 
-# NQ_transform
-test_data = [
-    (
-        np.array([1, 2]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        False,
-        np.array([-0.4307273, 0.4307273]),
-    )
-]
+def test_db_transform():
+    offset = 0.01
+    data_transformed = data_array.pysteps.db_transform(offset)
+    assert data_transformed.attrs.get("offset") == offset
+    assert data_transformed.attrs.get("transform") == "dB"
+
+    data_back = data_transformed.pysteps.db_transform(inverse=True)
+    assert data_back.attrs.get("transform") is None
+    assert data_back.attrs.get("unit") == "dummy"
+    assert "offset" not in data_back.attrs
+    xr.testing.assert_allclose(data_back, data_array)
 
 
-@pytest.mark.parametrize("R, metadata, inverse, expected", test_data)
-def test_NQ_transform(R, metadata, inverse, expected):
-    """Test the NQ_transform."""
-    assert_array_almost_equal(
-        transformation.NQ_transform(R, metadata, inverse)[0], expected
-    )
+def test_nq_transform():
+    nq_a = 0.0
+    data_transformed = data_array.pysteps.nq_transform(nq_a)
+    assert data_transformed.attrs.get("transform") == "NQ"
+
+    data_back = data_transformed.pysteps.nq_transform(template=data_array, inverse=True)
+    assert data_back.attrs.get("transform") is None
+    assert data_back.attrs.get("unit") == "dummy"
+    xr.testing.assert_equal(np.isnan(data_back), np.isnan(data_array))
+    # we do not expect an exact match since the extremes are lost
+    xr.testing.assert_allclose(data_back, data_array, rtol=1, atol=0.1)
 
 
-# sqrt_transform
-test_data = [
-    (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        False,
-        np.array([1]),
-    ),
-    (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": "sqrt",
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
-        True,
-        np.array([1]),
-    ),
-]
+def test_sqrt_transform():
+    data_transformed = data_array.pysteps.sqrt_transform()
+    assert data_transformed.attrs.get("transform") == "sqrt"
 
-
-@pytest.mark.parametrize("R, metadata, inverse, expected", test_data)
-def test_sqrt_transform(R, metadata, inverse, expected):
-    """Test the sqrt_transform."""
-    assert_array_almost_equal(
-        transformation.sqrt_transform(R, metadata, inverse)[0], expected
-    )
+    data_back = data_transformed.pysteps.sqrt_transform(inverse=True)
+    assert data_back.attrs.get("transform") is None
+    assert data_back.attrs.get("unit") == "dummy"
+    xr.testing.assert_allclose(data_back, data_array)

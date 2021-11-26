@@ -5,7 +5,7 @@ ANVIL nowcast
 =============
 
 This example demonstrates how to use ANVIL and the advantages compared to
-extrapolation nowcast and S-PROG.
+extrapolation nowcast and S-PROG
 
 Load the libraries.
 """
@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pysteps import motion, io, rcparams, utils
 from pysteps.nowcasts import anvil, extrapolation, sprog
-from pysteps.utils import transformation
 from pysteps.visualization import plot_precip_field
 
 ###############################################################################
@@ -47,12 +46,10 @@ filenames = io.archive.find_by_date(
 
 # Read the input time series
 importer = io.get_method(importer_name, "importer")
-rainrate_field, quality, metadata = io.read_timeseries(
-    filenames, importer, legacy=True, **importer_kwargs
-)
+rainrate_field = io.read_timeseries(filenames, importer, **importer_kwargs)
 
 # Convert to rain rate (mm/h)
-rainrate_field, metadata = utils.to_rainrate(rainrate_field, metadata)
+rainrate_field = rainrate_field.pysteps.to_rainrate()
 
 ################################################################################
 # Compute the advection field
@@ -78,9 +75,7 @@ oflow_kwargs["decl_scale"] = 10
 oflow = motion.get_method("lucaskanade")
 
 # transform the input data to logarithmic scale
-rainrate_field_log, _ = utils.transformation.dB_transform(
-    rainrate_field, metadata=metadata
-)
+rainrate_field_log = rainrate_field.pysteps.db_transform()
 velocity = oflow(rainrate_field_log, **oflow_kwargs)
 
 ###############################################################################
@@ -91,25 +86,18 @@ forecast_extrap = extrapolation.forecast(
 )
 forecast_extrap[forecast_extrap < 0.5] = 0.0
 
-# log-transform the data and the threshold value to dBR units for S-PROG
-rainrate_field_db, _ = transformation.dB_transform(
-    rainrate_field, metadata, threshold=0.1, zerovalue=-15.0
-)
-rainrate_thr, _ = transformation.dB_transform(
-    np.array([0.5]), metadata, threshold=0.1, zerovalue=-15.0
-)
+# log-transform the data to dBR units for S-PROG
+rainrate_field_db = rainrate_field.pysteps.db_transform()
 forecast_sprog = sprog.forecast(
     rainrate_field_db[-3:], velocity, 3, n_cascade_levels=8, R_thr=rainrate_thr[0]
 )
-forecast_sprog, _ = transformation.dB_transform(
-    forecast_sprog, threshold=-10.0, inverse=True
-)
-forecast_sprog[forecast_sprog < 0.5] = 0.0
+forecast_sprog = forecast_sprog.pysteps.db_transform(inverse=True)
+forecast_sprog = forecast_sprog.where(forecast_sprog >= 0.5, 0)
 
 forecast_anvil = anvil.forecast(
     rainrate_field[-4:], velocity, 3, ar_window_radius=25, ar_order=2
 )
-forecast_anvil[forecast_anvil < 0.5] = 0.0
+forecast_anvil = forecast_anvil.where(forecast_sprog >= 0.5, 0)
 
 ###############################################################################
 # Read the reference observation field and threshold rain rates below 0.5 mm/h
@@ -122,8 +110,8 @@ refobs_field, _, metadata = io.read_timeseries(
     filenames, importer, legacy=True, **importer_kwargs
 )
 
-refobs_field, metadata = utils.to_rainrate(refobs_field[-1], metadata)
-refobs_field[refobs_field < 0.5] = 0.0
+refobs_field = refobs_field.isel(t=-1).pysteps.to_rainrate()
+refobs_field = refobs_field.where(refobs_field >= 0.5, 0.0)
 
 ###############################################################################
 # Plot the extrapolation, S-PROG and ANVIL nowcasts.
