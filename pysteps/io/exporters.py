@@ -507,7 +507,7 @@ def initialize_forecast_exporter_netcdf(
     var_yc.axis = "Y"
     var_yc.standard_name = "projection_y_coordinate"
     var_yc.long_name = "y-coordinate in Cartesian system"
-    var_yc.units = metadata.get("cartesian_unit")
+    var_yc.units = metadata.get("cartesian_unit", "m")
 
     x_2d, y_2d = np.meshgrid(xr, yr)
     pr = pyproj.Proj(metadata["projection"])

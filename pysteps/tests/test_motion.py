@@ -232,7 +232,7 @@ def test_optflow_method_convergence(
     else:
         retrieved_motion = oflow_method(precip_obs, verbose=False)
 
-    precip_data = precip_obs.max("t").pysteps.to_rainrate()
+    precip_data = precip_obs.pysteps.db_transform(precip_obs.max("t"), inverse=True)
     precip_data = precip_data.fillna(0)
 
     precip_mask = (uniform_filter(precip_data, size=20) > 0.1) & ~precip_obs.isnull().any("t").values
