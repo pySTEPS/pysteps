@@ -20,6 +20,7 @@ available in OpenCV_.
 """
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 from numpy.ma.core import MaskedArray
 
@@ -130,7 +131,13 @@ def track_features(
 
     prvs_img = prvs_image.copy()
     next_img = next_image.copy()
-    p0 = np.stack(features.values)
+
+    xgrid_res = float(prvs_img.x.isel(x=slice(2)).diff("x"))
+    xgrid_min = float(prvs_img.x.isel(x=0))
+    ygrid_res = float(prvs_img.y.isel(y=slice(2)).diff("y"))
+    ygrid_min = float(prvs_img.y.isel(y=0))
+
+    prvs_xyi = features[["xi", "yi"]].values.astype("float32")
 
     # Check if a MaskedArray is used. If not, mask the ndarray
     if not isinstance(prvs_img, MaskedArray):
@@ -161,7 +168,6 @@ def track_features(
     next_img = np.ndarray.astype(next_img, "uint8")
 
     # Lucas-Kanade
-    # TODO: use the error returned by the OpenCV routine
     params = dict(
         winSize=winsize,
         maxLevel=nr_levels,
@@ -169,33 +175,43 @@ def track_features(
         flags=flags,
         minEigThreshold=min_eig_thr,
     )
-    p1, st, __ = cv2.calcOpticalFlowPyrLK(prvs_img, next_img, p0, None, **params)
+    next_xyi, st, err = cv2.calcOpticalFlowPyrLK(
+        prvs_img, next_img, prvs_xyi, None, **params
+    )
+    del err  # TODO: use the error returned by the OpenCV routine
 
     # keep only features that have been found
     st = np.atleast_1d(st.squeeze()) == 1
     if np.any(st):
-        p1 = p1[st, :]
-        p0 = p0[st, :]
-
-        # extract vectors
-        xy = p0
-        uv = p1 - p0
+        prvs_xy = features[["x", "y"]].iloc[st, :].values
+        prvs_xyi = features[["xi", "yi"]].iloc[st, :].values
+        next_x = xgrid_min + next_xyi[st, 0] * xgrid_res
+        next_y = ygrid_min + next_xyi[st, 1] * ygrid_res
+        next_xy = np.column_stack((next_x, next_y))
+        uv = next_xy - prvs_xy
 
     else:
-        xy = uv = np.empty(shape=(0, 2))
+        prvs_xyi = prvs_xy = uv = np.empty(shape=(0, 2))
 
     if verbose:
-        print(f"--- {xy.shape[0]} sparse vectors found ---")
+        print(f"... found {prvs_xy.shape[0]} sparse vectors")
 
+    time_seconds = _compute_timedelta(prvs_image, next_image)
     sparse_vectors = xr.DataArray(
-        uv,
+        uv / time_seconds,
         dims=("sample", "variable"),
         coords={
-            "x": ("sample", xy[:, 0]),
-            "y": ("sample", xy[:, 1]),
+            "x": ("sample", prvs_xy[:, 0]),
+            "y": ("sample", prvs_xy[:, 1]),
+            "xi": ("sample", prvs_xyi[:, 0]),
+            "yi": ("sample", prvs_xyi[:, 1]),
             "variable": ("variable", ["u", "v"]),
         },
-        attrs=dict(units="pixels / timestep"),
+        attrs=dict(units=f"{prvs_image.cartesian_unit} / s"),
     )
 
     return sparse_vectors
+
+
+def _compute_timedelta(prvs: xr.DataArray, next: xr.DataArray) -> int:
+    return pd.to_timedelta((next.t - prvs.t).values).seconds

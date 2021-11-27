@@ -28,6 +28,7 @@ try:
     RBF_IMPORTED = True
 except ImportError:
     from scipy import __version__ as scipy_version
+
     RBF_IMPORTED = False
 
 
@@ -86,10 +87,9 @@ def idwinterp2d(sparse_data, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **k
     inds = xr.DataArray(inds, dims=("grid", "neighbor"))
 
     # convert geographical distances to number of pixels
-    x_res = np.gradient(xgrid)
-    y_res = np.gradient(ygrid)
-    mean_res = np.mean(np.abs([x_res.mean(), y_res.mean()]))
-    dist /= mean_res
+    x_res = np.abs(np.diff(xgrid[:2]))
+    y_res = np.abs(np.diff(ygrid[:2]))
+    dist /= np.mean([x_res, y_res])
 
     # compute distance-based weights
     dist += dist_offset  # avoid zero distances
@@ -102,7 +102,7 @@ def idwinterp2d(sparse_data, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **k
     output_array = output_array.astype(sparse_data.dtype)
 
     # assign multi-index coordinate for the grid
-    grid = MultiIndex.from_product([ygrid, xgrid], names=("y", "x"))
+    grid = MultiIndex.from_product([np.array(ygrid), np.array(xgrid)], names=("y", "x"))
     output_array = output_array.assign_coords({"grid": grid})
 
     return output_array.unstack("grid")  # reshape as grid
@@ -152,7 +152,9 @@ def rbfinterp2d(sparse_data, xgrid, ygrid, **kwargs):
     output_array = xr.DataArray(
         rbfi(gridv),
         dims=("grid", "variable"),
-        coords=sparse_data.drop_vars(("x", "y", "sample"), errors="ignore").coords,
+        coords=sparse_data.drop_vars(
+            ("x", "y", "xi", "yi", "sample"), errors="ignore"
+        ).coords,
         attrs=sparse_data.attrs,
     )
     output_array = output_array.astype(sparse_data.dtype)

@@ -50,17 +50,17 @@ def morph_opening(input_array, thr, kernel):
         )
 
     input_array = input_array.copy()
-    fill_value = input_array.attrs.get("zerovalue", input_array.min())
+    if kernel is None:
+        return input_array
+
+    fill_value = input_array.min()
 
     # Convert to binary image
     field_bin = (input_array > thr).astype(np.uint8)
 
     # Build a structuring element
     if isinstance(kernel, int):
-        kernel = cv2.getStructuringElement(
-            cv2.MORPH_ELLIPSE,
-            (kernel, kernel)
-        )
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel, kernel))
     else:
         kernel = np.array(kernel, dtype=np.uint8)
 

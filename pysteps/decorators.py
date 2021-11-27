@@ -201,14 +201,18 @@ def prepare_interpolator(nchunks=4):
             input_nsamples = sparse_data.sizes["sample"]
             input_dtype = sparse_data.dtype
 
+            xgrid = np.array(xgrid)
+            ygrid = np.array(ygrid)
             grid_shape = (ygrid.size, xgrid.size)
             output_grid = xr.DataArray(
-                np.zeros((input_nvars,) + grid_shape, dtype=input_dtype),
+                data=np.zeros((input_nvars,) + grid_shape, dtype=input_dtype),
                 dims=("variable", "y", "x"),
                 coords={"y": ("y", ygrid), "x": ("x", xgrid)},
             )
             output_grid = output_grid.assign_coords(
-                sparse_data.drop_vars(("x", "y", "sample"), errors="ignore").coords
+                sparse_data.drop_vars(
+                    ("x", "y", "xi", "yi", "sample"), errors="ignore"
+                ).coords
             )
             output_grid = output_grid.assign_attrs(sparse_data.attrs)
 
@@ -314,7 +318,7 @@ def _to_xarray(array, metadata):
     y_coords = np.arange(y1, y1 + ysize * array.shape[0], ysize) + ysize / 2
 
     data_array = xr.DataArray(
-        data=array,
+        data=array[::-1, :],
         dims=("y", "x"),
         coords=dict(
             x=("x", x_coords),

@@ -35,7 +35,6 @@ def decluster(sparse_data, scale, verbose=False):
         All values in ``input_array`` are required to have finite values.
     scale: float
         The ``scale`` parameter in the same units of ``coord``.
-        It can be a scalar or an array_like of shape (d).
         Data points within the declustering ``scale`` are aggregated.
     verbose: bool, optional
         Print out information.
@@ -48,10 +47,11 @@ def decluster(sparse_data, scale, verbose=False):
         the new number of samples with *l* <= *n*.
     """
     sparse_data = sparse_data.copy()
+    if scale is None:
+        return sparse_data
 
     # this is a bit of a hack, necessary to use groupby on a arbitrary set of
     # multi-index coordinates
-    # I could
     x = sparse_data.x.values
     y = sparse_data.y.values
     reduced_coords = MultiIndex.from_arrays(
@@ -59,16 +59,21 @@ def decluster(sparse_data, scale, verbose=False):
     )
     sparse_data = sparse_data.assign_coords({"sample": reduced_coords})
     ds = sparse_data.to_dataset(name="name")
-    ds = ds.reset_coords(("x", "y"))
+    ds = ds.reset_coords(("x", "y", "xi", "yi"))
     ds = ds.groupby("sample").median()
     ds = ds.drop_vars("sample")
-    ds = ds.set_coords(("x", "y"))
-    sparse_data = ds["name"]
+    ds = ds.set_coords(("x", "y", "xi", "yi"))
+    cluster_data = ds["name"]
+    cluster_data.name = sparse_data.name
+
+    # after clustering, reassign original dtype to coordinates
+    for coord in cluster_data.coords:
+        cluster_data[coord] = cluster_data[coord].astype(sparse_data[coord].dtype)
 
     if verbose:
-        print(f"... {sparse_data.sizes['sample']} samples left after declustering")
+        print(f"... {cluster_data.sizes['sample']} samples left after declustering")
 
-    return sparse_data
+    return cluster_data
 
 
 def _compute_standard_score(samples, neighbours=None):

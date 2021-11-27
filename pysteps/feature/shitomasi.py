@@ -11,7 +11,8 @@ Shi-Tomasi features detection method to detect corners in an image.
 """
 
 import numpy as np
-import xarray as xr
+from numpy.lib.shape_base import column_stack
+import pandas as pd
 from numpy.ma.core import MaskedArray
 
 from pysteps.exceptions import MissingOptionalDependency
@@ -104,8 +105,8 @@ def detection(
 
     Returns
     -------
-    points: ndarray_
-        Array of shape (p, 2) indicating the pixel coordinates of *p* detected
+    points: pd.DataFrame
+        Pandas DataFrame of shape (p, 2) indicating the pixel coordinates of *p* detected
         corners.
 
     References
@@ -120,14 +121,11 @@ def detection(
             "routine but it is not installed"
         )
 
-    input_image = np.copy(input_image)
-
     if input_image.ndim != 2:
         raise ValueError("input_image must be a two-dimensional array")
 
     input_image = input_image.copy()
-    shape = input_image.shape
-    features = input_image.stack(feature=("x", "y")).feature
+    coords = input_image.coords
 
     # Check if a MaskedArray is used. If not, mask the ndarray
     if not isinstance(input_image, MaskedArray):
@@ -138,6 +136,7 @@ def detection(
     # buffer the quality mask to ensure that no vectors are computed nearby
     # the edges of the radar mask
     mask = np.ma.getmaskarray(input_image).astype("uint8")
+
     if buffer_mask > 0:
         mask = cv2.dilate(
             mask, np.ones((int(buffer_mask), int(buffer_mask)), np.uint8), 1
@@ -171,7 +170,16 @@ def detection(
         points = points[:, 0, :].astype(int)
 
     if verbose:
-        print(f"... {points.shape[0]} features detected")
+        print(f"... detected {points.shape[0]} features")
 
-    idx = np.ravel_multi_index((points[:, 1], points[:, 0]), shape)
-    return features.isel(feature=idx)
+    grid_res_x = coords["x"].isel(x=slice(2)).diff("x")
+    grid_res_y = coords["y"].isel(y=slice(2)).diff("y")
+    coords_x = float(coords["x"].isel(x=0)) + points[:, 0] * float(grid_res_x)
+    coords_y = float(coords["y"].isel(y=0)) + points[:, 1] * float(grid_res_y)
+
+    xyi = np.column_stack((points[:, 0], points[:, 1])).astype("uint16")
+    xy = np.column_stack((coords_x, coords_y)).astype(coords["x"].dtype)
+    return pd.concat(
+        (pd.DataFrame(xyi, columns=["xi", "yi"]), pd.DataFrame(xy, columns=["x", "y"])),
+        axis=1,
+    )
