@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Thunderstorm Detection and Tracking - DATing
+Thunderstorm Detection and Tracking - T-DaTing
 ============================================
 
-This example shows how to use the thunderstorm DATing module. The example is based on
+This example shows how to use the thunderstorm DaTing module. The example is based on
 MeteoSwiss radar data and uses the Cartesian composite of maximum reflectivity on a
 1 km grid. All default values are tuned to this grid, but can be modified.
 The first section demonstrates thunderstorm cell detection and how to plot contours.
@@ -13,13 +13,15 @@ as well as how to plot the resulting tracks.
 This module was implemented following the procedures used in the TRT Thunderstorms
 Radar Tracking algorithm (:cite:`TRT2004`) used operationally at MeteoSwiss.
 Modifications include advecting the identified thunderstorms with the optical flow
-obtained from pysteps, as well as additional options in the thresholding.
+obtained from pysteps, as well as additional options in the thresholding. A detailed
+description is published in Appendix A of :cite: 'Feldmann2021'.
 
 References
 ..........
 :cite:`TRT2004`
+:cite: 'Feldmann2021'
 
-@author: mfeldman
+@author: feldmann-m
 """
 ################################################################################
 # Import all required functions
