@@ -337,7 +337,11 @@ def decompose_NWP(
 
     # Create variables (decomposed cascade, means and standard deviations)
     R_d = ncf.createVariable(
-        "pr_decomposed", np.float64, ("time", "cascade_levels", "x", "y")
+        "pr_decomposed",
+        np.float32,
+        ("time", "cascade_levels", "x", "y"),
+        zlib=True,
+        complevel=4,
     )
     means = ncf.createVariable("means", np.float64, ("time", "cascade_levels"))
     stds = ncf.createVariable("stds", np.float64, ("time", "cascade_levels"))
