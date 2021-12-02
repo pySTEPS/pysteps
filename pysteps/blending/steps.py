@@ -77,6 +77,7 @@ def forecast(
     V_models,
     timesteps,
     timestep,
+    issuetime,
     n_ens_members=24,
     n_cascade_levels=8,
     blend_nwp_members=False,
@@ -138,6 +139,9 @@ def forecast(
     timestep: float
       Time step of the motion vectors (minutes). Required if vel_pert_method is
       not None or mask_method is 'incremental'.
+    issuetime: datetime
+      Datetime object containing the date and time for which the forecast
+      is issued.
     n_ens_members: int, optional
       The number of ensemble members to generate.
     n_cascade_levels: int, optional
@@ -786,6 +790,7 @@ def forecast(
     ###
     # 7. Calculate the initial skill of the (NWP) model forecasts at t=0
     ###
+
     rho_nwp_models = [
         blending.skill_scores.spatial_correlation(
             obs=R_c[0, :, -1, :, :],
@@ -795,6 +800,13 @@ def forecast(
         for n_model in range(R_models.shape[0])
     ]
     rho_nwp_models = np.stack(rho_nwp_models)
+
+    # Save this in the climatological skill file
+    blending.clim.save_skill(
+        current_skill=rho_nwp_models,
+        validtime=issuetime,
+        **clim_kwargs,
+    )
 
     # Also initizalize the current and previous extrapolation forecast scale
     # for the nowcasting component
@@ -866,7 +878,7 @@ def forecast(
                     blending.skill_scores.lt_dependent_cor_nwp(
                         lt=(t * int(timestep)),
                         correlations=rho_nwp_models[n_model],
-                        **clim_kwargs,
+                        skill_kwargs=clim_kwargs,
                     )
                     for n_model in range(rho_nwp_models.shape[0])
                 ]
@@ -877,7 +889,7 @@ def forecast(
                 rho_nwp_fc = blending.skill_scores.lt_dependent_cor_nwp(
                     lt=(t * int(timestep)),
                     correlations=rho_nwp_models[j],
-                    **clim_kwargs,
+                    skill_kwargs=clim_kwargs,
                 )
                 # Concatenate rho_extr and rho_nwp
                 rho_fc = np.concatenate(

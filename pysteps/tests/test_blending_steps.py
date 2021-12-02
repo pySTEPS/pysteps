@@ -2,6 +2,7 @@
 
 import os
 import numpy as np
+import datetime
 import pytest
 import pysteps
 from pysteps import cascade, blending
@@ -109,6 +110,11 @@ def test_steps_blending(
     metadata["zr_a"] = 200.0
     metadata["zr_b"] = 1.6
 
+    # Also set the clim_kwargs
+    clim_kwargs = dict(
+        {"outdir_path": "./tmp", "n_models": n_models, "window_length": 30}
+    )
+
     ###
     # First threshold the data and convert it to dBR
     ###
@@ -205,6 +211,7 @@ def test_steps_blending(
         V_models=V_NWP,
         timesteps=n_timesteps,
         timestep=5.0,
+        issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=blend_nwp_members,
@@ -231,7 +238,7 @@ def test_steps_blending(
         filter_kwargs=None,
         noise_kwargs=None,
         vel_pert_kwargs=None,
-        clim_kwargs=None,
+        clim_kwargs=clim_kwargs,
         mask_kwargs=None,
         measure_time=False,
     )

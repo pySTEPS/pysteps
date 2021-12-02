@@ -108,7 +108,9 @@ def lt_dependent_cor_nwp(lt, correlations, skill_kwargs=dict()):
     """
     # Obtain the climatological values towards which the correlations will
     # regress
-    clim_cor_values, regr_pars = clim_regr_values(n_cascade_levels=len(correlations))
+    clim_cor_values, regr_pars = clim_regr_values(
+        n_cascade_levels=len(correlations), skill_kwargs=skill_kwargs
+    )
     # Determine the speed of the regression (eq. 24 in BPS2004)
     qm = np.exp(-lt / regr_pars[0, :]) * (2 - np.exp(-lt / regr_pars[1, :]))
     # Determine the correlation for lead time lt
@@ -165,7 +167,6 @@ def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=Non
     return rho, rho_prev
 
 
-# TODO: Make sure the method can also handle multiple model inputs..
 def clim_regr_values(n_cascade_levels, skill_kwargs=dict()):
     """Obtains the climatological correlation values and regression parameters
     from a file called NWP_weights_window.bin in the outdir_path. If this file
@@ -205,9 +206,10 @@ def clim_regr_values(n_cascade_levels, skill_kwargs=dict()):
     equation.
 
     """
+
     # First, obtain climatological skill values
     try:
-        clim_cor_values = clim.calc_clim_weights(
+        clim_cor_values = clim.calc_clim_skill(
             n_cascade_levels=n_cascade_levels, **skill_kwargs
         )
     except FileNotFoundError:

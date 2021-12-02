@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from pysteps.blending.clim import save_weights, calc_clim_weights
+from pysteps.blending.clim import save_skill, calc_clim_skill
 import random
 from datetime import datetime, timedelta
 from os.path import join, exists
@@ -12,31 +12,31 @@ from numpy.testing import assert_array_equal
 random.seed(12356)
 n_cascade_levels = 7
 model_names = ["alaro13", "arome13"]
-default_start_weights = [0.8, 0.5]
+default_start_skill = [0.8, 0.5]
 """ Helper functions """
 
 
-def generate_random_weights(n_cascade_levels, n_models=1):
+def generate_random_skill(n_cascade_levels, n_models=1):
     """
-    Generate random weights which decay exponentially with scale.
+    Generate random skill which decay exponentially with scale.
     """
-    start_weights = np.array([random.uniform(0.5, 0.99) for i in range(n_models)])
+    start_skill = np.array([random.uniform(0.5, 0.99) for i in range(n_models)])
     powers = np.arange(1, n_cascade_levels + 1)
-    return pow(start_weights[:, np.newaxis], powers)
+    return pow(start_skill[:, np.newaxis], powers)
 
 
-def generate_fixed_weights(n_cascade_levels, n_models=1):
+def generate_fixed_skill(n_cascade_levels, n_models=1):
     """
-    Generate weights starting at default_start_weights which decay exponentially with scale.
+    Generate skill starting at default_start_skill which decay exponentially with scale.
     """
-    start_weights = np.resize(default_start_weights, n_models)
+    start_skill = np.resize(default_start_skill, n_models)
     powers = np.arange(1, n_cascade_levels + 1)
-    return pow(start_weights[:, np.newaxis], powers)
+    return pow(start_skill[:, np.newaxis], powers)
 
 
 """ Test arguments """
 
-clim_arg_names = ("startdatestr", "enddatestr", "n_models", "expected_weights_today")
+clim_arg_names = ("startdatestr", "enddatestr", "n_models", "expected_skill_today")
 
 test_enddates = ["20210701235500", "20210702000000", "20200930235500"]
 
@@ -46,7 +46,7 @@ clim_arg_values = [
         "20210701235500",
         1,
         {
-            "mean_weights": generate_fixed_weights(n_cascade_levels),
+            "mean_skill": generate_fixed_skill(n_cascade_levels),
             "n": 12,
             "last_validtime": datetime.strptime(test_enddates[0], "%Y%m%d%H%M%S"),
         },
@@ -56,7 +56,7 @@ clim_arg_values = [
         "20210702000000",
         1,
         {
-            "mean_weights": generate_fixed_weights(n_cascade_levels),
+            "mean_skill": generate_fixed_skill(n_cascade_levels),
             "n": 1,
             "last_validtime": datetime.strptime(test_enddates[1], "%Y%m%d%H%M%S"),
         },
@@ -66,7 +66,7 @@ clim_arg_values = [
         "20200930235500",
         1,
         {
-            "mean_weights": generate_fixed_weights(n_cascade_levels),
+            "mean_skill": generate_fixed_skill(n_cascade_levels),
             "n": 288,
             "last_validtime": datetime.strptime(test_enddates[2], "%Y%m%d%H%M%S"),
         },
@@ -76,7 +76,7 @@ clim_arg_values = [
         "20210701235500",
         2,
         {
-            "mean_weights": generate_fixed_weights(n_cascade_levels, 2),
+            "mean_skill": generate_fixed_skill(n_cascade_levels, 2),
             "n": 12,
             "last_validtime": datetime.strptime(test_enddates[0], "%Y%m%d%H%M%S"),
         },
@@ -86,7 +86,7 @@ clim_arg_values = [
         "20210702000000",
         2,
         {
-            "mean_weights": generate_fixed_weights(n_cascade_levels, 2),
+            "mean_skill": generate_fixed_skill(n_cascade_levels, 2),
             "n": 1,
             "last_validtime": datetime.strptime(test_enddates[1], "%Y%m%d%H%M%S"),
         },
@@ -96,7 +96,7 @@ clim_arg_values = [
         "20200930235500",
         2,
         {
-            "mean_weights": generate_fixed_weights(n_cascade_levels, 2),
+            "mean_skill": generate_fixed_skill(n_cascade_levels, 2),
             "n": 288,
             "last_validtime": datetime.strptime(test_enddates[2], "%Y%m%d%H%M%S"),
         },
@@ -105,10 +105,8 @@ clim_arg_values = [
 
 
 @pytest.mark.parametrize(clim_arg_names, clim_arg_values)
-def test_save_weights(
-    startdatestr, enddatestr, n_models, expected_weights_today, tmpdir
-):
-    """Test if the weights are saved correctly and the daily average is computed"""
+def test_save_skill(startdatestr, enddatestr, n_models, expected_skill_today, tmpdir):
+    """Test if the skill are saved correctly and the daily average is computed"""
 
     # get validtime
     currentdate = datetime.strptime(startdatestr, "%Y%m%d%H%M%S")
@@ -118,31 +116,29 @@ def test_save_weights(
     outdir_path = tmpdir
 
     while currentdate <= enddate:
-        current_weights = generate_fixed_weights(n_cascade_levels, n_models)
-        print("Saving weights: ", current_weights, currentdate, outdir_path)
-        save_weights(current_weights, currentdate, outdir_path, window_length=2)
+        current_skill = generate_fixed_skill(n_cascade_levels, n_models)
+        print("Saving skill: ", current_skill, currentdate, outdir_path)
+        save_skill(current_skill, currentdate, outdir_path, window_length=2)
         currentdate += timestep
 
-    weights_today_file = join(outdir_path, "NWP_weights_today.pkl")
-    assert exists(weights_today_file)
-    with open(weights_today_file, "rb") as f:
-        weights_today = pickle.load(f)
+    skill_today_file = join(outdir_path, "NWP_skill_today.pkl")
+    assert exists(skill_today_file)
+    with open(skill_today_file, "rb") as f:
+        skill_today = pickle.load(f)
 
     # Check type
-    assert type(weights_today) == type({})
-    assert "mean_weights" in weights_today
-    assert "n" in weights_today
-    assert "last_validtime" in weights_today
-    assert_array_equal(
-        weights_today["mean_weights"], expected_weights_today["mean_weights"]
-    )
-    assert weights_today["n"] == expected_weights_today["n"]
-    assert weights_today["last_validtime"] == expected_weights_today["last_validtime"]
+    assert type(skill_today) == type({})
+    assert "mean_skill" in skill_today
+    assert "n" in skill_today
+    assert "last_validtime" in skill_today
+    assert_array_equal(skill_today["mean_skill"], expected_skill_today["mean_skill"])
+    assert skill_today["n"] == expected_skill_today["n"]
+    assert skill_today["last_validtime"] == expected_skill_today["last_validtime"]
 
 
 if __name__ == "__main__":
-    save_weights(
-        generate_fixed_weights(n_cascade_levels, 1),
+    save_skill(
+        generate_fixed_skill(n_cascade_levels, 1),
         datetime.strptime("20200801000000", "%Y%m%d%H%M%S"),
         "/tmp/",
     )

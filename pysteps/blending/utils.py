@@ -13,6 +13,7 @@ Module with common utilities used by the blending methods.
     recompose_cascade
     blend_optical_flows
     decompose_NWP
+    compute_store_nwp_motion
     load_NWP
 """
 
@@ -228,6 +229,7 @@ def decompose_NWP(
     timestep,
     valid_times,
     num_cascade_levels=8,
+    num_workers=1,
     output_path=rcparams.outputs["path_workdir"],
     decomp_method="fft",
     fft_method="numpy",
@@ -256,6 +258,12 @@ def decompose_NWP(
       assumed to be numpy.datetime64 types as imported by the pysteps importer
     num_cascade_levels: int, optional
       The number of frequency bands to use. Must be greater than 2. Defaults to 8.
+    num_workers: int, optional
+      The number of workers to use for parallel computation. Applicable if dask
+      is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
+      is advisable to disable OpenMP by setting the environment variable
+      OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
+      threads.
     output_path: str, optional
       The location where to save the file with the NWP cascade. Defaults to the
       path_workdir specified in the rcparams file.
@@ -341,14 +349,15 @@ def decompose_NWP(
 
     # Decompose the NWP data
     filter_g = filter_gaussian(R_NWP.shape[1:], num_cascade_levels)
-    fft = utils_get_method(fft_method, shape=R_NWP.shape[1:], n_threads=1)
+    fft = utils_get_method(fft_method, shape=R_NWP.shape[1:], n_threads=num_workers)
     decomp_method, _ = cascade_get_method(decomp_method)
 
     for i in range(R_NWP.shape[0]):
         R_ = decomp_method(
-            R_NWP[i, :, :],
-            filter_g,
+            field=R_NWP[i, :, :],
+            bp_filter=filter_g,
             fft_method=fft,
+            input_domain=domain,
             output_domain=domain,
             normalize=normalize,
             compute_stats=compute_stats,
@@ -356,6 +365,7 @@ def decompose_NWP(
         )
 
         # Save data to netCDF file
+        # print(R_["cascade_levels"])
         R_d[i, :, :, :] = R_["cascade_levels"]
         means[i, :] = R_["means"]
         stds[i, :] = R_["stds"]
@@ -364,13 +374,77 @@ def decompose_NWP(
     ncf.close()
 
 
-def load_NWP(input_nc_path, start_time, n_timesteps):
-    """Loads the decomposed NWP data from the netCDF files
+def compute_store_nwp_motion(
+    precip_nwp,
+    oflow_method,
+    analysis_time,
+    nwp_model,
+    output_path,
+):
+    """Computes, per forecast lead time, the velocity field of an NWP model field.
 
     Parameters
     ----------
-    input_nc_path: str
+    precip_nwp: array-like
+      Array of dimension (n_timesteps, x, y) containing the precipitation forecast
+      from some NWP model.
+    oflow_method: {'constant', 'darts', 'lucaskanade', 'proesmans', 'vet'}, optional
+      An optical flow method from pysteps.motion.get_method.
+    analysis_time: numpy.datetime64
+      The analysis time of the NWP forecast. The analysis time is assumed to be a
+      numpy.datetime64 type as imported by the pysteps importer.
+    nwp_model: str
+      The name of the NWP model.
+    output_path: str, optional
+      The location where to save the file with the NWP velocity fields. Defaults
+      to the path_workdir specified in the rcparams file.
+
+    Returns
+    -------
+    Nothing
+    """
+
+    # Set the output file
+    date_string = np.datetime_as_string(analysis_time, "s")
+    outfn = os.path.join(
+        output_path,
+        nwp_model
+        + "_"
+        + date_string[:4]
+        + date_string[5:7]
+        + date_string[8:10]
+        + date_string[11:13]
+        + date_string[14:16]
+        + date_string[17:19]
+        + ".npy",
+    )
+
+    # Get the velocity field per time step
+    v_nwp = np.zeros((precip_nwp.shape[0], 2, precip_nwp.shape[1], precip_nwp.shape[2]))
+    # Loop through the timesteps. We need two images to construct a motion
+    # field, so we can start from timestep 1.
+    for t in range(1, precip_nwp.shape[0]):
+        v_nwp[t] = oflow_method(precip_nwp[t - 1 : t + 1, :, :])
+
+    # Make timestep 0 the same as timestep 1.
+    v_nwp = np.insert(v_nwp, 0, v_nwp[0], axis=0)
+
+    assert v_nwp.ndim == 4, "v_nwp must be a four-dimensional array"
+
+    # Save it as a numpy array
+    np.save(outfn, v_nwp)
+
+
+def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timesteps):
+    """Loads the decomposed NWP and velocity data from the netCDF files
+
+    Parameters
+    ----------
+    input_nc_path_decomp: str
       Path to the saved netCDF file containing the decomposed NWP data.
+    input_path_velocities: str
+        Path to the saved numpy binary file containing the estimated velocity
+        fields from the NWP data.
     start_time: numpy.datetime64
       The start time of the nowcasting. Assumed to be a numpy.datetime64 type
     n_timesteps: int
@@ -382,25 +456,29 @@ def load_NWP(input_nc_path, start_time, n_timesteps):
       A list of dictionaries with each element in the list corresponding to
       a different time step. Each dictionary has the same structure as the
       output of the decomposition function
+    uv: array-like
+        Array of shape (timestep,2,m,n) containing the x- and y-components
+      of the advection field for the (NWP) model field per forecast lead time.
     """
 
     # Open the file
-    ncf = netCDF4.Dataset(input_nc_path, "r", format="NETCDF4")
+    ncf_decomp = netCDF4.Dataset(input_nc_path_decomp, "r", format="NETCDF4")
+    velocities = np.load(input_path_velocities)
 
     # Initialise the decomposition dictionary
     decomp_dict = dict()
-    decomp_dict["domain"] = ncf.domain
-    decomp_dict["normalized"] = bool(ncf.normalized)
-    decomp_dict["compact_output"] = bool(ncf.compact_output)
+    decomp_dict["domain"] = ncf_decomp.domain
+    decomp_dict["normalized"] = bool(ncf_decomp.normalized)
+    decomp_dict["compact_output"] = bool(ncf_decomp.compact_output)
 
     # Convert the start time and the timestep to datetime64 and timedelta64 type
     zero_time = np.datetime64("1970-01-01T00:00:00", "ns")
-    analysis_time = np.timedelta64(int(ncf.analysis_time), "ns") + zero_time
+    analysis_time = np.timedelta64(int(ncf_decomp.analysis_time), "ns") + zero_time
 
-    timestep = ncf.timestep
+    timestep = ncf_decomp.timestep
     timestep = np.timedelta64(timestep, "m")
 
-    valid_times = ncf.variables["valid_times"][:]
+    valid_times = ncf_decomp.variables["valid_times"][:]
     valid_times = np.array(
         [np.timedelta64(int(valid_times[i]), "ns") for i in range(len(valid_times))]
     )
@@ -414,21 +492,24 @@ def load_NWP(input_nc_path, start_time, n_timesteps):
     assert analysis_time + start_i * timestep == start_time
     end_i = start_i + n_timesteps + 1
 
+    # Slice the velocity fields with the start and end indices
+    uv = velocities[start_i:end_i, :, :, :]
+
     # Initialise the list of dictionaries which will serve as the output (cf: the STEPS function)
     R_d = list()
 
     for i in range(start_i, end_i):
         decomp_dict_ = decomp_dict.copy()
 
-        cascade_levels = ncf.variables["pr_decomposed"][i, :, :, :]
+        cascade_levels = ncf_decomp.variables["pr_decomposed"][i, :, :, :]
 
         # In the netcdf file this is saved as a masked array, so we're checking if there is no mask
         assert not cascade_levels.mask
 
-        means = ncf.variables["means"][i, :]
+        means = ncf_decomp.variables["means"][i, :]
         assert not means.mask
 
-        stds = ncf.variables["stds"][i, :]
+        stds = ncf_decomp.variables["stds"][i, :]
         assert not stds.mask
 
         # Save the values in the dictionary as normal arrays with the filled method
@@ -439,4 +520,4 @@ def load_NWP(input_nc_path, start_time, n_timesteps):
         # Append the output list
         R_d.append(decomp_dict_)
 
-    return R_d
+    return R_d, uv

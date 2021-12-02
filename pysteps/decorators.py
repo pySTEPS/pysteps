@@ -317,6 +317,7 @@ def _to_xarray(array, metadata):
             "zr_b": metadata.get("zr_b", None),
             "institution": metadata["institution"],
             "projection": metadata["projection"],
+            "cartesian_unit": metadata["cartesian_unit"],
             #
             # TODO: Remove before final 2.0 version
             "yorigin": metadata["yorigin"],

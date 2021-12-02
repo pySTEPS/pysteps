@@ -11,9 +11,9 @@ climatological values are present, the default skill from :cite:`BPS2006` is use
 .. autosummary::
     :toctree: ../generated/
 
-    get_default_weights    
-    save_weights
-    calc_clim_weights
+    get_default_skill    
+    save_skill
+    calc_clim_skill
 """
 
 import numpy as np
@@ -22,7 +22,7 @@ import pickle
 from pysteps import rcparams
 
 
-def get_default_weights(n_cascade_levels=8, n_models=1):
+def get_default_skill(n_cascade_levels=8, n_models=1):
     """
     Get the default climatological skill values as given in :cite:`BPS2006`.
     Take subset of n_cascade_levels or add entries with small values (1e-4) if
@@ -37,29 +37,30 @@ def get_default_weights(n_cascade_levels=8, n_models=1):
 
     Returns
     -------
-    default_weights: array-like
+    default_skill: array-like
       Array of shape [model, scale_level] containing the climatological skill
       values.
 
     """
 
-    default_weights = np.array(
+    default_skill = np.array(
         [0.848, 0.537, 0.237, 0.065, 0.020, 0.0044, 0.0052, 0.0040]
     )
-    n_weights = default_weights.shape[0]
-    if n_cascade_levels < n_weights:
-        default_weights = default_weights[0:n_cascade_levels]
-    elif n_cascade_levels > n_weights:
-        default_weights = np.append(
-            default_weights, np.repeat(1e-4, n_cascade_levels - n_weights)
+    n_skill = default_skill.shape[0]
+    if n_cascade_levels < n_skill:
+        default_skill = default_skill[0:n_cascade_levels]
+    elif n_cascade_levels > n_skill:
+        default_skill = np.append(
+            default_skill, np.repeat(1e-4, n_cascade_levels - n_skill)
         )
-    return np.resize(default_weights, (n_models, n_cascade_levels))
+    return np.resize(default_skill, (n_models, n_cascade_levels))
 
 
-def save_weights(
-    current_weights,
+def save_skill(
+    current_skill,
     validtime,
     outdir_path=rcparams.outputs["path_workdir"],
+    n_models=1,
     window_length=30,
 ):
     """
@@ -68,18 +69,20 @@ def save_weights(
 
     Parameters
     ----------
-    current_weights: array-like
+    current_skill: array-like
       Array of shape [model, scale_level, ...]
-      containing the current weights of the different NWP models per cascade
+      containing the current skill of the different NWP models per cascade
       level.
     validtime: datetime
-      Datetime object containing the date and time at for which the current
-      weights are valid.
+      Datetime object containing the date and time for which the current
+      skill are valid.
     outdir_path: string, optional
-      Path to folder where the historical weights are stored. Defaults to
+      Path to folder where the historical skill are stored. Defaults to
       path_workdir from rcparams.
+    n_models: int, optional
+      Number of NWP models. Defaults to 1.
     window_length: int, optional
-      Length of window (in days) of daily weights that should be retained.
+      Length of window (in days) of daily skill that should be retained.
       Defaults to 30.
 
     Returns
@@ -88,61 +91,70 @@ def save_weights(
 
     """
 
-    n_cascade_levels = current_weights.shape[1]
+    n_cascade_levels = current_skill.shape[1]
 
-    # Load weights_today, a dictionary containing {mean_weights, n, last_validtime}
-    weights_today_file = join(outdir_path, "NWP_weights_today.pkl")
-    if exists(weights_today_file):
-        with open(weights_today_file, "rb") as f:
-            weights_today = pickle.load(f)
+    # Load skill_today, a dictionary containing {mean_skill, n, last_validtime}
+    new_skill_today_file = False
+
+    skill_today_file = join(outdir_path, "NWP_skill_today.pkl")
+    if exists(skill_today_file):
+        with open(skill_today_file, "rb") as f:
+            skill_today = pickle.load(f)
+        if skill_today["mean_skill"].shape != current_skill.shape:
+            new_skill_today_file = True
     else:
-        weights_today = {
-            "mean_weights": np.copy(current_weights),
+        new_skill_today_file = True
+
+    if new_skill_today_file == True:
+        skill_today = {
+            "mean_skill": np.copy(current_skill),
             "n": 0,
             "last_validtime": validtime,
         }
 
-    # Load the past weights which is an array with dimensions day x model x scale_level
-    past_weights_file = join(outdir_path, "NWP_weights_window.npy")
-    past_weights = None
-    if exists(past_weights_file):
-        past_weights = np.load(past_weights_file)
-    # First check if we have started a new day wrt the last written weights, in which
-    # case we should update the daily weights file and reset daily statistics.
-    if weights_today["last_validtime"].date() < validtime.date():
-        # Append weights to the list of the past X daily averages.
-        if past_weights is not None:
-            past_weights = np.append(
-                past_weights, [weights_today["mean_weights"]], axis=0
-            )
+    # Load the past skill which is an array with dimensions day x model x scale_level
+    past_skill_file = join(outdir_path, "NWP_skill_window.npy")
+    past_skill = None
+    if exists(past_skill_file):
+        past_skill = np.load(past_skill_file)
+    # First check if we have started a new day wrt the last written skill, in which
+    # case we should update the daily skill file and reset daily statistics.
+    if skill_today["last_validtime"].date() < validtime.date():
+        # Append skill to the list of the past X daily averages.
+        if (
+            past_skill is not None
+            and past_skill.shape[2] == n_cascade_levels
+            and past_skill.shape[1] == n_models
+        ):
+            past_skill = np.append(past_skill, [skill_today["mean_skill"]], axis=0)
         else:
-            past_weights = np.array([weights_today["mean_weights"]])
-        print(past_weights.shape)
+            past_skill = np.array([skill_today["mean_skill"]])
+
         # Remove oldest if the number of entries exceeds the window length.
-        if past_weights.shape[0] > window_length:
-            past_weights = np.delete(past_weights, 0, axis=0)
+        if past_skill.shape[0] > window_length:
+            past_skill = np.delete(past_skill, 0, axis=0)
         # FIXME also write out last_validtime.date() in this file?
         # In that case it will need pickling or netcdf.
-        # Write out the past weights within the rolling window.
-        np.save(past_weights_file, past_weights)
+        # Write out the past skill within the rolling window.
+        np.save(past_skill_file, past_skill)
         # Reset statistics for today.
-        weights_today["n"] = 0
-        weights_today["mean_weights"] = 0
+        skill_today["n"] = 0
+        skill_today["mean_skill"] = 0
 
-    # Reset today's weights if needed and/or compute online average from the
-    # current weights using numerically stable algorithm
-    weights_today["n"] += 1
-    weights_today["mean_weights"] += (
-        current_weights - weights_today["mean_weights"]
-    ) / weights_today["n"]
-    weights_today["last_validtime"] = validtime
-    with open(weights_today_file, "wb") as f:
-        pickle.dump(weights_today, f)
+    # Reset today's skill if needed and/or compute online average from the
+    # current skill using numerically stable algorithm
+    skill_today["n"] += 1
+    skill_today["mean_skill"] += (
+        current_skill - skill_today["mean_skill"]
+    ) / skill_today["n"]
+    skill_today["last_validtime"] = validtime
+    with open(skill_today_file, "wb") as f:
+        pickle.dump(skill_today, f)
 
     return None
 
 
-def calc_clim_weights(
+def calc_clim_skill(
     n_cascade_levels=8,
     outdir_path=rcparams.outputs["path_workdir"],
     n_models=1,
@@ -157,36 +169,38 @@ def calc_clim_weights(
     n_cascade_levels: int, optional
       Number of cascade levels.
     outdir_path: string, optional
-      Path to folder where the historical weights are stored. Defaults to
+      Path to folder where the historical skill are stored. Defaults to
       path_workdir from rcparams.
     n_models: int, optional
       Number of NWP models. Defaults to 1.
     window_length: int, optional
       Length of window (in days) over which to compute the climatological
-      weights. Defaults to 30.
+      skill. Defaults to 30.
 
     Returns
     -------
-    climatological_mean_weights: array-like
+    climatological_mean_skill: array-like
       Array of shape [model, scale_level, ...] containing the climatological
-      (geometric) mean weights.
+      (geometric) mean skill.
 
     """
-    past_weights_file = join(outdir_path, "NWP_weights_window.npy")
-    # past_weights has dimensions date x model x scale_level  x ....
-    if exists(past_weights_file):
-        past_weights = np.load(past_weights_file)
+    past_skill_file = join(outdir_path, "NWP_skill_window.npy")
+    # past_skill has dimensions date x model x scale_level  x ....
+    if exists(past_skill_file):
+        past_skill = np.load(past_skill_file)
     else:
-        past_weights = None
+        past_skill = np.array(None)
     # check if there's enough data to compute the climatological skill
-    if not past_weights or past_weights.shape[0] < window_length:
-        return get_default_weights(n_cascade_levels, n_models)
+    if not past_skill.any():
+        return get_default_skill(n_cascade_levels, n_models)
+    elif past_skill.shape[0] < window_length:
+        return get_default_skill(n_cascade_levels, n_models)
     # reduce window if necessary
     else:
-        past_weights = past_weights[-window_length:]
+        past_skill = past_skill[-window_length:]
 
-    # Calculate climatological weights from the past_weights using the
+    # Calculate climatological skill from the past_skill using the
     # geometric mean.
-    geomean_weights = np.exp(np.log(past_weights).mean(axis=0))
+    geomean_skill = np.exp(np.log(past_skill).mean(axis=0))
 
-    return geomean_weights
+    return geomean_skill
