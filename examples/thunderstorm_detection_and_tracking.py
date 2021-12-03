@@ -14,12 +14,12 @@ This module was implemented following the procedures used in the TRT Thunderstor
 Radar Tracking algorithm (:cite:`TRT2004`) used operationally at MeteoSwiss.
 Modifications include advecting the identified thunderstorms with the optical flow
 obtained from pysteps, as well as additional options in the thresholding. A detailed
-description is published in Appendix A of :cite: 'Feldmann2021'.
+description is published in Appendix A of :cite:`Feldmann2021`.
 
 References
 ..........
 :cite:`TRT2004`
-:cite: 'Feldmann2021'
+:cite:`Feldmann2021`
 
 @author: feldmann-m
 """
