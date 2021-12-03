@@ -89,7 +89,7 @@ for k in range(num_cascade_levels):
         np.linspace(0, L / 2, len(filter["weights_1d"][k, :])),
         filter["weights_1d"][k, :],
         "k-",
-        basex=pow(0.5 * L / 3, 1.0 / (num_cascade_levels - 2)),
+        base=pow(0.5 * L / 3, 1.0 / (num_cascade_levels - 2)),
     )
 ax.set_xlim(1, L / 2)
 ax.set_ylim(0, 1)
