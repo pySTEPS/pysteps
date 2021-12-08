@@ -935,8 +935,6 @@ def forecast(
                                 ]
                             )
                         )
-                        print(cov.shape)
-                        print(rho_fc[1:, i].shape)
                         # Determine the weights for this cascade level
                         weights_model_only[:, i] = calculate_weights_spn(
                             correlations=rho_fc[1:, i], cov=cov
