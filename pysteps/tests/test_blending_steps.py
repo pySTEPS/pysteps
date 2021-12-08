@@ -110,10 +110,9 @@ def test_steps_blending(
     metadata["zr_a"] = 200.0
     metadata["zr_b"] = 1.6
 
-    # Also set the clim_kwargs
-    clim_kwargs = dict(
-        {"outdir_path": "./tmp", "n_models": n_models, "window_length": 30}
-    )
+    # Also set the outdir_path and clim_kwargs
+    outdir_path_skill = "./tmp/"
+    clim_kwargs = dict({"n_models": n_models, "window_length": 30})
 
     ###
     # First threshold the data and convert it to dBR
@@ -234,6 +233,7 @@ def test_steps_blending(
         num_workers=1,
         fft_method="numpy",
         domain="spatial",
+        outdir_path_skill=outdir_path_skill,
         extrap_kwargs=None,
         filter_kwargs=None,
         noise_kwargs=None,

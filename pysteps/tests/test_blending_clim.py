@@ -118,7 +118,9 @@ def test_save_skill(startdatestr, enddatestr, n_models, expected_skill_today, tm
     while currentdate <= enddate:
         current_skill = generate_fixed_skill(n_cascade_levels, n_models)
         print("Saving skill: ", current_skill, currentdate, outdir_path)
-        save_skill(current_skill, currentdate, outdir_path, window_length=2)
+        save_skill(
+            current_skill, currentdate, outdir_path, n_models=n_models, window_length=2
+        )
         currentdate += timestep
 
     skill_today_file = join(outdir_path, "NWP_skill_today.pkl")

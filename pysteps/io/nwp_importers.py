@@ -87,6 +87,13 @@ try:
 except ImportError:
     NETCDF4_IMPORTED = False
 
+try:
+    import dask
+
+    DASK_IMPORTED = True
+except ImportError:
+    DASK_IMPORTED = False
+
 
 @postprocess_import()
 def import_bom_nwp_xr(filename, **kwargs):
@@ -110,6 +117,12 @@ def import_bom_nwp_xr(filename, **kwargs):
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import BoM NWP regridded rainfall "
+            "products but it is not installed"
+        )
+
+    if not DASK_IMPORTED:
+        raise MissingOptionalDependency(
+            "dask package is required to import BoM NWP regridded rainfall "
             "products but it is not installed"
         )
 
@@ -282,6 +295,12 @@ def import_rmi_nwp_xr(filename, **kwargs):
             "products but it is not installed"
         )
 
+    if not DASK_IMPORTED:
+        raise MissingOptionalDependency(
+            "dask package is required to import BoM NWP regridded rainfall "
+            "products but it is not installed"
+        )
+
     ds = _import_rmi_nwp_data_xr(filename, **kwargs)
     ds_meta = _import_rmi_nwp_geodata_xr(ds, **kwargs)
 
@@ -449,6 +468,12 @@ def import_knmi_nwp_xr(filename, **kwargs):
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
             "netCDF4 package is required to import BoM NWP regrided rainfall "
+            "products but it is not installed"
+        )
+
+    if not DASK_IMPORTED:
+        raise MissingOptionalDependency(
+            "dask package is required to import BoM NWP regridded rainfall "
             "products but it is not installed"
         )
 

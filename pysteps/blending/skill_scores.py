@@ -75,7 +75,7 @@ def spatial_correlation(obs, mod, domain_mask):
     return rho
 
 
-def lt_dependent_cor_nwp(lt, correlations, skill_kwargs=dict()):
+def lt_dependent_cor_nwp(lt, correlations, outdir_path, skill_kwargs=dict()):
     """Determine the correlation of a model field for lead time lt and
     cascade k, by assuming that the correlation determined at t=0 regresses
     towards the climatological values.
@@ -89,6 +89,9 @@ def lt_dependent_cor_nwp(lt, correlations, skill_kwargs=dict()):
         Array of shape [n_cascade_levels] containing per cascade_level the
         correlation between the normalized cascade of the observed (radar)
         rainfall field and the normalized cascade of the model field.
+    outdir_path: string
+      Path to folder where the historical skill are stored. Defaults to
+      path_workdir from rcparams.
     skill_kwargs : dict, optional
         Dictionary containing e.g. the outdir_path, nmodels and window_length
         parameters.
@@ -109,7 +112,9 @@ def lt_dependent_cor_nwp(lt, correlations, skill_kwargs=dict()):
     # Obtain the climatological values towards which the correlations will
     # regress
     clim_cor_values, regr_pars = clim_regr_values(
-        n_cascade_levels=len(correlations), skill_kwargs=skill_kwargs
+        n_cascade_levels=len(correlations),
+        outdir_path=outdir_path,
+        skill_kwargs=skill_kwargs,
     )
     # Determine the speed of the regression (eq. 24 in BPS2004)
     qm = np.exp(-lt / regr_pars[0, :]) * (2 - np.exp(-lt / regr_pars[1, :]))
@@ -167,7 +172,7 @@ def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=Non
     return rho, rho_prev
 
 
-def clim_regr_values(n_cascade_levels, skill_kwargs=dict()):
+def clim_regr_values(n_cascade_levels, outdir_path, skill_kwargs=dict()):
     """Obtains the climatological correlation values and regression parameters
     from a file called NWP_weights_window.bin in the outdir_path. If this file
     is not present yet, the values from :cite:`BPS2004` are used.
@@ -177,6 +182,9 @@ def clim_regr_values(n_cascade_levels, skill_kwargs=dict()):
     ----------
     n_cascade_levels : int
         The number of cascade levels to use.
+    outdir_path: string
+      Path to folder where the historical skill are stored. Defaults to
+      path_workdir from rcparams.
     skill_kwargs : dict, optional
         Dictionary containing e.g. the outdir_path, nmodels and window_length
         parameters.
@@ -210,7 +218,7 @@ def clim_regr_values(n_cascade_levels, skill_kwargs=dict()):
     # First, obtain climatological skill values
     try:
         clim_cor_values = clim.calc_clim_skill(
-            n_cascade_levels=n_cascade_levels, **skill_kwargs
+            outdir_path=outdir_path, n_cascade_levels=n_cascade_levels, **skill_kwargs
         )
     except FileNotFoundError:
         # The climatological skill values file does not exist yet, so we'll

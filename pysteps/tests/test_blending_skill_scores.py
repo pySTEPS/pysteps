@@ -238,7 +238,9 @@ def test_blending_skill_scores(
     # Test if the NWP correlation regresses towards the correct value given
     # a lead time in minutes
     # First, check if the climatological values are returned correctly
-    correlations_clim, regr_clim = clim_regr_values(n_cascade_levels=n_cascade_levels)
+    correlations_clim, regr_clim = clim_regr_values(
+        n_cascade_levels=n_cascade_levels, outdir_path="./tmp/"
+    )
     assert (
         correlations_clim.shape[0] == n_cascade_levels
     ), "Number of cascade levels should be the same as n_cascade_levels"
@@ -256,7 +258,9 @@ def test_blending_skill_scores(
     )
 
     # Then, check the regression of the correlation values
-    correlations_nwp_lt = lt_dependent_cor_nwp(lt=lt, correlations=correlations_t0)
+    correlations_nwp_lt = lt_dependent_cor_nwp(
+        lt=lt, correlations=correlations_t0, outdir_path="./tmp/"
+    )
     assert (
         correlations_nwp_lt.shape[0] == mod.shape[0]
     ), "Number of cascade levels should be the same as in the model field"

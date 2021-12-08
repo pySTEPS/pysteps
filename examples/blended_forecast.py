@@ -16,7 +16,6 @@ from datetime import datetime
 
 import pysteps
 from pysteps import io, rcparams, cascade, blending
-from pysteps.utils import reprojection
 from pysteps.visualization import plot_precip_field
 
 
@@ -48,7 +47,7 @@ fn_pattern = "66_%Y%m%d_%H%M00.prcp-c10"
 fn_ext = radar_data_source["fn_ext"]
 importer_name = radar_data_source["importer"]
 importer_kwargs = radar_data_source["importer_kwargs"]
-timestep = 10
+timestep = 10.0
 
 # Find the radar files in the archive
 fns = io.find_by_date(
@@ -90,14 +89,14 @@ r_nwp = nwp_data_xr.sel(
 # Pre-processing steps
 # --------------------
 
-# Threshold the radar data and NWP forecast
-r_radar.data[r_radar.data < radar_metadata["threshold"]] = 0.0
-r_nwp.data[r_nwp.data < nwp_metadata["threshold"]] = 0.0
-
 # Make sure the units are in mm/h
 converter = pysteps.utils.get_method("mm/h")
 r_radar, radar_metadata = converter(r_radar, radar_metadata)
 r_nwp, nwp_metadata = converter(r_nwp, nwp_metadata)
+
+# Threshold the data
+r_radar.data[r_radar.data < 0.1] = 0.0
+r_nwp.data[r_nwp.data < 0.1] = 0.0
 
 # Plot the radar rainfall field and the first time step of the NWP forecast.
 # For the initial time step (t=0), the NWP rainfall forecast is not that different
@@ -198,12 +197,13 @@ precip_forecast = blending.steps.forecast(
     V=v_radar,
     V_models=v_nwp,
     timesteps=18,
-    timestep=10.0,
+    timestep=timestep,
+    issuetime=date_radar,
     n_ens_members=1,
     n_cascade_levels=n_cascade_levels,
     blend_nwp_members=False,
     R_thr=radar_metadata["threshold"],
-    kmperpixel=1.0,
+    kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
     extrap_method="semilagrangian",
     decomp_method="fft",
     bandpass_filter_method="gaussian",
@@ -211,6 +211,7 @@ precip_forecast = blending.steps.forecast(
     noise_stddev_adj="auto",
     ar_order=2,
     vel_pert_method=None,
+    weights_method="bps",
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
@@ -220,6 +221,7 @@ precip_forecast = blending.steps.forecast(
     num_workers=1,
     fft_method="numpy",
     domain="spatial",
+    outdir_path_skill="./tmp",
     extrap_kwargs=None,
     filter_kwargs=None,
     noise_kwargs=None,

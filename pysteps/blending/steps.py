@@ -90,7 +90,7 @@ def forecast(
     noise_stddev_adj=None,
     ar_order=2,
     vel_pert_method="bps",
-    weights_method="spn",
+    weights_method="bps",
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
@@ -100,6 +100,7 @@ def forecast(
     num_workers=1,
     fft_method="numpy",
     domain="spatial",
+    outdir_path_skill="./tmp/",
     extrap_kwargs=None,
     filter_kwargs=None,
     noise_kwargs=None,
@@ -186,7 +187,7 @@ def forecast(
     weights_method: {'bps','spn'}, optional
         The calculation method of the blending weights. Options are the method
         by :cite:`BPS2006` and the covariance-based method by :cite:`SPN2013`.
-        Defaults to spn.
+        Defaults to bps.
     conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
@@ -230,6 +231,9 @@ def forecast(
       classical STEPS model). If "spectral", the AR(2) models and stochastic
       perturbations are applied directly in the spectral domain to reduce
       memory footprint and improve performance :cite:`PCH2019b`.
+    outdir_path_skill: string, optional
+      Path to folder where the historical skill are stored. Defaults to
+      path_workdir from rcparams. If no path is given, './tmp' will be used.
     extrap_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
       method. See the documentation of pysteps.extrapolation.
@@ -389,33 +393,38 @@ def forecast(
             raise ValueError("mask_method='incremental' but timestep=None")
 
     # 0.2 Log some settings
-    print("Computing STEPS nowcast:")
+    print("Computing STEPS blended nowcast:")
     print("------------------------")
     print("")
 
     print("Inputs:")
     print("-------")
+    print("Forecast issue time: %s" % issuetime)
     print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
     if kmperpixel is not None:
         print("km/pixel:         %g" % kmperpixel)
     if timestep is not None:
         print("time step:        %d minutes" % timestep)
-    print("")
+
+    print("NWP and blending inputs:")
+    print("--------")
+    print("Number of (NWP) models: %d" % R_d_models.shape[0])
+    print("Blend (NWP) model members: %s" % blend_nwp_members)
 
     print("Methods:")
     print("--------")
-    print("extrapolation:          %s" % extrap_method)
-    print("bandpass filter:        %s" % bandpass_filter_method)
-    print("decomposition:          %s" % decomp_method)
-    print("noise generator:        %s" % noise_method)
-    print("noise adjustment:       %s" % ("yes" if noise_stddev_adj else "no"))
-    print("velocity perturbator:   %s" % vel_pert_method)
-    print("weights method:         %s" % weights_method)
-    print("conditional statistics: %s" % ("yes" if conditional else "no"))
-    print("precip. mask method:    %s" % mask_method)
-    print("probability matching:   %s" % probmatching_method)
-    print("FFT method:             %s" % fft_method)
-    print("domain:                 %s" % domain)
+    print("extrapolation:               %s" % extrap_method)
+    print("bandpass filter:             %s" % bandpass_filter_method)
+    print("decomposition:               %s" % decomp_method)
+    print("noise generator:             %s" % noise_method)
+    print("noise adjustment:            %s" % ("yes" if noise_stddev_adj else "no"))
+    print("velocity perturbator:        %s" % vel_pert_method)
+    print("blending weights method:     %s" % weights_method)
+    print("conditional statistics:      %s" % ("yes" if conditional else "no"))
+    print("precip. mask method:         %s" % mask_method)
+    print("probability matching:        %s" % probmatching_method)
+    print("FFT method:                  %s" % fft_method)
+    print("domain:                      %s" % domain)
     print("")
 
     print("Parameters:")
@@ -660,7 +669,7 @@ def forecast(
 
     # Check if NWP models/members should be used individually, or if all of
     # them are blended together per nowcast ensemble member.
-    if blend_nwp_members == True:
+    if blend_nwp_members:
         # stack the extrapolation cascades into a list containing all ensemble members
         R_c = [
             [R_c[j].copy() for j in range(n_cascade_levels)]
@@ -714,13 +723,6 @@ def forecast(
             for i in range(n_ens_members_max)
         ]
         R_c = np.stack(R_c)
-
-        # Check if dimensions are correct
-        assert (
-            R_models.shape[0] == R_c.shape[0]
-        ), "The number of members in the nowcast and nwp cascades need to be identical when blend_nwp_members is False: current dimension of R_models = {} and dimension of R_c = {}".format(
-            R_models.shape[0], R_c.shape[0]
-        )
 
         n_ens_members = n_ens_members_max
 
@@ -805,6 +807,7 @@ def forecast(
     blending.clim.save_skill(
         current_skill=rho_nwp_models,
         validtime=issuetime,
+        outdir_path=outdir_path_skill,
         **clim_kwargs,
     )
 
@@ -873,11 +876,12 @@ def forecast(
             # 8.1.2 Determine the skill of the nwp components for lead time (t0 + t)
             ###
             # Then for the model components
-            if blend_nwp_members == True:
+            if blend_nwp_members:
                 rho_nwp_fc = [
                     blending.skill_scores.lt_dependent_cor_nwp(
                         lt=(t * int(timestep)),
                         correlations=rho_nwp_models[n_model],
+                        outdir_path=outdir_path_skill,
                         skill_kwargs=clim_kwargs,
                     )
                     for n_model in range(rho_nwp_models.shape[0])
@@ -889,6 +893,7 @@ def forecast(
                 rho_nwp_fc = blending.skill_scores.lt_dependent_cor_nwp(
                     lt=(t * int(timestep)),
                     correlations=rho_nwp_models[j],
+                    outdir_path=outdir_path_skill,
                     skill_kwargs=clim_kwargs,
                 )
                 # Concatenate rho_extr and rho_nwp
@@ -915,7 +920,7 @@ def forecast(
                 # Only the weights of the components without the extrapolation
                 # cascade will be determined here. The full set of weights are
                 # determined after the extrapolation step in this method.
-                if blend_nwp_members == True and R_models.shape[0] > 1:
+                if blend_nwp_members and R_models.shape[0] > 1:
                     weights_model_only = np.zeros(
                         (R_models.shape[0] + 1, n_cascade_levels)
                     )
@@ -1052,7 +1057,7 @@ def forecast(
                         V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
 
                     # Stack the perturbed extrapolation and the NWP velocities
-                    if blend_nwp_members == True:
+                    if blend_nwp_members:
                         V_stack = np.concatenate(
                             (V_pert[None, :, :, :], V_models[:, t, :, :, :]), axis=0
                         )
@@ -1147,7 +1152,7 @@ def forecast(
                     V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
 
                 # Stack the perturbed extrapolation and the NWP velocities
-                if blend_nwp_members == True:
+                if blend_nwp_members:
                     V_stack = np.concatenate(
                         (V_pert[None, :, :, :], V_models[:, t, :, :, :]), axis=0
                     )
@@ -1213,7 +1218,7 @@ def forecast(
                     t_index = np.where(np.array(subtimesteps) == t_sub)[0][0]
                     # First concatenate the cascades and the means and sigmas
                     # R_models = [n_models,timesteps,n_cascade_levels,m,n]
-                    if blend_nwp_members == True:
+                    if blend_nwp_members:
                         cascades_stacked = np.concatenate(
                             (
                                 R_f_ep_out[None, t_index],
@@ -1339,7 +1344,7 @@ def forecast(
                         weights_pm_mod_only
                     )
                     # Stack the fields
-                    if blend_nwp_members == True:
+                    if blend_nwp_members:
                         R_pm_stacked = np.concatenate(
                             (
                                 R_pm_ep[None, t_index],
@@ -1363,7 +1368,7 @@ def forecast(
                         * R_pm_stacked,
                         axis=0,
                     )
-                    if blend_nwp_members == True:
+                    if blend_nwp_members:
                         R_pm_blended_mod_only = np.sum(
                             weights_pm_normalized_mod_only.reshape(
                                 weights_pm_normalized_mod_only.shape[0], 1, 1

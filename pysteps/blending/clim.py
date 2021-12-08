@@ -16,10 +16,11 @@ climatological values are present, the default skill from :cite:`BPS2006` is use
     calc_clim_skill
 """
 
-import numpy as np
-from os.path import exists, join
 import pickle
-from pysteps import rcparams
+import os
+from os.path import exists, join
+
+import numpy as np
 
 
 def get_default_skill(n_cascade_levels=8, n_models=1):
@@ -59,7 +60,7 @@ def get_default_skill(n_cascade_levels=8, n_models=1):
 def save_skill(
     current_skill,
     validtime,
-    outdir_path=rcparams.outputs["path_workdir"],
+    outdir_path,
     n_models=1,
     window_length=30,
 ):
@@ -76,7 +77,7 @@ def save_skill(
     validtime: datetime
       Datetime object containing the date and time for which the current
       skill are valid.
-    outdir_path: string, optional
+    outdir_path: string
       Path to folder where the historical skill are stored. Defaults to
       path_workdir from rcparams.
     n_models: int, optional
@@ -105,7 +106,7 @@ def save_skill(
     else:
         new_skill_today_file = True
 
-    if new_skill_today_file == True:
+    if new_skill_today_file:
         skill_today = {
             "mean_skill": np.copy(current_skill),
             "n": 0,
@@ -148,6 +149,9 @@ def save_skill(
         current_skill - skill_today["mean_skill"]
     ) / skill_today["n"]
     skill_today["last_validtime"] = validtime
+    # Make path if path does not exist
+    os.makedirs(os.path.dirname(skill_today_file), exist_ok=True)
+    # Open and write to skill file
     with open(skill_today_file, "wb") as f:
         pickle.dump(skill_today, f)
 
@@ -155,8 +159,8 @@ def save_skill(
 
 
 def calc_clim_skill(
+    outdir_path,
     n_cascade_levels=8,
-    outdir_path=rcparams.outputs["path_workdir"],
     n_models=1,
     window_length=30,
 ):
@@ -168,7 +172,7 @@ def calc_clim_skill(
     ----------
     n_cascade_levels: int, optional
       Number of cascade levels.
-    outdir_path: string, optional
+    outdir_path: string
       Path to folder where the historical skill are stored. Defaults to
       path_workdir from rcparams.
     n_models: int, optional
