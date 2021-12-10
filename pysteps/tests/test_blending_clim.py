@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import pytest
 
-from pysteps.blending.clim import save_skill, calc_clim_skill
-import random
+
 from datetime import datetime, timedelta
 from os.path import join, exists
 import pickle
+import random
+
+import numpy as np
 from numpy.testing import assert_array_equal
+import pytest
+
+from pysteps.blending.clim import save_skill, calc_clim_skill
+
 
 random.seed(12356)
 n_cascade_levels = 7

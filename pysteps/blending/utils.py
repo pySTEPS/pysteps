@@ -17,14 +17,15 @@ Module with common utilities used by the blending methods.
     load_NWP
 """
 
+import os
+
 import numpy as np
-from datetime import datetime, timedelta
+import netCDF4
+
 from pysteps.cascade import get_method as cascade_get_method
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps import rcparams
 from pysteps.utils import get_method as utils_get_method
-import os
-import netCDF4
 
 
 def stack_cascades(R_d, donorm=True):
@@ -53,14 +54,16 @@ def stack_cascades(R_d, donorm=True):
         R_ = []
         R_i = cascade["cascade_levels"]
         n_levels = R_i.shape[0]
-        mu_ = np.ones(n_levels) * 0.0
-        sigma_ = np.ones(n_levels) * 1.0
+        mu_ = np.asarray(cascade["means"])
+        sigma_ = np.asarray(cascade["stds"])
         if donorm:
-            mu_ = np.asarray(cascade["means"])
-            sigma_ = np.asarray(cascade["stds"])
-        for j in range(n_levels):
-            R__ = (R_i[j, :, :] - mu_[j]) / sigma_[j]
-            R_.append(R__)
+            # mu_ = np.asarray(cascade["means"])
+            # sigma_ = np.asarray(cascade["stds"])
+            for j in range(n_levels):
+                R__ = (R_i[j, :, :] - mu_[j]) / sigma_[j]
+                R_.append(R__)
+        else:
+            R_ = R_i
         R_c.append(np.stack(R_))
         mu_c.append(mu_)
         sigma_c.append(sigma_)
@@ -228,9 +231,9 @@ def decompose_NWP(
     analysis_time,
     timestep,
     valid_times,
+    output_path,
     num_cascade_levels=8,
     num_workers=1,
-    output_path=rcparams.outputs["path_workdir"],
     decomp_method="fft",
     fft_method="numpy",
     domain="spatial",
@@ -255,7 +258,10 @@ def decompose_NWP(
       Timestep in minutes between subsequent NWP forecast fields
     valid_times: array_like
       Array containing the valid times of the NWP forecast fields. The times are
-      assumed to be numpy.datetime64 types as imported by the pysteps importer
+      assumed to be numpy.datetime64 types as imported by the pysteps importer.
+    output_path: str
+      The location where to save the file with the NWP cascade. Defaults to the
+      path_workdir specified in the rcparams file.
     num_cascade_levels: int, optional
       The number of frequency bands to use. Must be greater than 2. Defaults to 8.
     num_workers: int, optional
@@ -264,9 +270,6 @@ def decompose_NWP(
       is advisable to disable OpenMP by setting the environment variable
       OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
       threads.
-    output_path: str, optional
-      The location where to save the file with the NWP cascade. Defaults to the
-      path_workdir specified in the rcparams file.
 
     Other Parameters
     ----------------
@@ -332,14 +335,14 @@ def decompose_NWP(
     # Create dimensions
     time_dim = ncf.createDimension("time", R_NWP.shape[0])
     casc_dim = ncf.createDimension("cascade_levels", num_cascade_levels)
-    x_dim = ncf.createDimension("x", R_NWP.shape[1])
-    y_dim = ncf.createDimension("y", R_NWP.shape[2])
+    x_dim = ncf.createDimension("x", R_NWP.shape[2])
+    y_dim = ncf.createDimension("y", R_NWP.shape[1])
 
     # Create variables (decomposed cascade, means and standard deviations)
     R_d = ncf.createVariable(
         "pr_decomposed",
         np.float32,
-        ("time", "cascade_levels", "x", "y"),
+        ("time", "cascade_levels", "y", "x"),
         zlib=True,
         complevel=4,
     )
@@ -431,7 +434,7 @@ def compute_store_nwp_motion(
         v_nwp[t] = oflow_method(precip_nwp[t - 1 : t + 1, :, :])
 
     # Make timestep 0 the same as timestep 1.
-    v_nwp = np.insert(v_nwp, 0, v_nwp[0], axis=0)
+    v_nwp[0] = v_nwp[1]
 
     assert v_nwp.ndim == 4, "v_nwp must be a four-dimensional array"
 
@@ -488,13 +491,13 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     )
     valid_times = valid_times + zero_time
 
-    # Add the valid times to the output
-    decomp_dict["valid_times"] = valid_times
-
     # Find the indices corresponding with the required start and end time
     start_i = (start_time - analysis_time) // timestep
     assert analysis_time + start_i * timestep == start_time
     end_i = start_i + n_timesteps + 1
+
+    # Add the valid times to the output
+    decomp_dict["valid_times"] = valid_times[start_i:end_i]
 
     # Slice the velocity fields with the start and end indices
     uv = velocities[start_i:end_i, :, :, :]

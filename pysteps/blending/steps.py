@@ -49,9 +49,10 @@ consists of the following main steps:
 
 """
 
+import time
+
 import numpy as np
 import scipy.ndimage
-import time
 
 from pysteps import cascade
 from pysteps import extrapolation
