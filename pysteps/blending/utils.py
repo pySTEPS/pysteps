@@ -57,8 +57,6 @@ def stack_cascades(R_d, donorm=True):
         mu_ = np.asarray(cascade["means"])
         sigma_ = np.asarray(cascade["stds"])
         if donorm:
-            # mu_ = np.asarray(cascade["means"])
-            # sigma_ = np.asarray(cascade["stds"])
             for j in range(n_levels):
                 R__ = (R_i[j, :, :] - mu_[j]) / sigma_[j]
                 R_.append(R__)
