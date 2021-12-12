@@ -79,6 +79,13 @@ setup(
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
     url="https://pysteps.github.io/",
+    project_urls={
+        "Source": "https://github.com/pySTEPS/pysteps",
+        "Issues": "https://github.com/pySTEPS/pysteps/issues",
+        "CI": "https://github.com/pySTEPS/pysteps/actions",
+        "Changelog": "https://github.com/pySTEPS/pysteps/releases",
+        "Documentation": "https://pysteps.readthedocs.io",
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
