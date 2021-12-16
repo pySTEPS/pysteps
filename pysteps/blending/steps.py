@@ -814,8 +814,8 @@ def forecast(
 
     # Also initizalize the current and previous extrapolation forecast scale
     # for the nowcasting component
-    rho_extr_prev = None
-    rho_extr = None
+    rho_extr_prev = np.repeat(1.0, PHI.shape[0])
+    rho_extr = PHI[:, 0] / (1.0 - PHI[:, 1])  # phi1 / (1 - phi2), see BPS2004
 
     ###
     # 8. Start the forecasting loop
@@ -866,10 +866,14 @@ def forecast(
         ###
         # 8.1.1 Determine the skill of the components for lead time (t0 + t)
         ###
-        # First for the extrapolation component
-        rho_extr, rho_extr_prev = blending.skill_scores.lt_dependent_cor_extrapolation(
-            PHI=PHI, correlations=rho_extr, correlations_prev=rho_extr_prev
-        )
+        # First for the extrapolation component. Only calculate it when t > 0.
+        if t > 0:
+            (
+                rho_extr,
+                rho_extr_prev,
+            ) = blending.skill_scores.lt_dependent_cor_extrapolation(
+                PHI=PHI, correlations=rho_extr, correlations_prev=rho_extr_prev
+            )
 
         # the nowcast iteration for each ensemble member
         def worker(j):
