@@ -29,11 +29,11 @@ except ImportError:
 
 
 def forecast(
-    R,
-    V,
+    precip,
+    velocity,
     timesteps,
     n_cascade_levels=6,
-    R_thr=None,
+    precip_thr=None,
     extrap_method="semilagrangian",
     decomp_method="fft",
     bandpass_filter_method="gaussian",
@@ -51,11 +51,11 @@ def forecast(
 
     Parameters
     ----------
-    R: array-like
+    precip: array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
       ordered by timestamp from oldest to newest. The time steps between
       the inputs are assumed to be regular.
-    V: array-like
+    velocity: array-like
       Array of shape (2,m,n) containing the x- and y-components of the
       advection field.
       The velocities are assumed to represent one time step between the
@@ -66,7 +66,7 @@ def forecast(
       the list are required to be in ascending order.
     n_cascade_levels: int, optional
       The number of cascade levels to use.
-    R_thr: float
+    precip_thr: float
       The threshold value for minimum observable precipitation intensity.
     extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
@@ -82,11 +82,11 @@ def forecast(
     conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are
-      below the threshold R_thr.
+      below the threshold precip_thr.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the conditional statistics of the forecast field
-      (areas with precipitation intensity above the threshold R_thr) with those
-      of the most recently observed one. 'cdf'=map the forecast CDF to the
+      (areas with precipitation intensity above the threshold precip_thr) with
+      those of the most recently observed one. 'cdf'=map the forecast CDF to the
       observed one, 'mean'=adjust only the mean value,
       None=no matching applied.
     num_workers: int, optional
@@ -132,7 +132,7 @@ def forecast(
     :cite:`Seed2003`, :cite:`PCH2019a`
     """
 
-    _check_inputs(R, V, timesteps, ar_order)
+    _check_inputs(precip, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -140,8 +140,8 @@ def forecast(
     if filter_kwargs is None:
         filter_kwargs = dict()
 
-    if np.any(~np.isfinite(V)):
-        raise ValueError("V contains non-finite values")
+    if np.any(~np.isfinite(velocity)):
+        raise ValueError("velocity contains non-finite values")
 
     print("Computing S-PROG nowcast:")
     print("-------------------------")
@@ -149,7 +149,7 @@ def forecast(
 
     print("Inputs:")
     print("-------")
-    print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
+    print("input dimensions: %dx%d" % (precip.shape[1], precip.shape[2]))
     print("")
 
     print("Methods:")
@@ -172,41 +172,43 @@ def forecast(
     print("parallel threads:         %d" % num_workers)
     print("number of cascade levels: %d" % n_cascade_levels)
     print("order of the AR(p) model: %d" % ar_order)
-    print("precip. intensity threshold: %g" % R_thr)
+    print("precip. intensity threshold: %g" % precip_thr)
 
     if measure_time:
         starttime_init = time.time()
 
-    fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
+    fft = utils.get_method(fft_method, shape=precip.shape[1:], n_threads=num_workers)
 
-    M, N = R.shape[1:]
+    m, n = precip.shape[1:]
 
     # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
-    filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
+    filter = filter_method((m, n), n_cascade_levels, **filter_kwargs)
 
     decomp_method, recomp_method = cascade.get_method(decomp_method)
 
     extrapolator_method = extrapolation.get_method(extrap_method)
 
-    R = R[-(ar_order + 1) :, :, :].copy()
-    R_min = np.nanmin(R)
+    precip = precip[-(ar_order + 1) :, :, :].copy()
+    R_min = np.nanmin(precip)
 
     # determine the domain mask from non-finite values
     domain_mask = np.logical_or.reduce(
-        [~np.isfinite(R[i, :]) for i in range(R.shape[0])]
+        [~np.isfinite(precip[i, :]) for i in range(precip.shape[0])]
     )
 
     # determine the precipitation threshold mask
     if conditional:
         MASK_thr = np.logical_and.reduce(
-            [R[i, :, :] >= R_thr for i in range(R.shape[0])]
+            [precip[i, :, :] >= precip_thr for i in range(precip.shape[0])]
         )
     else:
         MASK_thr = None
 
     # initialize the extrapolator
-    x_values, y_values = np.meshgrid(np.arange(R.shape[2]), np.arange(R.shape[1]))
+    x_values, y_values = np.meshgrid(
+        np.arange(precip.shape[2]), np.arange(precip.shape[1])
+    )
 
     xy_coords = np.stack([x_values, y_values])
 
@@ -218,29 +220,33 @@ def forecast(
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     res = list()
 
-    def f(R, i):
-        return extrapolator_method(R[i, :], V, ar_order - i, "min", **extrap_kwargs)[-1]
+    def f(precip, i):
+        return extrapolator_method(
+            precip[i, :], velocity, ar_order - i, "min", **extrap_kwargs
+        )[-1]
 
     for i in range(ar_order):
         if not DASK_IMPORTED:
-            R[i, :, :] = f(R, i)
+            precip[i, :, :] = f(precip, i)
         else:
-            res.append(dask.delayed(f)(R, i))
+            res.append(dask.delayed(f)(precip, i))
 
     if DASK_IMPORTED:
         num_workers_ = len(res) if num_workers > len(res) else num_workers
-        R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
+        precip = np.stack(
+            list(dask.compute(*res, num_workers=num_workers_)) + [precip[-1, :, :]]
+        )
 
     # replace non-finite values with the minimum value
-    R = R.copy()
-    for i in range(R.shape[0]):
-        R[i, ~np.isfinite(R[i, :])] = np.nanmin(R[i, :])
+    precip = precip.copy()
+    for i in range(precip.shape[0]):
+        precip[i, ~np.isfinite(precip[i, :])] = np.nanmin(precip[i, :])
 
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
     for i in range(ar_order + 1):
         R_ = decomp_method(
-            R[i, :, :],
+            precip[i, :, :],
             filter,
             mask=MASK_thr,
             fft_method=fft,
@@ -264,7 +270,7 @@ def forecast(
             GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], mask=MASK_thr)
         else:
             GAMMA[i, :] = correlation.temporal_autocorrelation(
-                R_c[i], domain="spectral", x_shape=R.shape[1:]
+                R_c[i], domain="spectral", x_shape=precip.shape[1:]
             )
 
     R_c = nowcast_utils.stack_cascades(
@@ -294,16 +300,16 @@ def forecast(
     R_c = [R_c[i][-ar_order:] for i in range(n_cascade_levels)]
 
     if probmatching_method == "mean":
-        mu_0 = np.mean(R[-1, :, :][R[-1, :, :] >= R_thr])
+        mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
 
     # compute precipitation mask and wet area ratio
-    MASK_p = R[-1, :, :] >= R_thr
-    war = 1.0 * np.sum(MASK_p) / (R.shape[1] * R.shape[2])
+    MASK_p = precip[-1, :, :] >= precip_thr
+    war = 1.0 * np.sum(MASK_p) / (precip.shape[1] * precip.shape[2])
 
     if measure_time:
         init_time = time.time() - starttime_init
 
-    R = R[-1, :, :]
+    precip = precip[-1, :, :]
 
     print("Starting nowcast computation.")
 
@@ -320,7 +326,7 @@ def forecast(
         timesteps = nowcast_utils.binned_timesteps(original_timesteps)
         timestep_type = "list"
 
-    R_f_prev = R
+    R_f_prev = precip
     extrap_kwargs["return_displacement"] = True
 
     D = None
@@ -368,7 +374,7 @@ def forecast(
         if probmatching_method == "cdf":
             # adjust the CDF of the forecast to match the most recently
             # observed precipitation field
-            R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, R)
+            R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, precip)
         elif probmatching_method == "mean":
             mu_fct = np.mean(R_f_new[MASK])
             R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0
@@ -392,7 +398,7 @@ def forecast(
                 extrap_kwargs["displacement_prev"] = D
                 R_f_ep, D = extrapolator_method(
                     R_f_ip,
-                    V,
+                    velocity,
                     [t_diff_prev],
                     **extrap_kwargs,
                 )
@@ -406,7 +412,7 @@ def forecast(
             extrap_kwargs["displacement_prev"] = D
             _, D = extrapolator_method(
                 None,
-                V,
+                velocity,
                 [t_diff_prev],
                 **extrap_kwargs,
             )
@@ -454,7 +460,7 @@ def _compute_sprog_mask(R, war):
 
     # compute the threshold value R_pct_thr corresponding to the
     # same fraction of precipitation pixels (forecast values above
-    # R_thr) as in the most recently observed precipitation field
+    # precip_thr) as in the most recently observed precipitation field
     R_s.sort(kind="quicksort")
     x = 1.0 * np.arange(1, len(R_s) + 1)[::-1] / len(R_s)
     i = np.argmin(abs(x - war))
