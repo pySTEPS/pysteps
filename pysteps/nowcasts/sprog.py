@@ -19,6 +19,7 @@ from pysteps import utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.utils import compute_percentile_mask
 
 try:
     import dask
@@ -368,7 +369,7 @@ def forecast(
         if domain == "spectral":
             R_f_new = fft.irfft2(R_f_new)
 
-        MASK = _compute_sprog_mask(R_f_new, war)
+        MASK = compute_percentile_mask(R_f_new, war)
         R_f_new[~MASK] = R_min
 
         if probmatching_method == "cdf":
@@ -451,24 +452,3 @@ def _check_inputs(R, V, timesteps, ar_order):
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
-
-
-def _compute_sprog_mask(R, war):
-    # obtain the CDF from the non-perturbed forecast that is
-    # scale-filtered by the AR(p) model
-    R_s = R.flatten()
-
-    # compute the threshold value R_pct_thr corresponding to the
-    # same fraction of precipitation pixels (forecast values above
-    # precip_thr) as in the most recently observed precipitation field
-    R_s.sort(kind="quicksort")
-    x = 1.0 * np.arange(1, len(R_s) + 1)[::-1] / len(R_s)
-    i = np.argmin(abs(x - war))
-    # handle ties
-    if R_s[i] == R_s[i + 1]:
-        i = np.where(R_s == R_s[i])[0][-1] + 1
-    R_pct_thr = R_s[i]
-
-    # determine a mask using the above threshold value to preserve the
-    # wet-area ratio
-    return R >= R_pct_thr
