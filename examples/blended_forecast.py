@@ -138,29 +138,6 @@ if r_nwp.ndim == 3:
 
 
 ################################################################################
-# Decompose the NWP forecast
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-r_d_models = []
-# Loop through the n_models
-for i in range(r_nwp.shape[0]):
-    r_d_models_ = []
-    # Loop through the time steps
-    for j in range(r_nwp.shape[1]):
-        r_ = decomp_method(
-            field=r_nwp[i, j, :, :],
-            bp_filter=filter,
-            normalize=True,
-            compute_stats=True,
-            compact_output=True,
-        )
-        r_d_models_.append(r_)
-    r_d_models.append(r_d_models_)
-
-r_d_models = np.array(r_d_models)
-
-
-################################################################################
 # Determine the velocity fields
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -193,7 +170,7 @@ v_nwp = np.stack(v_nwp)
 
 precip_forecast = blending.steps.forecast(
     R=r_radar,
-    R_d_models=r_d_models,
+    R_d_models=r_nwp,
     V=v_radar,
     V_models=v_nwp,
     timesteps=18,

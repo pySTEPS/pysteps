@@ -126,6 +126,13 @@ def forecast(
         implemented in pysteps.cascade.decomposition. In case of one
         (deterministic) model as input, add an extra dimension to make sure
         R_models is five dimensional prior to calling this function.
+        It is also possible to supply the original (NWP) model forecasts containing
+        rainfall fields as an array of shape (n_models,timestep+1,m,n), which will
+        then be decomposed in this function. Note that for an operational application
+        or for testing with multiple model runs, it is recommended to decompose
+        the model forecasts outside of the pysteps.blending.steps function, as this
+        reduces calculation times. This is possible with pysteps.blending.utils.decompose_NWP,
+        pysteps.blending.utils.compute_store_nwp_motion and pysteps.blending.utils.load_NWP.
     V: array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
@@ -411,6 +418,7 @@ def forecast(
     print("--------")
     print("Number of (NWP) models: %d" % R_d_models.shape[0])
     print("Blend (NWP) model members: %s" % blend_nwp_members)
+    print("Decompose (NWP) models: %s" % ("yes" if R_d_models.ndim == 4 else "no"))
 
     print("Methods:")
     print("--------")
@@ -573,7 +581,7 @@ def forecast(
     # 3. Perform the cascade decomposition for the input precip fields and
     # The decomposition for the (NWP) model fields is already present
     ###
-    # compute the cascade decompositions of the input precipitation fields
+    # 3.1 Compute the cascade decompositions of the input precipitation fields
     R_d = []
     for i in range(ar_order + 1):
         R_ = decomp_method(
@@ -588,8 +596,8 @@ def forecast(
         )
         R_d.append(R_)
 
-    # normalize the cascades and rearrange them into a four-dimensional array
-    # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
+    # Rearrange the cascaded into a four-dimensional array of shape
+    # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
     R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
 
     R_d = R_d[-1]
@@ -597,8 +605,34 @@ def forecast(
     sigma_extrapolation = np.array(R_d["stds"])
     R_d = [R_d.copy() for j in range(n_ens_members)]
 
-    # Also stack the (NWP) model cascades in separate normalized cascades and
-    # return the means and sigmas.
+    # 3.2 If necessary, decompose (NWP) model forecasts and stack cascades
+    if R_d_models.ndim == 4:
+        # Keep the model fields for the probability matching later on
+        R_models_pm = R_d_models.copy()
+        # Decompose the (NWP) model forecasts
+        R_d_models_ = []
+        # Loop through the n_models
+        for i in range(R_d_models.shape[0]):
+            R_d_models__ = []
+            # Loop through the time steps
+            for j in range(R_d_models.shape[1]):
+                R_ = decomp_method(
+                    field=R_d_models[i, j, :, :],
+                    bp_filter=filter,
+                    fft_method=fft,
+                    output_domain=domain,
+                    normalize=True,
+                    compute_stats=True,
+                    compact_output=True,
+                )
+                R_d_models__.append(R_)
+            R_d_models_.append(R_d_models__)
+        R_d_models = np.array(R_d_models_)
+
+        R_d_models_, R_d_models__ = None, None
+
+    # Stack the (NWP) model cascades in separate normalized cascades and return
+    # the means and sigmas.
     # The normalized model cascade should have the shape:
     # [n_models, n_timesteps, n_cascade_levels, m, n]
     R_models = []
@@ -620,18 +654,19 @@ def forecast(
 
     R_models_, mu_models_, sigma_models_ = None, None, None
 
-    # Finally, recompose the (NWP) model cascades to have rainfall fields per
-    # model and time step, which will be used in the probability matching steps.
-    # Recomposed cascade will have shape: [n_models, n_timesteps, m, n]
-    R_models_pm = []
-    for i in range(R_d_models.shape[0]):
-        R_models_pm_ = []
-        for time_step in range(R_d_models.shape[1]):
-            R_models_pm_.append(recomp_method(R_d_models[i, time_step]))
-        R_models_pm.append(R_models_pm_)
+    if R_d_models.ndim == 2:
+        # Finally, recompose the (NWP) model cascades to have rainfall fields per
+        # model and time step, which will be used in the probability matching steps.
+        # Recomposed cascade will have shape: [n_models, n_timesteps, m, n]
+        R_models_pm = []
+        for i in range(R_d_models.shape[0]):
+            R_models_pm_ = []
+            for time_step in range(R_d_models.shape[1]):
+                R_models_pm_.append(recomp_method(R_d_models[i, time_step]))
+            R_models_pm.append(R_models_pm_)
 
-    R_models_pm = np.stack(R_models_pm)
-    R_models_pm_ = None
+        R_models_pm = np.stack(R_models_pm)
+        R_models_pm_ = None
 
     ###
     # 4. Estimate AR parameters for the radar rainfall field
@@ -1712,9 +1747,9 @@ def _check_inputs(R, R_d_models, V, V_models, timesteps, ar_order):
         raise ValueError("R must be a three-dimensional array")
     if R.shape[0] < ar_order + 1:
         raise ValueError("R.shape[0] < ar_order+1")
-    if R_d_models.ndim != 2:
+    if R_d_models.ndim != 2 and R_d_models.ndim != 4:
         raise ValueError(
-            "R_d_models must be a two-dimensional array containing dictionaries"
+            "R_d_models must be either a two-dimensional array containing dictionaries with decomposed model fields or a four-dimensional array containing the original (NWP) model forecasts"
         )
     if V.ndim != 3:
         raise ValueError("V must be a three-dimensional array")

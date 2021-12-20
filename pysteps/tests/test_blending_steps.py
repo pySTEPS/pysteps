@@ -19,22 +19,24 @@ steps_arg_names = (
     "probmatching_method",
     "blend_nwp_members",
     "weights_method",
+    "decomposed_nwp",
     "expected_n_ens_members",
 )
 
 steps_arg_values = [
-    (1, 3, 4, 8, None, None, False, "spn", 4),
-    (1, 3, 4, 8, "obs", None, False, "spn", 4),
-    (1, 3, 4, 8, "incremental", None, False, "spn", 4),
-    (1, 3, 4, 8, None, "mean", False, "spn", 4),
-    (1, 3, 4, 8, None, "cdf", False, "spn", 4),
-    (1, 3, 4, 8, "incremental", "cdf", False, "spn", 4),
-    (1, 3, 4, 6, "incremental", "cdf", False, "bps", 4),
-    (1, 3, 4, 9, "incremental", "cdf", False, "spn", 4),
-    (2, 3, 10, 8, "incremental", "cdf", False, "spn", 10),
-    (5, 3, 4, 8, "incremental", "cdf", False, "spn", 5),
-    (1, 10, 1, 8, "incremental", "cdf", False, "spn", 1),
-    (5, 3, 2, 8, "incremental", "cdf", True, "spn", 2),
+    (1, 3, 4, 8, None, None, False, "spn", True, 4),
+    (1, 3, 4, 8, "obs", None, False, "spn", True, 4),
+    (1, 3, 4, 8, "incremental", None, False, "spn", True, 4),
+    (1, 3, 4, 8, None, "mean", False, "spn", True, 4),
+    (1, 3, 4, 8, None, "cdf", False, "spn", True, 4),
+    (1, 3, 4, 8, "incremental", "cdf", False, "spn", True, 4),
+    (1, 3, 4, 6, "incremental", "cdf", False, "bps", True, 4),
+    (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4),
+    (1, 3, 4, 9, "incremental", "cdf", False, "spn", True, 4),
+    (2, 3, 10, 8, "incremental", "cdf", False, "spn", True, 10),
+    (5, 3, 4, 8, "incremental", "cdf", False, "spn", True, 5),
+    (1, 10, 1, 8, "incremental", "cdf", False, "spn", True, 1),
+    (5, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2),
 ]
 
 
@@ -48,6 +50,7 @@ def test_steps_blending(
     probmatching_method,
     blend_nwp_members,
     weights_method,
+    decomposed_nwp,
     expected_n_ens_members,
 ):
     ###
@@ -157,25 +160,31 @@ def test_steps_blending(
     if R_NWP.ndim == 3:
         R_NWP = R_NWP[None, :]
 
-    R_d_models = []
-    # Loop through the n_models
-    for i in range(R_NWP.shape[0]):
-        R_d_models_ = []
-        # Loop through the time steps
-        for j in range(R_NWP.shape[1]):
-            R_ = decomp_method(
-                field=R_NWP[i, j, :, :],
-                bp_filter=filter,
-                normalize=True,
-                compute_stats=True,
-                compact_output=True,
-            )
-            R_d_models_.append(R_)
-        R_d_models.append(R_d_models_)
+    if decomposed_nwp:
+        R_d_models = []
+        # Loop through the n_models
+        for i in range(R_NWP.shape[0]):
+            R_d_models_ = []
+            # Loop through the time steps
+            for j in range(R_NWP.shape[1]):
+                R_ = decomp_method(
+                    field=R_NWP[i, j, :, :],
+                    bp_filter=filter,
+                    normalize=True,
+                    compute_stats=True,
+                    compact_output=True,
+                )
+                R_d_models_.append(R_)
+            R_d_models.append(R_d_models_)
 
-    R_d_models = np.array(R_d_models)
+        R_d_models = np.array(R_d_models)
 
-    assert R_d_models.ndim == 2, "Wrong number of dimensions in R_d_models"
+        assert R_d_models.ndim == 2, "Wrong number of dimensions in R_d_models"
+
+    else:
+        R_d_models = R_NWP.copy()
+
+        assert R_d_models.ndim == 4, "Wrong number of dimensions in R_d_models"
 
     ###
     # Determine the velocity fields
