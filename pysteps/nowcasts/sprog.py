@@ -144,36 +144,36 @@ def forecast(
     if np.any(~np.isfinite(velocity)):
         raise ValueError("velocity contains non-finite values")
 
-    print("Computing S-PROG nowcast:")
-    print("-------------------------")
+    print("Computing S-PROG nowcast")
+    print("------------------------")
     print("")
 
-    print("Inputs:")
+    print("Inputs")
+    print("------")
+    print(f"input dimensions: {precip.shape[1]}x{precip.shape[2]}")
+    print("")
+
+    print("Methods")
     print("-------")
-    print("input dimensions: %dx%d" % (precip.shape[1], precip.shape[2]))
+    print(f"extrapolation:          {extrap_method}")
+    print(f"bandpass filter:        {bandpass_filter_method}")
+    print(f"decomposition:          {decomp_method}")
+    print("conditional statistics: {}".format("yes" if conditional else "no"))
+    print(f"probability matching:   {probmatching_method}")
+    print(f"FFT method:             {fft_method}")
+    print(f"domain:                 {domain}")
     print("")
 
-    print("Methods:")
-    print("--------")
-    print("extrapolation:          %s" % extrap_method)
-    print("bandpass filter:        %s" % bandpass_filter_method)
-    print("decomposition:          %s" % decomp_method)
-    print("conditional statistics: %s" % ("yes" if conditional else "no"))
-    print("probability matching:   %s" % probmatching_method)
-    print("FFT method:             %s" % fft_method)
-    print("domain:                 %s" % domain)
-    print("")
-
-    print("Parameters:")
-    print("-----------")
+    print("Parameters")
+    print("----------")
     if isinstance(timesteps, int):
-        print("number of time steps:     %d" % timesteps)
+        print(f"number of time steps:     {timesteps}")
     else:
-        print("time steps:               %s" % timesteps)
-    print("parallel threads:         %d" % num_workers)
-    print("number of cascade levels: %d" % n_cascade_levels)
-    print("order of the AR(p) model: %d" % ar_order)
-    print("precip. intensity threshold: %g" % precip_thr)
+        print(f"time steps:               {timesteps}")
+    print(f"parallel threads:         {num_workers}")
+    print(f"number of cascade levels: {n_cascade_levels}")
+    print(f"order of the AR(p) model: {ar_order}")
+    print(f"precip. intensity threshold: {precip_thr}")
 
     if measure_time:
         starttime_init = time.time()
@@ -349,7 +349,7 @@ def forecast(
 
         if is_nowcast_time_step:
             print(
-                "Computing nowcast for time step %d... " % t,
+                f"Computing nowcast for time step {t}... ",
                 end="",
                 flush=True,
             )
@@ -423,7 +423,7 @@ def forecast(
 
         if is_nowcast_time_step:
             if measure_time:
-                print("%.2f seconds." % (time.time() - starttime))
+                print(f"{time.time() - starttime:.2f} seconds.")
             else:
                 print("done.")
 

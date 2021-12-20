@@ -147,36 +147,36 @@ def forecast(
     if filter_kwargs is None:
         filter_kwargs = dict()
 
-    print("Computing ANVIL nowcast:")
-    print("------------------------")
+    print("Computing ANVIL nowcast")
+    print("-----------------------")
     print("")
 
-    print("Inputs:")
+    print("Inputs")
+    print("------")
+    print(f"input dimensions: {vil.shape[1]}x{vil.shape[2]}")
+    print("")
+
+    print("Methods")
     print("-------")
-    print("input dimensions: %dx%d" % (vil.shape[1], vil.shape[2]))
+    print(f"extrapolation:   {extrap_method}")
+    print(f"FFT:             {fft_method}")
     print("")
 
-    print("Methods:")
-    print("--------")
-    print("extrapolation:   %s" % extrap_method)
-    print("FFT:             %s" % fft_method)
-    print("")
-
-    print("Parameters:")
-    print("-----------")
+    print("Parameters")
+    print("----------")
     if isinstance(timesteps, int):
-        print("number of time steps:        %d" % timesteps)
+        print(f"number of time steps:        {timesteps}")
     else:
-        print("time steps:                  %s" % timesteps)
-    print("parallel threads:            %d" % num_workers)
-    print("number of cascade levels:    %d" % n_cascade_levels)
-    print("order of the ARI(p,1) model: %d" % ar_order)
+        print(f"time steps:                  {timesteps}")
+    print(f"parallel threads:            {num_workers}")
+    print(f"number of cascade levels:    {n_cascade_levels}")
+    print(f"order of the ARI(p,1) model: {ar_order}")
     if type(ar_window_radius) == int:
-        print("ARI(p,1) window radius:      %d" % ar_window_radius)
+        print(f"ARI(p,1) window radius:      {ar_window_radius}")
     else:
         print("ARI(p,1) window radius:      none")
 
-    print("R(VIL) window radius:        %d" % r_vil_window_radius)
+    print(f"R(VIL) window radius:        {r_vil_window_radius}")
 
     if measure_time:
         starttime_init = time.time()
@@ -319,7 +319,7 @@ def forecast(
 
         if is_nowcast_time_step:
             print(
-                "Computing nowcast for time step %d... " % t,
+                f"Computing nowcast for time step {t}... ",
                 end="",
                 flush=True,
             )
@@ -391,7 +391,7 @@ def forecast(
 
         if is_nowcast_time_step:
             if measure_time:
-                print("%.2f seconds." % (time.time() - starttime))
+                print(f"{time.time() - starttime:.2f} seconds.")
             else:
                 print("done.")
 
