@@ -12,7 +12,9 @@ Module with common utilities used by nowcasts methods.
     stack_cascades
 """
 
+import time
 import numpy as np
+from pysteps import extrapolation
 
 
 def binned_timesteps(timesteps):
@@ -55,15 +57,15 @@ def compute_percentile_mask(precip, pct):
 
     Parameters
     ----------
-    precip : array-like
+    precip: array-like
         Two-dimensional array of shape (m,n) containing the input precipitation
         field.
-    pct : float
+    pct: float
         The percentile value.
 
     Returns
     -------
-    out : ndarray_
+    out: ndarray_
         Array of shape (m,n), where True/False values are assigned for pixels
         above/below the precipitation intensity corresponding to the given
         percentile.
@@ -83,6 +85,158 @@ def compute_percentile_mask(precip, pct):
 
     # determine the mask using the above threshold value
     return precip >= precip_pct_thr
+
+
+def nowcast_main_loop(
+    precip, velocity, timesteps, extrap_method, extrap_kwargs, func, measure_time=False
+):
+    """Utility method for advection-based nowcast models, where some parts of
+    the model (e.g. an autoregressive process) require using integer time steps.
+
+    Parameters
+    ----------
+    precip: array-like
+        Array of shape (m,n) containing the most recently observed precipitation
+        field.
+    velocity: array-like
+        Array of shape (2,m,n) containing the x- and y-components of the
+        advection field.
+    timesteps: int or list of floats
+        Number of time steps to forecast or a list of time steps for which the
+        forecasts are computed. The elements of the list are required to be in
+        ascending order.
+    extrap_method: str, optional
+        Name of the extrapolation method to use. See the documentation of
+        :py:mod:`pysteps.extrapolation.interface`.
+    extrap_kwargs: dict, optional
+        Optional dictionary containing keyword arguments for the extrapolation
+        method. See the documentation of pysteps.extrapolation.
+    func : function
+
+    measure_time: bool
+        If set to True, measure, print and return the computation time.
+
+    Returns
+    -------
+    out : list
+        List of forecast fields for the given time steps. If measure_time is
+        True, return a pair, where the second element is the total computation
+        time in the loop.
+    """
+    precip_f = []
+
+    # create a range of time steps
+    # if an integer time step is given, create a simple range iterator
+    # otherwise, assing the time steps to integer bins so that each bin
+    # contains a list of time steps belonging to that bin
+    if isinstance(timesteps, int):
+        timesteps = range(timesteps + 1)
+        timestep_type = "int"
+    else:
+        original_timesteps = [0] + list(timesteps)
+        timesteps = binned_timesteps(original_timesteps)
+        timestep_type = "list"
+
+    precip_f_prev = precip
+    displacement = None
+    t_prev = 0.0
+
+    # initialize the extrapolator
+    extrapolator = extrapolation.get_method(extrap_method)
+
+    x_values, y_values = np.meshgrid(
+        np.arange(precip.shape[2]), np.arange(precip.shape[1])
+    )
+
+    xy_coords = np.stack([x_values, y_values])
+
+    extrap_kwargs = extrap_kwargs.copy()
+    extrap_kwargs["xy_coords"] = xy_coords
+    extrap_kwargs["allow_nonfinite_values"] = True
+
+    if measure_time:
+        starttime_total = time.time()
+
+    # loop through the integer time steps or bins if non-integer time steps
+    # were given
+    for t, subtimestep_idx in enumerate(timesteps):
+        if timestep_type == "list":
+            subtimesteps = [original_timesteps[t_] for t_ in subtimestep_idx]
+        else:
+            subtimesteps = [t]
+
+        if (timestep_type == "list" and subtimesteps) or (
+            timestep_type == "int" and t > 0
+        ):
+            is_nowcast_time_step = True
+        else:
+            is_nowcast_time_step = False
+
+        # print a message if nowcasts are computed for the current integer time
+        # step (this is not necessarily the case, since the current bin might
+        # not contain any time steps)
+        if is_nowcast_time_step:
+            print(
+                f"Computing nowcast for time step {t}... ",
+                end="",
+                flush=True,
+            )
+
+        # call the function to iterate the integer-part of the model for one
+        # time step
+        precip_f_new = func()
+
+        if measure_time:
+            starttime = time.time()
+
+        # advect the currect forecast field to the subtimesteps in the current
+        # bin and append the results to the output list
+        # apply temporal interpolation to the forecasts made between the
+        # previous and the next integer time steps
+        for t_sub in subtimesteps:
+            if t_sub > 0:
+                t_diff_prev_int = t_sub - int(t_sub)
+                if t_diff_prev_int > 0.0:
+                    precip_f_ip = (
+                        1.0 - t_diff_prev_int
+                    ) * precip_f_prev + t_diff_prev_int * precip_f_new
+                else:
+                    precip_f_ip = precip_f_prev
+
+                t_diff_prev = t_sub - t_prev
+                extrap_kwargs["displacement_prev"] = displacement
+                precip_f_ep, displacement = extrapolator(
+                    precip_f_ip,
+                    velocity,
+                    [t_diff_prev],
+                    **extrap_kwargs,
+                )
+                precip_f.append(precip_f_ep[0])
+                t_prev = t_sub
+
+        if not subtimesteps:
+            t_diff_prev = t + 1 - t_prev
+            extrap_kwargs["displacement_prev"] = displacement
+            _, displacement = extrapolator(
+                None,
+                velocity,
+                [t_diff_prev],
+                **extrap_kwargs,
+            )
+            t_prev = t + 1
+
+        precip_f_prev = precip_f_new
+
+        if is_nowcast_time_step:
+            if measure_time:
+                print(f"{time.time() - starttime:.2f} seconds.")
+            else:
+                print("done.")
+
+    if measure_time:
+        return precip_f, time.time() - starttime_total
+    else:
+        return precip_f
 
 
 def print_ar_params(PHI):
