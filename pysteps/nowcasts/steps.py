@@ -22,6 +22,7 @@ from pysteps import utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.utils import compute_percentile_mask
 
 try:
     import dask
@@ -645,7 +646,7 @@ def forecast(
                 R_m_ = fft.irfft2(R_m_)
 
             if mask_method == "sprog":
-                MASK_prec = _compute_sprog_mask(R_m_, war)
+                MASK_prec = compute_percentile_mask(R_m_, war)
 
         # the nowcast iteration for each ensemble member
         def worker(j):
@@ -870,24 +871,3 @@ def _compute_incremental_mask(Rbin, kr, r):
         mask += Rd
     # normalize between 0 and 1
     return mask / mask.max()
-
-
-def _compute_sprog_mask(R, war):
-    # obtain the CDF from the non-perturbed forecast that is
-    # scale-filtered by the AR(p) model
-    R_s = R.flatten()
-
-    # compute the threshold value R_pct_thr corresponding to the
-    # same fraction of precipitation pixels (forecast values above
-    # precip_thr) as in the most recently observed precipitation field
-    R_s.sort(kind="quicksort")
-    x = 1.0 * np.arange(1, len(R_s) + 1)[::-1] / len(R_s)
-    i = np.argmin(abs(x - war))
-    # handle ties
-    if R_s[i] == R_s[i + 1]:
-        i = np.where(R_s == R_s[i])[0][-1] + 1
-    R_pct_thr = R_s[i]
-
-    # determine a mask using the above threshold value to preserve the
-    # wet-area ratio
-    return R >= R_pct_thr

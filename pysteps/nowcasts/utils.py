@@ -49,6 +49,42 @@ def binned_timesteps(timesteps):
     return out
 
 
+def compute_percentile_mask(precip, pct):
+    """Compute a precipitation mask, where True/False values are assigned for
+    pixels above/below the given percentile.
+
+    Parameters
+    ----------
+    precip : array-like
+        Two-dimensional array of shape (m,n) containing the input precipitation
+        field.
+    pct : float
+        The percentile value.
+
+    Returns
+    -------
+    out : ndarray_
+        Array of shape (m,n), where True/False values are assigned for pixels
+        above/below the precipitation intensity corresponding to the given
+        percentile.
+    """
+    # obtain the CDF from the input precipitation field
+    precip_s = precip.flatten()
+
+    # compute the precipitation intensity threshold corresponding to the given
+    # percentile
+    precip_s.sort(kind="quicksort")
+    x = 1.0 * np.arange(1, len(precip_s) + 1)[::-1] / len(precip_s)
+    i = np.argmin(abs(x - pct))
+    # handle ties
+    if precip_s[i] == precip_s[i + 1]:
+        i = np.where(precip_s == precip_s[i])[0][-1] + 1
+    precip_pct_thr = precip_s[i]
+
+    # determine the mask using the above threshold value
+    return precip >= precip_pct_thr
+
+
 def print_ar_params(PHI):
     """Print the parameters of an AR(p) model.
 
