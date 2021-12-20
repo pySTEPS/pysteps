@@ -19,7 +19,7 @@ from pysteps import utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.utils import compute_percentile_mask
+from pysteps.nowcasts.utils import compute_percentile_mask
 
 try:
     import dask
