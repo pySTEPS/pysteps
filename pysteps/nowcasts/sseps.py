@@ -236,43 +236,43 @@ def forecast(
     timestep = metadata["accutime"]
     kmperpixel = metadata["xpixelsize"] / 1000
 
-    print("Computing SSEPS nowcast:")
-    print("------------------------")
+    print("Computing SSEPS nowcast")
+    print("-----------------------")
     print("")
 
-    print("Inputs:")
-    print("-------")
+    print("Inputs")
+    print("------")
     print("input dimensions: %dx%d" % (precip.shape[1], precip.shape[2]))
-    print("km/pixel:         %g" % kmperpixel)
-    print("time step:        %d minutes" % timestep)
+    print(f"km/pixel:         {kmperpixel}")
+    print(f"time step:        {timestep} minutes")
     print("")
 
-    print("Methods:")
-    print("--------")
-    print("extrapolation:          %s" % extrap_method)
-    print("bandpass filter:        %s" % bandpass_filter_method)
-    print("decomposition:          %s" % decomp_method)
-    print("noise generator:        %s" % noise_method)
-    print("velocity perturbator:   %s" % vel_pert_method)
-    print("precip. mask method:    %s" % mask_method)
-    print("probability matching:   %s" % probmatching_method)
-    print("FFT method:             %s" % fft_method)
+    print("Methods")
+    print("-------")
+    print(f"extrapolation:          {extrap_method}")
+    print(f"bandpass filter:        {bandpass_filter_method}")
+    print(f"decomposition:          {decomp_method}")
+    print(f"noise generator:        {noise_method}")
+    print(f"velocity perturbator:   {vel_pert_method}")
+    print(f"precip. mask method:    {mask_method}")
+    print(f"probability matching:   {probmatching_method}")
+    print(f"FFT method:             {fft_method}")
     print("")
 
-    print("Parameters:")
-    print("-----------")
-    print("localization window:      %dx%d" % (win_size[0], win_size[1]))
-    print("overlap:                  %.1f" % overlap)
-    print("war thr:                  %.2f" % war_thr)
+    print("Parameters")
+    print("----------")
+    print(f"localization window:      {win_size[0]}x{win_size[1]}")
+    print(f"overlap:                  {overlap:.1f}")
+    print(f"war thr:                  {war_thr:.2f}")
     if isinstance(timesteps, int):
-        print("number of time steps:     %d" % timesteps)
+        print(f"number of time steps:     {timesteps}")
     else:
-        print("time steps:               %s" % timesteps)
-    print("ensemble size:            %d" % n_ens_members)
-    print("number of cascade levels: %d" % n_cascade_levels)
-    print("order of the AR(p) model: %d" % ar_order)
-    print("dask imported:            %s" % ("yes" if dask_imported else "no"))
-    print("num workers:              %d" % num_workers)
+        print(f"time steps:               {timesteps}")
+    print(f"ensemble size:            {n_ens_members}")
+    print(f"number of cascade levels: {n_cascade_levels}")
+    print(f"order of the AR(p) model: {ar_order}")
+    print("dask imported:            {}".format(("yes" if dask_imported else "no")))
+    print(f"num workers:              {num_workers}")
 
     if vel_pert_method == "bps":
         vp_par = vel_pert_kwargs.get(
@@ -282,12 +282,10 @@ def forecast(
             "p_pert_perp", noise.motion.get_default_params_bps_perp()
         )
         print(
-            "velocity perturbations, parallel:      %g,%g,%g"
-            % (vp_par[0], vp_par[1], vp_par[2])
+            f"velocity perturbations, parallel:      {vp_par[0]},{vp_par[1]},{vp_par[2]}"
         )
         print(
-            "velocity perturbations, perpendicular: %g,%g,%g"
-            % (vp_perp[0], vp_perp[1], vp_perp[2])
+            f"velocity perturbations, perpendicular: {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
         )
 
     precip_thr = metadata["threshold"]
@@ -530,7 +528,7 @@ def forecast(
         pars = None
 
     if measure_time:
-        print("%.2f seconds." % (time.time() - starttime))
+        print(f"{time.time() - starttime:.2f} seconds.")
     else:
         print(" done.")
 
@@ -603,7 +601,7 @@ def forecast(
 
         if is_nowcast_time_step:
             print(
-                "Computing nowcast for time step %d... " % t,
+                f"Computing nowcast for time step {t}... ",
                 end="",
                 flush=True,
             )
@@ -862,7 +860,7 @@ def forecast(
 
         if is_nowcast_time_step:
             if measure_time:
-                print("%.2f seconds." % (time.time() - starttime))
+                print(f"{time.time() - starttime:.2f} seconds.")
             else:
                 print("done.")
 

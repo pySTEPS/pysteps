@@ -307,60 +307,58 @@ def forecast(
         if mask_method == "incremental":
             raise ValueError("mask_method='incremental' but timestep=None")
 
-    print("Computing STEPS nowcast:")
-    print("------------------------")
+    print("Computing STEPS nowcast")
+    print("-----------------------")
     print("")
 
-    print("Inputs:")
-    print("-------")
-    print("input dimensions: %dx%d" % (precip.shape[1], precip.shape[2]))
+    print("Inputs")
+    print("------")
+    print(f"input dimensions: {precip.shape[1]}x{precip.shape[2]}")
     if kmperpixel is not None:
-        print("km/pixel:         %g" % kmperpixel)
+        print(f"km/pixel:         {kmperpixel}")
     if timestep is not None:
-        print("time step:        %d minutes" % timestep)
+        print(f"time step:        {timestep} minutes")
     print("")
 
-    print("Methods:")
-    print("--------")
-    print("extrapolation:          %s" % extrap_method)
-    print("bandpass filter:        %s" % bandpass_filter_method)
-    print("decomposition:          %s" % decomp_method)
-    print("noise generator:        %s" % noise_method)
-    print("noise adjustment:       %s" % ("yes" if noise_stddev_adj else "no"))
-    print("velocity perturbator:   %s" % vel_pert_method)
-    print("conditional statistics: %s" % ("yes" if conditional else "no"))
-    print("precip. mask method:    %s" % mask_method)
-    print("probability matching:   %s" % probmatching_method)
-    print("FFT method:             %s" % fft_method)
-    print("domain:                 %s" % domain)
+    print("Methods")
+    print("-------")
+    print(f"extrapolation:          {extrap_method}")
+    print(f"bandpass filter:        {bandpass_filter_method}")
+    print(f"decomposition:          {decomp_method}")
+    print(f"noise generator:        {noise_method}")
+    print("noise adjustment:       {}".format(("yes" if noise_stddev_adj else "no")))
+    print(f"velocity perturbator:   {vel_pert_method}")
+    print("conditional statistics: {}".format(("yes" if conditional else "no")))
+    print(f"precip. mask method:    {mask_method}")
+    print(f"probability matching:   {probmatching_method}")
+    print(f"FFT method:             {fft_method}")
+    print(f"domain:                 {domain}")
     print("")
 
-    print("Parameters:")
-    print("-----------")
+    print("Parameters")
+    print("----------")
     if isinstance(timesteps, int):
-        print("number of time steps:     %d" % timesteps)
+        print(f"number of time steps:     {timesteps}")
     else:
-        print("time steps:               %s" % timesteps)
-    print("ensemble size:            %d" % n_ens_members)
-    print("parallel threads:         %d" % num_workers)
-    print("number of cascade levels: %d" % n_cascade_levels)
-    print("order of the AR(p) model: %d" % ar_order)
+        print(f"time steps:               {timesteps}")
+    print(f"ensemble size:            {n_ens_members}")
+    print(f"parallel threads:         {num_workers}")
+    print(f"number of cascade levels: {n_cascade_levels}")
+    print(f"order of the AR(p) model: {ar_order}")
     if vel_pert_method == "bps":
         vp_par = vel_pert_kwargs.get("p_par", noise.motion.get_default_params_bps_par())
         vp_perp = vel_pert_kwargs.get(
             "p_perp", noise.motion.get_default_params_bps_perp()
         )
         print(
-            "velocity perturbations, parallel:      %g,%g,%g"
-            % (vp_par[0], vp_par[1], vp_par[2])
+            f"velocity perturbations, parallel:      {vp_par[0]},{vp_par[1]},{vp_par[2]}"
         )
         print(
-            "velocity perturbations, perpendicular: %g,%g,%g"
-            % (vp_perp[0], vp_perp[1], vp_perp[2])
+            f"velocity perturbations, perpendicular: {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
         )
 
     if conditional or mask_method is not None:
-        print("precip. intensity threshold: %g" % precip_thr)
+        print(f"precip. intensity threshold: {precip_thr}")
 
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members else num_workers
 
@@ -456,7 +454,7 @@ def forecast(
             )
 
             if measure_time:
-                print("%.2f seconds." % (time.time() - starttime))
+                print(f"{time.time() - starttime:.2f} seconds.")
             else:
                 print("done.")
         elif noise_stddev_adj == "fixed":
@@ -466,7 +464,7 @@ def forecast(
             noise_std_coeffs = np.ones(n_cascade_levels)
 
         if noise_stddev_adj is not None:
-            print("noise std. dev. coeffs:   %s" % str(noise_std_coeffs))
+            print(f"noise std. dev. coeffs:   {str(noise_std_coeffs)}")
 
     # compute the cascade decompositions of the input precipitation fields
     R_d = []
@@ -624,7 +622,7 @@ def forecast(
 
         if is_nowcast_time_step:
             print(
-                "Computing nowcast for time step %d... " % t,
+                f"Computing nowcast for time step {t}... ",
                 end="",
                 flush=True,
             )
@@ -811,7 +809,7 @@ def forecast(
 
         if is_nowcast_time_step:
             if measure_time:
-                print("%.2f seconds." % (time.time() - starttime))
+                print(f"{time.time() - starttime:.2f} seconds.")
             else:
                 print("done.")
 
