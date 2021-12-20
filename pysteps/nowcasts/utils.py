@@ -88,7 +88,15 @@ def compute_percentile_mask(precip, pct):
 
 
 def nowcast_main_loop(
-    precip, velocity, timesteps, extrap_method, extrap_kwargs, func, measure_time=False
+    precip,
+    velocity,
+    state,
+    timesteps,
+    extrap_method,
+    extrap_kwargs,
+    func_state_update,
+    func_decode,
+    measure_time=False,
 ):
     """Utility method for advection-based nowcast models, where some parts of
     the model (e.g. an autoregressive process) require using integer time steps.
@@ -101,6 +109,8 @@ def nowcast_main_loop(
     velocity: array-like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field.
+    state : object
+        The initial state of the nowcast model.
     timesteps: int or list of floats
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed. The elements of the list are required to be in
@@ -111,8 +121,11 @@ def nowcast_main_loop(
     extrap_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
-    func : function
-
+    func_state_update : function
+        A function that takes the current state of the nowcast model and returns
+        the new state.
+    func_decode : function
+        A function that decoded the current state and returns a forecast field.
     measure_time: bool
         If set to True, measure, print and return the computation time.
 
@@ -137,6 +150,7 @@ def nowcast_main_loop(
         timesteps = binned_timesteps(original_timesteps)
         timestep_type = "list"
 
+    state_prev = state
     precip_f_prev = precip
     displacement = None
     t_prev = 0.0
@@ -184,7 +198,8 @@ def nowcast_main_loop(
 
         # call the function to iterate the integer-part of the model for one
         # time step
-        precip_f_new = func()
+        state_new = func_state_update(state_prev)
+        precip_f_new = func_decode(state_new)
 
         if measure_time:
             starttime = time.time()
@@ -226,6 +241,7 @@ def nowcast_main_loop(
             t_prev = t + 1
 
         precip_f_prev = precip_f_new
+        state_prev = state_new
 
         if is_nowcast_time_step:
             if measure_time:
