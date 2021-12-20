@@ -38,9 +38,9 @@ except ImportError:
 
 
 def forecast(
-    R,
+    precip,
     metadata,
-    V,
+    velocity,
     timesteps,
     n_ens_members=24,
     n_cascade_levels=6,
@@ -75,7 +75,7 @@ def forecast(
 
     Parameters
     ----------
-    R: array-like
+    precip: array-like
         Array of shape (ar_order+1,m,n) containing the input precipitation fields
         ordered by timestamp from oldest to newest. The time steps between the inputs
         are assumed to be regular, and the inputs are required to have finite values.
@@ -83,7 +83,7 @@ def forecast(
         Metadata dictionary containing the accutime, xpixelsize, threshold and
         zerovalue attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`. xpixelsize is assumed to be in meters.
-    V: array-like
+    velocity: array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
         field. The velocities are assumed to represent one time step between the
         inputs. All values are required to be finite.
@@ -135,7 +135,7 @@ def forecast(
         Optional function that is called after computation of each time step of
         the nowcast. The function takes one argument: a three-dimensional array
         of shape (n_ens_members,h,w), where h and w are the height and width
-        of the input field R, respectively. This can be used, for instance,
+        of the input field precip, respectively. This can be used, for instance,
         writing the outputs into files.
     return_output: bool
         Set to False to disable returning the outputs as numpy arrays. This can
@@ -186,7 +186,7 @@ def forecast(
 
     See also
     --------
-    pysteps.extrapolation.interface, pysteps.cascade.interface,
+    psysteps.extrapolation.interface, pysteps.cascade.interface,
     pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
 
     Notes
@@ -198,7 +198,7 @@ def forecast(
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`NBSG2017`
     """
 
-    _check_inputs(R, V, timesteps, ar_order)
+    _check_inputs(precip, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -217,11 +217,11 @@ def forecast(
     if mask_kwargs is None:
         mask_kwargs = dict()
 
-    if np.any(~np.isfinite(R)):
-        raise ValueError("R contains non-finite values")
+    if np.any(~np.isfinite(precip)):
+        raise ValueError("precip contains non-finite values")
 
-    if np.any(~np.isfinite(V)):
-        raise ValueError("V contains non-finite values")
+    if np.any(~np.isfinite(velocity)):
+        raise ValueError("velocity contains non-finite values")
 
     if mask_method not in ["incremental", None]:
         raise ValueError(
@@ -242,7 +242,7 @@ def forecast(
 
     print("Inputs:")
     print("-------")
-    print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
+    print("input dimensions: %dx%d" % (precip.shape[1], precip.shape[2]))
     print("km/pixel:         %g" % kmperpixel)
     print("time step:        %d minutes" % timestep)
     print("")
@@ -290,8 +290,8 @@ def forecast(
             % (vp_perp[0], vp_perp[1], vp_perp[2])
         )
 
-    R_thr = metadata["threshold"]
-    R_min = metadata["zerovalue"]
+    precip_thr = metadata["threshold"]
+    precip_min = metadata["zerovalue"]
 
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members else num_workers
 
@@ -301,7 +301,9 @@ def forecast(
     # get methods
     extrapolator_method = extrapolation.get_method(extrap_method)
 
-    x_values, y_values = np.meshgrid(np.arange(R.shape[2]), np.arange(R.shape[1]))
+    x_values, y_values = np.meshgrid(
+        np.arange(precip.shape[2]), np.arange(precip.shape[1])
+    )
 
     xy_coords = np.stack([x_values, y_values])
 
@@ -312,22 +314,24 @@ def forecast(
 
     # advect the previous precipitation fields to the same position with the
     # most recent one (i.e. transform them into the Lagrangian coordinates)
-    R = R[-(ar_order + 1) :, :, :].copy()
+    precip = precip[-(ar_order + 1) :, :, :].copy()
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
     res = []
-    f = lambda R, i: extrapolator_method(
-        R[i, :, :], V, ar_order - i, "min", **extrap_kwargs
+    f = lambda precip, i: extrapolator_method(
+        precip[i, :, :], velocity, ar_order - i, "min", **extrap_kwargs
     )[-1]
     for i in range(ar_order):
         if not dask_imported:
-            R[i, :, :] = f(R, i)
+            precip[i, :, :] = f(precip, i)
         else:
-            res.append(dask.delayed(f)(R, i))
+            res.append(dask.delayed(f)(precip, i))
 
     if dask_imported:
         num_workers_ = len(res) if num_workers > len(res) else num_workers
-        R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
+        precip = np.stack(
+            list(dask.compute(*res, num_workers=num_workers_)) + [precip[-1, :, :]]
+        )
 
     if mask_method == "incremental":
         # get mask parameters
@@ -351,20 +355,19 @@ def forecast(
 
     print("Estimating nowcast parameters...", end="")
 
-    def estimator(R, parsglob=None, idxm=None, idxn=None):
-
+    def estimator(precip, parsglob=None, idxm=None, idxn=None):
         pars = {}
 
         # initialize the perturbation generator for the precipitation field
         if noise_method is not None and parsglob is None:
-            P = init_noise(R, fft_method=fft_method, **noise_kwargs)
+            P = init_noise(precip, fft_method=fft_method, **noise_kwargs)
         else:
             P = None
         pars["P"] = P
 
         # initialize the band-pass filter
         if parsglob is None:
-            filter = filter_method(R.shape[1:], n_cascade_levels, **filter_kwargs)
+            filter = filter_method(precip.shape[1:], n_cascade_levels, **filter_kwargs)
             pars["filter"] = filter
         else:
             pars["filter"] = None
@@ -374,7 +377,7 @@ def forecast(
             R_d = []
             for i in range(ar_order + 1):
                 R_d_ = decomp_method(
-                    R[i, :, :],
+                    precip[i, :, :],
                     filter,
                     fft_method=fft_method,
                     normalize=True,
@@ -434,7 +437,7 @@ def forecast(
         pars["R_c"] = R_c
 
         if mask_method is not None and parsglob is None:
-            MASK_prec = R[-1, :, :] >= R_thr
+            MASK_prec = precip[-1, :, :] >= precip_thr
             if mask_method == "incremental":
                 # initialize precip mask for each member
                 MASK_prec = _compute_incremental_mask(MASK_prec, struct, mask_rim)
@@ -446,7 +449,7 @@ def forecast(
         return pars
 
     # prepare windows
-    M, N = R.shape[1:]
+    M, N = precip.shape[1:]
     n_windows_M = np.ceil(1.0 * M / win_size[0]).astype(int)
     n_windows_N = np.ceil(1.0 * N / win_size[1]).astype(int)
     idxm = np.zeros((2, 1), dtype=int)
@@ -456,7 +459,7 @@ def forecast(
         starttime = time.time()
 
     # compute global parameters to be used as defaults
-    parsglob = estimator(R)
+    parsglob = estimator(precip)
 
     # loop windows
     if n_windows_M > 1 or n_windows_N > 1:
@@ -488,13 +491,17 @@ def forecast(
                 mask = np.zeros((M, N), dtype=bool)
                 mask[idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)] = True
 
-                R_ = R[:, idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)]
+                precip_ = precip[
+                    :, idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
+                ]
 
-                war[m, n] = np.sum(R_[-1, :, :] >= R_thr) / R_[-1, :, :].size
+                war[m, n] = (
+                    np.sum(precip_[-1, :, :] >= precip_thr) / precip_[-1, :, :].size
+                )
                 if war[m, n] > war_thr:
 
                     # estimate local parameters
-                    pars = estimator(R, parsglob, idxm, idxn)
+                    pars = estimator(precip, parsglob, idxm, idxn)
                     ff_.append(pars["filter"])
                     pp_.append(pars["P"])
                     rc_.append(pars["R_c"])
@@ -551,7 +558,7 @@ def forecast(
                 "p_par": vp_par,
                 "p_perp": vp_perp,
             }
-            vp_ = init_vel_noise(V, 1.0 / kmperpixel, timestep, **kwargs)
+            vp_ = init_vel_noise(velocity, 1.0 / kmperpixel, timestep, **kwargs)
             vps.append(vp_)
 
     D = [None for j in range(n_ens_members)]
@@ -560,7 +567,7 @@ def forecast(
     if measure_time:
         init_time = time.time() - starttime_init
 
-    R = R[-1, :, :]
+    precip = precip[-1, :, :]
 
     print("Starting nowcast computation.")
 
@@ -576,7 +583,7 @@ def forecast(
         timestep_type = "list"
 
     extrap_kwargs["return_displacement"] = True
-    R_f_prev = [R for i in range(n_ens_members)]
+    R_f_prev = [precip for i in range(n_ens_members)]
     t_prev = [0.0 for j in range(n_ens_members)]
     t_total = [0.0 for j in range(n_ens_members)]
 
@@ -736,7 +743,7 @@ def forecast(
                         if probmatching_method == "cdf":
                             # adjust the CDF of the forecast to match the most recently
                             # observed precipitation field
-                            R_ = R[
+                            R_ = precip[
                                 idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
                             ].copy()
                             R_l_ = probmatching.nonparam_match_empirical_cdf(R_l_, R_)
@@ -749,7 +756,7 @@ def forecast(
 
                 ind = M_s > 0
                 R_l[ind] *= 1 / M_s[ind]
-                R_l[~ind] = R_min
+                R_l[~ind] = precip_min
 
                 R_f_new = R_l.copy()
                 R_l = None
@@ -757,8 +764,8 @@ def forecast(
             if probmatching_method == "cdf":
                 # adjust the CDF of the forecast to match the most recently
                 # observed precipitation field
-                R_f_new[R_f_new < R_thr] = R_min
-                R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, R)
+                R_f_new[R_f_new < precip_thr] = precip_min
+                R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, precip)
 
             if mask_method is not None:
                 # apply the precipitation mask to prevent generation of new
@@ -771,7 +778,7 @@ def forecast(
 
             if mask_method == "incremental":
                 parsglob["MASK_prec"][j] = _compute_incremental_mask(
-                    R_f_new >= R_thr, struct, mask_rim
+                    R_f_new >= precip_thr, struct, mask_rim
                 )
 
             R_f_out = []
@@ -779,7 +786,7 @@ def forecast(
             extrap_kwargs_["xy_coords"] = xy_coords
             extrap_kwargs_["return_displacement"] = True
 
-            V_pert = V
+            V_pert = velocity
 
             # advect the recomposed precipitation field to obtain the forecast for
             # the current time step (or subtimesteps if non-integer time steps are
@@ -799,7 +806,9 @@ def forecast(
 
                     # compute the perturbed motion field
                     if vel_pert_method is not None:
-                        V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
+                        V_pert = velocity + generate_vel_noise(
+                            vps[j], t_total[j] * timestep
+                        )
 
                     extrap_kwargs_["displacement_prev"] = D[j]
                     R_f_ep, D[j] = extrapolator_method(
@@ -808,7 +817,7 @@ def forecast(
                         [t_diff_prev],
                         **extrap_kwargs_,
                     )
-                    R_f_ep[0][R_f_ep[0] < R_thr] = R_min
+                    R_f_ep[0][R_f_ep[0] < precip_thr] = precip_min
                     R_f_out.append(R_f_ep[0])
                     t_prev[j] = t_sub
 
@@ -820,7 +829,9 @@ def forecast(
 
                 # compute the perturbed motion field
                 if vel_pert_method is not None:
-                    V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
+                    V_pert = velocity + generate_vel_noise(
+                        vps[j], t_total[j] * timestep
+                    )
 
                 extrap_kwargs_["displacement_prev"] = D[j]
                 _, D[j] = extrapolator_method(
@@ -878,17 +889,17 @@ def forecast(
         return None
 
 
-def _check_inputs(R, V, timesteps, ar_order):
-    if R.ndim != 3:
-        raise ValueError("R must be a three-dimensional array")
-    if R.shape[0] < ar_order + 1:
-        raise ValueError("R.shape[0] < ar_order+1")
-    if V.ndim != 3:
-        raise ValueError("V must be a three-dimensional array")
-    if R.shape[1:3] != V.shape[1:3]:
+def _check_inputs(precip, velocity, timesteps, ar_order):
+    if precip.ndim != 3:
+        raise ValueError("precip must be a three-dimensional array")
+    if precip.shape[0] < ar_order + 1:
+        raise ValueError("precip.shape[0] < ar_order+1")
+    if velocity.ndim != 3:
+        raise ValueError("velocity must be a three-dimensional array")
+    if precip.shape[1:3] != velocity.shape[1:3]:
         raise ValueError(
-            "dimension mismatch between R and V: shape(R)=%s, shape(V)=%s"
-            % (str(R.shape), str(V.shape))
+            "dimension mismatch between precip and velocity: precip.shape=%s, velocity.shape=%s"
+            % (str(precip.shape), str(precip.shape))
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
