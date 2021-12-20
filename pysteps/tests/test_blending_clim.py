@@ -141,6 +141,17 @@ def test_save_skill(startdatestr, enddatestr, n_models, expected_skill_today, tm
     assert skill_today["n"] == expected_skill_today["n"]
     assert skill_today["last_validtime"] == expected_skill_today["last_validtime"]
 
+    # Finally, check if the clim skill calculation returns an array of values
+    clim_skill = calc_clim_skill(
+        outdir_path=tmpdir,
+        n_cascade_levels=n_cascade_levels,
+        n_models=n_models,
+        window_length=2,
+    )
+
+    assert clim_skill.shape[0] == n_models
+    assert clim_skill.shape[1] == n_cascade_levels
+
 
 if __name__ == "__main__":
     save_skill(

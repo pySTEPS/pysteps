@@ -804,6 +804,13 @@ def forecast(
     ]
     rho_nwp_models = np.stack(rho_nwp_models)
 
+    # Ensure that the model skill decreases with increasing scale level.
+    for n_model in range(R_models.shape[0]):
+        for i in range(1, n_cascade_levels):
+            if rho_nwp_models[n_model, i] > rho_nwp_models[n_model, i - 1]:
+                # Set it equal to the previous scale level
+                rho_nwp_models[n_model, i] = rho_nwp_models[n_model, i - 1]
+
     # Save this in the climatological skill file
     blending.clim.save_skill(
         current_skill=rho_nwp_models,
@@ -1596,6 +1603,9 @@ def calculate_weights_spn(correlations, cov):
     ----------
     :cite:`SPN2013`
     """
+    # Check if the correlations are positive, otherwise rho = 10e-5
+    correlations = np.where(correlations < 10e-5, 10e-5, correlations)
+
     if correlations.shape[0] > 1:
         if isinstance(cov, type(None)):
             raise ValueError("cov must contain a covariance matrix")
@@ -1606,9 +1616,12 @@ def calculate_weights_spn(correlations, cov):
             # The component weights are the dot product between cov_matrix_inv
             # and cor_vec
             weights = cov_matrix_inv.dot(correlations)
-            # Calculate the noise weight
+            # If the dot product of the weights with the correlations is
+            # larger than 1.0, we assign a weight of 0.0 to the noise (to make
+            # it numerically stable)
             if weights.dot(correlations) > 1.0:
                 noise_weight = np.array([0])
+            # Calculate the noise weight
             else:
                 noise_weight = np.asarray(np.sqrt(1 - weights.dot(correlations)))[0]
             # Make sure the weights are positive, otherwise weight = 0.0
@@ -1622,8 +1635,6 @@ def calculate_weights_spn(correlations, cov):
     # NWP model or ensemble member, no blending of multiple models has to take
     # place
     else:
-        # Check if the correlations are positive, otherwise rho = 10e-5
-        correlations = np.where(correlations < 10e-5, 10e-5, correlations)
         noise_weight = 1.0 - correlations
         weights = np.concatenate((correlations, noise_weight), axis=0)
 

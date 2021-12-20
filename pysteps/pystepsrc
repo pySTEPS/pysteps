@@ -4,8 +4,7 @@
     "silent_import": false,
     "outputs": {
         // path_outputs : path where to save results (figures, forecasts, etc)
-        "path_outputs": "./",
-        "path_workdir": "./tmp/"
+        "path_outputs": "./"
     },
     "plot": {
         // "motion_plot" : "streamplot" or "quiver"
