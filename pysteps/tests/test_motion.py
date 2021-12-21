@@ -383,14 +383,16 @@ def test_vet_cost_function():
         reference_field.copy(), "linear_y", num_times=2
     )
 
-    mask_2d = np.ma.getmaskarray(precip_obs).any(axis=0).astype("int8")
+    mask_2d = np.any(~np.isfinite(precip_obs.data), axis=0).astype("int8")
+    precip_obs_data = precip_obs.data.copy()
+    precip_obs_data[~np.isfinite(precip_obs_data)] = 0.0
 
     returned_values = np.zeros(20)
 
     for i in range(20):
         returned_values[i] = vet.vet_cost_function(
-            ideal_motion.ravel(),  # sector_displacement_1d
-            precip_obs.data,  # input_images
+            ideal_motion.data.ravel(),  # sector_displacement_1d
+            precip_obs_data,  # input_images
             ideal_motion.shape[1:],  # blocks_shape (same as 2D grid)
             mask_2d,  # Mask
             1e6,  # smooth_gain
