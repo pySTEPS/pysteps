@@ -207,8 +207,8 @@ def dense_lucaskanade(
 
     sparse_vectors = []
     for n in range(nr_fields - 1):
-        prvs_img = input_images.isel(t=n)
-        next_img = input_images.isel(t=n + 1)
+        prvs_img = input_images.isel(t=[n])
+        next_img = input_images.isel(t=[n + 1])
         features = detect_features(prvs_img, **fd_kwargs)
         if features.size == 0:
             continue
