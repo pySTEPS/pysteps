@@ -324,7 +324,9 @@ def test_input_shape_checks(
 
     with not_raises(Exception):
         for frames in range(minimum_input_frames, maximum_input_frames + 1):
-            motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
+            arr = np.zeros((frames, image_size, image_size))
+            arr = xr.DataArray(arr, dims=("t", "x", "y"), coords=None)
+            motion_method(arr, verbose=False)
 
     with pytest.raises(ValueError):
         motion_method(np.zeros((2,)))
