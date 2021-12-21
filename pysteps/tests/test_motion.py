@@ -79,9 +79,7 @@ def _create_motion_field(input_precip, motion_type):
         dims=("variable", "x", "y"),
         coords=input_precip.coords,
     )
-    ideal_motion = ideal_motion.assign_coords(
-        {"variable": ("variable", ["u", "v"])}
-    )
+    ideal_motion = ideal_motion.assign_coords({"variable": ("variable", ["u", "v"])})
 
     # We need to swap the axes because the optical flow methods expect
     # (y,x) indexing convention.
@@ -151,7 +149,7 @@ def _create_observations(input_precip, motion_type, num_times=9):
         synthetic_observations,
         dims=("t", "x", "y"),
         coords={"x": input_precip.x, "y": input_precip.y},
-        attrs=input_precip.attrs
+        attrs=input_precip.attrs,
     )
 
     # Swap  back to (y, x)
@@ -235,7 +233,9 @@ def test_optflow_method_convergence(
     precip_data = precip_obs.pysteps.db_transform(precip_obs.max("t"), inverse=True)
     precip_data = precip_data.fillna(0)
 
-    precip_mask = (uniform_filter(precip_data, size=20) > 0.1) & ~precip_obs.isnull().any("t").values
+    precip_mask = (
+        uniform_filter(precip_data, size=20) > 0.1
+    ) & ~precip_obs.isnull().any("t").values
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
     # a relative RMSE measure.
@@ -285,7 +285,12 @@ def test_no_precipitation(optflow_method_name, num_times):
     """
     if optflow_method_name == "lk":
         pytest.importorskip("cv2")
-    zero_precip = np.zeros((num_times,) + reference_field.shape)
+    zero_precip = xr.DataArray(
+        np.zeros((num_times,) + reference_field.shape),
+        dims=("t", "y", "x"),
+        coords={"x": reference_field.x, "y": reference_field.y},
+        attrs=reference_field.attrs,
+    )
     motion_method = motion.get_method(optflow_method_name)
     uv_motion = motion_method(zero_precip, verbose=False)
 
