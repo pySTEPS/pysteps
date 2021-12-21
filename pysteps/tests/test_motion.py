@@ -404,28 +404,3 @@ def test_vet_cost_function():
     # errors should contain all zeros
     assert (errors < tolerance).any()
     assert (returned_values[0] - 1548250.87627097) < 0.001
-
-
-def test_lk_masked_array():
-    """
-    Passing a ndarray with NaNs or a masked array should produce the same results.
-    """
-    pytest.importorskip("cv2")
-
-    __, precip_obs = _create_observations(
-        reference_field.copy(), "linear_y", num_times=2
-    )
-    motion_method = motion.get_method("LK")
-
-    # ndarray with nans
-    np.ma.set_fill_value(precip_obs, -15)
-    ndarray = precip_obs.filled()
-    ndarray[ndarray == -15] = np.nan
-    uv_ndarray = motion_method(ndarray, fd_kwargs={"buffer_mask": 20}, verbose=False)
-
-    # masked array
-    mdarray = np.ma.masked_invalid(ndarray)
-    mdarray.data[mdarray.mask] = -15
-    uv_mdarray = motion_method(mdarray, fd_kwargs={"buffer_mask": 20}, verbose=False)
-
-    assert np.abs(uv_mdarray - uv_ndarray).max() < 0.01
