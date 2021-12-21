@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 pysteps.utils.interface
 =======================
@@ -150,7 +151,7 @@ def get_method(name, **kwargs):
 
     # cleansing methods
     methods_objects["decluster"] = cleansing.decluster
-    methods_objects["detect_outliers"] = cleansing.detect_outliers
+    methods_objects["remove_outliers"] = cleansing.remove_outliers
 
     # conversion methods
     methods_objects["mm/h"] = conversion.to_rainrate

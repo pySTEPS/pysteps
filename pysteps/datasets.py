@@ -478,11 +478,11 @@ def load_dataset(case="fmi", frames=14):
     # Read the radar composites
     importer = io.get_method(data_source["importer"], "importer")
     importer_kwargs = data_source["importer_kwargs"]
-    reflectivity, _, metadata = io.read_timeseries(
+    reflectivity = io.read_timeseries(
         file_names, importer, **importer_kwargs
     )
 
     # Convert to rain rate
     precip = reflectivity.pysteps.to_rainrate()
 
-    return precip, metadata, data_source["timestep"]
+    return precip, data_source["timestep"]

@@ -23,13 +23,13 @@ regular grid to return a motion field.
 """
 
 import numpy as np
-from numpy.ma.core import MaskedArray
+import xarray as xr
 
 from pysteps.decorators import check_input_frames
 
 from pysteps import utils, feature
 from pysteps.tracking.lucaskanade import track_features
-from pysteps.utils.cleansing import decluster, detect_outliers
+from pysteps.utils.cleansing import decluster, remove_outliers
 from pysteps.utils.images import morph_opening
 
 import time
@@ -141,7 +141,7 @@ def dense_lucaskanade(
         The scale declustering parameter in pixels used to reduce the number of
         redundant sparse vectors before the interpolation.
         Sparse vectors within this declustering scale are averaged together.
-        If set to less than 2 pixels, the declustering is not performed.
+        If set to None, the declustering is not performed.
         See the documentation of
         :py:func:`pysteps.utils.cleansing.decluster`.
 
@@ -177,18 +177,15 @@ def dense_lucaskanade(
     an application to stereo vision, in: Proceedings of the 1981 DARPA Imaging
     Understanding Workshop, pp. 121–130, 1981.
     """
-
     input_images = input_images.copy()
 
     if verbose:
         print("Computing the motion field with the Lucas-Kanade method.")
         t0 = time.time()
 
-    nr_fields = input_images.shape[0]
-    domain_size = (input_images.shape[1], input_images.shape[2])
-
-    feature_detection_method = feature.get_method(fd_method)
-    interpolation_method = utils.get_method(interp_method)
+    nr_fields = input_images.sizes["t"]
+    detect_features = feature.get_method(fd_method)
+    interpolate_vectors = utils.get_method(interp_method)
 
     if fd_kwargs is None:
         fd_kwargs = dict()
@@ -201,79 +198,63 @@ def dense_lucaskanade(
     if interp_kwargs is None:
         interp_kwargs = dict()
 
-    xy = np.empty(shape=(0, 2))
-    uv = np.empty(shape=(0, 2))
+    xgrid_res = abs(float(input_images.x.isel(x=slice(2)).diff("x")))
+    ygrid_res = abs(float(input_images.y.isel(y=slice(2)).diff("y")))
+    grid_res = np.mean((xgrid_res, ygrid_res))
+
+    # remove small-scale noise with a morphological operator (opening)
+    input_images = morph_opening(input_images, input_images.min(), size_opening)
+
+    sparse_vectors = []
     for n in range(nr_fields - 1):
-
-        # extract consecutive images
-        prvs_img = input_images[n, :, :].copy()
-        next_img = input_images[n + 1, :, :].copy()
-
-        # Check if a MaskedArray is used. If not, mask the ndarray
-        if not isinstance(prvs_img, MaskedArray):
-            prvs_img = np.ma.masked_invalid(prvs_img)
-        np.ma.set_fill_value(prvs_img, prvs_img.min())
-
-        if not isinstance(next_img, MaskedArray):
-            next_img = np.ma.masked_invalid(next_img)
-        np.ma.set_fill_value(next_img, next_img.min())
-
-        # remove small noise with a morphological operator (opening)
-        if size_opening > 0:
-            prvs_img = morph_opening(prvs_img, prvs_img.min(), size_opening)
-            next_img = morph_opening(next_img, next_img.min(), size_opening)
-
-        # features detection
-        points = feature_detection_method(prvs_img, **fd_kwargs).astype(np.float32)
-
-        # skip loop if no features to track
-        if points.shape[0] == 0:
+        prvs_img = input_images.isel(t=[n])
+        next_img = input_images.isel(t=[n + 1])
+        features = detect_features(prvs_img, **fd_kwargs)
+        if features.size == 0:
             continue
+        sparse_vectors += [track_features(prvs_img, next_img, features, **lk_kwargs)]
 
-        # get sparse u, v vectors with Lucas-Kanade tracking
-        xy_, uv_ = track_features(prvs_img, next_img, points, **lk_kwargs)
-
-        # skip loop if no vectors
-        if xy_.shape[0] == 0:
-            continue
-
-        # stack vectors
-        xy = np.append(xy, xy_, axis=0)
-        uv = np.append(uv, uv_, axis=0)
-
-    # return zero motion field is no sparse vectors are found
-    if xy.shape[0] == 0:
+    if len(sparse_vectors) > 0:
+        sparse_vectors = xr.concat((sparse_vectors), "sample")
+    else:
         if dense:
-            return np.zeros((2, domain_size[0], domain_size[1]))
+            return _make_zero_velocity(input_images.x, input_images.y)
         else:
-            return xy, uv
-
-    # detect and remove outliers
-    outliers = detect_outliers(uv, nr_std_outlier, xy, k_outlier, verbose)
-    xy = xy[~outliers, :]
-    uv = uv[~outliers, :]
+            return sparse_vectors
 
     if verbose:
-        print("--- LK found %i sparse vectors ---" % xy.shape[0])
+        print(f"... found {sparse_vectors.sizes['sample']} sparse vectors")
 
-    # return sparse vectors if required
+    sparse_vectors = remove_outliers(sparse_vectors, nr_std_outlier, k_outlier, verbose)
     if not dense:
-        return xy, uv
+        return sparse_vectors
 
-    # decluster sparse motion vectors
-    if decl_scale > 1:
-        xy, uv = decluster(xy, uv, decl_scale, 1, verbose)
+    if not sparse_vectors.sizes["sample"]:
+        return _make_zero_velocity(input_images.x, input_images.y)
 
-    # return zero motion field if no sparse vectors are left for interpolation
-    if xy.shape[0] == 0:
-        return np.zeros((2, domain_size[0], domain_size[1]))
+    if decl_scale is not None:
+        decl_scale = decl_scale * grid_res
+    sparse_vectors = decluster(sparse_vectors, decl_scale, verbose)
 
-    # interpolation
-    xgrid = np.arange(domain_size[1])
-    ygrid = np.arange(domain_size[0])
-    uvgrid = interpolation_method(xy, uv, xgrid, ygrid, **interp_kwargs)
+    dense_vectors = interpolate_vectors(
+        sparse_vectors, input_images.x, input_images.y, **interp_kwargs
+    )
 
     if verbose:
-        print("--- total time: %.2f seconds ---" % (time.time() - t0))
+        print("... total time: %.2f seconds" % (time.time() - t0))
 
-    return uvgrid
+    return dense_vectors
+
+
+def _make_zero_velocity(xcoord, ycoord):
+    """Return a zero motion field"""
+    return xr.DataArray(
+        np.zeros((2, len(ycoord), len(xcoord))),
+        dims=("variable", "y", "x"),
+        coords={
+            "variable": ("variable", ["u", "v"]),
+            "y": ycoord,
+            "x": xcoord,
+        },
+        attrs={"units": "pixels / timestep"},
+    )

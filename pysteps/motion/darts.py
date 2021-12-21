@@ -27,8 +27,8 @@ def DARTS(input_images, **kwargs):
     Parameters
     ----------
     input_images: array-like
-      Array of shape (T,m,n) containing a sequence of T two-dimensional input
-      images of shape (m,n).
+        Array of shape (T,m,n) containing a sequence of T two-dimensional input
+        images of shape (m,n).
 
     Other Parameters
     ----------------
@@ -98,7 +98,7 @@ def DARTS(input_images, **kwargs):
         print("Computing the motion field with the DARTS method.")
         t0 = time.time()
 
-    input_images = np.moveaxis(input_images, (0, 1, 2), (2, 0, 1))
+    input_images = input_images.transpose("y", "x", "t")
 
     fft = utils.get_method(
         fft_method,

@@ -21,10 +21,10 @@ from contextlib import contextmanager
 
 import numpy as np
 import pytest
+import xarray as xr
 from functools import partial
 from scipy.ndimage import uniform_filter
 
-import pysteps as stp
 from pysteps import motion
 from pysteps.motion.vet import morph
 from pysteps.tests.helpers import get_precipitation_fields
@@ -38,7 +38,7 @@ def not_raises(_exception):
         raise pytest.fail("DID RAISE {0}".format(_exception))
 
 
-reference_field = get_precipitation_fields(num_prev_files=0)
+reference_field = get_precipitation_fields(num_prev_files=0, transform_to="db")
 
 
 def _create_motion_field(input_precip, motion_type):
@@ -48,7 +48,7 @@ def _create_motion_field(input_precip, motion_type):
     Parameters
     ----------
 
-    input_precip: numpy array (lat, lon)
+    input_precip: xr.DataArray (y, x)
 
     motion_type : str
         The supported motion fields are:
@@ -74,9 +74,17 @@ def _create_motion_field(input_precip, motion_type):
     else:
         raise ValueError("motion_type not supported.")
 
+    ideal_motion = xr.DataArray(
+        ideal_motion,
+        dims=("variable", "x", "y"),
+        coords=input_precip.coords,
+    )
+    ideal_motion = ideal_motion.assign_coords({"variable": ("variable", ["u", "v"])})
+
     # We need to swap the axes because the optical flow methods expect
-    # (lat, lon) or (y,x) indexing convention.
-    ideal_motion = ideal_motion.swapaxes(1, 2)
+    # (y,x) indexing convention.
+    ideal_motion = ideal_motion.transpose("variable", "y", "x")
+
     return ideal_motion
 
 
@@ -88,7 +96,7 @@ def _create_observations(input_precip, motion_type, num_times=9):
     Parameters
     ----------
 
-    input_precip: numpy array (lat, lon)
+    input_precip: xr.DataArray (y, x)
         Input precipitation field.
 
     motion_type : str
@@ -109,13 +117,13 @@ def _create_observations(input_precip, motion_type, num_times=9):
 
     ideal_motion = _create_motion_field(input_precip, motion_type)
 
-    # The morph function expects (lon, lat) or (x, y) dimensions.
-    # Hence, we need to swap the lat,lon axes.
+    # The morph function expects (x, y) dimensions.
+    # Hence, we need to swap the y, x axes.
 
     # NOTE: The motion field passed to the morph function can't have any NaNs.
     # Otherwise, it can produce a segmentation fault.
     morphed_field, mask = morph(
-        input_precip.swapaxes(0, 1), ideal_motion.swapaxes(1, 2)
+        input_precip.transpose("x", "y"), ideal_motion.transpose("variable", "x", "y")
     )
 
     mask = np.array(mask, dtype=bool)
@@ -125,7 +133,7 @@ def _create_observations(input_precip, motion_type, num_times=9):
 
     for t in range(1, num_times):
         morphed_field, mask = morph(
-            synthetic_observations[t - 1], ideal_motion.swapaxes(1, 2)
+            synthetic_observations[t - 1], ideal_motion.transpose("variable", "x", "y")
         )
         mask = np.array(mask, dtype=bool)
 
@@ -137,12 +145,15 @@ def _create_observations(input_precip, motion_type, num_times=9):
             [synthetic_observations, morphed_field], axis=0
         )
 
-    # Swap  back to (lat, lon)
-    synthetic_observations = synthetic_observations.swapaxes(1, 2)
+    synthetic_observations = xr.DataArray(
+        synthetic_observations,
+        dims=("t", "x", "y"),
+        coords={"x": input_precip.x, "y": input_precip.y},
+        attrs=input_precip.attrs,
+    )
 
-    synthetic_observations = np.ma.masked_invalid(synthetic_observations)
-
-    synthetic_observations.data[np.ma.getmaskarray(synthetic_observations)] = 0
+    # Swap  back to (y, x)
+    synthetic_observations = synthetic_observations.transpose("t", "y", "x")
 
     return ideal_motion, synthetic_observations
 
@@ -186,19 +197,14 @@ def test_optflow_method_convergence(
     The precipitation region includes the precipitation pattern plus a margin
     of approximately 20 grid points.
 
-
     Parameters
     ----------
-
-    input_precip: numpy array (lat, lon)
+    input_precip: xr.DataArray (y, x)
         Input precipitation field.
-
     optflow_method_name: str
         Optical flow method name
-
     motion_type : str
         The supported motion fields are:
-
             - linear_x: (u=2, v=0)
             - linear_y: (u=0, v=2)
     """
@@ -222,15 +228,14 @@ def test_optflow_method_convergence(
     elif optflow_method_name == "proesmans":
         retrieved_motion = oflow_method(precip_obs)
     else:
-
         retrieved_motion = oflow_method(precip_obs, verbose=False)
 
     precip_data = precip_obs.pysteps.db_transform(precip_obs.max("t"), inverse=True)
     precip_data = precip_data.fillna(0)
 
-    precip_mask = (uniform_filter(precip_data, size=20) > 0.1) & ~precip_obs.mask.any(
-        axis=0
-    )
+    precip_mask = (
+        uniform_filter(precip_data, size=20) > 0.1
+    ) & ~precip_obs.isnull().any("t").values
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
     # a relative RMSE measure.
@@ -280,7 +285,12 @@ def test_no_precipitation(optflow_method_name, num_times):
     """
     if optflow_method_name == "lk":
         pytest.importorskip("cv2")
-    zero_precip = np.zeros((num_times,) + reference_field.shape)
+    zero_precip = xr.DataArray(
+        np.zeros((num_times,) + reference_field.shape),
+        dims=("t", "y", "x"),
+        coords={"x": reference_field.x, "y": reference_field.y},
+        attrs=reference_field.attrs,
+    )
     motion_method = motion.get_method(optflow_method_name)
     uv_motion = motion_method(zero_precip, verbose=False)
 
@@ -314,7 +324,9 @@ def test_input_shape_checks(
 
     with not_raises(Exception):
         for frames in range(minimum_input_frames, maximum_input_frames + 1):
-            motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
+            arr = np.zeros((frames, image_size, image_size))
+            arr = xr.DataArray(arr, dims=("t", "x", "y"), coords=None)
+            motion_method(arr, verbose=False)
 
     with pytest.raises(ValueError):
         motion_method(np.zeros((2,)))
@@ -373,14 +385,16 @@ def test_vet_cost_function():
         reference_field.copy(), "linear_y", num_times=2
     )
 
-    mask_2d = np.ma.getmaskarray(precip_obs).any(axis=0).astype("int8")
+    mask_2d = np.any(~np.isfinite(precip_obs.data), axis=0).astype("int8")
+    precip_obs_data = precip_obs.data.copy()
+    precip_obs_data[~np.isfinite(precip_obs_data)] = 0.0
 
     returned_values = np.zeros(20)
 
     for i in range(20):
         returned_values[i] = vet.vet_cost_function(
-            ideal_motion.ravel(),  # sector_displacement_1d
-            precip_obs.data,  # input_images
+            ideal_motion.data.ravel(),  # sector_displacement_1d
+            precip_obs_data,  # input_images
             ideal_motion.shape[1:],  # blocks_shape (same as 2D grid)
             mask_2d,  # Mask
             1e6,  # smooth_gain
@@ -392,28 +406,3 @@ def test_vet_cost_function():
     # errors should contain all zeros
     assert (errors < tolerance).any()
     assert (returned_values[0] - 1548250.87627097) < 0.001
-
-
-def test_lk_masked_array():
-    """
-    Passing a ndarray with NaNs or a masked array should produce the same results.
-    """
-    pytest.importorskip("cv2")
-
-    __, precip_obs = _create_observations(
-        reference_field.copy(), "linear_y", num_times=2
-    )
-    motion_method = motion.get_method("LK")
-
-    # ndarray with nans
-    np.ma.set_fill_value(precip_obs, -15)
-    ndarray = precip_obs.filled()
-    ndarray[ndarray == -15] = np.nan
-    uv_ndarray = motion_method(ndarray, fd_kwargs={"buffer_mask": 20}, verbose=False)
-
-    # masked array
-    mdarray = np.ma.masked_invalid(ndarray)
-    mdarray.data[mdarray.mask] = -15
-    uv_mdarray = motion_method(mdarray, fd_kwargs={"buffer_mask": 20}, verbose=False)
-
-    assert np.abs(uv_mdarray - uv_ndarray).max() < 0.01

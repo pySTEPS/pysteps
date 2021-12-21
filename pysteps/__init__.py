@@ -2,6 +2,7 @@ import json
 import os
 import stat
 import sys
+import xarray
 import warnings
 
 from jsmin import jsmin
@@ -24,6 +25,7 @@ from . import utils
 from . import verification as vf
 from . import visualization as plt
 
+xarray.set_options(keep_attrs=True)  # TODO: not necessarily a good idea ...
 
 def _get_config_file_schema():
     """
