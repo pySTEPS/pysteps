@@ -218,7 +218,7 @@ def dense_lucaskanade(
         sparse_vectors = xr.concat((sparse_vectors), "sample")
     else:
         if dense:
-            return _make_zero_velocity(input_images.y, input_images.x)
+            return _make_zero_velocity(input_images.x, input_images.y)
         else:
             return sparse_vectors
 
@@ -230,7 +230,7 @@ def dense_lucaskanade(
         return sparse_vectors
 
     if not sparse_vectors.sizes["sample"]:
-        return _make_zero_velocity(input_images.y, input_images.x)
+        return _make_zero_velocity(input_images.x, input_images.y)
 
     if decl_scale is not None:
         decl_scale = decl_scale * grid_res
