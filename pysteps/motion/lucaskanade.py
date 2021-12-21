@@ -213,9 +213,10 @@ def dense_lucaskanade(
         if features.size == 0:
             continue
         sparse_vectors += [track_features(prvs_img, next_img, features, **lk_kwargs)]
-    sparse_vectors = xr.concat((sparse_vectors), "sample")
 
-    if not sparse_vectors.sizes["sample"]:
+    if len(sparse_vectors) > 0:
+        sparse_vectors = xr.concat((sparse_vectors), "sample")
+    else:
         if dense:
             return _make_zero_velocity(input_images.y, input_images.x)
         else:
