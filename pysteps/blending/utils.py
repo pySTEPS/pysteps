@@ -17,7 +17,7 @@ Module with common utilities used by the blending methods.
     load_NWP
 """
 
-import os
+from pathlib import Path
 
 import numpy as np
 import netCDF4
@@ -302,20 +302,7 @@ def decompose_NWP(
     """
 
     # Make a NetCDF file
-    date_string = np.datetime_as_string(analysis_time, "s")
-    outfn = os.path.join(
-        output_path,
-        "cascade_"
-        + NWP_model
-        + "_"
-        + date_string[:4]
-        + date_string[5:7]
-        + date_string[8:10]
-        + date_string[11:13]
-        + date_string[14:16]
-        + date_string[17:19]
-        + ".nc",
-    )
+    outfn = Path(output_path) / f"cascade_{NWP_model}_{analysis_time.item():%Y%m%d%H%M%S}.nc"
     ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
 
     # Express times relative to the zero time
@@ -410,19 +397,7 @@ def compute_store_nwp_motion(
     """
 
     # Set the output file
-    date_string = np.datetime_as_string(analysis_time, "s")
-    outfn = os.path.join(
-        output_path,
-        nwp_model
-        + "_"
-        + date_string[:4]
-        + date_string[5:7]
-        + date_string[8:10]
-        + date_string[11:13]
-        + date_string[14:16]
-        + date_string[17:19]
-        + ".npy",
-    )
+    outfn = Path(output_path) / f"cascade_{nwp_model}_{analysis_time.item():%Y%m%d%H%M%S}.npy"
 
     # Get the velocity field per time step
     v_nwp = np.zeros((precip_nwp.shape[0], 2, precip_nwp.shape[1], precip_nwp.shape[2]))

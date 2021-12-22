@@ -17,8 +17,7 @@ climatological values are present, the default skill from :cite:`BPS2006` is use
 """
 
 import pickle
-import os
-from os.path import exists, join
+from pathlib import Path
 
 import numpy as np
 
@@ -97,8 +96,8 @@ def save_skill(
     # Load skill_today, a dictionary containing {mean_skill, n, last_validtime}
     new_skill_today_file = False
 
-    skill_today_file = join(outdir_path, "NWP_skill_today.pkl")
-    if exists(skill_today_file):
+    skill_today_file = Path(outdir_path) / "NWP_skill_today.pkl"
+    if skill_today_file.is_file():
         with open(skill_today_file, "rb") as f:
             skill_today = pickle.load(f)
         if skill_today["mean_skill"].shape != current_skill.shape:
@@ -114,9 +113,9 @@ def save_skill(
         }
 
     # Load the past skill which is an array with dimensions day x model x scale_level
-    past_skill_file = join(outdir_path, "NWP_skill_window.npy")
+    past_skill_file = Path(outdir_path) / "NWP_skill_window.npy"
     past_skill = None
-    if exists(past_skill_file):
+    if past_skill_file.is_file():
         past_skill = np.load(past_skill_file)
     # First check if we have started a new day wrt the last written skill, in which
     # case we should update the daily skill file and reset daily statistics.
@@ -150,7 +149,7 @@ def save_skill(
     ) / skill_today["n"]
     skill_today["last_validtime"] = validtime
     # Make path if path does not exist
-    os.makedirs(os.path.dirname(skill_today_file), exist_ok=True)
+    skill_today_file.parent.mkdir(exist_ok=True, parents=True)
     # Open and write to skill file
     with open(skill_today_file, "wb") as f:
         pickle.dump(skill_today, f)
@@ -188,9 +187,9 @@ def calc_clim_skill(
       (geometric) mean skill.
 
     """
-    past_skill_file = join(outdir_path, "NWP_skill_window.npy")
+    past_skill_file = Path(outdir_path) / "NWP_skill_window.npy"
     # past_skill has dimensions date x model x scale_level  x ....
-    if exists(past_skill_file):
+    if past_skill_file.is_file():
         past_skill = np.load(past_skill_file)
     else:
         past_skill = np.array(None)
