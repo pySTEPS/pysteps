@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
 
@@ -59,3 +60,14 @@ def test_intensity_scale_methods(R1, R2, name, thrs, scales, wavelet):
     score = spatialscores.intensity_scale_compute(int)[0][0]
 
     assert_array_almost_equal(score, expected)
+
+
+def test_sal():
+    """Test the SAL verification method."""
+    pytest.importorskip("pandas")
+    pytest.importorskip("skimage")
+    precip = get_precipitation_fields(num_prev_files=0, return_raw=False)
+    result = spatialscores.sal(precip, precip)
+    assert result.size == 3
+    assert all(result.columns == ["S", "A", "L"])
+    assert np.allclose(result, [0, 0, 0])
