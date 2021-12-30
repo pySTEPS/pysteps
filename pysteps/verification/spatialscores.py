@@ -24,12 +24,12 @@ Skill scores for spatial forecasts.
     fss_merge
     fss_compute
 """
+
 import collections
 import numpy as np
 from scipy.ndimage.filters import uniform_filter
 
 from pysteps.exceptions import MissingOptionalDependency
-
 
 try:
     import pywt
@@ -37,7 +37,6 @@ try:
     pywt_imported = True
 except ImportError:
     pywt_imported = False
-
 
 
 def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):

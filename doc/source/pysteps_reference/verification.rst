@@ -11,4 +11,5 @@ Methods for verification of deterministic, probabilistic and ensemble forecasts.
 .. automodule:: pysteps.verification.lifetime
 .. automodule:: pysteps.verification.plots
 .. automodule:: pysteps.verification.probscores
+.. automodule:: pysteps.verification.sal
 .. automodule:: pysteps.verification.spatialscores

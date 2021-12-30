@@ -49,7 +49,7 @@ def sal(
     prediction: array-like
         Array of shape (m,n) with prediction data.
     observation: array-like
-        Array of shape (m,n)  with bservation data.
+        Array of shape (m,n)  with observation data.
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
@@ -98,7 +98,7 @@ def sal_structure(prediction, observation, tstorm_kwargs=None):
     prediction: array-like
         Array of shape (m,n) with prediction data.
     observation: array-like
-        Array of shape (m,n)  with bservation data.
+        Array of shape (m,n)  with observation data.
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
@@ -127,7 +127,7 @@ def sal_amplitude(prediction, observation):
     prediction: array-like
         Array of shape (m,n) with prediction data.
     observation: array-like
-        Array of shape (m,n)  with bservation data.
+        Array of shape (m,n)  with observation data.
 
     Returns
     -------
@@ -152,7 +152,7 @@ def sal_location(prediction, observation, tstorm_kwargs=None):
     prediction: array-like
         Array of shape (m,n) with prediction data.
     observation: array-like
-        Array of shape (m,n)  with bservation data.
+        Array of shape (m,n)  with observation data.
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
@@ -161,15 +161,15 @@ def sal_location(prediction, observation, tstorm_kwargs=None):
     Returns
     -------
     location: float
-        The location component with value between 0 to 1  and 0
+        The location component with value between 0 to 2 and 0
         denotes perfect forecast in terms of location.
     """
-    return sal_l1_param(prediction, observation) + sal_l2_param(
+    return _sal_l1_param(prediction, observation) + _sal_l2_param(
         prediction, observation, tstorm_kwargs
     )
 
 
-def sal_l1_param(prediction, observation):
+def _sal_l1_param(prediction, observation):
     """Calculate the first parameter of location component for SAL based on
     Wernli et al (2008).
 
@@ -181,7 +181,7 @@ def sal_l1_param(prediction, observation):
     prediction: array-like
         Array of shape (m,n) with prediction data.
     observation: array-like
-        Array of shape (m,n)  with bservation data.
+        Array of shape (m,n)  with observation data.
 
     Returns
     -------
@@ -197,7 +197,7 @@ def sal_l1_param(prediction, observation):
     return dist / maximum_distance
 
 
-def sal_l2_param(prediction, observation, tstorm_kwargs=None):
+def _sal_l2_param(prediction, observation, tstorm_kwargs=None):
     """Calculate the second parameter of location component for SAL based on Wernli et al (2008).
 
     Parameters
@@ -205,7 +205,7 @@ def sal_l2_param(prediction, observation, tstorm_kwargs=None):
     prediction: array-like
         Array of shape (m,n) with prediction data.
     observation: array-like
-        Array of shape (m,n)  with bservation data.
+        Array of shape (m,n)  with observation data.
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
