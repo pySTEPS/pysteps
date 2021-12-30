@@ -694,16 +694,10 @@ def fss_compute(fss):
 def sal(
     X_f,
     X_o,
-    minref=0.1,
-    maxref=150,
-    mindiff=10,
-    minsize=10,
-    minmax=0.1,
-    mindis=10,
+    tstorm_kwargs=None,
 ):
-    """This function calculates the components of Structure Amplitude Location (SAL) approach based on Wernli et al
-    (2008). Note that we used the thunderstorm detection algorithm developed by Feldmann et al (2021) to detect precipitation objects.
-    This approach uses multi-threshold algorithm to detect objects, instead of having a single threshold (f).
+    """
+    Compute the Structure Amplitude Location (SAL) spatial verification metric.
 
     Parameters
     ----------
@@ -711,13 +705,10 @@ def sal(
         Observation data.
     df_forc: 2-d ndarray
         Prediction data.
-    maximum_distance: float
-        Maximum distance of the study area in XXX units.
-        If the projection is rectangular (e.g., UTM), this value is the diagonal of the study area.
-        If the projection is not rectangular (e.g., lon/lat), 'max_dist' function calculates this value.
-    minref: float
-        Minimum precipitation value for detecting object(s), If r star is lower than this threshold.
-        The default is 0.1 mm.
+    tstorm_kwargs: dict, optional
+        Optional dictionary containing keyword arguments for the tstorm feature
+        detection algorithm.
+        See the documentation of :py:mod:`pysteps.feature.tstorm`.
 
     Returns
     -------
@@ -729,19 +720,28 @@ def sal(
     :cite: Wernli, H., Hofmann, C., & Zimmer, M. (2009).
     :cite: Feldmann, M., Germann, U., Gabella, M., & Berne, A. (2021).
 
+    Notes
+    -----
+    This implementation uses the thunderstorm detection algorithm by Feldmann et al (2021)
+    for the identification of precipitation objects within the considered domain.
+
+    This approach uses multi-threshold algorithm to detect objects, instead of having a
+    single threshold (f).
+
     See also
     --------
     pysteps.feature.tstorm
     """
 
+    if tstorm_kwargs is None:
+        tstorm_kwargs = dict()
+
     if np.nanmax(X_o >= 0.1) & np.nanmax(
         X_f >= 0.1
     ):  # to avoid errors of nan values or very low precipitation
-        structure = sal_structure(X_o, X_f, minref, maxref, mindiff, minsize, minmax, mindis)
+        structure = sal_structure(X_o, X_f, tstorm_kwargs)
         amplitude = sal_amplitude(X_o, X_f)
-        location = sal_l1_param(X_o, X_f) + sal_l2_param(
-            X_o, X_f, minref, maxref, mindiff, minsize, minmax, mindis
-        )
+        location = sal_l1_param(X_o, X_f) + sal_l2_param(X_o, X_f, tstorm_kwargs)
     else:
         structure = np.nan
         amplitude = np.nan
@@ -749,30 +749,17 @@ def sal(
     return structure, amplitude, location
 
 
-def sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_detect_objects(df, tstorm_kwargs=None):
     """This function detects thunderstorms using a multi-threshold approach (Feldmann et al., 2021).
+
     Parameters
     ----------
     df: array-like
         Array of shape (m,n) containing input data. Nan values are ignored.
-    minref: float, optional
-        Lower threshold for object detection. Lower values will be set to NaN. The default is 0.1.
-
-    maxref: float, optional
-    Upper threshold for object detection. Higher values will be set to this value. The default is 150.
-
-    mindiff: float, optional
-    Minimal difference between two identified maxima within same area to split area into two objects. The default is 3.
-
-    minsize: float, optional
-    Minimal area for possible detected object. The default is 4 pixels.
-
-    minmax: float, optional
-    Minimum value of maximum in identified objects. Objects with a maximum lower than this will be discarded. The default is 0.1.
-
-    mindis: float, optional
-    Minimum distance between two maxima of identified objects. Objects with a smaller distance will be merged. The default is 5 km.
-
+    tstorm_kwargs: dict, optional
+        Optional dictionary containing keyword arguments for the tstorm feature
+        detection algorithm.
+        See the documentation of :py:mod:`pysteps.feature.tstorm`.
 
     Returns
     -------
@@ -790,15 +777,9 @@ def sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis):
             "The scikit-image package is required for the SAL "
             "verification method but it is not installed"
         )
-    _, labels = tstorm_detect.detection(
-        df,
-        minref=minref,
-        maxref=maxref,
-        mindiff=mindiff,
-        minsize=minsize,
-        minmax=minmax,
-        mindis=mindis,
-    )
+    if tstorm_kwargs is None:
+        tstorm_kwargs = dict()
+    _, labels = tstorm_detect.detection(df, **tstorm_kwargs)
     labels = labels.astype(int)
     properties = [
         "label",
@@ -815,36 +796,22 @@ def sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis):
     return table
 
 
-def sal_scaled_volume(ds, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_scaled_volume(precip, tstorm_kwargs=None):
     """Calculate the scaled volume parameter based on Wernli et al (2008).
 
     Parameters
     ----------
-    ds: 2-d ndarray data.
-
-    minref: float, optional
-    Lower threshold for object detection. Lower values will be set to NaN. The default is 0.1.
-
-    maxref: float, optional
-    Upper threshold for object detection. Higher values will be set to this value. The default is 150.
-
-    mindiff: float, optional
-    Minimal difference between two identified maxima within same area to split area into two objects. The default is 3.
-
-    minsize: float, optional
-    Minimal area for possible detected object. The default is 4 pixels.
-
-    minmax: float, optional
-    Minimum value of maximum in identified objects. Objects with a maximum lower than this will be discarded. The default is 0.1.
-
-    mindis: float, optional
-    Minimum distance between two maxima of identified objects. Objects with a smaller distance will be merged. The default is 5 km.
-
+    precip: 2-d ndarray
+        The precipitation field.
+    tstorm_kwargs: dict, optional
+        Optional dictionary containing keyword arguments for the tstorm feature
+        detection algorithm.
+        See the documentation of :py:mod:`pysteps.feature.tstorm`.
     Returns
     -------
-    vol_value:
-    A dataframe that includes precipitation characteristics (sum, max, number of wet cells, and scaled volume)
-    of the input data.
+    vol_value: pd.DataFrame
+        A dataframe that includes precipitation characteristics (sum, max, number
+        of wet cells, and scaled volume) of the input data.
     """
     if not pandas_imported:
         raise MissingOptionalDependency(
@@ -852,9 +819,7 @@ def sal_scaled_volume(ds, minref, maxref, mindiff, minsize, minmax, mindis):
             "verification method but it is not installed"
         )
     ch = []
-    ds_with_ob = sal_detect_objects(
-        ds, minref, maxref, mindiff, minsize, minmax, mindis
-    )
+    ds_with_ob = sal_detect_objects(precip, tstorm_kwargs)
 
     for o in ds_with_ob.label - 1:
         tot = ds_with_ob.image_intensity[o].sum()
@@ -872,203 +837,170 @@ def sal_scaled_volume(ds, minref, maxref, mindiff, minsize, minmax, mindis):
                 "scaled_v": v_ob,
             }
         )
-    vol_value = pd.DataFrame(ch)
-    return vol_value
+    return pd.DataFrame(ch)
 
 
-def sal_center_of_mass(df):
-    """Calculate the center of total (precipitation) mass in one timestep.
-    All nan values are replaced with 0 to calculate centroid.
-
-    Parameters
-    ----------
-    ds: 2-d xarray for a time step containing input precipitation data.
-
-    Returns
-    -------
-    cent:
-    The coordinates of center of mass.
-    """
-    return center_of_mass(np.nan_to_num(df))
-
-
-def sal_amplitude(ob, pre):
+def sal_amplitude(observation, prediction):
     """Calculate the amplitude component for SAL based on Wernli et al (2008).
-    This component is the normalized difference of the domain-averaged precipitation in observation and forecast.
-    Parameters
-    ----------
-    ob: 2-d ndarray for the observation data.
-    pre: 2-d ndarray for the prediction data.
-    max_distance: Maximum distance of the study domain in kilometers
 
-    Returns
-    -------
-    a:
-    Amplitude parameter which has a value between -2 to 2.
-    """
-    R_obs = np.nanmean(ob)
-    R_model = np.nanmean(pre)
-    a = (R_model - R_obs) / (0.5 * (R_model + R_obs))
-    return a
-
-
-def sal_l1_param(ob, pre):
-    """Calculate the first parameter of location component for SAL based on Wernli et al (2008).
-    This parameter indicates the normalized distance between the center of mass in observation and forecast.
+    This component is the normalized difference of the domain-averaged precipitation
+    in observation and forecast.
 
     Parameters
     ----------
-    ob: 2-d ndarray for the observation data.
-    pre: 2-d ndarray for the prediction data.
-    max_distance: Maximum distance of the study domain in kilometers.
+    observation: 2-d ndarray
+        The observation data.
+    prediction: 2-d ndarray
+        The prediction data.
 
     Returns
     -------
-    l1:
-    The first parameter of location component which has a value between 0 to 1.
+    amplitude: float
+        Amplitude parameter which has a value between -2 to 2 and 0
+        denotes perfect forecast in terms of amplitude.
     """
-    maximum_distance = sqrt(((ob.shape[0]) ** 2) + ((ob.shape[1]) ** 2))
-    obi = sal_center_of_mass(ob)
-    fori = sal_center_of_mass(pre)
+    mean_obs = np.nanmean(observation)
+    mean_pred = np.nanmean(prediction)
+    return (mean_pred - mean_obs) / (0.5 * (mean_pred + mean_obs))
+
+
+def sal_l1_param(observation, prediction):
+    """Calculate the first parameter of location component for SAL based on
+    Wernli et al (2008).
+
+    This parameter indicates the normalized distance between the center of mass in
+    observation and forecast.
+
+    Parameters
+    ----------
+    observation: 2-d ndarray
+        The observation data.
+    prediction: 2-d ndarray
+        The prediction data.
+
+    Returns
+    -------
+    location_1: float
+        The first parameter of location component which has a value between 0 to 1.
+    """
+    maximum_distance = sqrt(
+        ((observation.shape[0]) ** 2) + ((observation.shape[1]) ** 2)
+    )
+    obi = center_of_mass(np.nan_to_num(observation))
+    fori = center_of_mass(np.nan_to_num(prediction))
     dist = hypot(fori[1] - obi[1], fori[0] - obi[0])
-
-    l1 = dist / maximum_distance
-    return l1
+    return dist / maximum_distance
 
 
-def sal_weighted_distance(df, minref, maxref, mindiff, minsize, minmax, mindis):
-    """This function is to calculated The weighted averaged distance between the centers of mass of the
-    individual objects and the center of mass of the total precipitation field (Wernli et al, 2008).
+def sal_weighted_distance(precip, tstorm_kwargs=None):
+    """Compute the weighted averaged distance between the centers of mass of the
+    individual objects and the center of mass of the total precipitation field.
 
     Parameters
     ----------
-    df: 2-d xarray for a time step containing input precipitation data.
-
+    precip: 2-d ndarray
+        The input precipitation field.
+    tstorm_kwargs: dict, optional
+        Optional dictionary containing keyword arguments for the tstorm feature
+        detection algorithm.
+        See the documentation of :py:mod:`pysteps.feature.tstorm`.
 
     Returns
     -------
-    w_r:
-    weighted averaged distance between the centers of mass of the
-    individual objects and the center of mass of the total precipitation field.
+    weighted_distance: float
+        The weighted averaged distance between the centers of mass of the
+        individual objects and the center of mass of the total precipitation field.
     """
     if not pandas_imported:
         raise MissingOptionalDependency(
             "The pandas package is required for the SAL "
             "verification method but it is not installed"
         )
-    df_obj = sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis)
-    centroid_total = sal_center_of_mass(df)
+    precip_objects = sal_detect_objects(
+        precip, tstorm_kwargs
+    )
+    centroid_total = center_of_mass(np.nan_to_num(precip))
     r = []
-    for i in df_obj.label - 1:
-        xd = (df_obj["weighted_centroid-1"][i] - centroid_total[1]) ** 2
-        yd = (df_obj["weighted_centroid-0"][i] - centroid_total[0]) ** 2
+    for i in precip_objects.label - 1:
+        xd = (precip_objects["weighted_centroid-1"][i] - centroid_total[1]) ** 2
+        yd = (precip_objects["weighted_centroid-0"][i] - centroid_total[0]) ** 2
 
         dst = sqrt(xd + yd)
-        sumr = (df_obj.image_intensity[i].sum()) * dst
+        sumr = (precip_objects.image_intensity[i].sum()) * dst
 
-        sump = df_obj.image_intensity[i].sum()
+        sump = precip_objects.image_intensity[i].sum()
 
         r.append({"sum_dist": sumr, "sum_p": sump})
     rr = pd.DataFrame(r)
-    w_r = rr.sum_dist.sum() / (rr.sum_p.sum())
-    return w_r
+    return rr.sum_dist.sum() / (rr.sum_p.sum())
 
 
-def sal_l2_param(df_obs, df_forc, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_l2_param(
+    observation, prediction, tstorm_kwargs=None
+):
     """Calculate the second parameter of location component for SAL based on Wernli et al (2008).
 
     Parameters
     ----------
-    df_obs: 2-d ndarray for the observation data.
-
-    df_pre: 2-d ndarray for the prediction data.
-
-    minref: minimum precipitation value for detecting object(s), If r star is lower than this threshold.
-    The default is 0.1 mm.
+    observation: 2-d ndarray
+        The observation data.
+    prediction: 2-d ndarray
+        The prediction data.
+    tstorm_kwargs: dict, optional
+        Optional dictionary containing keyword arguments for the tstorm feature
+        detection algorithm.
+        See the documentation of :py:mod:`pysteps.feature.tstorm`.
 
     Returns
     -------
-    l2:
-    The first parameter of location component which has a value between 0 to 1.
+    location_2: float
+        The secibd parameter of location component with value between 0 to 1.
     """
-    maximum_distance = sqrt(((df_obs.shape[0]) ** 2) + ((df_obs.shape[1]) ** 2))
+    maximum_distance = sqrt(
+        ((observation.shape[0]) ** 2) + ((observation.shape[1]) ** 2)
+    )
     obs_r = (
-        sal_weighted_distance(df_obs, minref, maxref, mindiff, minsize, minmax, mindis)
-    ) * (df_obs.mean())
+        sal_weighted_distance(
+            observation, tstorm_kwargs
+        )
+    ) * (observation.mean())
     forc_r = (
-        sal_weighted_distance(df_forc, minref, maxref, mindiff, minsize, minmax, mindis)
-    ) * (df_forc.mean())
-    l2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
-    return float(l2)
+        sal_weighted_distance(
+            prediction, tstorm_kwargs
+        )
+    ) * (prediction.mean())
+    location_2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
+    return float(location_2)
 
 
-def sal_structure(df_obs, df_pre, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_structure(observation, prediction, tstorm_kwargs=None):
     """This function calculates the structure component for SAL based on Wernli et al (2008).
 
     Parameters
     ----------
-    df_obs: 2-d ndarray for the observation data.
-
-    df_pre: 2-d ndarray for the prediction data.
-
-    minref: minimum precipitation value for detecting object(s), If r star is lower than this threshold.
-    The default is 0.1 mm.
+    observation: 2-d ndarray
+        The observation data.
+    prediction: 2-d ndarray
+        The prediction data.
+    tstorm_kwargs: dict, optional
+        Optional dictionary containing keyword arguments for the tstorm feature
+        detection algorithm.
+        See the documentation of :py:mod:`pysteps.feature.tstorm`.
 
     Returns
     -------
-    S:
-    The structure component which has a value between -2 to 2.
+    structure: float
+        The structure component with value between -2 to 2.
     """
     nom = (
-        sal_scaled_volume(
-            df_pre, minref, maxref, mindiff, minsize, minmax, mindis
-        ).scaled_v.sum()
-        - sal_scaled_volume(
-            df_obs, minref, maxref, mindiff, minsize, minmax, mindis
-        ).scaled_v.sum()
+        sal_scaled_volume(prediction, tstorm_kwargs).scaled_v.sum()
+        - sal_scaled_volume(observation, tstorm_kwargs).scaled_v.sum()
     )
     denom = (
-        sal_scaled_volume(
-            df_pre, minref, maxref, mindiff, minsize, minmax, mindis
-        ).scaled_v.sum()
-        + sal_scaled_volume(
-            df_obs, minref, maxref, mindiff, minsize, minmax, mindis
-        ).scaled_v.sum()
+        sal_scaled_volume(prediction, tstorm_kwargs).scaled_v.sum()
+        + sal_scaled_volume(observation, tstorm_kwargs).scaled_v.sum()
     )
-    S = nom / (0.5 * (denom))
-    return S
-
-
-def sal_max_distance(min_lon, min_lat, max_lon, max_lat):
-    """This function calculates the maximum distance of the study area based on lon/lat coordinates.
-
-    Parameters
-    ----------
-    min_lon: minimum longitude of the study area
-    min_lat: minimum latitude of the study area
-    max_lon: maximum longitude of the study area
-    max_lat: maximum latitude of the study area
-
-    Returns
-    -------
-    distance:
-    Maximum distance of the study domain in kilometers.
-    """
-    R = 6373.0
-    minx = min_lon
-    miny = min_lat
-    maxx = max_lon
-    maxy = max_lat
-    lat1 = radians(maxy)
-    lon1 = radians(minx)
-    lat2 = radians(miny)
-    lon2 = radians(maxx)
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    distance = R * c
-    return distance
+    return nom / (0.5 * (denom))
 
 
 def sal_init():

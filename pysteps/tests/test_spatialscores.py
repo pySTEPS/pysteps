@@ -6,6 +6,7 @@ from numpy.testing import assert_array_almost_equal
 
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.verification import spatialscores
+from pysteps.utils import to_reflectivity
 
 R = get_precipitation_fields(num_prev_files=1, return_raw=True)
 test_data = [
@@ -66,7 +67,8 @@ def test_sal():
     """Test the SAL verification method."""
     pytest.importorskip("pandas")
     pytest.importorskip("skimage")
-    precip = get_precipitation_fields(num_prev_files=0, return_raw=False)
+    precip, metadata = get_precipitation_fields(num_prev_files=0, metadata=True)
+    precip, metadata = to_reflectivity(precip, metadata)
     # same image
     result = spatialscores.sal(precip, precip)
     assert isinstance(result, tuple)
