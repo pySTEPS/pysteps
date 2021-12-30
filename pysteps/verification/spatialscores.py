@@ -24,11 +24,15 @@ Skill scores for spatial forecasts.
     fss_merge
     fss_compute
 """
+from math import sin, cos, sqrt, atan2, radians, hypot
 
 import collections
 import numpy as np
-from pysteps.exceptions import MissingOptionalDependency
 from scipy.ndimage.filters import uniform_filter
+
+from pysteps.exceptions import MissingOptionalDependency
+from pysteps.feature import tstorm as tstorm_detect
+
 
 try:
     import pywt
@@ -36,6 +40,20 @@ try:
     pywt_imported = True
 except ImportError:
     pywt_imported = False
+
+try:
+    import pandas as pd
+
+    pandas_imported = True
+except ImportError:
+    pandas_imported = False
+
+try:
+    from skimage.measure import regionprops_table
+
+    skimage_imported = True
+except ImportError:
+    skimage_imported = False
 
 
 def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
@@ -665,16 +683,6 @@ def fss_compute(fss):
     denom = fss["sum_fct_sq"] + fss["sum_obs_sq"]
 
     return 1.0 - numer / denom
-
-
-import numpy as np
-import pandas as pd
-from math import sin, cos, sqrt, atan2, radians, hypot
-from skimage.measure import regionprops_table
-from pysteps.feature import tstorm as tstorm_detect
-import warnings
-
-warnings.filterwarnings(action="ignore")
 
 
 def SAL(X_f, X_o,
