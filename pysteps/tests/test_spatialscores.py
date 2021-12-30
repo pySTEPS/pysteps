@@ -69,12 +69,12 @@ def test_sal():
     precip = get_precipitation_fields(num_prev_files=0, return_raw=False)
     # same image
     result = spatialscores.sal(precip, precip)
-    assert result.size == 3
-    assert all(result.columns == ["S", "A", "L"])
+    assert isinstance(result, tuple)
+    assert len(result) == 3
     assert np.allclose(result, [0, 0, 0])
     # with displacement
     precip_translated = np.roll(precip, 10, axis=0)
     result = spatialscores.sal(precip, precip_translated)
-    assert np.allclose(result.S, 0)
-    assert np.allclose(result.A, 0)
-    assert not np.allclose(result.L, 0)
+    assert np.allclose(result[0], 0)
+    assert np.allclose(result[1], 0)
+    assert not np.allclose(result[2], 0)

@@ -722,7 +722,7 @@ def sal(
     Returns
     -------
     sal:
-    A dataframe with all three components of SAL.
+    A tuple of floats containing the structure, amplitude, location components of SAL.
 
     References
     ----------
@@ -737,19 +737,16 @@ def sal(
     if np.nanmax(X_o >= 0.1) & np.nanmax(
         X_f >= 0.1
     ):  # to avoid errors of nan values or very low precipitation
-        s = sal_structure(X_o, X_f, minref, maxref, mindiff, minsize, minmax, mindis)
-        a = sal_amplitude(X_o, X_f)
-        l = sal_l1_param(X_o, X_f) + sal_l2_param(
+        structure = sal_structure(X_o, X_f, minref, maxref, mindiff, minsize, minmax, mindis)
+        amplitude = sal_amplitude(X_o, X_f)
+        location = sal_l1_param(X_o, X_f) + sal_l2_param(
             X_o, X_f, minref, maxref, mindiff, minsize, minmax, mindis
         )
     else:
-        s = np.nan
-        a = np.nan
-        l = np.nan
-    dic = {"S": s, "A": a, "L": l}
-    sal = pd.DataFrame(dic, index=[1])
-    sal.index.name = "step"
-    return sal
+        structure = np.nan
+        amplitude = np.nan
+        location = np.nan
+    return structure, amplitude, location
 
 
 def sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis):
@@ -918,11 +915,13 @@ def sal_amplitude(ob, pre):
 def sal_l1_param(ob, pre):
     """Calculate the first parameter of location component for SAL based on Wernli et al (2008).
     This parameter indicates the normalized distance between the center of mass in observation and forecast.
+
     Parameters
     ----------
     ob: 2-d ndarray for the observation data.
     pre: 2-d ndarray for the prediction data.
     max_distance: Maximum distance of the study domain in kilometers.
+
     Returns
     -------
     l1:
