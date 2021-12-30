@@ -990,15 +990,13 @@ def sal_structure(prediction, observation, tstorm_kwargs=None):
     -------
     structure: float
         The structure component with value between -2 to 2.
+
+
     """
-    nom = (
-        sal_scaled_volume(prediction, tstorm_kwargs).scaled_v.sum()
-        - sal_scaled_volume(observation, tstorm_kwargs).scaled_v.sum()
-    )
-    denom = (
-        sal_scaled_volume(prediction, tstorm_kwargs).scaled_v.sum()
-        + sal_scaled_volume(observation, tstorm_kwargs).scaled_v.sum()
-    )
+    prediction_volume = sal_scaled_volume(prediction, tstorm_kwargs).scaled_v.sum()
+    observation_volume = sal_scaled_volume(observation, tstorm_kwargs).scaled_v.sum()
+    nom = prediction_volume - observation_volume
+    denom = prediction_volume + observation_volume
     return nom / (0.5 * (denom))
 
 
