@@ -273,7 +273,7 @@ def _sal_detect_objects(precip, tstorm_kwargs=None):
     return precip_objects
 
 
-def _sal_scaled_volume(precip_objects, tstorm_kwargs=None):
+def _sal_scaled_volume(precip_objects):
     """Calculate the scaled volume based on Wernli et al (2008).
 
     Parameters
