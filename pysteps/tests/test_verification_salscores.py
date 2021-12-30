@@ -8,16 +8,19 @@ from pysteps.verification.salscores import sal
 from pysteps.utils import to_rainrate, to_reflectivity
 
 test_data = [
-    (to_rainrate, 1/15),
+    (to_rainrate, 1 / 15),
     (to_reflectivity, None),
 ]
+
 
 @pytest.mark.parametrize("converter, thr_factor", test_data)
 def test_sal(converter, thr_factor):
     """Test the SAL verification method."""
     pytest.importorskip("pandas")
     pytest.importorskip("skimage")
-    precip, metadata = get_precipitation_fields(num_prev_files=0, log_transform=False, metadata=True)
+    precip, metadata = get_precipitation_fields(
+        num_prev_files=0, log_transform=False, metadata=True
+    )
     precip, metadata = converter(precip, metadata)
     # same image
     result = sal(precip, precip, thr_factor)
