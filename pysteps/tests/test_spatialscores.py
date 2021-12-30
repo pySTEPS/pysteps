@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
 
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.verification import spatialscores
-from pysteps.utils import to_reflectivity
 
 R = get_precipitation_fields(num_prev_files=1, return_raw=True)
 test_data = [
@@ -61,22 +59,3 @@ def test_intensity_scale_methods(R1, R2, name, thrs, scales, wavelet):
     score = spatialscores.intensity_scale_compute(int)[0][0]
 
     assert_array_almost_equal(score, expected)
-
-
-def test_sal():
-    """Test the SAL verification method."""
-    pytest.importorskip("pandas")
-    pytest.importorskip("skimage")
-    precip, metadata = get_precipitation_fields(num_prev_files=0, metadata=True)
-    precip, metadata = to_reflectivity(precip, metadata)
-    # same image
-    result = spatialscores.sal(precip, precip)
-    assert isinstance(result, tuple)
-    assert len(result) == 3
-    assert np.allclose(result, [0, 0, 0])
-    # with displacement
-    precip_translated = np.roll(precip, 10, axis=0)
-    result = spatialscores.sal(precip, precip_translated)
-    assert np.allclose(result[0], 0)
-    assert np.allclose(result[1], 0)
-    assert not np.allclose(result[2], 0)
