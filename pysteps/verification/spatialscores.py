@@ -692,8 +692,8 @@ def fss_compute(fss):
 
 
 def sal(
-    X_f,
-    X_o,
+    prediction,
+    observation,
     tstorm_kwargs=None,
 ):
     """
@@ -701,10 +701,10 @@ def sal(
 
     Parameters
     ----------
-    df_obs: 2-d ndarray
-        Observation data.
-    df_forc: 2-d ndarray
-        Prediction data.
+    prediction: array-like
+        Array of shape (m,n) with prediction data.
+    observation: array-like
+        Array of shape (m,n)  with bservation data.
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
@@ -712,8 +712,8 @@ def sal(
 
     Returns
     -------
-    sal:
-    A tuple of floats containing the structure, amplitude, location components of SAL.
+    sal: tuple of floats
+        A tuple of floats containing the structure, amplitude, location components of SAL.
 
     References
     ----------
@@ -732,16 +732,14 @@ def sal(
     --------
     pysteps.feature.tstorm
     """
-
-    if tstorm_kwargs is None:
-        tstorm_kwargs = dict()
-
-    if np.nanmax(X_o >= 0.1) & np.nanmax(
-        X_f >= 0.1
+    if np.nanmax(observation >= 0.1) & np.nanmax(
+        prediction >= 0.1
     ):  # to avoid errors of nan values or very low precipitation
-        structure = sal_structure(X_o, X_f, tstorm_kwargs)
-        amplitude = sal_amplitude(X_o, X_f)
-        location = sal_l1_param(X_o, X_f) + sal_l2_param(X_o, X_f, tstorm_kwargs)
+        structure = sal_structure(prediction, observation, tstorm_kwargs)
+        amplitude = sal_amplitude(prediction, observation)
+        location = sal_l1_param(prediction, observation) + sal_l2_param(
+            prediction, observation, tstorm_kwargs
+        )
     else:
         structure = np.nan
         amplitude = np.nan
@@ -749,12 +747,25 @@ def sal(
     return structure, amplitude, location
 
 
-def sal_detect_objects(df, tstorm_kwargs=None):
+def sal_init():
+
+    ...
+
+
+def sal_accum():
+    ...
+
+
+def sal_compute():
+    ...
+
+
+def sal_detect_objects(precip, tstorm_kwargs=None):
     """This function detects thunderstorms using a multi-threshold approach (Feldmann et al., 2021).
 
     Parameters
     ----------
-    df: array-like
+    precip: array-like
         Array of shape (m,n) containing input data. Nan values are ignored.
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
@@ -763,9 +774,9 @@ def sal_detect_objects(df, tstorm_kwargs=None):
 
     Returns
     -------
-    table: pandas dataframe
-    Pandas dataframe containing all detected cells and their respective properties corresponding to the input data.
-    Columns of dataframe: label, area, centroid, weighted centroid, intensity_max, intensity_mean, image_intensity
+    precip_objects: pd.DataFrame
+        Dataframe containing all detected cells and their respective properties corresponding to the input data.
+        Columns of dataframe: label, area, centroid, weighted centroid, intensity_max, intensity_mean, image_intensity
     """
     if not pandas_imported:
         raise MissingOptionalDependency(
@@ -779,7 +790,7 @@ def sal_detect_objects(df, tstorm_kwargs=None):
         )
     if tstorm_kwargs is None:
         tstorm_kwargs = dict()
-    _, labels = tstorm_detect.detection(df, **tstorm_kwargs)
+    _, labels = tstorm_detect.detection(precip, **tstorm_kwargs)
     labels = labels.astype(int)
     properties = [
         "label",
@@ -790,10 +801,10 @@ def sal_detect_objects(df, tstorm_kwargs=None):
         "intensity_mean",
         "image_intensity",
     ]
-    table = pd.DataFrame(
-        regionprops_table(labels, intensity_image=df, properties=properties)
+    precip_objects = pd.DataFrame(
+        regionprops_table(labels, intensity_image=precip, properties=properties)
     )
-    return table
+    return precip_objects
 
 
 def sal_scaled_volume(precip, tstorm_kwargs=None):
@@ -801,8 +812,8 @@ def sal_scaled_volume(precip, tstorm_kwargs=None):
 
     Parameters
     ----------
-    precip: 2-d ndarray
-        The precipitation field.
+    precip: array-like
+        Array of shape (m,n).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
@@ -840,7 +851,7 @@ def sal_scaled_volume(precip, tstorm_kwargs=None):
     return pd.DataFrame(ch)
 
 
-def sal_amplitude(observation, prediction):
+def sal_amplitude(prediction, observation):
     """Calculate the amplitude component for SAL based on Wernli et al (2008).
 
     This component is the normalized difference of the domain-averaged precipitation
@@ -848,10 +859,10 @@ def sal_amplitude(observation, prediction):
 
     Parameters
     ----------
-    observation: 2-d ndarray
-        The observation data.
-    prediction: 2-d ndarray
-        The prediction data.
+    prediction: array-like
+        Array of shape (m,n) with prediction data.
+    observation: array-like
+        Array of shape (m,n)  with bservation data.
 
     Returns
     -------
@@ -864,7 +875,7 @@ def sal_amplitude(observation, prediction):
     return (mean_pred - mean_obs) / (0.5 * (mean_pred + mean_obs))
 
 
-def sal_l1_param(observation, prediction):
+def sal_l1_param(prediction, observation):
     """Calculate the first parameter of location component for SAL based on
     Wernli et al (2008).
 
@@ -873,10 +884,10 @@ def sal_l1_param(observation, prediction):
 
     Parameters
     ----------
-    observation: 2-d ndarray
-        The observation data.
-    prediction: 2-d ndarray
-        The prediction data.
+    prediction: array-like
+        Array of shape (m,n) with prediction data.
+    observation: array-like
+        Array of shape (m,n)  with bservation data.
 
     Returns
     -------
@@ -898,8 +909,8 @@ def sal_weighted_distance(precip, tstorm_kwargs=None):
 
     Parameters
     ----------
-    precip: 2-d ndarray
-        The input precipitation field.
+    precip: array-like
+        Array of shape (m,n).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
@@ -916,9 +927,7 @@ def sal_weighted_distance(precip, tstorm_kwargs=None):
             "The pandas package is required for the SAL "
             "verification method but it is not installed"
         )
-    precip_objects = sal_detect_objects(
-        precip, tstorm_kwargs
-    )
+    precip_objects = sal_detect_objects(precip, tstorm_kwargs)
     centroid_total = center_of_mass(np.nan_to_num(precip))
     r = []
     for i in precip_objects.label - 1:
@@ -935,17 +944,15 @@ def sal_weighted_distance(precip, tstorm_kwargs=None):
     return rr.sum_dist.sum() / (rr.sum_p.sum())
 
 
-def sal_l2_param(
-    observation, prediction, tstorm_kwargs=None
-):
+def sal_l2_param(prediction, observation, tstorm_kwargs=None):
     """Calculate the second parameter of location component for SAL based on Wernli et al (2008).
 
     Parameters
     ----------
-    observation: 2-d ndarray
-        The observation data.
-    prediction: 2-d ndarray
-        The prediction data.
+    prediction: array-like
+        Array of shape (m,n) with prediction data.
+    observation: array-like
+        Array of shape (m,n)  with bservation data.
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
@@ -959,29 +966,21 @@ def sal_l2_param(
     maximum_distance = sqrt(
         ((observation.shape[0]) ** 2) + ((observation.shape[1]) ** 2)
     )
-    obs_r = (
-        sal_weighted_distance(
-            observation, tstorm_kwargs
-        )
-    ) * (observation.mean())
-    forc_r = (
-        sal_weighted_distance(
-            prediction, tstorm_kwargs
-        )
-    ) * (prediction.mean())
+    obs_r = (sal_weighted_distance(observation, tstorm_kwargs)) * (observation.mean())
+    forc_r = (sal_weighted_distance(prediction, tstorm_kwargs)) * (prediction.mean())
     location_2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
     return float(location_2)
 
 
-def sal_structure(observation, prediction, tstorm_kwargs=None):
+def sal_structure(prediction, observation, tstorm_kwargs=None):
     """This function calculates the structure component for SAL based on Wernli et al (2008).
 
     Parameters
     ----------
-    observation: 2-d ndarray
-        The observation data.
-    prediction: 2-d ndarray
-        The prediction data.
+    prediction: array-like
+        Array of shape (m,n) with prediction data.
+    observation: array-like
+        Array of shape (m,n)  with bservation data.
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm.
@@ -1001,18 +1000,6 @@ def sal_structure(observation, prediction, tstorm_kwargs=None):
         + sal_scaled_volume(observation, tstorm_kwargs).scaled_v.sum()
     )
     return nom / (0.5 * (denom))
-
-
-def sal_init():
-    ...
-
-
-def sal_accum():
-    ...
-
-
-def sal_compute():
-    ...
 
 
 def _wavelet_decomp(X, w):
