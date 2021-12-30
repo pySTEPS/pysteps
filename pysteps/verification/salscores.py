@@ -295,7 +295,7 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
         "label",
         "weighted_centroid",
         "max_intensity",  # use instead of 'intensity_max' for backward compatibility
-        "image_intensity",
+        "intensity_image", # use instead of 'image_intensity' for backward compatibility
     ]
     precip_objects = pd.DataFrame(
         regionprops_table(labels, intensity_image=precip, properties=properties)
