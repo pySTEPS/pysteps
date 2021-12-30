@@ -29,6 +29,7 @@ from math import sin, cos, sqrt, atan2, radians, hypot
 import collections
 import numpy as np
 from scipy.ndimage.filters import uniform_filter
+from scipy.ndimage.measurements import center_of_mass
 
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.feature import tstorm as tstorm_detect
@@ -685,7 +686,9 @@ def fss_compute(fss):
     return 1.0 - numer / denom
 
 
-def SAL(X_f, X_o,
+def SAL(
+    X_f,
+    X_o,
     minref=0.1,
     maxref=150,
     mindiff=10,
@@ -773,6 +776,16 @@ def detect_objects_tstorm(df, minref, maxref, mindiff, minsize, minmax, mindis):
     Pandas dataframe containing all detected cells and their respective properties corresponding to the input data.
     Columns of dataframe: label, area, centroid, weighted centroid, intensity_max, intensity_mean, image_intensity
     """
+    if not pandas_imported:
+        raise MissingOptionalDependency(
+            "The pandas package is required for the SAL "
+            "verification method but it is not installed"
+        )
+    if not skimage_imported:
+        raise MissingOptionalDependency(
+            "The scikit-image package is required for the SAL "
+            "verification method but it is not installed"
+        )
     _, labels = tstorm_detect.detection(
         df,
         minref=minref,
@@ -829,6 +842,11 @@ def vol(ds, minref, maxref, mindiff, minsize, minmax, mindis):
     A dataframe that includes precipitation characteristics (sum, max, number of wet cells, and scaled volume)
     of the input data.
     """
+    if not pandas_imported:
+        raise MissingOptionalDependency(
+            "The pandas package is required for the SAL "
+            "verification method but it is not installed"
+        )
     ch = []
     ds_with_ob = detect_objects_tstorm(
         ds, minref, maxref, mindiff, minsize, minmax, mindis
@@ -867,10 +885,7 @@ def c_m(df):
     cent:
     The coordinates of center of mass.
     """
-    from scipy import ndimage
-
-    cent = ndimage.measurements.center_of_mass(np.nan_to_num(df))
-    return cent
+    return center_of_mass(np.nan_to_num(df))
 
 
 def Amplitude(ob, pre):
@@ -930,6 +945,11 @@ def weighted_r(df, minref, maxref, mindiff, minsize, minmax, mindis):
     weighted averaged distance between the centers of mass of the
     individual objects and the center of mass of the total precipitation field.
     """
+    if not pandas_imported:
+        raise MissingOptionalDependency(
+            "The pandas package is required for the SAL "
+            "verification method but it is not installed"
+        )
     df_obj = detect_objects_tstorm(df, minref, maxref, mindiff, minsize, minmax, mindis)
     centroid_total = c_m(df)
     r = []
@@ -1036,11 +1056,14 @@ def max_dist(min_lon, min_lat, max_lon, max_lat):
     distance = R * c
     return distance
 
+
 def sal_init():
     ...
 
+
 def sal_accum():
     ...
+
 
 def sal_compute():
     ...
@@ -1058,6 +1081,3 @@ def _wavelet_decomp(X, w):
         X_out.append(X_k)
 
     return X_out
-
-
-
