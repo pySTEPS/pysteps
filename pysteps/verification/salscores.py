@@ -324,9 +324,9 @@ def _sal_scaled_volume(precip_objects):
             "verification method but it is not installed"
         )
     objects_volume_scaled = []
-    for _, object in precip_objects.iterrows():
-        intensity_sum = object.image_intensity.sum()
-        max_intensity = object.max_intensity
+    for _, precip_object in precip_objects.iterrows():
+        intensity_sum = precip_object.image_intensity.sum()
+        max_intensity = precip_object.max_intensity
         volume_scaled = intensity_sum / max_intensity
         objects_volume_scaled.append(volume_scaled)
     return pd.Series(
