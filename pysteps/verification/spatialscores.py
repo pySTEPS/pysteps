@@ -702,16 +702,17 @@ def sal(
 
     Parameters
     ----------
-    df_obs: 2-d ndarray for the observation data.
-
-    df_forc: 2-d ndarray for the prediction data.
-
-    maximum_distance: maximum distance of the study area.
-    If the projection is rectangular (e.g., UTM), this value is the diagonal of the study area.
-    If the projection is not rectangular (e.g., lon/lat), 'max_dist' function calculates this value.
-
-    minref: minimum precipitation value for detecting object(s), If r star is lower than this threshold.
-    The default is 0.1 mm.
+    df_obs: 2-d ndarray
+        Observation data.
+    df_forc: 2-d ndarray
+        Prediction data.
+    maximum_distance: float
+        Maximum distance of the study area in XXX units.
+        If the projection is rectangular (e.g., UTM), this value is the diagonal of the study area.
+        If the projection is not rectangular (e.g., lon/lat), 'max_dist' function calculates this value.
+    minref: float
+        Minimum precipitation value for detecting object(s), If r star is lower than this threshold.
+        The default is 0.1 mm.
 
     Returns
     -------
@@ -749,11 +750,11 @@ def sal(
 def sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis):
     """This function detects thunderstorms using a multi-threshold approach (Feldmann et al., 2021).
     Parameters
+    ----------
     df: array-like
-    Array of shape (m,n) containing input data. Nan values are ignored.
-
+        Array of shape (m,n) containing input data. Nan values are ignored.
     minref: float, optional
-    Lower threshold for object detection. Lower values will be set to NaN. The default is 0.1.
+        Lower threshold for object detection. Lower values will be set to NaN. The default is 0.1.
 
     maxref: float, optional
     Upper threshold for object detection. Higher values will be set to this value. The default is 150.
@@ -772,6 +773,7 @@ def sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis):
 
 
     Returns
+    -------
     table: pandas dataframe
     Pandas dataframe containing all detected cells and their respective properties corresponding to the input data.
     Columns of dataframe: label, area, centroid, weighted centroid, intensity_max, intensity_mean, image_intensity
@@ -812,7 +814,7 @@ def sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis):
 
 
 def sal_scaled_volume(ds, minref, maxref, mindiff, minsize, minmax, mindis):
-    """This function calculates the scaled volume parameter based on Wernli et al (2008).
+    """Calculate the scaled volume parameter based on Wernli et al (2008).
 
     Parameters
     ----------
@@ -873,7 +875,7 @@ def sal_scaled_volume(ds, minref, maxref, mindiff, minsize, minmax, mindis):
 
 
 def sal_center_of_mass(df):
-    """This function calculates the center of total (precipitation) mass in one time step.
+    """Calculate the center of total (precipitation) mass in one timestep.
     All nan values are replaced with 0 to calculate centroid.
 
     Parameters
@@ -889,7 +891,7 @@ def sal_center_of_mass(df):
 
 
 def sal_amplitude(ob, pre):
-    """This function calculates the amplitude component for SAL based on Wernli et al (2008).
+    """Calculate the amplitude component for SAL based on Wernli et al (2008).
     This component is the normalized difference of the domain-averaged precipitation in observation and forecast.
     Parameters
     ----------
@@ -909,7 +911,7 @@ def sal_amplitude(ob, pre):
 
 
 def sal_l1_param(ob, pre):
-    """This function calculates the first parameter of location component for SAL based on Wernli et al (2008).
+    """Calculate the first parameter of location component for SAL based on Wernli et al (2008).
     This parameter indicates the normalized distance between the center of mass in observation and forecast.
     Parameters
     ----------
@@ -969,7 +971,7 @@ def sal_weighted_distance(df, minref, maxref, mindiff, minsize, minmax, mindis):
 
 
 def sal_l2_param(df_obs, df_forc, minref, maxref, mindiff, minsize, minmax, mindis):
-    """This function calculates the second parameter of location component for SAL based on Wernli et al (2008).
+    """Calculate the second parameter of location component for SAL based on Wernli et al (2008).
 
     Parameters
     ----------
