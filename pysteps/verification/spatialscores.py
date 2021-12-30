@@ -23,6 +23,11 @@ Skill scores for spatial forecasts.
     fss_accum
     fss_merge
     fss_compute
+    sal
+    sal_init
+    sal_accum
+    sal_merge
+    sal_compute
 """
 from math import sin, cos, sqrt, atan2, radians, hypot
 
@@ -988,12 +993,12 @@ def sal_l2_param(df_obs, df_forc, minref, maxref, mindiff, minsize, minmax, mind
     The first parameter of location component which has a value between 0 to 1.
     """
     maximum_distance = sqrt(((df_obs.shape[0]) ** 2) + ((df_obs.shape[1]) ** 2))
-    obs_r = (sal_weighted_distance(df_obs, minref, maxref, mindiff, minsize, minmax, mindis)) * (
-        df_obs.mean()
-    )
-    forc_r = (sal_weighted_distance(df_forc, minref, maxref, mindiff, minsize, minmax, mindis)) * (
-        df_forc.mean()
-    )
+    obs_r = (
+        sal_weighted_distance(df_obs, minref, maxref, mindiff, minsize, minmax, mindis)
+    ) * (df_obs.mean())
+    forc_r = (
+        sal_weighted_distance(df_forc, minref, maxref, mindiff, minsize, minmax, mindis)
+    ) * (df_forc.mean())
     l2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
     return float(l2)
 
@@ -1016,12 +1021,20 @@ def sal_structure(df_obs, df_pre, minref, maxref, mindiff, minsize, minmax, mind
     The structure component which has a value between -2 to 2.
     """
     nom = (
-        sal_scaled_volume(df_pre, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
-        - sal_scaled_volume(df_obs, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
+        sal_scaled_volume(
+            df_pre, minref, maxref, mindiff, minsize, minmax, mindis
+        ).scaled_v.sum()
+        - sal_scaled_volume(
+            df_obs, minref, maxref, mindiff, minsize, minmax, mindis
+        ).scaled_v.sum()
     )
     denom = (
-        sal_scaled_volume(df_pre, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
-        + sal_scaled_volume(df_obs, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
+        sal_scaled_volume(
+            df_pre, minref, maxref, mindiff, minsize, minmax, mindis
+        ).scaled_v.sum()
+        + sal_scaled_volume(
+            df_obs, minref, maxref, mindiff, minsize, minmax, mindis
+        ).scaled_v.sum()
     )
     S = nom / (0.5 * (denom))
     return S

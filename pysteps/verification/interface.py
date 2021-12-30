@@ -86,6 +86,8 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  FSS       | fractions skill score                                  |
         +------------+--------------------------------------------------------+
+        |  SAL       | Structure-Amplitude-Location score                     |
+        +------------+--------------------------------------------------------+
 
         type: ensemble
 
@@ -164,7 +166,7 @@ def get_method(name, type="deterministic"):
 
         from .detcatscores import det_cat_fct
         from .detcontscores import det_cont_fct
-        from .spatialscores import fss, binary_mse
+        from .spatialscores import binary_mse, fss, sal
 
         # categorical
         if name in [
@@ -213,6 +215,8 @@ def get_method(name, type="deterministic"):
             return binary_mse
         elif name in ["fss"]:
             return fss
+        elif name in ["sal"]:
+            return sal
 
         else:
             raise ValueError("unknown deterministic method %s" % name)
