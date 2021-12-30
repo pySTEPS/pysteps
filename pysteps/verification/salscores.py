@@ -1,7 +1,7 @@
 # -- coding: utf-8 --
 """
-pysteps.verification.sal
-==================================
+pysteps.verification.salscores
+==============================
 
 The Spatial-Amplitude-Location (SAL) score.
 
@@ -91,7 +91,8 @@ def sal(
 
 
 def sal_structure(prediction, observation, tstorm_kwargs=None):
-    """This function calculates the structure component for SAL based on Wernli et al (2008).
+    """This function calculates the structure component for SAL based on
+    Wernli et al (2008).
 
     Parameters
     ----------
@@ -109,8 +110,10 @@ def sal_structure(prediction, observation, tstorm_kwargs=None):
     structure: float
         The structure component with value between -2 to 2.
     """
-    prediction_volume = _sal_scaled_volume(prediction, tstorm_kwargs).scaled_v.sum()
-    observation_volume = _sal_scaled_volume(observation, tstorm_kwargs).scaled_v.sum()
+    prediction_objects = _sal_detect_objects(prediction, tstorm_kwargs)
+    observation_objects = _sal_detect_objects(observation, tstorm_kwargs)
+    prediction_volume = _sal_scaled_volume(prediction_objects).sum()
+    observation_volume = _sal_scaled_volume(observation_objects).sum()
     nom = prediction_volume - observation_volume
     denom = prediction_volume + observation_volume
     return nom / (0.5 * denom)
@@ -240,8 +243,9 @@ def _sal_detect_objects(precip, tstorm_kwargs=None):
     Returns
     -------
     precip_objects: pd.DataFrame
-        Dataframe containing all detected cells and their respective properties corresponding to the input data.
-        Columns of dataframe: label, area, centroid, weighted centroid, intensity_max, intensity_mean, image_intensity
+        Dataframe containing all detected cells and their respective properties.
+        Columns of dataframe:
+        label, weighted_centroid, max_intensity, image_intensity
     """
     if not pandas_imported:
         raise MissingOptionalDependency(
@@ -259,11 +263,8 @@ def _sal_detect_objects(precip, tstorm_kwargs=None):
     labels = labels.astype(int)
     properties = [
         "label",
-        "area",
-        "centroid",
         "weighted_centroid",
-        "intensity_max",
-        "intensity_mean",
+        "max_intensity",  # use instead of 'intensity_max' for backward compatibility
         "image_intensity",
     ]
     precip_objects = pd.DataFrame(
@@ -272,48 +273,35 @@ def _sal_detect_objects(precip, tstorm_kwargs=None):
     return precip_objects
 
 
-def _sal_scaled_volume(precip, tstorm_kwargs=None):
-    """Calculate the scaled volume parameter based on Wernli et al (2008).
+def _sal_scaled_volume(precip_objects, tstorm_kwargs=None):
+    """Calculate the scaled volume based on Wernli et al (2008).
 
     Parameters
     ----------
-    precip: array-like
-        Array of shape (m,n).
-    tstorm_kwargs: dict, optional
-        Optional dictionary containing keyword arguments for the tstorm feature
-        detection algorithm.
-        See the documentation of :py:mod:`pysteps.feature.tstorm`.
+    precip_objects: pd.DataFrame
+        Dataframe containing all detected cells and their respective properties.
+        Columns of dataframe:
+        label, weighted_centroid, max_intensity, image_intensity
+
     Returns
     -------
-    vol_value: pd.DataFrame
-        A dataframe that includes precipitation characteristics (sum, max, number
-        of wet cells, and scaled volume) of the input data.
+    object_volume: pd.Series
+        A pandas Series with the scaled volume of each precipitation object.
     """
     if not pandas_imported:
         raise MissingOptionalDependency(
             "The pandas package is required for the SAL "
             "verification method but it is not installed"
         )
-    ch = []
-    ds_with_ob = _sal_detect_objects(precip, tstorm_kwargs)
-
-    for o in ds_with_ob.label - 1:
-        tot = ds_with_ob.image_intensity[o].sum()
-        mx = ds_with_ob.intensity_max[o]
-        n = ds_with_ob.area[o]
-        v_ob = tot / mx
-
-        ch.append(
-            {
-                "obj": o,
-                "precip_sum": tot,
-                "precip_max": mx,
-                "number_of_cells": n,
-                "sum": tot.sum(),
-                "scaled_v": v_ob,
-            }
-        )
-    return pd.DataFrame(ch)
+    objects_volume_scaled = []
+    for _, object in precip_objects.iterrows():
+        intensity_sum = object.image_intensity.sum()
+        max_intensity = object.max_intensity
+        volume_scaled = intensity_sum / max_intensity
+        objects_volume_scaled.append(volume_scaled)
+    return pd.Series(
+        data=objects_volume_scaled, index=precip_objects.label, name="scaled_volume"
+    )
 
 
 def _sal_weighted_distance(precip, tstorm_kwargs=None):

@@ -167,7 +167,7 @@ def get_method(name, type="deterministic"):
         from .detcatscores import det_cat_fct
         from .detcontscores import det_cont_fct
         from .spatialscores import binary_mse, fss
-        from .sal import sal
+        from .salscores import sal
 
         # categorical
         if name in [
