@@ -39,6 +39,7 @@ except ImportError:
 def sal(
     prediction,
     observation,
+    thr_factor=1 / 15,
     tstorm_kwargs=None,
 ):
     """
@@ -50,10 +51,14 @@ def sal(
         Array of shape (m,n) with prediction data.
     observation: array-like
         Array of shape (m,n)  with observation data.
+    thr_factor: float, optional
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        If specified, this is used to identify coherent objects enclosed by the threshold
+        contour thr_factor * max(precip).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
-        detection algorithm.
-        See the documentation of :py:mod:`pysteps.feature.tstorm`.
+        detection algorithm. If None, default values are used.
+        See the documentation of :py:func:`pysteps.feature.tstorm.detection`.
 
     Returns
     -------
@@ -70,19 +75,16 @@ def sal(
     This implementation uses the thunderstorm detection algorithm by Feldmann et al (2021)
     for the identification of precipitation objects within the considered domain.
 
-    This approach uses multi-threshold algorithm to detect objects, instead of having a
-    single threshold (f).
-
     See also
     --------
-    pysteps.feature.tstorm
+    :py:mod:`pysteps.feature.tstorm`.
     """
     if np.nanmax(observation >= 0.1) & np.nanmax(
         prediction >= 0.1
     ):  # to avoid errors of nan values or very low precipitation
-        structure = sal_structure(prediction, observation, tstorm_kwargs)
+        structure = sal_structure(prediction, observation, thr_factor, tstorm_kwargs)
         amplitude = sal_amplitude(prediction, observation)
-        location = sal_location(prediction, observation, tstorm_kwargs)
+        location = sal_location(prediction, observation, thr_factor, tstorm_kwargs)
     else:
         structure = np.nan
         amplitude = np.nan
@@ -90,7 +92,7 @@ def sal(
     return structure, amplitude, location
 
 
-def sal_structure(prediction, observation, tstorm_kwargs=None):
+def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     """This function calculates the structure component for SAL based on
     Wernli et al (2008).
 
@@ -100,18 +102,22 @@ def sal_structure(prediction, observation, tstorm_kwargs=None):
         Array of shape (m,n) with prediction data.
     observation: array-like
         Array of shape (m,n)  with observation data.
+    thr_factor: float, optional
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        If specified, this is used to identify coherent objects enclosed by the threshold
+        contour thr_factor * max(precip).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
-        detection algorithm.
-        See the documentation of :py:mod:`pysteps.feature.tstorm`.
+        detection algorithm. If None, default values are used.
+        See the documentation of :py:func:`pysteps.feature.tstorm.detection`.
 
     Returns
     -------
     structure: float
         The structure component with value between -2 to 2.
     """
-    prediction_objects = _sal_detect_objects(prediction, tstorm_kwargs)
-    observation_objects = _sal_detect_objects(observation, tstorm_kwargs)
+    prediction_objects = _sal_detect_objects(prediction, thr_factor, tstorm_kwargs)
+    observation_objects = _sal_detect_objects(observation, thr_factor, tstorm_kwargs)
     prediction_volume = _sal_scaled_volume(prediction_objects).sum()
     observation_volume = _sal_scaled_volume(observation_objects).sum()
     nom = prediction_volume - observation_volume
@@ -143,7 +149,7 @@ def sal_amplitude(prediction, observation):
     return (mean_pred - mean_obs) / (0.5 * (mean_pred + mean_obs))
 
 
-def sal_location(prediction, observation, tstorm_kwargs=None):
+def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     """Calculate the first parameter of location component for SAL based on
     Wernli et al (2008).
 
@@ -156,10 +162,14 @@ def sal_location(prediction, observation, tstorm_kwargs=None):
         Array of shape (m,n) with prediction data.
     observation: array-like
         Array of shape (m,n)  with observation data.
+    thr_factor: float, optional
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        If specified, this is used to identify coherent objects enclosed by the threshold
+        contour thr_factor * max(precip).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
-        detection algorithm.
-        See the documentation of :py:mod:`pysteps.feature.tstorm`.
+        detection algorithm. If None, default values are used.
+        See the documentation of :py:func:`pysteps.feature.tstorm.detection`.
 
     Returns
     -------
@@ -168,7 +178,7 @@ def sal_location(prediction, observation, tstorm_kwargs=None):
         denotes perfect forecast in terms of location.
     """
     return _sal_l1_param(prediction, observation) + _sal_l2_param(
-        prediction, observation, tstorm_kwargs
+        prediction, observation, thr_factor, tstorm_kwargs
     )
 
 
@@ -200,7 +210,7 @@ def _sal_l1_param(prediction, observation):
     return dist / maximum_distance
 
 
-def _sal_l2_param(prediction, observation, tstorm_kwargs=None):
+def _sal_l2_param(prediction, observation, thr_factor, tstorm_kwargs):
     """Calculate the second parameter of location component for SAL based on Wernli et al (2008).
 
     Parameters
@@ -209,10 +219,14 @@ def _sal_l2_param(prediction, observation, tstorm_kwargs=None):
         Array of shape (m,n) with prediction data.
     observation: array-like
         Array of shape (m,n)  with observation data.
-    tstorm_kwargs: dict, optional
+    thr_factor: float
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        If specified, this is used to identify coherent objects enclosed by the threshold
+        contour thr_factor * max(precip).
+    tstorm_kwargs: dict
         Optional dictionary containing keyword arguments for the tstorm feature
-        detection algorithm.
-        See the documentation of :py:mod:`pysteps.feature.tstorm`.
+        detection algorithm. If None, default values are used.
+        See the documentation of :py:func:`pysteps.feature.tstorm.detection`.
 
     Returns
     -------
@@ -222,23 +236,31 @@ def _sal_l2_param(prediction, observation, tstorm_kwargs=None):
     maximum_distance = sqrt(
         ((observation.shape[0]) ** 2) + ((observation.shape[1]) ** 2)
     )
-    obs_r = (_sal_weighted_distance(observation, tstorm_kwargs)) * (observation.mean())
-    forc_r = (_sal_weighted_distance(prediction, tstorm_kwargs)) * (prediction.mean())
+    obs_r = (_sal_weighted_distance(observation, thr_factor, tstorm_kwargs)) * (
+        observation.mean()
+    )
+    forc_r = (_sal_weighted_distance(prediction, thr_factor, tstorm_kwargs)) * (
+        prediction.mean()
+    )
     location_2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
     return float(location_2)
 
 
-def _sal_detect_objects(precip, tstorm_kwargs=None):
+def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
     """This function detects thunderstorms using a multi-threshold approach (Feldmann et al., 2021).
 
     Parameters
     ----------
     precip: array-like
         Array of shape (m,n) containing input data. Nan values are ignored.
-    tstorm_kwargs: dict, optional
+    thr_factor: float
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        If specified, this is used to identify coherent objects enclosed by the threshold
+        contour thr_factor * max(precip).
+    tstorm_kwargs: dict
         Optional dictionary containing keyword arguments for the tstorm feature
-        detection algorithm.
-        See the documentation of :py:mod:`pysteps.feature.tstorm`.
+        detection algorithm. If None, default values are used.
+        See the documentation of :py:func:`pysteps.feature.tstorm.detection`.
 
     Returns
     -------
@@ -259,6 +281,14 @@ def _sal_detect_objects(precip, tstorm_kwargs=None):
         )
     if tstorm_kwargs is None:
         tstorm_kwargs = dict()
+    if thr_factor is not None:
+        tstorm_kwargs = {
+            "minsize": tstorm_kwargs.get("minsize", 5),
+            "minmax": tstorm_kwargs.get("minmax", 0),
+            "mindis": tstorm_kwargs.get("mindis", 5),
+            "maxref": tstorm_kwargs.get("maxref", np.Inf),
+            "minref": thr_factor * np.nanmax(precip),
+        }
     _, labels = tstorm_detect.detection(precip, **tstorm_kwargs)
     labels = labels.astype(int)
     properties = [
@@ -304,7 +334,7 @@ def _sal_scaled_volume(precip_objects):
     )
 
 
-def _sal_weighted_distance(precip, tstorm_kwargs=None):
+def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
     """Compute the weighted averaged distance between the centers of mass of the
     individual objects and the center of mass of the total precipitation field.
 
@@ -312,10 +342,14 @@ def _sal_weighted_distance(precip, tstorm_kwargs=None):
     ----------
     precip: array-like
         Array of shape (m,n).
-    tstorm_kwargs: dict, optional
+    thr_factor: float
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        If specified, this is used to identify coherent objects enclosed by the threshold
+        contour thr_factor * max(precip).
+    tstorm_kwargs: dict
         Optional dictionary containing keyword arguments for the tstorm feature
-        detection algorithm.
-        See the documentation of :py:mod:`pysteps.feature.tstorm`.
+        detection algorithm. If None, default values are used.
+        See the documentation of :py:func:`pysteps.feature.tstorm.detection`.
 
     Returns
     -------
@@ -328,7 +362,7 @@ def _sal_weighted_distance(precip, tstorm_kwargs=None):
             "The pandas package is required for the SAL "
             "verification method but it is not installed"
         )
-    precip_objects = _sal_detect_objects(precip, tstorm_kwargs)
+    precip_objects = _sal_detect_objects(precip, thr_factor, tstorm_kwargs)
     centroid_total = center_of_mass(np.nan_to_num(precip))
     r = []
     for i in precip_objects.label - 1:
