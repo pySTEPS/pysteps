@@ -686,7 +686,7 @@ def fss_compute(fss):
     return 1.0 - numer / denom
 
 
-def SAL(
+def sal(
     X_f,
     X_o,
     minref=0.1,
@@ -731,9 +731,9 @@ def SAL(
     if np.nanmax(X_o >= 0.1) & np.nanmax(
         X_f >= 0.1
     ):  # to avoid errors of nan values or very low precipitation
-        s = s_param(X_o, X_f, minref, maxref, mindiff, minsize, minmax, mindis)
-        a = Amplitude(X_o, X_f)
-        l = l1_param(X_o, X_f) + l2_param(
+        s = sal_structure(X_o, X_f, minref, maxref, mindiff, minsize, minmax, mindis)
+        a = sal_amplitude(X_o, X_f)
+        l = sal_l1_param(X_o, X_f) + sal_l2_param(
             X_o, X_f, minref, maxref, mindiff, minsize, minmax, mindis
         )
     else:
@@ -746,7 +746,7 @@ def SAL(
     return sal
 
 
-def detect_objects_tstorm(df, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis):
     """This function detects thunderstorms using a multi-threshold approach (Feldmann et al., 2021).
     Parameters
     df: array-like
@@ -811,7 +811,7 @@ def detect_objects_tstorm(df, minref, maxref, mindiff, minsize, minmax, mindis):
     return table
 
 
-def vol(ds, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_scaled_volume(ds, minref, maxref, mindiff, minsize, minmax, mindis):
     """This function calculates the scaled volume parameter based on Wernli et al (2008).
 
     Parameters
@@ -848,7 +848,7 @@ def vol(ds, minref, maxref, mindiff, minsize, minmax, mindis):
             "verification method but it is not installed"
         )
     ch = []
-    ds_with_ob = detect_objects_tstorm(
+    ds_with_ob = sal_detect_objects(
         ds, minref, maxref, mindiff, minsize, minmax, mindis
     )
 
@@ -872,7 +872,7 @@ def vol(ds, minref, maxref, mindiff, minsize, minmax, mindis):
     return vol_value
 
 
-def c_m(df):
+def sal_center_of_mass(df):
     """This function calculates the center of total (precipitation) mass in one time step.
     All nan values are replaced with 0 to calculate centroid.
 
@@ -888,7 +888,7 @@ def c_m(df):
     return center_of_mass(np.nan_to_num(df))
 
 
-def Amplitude(ob, pre):
+def sal_amplitude(ob, pre):
     """This function calculates the amplitude component for SAL based on Wernli et al (2008).
     This component is the normalized difference of the domain-averaged precipitation in observation and forecast.
     Parameters
@@ -908,7 +908,7 @@ def Amplitude(ob, pre):
     return a
 
 
-def l1_param(ob, pre):
+def sal_l1_param(ob, pre):
     """This function calculates the first parameter of location component for SAL based on Wernli et al (2008).
     This parameter indicates the normalized distance between the center of mass in observation and forecast.
     Parameters
@@ -922,15 +922,15 @@ def l1_param(ob, pre):
     The first parameter of location component which has a value between 0 to 1.
     """
     maximum_distance = sqrt(((ob.shape[0]) ** 2) + ((ob.shape[1]) ** 2))
-    obi = c_m(ob)
-    fori = c_m(pre)
+    obi = sal_center_of_mass(ob)
+    fori = sal_center_of_mass(pre)
     dist = hypot(fori[1] - obi[1], fori[0] - obi[0])
 
     l1 = dist / maximum_distance
     return l1
 
 
-def weighted_r(df, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_weighted_distance(df, minref, maxref, mindiff, minsize, minmax, mindis):
     """This function is to calculated The weighted averaged distance between the centers of mass of the
     individual objects and the center of mass of the total precipitation field (Wernli et al, 2008).
 
@@ -950,8 +950,8 @@ def weighted_r(df, minref, maxref, mindiff, minsize, minmax, mindis):
             "The pandas package is required for the SAL "
             "verification method but it is not installed"
         )
-    df_obj = detect_objects_tstorm(df, minref, maxref, mindiff, minsize, minmax, mindis)
-    centroid_total = c_m(df)
+    df_obj = sal_detect_objects(df, minref, maxref, mindiff, minsize, minmax, mindis)
+    centroid_total = sal_center_of_mass(df)
     r = []
     for i in df_obj.label - 1:
         xd = (df_obj["weighted_centroid-1"][i] - centroid_total[1]) ** 2
@@ -968,7 +968,7 @@ def weighted_r(df, minref, maxref, mindiff, minsize, minmax, mindis):
     return w_r
 
 
-def l2_param(df_obs, df_forc, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_l2_param(df_obs, df_forc, minref, maxref, mindiff, minsize, minmax, mindis):
     """This function calculates the second parameter of location component for SAL based on Wernli et al (2008).
 
     Parameters
@@ -986,17 +986,17 @@ def l2_param(df_obs, df_forc, minref, maxref, mindiff, minsize, minmax, mindis):
     The first parameter of location component which has a value between 0 to 1.
     """
     maximum_distance = sqrt(((df_obs.shape[0]) ** 2) + ((df_obs.shape[1]) ** 2))
-    obs_r = (weighted_r(df_obs, minref, maxref, mindiff, minsize, minmax, mindis)) * (
+    obs_r = (sal_weighted_distance(df_obs, minref, maxref, mindiff, minsize, minmax, mindis)) * (
         df_obs.mean()
     )
-    forc_r = (weighted_r(df_forc, minref, maxref, mindiff, minsize, minmax, mindis)) * (
+    forc_r = (sal_weighted_distance(df_forc, minref, maxref, mindiff, minsize, minmax, mindis)) * (
         df_forc.mean()
     )
     l2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
     return float(l2)
 
 
-def s_param(df_obs, df_pre, minref, maxref, mindiff, minsize, minmax, mindis):
+def sal_structure(df_obs, df_pre, minref, maxref, mindiff, minsize, minmax, mindis):
     """This function calculates the structure component for SAL based on Wernli et al (2008).
 
     Parameters
@@ -1014,18 +1014,18 @@ def s_param(df_obs, df_pre, minref, maxref, mindiff, minsize, minmax, mindis):
     The structure component which has a value between -2 to 2.
     """
     nom = (
-        vol(df_pre, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
-        - vol(df_obs, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
+        sal_scaled_volume(df_pre, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
+        - sal_scaled_volume(df_obs, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
     )
     denom = (
-        vol(df_pre, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
-        + vol(df_obs, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
+        sal_scaled_volume(df_pre, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
+        + sal_scaled_volume(df_obs, minref, maxref, mindiff, minsize, minmax, mindis).scaled_v.sum()
     )
     S = nom / (0.5 * (denom))
     return S
 
 
-def max_dist(min_lon, min_lat, max_lon, max_lat):
+def sal_max_distance(min_lon, min_lat, max_lon, max_lat):
     """This function calculates the maximum distance of the study area based on lon/lat coordinates.
 
     Parameters
