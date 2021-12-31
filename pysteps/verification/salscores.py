@@ -36,6 +36,17 @@ except ImportError:
     skimage_imported = False
 
 
+# regionprops proerty names changed with scikit-image v0.19, buld old names
+# will continue to work for backwards compatibility
+# see https://github.com/scikit-image/scikit-image/releases/tag/v0.19.0
+REGIONPROPS = [
+    "label",
+    "centroid_weighted",
+    "max_intensity",
+    "intensity_image",
+]
+
+
 def sal(
     prediction,
     observation,
@@ -267,8 +278,6 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
     -------
     precip_objects: pd.DataFrame
         Dataframe containing all detected cells and their respective properties.
-        Columns of dataframe:
-        label, weighted_centroid, max_intensity, image_intensity
     """
     if not pandas_imported:
         raise MissingOptionalDependency(
@@ -294,14 +303,8 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
         }
     _, labels = tstorm_detect.detection(precip, **tstorm_kwargs)
     labels = labels.astype(int)
-    properties = [
-        "label",
-        "weighted_centroid",
-        "max_intensity",  # use instead of 'intensity_max' for backward compatibility
-        "image_intensity",  # use instead of 'image_intensity' for backward compatibility
-    ]
     precip_objects = regionprops_table(
-        labels, intensity_image=precip, properties=properties
+        labels, intensity_image=precip, properties=REGIONPROPS
     )
     return pd.DataFrame(precip_objects)
 
@@ -312,9 +315,9 @@ def _sal_scaled_volume(precip_objects):
     Parameters
     ----------
     precip_objects: pd.DataFrame
-        Dataframe containing all detected cells and their respective properties.
-        Columns of dataframe:
-        label, weighted_centroid, max_intensity, image_intensity
+        Dataframe containing all detected cells and their respective properties
+        as returned by the :py:func:`pysteps.verification.salsscores._sal_detect_objects`
+        function.
 
     Returns
     -------
@@ -328,7 +331,7 @@ def _sal_scaled_volume(precip_objects):
         )
     objects_volume_scaled = []
     for _, precip_object in precip_objects.iterrows():
-        intensity_sum = precip_object.image_intensity.sum()
+        intensity_sum = precip_object.intensity_image.sum()
         max_intensity = precip_object.max_intensity
         volume_scaled = intensity_sum / max_intensity
         objects_volume_scaled.append(volume_scaled)
@@ -369,13 +372,13 @@ def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
     centroid_total = center_of_mass(np.nan_to_num(precip))
     r = []
     for i in precip_objects.label - 1:
-        xd = (precip_objects["weighted_centroid-1"][i] - centroid_total[1]) ** 2
-        yd = (precip_objects["weighted_centroid-0"][i] - centroid_total[0]) ** 2
+        xd = (precip_objects["centroid_weighted-1"][i] - centroid_total[1]) ** 2
+        yd = (precip_objects["centroid_weighted-0"][i] - centroid_total[0]) ** 2
 
         dst = sqrt(xd + yd)
-        sumr = (precip_objects.image_intensity[i].sum()) * dst
+        sumr = (precip_objects.intensity_image[i].sum()) * dst
 
-        sump = precip_objects.image_intensity[i].sum()
+        sump = precip_objects.intensity_image[i].sum()
 
         r.append({"sum_dist": sumr, "sum_p": sump})
     rr = pd.DataFrame(r)
