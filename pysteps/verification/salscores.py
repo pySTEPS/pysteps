@@ -52,9 +52,9 @@ def sal(
     observation: array-like
         Array of shape (m,n)  with observation data.
     thr_factor: float, optional
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
         If specified, this is used to identify coherent objects enclosed by the threshold
-        contour thr_factor * max(precip).
+        contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm. If None, default values are used.
@@ -67,6 +67,7 @@ def sal(
 
     References
     ----------
+    :cite: Wernli, H., Paulat, M., Hagen, M., & Frei, C. (2008).
     :cite: Wernli, H., Hofmann, C., & Zimmer, M. (2009).
     :cite: Feldmann, M., Germann, U., Gabella, M., & Berne, A. (2021).
 
@@ -103,9 +104,9 @@ def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     observation: array-like
         Array of shape (m,n)  with observation data.
     thr_factor: float, optional
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
         If specified, this is used to identify coherent objects enclosed by the threshold
-        contour thr_factor * max(precip).
+        contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm. If None, default values are used.
@@ -163,9 +164,9 @@ def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     observation: array-like
         Array of shape (m,n)  with observation data.
     thr_factor: float, optional
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
         If specified, this is used to identify coherent objects enclosed by the threshold
-        contour thr_factor * max(precip).
+        contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm. If None, default values are used.
@@ -220,9 +221,9 @@ def _sal_l2_param(prediction, observation, thr_factor, tstorm_kwargs):
     observation: array-like
         Array of shape (m,n)  with observation data.
     thr_factor: float
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
         If specified, this is used to identify coherent objects enclosed by the threshold
-        contour thr_factor * max(precip).
+        contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm. If None, default values are used.
@@ -254,9 +255,9 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
     precip: array-like
         Array of shape (m,n) containing input data. Nan values are ignored.
     thr_factor: float
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
         If specified, this is used to identify coherent objects enclosed by the threshold
-        contour thr_factor * max(precip).
+        contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm. If None, default values are used.
@@ -287,7 +288,7 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
             "minmax": tstorm_kwargs.get("minmax", 0),
             "mindis": tstorm_kwargs.get("mindis", 5),
             "maxref": tstorm_kwargs.get("maxref", np.Inf),
-            "minref": thr_factor * np.nanmax(precip),
+            "minref": thr_factor * np.nanquantile(precip, 0.95),
         }
     _, labels = tstorm_detect.detection(precip, **tstorm_kwargs)
     labels = labels.astype(int)
@@ -343,9 +344,9 @@ def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
     precip: array-like
         Array of shape (m,n).
     thr_factor: float
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2008).
+        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
         If specified, this is used to identify coherent objects enclosed by the threshold
-        contour thr_factor * max(precip).
+        contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm. If None, default values are used.
