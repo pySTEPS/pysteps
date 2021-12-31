@@ -292,12 +292,14 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
     if tstorm_kwargs is None:
         tstorm_kwargs = dict()
     if thr_factor is not None:
+        zero_value = np.nanmin(precip)
         tstorm_kwargs = {
             "minsize": tstorm_kwargs.get("minsize", 5),
             "minmax": tstorm_kwargs.get("minmax", 0),
             "mindis": tstorm_kwargs.get("mindis", 5),
             "maxref": tstorm_kwargs.get("maxref", np.Inf),
-            "minref": thr_factor * np.nanquantile(np.array(precip), 0.95),
+            "minref": thr_factor
+            * np.nanquantile(np.array(precip[precip > zero_value]), 0.95),
             # np.array() converts masked arrays which do not play well with
             # np.nanquantile, see https://github.com/numpy/numpy/issues/11990
         }
