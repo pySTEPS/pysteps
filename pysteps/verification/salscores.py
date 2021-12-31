@@ -41,7 +41,7 @@ except ImportError:
 # see https://github.com/scikit-image/scikit-image/releases/tag/v0.19.0
 REGIONPROPS = [
     "label",
-    "centroid_weighted",
+    "weighted_centroid",
     "max_intensity",
     "intensity_image",
 ]
@@ -374,8 +374,8 @@ def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
     centroid_total = center_of_mass(np.nan_to_num(precip))
     r = []
     for i in precip_objects.label - 1:
-        xd = (precip_objects["centroid_weighted-1"][i] - centroid_total[1]) ** 2
-        yd = (precip_objects["centroid_weighted-0"][i] - centroid_total[0]) ** 2
+        xd = (precip_objects["weighted_centroid-1"][i] - centroid_total[1]) ** 2
+        yd = (precip_objects["weighted_centroid-0"][i] - centroid_total[0]) ** 2
 
         dst = sqrt(xd + yd)
         sumr = (precip_objects.intensity_image[i].sum()) * dst
