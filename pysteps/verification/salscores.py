@@ -3,7 +3,7 @@
 pysteps.verification.salscores
 ==============================
 
-The Spatial-Amplitude-Location (SAL) score.
+The Spatial-Amplitude-Location (SAL) score by :cite:`WPHF2008`.
 
 .. autosummary::
     :toctree: ../generated/
@@ -63,7 +63,7 @@ def sal(
     observation: array-like
         Array of shape (m,n)  with observation data.
     thr_factor: float, optional
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
+        Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
         contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict, optional
@@ -78,13 +78,13 @@ def sal(
 
     References
     ----------
-    :cite: Wernli, H., Paulat, M., Hagen, M., & Frei, C. (2008).
-    :cite: Wernli, H., Hofmann, C., & Zimmer, M. (2009).
-    :cite: Feldmann, M., Germann, U., Gabella, M., & Berne, A. (2021).
+    :cite:`WPHF2008`
+    :cite:`WHZ2009`
+    :cite:`Feldmann2021`
 
     Notes
     -----
-    This implementation uses the thunderstorm detection algorithm by Feldmann et al (2021)
+    This implementation uses the thunderstorm detection algorithm by :cite:`Feldmann2021`
     for the identification of precipitation objects within the considered domain.
 
     See also
@@ -106,7 +106,7 @@ def sal(
 
 def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     """This function calculates the structure component for SAL based on
-    Wernli et al (2008).
+    :cite:`WPHF2008`.
 
     Parameters
     ----------
@@ -115,7 +115,7 @@ def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     observation: array-like
         Array of shape (m,n)  with observation data.
     thr_factor: float, optional
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
+        Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
         contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict, optional
@@ -138,7 +138,7 @@ def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
 
 
 def sal_amplitude(prediction, observation):
-    """Calculate the amplitude component for SAL based on Wernli et al (2008).
+    """Calculate the amplitude component for SAL based on :cite:`WPHF2008`.
 
     This component is the normalized difference of the domain-averaged precipitation
     in observation and forecast.
@@ -163,7 +163,7 @@ def sal_amplitude(prediction, observation):
 
 def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     """Calculate the first parameter of location component for SAL based on
-    Wernli et al (2008).
+    :cite:`WPHF2008`.
 
     This parameter indicates the normalized distance between the center of mass in
     observation and forecast.
@@ -175,7 +175,7 @@ def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     observation: array-like
         Array of shape (m,n)  with observation data.
     thr_factor: float, optional
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
+        Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
         contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict, optional
@@ -196,7 +196,7 @@ def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
 
 def _sal_l1_param(prediction, observation):
     """Calculate the first parameter of location component for SAL based on
-    Wernli et al (2008).
+    :cite:`WPHF2008`.
 
     This parameter indicates the normalized distance between the center of mass in
     observation and forecast.
@@ -223,7 +223,7 @@ def _sal_l1_param(prediction, observation):
 
 
 def _sal_l2_param(prediction, observation, thr_factor, tstorm_kwargs):
-    """Calculate the second parameter of location component for SAL based on Wernli et al (2008).
+    """Calculate the second parameter of location component for SAL based on :cite:`WPHF2008`.
 
     Parameters
     ----------
@@ -232,7 +232,7 @@ def _sal_l2_param(prediction, observation, thr_factor, tstorm_kwargs):
     observation: array-like
         Array of shape (m,n)  with observation data.
     thr_factor: float
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
+        Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
         contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict
@@ -259,14 +259,14 @@ def _sal_l2_param(prediction, observation, thr_factor, tstorm_kwargs):
 
 
 def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
-    """This function detects thunderstorms using a multi-threshold approach (Feldmann et al., 2021).
+    """This function detects thunderstorms using a multi-threshold approach from :cite:`Feldmann2021`.
 
     Parameters
     ----------
     precip: array-like
         Array of shape (m,n) containing input data. Nan values are ignored.
     thr_factor: float
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
+        Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
         contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict
@@ -310,7 +310,7 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
 
 
 def _sal_scaled_volume(precip_objects):
-    """Calculate the scaled volume based on Wernli et al (2008).
+    """Calculate the scaled volume based on :cite:`WPHF2008`.
 
     Parameters
     ----------
@@ -349,7 +349,7 @@ def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
     precip: array-like
         Array of shape (m,n).
     thr_factor: float
-        Factor used to compute the detection threshold as in eq. 1 of Wernli et al (2009).
+        Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
         contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict
