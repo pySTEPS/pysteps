@@ -91,16 +91,11 @@ def sal(
     --------
     :py:mod:`pysteps.feature.tstorm`.
     """
-    if np.nanmax(observation >= 0.1) & np.nanmax(
-        prediction >= 0.1
-    ):  # to avoid errors of nan values or very low precipitation
-        structure = sal_structure(prediction, observation, thr_factor, tstorm_kwargs)
-        amplitude = sal_amplitude(prediction, observation)
-        location = sal_location(prediction, observation, thr_factor, tstorm_kwargs)
-    else:
-        structure = np.nan
-        amplitude = np.nan
-        location = np.nan
+    prediction = np.copy(prediction)
+    observation = np.copy(observation)
+    structure = sal_structure(prediction, observation, thr_factor, tstorm_kwargs)
+    amplitude = sal_amplitude(prediction, observation)
+    location = sal_location(prediction, observation, thr_factor, tstorm_kwargs)
     return structure, amplitude, location
 
 
@@ -126,7 +121,9 @@ def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     Returns
     -------
     structure: float
-        The structure component with value between -2 to 2.
+        The structure component with value between -2 to 2  and 0
+        denotes perfect forecast in terms of structure. The returned value is NaN
+        if no objects are detected in neither the prediction nor the observation.
     """
     prediction_objects = _sal_detect_objects(prediction, thr_factor, tstorm_kwargs)
     observation_objects = _sal_detect_objects(observation, thr_factor, tstorm_kwargs)
@@ -153,8 +150,9 @@ def sal_amplitude(prediction, observation):
     Returns
     -------
     amplitude: float
-        Amplitude parameter with value between -2 to 2 and 0
-        denotes perfect forecast in terms of amplitude.
+        Amplitude parameter with value between -2 to 2 and 0 denotes perfect forecast in
+        terms of amplitude. The returned value is NaN if no objects are detected in
+        neither the prediction nor the observation.
     """
     mean_obs = np.nanmean(observation)
     mean_pred = np.nanmean(prediction)
@@ -186,8 +184,9 @@ def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     Returns
     -------
     location: float
-        The location component with value between 0 to 2 and 0
-        denotes perfect forecast in terms of location.
+        The location component with value between 0 to 2 and 0 denotes perfect forecast
+        in terms of location. The returned value is NaN if no objects are detected in
+        either the prediction or the observation.
     """
     return _sal_l1_param(prediction, observation) + _sal_l2_param(
         prediction, observation, thr_factor, tstorm_kwargs
@@ -249,10 +248,10 @@ def _sal_l2_param(prediction, observation, thr_factor, tstorm_kwargs):
         ((observation.shape[0]) ** 2) + ((observation.shape[1]) ** 2)
     )
     obs_r = (_sal_weighted_distance(observation, thr_factor, tstorm_kwargs)) * (
-        observation.mean()
+        np.nanmean(observation)
     )
     forc_r = (_sal_weighted_distance(prediction, thr_factor, tstorm_kwargs)) * (
-        prediction.mean()
+        np.nanmean(prediction)
     )
     location_2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
     return float(location_2)
@@ -298,10 +297,7 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
             "minmax": tstorm_kwargs.get("minmax", 0),
             "mindis": tstorm_kwargs.get("mindis", 5),
             "maxref": tstorm_kwargs.get("maxref", np.Inf),
-            "minref": thr_factor
-            * np.nanquantile(np.array(precip[precip > zero_value]), 0.95),
-            # np.array() converts masked arrays which do not play well with
-            # np.nanquantile, see https://github.com/numpy/numpy/issues/11990
+            "minref": thr_factor * np.nanquantile(precip[precip > zero_value], 0.95),
         }
     _, labels = tstorm_detect.detection(precip, **tstorm_kwargs)
     labels = labels.astype(int)
@@ -364,6 +360,7 @@ def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
     weighted_distance: float
         The weighted averaged distance between the centers of mass of the
         individual objects and the center of mass of the total precipitation field.
+        The returned value is NaN if no objects are detected.
     """
     if not pandas_imported:
         raise MissingOptionalDependency(
@@ -371,6 +368,8 @@ def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
             "verification method but it is not installed"
         )
     precip_objects = _sal_detect_objects(precip, thr_factor, tstorm_kwargs)
+    if len(precip_objects) == 0:
+        return np.nan
     centroid_total = center_of_mass(np.nan_to_num(precip))
     r = []
     for i in precip_objects.label - 1:
