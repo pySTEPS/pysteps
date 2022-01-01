@@ -24,19 +24,19 @@ from pysteps.feature import tstorm as tstorm_detect
 try:
     import pandas as pd
 
-    pandas_imported = True
+    PANDAS_IMPORTED = True
 except ImportError:
-    pandas_imported = False
+    PANDAS_IMPORTED = False
 
 try:
     from skimage.measure import regionprops_table
 
-    skimage_imported = True
+    SKIMAGE_IMPORTED = True
 except ImportError:
-    skimage_imported = False
+    SKIMAGE_IMPORTED = False
 
 
-# regionprops proerty names changed with scikit-image v0.19, buld old names
+# regionprops property names changed with scikit-image v0.19, buld old names
 # will continue to work for backwards compatibility
 # see https://github.com/scikit-image/scikit-image/releases/tag/v0.19.0
 REGIONPROPS = [
@@ -59,13 +59,13 @@ def sal(
     Parameters
     ----------
     prediction: array-like
-        Array of shape (m,n) with prediction data.
+        Array of shape (m,n) with prediction data. NaNs are ignored.
     observation: array-like
-        Array of shape (m,n)  with observation data.
+        Array of shape (m,n)  with observation data. NaNs are ignored.
     thr_factor: float, optional
         Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
-        If specified, this is used to identify coherent objects enclosed by the threshold
-        contour thr_factor * quantile95(precip).
+        If specified, this is used to identify coherent objects enclosed by the
+        threshold contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm. If None, default values are used.
@@ -74,7 +74,8 @@ def sal(
     Returns
     -------
     sal: tuple of floats
-        A tuple of floats containing the structure, amplitude, location components of SAL.
+        A 3-element tuple containing the structure, amplitude, location components of
+        SAL.
 
     References
     ----------
@@ -100,19 +101,18 @@ def sal(
 
 
 def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
-    """This function calculates the structure component for SAL based on
-    :cite:`WPHF2008`.
+    """Compute the structure component for SAL based on :cite:`WPHF2008`.
 
     Parameters
     ----------
     prediction: array-like
-        Array of shape (m,n) with prediction data.
+        Array of shape (m,n) with prediction data. NaNs are ignored.
     observation: array-like
-        Array of shape (m,n)  with observation data.
+        Array of shape (m,n) with observation data. NaNs are ignored.
     thr_factor: float, optional
         Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
-        If specified, this is used to identify coherent objects enclosed by the threshold
-        contour thr_factor * quantile95(precip).
+        If specified, this is used to identify coherent objects enclosed by the
+        threshold contour thr_factor * quantile95(precip).
     tstorm_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the tstorm feature
         detection algorithm. If None, default values are used.
@@ -121,9 +121,9 @@ def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     Returns
     -------
     structure: float
-        The structure component with value between -2 to 2  and 0
-        denotes perfect forecast in terms of structure. The returned value is NaN
-        if no objects are detected in neither the prediction nor the observation.
+        The structure component with value between -2 to 2 and 0 denotes perfect
+        forecast in terms of structure. The returned value is NaN if no objects are
+        detected in neither the prediction nor the observation.
     """
     prediction_objects = _sal_detect_objects(prediction, thr_factor, tstorm_kwargs)
     observation_objects = _sal_detect_objects(observation, thr_factor, tstorm_kwargs)
@@ -135,7 +135,7 @@ def sal_structure(prediction, observation, thr_factor=None, tstorm_kwargs=None):
 
 
 def sal_amplitude(prediction, observation):
-    """Calculate the amplitude component for SAL based on :cite:`WPHF2008`.
+    """Compute the amplitude component for SAL based on :cite:`WPHF2008`.
 
     This component is the normalized difference of the domain-averaged precipitation
     in observation and forecast.
@@ -143,9 +143,9 @@ def sal_amplitude(prediction, observation):
     Parameters
     ----------
     prediction: array-like
-        Array of shape (m,n) with prediction data.
+        Array of shape (m,n) with prediction data. NaNs are ignored.
     observation: array-like
-        Array of shape (m,n)  with observation data.
+        Array of shape (m,n)  with observation data. NaNs are ignored.
 
     Returns
     -------
@@ -160,7 +160,7 @@ def sal_amplitude(prediction, observation):
 
 
 def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
-    """Calculate the first parameter of location component for SAL based on
+    """Compute the first parameter of location component for SAL based on
     :cite:`WPHF2008`.
 
     This parameter indicates the normalized distance between the center of mass in
@@ -169,9 +169,9 @@ def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
     Parameters
     ----------
     prediction: array-like
-        Array of shape (m,n) with prediction data.
+        Array of shape (m,n) with prediction data. NaNs are ignored.
     observation: array-like
-        Array of shape (m,n)  with observation data.
+        Array of shape (m,n)  with observation data. NaNs are ignored.
     thr_factor: float, optional
         Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
@@ -194,7 +194,7 @@ def sal_location(prediction, observation, thr_factor=None, tstorm_kwargs=None):
 
 
 def _sal_l1_param(prediction, observation):
-    """Calculate the first parameter of location component for SAL based on
+    """Compute the first parameter of location component for SAL based on
     :cite:`WPHF2008`.
 
     This parameter indicates the normalized distance between the center of mass in
@@ -203,9 +203,9 @@ def _sal_l1_param(prediction, observation):
     Parameters
     ----------
     prediction: array-like
-        Array of shape (m,n) with prediction data.
+        Array of shape (m,n) with prediction data. NaNs are ignored.
     observation: array-like
-        Array of shape (m,n)  with observation data.
+        Array of shape (m,n) with observation data. NaNs are ignored.
 
     Returns
     -------
@@ -227,9 +227,9 @@ def _sal_l2_param(prediction, observation, thr_factor, tstorm_kwargs):
     Parameters
     ----------
     prediction: array-like
-        Array of shape (m,n) with prediction data.
+        Array of shape (m,n) with prediction data. NaNs are ignored.
     observation: array-like
-        Array of shape (m,n)  with observation data.
+        Array of shape (m,n)  with observation data. NaNs are ignored.
     thr_factor: float
         Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
@@ -278,12 +278,12 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
     precip_objects: pd.DataFrame
         Dataframe containing all detected cells and their respective properties.
     """
-    if not pandas_imported:
+    if not PANDAS_IMPORTED:
         raise MissingOptionalDependency(
             "The pandas package is required for the SAL "
             "verification method but it is not installed"
         )
-    if not skimage_imported:
+    if not SKIMAGE_IMPORTED:
         raise MissingOptionalDependency(
             "The scikit-image package is required for the SAL "
             "verification method but it is not installed"
@@ -322,7 +322,7 @@ def _sal_scaled_volume(precip_objects):
     object_volume: pd.Series
         A pandas Series with the scaled volume of each precipitation object.
     """
-    if not pandas_imported:
+    if not PANDAS_IMPORTED:
         raise MissingOptionalDependency(
             "The pandas package is required for the SAL "
             "verification method but it is not installed"
@@ -345,7 +345,7 @@ def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
     Parameters
     ----------
     precip: array-like
-        Array of shape (m,n).
+        Array of shape (m,n). NaNs are ignored.
     thr_factor: float
         Factor used to compute the detection threshold as in eq. 1 of :cite:`WHZ2009`.
         If specified, this is used to identify coherent objects enclosed by the threshold
@@ -362,7 +362,7 @@ def _sal_weighted_distance(precip, thr_factor, tstorm_kwargs):
         individual objects and the center of mass of the total precipitation field.
         The returned value is NaN if no objects are detected.
     """
-    if not pandas_imported:
+    if not PANDAS_IMPORTED:
         raise MissingOptionalDependency(
             "The pandas package is required for the SAL "
             "verification method but it is not installed"
