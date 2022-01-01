@@ -63,7 +63,7 @@ jobs:
           brew update-reset
           brew update
           gcc-9 --version || brew install gcc@9
-          pip install . --no-cache-dir
+          pip install .
 
       - name: Install pygrib (not win)
         if: matrix.os != 'windows-latest'
@@ -72,7 +72,7 @@ jobs:
       - name: Install pysteps
         if: matrix.os != 'macos-latest'
         working-directory: ${{github.workspace}}
-        run: pip install . --no-cache-dir
+        run: pip install .
 
       - name: Download pysteps data
         env:
