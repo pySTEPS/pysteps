@@ -4,6 +4,7 @@ env:
   MINIMAL_DEPENDENCIES: cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask
   OPTIONAL_DEPENDENCIES: pyfftw cartopy h5py PyWavelets pandas scikit-image
   TEST_DEPENDENCIES: pytest pytest-cov
+  CONDA_DLL_SEARCH_MODIFICATION_ENABLE: 1
 
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
