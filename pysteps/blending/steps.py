@@ -46,6 +46,15 @@ consists of the following main steps:
     blend_means_sigmas
     _check_inputs
     _compute_incremental_mask
+    _transform_to_lagrangian
+    _init_noise
+    _compute_cascade_decomposition_radar
+    _compute_cascade_decomposition_nwp
+    _estimate_ar_parameters_radar
+    _find_nwp_combination
+    _init_random_generators
+    _prepare_forecast_loop
+    _compute_initial_nwp_skill
 
 """
 
@@ -666,9 +675,7 @@ def forecast(
         if measure_time:
             starttime = time.time()
 
-        ###
         # 8.1.1 Determine the skill of the components for lead time (t0 + t)
-        ###
         # First for the extrapolation component. Only calculate it when t > 0.
         if t > 0:
             (
@@ -680,9 +687,7 @@ def forecast(
 
         # the nowcast iteration for each ensemble member
         def worker(j):
-            ###
             # 8.1.2 Determine the skill of the nwp components for lead time (t0 + t)
-            ###
             # Then for the model components
             if blend_nwp_members:
                 rho_nwp_fc = [
@@ -709,9 +714,8 @@ def forecast(
                     (rho_extr[None, :], rho_nwp_fc[None, :]), axis=0
                 )
 
-            ###
             # 8.2 Determine the weights per component
-            ###
+
             # Weights following the bps method. These are needed for the velocity
             # weights prior to the advection step. If weights method spn is
             # selected, weights will be overwritten with those weights prior to
@@ -755,11 +759,10 @@ def forecast(
                     "Unknown weights method %s: must be 'bps' or 'spn'" % weights_method
                 )
 
-            ###
             # 8.3 Determine the noise cascade and regress this to the subsequent
             # time step + regress the extrapolation component to the subsequent
             # time step
-            ###
+
             # 8.3.1 Determine the epsilon, a cascade of temporally independent
             # but spatially correlated noise
             if noise_method is not None:
@@ -813,11 +816,10 @@ def forecast(
             EPS = None
             EPS_ = None
 
-            ###
             # 8.4 Perturb and blend the advection fields + advect the
             # extrapolation and noise cascade to the current time step
             # (or subtimesteps if non-integer time steps are given)
-            ###
+
             # Settings and initialize the output
             extrap_kwargs_ = extrap_kwargs.copy()
             extrap_kwargs_noise = extrap_kwargs.copy()
@@ -1013,9 +1015,7 @@ def forecast(
 
                 t_prev[j] = t + 1
 
-            ###
             # 8.5 Blend the cascades
-            ###
             R_f_out = []
 
             for t_sub in subtimesteps:
@@ -1106,11 +1106,9 @@ def forecast(
                         weights=weights_model_only,
                     )
 
-                    ###
                     # 8.6 Recompose the cascade to a precipitation field
                     # (The function first normalizes the blended cascade, R_f_blended
                     # again)
-                    ###
                     R_f_new = blending.utils.recompose_cascade(
                         combined_cascade=R_f_blended,
                         combined_mean=means_blended,
@@ -1128,13 +1126,12 @@ def forecast(
                         R_f_new = fft_objs[j].irfft2(R_f_new)
                         R_f_new_mod_only = fft_objs[j].irfft2(R_f_new_mod_only)
 
-                    ###
                     # 8.7 Post-processing steps - use the mask and fill no data with
                     # the blended NWP forecast. Probability matching following
                     # Lagrangian blended probability matching which uses the
                     # latest extrapolated radar rainfall field blended with the
                     # nwp model(s) rainfall forecast fields as 'benchmark'.
-                    ###
+
                     # TODO: Check probability matching method
                     # 8.7.1 first blend the extrapolated rainfall field (the field
                     # that is only used for post-processing steps) with the NWP
