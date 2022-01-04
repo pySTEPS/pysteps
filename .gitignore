@@ -85,3 +85,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+/doc/source/user_guide/examples_gallery/
+/doc/source/examples_gallery/
+/examples/

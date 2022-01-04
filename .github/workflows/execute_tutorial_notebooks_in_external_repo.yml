@@ -1,0 +1,88 @@
+########################################################################################
+# Trigger the notebooks' execution in the external repository.
+#
+# If the "main" branch triggered this event, then the nb execution is triggered in the
+# "main" branch, otherwise in the dev branch.
+#
+# Naming convention used in this workflow:
+#
+# "main repository": Project repository with the python package and the documentation.
+# "linked repository": Repository where the example gallery of jupyter notebooks is
+#                      stored.
+########################################################################################
+name: Trigger notebook execution in the external repository
+
+env:
+  # URL for the external repository linked with the notebooks in this project.
+  LINKED_REPO: pysteps/pysteps_tutorials
+  THIS_REPO: pysteps/pysteps
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  trigger_nb_execution:
+    name: Trigger the execution in the external repository with the notebooks
+    # The triggering is done by pushing an empty commit to the linked repository.
+    # The commit message contains the Hash of the main repository's commit that
+    # trigger the event.
+    runs-on: "ubuntu-latest"
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Find the branch that trigger the event
+        id: get_dest_branch
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            event_branch=$(echo ${GITHUB_REF##*/})
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            event_branch=$(echo $GITHUB_BASE_REF)
+          else
+            event_branch=unknown
+          fi
+          echo "::set-output name=event_branch::${event_branch}"
+
+          # We only push to latest or to dev.
+          if [[ "${event_branch}" == "main" ]]; then
+            echo "::set-output name=dest_branch::main"
+          else
+            echo "::set-output name=dest_branch::dev"
+          fi
+
+      - name: Print debug information
+        env:
+          DEST_BRANCH: ${{steps.get_dest_branch.outputs.dest_branch}}
+          EVENT_BRANCH: ${{steps.get_dest_branch.outputs.event_branch}}
+        run: |
+          echo "EVENT_BRANCH=${EVENT_BRANCH}"
+          echo "GITHUB_SHA=${GITHUB_SHA}"
+          echo "DEST_BRANCH=${DEST_BRANCH}"
+
+      - name: Clone linked repository
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false # Avoid using the GITHUB_TOKEN  instead of the personal access token
+          fetch-depth: 0 # Avoid errors pushing refs to the destination repository.
+          repository: ${{ env.LINKED_REPO }}
+          ref: ${{steps.get_dest_branch.outputs.dest_branch}}
+
+      - name: Create empty commit in linked repo
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git commit --allow-empty \
+            -m "Triggering nb execution from ${GITHUB_SHA::8}" \
+            -m "https://github.com/${THIS_REPO}/commit/{$GITHUB_SHA}"
+
+      - name: Push the empty commit to trigger the workflow
+        uses: ad-m/github-push-action@master
+        with:
+          repository: ${{ env.LINKED_REPO }}
+          github_token: ${{ secrets.LINKED_TOKEN }}
+          branch: ${{steps.get_dest_branch.outputs.dest_branch}}

@@ -16,6 +16,6 @@ the package, see the :ref:`pysteps-reference`.
     install_pysteps
     example_data
     set_pystepsrc
-    ../auto_examples/index
+    ../examples_gallery/index
     machine_learning_pysteps
 
