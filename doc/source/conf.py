@@ -57,7 +57,7 @@ sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "user_guide/examples_gallery",  # path where to save gallery generated examples
     "filename_pattern": r"/*\.py",  # Include all the files in the examples dir
-    'plot_gallery': False,  # Do not execute the examples
+    "plot_gallery": False,  # Do not execute the examples
 }
 
 
@@ -78,26 +78,23 @@ def set_root():
         json.dump(rcparams, f, indent=4)
 
 
-def pull_example_gallery_from_external_repo():
+def get_branch_to_pull():
+    try:
+        rtd_version = subprocess.check_output(
+            ["git", "describe", "--abbrev=0", "--tags"], universal_newlines=True
+        ).strip()
+    except subprocess.CalledProcessError:
+        # If we are not in a tag, use latest.
+        rtd_version = "latest"
+
+    return rtd_version
+
+
+def pull_example_gallery_from_external_repo(branch):
     global EXAMPLES_GALLERY_REPOSITORY
 
-    # Default to the "latest" branch, containing the latest rendered notebooks.
-    rtd_version = os.environ.get("READTHEDOCS_VERSION", "latest")
-
-    if rtd_version == "stable":
-        try:
-            rtd_version = subprocess.check_output(
-                ["git", "describe", "--abbrev=0", "--tags"], universal_newlines=True
-            ).strip()
-        except subprocess.CalledProcessError:
-            rtd_version = "latest"
-
-    print(f"\nRTD Version: {rtd_version}\n")
-
     with tempfile.TemporaryDirectory() as work_dir:
-        cmd = (
-            f"git clone {EXAMPLES_GALLERY_REPOSITORY} --depth 1 --branch {rtd_version} {work_dir}"
-        )
+        cmd = f"git clone {EXAMPLES_GALLERY_REPOSITORY} --depth 1 --branch {branch} {work_dir}"
         subprocess.check_output(cmd.split(" "))
 
         examples_gallery_dir = DOCS_DIR / "source/examples_gallery"
@@ -114,7 +111,7 @@ def pull_example_gallery_from_external_repo():
         shutil.copytree(examples_dir_in_remote, examples_dir)
 
 
-pull_example_gallery_from_external_repo()
+pull_example_gallery_from_external_repo(get_branch_to_pull())
 
 # -- Options for HTML output ----------------------------------------------
 html_theme = "sphinx_rtd_theme"
@@ -154,7 +151,7 @@ latex_preamble = r"""
 latex_elements = {
     "papersize": "a4paper",
     "pointsize": "10pt",
-    "preamble": latex_preamble
+    "preamble": latex_preamble,
 }
 
 latex_domain_indices = False
