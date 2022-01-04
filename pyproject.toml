@@ -3,7 +3,7 @@ requires = [
     "wheel",
     "setuptools>=40.8.0",
     "Cython>=0.29.2",
-    "numpy<=1.21"
+    "numpy>=1.13"
 ]
 # setuptools 40.8.0 is the first version of setuptools that offers
 # a PEP 517 backend that closely mimics directly executing setup.py.
