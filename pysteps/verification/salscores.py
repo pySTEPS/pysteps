@@ -293,11 +293,13 @@ def _sal_detect_objects(precip, thr_factor, tstorm_kwargs):
     if thr_factor is not None:
         zero_value = np.nanmin(precip)
         min_ref = thr_factor * np.nanquantile(precip[precip > zero_value], 0.95)
+        max_min = np.nanmax(precip) - zero_value
         tstorm_kwargs = {
             "minsize": tstorm_kwargs.get("minsize", 5),
             "minmax": tstorm_kwargs.get("minmax", min_ref),
             "mindis": tstorm_kwargs.get("mindis", 5),
             "maxref": tstorm_kwargs.get("maxref", np.Inf),
+            "mindiff": tstorm_kwargs.get("mindiff", max_min + 1),
             "minref": min_ref,
         }
     _, labels = tstorm_detect.detection(precip, **tstorm_kwargs)
