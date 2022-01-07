@@ -94,6 +94,9 @@ def sal(
 
     See also
     --------
+    :py:func:`pysteps.verification.salscores.sal_structure
+    :py:func:`pysteps.verification.salscores.sal_amplitude
+    :py:func:`pysteps.verification.salscores.sal_location
     :py:mod:`pysteps.feature.tstorm`.
     """
     prediction = np.copy(prediction)
@@ -283,7 +286,8 @@ def _sal_l2_param(prediction, observation, thr_factor, thr_quantile, tstorm_kwar
 
 
 def _sal_detect_objects(precip, thr_factor, thr_quantile, tstorm_kwargs):
-    """This function detects thunderstorms using a multi-threshold approach from :cite:`Feldmann2021`.
+    """Detect coherent precipitation objects using a multi-threshold approach from
+    :cite:`Feldmann2021`.
 
     Parameters
     ----------
