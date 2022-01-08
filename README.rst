@@ -68,7 +68,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 
 .. |gallery| image:: https://img.shields.io/badge/example-gallery-blue.svg
     :alt: pysteps example gallery
-    :target: https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
+    :target: https://pysteps.readthedocs.io/en/latest/examples_gallery/index.html
     
 .. |latest| image:: https://img.shields.io/badge/docs-latest-blue.svg
     :alt: pysteps documentation
@@ -121,7 +121,7 @@ Use
 
 You can have a look at the `gallery of examples`__ to get a better idea of how the library can be used.
 
-__ https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
+__ https://pysteps.readthedocs.io/en/latest/examples_gallery/index.html
 
 For a more detailed description of the implemented functions, check the `pysteps reference page`__.
 
