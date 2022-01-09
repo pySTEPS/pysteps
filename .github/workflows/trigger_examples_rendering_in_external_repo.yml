@@ -74,12 +74,15 @@ jobs:
           ref: ${{steps.set_destination_branch.outputs.dest_branch}}
 
       - name: Create empty commit in linked repo
+        env:
+          EVENT_BRANCH: ${{steps.find_triggering_branch.outputs.event_branch}}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git commit --allow-empty \
-            -m "Triggering nb execution from ${GITHUB_SHA::8}" \
-            -m "https://github.com/${THIS_REPO}/commit/{$GITHUB_SHA}"
+            -m "Triggering example rendering tasks from ${GITHUB_SHA::8}" \
+            -m "Branch: ${EVENT_BRANCH}" \
+            -m "https://github.com/${THIS_REPO}/commit/{$GITHUB_SHA}"            
 
       - name: Push the empty commit to trigger the workflow
         uses: ad-m/github-push-action@master
