@@ -17,7 +17,7 @@ env:
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main, dev, external_gallery]
   pull_request:
     branches: [ main, dev ]
 
@@ -34,8 +34,8 @@ jobs:
         shell: bash -l {0}
 
     steps:
-      - name: Find the branch that trigger the event
-        id: find_triggering_branch
+      - name: Get the name of the branch that trigger this event
+        id: get_triggering_branch
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
             event_branch=$(echo ${GITHUB_REF##*/})
@@ -46,7 +46,7 @@ jobs:
           fi
           echo "::set-output name=event_branch::${event_branch}"
 
-      - name: Set destination branch based on the triggering branch
+      - name: Set destination branch based on the triggering branch's name
         id: set_destination_branch
         run: |
           # We only push to latest or to dev.
@@ -59,7 +59,7 @@ jobs:
       - name: Print debug information
         env:
           DEST_BRANCH: ${{steps.set_destination_branch.outputs.dest_branch}}
-          EVENT_BRANCH: ${{steps.find_triggering_branch.outputs.event_branch}}
+          EVENT_BRANCH: ${{steps.get_triggering_branch.outputs.event_branch}}
         run: |
           echo "EVENT_BRANCH=${EVENT_BRANCH}"
           echo "GITHUB_SHA=${GITHUB_SHA}"
@@ -75,7 +75,7 @@ jobs:
 
       - name: Create empty commit in linked repo
         env:
-          EVENT_BRANCH: ${{steps.find_triggering_branch.outputs.event_branch}}
+          EVENT_BRANCH: ${{steps.get_triggering_branch.outputs.event_branch}}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
