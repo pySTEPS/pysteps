@@ -1,8 +1,14 @@
 ########################################################################################
 # Trigger the examples rendering in the external repository.
 #
-# If the "main" branch triggered this event, then the tasks for rendering the
-# example gallery is triggered in the "main" branch, otherwise in the dev branch.
+# This task push an empty commit to trigger the rendering of the example gallery
+# in an external repo as follows:
+#
+# ------------------------------------------
+# | Local branch -> Example gallery branch |
+# | master       -> main                   |
+# | other_branch -> dev                    |
+# ------------------------------------------
 #
 # This workflow requires the EXAMPLES_GALLERY_TOKEN secret with the access token
 # for the repository containing the example gallery.
@@ -15,9 +21,9 @@ env:
 
 on:
   push:
-    branches: [ main, dev, external_gallery]
-  pull_request:
-    branches: [ main, dev ]
+    branches: [ master, dev, external_gallery]
+#  pull_request:
+#    branches: [ master, dev ]
 
 jobs:
   trigger_example_gallery_rendering:
@@ -32,7 +38,7 @@ jobs:
         shell: bash -l {0}
 
     steps:
-      - name: Get the name of the branch that trigger this event
+      - name: Get the name of the branch triggering this event
         id: get_triggering_branch
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
@@ -78,9 +84,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git commit --allow-empty \
-            -m "Triggering example rendering tasks from ${GITHUB_SHA::8}" \
-            -m "Branch: ${EVENT_BRANCH}" \
-            -m "https://github.com/${THIS_REPO}/commit/{$GITHUB_SHA}"            
+            -m "[TRIGGER] Trigger rendering task from ${GITHUB_SHA::8}" \
+            -m "Branch:${EVENT_BRANCH}" \
+            -m "https://github.com/${THIS_REPO}/commit/${GITHUB_SHA}"            
 
       - name: Push the empty commit to trigger the workflow
         uses: ad-m/github-push-action@master
