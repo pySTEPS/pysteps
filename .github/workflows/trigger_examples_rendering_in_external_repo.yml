@@ -1,20 +1,18 @@
 ########################################################################################
-# Trigger the notebooks' execution in the external repository.
+# Trigger the examples rendering in the external repository.
 #
-# If the "main" branch triggered this event, then the nb execution is triggered in the
-# "main" branch, otherwise in the dev branch.
+# If the "main" branch triggered this event, then the tasks for rendering the
+# example gallery is triggered in the "main" branch, otherwise in the dev branch.
 #
 # Naming convention used in this workflow:
 #
 # "main repository": Project repository with the python package and the documentation.
-# "linked repository": Repository where the example gallery of jupyter notebooks is
-#                      stored.
+# "linked repository": Repository where the example gallery is stored.
 ########################################################################################
-name: Trigger notebook execution in the external repository
+name: Trigger example rendering tasks in the external repository
 
 env:
-  # URL for the external repository linked with the notebooks in this project.
-  LINKED_REPO: pysteps/pysteps_tutorials
+  LINKED_REPO: pysteps/pysteps-tutorials # External repository with the example gallery.
   THIS_REPO: pysteps/pysteps
 
 on:
@@ -24,8 +22,8 @@ on:
     branches: [ main, dev ]
 
 jobs:
-  trigger_nb_execution:
-    name: Trigger the execution in the external repository with the notebooks
+  trigger_example_gallery_rendering:
+    name: Trigger example rendering tasks in the external repository
     # The triggering is done by pushing an empty commit to the linked repository.
     # The commit message contains the Hash of the main repository's commit that
     # trigger the event.
