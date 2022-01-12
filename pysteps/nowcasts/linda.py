@@ -1386,8 +1386,8 @@ def _masked_convolution(field, kernel):
 
 def _weighted_std(f, w):
     """
-    Compute standard deviation of forecast errors with spatially varying weights
-    values close to zero are omitted.
+    Compute standard deviation of forecast errors with spatially varying weights.
+    Values close to zero are omitted.
     """
     mask = np.abs(f - 1.0) > 1e-4
     c = (w[mask].size - 1.0) / w[mask].size
