@@ -573,6 +573,7 @@ def forecast(
         mu_models,
         sigma_models,
         n_ens_members,
+        n_model_indices,
     ) = _find_nwp_combination(
         R_c,
         R_models,
@@ -695,6 +696,7 @@ def forecast(
                         lt=(t * int(timestep)),
                         correlations=rho_nwp_models[n_model],
                         outdir_path=outdir_path_skill,
+                        n_model=n_model,
                         skill_kwargs=clim_kwargs,
                     )
                     for n_model in range(rho_nwp_models.shape[0])
@@ -707,6 +709,7 @@ def forecast(
                     lt=(t * int(timestep)),
                     correlations=rho_nwp_models[j],
                     outdir_path=outdir_path_skill,
+                    n_model=n_model_indices[j],
                     skill_kwargs=clim_kwargs,
                 )
                 # Concatenate rho_extr and rho_nwp
@@ -1813,6 +1816,7 @@ def _find_nwp_combination(
             for i in range(n_ens_members)
         ]
         R_c = np.stack(R_c)
+        n_model_indices = None
 
     else:
         # Start with determining the maximum and mimimum number of members/models
@@ -1820,6 +1824,13 @@ def _find_nwp_combination(
         n_model_members = R_models.shape[0]
         n_ens_members_max = max(n_ens_members, n_model_members)
         n_ens_members_min = min(n_ens_members, n_model_members)
+        # Also make a list of the model index numbers. These indices are needed
+        # for indexing the right climatological skill file when pysteps calculates
+        # the blended forecast in parallel.
+        if n_model_members > 1:
+            n_model_indices = np.arange(n_model_members)
+        else:
+            n_model_indices = [0]
 
         # Now, repeat the nowcast ensemble members or the nwp models/members until
         # it has the same amount of members as n_ens_members_max. For instance, if
@@ -1841,6 +1852,8 @@ def _find_nwp_combination(
                 R_models_pm = np.repeat(
                     R_models_pm[:, :, :, :], n_ens_members_max, axis=0
                 )
+                # Finally, for the model indices
+                n_model_indices = np.repeat(n_model_indices, n_ens_members_max, axis=0)
 
             elif n_model_members == n_ens_members_min:
                 repeats = [
@@ -1854,6 +1867,8 @@ def _find_nwp_combination(
                     V_models = np.repeat(V_models, repeats, axis=0)
                     # For the prob. matching
                     R_models_pm = np.repeat(R_models_pm, repeats, axis=0)
+                    # Finally, for the model indices
+                    n_model_indices = np.repeat(n_model_indices, repeats, axis=0)
 
         R_c = [
             [R_c[j].copy() for j in range(n_cascade_levels)]
@@ -1863,7 +1878,16 @@ def _find_nwp_combination(
 
         n_ens_members = n_ens_members_max
 
-    return R_c, R_models, R_models_pm, V_models, mu_models, sigma_models, n_ens_members
+    return (
+        R_c,
+        R_models,
+        R_models_pm,
+        V_models,
+        mu_models,
+        sigma_models,
+        n_ens_members,
+        n_model_indices,
+    )
 
 
 def _init_random_generators(

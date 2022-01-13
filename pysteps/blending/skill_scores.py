@@ -75,7 +75,7 @@ def spatial_correlation(obs, mod, domain_mask):
     return rho
 
 
-def lt_dependent_cor_nwp(lt, correlations, outdir_path, skill_kwargs=dict()):
+def lt_dependent_cor_nwp(lt, correlations, outdir_path, n_model=0, skill_kwargs=dict()):
     """Determine the correlation of a model field for lead time lt and
     cascade k, by assuming that the correlation determined at t=0 regresses
     towards the climatological values.
@@ -92,6 +92,10 @@ def lt_dependent_cor_nwp(lt, correlations, outdir_path, skill_kwargs=dict()):
     outdir_path: string
       Path to folder where the historical skill are stored. Defaults to
       path_workdir from rcparams.
+    n_model: int, optional
+        The index number of the (NWP) model when the climatological skill of
+        multiple (NWP) models is stored. For calculations with one model, or
+        when n_model is not provided, n_model = 0.
     skill_kwargs : dict, optional
         Dictionary containing e.g. the outdir_path, nmodels and window_length
         parameters.
@@ -114,6 +118,7 @@ def lt_dependent_cor_nwp(lt, correlations, outdir_path, skill_kwargs=dict()):
     clim_cor_values, regr_pars = clim_regr_values(
         n_cascade_levels=len(correlations),
         outdir_path=outdir_path,
+        n_model=n_model,
         skill_kwargs=skill_kwargs,
     )
     # Determine the speed of the regression (eq. 24 in BPS2004)
@@ -172,7 +177,7 @@ def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=Non
     return rho, rho_prev
 
 
-def clim_regr_values(n_cascade_levels, outdir_path, skill_kwargs=dict()):
+def clim_regr_values(n_cascade_levels, outdir_path, n_model=0, skill_kwargs=dict()):
     """Obtains the climatological correlation values and regression parameters
     from a file called NWP_weights_window.bin in the outdir_path. If this file
     is not present yet, the values from :cite:`BPS2004` are used.
@@ -185,6 +190,10 @@ def clim_regr_values(n_cascade_levels, outdir_path, skill_kwargs=dict()):
     outdir_path: string
       Path to folder where the historical skill are stored. Defaults to
       path_workdir from rcparams.
+    n_model: int, optional
+        The index number of the (NWP) model when the climatological skill of
+        multiple (NWP) models is stored. For calculations with one model, or
+        when n_model is not provided, n_model = 0.
     skill_kwargs : dict, optional
         Dictionary containing e.g. the outdir_path, nmodels and window_length
         parameters.
@@ -227,7 +236,7 @@ def clim_regr_values(n_cascade_levels, outdir_path, skill_kwargs=dict()):
             [[0.848, 0.537, 0.237, 0.065, 0.020, 0.0044, 0.0052, 0.0040]]
         )
 
-    clim_cor_values = clim_cor_values[0]
+    clim_cor_values = clim_cor_values[n_model, :]
 
     # Check if clim_cor_values has only one model, otherwise it has
     # returned the skill values for multiple models
