@@ -77,8 +77,19 @@
             "importer_kwargs": {
                 "accutime": 5,
                 "qty": "ACRR",
-                "pixelsize": 1.0
+                "pixelsize": 1000.0
 			}
+        },
+		"rmi": {
+            "root_path": "./radar/rmi/radqpe",
+            "path_fmt": "%Y%m%d",
+            "fn_pattern": "%Y%m%d%H%M00.rad.bhbjbwdnfa.comp.rate.qpe2",
+            "fn_ext": "hdf",
+            "importer": "odim_hdf5",
+            "timestep": 5,
+            "importer_kwargs": {
+				"accutime": 5.0
+            }
         },
         "saf": {
             "root_path": "./saf",
@@ -100,7 +111,7 @@
             "timestep": 10,
             "importer_kwargs": {
                 "gzipped": true
-	    }
+    	    }
         },
         "rmi_nwp": {
             "root_path": "./nwp/rmi",

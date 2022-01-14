@@ -132,6 +132,7 @@ def extrapolate(
     n_iter = kwargs.get("n_iter", 1)
     return_displacement = kwargs.get("return_displacement", False)
     interp_order = kwargs.get("interp_order", 1)
+    map_coordinates_mode = kwargs.get("map_coordinates_mode", "constant")
 
     if precip is None and not return_displacement:
         raise ValueError("precip is None but return_displacement is False")
@@ -223,7 +224,7 @@ def extrapolate(
             precip_warped = ip.map_coordinates(
                 precip,
                 coords_warped,
-                mode="constant",
+                mode=map_coordinates_mode,
                 cval=outval,
                 order=interp_order,
                 prefilter=prefilter,
@@ -233,7 +234,7 @@ def extrapolate(
                 mask_warped = ip.map_coordinates(
                     mask_min,
                     coords_warped,
-                    mode="constant",
+                    mode=map_coordinates_mode,
                     cval=0,
                     order=1,
                     prefilter=False,
@@ -244,7 +245,7 @@ def extrapolate(
                     mask_warped = ip.map_coordinates(
                         mask_finite,
                         coords_warped,
-                        mode="constant",
+                        mode=map_coordinates_mode,
                         cval=0,
                         order=1,
                         prefilter=False,

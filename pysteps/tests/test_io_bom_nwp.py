@@ -36,7 +36,7 @@ test_attrs_xr = [
     ("transform", None, None),
     ("zerovalue", 0.0, 0.1),
     ("unit", "mm", None),
-    ("accutime", np.timedelta64(10, "m"), None),
+    ("accutime", 10, None),
     ("zr_a", None, None),
     ("zr_b", None, None),
     ("xpixelsize", 500.0, 0.1),
