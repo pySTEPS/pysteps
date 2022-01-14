@@ -211,7 +211,7 @@ def _create_data_multivariate():
     R = []
     for fn in filenames:
         filename = os.path.join(root_path, "20160928", fn)
-        R_, _, _ = pysteps.io.import_fmi_pgm(filename, gzipped=True, legacy=True)
+        R_, _, _ = pysteps.io.import_fmi_pgm(filename, gzipped=True)
         R_[~np.isfinite(R_)] = 0.0
         R.append(np.stack([R_, np.roll(R_, 5, axis=0)]))
 
@@ -235,7 +235,7 @@ def _create_data_univariate():
     R = []
     for fn in filenames:
         filename = os.path.join(root_path, "20160928", fn)
-        R_, _, _ = pysteps.io.import_fmi_pgm(filename, gzipped=True, legacy=True)
+        R_, _, _ = pysteps.io.import_fmi_pgm(filename, gzipped=True)
         R_[~np.isfinite(R_)] = 0.0
         R.append(R_)
 

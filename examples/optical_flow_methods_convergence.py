@@ -62,7 +62,7 @@ fns = io.archive.find_by_date(
 # Read the reference radar composite
 importer = io.get_method(importer_name, "importer")
 reference_field, quality, metadata = io.read_timeseries(
-    fns, importer, legacy=True, **importer_kwargs
+    fns, importer, **importer_kwargs
 )
 
 del quality  # Not used

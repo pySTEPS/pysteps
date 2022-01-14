@@ -78,7 +78,7 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-precip = io.read_timeseries(fns, importer, legacy=False, **importer_kwargs)
+precip = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Get the metadata
 metadata = precip.x.attrs.copy()

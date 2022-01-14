@@ -65,7 +65,7 @@ fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=20
 )
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to reflectivity (it is possible to give the a- and b- parameters of the
 # Marshall-Palmer relationship here: zr_a = and zr_b =).

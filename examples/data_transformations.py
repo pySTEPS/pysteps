@@ -58,7 +58,7 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-Z, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
+Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Keep only positive rainfall values
 Z = Z[Z > metadata["zerovalue"]].flatten()
