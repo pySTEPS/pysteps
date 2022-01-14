@@ -55,7 +55,7 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-R, quality, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+R, quality, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 del quality  # Not used
 
@@ -210,7 +210,7 @@ fns = io.archive.find_by_date(
 )
 
 # Read and convert the radar composites
-R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
+R_o, _, metadata_o = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o)
 
 # Compute Spearman correlation

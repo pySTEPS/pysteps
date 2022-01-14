@@ -2,15 +2,19 @@ name: Test Pysteps
 
 env:
   MINIMAL_DEPENDENCIES: cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask
-  OPTIONAL_DEPENDENCIES: pyfftw cartopy h5py PyWavelets pandas scikit-image
+  OPTIONAL_DEPENDENCIES: pyfftw cartopy h5py PyWavelets pandas scikit-image rasterio
   TEST_DEPENDENCIES: pytest pytest-cov
 
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - pysteps-v2
   pull_request:
-    branches: [ master ]
+      branches:
+        - master
+        - pysteps-v2
 
 jobs:
   unit_tests:

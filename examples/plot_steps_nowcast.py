@@ -51,7 +51,7 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+R, _, metadata = io.read_timeseries(fns, importer, legacy=True, **importer_kwargs)
 
 # Convert to rain rate
 R, metadata = conversion.to_rainrate(R, metadata)

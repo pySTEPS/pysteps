@@ -1,4 +1,4 @@
-# Additional requeriments related to the documentation build only
+# Additional requirements related to the documentation build only
 sphinx
 numpydoc
 sphinxcontrib.bibtex

@@ -9,6 +9,8 @@ matplotlib
 jsmin
 jsonschema
 netCDF4
+xarray
+bottleneck
 
 # Optional dependencies
 dask
@@ -17,6 +19,7 @@ cartopy>=0.18
 h5py
 scikit-image
 pandas
+rasterio
 
 # Testing
 pytest
