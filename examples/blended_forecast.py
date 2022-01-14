@@ -4,8 +4,8 @@ Blended forecast
 ====================
 
 This tutorial shows how to construct a blended forecast from an ensemble nowcast
-using the STEPS approach and a Numerical Weather Prediction (NWP) rainfall 
-forecast. The used datasets are from the Royal Meteorological Insitute of Belgium.  
+using the STEPS approach and a Numerical Weather Prediction (NWP) rainfall
+forecast. The used datasets are from the Royal Meteorological Insitute of Belgium.
 
 """
 
@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 
 import pysteps
-from pysteps import io, rcparams, cascade, blending
+from pysteps import io, rcparams, blending
 from pysteps.visualization import plot_precip_field
 
 
@@ -57,7 +57,7 @@ fns = io.find_by_date(
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
 r_radar = io.read_timeseries(fns, importer, **importer_kwargs)
-radar_data_xr = r_radar[-1, :, :]
+radar_data_xr = r_radar[-1]
 
 # Get the metadata
 radar_metadata = radar_data_xr.x.attrs.copy()

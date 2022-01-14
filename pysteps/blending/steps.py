@@ -538,7 +538,6 @@ def forecast(
     # 3.1 Compute the cascade decompositions of the input precipitation fields
     (
         R_c,
-        R_d,
         mu_extrapolation,
         sigma_extrapolation,
     ) = _compute_cascade_decomposition_radar(
@@ -1690,7 +1689,7 @@ def _compute_cascade_decomposition_radar(
     mu_extrapolation = np.array(R_d["means"])
     sigma_extrapolation = np.array(R_d["stds"])
     R_d = [R_d.copy() for j in range(n_ens_members)]
-    return R_c, R_d, mu_extrapolation, sigma_extrapolation
+    return R_c, mu_extrapolation, sigma_extrapolation
 
 
 def _compute_cascade_decomposition_nwp(

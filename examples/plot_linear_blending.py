@@ -4,7 +4,7 @@
 Plot linear blending
 ====================
 
-This tutorial shows how to construct a simple linear blending between an ensemble 
+This tutorial shows how to construct a simple linear blending between an ensemble
 nowcast and a dummy Numerical Weather Prediction (NWP) rainfall forecast.
 """
 

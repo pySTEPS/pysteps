@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import matplotlib.pyplot as plt
+from datetime import datetime
+
 import numpy as np
 
-from datetime import datetime
 from pysteps import io, rcparams
 from pysteps.utils import conversion, transformation
 from pysteps.blending.utils import decompose_NWP

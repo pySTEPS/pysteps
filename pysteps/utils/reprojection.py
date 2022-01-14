@@ -3,7 +3,7 @@
 pysteps.utils.reprojection
 ==================
 
-Reprojection tool to reproject the grid and adjust the grid cell size of an 
+Reprojection tool to reproject the grid and adjust the grid cell size of an
 input field to a destination field.
 
 .. autosummary::

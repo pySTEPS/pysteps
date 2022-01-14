@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
 import numpy as np
 import datetime
 import pytest
@@ -148,11 +147,11 @@ def test_steps_blending(
     ###
 
     # Initial decomposition settings
-    decomp_method, recomp_method = cascade.get_method("fft")
+    decomp_method = cascade.get_method("fft")
     bandpass_filter_method = "gaussian"
     M, N = R_input.shape[1:]
     filter_method = cascade.get_method(bandpass_filter_method)
-    filter = filter_method((M, N), n_cascade_levels)
+    bp_filter = filter_method((M, N), n_cascade_levels)
 
     # If we only use one model:
     if R_NWP.ndim == 3:
@@ -167,7 +166,7 @@ def test_steps_blending(
             for j in range(R_NWP.shape[1]):
                 R_ = decomp_method(
                     field=R_NWP[i, j, :, :],
-                    bp_filter=filter,
+                    bp_filter=bp_filter,
                     normalize=True,
                     compute_stats=True,
                     compact_output=True,

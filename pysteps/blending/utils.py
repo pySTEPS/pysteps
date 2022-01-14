@@ -26,7 +26,6 @@ import netCDF4
 
 from pysteps.cascade import get_method as cascade_get_method
 from pysteps.cascade.bandpass_filters import filter_gaussian
-from pysteps import rcparams
 from pysteps.utils import get_method as utils_get_method
 
 

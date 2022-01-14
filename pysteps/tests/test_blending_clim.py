@@ -17,18 +17,8 @@ random.seed(12356)
 n_cascade_levels = 7
 model_names = ["alaro13", "arome13"]
 default_start_skill = [0.8, 0.5]
-""" Helper functions """
 
-
-def generate_random_skill(n_cascade_levels, n_models=1):
-    """
-    Generate random skill which decay exponentially with scale.
-    """
-    start_skill = np.array([random.uniform(0.5, 0.99) for i in range(n_models)])
-    powers = np.arange(1, n_cascade_levels + 1)
-    return pow(start_skill[:, np.newaxis], powers)
-
-
+# Helper functions
 def generate_fixed_skill(n_cascade_levels, n_models=1):
     """
     Generate skill starting at default_start_skill which decay exponentially with scale.
@@ -38,8 +28,7 @@ def generate_fixed_skill(n_cascade_levels, n_models=1):
     return pow(start_skill[:, np.newaxis], powers)
 
 
-""" Test arguments """
-
+# Test arguments
 clim_arg_names = ("startdatestr", "enddatestr", "n_models", "expected_skill_today")
 
 test_enddates = ["20210701235500", "20210702000000", "20200930235500"]
