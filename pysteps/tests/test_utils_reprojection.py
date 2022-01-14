@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import os
-import xarray as xr
 import pytest
 import pysteps
 from pysteps.utils import reprojection
+
+pytestmark = pytest.mark.skip("xarray dependency")
 
 pytest.importorskip("rasterio")
 

@@ -8,8 +8,6 @@ import pysteps
 from pysteps import cascade, blending
 
 
-# TODO: Fix tests for xarray fields?
-
 steps_arg_names = (
     "n_models",
     "n_timesteps",

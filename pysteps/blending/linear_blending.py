@@ -15,8 +15,6 @@ import numpy as np
 from pysteps import nowcasts
 from pysteps.utils import conversion
 
-# TODO: Make xarray ready for pysteps-v2
-
 
 def forecast(
     precip,

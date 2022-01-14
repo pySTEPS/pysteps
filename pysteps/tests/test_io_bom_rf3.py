@@ -3,18 +3,19 @@
 import os
 import numpy as np
 
-import xarray as xr
 import pytest
 
 import pysteps
 from pysteps.tests.helpers import smart_assert
+
+pytestmark = pytest.mark.skip("xarray dependency")
 
 pytest.importorskip("netCDF4")
 
 root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
 rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
 filename = os.path.join(root_path, rel_path, "2_20180616_100000.prcp-cscn.nc")
-data_array = pysteps.io.import_bom_rf3(filename)
+# data_array = pysteps.io.import_bom_rf3(filename)
 
 
 def test_io_import_bom_rf3_shape():
@@ -71,7 +72,7 @@ def test_io_import_bom_rf3_geodata(variable, expected, tolerance):
 
 
 # TEST XARRAY IMPLEMENTATION
-data_array_xr = pysteps.io.import_bom_rf3_xr(filename)
+# data_array_xr = pysteps.io.import_bom_rf3_xr(filename)
 
 
 def test_io_import_bom_rf3_xarray():

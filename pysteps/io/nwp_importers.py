@@ -75,7 +75,8 @@ Available Importers
 """
 
 import numpy as np
-import xarray as xr
+
+# import xarray as xr
 
 from pysteps.decorators import postprocess_import
 from pysteps.exceptions import MissingOptionalDependency

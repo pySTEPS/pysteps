@@ -8,8 +8,6 @@ This tutorial shows how to construct a simple linear blending between an ensembl
 nowcast and a dummy Numerical Weather Prediction (NWP) rainfall forecast.
 """
 
-# TODO: Make xarray ready for pysteps-v2
-
 from matplotlib import pyplot as plt
 import numpy as np
 from pprint import pprint

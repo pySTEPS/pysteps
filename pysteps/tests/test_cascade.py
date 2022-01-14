@@ -13,9 +13,6 @@ from pysteps.cascade.bandpass_filters import filter_uniform
 from pysteps.cascade.decomposition import decomposition_fft, recompose_fft
 from pysteps.tests.helpers import smart_assert
 
-# TODO: Fix tests for xarray fields
-pytestmark = pytest.mark.skip("Needs migration to xarray")
-
 
 def test_decompose_recompose():
     """Tests cascade decomposition."""

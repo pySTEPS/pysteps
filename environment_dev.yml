@@ -30,5 +30,4 @@ dependencies:
   - cartopy>=0.18
   - scikit-image
   - pandas
-  - xarray
   - rasterio

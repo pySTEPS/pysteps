@@ -11,7 +11,6 @@ from pysteps.blending.skill_scores import (
     clim_regr_values,
 )
 
-# TODO: Fix tests for xarray fields
 
 # Set the climatological correlations values
 clim_cor_values_8lev = np.array(

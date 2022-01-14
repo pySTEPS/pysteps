@@ -2,11 +2,12 @@
 
 import os
 
-import xarray as xr
 import pytest
 
 import pysteps
 from pysteps.tests.helpers import smart_assert
+
+pytestmark = pytest.mark.skip("xarray dependency")
 
 pytest.importorskip("pyproj")
 

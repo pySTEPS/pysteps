@@ -10,8 +10,6 @@ import subprocess
 import sys
 import tempfile
 
-# TODO: Fix tests for xarray fields
-pytestmark = pytest.mark.skip("Needs migration to xarray")
 
 __ = pytest.importorskip("cookiecutter")
 from cookiecutter.main import cookiecutter

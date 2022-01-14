@@ -12,7 +12,8 @@ input field to a destination field.
     reprojection
 """
 from pysteps.exceptions import MissingOptionalDependency
-import xarray as xr
+
+# import xarray as xr
 import numpy as np
 
 try:

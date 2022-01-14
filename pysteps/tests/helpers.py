@@ -11,7 +11,6 @@ import pytest
 
 import pysteps as stp
 from pysteps import io, rcparams
-from pysteps.decorators import _to_xarray, _xarray2legacy
 from pysteps.utils import aggregate_fields_space
 
 _reference_dates = dict()
@@ -31,82 +30,78 @@ def get_precipitation_fields(
     metadata=False,
     upscale=None,
     source="mch",
-    legacy=True,
     log_transform=True,
     clip=None,
     **importer_kwargs,
 ):
     """
-        Get a precipitation field from the archive to be used as reference.
+    Get a precipitation field from the archive to be used as reference.
 
-        Source: bom
-        Reference time: 2018/06/16 10000 UTC
+    Source: bom
+    Reference time: 2018/06/16 10000 UTC
 
-        Source: fmi
-        Reference time: 2016/09/28 1600 UTC
+    Source: fmi
+    Reference time: 2016/09/28 1600 UTC
 
-        Source: knmi
-        Reference time: 2010/08/26 0000 UTC
+    Source: knmi
+    Reference time: 2010/08/26 0000 UTC
 
-        Source: mch
-        Reference time: 2015/05/15 1630 UTC
+    Source: mch
+    Reference time: 2015/05/15 1630 UTC
 
-        Source: opera
-        Reference time: 2018/08/24 1800 UTC
+    Source: opera
+    Reference time: 2018/08/24 1800 UTC
 
-        Source: saf
-        Reference time: 2018/06/01 0700 UTC
+    Source: saf
+    Reference time: 2018/06/01 0700 UTC
 
-        Source: mrms
-        Reference time: 2019/06/10 0000 UTC
+    Source: mrms
+    Reference time: 2019/06/10 0000 UTC
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        num_prev_files: int, optional
-            Number of previous times (files) to return with respect to the
-            reference time.
+    num_prev_files: int, optional
+        Number of previous times (files) to return with respect to the
+        reference time.
 
-        num_next_files: int, optional
-            Number of future times (files) to return with respect to the
-            reference time.
+    num_next_files: int, optional
+        Number of future times (files) to return with respect to the
+        reference time.
 
-        return_raw: bool, optional
-            Do not preprocess the precipitation fields. False by default.
-            The pre-processing steps are: 1) Convert to mm/h,
-            2) Mask invalid values, 3) Log-transform the data [dBR].
+    return_raw: bool, optional
+        Do not preprocess the precipitation fields. False by default.
+        The pre-processing steps are: 1) Convert to mm/h,
+        2) Mask invalid values, 3) Log-transform the data [dBR].
 
-    <<<<<<< HEAD
-    =======
-        metadata: bool, optional
-            If True, also return file metadata.
+    metadata: bool, optional
+        If True, also return file metadata.
 
-        clip: scalars (left, right, bottom, top), optional
-            The extent of the bounding box in data coordinates to be used to clip
-            the data.
+    upscale: float or None, optional
+        Upscale fields in space during the pre-processing steps.
+        If it is None, the precipitation field is not modified.
+        If it is a float, represents the length of the space window that is
+        used to upscale the fields.
 
-    >>>>>>> master
-        upscale: float or None, optional
-            Upscale fields in space during the pre-processing steps.
-            If it is None, the precipitation field is not modified.
-            If it is a float, represents the length of the space window that is
-            used to upscale the fields.
+    source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
+        Name of the data source to be used.
 
-        source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
-            Name of the data source to be used.
+    log_transform: bool
+        Whether to transform the output to dB.
 
-        log_transform: bool
-            Whether to transform the output to dB.
+    clip: scalars (left, right, bottom, top), optional
+        The extent of the bounding box in data coordinates to be used to clip
+        the data.
 
-        Other Parameters
-        ----------------
+    Other Parameters
+    ----------------
 
-        importer_kwargs : dict
-            Additional keyword arguments passed to the importer.
+    importer_kwargs : dict
+        Additional keyword arguments passed to the importer.
 
-        Returns
-        -------
-        data_array : xr.DataArray
+    Returns
+    -------
+    data_array : xr.DataArray
     """
 
     if source == "bom":
@@ -164,9 +159,9 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    reference_field = io.read_timeseries(fns, importer, **_importer_kwargs)
-
-    reference_field, _, ref_metadata = _xarray2legacy(reference_field)
+    reference_field, __, ref_metadata = io.read_timeseries(
+        fns, importer, **_importer_kwargs
+    )
 
     if not return_raw:
 
@@ -202,13 +197,10 @@ def get_precipitation_fields(
             np.ma.set_fill_value(reference_field, -15.0)
             reference_field.data[reference_field.mask] = -15.0
 
-    if legacy or metadata:
-        if metadata:
-            return reference_field, ref_metadata
-        else:
-            return reference_field
+    if metadata:
+        return reference_field, ref_metadata
 
-    return _to_xarray(reference_field, ref_metadata)
+    return reference_field
 
 
 def smart_assert(actual_value, expected, tolerance=None):

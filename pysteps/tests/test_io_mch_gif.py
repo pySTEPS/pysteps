@@ -3,10 +3,11 @@
 import os
 
 import pytest
-import xarray as xr
 
 import pysteps
 from pysteps.tests.helpers import smart_assert
+
+pytestmark = pytest.mark.skip("xarray dependency")
 
 pytest.importorskip("PIL")
 

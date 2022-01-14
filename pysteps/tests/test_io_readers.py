@@ -1,9 +1,10 @@
 from datetime import datetime
 
 import pytest
-import xarray as xr
 
 import pysteps
+
+pytestmark = pytest.mark.skip("xarray dependency")
 
 
 def test_read_timeseries_mch():

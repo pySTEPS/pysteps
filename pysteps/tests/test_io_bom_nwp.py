@@ -3,18 +3,19 @@
 import os
 import numpy as np
 
-import xarray as xr
 import pytest
 
 import pysteps
 from pysteps.tests.helpers import smart_assert
+
+pytestmark = pytest.mark.skip("xarray dependency")
 
 pytest.importorskip("netCDF4")
 
 root_path = pysteps.rcparams.data_sources["bom_nwp"]["root_path"]
 rel_path = os.path.join("2020", "10", "31")
 filename = os.path.join(root_path, rel_path, "20201031_0000_regrid_short.nc")
-data_array_xr = pysteps.io.import_bom_nwp_xr(filename)
+# data_array_xr = pysteps.io.import_bom_nwp_xr(filename)
 
 expected_proj = "+proj=aea  +lon_0=153.240 +lat_0=-27.718 +lat_1=-26.200 +lat_2=-29.300"
 

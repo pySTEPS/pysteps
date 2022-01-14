@@ -4,10 +4,11 @@ import os
 
 import numpy as np
 import pytest
-import xarray as xr
 from numpy.testing import assert_array_almost_equal
 
 import pysteps
+
+pytestmark = pytest.mark.skip("xarray dependency")
 
 pytest.importorskip("pygrib")
 

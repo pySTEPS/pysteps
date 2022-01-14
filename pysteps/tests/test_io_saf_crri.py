@@ -2,8 +2,6 @@
 
 import os
 
-import numpy as np
-import xarray as xr
 import pytest
 
 import pysteps
@@ -46,7 +44,7 @@ rel_path = "20180601/CRR"
 filename = os.path.join(
     root_path, rel_path, "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc"
 )
-data_array = pysteps.io.import_saf_crri(filename)
+_, _, metadata = pysteps.io.import_saf_crri(filename)
 
 # list of (variable,expected,tolerance) tuples
 test_attrs = [
@@ -60,9 +58,9 @@ test_attrs = [
 
 
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
-def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
+def test_io_import_saf_crri_attrs(variable, expected, tolerance):
     """Test the importer SAF CRRI."""
-    smart_assert(data_array.attrs[variable], expected, tolerance)
+    smart_assert(metadata[variable], expected, tolerance)
 
 
 test_extent_crri = [
@@ -86,17 +84,7 @@ def test_io_import_saf_crri_extent(extent, expected_extent, expected_shape, tole
     filename = os.path.join(
         root_path, rel_path, "S_NWC_CRR_MSG4_Europe-VISIR_20180601T070000Z.nc"
     )
-    data_array = pysteps.io.import_saf_crri(filename, extent=extent)
-
-    xgridsize = np.diff(data_array.x)[0]
-    ygridsize = np.diff(data_array.y)[0]
-    extent_out = (
-        data_array.x.min() - xgridsize / 2,
-        data_array.x.max() + xgridsize / 2,
-        data_array.y.min() - ygridsize / 2,
-        data_array.y.max() + ygridsize / 2,
-    )
-    print([int(out) for out in extent_out])
+    precip, _, metadata = pysteps.io.import_saf_crri(filename, extent=extent)
+    extent_out = (metadata["x1"], metadata["x2"], metadata["y1"], metadata["y2"])
     smart_assert(extent_out, expected_extent, tolerance)
-
-    smart_assert(data_array.shape, expected_shape, tolerance)
+    smart_assert(precip.shape, expected_shape, tolerance)
