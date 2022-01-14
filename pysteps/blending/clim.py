@@ -2,7 +2,7 @@
 pysteps.blending.clim
 =====================
 
-Module with methods to read, write and compute past and climatological NWP model 
+Module with methods to read, write and compute past and climatological NWP model
 skill scores. The module stores the average daily skill score for the past t days
 and updates it every day. The resulting average climatological skill score is
 the skill the NWP model skill regresses to during the blended forecast. If no
@@ -11,7 +11,7 @@ climatological values are present, the default skill from :cite:`BPS2006` is use
 .. autosummary::
     :toctree: ../generated/
 
-    get_default_skill    
+    get_default_skill
     save_skill
     calc_clim_skill
 """

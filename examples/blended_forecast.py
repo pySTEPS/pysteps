@@ -122,15 +122,6 @@ r_radar, radar_metadata = transformer(r_radar.values, radar_metadata, threshold=
 transformer = pysteps.utils.get_method("dB")
 r_nwp, nwp_metadata = transformer(r_nwp.values, nwp_metadata, threshold=0.1)
 
-# Initial decomposition settings
-decomp_method, recomp_method = cascade.get_method("fft")
-bandpass_filter_method = "gaussian"
-M, N = r_radar.shape[1:]
-n_cascade_levels = 8
-n_models = 1  # The number of NWP models to blend with the radar rainfall nowcast
-filter_method = cascade.get_method(bandpass_filter_method)
-filter = filter_method((M, N), n_cascade_levels)
-
 # r_nwp has to be four dimentional (n_models, time, y, x).
 # If we only use one model:
 if r_nwp.ndim == 3:
@@ -177,7 +168,7 @@ precip_forecast = blending.steps.forecast(
     timestep=timestep,
     issuetime=date_radar,
     n_ens_members=1,
-    n_cascade_levels=n_cascade_levels,
+    n_cascade_levels=8,
     blend_nwp_members=False,
     R_thr=radar_metadata["threshold"],
     kmperpixel=radar_metadata["xpixelsize"] / 1000.0,

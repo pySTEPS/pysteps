@@ -1,15 +1,12 @@
+# -*- coding: utf-8 -*-
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 from datetime import datetime
-from pprint import pprint
-from pysteps import io, nowcasts, rcparams
-from pysteps.motion.lucaskanade import dense_lucaskanade
-from pysteps.postprocessing.ensemblestats import excprob
-from pysteps.utils import conversion, dimension, transformation
-from pysteps.visualization import plot_precip_field
+from pysteps import io, rcparams
+from pysteps.utils import conversion, transformation
 from pysteps.blending.utils import decompose_NWP
-from pysteps.cascade.bandpass_filters import filter_gaussian
 
 num_cascade_levels = 8
 

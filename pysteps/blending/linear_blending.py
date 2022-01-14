@@ -28,7 +28,7 @@ def forecast(
     start_blending=120,
     end_blending=240,
     fill_nwp=True,
-    nowcast_kwargs=dict(),
+    nowcast_kwargs=None,
 ):
 
     """Generate a forecast by linearly blending nowcasts with NWP data
@@ -84,6 +84,9 @@ def forecast(
       the nowcasts and the NWP data. n_ens_members equals the maximum no. of
       ensemble members in either the nowcast or nwp model(s).
     """
+
+    if nowcast_kwargs is None:
+        nowcast_kwargs = dict()
 
     # Calculate the nowcasts
     nowcast_method_func = nowcasts.get_method(nowcast_method)

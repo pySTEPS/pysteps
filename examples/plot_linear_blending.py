@@ -20,11 +20,11 @@ from pysteps.utils import dimension
 from pysteps.blending.linear_blending import forecast
 
 
-def gaussian(x, max, mean, sigma):
-    return max * np.exp(-(x - mean) * (x - mean) / sigma / sigma / 2)
+def gaussian(x, max_value, mean, sigma):
+    return max_value * np.exp(-(x - mean) * (x - mean) / sigma / sigma / 2)
 
 
-def dummy_nwp(precip, n_leadtimes, max=20, mean=0, sigma=0.25, speed=100):
+def dummy_nwp(precip, n_leadtimes, max_value=20, mean=0, sigma=0.25, speed=100):
     """Generates dummy NWP data with the same dimension as the input
     precipitation field precip. The NWP data is a vertical line with a Gaussian
     profile moving to the left"""
@@ -39,7 +39,7 @@ def dummy_nwp(precip, n_leadtimes, max=20, mean=0, sigma=0.25, speed=100):
 
     for n in range(n_leadtimes):
         for i in range(rows):
-            precip_nwp[n, i, :] = gaussian(x, max, mean, sigma)
+            precip_nwp[n, i, :] = gaussian(x, max_value, mean, sigma)
         mean -= speed / rows
 
     return precip_nwp
@@ -93,7 +93,7 @@ precip, metadata = dimension.aggregate_fields_space(precip, metadata, 2000)
 
 # Import the dummy NWP data (vertical line moving to the left)
 precip_nwp = dummy_nwp(
-    precip[-1, :, :], n_leadtimes + 1, max=7, mean=4, speed=0.2 * 350
+    precip[-1, :, :], n_leadtimes + 1, max_value=7, mean=4, speed=0.2 * 350
 )
 metadata_nwp = metadata.copy()
 

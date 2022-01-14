@@ -8,29 +8,29 @@ Implementation of the STEPS stochastic blending method as described in
 consists of the following main steps:
     1. Set the radar rainfall fields in a Lagrangian space.
     2. Initialize the noise method.
-    3. Perform the cascade decomposition for the input radar rainfall fields. 
+    3. Perform the cascade decomposition for the input radar rainfall fields.
     The method assumes that the cascade decomposition of the NWP model fields is
-    already done prior to calling the function, as the NWP model fields are 
-    generally not updated with the same frequency (which is more efficient). A 
+    already done prior to calling the function, as the NWP model fields are
+    generally not updated with the same frequency (which is more efficient). A
     method to decompose and store the NWP model fields whenever a new NWP model
     field is present, is present in pysteps.blending.utils.decompose_NWP.
     4. Estimate AR parameters for the extrapolation nowcast and noise cascade.
-    5. Before starting the forecast loop, determine which NWP models will be 
+    5. Before starting the forecast loop, determine which NWP models will be
     combined with which nowcast ensemble members. The number of output ensemble
-    members equals the maximum number of (ensemble) members in the input, which 
+    members equals the maximum number of (ensemble) members in the input, which
     can be either the defined number of (nowcast) ensemble members or the number
     of NWP models/members.
     6. Initialize all the random generators.
     7. Calculate the initial skill of the NWP model forecasts at t=0.
     8. Start the forecasting loop
         8.1 Determine the skill and weights of the forecasting components (
-            extrapolation, NWP and noise) for that lead time. 
-        8.2 Regress the extrapolation and noise cascades separately to the 
+            extrapolation, NWP and noise) for that lead time.
+        8.2 Regress the extrapolation and noise cascades separately to the
             subsequent time step.
         8.3 Extrapolate the extrapolation and noise cascades to the current time
             step.
         8.4 Blend the cascades.
-        8.5 Recompose the cascade to a rainfall field. 
+        8.5 Recompose the cascade to a rainfall field.
         8.6 Post-processing steps (masking and probability matching, which are
                                    different from the original blended STEPS
                                    implementation).
@@ -486,7 +486,7 @@ def forecast(
 
     # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
-    filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
+    bp_filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
 
     decompositor, recompositor = cascade.get_method(decomp_method)
 
@@ -522,7 +522,7 @@ def forecast(
         R,
         R_thr,
         n_cascade_levels,
-        filter,
+        bp_filter,
         decompositor,
         fft,
         noise_method,
@@ -548,14 +548,14 @@ def forecast(
         n_ens_members,
         MASK_thr,
         domain,
-        filter,
+        bp_filter,
         decompositor,
         fft,
     )
 
     # 3.2 If necessary, decompose (NWP) model forecasts and stack cascades
     R_models, mu_models, sigma_models, R_models_pm = _compute_cascade_decomposition_nwp(
-        R_d_models, filter, decompositor, recompositor, fft, domain
+        R_d_models, bp_filter, decompositor, recompositor, fft, domain
     )
 
     # 4. Estimate AR parameters for the radar rainfall field
@@ -777,7 +777,7 @@ def forecast(
                 # decompose the noise field into a cascade
                 EPS = decompositor(
                     EPS,
-                    filter,
+                    bp_filter,
                     fft_method=fft_objs[j],
                     input_domain=domain,
                     output_domain=domain,
@@ -1602,7 +1602,7 @@ def _init_noise(
     R,
     R_thr,
     n_cascade_levels,
-    filter,
+    bp_filter,
     decompositor,
     fft,
     noise_method,
@@ -1631,7 +1631,7 @@ def _init_noise(
             R[-1, :, :],
             R_thr,
             R_min,
-            filter,
+            bp_filter,
             decompositor,
             pp,
             generate_noise,
@@ -1663,7 +1663,7 @@ def _compute_cascade_decomposition_radar(
     n_ens_members,
     MASK_thr,
     domain,
-    filter,
+    bp_filter,
     decompositor,
     fft,
 ):
@@ -1672,7 +1672,7 @@ def _compute_cascade_decomposition_radar(
     for i in range(ar_order + 1):
         R_ = decompositor(
             R[i, :, :],
-            filter,
+            bp_filter,
             mask=MASK_thr,
             fft_method=fft,
             output_domain=domain,
@@ -1694,7 +1694,7 @@ def _compute_cascade_decomposition_radar(
 
 
 def _compute_cascade_decomposition_nwp(
-    R_d_models, filter, decompositor, recompositor, fft, domain
+    R_d_models, bp_filter, decompositor, recompositor, fft, domain
 ):
     """If necessary, decompose (NWP) model forecasts and stack cascades."""
     if R_d_models.ndim == 4:
@@ -1709,7 +1709,7 @@ def _compute_cascade_decomposition_nwp(
             for j in range(R_d_models.shape[1]):
                 R_ = decompositor(
                     field=R_d_models[i, j, :, :],
-                    bp_filter=filter,
+                    bp_filter=bp_filter,
                     fft_method=fft,
                     output_domain=domain,
                     normalize=True,

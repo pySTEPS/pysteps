@@ -75,7 +75,7 @@ def spatial_correlation(obs, mod, domain_mask):
     return rho
 
 
-def lt_dependent_cor_nwp(lt, correlations, outdir_path, n_model=0, skill_kwargs=dict()):
+def lt_dependent_cor_nwp(lt, correlations, outdir_path, n_model=0, skill_kwargs=None):
     """Determine the correlation of a model field for lead time lt and
     cascade k, by assuming that the correlation determined at t=0 regresses
     towards the climatological values.
@@ -113,6 +113,10 @@ def lt_dependent_cor_nwp(lt, correlations, outdir_path, n_model=0, skill_kwargs=
     :cite:`BPS2004`
     :cite:`BPS2006`
     """
+
+    if skill_kwargs is None:
+        skill_kwargs = dict()
+
     # Obtain the climatological values towards which the correlations will
     # regress
     clim_cor_values, regr_pars = clim_regr_values(
@@ -177,7 +181,7 @@ def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=Non
     return rho, rho_prev
 
 
-def clim_regr_values(n_cascade_levels, outdir_path, n_model=0, skill_kwargs=dict()):
+def clim_regr_values(n_cascade_levels, outdir_path, n_model=0, skill_kwargs=None):
     """Obtains the climatological correlation values and regression parameters
     from a file called NWP_weights_window.bin in the outdir_path. If this file
     is not present yet, the values from :cite:`BPS2004` are used.
@@ -223,6 +227,9 @@ def clim_regr_values(n_cascade_levels, outdir_path, n_model=0, skill_kwargs=dict
     equation.
 
     """
+
+    if skill_kwargs is None:
+        skill_kwargs = dict()
 
     # First, obtain climatological skill values
     try:
