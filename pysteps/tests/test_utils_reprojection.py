@@ -26,7 +26,7 @@ filename_radar = os.path.join(
 
 # Open the radar and NWP data
 radar_array_xr = pysteps.io.importers.import_knmi_hdf5(filename_radar)
-nwp_array_xr = pysteps.io.import_knmi_nwp_xr(filename_nwp)
+# nwp_array_xr = pysteps.io.import_knmi_nwp_xr(filename_nwp)
 
 steps_arg_names = (
     "radar_array_xr",
@@ -35,9 +35,9 @@ steps_arg_names = (
 )
 
 steps_arg_values = [
-    (radar_array_xr, nwp_array_xr, 1),
-    (radar_array_xr, nwp_array_xr, 4),
-    (radar_array_xr, nwp_array_xr, 8),
+    # (radar_array_xr, nwp_array_xr, 1),
+    # (radar_array_xr, nwp_array_xr, 4),
+    # (radar_array_xr, nwp_array_xr, 8),
 ]
 
 
