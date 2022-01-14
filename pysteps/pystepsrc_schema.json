@@ -1,21 +1,38 @@
 {
     "title": "pystepsrc params",
     "description": "Pysteps default parameters",
-    "required": ["outputs", "plot", "data_sources"],
+    "required": [
+        "outputs",
+        "plot",
+        "data_sources"
+    ],
     "type": "object",
     "properties": {
         "outputs": {
             "type": "object",
-            "required": ["path_outputs"],
-            "properties": {"path_outputs": {"type": "string"}},
+            "required": [
+                "path_outputs"
+            ],
+            "properties": {
+                "path_outputs": {
+                    "type": "string"
+                }
+            }
         },
         "plot": {
             "type": "object",
-            "required": ["motion_plot", "colorscale"],
+            "required": [
+                "motion_plot",
+                "colorscale"
+            ],
             "properties": {
-                "motion_plot": {"type": "string"},
-                "colorscale": {"type": "string"},
-            },
+                "motion_plot": {
+                    "type": "string"
+                },
+                "colorscale": {
+                    "type": "string"
+                }
+            }
         },
         "data_sources": {
             "type": "object",
@@ -29,19 +46,33 @@
                         "fn_ext",
                         "importer",
                         "timestep",
-                        "importer_kwargs",
+                        "importer_kwargs"
                     ],
                     "properties": {
-                        "root_path": {"type": "string"},
-                        "path_fmt": {"type": "string"},
-                        "fn_pattern": {"type": "string"},
-                        "fn_ext": {"type": "string"},
-                        "importer": {"type": "string"},
-                        "timestep": {"type": "number"},
-                        "importer_kwargs": {"type": "object"},
-                    },
+                        "root_path": {
+                            "type": "string"
+                        },
+                        "path_fmt": {
+                            "type": "string"
+                        },
+                        "fn_pattern": {
+                            "type": "string"
+                        },
+                        "fn_ext": {
+                            "type": "string"
+                        },
+                        "importer": {
+                            "type": "string"
+                        },
+                        "timestep": {
+                            "type": "number"
+                        },
+                        "importer_kwargs": {
+                            "type": "object"
+                        }
+                    }
                 }
-            },
-        },
-    },
+            }
+        }
+    }
 }
