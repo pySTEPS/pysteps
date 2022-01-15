@@ -21,7 +21,7 @@ To install these packages activate your conda development environment and run::
 
 Then, to build the documentation, from the repo's root run::
 
-    `tox -e docs`
+    tox -e docs
 
 This will create a conda environment will all the necessary dependencies and the
 data needed to create the examples.

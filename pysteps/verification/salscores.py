@@ -50,7 +50,7 @@ REGIONPROPS = [
 def sal(
     prediction,
     observation,
-    thr_factor=1 / 15,
+    thr_factor=0.067,  # default to 1/15 as in the reference paper
     thr_quantile=0.95,
     tstorm_kwargs=None,
 ):
@@ -94,9 +94,9 @@ def sal(
 
     See also
     --------
-    :py:func:`pysteps.verification.salscores.sal_structure`
-    :py:func:`pysteps.verification.salscores.sal_amplitude`
-    :py:func:`pysteps.verification.salscores.sal_location`
+    :py:func:`pysteps.verification.salscores.sal_structure`,
+    :py:func:`pysteps.verification.salscores.sal_amplitude`,
+    :py:func:`pysteps.verification.salscores.sal_location`,
     :py:mod:`pysteps.feature.tstorm`
     """
     prediction = np.copy(prediction)
@@ -143,9 +143,9 @@ def sal_structure(
 
     See also
     --------
-    :py:func:`pysteps.verification.salscores.sal`
-    :py:func:`pysteps.verification.salscores.sal_amplitude`
-    :py:func:`pysteps.verification.salscores.sal_location`
+    :py:func:`pysteps.verification.salscores.sal`,
+    :py:func:`pysteps.verification.salscores.sal_amplitude`,
+    :py:func:`pysteps.verification.salscores.sal_location`,
     :py:mod:`pysteps.feature.tstorm`
     """
     prediction_objects = _sal_detect_objects(
@@ -183,8 +183,8 @@ def sal_amplitude(prediction, observation):
 
     See also
     --------
-    :py:func:`pysteps.verification.salscores.sal`
-    :py:func:`pysteps.verification.salscores.sal_structure`
+    :py:func:`pysteps.verification.salscores.sal`,
+    :py:func:`pysteps.verification.salscores.sal_structure`,
     :py:func:`pysteps.verification.salscores.sal_location`
     """
     mean_obs = np.nanmean(observation)
@@ -228,9 +228,9 @@ def sal_location(
 
     See also
     --------
-    :py:func:`pysteps.verification.salscores.sal`
-    :py:func:`pysteps.verification.salscores.sal_structure`
-    :py:func:`pysteps.verification.salscores.sal_amplitude`
+    :py:func:`pysteps.verification.salscores.sal`,
+    :py:func:`pysteps.verification.salscores.sal_structure`,
+    :py:func:`pysteps.verification.salscores.sal_amplitude`,
     :py:mod:`pysteps.feature.tstorm`
     """
     return _sal_l1_param(prediction, observation) + _sal_l2_param(

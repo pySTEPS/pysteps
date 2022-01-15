@@ -1,6 +1,5 @@
 # Additional requeriments related to the documentation build only
 sphinx
-numpydoc
 sphinxcontrib.bibtex
 sphinx_rtd_theme
 sphinx_gallery
