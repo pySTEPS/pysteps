@@ -40,7 +40,7 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: mamba install --quiet pygrib
 
-      - name: Install gcc9 in OSX
+      - name: Install pysteps for MacOS
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
         env:
@@ -51,9 +51,11 @@ jobs:
         run: |
           brew update-reset
           brew update
-          gcc-9 --version || brew install gcc@9          
+          gcc-9 --version || brew install gcc@9
+          pip install .
 
       - name: Install pysteps
+        if: matrix.os != 'macos-latest'
         working-directory: ${{github.workspace}}
         run: pip install .
 
