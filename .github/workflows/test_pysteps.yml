@@ -1,10 +1,5 @@
 name: Test Pysteps
 
-env:
-  MINIMAL_DEPENDENCIES: cython numpy jsmin jsonschema matplotlib netCDF4 opencv pillow pyproj scipy dask
-  OPTIONAL_DEPENDENCIES: pyfftw cartopy h5py PyWavelets pandas scikit-image
-  TEST_DEPENDENCIES: pytest pytest-cov
-
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
@@ -34,26 +29,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2.0.0
+      - name: Install mamba and create environment
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          python-version: ${{ matrix.python-version }}
-          mamba-version: "*"
-          auto-update-conda: true
-          channels: conda-forge
-          channel-priority: flexible
-          activate-environment: test-environment
+          environment-file: ci/ci_test_env.yml
+          environment-name: test_environment
+          extra-specs: python=${{ matrix.python-version }}
 
-      - name: Install dependencies
-        env:
-          PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            mamba.bat install --quiet ${{env.PACKAGES}}
-          else
-            mamba install --quiet ${{env.PACKAGES}}
-          fi
-          pip install -U cookiecutter
+      - name: Install pygrib (not win)
+        if: matrix.os != 'windows-latest'
+        run: conda install --quiet pygrib
 
       - name: Install pysteps for MacOS
         if: matrix.os == 'macos-latest'
@@ -69,10 +54,6 @@ jobs:
           gcc-9 --version || brew install gcc@9
           pip install .
 
-      - name: Install pygrib (not win)
-        if: matrix.os != 'windows-latest'
-        run: conda install --quiet pygrib
-
       - name: Install pysteps
         if: matrix.os != 'macos-latest'
         working-directory: ${{github.workspace}}
@@ -87,6 +68,7 @@ jobs:
       - name: Check imports
         working-directory: ${{github.workspace}}/pysteps_data
         run: |
+          python --version
           python -c "import pysteps; print(pysteps.__file__)"
           python -c "from pysteps import motion"
           python -c "from pysteps.motion import vet"
