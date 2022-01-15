@@ -38,7 +38,7 @@ jobs:
 
       - name: Install pygrib (not win)
         if: matrix.os != 'windows-latest'
-        run: conda install --quiet pygrib
+        run: mamba install --quiet pygrib
 
       - name: Install pysteps for MacOS
         if: matrix.os == 'macos-latest'
