@@ -1,9 +1,9 @@
 name: Test Pysteps
 
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Triggers the workflow on push or pull request events to the master branch
   push:
-    branches: [ master, use_mamba_gh_actions ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -40,7 +40,7 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: mamba install --quiet pygrib
 
-      - name: Install gcc9 in MacOS
+      - name: Install gcc9 in OSX
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
         env:
