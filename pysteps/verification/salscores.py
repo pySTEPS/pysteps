@@ -94,10 +94,10 @@ def sal(
 
     See also
     --------
-    :py:func:`pysteps.verification.salscores.sal_structure
-    :py:func:`pysteps.verification.salscores.sal_amplitude
-    :py:func:`pysteps.verification.salscores.sal_location
-    :py:mod:`pysteps.feature.tstorm`.
+    :py:func:`pysteps.verification.salscores.sal_structure`
+    :py:func:`pysteps.verification.salscores.sal_amplitude`
+    :py:func:`pysteps.verification.salscores.sal_location`
+    :py:mod:`pysteps.feature.tstorm`
     """
     prediction = np.copy(prediction)
     observation = np.copy(observation)
@@ -140,6 +140,13 @@ def sal_structure(
         The structure component with value between -2 to 2 and 0 denotes perfect
         forecast in terms of structure. The returned value is NaN if no objects are
         detected in neither the prediction nor the observation.
+
+    See also
+    --------
+    :py:func:`pysteps.verification.salscores.sal`
+    :py:func:`pysteps.verification.salscores.sal_amplitude`
+    :py:func:`pysteps.verification.salscores.sal_location`
+    :py:mod:`pysteps.feature.tstorm`
     """
     prediction_objects = _sal_detect_objects(
         prediction, thr_factor, thr_quantile, tstorm_kwargs
@@ -173,6 +180,12 @@ def sal_amplitude(prediction, observation):
         Amplitude parameter with value between -2 to 2 and 0 denotes perfect forecast in
         terms of amplitude. The returned value is NaN if no objects are detected in
         neither the prediction nor the observation.
+
+    See also
+    --------
+    :py:func:`pysteps.verification.salscores.sal`
+    :py:func:`pysteps.verification.salscores.sal_structure`
+    :py:func:`pysteps.verification.salscores.sal_location`
     """
     mean_obs = np.nanmean(observation)
     mean_pred = np.nanmean(prediction)
@@ -212,6 +225,13 @@ def sal_location(
         The location component with value between 0 to 2 and 0 denotes perfect forecast
         in terms of location. The returned value is NaN if no objects are detected in
         either the prediction or the observation.
+
+    See also
+    --------
+    :py:func:`pysteps.verification.salscores.sal`
+    :py:func:`pysteps.verification.salscores.sal_structure`
+    :py:func:`pysteps.verification.salscores.sal_amplitude`
+    :py:mod:`pysteps.feature.tstorm`
     """
     return _sal_l1_param(prediction, observation) + _sal_l2_param(
         prediction, observation, thr_factor, thr_quantile, tstorm_kwargs
