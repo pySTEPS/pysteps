@@ -9,7 +9,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :widths: 10 90
 
     * - docs
-      - |latest| |colab| |gallery|
+      - |stable| |colab| |gallery|
     * - status
       - |test| |docs| |codecov| |codacy| |black|
     * - package
@@ -70,9 +70,9 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :alt: pysteps example gallery
     :target: https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
     
-.. |latest| image:: https://img.shields.io/badge/docs-latest-blue.svg
+.. |stable| image:: https://img.shields.io/badge/docs-stable-blue.svg
     :alt: pysteps documentation
-    :target: https://pysteps.readthedocs.io/en/latest/
+    :target: https://pysteps.readthedocs.io/en/stable/
     
 .. |codacy| image:: https://api.codacy.com/project/badge/Grade/6cff9e046c5341a4afebc0347362f8de
    :alt: Codacy Badge
