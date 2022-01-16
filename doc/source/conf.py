@@ -30,7 +30,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
     "sphinx.ext.mathjax",
-    "numpydoc",
+    "sphinx.ext.napoleon",
     "sphinxcontrib.bibtex",
     "sphinx_gallery.gen_gallery",
 ]
