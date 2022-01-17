@@ -56,13 +56,7 @@ fns = io.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-r_radar = io.read_timeseries(fns, importer, **importer_kwargs)
-radar_data_xr = r_radar[-1]
-
-# Get the metadata
-radar_metadata = radar_data_xr.x.attrs.copy()
-radar_metadata.update(**radar_data_xr.y.attrs)
-radar_metadata.update(**radar_data_xr.attrs)
+r_radar, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Import the NWP data
 filename = os.path.join(
@@ -73,16 +67,11 @@ filename = os.path.join(
     + nwp_data_source["fn_ext"],
 )
 
-nwp_data_xr = io.import_bom_nwp_xr(filename)
-nwp_metadata = nwp_data_xr.x.attrs.copy()
-nwp_metadata.update(**nwp_data_xr.y.attrs)
-nwp_metadata.update(**nwp_data_xr.attrs)
+nwp_data, nwp_metadata = io.import_bom_nwp_xr(filename)
 
 # Only keep the NWP forecasts from the last radar observation time (2020-10-31 04:00)
 # onwards
-r_nwp = nwp_data_xr.sel(
-    t=slice(np.datetime64("2020-10-31T04:00"), np.datetime64("2020-10-31T07:00"))
-)
+r_nwp = nwp_data[24:, :, :]
 
 
 ################################################################################
@@ -95,8 +84,8 @@ r_radar, radar_metadata = converter(r_radar, radar_metadata)
 r_nwp, nwp_metadata = converter(r_nwp, nwp_metadata)
 
 # Threshold the data
-r_radar.data[r_radar.data < 0.1] = 0.0
-r_nwp.data[r_nwp.data < 0.1] = 0.0
+r_radar[r_radar.data < 0.1] = 0.0
+r_nwp[r_nwp.data < 0.1] = 0.0
 
 # Plot the radar rainfall field and the first time step of the NWP forecast.
 # For the initial time step (t=0), the NWP rainfall forecast is not that different
@@ -118,9 +107,9 @@ plt.show()
 
 # transform the data to dB
 transformer = pysteps.utils.get_method("dB")
-r_radar, radar_metadata = transformer(r_radar.values, radar_metadata, threshold=0.1)
+r_radar, radar_metadata = transformer(r_radar, radar_metadata, threshold=0.1)
 transformer = pysteps.utils.get_method("dB")
-r_nwp, nwp_metadata = transformer(r_nwp.values, nwp_metadata, threshold=0.1)
+r_nwp, nwp_metadata = transformer(r_nwp, nwp_metadata, threshold=0.1)
 
 # r_nwp has to be four dimentional (n_models, time, y, x).
 # If we only use one model:
