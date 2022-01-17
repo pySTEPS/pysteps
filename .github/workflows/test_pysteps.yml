@@ -41,8 +41,9 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2.0.0
         with:
-          auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+          mamba-version: "*"
+          auto-update-conda: true
           channels: conda-forge
           channel-priority: flexible
           activate-environment: test-environment
@@ -50,9 +51,12 @@ jobs:
       - name: Install dependencies
         env:
           PACKAGES: ${{env.MINIMAL_DEPENDENCIES}} ${{env.OPTIONAL_DEPENDENCIES}} ${{env.TEST_DEPENDENCIES}}
-          PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
         run: |
-          conda install --quiet ${{env.PACKAGES}}
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            mamba.bat install --quiet ${{env.PACKAGES}}
+          else
+            mamba install --quiet ${{env.PACKAGES}}
+          fi
           pip install -U cookiecutter
 
       - name: Install pysteps for MacOS
