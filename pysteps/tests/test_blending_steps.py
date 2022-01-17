@@ -147,7 +147,7 @@ def test_steps_blending(
     ###
 
     # Initial decomposition settings
-    decomp_method = cascade.get_method("fft")
+    decomp_method, _ = cascade.get_method("fft")
     bandpass_filter_method = "gaussian"
     M, N = R_input.shape[1:]
     filter_method = cascade.get_method(bandpass_filter_method)
