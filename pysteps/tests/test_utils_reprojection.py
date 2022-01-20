@@ -69,6 +69,7 @@ steps_arg_names = (
     "radar_array",
     "nwp_array",
     "metadata_src",
+    "metadata_dst",
 )
 
 steps_arg_values = [
@@ -94,10 +95,10 @@ def test_utils_reprojection(
         nwp_array_reproj.shape[0] == nwp_array.shape[0]
     ), "Time dimension has not the same length as source"
     assert (
-        nwp_array_reproj.shape[1] == radar_array.shape[1]
+        nwp_array_reproj.shape[1] == radar_array.shape[0]
     ), "y dimension has not the same length as radar composite"
     assert (
-        nwp_array_reproj.shape[2] == radar_array.shape[2]
+        nwp_array_reproj.shape[2] == radar_array.shape[1]
     ), "x dimension has not the same length as radar composite"
 
     assert (

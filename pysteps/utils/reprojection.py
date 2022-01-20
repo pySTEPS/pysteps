@@ -86,12 +86,12 @@ def reprojection(src_array, dst_array, metadata_src, metadata_dst):
 
     # For every timestep, reproject the precipitation field of src_array to
     # the domain of dst_array
-    if src_array.attrs["yorigin"] != dst_array.attrs["yorigin"]:
+    if metadata_src["yorigin"] != metadata_dst["yorigin"]:
         src_array = src_array[:, ::-1, :]
 
-    for i in range(src_array["t"].shape[0]):
+    for i in range(src_array.shape[0]):
         reproject(
-            src_array.isel(t=i).values,
+            src_array[i, :, :],
             r_rprj[i, :, :],
             src_transform=src_transform,
             src_crs=src_crs,
