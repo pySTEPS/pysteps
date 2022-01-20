@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import numpy as np
 import pytest
 import pysteps
 from pysteps.utils import reprojection
@@ -20,9 +21,49 @@ filename_radar = os.path.join(
     root_path_radar, rel_path_radar, "20210704180500.rad.best.comp.rate.qpe.hdf"
 )
 
-# Open the radar and NWP data
-radar_array, _, metadata_src = pysteps.io.importers.import_odim_hdf5(filename_radar)
-nwp_array, metadata_dst = pysteps.io.import_rmi_nwp_xr(filename_nwp)
+# Open the radar data
+radar_array, _, metadata_dst = pysteps.io.importers.import_odim_hdf5(filename_radar)
+
+# Initialise dummy NWP data
+nwp_array = np.zeros((24, 564, 564))
+
+for t in range(nwp_array.shape[0]):
+    nwp_array[t, 30 + t : 185 + t, 30 + 2 * t] = 0.1
+    nwp_array[t, 30 + t : 185 + t, 31 + 2 * t] = 0.1
+    nwp_array[t, 30 + t : 185 + t, 32 + 2 * t] = 1.0
+    nwp_array[t, 30 + t : 185 + t, 33 + 2 * t] = 5.0
+    nwp_array[t, 30 + t : 185 + t, 34 + 2 * t] = 5.0
+    nwp_array[t, 30 + t : 185 + t, 35 + 2 * t] = 4.5
+    nwp_array[t, 30 + t : 185 + t, 36 + 2 * t] = 4.5
+    nwp_array[t, 30 + t : 185 + t, 37 + 2 * t] = 4.0
+    nwp_array[t, 30 + t : 185 + t, 38 + 2 * t] = 2.0
+    nwp_array[t, 30 + t : 185 + t, 39 + 2 * t] = 1.0
+    nwp_array[t, 30 + t : 185 + t, 40 + 2 * t] = 0.5
+    nwp_array[t, 30 + t : 185 + t, 41 + 2 * t] = 0.1
+
+nwp_proj = (
+    "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 "
+    "+a=6371229 +es=0 +lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
+)
+# expected_shape = (24, 564, 564)
+metadata_src = dict(
+    projection=nwp_proj,
+    institution="Royal Meteorological Institute of Belgium",
+    transform=None,
+    zerovalue=0.0,
+    threshold=0,
+    unit="mm",
+    accutime=5,
+    xpixelsize=1300.0,
+    ypixelsize=1300.0,
+    yorigin="upper",
+    cartesian_unit="m",
+    x1=0.0,
+    x2=731900.0,
+    y1=-731900.0,
+    y2=0.0,
+)
+
 
 steps_arg_names = (
     "radar_array",
