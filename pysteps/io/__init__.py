@@ -8,4 +8,3 @@ from .exporters import *
 from .importers import *
 from .nowcast_importers import *
 from .readers import *
-from .nwp_importers import *

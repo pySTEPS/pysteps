@@ -67,7 +67,8 @@ filename = os.path.join(
     + nwp_data_source["fn_ext"],
 )
 
-nwp_data, nwp_metadata = io.import_bom_nwp_xr(filename)
+nwp_importer = io.get_method("bom_nwp", "importer")
+nwp_data, _, nwp_metadata = nwp_importer(filename)
 
 # Only keep the NWP forecasts from the last radar observation time (2020-10-31 04:00)
 # onwards
