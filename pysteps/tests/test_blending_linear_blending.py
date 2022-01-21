@@ -10,6 +10,7 @@ from pysteps.utils import transformation
 linear_arg_values = [
     (5, 30, 60, 20, 45, "eulerian", None, 1, "True"),
     (5, 30, 60, 20, 45, "eulerian", None, 2, "False"),
+    (5, 30, 60, 20, 45, "eulerian", None, 0, "False"),
     (4, 23, 33, 9, 28, "eulerian", None, 1, "False"),
     (3, 18, 36, 13, 27, "eulerian", None, 1, "False"),
     (7, 30, 68, 11, 49, "eulerian", None, 1, "False"),
@@ -70,13 +71,16 @@ def test_linear_blending(
     ), "Control time needs to be a multiple of the time step"
 
     # Initialise dummy NWP data
-    r_nwp = np.zeros((n_models, n_timesteps, 200, 200))
+    if n_models == 0:
+        r_nwp = None
+    else:
+        r_nwp = np.zeros((n_models, n_timesteps, 200, 200))
 
-    for i in range(100):
-        r_nwp[:, :, i, :] = 11.0
+        for i in range(100):
+            r_nwp[:, :, i, :] = 11.0
 
-    if squeeze_nwp_array:
-        r_nwp = np.squeeze(r_nwp)
+        if squeeze_nwp_array:
+            r_nwp = np.squeeze(r_nwp)
 
     # Define nowcast input data
     r_input = np.zeros((200, 200))
@@ -130,7 +134,7 @@ def test_linear_blending(
             np.ones((200, 200)) * 5.5,
             err_msg="The blended array does not have the expected value",
         )
-    else:
+    elif n_models > 0:
         assert_array_almost_equal(
             r_blended[controltime // timestep - 1],
             np.ones((200, 200)) * 5.5,

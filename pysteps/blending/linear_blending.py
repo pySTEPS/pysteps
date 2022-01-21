@@ -99,10 +99,10 @@ def forecast(
 
     # Make sure that precip_nowcast and precip_nwp are in mm/h
     precip_nowcast, _ = conversion.to_rainrate(precip_nowcast, metadata=precip_metadata)
-    precip_nwp, _ = conversion.to_rainrate(precip_nwp, metadata=precip_nwp_metadata)
 
     # Check if NWP data is given as input
     if precip_nwp is not None:
+        precip_nwp, _ = conversion.to_rainrate(precip_nwp, metadata=precip_nwp_metadata)
 
         if len(precip_nowcast.shape) == 4:
             n_ens_members_nowcast = precip_nowcast.shape[0]
