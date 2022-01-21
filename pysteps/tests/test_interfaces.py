@@ -19,6 +19,25 @@ def _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
             method_getter(invalid_name)
 
 
+def test_nowcasts_interface():
+    """Test the nowcasts module interface."""
+
+    from pysteps.blending import (
+        linear_blending,
+        steps,
+    )
+
+    method_getter = pysteps.nowcasts.interface.get_method
+
+    valid_names_func_pair = [
+        ("linear_blending", linear_blending.forecast),
+        ("steps", steps.forecast),
+    ]
+
+    invalid_names = ["linear", "step", "blending", "pysteps"]
+    _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
+
+
 def test_cascade_interface():
     """Test the cascade module interface."""
 
