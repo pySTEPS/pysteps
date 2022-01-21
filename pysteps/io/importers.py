@@ -409,11 +409,8 @@ def import_bom_rf3(filename, **kwargs):
             "but it is not installed"
         )
 
-    precip = _import_bom_rf3_data(filename)
-
-    geodata = _import_bom_rf3_geodata(filename)
+    precip, geodata = _import_bom_rf3_data(filename)
     metadata = geodata
-    # TODO(import_bom_rf3): Add missing georeferencing data.
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
@@ -422,192 +419,20 @@ def import_bom_rf3(filename, **kwargs):
     return precip, None, metadata
 
 
-@postprocess_import()
-def import_bom_rf3_xr(filename, **kwargs):
-    """Import a NetCDF radar rainfall product from the BoM Rainfields3
-    using xarray.
-
-    Parameters
-    ----------
-    filename: str
-        Name of the file to import.
-
-    {extra_kwargs_doc}
-
-    Returns
-    -------
-    out_da : xr.DataArray
-        A xarray DataArray containing the rainfall field in mm/h imported
-        from the Bureau RF3 netcdf, the quality field and the metadata. The
-        quality field is currently set to None.
-    """
-
-    if not NETCDF4_IMPORTED:
-        raise MissingOptionalDependency(
-            "netCDF4 package is required to import BoM Rainfields3 products "
-            "but it is not installed"
-        )
-
-    ds = _import_bom_rf3_data_xr(
-        filename,
-        **kwargs,
-    )
-    ds_meta = _import_bom_rf3_geodata_xr(
-        ds,
-        **kwargs,
-    )
-
-    # rename valid_time to t if exists
-    if "valid_time" in ds_meta:
-        ds_meta = ds_meta.rename({"valid_time": "t"})
-
-    return ds_meta.precipitation
-
-
-def _import_bom_rf3_data_xr(
-    filename,
-    **kwargs,
-):
-
-    varname_time = kwargs.get("varname_time", "valid_time")
-    # Tested in python3.6 and chunks did not work properly
-    # commenting next line until find the reason
-    # chunks = kwargs.get('chunks', {varname_time: 1})
-
-    ds_rainfall = xr.open_mfdataset(
-        filename,
-        combine="nested",
-        concat_dim=varname_time,
-        # chunks=chunks,
-        lock=False,
-        parallel=True,
-    )
-
-    return ds_rainfall
-
-
-def _import_bom_rf3_geodata_xr(
-    ds_in,
-    **kwargs,
-):
-
-    # select a default varname if none is passed
-    varname = kwargs.get("varname", "precipitation")
-
-    # extract useful information
-    # projection
-    projdef = None
-    if "proj" in ds_in:
-        projection = ds_in.proj
-        if projection.grid_mapping_name == "albers_conical_equal_area":
-            projdef = "+proj=aea "
-            lon_0 = projection.longitude_of_central_meridian
-            projdef += f" +lon_0={lon_0:.3f}"
-            lat_0 = projection.latitude_of_projection_origin
-            projdef += f" +lat_0={lat_0:.3f}"
-            standard_parallel = projection.standard_parallel
-            projdef += f" +lat_1={standard_parallel[0]:.3f}"
-            projdef += f" +lat_2={standard_parallel[1]:.3f}"
-
-    # get the accumulation period
-    valid_time = None
-    if "valid_time" in ds_in:
-        valid_time = ds_in.valid_time
-
-    start_time = None
-    if "start_time" in ds_in:
-        start_time = ds_in.start_time
-
-    time_step = None
-    if start_time is not None:
-        if valid_time is not None:
-            time_step = (valid_time - start_time).isel(valid_time=0)
-            time_step = time_step.values.astype("timedelta64[m]")
-
-    # get the units of precipitation
-    units = None
-    if "units" in ds_in[varname].attrs:
-        units = ds_in[varname].units
-        if units in ("kg m-2", "mm"):
-            units = "mm"
-            ds_in[varname].attrs.update({"units": units})
-    # get spatial boundaries and pixelsize
-    # move to meters if coordiantes in kilometers
-    if "units" in ds_in.x.attrs:
-        if ds_in.x.units == "km":
-            ds_in["x"] = ds_in.x * 1000.0
-            ds_in.x.attrs.update({"units": "m"})
-            ds_in["y"] = ds_in.y * 1000.0
-            ds_in.y.attrs.update({"units": "m"})
-
-    xmin = ds_in.x.min().values
-    xmax = ds_in.x.max().values
-    ymin = ds_in.y.min().values
-    ymax = ds_in.y.max().values
-    xpixelsize = abs(ds_in.x[1] - ds_in.x[0])
-    ypixelsize = abs(ds_in.y[1] - ds_in.y[0])
-
-    cartesian_unit = ds_in.x.units
-
-    # Add metadata needed by pySTEPS as attrs in X and Y variables
-
-    ds_in.x.attrs.update(
-        {
-            # TODO: Remove before final 2.0 version
-            "x1": xmin,
-            "x2": xmax,
-            "cartesian_unit": cartesian_unit,
-        }
-    )
-
-    ds_in.y.attrs.update(
-        {
-            # TODO: Remove before final 2.0 version
-            "y1": ymin,
-            "y2": ymax,
-            "cartesian_unit": cartesian_unit,
-        }
-    )
-
-    # Add metadata needed by pySTEPS as attrs in rainfall variable
-    da_rainfall = ds_in[varname].isel(valid_time=0)
-
-    ds_in[varname].attrs.update(
-        {
-            "transform": None,
-            "unit": units,  # copy 'units' in 'unit' for legacy reasons
-            "projection": projdef,
-            "accutime": time_step,
-            "zr_a": None,
-            "zr_b": None,
-            "zerovalue": np.nanmin(da_rainfall),
-            "institution": "Commonwealth of Australia, Bureau of Meteorology",
-            "threshold": _get_threshold_value(da_rainfall.values),
-            # TODO(_import_bom_rf3_geodata_xr): Remove before final 2.0 version
-            "yorigin": "upper",
-            "xpixelsize": xpixelsize.values,
-            "ypixelsize": ypixelsize.values,
-        }
-    )
-
-    return ds_in
-
-
 def _import_bom_rf3_data(filename):
     ds_rainfall = netCDF4.Dataset(filename)
+    geodata = _import_bom_rf3_geodata(ds_rainfall)
     if "precipitation" in ds_rainfall.variables.keys():
         precipitation = ds_rainfall.variables["precipitation"][:]
     else:
         precipitation = None
     ds_rainfall.close()
 
-    return precipitation
+    return precipitation, geodata
 
 
-def _import_bom_rf3_geodata(filename):
+def _import_bom_rf3_geodata(ds_rainfall):
     geodata = {}
-
-    ds_rainfall = netCDF4.Dataset(filename)
 
     if "proj" in ds_rainfall.variables.keys():
         projection = ds_rainfall.variables["proj"]
@@ -649,7 +474,7 @@ def _import_bom_rf3_geodata(filename):
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
     geodata["cartesian_unit"] = "m"
-    geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
+    geodata["yorigin"] = "upper"
 
     # get the accumulation period
     valid_time = None
@@ -684,7 +509,6 @@ def _import_bom_rf3_geodata(filename):
             geodata["unit"] = "mm"
 
     geodata["institution"] = "Commonwealth of Australia, Bureau of Meteorology"
-    ds_rainfall.close()
 
     return geodata
 
