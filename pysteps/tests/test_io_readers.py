@@ -1,10 +1,9 @@
 from datetime import datetime
 
+import numpy as np
 import pytest
 
 import pysteps
-
-pytestmark = pytest.mark.skip("xarray dependency")
 
 
 def test_read_timeseries_mch():
@@ -33,7 +32,7 @@ def test_read_timeseries_mch():
     )
 
     importer = pysteps.io.get_method(importer_name, "importer")
-    data_array = pysteps.io.read_timeseries(fns, importer, **importer_kwargs)
+    precip, _, metadata = pysteps.io.read_timeseries(fns, importer, **importer_kwargs)
 
-    assert isinstance(data_array, xr.DataArray)
-    assert data_array.t.size == 3
+    assert isinstance(precip, np.ndarray)
+    assert precip.shape[0] == 3

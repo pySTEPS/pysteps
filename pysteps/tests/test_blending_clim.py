@@ -122,7 +122,7 @@ def test_save_skill(startdatestr, enddatestr, n_models, expected_skill_today, tm
         skill_today = pickle.load(f)
 
     # Check type
-    assert type(skill_today) == type({})
+    assert isinstance(skill_today, dict)
     assert "mean_skill" in skill_today
     assert "n" in skill_today
     assert "last_validtime" in skill_today

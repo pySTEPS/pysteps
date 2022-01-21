@@ -322,10 +322,10 @@ def decompose_NWP(
     ncf.timestep = int(timestep)
 
     # Create dimensions
-    time_dim = ncf.createDimension("time", R_NWP.shape[0])
-    casc_dim = ncf.createDimension("cascade_levels", num_cascade_levels)
-    x_dim = ncf.createDimension("x", R_NWP.shape[2])
-    y_dim = ncf.createDimension("y", R_NWP.shape[1])
+    ncf.createDimension("time", R_NWP.shape[0])
+    ncf.createDimension("cascade_levels", num_cascade_levels)
+    ncf.createDimension("x", R_NWP.shape[2])
+    ncf.createDimension("y", R_NWP.shape[1])
 
     # Create variables (decomposed cascade, means and standard deviations)
     R_d = ncf.createVariable(
@@ -404,7 +404,7 @@ def compute_store_nwp_motion(
     output_date = datetime.datetime.strftime(
         pd.to_datetime(analysis_time), "%Y%m%d%H%M%S"
     )
-    outfn = Path(output_path) / f"cascade_{nwp_model}_{output_date}.npy"
+    outfn = Path(output_path) / f"motion_{nwp_model}_{output_date}.npy"
 
     # Get the velocity field per time step
     v_nwp = np.zeros((precip_nwp.shape[0], 2, precip_nwp.shape[1], precip_nwp.shape[2]))

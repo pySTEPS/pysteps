@@ -9,14 +9,9 @@ from pysteps.utils import reprojection
 pytest.importorskip("rasterio")
 
 root_path_radar = pysteps.rcparams.data_sources["rmi"]["root_path"]
-root_path_nwp = pysteps.rcparams.data_sources["rmi_nwp"]["root_path"]
 
-rel_path_nwp = os.path.join("2021", "07", "04")
 rel_path_radar = "20210704"  # Different date, but that does not matter for the tester
 
-filename_nwp = os.path.join(
-    root_path_nwp, rel_path_nwp, "ao13_2021070412_native_5min.nc"
-)
 filename_radar = os.path.join(
     root_path_radar, rel_path_radar, "20210704180500.rad.best.comp.rate.qpe.hdf"
 )
@@ -45,7 +40,7 @@ nwp_proj = (
     "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 "
     "+a=6371229 +es=0 +lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
 )
-# expected_shape = (24, 564, 564)
+
 metadata_src = dict(
     projection=nwp_proj,
     institution="Royal Meteorological Institute of Belgium",
@@ -63,7 +58,6 @@ metadata_src = dict(
     y1=-731900.0,
     y2=0.0,
 )
-
 
 steps_arg_names = (
     "radar_array",

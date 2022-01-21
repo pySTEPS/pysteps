@@ -17,44 +17,100 @@ from pysteps.blending.utils import (
     load_NWP,
 )
 
-pytestmark = pytest.mark.skip("xarray dependency")
-
 pytest.importorskip("netCDF4")
 
-# Read an NWP forecast
-root_path = pysteps.rcparams.data_sources["rmi_nwp"]["root_path"]
-rel_path = os.path.join("2021", "07", "04")
-filename = os.path.join(root_path, rel_path, "ao13_2021070412_native_5min.nc")
-# precip_nwp = pysteps.io.import_rmi_nwp_xr(filename)[0:7]
+precip_nwp = np.zeros((24, 564, 564))
 
-# nwp_metadata = precip_nwp.x.attrs.copy()
-# nwp_metadata.update(**precip_nwp.y.attrs)
-# nwp_metadata.update(**precip_nwp.attrs)
+for t in range(precip_nwp.shape[0]):
+    precip_nwp[t, 30 + t : 185 + t, 30 + 2 * t] = 0.1
+    precip_nwp[t, 30 + t : 185 + t, 31 + 2 * t] = 0.1
+    precip_nwp[t, 30 + t : 185 + t, 32 + 2 * t] = 1.0
+    precip_nwp[t, 30 + t : 185 + t, 33 + 2 * t] = 5.0
+    precip_nwp[t, 30 + t : 185 + t, 34 + 2 * t] = 5.0
+    precip_nwp[t, 30 + t : 185 + t, 35 + 2 * t] = 4.5
+    precip_nwp[t, 30 + t : 185 + t, 36 + 2 * t] = 4.5
+    precip_nwp[t, 30 + t : 185 + t, 37 + 2 * t] = 4.0
+    precip_nwp[t, 30 + t : 185 + t, 38 + 2 * t] = 2.0
+    precip_nwp[t, 30 + t : 185 + t, 39 + 2 * t] = 1.0
+    precip_nwp[t, 30 + t : 185 + t, 40 + 2 * t] = 0.5
+    precip_nwp[t, 30 + t : 185 + t, 41 + 2 * t] = 0.1
+
+nwp_proj = (
+    "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 "
+    "+a=6371229 +es=0 +lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
+)
+
+nwp_metadata = dict(
+    projection=nwp_proj,
+    institution="Royal Meteorological Institute of Belgium",
+    transform=None,
+    zerovalue=0.0,
+    threshold=0,
+    unit="mm",
+    accutime=5,
+    xpixelsize=1300.0,
+    ypixelsize=1300.0,
+    yorigin="upper",
+    cartesian_unit="m",
+    x1=0.0,
+    x2=731900.0,
+    y1=-731900.0,
+    y2=0.0,
+)
 
 # Get the analysis time and valid time
-# times_nwp = precip_nwp["t"].values
+times_nwp = np.array(
+    [
+        "2021-07-04T16:05:00.000000000",
+        "2021-07-04T16:10:00.000000000",
+        "2021-07-04T16:15:00.000000000",
+        "2021-07-04T16:20:00.000000000",
+        "2021-07-04T16:25:00.000000000",
+        "2021-07-04T16:30:00.000000000",
+        "2021-07-04T16:35:00.000000000",
+        "2021-07-04T16:40:00.000000000",
+        "2021-07-04T16:45:00.000000000",
+        "2021-07-04T16:50:00.000000000",
+        "2021-07-04T16:55:00.000000000",
+        "2021-07-04T17:00:00.000000000",
+        "2021-07-04T17:05:00.000000000",
+        "2021-07-04T17:10:00.000000000",
+        "2021-07-04T17:15:00.000000000",
+        "2021-07-04T17:20:00.000000000",
+        "2021-07-04T17:25:00.000000000",
+        "2021-07-04T17:30:00.000000000",
+        "2021-07-04T17:35:00.000000000",
+        "2021-07-04T17:40:00.000000000",
+        "2021-07-04T17:45:00.000000000",
+        "2021-07-04T17:50:00.000000000",
+        "2021-07-04T17:55:00.000000000",
+        "2021-07-04T18:00:00.000000000",
+    ],
+    dtype="datetime64[ns]",
+)
+
 
 # Prepare input NWP files
 # Convert to rain rates [mm/h]
-# converter = pysteps.utils.get_method("mm/h")
-# precip_nwp, nwp_metadata = converter(precip_nwp, nwp_metadata)
+converter = pysteps.utils.get_method("mm/h")
+precip_nwp, nwp_metadata = converter(precip_nwp, nwp_metadata)
 
 # Threshold the data
-# precip_nwp.data[precip_nwp.data < 0.1] = 0.0
-# nwp_metadata["threshold"] = 0.1
+precip_nwp[precip_nwp < 0.1] = 0.0
+nwp_metadata["threshold"] = 0.1
 
 # Transform the data
-# transformer = pysteps.utils.get_method("dB")
-# precip_nwp, nwp_metadata = transformer(
-# precip_nwp.values, nwp_metadata, threshold=nwp_metadata["threshold"]
-# )
+transformer = pysteps.utils.get_method("dB")
+precip_nwp, nwp_metadata = transformer(
+    precip_nwp, nwp_metadata, threshold=nwp_metadata["threshold"]
+)
 
 # Set two issue times for testing
-# issue_time_first = times_nwp[0]
-# issue_time_second = times_nwp[3]
+issue_time_first = times_nwp[0]
+issue_time_second = times_nwp[3]
 
 # Set the blending weights (we'll blend with a 50-50 weight)
-# weights = np.full((2, 8), fill_value=0.5)
+weights = np.full((2, 8), fill_value=0.5)
 
 # Set the testing arguments
 # Test function arguments
@@ -71,16 +127,16 @@ utils_arg_names = (
 
 # Test function values
 utils_arg_values = [
-    # (
-    #     precip_nwp,
-    #     "test",
-    #     [issue_time_first, issue_time_second],
-    #     5.0,
-    #     3,
-    #     times_nwp,
-    #     precip_nwp.shape[1:],
-    #     weights,
-    # )
+    (
+        precip_nwp,
+        "test",
+        [issue_time_first, issue_time_second],
+        5.0,
+        3,
+        times_nwp,
+        precip_nwp.shape[1:],
+        weights,
+    )
 ]
 
 
@@ -124,7 +180,8 @@ def test_blending_utils(
     date_string = np.datetime_as_string(valid_times[0], "s")
     motion_file = os.path.join(
         tmpdir,
-        nwp_model
+        "motion_"
+        + nwp_model
         + "_"
         + date_string[:4]
         + date_string[5:7]
