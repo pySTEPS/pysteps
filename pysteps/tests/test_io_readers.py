@@ -35,4 +35,5 @@ def test_read_timeseries_mch():
     precip, _, metadata = pysteps.io.read_timeseries(fns, importer, **importer_kwargs)
 
     assert isinstance(precip, np.ndarray)
+    assert isinstance(metadata, dict)
     assert precip.shape[0] == 3
