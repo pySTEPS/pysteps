@@ -146,5 +146,5 @@ if __name__ == "__main__":
     save_skill(
         generate_fixed_skill(n_cascade_levels, 1),
         datetime.strptime("20200801000000", "%Y%m%d%H%M%S"),
-        "/tmp/",
+        "./tmp/",
     )
