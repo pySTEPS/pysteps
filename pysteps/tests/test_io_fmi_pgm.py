@@ -7,8 +7,6 @@ import pytest
 import pysteps
 from pysteps.tests.helpers import smart_assert
 
-pytestmark = pytest.mark.skip("xarray dependency")
-
 pytest.importorskip("pyproj")
 
 
@@ -18,13 +16,12 @@ filename = os.path.join(
     "20160928",
     "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz",
 )
-data_array = pysteps.io.import_fmi_pgm(filename, gzipped=True)
+precip, _, metadata = pysteps.io.import_fmi_pgm(filename, gzipped=True)
 
 
 def test_io_import_fmi_pgm_shape():
     """Test the importer FMI PGM."""
-    assert isinstance(data_array, xr.DataArray)
-    assert data_array.shape == (1226, 760)
+    assert precip.shape == (1226, 760)
 
 
 expected_proj = (
@@ -66,7 +63,7 @@ test_attrs = [
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
 def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer FMI PMG."""
-    smart_assert(data_array.attrs[variable], expected, tolerance)
+    smart_assert(metadata[variable], expected, tolerance)
 
 
 # test_geodata: list of (variable,expected,tolerance) tuples

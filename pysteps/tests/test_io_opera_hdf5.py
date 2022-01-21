@@ -7,20 +7,17 @@ import pytest
 import pysteps
 from pysteps.tests.helpers import smart_assert
 
-pytestmark = pytest.mark.skip("xarray dependency")
-
 pytest.importorskip("h5py")
 
 
 root_path = pysteps.rcparams.data_sources["opera"]["root_path"]
 filename = os.path.join(root_path, "20180824", "T_PAAH21_C_EUOC_20180824180000.hdf")
-data_array = pysteps.io.import_opera_hdf5(filename)
+precip, _, metadata = pysteps.io.import_opera_hdf5(filename)
 
 
 def test_io_import_opera_hdf5_shape():
     """Test the importer OPERA HDF5."""
-    assert isinstance(data_array, xr.DataArray)
-    assert data_array.shape == (2200, 1900)
+    assert precip.shape == (2200, 1900)
 
 
 # test_metadata: list of (variable,expected, tolerance) tuples
@@ -35,9 +32,21 @@ expected_proj = (
 # list of (variable,expected,tolerance) tuples
 test_attrs = [
     ("projection", expected_proj, None),
-    ("institution", "Odyssey datacentre", None),
+    ("ll_lon", -10.434576838640398, 1e-10),
+    ("ll_lat", 31.746215319325056, 1e-10),
+    ("ur_lon", 57.81196475014995, 1e-10),
+    ("ur_lat", 67.62103710275053, 1e-10),
+    ("x1", -0.0004161088727414608, 1e-6),
+    ("y1", -4400000.001057557, 1e-10),
+    ("x2", 3800000.0004256153, 1e-10),
+    ("y2", -0.0004262728616595268, 1e-6),
+    ("xpixelsize", 2000.0, 1e-10),
+    ("xpixelsize", 2000.0, 1e-10),
+    ("cartesian_unit", "m", None),
     ("accutime", 15.0, 1e-10),
+    ("yorigin", "upper", None),
     ("unit", "mm/h", None),
+    ("institution", "Odyssey datacentre", None),
     ("transform", None, None),
     ("zerovalue", 0.0, 1e-10),
     ("threshold", 0.01, 1e-10),
@@ -47,4 +56,4 @@ test_attrs = [
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
 def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
     """Test the importer OPERA HDF5."""
-    smart_assert(data_array.attrs[variable], expected, tolerance)
+    smart_assert(metadata[variable], expected, tolerance)
