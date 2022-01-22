@@ -44,17 +44,6 @@ consists of the following main steps:
     calculate_weights_bps
     calculate_weights_spn
     blend_means_sigmas
-    _check_inputs
-    _compute_incremental_mask
-    _transform_to_lagrangian
-    _init_noise
-    _compute_cascade_decomposition_radar
-    _compute_cascade_decomposition_nwp
-    _estimate_ar_parameters_radar
-    _find_nwp_combination
-    _init_random_generators
-    _prepare_forecast_loop
-    _compute_initial_nwp_skill
 
 """
 
