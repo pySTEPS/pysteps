@@ -87,8 +87,8 @@ r_radar, radar_metadata = converter(r_radar, radar_metadata)
 r_nwp, nwp_metadata = converter(r_nwp, nwp_metadata)
 
 # Threshold the data
-r_radar[r_radar.data < 0.1] = 0.0
-r_nwp[r_nwp.data < 0.1] = 0.0
+r_radar[r_radar < 0.1] = 0.0
+r_nwp[r_nwp < 0.1] = 0.0
 
 # Plot the radar rainfall field and the first time step of the NWP forecast.
 # For the initial time step (t=0), the NWP rainfall forecast is not that different

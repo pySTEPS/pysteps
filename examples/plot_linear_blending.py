@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Plot linear blending
-====================
+Linear blending
+===============
 
 This tutorial shows how to construct a simple linear blending between an ensemble
-nowcast and a dummy Numerical Weather Prediction (NWP) rainfall forecast.
+nowcast and a dummy numerical weather prediction (NWP) rainfall forecast.
 """
 
 from matplotlib import pyplot as plt
@@ -78,12 +78,7 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-precip = io.read_timeseries(fns, importer, **importer_kwargs)
-
-# Get the metadata
-metadata = precip.x.attrs.copy()
-metadata.update(**precip.y.attrs)
-metadata.update(**precip.attrs)
+precip, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to rain rate
 precip, metadata = conversion.to_rainrate(precip, metadata)
