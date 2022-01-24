@@ -11,7 +11,6 @@ forecast. The used datasets are from the Bureau of Meteorology, Australia.
 
 from matplotlib import pyplot as plt
 import numpy as np
-import os
 from datetime import datetime
 
 import pysteps
