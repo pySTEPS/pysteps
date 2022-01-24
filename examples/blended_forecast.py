@@ -5,7 +5,7 @@ Blended forecast
 
 This tutorial shows how to construct a blended forecast from an ensemble nowcast
 using the STEPS approach and a Numerical Weather Prediction (NWP) rainfall
-forecast. The used datasets are from the Royal Meteorological Insitute of Belgium.
+forecast. The used datasets are from the Bureau of Meteorology, Australia.
 
 """
 
@@ -36,7 +36,6 @@ date_radar = datetime.strptime("202010310400", "%Y%m%d%H%M")
 # The last NWP forecast was issued at 00:00
 date_nwp = datetime.strptime("202010310000", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["bom"]
-nwp_data_source = rcparams.data_sources["bom_nwp"]
 
 
 ###############################################################################
@@ -61,20 +60,14 @@ importer = io.get_method(importer_name, "importer")
 r_radar, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Import the NWP data
-filename = os.path.join(
-    nwp_data_source["root_path"],
-    datetime.strftime(date_nwp, nwp_data_source["path_fmt"]),
-    datetime.strftime(date_nwp, nwp_data_source["fn_pattern"])
-    + "."
-    + nwp_data_source["fn_ext"],
-)
+filename = "./nwp/bom/2020/10/31/20201031_0000_regrid_short.nc"
 
 nwp_importer = io.get_method("bom_nwp", "importer")
 nwp_data, _, nwp_metadata = nwp_importer(filename)
 
 # Only keep the NWP forecasts from the last radar observation time (2020-10-31 04:00)
 # onwards
-r_nwp = nwp_data[24:, :, :]
+r_nwp = nwp_data[24:43, :, :]
 
 
 ################################################################################
