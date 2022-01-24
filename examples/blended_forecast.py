@@ -28,6 +28,8 @@ from pysteps.visualization import plot_precip_field
 #
 # You need the pysteps-data archive downloaded and the pystepsrc file
 # configured with the data_source paths pointing to data folders.
+# Additionally, the pysteps-nwp-importers plugin needs to be installed, see
+# https://github.com/pySTEPS/pysteps-nwp-importers.
 
 # Selected case
 date_radar = datetime.strptime("202010310400", "%Y%m%d%H%M")
