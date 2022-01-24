@@ -5,5 +5,4 @@ sphinx_rtd_theme
 sphinx_gallery
 scikit-image
 pandas
-pysteps-nwp-importers
-
+git+https://github.com/pySTEPS/pysteps-nwp-importers.git@master#egg=pysteps_nwp_importers
