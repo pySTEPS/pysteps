@@ -6,35 +6,33 @@ pysteps.blending.steps
 Implementation of the STEPS stochastic blending method as described in
 :cite:`BPS2004`, :cite:`BPS2006` and :cite:`SPN2013`. The STEPS blending method
 consists of the following main steps:
-    1. Set the radar rainfall fields in a Lagrangian space.
-    2. Initialize the noise method.
-    3. Perform the cascade decomposition for the input radar rainfall fields.
-    The method assumes that the cascade decomposition of the NWP model fields is
-    already done prior to calling the function, as the NWP model fields are
-    generally not updated with the same frequency (which is more efficient). A
-    method to decompose and store the NWP model fields whenever a new NWP model
-    field is present, is present in pysteps.blending.utils.decompose_NWP.
-    4. Estimate AR parameters for the extrapolation nowcast and noise cascade.
-    5. Before starting the forecast loop, determine which NWP models will be
-    combined with which nowcast ensemble members. The number of output ensemble
-    members equals the maximum number of (ensemble) members in the input, which
-    can be either the defined number of (nowcast) ensemble members or the number
-    of NWP models/members.
-    6. Initialize all the random generators.
-    7. Calculate the initial skill of the NWP model forecasts at t=0.
-    8. Start the forecasting loop
-        8.1 Determine the skill and weights of the forecasting components (
-            extrapolation, NWP and noise) for that lead time.
-        8.2 Regress the extrapolation and noise cascades separately to the
-            subsequent time step.
-        8.3 Extrapolate the extrapolation and noise cascades to the current time
-            step.
-        8.4 Blend the cascades.
-        8.5 Recompose the cascade to a rainfall field.
-        8.6 Post-processing steps (masking and probability matching, which are
-                                   different from the original blended STEPS
-                                   implementation).
 
+    #. Set the radar rainfall fields in a Lagrangian space.
+    #. Initialize the noise method.
+    #. Perform the cascade decomposition for the input radar rainfall fields.
+       The method assumes that the cascade decomposition of the NWP model fields is
+       already done prior to calling the function, as the NWP model fields are
+       generally not updated with the same frequency (which is more efficient). A
+       method to decompose and store the NWP model fields whenever a new NWP model
+       field is present, is present in pysteps.blending.utils.decompose_NWP.
+    #. Estimate AR parameters for the extrapolation nowcast and noise cascade.
+    #. Before starting the forecast loop, determine which NWP models will be
+       combined with which nowcast ensemble members. The number of output ensemble
+       members equals the maximum number of (ensemble) members in the input, which
+       can be either the defined number of (nowcast) ensemble members or the number
+       of NWP models/members.
+    #. Initialize all the random generators.
+    #. Calculate the initial skill of the NWP model forecasts at t=0.
+    #. Start the forecasting loop:
+        #. Determine the skill and weights of the forecasting components
+           (extrapolation, NWP and noise) for that lead time.
+        #. Regress the extrapolation and noise cascades separately to the subsequent
+           time step.
+        #. Extrapolate the extrapolation and noise cascades to the current time step.
+        #. Blend the cascades.
+        #. Recompose the cascade to a rainfall field.
+        #. Post-processing steps (masking and probability matching, which are
+           different from the original blended STEPS implementation).
 
 .. autosummary::
     :toctree: ../generated/
