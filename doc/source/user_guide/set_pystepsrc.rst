@@ -1,6 +1,6 @@
 .. _pystepsrc:
 
-The pySTEPS configuration file (pystepsrc)
+The pysteps configuration file (pystepsrc)
 ==========================================
 
 .. _JSON: https://en.wikipedia.org/wiki/JSON

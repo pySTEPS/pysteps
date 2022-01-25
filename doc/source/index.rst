@@ -23,19 +23,28 @@ __ https://doi.org/10.5194/gmd-12-4185-2019
 __ https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :hidden:
    :caption: For users
 
-   User Guide <user_guide/index>
+   Installation <user_guide/install_pysteps>
    Gallery <../auto_examples/index>
    API Reference <pysteps_reference/index>
+   Example data <user_guide/example_data>
+   Configuration file (pystepsrc) <user_guide/set_pystepsrc>
+   Machine learning applications <user_guide/machine_learning_pysteps>
    Bibliography <zz_bibliography>
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :hidden:
    :caption: For developers
 
-   Contributing Guide <developer_guide/index>
-   GitHub repository <https://github.com/pySTEPS/pysteps>
+    Contributing Guide <developer_guide/contributors_guidelines>
+    Installation <user_guide/install_pysteps>
+    Importer plugins <developer_guide/importer_plugins>
+    Testing <developer_guide/test_pysteps>
+    Building the docs <developer_guide/build_the_docs>
+    Packaging <developer_guide/pypi>
+    Publishing to conda-forge <developer_guide/update_conda_forge>
+    GitHub repository <https://github.com/pySTEPS/pysteps>
