@@ -15,7 +15,8 @@ import numpy as np
 
 
 def read_timeseries(inputfns, importer, **kwargs):
-    """Read a time series of input files using the methods implemented in the
+    """
+    Read a time series of input files using the methods implemented in the
     :py:mod:`pysteps.io.importers` module and stack them into a 3d array of
     shape (num_timesteps, height, width).
 

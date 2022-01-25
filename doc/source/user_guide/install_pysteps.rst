@@ -184,11 +184,4 @@ Launch Python and import pysteps::
 
 **Important**: The Python interpreter must be launched outside of the pysteps directory.
 Otherwise, it confuses the name of the directory with the package name.
-See :ref:`Issue 40 <https://github.com/pySTEPS/pysteps/issues/40>`.
-
-
-
-
-
-
-
+See `Issue 40 <https://github.com/pySTEPS/pysteps/issues/40>`_.

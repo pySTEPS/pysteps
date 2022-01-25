@@ -71,7 +71,7 @@ def get_method(name):
     +-----------------+-------------------------------------------------------+
     |  linda          | the LINDA method developed in :cite:`PCN2021`         |
     +-----------------+-------------------------------------------------------+
-    |  lagrangian_\   | this approach computes local lagrangian probability   |
+    |  lagrangian\_   | this approach computes local lagrangian probability   |
     |  probability    | forecasts of threshold exceedences                    |
     +-----------------+-------------------------------------------------------+
     |  sprog          | the S-PROG method described in :cite:`Seed2003`       |

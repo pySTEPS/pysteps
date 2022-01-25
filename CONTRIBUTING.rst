@@ -382,7 +382,7 @@ A quick way to get familiar with the pytest syntax and the testing procedures
 is checking the python scripts present in the pysteps test module.
 
 Core developer guidelines
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Working directly on the master branch is discouraged and is reserved only
 for small changes and updates that do not compromise the stability of the code.
@@ -415,8 +415,7 @@ Processing pull requests
 .. _`Squash and merge`: https://github.com/blog/2141-squash-your-commits
 
 To process the pull request, we follow similar rules to those used in the
-`mypy <https://github.com/python/mypy/blob/master/CONTRIBUTING.md#core-developer-guidelines>`_
-project:
+`mypy developer guidelines <https://github.com/python/mypy/blob/master/CONTRIBUTING.md#core-developer-guidelines>`_:
 
 * Always wait for tests to pass before merging PRs.
 * Always use "`Squash and merge`_"  to merge PRs.

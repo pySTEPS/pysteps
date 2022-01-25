@@ -61,6 +61,7 @@ def postprocess_import(fillna=np.nan, dtype="double"):
         If the importer returns a MaskedArray, all the masked values are set to the
         fillna value. If a numpy array is returned, all the invalid values (nan and inf)
         are set to the fillna value.
+
     """
 
     def _postprocess_import(importer):
