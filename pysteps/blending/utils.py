@@ -186,7 +186,7 @@ def blend_optical_flows(flows, weights):
       weights are modified to make their sum equal to one.
     Returns
     -------
-    out: ndarray_
+    out: ndarray
         Return the blended advection field having shape
         (2, m, n), where out[0, :, :] contains the x-components of
         the blended motion vectors and out[1, :, :] contains the y-components.

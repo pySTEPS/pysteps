@@ -44,7 +44,6 @@ consists of the following main steps:
     calculate_weights_bps
     calculate_weights_spn
     blend_means_sigmas
-
 """
 
 import time
@@ -108,7 +107,8 @@ def forecast(
     mask_kwargs=None,
     measure_time=False,
 ):
-    """Generate a blended nowcast ensemble by using the Short-Term Ensemble
+    """
+    Generate a blended nowcast ensemble by using the Short-Term Ensemble
     Prediction System (STEPS) method.
 
     Parameters
@@ -343,6 +343,7 @@ def forecast(
 
     2. If blend_nwp_members is True, the BPS2006 method for the weights is
     suboptimal. It is recommended to use the SPN2013 method instead.
+
     """
 
     # 0.1 Start with some checks
@@ -1430,7 +1431,6 @@ def blend_means_sigmas(means, sigmas, weights):
     needed to recompose the cascade. This procedure uses the weights of the
     blending of the normalized cascades and follows eq. 32 and 33 in BPS2004.
 
-
     Parameters
     ----------
     means : array-like
@@ -1443,8 +1443,9 @@ def blend_means_sigmas(means, sigmas, weights):
       An array of shape [number_components + 1, scale_level, ...]
       containing the weights to be used in this routine
       for each component plus noise, scale level, and optionally [y, x]
-      dimensions, obtained by calling a method implemented in
-      pysteps.blending.steps.calculate_weights_...
+      dimensions, obtained by calling either
+      :py:func:`pysteps.blending.steps.calculate_weights_bps` or
+      :py:func:`pysteps.blending.steps.calculate_weights_spn`.
 
     Returns
     -------

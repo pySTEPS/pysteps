@@ -12,9 +12,11 @@ import numpy as np
 
 
 def read_timeseries(inputfns, importer, **kwargs):
-    """Read a time series of input files using the methods implemented in the
+    """
+    Read a time series of input files using the methods implemented in the
     :py:mod:`pysteps.io.importers` module and stack them into a 3d array of
     shape (num_timesteps, height, width).
+
     Parameters
     ----------
     inputfns: tuple
@@ -24,6 +26,7 @@ def read_timeseries(inputfns, importer, **kwargs):
         A function implemented in the :py:mod:`pysteps.io.importers` module.
     kwargs: dict
         Optional keyword arguments for the importer.
+
     Returns
     -------
     out: tuple
@@ -32,6 +35,7 @@ def read_timeseries(inputfns, importer, **kwargs):
         precipitation and quality fields are filled with nan values. If all
         input file names are None or if the length of the file name list is
         zero, a three-element tuple containing None values is returned.
+
     """
 
     # check for missing data

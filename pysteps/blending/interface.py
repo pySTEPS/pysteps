@@ -7,6 +7,7 @@ blended nowcasts with NWP models.
 
 .. autosummary::
     :toctree: ../generated/
+
     get_method
 """
 

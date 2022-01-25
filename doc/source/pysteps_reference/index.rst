@@ -15,6 +15,7 @@ available in pySTEPS.
     :caption: Pysteps modules
 
     pysteps
+    blending
     cascade
     decorators
     extrapolation
