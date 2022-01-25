@@ -9,9 +9,11 @@ forecast. The used datasets are from the Bureau of Meteorology, Australia.
 
 """
 
-from matplotlib import pyplot as plt
-import numpy as np
+import os
 from datetime import datetime
+
+import numpy as np
+from matplotlib import pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams, blending
@@ -35,7 +37,7 @@ date_radar = datetime.strptime("202010310400", "%Y%m%d%H%M")
 # The last NWP forecast was issued at 00:00
 date_nwp = datetime.strptime("202010310000", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["bom"]
-
+nwp_data_source = rcparams.data_sources["bom_nwp"]
 
 ###############################################################################
 # Load the data from the archive
@@ -59,13 +61,20 @@ importer = io.get_method(importer_name, "importer")
 r_radar, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Import the NWP data
-filename = "./nwp/bom/2020/10/31/20201031_0000_regrid_short.nc"
+filename = os.path.join(
+    nwp_data_source["root_path"],
+    datetime.strftime(date_nwp, nwp_data_source["path_fmt"]),
+    datetime.strftime(date_nwp, nwp_data_source["fn_pattern"])
+    + "."
+    + nwp_data_source["fn_ext"],
+)
 
 nwp_importer = io.get_method("bom_nwp", "importer")
 nwp_data, _, nwp_metadata = nwp_importer(filename)
 
 # Only keep the NWP forecasts from the last radar observation time (2020-10-31 04:00)
 # onwards
+
 r_nwp = nwp_data[24:43, :, :]
 
 
