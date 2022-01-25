@@ -1,5 +1,4 @@
-====================================
-pySTEPS -- The nowcasting initiative
+pysteps -- The nowcasting initiative
 ====================================
 
 Pysteps is a community-driven initiative for developing and maintaining an easy
@@ -23,37 +22,20 @@ __ https://doi.org/10.5194/gmd-12-4185-2019
 .. note:: Use pysteps to run your first extrapolation nowcast in Google Colab with `this interactive notebook`__.
 __ https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
 
-Documentation
-=============
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: For users
 
-The documentation is separated in three big branches, intended for different
-audiences.
-
-:ref:`user-guide`
-~~~~~~~~~~~~~~~~~
-
-This section is intended for new pysteps users. It provides an introductory
-overview to the pysteps package, explains how to install it and make use of the
-most important features.
-
-:ref:`pysteps-reference`
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Comprehensive description of all the modules and functions available in pysteps.
-
-:ref:`contributors-guides`
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Resources and guidelines for pysteps developers and contributors.
-
-
-Contents
-========
+   User Guide <user_guide/index>
+   Gallery <../auto_examples/index>
+   API Reference <pysteps_reference/index>
+   Bibliography <zz_bibliography>
 
 .. toctree::
-    :maxdepth: 1
+   :maxdepth: 2
+   :hidden:
+   :caption: For developers
 
-    user_guide/index
-    pysteps_reference/index
-    developer_guide/index
-    zz_bibliography
+   Contributing Guide <developer_guide/index>
+   GitHub repository <https://github.com/pySTEPS/pysteps>

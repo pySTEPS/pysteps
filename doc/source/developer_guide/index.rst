@@ -1,11 +1,10 @@
 .. _contributors-guides:
 
-=======================
-pySTEPS developer guide
+Contributing to pysteps
 =======================
 
 In this section you can find a series of guidelines and tutorials for
-contributing to the pySTEPS project.
+contributing to pysteps.
 
 
 .. toctree::

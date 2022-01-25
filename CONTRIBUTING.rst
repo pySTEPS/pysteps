@@ -1,4 +1,4 @@
-Contributing to Pysteps
+Contributing to pysteps
 =======================
 
 Welcome! pySTEPS is a community-driven initiative for developing and

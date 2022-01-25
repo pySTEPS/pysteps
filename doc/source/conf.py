@@ -6,6 +6,7 @@
 import os
 import subprocess
 import sys
+from datetime import datetime
 
 import json
 from jsmin import jsmin
@@ -52,8 +53,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pysteps"
-copyright = "2020, PySteps developers"
-author = "PySteps developers"
+copyright = f"2018-{datetime.now():%Y}, pysteps developers"
 
 
 # The version info for the project you're documenting, acts as replacement for
@@ -136,13 +136,32 @@ if "READTHEDOCS" in os.environ:
 #
 # html_theme = 'alabaster'
 # html_theme = 'classic'
-html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_book_theme"
+html_title = ""
+
+html_context = {
+    "github_user": "pySTEPS",
+    "github_repo": "pysteps",
+    "github_version": "master",
+    "doc_path": "doc",
+}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    "repository_url": "https://github.com/pySTEPS/pysteps",
+    "repository_branch": "master",
+    "path_to_docs": "doc/source",
+    "use_edit_page_button": True,
+    "use_repository_button": True,
+    "use_issues_button": True,
+}
+
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+html_logo = "../_static/pysteps_logo.png"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -155,12 +174,12 @@ html_css_files = ["../_static/pysteps.css"]
 #
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
-html_sidebars = {
-    "**": [
-        "relations.html",  # needs 'show_related': True theme option to display
-        "searchbox.html",
-    ]
-}
+# html_sidebars = {
+#     "**": [
+#         "relations.html",  # needs 'show_related': True theme option to display
+#         "searchbox.html",
+#     ]
+# }
 
 html_domain_indices = True
 
@@ -211,14 +230,14 @@ latex_domain_indices = False
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "pysteps.tex", "pysteps Reference", author, "manual"),
+    (master_doc, "pysteps.tex", "pysteps Reference", "manual"),
 ]
 
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "pysteps", "pysteps Reference", [author], 1)]
+man_pages = [(master_doc, "pysteps", "pysteps Reference", 1)]
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -230,7 +249,6 @@ texinfo_documents = [
         master_doc,
         "pysteps",
         "pysteps Reference",
-        author,
         "pysteps",
         "One line description of project.",
         "Miscellaneous",

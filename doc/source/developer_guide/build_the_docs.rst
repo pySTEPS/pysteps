@@ -35,7 +35,7 @@ related to Sphinx that are specified in the doc/requirements.txt file:
 - sphinx
 - numpydoc
 - sphinxcontrib.bibtex
-- sphinx_rtd_theme
+- sphinx-book-theme
 - sphinx_gallery
 
 You can install these packages running `pip install -r doc/requirements.txt`.
