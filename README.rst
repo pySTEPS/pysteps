@@ -1,5 +1,4 @@
-=====================================================================
-pySTEPS - Python framework for short-term ensemble prediction systems
+pysteps - Python framework for short-term ensemble prediction systems
 =====================================================================
 
 .. start-badges
@@ -23,7 +22,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :target: https://pysteps.readthedocs.io/
 
 .. |test| image:: https://github.com/pySTEPS/pysteps/workflows/Test%20Pysteps/badge.svg
-    :alt: Test Pysteps
+    :alt: Test pysteps
     :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Test+Pysteps"
 
 .. |black| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20Black/badge.svg

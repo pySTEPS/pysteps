@@ -4,7 +4,7 @@
 User guide
 ==========
 
-This guide gives an introductory overview of the pySTEPS package.
+This guide gives an introductory overview of the pysteps package.
 It explains how to install and make use of the most important features.
 
 For detailed reference documentation of the modules and functions available in
