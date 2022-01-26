@@ -7,7 +7,7 @@ sphinx:
   configuration: doc/source/conf.py
 
 formats:
-    - pdf
+    - htmlzip
 
 python:
   version: 3.8
