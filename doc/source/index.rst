@@ -19,9 +19,6 @@ probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**
 __ https://github.com/pySTEPS/pysteps
 __ https://doi.org/10.5194/gmd-12-4185-2019
 
-.. note:: Use pysteps to run your first extrapolation nowcast in Google Colab with `this interactive notebook`__.
-__ https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
-
 .. toctree::
    :maxdepth: 1
    :hidden:
@@ -29,6 +26,7 @@ __ https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples
 
    Installation <user_guide/install_pysteps>
    Gallery <../auto_examples/index>
+   My first nowcast <https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb>
    API Reference <pysteps_reference/index>
    Example data <user_guide/example_data>
    Configuration file (pystepsrc) <user_guide/set_pystepsrc>
