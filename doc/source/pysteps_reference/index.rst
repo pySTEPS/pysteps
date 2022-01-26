@@ -14,7 +14,6 @@ available in pysteps.
     :caption: API Reference
 
     pysteps
-    blending
     cascade
     decorators
     extrapolation
