@@ -50,7 +50,8 @@ from .. import utils
 
 
 def initialize_param_2d_fft_filter(field, **kwargs):
-    """Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
+    """
+    Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
     to produce one parametric, global and isotropic fourier filter.
 
     Parameters
@@ -212,7 +213,8 @@ def initialize_param_2d_fft_filter(field, **kwargs):
 
 
 def initialize_nonparam_2d_fft_filter(field, **kwargs):
-    """Takes one ore more 2d input fields and produces one non-parametric, global
+    """
+    Takes one ore more 2d input fields and produces one non-parametric, global
     and anisotropic fourier filter.
 
     Parameters
@@ -316,7 +318,8 @@ def initialize_nonparam_2d_fft_filter(field, **kwargs):
 def generate_noise_2d_fft_filter(
     F, randstate=None, seed=None, fft_method=None, domain="spatial"
 ):
-    """Produces a field of correlated noise using global Fourier filtering.
+    """
+    Produces a field of correlated noise using global Fourier filtering.
 
     Parameters
     ----------
@@ -419,7 +422,8 @@ def generate_noise_2d_fft_filter(
 
 
 def initialize_nonparam_2d_ssft_filter(field, **kwargs):
-    """Function to compute the local Fourier filters using the Short-Space Fourier
+    """
+    Function to compute the local Fourier filters using the Short-Space Fourier
     filtering approach.
 
     Parameters
@@ -554,7 +558,8 @@ def initialize_nonparam_2d_ssft_filter(field, **kwargs):
 
 
 def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
-    """Function to compute the local Fourier filters using a nested approach.
+    """
+    Function to compute the local Fourier filters using a nested approach.
 
     Parameters
     ----------
@@ -714,7 +719,8 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
 
 
 def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
-    """Function to compute the locally correlated noise using a nested approach.
+    """
+    Function to compute the locally correlated noise using a nested approach.
 
     Parameters
     ----------

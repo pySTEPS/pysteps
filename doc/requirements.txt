@@ -1,7 +1,7 @@
 # Additional requirements related to the documentation build only
 sphinx
 sphinxcontrib.bibtex
-sphinx_rtd_theme
+sphinx-book-theme
 sphinx_gallery
 scikit-image
 pandas

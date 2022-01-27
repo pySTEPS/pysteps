@@ -1,18 +1,17 @@
 .. _pysteps-reference:
 
-=================
-pySTEPS reference
-=================
+API Reference
+=============
 
 :Release: |version|
 :Date: |today|
 
 This page gives an comprehensive description of all the modules and functions
-available in pySTEPS.
+available in pysteps.
 
 .. toctree::
     :maxdepth: 2
-    :caption: Pysteps modules
+    :caption: API Reference
 
     pysteps
     blending

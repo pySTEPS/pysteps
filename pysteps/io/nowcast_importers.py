@@ -83,7 +83,8 @@ except ImportError:
 
 @postprocess_import(dtype="single")
 def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
-    """Read a nowcast or an ensemble of nowcasts from a NetCDF file conforming
+    """
+    Read a nowcast or an ensemble of nowcasts from a NetCDF file conforming
     to the CF 1.7 specification.
 
     If an error occurs during the import, the corresponding error message

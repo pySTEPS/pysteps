@@ -1,7 +1,7 @@
 .. _testing_pysteps:
 
 ===============
-Testing pySTEPS
+Testing pysteps
 ===============
 
 The pysteps distribution includes a small test suite for some of the
@@ -34,7 +34,7 @@ Manual testing
 Example data
 ------------
 
-The pySTEPS build-in tests require the pySTEPS example data installed.
+The build-in tests require the pysteps example data installed.
 See the installation instructions in the :ref:`example_data` section.
 
 Test an installed package

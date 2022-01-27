@@ -21,7 +21,8 @@ import numpy as np
 
 
 def det_cat_fct(pred, obs, thr, scores="", axis=None):
-    """Calculate simple and skill scores for deterministic categorical
+    """
+    Calculate simple and skill scores for deterministic categorical
     (dichotomous) forecasts.
 
     Parameters
@@ -97,7 +98,8 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
 
 
 def det_cat_fct_init(thr, axis=None):
-    """Initialize a contingency table object.
+    """
+    Initialize a contingency table object.
 
     Parameters
     ----------
@@ -215,7 +217,8 @@ def det_cat_fct_accum(contab, pred, obs):
 
 
 def det_cat_fct_merge(contab_1, contab_2):
-    """Merge two contingency table objects.
+    """
+    Merge two contingency table objects.
 
     Parameters
     ----------
@@ -261,7 +264,8 @@ def det_cat_fct_merge(contab_1, contab_2):
 
 
 def det_cat_fct_compute(contab, scores=""):
-    """Compute simple and skill scores for deterministic categorical
+    """
+    Compute simple and skill scores for deterministic categorical
     (dichotomous) forecasts from a contingency table object.
 
     Parameters

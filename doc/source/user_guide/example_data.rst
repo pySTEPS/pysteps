@@ -1,9 +1,9 @@
 .. _example_data:
 
-Installing the Example data
+Installing the example data
 ===========================
 
-The examples scripts in the user guide, as well as the pySTEPS build-in tests,
+The examples scripts in the user guide, as well as the build-in tests,
 use the example radar data available in a separate repository:
 `pysteps-data <https://github.com/pySTEPS/pysteps-data>`_.
 

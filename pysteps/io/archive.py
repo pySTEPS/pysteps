@@ -27,7 +27,8 @@ def find_by_date(
     num_next_files=0,
     silent=False,
 ):
-    """List input files whose timestamp matches the given date.
+    """
+    List input files whose timestamp matches the given date.
 
     Parameters
     ----------

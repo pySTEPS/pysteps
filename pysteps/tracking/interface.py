@@ -21,7 +21,8 @@ _tracking_methods["tdating"] = tdating.dating
 
 
 def get_method(name):
-    """Return a callable function for tracking features.
+    """
+    Return a callable function for tracking features.
 
     Description:
     Return a callable function for tracking features on input images .

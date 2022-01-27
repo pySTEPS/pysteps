@@ -49,7 +49,8 @@ def animate(
     map_kwargs=None,
     **kwargs,
 ):
-    """Function to animate observations and forecasts in pysteps.
+    """
+    Function to animate observations and forecasts in pysteps.
 
     It also allows to export the individual frames as figures, which
     is useful for constructing animated GIFs or similar.

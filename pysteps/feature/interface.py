@@ -10,7 +10,7 @@ The feature detectors implement the following interface:
     ``detection(input_image, **keywords)``
 
 The input is a two-dimensional image. Additional arguments to the specific
-method can be given via **keywords. The output is an array of shape (n, m),
+method can be given via ``**keywords``. The output is an array of shape (n, m),
 where each row corresponds to one of the n features. The first two columns
 contain the coordinates (x, y) of the features, and additional information can
 be specified in the remaining columns.
@@ -40,7 +40,8 @@ _detection_methods["shitomasi"] = shitomasi.detection
 
 
 def get_method(name):
-    """Return a callable function for feature detection.
+    """
+    Return a callable function for feature detection.
 
     Implemented methods:
 
