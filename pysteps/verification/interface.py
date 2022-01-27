@@ -13,7 +13,8 @@ Interface for the verification module.
 
 
 def get_method(name, type="deterministic"):
-    """Return a callable function for the method corresponding to the given
+    """
+    Return a callable function for the method corresponding to the given
     verification score.
 
     Parameters

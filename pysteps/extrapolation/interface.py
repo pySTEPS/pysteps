@@ -5,7 +5,7 @@ pysteps.extrapolation.interface
 
 The functions in the extrapolation module implement the following interface::
 
-    extrapolate(extrap, precip, velocity, timesteps, outval=np.nan, **keywords)
+    ``extrapolate(extrap, precip, velocity, timesteps, outval=np.nan, **keywords)``
 
 where *extrap* is an extrapolator object returned by the initialize function,
 *precip* is a (m,n) array with input precipitation field to be advected and
@@ -39,7 +39,8 @@ from pysteps.extrapolation import semilagrangian
 
 
 def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
-    """A dummy extrapolation method to apply Eulerian persistence to a
+    """
+    A dummy extrapolation method to apply Eulerian persistence to a
     two-dimensional precipitation field. The method returns the a sequence
     of the same initial field with no extrapolation applied (i.e. Eulerian
     persistence).
@@ -111,7 +112,8 @@ _extrapolation_methods["none"] = _do_nothing
 
 
 def get_method(name):
-    """Return two-element tuple for the extrapolation method corresponding to
+    """
+    Return two-element tuple for the extrapolation method corresponding to
     the given name. The elements of the tuple are callable functions for the
     initializer of the extrapolator and the extrapolation method, respectively.
     The available options are:\n

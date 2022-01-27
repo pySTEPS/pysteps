@@ -41,7 +41,8 @@ except ImportError:
 
 
 def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
-    """Compute an intensity-scale verification score.
+    """
+    Compute an intensity-scale verification score.
 
     Parameters
     ----------
@@ -94,7 +95,8 @@ def intensity_scale(X_f, X_o, name, thrs, scales=None, wavelet="Haar"):
 
 
 def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
-    """Initialize an intensity-scale verification object.
+    """
+    Initialize an intensity-scale verification object.
 
     Parameters
     ----------
@@ -179,7 +181,8 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
 
 
 def intensity_scale_accum(intscale, X_f, X_o):
-    """Compute and update the intensity-scale verification scores.
+    """
+    Compute and update the intensity-scale verification scores.
 
     Parameters
     ----------
@@ -210,7 +213,8 @@ def intensity_scale_accum(intscale, X_f, X_o):
 
 
 def intensity_scale_merge(intscale_1, intscale_2):
-    """Merge two intensity-scale verification objects.
+    """
+    Merge two intensity-scale verification objects.
 
     Parameters
     ----------
@@ -258,7 +262,8 @@ def intensity_scale_merge(intscale_1, intscale_2):
 
 
 def intensity_scale_compute(intscale):
-    """Return the intensity scale matrix.
+    """
+    Return the intensity scale matrix.
 
     Parameters
     ----------
@@ -295,7 +300,8 @@ def intensity_scale_compute(intscale):
 
 
 def binary_mse(X_f, X_o, thr, wavelet="haar", return_scales=True):
-    """Compute the MSE of the binary error as a function of spatial scale.
+    """
+    Compute the MSE of the binary error as a function of spatial scale.
 
     This method uses PyWavelets for decomposing the error field between the
     forecasts and observations into multiple spatial scales.
@@ -335,7 +341,8 @@ def binary_mse(X_f, X_o, thr, wavelet="haar", return_scales=True):
 
 
 def binary_mse_init(thr, wavelet="haar"):
-    """Initialize a binary MSE (BMSE) verification object.
+    """
+    Initialize a binary MSE (BMSE) verification object.
 
     Parameters
     ----------
@@ -416,7 +423,8 @@ def binary_mse_accum(bmse, X_f, X_o):
 
 
 def binary_mse_merge(bmse_1, bmse_2):
-    """Merge two BMSE objects.
+    """
+    Merge two BMSE objects.
 
     Parameters
     ----------
@@ -469,7 +477,8 @@ def binary_mse_merge(bmse_1, bmse_2):
 
 
 def binary_mse_compute(bmse, return_scales=True):
-    """Compute the BMSE.
+    """
+    Compute the BMSE.
 
     Parameters
     ----------
@@ -542,7 +551,8 @@ def fss(X_f, X_o, thr, scale):
 
 
 def fss_init(thr, scale):
-    """Initialize a fractions skill score (FSS) verification object.
+    """
+    Initialize a fractions skill score (FSS) verification object.
 
     Parameters
     ----------
@@ -605,7 +615,8 @@ def fss_accum(fss, X_f, X_o):
 
 
 def fss_merge(fss_1, fss_2):
-    """Merge two FSS objects.
+    """
+    Merge two FSS objects.
 
     Parameters
     ----------
@@ -648,7 +659,8 @@ def fss_merge(fss_1, fss_2):
 
 
 def fss_compute(fss):
-    """Compute the FSS.
+    """
+    Compute the FSS.
 
     Parameters
     ----------

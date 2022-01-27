@@ -28,7 +28,8 @@ def proesmans(
     verbose=True,
     full_output=False,
 ):
-    """Implementation of the anisotropic diffusion method of Proesmans et al.
+    """
+    Implementation of the anisotropic diffusion method of Proesmans et al.
     (1994).
 
     Parameters

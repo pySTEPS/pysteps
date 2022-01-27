@@ -242,7 +242,8 @@ def _plot_field(
 
 
 def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
-    """Function to generate a colormap (cmap) and norm.
+    """
+    Function to generate a colormap (cmap) and norm.
 
     Parameters
     ----------

@@ -18,7 +18,8 @@ import scipy.optimize as op
 
 
 def constant(R, **kwargs):
-    """Compute a constant advection field by finding a translation vector that
+    """
+    Compute a constant advection field by finding a translation vector that
     maximizes the correlation between two successive images.
 
     Parameters

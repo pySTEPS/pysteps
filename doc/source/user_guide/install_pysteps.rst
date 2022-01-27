@@ -51,22 +51,22 @@ Conda quickly installs, runs, and updates packages and their dependencies.
 It also allows you to easily create, save, load, or switch between different
 environments on your local computer.
 
-Since version 1.0, pySTEPS is available in conda-forge, a community-driven
+Since version 1.0, pysteps is available in conda-forge, a community-driven
 package repository for anaconda.
 
-There are two installation alternatives using anaconda: install pySTEPS in a
+There are two installation alternatives using anaconda: install pysteps in a
 pre-existing environment or install it new environment.
 
 New environment
 ~~~~~~~~~~~~~~~
 
-In a terminal, to create a new conda environment and install pySTEPS, run::
+In a terminal, to create a new conda environment and install pysteps, run::
 
     $ conda create -n pysteps
     $ source activate pysteps
 
 This will create and activate the new python environment. The next step is to
-add the conda-forge channel where the pySTEPS package is located::
+add the conda-forge channel where the pysteps package is located::
 
     $ conda config --env --prepend channels conda-forge
 
@@ -77,7 +77,7 @@ Let's set this channel as the priority one::
 The latter step is not strictly necessary but is recommended since
 the conda-forge and the default Anaconda channels are not 100% compatible.
 
-Finally, to install pySTEPS and all its dependencies run::
+Finally, to install pysteps and all its dependencies run::
 
     $ conda install pysteps
 
@@ -184,11 +184,4 @@ Launch Python and import pysteps::
 
 **Important**: The Python interpreter must be launched outside of the pysteps directory.
 Otherwise, it confuses the name of the directory with the package name.
-See :ref:`Issue 40 <https://github.com/pySTEPS/pysteps/issues/40>`.
-
-
-
-
-
-
-
+See `Issue 40 <https://github.com/pySTEPS/pysteps/issues/40>`_.

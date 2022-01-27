@@ -28,7 +28,8 @@ def temporal_autocorrelation(
     window="gaussian",
     window_radius=np.inf,
 ):
-    """Compute lag-l temporal autocorrelation coefficients
+    """
+    Compute lag-l temporal autocorrelation coefficients
     :math:`\gamma_l=\mbox{corr}(x(t),x(t-l))`, :math:`l=1,2,\dots,n-1`,
     from a time series :math:`x_1,x_2,\dots,x_n`. If a multivariate time series
     is given, each element of :math:`x_i` is treated as one sample from the
@@ -132,7 +133,8 @@ def temporal_autocorrelation(
 def temporal_autocorrelation_multivariate(
     x, d=0, mask=None, window="gaussian", window_radius=np.inf
 ):
-    """For a :math:`q`-variate time series
+    """
+    For a :math:`q`-variate time series
     :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
     correlation matrices :math:`\mathbf{\Gamma}_l`, where
     :math:`\Gamma_{l,i,j}=\gamma_{l,i,j}` and

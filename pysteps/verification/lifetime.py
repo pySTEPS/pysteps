@@ -61,7 +61,8 @@ def lifetime(X_s, X_t, rule="1/e"):
 
 
 def lifetime_init(rule="1/e"):
-    """Initialize a lifetime object.
+    """
+    Initialize a lifetime object.
 
     Parameters
     ----------
@@ -140,7 +141,8 @@ def lifetime_accum(lifetime, X_s, X_t):
 
 
 def lifetime_compute(lifetime):
-    """Compute the average value from the lifetime object.
+    """
+    Compute the average value from the lifetime object.
 
     Parameters
     ----------

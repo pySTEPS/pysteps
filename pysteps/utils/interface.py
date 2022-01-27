@@ -24,7 +24,8 @@ from . import transformation
 
 
 def get_method(name, **kwargs):
-    """Return a callable function for the utility method corresponding to the
+    """
+    Return a callable function for the utility method corresponding to the
     given name.\n\
 
     Arrays methods:

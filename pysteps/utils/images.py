@@ -24,7 +24,8 @@ except ImportError:
 
 
 def morph_opening(input_image, thr, n):
-    """Filter out small scale noise on the image by applying a binary
+    """
+    Filter out small scale noise on the image by applying a binary
     morphological opening, that is, erosion followed by dilation.
 
     .. _MaskedArray:\

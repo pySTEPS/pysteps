@@ -52,7 +52,8 @@ def forecast(
     filter_kwargs=None,
     measure_time=False,
 ):
-    """Generate a nowcast by using the autoregressive nowcasting using VIL
+    """
+    Generate a nowcast by using the autoregressive nowcasting using VIL
     (ANVIL) method. ANVIL is built on top of an extrapolation-based nowcast.
     The key features are:
 

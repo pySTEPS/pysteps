@@ -82,7 +82,7 @@ The comparison of methods from different types should only be done carefully and
 
    * - Nowcast type
      - Machine learning
-     - Pysteps
+     - pysteps
      - Verification
    * - Deterministic (variance-preserving)
      - SRGAN, Others?

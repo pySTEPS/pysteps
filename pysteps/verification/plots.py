@@ -22,7 +22,8 @@ from pysteps.verification import ensscores, probscores, spatialscores
 
 
 def plot_intensityscale(intscale, fig=None, vminmax=None, kmperpixel=None, unit=None):
-    """Plot a intensity-scale verification table with a color bar and axis
+    """
+    Plot a intensity-scale verification table with a color bar and axis
     labels.
 
     Parameters
@@ -85,7 +86,8 @@ def plot_intensityscale(intscale, fig=None, vminmax=None, kmperpixel=None, unit=
 
 
 def plot_rankhist(rankhist, ax=None):
-    """Plot a rank histogram.
+    """
+    Plot a rank histogram.
 
     Parameters
     ----------
@@ -115,7 +117,8 @@ def plot_rankhist(rankhist, ax=None):
 
 
 def plot_reldiag(reldiag, ax=None):
-    """Plot a reliability diagram.
+    """
+    Plot a reliability diagram.
 
     Parameters
     ----------
@@ -174,7 +177,8 @@ def plot_reldiag(reldiag, ax=None):
 
 
 def plot_ROC(ROC, ax=None, opt_prob_thr=False):
-    """Plot a ROC curve.
+    """
+    Plot a ROC curve.
 
     Parameters
     ----------

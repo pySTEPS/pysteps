@@ -21,7 +21,8 @@ from scipy import optimize as sop
 
 
 def compute_empirical_cdf(bin_edges, hist):
-    """Compute an empirical cumulative distribution function from the given
+    """
+    Compute an empirical cumulative distribution function from the given
     histogram.
 
     Parameters
@@ -51,7 +52,8 @@ def compute_empirical_cdf(bin_edges, hist):
 
 
 def nonparam_match_empirical_cdf(initial_array, target_array):
-    """Matches the empirical CDF of the initial array with the empirical CDF
+    """
+    Matches the empirical CDF of the initial array with the empirical CDF
     of a target array. Initial ranks are conserved, but empirical distribution
     matches the target one. Zero-pixels (i.e. pixels having the minimum value)
     in the initial array are conserved.
@@ -125,7 +127,8 @@ def nonparam_match_empirical_cdf(initial_array, target_array):
 
 # TODO: A more detailed explanation of the PMM method + references.
 def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
-    """Initialize a probability matching method (PMM) object from binned
+    """
+    Initialize a probability matching method (PMM) object from binned
     cumulative distribution functions (CDF).
 
     Parameters
@@ -151,7 +154,8 @@ def pmm_init(bin_edges_1, cdf_1, bin_edges_2, cdf_2):
 
 
 def pmm_compute(pmm, x):
-    """For a given PMM object and x-coordinate, compute the probability matched
+    """
+    For a given PMM object and x-coordinate, compute the probability matched
     value (i.e. the x-coordinate for which the target CDF has the same value as
     the source CDF).
 
@@ -172,7 +176,8 @@ def pmm_compute(pmm, x):
 
 
 def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
-    """Find shift and scale that is needed to return the required second_moment
+    """
+    Find shift and scale that is needed to return the required second_moment
     and rain area. The optimization is performed with the Nelder-Mead algorithm
     available in scipy.
     It assumes a forward transformation ln_rain = ln(rain)-ln(min_rain) if

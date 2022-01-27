@@ -114,7 +114,8 @@ def sal(
 def sal_structure(
     prediction, observation, thr_factor=None, thr_quantile=None, tstorm_kwargs=None
 ):
-    """Compute the structure component for SAL based on :cite:`WPHF2008`.
+    """
+    Compute the structure component for SAL based on :cite:`WPHF2008`.
 
     Parameters
     ----------
@@ -162,7 +163,8 @@ def sal_structure(
 
 
 def sal_amplitude(prediction, observation):
-    """Compute the amplitude component for SAL based on :cite:`WPHF2008`.
+    """
+    Compute the amplitude component for SAL based on :cite:`WPHF2008`.
 
     This component is the normalized difference of the domain-averaged precipitation
     in observation and forecast.
@@ -195,7 +197,8 @@ def sal_amplitude(prediction, observation):
 def sal_location(
     prediction, observation, thr_factor=None, thr_quantile=None, tstorm_kwargs=None
 ):
-    """Compute the first parameter of location component for SAL based on
+    """
+    Compute the first parameter of location component for SAL based on
     :cite:`WPHF2008`.
 
     This parameter indicates the normalized distance between the center of mass in
@@ -239,7 +242,8 @@ def sal_location(
 
 
 def _sal_l1_param(prediction, observation):
-    """Compute the first parameter of location component for SAL based on
+    """
+    Compute the first parameter of location component for SAL based on
     :cite:`WPHF2008`.
 
     This parameter indicates the normalized distance between the center of mass in
@@ -267,7 +271,8 @@ def _sal_l1_param(prediction, observation):
 
 
 def _sal_l2_param(prediction, observation, thr_factor, thr_quantile, tstorm_kwargs):
-    """Calculate the second parameter of location component for SAL based on :cite:`WPHF2008`.
+    """
+    Calculate the second parameter of location component for SAL based on :cite:`WPHF2008`.
 
     Parameters
     ----------
@@ -306,7 +311,8 @@ def _sal_l2_param(prediction, observation, thr_factor, thr_quantile, tstorm_kwar
 
 
 def _sal_detect_objects(precip, thr_factor, thr_quantile, tstorm_kwargs):
-    """Detect coherent precipitation objects using a multi-threshold approach from
+    """
+    Detect coherent precipitation objects using a multi-threshold approach from
     :cite:`Feldmann2021`.
 
     Parameters
@@ -364,7 +370,8 @@ def _sal_detect_objects(precip, thr_factor, thr_quantile, tstorm_kwargs):
 
 
 def _sal_scaled_volume(precip_objects):
-    """Calculate the scaled volume based on :cite:`WPHF2008`.
+    """
+    Calculate the scaled volume based on :cite:`WPHF2008`.
 
     Parameters
     ----------
@@ -395,7 +402,8 @@ def _sal_scaled_volume(precip_objects):
 
 
 def _sal_weighted_distance(precip, thr_factor, thr_quantile, tstorm_kwargs):
-    """Compute the weighted averaged distance between the centers of mass of the
+    """
+    Compute the weighted averaged distance between the centers of mass of the
     individual objects and the center of mass of the total precipitation field.
 
     Parameters

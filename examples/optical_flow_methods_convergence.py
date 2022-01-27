@@ -5,7 +5,7 @@ Optical flow methods convergence
 ================================
 
 In this example we test the convergence of the optical flow methods available in
-pySTEPS using idealized motion fields.
+pysteps using idealized motion fields.
 
 To test the convergence, using an example precipitation field we will:
 

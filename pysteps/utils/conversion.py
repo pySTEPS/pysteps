@@ -23,7 +23,8 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 
 def to_rainrate(R, metadata, zr_a=None, zr_b=None):
-    """Convert to rain rate [mm/h].
+    """
+    Convert to rain rate [mm/h].
 
     Parameters
     ----------
@@ -122,7 +123,8 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
 
 
 def to_raindepth(R, metadata, zr_a=None, zr_b=None):
-    """Convert to rain depth [mm].
+    """
+    Convert to rain depth [mm].
 
     Parameters
     ----------
@@ -219,7 +221,8 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
 
 
 def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
-    """Convert to reflectivity [dBZ].
+    """
+    Convert to reflectivity [dBZ].
 
     Parameters
     ----------

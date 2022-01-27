@@ -199,7 +199,8 @@ def streamplot(
     map_kwargs=None,
     step=20,
 ):
-    """Function to plot a motion field as streamlines.
+    """
+    Function to plot a motion field as streamlines.
     Wrapper for :func:`pysteps.visualization.motionfields.motion_plot` passing
     `plot_type="streamplot"`.
 

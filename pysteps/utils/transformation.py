@@ -27,7 +27,8 @@ warnings.filterwarnings(
 def boxcox_transform(
     R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False
 ):
-    """The one-parameter Box-Cox transformation.
+    """
+    The one-parameter Box-Cox transformation.
 
     The Box-Cox transform is a well-known power transformation introduced by
     Box and Cox (1964). In its one-parameter version, the Box-Cox transform
@@ -238,7 +239,8 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
 
 
 def NQ_transform(R, metadata=None, inverse=False, **kwargs):
-    """The normal quantile transformation as in Bogner et al (2012).
+    """
+    The normal quantile transformation as in Bogner et al (2012).
     Zero rain vales are set to zero in norm space.
 
     Parameters
@@ -329,7 +331,8 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
 
 def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
-    """Square-root transform.
+    """
+    Square-root transform.
 
     Parameters
     ----------

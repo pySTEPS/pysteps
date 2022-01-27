@@ -1,7 +1,7 @@
-Contributing to Pysteps
+Contributing to pysteps
 =======================
 
-Welcome! pySTEPS is a community-driven initiative for developing and
+Welcome! Pysteps is a community-driven initiative for developing and
 maintaining an easy to use, modular, free and open-source Python
 framework for short-term ensemble prediction systems.
 
@@ -108,7 +108,7 @@ root::
 
 The pre-commit hooks are scripts executed automatically in every commit to identify simple issues with the code.
 When an issue is identified (the pre-commit script exits with non-zero status), the hook aborts the commit and prints the error.
-Currently, Pysteps only tests that the code to be committed complies with black's format style.
+Currently, pysteps only tests that the code to be committed complies with black's format style.
 In case that the commit is aborted, you only need to run black in the entire source code.
 This can be done by running :code:`black .` or :code:`pre-commit run --all-files`.
 The latter is recommended since it indicates if the commit contained any formatting errors (that are automatically corrected).
@@ -310,7 +310,8 @@ Here is a summary of the most important rules:
 Here is an example of a docstring::
 
     def adjust_lag2_corrcoef1(gamma_1, gamma_2):
-        """A simple adjustment of lag-2 temporal autocorrelation coefficient to
+        """
+        A simple adjustment of lag-2 temporal autocorrelation coefficient to
         ensure that the resulting AR(2) process is stationary when the parameters
         are estimated from the Yule-Walker equations.
 
@@ -364,7 +365,7 @@ Testing your changes
 ~~~~~~~~~~~~~~~~~~~~
 
 Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass.
-See the `Testing pySTEPS <https://pysteps.readthedocs.io/en/latest/developer_guide/test_pysteps.html#testing-pysteps>`__
+See the `Testing pysteps <https://pysteps.readthedocs.io/en/latest/developer_guide/test_pysteps.html#testing-pysteps>`__
 for detailed instruction to run the tests.
 
 Although it is not strictly needed, we suggest creating minimal tests for new contributions to ensure that it achieves
@@ -382,7 +383,7 @@ A quick way to get familiar with the pytest syntax and the testing procedures
 is checking the python scripts present in the pysteps test module.
 
 Core developer guidelines
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Working directly on the master branch is discouraged and is reserved only
 for small changes and updates that do not compromise the stability of the code.
@@ -415,8 +416,7 @@ Processing pull requests
 .. _`Squash and merge`: https://github.com/blog/2141-squash-your-commits
 
 To process the pull request, we follow similar rules to those used in the
-`mypy <https://github.com/python/mypy/blob/master/CONTRIBUTING.md#core-developer-guidelines>`_
-project:
+`mypy developer guidelines <https://github.com/python/mypy/blob/master/CONTRIBUTING.md#core-developer-guidelines>`_:
 
 * Always wait for tests to pass before merging PRs.
 * Always use "`Squash and merge`_"  to merge PRs.

@@ -18,7 +18,8 @@ _downscale_methods["rainfarm"] = rainfarm.downscale
 
 
 def get_method(name):
-    """Return a callable function for computing downscaling.
+    """
+    Return a callable function for computing downscaling.
 
     Description:
     Return a callable function for computing deterministic or ensemble

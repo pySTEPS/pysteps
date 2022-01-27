@@ -21,7 +21,8 @@ from .interface import get_method
 
 
 def ensemble_skill(X_f, X_o, metric, **kwargs):
-    """Compute mean ensemble skill for a given skill metric.
+    """
+    Compute mean ensemble skill for a given skill metric.
 
     Parameters
     ----------
@@ -72,7 +73,8 @@ def ensemble_skill(X_f, X_o, metric, **kwargs):
 
 
 def ensemble_spread(X_f, metric, **kwargs):
-    """Compute mean ensemble spread for a given skill metric.
+    """
+    Compute mean ensemble spread for a given skill metric.
 
     Parameters
     ----------
@@ -123,7 +125,8 @@ def ensemble_spread(X_f, metric, **kwargs):
 
 
 def rankhist(X_f, X_o, X_min=None, normalize=True):
-    """Compute a rank histogram counts and optionally normalize the histogram.
+    """
+    Compute a rank histogram counts and optionally normalize the histogram.
 
     Parameters
     ----------
@@ -152,7 +155,8 @@ def rankhist(X_f, X_o, X_min=None, normalize=True):
 
 
 def rankhist_init(num_ens_members, X_min=None):
-    """Initialize a rank histogram object.
+    """
+    Initialize a rank histogram object.
 
     Parameters
     ----------
@@ -247,7 +251,8 @@ def rankhist_accum(rankhist, X_f, X_o):
 
 
 def rankhist_compute(rankhist, normalize=True):
-    """Return the rank histogram counts and optionally normalize the histogram.
+    """
+    Return the rank histogram counts and optionally normalize the histogram.
 
     Parameters
     ----------

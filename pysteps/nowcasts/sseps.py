@@ -922,7 +922,8 @@ def _recompose_cascade(R, mu, sigma):
 
 
 def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
-    """Produces two-dimensional tapering function for rectangular fields.
+    """
+    Produces two-dimensional tapering function for rectangular fields.
 
     Parameters
     ----------

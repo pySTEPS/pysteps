@@ -1,6 +1,6 @@
 .. _pystepsrc:
 
-The pySTEPS configuration file (pystepsrc)
+The pysteps configuration file (pystepsrc)
 ==========================================
 
 .. _JSON: https://en.wikipedia.org/wiki/JSON
@@ -97,7 +97,7 @@ Finally, check that the correct configuration file is loaded by the library::
 Windows
 ~~~~~~~
 
-For windows users, the recommended way to customize the pySTEPS
+For windows users, the recommended way to customize the pysteps
 configuration is placing the pystepsrc parameters file in the users' folder
 (defined in the %USERPROFILE% environment variable) in the following path:
 **%USERPROFILE%\\pysteps\\pystepsrc**

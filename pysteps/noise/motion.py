@@ -55,7 +55,8 @@ def get_default_params_bps_perp():
 def initialize_bps(
     V, pixelsperkm, timestep, p_par=None, p_perp=None, randstate=None, seed=None
 ):
-    """Initialize the motion field perturbator described in :cite:`BPS2006`.
+    """
+    Initialize the motion field perturbator described in :cite:`BPS2006`.
     For simplicity, the bias adjustment procedure described there has not been
     implemented. The perturbator generates a field whose magnitude increases
     with respect to lead time.
@@ -143,7 +144,8 @@ def initialize_bps(
 
 
 def generate_bps(perturbator, t):
-    """Generate a motion perturbation field by using the method described in
+    """
+    Generate a motion perturbation field by using the method described in
     :cite:`BPS2006`.
 
     Parameters
