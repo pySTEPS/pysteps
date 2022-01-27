@@ -173,7 +173,7 @@ precip_blended = blending.linear_blending.forecast(
 # forecast.
 
 # Plot the blended forecast
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(15, 5))
 plt.subplot(131)
 plot_precip_field(
     precip_blended[0, 2, :, :],
@@ -196,7 +196,7 @@ plt.tight_layout()
 plt.show()
 
 # Plot the NWP forecast for comparison
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(15, 5))
 plt.subplot(131)
 plot_precip_field(
     precip_nwp[2, :, :], geodata=nwp_metadata, title="NWP forecast at t + 30 min"
