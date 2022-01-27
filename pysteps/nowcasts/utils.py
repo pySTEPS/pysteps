@@ -80,7 +80,7 @@ def compute_percentile_mask(precip, pct):
     i = np.argmin(abs(x - pct))
     # handle ties
     if precip_s[i] == precip_s[i + 1]:
-        i = np.where(precip_s == precip_s[i])[0][-1] + 1
+        i = np.where(precip_s == precip_s[i])[0][-1]
     precip_pct_thr = precip_s[i]
 
     # determine the mask using the above threshold value
