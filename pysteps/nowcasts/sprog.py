@@ -462,7 +462,7 @@ def _compute_sprog_mask(R, war):
     i = np.argmin(abs(x - war))
     # handle ties
     if R_s[i] == R_s[i + 1]:
-        i = np.where(R_s == R_s[i])[0][-1] + 1
+        i = np.where(R_s == R_s[i])[0][-1]
     R_pct_thr = R_s[i]
 
     # determine a mask using the above threshold value to preserve the
