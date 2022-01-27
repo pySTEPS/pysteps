@@ -191,13 +191,11 @@ def plot_precip_field(
             cbar.ax.set_yticklabels(clevs_str)
 
         if ptype == "intensity":
-            cbar.ax.set_title(units, fontsize=10)
-            cbar.set_label("Precipitation intensity")
+            cbar.set_label(f"Precipitation intensity [{units}]")
         elif ptype == "depth":
-            cbar.ax.set_title(units, fontsize=10)
-            cbar.set_label("Precipitation depth")
+            cbar.set_label(f"Precipitation depth [{units}]")
         else:
-            cbar.set_label("P(R > %.1f %s)" % (probthr, units))
+            cbar.set_label(f"P(R > {probthr:.1f} {units})")
 
     if geodata is None or axis == "off":
         ax.xaxis.set_ticks([])
