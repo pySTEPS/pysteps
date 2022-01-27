@@ -11,13 +11,13 @@ but pysteps is designed to allow a wider range of uses.
 Pysteps is actively developed on GitHub__, while a more thorough description
 of pysteps is available in the pysteps reference publication:
 
-Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann,
-A. Seed, and L. Foresti, 2019:  Pysteps:  an open-source Python library for
-probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**,
-4185–4219, doi:10.5194/gmd-12-4185-2019. [source__]
+.. note::
+   Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann,
+   A. Seed, and L. Foresti, 2019:  Pysteps:  an open-source Python library for
+   probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**,
+   4185–4219, doi:`10.5194/gmd-12-4185-2019 <https://doi.org/10.5194/gmd-12-4185-2019>`_.
 
 __ https://github.com/pySTEPS/pysteps
-__ https://doi.org/10.5194/gmd-12-4185-2019
 
 .. toctree::
    :maxdepth: 1
@@ -26,7 +26,7 @@ __ https://doi.org/10.5194/gmd-12-4185-2019
 
    Installation <user_guide/install_pysteps>
    Gallery <../auto_examples/index>
-   My first nowcast <https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb>
+   My first nowcast (Colab Notebook) <https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb>
    API Reference <pysteps_reference/index>
    Example data <user_guide/example_data>
    Configuration file (pystepsrc) <user_guide/set_pystepsrc>
@@ -39,7 +39,6 @@ __ https://doi.org/10.5194/gmd-12-4185-2019
    :caption: For developers
 
     Contributing Guide <developer_guide/contributors_guidelines>
-    Installation <user_guide/install_pysteps>
     Importer plugins <developer_guide/importer_plugins>
     Testing <developer_guide/test_pysteps>
     Building the docs <developer_guide/build_the_docs>

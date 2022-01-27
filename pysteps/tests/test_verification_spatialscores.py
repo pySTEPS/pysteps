@@ -34,7 +34,8 @@ test_data = [
 
 @pytest.mark.parametrize("R1, R2, name, thrs, scales, wavelet", test_data)
 def test_intensity_scale_methods(R1, R2, name, thrs, scales, wavelet):
-    """Test the intensity_scale merge."""
+    """
+    Test the intensity_scale merge."""
     if name == "BMSE":
         pytest.importorskip("pywt")
 

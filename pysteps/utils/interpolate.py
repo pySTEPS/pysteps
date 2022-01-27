@@ -27,7 +27,8 @@ from pysteps.decorators import memoize, prepare_interpolator
 def idwinterp2d(
     xy_coord, values, xgrid, ygrid, power=0.5, k=20, dist_offset=0.5, **kwargs
 ):
-    """Inverse distance weighting interpolation of a sparse (multivariate) array.
+    """
+    Inverse distance weighting interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
@@ -115,7 +116,8 @@ def idwinterp2d(
 
 @prepare_interpolator()
 def rbfinterp2d(xy_coord, values, xgrid, ygrid, **kwargs):
-    """Radial basis function interpolation of a sparse (multivariate) array.
+    """
+    Radial basis function interpolation of a sparse (multivariate) array.
 
     .. _ndarray:\
     https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html

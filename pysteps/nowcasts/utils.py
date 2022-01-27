@@ -17,7 +17,8 @@ import numpy as np
 
 
 def binned_timesteps(timesteps):
-    """Compute a binning of the given irregular time steps.
+    """
+    Compute a binning of the given irregular time steps.
 
     Parameters
     ----------
@@ -51,7 +52,8 @@ def binned_timesteps(timesteps):
 
 
 def print_ar_params(PHI):
-    """Print the parameters of an AR(p) model.
+    """
+    Print the parameters of an AR(p) model.
 
     Parameters
     ----------
@@ -87,7 +89,8 @@ def print_ar_params(PHI):
 
 
 def print_corrcoefs(GAMMA):
-    """Print the parameters of an AR(p) model.
+    """
+    Print the parameters of an AR(p) model.
 
     Parameters
     ----------
@@ -123,7 +126,8 @@ def print_corrcoefs(GAMMA):
 
 
 def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
-    """Stack the given cascades into a larger array.
+    """
+    Stack the given cascades into a larger array.
 
     Parameters
     ----------

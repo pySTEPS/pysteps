@@ -118,7 +118,8 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
 
 
 def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
-    """Upscale fields in space.
+    """
+    Upscale fields in space.
 
     Parameters
     ----------
@@ -333,7 +334,8 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
 
 
 def clip_domain(R, metadata, extent=None):
-    """Clip the field domain by geographical coordinates.
+    """
+    Clip the field domain by geographical coordinates.
 
     Parameters
     ----------
@@ -444,7 +446,8 @@ def clip_domain(R, metadata, extent=None):
 
 
 def square_domain(R, metadata, method="pad", inverse=False):
-    """Either pad or crop a field to obtain a square domain.
+    """
+    Either pad or crop a field to obtain a square domain.
 
     Parameters
     ----------

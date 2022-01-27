@@ -138,7 +138,8 @@ def importers_info():
 
 
 def get_method(name, method_type):
-    """Return a callable function for the method corresponding to the given
+    """
+    Return a callable function for the method corresponding to the given
     name.
 
     Parameters

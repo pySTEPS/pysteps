@@ -18,7 +18,8 @@ from scipy.special import comb
 
 
 def mean(X, ignore_nan=False, X_thr=None):
-    """Compute the mean value from a forecast ensemble field.
+    """
+    Compute the mean value from a forecast ensemble field.
 
     Parameters
     ----------
@@ -58,7 +59,8 @@ def mean(X, ignore_nan=False, X_thr=None):
 
 
 def excprob(X, X_thr, ignore_nan=False):
-    """For a given forecast ensemble field, compute exceedance probabilities
+    """
+    For a given forecast ensemble field, compute exceedance probabilities
     for the given intensity thresholds.
 
     Parameters
@@ -115,7 +117,8 @@ def excprob(X, X_thr, ignore_nan=False):
 
 
 def banddepth(X, thr=None, norm=False):
-    """Compute the modified band depth (Lopez-Pintado and Romo, 2009) for a
+    """
+    Compute the modified band depth (Lopez-Pintado and Romo, 2009) for a
     k-member ensemble data set.
 
     Implementation of the exact fast algorithm for computing the modified band

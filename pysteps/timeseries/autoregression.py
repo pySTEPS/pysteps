@@ -29,7 +29,8 @@ from scipy import ndimage
 
 
 def adjust_lag2_corrcoef1(gamma_1, gamma_2):
-    """A simple adjustment of lag-2 temporal autocorrelation coefficient to
+    """
+    A simple adjustment of lag-2 temporal autocorrelation coefficient to
     ensure that the resulting AR(2) process is stationary when the parameters
     are estimated from the Yule-Walker equations.
 
@@ -52,7 +53,8 @@ def adjust_lag2_corrcoef1(gamma_1, gamma_2):
 
 
 def adjust_lag2_corrcoef2(gamma_1, gamma_2):
-    """A more advanced adjustment of lag-2 temporal autocorrelation coefficient
+    """
+    A more advanced adjustment of lag-2 temporal autocorrelation coefficient
     to ensure that the resulting AR(2) process is stationary when
     the parameters are estimated from the Yule-Walker equations.
 
@@ -77,7 +79,8 @@ def adjust_lag2_corrcoef2(gamma_1, gamma_2):
 
 
 def ar_acf(gamma, n=None):
-    """Compute theoretical autocorrelation function (ACF) from the AR(p) model
+    """
+    Compute theoretical autocorrelation function (ACF) from the AR(p) model
     with lag-l, l=1,2,...,p temporal autocorrelation coefficients.
 
     Parameters
@@ -120,7 +123,8 @@ def ar_acf(gamma, n=None):
 def estimate_ar_params_ols(
     x, p, d=0, check_stationarity=True, include_constant_term=False, h=0, lam=0.0
 ):
-    r"""Estimate the parameters of an autoregressive AR(p) model
+    r"""
+    Estimate the parameters of an autoregressive AR(p) model
 
     :math:`x_{k+1}=c+\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
 
@@ -238,7 +242,8 @@ def estimate_ar_params_ols_localized(
     lam=0.0,
     window="gaussian",
 ):
-    r"""Estimate the parameters of a localized AR(p) model
+    r"""
+    Estimate the parameters of a localized AR(p) model
 
     :math:`x_{k+1,i}=c_i+\phi_{1,i}x_{k,i}+\phi_{2,i}x_{k-1,i}+\dots+\phi_{p,i}x_{k-p,i}+\phi_{p+1,i}\epsilon`
 
@@ -395,7 +400,8 @@ def estimate_ar_params_ols_localized(
 
 
 def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
-    r"""Estimate the parameters of an AR(p) model
+    r"""
+    Estimate the parameters of an AR(p) model
 
     :math:`x_{k+1}=\phi_1 x_k+\phi_2 x_{k-1}+\dots+\phi_p x_{k-p}+\phi_{p+1}\epsilon`
 
@@ -470,7 +476,8 @@ def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
 
 
 def estimate_ar_params_yw_localized(gamma, d=0):
-    r"""Estimate the parameters of a localized AR(p) model
+    r"""
+    Estimate the parameters of a localized AR(p) model
 
     :math:`x_{k+1,i}=\phi_{1,i}x_{k,i}+\phi_{2,i}x_{k-1,i}+\dots+\phi_{p,i}x_{k-p,i}+\phi_{p+1}\epsilon`
 
@@ -549,7 +556,8 @@ def estimate_ar_params_yw_localized(gamma, d=0):
 def estimate_var_params_ols(
     x, p, d=0, check_stationarity=True, include_constant_term=False, h=0, lam=0.0
 ):
-    r"""Estimate the parameters of a vector autoregressive VAR(p) model
+    r"""
+    Estimate the parameters of a vector autoregressive VAR(p) model
 
       :math:`\mathbf{x}_{k+1}=\mathbf{c}+\mathbf{\Phi}_1\mathbf{x}_k+
       \mathbf{\Phi}_2\mathbf{x}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{x}_{k-p}+
@@ -673,7 +681,8 @@ def estimate_var_params_ols_localized(
     lam=0.0,
     window="gaussian",
 ):
-    r"""Estimate the parameters of a vector autoregressive VAR(p) model
+    r"""
+    Estimate the parameters of a vector autoregressive VAR(p) model
 
       :math:`\mathbf{x}_{k+1,i}=\mathbf{c}_i+\mathbf{\Phi}_{1,i}\mathbf{x}_{k,i}+
       \mathbf{\Phi}_{2,i}\mathbf{x}_{k-1,i}+\dots+\mathbf{\Phi}_{p,i}
@@ -841,7 +850,8 @@ def estimate_var_params_ols_localized(
 
 
 def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
-    r"""Estimate the parameters of a VAR(p) model
+    r"""
+    Estimate the parameters of a VAR(p) model
 
       :math:`\mathbf{x}_{k+1}=\mathbf{\Phi}_1\mathbf{x}_k+
       \mathbf{\Phi}_2\mathbf{x}_{k-1}+\dots+\mathbf{\Phi}_p\mathbf{x}_{k-p}+
@@ -925,7 +935,8 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
 
 
 def estimate_var_params_yw_localized(gamma, d=0):
-    r"""Estimate the parameters of a vector autoregressive VAR(p) model
+    r"""
+    Estimate the parameters of a vector autoregressive VAR(p) model
 
       :math:`\mathbf{x}_{k+1,i}=\mathbf{\Phi}_{1,i}\mathbf{x}_{k,i}+
       \mathbf{\Phi}_{2,i}\mathbf{x}_{k-1,i}+\dots+\mathbf{\Phi}_{p,i}
@@ -1123,7 +1134,8 @@ def iterate_var_model(x, phi, eps=None):
 
 
 def test_ar_stationarity(phi):
-    r"""Test stationarity of an AR(p) process. That is, test that the roots of
+    r"""
+    Test stationarity of an AR(p) process. That is, test that the roots of
     the equation :math:`x^p-\phi_1*x^{p-1}-\dots-\phi_p` lie inside the unit
     circle.
 
@@ -1148,7 +1160,8 @@ def test_ar_stationarity(phi):
 
 
 def test_var_stationarity(phi):
-    r"""Test stationarity of an AR(p) process. That is, test that the moduli of
+    r"""
+    Test stationarity of an AR(p) process. That is, test that the moduli of
     the eigenvalues of the companion matrix lie inside the unit circle.
 
     Parameters

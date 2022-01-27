@@ -35,8 +35,10 @@ def test_get_geotiff_filename():
 
 
 def test_io_export_netcdf_one_member_one_time_step():
-    """Test the export netcdf.
-    Also, test that the exported file can be read by the importer."""
+    """
+    Test the export netcdf.
+    Also, test that the exported file can be read by the importer.
+    """
 
     pytest.importorskip("pyproj")
 

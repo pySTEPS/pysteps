@@ -149,7 +149,8 @@ except ImportError:
 
 
 def _check_coords_range(selected_range, coordinate, full_range):
-    """Check that the coordinates range arguments follow the expected pattern in
+    """
+    Check that the coordinates range arguments follow the expected pattern in
     the **import_mrms_grib** function."""
 
     if selected_range is None:
@@ -421,7 +422,8 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
 @postprocess_import()
 def import_bom_rf3(filename, **kwargs):
-    """Import a NetCDF radar rainfall product from the BoM Rainfields3.
+    """
+    Import a NetCDF radar rainfall product from the BoM Rainfields3.
 
     Parameters
     ----------
@@ -554,7 +556,8 @@ def _import_bom_rf3_geodata(filename):
 
 @postprocess_import()
 def import_fmi_geotiff(filename, **kwargs):
-    """Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
+    """
+    Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
 
     Parameters
     ----------
@@ -620,7 +623,8 @@ def import_fmi_geotiff(filename, **kwargs):
 
 @postprocess_import()
 def import_fmi_pgm(filename, gzipped=False, **kwargs):
-    """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
+    """
+    Import a 8-bit PGM radar reflectivity composite from the FMI archive.
 
     Parameters
     ----------
@@ -746,7 +750,8 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
 
 @postprocess_import()
 def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs):
-    """Import a precipitation or reflectivity field (and optionally the quality
+    """
+    Import a precipitation or reflectivity field (and optionally the quality
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
 
     Parameters
@@ -890,7 +895,8 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
 
 @postprocess_import()
 def import_mch_gif(filename, product, unit, accutime, **kwargs):
-    """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
+    """
+    Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
 
     Parameters
@@ -1010,7 +1016,8 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
 
 @postprocess_import()
 def import_mch_hdf5(filename, qty="RATE", **kwargs):
-    """Import a precipitation field (and optionally the quality field) from a
+    """
+    Import a precipitation field (and optionally the quality field) from a
     MeteoSwiss HDF5 file conforming to the ODIM specification.
 
     Parameters
@@ -1154,7 +1161,8 @@ def _read_mch_hdf5_what_group(whatgrp):
 
 @postprocess_import()
 def import_mch_metranet(filename, product, unit, accutime):
-    """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
+    """
+    Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
     archive.
 
     Parameters
@@ -1218,7 +1226,8 @@ def import_mch_metranet(filename, product, unit, accutime):
 
 
 def _import_mch_geodata():
-    """Swiss radar domain CCS4
+    """
+    Swiss radar domain CCS4
     These are all hard-coded because the georeferencing is missing from the gif files.
     """
 
@@ -1253,7 +1262,8 @@ def _import_mch_geodata():
 
 @postprocess_import()
 def import_odim_hdf5(filename, qty="RATE", **kwargs):
-    """Import a precipitation field (and optionally the quality field) from a
+    """
+    Import a precipitation field (and optionally the quality field) from a
     HDF5 file conforming to the ODIM specification.
     **Important:** Currently, only the Pan-European (OPERA) and the
     Dipartimento della Protezione Civile (DPC) radar composites are correctly supported.
@@ -1475,7 +1485,8 @@ def _read_opera_hdf5_what_group(whatgrp):
 
 @postprocess_import()
 def import_saf_crri(filename, extent=None, **kwargs):
-    """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
+    """
+    Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
 
     Product description available on http://www.nwcsaf.org/crr_description

@@ -32,7 +32,8 @@ test_data = [
 
 @pytest.mark.parametrize("X, ignore_nan, X_thr, expected", test_data)
 def test_ensemblestats_mean(X, ignore_nan, X_thr, expected):
-    """Test ensemblestats mean."""
+    """
+    Test ensemblestats mean."""
     assert_array_almost_equal(mean(X, ignore_nan, X_thr), expected)
 
 

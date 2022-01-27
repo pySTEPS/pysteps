@@ -21,7 +21,8 @@ from pysteps.decorators import check_input_frames
 
 @check_input_frames(just_ndim=True)
 def DARTS(input_images, **kwargs):
-    """Compute the advection field from a sequence of input images by using the
+    """
+    Compute the advection field from a sequence of input images by using the
     DARTS method. :cite:`RCW2011`
 
     Parameters

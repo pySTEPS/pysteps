@@ -64,7 +64,8 @@ def forecast(
     mask_kwargs=None,
     measure_time=False,
 ):
-    """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
+    """
+    Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
 
     Parameters

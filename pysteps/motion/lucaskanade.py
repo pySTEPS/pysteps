@@ -50,7 +50,8 @@ def dense_lucaskanade(
     decl_scale=20,
     verbose=False,
 ):
-    """Run the Lucas-Kanade optical flow routine and interpolate the motion
+    """
+    Run the Lucas-Kanade optical flow routine and interpolate the motion
     vectors.
 
     .. _OpenCV: https://opencv.org/

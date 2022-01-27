@@ -48,7 +48,8 @@ def forecast(
     filter_kwargs=None,
     measure_time=False,
 ):
-    """Generate a nowcast by using the Spectral Prognosis (S-PROG) method.
+    """
+    Generate a nowcast by using the Spectral Prognosis (S-PROG) method.
 
     Parameters
     ----------

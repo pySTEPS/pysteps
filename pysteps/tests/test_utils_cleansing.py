@@ -7,7 +7,8 @@ from pysteps.utils import cleansing
 
 
 def test_decluster_empty():
-    """decluster an empty input"""
+    """
+    Decluster an empty input"""
 
     X = np.empty((0, 2))
     V = np.empty((0, 2))

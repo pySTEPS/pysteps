@@ -49,7 +49,8 @@ _nowcast_methods["steps"] = steps.forecast
 
 
 def get_method(name):
-    """Return a callable function for computing nowcasts.
+    """
+    Return a callable function for computing nowcasts.
 
     Description:
     Return a callable function for computing deterministic or ensemble

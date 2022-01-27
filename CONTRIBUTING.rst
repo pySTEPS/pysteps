@@ -310,7 +310,8 @@ Here is a summary of the most important rules:
 Here is an example of a docstring::
 
     def adjust_lag2_corrcoef1(gamma_1, gamma_2):
-        """A simple adjustment of lag-2 temporal autocorrelation coefficient to
+        """
+        A simple adjustment of lag-2 temporal autocorrelation coefficient to
         ensure that the resulting AR(2) process is stationary when the parameters
         are estimated from the Yule-Walker equations.
 

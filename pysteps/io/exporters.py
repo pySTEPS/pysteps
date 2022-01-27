@@ -129,7 +129,8 @@ def initialize_forecast_exporter_geotiff(
     incremental=None,
     **kwargs,
 ):
-    """Initialize a GeoTIFF forecast exporter.
+    """
+    Initialize a GeoTIFF forecast exporter.
 
     The output files are named as '<outfnprefix>_<startdate>_<t>.tif', where
     startdate is in YYmmddHHMM format and t is lead time (minutes). GDAL needs
@@ -244,7 +245,8 @@ def initialize_forecast_exporter_kineros(
     incremental=None,
     **kwargs,
 ):
-    """Initialize a KINEROS2 format exporter for the rainfall ".pre" files
+    """
+    Initialize a KINEROS2 format exporter for the rainfall ".pre" files
     specified in https://www.tucson.ars.ag.gov/kineros/.
 
     Grid points are treated as individual rain gauges and a separate file is
@@ -372,7 +374,8 @@ def initialize_forecast_exporter_netcdf(
     incremental=None,
     **kwargs,
 ):
-    """Initialize a netCDF forecast exporter. All outputs are written to a
+    """
+    Initialize a netCDF forecast exporter. All outputs are written to a
     single file named as '<outfnprefix>_.nc'.
 
     Parameters
@@ -680,7 +683,8 @@ def export_forecast_dataset(field, exporter):
 
 
 def close_forecast_files(exporter):
-    """Close the files associated with a forecast exporter.
+    """
+    Close the files associated with a forecast exporter.
 
     Finish writing forecasts and close the output files opened by a forecast
     exporter.

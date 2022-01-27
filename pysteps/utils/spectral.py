@@ -20,7 +20,8 @@ from . import arrays
 
 
 def corrcoef(X, Y, shape, use_full_fft=False):
-    """Compute the correlation coefficient between two-dimensional arrays in
+    """
+    Compute the correlation coefficient between two-dimensional arrays in
     the spectral domain.
 
     Parameters
@@ -76,7 +77,8 @@ def corrcoef(X, Y, shape, use_full_fft=False):
 
 
 def mean(X, shape):
-    """Compute the mean value of a two-dimensional array in the spectral domain.
+    """
+    Compute the mean value of a two-dimensional array in the spectral domain.
 
     Parameters
     ----------
@@ -98,7 +100,8 @@ def mean(X, shape):
 def rapsd(
     field, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_kwargs
 ):
-    """Compute radially averaged power spectral density (RAPSD) from the given
+    """
+    Compute radially averaged power spectral density (RAPSD) from the given
     2D input field.
 
     Parameters
@@ -203,7 +206,8 @@ def remove_rain_norain_discontinuity(R):
 
 
 def std(X, shape, use_full_fft=False):
-    """Compute the standard deviation of a two-dimensional array in the
+    """
+    Compute the standard deviation of a two-dimensional array in the
     spectral domain.
 
     Parameters

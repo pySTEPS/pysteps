@@ -154,7 +154,8 @@ def morph(image, displacement, gradient=False):
 
 
 def vet_cost_function_gradient(*args, **kwargs):
-    """Compute the vet cost function gradient.
+    """
+    Compute the vet cost function gradient.
     See :py:func:`vet_cost_function` for more information.
     """
     kwargs["gradient"] = True

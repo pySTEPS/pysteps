@@ -35,7 +35,8 @@ minimal_pystepsrc_file = """
 
 
 def test_read_paramsrc():
-    """Test that the parameter file is read correctly and the resulting
+    """
+    Test that the parameter file is read correctly and the resulting
     pysteps.paramsrc dict can be accessed by attributes too.
     """
 

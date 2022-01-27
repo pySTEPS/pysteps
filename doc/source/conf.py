@@ -62,9 +62,7 @@ author = "pysteps developers"
 # built documents.
 #
 def get_version():
-    """
-    Returns project version as string from 'git describe' command.
-    """
+    """Returns project version as string from 'git describe' command."""
 
     from subprocess import check_output
 
