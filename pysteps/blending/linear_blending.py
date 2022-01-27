@@ -7,9 +7,9 @@ Linear blending method to blend (ensemble) nowcasts and (ensemble) Numerical
 Weather Prediction (NWP) forecasts. The method uses a predefined start and end
 time for the blending. Before this start time, the resulting blended forecasts only
 consists of the nowcast(s). In between the start and end time, the nowcast(s)
-weight decreases and NWP forecasts weight increases linearly from 1(0) to 
+weight decreases and NWP forecasts weight increases linearly from 1(0) to
 0(1). After the end time, the blended forecast entirely consists of the NWP
-forecasts. 
+forecasts.
 
 Implementation of the linear blending between nowcast and NWP data.
 
