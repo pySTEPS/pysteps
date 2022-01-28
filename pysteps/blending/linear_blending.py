@@ -58,8 +58,9 @@ def forecast(
       Number of time steps to forecast.
     timestep: int or float
       The time difference (in minutes) between consecutive forecast fields.
-    nowcast_method: {'anvil', 'eulerian', 'lagrangian', 'extrapolation', 'lagrangian_probability', 'sprog', 'steps', 'sseps'}
-      Name of the nowcast method used to forecast the precipitation.
+    nowcast_method: str
+      Name of the nowcasting method. See :py:mod:`pysteps.nowcasts.interface`
+      for the list of available methods.
     precip_nwp: array_like or NoneType, optional
       Array of shape (timesteps, m, n) in the case of no ensemble or
       of shape (n_ens_members, timesteps, m, n) in the case of an ensemble
