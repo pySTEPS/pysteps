@@ -20,23 +20,23 @@ _blending_methods["steps"] = steps.forecast
 
 
 def get_method(name):
-    """Return a callable function for computing nowcasts.
-    Description:
-    Return a callable function for computing deterministic or ensemble
-    precipitation nowcasts.
+    """
+    Return a callable function for computing nowcasts blending into an NWP
+    forecast.
+
     Implemented methods:
-    +-----------------+-------------------------------------------------------+
-    |     Name        |              Description                              |
-    +=================+=======================================================+
-    +-----------------+-------------------------------------------------------+
-    |  linear         | the linear blending of a nowcast method with other    |
-    |  blending       | data (e.g. NWP data).                                 |
-    +-----------------+-------------------------------------------------------+
-    |  steps          | the STEPS stochastic nowcasting blending method       |
-    |                 | described in :cite:`Seed2003`, :cite:`BPS2006` and    |
-    |                 | :cite:`SPN2013`. The blending weights approach        |
-    |                 | currently follows :cite:`BPS2006`.                    |
-    +-----------------+-------------------------------------------------------+
+
+    +------------------+------------------------------------------------------+
+    |     Name         |              Description                             |
+    +==================+======================================================+
+    | linear_ blending | the linear blending of a nowcast method with other   |
+    |                  | data (e.g. NWP data).                                |
+    +------------------+------------------------------------------------------+
+    | steps            | the STEPS stochastic nowcasting blending method      |
+    |                  | described in :cite:`Seed2003`, :cite:`BPS2006` and   |
+    |                  | :cite:`SPN2013`. The blending weights approach       |
+    |                  | currently follows :cite:`BPS2006`.                   |
+    +------------------+------------------------------------------------------+
     """
     if isinstance(name, str):
         name = name.lower()
@@ -51,7 +51,7 @@ def get_method(name):
         return _blending_methods[name]
     except KeyError:
         raise ValueError(
-            "Unknown blending method {}\n".format(name)
-            + "The available methods are:"
-            + str(list(_blending_methods.keys()))
+            f"Unknown blending method {name}."
+            "The available methods are: "
+            f"{*list(_blending_methods.keys()),}"
         ) from None
