@@ -133,31 +133,18 @@ uv_radar = oflow_method(precip_radar)
 # The linear blending of nowcast and NWP rainfall forecast
 # --------------------------------------------------------
 
-# Define nowcast keyword arguments
-nowcast_kwargs = {
-    "n_ens_members": 2,
-    "n_cascade_levels": 8,
-    "R_thr": radar_metadata["threshold"],
-    "kmperpixel": radar_metadata["xpixelsize"] / 1000.0,
-    "timestep": 10,
-    "noise_method": "nonparametric",
-    "vel_pert_method": "bps",
-    "mask_method": "incremental",
-}
-
 # Calculate the blended precipitation field
 precip_blended = blending.linear_blending.forecast(
-    precip=precip_radar[-3:, :, :],
+    precip=precip_radar[-1, :, :],
     precip_metadata=radar_metadata,
     velocity=uv_radar,
     timesteps=18,
     timestep=10,
-    nowcast_method="steps",
+    nowcast_method="extrapolation",  # simple advection nowcast
     precip_nwp=precip_nwp,
     precip_nwp_metadata=nwp_metadata,
     start_blending=60,  # in minutes (this is an arbritrary choice)
     end_blending=120,  # in minutes (this is an arbritrary choice)
-    nowcast_kwargs=nowcast_kwargs,
 )
 
 
@@ -166,48 +153,37 @@ precip_blended = blending.linear_blending.forecast(
 # ~~~~~~~~~~~~~~~~~~~~
 #
 # The linear blending starts at 60 min, so during the first 60 minutes the
-# blended forecast only consists of the extrapolation forecast (consisting of a
-# steps nowcast). Between 60 and 120 min, the NWP forecast gradually gets more
+# blended forecast only consists of the extrapolation forecast (consisting of an
+# extrapolation nowcast). Between 60 and 120 min, the NWP forecast gradually gets more
 # weight, whereas the extrapolation forecasts gradually gets less weight.
 # After 120 min, the blended forecast entirely consists of the NWP rainfall
 # forecast.
 
-# Plot the blended forecast
-plt.figure(figsize=(15, 5))
-plt.subplot(131)
-plot_precip_field(
-    precip_blended[0, 2, :, :],
-    geodata=radar_metadata,
-    title="Blended forecast at t + 30 min",
-)
-plt.subplot(132)
-plot_precip_field(
-    precip_blended[0, 8, :, :],
-    geodata=radar_metadata,
-    title="Blended forecast at t + 90 min",
-)
-plt.subplot(133)
-plot_precip_field(
-    precip_blended[0, 17, :, :],
-    geodata=radar_metadata,
-    title="Blended forecast at t + 180 min",
-)
-plt.tight_layout()
-plt.show()
+fig = plt.figure(figsize=(4, 8))
 
-# Plot the NWP forecast for comparison
-plt.figure(figsize=(15, 5))
-plt.subplot(131)
-plot_precip_field(
-    precip_nwp[2, :, :], geodata=nwp_metadata, title="NWP forecast at t + 30 min"
-)
-plt.subplot(132)
-plot_precip_field(
-    precip_nwp[8, :, :], geodata=nwp_metadata, title="NWP forecast at t + 90 min"
-)
-plt.subplot(133)
-plot_precip_field(
-    precip_nwp[17, :, :], geodata=nwp_metadata, title="NWP forecast at t + 180 min"
-)
+leadtimes_min = [30, 60, 90, 120]
+n_leadtimes = len(leadtimes_min)
+for n, leadtime in enumerate(leadtimes_min):
+
+    # Nowcast with blending into NWP
+    plt.subplot(n_leadtimes, 2, n * 2 + 1)
+    plot_precip_field(
+        precip_blended[int(leadtime / timestep) - 1, :, :],
+        geodata=radar_metadata,
+        title=f"Nowcast +{leadtime} min",
+        axis="off",
+        colorbar=False,
+    )
+
+    # Raw NWP forecast
+    plt.subplot(n_leadtimes, 2, n * 2 + 2)
+    plot_precip_field(
+        precip_nwp[int(leadtime / timestep) - 1, :, :],
+        geodata=nwp_metadata,
+        title=f"NWP +{leadtime} min",
+        axis="off",
+        colorbar=False,
+    )
+
 plt.tight_layout()
 plt.show()

@@ -203,51 +203,37 @@ r_nwp, _ = converter(r_nwp, nwp_metadata)
 # ~~~~~~~~~~~~~~~~~~~~
 #
 # The NWP rainfall forecast has a lower weight than the radar-based extrapolation
-# forecast at the issue time of the forecast (t=0). Therefore, the first time
+# forecast at the issue time of the forecast (+0 min). Therefore, the first time
 # steps consist mostly of the extrapolation.
-# However, near the end of the forecast (t=+3h), the NWP share in the blended
+# However, near the end of the forecast (+180 min), the NWP share in the blended
 # forecast has become more important and the forecast starts to resemble the
 # NWP forecast more.
 
-# Plot the blended forecast
-plt.figure(figsize=(15, 5))
-plt.subplot(131)
-plot_precip_field(
-    precip_forecast[0, 2, :, :],
-    geodata=radar_metadata,
-    title="Blended forecast at t + 30 min",
-)
-plt.subplot(132)
-plot_precip_field(
-    precip_forecast[0, 5, :, :],
-    geodata=radar_metadata,
-    title="Blended forecast at t + 60 min",
-)
-plt.subplot(133)
-plot_precip_field(
-    precip_forecast[0, 17, :, :],
-    geodata=radar_metadata,
-    title="Blended forecast at t + 180 min",
-)
-plt.tight_layout()
-plt.show()
+fig = plt.figure(figsize=(5, 12))
 
-# Plot the NWP forecast for comparison
-plt.figure(figsize=(15, 5))
-plt.subplot(131)
-plot_precip_field(
-    r_nwp[0, 3, :, :], geodata=nwp_metadata, title="NWP forecast at t + 30 min"
-)
-plt.subplot(132)
-plot_precip_field(
-    r_nwp[0, 6, :, :], geodata=nwp_metadata, title="NWP forecast at t + 60 min"
-)
-plt.subplot(133)
-plot_precip_field(
-    r_nwp[0, 18, :, :], geodata=nwp_metadata, title="NWP forecast at t + 180 min"
-)
-plt.tight_layout()
-plt.show()
+leadtimes_min = [30, 60, 90, 120, 150, 180]
+n_leadtimes = len(leadtimes_min)
+for n, leadtime in enumerate(leadtimes_min):
+
+    # Nowcast with blending into NWP
+    plt.subplot(n_leadtimes, 2, n * 2 + 1)
+    plot_precip_field(
+        precip_forecast[0, int(leadtime / timestep) - 1, :, :],
+        geodata=radar_metadata,
+        title=f"Nowcast +{leadtime} min",
+        axis="off",
+        colorbar=False,
+    )
+
+    # Raw NWP forecast
+    plt.subplot(n_leadtimes, 2, n * 2 + 2)
+    plot_precip_field(
+        r_nwp[0, int(leadtime / timestep) - 1, :, :],
+        geodata=nwp_metadata,
+        title=f"NWP +{leadtime} min",
+        axis="off",
+        colorbar=False,
+    )
 
 
 ################################################################################
