@@ -77,7 +77,7 @@ def compute_percentile_mask(precip, pct):
     # percentile
     precip_s.sort(kind="quicksort")
     x = 1.0 * np.arange(1, len(precip_s) + 1)[::-1] / len(precip_s)
-    i = np.argmin(abs(x - pct))
+    i = np.argmin(np.abs(x - pct))
     # handle ties
     if precip_s[i] == precip_s[i + 1]:
         i = np.where(precip_s == precip_s[i])[0][-1]
