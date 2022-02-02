@@ -54,51 +54,51 @@ def test_steps_blending(
     # The input data
     ###
     # Initialise dummy NWP data
-    R_NWP = np.zeros((n_models, n_timesteps + 1, 200, 200))
+    nwp_precip = np.zeros((n_models, n_timesteps + 1, 200, 200))
 
     for n_model in range(n_models):
-        for i in range(R_NWP.shape[1]):
-            R_NWP[n_model, i, 30:185, 30 + 1 * (i + 1) * n_model] = 0.1
-            R_NWP[n_model, i, 30:185, 31 + 1 * (i + 1) * n_model] = 0.1
-            R_NWP[n_model, i, 30:185, 32 + 1 * (i + 1) * n_model] = 1.0
-            R_NWP[n_model, i, 30:185, 33 + 1 * (i + 1) * n_model] = 5.0
-            R_NWP[n_model, i, 30:185, 34 + 1 * (i + 1) * n_model] = 5.0
-            R_NWP[n_model, i, 30:185, 35 + 1 * (i + 1) * n_model] = 4.5
-            R_NWP[n_model, i, 30:185, 36 + 1 * (i + 1) * n_model] = 4.5
-            R_NWP[n_model, i, 30:185, 37 + 1 * (i + 1) * n_model] = 4.0
-            R_NWP[n_model, i, 30:185, 38 + 1 * (i + 1) * n_model] = 2.0
-            R_NWP[n_model, i, 30:185, 39 + 1 * (i + 1) * n_model] = 1.0
-            R_NWP[n_model, i, 30:185, 40 + 1 * (i + 1) * n_model] = 0.5
-            R_NWP[n_model, i, 30:185, 41 + 1 * (i + 1) * n_model] = 0.1
+        for i in range(nwp_precip.shape[1]):
+            nwp_precip[n_model, i, 30:185, 30 + 1 * (i + 1) * n_model] = 0.1
+            nwp_precip[n_model, i, 30:185, 31 + 1 * (i + 1) * n_model] = 0.1
+            nwp_precip[n_model, i, 30:185, 32 + 1 * (i + 1) * n_model] = 1.0
+            nwp_precip[n_model, i, 30:185, 33 + 1 * (i + 1) * n_model] = 5.0
+            nwp_precip[n_model, i, 30:185, 34 + 1 * (i + 1) * n_model] = 5.0
+            nwp_precip[n_model, i, 30:185, 35 + 1 * (i + 1) * n_model] = 4.5
+            nwp_precip[n_model, i, 30:185, 36 + 1 * (i + 1) * n_model] = 4.5
+            nwp_precip[n_model, i, 30:185, 37 + 1 * (i + 1) * n_model] = 4.0
+            nwp_precip[n_model, i, 30:185, 38 + 1 * (i + 1) * n_model] = 2.0
+            nwp_precip[n_model, i, 30:185, 39 + 1 * (i + 1) * n_model] = 1.0
+            nwp_precip[n_model, i, 30:185, 40 + 1 * (i + 1) * n_model] = 0.5
+            nwp_precip[n_model, i, 30:185, 41 + 1 * (i + 1) * n_model] = 0.1
 
     # Define dummy nowcast input data
-    R_input = np.zeros((3, 200, 200))
+    radar_precip = np.zeros((3, 200, 200))
 
     for i in range(2):
-        R_input[i, 5:150, 30 + 1 * i] = 0.1
-        R_input[i, 5:150, 31 + 1 * i] = 0.5
-        R_input[i, 5:150, 32 + 1 * i] = 0.5
-        R_input[i, 5:150, 33 + 1 * i] = 5.0
-        R_input[i, 5:150, 34 + 1 * i] = 5.0
-        R_input[i, 5:150, 35 + 1 * i] = 4.5
-        R_input[i, 5:150, 36 + 1 * i] = 4.5
-        R_input[i, 5:150, 37 + 1 * i] = 4.0
-        R_input[i, 5:150, 38 + 1 * i] = 1.0
-        R_input[i, 5:150, 39 + 1 * i] = 0.5
-        R_input[i, 5:150, 40 + 1 * i] = 0.5
-        R_input[i, 5:150, 41 + 1 * i] = 0.1
-    R_input[2, 30:155, 30 + 1 * 2] = 0.1
-    R_input[2, 30:155, 31 + 1 * 2] = 0.1
-    R_input[2, 30:155, 32 + 1 * 2] = 1.0
-    R_input[2, 30:155, 33 + 1 * 2] = 5.0
-    R_input[2, 30:155, 34 + 1 * 2] = 5.0
-    R_input[2, 30:155, 35 + 1 * 2] = 4.5
-    R_input[2, 30:155, 36 + 1 * 2] = 4.5
-    R_input[2, 30:155, 37 + 1 * 2] = 4.0
-    R_input[2, 30:155, 38 + 1 * 2] = 2.0
-    R_input[2, 30:155, 39 + 1 * 2] = 1.0
-    R_input[2, 30:155, 40 + 1 * 3] = 0.5
-    R_input[2, 30:155, 41 + 1 * 3] = 0.1
+        radar_precip[i, 5:150, 30 + 1 * i] = 0.1
+        radar_precip[i, 5:150, 31 + 1 * i] = 0.5
+        radar_precip[i, 5:150, 32 + 1 * i] = 0.5
+        radar_precip[i, 5:150, 33 + 1 * i] = 5.0
+        radar_precip[i, 5:150, 34 + 1 * i] = 5.0
+        radar_precip[i, 5:150, 35 + 1 * i] = 4.5
+        radar_precip[i, 5:150, 36 + 1 * i] = 4.5
+        radar_precip[i, 5:150, 37 + 1 * i] = 4.0
+        radar_precip[i, 5:150, 38 + 1 * i] = 1.0
+        radar_precip[i, 5:150, 39 + 1 * i] = 0.5
+        radar_precip[i, 5:150, 40 + 1 * i] = 0.5
+        radar_precip[i, 5:150, 41 + 1 * i] = 0.1
+    radar_precip[2, 30:155, 30 + 1 * 2] = 0.1
+    radar_precip[2, 30:155, 31 + 1 * 2] = 0.1
+    radar_precip[2, 30:155, 32 + 1 * 2] = 1.0
+    radar_precip[2, 30:155, 33 + 1 * 2] = 5.0
+    radar_precip[2, 30:155, 34 + 1 * 2] = 5.0
+    radar_precip[2, 30:155, 35 + 1 * 2] = 4.5
+    radar_precip[2, 30:155, 36 + 1 * 2] = 4.5
+    radar_precip[2, 30:155, 37 + 1 * 2] = 4.0
+    radar_precip[2, 30:155, 38 + 1 * 2] = 2.0
+    radar_precip[2, 30:155, 39 + 1 * 2] = 1.0
+    radar_precip[2, 30:155, 40 + 1 * 3] = 0.5
+    radar_precip[2, 30:155, 41 + 1 * 3] = 0.1
 
     metadata = dict()
     metadata["unit"] = "mm"
@@ -118,28 +118,28 @@ def test_steps_blending(
     # First threshold the data and convert it to dBR
     ###
     # threshold the data
-    R_input[R_input < metadata["threshold"]] = 0.0
-    R_NWP[R_NWP < metadata["threshold"]] = 0.0
+    radar_precip[radar_precip < metadata["threshold"]] = 0.0
+    nwp_precip[nwp_precip < metadata["threshold"]] = 0.0
 
     # convert the data
     converter = pysteps.utils.get_method("mm/h")
-    R_input, _ = converter(R_input, metadata)
-    R_NWP, metadata = converter(R_NWP, metadata)
+    radar_precip, _ = converter(radar_precip, metadata)
+    nwp_precip, metadata = converter(nwp_precip, metadata)
 
     # transform the data
     transformer = pysteps.utils.get_method(metadata["transformation"])
-    R_input, _ = transformer(R_input, metadata)
-    R_NWP, metadata = transformer(R_NWP, metadata)
+    radar_precip, _ = transformer(radar_precip, metadata)
+    nwp_precip, metadata = transformer(nwp_precip, metadata)
 
     # set NaN equal to zero
-    R_input[~np.isfinite(R_input)] = metadata["zerovalue"]
-    R_NWP[~np.isfinite(R_NWP)] = metadata["zerovalue"]
+    radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
+    nwp_precip[~np.isfinite(nwp_precip)] = metadata["zerovalue"]
 
     assert (
-        np.any(~np.isfinite(R_input)) == False
+        np.any(~np.isfinite(radar_precip)) == False
     ), "There are still infinite values in the input radar data"
     assert (
-        np.any(~np.isfinite(R_NWP)) == False
+        np.any(~np.isfinite(nwp_precip)) == False
     ), "There are still infinite values in the NWP data"
 
     ###
@@ -149,78 +149,78 @@ def test_steps_blending(
     # Initial decomposition settings
     decomp_method, _ = cascade.get_method("fft")
     bandpass_filter_method = "gaussian"
-    M, N = R_input.shape[1:]
+    precip_shape = radar_precip.shape[1:]
     filter_method = cascade.get_method(bandpass_filter_method)
-    bp_filter = filter_method((M, N), n_cascade_levels)
+    bp_filter = filter_method(precip_shape, n_cascade_levels)
 
     # If we only use one model:
-    if R_NWP.ndim == 3:
-        R_NWP = R_NWP[None, :]
+    if nwp_precip.ndim == 3:
+        nwp_precip = nwp_precip[None, :]
 
     if decomposed_nwp:
-        R_d_models = []
+        nwp_precip_decomp = []
         # Loop through the n_models
-        for i in range(R_NWP.shape[0]):
+        for i in range(nwp_precip.shape[0]):
             R_d_models_ = []
             # Loop through the time steps
-            for j in range(R_NWP.shape[1]):
+            for j in range(nwp_precip.shape[1]):
                 R_ = decomp_method(
-                    field=R_NWP[i, j, :, :],
+                    field=nwp_precip[i, j, :, :],
                     bp_filter=bp_filter,
                     normalize=True,
                     compute_stats=True,
                     compact_output=True,
                 )
                 R_d_models_.append(R_)
-            R_d_models.append(R_d_models_)
+            nwp_precip_decomp.append(R_d_models_)
 
-        R_d_models = np.array(R_d_models)
+        nwp_precip_decomp = np.array(nwp_precip_decomp)
 
-        assert R_d_models.ndim == 2, "Wrong number of dimensions in R_d_models"
+        assert nwp_precip_decomp.ndim == 2, "Wrong number of dimensions in R_d_models"
 
     else:
-        R_d_models = R_NWP.copy()
+        nwp_precip_decomp = nwp_precip.copy()
 
-        assert R_d_models.ndim == 4, "Wrong number of dimensions in R_d_models"
+        assert nwp_precip_decomp.ndim == 4, "Wrong number of dimensions in R_d_models"
 
     ###
     # Determine the velocity fields
     ###
     oflow_method = pysteps.motion.get_method("lucaskanade")
-    V_radar = oflow_method(R_input)
-    V_NWP = []
+    radar_velocity = oflow_method(radar_precip)
+    nwp_velocity = []
     # Loop through the models
-    for n_model in range(R_NWP.shape[0]):
+    for n_model in range(nwp_precip.shape[0]):
         # Loop through the timesteps. We need two images to construct a motion
         # field, so we can start from timestep 1. Timestep 0 will be the same
         # as timestep 0.
         _V_NWP_ = []
-        for t in range(1, R_NWP.shape[1]):
-            V_NWP_ = oflow_method(R_NWP[n_model, t - 1 : t + 1, :])
+        for t in range(1, nwp_precip.shape[1]):
+            V_NWP_ = oflow_method(nwp_precip[n_model, t - 1 : t + 1, :])
             _V_NWP_.append(V_NWP_)
             V_NWP_ = None
         _V_NWP_ = np.insert(_V_NWP_, 0, _V_NWP_[0], axis=0)
-        V_NWP.append(_V_NWP_)
+        nwp_velocity.append(_V_NWP_)
 
-    V_NWP = np.stack(V_NWP)
+    nwp_velocity = np.stack(nwp_velocity)
 
-    assert V_NWP.ndim == 5, "V_NWP must be a five-dimensional array"
+    assert nwp_velocity.ndim == 5, "nwp_velocity must be a five-dimensional array"
 
     ###
     # The nowcasting
     ###
     precip_forecast = blending.steps.forecast(
-        R=R_input,
-        R_d_models=R_d_models,
-        V=V_radar,
-        V_models=V_NWP,
+        precip=radar_precip,
+        precip_models=nwp_precip_decomp,
+        velocity=radar_velocity,
+        velocity_models=nwp_velocity,
         timesteps=n_timesteps,
         timestep=5.0,
         issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=blend_nwp_members,
-        R_thr=metadata["threshold"],
+        precip_thr=metadata["threshold"],
         kmperpixel=1.0,
         extrap_method="semilagrangian",
         decomp_method="fft",

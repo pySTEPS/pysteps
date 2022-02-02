@@ -58,7 +58,7 @@ fns = io.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-r_radar, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+radar_precip, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Import the NWP data
 filename = os.path.join(
@@ -70,12 +70,12 @@ filename = os.path.join(
 )
 
 nwp_importer = io.get_method("bom_nwp", "importer")
-nwp_data, _, nwp_metadata = nwp_importer(filename)
+nwp_precip, _, nwp_metadata = nwp_importer(filename)
 
 # Only keep the NWP forecasts from the last radar observation time (2020-10-31 04:00)
 # onwards
 
-r_nwp = nwp_data[24:43, :, :]
+nwp_precip = nwp_precip[24:43, :, :]
 
 
 ################################################################################
@@ -84,12 +84,12 @@ r_nwp = nwp_data[24:43, :, :]
 
 # Make sure the units are in mm/h
 converter = pysteps.utils.get_method("mm/h")
-r_radar, radar_metadata = converter(r_radar, radar_metadata)
-r_nwp, nwp_metadata = converter(r_nwp, nwp_metadata)
+radar_precip, radar_metadata = converter(radar_precip, radar_metadata)
+nwp_precip, nwp_metadata = converter(nwp_precip, nwp_metadata)
 
 # Threshold the data
-r_radar[r_radar < 0.1] = 0.0
-r_nwp[r_nwp < 0.1] = 0.0
+radar_precip[radar_precip < 0.1] = 0.0
+nwp_precip[nwp_precip < 0.1] = 0.0
 
 # Plot the radar rainfall field and the first time step of the NWP forecast.
 # For the initial time step (t=0), the NWP rainfall forecast is not that different
@@ -100,25 +100,26 @@ date_str = datetime.strftime(date_radar, "%Y-%m-%d %H:%M")
 plt.figure(figsize=(10, 5))
 plt.subplot(121)
 plot_precip_field(
-    r_radar[-1, :, :], geodata=radar_metadata, title=f"Radar observation at {date_str}"
+    radar_precip[-1, :, :],
+    geodata=radar_metadata,
+    title=f"Radar observation at {date_str}",
 )
 plt.subplot(122)
 plot_precip_field(
-    r_nwp[0, :, :], geodata=nwp_metadata, title=f"NWP forecast at {date_str}"
+    nwp_precip[0, :, :], geodata=nwp_metadata, title=f"NWP forecast at {date_str}"
 )
 plt.tight_layout()
 plt.show()
 
 # transform the data to dB
 transformer = pysteps.utils.get_method("dB")
-r_radar, radar_metadata = transformer(r_radar, radar_metadata, threshold=0.1)
-transformer = pysteps.utils.get_method("dB")
-r_nwp, nwp_metadata = transformer(r_nwp, nwp_metadata, threshold=0.1)
+radar_precip, radar_metadata = transformer(radar_precip, radar_metadata, threshold=0.1)
+nwp_precip, nwp_metadata = transformer(nwp_precip, nwp_metadata, threshold=0.1)
 
 # r_nwp has to be four dimentional (n_models, time, y, x).
 # If we only use one model:
-if r_nwp.ndim == 3:
-    r_nwp = r_nwp[None, :]
+if nwp_precip.ndim == 3:
+    nwp_precip = nwp_precip[None, :]
 
 
 ################################################################################
@@ -128,24 +129,24 @@ if r_nwp.ndim == 3:
 oflow_method = pysteps.motion.get_method("lucaskanade")
 
 # First for the radar images
-v_radar = oflow_method(r_radar)
+velocity_radar = oflow_method(radar_precip)
 
 # Then for the NWP forecast
-v_nwp = []
+velocity_nwp = []
 # Loop through the models
-for n_model in range(r_nwp.shape[0]):
+for n_model in range(nwp_precip.shape[0]):
     # Loop through the timesteps. We need two images to construct a motion
     # field, so we can start from timestep 1. Timestep 0 will be the same
     # as timestep 1.
     _v_nwp_ = []
-    for t in range(1, r_nwp.shape[1]):
-        v_nwp_ = oflow_method(r_nwp[n_model, t - 1 : t + 1, :])
+    for t in range(1, nwp_precip.shape[1]):
+        v_nwp_ = oflow_method(nwp_precip[n_model, t - 1 : t + 1, :])
         _v_nwp_.append(v_nwp_)
         v_nwp_ = None
     # Add the velocity field at time step 1 to time step 0.
     _v_nwp_ = np.insert(_v_nwp_, 0, _v_nwp_[0], axis=0)
-    v_nwp.append(_v_nwp_)
-v_nwp = np.stack(v_nwp)
+    velocity_nwp.append(_v_nwp_)
+velocity_nwp = np.stack(velocity_nwp)
 
 
 ################################################################################
@@ -153,17 +154,17 @@ v_nwp = np.stack(v_nwp)
 # --------------------
 
 precip_forecast = blending.steps.forecast(
-    R=r_radar,
-    R_d_models=r_nwp,
-    V=v_radar,
-    V_models=v_nwp,
+    precip=radar_precip,
+    precip_models=nwp_precip,
+    velocity=velocity_radar,
+    velocity_models=velocity_nwp,
     timesteps=18,
     timestep=timestep,
     issuetime=date_radar,
     n_ens_members=1,
     n_cascade_levels=8,
     blend_nwp_members=False,
-    R_thr=radar_metadata["threshold"],
+    precip_thr=radar_metadata["threshold"],
     kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
     extrap_method="semilagrangian",
     decomp_method="fft",
@@ -194,8 +195,8 @@ precip_forecast = blending.steps.forecast(
 
 # Transform the data back into mm/h
 precip_forecast, _ = converter(precip_forecast, radar_metadata)
-r_radar, _ = converter(r_radar, radar_metadata)
-r_nwp, _ = converter(r_nwp, nwp_metadata)
+radar_precip, _ = converter(radar_precip, radar_metadata)
+nwp_precip, _ = converter(nwp_precip, nwp_metadata)
 
 
 ################################################################################
@@ -228,7 +229,7 @@ for n, leadtime in enumerate(leadtimes_min):
     # Raw NWP forecast
     plt.subplot(n_leadtimes, 2, n * 2 + 2)
     plot_precip_field(
-        r_nwp[0, int(leadtime / timestep) - 1, :, :],
+        nwp_precip[0, int(leadtime / timestep) - 1, :, :],
         geodata=nwp_metadata,
         title=f"NWP +{leadtime} min",
         axis="off",

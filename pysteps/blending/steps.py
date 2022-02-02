@@ -67,17 +67,17 @@ except ImportError:
 
 
 def forecast(
-    R,
-    R_d_models,
-    V,
-    V_models,
+    precip,
+    precip_models,
+    velocity,
+    velocity_models,
     timesteps,
     timestep,
     issuetime,
     n_ens_members=24,
     n_cascade_levels=8,
     blend_nwp_members=False,
-    R_thr=None,
+    precip_thr=None,
     kmperpixel=None,
     extrap_method="semilagrangian",
     decomp_method="fft",
@@ -111,29 +111,30 @@ def forecast(
 
     Parameters
     ----------
-    R: array-like
+    precip: array-like
       Array of shape (ar_order+1,m,n) containing the input precipitation fields
       ordered by timestamp from oldest to newest. The time steps between the
       inputs are assumed to be regular.
-    R_d_models: array-like
-        Array of shape (n_models,timesteps+1) containing, per timestep (t=0 to
-        lead time here) and per (NWP) model or model ensemble member, a
-        dictionary with a list of cascades obtained by calling a method
-        implemented in pysteps.cascade.decomposition. In case of one
-        (deterministic) model as input, add an extra dimension to make sure
-        R_models is five dimensional prior to calling this function.
-        It is also possible to supply the original (NWP) model forecasts containing
-        rainfall fields as an array of shape (n_models,timestep+1,m,n), which will
-        then be decomposed in this function. Note that for an operational application
-        or for testing with multiple model runs, it is recommended to decompose
-        the model forecasts outside of the pysteps.blending.steps function, as this
-        reduces calculation times. This is possible with pysteps.blending.utils.decompose_NWP,
-        pysteps.blending.utils.compute_store_nwp_motion and pysteps.blending.utils.load_NWP.
-    V: array-like
+    precip_models: array-like
+      Array of shape (n_models,timesteps+1) containing, per timestep (t=0 to
+      lead time here) and per (NWP) model or model ensemble member, a
+      dictionary with a list of cascades obtained by calling a method
+      implemented in :py:mod:`pysteps.cascade.decomposition`. In case of one
+      (deterministic) model as input, add an extra dimension to make sure
+      precip_models is five dimensional prior to calling this function.
+      It is also possible to supply the original (NWP) model forecasts containing
+      rainfall fields as an array of shape (n_models,timestep+1,m,n), which will
+      then be decomposed in this function. Note that for an operational application
+      or for testing with multiple model runs, it is recommended to decompose
+      the model forecasts outside beforehand, as this reduces calculation times.
+      This is possible with :py:func:`pysteps.blending.utils.decompose_NWP`,
+      :py:func:`pysteps.blending.utils.compute_store_nwp_motion`, and
+      :py:func:`pysteps.blending.utils.load_NWP`.
+    velocity: array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
-    V_models: array-like
+    velocity_models: array-like
       Array of shape (n_models,timestep,2,m,n) containing the x- and y-components
       of the advection field for the (NWP) model field per forecast lead time.
       All values are required to be finite.
@@ -153,10 +154,10 @@ def forecast(
       The number of cascade levels to use. Default set to 8 due to default
       climatological skill values on 8 levels.
     blend_nwp_members: bool
-        Check if NWP models/members should be used individually, or if all of
-        them are blended together per nowcast ensemble member. Standard set to
-        false.
-    R_thr: float, optional
+      Check if NWP models/members should be used individually, or if all of
+      them are blended together per nowcast ensemble member. Standard set to
+      false.
+    precip_thr: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
     kmperpixel: float, optional
@@ -164,42 +165,42 @@ def forecast(
       vel_pert_method is not None or mask_method is 'incremental'.
     extrap_method: str, optional
       Name of the extrapolation method to use. See the documentation of
-      pysteps.extrapolation.interface.
+      :py:mod:`pysteps.extrapolation.interface`.
     decomp_method: {'fft'}, optional
       Name of the cascade decomposition method to use. See the documentation
-      of pysteps.cascade.interface.
+      of :py:mod:`pysteps.cascade.interface`.
     bandpass_filter_method: {'gaussian', 'uniform'}, optional
       Name of the bandpass filter method to use with the cascade decomposition.
-      See the documentation of pysteps.cascade.interface.
+      See the documentation of :py:mod:`pysteps.cascade.interface`.
     noise_method: {'parametric','nonparametric','ssft','nested',None}, optional
       Name of the noise generator to use for perturbating the precipitation
-      field. See the documentation of pysteps.noise.interface. If set to None,
+      field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to None,
       no noise is generated.
     noise_stddev_adj: {'auto','fixed',None}, optional
       Optional adjustment for the standard deviations of the noise fields added
       to each cascade level. This is done to compensate incorrect std. dev.
       estimates of casace levels due to presence of no-rain areas. 'auto'=use
-      the method implemented in pysteps.noise.utils.compute_noise_stddev_adjs.
+      the method implemented in :py:func:`pysteps.noise.utils.compute_noise_stddev_adjs`.
       'fixed'= use the formula given in :cite:`BPS2006` (eq. 6), None=disable
       noise std. dev adjustment.
     ar_order: int, optional
       The order of the autoregressive model to use. Must be >= 1.
     vel_pert_method: {'bps',None}, optional
       Name of the noise generator to use for perturbing the advection field. See
-      the documentation of pysteps.noise.interface. If set to None, the advection
+      the documentation of :py:mod:`pysteps.noise.interface`. If set to None, the advection
       field is not perturbed.
     weights_method: {'bps','spn'}, optional
-        The calculation method of the blending weights. Options are the method
-        by :cite:`BPS2006` and the covariance-based method by :cite:`SPN2013`.
-        Defaults to bps.
+      The calculation method of the blending weights. Options are the method
+      by :cite:`BPS2006` and the covariance-based method by :cite:`SPN2013`.
+      Defaults to bps.
     conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
-      R_thr.
+      precip_thr.
     mask_method: {'obs','incremental',None}, optional
       The method to use for masking no precipitation areas in the forecast field.
       The masked pixels are set to the minimum value of the observations.
-      'obs' = apply R_thr to the most recently observed precipitation intensity
+      'obs' = apply precip_thr to the most recently observed precipitation intensity
       field, 'incremental' = iteratively buffer the mask with a certain rate
       (currently it is 1 km/min), None=no masking.
     probmatching_method: {'cdf','mean',None}, optional
@@ -212,7 +213,7 @@ def forecast(
       Optional function that is called after computation of each time step of
       the nowcast. The function takes one argument: a three-dimensional array
       of shape (n_ens_members,h,w), where h and w are the height and width
-      of the input field R, respectively. This can be used, for instance,
+      of the input field precip, respectively. This can be used, for instance,
       writing the outputs into files.
     return_output: bool, optional
       Set to False to disable returning the outputs as numpy arrays. This can
@@ -227,7 +228,7 @@ def forecast(
       OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
       threads.
     fft_method: str, optional
-      A string defining the FFT method to use (see utils.fft.get_method).
+      A string defining the FFT method to use (see :py:func:`pysteps.utils.fft.get_method`).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
     domain: {"spatial", "spectral"}
@@ -240,13 +241,13 @@ def forecast(
       path_workdir from rcparams. If no path is given, './tmp' will be used.
     extrap_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the extrapolation
-      method. See the documentation of pysteps.extrapolation.
+      method. See the documentation of :py:func:`pysteps.extrapolation.interface`.
     filter_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the filter method.
-      See the documentation of pysteps.cascade.bandpass_filters.py.
+      See the documentation of :py:mod:`pysteps.cascade.bandpass_filters`.
     noise_kwargs: dict, optional
       Optional dictionary containing keyword arguments for the initializer of
-      the noise generator. See the documentation of pysteps.noise.fftgenerators.
+      the noise generator. See the documentation of :py:mod:`pysteps.noise.fftgenerators`.
     vel_pert_kwargs: dict, optional
       Optional dictionary containing keyword arguments 'p_par' and 'p_perp' for
       the initializer of the velocity perturbator. The choice of the optimal
@@ -299,12 +300,12 @@ def forecast(
       The above parameters have been fitten by using run_vel_pert_analysis.py
       and fit_vel_pert_params.py located in the scripts directory.
 
-      See pysteps.noise.motion for additional documentation.
+      See :py:mod:`pysteps.noise.motion` for additional documentation.
     clim_kwargs: dict, optional
-        Optional dictionary containing keyword arguments for the climatological
-        skill file. Arguments can consist of: 'outdir_path', 'n_models'
-        (the number of NWP models) and 'window_length' (the minimum number of
-        days the clim file should have, otherwise the default is used).
+      Optional dictionary containing keyword arguments for the climatological
+      skill file. Arguments can consist of: 'outdir_path', 'n_models'
+      (the number of NWP models) and 'window_length' (the minimum number of
+      days the clim file should have, otherwise the default is used).
     mask_kwargs: dict
       Optional dictionary containing mask keyword arguments 'mask_f' and
       'mask_rim', the factor defining the the mask increment and the rim size,
@@ -320,15 +321,15 @@ def forecast(
       (n_ens_members,num_timesteps,m,n) containing a time series of forecast
       precipitation fields for each ensemble member. Otherwise, a None value
       is returned. The time series starts from t0+timestep, where timestep is
-      taken from the input precipitation fields R. If measure_time is True, the
+      taken from the input precipitation fields precip. If measure_time is True, the
       return value is a three-element tuple containing the nowcast array, the
       initialization time of the nowcast generator and the time used in the
       main loop (seconds).
 
     See also
     --------
-    pysteps.extrapolation.interface, pysteps.cascade.interface,
-    pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
+    :py:mod:`pysteps.extrapolation.interface`, :py:mod:`pysteps.cascade.interface`,
+    :py:mod:`pysteps.noise.interface`, :py:func:`pysteps.noise.utils.compute_noise_stddev_adjs`
 
     References
     ----------
@@ -345,7 +346,7 @@ def forecast(
     """
 
     # 0.1 Start with some checks
-    _check_inputs(R, R_d_models, V, V_models, timesteps, ar_order)
+    _check_inputs(precip, precip_models, velocity, velocity_models, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -365,19 +366,19 @@ def forecast(
     if mask_kwargs is None:
         mask_kwargs = dict()
 
-    if np.any(~np.isfinite(V)):
-        raise ValueError("V contains non-finite values")
+    if np.any(~np.isfinite(velocity)):
+        raise ValueError("velocity contains non-finite values")
 
     if mask_method not in ["obs", "incremental", None]:
         raise ValueError(
             "unknown mask method %s: must be 'obs', 'incremental' or None" % mask_method
         )
 
-    if conditional and R_thr is None:
-        raise ValueError("conditional=True but R_thr is not set")
+    if conditional and precip_thr is None:
+        raise ValueError("conditional=True but precip_thr is not set")
 
-    if mask_method is not None and R_thr is None:
-        raise ValueError("mask_method!=None but R_thr=None")
+    if mask_method is not None and precip_thr is None:
+        raise ValueError("mask_method!=None but precip_thr=None")
 
     if noise_stddev_adj not in ["auto", "fixed", None]:
         raise ValueError(
@@ -398,69 +399,70 @@ def forecast(
             raise ValueError("mask_method='incremental' but timestep=None")
 
     # 0.2 Log some settings
-    print("Computing STEPS blended nowcast:")
-    print("------------------------")
+    print("STEPS blending")
+    print("==============")
     print("")
 
-    print("Inputs:")
-    print("-------")
-    print("Forecast issue time: %s" % issuetime)
-    print("input dimensions: %dx%d" % (R.shape[1], R.shape[2]))
+    print("Inputs")
+    print("------")
+    print(f"Forecast issue time:        {issuetime.isoformat()}")
+    print(f"Input dimensions:           {precip.shape[1]}x{precip.shape[2]}")
     if kmperpixel is not None:
-        print("km/pixel:         %g" % kmperpixel)
+        print(f"km/pixel:                   {kmperpixel}")
     if timestep is not None:
-        print("time step:        %d minutes" % timestep)
-
-    print("NWP and blending inputs:")
-    print("--------")
-    print("Number of (NWP) models: %d" % R_d_models.shape[0])
-    print("Blend (NWP) model members: %s" % blend_nwp_members)
-    print("Decompose (NWP) models: %s" % ("yes" if R_d_models.ndim == 4 else "no"))
-
-    print("Methods:")
-    print("--------")
-    print("extrapolation:               %s" % extrap_method)
-    print("bandpass filter:             %s" % bandpass_filter_method)
-    print("decomposition:               %s" % decomp_method)
-    print("noise generator:             %s" % noise_method)
-    print("noise adjustment:            %s" % ("yes" if noise_stddev_adj else "no"))
-    print("velocity perturbator:        %s" % vel_pert_method)
-    print("blending weights method:     %s" % weights_method)
-    print("conditional statistics:      %s" % ("yes" if conditional else "no"))
-    print("precip. mask method:         %s" % mask_method)
-    print("probability matching:        %s" % probmatching_method)
-    print("FFT method:                  %s" % fft_method)
-    print("domain:                      %s" % domain)
+        print(f"time step:                  {timestep} minutes")
     print("")
 
-    print("Parameters:")
-    print("-----------")
+    print("NWP and blending inputs")
+    print("-----------------------")
+    print(f"Number of (NWP) models:     {precip_models.shape[0]}")
+    print(f"Blend (NWP) model members:  {blend_nwp_members}")
+    print(f"Decompose (NWP) models:     {'yes' if precip_models.ndim == 4 else 'no'}")
+    print("")
+
+    print("Methods")
+    print("-------")
+    print(f"extrapolation:               {extrap_method}")
+    print(f"bandpass filter:             {bandpass_filter_method}")
+    print(f"decomposition:               {decomp_method}")
+    print(f"noise generator:             {noise_method}")
+    print(f"noise adjustment:            {'yes' if noise_stddev_adj else 'no'}")
+    print(f"velocity perturbator:        {vel_pert_method}")
+    print(f"blending weights method:     {weights_method}")
+    print(f"conditional statistics:      {'yes' if conditional else 'no'}")
+    print(f"precip. mask method:         {mask_method}")
+    print(f"probability matching:        {probmatching_method}")
+    print(f"FFT method:                  {fft_method}")
+    print(f"domain:                      {domain}")
+    print("")
+
+    print("Parameters")
+    print("----------")
     if isinstance(timesteps, int):
-        print("number of time steps:     %d" % timesteps)
+        print(f"number of time steps:       {timesteps}")
     else:
-        print("time steps:               %s" % timesteps)
-    print("ensemble size:            %d" % n_ens_members)
-    print("parallel threads:         %d" % num_workers)
-    print("number of cascade levels: %d" % n_cascade_levels)
-    print("order of the AR(p) model: %d" % ar_order)
+        print(f"time steps:                 {timesteps}")
+    print(f"ensemble size:              {n_ens_members}")
+    print(f"parallel threads:           {num_workers}")
+    print(f"number of cascade levels:   {n_cascade_levels}")
+    print(f"order of the AR(p) model:   {ar_order}")
     if vel_pert_method == "bps":
         vp_par = vel_pert_kwargs.get("p_par", noise.motion.get_default_params_bps_par())
         vp_perp = vel_pert_kwargs.get(
             "p_perp", noise.motion.get_default_params_bps_perp()
         )
         print(
-            "velocity perturbations, parallel:      %g,%g,%g"
-            % (vp_par[0], vp_par[1], vp_par[2])
+            f"velocity perturbations, parallel:     {vp_par[0]},{vp_par[1]},{vp_par[2]}"
         )
         print(
-            "velocity perturbations, perpendicular: %g,%g,%g"
-            % (vp_perp[0], vp_perp[1], vp_perp[2])
+            f"velocity perturbations, perpendicular: {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
         )
     else:
         vp_par, vp_perp = None, None
 
     if conditional or mask_method is not None:
-        print("precip. intensity threshold: %g" % R_thr)
+        print(f"precip. intensity threshold: {precip_thr}")
+    print("")
 
     # 0.3 Get the methods that will be used
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members else num_workers
@@ -468,47 +470,49 @@ def forecast(
     if measure_time:
         starttime_init = time.time()
 
-    fft = utils.get_method(fft_method, shape=R.shape[1:], n_threads=num_workers)
+    fft = utils.get_method(fft_method, shape=precip.shape[1:], n_threads=num_workers)
 
-    M, N = R.shape[1:]
+    precip_shape = precip.shape[1:]
 
     # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
-    bp_filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
+    bp_filter = filter_method(precip_shape, n_cascade_levels, **filter_kwargs)
 
     decompositor, recompositor = cascade.get_method(decomp_method)
 
     extrapolator = extrapolation.get_method(extrap_method)
 
-    x_values, y_values = np.meshgrid(np.arange(R.shape[2]), np.arange(R.shape[1]))
+    x_values, y_values = np.meshgrid(
+        np.arange(precip.shape[2]), np.arange(precip.shape[1])
+    )
 
     xy_coords = np.stack([x_values, y_values])
 
-    R = R[-(ar_order + 1) :, :, :].copy()
+    precip = precip[-(ar_order + 1) :, :, :].copy()
 
     # determine the domain mask from non-finite values
     domain_mask = np.logical_or.reduce(
-        [~np.isfinite(R[i, :]) for i in range(R.shape[0])]
+        [~np.isfinite(precip[i, :]) for i in range(precip.shape[0])]
     )
 
     # determine the precipitation threshold mask
     if conditional:
         MASK_thr = np.logical_and.reduce(
-            [R[i, :, :] >= R_thr for i in range(R.shape[0])]
+            [precip[i, :, :] >= precip_thr for i in range(precip.shape[0])]
         )
     else:
         MASK_thr = None
 
     # 1. Start with the radar rainfall fields. We want the fields in a
     # Lagrangian space
-    R = _transform_to_lagrangian(
-        R, V, ar_order, xy_coords, extrapolator, extrap_kwargs, num_workers
+    precip = _transform_to_lagrangian(
+        precip, velocity, ar_order, xy_coords, extrapolator, extrap_kwargs, num_workers
     )
 
     # 2. Initialize the noise method
     pp, generate_noise, noise_std_coeffs = _init_noise(
-        R,
-        R_thr,
+        precip,
+        precip_thr,
         n_cascade_levels,
         bp_filter,
         decompositor,
@@ -525,11 +529,11 @@ def forecast(
 
     # 3.1 Compute the cascade decompositions of the input precipitation fields
     (
-        R_c,
+        precip_cascade,
         mu_extrapolation,
         sigma_extrapolation,
     ) = _compute_cascade_decomposition_radar(
-        R,
+        precip,
         ar_order,
         n_cascade_levels,
         n_ens_members,
@@ -541,31 +545,38 @@ def forecast(
     )
 
     # 3.2 If necessary, decompose (NWP) model forecasts and stack cascades
-    R_models, mu_models, sigma_models, R_models_pm = _compute_cascade_decomposition_nwp(
-        R_d_models, bp_filter, decompositor, recompositor, fft, domain
+    (
+        precip_models_cascade,
+        mu_models,
+        sigma_models,
+        precip_models_pm,
+    ) = _compute_cascade_decomposition_nwp(
+        precip_models, bp_filter, decompositor, recompositor, fft, domain
     )
 
     # 4. Estimate AR parameters for the radar rainfall field
-    PHI = _estimate_ar_parameters_radar(R_c, ar_order, n_cascade_levels, MASK_thr)
+    PHI = _estimate_ar_parameters_radar(
+        precip_cascade, ar_order, n_cascade_levels, MASK_thr
+    )
 
     # 5. Before calling the worker for the forecast loop, determine which (NWP)
     # models will be combined with which nowcast ensemble members. With the
     # way it is implemented at this moment: n_ens_members of the output equals
     # the maximum number of (ensemble) members in the input (either the nowcasts or NWP).
     (
-        R_c,
-        R_models,
-        R_models_pm,
-        V_models,
+        precip_cascade,
+        precip_models_cascade,
+        precip_models_pm,
+        velocity_models,
         mu_models,
         sigma_models,
         n_ens_members,
         n_model_indices,
     ) = _find_nwp_combination(
-        R_c,
-        R_models,
-        R_models_pm,
-        V_models,
+        precip_cascade,
+        precip_models_cascade,
+        precip_models_pm,
+        velocity_models,
         mu_models,
         sigma_models,
         n_ens_members,
@@ -576,11 +587,11 @@ def forecast(
 
     # Also initialize the cascade of temporally correlated noise, which has the
     # same shape as R_c, but starts with value zero.
-    Yn_c = np.zeros(R_c.shape)
+    noise_cascade = np.zeros(precip_cascade.shape)
 
     # 6. Initialize all the random generators and prepare for the forecast loop
     randgen_prec, vps, generate_vel_noise = _init_random_generators(
-        V,
+        velocity,
         noise_method,
         vel_pert_method,
         vp_par,
@@ -591,7 +602,7 @@ def forecast(
         timestep,
     )
     D, D_Yn, D_pb, R_f, R_m, mask_rim, struct, fft_objs = _prepare_forecast_loop(
-        R_c,
+        precip_cascade,
         noise_method,
         fft_method,
         n_cascade_levels,
@@ -602,11 +613,16 @@ def forecast(
         kmperpixel,
     )
 
-    R = R[-1, :, :]
+    precip = precip[-1, :, :]
 
     # 7. Calculate the initial skill of the (NWP) model forecasts at t=0
     rho_nwp_models = _compute_initial_nwp_skill(
-        R_c, R_models, domain_mask, issuetime, outdir_path_skill, clim_kwargs
+        precip_cascade,
+        precip_models_cascade,
+        domain_mask,
+        issuetime,
+        outdir_path_skill,
+        clim_kwargs,
     )
 
     # Also initizalize the current and previous extrapolation forecast scale
@@ -634,8 +650,8 @@ def forecast(
         timestep_type = "list"
 
     extrap_kwargs["return_displacement"] = True
-    R_f_prev = R_c
-    Yn_prev = Yn_c
+    forecast_prev = precip_cascade
+    noise_prev = noise_cascade
     t_prev = [0.0 for j in range(n_ens_members)]
     t_total = [0.0 for j in range(n_ens_members)]
 
@@ -655,7 +671,7 @@ def forecast(
 
         if is_nowcast_time_step:
             print(
-                "Computing nowcast for time step %d... " % t,
+                f"Computing nowcast for time step {t}... ",
                 end="",
                 flush=True,
             )
@@ -722,9 +738,9 @@ def forecast(
                 # Only the weights of the components without the extrapolation
                 # cascade will be determined here. The full set of weights are
                 # determined after the extrapolation step in this method.
-                if blend_nwp_members and R_models.shape[0] > 1:
+                if blend_nwp_members and precip_models_cascade.shape[0] > 1:
                     weights_model_only = np.zeros(
-                        (R_models.shape[0] + 1, n_cascade_levels)
+                        (precip_models_cascade.shape[0] + 1, n_cascade_levels)
                     )
                     for i in range(n_cascade_levels):
                         # Determine the normalized covariance matrix (containing)
@@ -732,8 +748,8 @@ def forecast(
                         cov = np.corrcoef(
                             np.stack(
                                 [
-                                    R_models[n_model, t, i, :, :].flatten()
-                                    for n_model in range(R_models.shape[0])
+                                    precip_models_cascade[n_model, t, i, :, :].flatten()
+                                    for n_model in range(precip_models_cascade.shape[0])
                                 ]
                             )
                         )
@@ -781,12 +797,14 @@ def forecast(
             for i in range(n_cascade_levels):
                 # apply AR(p) process to extrapolation cascade level
                 if EPS is not None or vel_pert_method is not None:
-                    R_c[j][i] = autoregression.iterate_ar_model(R_c[j][i], PHI[i, :])
+                    precip_cascade[j][i] = autoregression.iterate_ar_model(
+                        precip_cascade[j][i], PHI[i, :]
+                    )
 
                 else:
                     # use the deterministic AR(p) model computed above if
                     # perturbations are disabled
-                    R_c[j][i] = R_m[i]
+                    precip_cascade[j][i] = R_m[i]
 
             # 8.3.3 regress the noise component to the subsequent time step
             # iterate the AR(p) model for each cascade level
@@ -799,8 +817,8 @@ def forecast(
                     EPS_ = None
                 # apply AR(p) process to noise cascade level
                 # (Returns zero noise if EPS is None)
-                Yn_c[j][i] = autoregression.iterate_ar_model(
-                    Yn_c[j][i], PHI[i, :], eps=EPS_
+                noise_cascade[j][i] = autoregression.iterate_ar_model(
+                    noise_cascade[j][i], PHI[i, :], eps=EPS_
                 )
 
             EPS = None
@@ -814,7 +832,7 @@ def forecast(
             extrap_kwargs_ = extrap_kwargs.copy()
             extrap_kwargs_noise = extrap_kwargs.copy()
             extrap_kwargs_pb = extrap_kwargs.copy()
-            V_pert = V
+            velocity_pert = velocity
             R_f_ep_out = []
             Yn_ep_out = []
             R_pm_ep = []
@@ -825,21 +843,23 @@ def forecast(
                     t_diff_prev_int = t_sub - int(t_sub)
                     if t_diff_prev_int > 0.0:
                         R_f_ip = [
-                            (1.0 - t_diff_prev_int) * R_f_prev[j][i][-1, :]
-                            + t_diff_prev_int * R_c[j][i][-1, :]
+                            (1.0 - t_diff_prev_int) * forecast_prev[j][i][-1, :]
+                            + t_diff_prev_int * precip_cascade[j][i][-1, :]
                             for i in range(n_cascade_levels)
                         ]
                         Yn_ip = [
-                            (1.0 - t_diff_prev_int) * Yn_prev[j][i][-1, :]
-                            + t_diff_prev_int * Yn_c[j][i][-1, :]
+                            (1.0 - t_diff_prev_int) * noise_prev[j][i][-1, :]
+                            + t_diff_prev_int * noise_cascade[j][i][-1, :]
                             for i in range(n_cascade_levels)
                         ]
 
                     else:
                         R_f_ip = [
-                            R_f_prev[j][i][-1, :] for i in range(n_cascade_levels)
+                            forecast_prev[j][i][-1, :] for i in range(n_cascade_levels)
                         ]
-                        Yn_ip = [Yn_prev[j][i][-1, :] for i in range(n_cascade_levels)]
+                        Yn_ip = [
+                            noise_prev[j][i][-1, :] for i in range(n_cascade_levels)
+                        ]
 
                     R_f_ip = np.stack(R_f_ip)
                     Yn_ip = np.stack(Yn_ip)
@@ -852,23 +872,30 @@ def forecast(
                     # the extrapolation velocity field, as the NWP velocity
                     # field is present per time step
                     if vel_pert_method is not None:
-                        V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
+                        velocity_pert = velocity + generate_vel_noise(
+                            vps[j], t_total[j] * timestep
+                        )
 
                     # Stack the perturbed extrapolation and the NWP velocities
                     if blend_nwp_members:
                         V_stack = np.concatenate(
-                            (V_pert[None, :, :, :], V_models[:, t, :, :, :]), axis=0
+                            (
+                                velocity_pert[None, :, :, :],
+                                velocity_models[:, t, :, :, :],
+                            ),
+                            axis=0,
                         )
                     else:
-                        V_model_ = V_models[j, t, :, :, :]
+                        V_model_ = velocity_models[j, t, :, :, :]
                         V_stack = np.concatenate(
-                            (V_pert[None, :, :, :], V_model_[None, :, :, :]), axis=0
+                            (velocity_pert[None, :, :, :], V_model_[None, :, :, :]),
+                            axis=0,
                         )
                         V_model_ = None
 
                     # Obtain a blended optical flow, using the weights of the
                     # second cascade following eq. 24 in BPS2006
-                    V_blended = blending.utils.blend_optical_flows(
+                    velocity_blended = blending.utils.blend_optical_flows(
                         flows=V_stack,
                         weights=weights[
                             :-1, 1
@@ -889,7 +916,7 @@ def forecast(
                         R_f_ip[i][domain_mask] = np.NaN
                         R_f_ep_, D[j][i] = extrapolator(
                             R_f_ip[i],
-                            V_blended,
+                            velocity_blended,
                             [t_diff_prev],
                             allow_nonfinite_values=True,
                             **extrap_kwargs_,
@@ -899,7 +926,7 @@ def forecast(
                         # Then, extrapolate the noise component
                         Yn_ep_, D_Yn[j][i] = extrapolator(
                             Yn_ip[i],
-                            V_blended,
+                            velocity_blended,
                             [t_diff_prev],
                             allow_nonfinite_values=True,
                             **extrap_kwargs_noise,
@@ -915,14 +942,14 @@ def forecast(
                     # Finally, also extrapolate the initial radar rainfall
                     # field. This will be blended with the rainfall field(s)
                     # of the (NWP) model(s) for Lagrangian blended prob. matching
-                    # min_R = np.min(R)
+                    # min_R = np.min(precip)
                     extrap_kwargs_pb["displacement_prev"] = D_pb[j]
                     # Apply the domain mask to the extrapolation component
-                    R_ = R.copy()
+                    R_ = precip.copy()
                     R_[domain_mask] = np.NaN
                     R_pm_ep_, D_pb[j] = extrapolator(
                         R_,
-                        V_blended,
+                        velocity_blended,
                         [t_diff_prev],
                         allow_nonfinite_values=True,
                         **extrap_kwargs_pb,
@@ -931,7 +958,7 @@ def forecast(
 
                     t_prev[j] = t_sub
 
-                R_f_prev[j] = R_c[j]
+                forecast_prev[j] = precip_cascade[j]
 
             if len(R_f_ep_out) > 0:
                 R_f_ep_out = np.stack(R_f_ep_out)
@@ -947,23 +974,26 @@ def forecast(
                 # compute the perturbed motion field - include the NWP
                 # velocities and the weights
                 if vel_pert_method is not None:
-                    V_pert = V + generate_vel_noise(vps[j], t_total[j] * timestep)
+                    velocity_pert = velocity + generate_vel_noise(
+                        vps[j], t_total[j] * timestep
+                    )
 
                 # Stack the perturbed extrapolation and the NWP velocities
                 if blend_nwp_members:
                     V_stack = np.concatenate(
-                        (V_pert[None, :, :, :], V_models[:, t, :, :, :]), axis=0
+                        (velocity_pert[None, :, :, :], velocity_models[:, t, :, :, :]),
+                        axis=0,
                     )
                 else:
-                    V_model_ = V_models[j, t, :, :, :]
+                    V_model_ = velocity_models[j, t, :, :, :]
                     V_stack = np.concatenate(
-                        (V_pert[None, :, :, :], V_model_[None, :, :, :]), axis=0
+                        (velocity_pert[None, :, :, :], V_model_[None, :, :, :]), axis=0
                     )
                     V_model_ = None
 
                 # Obtain a blended optical flow, using the weights of the
                 # second cascade following eq. 24 in BPS2006
-                V_blended = blending.utils.blend_optical_flows(
+                velocity_blended = blending.utils.blend_optical_flows(
                     flows=V_stack,
                     weights=weights[
                         :-1, 1
@@ -978,7 +1008,7 @@ def forecast(
 
                     _, D[j][i] = extrapolator(
                         None,
-                        V_blended,
+                        velocity_blended,
                         [t_diff_prev],
                         allow_nonfinite_values=True,
                         **extrap_kwargs_,
@@ -986,7 +1016,7 @@ def forecast(
 
                     _, D_Yn[j][i] = extrapolator(
                         None,
-                        V_blended,
+                        velocity_blended,
                         [t_diff_prev],
                         allow_nonfinite_values=True,
                         **extrap_kwargs_noise,
@@ -997,7 +1027,7 @@ def forecast(
                 extrap_kwargs_pb["displacement_prev"] = D_pb[j]
                 _, D_pb[j] = extrapolator(
                     None,
-                    V_blended,
+                    velocity_blended,
                     [t_diff_prev],
                     allow_nonfinite_values=True,
                     **extrap_kwargs_pb,
@@ -1013,12 +1043,12 @@ def forecast(
                 if t_sub > 0:
                     t_index = np.where(np.array(subtimesteps) == t_sub)[0][0]
                     # First concatenate the cascades and the means and sigmas
-                    # R_models = [n_models,timesteps,n_cascade_levels,m,n]
+                    # precip_models = [n_models,timesteps,n_cascade_levels,m,n]
                     if blend_nwp_members:
                         cascades_stacked = np.concatenate(
                             (
                                 R_f_ep_out[None, t_index],
-                                R_models[:, t],
+                                precip_models_cascade[:, t],
                                 Yn_ep_out[None, t_index],
                             ),
                             axis=0,
@@ -1034,7 +1064,7 @@ def forecast(
                         cascades_stacked = np.concatenate(
                             (
                                 R_f_ep_out[None, t_index],
-                                R_models[None, j, t],
+                                precip_models_cascade[None, j, t],
                                 Yn_ep_out[None, t_index],
                             ),
                             axis=0,
@@ -1141,7 +1171,7 @@ def forecast(
                         R_pm_stacked = np.concatenate(
                             (
                                 R_pm_ep[None, t_index],
-                                R_models_pm[:, t],
+                                precip_models_pm[:, t],
                             ),
                             axis=0,
                         )
@@ -1149,7 +1179,7 @@ def forecast(
                         R_pm_stacked = np.concatenate(
                             (
                                 R_pm_ep[None, t_index],
-                                R_models_pm[None, j, t],
+                                precip_models_pm[None, j, t],
                             ),
                             axis=0,
                         )
@@ -1166,11 +1196,11 @@ def forecast(
                             weights_pm_normalized_mod_only.reshape(
                                 weights_pm_normalized_mod_only.shape[0], 1, 1
                             )
-                            * R_models_pm[:, t],
+                            * precip_models_pm[:, t],
                             axis=0,
                         )
                     else:
-                        R_pm_blended_mod_only = R_models_pm[j, t]
+                        R_pm_blended_mod_only = precip_models_pm[j, t]
 
                     # The extrapolation components are NaN outside the advected
                     # radar domain. This results in NaN values in the blended
@@ -1201,7 +1231,7 @@ def forecast(
                             # on R_pm_blended. Therefore, the buffer does not
                             # increase over time.
                             # Get the mask for this forecast
-                            MASK_prec = R_pm_blended >= R_thr
+                            MASK_prec = R_pm_blended >= precip_thr
                             # Buffer the mask
                             MASK_prec = _compute_incremental_mask(
                                 MASK_prec, struct, mask_rim
@@ -1212,7 +1242,7 @@ def forecast(
                         elif mask_method == "obs":
                             # The mask equals the most recent benchmark
                             # rainfall field
-                            MASK_prec_ = R_pm_blended >= R_thr
+                            MASK_prec_ = R_pm_blended >= precip_thr
 
                         # Set to min value outside of mask
                         R_f_new[~MASK_prec_] = R_cmin
@@ -1225,8 +1255,8 @@ def forecast(
                         )
                     elif probmatching_method == "mean":
                         # Use R_pm_blended as benchmark field and
-                        mu_0 = np.mean(R_pm_blended[R_pm_blended >= R_thr])
-                        MASK = R_f_new >= R_thr
+                        mu_0 = np.mean(R_pm_blended[R_pm_blended >= precip_thr])
+                        MASK = R_f_new >= precip_thr
                         mu_fct = np.mean(R_f_new[MASK])
                         R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0
 
@@ -1250,7 +1280,7 @@ def forecast(
 
         if is_nowcast_time_step:
             if measure_time:
-                print("%.2f seconds." % (time.time() - starttime))
+                print(f"{time.time() - starttime:.2f} seconds.")
             else:
                 print("done.")
 
@@ -1490,43 +1520,45 @@ def blend_means_sigmas(means, sigmas, weights):
     return combined_means, combined_sigmas
 
 
-def _check_inputs(R, R_d_models, V, V_models, timesteps, ar_order):
-    if R.ndim != 3:
-        raise ValueError("R must be a three-dimensional array")
-    if R.shape[0] < ar_order + 1:
-        raise ValueError("R.shape[0] < ar_order+1")
-    if R_d_models.ndim != 2 and R_d_models.ndim != 4:
+def _check_inputs(
+    precip, precip_models, velocity, velocity_models, timesteps, ar_order
+):
+    if precip.ndim != 3:
+        raise ValueError("precip must be a three-dimensional array")
+    if precip.shape[0] < ar_order + 1:
+        raise ValueError("precip.shape[0] < ar_order+1")
+    if precip_models.ndim != 2 and precip_models.ndim != 4:
         raise ValueError(
-            "R_d_models must be either a two-dimensional array containing dictionaries with decomposed model fields or a four-dimensional array containing the original (NWP) model forecasts"
+            "precip_models must be either a two-dimensional array containing dictionaries with decomposed model fields or a four-dimensional array containing the original (NWP) model forecasts"
         )
-    if V.ndim != 3:
-        raise ValueError("V must be a three-dimensional array")
-    if V_models.ndim != 5:
-        raise ValueError("V_models must be a five-dimensional array")
-    if V.shape[0] != 2 or V_models.shape[2] != 2:
+    if velocity.ndim != 3:
+        raise ValueError("velocity must be a three-dimensional array")
+    if velocity_models.ndim != 5:
+        raise ValueError("velocity_models must be a five-dimensional array")
+    if velocity.shape[0] != 2 or velocity_models.shape[2] != 2:
         raise ValueError(
-            "V and V_models must have an x- and y-component, check the shape"
+            "velocity and velocity_models must have an x- and y-component, check the shape"
         )
-    if R.shape[1:3] != V.shape[1:3]:
+    if precip.shape[1:3] != velocity.shape[1:3]:
         raise ValueError(
-            "dimension mismatch between R and V: shape(R)=%s, shape(V)=%s"
-            % (str(R.shape), str(V.shape))
+            "dimension mismatch between precip and velocity: shape(precip)=%s, shape(velocity)=%s"
+            % (str(precip.shape), str(velocity.shape))
         )
-    if R_d_models.shape[0] != V_models.shape[0]:
+    if precip_models.shape[0] != velocity_models.shape[0]:
         raise ValueError(
-            "R_d_models and V_models must consist of the same number of models"
+            "precip_models and velocity_models must consist of the same number of models"
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
     if isinstance(timesteps, list):
-        if R_d_models.shape[1] != len(timesteps) + 1:
+        if precip_models.shape[1] != len(timesteps) + 1:
             raise ValueError(
-                "R_models does not contain sufficient lead times for this forecast"
+                "precip_models does not contain sufficient lead times for this forecast"
             )
     else:
-        if R_d_models.shape[1] != timesteps + 1:
+        if precip_models.shape[1] != timesteps + 1:
             raise ValueError(
-                "R_models does not contain sufficient lead times for this forecast"
+                "precip_models does not contain sufficient lead times for this forecast"
             )
 
 
@@ -1549,7 +1581,7 @@ def _compute_incremental_mask(Rbin, kr, r):
 
 
 def _transform_to_lagrangian(
-    R, V, ar_order, xy_coords, extrapolator, extrap_kwargs, num_workers
+    precip, velocity, ar_order, xy_coords, extrapolator, extrap_kwargs, num_workers
 ):
     """Advect the previous precipitation fields to the same position with the
     most recent one (i.e. transform them into the Lagrangian coordinates).
@@ -1558,10 +1590,10 @@ def _transform_to_lagrangian(
     extrap_kwargs["xy_coords"] = xy_coords
     res = list()
 
-    def f(R, i):
+    def f(precip, i):
         return extrapolator(
-            R[i, :, :],
-            V,
+            precip[i, :, :],
+            velocity,
             ar_order - i,
             "min",
             allow_nonfinite_values=True,
@@ -1570,24 +1602,26 @@ def _transform_to_lagrangian(
 
     for i in range(ar_order):
         if not DASK_IMPORTED:
-            R[i, :, :] = f(R, i)
+            precip[i, :, :] = f(precip, i)
         else:
-            res.append(dask.delayed(f)(R, i))
+            res.append(dask.delayed(f)(precip, i))
 
     if DASK_IMPORTED:
         num_workers_ = len(res) if num_workers > len(res) else num_workers
-        R = np.stack(list(dask.compute(*res, num_workers=num_workers_)) + [R[-1, :, :]])
+        precip = np.stack(
+            list(dask.compute(*res, num_workers=num_workers_)) + [precip[-1, :, :]]
+        )
 
     # replace non-finite values with the minimum value
-    R = R.copy()
-    for i in range(R.shape[0]):
-        R[i, ~np.isfinite(R[i, :])] = np.nanmin(R[i, :])
-    return R
+    precip = precip.copy()
+    for i in range(precip.shape[0]):
+        precip[i, ~np.isfinite(precip[i, :])] = np.nanmin(precip[i, :])
+    return precip
 
 
 def _init_noise(
-    R,
-    R_thr,
+    precip,
+    precip_thr,
     n_cascade_levels,
     bp_filter,
     decompositor,
@@ -1606,17 +1640,17 @@ def _init_noise(
     init_noise, generate_noise = noise.get_method(noise_method)
 
     # initialize the perturbation generator for the precipitation field
-    pp = init_noise(R, fft_method=fft, **noise_kwargs)
+    pp = init_noise(precip, fft_method=fft, **noise_kwargs)
 
     if noise_stddev_adj == "auto":
         print("Computing noise adjustment coefficients... ", end="", flush=True)
         if measure_time:
             starttime = time.time()
 
-        R_min = np.min(R)
+        R_min = np.min(precip)
         noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(
-            R[-1, :, :],
-            R_thr,
+            precip[-1, :, :],
+            precip_thr,
             R_min,
             bp_filter,
             decompositor,
@@ -1628,7 +1662,7 @@ def _init_noise(
         )
 
         if measure_time:
-            print("%.2f seconds." % (time.time() - starttime))
+            print(f"{time.time() - starttime:.2f} seconds.")
         else:
             print("done.")
     elif noise_stddev_adj == "fixed":
@@ -1638,13 +1672,13 @@ def _init_noise(
         noise_std_coeffs = np.ones(n_cascade_levels)
 
     if noise_stddev_adj is not None:
-        print("noise std. dev. coeffs:   %s" % str(noise_std_coeffs))
+        print(f"noise std. dev. coeffs:   {noise_std_coeffs}")
 
     return pp, generate_noise, noise_std_coeffs
 
 
 def _compute_cascade_decomposition_radar(
-    R,
+    precip,
     ar_order,
     n_cascade_levels,
     n_ens_members,
@@ -1658,7 +1692,7 @@ def _compute_cascade_decomposition_radar(
     R_d = []
     for i in range(ar_order + 1):
         R_ = decompositor(
-            R[i, :, :],
+            precip[i, :, :],
             bp_filter,
             mask=MASK_thr,
             fft_method=fft,
@@ -1681,71 +1715,77 @@ def _compute_cascade_decomposition_radar(
 
 
 def _compute_cascade_decomposition_nwp(
-    R_d_models, bp_filter, decompositor, recompositor, fft, domain
+    precip_models, bp_filter, decompositor, recompositor, fft, domain
 ):
     """If necessary, decompose (NWP) model forecasts and stack cascades."""
-    if R_d_models.ndim == 4:
+    if precip_models.ndim == 4:
         # Keep the model fields for the probability matching later on
-        R_models_pm = R_d_models.copy()
+        precip_models_pm = precip_models.copy()
         # Decompose the (NWP) model forecasts
-        R_d_models_ = []
+        precip_models_cascade = []
         # Loop through the n_models
-        for i in range(R_d_models.shape[0]):
-            R_d_models__ = []
+        for i in range(precip_models.shape[0]):
+            precip_model_cascade = []
             # Loop through the time steps
-            for j in range(R_d_models.shape[1]):
-                R_ = decompositor(
-                    field=R_d_models[i, j, :, :],
-                    bp_filter=bp_filter,
-                    fft_method=fft,
-                    output_domain=domain,
-                    normalize=True,
-                    compute_stats=True,
-                    compact_output=True,
+            for j in range(precip_models.shape[1]):
+                precip_model_cascade.append(
+                    decompositor(
+                        field=precip_models[i, j, :, :],
+                        bp_filter=bp_filter,
+                        fft_method=fft,
+                        output_domain=domain,
+                        normalize=True,
+                        compute_stats=True,
+                        compact_output=True,
+                    )
                 )
-                R_d_models__.append(R_)
-            R_d_models_.append(R_d_models__)
-        R_d_models = np.array(R_d_models_)
+            precip_models_cascade.append(precip_model_cascade)
+        precip_models_cascade = np.array(precip_models_cascade)
 
-        R_d_models_, R_d_models__ = None, None
+        precip_models, precip_model_cascade = None, None
+    else:
+        precip_models_cascade = precip_models
+        precip_models_pm = None
 
     # Stack the (NWP) model cascades in separate normalized cascades and return
     # the means and sigmas.
     # The normalized model cascade should have the shape:
     # [n_models, n_timesteps, n_cascade_levels, m, n]
-    R_models = []
+    precip_models = []
     mu_models = []
     sigma_models = []
     # Stack it per model and combine that
-    for i in range(R_d_models.shape[0]):
-        R_models_, mu_models_, sigma_models_ = [], [], []
-        R_models_, mu_models_, sigma_models_ = blending.utils.stack_cascades(
-            R_d=R_d_models[i, :], donorm=False
+    for i in range(precip_models_cascade.shape[0]):
+        precip_model, mu_model, sigma_model = blending.utils.stack_cascades(
+            R_d=precip_models_cascade[i, :], donorm=False
         )
-        R_models.append(R_models_)
-        mu_models.append(mu_models_)
-        sigma_models.append(sigma_models_)
+        precip_models.append(precip_model)
+        mu_models.append(mu_model)
+        sigma_models.append(sigma_model)
 
-    R_models = np.stack(R_models)
+    precip_models = np.stack(precip_models)
     mu_models = np.stack(mu_models)
     sigma_models = np.stack(sigma_models)
 
-    R_models_, mu_models_, sigma_models_ = None, None, None
+    precip_model, mu_model, sigma_model = None, None, None
 
-    if R_d_models.ndim == 2:
+    if precip_models_pm is None:
         # Finally, recompose the (NWP) model cascades to have rainfall fields per
         # model and time step, which will be used in the probability matching steps.
         # Recomposed cascade will have shape: [n_models, n_timesteps, m, n]
-        R_models_pm = []
-        for i in range(R_d_models.shape[0]):
-            R_models_pm_ = []
-            for time_step in range(R_d_models.shape[1]):
-                R_models_pm_.append(recompositor(R_d_models[i, time_step]))
-            R_models_pm.append(R_models_pm_)
+        precip_models_pm = []
+        for i in range(precip_models_cascade.shape[0]):
+            precip_model_pm = []
+            for time_step in range(precip_models_cascade.shape[1]):
+                precip_model_pm.append(
+                    recompositor(precip_models_cascade[i, time_step])
+                )
+            precip_models_pm.append(precip_model_pm)
 
-        R_models_pm = np.stack(R_models_pm)
-        R_models_pm_ = None
-    return R_models, mu_models, sigma_models, R_models_pm
+        precip_models_pm = np.stack(precip_models_pm)
+        precip_model_pm = None
+
+    return precip_models, mu_models, sigma_models, precip_models_pm
 
 
 def _estimate_ar_parameters_radar(R_c, ar_order, n_cascade_levels, MASK_thr):
@@ -1775,9 +1815,9 @@ def _estimate_ar_parameters_radar(R_c, ar_order, n_cascade_levels, MASK_thr):
 
 def _find_nwp_combination(
     R_c,
-    R_models,
+    precip_models,
     R_models_pm,
-    V_models,
+    velocity_models,
     mu_models,
     sigma_models,
     n_ens_members,
@@ -1808,7 +1848,7 @@ def _find_nwp_combination(
     else:
         # Start with determining the maximum and mimimum number of members/models
         # in both input products
-        n_model_members = R_models.shape[0]
+        n_model_members = precip_models.shape[0]
         n_ens_members_max = max(n_ens_members, n_model_members)
         n_ens_members_min = min(n_ens_members, n_model_members)
         # Also make a list of the model index numbers. These indices are needed
@@ -1829,12 +1869,16 @@ def _find_nwp_combination(
         # member 5, etc.), until 10 is reached.
         if n_ens_members_min != n_ens_members_max:
             if n_model_members == 1:
-                R_models = np.repeat(R_models[:, :, :, :, :], n_ens_members_max, axis=0)
+                precip_models = np.repeat(
+                    precip_models[:, :, :, :, :], n_ens_members_max, axis=0
+                )
                 mu_models = np.repeat(mu_models[:, :, :], n_ens_members_max, axis=0)
                 sigma_models = np.repeat(
                     sigma_models[:, :, :], n_ens_members_max, axis=0
                 )
-                V_models = np.repeat(V_models[:, :, :, :], n_ens_members_max, axis=0)
+                velocity_models = np.repeat(
+                    velocity_models[:, :, :, :], n_ens_members_max, axis=0
+                )
                 # For the prob. matching
                 R_models_pm = np.repeat(
                     R_models_pm[:, :, :, :], n_ens_members_max, axis=0
@@ -1848,10 +1892,10 @@ def _find_nwp_combination(
                     for i in range(n_ens_members_min)
                 ]
                 if n_model_members == n_ens_members_min:
-                    R_models = np.repeat(R_models, repeats, axis=0)
+                    precip_models = np.repeat(precip_models, repeats, axis=0)
                     mu_models = np.repeat(mu_models, repeats, axis=0)
                     sigma_models = np.repeat(sigma_models, repeats, axis=0)
-                    V_models = np.repeat(V_models, repeats, axis=0)
+                    velocity_models = np.repeat(velocity_models, repeats, axis=0)
                     # For the prob. matching
                     R_models_pm = np.repeat(R_models_pm, repeats, axis=0)
                     # Finally, for the model indices
@@ -1867,9 +1911,9 @@ def _find_nwp_combination(
 
     return (
         R_c,
-        R_models,
+        precip_models,
         R_models_pm,
-        V_models,
+        velocity_models,
         mu_models,
         sigma_models,
         n_ens_members,
@@ -1878,7 +1922,7 @@ def _find_nwp_combination(
 
 
 def _init_random_generators(
-    V,
+    velocity,
     noise_method,
     vel_pert_method,
     vp_par,
@@ -1912,7 +1956,7 @@ def _init_random_generators(
                 "p_par": vp_par,
                 "p_perp": vp_perp,
             }
-            vp_ = init_vel_noise(V, 1.0 / kmperpixel, timestep, **kwargs)
+            vp_ = init_vel_noise(velocity, 1.0 / kmperpixel, timestep, **kwargs)
             vps.append(vp_)
     else:
         vps, generate_vel_noise = None, None
@@ -1963,22 +2007,22 @@ def _prepare_forecast_loop(
 
 
 def _compute_initial_nwp_skill(
-    R_c, R_models, domain_mask, issuetime, outdir_path_skill, clim_kwargs
+    R_c, precip_models, domain_mask, issuetime, outdir_path_skill, clim_kwargs
 ):
     """Calculate the initial skill of the (NWP) model forecasts at t=0."""
     rho_nwp_models = [
         blending.skill_scores.spatial_correlation(
             obs=R_c[0, :, -1, :, :],
-            mod=R_models[n_model, 0, :, :, :],
+            mod=precip_models[n_model, 0, :, :, :],
             domain_mask=domain_mask,
         )
-        for n_model in range(R_models.shape[0])
+        for n_model in range(precip_models.shape[0])
     ]
     rho_nwp_models = np.stack(rho_nwp_models)
 
     # Ensure that the model skill decreases with increasing scale level.
-    for n_model in range(R_models.shape[0]):
-        for i in range(1, R_models.shape[2]):
+    for n_model in range(precip_models.shape[0]):
+        for i in range(1, precip_models.shape[2]):
             if rho_nwp_models[n_model, i] > rho_nwp_models[n_model, i - 1]:
                 # Set it equal to the previous scale level
                 rho_nwp_models[n_model, i] = rho_nwp_models[n_model, i - 1]

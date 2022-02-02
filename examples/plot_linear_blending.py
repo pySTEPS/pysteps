@@ -57,7 +57,7 @@ fns = io.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-precip_radar, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+radar_precip, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Import the NWP data
 filename = os.path.join(
@@ -69,11 +69,11 @@ filename = os.path.join(
 )
 
 nwp_importer = io.get_method("bom_nwp", "importer")
-nwp_data, _, nwp_metadata = nwp_importer(filename)
+nwp_precip, _, nwp_metadata = nwp_importer(filename)
 
 # Only keep the NWP forecasts from the last radar observation time (2020-10-31 04:00)
 # End of the forecast is 18 time steps (+3 hours) in advance.
-precip_nwp = nwp_data[24:43, :, :]
+precip_nwp = nwp_precip[24:43, :, :]
 
 
 ################################################################################
@@ -82,11 +82,11 @@ precip_nwp = nwp_data[24:43, :, :]
 
 # Make sure the units are in mm/h
 converter = pysteps.utils.get_method("mm/h")
-precip_radar, radar_metadata = converter(precip_radar, radar_metadata)
+radar_precip, radar_metadata = converter(radar_precip, radar_metadata)
 precip_nwp, nwp_metadata = converter(precip_nwp, nwp_metadata)
 
 # Threshold the data
-precip_radar[precip_radar < 0.1] = 0.0
+radar_precip[radar_precip < 0.1] = 0.0
 precip_nwp[precip_nwp < 0.1] = 0.0
 
 # Plot the radar rainfall field and the first time step of the NWP forecast.
@@ -98,7 +98,7 @@ date_str = datetime.strftime(date_radar, "%Y-%m-%d %H:%M")
 plt.figure(figsize=(10, 5))
 plt.subplot(121)
 plot_precip_field(
-    precip_radar[-1, :, :],
+    radar_precip[-1, :, :],
     geodata=radar_metadata,
     title=f"Radar observation at {date_str}",
 )
@@ -118,7 +118,7 @@ precip_nwp = precip_nwp[1:]
 # transformed, because the linear blending code sets everything back in mm/h
 # after the nowcast.
 transformer = pysteps.utils.get_method("dB")
-precip_radar, radar_metadata = transformer(precip_radar, radar_metadata, threshold=0.1)
+radar_precip, radar_metadata = transformer(radar_precip, radar_metadata, threshold=0.1)
 
 
 ################################################################################
@@ -126,7 +126,7 @@ precip_radar, radar_metadata = transformer(precip_radar, radar_metadata, thresho
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 oflow_method = pysteps.motion.get_method("lucaskanade")
-uv_radar = oflow_method(precip_radar)
+velocity_radar = oflow_method(radar_precip)
 
 
 ################################################################################
@@ -135,9 +135,9 @@ uv_radar = oflow_method(precip_radar)
 
 # Calculate the blended precipitation field
 precip_blended = blending.linear_blending.forecast(
-    precip=precip_radar[-1, :, :],
+    precip=radar_precip[-1, :, :],
     precip_metadata=radar_metadata,
-    velocity=uv_radar,
+    velocity=velocity_radar,
     timesteps=18,
     timestep=10,
     nowcast_method="extrapolation",  # simple advection nowcast
