@@ -356,8 +356,8 @@ def det_cont_fct_accum(err, pred, obs):
     mobs = np.nanmean(obs, axis=axis)
     mpred = np.nanmean(pred, axis=axis)
     me = np.nanmean(res, axis=axis)
-    mse = np.nanmean(res ** 2, axis=axis)
-    mss = np.nanmean(sum ** 2, axis=axis)
+    mse = np.nanmean(res**2, axis=axis)
+    mss = np.nanmean(sum**2, axis=axis)
     mae = np.nanmean(np.abs(res), axis=axis)
 
     # expand axes for broadcasting

@@ -609,9 +609,9 @@ def fss_accum(fss, X_f, X_o):
         S_f = I_f
         S_o = I_o
 
-    fss["sum_obs_sq"] += np.nansum(S_o ** 2)
+    fss["sum_obs_sq"] += np.nansum(S_o**2)
     fss["sum_fct_obs"] += np.nansum(S_f * S_o)
-    fss["sum_fct_sq"] += np.nansum(S_f ** 2)
+    fss["sum_fct_sq"] += np.nansum(S_f**2)
 
 
 def fss_merge(fss_1, fss_2):

@@ -107,7 +107,7 @@ def boxcox_transform(
 
         else:
             R[~zeros] = (R[~zeros] ** Lambda - 1) / Lambda
-            threshold = (threshold ** Lambda - 1) / Lambda
+            threshold = (threshold**Lambda - 1) / Lambda
 
         # Set value for zeros
         if zerovalue is None:
@@ -375,7 +375,7 @@ def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
         metadata["threshold"] = np.sqrt(metadata["threshold"])
     else:
         # inverse sqrt transform
-        R = R ** 2
+        R = R**2
 
         metadata["transform"] = None
         metadata["zerovalue"] = metadata["zerovalue"] ** 2

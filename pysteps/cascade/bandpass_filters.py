@@ -208,7 +208,7 @@ def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
 
         def __call__(self, x):
             x = log_e(x) - self.c
-            return np.exp(-(x ** 2.0) / (2.0 * self.s ** 2.0))
+            return np.exp(-(x**2.0) / (2.0 * self.s**2.0))
 
     weight_funcs = []
     central_wavenumbers = [0.0]

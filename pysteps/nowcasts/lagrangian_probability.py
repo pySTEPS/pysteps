@@ -128,4 +128,4 @@ def _get_kernel(size):
     else:
         xx, yy = np.mgrid[:size, :size]
         circle = (xx - middle) ** 2 + (yy - middle) ** 2
-        return np.asarray(circle <= (middle ** 2), dtype=np.float32)
+        return np.asarray(circle <= (middle**2), dtype=np.float32)

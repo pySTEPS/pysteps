@@ -61,7 +61,7 @@ F = abs(np.fft.fftshift(np.fft.fft2(R)))
 M, N = F.shape
 fig, ax = plt.subplots()
 im = ax.imshow(
-    np.log(F ** 2), vmin=4, vmax=24, cmap=cm.jet, extent=(-N / 2, N / 2, -M / 2, M / 2)
+    np.log(F**2), vmin=4, vmax=24, cmap=cm.jet, extent=(-N / 2, N / 2, -M / 2, M / 2)
 )
 cb = fig.colorbar(im)
 ax.set_xlabel("Wavenumber $k_x$")

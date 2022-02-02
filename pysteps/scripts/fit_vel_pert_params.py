@@ -42,7 +42,7 @@ for lt in leadtimes:
     mu = dp_par_sum / dp_par_n
 
     std_par.append(
-        np.sqrt((dp_par_sq_sum - 2 * mu * dp_par_sum + dp_par_n * mu ** 2) / dp_par_n)
+        np.sqrt((dp_par_sq_sum - 2 * mu * dp_par_sum + dp_par_n * mu**2) / dp_par_n)
     )
 
     dp_perp_sum = results[lt]["dp_perp_sum"]
@@ -52,7 +52,7 @@ for lt in leadtimes:
 
     std_perp.append(
         np.sqrt(
-            (dp_perp_sq_sum - 2 * mu * dp_perp_sum + dp_perp_n * mu ** 2) / dp_perp_n
+            (dp_perp_sq_sum - 2 * mu * dp_perp_sum + dp_perp_n * mu**2) / dp_perp_n
         )
     )
 
