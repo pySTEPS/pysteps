@@ -94,7 +94,7 @@ def plot_spectrum1d(
     # Y-axis
     if y_units is not None:
         # { -> {{ with f-strings
-        power_units = fr"$10log_{{ 10 }}(\frac{{ {y_units}^2 }}{{ {x_units} }})$"
+        power_units = rf"$10log_{{ 10 }}(\frac{{ {y_units}^2 }}{{ {x_units} }})$"
         ax.set_ylabel(f"Power {power_units}")
 
     return ax

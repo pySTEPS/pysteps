@@ -125,7 +125,7 @@ def CRPS_accum(CRPS, X_f, X_o):
     beta[mask, -1] = 0.0
 
     p = 1.0 * np.arange(m + 1) / m
-    res = np.sum(alpha * p ** 2.0 + beta * (1.0 - p) ** 2.0, axis=1)
+    res = np.sum(alpha * p**2.0 + beta * (1.0 - p) ** 2.0, axis=1)
 
     CRPS["CRPS_sum"] += np.sum(res)
     CRPS["n"] += len(res)

@@ -282,7 +282,7 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
         if zr_b is None:
             zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
 
-        R = zr_a * R ** zr_b
+        R = zr_a * R**zr_b
         metadata["threshold"] = zr_a * metadata["threshold"] ** zr_b
         metadata["zerovalue"] = zr_a * metadata["zerovalue"] ** zr_b
         metadata["zr_a"] = zr_a
@@ -300,7 +300,7 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
             zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall-Palmer
         if zr_b is None:
             zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall-Palmer
-        R = zr_a * R ** zr_b
+        R = zr_a * R**zr_b
         metadata["threshold"] = zr_a * metadata["threshold"] ** zr_b
         metadata["zerovalue"] = zr_a * metadata["zerovalue"] ** zr_b
         metadata["zr_a"] = zr_a

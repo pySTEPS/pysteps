@@ -245,20 +245,20 @@ def _moving_window_corrcoef(x, y, window_radius, window="gaussian", mask=None):
     else:
         window_size = window_radius
 
-    n = convol_filter(mask, window_size, mode="constant") * window_size ** 2
+    n = convol_filter(mask, window_size, mode="constant") * window_size**2
 
-    sx = convol_filter(x, window_size, mode="constant") * window_size ** 2
-    sy = convol_filter(y, window_size, mode="constant") * window_size ** 2
+    sx = convol_filter(x, window_size, mode="constant") * window_size**2
+    sy = convol_filter(y, window_size, mode="constant") * window_size**2
 
-    ssx = convol_filter(x ** 2, window_size, mode="constant") * window_size ** 2
-    ssy = convol_filter(y ** 2, window_size, mode="constant") * window_size ** 2
-    sxy = convol_filter(x * y, window_size, mode="constant") * window_size ** 2
+    ssx = convol_filter(x**2, window_size, mode="constant") * window_size**2
+    ssy = convol_filter(y**2, window_size, mode="constant") * window_size**2
+    sxy = convol_filter(x * y, window_size, mode="constant") * window_size**2
 
     mux = sx / n
     muy = sy / n
 
-    stdx = np.sqrt(ssx - 2 * mux * sx + n * mux ** 2)
-    stdy = np.sqrt(ssy - 2 * muy * sy + n * muy ** 2)
+    stdx = np.sqrt(ssx - 2 * mux * sx + n * mux**2)
+    stdy = np.sqrt(ssy - 2 * muy * sy + n * muy**2)
     cov = sxy - muy * sx - mux * sy + n * mux * muy
 
     mask = np.logical_and(stdx > 1e-8, stdy > 1e-8)

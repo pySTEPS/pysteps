@@ -475,14 +475,14 @@ def _moving_window_corrcoef(x, y, window_radius):
     if window_radius is not None:
         n = gaussian_filter(mask, window_radius, mode="constant")
 
-        ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
-        ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
+        ssx = gaussian_filter(x**2, window_radius, mode="constant")
+        ssy = gaussian_filter(y**2, window_radius, mode="constant")
         sxy = gaussian_filter(x * y, window_radius, mode="constant")
     else:
         n = np.mean(mask)
 
-        ssx = np.mean(x ** 2)
-        ssy = np.mean(y ** 2)
+        ssx = np.mean(x**2)
+        ssy = np.mean(y**2)
         sxy = np.mean(x * y)
 
     stdx = np.sqrt(ssx / n)
