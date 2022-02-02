@@ -98,7 +98,7 @@ def downscale(precip, alpha=None, ds_factor=16, threshold=None, return_alpha=Fal
     if alpha is None:
         fp = np.fft.fft2(precip)
         fp_abs = abs(fp)
-        log_power_spectrum = np.log(fp_abs ** 2)
+        log_power_spectrum = np.log(fp_abs**2)
         valid = (k != 0) & np.isfinite(log_power_spectrum)
         alpha = _log_slope(np.log(k[valid]), log_power_spectrum[valid])
 
@@ -114,7 +114,7 @@ def downscale(precip, alpha=None, ds_factor=16, threshold=None, return_alpha=Fal
     P_u = np.repeat(np.repeat(precip, ds_factor, axis=0), ds_factor, axis=1)
     rad = int(round(ds_factor / np.sqrt(np.pi)))
     (mx, my) = np.mgrid[-rad : rad + 0.01, -rad : rad + 0.01]
-    tophat = ((mx ** 2 + my ** 2) <= rad ** 2).astype(float)
+    tophat = ((mx**2 + my**2) <= rad**2).astype(float)
     tophat /= tophat.sum()
 
     P_agg = _balanced_spatial_average(P_u, tophat)

@@ -72,7 +72,7 @@ def adjust_lag2_corrcoef2(gamma_1, gamma_2):
     """
     gamma_2 = np.maximum(gamma_2, 2 * gamma_1 * gamma_2 - 1)
     gamma_2 = np.maximum(
-        gamma_2, (3 * gamma_1 ** 2 - 2 + 2 * (1 - gamma_1 ** 2) ** 1.5) / gamma_1 ** 2
+        gamma_2, (3 * gamma_1**2 - 2 + 2 * (1 - gamma_1**2) ** 1.5) / gamma_1**2
     )
 
     return gamma_2
