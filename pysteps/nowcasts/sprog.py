@@ -191,7 +191,7 @@ def forecast(
     extrapolator_method = extrapolation.get_method(extrap_method)
 
     precip = precip[-(ar_order + 1) :, :, :].copy()
-    R_min = np.nanmin(precip)
+    precip_min = np.nanmin(precip)
 
     # determine the domain mask from non-finite values
     domain_mask = np.logical_or.reduce(
@@ -200,11 +200,11 @@ def forecast(
 
     # determine the precipitation threshold mask
     if conditional:
-        MASK_thr = np.logical_and.reduce(
+        mask_thr = np.logical_and.reduce(
             [precip[i, :, :] >= precip_thr for i in range(precip.shape[0])]
         )
     else:
-        MASK_thr = None
+        mask_thr = None
 
     # initialize the extrapolator
     x_values, y_values = np.meshgrid(
@@ -244,68 +244,70 @@ def forecast(
         precip[i, ~np.isfinite(precip[i, :])] = np.nanmin(precip[i, :])
 
     # compute the cascade decompositions of the input precipitation fields
-    R_d = []
+    precip_d = []
     for i in range(ar_order + 1):
-        R_ = decomp_method(
+        precip_ = decomp_method(
             precip[i, :, :],
             filter,
-            mask=MASK_thr,
+            mask=mask_thr,
             fft_method=fft,
             output_domain=domain,
             normalize=True,
             compute_stats=True,
             compact_output=True,
         )
-        R_d.append(R_)
+        precip_d.append(precip_)
 
     # rearrange the cascade levels into a four-dimensional array of shape
     # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    R_c = nowcast_utils.stack_cascades(
-        R_d, n_cascade_levels, convert_to_full_arrays=True
+    precip_c = nowcast_utils.stack_cascades(
+        precip_d, n_cascade_levels, convert_to_full_arrays=True
     )
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
-    GAMMA = np.empty((n_cascade_levels, ar_order))
+    gamma = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
         if domain == "spatial":
-            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], mask=MASK_thr)
+            gamma[i, :] = correlation.temporal_autocorrelation(
+                precip_c[i], mask=mask_thr
+            )
         else:
-            GAMMA[i, :] = correlation.temporal_autocorrelation(
-                R_c[i], domain="spectral", x_shape=precip.shape[1:]
+            gamma[i, :] = correlation.temporal_autocorrelation(
+                precip_c[i], domain="spectral", x_shape=precip.shape[1:]
             )
 
-    R_c = nowcast_utils.stack_cascades(
-        R_d, n_cascade_levels, convert_to_full_arrays=False
+    precip_c = nowcast_utils.stack_cascades(
+        precip_d, n_cascade_levels, convert_to_full_arrays=False
     )
 
-    R_d = R_d[-1]
+    precip_d = precip_d[-1]
 
-    nowcast_utils.print_corrcoefs(GAMMA)
+    nowcast_utils.print_corrcoefs(gamma)
 
     if ar_order == 2:
         # adjust the lag-2 correlation coefficient to ensure that the AR(p)
         # process is stationary
         for i in range(n_cascade_levels):
-            GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(GAMMA[i, 0], GAMMA[i, 1])
+            gamma[i, 1] = autoregression.adjust_lag2_corrcoef2(gamma[i, 0], gamma[i, 1])
 
     # estimate the parameters of the AR(p) model from the autocorrelation
     # coefficients
     PHI = np.empty((n_cascade_levels, ar_order + 1))
     for i in range(n_cascade_levels):
-        PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
+        PHI[i, :] = autoregression.estimate_ar_params_yw(gamma[i, :])
 
     nowcast_utils.print_ar_params(PHI)
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
-    R_c = [R_c[i][-ar_order:] for i in range(n_cascade_levels)]
+    precip_c = [precip_c[i][-ar_order:] for i in range(n_cascade_levels)]
 
     if probmatching_method == "mean":
         mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
 
     # compute precipitation mask and wet area ratio
-    MASK_p = precip[-1, :, :] >= precip_thr
-    war = 1.0 * np.sum(MASK_p) / (precip.shape[1] * precip.shape[2])
+    mask_p = precip[-1, :, :] >= precip_thr
+    war = 1.0 * np.sum(mask_p) / (precip.shape[1] * precip.shape[2])
 
     if measure_time:
         init_time = time.time() - starttime_init
@@ -317,48 +319,52 @@ def forecast(
     if measure_time:
         starttime_mainloop = time.time()
 
-    R_f = []
+    precip_f = []
 
     extrap_kwargs["return_displacement"] = True
 
     def decode_state(state, params):
-        state["R_d"]["cascade_levels"] = [
-            state["R_c"][i][-1, :] for i in range(params["n_cascade_levels"])
+        state["precip_d"]["cascade_levels"] = [
+            state["precip_c"][i][-1, :] for i in range(params["n_cascade_levels"])
         ]
         if params["domain"] == "spatial":
-            state["R_d"]["cascade_levels"] = np.stack(state["R_d"]["cascade_levels"])
+            state["precip_d"]["cascade_levels"] = np.stack(
+                state["precip_d"]["cascade_levels"]
+            )
 
-        R_f_recomp = params["recomp_method"](state["R_d"])
+        precip_f_recomp = params["recomp_method"](state["precip_d"])
 
         if params["domain"] == "spectral":
-            R_f_recomp = fft.irfft2(R_f_recomp)
+            precip_f_recomp = fft.irfft2(precip_f_recomp)
 
-        mask = compute_percentile_mask(R_f_recomp, war)
-        R_f_recomp[~mask] = params["R_min"]
+        mask = compute_percentile_mask(precip_f_recomp, war)
+        precip_f_recomp[~mask] = params["precip_min"]
 
         if params["probmatching_method"] == "cdf":
             # adjust the CDF of the forecast to match the most recently
             # observed precipitation field
-            R_f_recomp = probmatching.nonparam_match_empirical_cdf(R_f_recomp, precip)
+            precip_f_recomp = probmatching.nonparam_match_empirical_cdf(
+                precip_f_recomp, precip
+            )
         elif params["probmatching_method"] == "mean":
-            mu_fct = np.mean(R_f_recomp[mask])
-            R_f_recomp[mask] = R_f_recomp[mask] - mu_fct + mu_0
+            mu_fct = np.mean(precip_f_recomp[mask])
+            precip_f_recomp[mask] = precip_f_recomp[mask] - mu_fct + mu_0
 
-        R_f_recomp[domain_mask] = np.nan
+        precip_f_recomp[domain_mask] = np.nan
 
-        return R_f_recomp
+        return precip_f_recomp
 
     def update_state(state, params):
         for i in range(params["n_cascade_levels"]):
-            state["R_c"][i] = autoregression.iterate_ar_model(
-                state["R_c"][i], params["PHI"][i, :]
+            state["precip_c"][i] = autoregression.iterate_ar_model(
+                state["precip_c"][i], params["PHI"][i, :]
             )
 
         return state
 
     state = {}
-    state["R_c"] = R_c
-    state["R_d"] = R_d
+    state["precip_c"] = precip_c
+    state["precip_d"] = precip_d
 
     params = {
         "n_cascade_levels": n_cascade_levels,
@@ -366,10 +372,10 @@ def forecast(
         "probmatching_method": probmatching_method,
         "PHI": PHI,
         "recomp_method": recomp_method,
-        "R_min": R_min,
+        "precip_min": precip_min,
     }
 
-    R_f = nowcast_main_loop(
+    precip_f = nowcast_main_loop(
         precip,
         velocity,
         state,
@@ -382,14 +388,14 @@ def forecast(
         measure_time=measure_time,
     )
     if measure_time:
-        R_f, mainloop_time = R_f
+        precip_f, mainloop_time = precip_f
 
-    R_f = np.stack(R_f)
+    precip_f = np.stack(precip_f)
 
     if measure_time:
-        return R_f, init_time, mainloop_time
+        return precip_f, init_time, mainloop_time
     else:
-        return R_f
+        return precip_f
 
 
 def _check_inputs(R, V, timesteps, ar_order):
