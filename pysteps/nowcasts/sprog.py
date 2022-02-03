@@ -320,7 +320,10 @@ def forecast(
 
     extrap_kwargs["return_displacement"] = True
 
-    def decode_state(state, params):
+    def update(state, params):
+        for i in range(n_cascade_levels):
+            precip_c[i] = autoregression.iterate_ar_model(precip_c[i], phi[i, :])
+
         precip_d["cascade_levels"] = [
             precip_c[i][-1, :] for i in range(n_cascade_levels)
         ]
@@ -347,24 +350,15 @@ def forecast(
 
         precip_f_recomp[domain_mask] = np.nan
 
-        return precip_f_recomp
-
-    def update_state(state, params):
-        for i in range(n_cascade_levels):
-            precip_c[i] = autoregression.iterate_ar_model(precip_c[i], phi[i, :])
-
-        return state
-
-    state = {}
+        return precip_f_recomp, None
 
     precip_f = nowcast_main_loop(
         precip,
         velocity,
-        {},
+        None,
         timesteps,
         extrap_method,
-        update_state,
-        decode_state,
+        update,
         extrap_kwargs=extrap_kwargs,
         params=None,
         measure_time=measure_time,
