@@ -209,7 +209,7 @@ def nowcast_main_loop(
             starttime = time.time()
 
         # advect the currect forecast field to the subtimesteps in the current
-        # bin and append the results to the output list
+        # timestep bin and append the results to the output list
         # apply temporal interpolation to the forecasts made between the
         # previous and the next integer time steps
         for t_sub in subtimesteps:
@@ -233,6 +233,8 @@ def nowcast_main_loop(
                 precip_f.append(precip_f_ep[0])
                 t_prev = t_sub
 
+        # advect the forecast field by one time step if no subtimesteps in the
+        # current interval were found
         if not subtimesteps:
             t_diff_prev = t + 1 - t_prev
             extrap_kwargs["displacement_prev"] = displacement
