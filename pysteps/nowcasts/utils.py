@@ -93,10 +93,10 @@ def nowcast_main_loop(
     state,
     timesteps,
     extrap_method,
-    extrap_kwargs,
     func_state_update,
     func_decode,
-    params={},
+    extrap_kwargs=None,
+    params=None,
     measure_time=False,
 ):
     """Utility method for advection-based nowcast models, where some parts of
@@ -119,17 +119,17 @@ def nowcast_main_loop(
     extrap_method: str, optional
         Name of the extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`.
-    extrap_kwargs: dict, optional
-        Optional dictionary containing keyword arguments for the extrapolation
-        method. See the documentation of pysteps.extrapolation.
     func_state_update : function
         A function that takes the current state of the nowcast model and returns
         the new state.
     func_decode : function
         A function that decodes the current state and returns a forecast field.
-    params : dict
-        Additional keyword arguments that are passed to func_state_update and
-        func_decode.
+    extrap_kwargs: dict, optional
+        Optional dictionary containing keyword arguments for the extrapolation
+        method. See the documentation of pysteps.extrapolation.
+    params : dict, optional
+        Optional dictionary containing keyword arguments for func_state_update
+        and func_decode.
     measure_time: bool
         If set to True, measure, print and return the computation time.
 
@@ -202,8 +202,8 @@ def nowcast_main_loop(
 
         # call the function to iterate the integer-timestep part of the model
         # for one time step
-        state_new = func_state_update(state_prev, **params)
-        precip_f_new = func_decode(state_new, **params)
+        state_new = func_state_update(state_prev, params)
+        precip_f_new = func_decode(state_new, params)
 
         if measure_time:
             starttime = time.time()
