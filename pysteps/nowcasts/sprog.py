@@ -321,15 +321,13 @@ def forecast(
     extrap_kwargs["return_displacement"] = True
 
     def decode_state(state, params):
-        state["precip_d"]["cascade_levels"] = [
-            state["precip_c"][i][-1, :] for i in range(n_cascade_levels)
+        precip_d["cascade_levels"] = [
+            precip_c[i][-1, :] for i in range(n_cascade_levels)
         ]
         if domain == "spatial":
-            state["precip_d"]["cascade_levels"] = np.stack(
-                state["precip_d"]["cascade_levels"]
-            )
+            precip_d["cascade_levels"] = np.stack(precip_d["cascade_levels"])
 
-        precip_f_recomp = recomp_method(state["precip_d"])
+        precip_f_recomp = recomp_method(precip_d)
 
         if domain == "spectral":
             precip_f_recomp = fft.irfft2(precip_f_recomp)
@@ -353,20 +351,16 @@ def forecast(
 
     def update_state(state, params):
         for i in range(n_cascade_levels):
-            state["precip_c"][i] = autoregression.iterate_ar_model(
-                state["precip_c"][i], phi[i, :]
-            )
+            precip_c[i] = autoregression.iterate_ar_model(precip_c[i], phi[i, :])
 
         return state
 
     state = {}
-    state["precip_c"] = precip_c
-    state["precip_d"] = precip_d
 
     precip_f = nowcast_main_loop(
         precip,
         velocity,
-        state,
+        {},
         timesteps,
         extrap_method,
         update_state,
