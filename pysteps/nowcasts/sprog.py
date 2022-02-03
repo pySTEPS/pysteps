@@ -381,9 +381,8 @@ def forecast(
         params=params,
         measure_time=measure_time,
     )
-
     if measure_time:
-        mainloop_time = time.time() - starttime_mainloop
+        R_f, mainloop_time = R_f
 
     R_f = np.stack(R_f)
 
