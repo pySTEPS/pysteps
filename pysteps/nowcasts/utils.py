@@ -57,7 +57,7 @@ def compute_percentile_mask(precip, pct):
 
     Parameters
     ----------
-    precip: array-like
+    precip: array_like
         Two-dimensional array of shape (m,n) containing the input precipitation
         field.
     pct: float
@@ -103,10 +103,10 @@ def nowcast_main_loop(
 
     Parameters
     ----------
-    precip: array-like
+    precip: array_like
         Array of shape (m,n) containing the most recently observed precipitation
         field.
-    velocity: array-like
+    velocity: array_like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field.
     state : object
