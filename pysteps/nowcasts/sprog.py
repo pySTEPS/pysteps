@@ -316,9 +316,6 @@ def forecast(
 
     print("Starting nowcast computation.")
 
-    if measure_time:
-        starttime_mainloop = time.time()
-
     precip_f = []
 
     extrap_kwargs["return_displacement"] = True
