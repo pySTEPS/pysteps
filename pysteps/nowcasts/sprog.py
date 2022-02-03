@@ -363,15 +363,6 @@ def forecast(
     state["precip_c"] = precip_c
     state["precip_d"] = precip_d
 
-    params = {
-        "n_cascade_levels": n_cascade_levels,
-        "domain": domain,
-        "probmatching_method": probmatching_method,
-        "phi": phi,
-        "recomp_method": recomp_method,
-        "precip_min": precip_min,
-    }
-
     precip_f = nowcast_main_loop(
         precip,
         velocity,
@@ -381,7 +372,7 @@ def forecast(
         update_state,
         decode_state,
         extrap_kwargs=extrap_kwargs,
-        params=params,
+        params=None,
         measure_time=measure_time,
     )
     if measure_time:
