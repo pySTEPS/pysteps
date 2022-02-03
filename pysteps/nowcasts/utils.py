@@ -125,7 +125,7 @@ def nowcast_main_loop(
         A function that takes the current state of the nowcast model and returns
         the new state.
     func_decode : function
-        A function that decoded the current state and returns a forecast field.
+        A function that decodes the current state and returns a forecast field.
     measure_time: bool
         If set to True, measure, print and return the computation time.
 
