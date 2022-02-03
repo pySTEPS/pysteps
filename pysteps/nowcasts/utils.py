@@ -163,7 +163,7 @@ def nowcast_main_loop(
     extrapolator = extrapolation.get_method(extrap_method)
 
     x_values, y_values = np.meshgrid(
-        np.arange(precip.shape[2]), np.arange(precip.shape[1])
+        np.arange(precip.shape[1]), np.arange(precip.shape[0])
     )
 
     xy_coords = np.stack([x_values, y_values])
