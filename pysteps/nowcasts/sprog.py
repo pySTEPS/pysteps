@@ -19,7 +19,7 @@ from pysteps import utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.nowcasts.utils import compute_percentile_mask
+from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 
 try:
     import dask
@@ -319,113 +319,68 @@ def forecast(
 
     R_f = []
 
-    if isinstance(timesteps, int):
-        timesteps = range(timesteps + 1)
-        timestep_type = "int"
-    else:
-        original_timesteps = [0] + list(timesteps)
-        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
-        timestep_type = "list"
-
-    R_f_prev = precip
     extrap_kwargs["return_displacement"] = True
 
-    D = None
-    t_prev = 0.0
+    def decode_state(state, params):
+        state["R_d"]["cascade_levels"] = [
+            state["R_c"][i][-1, :] for i in range(params["n_cascade_levels"])
+        ]
+        if params["domain"] == "spatial":
+            state["R_d"]["cascade_levels"] = np.stack(state["R_d"]["cascade_levels"])
 
-    # iterate each time step
-    for t, subtimestep_idx in enumerate(timesteps):
-        if timestep_type == "list":
-            subtimesteps = [original_timesteps[t_] for t_ in subtimestep_idx]
-        else:
-            subtimesteps = [t]
+        R_f_recomp = params["recomp_method"](state["R_d"])
 
-        if (timestep_type == "list" and subtimesteps) or (
-            timestep_type == "int" and t > 0
-        ):
-            is_nowcast_time_step = True
-        else:
-            is_nowcast_time_step = False
+        if params["domain"] == "spectral":
+            R_f_recomp = fft.irfft2(R_f_recomp)
 
-        if is_nowcast_time_step:
-            print(
-                f"Computing nowcast for time step {t}... ",
-                end="",
-                flush=True,
-            )
+        mask = compute_percentile_mask(R_f_recomp, war)
+        R_f_recomp[~mask] = params["R_min"]
 
-        if measure_time:
-            starttime = time.time()
-
-        for i in range(n_cascade_levels):
-            R_c[i] = autoregression.iterate_ar_model(R_c[i], PHI[i, :])
-
-        R_d["cascade_levels"] = [R_c[i][-1, :] for i in range(n_cascade_levels)]
-        if domain == "spatial":
-            R_d["cascade_levels"] = np.stack(R_d["cascade_levels"])
-
-        R_f_new = recomp_method(R_d)
-
-        if domain == "spectral":
-            R_f_new = fft.irfft2(R_f_new)
-
-        MASK = compute_percentile_mask(R_f_new, war)
-        R_f_new[~MASK] = R_min
-
-        if probmatching_method == "cdf":
+        if params["probmatching_method"] == "cdf":
             # adjust the CDF of the forecast to match the most recently
             # observed precipitation field
-            R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, precip)
-        elif probmatching_method == "mean":
-            mu_fct = np.mean(R_f_new[MASK])
-            R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0
+            R_f_recomp = probmatching.nonparam_match_empirical_cdf(R_f_recomp, precip)
+        elif params["probmatching_method"] == "mean":
+            mu_fct = np.mean(R_f_recomp[mask])
+            R_f_recomp[mask] = R_f_recomp[mask] - mu_fct + mu_0
 
-        R_f_new[domain_mask] = np.nan
+        R_f_recomp[domain_mask] = np.nan
 
-        # advect the recomposed precipitation field to obtain the forecast for
-        # the current time step (or subtimesteps if non-integer time steps are
-        # given)
-        for t_sub in subtimesteps:
-            if t_sub > 0:
-                t_diff_prev_int = t_sub - int(t_sub)
-                if t_diff_prev_int > 0.0:
-                    R_f_ip = (
-                        1.0 - t_diff_prev_int
-                    ) * R_f_prev + t_diff_prev_int * R_f_new
-                else:
-                    R_f_ip = R_f_prev
+        return R_f_recomp
 
-                t_diff_prev = t_sub - t_prev
-                extrap_kwargs["displacement_prev"] = D
-                R_f_ep, D = extrapolator_method(
-                    R_f_ip,
-                    velocity,
-                    [t_diff_prev],
-                    **extrap_kwargs,
-                )
-                R_f.append(R_f_ep[0])
-                t_prev = t_sub
-
-        # advect the forecast field by one time step if no subtimesteps in the
-        # current interval were found
-        if not subtimesteps:
-            t_diff_prev = t + 1 - t_prev
-            extrap_kwargs["displacement_prev"] = D
-            _, D = extrapolator_method(
-                None,
-                velocity,
-                [t_diff_prev],
-                **extrap_kwargs,
+    def update_state(state, params):
+        for i in range(params["n_cascade_levels"]):
+            state["R_c"][i] = autoregression.iterate_ar_model(
+                state["R_c"][i], params["PHI"][i, :]
             )
-            t_prev = t + 1
 
-        R_f_prev = R_f_new
+        return state
 
-        if is_nowcast_time_step:
-            if measure_time:
-                print(f"{time.time() - starttime:.2f} seconds.")
-            else:
-                print("done.")
+    state = {}
+    state["R_c"] = R_c
+    state["R_d"] = R_d
+
+    params = {
+        "n_cascade_levels": n_cascade_levels,
+        "domain": domain,
+        "probmatching_method": probmatching_method,
+        "PHI": PHI,
+        "recomp_method": recomp_method,
+        "R_min": R_min,
+    }
+
+    R_f = nowcast_main_loop(
+        precip,
+        velocity,
+        state,
+        timesteps,
+        extrap_method,
+        update_state,
+        decode_state,
+        extrap_kwargs=extrap_kwargs,
+        params=params,
+        measure_time=measure_time,
+    )
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
