@@ -292,11 +292,11 @@ def forecast(
 
     # estimate the parameters of the AR(p) model from the autocorrelation
     # coefficients
-    PHI = np.empty((n_cascade_levels, ar_order + 1))
+    phi = np.empty((n_cascade_levels, ar_order + 1))
     for i in range(n_cascade_levels):
-        PHI[i, :] = autoregression.estimate_ar_params_yw(gamma[i, :])
+        phi[i, :] = autoregression.estimate_ar_params_yw(gamma[i, :])
 
-    nowcast_utils.print_ar_params(PHI)
+    nowcast_utils.print_ar_params(phi)
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
@@ -354,7 +354,7 @@ def forecast(
     def update_state(state, params):
         for i in range(n_cascade_levels):
             state["precip_c"][i] = autoregression.iterate_ar_model(
-                state["precip_c"][i], PHI[i, :]
+                state["precip_c"][i], phi[i, :]
             )
 
         return state
@@ -367,7 +367,7 @@ def forecast(
         "n_cascade_levels": n_cascade_levels,
         "domain": domain,
         "probmatching_method": probmatching_method,
-        "PHI": PHI,
+        "phi": phi,
         "recomp_method": recomp_method,
         "precip_min": precip_min,
     }
