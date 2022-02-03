@@ -613,6 +613,153 @@ def forecast(
     def update_state(state, params):
         pass
 
+    # the nowcast iteration for each ensemble member
+    def worker(j, t, subtimesteps):
+        if noise_method is not None:
+            # generate noise field
+            eps = generate_noise(
+                pp, randstate=randgen_prec[j], fft_method=fft_objs[j], domain=domain
+            )
+
+            # decompose the noise field into a cascade
+            eps = decomp_method(
+                eps,
+                filter,
+                fft_method=fft_objs[j],
+                input_domain=domain,
+                output_domain=domain,
+                compute_stats=True,
+                normalize=True,
+                compact_output=True,
+            )
+        else:
+            eps = None
+
+        # iterate the AR(p) model for each cascade level
+        for i in range(n_cascade_levels):
+            # normalize the noise cascade
+            if eps is not None:
+                eps_ = eps["cascade_levels"][i]
+                eps_ *= noise_std_coeffs[i]
+            else:
+                eps_ = None
+            # apply AR(p) process to cascade level
+            if eps is not None or vel_pert_method is not None:
+                precip_c[j][i] = autoregression.iterate_ar_model(
+                    precip_c[j][i], phi[i, :], eps=eps_
+                )
+            else:
+                # use the deterministic AR(p) model computed above if
+                # perturbations are disabled
+                precip_c[j][i] = precip_m[i]
+
+        eps = None
+        eps_ = None
+
+        # compute the recomposed precipitation field(s) from the cascades
+        # obtained from the AR(p) model(s)
+        precip_d[j]["cascade_levels"] = [
+            precip_c[j][i][-1, :] for i in range(n_cascade_levels)
+        ]
+        if domain == "spatial":
+            precip_d[j]["cascade_levels"] = np.stack(precip_d[j]["cascade_levels"])
+        precip_f_new = recomp_method(precip_d[j])
+
+        if domain == "spectral":
+            precip_f_new = fft_objs[j].irfft2(precip_f_new)
+
+        if mask_method is not None:
+            # apply the precipitation mask to prevent generation of new
+            # precipitation into areas where it was not originally
+            # observed
+            R_cmin = precip_f_new.min()
+            if mask_method == "incremental":
+                precip_f_new = R_cmin + (precip_f_new - R_cmin) * mask_prec[j]
+                mask_prec_ = precip_f_new > R_cmin
+            else:
+                mask_prec_ = mask_prec
+
+            # Set to min value outside of mask
+            precip_f_new[~mask_prec_] = R_cmin
+
+        if probmatching_method == "cdf":
+            # adjust the CDF of the forecast to match the most recently
+            # observed precipitation field
+            precip_f_new = probmatching.nonparam_match_empirical_cdf(
+                precip_f_new, precip
+            )
+        elif probmatching_method == "mean":
+            MASK = precip_f_new >= precip_thr
+            mu_fct = np.mean(precip_f_new[MASK])
+            precip_f_new[MASK] = precip_f_new[MASK] - mu_fct + mu_0
+
+        if mask_method == "incremental":
+            mask_prec[j] = _compute_incremental_mask(
+                precip_f_new >= precip_thr, struct, mask_rim
+            )
+
+        precip_f_new[domain_mask] = np.nan
+
+        precip_f_out = []
+        extrap_kwargs_ = extrap_kwargs.copy()
+
+        vel_pert = velocity
+
+        # advect the recomposed precipitation field to obtain the forecast for
+        # the current time step (or subtimesteps if non-integer time steps are
+        # given)
+        for t_sub in subtimesteps:
+            if t_sub > 0:
+                t_diff_prev_int = t_sub - int(t_sub)
+                if t_diff_prev_int > 0.0:
+                    precip_f_ip = (1.0 - t_diff_prev_int) * precip_f_prev[
+                        j
+                    ] + t_diff_prev_int * precip_f_new
+                else:
+                    precip_f_ip = precip_f_prev[j]
+
+                t_diff_prev = t_sub - t_prev[j]
+                t_total[j] += t_diff_prev
+
+                # compute the perturbed motion field
+                if vel_pert_method is not None:
+                    vel_pert = velocity + generate_vel_noise(
+                        vps[j], t_total[j] * timestep
+                    )
+
+                extrap_kwargs_["displacement_prev"] = displacement[j]
+                precip_f_ep, displacement[j] = extrapolator_method(
+                    precip_f_ip,
+                    vel_pert,
+                    [t_diff_prev],
+                    **extrap_kwargs_,
+                )
+                precip_f_out.append(precip_f_ep[0])
+                t_prev[j] = t_sub
+
+        # advect the forecast field by one time step if no subtimesteps in the
+        # current interval were found
+        if not subtimesteps:
+            t_diff_prev = t + 1 - t_prev[j]
+            t_total[j] += t_diff_prev
+
+            # compute the perturbed motion field
+            if vel_pert_method is not None:
+                vel_pert = velocity + generate_vel_noise(vps[j], t_total[j] * timestep)
+
+            extrap_kwargs_["displacement_prev"] = displacement[j]
+            _, displacement[j] = extrapolator_method(
+                None,
+                vel_pert,
+                [t_diff_prev],
+                **extrap_kwargs_,
+            )
+            t_prev[j] = t + 1
+
+        precip_f_prev[j] = precip_f_new
+
+        return precip_f_out
+
     # iterate each time step
     for t, subtimestep_idx in enumerate(timesteps):
         if timestep_type == "list":
@@ -655,161 +802,12 @@ def forecast(
             if mask_method == "sprog":
                 mask_prec = compute_percentile_mask(precip_m_, war)
 
-        # the nowcast iteration for each ensemble member
-        def worker(j):
-            if noise_method is not None:
-                # generate noise field
-                eps = generate_noise(
-                    pp, randstate=randgen_prec[j], fft_method=fft_objs[j], domain=domain
-                )
-
-                # decompose the noise field into a cascade
-                eps = decomp_method(
-                    eps,
-                    filter,
-                    fft_method=fft_objs[j],
-                    input_domain=domain,
-                    output_domain=domain,
-                    compute_stats=True,
-                    normalize=True,
-                    compact_output=True,
-                )
-            else:
-                eps = None
-
-            # iterate the AR(p) model for each cascade level
-            for i in range(n_cascade_levels):
-                # normalize the noise cascade
-                if eps is not None:
-                    eps_ = eps["cascade_levels"][i]
-                    eps_ *= noise_std_coeffs[i]
-                else:
-                    eps_ = None
-                # apply AR(p) process to cascade level
-                if eps is not None or vel_pert_method is not None:
-                    precip_c[j][i] = autoregression.iterate_ar_model(
-                        precip_c[j][i], phi[i, :], eps=eps_
-                    )
-                else:
-                    # use the deterministic AR(p) model computed above if
-                    # perturbations are disabled
-                    precip_c[j][i] = precip_m[i]
-
-            eps = None
-            eps_ = None
-
-            # compute the recomposed precipitation field(s) from the cascades
-            # obtained from the AR(p) model(s)
-            precip_d[j]["cascade_levels"] = [
-                precip_c[j][i][-1, :] for i in range(n_cascade_levels)
-            ]
-            if domain == "spatial":
-                precip_d[j]["cascade_levels"] = np.stack(precip_d[j]["cascade_levels"])
-            precip_f_new = recomp_method(precip_d[j])
-
-            if domain == "spectral":
-                precip_f_new = fft_objs[j].irfft2(precip_f_new)
-
-            if mask_method is not None:
-                # apply the precipitation mask to prevent generation of new
-                # precipitation into areas where it was not originally
-                # observed
-                R_cmin = precip_f_new.min()
-                if mask_method == "incremental":
-                    precip_f_new = R_cmin + (precip_f_new - R_cmin) * mask_prec[j]
-                    mask_prec_ = precip_f_new > R_cmin
-                else:
-                    mask_prec_ = mask_prec
-
-                # Set to min value outside of mask
-                precip_f_new[~mask_prec_] = R_cmin
-
-            if probmatching_method == "cdf":
-                # adjust the CDF of the forecast to match the most recently
-                # observed precipitation field
-                precip_f_new = probmatching.nonparam_match_empirical_cdf(
-                    precip_f_new, precip
-                )
-            elif probmatching_method == "mean":
-                MASK = precip_f_new >= precip_thr
-                mu_fct = np.mean(precip_f_new[MASK])
-                precip_f_new[MASK] = precip_f_new[MASK] - mu_fct + mu_0
-
-            if mask_method == "incremental":
-                mask_prec[j] = _compute_incremental_mask(
-                    precip_f_new >= precip_thr, struct, mask_rim
-                )
-
-            precip_f_new[domain_mask] = np.nan
-
-            precip_f_out = []
-            extrap_kwargs_ = extrap_kwargs.copy()
-
-            vel_pert = velocity
-
-            # advect the recomposed precipitation field to obtain the forecast for
-            # the current time step (or subtimesteps if non-integer time steps are
-            # given)
-            for t_sub in subtimesteps:
-                if t_sub > 0:
-                    t_diff_prev_int = t_sub - int(t_sub)
-                    if t_diff_prev_int > 0.0:
-                        precip_f_ip = (1.0 - t_diff_prev_int) * precip_f_prev[
-                            j
-                        ] + t_diff_prev_int * precip_f_new
-                    else:
-                        precip_f_ip = precip_f_prev[j]
-
-                    t_diff_prev = t_sub - t_prev[j]
-                    t_total[j] += t_diff_prev
-
-                    # compute the perturbed motion field
-                    if vel_pert_method is not None:
-                        vel_pert = velocity + generate_vel_noise(
-                            vps[j], t_total[j] * timestep
-                        )
-
-                    extrap_kwargs_["displacement_prev"] = displacement[j]
-                    precip_f_ep, displacement[j] = extrapolator_method(
-                        precip_f_ip,
-                        vel_pert,
-                        [t_diff_prev],
-                        **extrap_kwargs_,
-                    )
-                    precip_f_out.append(precip_f_ep[0])
-                    t_prev[j] = t_sub
-
-            # advect the forecast field by one time step if no subtimesteps in the
-            # current interval were found
-            if not subtimesteps:
-                t_diff_prev = t + 1 - t_prev[j]
-                t_total[j] += t_diff_prev
-
-                # compute the perturbed motion field
-                if vel_pert_method is not None:
-                    vel_pert = velocity + generate_vel_noise(
-                        vps[j], t_total[j] * timestep
-                    )
-
-                extrap_kwargs_["displacement_prev"] = displacement[j]
-                _, displacement[j] = extrapolator_method(
-                    None,
-                    vel_pert,
-                    [t_diff_prev],
-                    **extrap_kwargs_,
-                )
-                t_prev[j] = t + 1
-
-            precip_f_prev[j] = precip_f_new
-
-            return precip_f_out
-
         res = []
         for j in range(n_ens_members):
             if not DASK_IMPORTED or n_ens_members == 1:
-                res.append(worker(j))
+                res.append(worker(j, t, subtimesteps))
             else:
-                res.append(dask.delayed(worker)(j))
+                res.append(dask.delayed(worker)(j, t, subtimesteps))
 
         precip_f_ = (
             dask.compute(*res, num_workers=num_ensemble_workers)
