@@ -848,17 +848,17 @@ def forecast(
         return None
 
 
-def _check_inputs(R, V, timesteps, ar_order):
-    if R.ndim != 3:
-        raise ValueError("R must be a three-dimensional array")
-    if R.shape[0] < ar_order + 1:
-        raise ValueError("R.shape[0] < ar_order+1")
-    if V.ndim != 3:
-        raise ValueError("V must be a three-dimensional array")
-    if R.shape[1:3] != V.shape[1:3]:
+def _check_inputs(precip, velocity, timesteps, ar_order):
+    if precip.ndim != 3:
+        raise ValueError("precip must be a three-dimensional array")
+    if precip.shape[0] < ar_order + 1:
+        raise ValueError("precip.shape[0] < ar_order+1")
+    if velocity.ndim != 3:
+        raise ValueError("velocity must be a three-dimensional array")
+    if precip.shape[1:3] != velocity.shape[1:3]:
         raise ValueError(
-            "dimension mismatch between R and V: shape(R)=%s, shape(V)=%s"
-            % (str(R.shape), str(V.shape))
+            "dimension mismatch between precip and velocity: shape(precip)=%s, shape(velocity)=%s"
+            % (str(precip.shape), str(velocity.shape))
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
