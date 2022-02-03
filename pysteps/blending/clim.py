@@ -202,8 +202,17 @@ def calc_clim_skill(
     else:
         past_skill = past_skill[-window_length:]
 
+    # Make sure past_skill cannot be lower than 10e-5
+    past_skill = np.where(past_skill < 10e-5, 10e-5, past_skill)
+
     # Calculate climatological skill from the past_skill using the
     # geometric mean.
     geomean_skill = np.exp(np.log(past_skill).mean(axis=0))
+
+    # Make sure skill is always a positive value and a finite value
+    geomean_skill = np.where(geomean_skill < 10e-5, 10e-5, geomean_skill)
+    geomean_skill = np.nan_to_num(
+        geomean_skill, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5
+    )
 
     return geomean_skill
