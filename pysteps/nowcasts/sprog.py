@@ -322,28 +322,28 @@ def forecast(
 
     def decode_state(state, params):
         state["precip_d"]["cascade_levels"] = [
-            state["precip_c"][i][-1, :] for i in range(params["n_cascade_levels"])
+            state["precip_c"][i][-1, :] for i in range(n_cascade_levels)
         ]
-        if params["domain"] == "spatial":
+        if domain == "spatial":
             state["precip_d"]["cascade_levels"] = np.stack(
                 state["precip_d"]["cascade_levels"]
             )
 
-        precip_f_recomp = params["recomp_method"](state["precip_d"])
+        precip_f_recomp = recomp_method(state["precip_d"])
 
-        if params["domain"] == "spectral":
+        if domain == "spectral":
             precip_f_recomp = fft.irfft2(precip_f_recomp)
 
         mask = compute_percentile_mask(precip_f_recomp, war)
-        precip_f_recomp[~mask] = params["precip_min"]
+        precip_f_recomp[~mask] = precip_min
 
-        if params["probmatching_method"] == "cdf":
+        if probmatching_method == "cdf":
             # adjust the CDF of the forecast to match the most recently
             # observed precipitation field
             precip_f_recomp = probmatching.nonparam_match_empirical_cdf(
                 precip_f_recomp, precip
             )
-        elif params["probmatching_method"] == "mean":
+        elif probmatching_method == "mean":
             mu_fct = np.mean(precip_f_recomp[mask])
             precip_f_recomp[mask] = precip_f_recomp[mask] - mu_fct + mu_0
 
@@ -352,9 +352,9 @@ def forecast(
         return precip_f_recomp
 
     def update_state(state, params):
-        for i in range(params["n_cascade_levels"]):
+        for i in range(n_cascade_levels):
             state["precip_c"][i] = autoregression.iterate_ar_model(
-                state["precip_c"][i], params["PHI"][i, :]
+                state["precip_c"][i], PHI[i, :]
             )
 
         return state
