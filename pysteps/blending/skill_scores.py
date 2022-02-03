@@ -72,6 +72,9 @@ def spatial_correlation(obs, mod, domain_mask):
         std_mod = np.sqrt(np.nansum((mod_1d - np.nanmean(mod_1d)) ** 2.0))
         rho.append(cov / (std_mod * std_obs))
 
+    # Make sure rho is always a (finite) number
+    rho = np.nan_to_num(rho, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5)
+
     return rho
 
 
