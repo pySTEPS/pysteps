@@ -228,7 +228,8 @@ def forecast(
       OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
       threads.
     fft_method: str, optional
-      A string defining the FFT method to use (see :py:func:`pysteps.utils.fft.get_method`).
+      A string defining the FFT method to use (see FFT methods in
+      :py:func:`pysteps.utils.interface.get_method`).
       Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
       the recommended method is 'pyfftw'.
     domain: {"spatial", "spectral"}
