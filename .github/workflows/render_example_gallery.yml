@@ -72,7 +72,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: auto_examples-for-${{ github.sha }}
-          path: doc/source/auto_examples
+          path: auto_examples.tar
 
 #  trigger_rtd:
 #    # Task adapted from the wradlib project
