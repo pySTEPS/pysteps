@@ -42,7 +42,7 @@ jobs:
 
       - name: Install sphinx dependencies using pip
         run: |
-          pip install -r docs/requirements.txt
+          pip install -r doc/requirements.txt
 
       - name: Install pysteps
         working-directory: ${{ env.PYSTEPS_MAIN_REPO }}
