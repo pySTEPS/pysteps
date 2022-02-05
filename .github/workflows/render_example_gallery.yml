@@ -50,6 +50,8 @@ jobs:
           pip install .          
 
       - name: Install pysteps-data
+        env:
+          PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
         run: |
           python ci/fetch_pysteps_data.py $HOME/pysteps_data
           python -c "import pysteps; print(pysteps.config_fname())"  
