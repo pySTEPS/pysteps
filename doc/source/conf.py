@@ -33,7 +33,7 @@ version = release.lstrip("v").rstrip().split("-")[0]  # The short X.Y version.
 is_run_in_read_the_docs = "READTHEDOCS" in os.environ
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples",
-    "gallery_dirs": "user_guide/auto_examples",
+    "gallery_dirs": "auto_examples",
     "filename_pattern": r"/*\.py",
     "plot_gallery": not is_run_in_read_the_docs,
 }
