@@ -58,7 +58,7 @@ jobs:
           python -c "import pysteps; print(pysteps.config_fname())"  
 
       - name: Build example gallery
-        working-directory: ./docs
+        working-directory: ./doc
         run: |
           make html       
 
