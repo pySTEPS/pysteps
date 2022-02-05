@@ -30,16 +30,13 @@ author = "PySteps developers"
 release = doc_utils.current_release()
 version = release.lstrip("v").rstrip().split("-")[0]  # The short X.Y version.
 
+is_run_in_read_the_docs = "READTHEDOCS" in os.environ
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples",
     "gallery_dirs": "user_guide/auto_examples",
     "filename_pattern": r"/*\.py",
-    "plot_gallery": True,
+    "plot_gallery": not is_run_in_read_the_docs,
 }
-
-if "READTHEDOCS" in os.environ:
-    # In RTD, we use the rendered examples
-    sphinx_gallery_conf["plot_gallery"] = False
 
 # -- Options for HTML output ----------------------------------------------
 html_theme = "sphinx_book_theme"
@@ -67,16 +64,17 @@ html_domain_indices = True
 autosummary_generate = True
 htmlhelp_basename = "pystepsdoc"
 
-# -- Download artifacts with rendered examples------------------------------------------
-my_artifact_downloader = doc_utils.ArtifactDownloader(
-    "pySTEPS/pysteps", prefix="auto_examples-for-"
-)
+# -- Download artifacts with rendered examples in RTD ----------------------------------
+if is_run_in_read_the_docs:
+    my_artifact_downloader = doc_utils.ArtifactDownloader(
+        "pySTEPS/pysteps", prefix="auto_examples-for-"
+    )
 
-DOC_ROOT_DIR = Path(__file__).parent / "../"
-token = os.environ.get("RTD_GITHUB_TOKEN")  # never print this!
-my_artifact_downloader.download_artifact(
-    token,
-    DOC_ROOT_DIR / "source/auto_examples",
-    retry=3,
-    tar_filename="auto_examples.tar",
-)
+    DOC_ROOT_DIR = Path(__file__).parent / "../"
+    token = os.environ.get("RTD_GITHUB_TOKEN")  # never print this!
+    my_artifact_downloader.download_artifact(
+        token,
+        DOC_ROOT_DIR / "source/auto_examples",
+        retry=3,
+        tar_filename="auto_examples.tar",
+    )
