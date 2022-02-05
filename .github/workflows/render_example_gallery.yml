@@ -45,7 +45,7 @@ jobs:
           pip install -r doc/requirements.txt
 
       - name: Install pysteps
-        working-directory: ${{ env.PYSTEPS_MAIN_REPO }}
+        working-directory: ${{github.workspace}}
         run: |
           pip install .          
 
