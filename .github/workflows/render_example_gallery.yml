@@ -64,6 +64,11 @@ jobs:
         run: |
           make html       
 
+      - name: Tar auto_examples files
+        # Needed to maintain permissions and case-sensitive files
+        # https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
+        run: tar -cvf auto_examples.tar doc/source/auto_examples
+
       - uses: actions/upload-artifact@v2
         with:
           name: auto_examples-for-${{ github.sha }}
