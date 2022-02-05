@@ -1,5 +1,5 @@
-# Execute the examples, in the form of pythons scripts, and generate the example
-# gallery using sphinx-gallery. Then, trigger ReadTheDocs.concurrency: concurrency:
+# Execute the examples, in the form of python scripts, and render the examples
+# using sphinx-gallery. Then, trigger ReadTheDocs.
 
 # Workflow inspired by the https://github.com/dfm/rtds-action project and the
 # following wradlib-notebooks CI task:
@@ -59,6 +59,8 @@ jobs:
 
       - name: Build example gallery
         working-directory: ./doc
+        env:
+          PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
         run: |
           make html       
 
