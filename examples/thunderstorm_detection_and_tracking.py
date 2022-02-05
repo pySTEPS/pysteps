@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+#!/bin/env python
 """
 Thunderstorm Detection and Tracking - T-DaTing
-============================================
+==============================================
 
 This example shows how to use the thunderstorm DaTing module. The example is based on
 MeteoSwiss radar data and uses the Cartesian composite of maximum reflectivity on a
