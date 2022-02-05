@@ -1,0 +1,85 @@
+# Execute the examples, in the form of pythons scripts, and generate the example
+# gallery using sphinx-gallery. Then, trigger ReadTheDocs.concurrency: concurrency:
+
+# Workflow inspired by the https://github.com/dfm/rtds-action project and the
+# following wradlib-notebooks CI task:
+# https://github.com/wradlib/wradlib-notebooks/blob/main/.github/workflows/main.yml
+name: Render the example gallery
+
+on:
+  # Triggers the workflow on push or pull request events to the master branch
+  push:
+    branches: [ master, rtd_using_gh_artifacts ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  render_example_gallery:
+    name: Render the example gallery
+    runs-on: "ubuntu-latest"
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    outputs:
+      rtd_branch: ${{steps.set_rendered_branch.outputs.render_branch}}
+      gallery_branch: ${{steps.set_rendered_branch.outputs.render_branch}}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install mamba and create environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ci/ci_test_env.yml
+          extra-specs: python=3.8
+          environment-name: doc_builder
+
+      - name: Install pygrib
+        run: mamba install --quiet pygrib
+
+      - name: Install sphinx dependencies using pip
+        run: |
+          pip install -r docs/requirements.txt
+
+      - name: Install pysteps
+        working-directory: ${{ env.PYSTEPS_MAIN_REPO }}
+        run: |
+          pip install .          
+
+      - name: Install pysteps-data
+        run: |
+          python ci/fetch_pysteps_data.py $HOME/pysteps_data
+          python -c "import pysteps; print(pysteps.config_fname())"  
+
+      - name: Build example gallery
+        working-directory: ./docs
+        run: |
+          make html       
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: auto_examples-for-${{ github.sha }}
+          path: doc/source/auto_examples
+
+#  trigger_rtd:
+#    # Task adapted from the wradlib project
+#    # https://github.com/wradlib/wradlib-notebooks/blob/main/.github/workflows/render_notebooks.yml
+#    needs: [ run_notebooks ]
+#    name: Trigger readthedocs
+#    runs-on: ubuntu-latest
+#    defaults:
+#      run:
+#        shell: bash -l {0}
+#    env:
+#      RTD_TOKEN: ${{ secrets.PYSTEPS_BOT_RTD_TOKEN }}
+#      RTD_URL: ${{ secrets.RTD_URL }}
+#      RTD_BRANCH: ${{steps.parse_commit_msg.outputs.rtd_branch}}
+#    steps:
+#      - name: Trigger readthedocs for the corresponding branch (latest or tag)
+#        run: |
+#          if [[ ! -z "${RTD_BRANCH}" ]]; then
+#            curl -X POST -d "branches=${RTD_BRANCH}" -d "token=${RTD_TOKEN}" "${RTD_URL}"
+#          fi
