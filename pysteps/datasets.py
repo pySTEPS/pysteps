@@ -285,7 +285,7 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
             print(err)
 
 
-def download_pysteps_data(dir_path, force=True):
+def download_pysteps_data(dir_path, force=True, show_progress=True):
     """
     Download pysteps data from github.
 
@@ -298,6 +298,8 @@ def download_pysteps_data(dir_path, force=True):
         exception if raised.
         If force=True, the data will we downloaded in the destination directory and may
         override existing files.
+    show_progess: bool
+        If true, show the download progress.
     """
 
     # Check if directory exists but is not empty
@@ -317,9 +319,14 @@ def download_pysteps_data(dir_path, force=True):
     # the content is dynamically generated and we can't know the length a priori easily.
     pbar = ShowProgress()
     print("Downloading pysteps-data from github.")
+
+    if show_progress:
+        reporthook = pbar
+    else:
+        reporthook = None
     tmp_file_name, _ = request.urlretrieve(
         "https://github.com/pySTEPS/pysteps-data/archive/master.zip",
-        reporthook=pbar,
+        reporthook=reporthook,
     )
     pbar.end(message="Download complete\n")
 
