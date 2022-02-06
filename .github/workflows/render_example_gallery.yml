@@ -1,9 +1,32 @@
 # Execute the examples, in the form of python scripts, and render the examples
 # using sphinx-gallery. Then, trigger ReadTheDocs.
-
+#
 # Workflow inspired by the https://github.com/dfm/rtds-action project and the
 # following wradlib-notebooks CI task:
 # https://github.com/wradlib/wradlib-notebooks/blob/main/.github/workflows/main.yml
+#
+# Steps needed to setup this workflow
+# ===================================
+#
+# Read-the-docs configuration
+# ---------------------------
+#
+# 1. In Admin/Integrations, add a generic API incoming webhook.
+#    Save the webhook url and token value.
+# 2. Add the RTD_GITHUB_TOKEN environmental variable in RTD (Settings/Environment Variables)
+#    with the pysteps-bot's Github access token. This access token should only
+#    have the "public_repo" scope.
+#    At the moment, this token is needed to download the artifacts in RTD's.
+#
+# Github configuration
+# ---------------------
+#
+# 1. Add the following secrets to the pysteps repository:
+# - RTD_WEBHOOK_URL: Read-the-docs webhook. Important: the RTD-Github integration
+#   must not be activated since this workflow triggers the RTD build.
+# - RTD_TOKEN: RTD webhook access token.
+#
+
 name: Render the example gallery
 
 on:
@@ -74,22 +97,56 @@ jobs:
           name: auto_examples-for-${{ github.sha }}
           path: auto_examples.tar
 
-#  trigger_rtd:
-#    # Task adapted from the wradlib project
-#    # https://github.com/wradlib/wradlib-notebooks/blob/main/.github/workflows/render_notebooks.yml
-#    needs: [ run_notebooks ]
-#    name: Trigger readthedocs
-#    runs-on: ubuntu-latest
-#    defaults:
-#      run:
-#        shell: bash -l {0}
-#    env:
-#      RTD_TOKEN: ${{ secrets.PYSTEPS_BOT_RTD_TOKEN }}
-#      RTD_URL: ${{ secrets.RTD_URL }}
-#      RTD_BRANCH: ${{steps.parse_commit_msg.outputs.rtd_branch}}
-#    steps:
-#      - name: Trigger readthedocs for the corresponding branch (latest or tag)
-#        run: |
-#          if [[ ! -z "${RTD_BRANCH}" ]]; then
-#            curl -X POST -d "branches=${RTD_BRANCH}" -d "token=${RTD_TOKEN}" "${RTD_URL}"
-#          fi
+  trigger_rtd:
+    # Task adapted from the wradlib project
+    # https://github.com/wradlib/wradlib-notebooks/blob/main/.github/workflows/render_notebooks.yml
+    needs: [ render_example_gallery ]
+    name: Trigger readthedocs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Get the name of the branch triggering this event
+        id: get_triggering_branch
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            triggering_branch=$(echo ${GITHUB_REF##*/})
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            triggering_branch=$(echo $GITHUB_BASE_REF)
+          else
+            triggering_branch=unknown
+          fi
+          echo "::set-output name=triggering_branch::${triggering_branch}"
+
+      - name: Determine rendered branch name
+        id: set_rtd_branch
+        env:
+          triggering_branch: ${{steps.get_triggering_branch.outputs.triggering_branch}}
+        run: |
+          tag_name=$(git name-rev --name-only --tags HEAD)
+          if [[ "${tag_name}" != "undefined" ]]; then 
+            rtd_branch="${tag_name}"
+          else
+            rtd_branch="${triggering_branch}"
+          fi
+          
+          echo "::set-output name=rtd_branch::${rtd_branch}"
+
+      - name: Print debug information
+        env:
+          triggering_branch: ${{steps.get_triggering_branch.outputs.triggering_branch}}
+          rtd_branch: ${{steps.set_rtd_branch.outputs.rtd_branch}}
+        run: |
+          echo "triggering_branch=${triggering_branch}"
+          echo "rtd_branch=${rtd_branch}"
+
+      - name: Trigger readthedocs for the corresponding branch (latest or tag)
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+          RTD_WEBHOOK_URL: ${{ secrets.RTD_WEBHOOK_URL }}
+          RTD_BRANCH: ${{steps.set_rtd_branch.outputs.rtd_branch}}
+        run: |
+          if [[ ! -z "${RTD_BRANCH}" ]]; then
+            curl -X POST -d "branches=${RTD_BRANCH}" -d "token=${RTD_TOKEN}" "${RTD_WEBHOOK_URL}"
+          fi
