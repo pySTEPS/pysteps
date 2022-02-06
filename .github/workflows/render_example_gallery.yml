@@ -1,9 +1,9 @@
-# Execute the examples, in the form of python scripts, and render the examples
-# using sphinx-gallery. Then, trigger ReadTheDocs.
+# Action to render the example gallery, upload them as artifacts. After the examples are
+# rendered, the ReadTheDocs build is triggered pulling the artifacts with the rendered
+# example gallery.
 #
-# Workflow inspired by the https://github.com/dfm/rtds-action project and the
-# following wradlib-notebooks CI task:
-# https://github.com/wradlib/wradlib-notebooks/blob/main/.github/workflows/main.yml
+# This workflow is inspired by the actions in the https://github.com/dfm/rtds-action and
+# https://github.com/wradlib/wradlib-notebooks projects.
 #
 # Steps needed to setup this workflow
 # ===================================
@@ -25,7 +25,6 @@
 # - RTD_WEBHOOK_URL: Read-the-docs webhook. Important: the RTD-Github integration
 #   must not be activated since this workflow triggers the RTD build.
 # - RTD_TOKEN: RTD webhook access token.
-#
 
 name: Render the example gallery
 
@@ -100,7 +99,7 @@ jobs:
           path: auto_examples.tar
 
   trigger_rtd:
-    # Task adapted from the wradlib project
+    # Task inspired in the following wradlib's action:
     # https://github.com/wradlib/wradlib-notebooks/blob/main/.github/workflows/render_notebooks.yml
     needs: [ render_example_gallery ]
     name: Trigger readthedocs
@@ -134,7 +133,7 @@ jobs:
           echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME}"
           echo "rtd_branch=${rtd_branch}"
 
-      - name: Trigger readthedocs for the corresponding branch (latest or tag)
+      - name: Trigger readthedocs for the corresponding branch
         env:
           RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
           RTD_WEBHOOK_URL: ${{ secrets.RTD_WEBHOOK_URL }}

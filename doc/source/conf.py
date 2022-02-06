@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import doc_utils
 
 # REPO_URL="pySTEPS/pysteps"
-REPO_URL="aperezhortal/pysteps"
+REPO_URL = "aperezhortal/pysteps"
 
 extensions = [
     "sphinx.ext.autodoc",
