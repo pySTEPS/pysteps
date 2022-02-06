@@ -7,6 +7,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import doc_utils
 
+# REPO_URL="pySTEPS/pysteps"
+REPO_URL="aperezhortal/pysteps"
+
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -49,7 +52,7 @@ html_context = {
 }
 
 html_theme_options = {
-    "repository_url": "https://github.com/pySTEPS/pysteps",
+    "repository_url": f"https://github.com/{REPO_URL}",
     "repository_branch": "master",
     "path_to_docs": "doc/source",
     "use_edit_page_button": True,
@@ -67,7 +70,7 @@ htmlhelp_basename = "pystepsdoc"
 # -- Download artifacts with rendered examples in RTD ----------------------------------
 if is_run_in_read_the_docs:
     my_artifact_downloader = doc_utils.ArtifactDownloader(
-        "pySTEPS/pysteps", prefix="auto_examples-for-"
+        REPO_URL, prefix="auto_examples-for-"
     )
 
     DOC_ROOT_DIR = Path(__file__).parent / "../"
