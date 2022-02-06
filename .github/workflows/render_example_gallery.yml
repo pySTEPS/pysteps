@@ -35,6 +35,8 @@ on:
     branches: [ master, rtd_using_gh_artifacts ]
   pull_request:
     branches: [ master ]
+  release:
+    types: [ published ]
 
 jobs:
   render_example_gallery:
@@ -107,38 +109,29 @@ jobs:
       run:
         shell: bash -l {0}
     steps:
-      - name: Get the name of the branch triggering this event
-        id: get_triggering_branch
-        run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            triggering_branch=$(echo ${GITHUB_REF##*/})
-          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            triggering_branch=$(echo $GITHUB_BASE_REF)
-          else
-            triggering_branch=unknown
-          fi
-          echo "::set-output name=triggering_branch::${triggering_branch}"
-
       - name: Determine rendered branch name
         id: set_rtd_branch
-        env:
-          triggering_branch: ${{steps.get_triggering_branch.outputs.triggering_branch}}
         run: |
-          tag_name=$(git name-rev --name-only --tags HEAD)
-          if [[ "${tag_name}" != "undefined" ]]; then 
-            rtd_branch="${tag_name}"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            rtd_branch="${GITHUB_REF##*/}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            rtd_branch=$GITHUB_BASE_REF
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            rtd_branch="${GITHUB_REF_NAME}"
           else
-            rtd_branch="${triggering_branch}"
+            rtd_branch="undefined"
           fi
-          
+
           echo "::set-output name=rtd_branch::${rtd_branch}"
 
       - name: Print debug information
         env:
-          triggering_branch: ${{steps.get_triggering_branch.outputs.triggering_branch}}
           rtd_branch: ${{steps.set_rtd_branch.outputs.rtd_branch}}
         run: |
-          echo "triggering_branch=${triggering_branch}"
+          echo "GITHUB_REF=${GITHUB_REF}"
+          echo "GITHUB_REF_TYPE=${GITHUB_REF_TYPE}"
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}"
+          echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME}"
           echo "rtd_branch=${rtd_branch}"
 
       - name: Trigger readthedocs for the corresponding branch (latest or tag)
