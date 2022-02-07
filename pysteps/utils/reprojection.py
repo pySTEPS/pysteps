@@ -57,7 +57,7 @@ def reprojection(src_array, dst_array, metadata_src, metadata_dst):
 
     if not RASTERIO_IMPORTED:
         raise MissingOptionalDependency(
-            "rasterio package is required for the reprojection tool, but it is "
+            "rasterio package is required for the reprojection module, but it is "
             "not installed"
         )
 

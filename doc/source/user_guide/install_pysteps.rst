@@ -36,7 +36,9 @@ Other optional dependencies include:
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
 * `pandas <https://pandas.pydata.org/>`_ and
-  `scikit-image <https://scikit-image.org/>`_ (for the DATing and LINDA nowcast methods)
+  `scikit-image <https://scikit-image.org/>`_ (for advanced feature detection methods)
+* `rasterio <https://rasterio.readthedocs.io/en/latest/>`_ (for the reprojection module)
+
 
 **Important**: If you only want to use pysteps, you can continue reading below.
 But, if you want to contribute to pysteps or edit the package, you need to install
