@@ -270,6 +270,7 @@ def test_utils_interface():
     from pysteps.utils import dimension
     from pysteps.utils import images
     from pysteps.utils import interpolate
+    from pysteps.utils import reprojection
     from pysteps.utils import spectral
     from pysteps.utils import transformation
 
@@ -291,6 +292,7 @@ def test_utils_interface():
         ("upscale", dimension.aggregate_fields_space),
         ("morph_opening", images.morph_opening),
         ("rbfinterp2d", interpolate.rbfinterp2d),
+        ("reproject_grids", reprojection.reproject_grids),
         ("rapsd", spectral.rapsd),
         ("rm_rdisc", spectral.remove_rain_norain_discontinuity),
         ("boxcox", transformation.boxcox_transform),
