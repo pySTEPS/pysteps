@@ -29,7 +29,7 @@ def get_method(name):
     +------------------+------------------------------------------------------+
     |     Name         |              Description                             |
     +==================+======================================================+
-    | linear_ blending | the linear blending of a nowcast method with other   |
+    | linear_blending  | the linear blending of a nowcast method with other   |
     |                  | data (e.g. NWP data).                                |
     +------------------+------------------------------------------------------+
     | steps            | the STEPS stochastic nowcasting blending method      |

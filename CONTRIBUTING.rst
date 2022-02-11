@@ -231,7 +231,8 @@ Since PEP8 is a set of recommendations, these are the most important good coding
           </tr>
 
         </table>
-   (source: `Section 3.16.4, Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__)
+
+(source: `Section 3.16.4, Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__)
 
 - If you need to ignore part of the variables returned by a function,
   use "_" (single underscore) or __ (double underscore)::

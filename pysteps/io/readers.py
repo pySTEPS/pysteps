@@ -2,9 +2,12 @@
 """
 pysteps.io.readers
 ==================
+
 Module with the reader functions.
+
 .. autosummary::
     :toctree: ../generated/
+
     read_timeseries
 """
 

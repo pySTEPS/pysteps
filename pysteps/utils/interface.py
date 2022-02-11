@@ -109,6 +109,14 @@ def get_method(name, **kwargs):
     Additional keyword arguments are passed to the initializer of the FFT
     methods, see utils.fft.
 
+    Reprojection methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    |  reproject_grids  | Reproject grids to a destination grid.              |
+    +-------------------+-----------------------------------------------------+
+
     Spectral methods:
 
     +-------------------+-----------------------------------------------------+
@@ -190,7 +198,7 @@ def get_method(name, **kwargs):
     methods_objects["idwinterp2d"] = interpolate.idwinterp2d
 
     # reprojection methods
-    methods_objects["reprojection"] = reprojection.reprojection
+    methods_objects["reproject_grids"] = reprojection.reproject_grids
 
     # spectral methods
     methods_objects["rapsd"] = spectral.rapsd

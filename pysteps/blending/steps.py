@@ -406,19 +406,19 @@ def forecast(
 
     print("Inputs")
     print("------")
-    print(f"forecast issue time:        {issuetime.isoformat()}")
-    print(f"input dimensions:           {precip.shape[1]}x{precip.shape[2]}")
+    print(f"forecast issue time:         {issuetime.isoformat()}")
+    print(f"input dimensions:            {precip.shape[1]}x{precip.shape[2]}")
     if kmperpixel is not None:
-        print(f"km/pixel:                   {kmperpixel}")
+        print(f"km/pixel:                    {kmperpixel}")
     if timestep is not None:
-        print(f"time step:                  {timestep} minutes")
+        print(f"time step:                   {timestep} minutes")
     print("")
 
     print("NWP and blending inputs")
     print("-----------------------")
-    print(f"number of (NWP) models:     {precip_models.shape[0]}")
-    print(f"blend (NWP) model members:  {blend_nwp_members}")
-    print(f"decompose (NWP) models:     {'yes' if precip_models.ndim == 4 else 'no'}")
+    print(f"number of (NWP) models:      {precip_models.shape[0]}")
+    print(f"blend (NWP) model members:   {blend_nwp_members}")
+    print(f"decompose (NWP) models:      {'yes' if precip_models.ndim == 4 else 'no'}")
     print("")
 
     print("Methods")

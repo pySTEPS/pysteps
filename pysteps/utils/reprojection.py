@@ -3,13 +3,13 @@
 pysteps.utils.reprojection
 ==========================
 
-Reprojection tool to reproject the grid and adjust the grid cell size of an
+Reprojection tools to reproject grids and adjust the grid cell size of an
 input field to a destination field.
 
 .. autosummary::
     :toctree: ../generated/
 
-    reprojection
+    reproject_grids
 """
 from pysteps.exceptions import MissingOptionalDependency
 
@@ -24,9 +24,9 @@ except ImportError:
     RASTERIO_IMPORTED = False
 
 
-def reprojection(src_array, dst_array, metadata_src, metadata_dst):
-    """Reprojects precipitation fields to the domain of another precipitation
-    field.
+def reproject_grids(src_array, dst_array, metadata_src, metadata_dst):
+    """
+    Reproject precipitation fields to the domain of another precipitation field.
 
     Parameters
     ----------

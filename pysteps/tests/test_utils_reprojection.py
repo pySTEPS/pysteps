@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pytest
 import pysteps
-from pysteps.utils import reprojection
+from pysteps.utils import reprojection as rpj
 
 pytest.importorskip("rasterio")
 
@@ -72,7 +72,7 @@ steps_arg_values = [
 
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
-def test_utils_reprojection(
+def test_utils_reproject_grids(
     radar_array,
     nwp_array,
     metadata_src,
@@ -80,7 +80,7 @@ def test_utils_reprojection(
 ):
 
     # Reproject
-    nwp_array_reproj, metadata_reproj = reprojection(
+    nwp_array_reproj, metadata_reproj = rpj.reproject_grids(
         nwp_array, radar_array, metadata_src, metadata_dst
     )
 
