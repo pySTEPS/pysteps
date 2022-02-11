@@ -30,7 +30,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install mamba and create environment
-        uses: mamba-org/provision-with-micromamba@v11
+        uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
