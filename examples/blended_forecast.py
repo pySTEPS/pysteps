@@ -92,10 +92,6 @@ radar_precip[radar_precip < 0.1] = 0.0
 nwp_precip[nwp_precip < 0.1] = 0.0
 
 # Plot the radar rainfall field and the first time step of the NWP forecast.
-# For the initial time step (t=0), the NWP rainfall forecast is not that different
-# from the observed radar rainfall, but it misses some of the locations and
-# shapes of the observed rainfall fields. Therefore, the NWP rainfall forecast will
-# initially get a low weight in the blending process.
 date_str = datetime.strftime(date_radar, "%Y-%m-%d %H:%M")
 plt.figure(figsize=(10, 5))
 plt.subplot(121)
@@ -121,8 +117,12 @@ nwp_precip, nwp_metadata = transformer(nwp_precip, nwp_metadata, threshold=0.1)
 if nwp_precip.ndim == 3:
     nwp_precip = nwp_precip[None, :]
 
-
-################################################################################
+###############################################################################
+# For the initial time step (t=0), the NWP rainfall forecast is not that different
+# from the observed radar rainfall, but it misses some of the locations and
+# shapes of the observed rainfall fields. Therefore, the NWP rainfall forecast will
+# initially get a low weight in the blending process.
+#
 # Determine the velocity fields
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -162,35 +162,10 @@ precip_forecast = blending.steps.forecast(
     timestep=timestep,
     issuetime=date_radar,
     n_ens_members=1,
-    n_cascade_levels=8,
-    blend_nwp_members=False,
     precip_thr=radar_metadata["threshold"],
     kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
-    extrap_method="semilagrangian",
-    decomp_method="fft",
-    bandpass_filter_method="gaussian",
-    noise_method="nonparametric",
     noise_stddev_adj="auto",
-    ar_order=2,
     vel_pert_method=None,
-    weights_method="bps",
-    conditional=False,
-    probmatching_method="cdf",
-    mask_method="incremental",
-    callback=None,
-    return_output=True,
-    seed=None,
-    num_workers=1,
-    fft_method="numpy",
-    domain="spatial",
-    outdir_path_skill="./tmp",
-    extrap_kwargs=None,
-    filter_kwargs=None,
-    noise_kwargs=None,
-    vel_pert_kwargs=None,
-    clim_kwargs=None,
-    mask_kwargs=None,
-    measure_time=False,
 )
 
 # Transform the data back into mm/h
