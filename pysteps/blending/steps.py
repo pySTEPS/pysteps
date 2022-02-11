@@ -452,12 +452,8 @@ def forecast(
         vp_perp = vel_pert_kwargs.get(
             "p_perp", noise.motion.get_default_params_bps_perp()
         )
-        print(
-            f"vel. pert., parallel:        {vp_par[0]},{vp_par[1]},{vp_par[2]}"
-        )
-        print(
-            f"vel. pert., perpendicular:   {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
-        )
+        print(f"vel. pert., parallel:        {vp_par[0]},{vp_par[1]},{vp_par[2]}")
+        print(f"vel. pert., perpendicular:   {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}")
     else:
         vp_par, vp_perp = None, None
 
