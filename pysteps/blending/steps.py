@@ -74,7 +74,7 @@ def forecast(
     timesteps,
     timestep,
     issuetime,
-    n_ens_members=24,
+    n_ens_members,
     n_cascade_levels=8,
     blend_nwp_members=False,
     precip_thr=None,
@@ -148,7 +148,7 @@ def forecast(
     issuetime: datetime
       Datetime object containing the date and time for which the forecast
       is issued.
-    n_ens_members: int, optional
+    n_ens_members: int
       The number of ensemble members to generate.
     n_cascade_levels: int, optional
       The number of cascade levels to use. Default set to 8 due to default
@@ -406,8 +406,8 @@ def forecast(
 
     print("Inputs")
     print("------")
-    print(f"Forecast issue time:        {issuetime.isoformat()}")
-    print(f"Input dimensions:           {precip.shape[1]}x{precip.shape[2]}")
+    print(f"forecast issue time:        {issuetime.isoformat()}")
+    print(f"input dimensions:           {precip.shape[1]}x{precip.shape[2]}")
     if kmperpixel is not None:
         print(f"km/pixel:                   {kmperpixel}")
     if timestep is not None:
@@ -416,9 +416,9 @@ def forecast(
 
     print("NWP and blending inputs")
     print("-----------------------")
-    print(f"Number of (NWP) models:     {precip_models.shape[0]}")
-    print(f"Blend (NWP) model members:  {blend_nwp_members}")
-    print(f"Decompose (NWP) models:     {'yes' if precip_models.ndim == 4 else 'no'}")
+    print(f"number of (NWP) models:     {precip_models.shape[0]}")
+    print(f"blend (NWP) model members:  {blend_nwp_members}")
+    print(f"decompose (NWP) models:     {'yes' if precip_models.ndim == 4 else 'no'}")
     print("")
 
     print("Methods")
@@ -440,23 +440,23 @@ def forecast(
     print("Parameters")
     print("----------")
     if isinstance(timesteps, int):
-        print(f"number of time steps:       {timesteps}")
+        print(f"number of time steps:        {timesteps}")
     else:
-        print(f"time steps:                 {timesteps}")
-    print(f"ensemble size:              {n_ens_members}")
-    print(f"parallel threads:           {num_workers}")
-    print(f"number of cascade levels:   {n_cascade_levels}")
-    print(f"order of the AR(p) model:   {ar_order}")
+        print(f"time steps:                  {timesteps}")
+    print(f"ensemble size:               {n_ens_members}")
+    print(f"parallel threads:            {num_workers}")
+    print(f"number of cascade levels:    {n_cascade_levels}")
+    print(f"order of the AR(p) model:    {ar_order}")
     if vel_pert_method == "bps":
         vp_par = vel_pert_kwargs.get("p_par", noise.motion.get_default_params_bps_par())
         vp_perp = vel_pert_kwargs.get(
             "p_perp", noise.motion.get_default_params_bps_perp()
         )
         print(
-            f"velocity perturbations, parallel:     {vp_par[0]},{vp_par[1]},{vp_par[2]}"
+            f"vel. pert., parallel:        {vp_par[0]},{vp_par[1]},{vp_par[2]}"
         )
         print(
-            f"velocity perturbations, perpendicular: {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
+            f"vel. pert., perpendicular:   {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
         )
     else:
         vp_par, vp_perp = None, None
