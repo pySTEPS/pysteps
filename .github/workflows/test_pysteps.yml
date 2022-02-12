@@ -32,6 +32,7 @@ jobs:
       - name: Install mamba and create environment
         uses: mamba-org/provision-with-micromamba@main
         with:
+          micromamba-version: 0.21.1     # This version works, 0.21 does not.   
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
           extra-specs: python=${{ matrix.python-version }}
