@@ -4,48 +4,62 @@ import os
 
 import numpy as np
 import pytest
+from unittest.mock import patch
 
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.visualization.animations import animate
 
 
-def test_animate(tmp_path):
+PRECIP, METADATA = get_precipitation_fields(
+    num_prev_files=2,
+    num_next_files=0,
+    return_raw=True,
+    metadata=True,
+    upscale=2000,
+)
 
-    # test data
-    precip, metadata = get_precipitation_fields(
-        num_prev_files=2,
-        num_next_files=0,
-        return_raw=True,
-        metadata=True,
-        upscale=2000,
-    )
+VALID_ARGS = (
+    ([PRECIP], {}),
+    ([PRECIP], {"title": "title"}),
+    ([PRECIP], {"timestamps_obs": METADATA["timestamps"]}),
+    ([PRECIP], {"geodata": METADATA, "map_kwargs": {"plot_map": None}}),
+    ([PRECIP], {"motion_field": np.ones((2, *PRECIP.shape[1:]))}),
+    ([PRECIP, PRECIP], {}),
+    ([PRECIP, PRECIP], {"title": "title"}),
+    ([PRECIP, PRECIP], {"timestamps_obs": METADATA["timestamps"]}),
+    ([PRECIP, PRECIP], {"timestamps_obs": METADATA["timestamps"], "timestep_min": 5}),
+    ([PRECIP, PRECIP], {"ptype": "prob", "prob_thr": 1}),
+    ([PRECIP, PRECIP], {"ptype": "mean"}),
+    ([PRECIP, np.stack((PRECIP, PRECIP))], {"ptype": "ensemble"}),
+)
 
-    # obs only
-    animate(precip)
-    animate(precip, title="title")
-    animate(precip, timestamps_obs=metadata["timestamps"])
-    animate(precip, geodata=metadata, map_kwargs={"plot_map": None})
+
+@pytest.mark.parametrize(["anim_args", "anim_kwargs"], VALID_ARGS)
+def test_animate(anim_args, anim_kwargs):
+    with patch("matplotlib.pyplot.show"):
+        animate(*anim_args, **anim_kwargs)
+
+
+WRONG_ARGS = (
+    ([PRECIP], {"timestamps_obs": METADATA["timestamps"][:2]}),
+    ([PRECIP], {"motion_plot": "test"}),
+    ([PRECIP, PRECIP], {"ptype": "prob"}),
+    ([PRECIP, PRECIP], {"ptype": "prob"}),
+    ([PRECIP, PRECIP], {"ptype": "prob"}),
+    ([PRECIP, PRECIP], {"ptype": "prob"}),
+)
+
+
+@pytest.mark.parametrize(["anim_args", "anim_kwargs"], WRONG_ARGS)
+def test_animate_wrong_args(anim_args, anim_kwargs):
     with pytest.raises(ValueError):
-        animate(precip, timestamps_obs=metadata["timestamps"][:2])
-    animate(precip, motion_field=np.ones((2, *precip.shape[1:])))
-    with pytest.raises(ValueError):
-        animate(precip, motion_plot="test")
+        animate(*anim_args, **anim_kwargs)
 
-    # with forecast
-    animate(precip, precip)
-    animate(precip, precip, title="title")
-    animate(precip, precip, timestamps_obs=metadata["timestamps"])
-    animate(precip, precip, timestamps_obs=metadata["timestamps"], timestep_min=5)
-    with pytest.raises(ValueError):
-        animate(precip, precip, ptype="prob")
-    animate(precip, precip, ptype="prob", prob_thr=1)
-    animate(precip, precip, ptype="mean")
-    animate(precip, np.stack((precip, precip)), ptype="ensemble")
 
-    # save frames
+def test_animate_save(tmp_path):
     animate(
-        precip,
-        np.stack((precip, precip)),
+        PRECIP,
+        np.stack((PRECIP, PRECIP)),
         display_animation=False,
         savefig=True,
         path_outputs=tmp_path,
