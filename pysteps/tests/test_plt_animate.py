@@ -24,6 +24,10 @@ VALID_ARGS = (
     ([PRECIP], {"timestamps_obs": METADATA["timestamps"]}),
     ([PRECIP], {"geodata": METADATA, "map_kwargs": {"plot_map": None}}),
     ([PRECIP], {"motion_field": np.ones((2, *PRECIP.shape[1:]))}),
+    (
+        [PRECIP],
+        {"precip_kwargs": {"units": "mm/h", "colorbar": True, "colorscale": "pysteps"}},
+    ),
     ([PRECIP, PRECIP], {}),
     ([PRECIP, PRECIP], {"title": "title"}),
     ([PRECIP, PRECIP], {"timestamps_obs": METADATA["timestamps"]}),
@@ -40,19 +44,32 @@ def test_animate(anim_args, anim_kwargs):
         animate(*anim_args, **anim_kwargs)
 
 
-WRONG_ARGS = (
+VALUEERROR_ARGS = (
     ([PRECIP], {"timestamps_obs": METADATA["timestamps"][:2]}),
     ([PRECIP], {"motion_plot": "test"}),
-    ([PRECIP, PRECIP], {"ptype": "prob"}),
-    ([PRECIP, PRECIP], {"ptype": "prob"}),
-    ([PRECIP, PRECIP], {"ptype": "prob"}),
     ([PRECIP, PRECIP], {"ptype": "prob"}),
 )
 
 
-@pytest.mark.parametrize(["anim_args", "anim_kwargs"], WRONG_ARGS)
-def test_animate_wrong_args(anim_args, anim_kwargs):
+@pytest.mark.parametrize(["anim_args", "anim_kwargs"], VALUEERROR_ARGS)
+def test_animate_valueerrors(anim_args, anim_kwargs):
     with pytest.raises(ValueError):
+        animate(*anim_args, **anim_kwargs)
+
+
+TYPEERROR_ARGS = (
+    ([PRECIP], {"timestamps": METADATA["timestamps"]}),
+    ([PRECIP], {"plotanimation": True}),
+    ([PRECIP], {"units": "mm/h"}),
+    ([PRECIP], {"colorbar": True}),
+    ([PRECIP], {"colorscale": "pysteps"}),
+    ([PRECIP, PRECIP], {"type": "ensemble"}),
+)
+
+
+@pytest.mark.parametrize(["anim_args", "anim_kwargs"], TYPEERROR_ARGS)
+def test_animate_typeerrors(anim_args, anim_kwargs):
+    with pytest.raises(TypeError):
         animate(*anim_args, **anim_kwargs)
 
 

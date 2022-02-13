@@ -18,11 +18,6 @@ import matplotlib.pylab as plt
 import pysteps as st
 
 PRECIP_VALID_TYPES = ("ensemble", "mean", "prob")
-PRECIP_DEPRECATED_ARGUMENTS = (
-    "units",
-    "colorbar",
-    "colorscale",
-)  # TODO: remove in version >= 1.6
 MOTION_VALID_METHODS = ("quiver", "streamplot")
 
 
@@ -47,7 +42,6 @@ def animate(
     precip_kwargs=None,
     motion_kwargs=None,
     map_kwargs=None,
-    **kwargs,
 ):
     """
     Function to animate observations and forecasts in pysteps.
@@ -180,39 +174,6 @@ def animate(
             f"Invalid precipitation type '{ptype}'."
             f"Supported: {str(PRECIP_VALID_TYPES)}"
         )
-
-    # TODO: remove in version >= 1.6
-    if "type" in kwargs:
-        warnings.warn(
-            "The 'type' keyword will be deprecated in version 1.6. "
-            "Use 'ptype' instead."
-        )
-        ptype = kwargs.get("type")
-
-    # TODO: remove in version >= 1.6
-    if "timestamps" in kwargs:
-        warnings.warn(
-            "The 'timestamps' keyword will be deprecated in version 1.6. "
-            "Use 'timestamps_obs' instead."
-        )
-        timestamps_obs = kwargs.get("timestamps")
-
-    # TODO: remove in version >= 1.6
-    if "plotanimation" in kwargs:
-        warnings.warn(
-            "The 'plotanimation' keyword will be deprecated in version 1.6. "
-            "Use 'display_animation' instead."
-        )
-        display_animation = kwargs.get("timestamps")
-
-    # TODO: remove in version >= 1.6
-    for depr_key in PRECIP_DEPRECATED_ARGUMENTS:
-        if depr_key in kwargs:
-            warnings.warn(
-                f"The {depr_key} argument will be deprecated in version 1.6. "
-                "Add it to 'precip_kwargs' instead."
-            )
-            precip_kwargs[depr_key] = kwargs.get(depr_key)
 
     if timestamps_obs is not None:
         if len(timestamps_obs) != precip_obs.shape[0]:
