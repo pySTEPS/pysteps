@@ -85,9 +85,9 @@ Finally, to install pysteps and all its dependencies run::
 Install from source
 -------------------
 
-The recommended way to install pysteps from the source is using `pip`
-to adhere to the [PEP517 standards](https://www.python.org/dev/peps/pep-0517/).
-Using `pip` instead of `setup.py` guarantees that all the package dependencies
+The recommended way to install pysteps from the source is using ``pip``
+to adhere to the `PEP517 standards <https://www.python.org/dev/peps/pep-0517/>`_.
+Using ``pip`` instead of ``setup.py`` guarantees that all the package dependencies
 are properly handled during the installation process.
 
 .. _install_osx_users:
@@ -151,15 +151,20 @@ Or, from a local copy of the repo::
 The above commands install the latest version of the **master** branch,
 which is continuously under development.
 
+.. warning::
+    The Python interpreter must be launched outside of the pysteps root directory.
+    Trying to import pysteps with the current working directory containig
+    the pysteps source code will raise a ``ModuleNotFoundError``. This is
+    caused by the root pysteps folder being recognized as the pysteps package, 
+    also known as `the double import trap <http://python-notes.curiousefficiency.org/en/latest/python_concepts/import_traps.html#the-double-import-trap>`_.
+
 Setting up the user-defined configuration file
 ----------------------------------------------
-
-.. _JSON: https://en.wikipedia.org/wiki/JSON
 
 The pysteps package allows the users to customize the default settings
 and configuration.
 The configuration parameters used by default are loaded from a user-defined
-JSON_ file and then stored in the **pysteps.rcparams**, a dictionary-like object
+`JSON <https://en.wikipedia.org/wiki/JSON>`_ file and then stored in the **pysteps.rcparams**, a dictionary-like object
 that can be accessed as attributes or as items.
 
 .. toctree::
@@ -181,7 +186,3 @@ Launch Python and import pysteps::
 
     python
     >>> import pysteps
-
-**Important**: The Python interpreter must be launched outside of the pysteps directory.
-Otherwise, it confuses the name of the directory with the package name.
-See `Issue 40 <https://github.com/pySTEPS/pysteps/issues/40>`_.
