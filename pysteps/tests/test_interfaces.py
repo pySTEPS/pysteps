@@ -252,6 +252,7 @@ def test_utils_interface():
     from pysteps.utils import images
     from pysteps.utils import interpolate
     from pysteps.utils import spectral
+    from pysteps.utils import tapering
     from pysteps.utils import transformation
 
     method_getter = pysteps.utils.interface.get_method
@@ -274,6 +275,8 @@ def test_utils_interface():
         ("rbfinterp2d", interpolate.rbfinterp2d),
         ("rapsd", spectral.rapsd),
         ("rm_rdisc", spectral.remove_rain_norain_discontinuity),
+        ("compute_mask_window_function", tapering.compute_mask_window_function),
+        ("compute_window_function", tapering.compute_window_function),
         ("boxcox", transformation.boxcox_transform),
         ("box-cox", transformation.boxcox_transform),
         ("db", transformation.dB_transform),

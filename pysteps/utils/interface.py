@@ -192,6 +192,12 @@ def get_method(name, **kwargs):
     methods_objects["rapsd"] = spectral.rapsd
     methods_objects["rm_rdisc"] = spectral.remove_rain_norain_discontinuity
 
+    # tapering methods
+    methods_objects[
+        "compute_mask_window_function"
+    ] = tapering.compute_mask_window_function
+    methods_objects["compute_window_function"] = tapering.compute_window_function
+
     # transformation methods
     methods_objects["boxcox"] = transformation.boxcox_transform
     methods_objects["box-cox"] = transformation.boxcox_transform
