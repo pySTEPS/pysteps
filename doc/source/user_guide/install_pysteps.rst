@@ -152,11 +152,10 @@ The above commands install the latest version of the **master** branch,
 which is continuously under development.
 
 .. warning::
-    The Python interpreter must be launched outside of the pysteps root directory.
-    Trying to import pysteps with the current working directory containig
-    the pysteps source code will raise a ``ModuleNotFoundError``. This is
-    caused by the root pysteps folder being recognized as the pysteps package, 
-    also known as `the double import trap <http://python-notes.curiousefficiency.org/en/latest/python_concepts/import_traps.html#the-double-import-trap>`_.
+    If you are installing pysteps from the sources using pip, the Python interpreter must be launched outside of the pysteps root directory.
+    Importing pysteps from a working directory that contains the pysteps source code will raise a ``ModuleNotFoundError``. 
+    This error is caused by the root pysteps folder being recognized as the pysteps package, also known as 
+    `the double import trap <http://python-notes.curiousefficiency.org/en/latest/python_concepts/import_traps.html#the-double-import-trap>`_.
 
 Setting up the user-defined configuration file
 ----------------------------------------------
