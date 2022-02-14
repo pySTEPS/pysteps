@@ -43,7 +43,6 @@ def plot_precip_field(
     axis="on",
     cax=None,
     map_kwargs=None,
-    **kwargs,
 ):
     """
     Function to plot a precipitation intensity or probability field with a
@@ -130,13 +129,6 @@ def plot_precip_field(
 
     if map_kwargs is None:
         map_kwargs = {}
-
-    if "type" in kwargs:
-        warnings.warn(
-            "The 'type' keyword use to indicate the type of plot will be "
-            "deprecated in version 1.6. Use 'ptype' instead."
-        )
-        ptype = kwargs.get("type")
 
     if ptype not in PRECIP_VALID_TYPES:
         raise ValueError(
