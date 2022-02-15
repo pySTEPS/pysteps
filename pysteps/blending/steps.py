@@ -344,6 +344,11 @@ def forecast(
     2. If blend_nwp_members is True, the BPS2006 method for the weights is
     suboptimal. It is recommended to use the SPN2013 method instead.
 
+    3. Not yet implemented (and neither in the steps nowcasting module): The regression
+    of the lag-1 and lag-2 parameters to their climatological values. See also eq.
+    12 - 19 in :cite: `BPS2004`. By doing so, the Phi parameters change over time,
+    which enhances the AR process. This can become a future development if this
+    turns out to be a warranted functionality.
     """
 
     # 0.1 Start with some checks
