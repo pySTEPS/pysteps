@@ -19,6 +19,25 @@ def _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
             method_getter(invalid_name)
 
 
+def test_nowcasts_interface():
+    """Test the nowcasts module interface."""
+
+    from pysteps.blending import (
+        linear_blending,
+        steps,
+    )
+
+    method_getter = pysteps.nowcasts.interface.get_method
+
+    valid_names_func_pair = [
+        ("linear_blending", linear_blending.forecast),
+        ("steps", steps.forecast),
+    ]
+
+    invalid_names = ["linear", "step", "blending", "pysteps"]
+    _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
+
+
 def test_cascade_interface():
     """Test the cascade module interface."""
 
@@ -251,6 +270,7 @@ def test_utils_interface():
     from pysteps.utils import dimension
     from pysteps.utils import images
     from pysteps.utils import interpolate
+    from pysteps.utils import reprojection
     from pysteps.utils import spectral
     from pysteps.utils import tapering
     from pysteps.utils import transformation
@@ -273,6 +293,7 @@ def test_utils_interface():
         ("upscale", dimension.aggregate_fields_space),
         ("morph_opening", images.morph_opening),
         ("rbfinterp2d", interpolate.rbfinterp2d),
+        ("reproject_grids", reprojection.reproject_grids),
         ("rapsd", spectral.rapsd),
         ("rm_rdisc", spectral.remove_rain_norain_discontinuity),
         ("compute_mask_window_function", tapering.compute_mask_window_function),

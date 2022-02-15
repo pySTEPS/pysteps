@@ -90,12 +90,13 @@ import os
 from functools import partial
 
 import numpy as np
+
+# import xarray as xr
 from matplotlib.pyplot import imread
 
 from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
-from pysteps.utils import aggregate_fields
 
 try:
     import gdalconst
@@ -234,7 +235,7 @@ def _get_threshold_value(precip):
 
 
 @postprocess_import(dtype="float32")
-def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
+def import_mrms_grib(filename, extent=None, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
     ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
@@ -250,12 +251,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     array is passed to a pystep function, it may be converted to double
     precision, doubling the memory footprint.
     To change the precision of the data, use the *dtype* keyword.
-
-    Also, by default, the original data is downscaled by 4
-    (resulting in a ~4 km grid spacing).
-    In case that the original grid spacing is needed, use `window_size=1`.
-    But be aware that a single composite in double precipitation will
-    require 186 Mb of memory.
 
     Finally, if desired, the precipitation data can be extracted over a
     sub region of the full domain using the `extent` keyword.
@@ -282,11 +277,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         By default (None), the entire domain is retrieved.
         The extent can be in any form that can be converted to a flat array
         of 4 elements array (e.g., lists or tuples).
-    window_size: array_like or int
-        Array containing down-sampling integer factor along each axis.
-        If an integer value is given, the same block shape is used for all the
-        image dimensions.
-        Default: window_size=4.
 
     {extra_kwargs_doc}
 
@@ -313,9 +303,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         grib_file = pygrib.open(filename)
     except OSError:
         raise OSError(f"Error opening NCEP's MRMS file. " f"File Not Found: {filename}")
-
-    if isinstance(window_size, int):
-        window_size = (window_size, window_size)
 
     if extent is not None:
         extent = np.asarray(extent)
@@ -347,27 +334,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     precip = grib_msg.values
     no_data_mask = precip == -3  # Missing values
 
-    # Create a function with default arguments for aggregate_fields
-    block_reduce = partial(aggregate_fields, method="mean", trim=True)
-
-    if window_size != (1, 1):
-        # Downscale data
-        lats = block_reduce(lats, window_size[0])
-        lons = block_reduce(lons, window_size[1])
-
-        # Update the limits
-        ul_lat, lr_lat = lats[0], lats[-1]  # Lat from North to south!
-        ul_lon, lr_lon = lons[0], lons[-1]
-
-        precip[no_data_mask] = 0  # block_reduce does not handle nan values
-        precip = block_reduce(precip, window_size, axis=(0, 1))
-
-        # Consider that if a single invalid observation is located in the block,
-        # then mark that value as invalid.
-        no_data_mask = block_reduce(
-            no_data_mask.astype("int"), window_size, axis=(0, 1)
-        ).astype(bool)
-
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = np.nan
 
@@ -393,8 +359,8 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     pr = pyproj.Proj(proj_params)
     proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
 
-    xsize = grib_msg["iDirectionIncrementInDegrees"] * window_size[0]
-    ysize = grib_msg["jDirectionIncrementInDegrees"] * window_size[1]
+    xsize = grib_msg["iDirectionIncrementInDegrees"]
+    ysize = grib_msg["jDirectionIncrementInDegrees"]
 
     x1, y1 = pr(ul_lon, lr_lat)
     x2, y2 = pr(lr_lon, ul_lat)
@@ -445,11 +411,8 @@ def import_bom_rf3(filename, **kwargs):
             "but it is not installed"
         )
 
-    precip = _import_bom_rf3_data(filename)
-
-    geodata = _import_bom_rf3_geodata(filename)
+    precip, geodata = _import_bom_rf3_data(filename)
     metadata = geodata
-    # TODO(import_bom_rf3): Add missing georeferencing data.
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
@@ -460,19 +423,18 @@ def import_bom_rf3(filename, **kwargs):
 
 def _import_bom_rf3_data(filename):
     ds_rainfall = netCDF4.Dataset(filename)
+    geodata = _import_bom_rf3_geodata(ds_rainfall)
     if "precipitation" in ds_rainfall.variables.keys():
         precipitation = ds_rainfall.variables["precipitation"][:]
     else:
         precipitation = None
     ds_rainfall.close()
 
-    return precipitation
+    return precipitation, geodata
 
 
-def _import_bom_rf3_geodata(filename):
+def _import_bom_rf3_geodata(ds_rainfall):
     geodata = {}
-
-    ds_rainfall = netCDF4.Dataset(filename)
 
     if "proj" in ds_rainfall.variables.keys():
         projection = ds_rainfall.variables["proj"]
@@ -514,7 +476,7 @@ def _import_bom_rf3_geodata(filename):
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
     geodata["cartesian_unit"] = "m"
-    geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
+    geodata["yorigin"] = "upper"
 
     # get the accumulation period
     valid_time = None
@@ -549,7 +511,6 @@ def _import_bom_rf3_geodata(filename):
             geodata["unit"] = "mm"
 
     geodata["institution"] = "Commonwealth of Australia, Bureau of Meteorology"
-    ds_rainfall.close()
 
     return geodata
 
@@ -749,7 +710,7 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
 
 
 @postprocess_import()
-def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs):
+def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwargs):
     """
     Import a precipitation or reflectivity field (and optionally the quality
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
@@ -767,8 +728,8 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
         is used as default, but hourly, daily and monthly accumulations
         are also available.
     pixelsize: float
-        The pixel size of a raster cell in kilometers. The default value for the
-        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel
+        The pixel size of a raster cell in meters. The default value for the
+        KNMI datasets is a 1000 m grid cell size, but datasets with 2400 m pixel
         size are also available.
 
     {extra_kwargs_doc}
@@ -846,7 +807,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
-    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
+    proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
     pr = pyproj.Proj(proj4str)
     metadata["projection"] = proj4str
 
@@ -877,7 +838,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     metadata["y2"] = y2
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
-    metadata["cartesian_unit"] = "km"
+    metadata["cartesian_unit"] = "m"
     metadata["yorigin"] = "upper"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
@@ -1419,7 +1380,16 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         x2 = ur_x
         y2 = ur_y
 
+    dataset1 = f["dataset1"]
+
     if "xscale" in where.attrs.keys() and "yscale" in where.attrs.keys():
+        xpixelsize = where.attrs["xscale"]
+        ypixelsize = where.attrs["yscale"]
+    elif (
+        "xscale" in dataset1["where"].attrs.keys()
+        and "yscale" in dataset1["where"].attrs.keys()
+    ):
+        where = dataset1["where"]
         xpixelsize = where.attrs["xscale"]
         ypixelsize = where.attrs["yscale"]
     else:
@@ -1457,6 +1427,8 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         "zerovalue": np.nanmin(precip),
         "threshold": _get_threshold_value(precip),
     }
+
+    metadata.update(kwargs)
 
     f.close()
 

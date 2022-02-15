@@ -32,7 +32,14 @@ The time step of the output is taken from the inputs.
 """
 
 from pysteps.extrapolation.interface import eulerian_persistence
-from pysteps.nowcasts import anvil, extrapolation, linda, sprog, steps, sseps
+from pysteps.nowcasts import (
+    anvil,
+    extrapolation,
+    linda,
+    sprog,
+    steps,
+    sseps,
+)
 from pysteps.nowcasts import lagrangian_probability
 
 _nowcast_methods = dict()

@@ -26,6 +26,7 @@ dependencies:
   - PyWavelets
   - pandas
   - scikit-image
+  - rasterio
   # Test dependencies
   - pytest
   - pytest-cov

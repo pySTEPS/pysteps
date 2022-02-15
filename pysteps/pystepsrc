@@ -76,8 +76,19 @@
             "importer_kwargs": {
                 "accutime": 5,
                 "qty": "ACRR",
-                "pixelsize": 1.0
+                "pixelsize": 1000.0
 			}
+        },
+		"rmi": {
+            "root_path": "./radar/rmi/radqpe",
+            "path_fmt": "%Y%m%d",
+            "fn_pattern": "%Y%m%d%H%M00.rad.bhbjbwdnfa.comp.rate.qpe2",
+            "fn_ext": "hdf",
+            "importer": "odim_hdf5",
+            "timestep": 5,
+            "importer_kwargs": {
+				"accutime": 5.0
+            }
         },
         "saf": {
             "root_path": "./saf",
@@ -86,6 +97,39 @@
             "fn_ext": "nc",
             "importer": "saf_crri",
             "timestep": 15,
+            "importer_kwargs": {
+                "gzipped": true
+            }
+        },
+        "bom_nwp": {
+            "root_path": "./nwp/bom",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "%Y%m%d_%H00_regrid_short",
+            "fn_ext": "nc",
+            "importer": "bom_nwp",
+            "timestep": 10,
+            "importer_kwargs": {
+                "gzipped": true
+            }
+        },
+        "rmi_nwp": {
+            "root_path": "./nwp/rmi",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "ao13_%Y%m%d%H_native_5min",
+            "fn_ext": "nc",
+            "importer": "rmi_nwp",
+            "timestep": 5,
+            "importer_kwargs": {
+                "gzipped": true
+            }
+        },
+        "knmi_nwp": {
+            "root_path": "./nwp/knmi",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "%Y%m%d_%H00_Pforecast_Harmonie",
+            "fn_ext": "nc",
+            "importer": "knmi_nwp",
+            "timestep": 60,
             "importer_kwargs": {
                 "gzipped": true
             }

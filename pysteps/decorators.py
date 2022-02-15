@@ -43,10 +43,8 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     """
     Postprocess the imported precipitation data.
     Operations:
-
     - Allow type casting (dtype keyword)
     - Set invalid or missing data to predefined value (fillna keyword)
-
     This decorator replaces the text "{extra_kwargs}" in the function's
     docstring with the documentation of the keywords used in the postprocessing.
     The additional docstrings are added as "Other Parameters" in the importer function.

@@ -77,10 +77,6 @@ def get_precipitation_fields(
     metadata: bool, optional
         If True, also return file metadata.
 
-    clip: scalars (left, right, bottom, top), optional
-        The extent of the bounding box in data coordinates to be used to clip
-        the data.
-
     upscale: float or None, optional
         Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not modified.
@@ -93,6 +89,10 @@ def get_precipitation_fields(
     log_transform: bool
         Whether to transform the output to dB.
 
+    clip: scalars (left, right, bottom, top), optional
+        The extent of the bounding box in data coordinates to be used to clip
+        the data.
+
     Other Parameters
     ----------------
 
@@ -101,9 +101,7 @@ def get_precipitation_fields(
 
     Returns
     -------
-    reference_field : array
-
-    metadata : dict
+    data_array : xr.DataArray
     """
 
     if source == "bom":

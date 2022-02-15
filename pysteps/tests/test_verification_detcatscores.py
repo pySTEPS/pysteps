@@ -6,6 +6,7 @@ from numpy.testing import assert_array_almost_equal
 
 from pysteps.verification import det_cat_fct
 
+
 # CREATE A LARGE DATASET TO MATCH
 # EXAMPLES IN
 # http://www.cawcr.gov.au/projects/verification/
