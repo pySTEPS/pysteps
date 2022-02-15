@@ -1,5 +1,7 @@
-# Additional requeriments related to the documentation build only
+# Additional requirements related to the documentation build only
 sphinx
+requests
+numpydoc
 sphinxcontrib.bibtex
 sphinx-book-theme
 sphinx_gallery

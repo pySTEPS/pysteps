@@ -368,7 +368,7 @@ def binary_mse_accum(bmse, X_f, X_o):
     """Accumulate forecast-observation pairs to an BMSE object.
 
     Parameters
-    -----------
+    ----------
     bmse: dict
         The BMSE object initialized with
         :py:func:`pysteps.verification.spatialscores.binary_mse_init`.
@@ -577,7 +577,7 @@ def fss_accum(fss, X_f, X_o):
     """Accumulate forecast-observation pairs to an FSS object.
 
     Parameters
-    -----------
+    ----------
     fss: dict
         The FSS object initialized with
         :py:func:`pysteps.verification.spatialscores.fss_init`.

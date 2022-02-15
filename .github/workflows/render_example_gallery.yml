@@ -1,0 +1,144 @@
+# Action to render the example gallery, upload them as artifacts. After the examples are
+# rendered, the ReadTheDocs build is triggered pulling the artifacts with the rendered
+# example gallery.
+#
+# This workflow is inspired by the actions in the https://github.com/dfm/rtds-action and
+# https://github.com/wradlib/wradlib-notebooks projects.
+#
+# Steps needed to setup this workflow
+# ===================================
+#
+# Read-the-docs configuration
+# ---------------------------
+#
+# 1. In Admin/Integrations, add a generic API incoming webhook.
+#    Save the webhook url and token value.
+# 2. Add the RTD_GITHUB_TOKEN environmental variable in RTD (Settings/Environment Variables)
+#    with the pysteps-bot's Github access token. This access token should only
+#    have the "public_repo" scope.
+#    At the moment, this token is needed to download the artifacts in RTD's.
+#
+# Github configuration
+# ---------------------
+#
+# 1. Add the following secrets to the pysteps repository:
+# - RTD_WEBHOOK_URL: Read-the-docs webhook. Important: the RTD-Github integration
+#   must not be activated since this workflow triggers the RTD build.
+# - RTD_TOKEN: RTD webhook access token.
+
+name: Render the example gallery
+
+on:
+  # Triggers the workflow on push or pull request events to the master branch
+  push:
+    branches: [ master, rtd_using_gh_artifacts ]
+  pull_request:
+    branches: [ master ]
+  release:
+    types: [ published ]
+
+jobs:
+  render_example_gallery:
+    name: Render the example gallery
+    runs-on: "ubuntu-latest"
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    outputs:
+      rtd_branch: ${{steps.set_rendered_branch.outputs.render_branch}}
+      gallery_branch: ${{steps.set_rendered_branch.outputs.render_branch}}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install mamba and create environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ci/ci_test_env.yml
+          extra-specs: python=3.8
+          environment-name: doc_builder
+
+      - name: Install pygrib
+        run: mamba install --quiet pygrib
+
+      - name: Install sphinx dependencies using pip
+        run: |
+          pip install -r doc/requirements.txt
+
+      - name: Install pysteps
+        working-directory: ${{github.workspace}}
+        run: |
+          pip install -e .          
+
+      - name: Install pysteps-data
+        env:
+          PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
+        working-directory: ${{github.workspace}}/ci
+        run: |
+          python fetch_pysteps_data.py
+          python -c "import pysteps; print(pysteps.config_fname())"  
+
+      - name: Build example gallery
+        working-directory: ./doc
+        env:
+          PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
+        run: |
+          make html       
+
+      - name: Tar auto_examples files
+        # Needed to maintain permissions and case-sensitive files
+        # https://github.com/actions/upload-artifact#maintaining-file-permissions-and-case-sensitive-files
+        run: tar -cvf auto_examples.tar -C doc/source/auto_examples .
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: auto_examples-for-${{ github.sha }}
+          path: auto_examples.tar
+
+  trigger_rtd:
+    # Task inspired in the following wradlib's action:
+    # https://github.com/wradlib/wradlib-notebooks/blob/main/.github/workflows/render_notebooks.yml
+    needs: [ render_example_gallery ]
+    name: Trigger readthedocs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Determine rendered branch name
+        id: set_rtd_branch
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            rtd_branch="${GITHUB_REF##*/}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            rtd_branch=$GITHUB_BASE_REF
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            rtd_branch="${GITHUB_REF_NAME}"
+          else
+            rtd_branch="undefined"
+          fi
+
+          echo "::set-output name=rtd_branch::${rtd_branch}"
+
+      - name: Print debug information
+        env:
+          rtd_branch: ${{steps.set_rtd_branch.outputs.rtd_branch}}
+        run: |
+          echo "GITHUB_REF=${GITHUB_REF}"
+          echo "GITHUB_REF_TYPE=${GITHUB_REF_TYPE}"
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}"
+          echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME}"
+          echo "rtd_branch=${rtd_branch}"
+
+      - name: Trigger readthedocs for the corresponding branch
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+          RTD_WEBHOOK_URL: ${{ secrets.RTD_WEBHOOK_URL }}
+          RTD_BRANCH: ${{steps.set_rtd_branch.outputs.rtd_branch}}
+        run: |
+          if [[ ! -z "${RTD_BRANCH}" ]]; then
+            curl -X POST -d "branches=${RTD_BRANCH}" -d "token=${RTD_TOKEN}" "${RTD_WEBHOOK_URL}"
+          fi
