@@ -130,9 +130,10 @@ def nowcast_main_loop(
     extrap_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
-    vel_pert_gen : function, optional
-        Optional function that generates velocity perturbations. The function
-        is expected to take lead time (relative to timestep index) as input
+    vel_pert_gen : list, optional
+        Optional list of functions that generate velocity perturbations. The
+        length of the list is expected to be n_ens_members. The functions
+        are expected to take lead time (relative to timestep index) as input
         argument and return a perturbation field of shape (2,m,n).
     params : dict, optional
         Optional dictionary containing keyword arguments for func_state_update
@@ -211,6 +212,12 @@ def nowcast_main_loop(
         # for one time step
         precip_f_new, state_new = func(state_cur, params)
 
+        if len(precip_f_new.shape) == 2:
+            ensemble = False
+            precip_f_new = precip_f_new[np.newaxis, :]
+        else:
+            ensemble = True
+
         if measure_time:
             starttime = time.time()
 
@@ -230,25 +237,22 @@ def nowcast_main_loop(
                 else:
                     precip_f_ip = precip_f_prev
 
-                if vel_pert_gen is not None:
-                    velocity_ = velocity + vel_pert_gen(t_total)
-                else:
-                    velocity_ = velocity
-
-                if len(precip_f_ip.shape) == 2:
-                    ensemble = False
-                    precip_f_ip = precip_f_ip[np.newaxis, :]
-                else:
-                    ensemble = True
-
                 t_diff_prev = t_sub - t_prev
                 t_total += t_diff_prev
 
-                extrap_kwargs["displacement_prev"] = displacement
+                if displacement is None:
+                    displacement = [None for i in range(precip_f_ip.shape[0])]
 
                 # TODO: parallelize this with dask
                 for i in range(precip_f_ip.shape[0]):
-                    precip_f_ep, displacement = extrapolator(
+                    extrap_kwargs["displacement_prev"] = displacement[i]
+
+                    if vel_pert_gen is not None:
+                        velocity_ = velocity + vel_pert_gen[i](t_total)
+                    else:
+                        velocity_ = velocity
+
+                    precip_f_ep, displacement[i] = extrapolator(
                         precip_f_ip[i],
                         velocity_,
                         [t_diff_prev],
@@ -266,19 +270,25 @@ def nowcast_main_loop(
             t_diff_prev = t + 1 - t_prev
             t_total += t_diff_prev
 
-            extrap_kwargs["displacement_prev"] = displacement
+            if displacement is None:
+                displacement = [None for i in range(precip_f_new.shape[0])]
 
-            if vel_pert_gen is not None:
-                velocity_ = velocity + vel_pert_gen(t_total)
-            else:
-                velocity_ = velocity
+            # TODO: parallelize this with dask
+            for i in range(precip_f_new.shape[0]):
+                extrap_kwargs["displacement_prev"] = displacement[i]
 
-            _, displacement = extrapolator(
-                None,
-                velocity_,
-                [t_diff_prev],
-                **extrap_kwargs,
-            )
+                if vel_pert_gen is not None:
+                    velocity_ = velocity + vel_pert_gen[i](t_total)
+                else:
+                    velocity_ = velocity
+
+                _, displacement[i] = extrapolator(
+                    None,
+                    velocity_,
+                    [t_diff_prev],
+                    **extrap_kwargs,
+                )
+
             t_prev = t + 1
 
         precip_f_prev = precip_f_new
