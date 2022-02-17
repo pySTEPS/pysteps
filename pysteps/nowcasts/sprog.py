@@ -304,6 +304,8 @@ def forecast(
 
     if probmatching_method == "mean":
         mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
+    else:
+        mu_0 = None
 
     # compute precipitation mask and wet area ratio
     mask_p = precip[-1, :, :] >= precip_thr
@@ -320,47 +322,30 @@ def forecast(
 
     extrap_kwargs["return_displacement"] = True
 
-    def update(state, params):
-        for i in range(n_cascade_levels):
-            precip_c[i] = autoregression.iterate_ar_model(precip_c[i], phi[i, :])
-
-        precip_d["cascade_levels"] = [
-            precip_c[i][-1, :] for i in range(n_cascade_levels)
-        ]
-        if domain == "spatial":
-            precip_d["cascade_levels"] = np.stack(precip_d["cascade_levels"])
-
-        precip_f_recomp = recomp_method(precip_d)
-
-        if domain == "spectral":
-            precip_f_recomp = fft.irfft2(precip_f_recomp)
-
-        mask = compute_percentile_mask(precip_f_recomp, war)
-        precip_f_recomp[~mask] = precip_min
-
-        if probmatching_method == "cdf":
-            # adjust the CDF of the forecast to match the most recently
-            # observed precipitation field
-            precip_f_recomp = probmatching.nonparam_match_empirical_cdf(
-                precip_f_recomp, precip
-            )
-        elif probmatching_method == "mean":
-            mu_fct = np.mean(precip_f_recomp[mask])
-            precip_f_recomp[mask] = precip_f_recomp[mask] - mu_fct + mu_0
-
-        precip_f_recomp[domain_mask] = np.nan
-
-        return precip_f_recomp, None
+    state = {"precip_c": precip_c, "precip_d": precip_d}
+    params = {
+        "domain": domain,
+        "domain_mask": domain_mask,
+        "fft": fft,
+        "mu_0": mu_0,
+        "n_cascade_levels": n_cascade_levels,
+        "phi": phi,
+        "precip_0": precip,
+        "precip_min": precip_min,
+        "probmatching_method": probmatching_method,
+        "recomp_method": recomp_method,
+        "war": war,
+    }
 
     precip_f = nowcast_main_loop(
         precip,
         velocity,
-        None,
+        state,
         timesteps,
         extrap_method,
-        update,
+        _update,
         extrap_kwargs=extrap_kwargs,
-        params=None,
+        params=params,
         measure_time=measure_time,
     )
     if measure_time:
@@ -388,3 +373,40 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
+
+
+def _update(state, params):
+    for i in range(params["n_cascade_levels"]):
+        state["precip_c"][i] = autoregression.iterate_ar_model(
+            state["precip_c"][i], params["phi"][i, :]
+        )
+
+    state["precip_d"]["cascade_levels"] = [
+        state["precip_c"][i][-1, :] for i in range(params["n_cascade_levels"])
+    ]
+    if params["domain"] == "spatial":
+        state["precip_d"]["cascade_levels"] = np.stack(
+            state["precip_d"]["cascade_levels"]
+        )
+
+    precip_f_recomp = params["recomp_method"](state["precip_d"])
+
+    if params["domain"] == "spectral":
+        precip_f_recomp = params["fft"].irfft2(precip_f_recomp)
+
+    mask = compute_percentile_mask(precip_f_recomp, params["war"])
+    precip_f_recomp[~mask] = params["precip_min"]
+
+    if params["probmatching_method"] == "cdf":
+        # adjust the CDF of the forecast to match the most recently
+        # observed precipitation field
+        precip_f_recomp = probmatching.nonparam_match_empirical_cdf(
+            precip_f_recomp, params["precip_0"]
+        )
+    elif params["probmatching_method"] == "mean":
+        mu_fct = np.mean(precip_f_recomp[mask])
+        precip_f_recomp[mask] = precip_f_recomp[mask] - mu_fct + params["mu_0"]
+
+    precip_f_recomp[params["domain_mask"]] = np.nan
+
+    return precip_f_recomp, state
