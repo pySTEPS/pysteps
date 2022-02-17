@@ -95,11 +95,15 @@ def nowcast_main_loop(
     extrap_method,
     func,
     extrap_kwargs=None,
+    vel_pert_gen=None,
     params=None,
     measure_time=False,
 ):
-    """Utility method for advection-based nowcast models, where some parts of
-    the model (e.g. an autoregressive process) require using integer time steps.
+    """Utility method for advection-based nowcast models that are applied in
+    the Lagrangian coordinates. In addition, this method allows the case, where
+    one or more components of the model (e.g. an autoregressive process) require
+    using regular integer time steps but the user-supplied values are irregular
+    or non-integer.
 
     Parameters
     ----------
@@ -120,10 +124,16 @@ def nowcast_main_loop(
         :py:mod:`pysteps.extrapolation.interface`.
     func : function
         A function that takes the current state of the nowcast model and returns
-        a forecast field and the new state.
+        a forecast field and the new state. The shape of the forecast field is
+        expected to be (m,n) for a deterministic nowcast and (n_ens_members,m,n)
+        for an ensemble.
     extrap_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
+    vel_pert_gen : function, optional
+        Optional function that generates velocity perturbations. The function
+        is expected to take lead time (relative to timestep index) as input
+        argument and return a perturbation field of shape (2,m,n).
     params : dict, optional
         Optional dictionary containing keyword arguments for func_state_update
         and func_decode.
@@ -137,7 +147,7 @@ def nowcast_main_loop(
         True, return a pair, where the second element is the total computation
         time in the loop.
     """
-    precip_f = []
+    precip_f_out = None
 
     # create a range of time steps
     # if an integer time step is given, create a simple range iterator
@@ -152,7 +162,7 @@ def nowcast_main_loop(
         timestep_type = "list"
 
     state_cur = state
-    precip_f_prev = precip
+    precip_f_prev = None
     displacement = None
     t_prev = 0.0
 
@@ -208,6 +218,8 @@ def nowcast_main_loop(
         # timestep bin and append the results to the output list
         # apply temporal interpolation to the forecasts made between the
         # previous and the next integer time steps
+        t_total = 0.0
+
         for t_sub in subtimesteps:
             if t_sub > 0:
                 t_diff_prev_int = t_sub - int(t_sub)
@@ -218,25 +230,52 @@ def nowcast_main_loop(
                 else:
                     precip_f_ip = precip_f_prev
 
+                if vel_pert_gen is not None:
+                    velocity_ = velocity + vel_pert_gen(t_total)
+                else:
+                    velocity_ = velocity
+
+                if len(precip_f_ip.shape) == 2:
+                    ensemble = False
+                    precip_f_ip = precip_f_ip[np.newaxis, :]
+                else:
+                    ensemble = True
+
                 t_diff_prev = t_sub - t_prev
+                t_total += t_diff_prev
+
                 extrap_kwargs["displacement_prev"] = displacement
-                precip_f_ep, displacement = extrapolator(
-                    precip_f_ip,
-                    velocity,
-                    [t_diff_prev],
-                    **extrap_kwargs,
-                )
-                precip_f.append(precip_f_ep[0])
+
+                # TODO: parallelize this with dask
+                for i in range(precip_f_ip.shape[0]):
+                    precip_f_ep, displacement = extrapolator(
+                        precip_f_ip[i],
+                        velocity_,
+                        [t_diff_prev],
+                        **extrap_kwargs,
+                    )
+                    if precip_f_out is None:
+                        precip_f_out = [[] for j in range(precip_f_ip.shape[0])]
+                    precip_f_out[i].append(precip_f_ep[0])
+                # TODO: Implement callback function here.
                 t_prev = t_sub
 
         # advect the forecast field by one time step if no subtimesteps in the
         # current interval were found
         if not subtimesteps:
             t_diff_prev = t + 1 - t_prev
+            t_total += t_diff_prev
+
             extrap_kwargs["displacement_prev"] = displacement
+
+            if vel_pert_gen is not None:
+                velocity_ = velocity + vel_pert_gen(t_total)
+            else:
+                velocity_ = velocity
+
             _, displacement = extrapolator(
                 None,
-                velocity,
+                velocity_,
                 [t_diff_prev],
                 **extrap_kwargs,
             )
@@ -251,10 +290,14 @@ def nowcast_main_loop(
             else:
                 print("done.")
 
+    precip_f_out = np.stack(precip_f_out)
+    if not ensemble:
+        precip_f_out = precip_f_out[0, :]
+
     if measure_time:
-        return precip_f, time.time() - starttime_total
+        return precip_f_out, time.time() - starttime_total
     else:
-        return precip_f
+        return precip_f_out
 
 
 def print_ar_params(PHI):
