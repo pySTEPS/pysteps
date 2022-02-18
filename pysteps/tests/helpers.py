@@ -101,7 +101,8 @@ def get_precipitation_fields(
 
     Returns
     -------
-    data_array : xr.DataArray
+    reference_field : array
+    metadata : dict
     """
 
     if source == "bom":

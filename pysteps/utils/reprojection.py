@@ -35,7 +35,7 @@ def reproject_grids(src_array, dst_array, metadata_src, metadata_dst):
         precipitation fields. These precipitation fields will be reprojected.
     dst_array: array-like
         Array containing a precipitation field or a time series of precipitation
-        fields. The xarray src_array will be reprojected to the domain of
+        fields. The src_array will be reprojected to the domain of
         dst_array.
     metadata_src: dict
         Metadata dictionary containing the projection, x- and ypixelsize, x1 and
