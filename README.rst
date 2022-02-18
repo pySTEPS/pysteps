@@ -123,10 +123,11 @@ More information on how to download and install them is available `here <https:/
 Contributions
 =============
 
-We welcome contributions! For feedback, suggestions for developments, and bug reports 
-please use the dedicated `issues page <https://github.com/pySTEPS/pysteps/issues>`_.
+*We welcome contributions!*
 
-More information dedicated to developers is available in the `contributors guidelines <https://pysteps.readthedocs.io/en/stable/developer_guide/contributors_guidelines.html>`_.
+For feedback, suggestions for developments, and bug reports please use the dedicated `issues page <https://github.com/pySTEPS/pysteps/issues>`_.
+
+For more information, please read our `contributors guidelines <https://pysteps.readthedocs.io/en/stable/developer_guide/contributors_guidelines.html>`_.
 
 Get in touch
 ============
