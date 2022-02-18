@@ -133,7 +133,7 @@ Get in touch
 ============
 
 You can get in touch with the pysteps community on our `pysteps slack <https://pysteps.slack.com/>`_.
-To get access to it, you need to ask for an invitation or you can use the automatic invitation page `here <https://pysteps-slackin.herokuapp.com/>`_.
+To get access to it, you need to ask for an invitation or you can use this `automatic invitation page <https://pysteps-slackin.herokuapp.com/>`_.
 
 Reference publications
 ======================
