@@ -91,12 +91,12 @@ from functools import partial
 
 import numpy as np
 
-# import xarray as xr
 from matplotlib.pyplot import imread
 
 from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError
 from pysteps.exceptions import MissingOptionalDependency
+from pysteps.utils import aggregate_fields
 
 try:
     import gdalconst
@@ -235,7 +235,7 @@ def _get_threshold_value(precip):
 
 
 @postprocess_import(dtype="float32")
-def import_mrms_grib(filename, extent=None, **kwargs):
+def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
     ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
@@ -250,7 +250,13 @@ def import_mrms_grib(filename, extent=None, **kwargs):
     by default to reduce the memory footprint. However, be aware that when this
     array is passed to a pystep function, it may be converted to double
     precision, doubling the memory footprint.
-    To change the precision of the data, use the *dtype* keyword.
+    To change the precision of the data, use the ``dtype`` keyword.
+
+    Also, by default, the original data is downscaled by 4
+    (resulting in a ~4 km grid spacing).
+    In case that the original grid spacing is needed, use ``window_size=1``.
+    But be aware that a single composite in double precipitation will
+    require 186 Mb of memory.
 
     Finally, if desired, the precipitation data can be extracted over a
     sub region of the full domain using the `extent` keyword.
@@ -277,6 +283,11 @@ def import_mrms_grib(filename, extent=None, **kwargs):
         By default (None), the entire domain is retrieved.
         The extent can be in any form that can be converted to a flat array
         of 4 elements array (e.g., lists or tuples).
+    window_size: array_like or int
+        Array containing down-sampling integer factor along each axis.
+        If an integer value is given, the same block shape is used for all the
+        image dimensions.
+        Default: window_size=4.
 
     {extra_kwargs_doc}
 
@@ -303,6 +314,9 @@ def import_mrms_grib(filename, extent=None, **kwargs):
         grib_file = pygrib.open(filename)
     except OSError:
         raise OSError(f"Error opening NCEP's MRMS file. " f"File Not Found: {filename}")
+
+    if isinstance(window_size, int):
+        window_size = (window_size, window_size)
 
     if extent is not None:
         extent = np.asarray(extent)
@@ -334,6 +348,27 @@ def import_mrms_grib(filename, extent=None, **kwargs):
     precip = grib_msg.values
     no_data_mask = precip == -3  # Missing values
 
+    # Create a function with default arguments for aggregate_fields
+    block_reduce = partial(aggregate_fields, method="mean", trim=True)
+
+    if window_size != (1, 1):
+        # Downscale data
+        lats = block_reduce(lats, window_size[0])
+        lons = block_reduce(lons, window_size[1])
+
+        # Update the limits
+        ul_lat, lr_lat = lats[0], lats[-1]  # Lat from North to south!
+        ul_lon, lr_lon = lons[0], lons[-1]
+
+        precip[no_data_mask] = 0  # block_reduce does not handle nan values
+        precip = block_reduce(precip, window_size, axis=(0, 1))
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        no_data_mask = block_reduce(
+            no_data_mask.astype("int"), window_size, axis=(0, 1)
+        ).astype(bool)
+
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = np.nan
 
@@ -359,8 +394,8 @@ def import_mrms_grib(filename, extent=None, **kwargs):
     pr = pyproj.Proj(proj_params)
     proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
 
-    xsize = grib_msg["iDirectionIncrementInDegrees"]
-    ysize = grib_msg["jDirectionIncrementInDegrees"]
+    xsize = grib_msg["iDirectionIncrementInDegrees"] * window_size[0]
+    ysize = grib_msg["jDirectionIncrementInDegrees"] * window_size[1]
 
     x1, y1 = pr(ul_lon, lr_lat)
     x2, y2 = pr(lr_lon, ul_lat)
