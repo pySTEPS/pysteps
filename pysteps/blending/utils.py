@@ -21,7 +21,6 @@ import datetime
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import netCDF4
 
 from pysteps.cascade import get_method as cascade_get_method
@@ -303,9 +302,7 @@ def decompose_NWP(
     """
 
     # Make a NetCDF file
-    output_date = datetime.datetime.strftime(
-        pd.to_datetime(analysis_time), "%Y%m%d%H%M%S"
-    )
+    output_date = f"{analysis_time.astype(datetime.datetime):%Y%m%d%H%M%S}"
     outfn = Path(output_path) / f"cascade_{NWP_model}_{output_date}.nc"
     ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
 
@@ -401,9 +398,7 @@ def compute_store_nwp_motion(
     """
 
     # Set the output file
-    output_date = datetime.datetime.strftime(
-        pd.to_datetime(analysis_time), "%Y%m%d%H%M%S"
-    )
+    output_date = f"{analysis_time.astype(datetime.datetime):%Y%m%d%H%M%S}"
     outfn = Path(output_path) / f"motion_{nwp_model}_{output_date}.npy"
 
     # Get the velocity field per time step
