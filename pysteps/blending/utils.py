@@ -21,11 +21,18 @@ import datetime
 from pathlib import Path
 
 import numpy as np
-import netCDF4
 
 from pysteps.cascade import get_method as cascade_get_method
 from pysteps.cascade.bandpass_filters import filter_gaussian
+from pysteps.exceptions import MissingOptionalDependency
 from pysteps.utils import get_method as utils_get_method
+
+try:
+    import netCDF4
+
+    NETCDF4_IMPORTED = True
+except ImportError:
+    NETCDF4_IMPORTED = False
 
 
 def stack_cascades(R_d, donorm=True):
@@ -298,8 +305,14 @@ def decompose_NWP(
 
     Returns
     -------
-    Nothing
+    None
     """
+
+    if not NETCDF4_IMPORTED:
+        raise MissingOptionalDependency(
+            "netCDF4 package is required to save the decomposed NWP data, "
+            "but it is not installed"
+        )
 
     # Make a NetCDF file
     output_date = f"{analysis_time.astype(datetime.datetime):%Y%m%d%H%M%S}"
@@ -442,6 +455,12 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
         Array of shape (timestep,2,m,n) containing the x- and y-components
       of the advection field for the (NWP) model field per forecast lead time.
     """
+
+    if not NETCDF4_IMPORTED:
+        raise MissingOptionalDependency(
+            "netCDF4 package is required to load the decomposed NWP data, "
+            "but it is not installed"
+        )
 
     # Open the file
     ncf_decomp = netCDF4.Dataset(input_nc_path_decomp, "r", format="NETCDF4")
