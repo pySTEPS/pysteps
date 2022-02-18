@@ -50,6 +50,8 @@ def test_steps_blending(
     decomposed_nwp,
     expected_n_ens_members,
 ):
+    pytest.importorskip("cv2")
+
     ###
     # The input data
     ###

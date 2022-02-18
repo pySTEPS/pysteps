@@ -94,6 +94,9 @@ def test_steps_skill(
 
 def test_steps_callback(tmp_path):
     """Test STEPS callback functionality to export the output as a netcdf."""
+
+    pytest.importorskip("netCDF4")
+
     n_ens_members = 2
     n_timesteps = 3
 
