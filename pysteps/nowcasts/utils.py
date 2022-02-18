@@ -17,6 +17,14 @@ import numpy as np
 from pysteps import extrapolation
 
 
+try:
+    import dask
+
+    DASK_IMPORTED = True
+except ImportError:
+    DASK_IMPORTED = False
+
+
 def binned_timesteps(timesteps):
     """Compute a binning of the given irregular time steps.
 
@@ -97,6 +105,7 @@ def nowcast_main_loop(
     extrap_kwargs=None,
     vel_pert_gen=None,
     params=None,
+    num_workers=1,
     measure_time=False,
 ):
     """Utility method for advection-based nowcast models that are applied in
@@ -138,7 +147,10 @@ def nowcast_main_loop(
     params : dict, optional
         Optional dictionary containing keyword arguments for func_state_update
         and func_decode.
-    measure_time: bool
+    num_workers : int, optional
+        Number of parallel workers to use. Applicable if a nowcast ensemble
+        is generated.
+    measure_time: bool, optional
         If set to True, measure, print and return the computation time.
 
     Returns
@@ -243,8 +255,10 @@ def nowcast_main_loop(
                 if displacement is None:
                     displacement = [None for i in range(precip_f_ip.shape[0])]
 
-                # TODO: parallelize this with dask
-                for i in range(precip_f_ip.shape[0]):
+                if precip_f_out is None:
+                    precip_f_out = [[] for j in range(precip_f_ip.shape[0])]
+
+                def worker(i):
                     extrap_kwargs["displacement_prev"] = displacement[i]
 
                     if vel_pert_gen is not None:
@@ -258,10 +272,23 @@ def nowcast_main_loop(
                         [t_diff_prev],
                         **extrap_kwargs,
                     )
-                    if precip_f_out is None:
-                        precip_f_out = [[] for j in range(precip_f_ip.shape[0])]
+
+                    # TODO: need to add the return_output option
+                    # don't store the output if return_output is false
                     precip_f_out[i].append(precip_f_ep[0])
+
+                res = []
+                for i in range(precip_f_ip.shape[0]):
+                    if not DASK_IMPORTED or precip_f_ip.shape[0] == 1:
+                        worker(i)
+                    else:
+                        res.append(dask.delayed(worker)(i))
+
+                if DASK_IMPORTED and precip_f_ip.shape[0] > 1:
+                    dask.compute(*res, num_workers=num_workers)
+
                 # TODO: Implement callback function here.
+                # callback takes the current ensemble as the input
                 t_prev = t_sub
 
         # advect the forecast field by one time step if no subtimesteps in the
@@ -273,8 +300,7 @@ def nowcast_main_loop(
             if displacement is None:
                 displacement = [None for i in range(precip_f_new.shape[0])]
 
-            # TODO: parallelize this with dask
-            for i in range(precip_f_new.shape[0]):
+            def worker(i):
                 extrap_kwargs["displacement_prev"] = displacement[i]
 
                 if vel_pert_gen is not None:
@@ -288,6 +314,16 @@ def nowcast_main_loop(
                     [t_diff_prev],
                     **extrap_kwargs,
                 )
+
+            res = []
+            for i in range(precip_f_new.shape[0]):
+                if not DASK_IMPORTED or precip_f_new.shape[0] == 1:
+                    worker(i)
+                else:
+                    res.append(dask.delayed(worker)(i))
+
+            if DASK_IMPORTED and precip_f_new.shape[0] > 1:
+                dask.compute(*res, num_workers=num_workers)
 
             t_prev = t + 1
 
