@@ -804,7 +804,7 @@ def _export_netcdf(field, exporter):
         if exporter["num_ens_members"] > 1:
             var_f[:, var_f.shape[1], :, :] = field
         else:
-            var_f[var_f.shape[1], :, :] = field
+            var_f[var_f.shape[0], :, :] = field
         var_time = exporter["var_time"]
         var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
     else:
