@@ -89,7 +89,6 @@ jobs:
           make html       
 
       - name: Export conda environment
-        working-directory: ./doc
         run: conda env export > doc/source/auto_examples/environment.yml
 
       - name: Tar auto_examples files
