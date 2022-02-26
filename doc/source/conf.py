@@ -39,6 +39,7 @@ sphinx_gallery_conf = {
     "gallery_dirs": "auto_examples",
     "filename_pattern": r"/*\.py",
     "plot_gallery": not is_run_in_read_the_docs,
+    "abort_on_example_error": True
 }
 
 # -- Options for HTML output ----------------------------------------------
