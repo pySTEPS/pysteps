@@ -32,8 +32,8 @@ on:
   # Triggers the workflow on push or pull request events to the master branch
   push:
     branches: [ master, rtd_using_gh_artifacts ]
-  pull_request:
-    branches: [ master ]
+#  pull_request:
+#    branches: [ master ]
   release:
     types: [ published ]
 
@@ -87,6 +87,10 @@ jobs:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
         run: |
           make html       
+
+      - name: Export conda environment
+        working-directory: ./doc
+        run: conda env export > doc/source/auto_examples/environment.yml
 
       - name: Tar auto_examples files
         # Needed to maintain permissions and case-sensitive files
