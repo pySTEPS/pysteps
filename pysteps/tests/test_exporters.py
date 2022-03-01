@@ -60,58 +60,59 @@ def test_io_export_netcdf_one_member_one_time_step(n_ens_members, incremental):
 
     invalid_mask = get_invalid_mask(precip)
 
-    # save it back to disk
-    outfnprefix = "test_netcdf_out"
-    file_path = os.path.join("./test/path", outfnprefix + ".nc")
-    startdate = metadata["timestamps"][0]
-    timestep = metadata["accutime"]
-    n_timesteps = 3
-    shape = precip.shape[1:]
+    with tempfile.TemporaryDirectory() as outpath:
+        # save it back to disk
+        outfnprefix = "test_netcdf_out"
+        file_path = os.path.join(outpath, outfnprefix + ".nc")
+        startdate = metadata["timestamps"][0]
+        timestep = metadata["accutime"]
+        n_timesteps = 3
+        shape = precip.shape[1:]
 
-    exporter = initialize_forecast_exporter_netcdf(
-        "./test/path",
-        outfnprefix,
-        startdate,
-        timestep,
-        n_timesteps,
-        shape,
-        metadata,
-        n_ens_members=n_ens_members,
-        incremental=incremental,
-    )
+        exporter = initialize_forecast_exporter_netcdf(
+            outpath,
+            outfnprefix,
+            startdate,
+            timestep,
+            n_timesteps,
+            shape,
+            metadata,
+            n_ens_members=n_ens_members,
+            incremental=incremental,
+        )
 
-    if n_ens_members > 1:
-        precip = np.repeat(precip[np.newaxis, :, :, :], n_ens_members, axis=0)
+        if n_ens_members > 1:
+            precip = np.repeat(precip[np.newaxis, :, :, :], n_ens_members, axis=0)
 
-    if incremental == None:
-        export_forecast_dataset(precip, exporter)
-    if incremental == "timestep":
-        for t in range(n_timesteps):
-            if n_ens_members > 1:
-                export_forecast_dataset(precip[:, t, :, :], exporter)
-            else:
-                export_forecast_dataset(precip[t, :, :], exporter)
-    if incremental == "member":
-        for ens_mem in range(n_ens_members):
-            export_forecast_dataset(precip[ens_mem, :, :, :], exporter)
+        if incremental == None:
+            export_forecast_dataset(precip, exporter)
+        if incremental == "timestep":
+            for t in range(n_timesteps):
+                if n_ens_members > 1:
+                    export_forecast_dataset(precip[:, t, :, :], exporter)
+                else:
+                    export_forecast_dataset(precip[t, :, :], exporter)
+        if incremental == "member":
+            for ens_mem in range(n_ens_members):
+                export_forecast_dataset(precip[ens_mem, :, :, :], exporter)
 
-    close_forecast_files(exporter)
+        close_forecast_files(exporter)
 
-    # assert if netcdf file was saved and file size is not zero
-    assert os.path.exists(file_path) and os.path.getsize(file_path) > 0
+        # assert if netcdf file was saved and file size is not zero
+        assert os.path.exists(file_path) and os.path.getsize(file_path) > 0
 
-    # Test that the file can be read by the nowcast_importer
-    output_file_path = os.path.join("./test/path", f"{outfnprefix}.nc")
+        # Test that the file can be read by the nowcast_importer
+        output_file_path = os.path.join(outpath, f"{outfnprefix}.nc")
 
-    precip_new, _ = import_netcdf_pysteps(output_file_path)
+        precip_new, _ = import_netcdf_pysteps(output_file_path)
 
-    assert_array_almost_equal(precip.squeeze(), precip_new.data)
-    assert precip_new.dtype == "single"
+        assert_array_almost_equal(precip.squeeze(), precip_new.data)
+        assert precip_new.dtype == "single"
 
-    precip_new, _ = import_netcdf_pysteps(output_file_path, dtype="double")
-    assert_array_almost_equal(precip.squeeze(), precip_new.data)
-    assert precip_new.dtype == "double"
+        precip_new, _ = import_netcdf_pysteps(output_file_path, dtype="double")
+        assert_array_almost_equal(precip.squeeze(), precip_new.data)
+        assert precip_new.dtype == "double"
 
-    precip_new, _ = import_netcdf_pysteps(output_file_path, fillna=-1000)
-    new_invalid_mask = precip_new == -1000
-    assert (new_invalid_mask == invalid_mask).all()
+        precip_new, _ = import_netcdf_pysteps(output_file_path, fillna=-1000)
+        new_invalid_mask = precip_new == -1000
+        assert (new_invalid_mask == invalid_mask).all()
