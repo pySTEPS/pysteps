@@ -577,9 +577,12 @@ def import_fmi_geotiff(filename, **kwargs):
     f = gdal.Open(filename, gdalconst.GA_ReadOnly)
 
     rb = f.GetRasterBand(1)
-    precip = rb.ReadAsArray()
+    precip = rb.ReadAsArray().astype(float)
     mask = precip == 255
-    precip = precip.astype(float) * rb.GetScale() + rb.GetOffset()
+    if rb.GetScale() is not None:
+        precip *= rb.GetScale()
+    if rb.GetOffset() is not None:
+        precip += rb.GetOffset()
     precip = (precip - 64.0) / 2.0
     precip[mask] = np.nan
 
