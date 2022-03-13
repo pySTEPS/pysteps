@@ -98,8 +98,7 @@ from pysteps.exceptions import MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 
 try:
-    import gdalconst
-    from osgeo import gdal, osr
+    from osgeo import gdal, gdalconst, osr
 
     GDAL_IMPORTED = True
 except ImportError:
