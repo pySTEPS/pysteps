@@ -614,6 +614,8 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["cartesian_unit"] = "m"
+    metadata["zr_a"] = 223.0
+    metadata["zr_b"] = 1.53
 
     return precip, None, metadata
 
