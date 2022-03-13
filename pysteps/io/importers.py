@@ -609,7 +609,7 @@ def import_fmi_geotiff(filename, **kwargs):
         metadata["yorigin"] = "lower"
     metadata["institution"] = "Finnish Meteorological Institute"
     metadata["unit"] = "dBZ"
-    metadata["transform"] = None
+    metadata["transform"] = "dB"
     metadata["accutime"] = 5.0
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zerovalue"] = np.nanmin(precip)
