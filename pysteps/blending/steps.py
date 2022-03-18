@@ -16,14 +16,13 @@ consists of the following main steps:
        method to decompose and store the NWP model fields whenever a new NWP model
        field is present, is present in pysteps.blending.utils.decompose_NWP.
     #. Estimate AR parameters for the extrapolation nowcast and noise cascade.
-    #. Before starting the forecast loop, determine which NWP models will be
-       combined with which nowcast ensemble members. The number of output ensemble
-       members equals the maximum number of (ensemble) members in the input, which
-       can be either the defined number of (nowcast) ensemble members or the number
-       of NWP models/members.
     #. Initialize all the random generators.
     #. Calculate the initial skill of the NWP model forecasts at t=0.
     #. Start the forecasting loop:
+        #. Determine which NWP models will be combined with which nowcast ensemble
+        member. The number of output ensemble members equals the maximum number of
+        (ensemble) members in the input, which can be either the defined number of
+        (nowcast) ensemble members or the number of NWP models/members.
         #. Determine the skill and weights of the forecasting components
            (extrapolation, NWP and noise) for that lead time.
         #. Regress the extrapolation and noise cascades separately to the subsequent
