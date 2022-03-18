@@ -31,9 +31,9 @@ steps_arg_values = [
     (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4),
     (1, 3, 4, 9, "incremental", "cdf", False, "spn", True, 4),
     (2, 3, 10, 8, "incremental", "cdf", False, "spn", True, 10),
-    (5, 3, 4, 8, "incremental", "cdf", False, "spn", True, 5),
+    (5, 3, 5, 8, "incremental", "cdf", False, "spn", True, 5),
     (1, 10, 1, 8, "incremental", "cdf", False, "spn", True, 1),
-    (5, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2),
+    (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2),
 ]
 
 
