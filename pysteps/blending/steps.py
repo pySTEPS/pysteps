@@ -974,8 +974,6 @@ def forecast(
 
                     t_prev[j] = t_sub
 
-                forecast_prev[j] = precip_cascade[j]
-
             if len(R_f_ep_out) > 0:
                 R_f_ep_out = np.stack(R_f_ep_out)
                 Yn_ep_out = np.stack(Yn_ep_out)
@@ -1050,6 +1048,8 @@ def forecast(
                 )
 
                 t_prev[j] = t + 1
+
+            forecast_prev[j] = precip_cascade[j]
 
             # 8.5 Blend the cascades
             R_f_out = []
