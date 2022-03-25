@@ -22,7 +22,7 @@ import time
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from pysteps import cascade, extrapolation
-from pysteps.nowcasts import utils as nowcast_utils
+from pysteps.nowcasts.utils import binned_timesteps, nowcast_main_loop
 from pysteps.timeseries import autoregression
 from pysteps import utils
 
@@ -285,20 +285,20 @@ def forecast(
     if measure_time:
         starttime_mainloop = time.time()
 
-    r_f = []
+    rainrate_f = []
 
     if isinstance(timesteps, int):
         timesteps = range(timesteps + 1)
         timestep_type = "int"
     else:
         original_timesteps = [0] + list(timesteps)
-        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
+        timesteps = binned_timesteps(original_timesteps)
         timestep_type = "list"
 
     if rainrate is not None:
-        r_f_prev = r_vil_a * vil[-1, :] + r_vil_b
+        rainrate_f_prev = r_vil_a * vil[-1, :] + r_vil_b
     else:
-        r_f_prev = vil[-1, :]
+        rainrate_f_prev = vil[-1, :]
     extrap_kwargs["return_displacement"] = True
 
     dp = None
@@ -341,13 +341,13 @@ def forecast(
 
         if rainrate is not None:
             # convert VIL to rain rate
-            r_f_new = r_vil_a * vil_f + r_vil_b
+            rainrate_f_new = r_vil_a * vil_f + r_vil_b
         else:
-            r_f_new = vil_f
+            rainrate_f_new = vil_f
             if apply_rainrate_mask:
-                r_f_new[rainrate_mask] = 0.0
+                rainrate_f_new[rainrate_mask] = 0.0
 
-        r_f_new[r_f_new < 0.0] = 0.0
+        rainrate_f_new[rainrate_f_new < 0.0] = 0.0
 
         # advect the recomposed field to obtain the forecast for the current
         # time step (or subtimesteps if non-integer time steps are given)
@@ -355,22 +355,22 @@ def forecast(
             if t_sub > 0:
                 t_diff_prev_int = t_sub - int(t_sub)
                 if t_diff_prev_int > 0.0:
-                    r_f_ip = (
+                    rainrate_f_ip = (
                         1.0 - t_diff_prev_int
-                    ) * r_f_prev + t_diff_prev_int * r_f_new
+                    ) * rainrate_f_prev + t_diff_prev_int * rainrate_f_new
                 else:
-                    r_f_ip = r_f_prev
+                    rainrate_f_ip = rainrate_f_prev
 
                 t_diff_prev = t_sub - t_prev
                 extrap_kwargs["displacement_prev"] = dp
-                r_f_ep, dp = extrapolator(
-                    r_f_ip,
+                rainrate_f_ep, dp = extrapolator(
+                    rainrate_f_ip,
                     velocity,
                     [t_diff_prev],
                     allow_nonfinite_values=True,
                     **extrap_kwargs,
                 )
-                r_f.append(r_f_ep[0])
+                rainrate_f.append(rainrate_f_ep[0])
                 t_prev = t_sub
 
         # advect the forecast field by one time step if no subtimesteps in the
@@ -387,7 +387,7 @@ def forecast(
             )
             t_prev = t + 1
 
-        r_f_prev = r_f_new
+        rainrate_f_prev = rainrate_f_new
 
         if is_nowcast_time_step:
             if measure_time:
@@ -399,9 +399,9 @@ def forecast(
         mainloop_time = time.time() - starttime_mainloop
 
     if measure_time:
-        return np.stack(r_f), init_time, mainloop_time
+        return np.stack(rainrate_f), init_time, mainloop_time
     else:
-        return np.stack(r_f)
+        return np.stack(rainrate_f)
 
 
 def _check_inputs(vil, rainrate, velocity, timesteps, ar_order):
@@ -551,3 +551,7 @@ def _r_vil_regression(vil, r, window_radius):
     b[~mask_vil] = 0.0
 
     return a, b
+
+
+def _update(state, params):
+    pass
