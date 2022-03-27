@@ -105,6 +105,7 @@ def nowcast_main_loop(
     extrap_kwargs=None,
     vel_pert_gen=None,
     params=None,
+    return_output=True,
     num_workers=1,
     measure_time=False,
 ):
@@ -147,6 +148,10 @@ def nowcast_main_loop(
     params : dict, optional
         Optional dictionary containing keyword arguments for func_state_update
         and func_decode.
+    return_output : bool, optional
+        Set to False to disable returning the output forecast fields and return
+        None instead. This can save memory if the intermediate results are
+        instead written to files using the callback function.
     num_workers : int, optional
         Number of parallel workers to use. Applicable if a nowcast ensemble
         is generated.
@@ -255,7 +260,7 @@ def nowcast_main_loop(
                 if displacement is None:
                     displacement = [None for i in range(precip_f_ip.shape[0])]
 
-                if precip_f_out is None:
+                if precip_f_out is None and return_output:
                     precip_f_out = [[] for j in range(precip_f_ip.shape[0])]
 
                 def worker(i):
@@ -273,9 +278,8 @@ def nowcast_main_loop(
                         **extrap_kwargs,
                     )
 
-                    # TODO: need to add the return_output option
-                    # don't store the output if return_output is false
-                    precip_f_out[i].append(precip_f_ep[0])
+                    if return_output:
+                        precip_f_out[i].append(precip_f_ep[0])
 
                 if DASK_IMPORTED and ensemble:
                     res = []
@@ -334,9 +338,10 @@ def nowcast_main_loop(
             else:
                 print("done.")
 
-    precip_f_out = np.stack(precip_f_out)
-    if not ensemble:
-        precip_f_out = precip_f_out[0, :]
+    if return_output:
+        precip_f_out = np.stack(precip_f_out)
+        if not ensemble:
+            precip_f_out = precip_f_out[0, :]
 
     if measure_time:
         return precip_f_out, time.time() - starttime_total
