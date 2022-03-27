@@ -147,8 +147,7 @@ def nowcast_main_loop(
         are expected to take lead time (relative to timestep index) as input
         argument and return a perturbation field of shape (2,m,n).
     params : dict, optional
-        Optional dictionary containing keyword arguments for func_state_update
-        and func_decode.
+        Optional dictionary containing keyword arguments for func.
     callback : function, optional
         Optional function that is called after computation of each time step of
         the nowcast. The function takes one argument: the nowcast array. This
