@@ -117,19 +117,19 @@ def nowcast_main_loop(
 
     Parameters
     ----------
-    precip: array_like
+    precip : array_like
         Array of shape (m,n) containing the most recently observed precipitation
         field.
-    velocity: array_like
+    velocity : array_like
         Array of shape (2,m,n) containing the x- and y-components of the
         advection field.
     state : object
         The initial state of the nowcast model.
-    timesteps: int or list of floats
+    timesteps : int or list of floats
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed. The elements of the list are required to be in
         ascending order.
-    extrap_method: str, optional
+    extrap_method : str, optional
         Name of the extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`.
     func : function
@@ -137,7 +137,7 @@ def nowcast_main_loop(
         a forecast field and the new state. The shape of the forecast field is
         expected to be (m,n) for a deterministic nowcast and (n_ens_members,m,n)
         for an ensemble.
-    extrap_kwargs: dict, optional
+    extrap_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
     vel_pert_gen : list, optional
@@ -153,9 +153,9 @@ def nowcast_main_loop(
         None instead. This can save memory if the intermediate results are
         instead written to files using the callback function.
     num_workers : int, optional
-        Number of parallel workers to use. Applicable if a nowcast ensemble
-        is generated.
-    measure_time: bool, optional
+        Number of parallel workers to use. Applicable if a nowcast ensemble is
+        generated.
+    measure_time : bool, optional
         If set to True, measure, print and return the computation time.
 
     Returns
