@@ -277,15 +277,14 @@ def nowcast_main_loop(
                     # don't store the output if return_output is false
                     precip_f_out[i].append(precip_f_ep[0])
 
-                res = []
-                for i in range(precip_f_ip.shape[0]):
-                    if not DASK_IMPORTED or precip_f_ip.shape[0] == 1:
-                        worker(i)
-                    else:
+                if DASK_IMPORTED and ensemble:
+                    res = []
+                    for i in range(precip_f_ip.shape[0]):
                         res.append(dask.delayed(worker)(i))
-
-                if DASK_IMPORTED and precip_f_ip.shape[0] > 1:
                     dask.compute(*res, num_workers=num_workers)
+                else:
+                    for i in range(precip_f_ip.shape[0]):
+                        worker(i)
 
                 # TODO: Implement callback function here.
                 # callback takes the current ensemble as the input
@@ -315,15 +314,14 @@ def nowcast_main_loop(
                     **extrap_kwargs,
                 )
 
-            res = []
-            for i in range(precip_f_new.shape[0]):
-                if not DASK_IMPORTED or precip_f_new.shape[0] == 1:
-                    worker(i)
-                else:
-                    res.append(dask.delayed(worker)(i))
-
-            if DASK_IMPORTED and precip_f_new.shape[0] > 1:
+            if DASK_IMPORTED and ensemble:
+                res = []
                 dask.compute(*res, num_workers=num_workers)
+                for i in range(precip_f_new.shape[0]):
+                    res.append(dask.delayed(worker)(i))
+            else:
+                for i in range(precip_f_new.shape[0]):
+                    worker(i)
 
             t_prev = t + 1
 
