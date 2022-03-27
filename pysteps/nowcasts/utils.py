@@ -105,6 +105,7 @@ def nowcast_main_loop(
     extrap_kwargs=None,
     vel_pert_gen=None,
     params=None,
+    callback=None,
     return_output=True,
     num_workers=1,
     measure_time=False,
@@ -148,6 +149,10 @@ def nowcast_main_loop(
     params : dict, optional
         Optional dictionary containing keyword arguments for func_state_update
         and func_decode.
+    callback : function, optional
+        Optional function that is called after computation of each time step of
+        the nowcast. The function takes one argument: the nowcast array. This
+        can be used, for instance, writing output files.
     return_output : bool, optional
         Set to False to disable returning the output forecast fields and return
         None instead. This can save memory if the intermediate results are
@@ -263,6 +268,8 @@ def nowcast_main_loop(
                 if precip_f_out is None and return_output:
                     precip_f_out = [[] for j in range(precip_f_ip.shape[0])]
 
+                precip_f_out_cur = []
+
                 def worker(i):
                     extrap_kwargs["displacement_prev"] = displacement[i]
 
@@ -278,6 +285,7 @@ def nowcast_main_loop(
                         **extrap_kwargs,
                     )
 
+                    precip_f_out_cur.append(precip_f_ep[0])
                     if return_output:
                         precip_f_out[i].append(precip_f_ep[0])
 
@@ -290,8 +298,11 @@ def nowcast_main_loop(
                     for i in range(precip_f_ip.shape[0]):
                         worker(i)
 
-                # TODO: Implement callback function here.
-                # callback takes the current ensemble as the input
+                if callback is not None:
+                    precip_f_out_cur = np.stack(precip_f_out_cur)
+                    callback(precip_f_out_cur)
+
+                precip_f_out_cur = None
                 t_prev = t_sub
 
         # advect the forecast field by one time step if no subtimesteps in the
