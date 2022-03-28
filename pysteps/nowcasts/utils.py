@@ -242,6 +242,7 @@ def nowcast_main_loop(
             precip_f_new = precip_f_new[np.newaxis, :]
         else:
             ensemble = True
+            num_ensemble_members = precip_f_new.shape[0]
 
         # advect the currect forecast field to the subtimesteps in the current
         # timestep bin and append the results to the output list
@@ -288,7 +289,7 @@ def nowcast_main_loop(
                     if return_output:
                         precip_f_out[i].append(precip_f_ep[0])
 
-                if DASK_IMPORTED and ensemble:
+                if DASK_IMPORTED and ensemble and num_ensemble_members > 1:
                     res = []
                     for i in range(precip_f_ip.shape[0]):
                         res.append(dask.delayed(worker)(i))
@@ -329,7 +330,7 @@ def nowcast_main_loop(
                     **extrap_kwargs_,
                 )
 
-            if DASK_IMPORTED and ensemble:
+            if DASK_IMPORTED and ensemble and num_ensemble_members > 1:
                 res = []
                 for i in range(precip_f_new.shape[0]):
                     res.append(dask.delayed(worker)(i))

@@ -360,7 +360,7 @@ def forecast(
     if conditional or mask_method is not None:
         print(f"precip. intensity threshold: {precip_thr}")
 
-    num_ensemble_workers = n_ens_members if num_workers > n_ens_members else num_workers
+    num_ensemble_workers = min(n_ens_members, num_workers)
 
     if measure_time:
         starttime_init = time.time()
@@ -631,7 +631,7 @@ def forecast(
         "n_ens_members": n_ens_members,
         "noise_method": noise_method,
         "noise_std_coeffs": noise_std_coeffs,
-        "num_workers": num_workers,
+        "num_ensemble_workers": num_ensemble_workers,
         "phi": phi,
         "pp": pp,
         "probmatching_method": probmatching_method,
@@ -823,11 +823,11 @@ def _update(state, params):
 
         precip_f_out.append(precip_f)
 
-    if DASK_IMPORTED and params["n_ens_members"] > 1:
+    if DASK_IMPORTED and params["num_ensemble_workers"] > 1:
         res = []
         for j in range(params["n_ens_members"]):
             res.append(dask.delayed(worker)(j))
-        dask.compute(*res, num_workers=params["num_workers"])
+        dask.compute(*res, num_workers=params["num_ensemble_workers"])
     else:
         for j in range(params["n_ens_members"]):
             worker(j)
