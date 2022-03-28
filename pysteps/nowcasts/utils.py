@@ -230,6 +230,9 @@ def nowcast_main_loop(
                 flush=True,
             )
 
+            if measure_time:
+                starttime = time.time()
+
         # call the function to iterate the integer-timestep part of the model
         # for one time step
         precip_f_new, state_new = func(state_cur, params)
@@ -239,9 +242,6 @@ def nowcast_main_loop(
             precip_f_new = precip_f_new[np.newaxis, :]
         else:
             ensemble = True
-
-        if measure_time:
-            starttime = time.time()
 
         # advect the currect forecast field to the subtimesteps in the current
         # timestep bin and append the results to the output list
