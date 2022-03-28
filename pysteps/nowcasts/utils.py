@@ -187,6 +187,7 @@ def nowcast_main_loop(
     precip_f_prev = None
     displacement = None
     t_prev = 0.0
+    t_total = 0.0
 
     # initialize the extrapolator
     extrapolator = extrapolation.get_method(extrap_method)
@@ -246,8 +247,6 @@ def nowcast_main_loop(
         # timestep bin and append the results to the output list
         # apply temporal interpolation to the forecasts made between the
         # previous and the next integer time steps
-        t_total = 0.0
-
         for t_sub in subtimesteps:
             if t_sub > 0:
                 t_diff_prev_int = t_sub - int(t_sub)
@@ -270,7 +269,8 @@ def nowcast_main_loop(
                 precip_f_out_cur = []
 
                 def worker(i):
-                    extrap_kwargs["displacement_prev"] = displacement[i]
+                    extrap_kwargs_ = extrap_kwargs.copy()
+                    extrap_kwargs_["displacement_prev"] = displacement[i]
 
                     if vel_pert_gen is not None:
                         velocity_ = velocity + vel_pert_gen[i](t_total)
@@ -281,7 +281,7 @@ def nowcast_main_loop(
                         precip_f_ip[i],
                         velocity_,
                         [t_diff_prev],
-                        **extrap_kwargs,
+                        **extrap_kwargs_,
                     )
 
                     precip_f_out_cur.append(precip_f_ep[0])
@@ -314,7 +314,8 @@ def nowcast_main_loop(
                 displacement = [None for i in range(precip_f_new.shape[0])]
 
             def worker(i):
-                extrap_kwargs["displacement_prev"] = displacement[i]
+                extrap_kwargs_ = extrap_kwargs.copy()
+                extrap_kwargs_["displacement_prev"] = displacement[i]
 
                 if vel_pert_gen is not None:
                     velocity_ = velocity + vel_pert_gen[i](t_total)
@@ -325,7 +326,7 @@ def nowcast_main_loop(
                     None,
                     velocity_,
                     [t_diff_prev],
-                    **extrap_kwargs,
+                    **extrap_kwargs_,
                 )
 
             if DASK_IMPORTED and ensemble:
