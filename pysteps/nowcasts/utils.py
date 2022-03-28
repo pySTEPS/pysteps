@@ -331,9 +331,9 @@ def nowcast_main_loop(
 
             if DASK_IMPORTED and ensemble:
                 res = []
-                dask.compute(*res, num_workers=num_workers)
                 for i in range(precip_f_new.shape[0]):
                     res.append(dask.delayed(worker)(i))
+                dask.compute(*res, num_workers=num_workers)
             else:
                 for i in range(precip_f_new.shape[0]):
                     worker(i)
