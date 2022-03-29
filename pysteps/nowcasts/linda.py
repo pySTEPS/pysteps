@@ -53,6 +53,7 @@ from scipy import optimize as opt
 from scipy.signal import convolve
 from scipy import stats
 from pysteps import extrapolation, feature, noise
+from pysteps.nowcasts.utils import nowcast_main_loop
 
 warnings.filterwarnings("ignore")
 
@@ -290,23 +291,8 @@ def forecast(
         fct_gen, precip_lagr_diff, init_time = fct_gen
     else:
         fct_gen, precip_lagr_diff = fct_gen
-    if not add_perturbations:
-        fct = _linda_forecast(
-            precip,
-            precip_lagr_diff[1:],
-            timesteps,
-            fct_gen,
-            None,
-            None,
-            None,
-            measure_time,
-            True,
-        )
-        if measure_time:
-            return fct[0], init_time, fct[1]
-        else:
-            return fct
-    else:
+
+    if add_perturbations:
         pert_gen = _linda_perturbation_init(
             precip,
             precip_lagr_diff,
@@ -329,46 +315,28 @@ def forecast(
             init_time += pert_init_time
         else:
             precip_pert_gen, vel_pert_gen = pert_gen
+    else:
+        precip_pert_gen = None
+        vel_pert_gen = None
 
-        def worker(seed):
-            return _linda_forecast(
-                precip,
-                precip_lagr_diff[1:],
-                timesteps,
-                fct_gen,
-                precip_pert_gen,
-                vel_pert_gen,
-                seed,
-                False,
-                False,
-            )
+    # TODO: make printing info optional
+    fct = _linda_forecast(
+        precip,
+        precip_lagr_diff[1:],
+        timesteps,
+        fct_gen,
+        precip_pert_gen,
+        vel_pert_gen,
+        num_ens_members,
+        seed,
+        measure_time,
+        True,
+    )
 
-        precip_fct_ensemble = []
-
-        rs = np.random.RandomState(seed)
-
-        if measure_time:
-            fct_comp_starttime = time.time()
-
-        if DASK_IMPORTED and num_workers > 1:
-            res = []
-            for _ in range(num_ens_members):
-                seed = rs.randint(0, high=1e9)
-                res.append(dask.delayed(worker)(seed))
-            precip_fct_ensemble = dask.compute(
-                *res, num_workers=num_workers, scheduler="threads"
-            )
-        else:
-            for _ in range(num_ens_members):
-                seed = rs.randint(0, high=1e9)
-                precip_fct_ensemble.append(worker(seed))
-
-        fct = np.stack(precip_fct_ensemble)
-
-        if measure_time:
-            return fct, init_time, time.time() - fct_comp_starttime
-        else:
-            return fct
+    if measure_time:
+        return fct[0], init_time, fct[1]
+    else:
+        return fct
 
 
 def _check_inputs(precip, velocity, timesteps, ari_order):
@@ -938,104 +906,96 @@ def _linda_forecast(
     fct_gen,
     precip_pert_gen,
     vel_pert_gen,
+    num_ensemble_members,
     seed,
     measure_time,
     print_info,
 ):
     """Compute LINDA nowcast."""
-    velocity = fct_gen["velocity"]
-    ari_order = fct_gen["ari_order"]
-    extrapolator = fct_gen["extrapolator"]
-    extrap_kwargs = fct_gen["extrap_kwargs"].copy()
-    interp_weights = fct_gen["interp_weights"]
-    kernels_1 = fct_gen["kernels_1"]
-    kernels_2 = fct_gen["kernels_2"]
-    mask_adv = fct_gen["mask_adv"]
-    psi = fct_gen["psi"]
-    num_workers = fct_gen["num_workers"]
-
-    precip_fct = precip[-1].copy()
+    # compute convolved difference fields
     precip_lagr_diff = precip_lagr_diff.copy()
 
-    displacement = None
-    extrap_kwargs["return_displacement"] = True
-    precip_fct_out = []
-
-    if measure_time:
-        starttime_fct_comp = time.time()
-
     for i in range(precip_lagr_diff.shape[0]):
-        for _ in range(ari_order - i):
+        for _ in range(fct_gen["ari_order"] - i):
             precip_lagr_diff[i] = _composite_convolution(
                 precip_lagr_diff[i],
-                kernels_1,
-                interp_weights,
+                fct_gen["kernels_1"],
+                fct_gen["interp_weights"],
             )
 
+    # initialize the random generators
     if precip_pert_gen is not None:
-        rs_precip = np.random.RandomState(seed)
+        rs_precip_pert = []
+        np.random.seed(seed)
+        for i in range(num_ensemble_members):
+            rs = np.random.RandomState(seed)
+            rs_precip_pert.append(rs)
+            seed = rs.randint(0, high=1e9)
+    else:
+        rs_precip_pert = None
 
     if vel_pert_gen is not None:
-        vel_pert_gen = vel_pert_gen.copy()
-        vel_pert_gen["gen_obj"] = vel_pert_gen["init_func"](seed)
-
-    # iterate each time step
-    for t in range(timesteps):
-        if print_info:
-            print(
-                "Computing nowcast for time step %d... " % (t + 1),
-                end="",
-                flush=True,
+        vps = []
+        np.random.seed(seed)
+        for i in range(num_ensemble_members):
+            rs = np.random.RandomState(seed)
+            vp = vel_pert_gen["init_func"](seed)
+            vps.append(
+                lambda t, vp=vp: vel_pert_gen["gen_func"](
+                    vp, t * vel_pert_gen["timestep"]
+                )
             )
-
-        if measure_time:
-            starttime = time.time()
-
-        precip_lagr_diff = _iterate_ar_model(precip_lagr_diff, psi)
-        precip_fct += precip_lagr_diff[-1]
-        for i in range(precip_lagr_diff.shape[0]):
-            precip_lagr_diff[i] = _composite_convolution(
-                precip_lagr_diff[i],
-                kernels_1,
-                interp_weights,
-            )
-        precip_fct = _composite_convolution(precip_fct, kernels_2, interp_weights)
-
-        precip_fct_out_ = precip_fct.copy()
-        precip_fct_out_[precip_fct_out_ < 0.0] = 0.0
-        precip_fct_out_[~mask_adv] = np.nan
-
-        # apply perturbations
-        if precip_pert_gen is not None:
-            seed = rs_precip.randint(0, high=1e9)
-            perturb = _generate_perturbations(precip_pert_gen, num_workers, seed)
-            precip_fct_out_ *= perturb
-
-        # compute the perturbed motion field
-        if vel_pert_gen is not None:
-            velocity_pert = velocity + vel_pert_gen["gen_func"](
-                vel_pert_gen["gen_obj"], (t + 1) * vel_pert_gen["timestep"]
-            )
-        else:
-            velocity_pert = velocity
-
-        # advect the forecast field for t time steps
-        extrap_kwargs["displacement_prev"] = displacement
-        precip_fct_out_, displacement = extrapolator(
-            precip_fct_out_, velocity_pert, 1, **extrap_kwargs
-        )
-        precip_fct_out.append(precip_fct_out_[0])
-
-        if print_info:
-            if measure_time:
-                print(f"{time.time() - starttime:.2f} seconds.")
-            else:
-                print("done.")
-
-    if measure_time:
-        return np.stack(precip_fct_out), time.time() - starttime_fct_comp
+            seed = rs.randint(0, high=1e9)
     else:
-        return np.stack(precip_fct_out)
+        vps = None
+
+    state = {
+        "precip_fct": [precip[-1].copy() for i in range(num_ensemble_members)],
+        "precip_lagr_diff": [
+            precip_lagr_diff.copy() for i in range(num_ensemble_members)
+        ],
+        "rs_precip_pert": rs_precip_pert,
+    }
+    params = {
+        "interp_weights": fct_gen["interp_weights"],
+        "kernels_1": fct_gen["kernels_1"],
+        "kernels_2": fct_gen["kernels_2"],
+        "mask_adv": fct_gen["mask_adv"],
+        "num_ens_members": num_ensemble_members,
+        "num_workers": fct_gen["num_workers"],
+        "num_ensemble_workers": min(num_ensemble_members, fct_gen["num_workers"]),
+        "precip_pert_gen": precip_pert_gen,
+        "psi": fct_gen["psi"],
+    }
+
+    # TODO: implement callback, currently set to None
+    # TODO: implement return_output, currently set to False
+    # TODO: implement vel_pert_gen
+    precip_f = nowcast_main_loop(
+        precip[-1],
+        fct_gen["velocity"],
+        state,
+        timesteps,
+        fct_gen["extrap_method"],
+        _update,
+        extrap_kwargs=fct_gen["extrap_kwargs"],
+        vel_pert_gen=vps,
+        params=params,
+        callback=None,
+        return_output=True,
+        num_workers=fct_gen["num_workers"],
+        measure_time=measure_time,
+    )
+    if measure_time:
+        precip_f, mainloop_time = precip_f
+
+    # TODO: implement return_output
+    if not fct_gen["add_perturbations"]:
+        precip_f = precip_f[0]
+    if measure_time:
+        return precip_f, mainloop_time
+    else:
+        return precip_f
 
 
 def _linda_deterministic_init(
@@ -1056,6 +1016,7 @@ def _linda_deterministic_init(
     """Initialize the deterministic LINDA nowcast model."""
     fct_gen = {}
     fct_gen["velocity"] = velocity
+    fct_gen["extrap_method"] = extrap_method
     fct_gen["ari_order"] = ari_order
     fct_gen["add_perturbations"] = add_perturbations
     fct_gen["num_workers"] = num_workers
@@ -1296,6 +1257,10 @@ def _linda_perturbation_init(
 
     print("Estimating forecast errors... ", end="", flush=True)
 
+    fct_gen = fct_gen.copy()
+    fct_gen["add_perturbations"] = False
+    fct_gen["num_ens_members"] = 1
+
     precip_fct_det = _linda_forecast(
         precip[:-1],
         precip_lagr_diff[:-1],
@@ -1303,6 +1268,7 @@ def _linda_perturbation_init(
         fct_gen,
         None,
         None,
+        1,
         None,
         False,
         False,
@@ -1372,6 +1338,51 @@ def _masked_convolution(field, kernel):
     field_c[mask] /= convolve(mask.astype(float), kernel, mode="same")[mask]
 
     return field_c
+
+
+def _update(state, params):
+    def worker(j):
+        state["precip_lagr_diff"][j] = _iterate_ar_model(
+            state["precip_lagr_diff"][j], params["psi"]
+        )
+        state["precip_fct"][j] += state["precip_lagr_diff"][j][-1]
+        for i in range(state["precip_lagr_diff"][j].shape[0]):
+            state["precip_lagr_diff"][j][i] = _composite_convolution(
+                state["precip_lagr_diff"][j][i],
+                params["kernels_1"],
+                params["interp_weights"],
+            )
+        state["precip_fct"][j] = _composite_convolution(
+            state["precip_fct"][j], params["kernels_2"], params["interp_weights"]
+        )
+
+        out = state["precip_fct"][j].copy()
+        out[out < 0.0] = 0.0
+        out[~params["mask_adv"]] = np.nan
+
+        # apply perturbations
+        if params["precip_pert_gen"] is not None:
+            seed = state["rs_precip_pert"][j].randint(0, high=1e9)
+            perturb = _generate_perturbations(
+                params["precip_pert_gen"], params["num_workers"], seed
+            )
+            out *= perturb
+
+        return out
+
+    out = []
+    if DASK_IMPORTED and params["num_workers"] > 1 and params["num_ens_members"] > 1:
+        res = []
+        for j in range(params["num_ens_members"]):
+            res.append(dask.delayed(worker)(j))
+        out = dask.compute(
+            *res, num_workers=params["num_ensemble_workers"], scheduler="threads"
+        )
+    else:
+        for j in range(params["num_ens_members"]):
+            out.append(worker(j))
+
+    return np.stack(out), state
 
 
 def _weighted_std(f, w):
