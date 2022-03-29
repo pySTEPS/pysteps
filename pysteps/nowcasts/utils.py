@@ -201,6 +201,7 @@ def nowcast_main_loop(
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
     extrap_kwargs["allow_nonfinite_values"] = True
+    extrap_kwargs["return_displacement"] = True
 
     if measure_time:
         starttime_total = time.time()
