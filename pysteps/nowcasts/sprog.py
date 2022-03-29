@@ -320,8 +320,6 @@ def forecast(
 
     precip_f = []
 
-    extrap_kwargs["return_displacement"] = True
-
     state = {"precip_c": precip_c, "precip_d": precip_d}
     params = {
         "domain": domain,

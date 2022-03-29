@@ -605,8 +605,6 @@ def forecast(
 
     print("Starting nowcast computation.")
 
-    extrap_kwargs["return_displacement"] = True
-
     # the nowcast iteration for each ensemble member
     state = {
         "fft_objs": fft_objs,
