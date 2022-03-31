@@ -142,8 +142,8 @@ def forecast(
         Optional function that is called after computation of each time step of
         the nowcast. The function takes one argument: a three-dimensional array
         of shape (n_ens_members,h,w), where h and w are the height and width
-        of the input field R, respectively. This can be used, for instance,
-        writing the outputs into files.
+        of the input precipitation fields, respectively. This can be used, for
+        instance, writing the outputs into files.
     return_output: bool, optional
         Set to False to disable returning the outputs as numpy arrays. This can
         save memory if the intermediate results are written to output files using
