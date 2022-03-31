@@ -83,6 +83,8 @@ def forecast(
     num_workers=1,
     use_multiprocessing=False,
     measure_time=False,
+    callback=None,
+    return_output=True,
 ):
     """Generate a deterministic or ensemble nowcast by using the Lagrangian
     INtegro-Difference equation model with Autoregression (LINDA) model.
@@ -178,6 +180,16 @@ def forecast(
     measure_time: bool, optional
         If set to True, measure, print and return the computation time.
         Default: False
+    callback: function, optional
+        Optional function that is called after computation of each time step of
+        the nowcast. The function takes one argument: a three-dimensional array
+        of shape (n_ens_members,h,w), where h and w are the height and width
+        of the input precipitation fields, respectively. This can be used, for
+        instance, writing the outputs into files.
+    return_output: bool, optional
+        Set to False to disable returning the outputs as numpy arrays. This can
+        save memory if the intermediate results are written to output files
+        using the callback function.
 
     Returns
     -------
@@ -188,7 +200,9 @@ def forecast(
         dropped. The time series starts from t0 + timestep, where timestep is
         taken from the input fields. If measure_time is True, the return value
         is a three-element tuple containing the nowcast array, the initialization
-        time of the nowcast generator and the time used in the main loop (seconds).
+        time of the nowcast generator and the time used in the main loop
+        (seconds). If return_output is set to False, a single None value is
+        returned instead.
 
     Notes
     -----
@@ -331,12 +345,17 @@ def forecast(
         seed,
         measure_time,
         True,
+        return_output,
+        callback,
     )
 
-    if measure_time:
-        return fct[0], init_time, fct[1]
+    if return_output:
+        if measure_time:
+            return fct[0], init_time, fct[1]
+        else:
+            return fct
     else:
-        return fct
+        return None
 
 
 def _check_inputs(precip, velocity, timesteps, ari_order):
@@ -910,6 +929,8 @@ def _linda_forecast(
     seed,
     measure_time,
     print_info,
+    return_output,
+    callback,
 ):
     """Compute LINDA nowcast."""
     # compute convolved difference fields
@@ -968,9 +989,6 @@ def _linda_forecast(
         "psi": fct_gen["psi"],
     }
 
-    # TODO: implement callback, currently set to None
-    # TODO: implement return_output, currently set to False
-    # TODO: implement vel_pert_gen
     precip_f = nowcast_main_loop(
         precip[-1],
         fct_gen["velocity"],
@@ -981,21 +999,23 @@ def _linda_forecast(
         extrap_kwargs=fct_gen["extrap_kwargs"],
         vel_pert_gen=vps,
         params=params,
-        callback=None,
-        return_output=True,
+        callback=callback,
+        return_output=return_output,
         num_workers=fct_gen["num_workers"],
         measure_time=measure_time,
     )
     if measure_time:
         precip_f, mainloop_time = precip_f
 
-    # TODO: implement return_output
-    if not fct_gen["add_perturbations"]:
-        precip_f = precip_f[0]
-    if measure_time:
-        return precip_f, mainloop_time
+    if return_output:
+        if not fct_gen["add_perturbations"]:
+            precip_f = precip_f[0]
+        if measure_time:
+            return precip_f, mainloop_time
+        else:
+            return precip_f
     else:
-        return precip_f
+        return None
 
 
 def _linda_deterministic_init(
@@ -1272,6 +1292,8 @@ def _linda_perturbation_init(
         None,
         False,
         False,
+        True,
+        None,
     )
 
     # compute multiplicative forecast errors
