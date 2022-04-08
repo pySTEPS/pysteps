@@ -51,8 +51,6 @@ def forecast(
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
-    callback=None,
-    return_output=True,
     seed=None,
     num_workers=1,
     fft_method="numpy",
@@ -63,6 +61,8 @@ def forecast(
     vel_pert_kwargs=None,
     mask_kwargs=None,
     measure_time=False,
+    callback=None,
+    return_output=True,
 ):
     """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
@@ -138,16 +138,6 @@ def forecast(
         one, 'mean'=adjust only the conditional mean value of the forecast field
         in precipitation areas, None=no matching applied. Using 'mean' requires
         that mask_method is not None.
-    callback: function, optional
-        Optional function that is called after computation of each time step of
-        the nowcast. The function takes one argument: a three-dimensional array
-        of shape (n_ens_members,h,w), where h and w are the height and width
-        of the input precipitation fields, respectively. This can be used, for
-        instance, writing the outputs into files.
-    return_output: bool, optional
-        Set to False to disable returning the outputs as numpy arrays. This can
-        save memory if the intermediate results are written to output files using
-        the callback function.
     seed: int, optional
         Optional seed number for the random generators.
     num_workers: int, optional
@@ -234,6 +224,16 @@ def forecast(
         The mask increment is defined as mask_f*timestep/kmperpixel.
     measure_time: bool
         If set to True, measure, print and return the computation time.
+    callback: function, optional
+        Optional function that is called after computation of each time step of
+        the nowcast. The function takes one argument: a three-dimensional array
+        of shape (n_ens_members,h,w), where h and w are the height and width
+        of the input precipitation fields, respectively. This can be used, for
+        instance, writing the outputs into files.
+    return_output: bool, optional
+        Set to False to disable returning the outputs as numpy arrays. This can
+        save memory if the intermediate results are written to output files using
+        the callback function.
 
     Returns
     -------
