@@ -266,9 +266,9 @@ def nowcast_main_loop(
                     displacement = [None for i in range(precip_f_ip.shape[0])]
 
                 if precip_f_out is None and return_output:
-                    precip_f_out = [[] for j in range(precip_f_ip.shape[0])]
+                    precip_f_out = [[] for i in range(precip_f_ip.shape[0])]
 
-                precip_f_out_cur = []
+                precip_f_out_cur = [None for i in range(precip_f_ip.shape[0])]
 
                 def worker(i):
                     extrap_kwargs_ = extrap_kwargs.copy()
@@ -286,7 +286,7 @@ def nowcast_main_loop(
                         **extrap_kwargs_,
                     )
 
-                    precip_f_out_cur.append(precip_f_ep[0])
+                    precip_f_out_cur[i] = precip_f_ep[0]
                     if return_output:
                         precip_f_out[i].append(precip_f_ep[0])
 
