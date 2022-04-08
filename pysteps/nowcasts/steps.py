@@ -821,7 +821,11 @@ def _update(state, params):
 
         precip_f_out.append(precip_f)
 
-    if DASK_IMPORTED and params["num_ensemble_workers"] > 1:
+    if (
+        DASK_IMPORTED
+        and params["n_ens_members"] > 1
+        and params["num_ensemble_workers"] > 1
+    ):
         res = []
         for j in range(params["n_ens_members"]):
             res.append(dask.delayed(worker)(j))
