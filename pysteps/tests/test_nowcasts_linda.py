@@ -1,7 +1,9 @@
+from datetime import timedelta
+import os
 import numpy as np
 import pytest
 
-from pysteps import motion, verification
+from pysteps import io, motion, nowcasts, verification
 from pysteps.nowcasts.linda import forecast
 from pysteps.tests.helpers import get_precipitation_fields
 
@@ -71,7 +73,7 @@ def test_linda(
         kmperpixel=4.0,
         timestep=metadata["accutime"],
         measure_time=measure_time,
-        num_ens_members=5,
+        n_ens_members=5,
         num_workers=num_workers,
         seed=42,
     )
@@ -139,3 +141,76 @@ def test_linda_wrong_inputs():
     # dimension mismatch between precip_fields and advection_field
     with pytest.raises(ValueError):
         forecast(np.zeros((3, 2, 3)), velocity, 1)
+
+
+def test_linda_callback(tmp_path):
+    """Test LINDA callback functionality to export the output as a netcdf."""
+    n_ens_members = 2
+    n_timesteps = 3
+
+    precip_input, metadata = get_precipitation_fields(
+        num_prev_files=2,
+        num_next_files=0,
+        return_raw=False,
+        metadata=True,
+        upscale=2000,
+    )
+    precip_input = precip_input.filled()
+    field_shape = (precip_input.shape[1], precip_input.shape[2])
+    startdate = metadata["timestamps"][-1]
+    timestep = metadata["accutime"]
+
+    motion_field = np.zeros((2, *field_shape))
+
+    exporter = io.initialize_forecast_exporter_netcdf(
+        outpath=tmp_path.as_posix(),
+        outfnprefix="test_linda",
+        startdate=startdate,
+        timestep=timestep,
+        n_timesteps=n_timesteps,
+        shape=field_shape,
+        n_ens_members=n_ens_members,
+        metadata=metadata,
+        incremental="timestep",
+    )
+
+    def callback(array):
+        return io.export_forecast_dataset(array, exporter)
+
+    precip_output = nowcasts.get_method("linda")(
+        precip_input,
+        motion_field,
+        timesteps=n_timesteps,
+        add_perturbations=False,
+        n_ens_members=n_ens_members,
+        kmperpixel=4.0,
+        timestep=metadata["accutime"],
+        callback=callback,
+        return_output=True,
+    )
+    io.close_forecast_files(exporter)
+
+    # assert that netcdf exists and its size is not zero
+    tmp_file = os.path.join(tmp_path, "test_linda.nc")
+    assert os.path.exists(tmp_file) and os.path.getsize(tmp_file) > 0
+
+    # assert that the file can be read by the nowcast importer
+    precip_netcdf, metadata_netcdf = io.import_netcdf_pysteps(tmp_file, dtype="float64")
+
+    # assert that the dimensionality of the array is as expected
+    assert precip_netcdf.ndim == 4, "Wrong number of dimensions"
+    assert precip_netcdf.shape[0] == n_ens_members, "Wrong ensemble size"
+    assert precip_netcdf.shape[1] == n_timesteps, "Wrong number of lead times"
+    assert precip_netcdf.shape[2:] == field_shape, "Wrong field shape"
+
+    # assert that the saved output is the same as the original output
+    assert np.allclose(
+        precip_netcdf, precip_output, equal_nan=True
+    ), "Wrong output values"
+
+    # assert that leadtimes and timestamps are as expected
+    td = timedelta(minutes=timestep)
+    leadtimes = [(i + 1) * timestep for i in range(n_timesteps)]
+    timestamps = [startdate + (i + 1) * td for i in range(n_timesteps)]
+    assert (metadata_netcdf["leadtimes"] == leadtimes).all(), "Wrong leadtimes"
+    assert (metadata_netcdf["timestamps"] == timestamps).all(), "Wrong timestamps"
