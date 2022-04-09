@@ -74,7 +74,7 @@ def forecast(
     extrap_kwargs=None,
     add_perturbations=True,
     pert_thrs=(0.5, 1.0),
-    num_ens_members=10,
+    n_ens_members=10,
     vel_pert_method=None,
     vel_pert_kwargs=None,
     kmperpixel=None,
@@ -150,7 +150,7 @@ def forecast(
     pert_thrs: float
         Two-element tuple containing the threshold values for estimating the
         perturbation parameters (mm/h). Default: (0.5, 1.0)
-    num_ens_members: int, optional
+    n_ens_members: int, optional
         The number of ensemble members to generate. Default: 10
     vel_pert_method: {'bps', None}, optional
         Name of the generator to use for perturbing the advection field. See
@@ -185,16 +185,16 @@ def forecast(
         the nowcast. The function takes one argument: a three-dimensional array
         of shape (n_ens_members,h,w), where h and w are the height and width
         of the input precipitation fields, respectively. This can be used, for
-        instance, writing the outputs into files.
+        instance, writing the outputs into files. Default: None
     return_output: bool, optional
         Set to False to disable returning the outputs as numpy arrays. This can
         save memory if the intermediate results are written to output files
-        using the callback function.
+        using the callback function. Default: True
 
     Returns
     -------
     out: numpy.ndarray
-        A four-dimensional array of shape (num_ens_members, timesteps, m, n)
+        A four-dimensional array of shape (n_ens_members, timesteps, m, n)
         containing a time series of forecast precipitation fields for each
         ensemble member. If add_perturbations is False, the first dimension is
         dropped. The time series starts from t0 + timestep, where timestep is
@@ -266,7 +266,7 @@ def forecast(
     if add_perturbations:
         print(f"error dist. window radius:  {errdist_window_radius}")
         print(f"error ACF window radius:    {acf_window_radius}")
-        print(f"ensemble size:              {num_ens_members}")
+        print(f"ensemble size:              {n_ens_members}")
         print(f"parallel workers:           {num_workers}")
         print(f"seed:                       {seed}")
         if vel_pert_method == "bps":
@@ -341,7 +341,7 @@ def forecast(
         fct_gen,
         precip_pert_gen,
         vel_pert_gen,
-        num_ens_members,
+        n_ens_members,
         seed,
         measure_time,
         True,
@@ -925,7 +925,7 @@ def _linda_forecast(
     fct_gen,
     precip_pert_gen,
     vel_pert_gen,
-    num_ensemble_members,
+    n_ensemble_members,
     seed,
     measure_time,
     print_info,
@@ -948,7 +948,7 @@ def _linda_forecast(
     if precip_pert_gen is not None:
         rs_precip_pert = []
         np.random.seed(seed)
-        for i in range(num_ensemble_members):
+        for i in range(n_ensemble_members):
             rs = np.random.RandomState(seed)
             rs_precip_pert.append(rs)
             seed = rs.randint(0, high=1e9)
@@ -958,7 +958,7 @@ def _linda_forecast(
     if vel_pert_gen is not None:
         vps = []
         np.random.seed(seed)
-        for i in range(num_ensemble_members):
+        for i in range(n_ensemble_members):
             rs = np.random.RandomState(seed)
             vp = vel_pert_gen["init_func"](seed)
             vps.append(
@@ -971,9 +971,9 @@ def _linda_forecast(
         vps = None
 
     state = {
-        "precip_fct": [precip[-1].copy() for i in range(num_ensemble_members)],
+        "precip_fct": [precip[-1].copy() for i in range(n_ensemble_members)],
         "precip_lagr_diff": [
-            precip_lagr_diff.copy() for i in range(num_ensemble_members)
+            precip_lagr_diff.copy() for i in range(n_ensemble_members)
         ],
         "rs_precip_pert": rs_precip_pert,
     }
@@ -982,9 +982,9 @@ def _linda_forecast(
         "kernels_1": fct_gen["kernels_1"],
         "kernels_2": fct_gen["kernels_2"],
         "mask_adv": fct_gen["mask_adv"],
-        "num_ens_members": num_ensemble_members,
+        "num_ens_members": n_ensemble_members,
         "num_workers": fct_gen["num_workers"],
-        "num_ensemble_workers": min(num_ensemble_members, fct_gen["num_workers"]),
+        "num_ensemble_workers": min(n_ensemble_members, fct_gen["num_workers"]),
         "precip_pert_gen": precip_pert_gen,
         "psi": fct_gen["psi"],
     }
