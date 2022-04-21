@@ -368,7 +368,8 @@ def forecast(
         vel_pert_kwargs = dict()
 
     if clim_kwargs is None:
-        clim_kwargs = dict()
+        # Make sure clim_kwargs at least contains the number of models
+        clim_kwargs = dict({"n_models": precip_models.shape[0]})
 
     if mask_kwargs is None:
         mask_kwargs = dict()
