@@ -1440,11 +1440,19 @@ def calculate_weights_spn(correlations, cov):
             raise ValueError("cov must contain a covariance matrix")
         else:
             # Make a numpy matrix out of cov and get the inverse
+            cov = np.where(cov == 0.0, 10e-5, cov)
+            if cov[0][0] != 1.0:
+                cov[0][0] = 1.0
+            if cov[1][1] != 1.0:
+                cov[1][1] = 1.0
             cov_matrix = np.asmatrix(cov)
             cov_matrix_inv = cov_matrix.getI()
             # The component weights are the dot product between cov_matrix_inv
             # and cor_vec
             weights = cov_matrix_inv.dot(correlations)
+            weights = np.nan_to_num(
+                weights, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5
+            )
             # If the dot product of the weights with the correlations is
             # larger than 1.0, we assign a weight of 0.0 to the noise (to make
             # it numerically stable)
@@ -1452,7 +1460,7 @@ def calculate_weights_spn(correlations, cov):
                 noise_weight = np.array([0])
             # Calculate the noise weight
             else:
-                noise_weight = np.asarray(np.sqrt(1 - weights.dot(correlations)))[0]
+                noise_weight = np.asarray(np.sqrt(1.0 - weights.dot(correlations)))[0]
             # Make sure the weights are positive, otherwise weight = 0.0
             weights = np.where(weights < 0.0, 0.0, weights)[0]
             # Finally, add the noise_weights to the weights variable.
@@ -1466,6 +1474,9 @@ def calculate_weights_spn(correlations, cov):
     else:
         noise_weight = 1.0 - correlations
         weights = np.concatenate((correlations, noise_weight), axis=0)
+
+    # Make sure weights are always a real number
+    weights = np.nan_to_num(weights, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5)
 
     return weights
 
