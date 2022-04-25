@@ -1447,7 +1447,7 @@ def calculate_weights_spn(correlations, cov):
             if np.linalg.det(cov) == 0.0:
                 cov = cov - 10e-5
             # Ensure the correlation of the model with itself is always 1.0
-            for i in range(len(cov)):
+            for i, _ in enumerate(cov):
                 cov[i][i] = 1.0
             # Make a numpy matrix out of the array
             cov_matrix = np.asmatrix(cov)
