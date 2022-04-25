@@ -1435,17 +1435,23 @@ def calculate_weights_spn(correlations, cov):
     # Check if the correlations are positive, otherwise rho = 10e-5
     correlations = np.where(correlations < 10e-5, 10e-5, correlations)
 
-    if correlations.shape[0] > 1:
+    if correlations.shape[0] > 1 and len(cov) > 1:
         if isinstance(cov, type(None)):
             raise ValueError("cov must contain a covariance matrix")
         else:
+            print(cov)
             # Make a numpy matrix out of cov and get the inverse
             cov = np.where(cov == 0.0, 10e-5, cov)
-            if cov[0][0] != 1.0:
-                cov[0][0] = 1.0
-            if cov[1][1] != 1.0:
-                cov[1][1] = 1.0
+            # Make sure the determinant of the matrix is not zero, otherwise
+            # subtract 10e-5 from the cross-correlations between the models
+            if np.linalg.det(cov) == 0.0:
+                cov = cov - 10e-5
+            # Ensure the correlation of the model with itself is always 1.0
+            for i in range(len(cov)):
+                cov[i][i] = 1.0
+            # Make a numpy matrix out of the array
             cov_matrix = np.asmatrix(cov)
+            # Get the inverse of the matrix
             cov_matrix_inv = cov_matrix.getI()
             # The component weights are the dot product between cov_matrix_inv
             # and cor_vec
