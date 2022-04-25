@@ -114,7 +114,10 @@ def test_steps_blending(
 
     # Also set the outdir_path and clim_kwargs
     outdir_path_skill = "./tmp/"
-    clim_kwargs = dict({"n_models": n_models, "window_length": 30})
+    if n_models == 1:
+        clim_kwargs = None
+    else:
+        clim_kwargs = dict({"n_models": n_models, "window_length": 30})
 
     ###
     # First threshold the data and convert it to dBR
