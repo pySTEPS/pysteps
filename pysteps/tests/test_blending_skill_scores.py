@@ -110,7 +110,7 @@ skill_scores_arg_values = [
             ]
         ),
         0,
-        1,
+        None,
     ),
     (
         obs_6lev,
@@ -250,7 +250,10 @@ def test_blending_skill_scores(
     extrapolation field.
 
     """
-    skill_kwargs = {"n_models": number_of_models}
+    if number_of_models != None:
+        skill_kwargs = {"n_models": number_of_models}
+    else:
+        skill_kwargs = None
 
     domain_mask = np.full(obs[0, :, :].shape, False, dtype=bool)
 
