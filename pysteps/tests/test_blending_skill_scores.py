@@ -69,6 +69,8 @@ skill_scores_arg_names = (
     "expected_cor_t0",
     "expected_cor_nwp_lt",
     "expected_cor_nowcast_lt",
+    "n_model",
+    "number_of_models",
 )
 
 # Test function values
@@ -107,6 +109,8 @@ skill_scores_arg_values = [
                 0.996475,
             ]
         ),
+        0,
+        None,
     ),
     (
         obs_6lev,
@@ -122,6 +126,8 @@ skill_scores_arg_values = [
             [0.97455941, 0.9356775, 0.81972779, 0.55202975, 0.31534738, 0.02264599]
         ),
         np.array([0.996475, 0.996475, 0.996475, 0.996475, 0.996475, 0.996475]),
+        0,
+        1,
     ),
     (
         obs_9lev,
@@ -159,6 +165,8 @@ skill_scores_arg_values = [
                 0.996475,
             ]
         ),
+        0,
+        1,
     ),
     (
         obs_8lev,
@@ -183,6 +191,34 @@ skill_scores_arg_values = [
                 0.996475,
             ]
         ),
+        0,
+        1,
+    ),
+    (
+        obs_8lev,
+        mod_8lev,
+        0,
+        PHI_8lev,
+        None,
+        clim_cor_values_8lev,
+        regr_pars_8lev,
+        8,
+        np.repeat(1.0, 8),
+        np.repeat(1.0, 8),
+        np.array(
+            [
+                0.996475,
+                0.996475,
+                0.996475,
+                0.996475,
+                0.996475,
+                0.996475,
+                0.996475,
+                0.996475,
+            ]
+        ),
+        1,
+        2,
     ),
 ]
 
@@ -203,6 +239,8 @@ def test_blending_skill_scores(
     expected_cor_t0,
     expected_cor_nwp_lt,
     expected_cor_nowcast_lt,
+    n_model,
+    number_of_models,
 ):
     """Tests if the skill_score functions behave correctly. A dummy gridded
     model and observation field should be given for n_cascade_levels, which
@@ -212,6 +250,11 @@ def test_blending_skill_scores(
     extrapolation field.
 
     """
+    if number_of_models != None:
+        skill_kwargs = {"n_models": number_of_models}
+    else:
+        skill_kwargs = None
+
     domain_mask = np.full(obs[0, :, :].shape, False, dtype=bool)
 
     # Calculate the spatial correlation of the given model field
@@ -238,7 +281,10 @@ def test_blending_skill_scores(
     # a lead time in minutes
     # First, check if the climatological values are returned correctly
     correlations_clim, regr_clim = clim_regr_values(
-        n_cascade_levels=n_cascade_levels, outdir_path="./tmp/"
+        n_cascade_levels=n_cascade_levels,
+        outdir_path="./tmp/",
+        n_model=n_model,
+        skill_kwargs=skill_kwargs,
     )
     assert (
         correlations_clim.shape[0] == n_cascade_levels
