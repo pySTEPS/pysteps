@@ -1440,7 +1440,6 @@ def calculate_weights_spn(correlations, cov):
         if isinstance(cov, type(None)):
             raise ValueError("cov must contain a covariance matrix")
         else:
-            print(cov)
             # Make a numpy matrix out of cov and get the inverse
             cov = np.where(cov == 0.0, 10e-5, cov)
             # Make sure the determinant of the matrix is not zero, otherwise
