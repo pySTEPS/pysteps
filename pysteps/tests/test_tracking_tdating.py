@@ -25,20 +25,22 @@ arg_values_multistep = [
 def test_tracking_tdating_dating_multistep(source, len_timesteps):
     pytest.importorskip("skimage")
 
-    input, metadata = get_precipitation_fields(
+    input_fields, metadata = get_precipitation_fields(
         0, len_timesteps, True, True, 4000, source
     )
-    input, __ = to_reflectivity(input, metadata)
+    input_fields, __ = to_reflectivity(input_fields, metadata)
 
     timelist = metadata["timestamps"]
 
     # First half of timesteps
     tracks_1, cells, labels = dating(
-        input[0 : len_timesteps // 2], timelist[0 : len_timesteps // 2], mintrack=1
+        input_fields[0 : len_timesteps // 2],
+        timelist[0 : len_timesteps // 2],
+        mintrack=1,
     )
     # Second half of timesteps
     tracks_2, cells, _ = dating(
-        input[len_timesteps // 2 - 2 :],
+        input_fields[len_timesteps // 2 - 2 :],
         timelist[len_timesteps // 2 - 2 :],
         mintrack=1,
         start=2,
