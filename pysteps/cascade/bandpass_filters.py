@@ -85,7 +85,7 @@ def filter_uniform(shape, n):
 
 
 def filter_gaussian(
-    shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0, normalize=True
+    shape, n, l_0=None, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0, normalize=True
 ):
     """
     Implements a set of Gaussian bandpass filters in logarithmic frequency
@@ -100,7 +100,9 @@ def filter_gaussian(
         The number of frequency bands to use. Must be greater than 2.
     l_0: int
         Central frequency of the second band (the first band is always centered
-        at zero).
+        at zero). If set to None, l_0 is chosen automatically so that the ratio
+        between successive spatial scales is constant. This value is
+        l_0 = (0.5 * l)**(1 / (n-1)).
     gauss_scale: float
         Optional scaling prameter. Proportional to the standard deviation of
         the Gaussian weight functions.
@@ -131,6 +133,9 @@ def filter_gaussian(
         height, width = shape
     except TypeError:
         height, width = (shape, shape)
+
+    if l_0 is None:
+        l_0 = (0.5 * np.min(shape)) ** (1 / (n - 1))
 
     rx = np.s_[: int(width / 2) + 1]
 
@@ -183,7 +188,7 @@ def filter_gaussian(
     return result
 
 
-def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
+def _gaussweights_1d(l, n, l_0=None, gauss_scale=0.5, gauss_scale_0=0.5):
     e = pow(0.5 * l / l_0, 1.0 / (n - 2))
     r = [(l_0 * pow(e, k - 1), l_0 * pow(e, k)) for k in range(1, n - 1)]
 
