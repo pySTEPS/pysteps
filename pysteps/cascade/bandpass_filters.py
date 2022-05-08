@@ -134,8 +134,10 @@ def filter_gaussian(
     except TypeError:
         height, width = (shape, shape)
 
+    max_length = max(width, height)
+
     if l_0 is None:
-        l_0 = (0.5 * np.min(shape)) ** (1 / (n - 1))
+        l_0 = (0.5 * max_length) ** (1 / (n - 1))
 
     rx = np.s_[: int(width / 2) + 1]
 
@@ -148,8 +150,6 @@ def filter_gaussian(
     dy = int(height / 2) if height % 2 == 0 else int(height / 2) + 1
 
     r_2d = np.roll(np.sqrt(x_grid * x_grid + y_grid * y_grid), dy, axis=0)
-
-    max_length = max(width, height)
 
     r_max = int(max_length / 2) + 1
     r_1d = np.arange(r_max)
