@@ -15,6 +15,17 @@ from pysteps.io.exporters import export_forecast_dataset
 from pysteps.io.exporters import initialize_forecast_exporter_netcdf
 from pysteps.tests.helpers import get_precipitation_fields, get_invalid_mask
 
+# Test arguments
+exporter_arg_names = ("n_ens_members", "incremental")
+
+exporter_arg_values = [
+    (1, None),
+    (1, "timestep"),
+    (2, None),
+    (2, "timestep"),
+    (2, "member"),
+]
+
 
 def test_get_geotiff_filename():
     """Test the geotif name generator."""
@@ -34,7 +45,8 @@ def test_get_geotiff_filename():
         assert expected == file_name
 
 
-def test_io_export_netcdf_one_member_one_time_step():
+@pytest.mark.parametrize(exporter_arg_names, exporter_arg_values)
+def test_io_export_netcdf_one_member_one_time_step(n_ens_members, incremental):
     """
     Test the export netcdf.
     Also, test that the exported file can be read by the importer.
@@ -43,20 +55,20 @@ def test_io_export_netcdf_one_member_one_time_step():
     pytest.importorskip("pyproj")
 
     precip, metadata = get_precipitation_fields(
-        return_raw=True, metadata=True, source="fmi"
+        num_prev_files=2, return_raw=True, metadata=True, source="fmi"
     )
-    precip = precip.squeeze()
 
     invalid_mask = get_invalid_mask(precip)
 
-    # save it back to disk
     with tempfile.TemporaryDirectory() as outpath:
+        # save it back to disk
         outfnprefix = "test_netcdf_out"
         file_path = os.path.join(outpath, outfnprefix + ".nc")
         startdate = metadata["timestamps"][0]
         timestep = metadata["accutime"]
-        n_timesteps = 1
-        shape = precip.shape
+        n_timesteps = 3
+        shape = precip.shape[1:]
+
         exporter = initialize_forecast_exporter_netcdf(
             outpath,
             outfnprefix,
@@ -65,9 +77,25 @@ def test_io_export_netcdf_one_member_one_time_step():
             n_timesteps,
             shape,
             metadata,
-            n_ens_members=1,
+            n_ens_members=n_ens_members,
+            incremental=incremental,
         )
-        export_forecast_dataset(precip[np.newaxis, :], exporter)
+
+        if n_ens_members > 1:
+            precip = np.repeat(precip[np.newaxis, :, :, :], n_ens_members, axis=0)
+
+        if incremental == None:
+            export_forecast_dataset(precip, exporter)
+        if incremental == "timestep":
+            for t in range(n_timesteps):
+                if n_ens_members > 1:
+                    export_forecast_dataset(precip[:, t, :, :], exporter)
+                else:
+                    export_forecast_dataset(precip[t, :, :], exporter)
+        if incremental == "member":
+            for ens_mem in range(n_ens_members):
+                export_forecast_dataset(precip[ens_mem, :, :, :], exporter)
+
         close_forecast_files(exporter)
 
         # assert if netcdf file was saved and file size is not zero
@@ -78,11 +106,11 @@ def test_io_export_netcdf_one_member_one_time_step():
 
         precip_new, _ = import_netcdf_pysteps(output_file_path)
 
-        assert_array_almost_equal(precip, precip_new.data)
+        assert_array_almost_equal(precip.squeeze(), precip_new.data)
         assert precip_new.dtype == "single"
 
         precip_new, _ = import_netcdf_pysteps(output_file_path, dtype="double")
-        assert_array_almost_equal(precip, precip_new.data)
+        assert_array_almost_equal(precip.squeeze(), precip_new.data)
         assert precip_new.dtype == "double"
 
         precip_new, _ = import_netcdf_pysteps(output_file_path, fillna=-1000)

@@ -60,8 +60,8 @@ def save_skill(
     current_skill,
     validtime,
     outdir_path,
-    n_models=1,
     window_length=30,
+    **kwargs,
 ):
     """
     Add the current NWP skill to update today's daily average skill. If the day
@@ -79,8 +79,6 @@ def save_skill(
     outdir_path: string
       Path to folder where the historical skill are stored. Defaults to
       path_workdir from rcparams.
-    n_models: int, optional
-      Number of NWP models. Defaults to 1.
     window_length: int, optional
       Length of window (in days) of daily skill that should be retained.
       Defaults to 30.
@@ -124,7 +122,7 @@ def save_skill(
         if (
             past_skill is not None
             and past_skill.shape[2] == n_cascade_levels
-            and past_skill.shape[1] == n_models
+            and past_skill.shape[1] == skill_today["mean_skill"].shape[0]
         ):
             past_skill = np.append(past_skill, [skill_today["mean_skill"]], axis=0)
         else:
