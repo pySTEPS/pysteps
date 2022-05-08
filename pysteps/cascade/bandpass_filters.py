@@ -102,7 +102,7 @@ def filter_gaussian(
         Central frequency of the second band (the first band is always centered
         at zero). If set to None, l_0 is chosen automatically so that the ratio
         between successive spatial scales is constant. This value is
-        l_0 = (0.5 * l)**(1 / (n-1)).
+        l_0 = (0.5 * max(shape[0], shape[1])) ** (1 / (n-1)).
     gauss_scale: float
         Optional scaling parameter. Proportional to the standard deviation of
         the Gaussian weight functions.
