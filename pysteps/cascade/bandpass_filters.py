@@ -104,7 +104,7 @@ def filter_gaussian(
         between successive spatial scales is constant. This value is
         l_0 = (0.5 * l)**(1 / (n-1)).
     gauss_scale: float
-        Optional scaling prameter. Proportional to the standard deviation of
+        Optional scaling parameter. Proportional to the standard deviation of
         the Gaussian weight functions.
     gauss_scale_0: float
         Optional scaling parameter for the Gaussian function corresponding to
