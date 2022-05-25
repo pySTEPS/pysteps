@@ -22,6 +22,7 @@ Implementation of the linear blending between nowcast and NWP data.
 import numpy as np
 from pysteps import nowcasts
 from pysteps.utils import conversion
+from scipy.stats import norm
 
 
 def forecast(
@@ -37,6 +38,7 @@ def forecast(
     end_blending=240,
     fill_nwp=True,
     nowcast_kwargs=None,
+    saliency=False,
 ):
 
     """Generate a forecast by linearly blending nowcasts with NWP data
@@ -83,6 +85,8 @@ def forecast(
       no data mask of the nowcast.
     nowcast_kwargs: dict, optional
       Dictionary containing keyword arguments for the nowcast method.
+    saliency: bool, optional
+      Standard value is False. If True, saliency will be used for blending
 
     Returns
     -------
@@ -180,24 +184,70 @@ def forecast(
             # Set weights at times before start_blending and after end_blending
             if weight_nwp < 0.0:
                 weight_nwp = 0.0
+                if n_ens_members_max == 1:
+                    R_blended[i, :, :] = precip_nowcast[i, :, :]
+                else:
+                    R_blended[:, i, :, :] = precip_nowcast[:, i, :, :]
             elif weight_nwp > 1.0:
                 weight_nwp = 1.0
-
-            # Calculate weight_nowcast
-            weight_nowcast = 1.0 - weight_nwp
-
-            # Calculate output by combining precip_nwp and precip_nowcast,
-            # while distinguishing between ensemble and non-ensemble methods
-            if n_ens_members_max == 1:
-                R_blended[i, :, :] = (
-                    weight_nwp * precip_nwp[i, :, :]
-                    + weight_nowcast * precip_nowcast[i, :, :]
-                )
+                if n_ens_members_max == 1:
+                    R_blended[i, :, :] = precip_nwp[i, :, :]
+                else:
+                    R_blended[:, i, :, :] = precip_nwp[:, i, :, :]
             else:
-                R_blended[:, i, :, :] = (
-                    weight_nwp * precip_nwp[:, i, :, :]
-                    + weight_nowcast * precip_nowcast[:, i, :, :]
-                )
+                # Calculate weight_nowcast
+                weight_nowcast = 1.0 - weight_nwp
+
+                # Calculate output by combining precip_nwp and precip_nowcast,
+                # while distinguishing between ensemble and non-ensemble methods
+                if saliency:
+                    if n_ens_members_max == 1:
+                        R_blended[i, :, :] = (
+                            get_ws(
+                                weight_nowcast,
+                                precip_nowcast[i, :, :],
+                                precip_nwp[i, :, :],
+                            )
+                            * precip_nowcast[i, :, :]
+                            + (
+                                1
+                                - get_ws(
+                                    weight_nwp,
+                                    precip_nowcast[i, :, :],
+                                    precip_nwp[i, :, :],
+                                )
+                            )
+                            * precip_nwp[i, :, :]
+                        )
+                    else:
+                        R_blended[:, i, :, :] = (
+                            get_ws(
+                                weight_nowcast,
+                                precip_nowcast[:, i, :, :],
+                                precip_nwp[:, i, :, :],
+                            )
+                            * precip_nowcast[:, i, :, :]
+                            + (
+                                1
+                                - get_ws(
+                                    weight_nwp,
+                                    precip_nowcast[:, i, :, :],
+                                    precip_nwp[:, i, :, :],
+                                )
+                            )
+                            * precip_nwp[:, i, :, :]
+                        )
+                else:
+                    if n_ens_members_max == 1:
+                        R_blended[i, :, :] = (
+                            weight_nwp * precip_nwp[i, :, :]
+                            + weight_nowcast * precip_nowcast[i, :, :]
+                        )
+                    else:
+                        R_blended[:, i, :, :] = (
+                            weight_nwp * precip_nwp[:, i, :, :]
+                            + weight_nowcast * precip_nowcast[:, i, :, :]
+                        )
 
             # Find where the NaN values are and replace them with NWP data
             if fill_nwp:
@@ -208,3 +258,70 @@ def forecast(
         R_blended = precip_nowcast
 
     return R_blended
+
+
+def get_ranked_salience(precip_nowcast, precip_nwp):
+    """
+    Calculate ranked salience
+
+    Args:
+    precip_nowcast: array_like
+      Array of shape (m,n) containing the extrapolated precipitation field at a specified timestep
+    precip_nwp: array_like
+      Array of shape (m,n) containing the NWP fields at a specified timestep
+
+    Returns:
+      Array of shape (m,n) containing ranked salience
+    """
+
+    # calcutate normalized intensity
+    if np.max(precip_nowcast) == 0:
+        norm_nowcast = np.zeros_like(precip_nowcast)
+    else:
+        norm_nowcast = precip_nowcast / np.max(precip_nowcast)
+
+    if np.max(precip_nwp) == 0:
+        norm_nwp = np.zeros_like(precip_nwp)
+    else:
+        norm_nwp = precip_nwp / np.max(precip_nwp)
+
+    diff = norm_nowcast - norm_nwp
+
+    # get cumulative distribution
+    ranked_salience = norm.cdf(diff)
+
+    return ranked_salience
+
+
+def get_ws(weight, precip_nowcast, precip_nwp):
+    """
+    Calculate salience weight based on linear weight and ranked salience
+
+    Args:
+    weight: int
+      Varying between 0 and 1
+    precip_nowcast: array_like
+      Array of shape (m,n) containing the extrapolated precipitation field at a specified timestep
+    precip_nwp: array_like
+      Array of shape (m,n) containing the NWP fields at a specified timestep
+
+    Returns: array_like
+      Array of shape (m,n) containing salience weight
+    """
+
+    # Calculate ranked salience
+    ranked_salience = get_ranked_salience(precip_nowcast, precip_nwp)
+
+    # Calculate salience weighte
+    ws = 0.5 * (
+        (weight * ranked_salience)
+        / (weight * ranked_salience + (1 - weight) * (1 - ranked_salience))
+        + (
+            np.sqrt(ranked_salience**2 + weight**2)
+            / (
+                np.sqrt(ranked_salience**2 + weight**2)
+                + np.sqrt((1 - ranked_salience) ** 2 + (1 - weight) ** 2)
+            )
+        )
+    )
+    return ws

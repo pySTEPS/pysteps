@@ -11,11 +11,14 @@ blended nowcasts with NWP models.
     get_method
 """
 
+from functools import partial
+
 from pysteps.blending import linear_blending
 from pysteps.blending import steps
 
 _blending_methods = dict()
 _blending_methods["linear_blending"] = linear_blending.forecast
+_blending_methods["salient_blending"] = partial(linear_blending.forecast, saliency=True)
 _blending_methods["steps"] = steps.forecast
 
 
@@ -30,6 +33,9 @@ def get_method(name):
     |     Name         |              Description                             |
     +==================+======================================================+
     | linear_blending  | the linear blending of a nowcast method with other   |
+    |                  | data (e.g. NWP data).                                |
+    +------------------+------------------------------------------------------+
+    | salient_blending | the salienct blending of a nowcast method with other |
     |                  | data (e.g. NWP data).                                |
     +------------------+------------------------------------------------------+
     | steps            | the STEPS stochastic nowcasting blending method      |
