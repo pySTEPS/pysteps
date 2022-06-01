@@ -35,8 +35,12 @@ def get_method(name):
     | linear_blending  | the linear blending of a nowcast method with other   |
     |                  | data (e.g. NWP data).                                |
     +------------------+------------------------------------------------------+
-    | salient_blending | the salienct blending of a nowcast method with other |
-    |                  | data (e.g. NWP data).                                |
+    | salient_blending | the salient blending of a nowcast method with other  |
+    |                  | data (e.g. NWP data) described in :cite:`Hwang2015`. |
+    |                  | The blending is based on intensities and forecast    |
+    |                  | times. The blended product preserve pixel            |
+    |                  | intensities with time if they are strong enough based|
+    |                  | on there ranked salience.                            |
     +------------------+------------------------------------------------------+
     | steps            | the STEPS stochastic nowcasting blending method      |
     |                  | described in :cite:`Seed2003`, :cite:`BPS2006` and   |
