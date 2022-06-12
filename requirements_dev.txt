@@ -18,6 +18,7 @@ h5py
 scikit-image
 pandas
 rasterio
+gdal
 
 # Testing
 pytest

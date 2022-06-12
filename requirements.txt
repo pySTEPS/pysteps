@@ -7,3 +7,4 @@ matplotlib
 jsmin
 jsonschema
 netCDF4
+gdal
