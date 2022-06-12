@@ -232,7 +232,7 @@ def clim_regr_values(n_cascade_levels, outdir_path, n_model=0, skill_kwargs=None
     """
 
     if skill_kwargs is None:
-        skill_kwargs = dict()
+        skill_kwargs = {"n_models": 1}
 
     # First, obtain climatological skill values
     try:
@@ -242,8 +242,8 @@ def clim_regr_values(n_cascade_levels, outdir_path, n_model=0, skill_kwargs=None
     except FileNotFoundError:
         # The climatological skill values file does not exist yet, so we'll
         # use the default values from BPS2004.
-        clim_cor_values = np.array(
-            [[0.848, 0.537, 0.237, 0.065, 0.020, 0.0044, 0.0052, 0.0040]]
+        clim_cor_values = clim.get_default_skill(
+            n_cascade_levels=n_cascade_levels, n_models=skill_kwargs["n_models"]
         )
 
     clim_cor_values = clim_cor_values[n_model, :]

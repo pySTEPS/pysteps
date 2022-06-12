@@ -368,7 +368,8 @@ def forecast(
         vel_pert_kwargs = dict()
 
     if clim_kwargs is None:
-        clim_kwargs = dict()
+        # Make sure clim_kwargs at least contains the number of models
+        clim_kwargs = dict({"n_models": precip_models.shape[0]})
 
     if mask_kwargs is None:
         mask_kwargs = dict()
@@ -1435,16 +1436,29 @@ def calculate_weights_spn(correlations, cov):
     # Check if the correlations are positive, otherwise rho = 10e-5
     correlations = np.where(correlations < 10e-5, 10e-5, correlations)
 
-    if correlations.shape[0] > 1:
+    if correlations.shape[0] > 1 and len(cov) > 1:
         if isinstance(cov, type(None)):
             raise ValueError("cov must contain a covariance matrix")
         else:
             # Make a numpy matrix out of cov and get the inverse
+            cov = np.where(cov == 0.0, 10e-5, cov)
+            # Make sure the determinant of the matrix is not zero, otherwise
+            # subtract 10e-5 from the cross-correlations between the models
+            if np.linalg.det(cov) == 0.0:
+                cov = cov - 10e-5
+            # Ensure the correlation of the model with itself is always 1.0
+            for i, _ in enumerate(cov):
+                cov[i][i] = 1.0
+            # Make a numpy matrix out of the array
             cov_matrix = np.asmatrix(cov)
+            # Get the inverse of the matrix
             cov_matrix_inv = cov_matrix.getI()
             # The component weights are the dot product between cov_matrix_inv
             # and cor_vec
             weights = cov_matrix_inv.dot(correlations)
+            weights = np.nan_to_num(
+                weights, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5
+            )
             # If the dot product of the weights with the correlations is
             # larger than 1.0, we assign a weight of 0.0 to the noise (to make
             # it numerically stable)
@@ -1452,7 +1466,7 @@ def calculate_weights_spn(correlations, cov):
                 noise_weight = np.array([0])
             # Calculate the noise weight
             else:
-                noise_weight = np.asarray(np.sqrt(1 - weights.dot(correlations)))[0]
+                noise_weight = np.asarray(np.sqrt(1.0 - weights.dot(correlations)))[0]
             # Make sure the weights are positive, otherwise weight = 0.0
             weights = np.where(weights < 0.0, 0.0, weights)[0]
             # Finally, add the noise_weights to the weights variable.
@@ -1466,6 +1480,9 @@ def calculate_weights_spn(correlations, cov):
     else:
         noise_weight = 1.0 - correlations
         weights = np.concatenate((correlations, noise_weight), axis=0)
+
+    # Make sure weights are always a real number
+    weights = np.nan_to_num(weights, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5)
 
     return weights
 
