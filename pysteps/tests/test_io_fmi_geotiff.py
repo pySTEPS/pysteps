@@ -6,6 +6,7 @@ import pysteps
 from pysteps.tests.helpers import smart_assert
 
 pytest.importorskip("pyproj")
+pytest.importorskip("osgeo")
 
 root_path = pysteps.rcparams.data_sources["fmi_geotiff"]["root_path"]
 filename = os.path.join(
