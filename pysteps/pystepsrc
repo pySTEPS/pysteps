@@ -25,7 +25,7 @@
             }
         },
         "fmi": {
-            "root_path": "./radar/fmi",
+            "root_path": "./radar/fmi/pgm",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.lowest_FIN_SUOMI1",
             "fn_ext": "pgm.gz",
@@ -34,6 +34,15 @@
             "importer_kwargs": {
                 "gzipped": true
             }
+        },
+        "fmi_geotiff": {
+            "root_path": "./radar/fmi/geotiff",
+            "path_fmt": "%Y%m%d",
+            "fn_pattern": "%Y%m%d%H%M_FINUTM.tif",
+            "fn_ext": "tif",
+            "importer": "geotiff",
+            "timestep": 5,
+            "importer_kwargs": {}
         },
         "mch": {
             "root_path": "./radar/mch",

@@ -27,6 +27,7 @@ dependencies:
   - pandas
   - scikit-image
   - rasterio
+  - gdal
   # Test dependencies
   - pytest
   - pytest-cov
