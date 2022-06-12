@@ -579,10 +579,6 @@ def import_fmi_geotiff(filename, **kwargs):
     rb = f.GetRasterBand(1)
     precip = rb.ReadAsArray().astype(float)
     mask = precip == 255
-    if rb.GetScale() is not None:
-        precip *= rb.GetScale()
-    if rb.GetOffset() is not None:
-        precip += rb.GetOffset()
     precip = (precip - 64.0) / 2.0
     precip[mask] = np.nan
 
