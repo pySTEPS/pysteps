@@ -66,7 +66,7 @@ def filter_uniform(shape, n):
     """
     del n  # Unused
 
-    result = {}
+    out = {}
 
     try:
         height, width = shape
@@ -75,13 +75,13 @@ def filter_uniform(shape, n):
 
     r_max = int(max(width, height) / 2) + 1
 
-    result["weights_1d"] = np.ones((1, r_max))
-    result["weights_2d"] = np.ones((1, height, int(width / 2) + 1))
-    result["central_freqs"] = None
-    result["central_wavenumbers"] = None
-    result["shape"] = shape
+    out["weights_1d"] = np.ones((1, r_max))
+    out["weights_2d"] = np.ones((1, height, int(width / 2) + 1))
+    out["central_freqs"] = None
+    out["central_wavenumbers"] = None
+    out["shape"] = shape
 
-    return result
+    return out
 
 
 def filter_gaussian(
@@ -172,20 +172,20 @@ def filter_gaussian(
             weights_1d[k, :] /= weights_1d_sum
             weights_2d[k, :, :] /= weights_2d_sum
 
-    result = {"weights_1d": weights_1d, "weights_2d": weights_2d}
-    result["shape"] = shape
+    out = {"weights_1d": weights_1d, "weights_2d": weights_2d}
+    out["shape"] = shape
 
     central_wavenumbers = np.array(central_wavenumbers)
-    result["central_wavenumbers"] = central_wavenumbers
+    out["central_wavenumbers"] = central_wavenumbers
 
     # Compute frequencies
     central_freqs = 1.0 * central_wavenumbers / max_length
     central_freqs[0] = 1.0 / max_length
     central_freqs[-1] = 0.5  # Nyquist freq
     central_freqs = 1.0 * d * central_freqs
-    result["central_freqs"] = central_freqs
+    out["central_freqs"] = central_freqs
 
-    return result
+    return out
 
 
 def _gaussweights_1d(l, n, l_0=None, gauss_scale=0.5, gauss_scale_0=0.5):
