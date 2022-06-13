@@ -63,6 +63,10 @@ def filter_uniform(shape, n):
     n: int
         Not used. Needed for compatibility with the filter interface.
 
+    Returns
+    -------
+    out: dict
+        A dictionary containing the filter.
     """
     del n  # Unused
 
