@@ -89,7 +89,14 @@ def filter_uniform(shape, n):
 
 
 def filter_gaussian(
-    shape, n, l_0=None, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0, normalize=True
+    shape,
+    n,
+    l_0=None,
+    gauss_scale=0.5,
+    gauss_scale_0=0.5,
+    d=1.0,
+    normalize=True,
+    return_weight_funcs=False,
 ):
     """
     Implements a set of Gaussian bandpass filters in logarithmic frequency
@@ -118,6 +125,9 @@ def filter_gaussian(
     normalize: bool
         If True, normalize the weights so that for any given wavenumber
         they sum to one.
+    return_weight_funcs: bool
+        If True, add callable weight functions to the output dictionary with
+        the key 'weight_funcs'.
 
     Returns
     -------
@@ -188,6 +198,9 @@ def filter_gaussian(
     central_freqs[-1] = 0.5  # Nyquist freq
     central_freqs = 1.0 * d * central_freqs
     out["central_freqs"] = central_freqs
+
+    if return_weight_funcs:
+        out["weight_funcs"] = wfs
 
     return out
 
