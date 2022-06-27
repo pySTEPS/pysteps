@@ -13,9 +13,8 @@ The methods in this module implement the following interface::
 where field is the input field and bp_filter is a dictionary returned by a
 filter method implemented in :py:mod:`pysteps.cascade.bandpass_filters`. The
 decomp argument is a decomposition obtained by calling decomposition_xxx.
-Optional parameters can be passed in
-the keyword arguments. The output of each method is a dictionary with the
-following key-value pairs:
+Optional parameters can be passed in the keyword arguments. The output of each
+method is a dictionary with the following key-value pairs:
 
 +-------------------+----------------------------------------------------------+
 |        Key        |                      Value                               |
@@ -119,6 +118,10 @@ def decomposition_fft(field, bp_filter, **kwargs):
         Applicable if output_domain is "spectral". If set to True, only the
         parts of the Fourier spectrum with non-negligible filter weights are
         stored. Defaults to False.
+    subtract_mean: bool
+        If set to True, subtract the mean value before the decomposition and
+        store it to the output dictionary. Applicable if input_domain is
+        "spatial". Defaults to True.
 
     Returns
     -------
@@ -137,6 +140,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     output_domain = kwargs.get("output_domain", "spatial")
     compute_stats = kwargs.get("compute_stats", True)
     compact_output = kwargs.get("compact_output", False)
+    subtract_mean = kwargs.get("subtract_mean", False)
 
     if normalize and not compute_stats:
         compute_stats = True
@@ -192,6 +196,11 @@ def decomposition_fft(field, bp_filter, **kwargs):
     result = {}
     means = []
     stds = []
+
+    if subtract_mean and input_domain == "spatial":
+        field_mean = np.mean(field)
+        field = field - field_mean
+        result["field_mean"] = field_mean
 
     if input_domain == "spatial":
         field_fft = fft.rfft2(field)
@@ -275,7 +284,7 @@ def recompose_fft(decomp, **kwargs):
     if not decomp["normalized"] and not (
         decomp["domain"] == "spectral" and decomp["compact_output"]
     ):
-        return np.sum(levels, axis=0)
+        result = np.sum(levels, axis=0)
     else:
         if decomp["compact_output"]:
             weight_masks = decomp["weight_masks"]
@@ -290,4 +299,7 @@ def recompose_fft(decomp, **kwargs):
             result = [levels[i] * sigma[i] + mu[i] for i in range(len(levels))]
             result = np.sum(np.stack(result), axis=0)
 
-        return result
+    if "field_mean" in decomp:
+        result += decomp["field_mean"]
+
+    return result
