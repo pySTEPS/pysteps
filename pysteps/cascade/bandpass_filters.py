@@ -125,6 +125,12 @@ def filter_gaussian(
         A dictionary containing the bandpass filters corresponding to the
         specified frequency bands.
 
+    Notes
+    -----
+    The fist Fourier frequency is not included in the filters. So it needs to
+    be treated separately if these filters are used for decomposing an input
+    field.
+
     References
     ----------
     :cite:`PCH2018`
@@ -166,7 +172,9 @@ def filter_gaussian(
 
     for i, wf in enumerate(wfs):
         weights_1d[i, :] = wf(r_1d)
+        weights_1d[i, 0] = 0.0
         weights_2d[i, :, :] = wf(r_2d)
+        weights_2d[i, 0, 0] = 0.0
 
     if normalize:
         weights_1d_sum = np.sum(weights_1d, axis=0)
