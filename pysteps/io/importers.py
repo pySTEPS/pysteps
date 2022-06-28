@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 pysteps.io.importers
 ====================
@@ -99,8 +98,7 @@ from pysteps.exceptions import MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 
 try:
-    import gdalconst
-    from osgeo import gdal, osr
+    from osgeo import gdal, gdalconst, osr
 
     GDAL_IMPORTED = True
 except ImportError:
@@ -579,9 +577,8 @@ def import_fmi_geotiff(filename, **kwargs):
     f = gdal.Open(filename, gdalconst.GA_ReadOnly)
 
     rb = f.GetRasterBand(1)
-    precip = rb.ReadAsArray()
+    precip = rb.ReadAsArray().astype(float)
     mask = precip == 255
-    precip = precip.astype(float) * rb.GetScale() + rb.GetOffset()
     precip = (precip - 64.0) / 2.0
     precip[mask] = np.nan
 
@@ -607,12 +604,14 @@ def import_fmi_geotiff(filename, **kwargs):
     else:
         metadata["yorigin"] = "lower"
     metadata["institution"] = "Finnish Meteorological Institute"
-    metadata["unit"] = rb.GetUnitType()
-    metadata["transform"] = None
+    metadata["unit"] = "dBZ"
+    metadata["transform"] = "dB"
     metadata["accutime"] = 5.0
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["cartesian_unit"] = "m"
+    metadata["zr_a"] = 223.0
+    metadata["zr_b"] = 1.53
 
     return precip, None, metadata
 

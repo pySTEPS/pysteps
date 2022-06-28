@@ -33,6 +33,7 @@ Other optional dependencies include:
   visualization)
 * `h5py <https://www.h5py.org/>`_ (for importing HDF5 data)
 * `pygrib <https://jswhit.github.io/pygrib/docs/index.html>`_ (for importing MRMS data)
+* `gdal <https://gdal.org/>`_ (for importing GeoTIFF data)
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
 * `pandas <https://pandas.pydata.org/>`_ and
