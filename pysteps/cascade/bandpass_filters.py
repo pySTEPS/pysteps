@@ -172,9 +172,7 @@ def filter_gaussian(
 
     for i, wf in enumerate(wfs):
         weights_1d[i, :] = wf(r_1d)
-        weights_1d[i, 0] = 0.0
         weights_2d[i, :, :] = wf(r_2d)
-        weights_2d[i, 0, 0] = 0.0
 
     if normalize:
         weights_1d_sum = np.sum(weights_1d, axis=0)
@@ -182,6 +180,10 @@ def filter_gaussian(
         for k in range(weights_2d.shape[0]):
             weights_1d[k, :] /= weights_1d_sum
             weights_2d[k, :, :] /= weights_2d_sum
+
+    for i in range(len(wfs)):
+        weights_1d[i, 0] = 0.0
+        weights_2d[i, 0, 0] = 0.0
 
     out = {"weights_1d": weights_1d, "weights_2d": weights_2d}
     out["shape"] = shape
