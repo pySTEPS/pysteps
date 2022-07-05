@@ -2,33 +2,39 @@
 
 import numpy as np
 import pytest
-from pysteps.blending.linear_blending import forecast
+from pysteps.blending.linear_blending import forecast, _get_ranked_salience, _get_ws
 from numpy.testing import assert_array_almost_equal
 from pysteps.utils import transformation
 
 # Test function arguments
 linear_arg_values = [
-    (5, 30, 60, 20, 45, "eulerian", None, 1, "True"),
-    (5, 30, 60, 20, 45, "eulerian", None, 2, "False"),
-    (5, 30, 60, 20, 45, "eulerian", None, 0, "False"),
-    (4, 23, 33, 9, 28, "eulerian", None, 1, "False"),
-    (3, 18, 36, 13, 27, "eulerian", None, 1, "False"),
-    (7, 30, 68, 11, 49, "eulerian", None, 1, "False"),
-    (10, 100, 160, 25, 130, "eulerian", None, 1, "False"),
-    (6, 60, 180, 22, 120, "eulerian", None, 1, "False"),
-    (5, 100, 200, 40, 150, "eulerian", None, 1, "False"),
-    (5, 30, 60, 20, 45, "extrapolation", np.zeros((2, 200, 200)), 1, "False"),
-    (4, 23, 33, 9, 28, "extrapolation", np.zeros((2, 200, 200)), 1, "False"),
-    (3, 18, 36, 13, 27, "extrapolation", np.zeros((2, 200, 200)), 1, "False"),
-    (7, 30, 68, 11, 49, "extrapolation", np.zeros((2, 200, 200)), 1, "False"),
-    (10, 100, 160, 25, 130, "extrapolation", np.zeros((2, 200, 200)), 1, "False"),
-    (6, 60, 180, 22, 120, "extrapolation", np.zeros((2, 200, 200)), 1, "False"),
-    (5, 100, 200, 40, 150, "extrapolation", np.zeros((2, 200, 200)), 1, "False"),
+    (5, 30, 60, 20, 45, "eulerian", None, 1, False, True),
+    (5, 30, 60, 20, 45, "eulerian", None, 2, False, False),
+    (5, 30, 60, 20, 45, "eulerian", None, 0, False, False),
+    (4, 23, 33, 9, 28, "eulerian", None, 1, False, False),
+    (3, 18, 36, 13, 27, "eulerian", None, 1, False, False),
+    (7, 30, 68, 11, 49, "eulerian", None, 1, False, False),
+    (10, 100, 160, 25, 130, "eulerian", None, 1, False, False),
+    (6, 60, 180, 22, 120, "eulerian", None, 1, False, False),
+    (5, 100, 200, 40, 150, "eulerian", None, 1, False, False),
+    (5, 30, 60, 20, 45, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
+    (4, 23, 33, 9, 28, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
+    (3, 18, 36, 13, 27, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
+    (7, 30, 68, 11, 49, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
+    (10, 100, 160, 25, 130, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
+    (6, 60, 180, 22, 120, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
+    (5, 100, 200, 40, 150, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
+    (5, 30, 60, 20, 45, "eulerian", None, 1, True, True),
+    (5, 30, 60, 20, 45, "eulerian", None, 2, True, False),
+    (5, 30, 60, 20, 45, "eulerian", None, 0, True, False),
+    (5, 30, 60, 20, 45, "extrapolation", np.zeros((2, 200, 200)), 1, True, False),
+    (4, 23, 33, 9, 28, "extrapolation", np.zeros((2, 200, 200)), 1, True, False),
+    (3, 18, 36, 13, 27, "extrapolation", np.zeros((2, 200, 200)), 1, True, False),
 ]
 
 
 @pytest.mark.parametrize(
-    "timestep, start_blending, end_blending, n_timesteps, controltime, nowcast_method, V, n_models, squeeze_nwp_array",
+    "timestep, start_blending, end_blending, n_timesteps, controltime, nowcast_method, V, n_models, salient_blending, squeeze_nwp_array",
     linear_arg_values,
 )
 def test_linear_blending(
@@ -40,6 +46,7 @@ def test_linear_blending(
     nowcast_method,
     V,
     n_models,
+    salient_blending,
     squeeze_nwp_array,
 ):
     """Tests if the linear blending function is correct. For the nowcast data a precipitation field
@@ -105,6 +112,7 @@ def test_linear_blending(
         dict({"unit": "mm/h", "transform": None}),
         start_blending=start_blending,
         end_blending=end_blending,
+        saliency=salient_blending,
     )
 
     # Assert that the blended field has the expected dimension
@@ -128,15 +136,47 @@ def test_linear_blending(
 
     # Assert that the blended field at the control time step is equal to
     # a constant field with the expected value.
-    if n_models > 1:
-        assert_array_almost_equal(
-            r_blended[0, controltime // timestep - 1],
-            np.ones((200, 200)) * 5.5,
-            err_msg="The blended array does not have the expected value",
-        )
-    elif n_models > 0:
-        assert_array_almost_equal(
-            r_blended[controltime // timestep - 1],
-            np.ones((200, 200)) * 5.5,
-            err_msg="The blended array does not have the expected value",
-        )
+    if salient_blending == False:
+        if n_models > 1:
+            assert_array_almost_equal(
+                r_blended[0, controltime // timestep - 1],
+                np.ones((200, 200)) * 5.5,
+                err_msg="The blended array does not have the expected value",
+            )
+        elif n_models > 0:
+            assert_array_almost_equal(
+                r_blended[controltime // timestep - 1],
+                np.ones((200, 200)) * 5.5,
+                err_msg="The blended array does not have the expected value",
+            )
+
+
+ranked_salience_values = [
+    (np.ones((200, 200)), np.ones((200, 200)), 0.9),
+    (np.zeros((200, 200)), np.random.rand(200, 200), 0.7),
+    (np.random.rand(200, 200), np.random.rand(200, 200), 0.5),
+]
+
+
+@pytest.mark.parametrize(
+    "nowcast, nwp, weight_nowcast",
+    ranked_salience_values,
+)
+def test_salient_weight(
+    nowcast,
+    nwp,
+    weight_nowcast,
+):
+
+    ranked_salience = _get_ranked_salience(nowcast, nwp)
+    ws = _get_ws(weight_nowcast, ranked_salience)
+
+    assert np.min(ws) >= 0, "Negative value for the ranked saliency output"
+    assert np.max(ws) <= 1, "Too large value for the ranked saliency output"
+
+    assert ws.shape == (
+        200,
+        200,
+    ), "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
+        ws.shape
+    )
