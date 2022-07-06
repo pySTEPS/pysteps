@@ -180,7 +180,7 @@ def filter_gaussian(
             weights_2d[k, :, :] /= weights_2d_sum
 
     for i in range(len(wfs)):
-        if include_mean:
+        if i == 0 and include_mean:
             continue
         weights_1d[i, 0] = 0.0
         weights_2d[i, 0, 0] = 0.0
