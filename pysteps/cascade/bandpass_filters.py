@@ -95,6 +95,7 @@ def filter_gaussian(
     d=1.0,
     normalize=True,
     return_weight_funcs=False,
+    include_mean=True,
 ):
     """
     Implements a set of Gaussian bandpass filters in logarithmic frequency
@@ -118,18 +119,15 @@ def filter_gaussian(
     return_weight_funcs: bool
         If True, add callable weight functions to the output dictionary with
         the key 'weight_funcs'.
+    include_mean: bool
+        If True, include the first Fourier wavenumber (corresponding to the
+        field mean) to the first filter.
 
     Returns
     -------
     out: dict
         A dictionary containing the bandpass filters corresponding to the
         specified frequency bands.
-
-    Notes
-    -----
-    The fist Fourier frequency is not included in the filters. So it needs to
-    be treated separately if these filters are used for decomposing an input
-    field.
 
     References
     ----------
@@ -182,6 +180,8 @@ def filter_gaussian(
             weights_2d[k, :, :] /= weights_2d_sum
 
     for i in range(len(wfs)):
+        if include_mean:
+            continue
         weights_1d[i, 0] = 0.0
         weights_2d[i, 0, 0] = 0.0
 
