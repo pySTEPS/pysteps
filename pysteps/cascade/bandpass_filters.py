@@ -181,9 +181,11 @@ def filter_gaussian(
 
     for i in range(len(wfs)):
         if i == 0 and include_mean:
-            continue
-        weights_1d[i, 0] = 0.0
-        weights_2d[i, 0, 0] = 0.0
+            weights_1d[i, 0] = 1.0
+            weights_2d[i, 0, 0] = 1.0
+        else:
+            weights_1d[i, 0] = 0.0
+            weights_2d[i, 0, 0] = 0.0
 
     out = {"weights_1d": weights_1d, "weights_2d": weights_2d}
     out["shape"] = shape
