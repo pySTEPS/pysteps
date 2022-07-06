@@ -121,7 +121,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     subtract_mean: bool
         If set to True, subtract the mean value before the decomposition and
         store it to the output dictionary. Applicable if input_domain is
-        "spatial". Defaults to True.
+        "spatial". Defaults to False.
 
     Returns
     -------
@@ -140,7 +140,7 @@ def decomposition_fft(field, bp_filter, **kwargs):
     output_domain = kwargs.get("output_domain", "spatial")
     compute_stats = kwargs.get("compute_stats", True)
     compact_output = kwargs.get("compact_output", False)
-    subtract_mean = kwargs.get("subtract_mean", True)
+    subtract_mean = kwargs.get("subtract_mean", False)
 
     if normalize and not compute_stats:
         compute_stats = True
