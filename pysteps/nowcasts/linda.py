@@ -410,8 +410,8 @@ def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=10
     """Compute the inverse ACF mapping between two distributions."""
     phi = (
         lambda x1, x2, rho: 1.0
-        / (2 * np.pi * np.sqrt(1 - rho ** 2))
-        * np.exp(-(x1 ** 2 + x2 ** 2 - 2 * rho * x1 * x2) / (2 * (1 - rho ** 2)))
+        / (2 * np.pi * np.sqrt(1 - rho**2))
+        * np.exp(-(x1**2 + x2**2 - 2 * rho * x1 * x2) / (2 * (1 - rho**2)))
     )
 
     rho_1 = np.linspace(-0.9, 0.9, n_intervals)
@@ -459,7 +459,7 @@ def _compute_kernel_anisotropic(params, cutoff=6.0):
 
     x2 = xy_grid[0, :] * xy_grid[0, :]
     y2 = xy_grid[1, :] * xy_grid[1, :]
-    result = np.exp(-(x2 / sigma1 ** 2 + y2 / sigma2 ** 2))
+    result = np.exp(-(x2 / sigma1**2 + y2 / sigma2**2))
 
     return np.reshape(result / np.sum(result), x_grid.shape)
 
@@ -556,8 +556,8 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radius):
             dx = c[1] - grid_x
 
             w[i, :] = np.exp(
-                -dy * dy / (2 * window_radius_1 ** 2)
-                - dx * dx / (2 * window_radius_2 ** 2)
+                -dy * dy / (2 * window_radius_1**2)
+                - dx * dx / (2 * window_radius_2**2)
             )
     else:
         w[0, :] = np.ones((grid_height, grid_width))
@@ -850,10 +850,10 @@ def _fit_acf(acf):
 def _fit_dist(err, dist, wf, mask):
     """Fit a lognormal distribution by maximizing the log-likelihood function
     with the constraint that the mean value is one."""
-    f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p ** 2)))
+    f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p**2)))
     p_opt = opt.minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
 
-    return (p_opt.x, -0.5 * p_opt.x ** 2)
+    return (p_opt.x, -0.5 * p_opt.x**2)
 
 
 # TODO: restrict the perturbation generation inside the radar mask
