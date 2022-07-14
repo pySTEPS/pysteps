@@ -152,6 +152,8 @@ def extrapolate(
             precip = precip.copy()
             precip[~mask_finite] = 0.0
             mask_finite = mask_finite.astype(float)
+        else:
+            mask_finite = np.ones(precip.shape)
 
     prefilter = True if interp_order > 1 else False
 
@@ -241,16 +243,15 @@ def extrapolate(
                 )
                 precip_warped[mask_warped < 0.5] = minval
 
-                if allow_nonfinite_values:
-                    mask_warped = ip.map_coordinates(
-                        mask_finite,
-                        coords_warped,
-                        mode=map_coordinates_mode,
-                        cval=0,
-                        order=1,
-                        prefilter=False,
-                    )
-                    precip_warped[mask_warped < 0.5] = np.nan
+                mask_warped = ip.map_coordinates(
+                    mask_finite,
+                    coords_warped,
+                    mode=map_coordinates_mode,
+                    cval=0,
+                    order=1,
+                    prefilter=False,
+                )
+                precip_warped[mask_warped < 0.5] = np.nan
 
             precip_extrap.append(np.reshape(precip_warped, precip.shape))
 
