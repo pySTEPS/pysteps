@@ -315,6 +315,10 @@ def forecast(
     precip = precip[-(ar_order + 1) :, :, :].copy()
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
+    extrap_kwargs["allow_nonfinite_values"] = (
+        True if np.any(~np.isfinite(precip)) else False
+    )
+
     res = []
     f = lambda precip, i: extrapolator_method(
         precip[i, :, :], velocity, ar_order - i, "min", **extrap_kwargs

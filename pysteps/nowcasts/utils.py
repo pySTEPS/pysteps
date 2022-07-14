@@ -200,7 +200,6 @@ def nowcast_main_loop(
 
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
-    extrap_kwargs["allow_nonfinite_values"] = True
     extrap_kwargs["return_displacement"] = True
 
     if measure_time:
@@ -273,6 +272,9 @@ def nowcast_main_loop(
                 def worker(i):
                     extrap_kwargs_ = extrap_kwargs.copy()
                     extrap_kwargs_["displacement_prev"] = displacement[i]
+                    extrap_kwargs["allow_nonfinite_values"] = (
+                        True if np.any(~np.isfinite(precip_f_ip[i])) else False
+                    )
 
                     if vel_pert_gen is not None:
                         velocity_ = velocity + vel_pert_gen[i](t_total)

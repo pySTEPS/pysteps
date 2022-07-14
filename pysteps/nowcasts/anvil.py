@@ -198,6 +198,9 @@ def forecast(
 
     # transform the input fields to Lagrangian coordinates by extrapolation
     extrapolator = extrapolation.get_method(extrap_method)
+    extrap_kwargs["allow_nonfinite_values"] = (
+        True if np.any(~np.isfinite(vil)) else False
+    )
     res = list()
 
     def worker(vil, i):
@@ -207,7 +210,6 @@ def forecast(
                 vil[i, :],
                 velocity,
                 vil.shape[0] - 1 - i,
-                allow_nonfinite_values=True,
                 **extrap_kwargs,
             )[-1],
         )
@@ -392,14 +394,14 @@ def _moving_window_corrcoef(x, y, window_radius):
     if window_radius is not None:
         n = gaussian_filter(mask, window_radius, mode="constant")
 
-        ssx = gaussian_filter(x ** 2, window_radius, mode="constant")
-        ssy = gaussian_filter(y ** 2, window_radius, mode="constant")
+        ssx = gaussian_filter(x**2, window_radius, mode="constant")
+        ssy = gaussian_filter(y**2, window_radius, mode="constant")
         sxy = gaussian_filter(x * y, window_radius, mode="constant")
     else:
         n = np.mean(mask)
 
-        ssx = np.mean(x ** 2)
-        ssy = np.mean(y ** 2)
+        ssx = np.mean(x**2)
+        ssy = np.mean(y**2)
         sxy = np.mean(x * y)
 
     stdx = np.sqrt(ssx / n)
