@@ -207,6 +207,8 @@ def forecast(
         feature_kwargs = dict()
     if extrap_kwargs is None:
         extrap_kwargs = dict()
+    else:
+        extrap_kwargs = extrap_kwargs.copy()
 
     if localization_window_radius is None:
         localization_window_radius = 0.2 * np.min(precip_fields.shape[1:])
@@ -275,6 +277,10 @@ def forecast(
             vel_pert_kwargs = vel_pert_kwargs.copy()
             vel_pert_kwargs["vp_par"] = vp_par
             vel_pert_kwargs["vp_perp"] = vp_perp
+
+    extrap_kwargs["allow_nonfinite_values"] = (
+        True if np.any(~np.isfinite(precip_fields)) else False
+    )
 
     fct_gen = _linda_deterministic_init(
         precip_fields,
