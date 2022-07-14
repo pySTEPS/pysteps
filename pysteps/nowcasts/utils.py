@@ -103,7 +103,7 @@ def nowcast_main_loop(
     timesteps,
     extrap_method,
     func,
-    extrap_kwargs=None,
+    extrap_kwargs=dict(),
     vel_pert_gen=None,
     params=None,
     callback=None,
