@@ -273,7 +273,7 @@ def nowcast_main_loop(
                 def worker(i):
                     extrap_kwargs_ = extrap_kwargs.copy()
                     extrap_kwargs_["displacement_prev"] = displacement[i]
-                    extrap_kwargs["allow_nonfinite_values"] = (
+                    extrap_kwargs_["allow_nonfinite_values"] = (
                         True if np.any(~np.isfinite(precip_f_ip[i])) else False
                     )
 
