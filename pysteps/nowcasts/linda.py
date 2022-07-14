@@ -290,7 +290,7 @@ def forecast(
             vel_pert_kwargs["vp_perp"] = vp_perp
 
     extrap_kwargs["allow_nonfinite_values"] = (
-        True if np.any(~np.isfinite(precip_fields)) else False
+        True if np.any(~np.isfinite(precip)) else False
     )
 
     fct_gen = _linda_deterministic_init(
