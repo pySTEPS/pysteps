@@ -77,10 +77,6 @@ def get_precipitation_fields(
     metadata: bool, optional
         If True, also return file metadata.
 
-    clip: scalars (left, right, bottom, top), optional
-        The extent of the bounding box in data coordinates to be used to clip
-        the data.
-
     upscale: float or None, optional
         Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not modified.
@@ -93,6 +89,10 @@ def get_precipitation_fields(
     log_transform: bool
         Whether to transform the output to dB.
 
+    clip: scalars (left, right, bottom, top), optional
+        The extent of the bounding box in data coordinates to be used to clip
+        the data.
+
     Other Parameters
     ----------------
 
@@ -102,7 +102,6 @@ def get_precipitation_fields(
     Returns
     -------
     reference_field : array
-
     metadata : dict
     """
 
@@ -195,9 +194,9 @@ def get_precipitation_fields(
                 reference_field, ref_metadata, threshold=0.1, zerovalue=-15.0
             )
 
-            # Set missing values with the fill value
-            np.ma.set_fill_value(reference_field, -15.0)
-            reference_field.data[reference_field.mask] = -15.0
+        # Set missing values with the fill value
+        np.ma.set_fill_value(reference_field, ref_metadata["zerovalue"])
+        reference_field.data[reference_field.mask] = ref_metadata["zerovalue"]
 
     if metadata:
         return reference_field, ref_metadata

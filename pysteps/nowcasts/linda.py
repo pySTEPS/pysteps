@@ -86,7 +86,8 @@ def forecast(
     callback=None,
     return_output=True,
 ):
-    """Generate a deterministic or ensemble nowcast by using the Lagrangian
+    """
+    Generate a deterministic or ensemble nowcast by using the Lagrangian
     INtegro-Difference equation model with Autoregression (LINDA) model.
 
     Parameters
@@ -123,7 +124,7 @@ def forecast(
         20 and 50, which gives a good tradeoff between localization and
         computation time. Default: 25
     feature_kwargs: dict, optional
-        Keyword arguments that are passed as **kwargs for the feature detector.
+        Keyword arguments that are passed as ``**kwargs`` for the feature detector.
         See :py:mod:`pysteps.feature.blob` and :py:mod:`pysteps.feature.shitomasi`.
     ari_order: {1, 2}, optional
         The order of the ARI(p, 1) model. Default: 1
@@ -143,7 +144,7 @@ def forecast(
         :py:mod:`pysteps.extrapolation.interface`. Default: 'semilagrangian'
     extrap_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
-        method. See :py:mod:`pysteps.extrapolation`.
+        method. See :py:mod:`pysteps.extrapolation.interface`.
     add_perturbations: bool
         Set to False to disable perturbations and generate a single
         deterministic nowcast. Default: True
@@ -382,8 +383,10 @@ def _check_inputs(precip, velocity, timesteps, ari_order):
 
 
 def _composite_convolution(field, kernels, weights):
-    """Compute a localized convolution by applying a set of kernels with the
-    given spatial weights. The weights are assumed to be normalized."""
+    """
+    Compute a localized convolution by applying a set of kernels with the
+    given spatial weights. The weights are assumed to be normalized.
+    """
     n = len(kernels)
     field_c = 0.0
 
@@ -736,7 +739,8 @@ def _estimate_perturbation_params(
     num_workers,
     use_multiprocessing,
 ):
-    """Estimate perturbation generator parameters from forecast errors."""
+    """
+    Estimate perturbation generator parameters from forecast errors."""
     pert_gen = {}
     pert_gen["m"] = fct_err.shape[0]
     pert_gen["n"] = fct_err.shape[1]
@@ -836,7 +840,8 @@ def _estimate_perturbation_params(
 
 
 def _fit_acf(acf):
-    """Fit a parametric ACF to the given sample estimate."""
+    """
+    Fit a parametric ACF to the given sample estimate."""
 
     def objf(p, *args):
         p = _get_acf_params(p)
@@ -859,7 +864,8 @@ def _fit_acf(acf):
 
 
 def _fit_dist(err, dist, wf, mask):
-    """Fit a lognormal distribution by maximizing the log-likelihood function
+    """
+    Fit a lognormal distribution by maximizing the log-likelihood function
     with the constraint that the mean value is one."""
     f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p**2)))
     p_opt = opt.minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")

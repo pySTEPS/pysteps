@@ -18,7 +18,8 @@ import scipy.spatial
 
 
 def decluster(coord, input_array, scale, min_samples=1, verbose=False):
-    """Decluster a set of sparse data points by aggregating, that is, taking
+    """
+    Decluster a set of sparse data points by aggregating, that is, taking
     the median value of all values lying within a certain distance (i.e., a
     cluster).
 
@@ -120,7 +121,8 @@ def decluster(coord, input_array, scale, min_samples=1, verbose=False):
 
 
 def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
-    """Detect outliers in a (multivariate and georeferenced) dataset.
+    """
+    Detect outliers in a (multivariate and georeferenced) dataset.
 
     Assume a (multivariate) Gaussian distribution and detect outliers based on
     the number of standard deviations from the mean.

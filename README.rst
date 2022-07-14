@@ -1,5 +1,4 @@
-=====================================================================
-pySTEPS - Python framework for short-term ensemble prediction systems
+pysteps - Python framework for short-term ensemble prediction systems
 =====================================================================
 
 .. start-badges
@@ -9,7 +8,7 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :widths: 10 90
 
     * - docs
-      - |latest| |colab| |gallery|
+      - |stable| |colab| |gallery|
     * - status
       - |test| |docs| |codecov| |codacy| |black|
     * - package
@@ -22,8 +21,8 @@ pySTEPS - Python framework for short-term ensemble prediction systems
     :alt: Documentation Status
     :target: https://pysteps.readthedocs.io/
 
-.. |test| image:: https://github.com/pySTEPS/pysteps/workflows/Test%20Pysteps/badge.svg
-    :alt: Test Pysteps
+.. |test| image:: https://github.com/pySTEPS/pysteps/workflows/Test%20pysteps/badge.svg
+    :alt: Test pysteps
     :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Test+Pysteps"
 
 .. |black| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20Black/badge.svg
@@ -68,11 +67,11 @@ pySTEPS - Python framework for short-term ensemble prediction systems
 
 .. |gallery| image:: https://img.shields.io/badge/example-gallery-blue.svg
     :alt: pysteps example gallery
-    :target: https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
+    :target: https://pysteps.readthedocs.io/en/stable/auto_examples/index.html
     
-.. |latest| image:: https://img.shields.io/badge/docs-latest-blue.svg
+.. |stable| image:: https://img.shields.io/badge/docs-stable-blue.svg
     :alt: pysteps documentation
-    :target: https://pysteps.readthedocs.io/en/latest/
+    :target: https://pysteps.readthedocs.io/en/stable/
     
 .. |codacy| image:: https://api.codacy.com/project/badge/Grade/6cff9e046c5341a4afebc0347362f8de
    :alt: Codacy Badge
@@ -94,59 +93,47 @@ The aim of pysteps is to serve two different needs. The first is to provide a mo
 The pysteps library supports standard input/output file formats and implements several optical flow methods as well as advanced stochastic generators to produce ensemble nowcasts. In addition, it includes tools for visualizing and post-processing the nowcasts and methods for deterministic, probabilistic, and neighbourhood forecast verification.
 
 
-Run your first nowcast
-----------------------
+Quick start
+-----------
 
-Use pysteps to compute and plot an extrapolation nowcast in Google Colab with `this interactive notebook`__.
-
-__ https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
-
-Get in touch
-============
-
-You can get in touch with the pysteps community on our `pysteps slack`__. To get access to it, you need to ask for an invitation or you can use the automatic invitation page `here`__. This invite page can sometimes take a while to load so please be patient.
-
-__ https://pysteps.slack.com/
-__ https://pysteps-slackin.herokuapp.com/
+Use pysteps to compute and plot a radar extrapolation nowcast in Google Colab with `this interactive notebook <https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb>`_.
 
 Installation
 ============
 
-To install pysteps please have a look at the `pysteps user guide`__.
+The recommended way to install pysteps is with `conda <https://docs.conda.io/>`_ from the conda-forge channel::
 
-__ https://pysteps.readthedocs.io/en/latest/user_guide/index.html
+    $ conda install -c conda-forge pysteps
 
-Use
-===
+More details can be found in the `installation guide <https://pysteps.readthedocs.io/en/stable/user_guide/install_pysteps.html>`_.
 
-You can have a look at the `gallery of examples`__ to get a better idea of how the library can be used.
+Usage
+=====
 
-__ https://pysteps.readthedocs.io/en/latest/auto_examples/index.html
+Have a look at the `gallery of examples <https://pysteps.readthedocs.io/en/stable/auto_examples/index.html>`__ to get a good overview of what pysteps can do.
 
-For a more detailed description of the implemented functions, check the `pysteps reference page`__.
-
-__ https://pysteps.readthedocs.io/en/latest/pysteps_reference/index.html
+For a more detailed description of all the available methods, check the  `API reference <https://pysteps.readthedocs.io/en/stable/pysteps_reference/index.html>`_ page.
 
 Example data
 ============
 
-A set of example radar data is available in a separate repository: `pysteps-data`__. More information on how to download and install them are available here__.
-
-__ https://github.com/pySTEPS/pysteps-data
-__ https://pysteps.readthedocs.io/en/latest/user_guide/example_data.html#example-data
+A set of example radar data is available in a separate repository: `pysteps-data <https://github.com/pySTEPS/pysteps-data>`_.
+More information on how to download and install them is available `here <https://pysteps.readthedocs.io/en/stable/user_guide/example_data.html>`_.
 
 Contributions
 =============
 
-We welcome contributions, feedback, suggestions for developments and bug reports.
+*We welcome contributions!*
 
-Feedback, suggestions for developments and bug reports can use the dedicated `Issues page`__.
+For feedback, suggestions for developments, and bug reports please use the dedicated `issues page <https://github.com/pySTEPS/pysteps/issues>`_.
 
-__ https://github.com/pySTEPS/pysteps/issues
+For more information, please read our `contributors guidelines <https://pysteps.readthedocs.io/en/stable/developer_guide/contributors_guidelines.html>`_.
 
-More information dedicated to developers is available in the `developer guide`__.
+Get in touch
+============
 
-__ https://pysteps.readthedocs.io/en/latest/developer_guide/index.html
+You can get in touch with the pysteps community on our `pysteps slack <https://pysteps.slack.com/>`_.
+To get access to it, you need to ask for an invitation or you can use this `automatic invitation page <https://pysteps-slackin.herokuapp.com/>`_.
 
 Reference publications
 ======================
@@ -154,11 +141,9 @@ Reference publications
 Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann,
 A. Seed, and L. Foresti, 2019:  Pysteps:  an open-source Python library for
 probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**,
-4185–4219, doi:10.5194/gmd-12-4185-2019. [source__]
-
-__ https://doi.org/10.5194/gmd-12-4185-2019
+4185–4219, `doi:10.5194/gmd-12-4185-2019 <https://doi.org/10.5194/gmd-12-4185-2019>`_.
 
 Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann, A. Seed, and
-L. Foresti, 2019: pysteps - a Community-Driven Open-Source Library for Precipitation Nowcasting. *Poster presented at the 3rd European Nowcasting Conference, Madrid, ES*, doi: 10.13140/RG.2.2.31368.67840. [source__]
-
-__ https://www.researchgate.net/publication/332781022_pysteps_-_a_Community-Driven_Open-Source_Library_for_Precipitation_Nowcasting
+L. Foresti, 2019: pysteps - a Community-Driven Open-Source Library for Precipitation Nowcasting.
+*Poster presented at the 3rd European Nowcasting Conference, Madrid, ES*,
+`doi:10.13140/RG.2.2.31368.67840 <https://doi.org/10.13140/RG.2.2.31368.67840>`_.

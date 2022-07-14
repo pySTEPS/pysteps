@@ -50,7 +50,7 @@ See the official `conda-forge documentation <http://conda-forge.org/docs/user/00
 Maintain pysteps conda-forge package
 ====================================
 
-Pysteps Core developers that are maintainers of the pysteps feedstock.
+Pysteps core developers that are maintainers of the pysteps feedstock.
 
 All pysteps developers listed as maintainers of the pysteps feedstock are given push access to the feedstock repository.
 This means that a maintainer can create branches in the main repository.

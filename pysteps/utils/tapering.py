@@ -17,7 +17,8 @@ from scipy.spatial import cKDTree
 
 
 def compute_mask_window_function(mask, func, **kwargs):
-    """Compute window function for a two-dimensional area defined by a
+    """
+    Compute window function for a two-dimensional area defined by a
     non-rectangular mask. The window function is computed based on the distance
     to the nearest boundary point of the mask. Window function-specific
     parameters are given as keyword arguments.
@@ -49,7 +50,8 @@ def compute_mask_window_function(mask, func, **kwargs):
 
 
 def compute_window_function(m, n, func, **kwargs):
-    """Compute window function for a two-dimensional rectangular region. Window
+    """
+    Compute window function for a two-dimensional rectangular region. Window
     function-specific parameters are given as keyword arguments.
 
     Parameters

@@ -50,7 +50,8 @@ from .. import utils
 
 
 def initialize_param_2d_fft_filter(field, **kwargs):
-    """Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
+    """
+    Takes one ore more 2d input fields, fits two spectral slopes, beta1 and beta2,
     to produce one parametric, global and isotropic fourier filter.
 
     Parameters
@@ -212,7 +213,8 @@ def initialize_param_2d_fft_filter(field, **kwargs):
 
 
 def initialize_nonparam_2d_fft_filter(field, **kwargs):
-    """Takes one ore more 2d input fields and produces one non-parametric, global
+    """
+    Takes one ore more 2d input fields and produces one non-parametric, global
     and anisotropic fourier filter.
 
     Parameters
@@ -316,7 +318,8 @@ def initialize_nonparam_2d_fft_filter(field, **kwargs):
 def generate_noise_2d_fft_filter(
     F, randstate=None, seed=None, fft_method=None, domain="spatial"
 ):
-    """Produces a field of correlated noise using global Fourier filtering.
+    """
+    Produces a field of correlated noise using global Fourier filtering.
 
     Parameters
     ----------
@@ -419,7 +422,8 @@ def generate_noise_2d_fft_filter(
 
 
 def initialize_nonparam_2d_ssft_filter(field, **kwargs):
-    """Function to compute the local Fourier filters using the Short-Space Fourier
+    """
+    Function to compute the local Fourier filters using the Short-Space Fourier
     filtering approach.
 
     Parameters
@@ -554,7 +558,8 @@ def initialize_nonparam_2d_ssft_filter(field, **kwargs):
 
 
 def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
-    """Function to compute the local Fourier filters using a nested approach.
+    """
+    Function to compute the local Fourier filters using a nested approach.
 
     Parameters
     ----------
@@ -632,21 +637,21 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
     # prepare indices
     Idxi = np.array([[0, dim_y]])
     Idxj = np.array([[0, dim_x]])
-    Idxipsd = np.array([[0, 2 ** max_level]])
-    Idxjpsd = np.array([[0, 2 ** max_level]])
+    Idxipsd = np.array([[0, 2**max_level]])
+    Idxjpsd = np.array([[0, 2**max_level]])
 
     # generate the FFT sample frequencies
     freqx = fft.fftfreq(dim_x, gridres)
     freqy = fft.fftfreq(dim_y, gridres)
     fx, fy = np.meshgrid(freqx, freqy)
-    freq_grid = np.sqrt(fx ** 2 + fy ** 2)
+    freq_grid = np.sqrt(fx**2 + fy**2)
 
     # domain fourier filter
     F0 = initialize_nonparam_2d_fft_filter(
         field, win_fun=win_fun, donorm=True, use_full_fft=True, fft_method=fft
     )["field"]
     # and allocate it to the final grid
-    F = np.zeros((2 ** max_level, 2 ** max_level, F0.shape[0], F0.shape[1]))
+    F = np.zeros((2**max_level, 2**max_level, F0.shape[0], F0.shape[1]))
     F += F0[np.newaxis, np.newaxis, :, :]
 
     # now loop levels and build composite spectra
@@ -705,16 +710,17 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
 
         # update indices
         level += 1
-        Idxi, Idxj = _split_field((0, dim[0]), (0, dim[1]), 2 ** level)
+        Idxi, Idxj = _split_field((0, dim[0]), (0, dim[1]), 2**level)
         Idxipsd, Idxjpsd = _split_field(
-            (0, 2 ** max_level), (0, 2 ** max_level), 2 ** level
+            (0, 2**max_level), (0, 2**max_level), 2**level
         )
 
     return {"field": F, "input_shape": field.shape[1:], "use_full_fft": True}
 
 
 def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
-    """Function to compute the locally correlated noise using a nested approach.
+    """
+    Function to compute the locally correlated noise using a nested approach.
 
     Parameters
     ----------
@@ -836,8 +842,8 @@ def _split_field(idxi, idxj, Segments):
     winsizei = int(sizei / Segments)
     winsizej = int(sizej / Segments)
 
-    Idxi = np.zeros((Segments ** 2, 2))
-    Idxj = np.zeros((Segments ** 2, 2))
+    Idxi = np.zeros((Segments**2, 2))
+    Idxj = np.zeros((Segments**2, 2))
 
     count = -1
     for i in range(Segments):

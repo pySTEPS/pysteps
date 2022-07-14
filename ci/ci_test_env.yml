@@ -1,0 +1,35 @@
+# pysteps development environment
+name: test_environment
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.7
+  - pip
+  - mamba
+  # Minimal dependencies
+  - numpy
+  - cython
+  - jsmin
+  - jsonschema
+  - matplotlib
+  - netCDF4
+  - opencv
+  - pillow
+  - pyproj
+  - scipy
+  # Optional dependencies
+  - dask
+  - pyfftw
+  - cartopy
+  - h5py
+  - PyWavelets
+  - pandas
+  - scikit-image
+  - rasterio
+  - gdal
+  # Test dependencies
+  - pytest
+  - pytest-cov
+  - pip:
+      - cookiecutter

@@ -3,7 +3,7 @@
 """
 Script to test the plugin support.
 
-This script assumes that a package created with the default Pysteps plugin template
+This script assumes that a package created with the default pysteps plugin template
 (and using the default values) is installed.
 
 https://github.com/pySTEPS/cookiecutter-pysteps-plugin

@@ -31,7 +31,7 @@ arg_values_quiver = [
 def test_visualization_motionfields_quiver(
     source, axis, step, quiver_kwargs, map_kwargs, upscale, pass_geodata
 ):
-
+    pytest.importorskip("cv2")
     if source is not None:
         fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
         if not pass_geodata:
@@ -76,7 +76,7 @@ arg_values_streamplot = [
 def test_visualization_motionfields_streamplot(
     source, axis, streamplot_kwargs, map_kwargs, upscale, pass_geodata
 ):
-
+    pytest.importorskip("cv2")
     if source is not None:
         fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
         if not pass_geodata:

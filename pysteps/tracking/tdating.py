@@ -152,7 +152,10 @@ def dating(
         raise ValueError("start > len(timelist)")
 
     oflow_method = motion.get_method("LK")
-    max_ID = 0
+    if len(label_list) == 0:
+        max_ID = 0
+    else:
+        max_ID = np.nanmax([np.nanmax(np.unique(label_list)), 0])
     for t in range(start, len(timelist)):
         cells_id, labels = tstorm_detect.detection(
             input_video[t, :, :],

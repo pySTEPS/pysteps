@@ -8,3 +8,4 @@ from .ensscores import *
 from .plots import *
 from .probscores import *
 from .spatialscores import *
+from .salscores import *

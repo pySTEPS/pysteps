@@ -44,7 +44,8 @@ _methods[None] = lambda precip, *args, **kw: np.zeros(
 
 
 def get_method(name):
-    """Return a callable function for the optical flow method corresponding to
+    """
+    Return a callable function for the optical flow method corresponding to
     the given name. The available options are:\n
 
     +--------------------------------------------------------------------------+

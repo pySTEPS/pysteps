@@ -52,7 +52,8 @@ import numpy as np
 
 
 def filter_uniform(shape, n):
-    """A dummy filter with one frequency band covering the whole domain. The
+    """
+    A dummy filter with one frequency band covering the whole domain. The
     weights are set to one.
 
     Parameters
@@ -87,7 +88,8 @@ def filter_uniform(shape, n):
 def filter_gaussian(
     shape, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5, d=1.0, normalize=True
 ):
-    """Implements a set of Gaussian bandpass filters in logarithmic frequency
+    """
+    Implements a set of Gaussian bandpass filters in logarithmic frequency
     scale.
 
     Parameters
@@ -206,7 +208,7 @@ def _gaussweights_1d(l, n, l_0=3, gauss_scale=0.5, gauss_scale_0=0.5):
 
         def __call__(self, x):
             x = log_e(x) - self.c
-            return np.exp(-(x ** 2.0) / (2.0 * self.s ** 2.0))
+            return np.exp(-(x**2.0) / (2.0 * self.s**2.0))
 
     weight_funcs = []
     central_wavenumbers = [0.0]

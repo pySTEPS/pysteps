@@ -64,7 +64,8 @@ def forecast(
     callback=None,
     return_output=True,
 ):
-    """Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
+    """
+    Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
     System (STEPS) method.
 
     Parameters

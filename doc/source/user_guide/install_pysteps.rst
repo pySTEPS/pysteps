@@ -8,7 +8,7 @@ Dependencies
 
 The pysteps package needs the following dependencies
 
-* `python >=3.6 <http://www.python.org/>`_
+* `python >=3.7, <3.10 <http://www.python.org/>`_ (lower or higher versions may work but are not tested).
 * `jsonschema <https://pypi.org/project/jsonschema/>`_
 * `matplotlib <http://matplotlib.org/>`_
 * `netCDF4 <https://pypi.org/project/netCDF4/>`_
@@ -33,10 +33,13 @@ Other optional dependencies include:
   visualization)
 * `h5py <https://www.h5py.org/>`_ (for importing HDF5 data)
 * `pygrib <https://jswhit.github.io/pygrib/docs/index.html>`_ (for importing MRMS data)
+* `gdal <https://gdal.org/>`_ (for importing GeoTIFF data)
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
 * `pandas <https://pandas.pydata.org/>`_ and
-  `scikit-image <https://scikit-image.org/>`_ (for the DATing and LINDA nowcast methods)
+  `scikit-image <https://scikit-image.org/>`_ (for advanced feature detection methods)
+* `rasterio <https://rasterio.readthedocs.io/en/latest/>`_ (for the reprojection module)
+
 
 **Important**: If you only want to use pysteps, you can continue reading below.
 But, if you want to contribute to pysteps or edit the package, you need to install
@@ -51,22 +54,22 @@ Conda quickly installs, runs, and updates packages and their dependencies.
 It also allows you to easily create, save, load, or switch between different
 environments on your local computer.
 
-Since version 1.0, pySTEPS is available in conda-forge, a community-driven
+Since version 1.0, pysteps is available in conda-forge, a community-driven
 package repository for anaconda.
 
-There are two installation alternatives using anaconda: install pySTEPS in a
+There are two installation alternatives using anaconda: install pysteps in a
 pre-existing environment or install it new environment.
 
 New environment
 ~~~~~~~~~~~~~~~
 
-In a terminal, to create a new conda environment and install pySTEPS, run::
+In a terminal, to create a new conda environment and install pysteps, run::
 
     $ conda create -n pysteps
     $ source activate pysteps
 
 This will create and activate the new python environment. The next step is to
-add the conda-forge channel where the pySTEPS package is located::
+add the conda-forge channel where the pysteps package is located::
 
     $ conda config --env --prepend channels conda-forge
 
@@ -77,7 +80,7 @@ Let's set this channel as the priority one::
 The latter step is not strictly necessary but is recommended since
 the conda-forge and the default Anaconda channels are not 100% compatible.
 
-Finally, to install pySTEPS and all its dependencies run::
+Finally, to install pysteps and all its dependencies run::
 
     $ conda install pysteps
 
@@ -85,9 +88,9 @@ Finally, to install pySTEPS and all its dependencies run::
 Install from source
 -------------------
 
-The recommended way to install pysteps from the source is using `pip`
-to adhere to the [PEP517 standards](https://www.python.org/dev/peps/pep-0517/).
-Using `pip` instead of `setup.py` guarantees that all the package dependencies
+The recommended way to install pysteps from the source is using ``pip``
+to adhere to the `PEP517 standards <https://www.python.org/dev/peps/pep-0517/>`_.
+Using ``pip`` instead of ``setup.py`` guarantees that all the package dependencies
 are properly handled during the installation process.
 
 .. _install_osx_users:
@@ -151,15 +154,19 @@ Or, from a local copy of the repo::
 The above commands install the latest version of the **master** branch,
 which is continuously under development.
 
+.. warning::
+    If you are installing pysteps from the sources using pip, the Python interpreter must be launched outside of the pysteps root directory.
+    Importing pysteps from a working directory that contains the pysteps source code will raise a ``ModuleNotFoundError``. 
+    This error is caused by the root pysteps folder being recognized as the pysteps package, also known as 
+    `the double import trap <http://python-notes.curiousefficiency.org/en/latest/python_concepts/import_traps.html#the-double-import-trap>`_.
+
 Setting up the user-defined configuration file
 ----------------------------------------------
-
-.. _JSON: https://en.wikipedia.org/wiki/JSON
 
 The pysteps package allows the users to customize the default settings
 and configuration.
 The configuration parameters used by default are loaded from a user-defined
-JSON_ file and then stored in the **pysteps.rcparams**, a dictionary-like object
+`JSON <https://en.wikipedia.org/wiki/JSON>`_ file and then stored in the **pysteps.rcparams**, a dictionary-like object
 that can be accessed as attributes or as items.
 
 .. toctree::
@@ -181,14 +188,3 @@ Launch Python and import pysteps::
 
     python
     >>> import pysteps
-
-**Important**: The Python interpreter must be launched outside of the pysteps directory.
-Otherwise, it confuses the name of the directory with the package name.
-See :ref:`Issue 40 <https://github.com/pySTEPS/pysteps/issues/40>`.
-
-
-
-
-
-
-

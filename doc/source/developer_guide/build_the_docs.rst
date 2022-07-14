@@ -21,7 +21,7 @@ To install these packages activate your conda development environment and run::
 
 Then, to build the documentation, from the repo's root run::
 
-    `tox -e docs`
+    tox -e docs
 
 This will create a conda environment will all the necessary dependencies and the
 data needed to create the examples.
@@ -35,7 +35,7 @@ related to Sphinx that are specified in the doc/requirements.txt file:
 - sphinx
 - numpydoc
 - sphinxcontrib.bibtex
-- sphinx_rtd_theme
+- sphinx-book-theme
 - sphinx_gallery
 
 You can install these packages running `pip install -r doc/requirements.txt`.

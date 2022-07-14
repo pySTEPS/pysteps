@@ -26,7 +26,8 @@ import numpy as np
 
 
 def CRPS(X_f, X_o):
-    """Compute the continuous ranked probability score (CRPS).
+    """
+    Compute the continuous ranked probability score (CRPS).
 
     Parameters
     ----------
@@ -55,7 +56,8 @@ def CRPS(X_f, X_o):
 
 
 def CRPS_init():
-    """Initialize a CRPS object.
+    """
+    Initialize a CRPS object.
 
     Returns
     -------
@@ -66,7 +68,8 @@ def CRPS_init():
 
 
 def CRPS_accum(CRPS, X_f, X_o):
-    """Compute the average continuous ranked probability score (CRPS) for a set
+    """
+    Compute the average continuous ranked probability score (CRPS) for a set
     of forecast ensembles and the corresponding observations and accumulate the
     result to the given CRPS object.
 
@@ -122,14 +125,15 @@ def CRPS_accum(CRPS, X_f, X_o):
     beta[mask, -1] = 0.0
 
     p = 1.0 * np.arange(m + 1) / m
-    res = np.sum(alpha * p ** 2.0 + beta * (1.0 - p) ** 2.0, axis=1)
+    res = np.sum(alpha * p**2.0 + beta * (1.0 - p) ** 2.0, axis=1)
 
     CRPS["CRPS_sum"] += np.sum(res)
     CRPS["n"] += len(res)
 
 
 def CRPS_compute(CRPS):
-    """Compute the averaged values from the given CRPS object.
+    """
+    Compute the averaged values from the given CRPS object.
 
     Parameters
     ----------
@@ -145,7 +149,8 @@ def CRPS_compute(CRPS):
 
 
 def reldiag(P_f, X_o, X_min, n_bins=10, min_count=10):
-    """Compute the x- and y- coordinates of the points in the reliability diagram.
+    """
+    Compute the x- and y- coordinates of the points in the reliability diagram.
 
     Parameters
     ----------
@@ -177,7 +182,8 @@ def reldiag(P_f, X_o, X_min, n_bins=10, min_count=10):
 
 
 def reldiag_init(X_min, n_bins=10, min_count=10):
-    """Initialize a reliability diagram object.
+    """
+    Initialize a reliability diagram object.
 
     Parameters
     ----------
@@ -259,7 +265,8 @@ def reldiag_accum(reldiag, P_f, X_o):
 
 
 def reldiag_compute(reldiag):
-    """Compute the x- and y- coordinates of the points in the reliability diagram.
+    """
+    Compute the x- and y- coordinates of the points in the reliability diagram.
 
     Parameters
     ----------
@@ -279,7 +286,8 @@ def reldiag_compute(reldiag):
 
 
 def ROC_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
-    """Compute the ROC curve and its area from the given ROC object.
+    """
+    Compute the ROC curve and its area from the given ROC object.
 
     Parameters
     ----------
@@ -313,7 +321,8 @@ def ROC_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
 
 
 def ROC_curve_init(X_min, n_prob_thrs=10):
-    """Initialize a ROC curve object.
+    """
+    Initialize a ROC curve object.
 
     Parameters
     ----------
@@ -371,7 +380,8 @@ def ROC_curve_accum(ROC, P_f, X_o):
 
 
 def ROC_curve_compute(ROC, compute_area=False):
-    """Compute the ROC curve and its area from the given ROC object.
+    """
+    Compute the ROC curve and its area from the given ROC object.
 
     Parameters
     ----------

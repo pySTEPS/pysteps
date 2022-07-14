@@ -14,7 +14,8 @@ import numpy as np
 
 
 def compute_centred_coord_array(M, N):
-    """Compute a 2D coordinate array, where the origin is at the center.
+    """
+    Compute a 2D coordinate array, where the origin is at the center.
 
     Parameters
     ----------

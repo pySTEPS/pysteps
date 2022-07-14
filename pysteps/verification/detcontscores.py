@@ -21,7 +21,8 @@ from scipy.stats import spearmanr
 
 
 def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
-    """Calculate simple and skill scores for deterministic continuous forecasts.
+    """
+    Calculate simple and skill scores for deterministic continuous forecasts.
 
     Parameters
     ----------
@@ -207,7 +208,8 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
 
 
 def det_cont_fct_init(axis=None, conditioning=None, thr=0.0):
-    """Initialize a verification error object.
+    """
+    Initialize a verification error object.
 
     Parameters
     ----------
@@ -354,8 +356,8 @@ def det_cont_fct_accum(err, pred, obs):
     mobs = np.nanmean(obs, axis=axis)
     mpred = np.nanmean(pred, axis=axis)
     me = np.nanmean(res, axis=axis)
-    mse = np.nanmean(res ** 2, axis=axis)
-    mss = np.nanmean(sum ** 2, axis=axis)
+    mse = np.nanmean(res**2, axis=axis)
+    mss = np.nanmean(sum**2, axis=axis)
     mae = np.nanmean(np.abs(res), axis=axis)
 
     # expand axes for broadcasting
@@ -391,7 +393,8 @@ def det_cont_fct_accum(err, pred, obs):
 
 
 def det_cont_fct_merge(err_1, err_2):
-    """Merge two verification error objects.
+    """
+    Merge two verification error objects.
 
     Parameters
     ----------
@@ -474,7 +477,8 @@ def det_cont_fct_merge(err_1, err_2):
 
 
 def det_cont_fct_compute(err, scores=""):
-    """Compute simple and skill scores for deterministic continuous forecasts
+    """
+    Compute simple and skill scores for deterministic continuous forecasts
     from a verification error object.
 
     Parameters
@@ -605,7 +609,8 @@ def _parallel_mean(avg_a, count_a, avg_b, count_b):
 
 
 def _parallel_var(avg_a, count_a, var_a, avg_b, count_b, var_b):
-    """Update var_a with var_b.
+    """
+    Update var_a with var_b.
     source: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
     """
     idx = count_b > 0

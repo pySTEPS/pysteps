@@ -117,10 +117,10 @@ class ShowProgress(object):
 
         self._clear_line()
 
-        downloaded_size = count * block_size / (1024 ** 2)
+        downloaded_size = count * block_size / (1024**2)
 
         if self.total_size is None and total_size > 0:
-            self.total_size = total_size / (1024 ** 2)
+            self.total_size = total_size / (1024**2)
 
         if count == 0:
             self.init_time = time.time()

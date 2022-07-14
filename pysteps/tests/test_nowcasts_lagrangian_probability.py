@@ -34,6 +34,8 @@ def test_numerical_example():
 
 def test_real_case():
     """"""
+    pytest.importorskip("cv2")
+
     # inputs
     precip, metadata = get_precipitation_fields(
         num_prev_files=2,

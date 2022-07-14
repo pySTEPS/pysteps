@@ -76,7 +76,8 @@ PYPROJ_GLOB_KWRDS_TO_CARTOPY = {
 
 
 def parse_proj4_string(proj4str):
-    """Construct a dictionary from a PROJ.4 projection string.
+    """
+    Construct a dictionary from a PROJ.4 projection string.
 
     Parameters
     ----------
@@ -105,7 +106,8 @@ def parse_proj4_string(proj4str):
 
 
 def proj4_to_cartopy(proj4str):
-    """Convert a PROJ.4 projection string into a Cartopy coordinate reference
+    """
+    Convert a PROJ.4 projection string into a Cartopy coordinate reference
     system (crs) object.
 
     Parameters

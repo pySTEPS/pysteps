@@ -13,6 +13,7 @@ from pysteps.datasets import (
 )
 from pysteps.exceptions import DirectoryNotEmpty
 
+
 _datasets_opt_deps = dict(
     fmi=["pyproj"],
     mch=["PIL"],
@@ -58,7 +59,8 @@ def _test_download_data():
 
 
 def _default_path():
-    """Default pystepsrc path."""
+    """
+    Default pystepsrc path."""
     home_dir = os.path.expanduser("~")
     if os.name == "nt":
         subdir = "pysteps"

@@ -43,7 +43,6 @@ def plot_precip_field(
     axis="on",
     cax=None,
     map_kwargs=None,
-    **kwargs,
 ):
     """
     Function to plot a precipitation intensity or probability field with a
@@ -131,13 +130,6 @@ def plot_precip_field(
     if map_kwargs is None:
         map_kwargs = {}
 
-    if "type" in kwargs:
-        warnings.warn(
-            "The 'type' keyword use to indicate the type of plot will be "
-            "deprecated in version 1.6. Use 'ptype' instead."
-        )
-        ptype = kwargs.get("type")
-
     if ptype not in PRECIP_VALID_TYPES:
         raise ValueError(
             f"Invalid precipitation type '{ptype}'."
@@ -191,13 +183,11 @@ def plot_precip_field(
             cbar.ax.set_yticklabels(clevs_str)
 
         if ptype == "intensity":
-            cbar.ax.set_title(units, fontsize=10)
-            cbar.set_label("Precipitation intensity")
+            cbar.set_label(f"Precipitation intensity [{units}]")
         elif ptype == "depth":
-            cbar.ax.set_title(units, fontsize=10)
-            cbar.set_label("Precipitation depth")
+            cbar.set_label(f"Precipitation depth [{units}]")
         else:
-            cbar.set_label("P(R > %.1f %s)" % (probthr, units))
+            cbar.set_label(f"P(R > {probthr:.1f} {units})")
 
     if geodata is None or axis == "off":
         ax.xaxis.set_ticks([])
@@ -244,7 +234,8 @@ def _plot_field(
 
 
 def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
-    """Function to generate a colormap (cmap) and norm.
+    """
+    Function to generate a colormap (cmap) and norm.
 
     Parameters
     ----------

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 pysteps.io.importers
 ====================
@@ -90,6 +89,7 @@ import os
 from functools import partial
 
 import numpy as np
+
 from matplotlib.pyplot import imread
 
 from pysteps.decorators import postprocess_import
@@ -98,8 +98,7 @@ from pysteps.exceptions import MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 
 try:
-    import gdalconst
-    from osgeo import gdal, osr
+    from osgeo import gdal, gdalconst, osr
 
     GDAL_IMPORTED = True
 except ImportError:
@@ -149,7 +148,8 @@ except ImportError:
 
 
 def _check_coords_range(selected_range, coordinate, full_range):
-    """Check that the coordinates range arguments follow the expected pattern in
+    """
+    Check that the coordinates range arguments follow the expected pattern in
     the **import_mrms_grib** function."""
 
     if selected_range is None:
@@ -248,11 +248,11 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     by default to reduce the memory footprint. However, be aware that when this
     array is passed to a pystep function, it may be converted to double
     precision, doubling the memory footprint.
-    To change the precision of the data, use the *dtype* keyword.
+    To change the precision of the data, use the ``dtype`` keyword.
 
     Also, by default, the original data is downscaled by 4
     (resulting in a ~4 km grid spacing).
-    In case that the original grid spacing is needed, use `window_size=1`.
+    In case that the original grid spacing is needed, use ``window_size=1``.
     But be aware that a single composite in double precipitation will
     require 186 Mb of memory.
 
@@ -421,7 +421,8 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
 @postprocess_import()
 def import_bom_rf3(filename, **kwargs):
-    """Import a NetCDF radar rainfall product from the BoM Rainfields3.
+    """
+    Import a NetCDF radar rainfall product from the BoM Rainfields3.
 
     Parameters
     ----------
@@ -443,11 +444,8 @@ def import_bom_rf3(filename, **kwargs):
             "but it is not installed"
         )
 
-    precip = _import_bom_rf3_data(filename)
-
-    geodata = _import_bom_rf3_geodata(filename)
+    precip, geodata = _import_bom_rf3_data(filename)
     metadata = geodata
-    # TODO(import_bom_rf3): Add missing georeferencing data.
 
     metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
@@ -458,19 +456,18 @@ def import_bom_rf3(filename, **kwargs):
 
 def _import_bom_rf3_data(filename):
     ds_rainfall = netCDF4.Dataset(filename)
+    geodata = _import_bom_rf3_geodata(ds_rainfall)
     if "precipitation" in ds_rainfall.variables.keys():
         precipitation = ds_rainfall.variables["precipitation"][:]
     else:
         precipitation = None
     ds_rainfall.close()
 
-    return precipitation
+    return precipitation, geodata
 
 
-def _import_bom_rf3_geodata(filename):
+def _import_bom_rf3_geodata(ds_rainfall):
     geodata = {}
-
-    ds_rainfall = netCDF4.Dataset(filename)
 
     if "proj" in ds_rainfall.variables.keys():
         projection = ds_rainfall.variables["proj"]
@@ -512,7 +509,7 @@ def _import_bom_rf3_geodata(filename):
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
     geodata["cartesian_unit"] = "m"
-    geodata["yorigin"] = "upper"  # TODO(_import_bom_rf3_geodata): check this
+    geodata["yorigin"] = "upper"
 
     # get the accumulation period
     valid_time = None
@@ -547,14 +544,14 @@ def _import_bom_rf3_geodata(filename):
             geodata["unit"] = "mm"
 
     geodata["institution"] = "Commonwealth of Australia, Bureau of Meteorology"
-    ds_rainfall.close()
 
     return geodata
 
 
 @postprocess_import()
 def import_fmi_geotiff(filename, **kwargs):
-    """Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
+    """
+    Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
 
     Parameters
     ----------
@@ -580,9 +577,8 @@ def import_fmi_geotiff(filename, **kwargs):
     f = gdal.Open(filename, gdalconst.GA_ReadOnly)
 
     rb = f.GetRasterBand(1)
-    precip = rb.ReadAsArray()
+    precip = rb.ReadAsArray().astype(float)
     mask = precip == 255
-    precip = precip.astype(float) * rb.GetScale() + rb.GetOffset()
     precip = (precip - 64.0) / 2.0
     precip[mask] = np.nan
 
@@ -608,19 +604,22 @@ def import_fmi_geotiff(filename, **kwargs):
     else:
         metadata["yorigin"] = "lower"
     metadata["institution"] = "Finnish Meteorological Institute"
-    metadata["unit"] = rb.GetUnitType()
-    metadata["transform"] = None
+    metadata["unit"] = "dBZ"
+    metadata["transform"] = "dB"
     metadata["accutime"] = 5.0
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["cartesian_unit"] = "m"
+    metadata["zr_a"] = 223.0
+    metadata["zr_b"] = 1.53
 
     return precip, None, metadata
 
 
 @postprocess_import()
 def import_fmi_pgm(filename, gzipped=False, **kwargs):
-    """Import a 8-bit PGM radar reflectivity composite from the FMI archive.
+    """
+    Import a 8-bit PGM radar reflectivity composite from the FMI archive.
 
     Parameters
     ----------
@@ -745,8 +744,9 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
 
 
 @postprocess_import()
-def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs):
-    """Import a precipitation or reflectivity field (and optionally the quality
+def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwargs):
+    """
+    Import a precipitation or reflectivity field (and optionally the quality
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
 
     Parameters
@@ -762,8 +762,8 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
         is used as default, but hourly, daily and monthly accumulations
         are also available.
     pixelsize: float
-        The pixel size of a raster cell in kilometers. The default value for the
-        KNMI datasets is a 1 km grid cell size, but datasets with 2.4 km pixel
+        The pixel size of a raster cell in meters. The default value for the
+        KNMI datasets is a 1000 m grid cell size, but datasets with 2400 m pixel
         size are also available.
 
     {extra_kwargs_doc}
@@ -841,7 +841,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
-    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
+    proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
     pr = pyproj.Proj(proj4str)
     metadata["projection"] = proj4str
 
@@ -872,7 +872,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
     metadata["y2"] = y2
     metadata["xpixelsize"] = pixelsize
     metadata["ypixelsize"] = pixelsize
-    metadata["cartesian_unit"] = "km"
+    metadata["cartesian_unit"] = "m"
     metadata["yorigin"] = "upper"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
@@ -890,7 +890,8 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1.0, **kwargs
 
 @postprocess_import()
 def import_mch_gif(filename, product, unit, accutime, **kwargs):
-    """Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
+    """
+    Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
 
     Parameters
@@ -1010,7 +1011,8 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
 
 @postprocess_import()
 def import_mch_hdf5(filename, qty="RATE", **kwargs):
-    """Import a precipitation field (and optionally the quality field) from a
+    """
+    Import a precipitation field (and optionally the quality field) from a
     MeteoSwiss HDF5 file conforming to the ODIM specification.
 
     Parameters
@@ -1154,7 +1156,8 @@ def _read_mch_hdf5_what_group(whatgrp):
 
 @postprocess_import()
 def import_mch_metranet(filename, product, unit, accutime):
-    """Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
+    """
+    Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
     archive.
 
     Parameters
@@ -1218,7 +1221,8 @@ def import_mch_metranet(filename, product, unit, accutime):
 
 
 def _import_mch_geodata():
-    """Swiss radar domain CCS4
+    """
+    Swiss radar domain CCS4
     These are all hard-coded because the georeferencing is missing from the gif files.
     """
 
@@ -1253,7 +1257,8 @@ def _import_mch_geodata():
 
 @postprocess_import()
 def import_odim_hdf5(filename, qty="RATE", **kwargs):
-    """Import a precipitation field (and optionally the quality field) from a
+    """
+    Import a precipitation field (and optionally the quality field) from a
     HDF5 file conforming to the ODIM specification.
     **Important:** Currently, only the Pan-European (OPERA) and the
     Dipartimento della Protezione Civile (DPC) radar composites are correctly supported.
@@ -1409,7 +1414,16 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         x2 = ur_x
         y2 = ur_y
 
+    dataset1 = f["dataset1"]
+
     if "xscale" in where.attrs.keys() and "yscale" in where.attrs.keys():
+        xpixelsize = where.attrs["xscale"]
+        ypixelsize = where.attrs["yscale"]
+    elif (
+        "xscale" in dataset1["where"].attrs.keys()
+        and "yscale" in dataset1["where"].attrs.keys()
+    ):
+        where = dataset1["where"]
         xpixelsize = where.attrs["xscale"]
         ypixelsize = where.attrs["yscale"]
     else:
@@ -1448,6 +1462,8 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         "threshold": _get_threshold_value(precip),
     }
 
+    metadata.update(kwargs)
+
     f.close()
 
     return precip, quality, metadata
@@ -1475,7 +1491,8 @@ def _read_opera_hdf5_what_group(whatgrp):
 
 @postprocess_import()
 def import_saf_crri(filename, extent=None, **kwargs):
-    """Import a NetCDF radar rainfall product from the Convective Rainfall Rate
+    """
+    Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
 
     Product description available on http://www.nwcsaf.org/crr_description

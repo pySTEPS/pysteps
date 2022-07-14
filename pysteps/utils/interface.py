@@ -18,13 +18,15 @@ from . import dimension
 from . import fft
 from . import images
 from . import interpolate
+from . import reprojection
 from . import spectral
 from . import tapering
 from . import transformation
 
 
 def get_method(name, **kwargs):
-    """Return a callable function for the utility method corresponding to the
+    """
+    Return a callable function for the utility method corresponding to the
     given name.\n\
 
     Arrays methods:
@@ -107,6 +109,14 @@ def get_method(name, **kwargs):
     Additional keyword arguments are passed to the initializer of the FFT
     methods, see utils.fft.
 
+    Reprojection methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    |  reproject_grids  | Reproject grids to a destination grid.              |
+    +-------------------+-----------------------------------------------------+
+
     Spectral methods:
 
     +-------------------+-----------------------------------------------------+
@@ -187,9 +197,18 @@ def get_method(name, **kwargs):
     methods_objects["rbfinterp2d"] = interpolate.rbfinterp2d
     methods_objects["idwinterp2d"] = interpolate.idwinterp2d
 
+    # reprojection methods
+    methods_objects["reproject_grids"] = reprojection.reproject_grids
+
     # spectral methods
     methods_objects["rapsd"] = spectral.rapsd
     methods_objects["rm_rdisc"] = spectral.remove_rain_norain_discontinuity
+
+    # tapering methods
+    methods_objects[
+        "compute_mask_window_function"
+    ] = tapering.compute_mask_window_function
+    methods_objects["compute_window_function"] = tapering.compute_window_function
 
     # transformation methods
     methods_objects["boxcox"] = transformation.boxcox_transform

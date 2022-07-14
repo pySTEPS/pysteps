@@ -77,7 +77,8 @@ from pysteps import utils
 
 
 def decomposition_fft(field, bp_filter, **kwargs):
-    """Decompose a two-dimensional input field into multiple spatial scales by
+    """
+    Decompose a two-dimensional input field into multiple spatial scales by
     using the Fast Fourier Transform (FFT) and a set of bandpass filters.
 
     Parameters
@@ -253,7 +254,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
 
 
 def recompose_fft(decomp, **kwargs):
-    """Recompose a cascade obtained with decomposition_fft by inverting the
+    """
+    Recompose a cascade obtained with decomposition_fft by inverting the
     normalization and summing the cascade levels.
 
     Parameters
