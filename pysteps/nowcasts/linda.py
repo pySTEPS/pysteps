@@ -793,10 +793,15 @@ def _estimate_perturbation_params(
             inv_acf_mapping = _compute_inverse_acf_mapping(stats.lognorm, distpar)
             mask_acf = weights_acf > 1e-4
             std = _weighted_std(fct_err[mask_acf], weights_dist[i][mask_acf])
-            acf = inv_acf_mapping(
-                _compute_sample_acf(weights_acf * (fct_err - 1.0) / std)
-            )
-            acf = _fit_acf(acf)
+            if np.isfinite(std):
+                acf = inv_acf_mapping(
+                    _compute_sample_acf(weights_acf * (fct_err - 1.0) / std)
+                )
+                acf = _fit_acf(acf)
+            else:
+                distpar = None
+                std = None
+                acf = None
         else:
             distpar = None
             std = None
@@ -1392,13 +1397,16 @@ def _masked_convolution(field, kernel):
 
 def _weighted_std(f, w):
     """
-    Compute standard deviation of forecast errors with spatially varying weights
-    values close to zero are omitted.
+    Compute standard deviation of forecast errors with spatially varying weights.
+    Values close to zero are omitted.
     """
     mask = np.abs(f - 1.0) > 1e-4
-    c = (w[mask].size - 1.0) / w[mask].size
-
-    return np.sqrt(np.sum(w[mask] * (f[mask] - 1.0) ** 2.0) / (c * np.sum(w[mask])))
+    n = np.count_nonzero(mask)
+    if n > 0:
+        c = (w[mask].size - 1.0) / n
+        return np.sqrt(np.sum(w[mask] * (f[mask] - 1.0) ** 2.0) / (c * np.sum(w[mask])))
+    else:
+        return np.nan
 
 
 def _window_tukey(m, n, ci, cj, ri, rj, alpha=0.5):
