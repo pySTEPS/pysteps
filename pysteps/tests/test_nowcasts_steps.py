@@ -22,9 +22,9 @@ steps_arg_names = (
 steps_arg_values = [
     (5, 6, 2, None, None, "spatial", 3, 1.30),
     (5, 6, 2, None, None, "spatial", [3], 1.30),
-    (5, 6, 2, "incremental", None, "spatial", 3, 7.25),
-    (5, 6, 2, "sprog", None, "spatial", 3, 8.35),
-    (5, 6, 2, "obs", None, "spatial", 3, 8.30),
+    (5, 6, 2, "incremental", None, "spatial", 3, 7.31),
+    (5, 6, 2, "sprog", None, "spatial", 3, 8.4),
+    (5, 6, 2, "obs", None, "spatial", 3, 8.37),
     (5, 6, 2, None, "cdf", "spatial", 3, 0.60),
     (5, 6, 2, None, "mean", "spatial", 3, 1.35),
     (5, 6, 2, "incremental", "cdf", "spectral", 3, 0.60),
