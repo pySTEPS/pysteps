@@ -12,6 +12,7 @@ Implementation of extrapolation-based nowcasting methods.
 """
 
 import time
+import numpy as np
 
 from pysteps import extrapolation
 
@@ -72,6 +73,10 @@ def forecast(
         extrap_kwargs = dict()
     else:
         extrap_kwargs = extrap_kwargs.copy()
+
+    extrap_kwargs["allow_nonfinite_values"] = (
+        True if np.any(~np.isfinite(precip)) else False
+    )
 
     if measure_time:
         print(

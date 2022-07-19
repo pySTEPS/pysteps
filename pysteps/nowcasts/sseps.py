@@ -316,6 +316,8 @@ def forecast(
     R = R[-(ar_order + 1) :, :, :].copy()
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
+    extrap_kwargs["allow_nonfinite_values"] = True if np.any(~np.isfinite(R)) else False
+
     res = []
     f = lambda R, i: extrapolator_method(
         R[i, :, :], V, ar_order - i, "min", **extrap_kwargs

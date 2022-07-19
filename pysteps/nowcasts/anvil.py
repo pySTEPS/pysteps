@@ -196,6 +196,10 @@ def forecast(
 
     # transform the input fields to Lagrangian coordinates by extrapolation
     extrapolator = extrapolation.get_method(extrap_method)
+    extrap_kwargs["allow_nonfinite_values"] = (
+        True if np.any(~np.isfinite(vil)) else False
+    )
+
     res = list()
 
     def worker(vil, i):
@@ -205,7 +209,6 @@ def forecast(
                 vil[i, :],
                 velocity,
                 vil.shape[0] - 1 - i,
-                allow_nonfinite_values=True,
                 **extrap_kwargs,
             )[-1],
         )
@@ -364,12 +367,16 @@ def forecast(
                     r_f_ip = r_f_prev
 
                 t_diff_prev = t_sub - t_prev
+
                 extrap_kwargs["displacement_prev"] = dp
+                extrap_kwargs["allow_nonfinite_values"] = (
+                    True if np.any(~np.isfinite(r_f_ip)) else False
+                )
+
                 r_f_ep, dp = extrapolator(
                     r_f_ip,
                     velocity,
                     [t_diff_prev],
-                    allow_nonfinite_values=True,
                     **extrap_kwargs,
                 )
                 r_f.append(r_f_ep[0])
@@ -384,7 +391,6 @@ def forecast(
                 None,
                 velocity,
                 [t_diff_prev],
-                allow_nonfinite_values=True,
                 **extrap_kwargs,
             )
             t_prev = t + 1

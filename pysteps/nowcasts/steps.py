@@ -402,7 +402,8 @@ def forecast(
     # most recent one (i.e. transform them into the Lagrangian coordinates)
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
-    extrap_kwargs["allow_nonfinite_values"] = True
+    extrap_kwargs["allow_nonfinite_values"] = True if np.any(~np.isfinite(R)) else False
+
     res = list()
 
     def f(R, i):
