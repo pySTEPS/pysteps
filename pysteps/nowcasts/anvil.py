@@ -202,6 +202,7 @@ def forecast(
     extrap_kwargs["allow_nonfinite_values"] = (
         True if np.any(~np.isfinite(vil)) else False
     )
+
     res = list()
 
     def worker(vil, i):
