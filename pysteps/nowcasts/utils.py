@@ -14,6 +14,7 @@ Module with common utilities used by nowcasts methods.
 
 import time
 import numpy as np
+import scipy.ndimage
 from pysteps import extrapolation
 
 
@@ -58,6 +59,39 @@ def binned_timesteps(timesteps):
         out[bi - 1].append(i)
 
     return out
+
+
+def compute_dilated_mask(input_mask, kr, r):
+    """Buffer the input rain mask using the given kernel. Add a grayscale rim
+    for smooth rain/no-rain transition by iteratively dilating the mask.
+
+    Parameters
+    ----------
+    input_mask : array_like
+        Two-dimensional boolean array containing the input mask.
+    kr : array_like
+        Structuring element for the dilation.
+    r : int
+        The number of iterations for the dilation.
+
+    Returns
+    -------
+    out : array_like
+        The dilated mask normalized to the range [0,1].
+    """
+    # buffer the input mask
+    input_mask = np.ndarray.astype(input_mask.copy(), "uint8")
+    mask_dilated = scipy.ndimage.morphology.binary_dilation(input_mask, kr)
+
+    # add grayscale rim
+    kr1 = scipy.ndimage.generate_binary_structure(2, 1)
+    mask = mask_dilated.astype(float)
+    for i in range(r):
+        mask_dilated = scipy.ndimage.morphology.binary_dilation(mask_dilated, kr1)
+        mask += mask_dilated
+
+    # normalize between 0 and 1
+    return mask / mask.max()
 
 
 def compute_percentile_mask(precip, pct):

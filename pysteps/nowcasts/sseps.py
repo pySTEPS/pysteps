@@ -442,7 +442,9 @@ def forecast(
             MASK_prec = precip[-1, :, :] >= precip_thr
             if mask_method == "incremental":
                 # initialize precip mask for each member
-                MASK_prec = _compute_incremental_mask(MASK_prec, struct, mask_rim)
+                MASK_prec = nowcast_utils.compute_dilated_mask(
+                    MASK_prec, struct, mask_rim
+                )
                 MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
         else:
             MASK_prec = None
@@ -779,7 +781,7 @@ def forecast(
                     MASK_prec = None
 
             if mask_method == "incremental":
-                parsglob["MASK_prec"][j] = _compute_incremental_mask(
+                parsglob["MASK_prec"][j] = nowcast_utils.compute_dilated_mask(
                     R_f_new >= precip_thr, struct, mask_rim
                 )
 
@@ -905,24 +907,6 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
-
-
-def _compute_incremental_mask(Rbin, kr, r):
-    # buffer the observation mask Rbin using the kernel kr
-    # add a grayscale rim r (for smooth rain/no-rain transition)
-
-    # buffer observation mask
-    Rbin = np.ndarray.astype(Rbin.copy(), "uint8")
-    Rd = scipy.ndimage.morphology.binary_dilation(Rbin, kr)
-
-    # add grayscale rim
-    kr1 = scipy.ndimage.generate_binary_structure(2, 1)
-    mask = Rd.astype(float)
-    for n in range(r):
-        Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
-        mask += Rd
-    # normalize between 0 and 1
-    return mask / mask.max()
 
 
 # TODO: Use the recomponse_cascade method in the cascade.decomposition module

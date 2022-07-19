@@ -590,7 +590,7 @@ def forecast(
             n = mask_f * timestep / kmperpixel
             struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
             # initialize precip mask for each member
-            mask_prec = _compute_incremental_mask(mask_prec, struct, mask_rim)
+            mask_prec = nowcast_utils.compute_dilated_mask(mask_prec, struct, mask_rim)
             mask_prec = [mask_prec.copy() for j in range(n_ens_members)]
     else:
         mask_prec = None
@@ -686,24 +686,6 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
-
-
-def _compute_incremental_mask(Rbin, kr, r):
-    # buffer the observation mask Rbin using the kernel kr
-    # add a grayscale rim r (for smooth rain/no-rain transition)
-
-    # buffer observation mask
-    Rbin = np.ndarray.astype(Rbin.copy(), "uint8")
-    Rd = scipy.ndimage.morphology.binary_dilation(Rbin, kr)
-
-    # add grayscale rim
-    kr1 = scipy.ndimage.generate_binary_structure(2, 1)
-    mask = Rd.astype(float)
-    for n in range(r):
-        Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
-        mask += Rd
-    # normalize between 0 and 1
-    return mask / mask.max()
 
 
 def _update(state, params):
@@ -817,7 +799,7 @@ def _update(state, params):
             precip_f[MASK] = precip_f[MASK] - mu_fct + params["mu_0"]
 
         if params["mask_method"] == "incremental":
-            state["mask_prec"][j] = _compute_incremental_mask(
+            state["mask_prec"][j] = nowcast_utils.compute_dilated_mask(
                 precip_f >= params["precip_thr"], params["struct"], params["mask_rim"]
             )
 
