@@ -917,7 +917,7 @@ def _compute_incremental_mask(Rbin, kr, r):
 
     # add grayscale rim
     kr1 = scipy.ndimage.generate_binary_structure(2, 1)
-    mask = Rd.astype(int)
+    mask = Rd.astype(float)
     for n in range(r):
         Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
         mask += Rd
