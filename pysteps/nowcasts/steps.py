@@ -138,7 +138,7 @@ def forecast(
         the most recently observed one. 'cdf'=map the forecast CDF to the observed
         one, 'mean'=adjust only the conditional mean value of the forecast field
         in precipitation areas, None=no matching applied. Using 'mean' requires
-        that mask_method is not None.
+        that precip_thr and mask_method are not None.
     seed: int, optional
         Optional seed number for the random generators.
     num_workers: int, optional
@@ -284,11 +284,20 @@ def forecast(
             % mask_method
         )
 
-    if conditional and precip_thr is None:
-        raise ValueError("conditional=True but precip_thr is not set")
+    if precip_thr is None:
+        if conditional:
+            raise ValueError("conditional = True but precip_thr not specified")
 
-    if mask_method is not None and precip_thr is None:
-        raise ValueError("mask_method is not None but precip_thr is not set")
+        if mask_method is not None:
+            raise ValueError("mask_method is not None but precip_thr not specified")
+
+        if probmatching_method == "mean":
+            raise ValueError(
+                "probmatching_method = 'mean' but precip_thr not specified"
+            )
+
+        if noise_method is not None and noise_stddev_adj == "auto":
+            raise ValueError("noise_stddev_adj = 'auto' but precip_thr not specified")
 
     if noise_stddev_adj not in ["auto", "fixed", None]:
         raise ValueError(
@@ -358,7 +367,7 @@ def forecast(
             f"velocity perturbations, perpendicular: {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
         )
 
-    if conditional or mask_method is not None:
+    if precip_thr is not None:
         print(f"precip. intensity threshold: {precip_thr}")
 
     num_ensemble_workers = min(n_ens_members, num_workers)
