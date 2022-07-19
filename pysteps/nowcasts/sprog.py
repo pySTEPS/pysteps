@@ -33,8 +33,8 @@ def forecast(
     precip,
     velocity,
     timesteps,
-    n_cascade_levels=6,
     precip_thr=None,
+    n_cascade_levels=6,
     extrap_method="semilagrangian",
     decomp_method="fft",
     bandpass_filter_method="gaussian",
@@ -66,10 +66,10 @@ def forecast(
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
         of the list are required to be in ascending order.
+    precip_thr: float, required
+        The threshold value for minimum observable precipitation intensity.
     n_cascade_levels: int, optional
         The number of cascade levels to use.
-    precip_thr: float
-        The threshold value for minimum observable precipitation intensity.
     extrap_method: str, optional
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
@@ -144,6 +144,9 @@ def forecast(
 
     if np.any(~np.isfinite(velocity)):
         raise ValueError("velocity contains non-finite values")
+
+    if precip_thr is None:
+        raise ValueError("precip_thr required but not specified")
 
     print("Computing S-PROG nowcast")
     print("------------------------")
