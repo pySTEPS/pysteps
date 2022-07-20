@@ -582,9 +582,7 @@ def forecast(
     if mask_method is not None:
         mask_prec = precip[-1, :, :] >= precip_thr
 
-        if mask_method == "obs":
-            pass
-        elif mask_method == "sprog":
+        if mask_method == "sprog":
             # compute the wet area ratio and the precipitation mask
             war = 1.0 * np.sum(mask_prec) / (precip.shape[1] * precip.shape[2])
             precip_m = [precip_c[0][i].copy() for i in range(n_cascade_levels)]
