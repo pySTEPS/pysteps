@@ -15,7 +15,8 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 
 import pysteps
-from pysteps import io, rcparams, blending
+from pysteps import io, rcparams, nowcasts, blending
+from pysteps.utils import conversion
 from pysteps.visualization import plot_precip_field
 
 
@@ -150,11 +151,15 @@ precip_blended = blending.linear_blending.forecast(
 
 ################################################################################
 # The salient blending of nowcast and NWP rainfall forecast
-# ~~~~~~~~~~~~~~~~~~~~
+# ---------------------------------------------------------
 #
-# This method follows the procedure described in :cite:`Hwang2015`. The blending is
-# based on intensities and forecast times. The blended product preserves pixel
-# intensities with time if they are strong enough based on their ranked salience.
+# This method follows the saliency-based blending procedure described in :cite:`Hwang2015`. The
+# blending is based on intensities and forecast times. The blended product preserves pixel
+# intensities with time if they are strong enough based on their ranked salience. Saliency is
+# the property of an object to be outstanding with respect to its surroundings. The ranked salience
+# is calculated by first determining the difference in the normalized intensity of the nowcasts
+# and NWP. Next, the pixel intensities are ranked, in which equally comparable values receive
+# the same ranking number.
 
 # Calculate the salient blended precipitation field
 precip_salient_blended = blending.linear_blending.forecast(
@@ -174,51 +179,81 @@ precip_salient_blended = blending.linear_blending.forecast(
 
 ################################################################################
 # Visualize the output
-# ~~~~~~~~~~~~~~~~~~~~
-#
+# --------------------
+
+################################################################################
+# Calculate the radar rainfall nowcasts for visualization
+
+nowcast_method_func = nowcasts.get_method("extrapolation")
+precip_nowcast = nowcast_method_func(
+    precip=radar_precip[-1, :, :],
+    velocity=velocity_radar,
+    timesteps=18,
+)
+
+# Make sure that precip_nowcast are in mm/h
+precip_nowcast, _ = conversion.to_rainrate(precip_nowcast, metadata=radar_metadata)
+
+################################################################################
 # The linear blending starts at 60 min, so during the first 60 minutes the
 # blended forecast only consists of the extrapolation forecast (consisting of an
 # extrapolation nowcast). Between 60 and 120 min, the NWP forecast gradually gets more
 # weight, whereas the extrapolation forecasts gradually gets less weight. In addition,
-# the saliency based blending takes also pixel intensities into account, which are
-# preserved over time. After 120 min, the blended forecast entirely consists of the
-# NWP rainfall forecast.
+# the saliency-based blending takes also the difference in pixel intensities into account,
+# which are preserved over time if they are strong enough based on their ranked salience.
+# Furthermore, pixels with relative low intensities get a lower weight and stay smaller in
+# the saliency-based blending compared to linear blending. After 120 min, the blended
+# forecast entirely consists of the NWP rainfall forecast.
 
-fig = plt.figure(figsize=(4, 8))
+fig = plt.figure(figsize=(8, 12))
 
-leadtimes_min = [30, 60, 90, 120]
+leadtimes_min = [30, 60, 80, 100, 120]
 n_leadtimes = len(leadtimes_min)
 for n, leadtime in enumerate(leadtimes_min):
 
+    # Extrapolation
+    plt.subplot(n_leadtimes, 4, n * 4 + 1)
+    plot_precip_field(
+        precip_nowcast[int(leadtime / timestep) - 1, :, :],
+        geodata=radar_metadata,
+        title=f"Nowcast + {leadtime} min",
+        axis="off",
+        colorbar=False,
+    )
+
     # Nowcast with blending into NWP
-    plt.subplot(n_leadtimes, 3, n * 2 + 1)
+    plt.subplot(n_leadtimes, 4, n * 4 + 2)
     plot_precip_field(
         precip_blended[int(leadtime / timestep) - 1, :, :],
         geodata=radar_metadata,
-        title=f"Linear +{leadtime} min",
+        title=f"Linear + {leadtime} min",
         axis="off",
         colorbar=False,
     )
 
     # Nowcast with salient blending into NWP
-    plt.subplot(n_leadtimes, 3, n * 2 + 2)
+    plt.subplot(n_leadtimes, 4, n * 4 + 3)
     plot_precip_field(
         precip_salient_blended[int(leadtime / timestep) - 1, :, :],
         geodata=radar_metadata,
-        title=f"Salient +{leadtime} min",
+        title=f"Salient + {leadtime} min",
         axis="off",
         colorbar=False,
     )
 
     # Raw NWP forecast
-    plt.subplot(n_leadtimes, 3, n * 2 + 3)
+    plt.subplot(n_leadtimes, 4, n * 4 + 4)
     plot_precip_field(
         precip_nwp[int(leadtime / timestep) - 1, :, :],
         geodata=nwp_metadata,
-        title=f"NWP +{leadtime} min",
+        title=f"NWP + {leadtime} min",
         axis="off",
         colorbar=False,
     )
 
 plt.tight_layout()
 plt.show()
+
+################################################################################
+# Note that the NaN values of the extrapolation forecast are replaced with NWP data
+# in the blended forecast, even before the blending starts.

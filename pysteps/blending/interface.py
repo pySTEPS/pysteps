@@ -38,7 +38,7 @@ def get_method(name):
     | salient_blending | the salient blending of a nowcast method with other  |
     |                  | data (e.g. NWP data) described in :cite:`Hwang2015`. |
     |                  | The blending is based on intensities and forecast    |
-    |                  | times. The blended product preserves pixel            |
+    |                  | times. The blended product preserves pixel           |
     |                  | intensities with time if they are strong enough based|
     |                  | on their ranked salience.                            |
     +------------------+------------------------------------------------------+

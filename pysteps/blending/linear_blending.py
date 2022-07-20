@@ -9,7 +9,7 @@ time for the blending. Before this start time, the resulting blended forecasts o
 consists of the nowcast(s). In between the start and end time, the nowcast(s)
 weight decreases and NWP forecasts weight increases linearly from 1(0) to
 0(1). After the end time, the blended forecast entirely consists of the NWP
-forecasts. The saliency-based blending method also takes into account the pixel 
+forecasts. The saliency-based blending method also takes into account the pixel
 intensities and preserves them if they are strong enough based on their ranked salience.
 
 Implementation of the linear blending and saliency-based blending between nowcast and NWP data.
@@ -85,9 +85,9 @@ def forecast(
       Standard value is True. If True, the NWP data will be used to fill in the
       no data mask of the nowcast.
     saliency: bool, optional
-      Standard value is False. If True, saliency will be used for blending. The blending
+      Default value is False. If True, saliency will be used for blending. The blending
       is based on intensities and forecast times as described in :cite:`Hwang2015`. The blended
-      product preserves pixel intensities with time if they are strong enoug based on their ranked
+      product preserves pixel intensities with time if they are strong enough based on their ranked
       salience.
     nowcast_kwargs: dict, optional
       Dictionary containing keyword arguments for the nowcast method.
