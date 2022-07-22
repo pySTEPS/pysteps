@@ -369,8 +369,10 @@ def forecast(
 
         # initialize the band-pass filter
         if parsglob is None:
-            filter = filter_method(precip.shape[1:], n_cascade_levels, **filter_kwargs)
-            pars["filter"] = filter
+            bp_filter = filter_method(
+                precip.shape[1:], n_cascade_levels, **filter_kwargs
+            )
+            pars["filter"] = bp_filter
         else:
             pars["filter"] = None
 

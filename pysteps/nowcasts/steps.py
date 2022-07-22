@@ -381,7 +381,7 @@ def forecast(
 
     # initialize the band-pass filter
     filter_method = cascade.get_method(bandpass_filter_method)
-    filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
+    bp_filter = filter_method((M, N), n_cascade_levels, **filter_kwargs)
 
     decomp_method, recomp_method = cascade.get_method(decomp_method)
 
@@ -457,7 +457,7 @@ def forecast(
                 precip[-1, :, :],
                 precip_thr,
                 precip_min,
-                filter,
+                bp_filter,
                 decomp_method,
                 pp,
                 generate_noise,
@@ -487,7 +487,7 @@ def forecast(
     for i in range(ar_order + 1):
         precip_ = decomp_method(
             precip[i, :, :],
-            filter,
+            bp_filter,
             mask=mask_thr,
             fft_method=fft,
             output_domain=domain,
@@ -630,7 +630,7 @@ def forecast(
         "decomp_method": decomp_method,
         "domain": domain,
         "domain_mask": domain_mask,
-        "filter": filter,
+        "filter": bp_filter,
         "fft": fft,
         "generate_noise": generate_noise,
         "mask_method": mask_method,
