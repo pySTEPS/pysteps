@@ -307,7 +307,7 @@ def nowcast_main_loop(
 
                 precip_f_out_cur = [None for i in range(precip_f_ip.shape[0])]
 
-                def worker(i):
+                def worker1(i):
                     extrap_kwargs_ = extrap_kwargs.copy()
                     extrap_kwargs_["displacement_prev"] = displacement[i]
                     extrap_kwargs_["allow_nonfinite_values"] = (
@@ -333,11 +333,11 @@ def nowcast_main_loop(
                 if DASK_IMPORTED and ensemble and num_ensemble_members > 1:
                     res = []
                     for i in range(precip_f_ip.shape[0]):
-                        res.append(dask.delayed(worker)(i))
+                        res.append(dask.delayed(worker1)(i))
                     dask.compute(*res, num_workers=num_workers)
                 else:
                     for i in range(precip_f_ip.shape[0]):
-                        worker(i)
+                        worker1(i)
 
                 if callback is not None:
                     precip_f_out_cur = np.stack(precip_f_out_cur)
@@ -355,7 +355,7 @@ def nowcast_main_loop(
             if displacement is None:
                 displacement = [None for i in range(precip_f_new.shape[0])]
 
-            def worker(i):
+            def worker2(i):
                 extrap_kwargs_ = extrap_kwargs.copy()
                 extrap_kwargs_["displacement_prev"] = displacement[i]
 
@@ -374,11 +374,11 @@ def nowcast_main_loop(
             if DASK_IMPORTED and ensemble and num_ensemble_members > 1:
                 res = []
                 for i in range(precip_f_new.shape[0]):
-                    res.append(dask.delayed(worker)(i))
+                    res.append(dask.delayed(worker2)(i))
                 dask.compute(*res, num_workers=num_workers)
             else:
                 for i in range(precip_f_new.shape[0]):
-                    worker(i)
+                    worker2(i)
 
             t_prev = t + 1
 
