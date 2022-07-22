@@ -86,7 +86,7 @@ def compute_dilated_mask(input_mask, kr, r):
     # add grayscale rim
     kr1 = scipy.ndimage.generate_binary_structure(2, 1)
     mask = mask_dilated.astype(float)
-    for i in range(r):
+    for _ in range(r):
         mask_dilated = scipy.ndimage.morphology.binary_dilation(mask_dilated, kr1)
         mask += mask_dilated
 
