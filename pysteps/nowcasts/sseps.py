@@ -382,7 +382,7 @@ def forecast(
             for i in range(ar_order + 1):
                 R_d_ = decomp_method(
                     precip[i, :, :],
-                    filter,
+                    bp_filter,
                     fft_method=fft_method,
                     normalize=True,
                     compute_stats=True,
