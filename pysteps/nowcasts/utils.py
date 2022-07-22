@@ -137,7 +137,7 @@ def nowcast_main_loop(
     timesteps,
     extrap_method,
     func,
-    extrap_kwargs=dict(),
+    extrap_kwargs=None,
     vel_pert_gen=None,
     params=None,
     callback=None,
@@ -233,7 +233,10 @@ def nowcast_main_loop(
 
     xy_coords = np.stack([x_values, y_values])
 
-    extrap_kwargs = extrap_kwargs.copy()
+    if extrap_kwargs is None:
+        extrap_kwargs = dict()
+    else:
+        extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["xy_coords"] = xy_coords
     extrap_kwargs["return_displacement"] = True
 
