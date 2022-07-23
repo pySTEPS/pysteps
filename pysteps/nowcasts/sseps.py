@@ -186,7 +186,7 @@ def forecast(
 
     See also
     --------
-    psysteps.extrapolation.interface, pysteps.cascade.interface,
+    pysteps.extrapolation.interface, pysteps.cascade.interface,
     pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
 
     Notes
