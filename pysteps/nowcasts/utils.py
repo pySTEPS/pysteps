@@ -476,13 +476,13 @@ def print_corrcoefs(GAMMA):
         print(hline_str)
 
 
-def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
+def stack_cascades(precip_d, n_levels, convert_to_full_arrays=False):
     """
     Stack the given cascades into a larger array.
 
     Parameters
     ----------
-    R_d: list
+    precip_d: list
         List of cascades obtained by calling a method implemented in
         pysteps.cascade.decomposition.
     n_levels: int
@@ -493,22 +493,24 @@ def stack_cascades(R_d, n_levels, convert_to_full_arrays=False):
     out: tuple
         A list of three-dimensional arrays containing the stacked cascade levels.
     """
-    R_c = []
+    out = []
 
-    n_inputs = len(R_d)
+    n_inputs = len(precip_d)
 
     for i in range(n_levels):
-        R_ = []
+        precip_cur_level = []
         for j in range(n_inputs):
-            R__ = R_d[j]["cascade_levels"][i]
-            if R_d[j]["compact_output"] and convert_to_full_arrays:
-                R_tmp = np.zeros(R_d[j]["weight_masks"].shape[1:], dtype=complex)
-                R_tmp[R_d[j]["weight_masks"][i]] = R__
-                R__ = R_tmp
-            R_.append(R__)
-        R_c.append(np.stack(R_))
+            precip_cur_input = precip_d[j]["cascade_levels"][i]
+            if precip_d[j]["compact_output"] and convert_to_full_arrays:
+                precip_tmp = np.zeros(
+                    precip_d[j]["weight_masks"].shape[1:], dtype=complex
+                )
+                precip_tmp[precip_d[j]["weight_masks"][i]] = precip_cur_input
+                precip_cur_input = precip_tmp
+            precip_cur_level.append(precip_cur_input)
+        out.append(np.stack(precip_cur_level))
 
-    if not np.any([R_d[i]["compact_output"] for i in range(len(R_d))]):
-        R_c = np.stack(R_c)
+    if not np.any([precip_d[i]["compact_output"] for i in range(len(precip_d))]):
+        out = np.stack(out)
 
-    return R_c
+    return out
