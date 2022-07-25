@@ -54,7 +54,7 @@ def binned_timesteps(timesteps):
     timestep_range = np.arange(num_bins + 1)
     bin_idx = np.digitize(timesteps, timestep_range, right=False)
 
-    out = [[] for i in range(num_bins + 1)]
+    out = [[] for _ in range(num_bins + 1)]
     for i, bi in enumerate(bin_idx):
         out[bi - 1].append(i)
 
@@ -300,15 +300,15 @@ def nowcast_main_loop(
                 t_total += t_diff_prev
 
                 if displacement is None:
-                    displacement = [None for i in range(precip_forecast_ip.shape[0])]
+                    displacement = [None for _ in range(precip_forecast_ip.shape[0])]
 
                 if precip_forecast_out is None and return_output:
                     precip_forecast_out = [
-                        [] for i in range(precip_forecast_ip.shape[0])
+                        [] for _ in range(precip_forecast_ip.shape[0])
                     ]
 
                 precip_forecast_out_cur = [
-                    None for i in range(precip_forecast_ip.shape[0])
+                    None for _ in range(precip_forecast_ip.shape[0])
                 ]
 
                 def worker1(i):
@@ -357,7 +357,7 @@ def nowcast_main_loop(
             t_total += t_diff_prev
 
             if displacement is None:
-                displacement = [None for i in range(precip_forecast_new.shape[0])]
+                displacement = [None for _ in range(precip_forecast_new.shape[0])]
 
             def worker2(i):
                 extrap_kwargs_ = extrap_kwargs.copy()
@@ -423,23 +423,23 @@ def print_ar_params(PHI):
     n = PHI.shape[1]
 
     hline_str = "---------"
-    for k in range(n):
+    for _ in range(n):
         hline_str += "---------------"
 
     print(hline_str)
     title_str = "| Level |"
-    for k in range(n - 1):
-        title_str += "    Phi-%d     |" % (k + 1)
+    for i in range(n - 1):
+        title_str += "    Phi-%d     |" % (i + 1)
     title_str += "    Phi-0     |"
     print(title_str)
     print(hline_str)
 
     fmt_str = "| %-5d |"
-    for k in range(n):
+    for _ in range(n):
         fmt_str += " %-12.6f |"
 
-    for k in range(PHI.shape[0]):
-        print(fmt_str % ((k + 1,) + tuple(PHI[k, :])))
+    for i in range(PHI.shape[0]):
+        print(fmt_str % ((i + 1,) + tuple(PHI[i, :])))
         print(hline_str)
 
 
@@ -461,22 +461,22 @@ def print_corrcoefs(GAMMA):
     n = GAMMA.shape[1]
 
     hline_str = "---------"
-    for k in range(n):
+    for _ in range(n):
         hline_str += "----------------"
 
     print(hline_str)
     title_str = "| Level |"
-    for k in range(n):
-        title_str += "     Lag-%d     |" % (k + 1)
+    for i in range(n):
+        title_str += "     Lag-%d     |" % (i + 1)
     print(title_str)
     print(hline_str)
 
     fmt_str = "| %-5d |"
-    for k in range(n):
+    for _ in range(n):
         fmt_str += " %-13.6f |"
 
-    for k in range(m):
-        print(fmt_str % ((k + 1,) + tuple(GAMMA[k, :])))
+    for i in range(m):
+        print(fmt_str % ((i + 1,) + tuple(GAMMA[i, :])))
         print(hline_str)
 
 

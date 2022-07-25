@@ -437,7 +437,7 @@ def forecast(
 
         # stack the cascades into a five-dimensional array containing all ensemble
         # members
-        precip_c = [precip_c.copy() for i in range(n_ens_members)]
+        precip_c = [precip_c.copy() for _ in range(n_ens_members)]
         pars["precip_c"] = precip_c
 
         if mask_method is not None and parsglob is None:
@@ -447,7 +447,7 @@ def forecast(
                 MASK_prec = nowcast_utils.compute_dilated_mask(
                     MASK_prec, struct, mask_rim
                 )
-                MASK_prec = [MASK_prec.copy() for j in range(n_ens_members)]
+                MASK_prec = [MASK_prec.copy() for _ in range(n_ens_members)]
         else:
             MASK_prec = None
         pars["MASK_prec"] = MASK_prec
@@ -545,7 +545,7 @@ def forecast(
         randgen_prec = []
         randgen_motion = []
         np.random.seed(seed)
-        for j in range(n_ens_members):
+        for _ in range(n_ens_members):
             rs = np.random.RandomState(seed)
             randgen_prec.append(rs)
             seed = rs.randint(0, high=1e9)
@@ -567,8 +567,8 @@ def forecast(
             vp_ = init_vel_noise(velocity, 1.0 / kmperpixel, timestep, **kwargs)
             vps.append(vp_)
 
-    D = [None for j in range(n_ens_members)]
-    precip_forecast = [[] for j in range(n_ens_members)]
+    D = [None for _ in range(n_ens_members)]
+    precip_forecast = [[] for _ in range(n_ens_members)]
 
     if measure_time:
         init_time = time.time() - starttime_init
@@ -589,9 +589,9 @@ def forecast(
         timestep_type = "list"
 
     extrap_kwargs["return_displacement"] = True
-    precip_forecast_prev = [precip for i in range(n_ens_members)]
-    t_prev = [0.0 for j in range(n_ens_members)]
-    t_total = [0.0 for j in range(n_ens_members)]
+    precip_forecast_prev = [precip for _ in range(n_ens_members)]
+    t_prev = [0.0 for _ in range(n_ens_members)]
+    t_total = [0.0 for _ in range(n_ens_members)]
 
     # iterate each time step
     for t, subtimestep_idx in enumerate(timesteps):

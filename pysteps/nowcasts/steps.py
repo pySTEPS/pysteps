@@ -502,7 +502,7 @@ def forecast(
     precip_c = nowcast_utils.stack_cascades(precip_d, n_cascade_levels)
 
     precip_d = precip_d[-1]
-    precip_d = [precip_d.copy() for j in range(n_ens_members)]
+    precip_d = [precip_d.copy() for _ in range(n_ens_members)]
 
     # compute lag-l temporal autocorrelation coefficients for each cascade level
     gamma = np.empty((n_cascade_levels, ar_order))
@@ -532,7 +532,7 @@ def forecast(
     # stack the cascades into a list containing all ensemble members
     precip_c = [
         [precip_c[j].copy() for j in range(n_cascade_levels)]
-        for i in range(n_ens_members)
+        for _ in range(n_ens_members)
     ]
 
     # initialize the random generators
@@ -566,7 +566,7 @@ def forecast(
     else:
         vps = None
 
-    precip_forecast = [[] for j in range(n_ens_members)]
+    precip_forecast = [[] for _ in range(n_ens_members)]
 
     if probmatching_method == "mean":
         mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
@@ -598,7 +598,7 @@ def forecast(
             struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
             # initialize precip mask for each member
             mask_prec = nowcast_utils.compute_dilated_mask(mask_prec, struct, mask_rim)
-            mask_prec = [mask_prec.copy() for j in range(n_ens_members)]
+            mask_prec = [mask_prec.copy() for _ in range(n_ens_members)]
     else:
         mask_prec = None
 
@@ -606,7 +606,7 @@ def forecast(
         precip_m = [precip_c[0][i].copy() for i in range(n_cascade_levels)]
 
     fft_objs = []
-    for i in range(n_ens_members):
+    for _ in range(n_ens_members):
         fft_objs.append(utils.get_method(fft_method, shape=precip.shape[1:]))
 
     if measure_time:

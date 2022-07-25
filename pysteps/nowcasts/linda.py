@@ -965,7 +965,7 @@ def _linda_forecast(
     if precip_pert_gen is not None:
         rs_precip_pert = []
         np.random.seed(seed)
-        for i in range(n_ensemble_members):
+        for _ in range(n_ensemble_members):
             rs = np.random.RandomState(seed)
             rs_precip_pert.append(rs)
             seed = rs.randint(0, high=1e9)
@@ -975,7 +975,7 @@ def _linda_forecast(
     if vel_pert_gen is not None:
         vps = []
         np.random.seed(seed)
-        for i in range(n_ensemble_members):
+        for _ in range(n_ensemble_members):
             rs = np.random.RandomState(seed)
             vp = vel_pert_gen["init_func"](seed)
             vps.append(
@@ -988,9 +988,9 @@ def _linda_forecast(
         vps = None
 
     state = {
-        "precip_forecast": [precip[-1].copy() for i in range(n_ensemble_members)],
+        "precip_forecast": [precip[-1].copy() for _ in range(n_ensemble_members)],
         "precip_lagr_diff": [
-            precip_lagr_diff.copy() for i in range(n_ensemble_members)
+            precip_lagr_diff.copy() for _ in range(n_ensemble_members)
         ],
         "rs_precip_pert": rs_precip_pert,
     }
