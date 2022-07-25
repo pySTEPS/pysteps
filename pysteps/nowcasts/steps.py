@@ -243,7 +243,7 @@ def forecast(
         (n_ens_members,num_timesteps,m,n) containing a time series of forecast
         precipitation fields for each ensemble member. Otherwise, a None value
         is returned. The time series starts from t0+timestep, where timestep is
-        taken from the input precipitation fields R. If measure_time is True, the
+        taken from the input precipitation fields. If measure_time is True, the
         return value is a three-element tuple containing the nowcast array, the
         initialization time of the nowcast generator and the time used in the
         main loop (seconds).
@@ -784,15 +784,17 @@ def _update(state, params):
             # apply the precipitation mask to prevent generation of new
             # precipitation into areas where it was not originally
             # observed
-            R_cmin = precip_f.min()
+            precip_f_min = precip_f.min()
             if params["mask_method"] == "incremental":
-                precip_f = R_cmin + (precip_f - R_cmin) * state["mask_prec"][j]
-                mask_prec_ = precip_f > R_cmin
+                precip_f = (
+                    precip_f_min + (precip_f - precip_f_min) * state["mask_prec"][j]
+                )
+                mask_prec_ = precip_f > precip_f_min
             else:
                 mask_prec_ = state["mask_prec"]
 
             # set to min value outside mask
-            precip_f[~mask_prec_] = R_cmin
+            precip_f[~mask_prec_] = precip_f_min
 
         if params["probmatching_method"] == "cdf":
             # adjust the CDF of the forecast to match the most recently

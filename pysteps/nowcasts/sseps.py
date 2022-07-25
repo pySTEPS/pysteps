@@ -182,7 +182,7 @@ def forecast(
         (n_ens_members,num_timesteps,m,n) containing a time series of forecast
         precipitation fields for each ensemble member. Otherwise, a None value
         is returned. The time series starts from t0+timestep, where timestep is
-        taken from the input precipitation fields R.
+        taken from the input precipitation fields.
 
     See also
     --------
@@ -378,34 +378,34 @@ def forecast(
 
         # compute the cascade decompositions of the input precipitation fields
         if parsglob is None:
-            R_d = []
+            precip_d = []
             for i in range(ar_order + 1):
-                R_d_ = decomp_method(
+                precip_d_ = decomp_method(
                     precip[i, :, :],
                     bp_filter,
                     fft_method=fft_method,
                     normalize=True,
                     compute_stats=True,
                 )
-                R_d.append(R_d_)
-            R_d_ = None
+                precip_d.append(precip_d_)
+            precip_d_ = None
 
         # normalize the cascades and rearrange them into a four-dimensional array
         # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
         if parsglob is None:
-            R_c = nowcast_utils.stack_cascades(R_d, n_cascade_levels)
-            mu = R_d[-1]["means"]
-            sigma = R_d[-1]["stds"]
-            R_d = None
+            precip_c = nowcast_utils.stack_cascades(precip_d, n_cascade_levels)
+            mu = precip_d[-1]["means"]
+            sigma = precip_d[-1]["stds"]
+            precip_d = None
 
         else:
-            R_c = parsglob["R_c"][0][
+            precip_c = parsglob["precip_c"][0][
                 :, :, idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
             ].copy()
-            mu = np.mean(R_c, axis=(2, 3))
-            sigma = np.std(R_c, axis=(2, 3))
+            mu = np.mean(precip_c, axis=(2, 3))
+            sigma = np.std(precip_c, axis=(2, 3))
 
-            R_c = (R_c - mu[:, :, None, None]) / sigma[:, :, None, None]
+            precip_c = (precip_c - mu[:, :, None, None]) / sigma[:, :, None, None]
 
             mu = mu[:, -1]
             sigma = sigma[:, -1]
@@ -416,9 +416,9 @@ def forecast(
         # compute lag-l temporal autocorrelation coefficients for each cascade level
         GAMMA = np.empty((n_cascade_levels, ar_order))
         for i in range(n_cascade_levels):
-            R_c_ = np.stack([R_c[i, j, :, :] for j in range(ar_order + 1)])
-            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c_)
-        R_c_ = None
+            precip_c_ = np.stack([precip_c[i, j, :, :] for j in range(ar_order + 1)])
+            GAMMA[i, :] = correlation.temporal_autocorrelation(precip_c_)
+        precip_c_ = None
 
         if ar_order == 2:
             # adjust the local lag-2 correlation coefficient to ensure that the AR(p)
@@ -437,8 +437,8 @@ def forecast(
 
         # stack the cascades into a five-dimensional array containing all ensemble
         # members
-        R_c = [R_c.copy() for i in range(n_ens_members)]
-        pars["R_c"] = R_c
+        precip_c = [precip_c.copy() for i in range(n_ens_members)]
+        pars["precip_c"] = precip_c
 
         if mask_method is not None and parsglob is None:
             MASK_prec = precip[-1, :, :] >= precip_thr
@@ -510,7 +510,7 @@ def forecast(
                     pars = estimator(precip, parsglob, idxm, idxn)
                     ff_.append(pars["filter"])
                     pp_.append(pars["P"])
-                    rc_.append(pars["R_c"])
+                    rc_.append(pars["precip_c"])
                     mm_.append(pars["MASK_prec"])
                     mu[m, n, :] = pars["mu"]
                     sigma[m, n, :] = pars["sigma"]
@@ -568,7 +568,7 @@ def forecast(
             vps.append(vp_)
 
     D = [None for j in range(n_ens_members)]
-    R_f = [[] for j in range(n_ens_members)]
+    precip_f = [[] for j in range(n_ens_members)]
 
     if measure_time:
         init_time = time.time() - starttime_init
@@ -589,7 +589,7 @@ def forecast(
         timestep_type = "list"
 
     extrap_kwargs["return_displacement"] = True
-    R_f_prev = [precip for i in range(n_ens_members)]
+    precip_f_prev = [precip for i in range(n_ens_members)]
     t_prev = [0.0 for j in range(n_ens_members)]
     t_total = [0.0 for j in range(n_ens_members)]
 
@@ -639,9 +639,9 @@ def forecast(
                 EPS_d = None
 
             # iterate the AR(p) model for each cascade level
-            R_c = parsglob["R_c"][j].copy()
-            if R_c.shape[1] >= ar_order:
-                R_c = R_c[:, -ar_order:, :, :].copy()
+            precip_c = parsglob["precip_c"][j].copy()
+            if precip_c.shape[1] >= ar_order:
+                precip_c = precip_c[:, -ar_order:, :, :].copy()
             for i in range(n_cascade_levels):
                 # normalize the noise cascade
                 if EPS_d is not None:
@@ -651,23 +651,25 @@ def forecast(
                 else:
                     EPS_ = None
                 # apply AR(p) process to cascade level
-                R_c[i, :, :, :] = autoregression.iterate_ar_model(
-                    R_c[i, :, :, :], parsglob["PHI"][i, :], eps=EPS_
+                precip_c[i, :, :, :] = autoregression.iterate_ar_model(
+                    precip_c[i, :, :, :], parsglob["PHI"][i, :], eps=EPS_
                 )
                 EPS_ = None
-            parsglob["R_c"][j] = R_c.copy()
+            parsglob["precip_c"][j] = precip_c.copy()
             EPS = None
 
             # compute the recomposed precipitation field(s) from the cascades
             # obtained from the AR(p) model(s)
-            R_f_new = _recompose_cascade(R_c, parsglob["mu"], parsglob["sigma"])
-            R_c = None
+            precip_f_new = _recompose_cascade(
+                precip_c, parsglob["mu"], parsglob["sigma"]
+            )
+            precip_c = None
 
             # then the local steps
             if n_windows_M > 1 or n_windows_N > 1:
                 idxm = np.zeros((2, 1), dtype=int)
                 idxn = np.zeros((2, 1), dtype=int)
-                R_l = np.zeros((M, N), dtype=float)
+                precip_l = np.zeros((M, N), dtype=float)
                 M_s = np.zeros((M, N), dtype=float)
                 for m in range(n_windows_M):
                     for n in range(n_windows_N):
@@ -696,9 +698,9 @@ def forecast(
                         # skip if dry
                         if war[m, n] > war_thr:
 
-                            R_c = rc[m][n][j].copy()
-                            if R_c.shape[1] >= ar_order:
-                                R_c = R_c[:, -ar_order:, :, :]
+                            precip_c = rc[m][n][j].copy()
+                            if precip_c.shape[1] >= ar_order:
+                                precip_c = precip_c[:, -ar_order:, :, :]
                             if noise_method is not None:
                                 # extract noise field
                                 EPS_d_l = EPS_d["cascade_levels"][
@@ -721,57 +723,61 @@ def forecast(
                                 else:
                                     EPS_ = None
                                 # apply AR(p) process to cascade level
-                                R_c[i, :, :, :] = autoregression.iterate_ar_model(
-                                    R_c[i, :, :, :], PHI[m, n, i, :], eps=EPS_
+                                precip_c[i, :, :, :] = autoregression.iterate_ar_model(
+                                    precip_c[i, :, :, :], PHI[m, n, i, :], eps=EPS_
                                 )
                                 EPS_ = None
-                            rc[m][n][j] = R_c.copy()
+                            rc[m][n][j] = precip_c.copy()
                             EPS_d_l = mu_ = sigma_ = None
 
                             # compute the recomposed precipitation field(s) from the cascades
                             # obtained from the AR(p) model(s)
                             mu_ = mu[m, n, :]
                             sigma_ = sigma[m, n, :]
-                            R_c = [
-                                ((R_c[i, -1, :, :] * sigma_[i]) + mu_[i])
+                            precip_c = [
+                                ((precip_c[i, -1, :, :] * sigma_[i]) + mu_[i])
                                 * parsglob["sigma"][i]
                                 + parsglob["mu"][i]
                                 for i in range(len(mu_))
                             ]
-                            R_l_ = np.sum(np.stack(R_c), axis=0)
-                            R_c = mu_ = sigma_ = None
-                            # R_l_ = _recompose_cascade(R_c[:, :, :], mu[m, n, :], sigma[m, n, :])
+                            precip_l_ = np.sum(np.stack(precip_c), axis=0)
+                            precip_c = mu_ = sigma_ = None
+                            # precip_l_ = _recompose_cascade(precip_c[:, :, :], mu[m, n, :], sigma[m, n, :])
                         else:
-                            R_l_ = R_f_new[
+                            precip_l_ = precip_f_new[
                                 idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
                             ].copy()
 
                         if probmatching_method == "cdf":
                             # adjust the CDF of the forecast to match the most recently
                             # observed precipitation field
-                            R_ = precip[
+                            precip_ = precip[
                                 idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
                             ].copy()
-                            R_l_ = probmatching.nonparam_match_empirical_cdf(R_l_, R_)
-                            R_ = None
+                            precip_l_ = probmatching.nonparam_match_empirical_cdf(
+                                precip_l_, precip_
+                            )
+                            precip_ = None
 
-                        R_l[
+                        precip_l[
                             idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
-                        ] += (R_l_ * mask_l)
-                        R_l_ = None
+                        ] += (precip_l_ * mask_l)
+                        precip_l_ = None
 
                 ind = M_s > 0
-                R_l[ind] *= 1 / M_s[ind]
-                R_l[~ind] = precip_min
+                precip_l[ind] *= 1 / M_s[ind]
+                precip_l[~ind] = precip_min
 
-                R_f_new = R_l.copy()
-                R_l = None
+                precip_f_new = precip_l.copy()
+                precip_l = None
 
             if probmatching_method == "cdf":
                 # adjust the CDF of the forecast to match the most recently
                 # observed precipitation field
-                R_f_new[R_f_new < precip_thr] = precip_min
-                R_f_new = probmatching.nonparam_match_empirical_cdf(R_f_new, precip)
+                precip_f_new[precip_f_new < precip_thr] = precip_min
+                precip_f_new = probmatching.nonparam_match_empirical_cdf(
+                    precip_f_new, precip
+                )
 
             if mask_method is not None:
                 # apply the precipitation mask to prevent generation of new
@@ -779,15 +785,18 @@ def forecast(
                 # observed
                 if mask_method == "incremental":
                     MASK_prec = parsglob["MASK_prec"][j].copy()
-                    R_f_new = R_f_new.min() + (R_f_new - R_f_new.min()) * MASK_prec
+                    precip_f_new = (
+                        precip_f_new.min()
+                        + (precip_f_new - precip_f_new.min()) * MASK_prec
+                    )
                     MASK_prec = None
 
             if mask_method == "incremental":
                 parsglob["MASK_prec"][j] = nowcast_utils.compute_dilated_mask(
-                    R_f_new >= precip_thr, struct, mask_rim
+                    precip_f_new >= precip_thr, struct, mask_rim
                 )
 
-            R_f_out = []
+            precip_f_out = []
             extrap_kwargs_ = extrap_kwargs.copy()
             extrap_kwargs_["xy_coords"] = xy_coords
             extrap_kwargs_["return_displacement"] = True
@@ -801,11 +810,11 @@ def forecast(
                 if t_sub > 0:
                     t_diff_prev_int = t_sub - int(t_sub)
                     if t_diff_prev_int > 0.0:
-                        R_f_ip = (1.0 - t_diff_prev_int) * R_f_prev[
+                        precip_f_ip = (1.0 - t_diff_prev_int) * precip_f_prev[
                             j
-                        ] + t_diff_prev_int * R_f_new
+                        ] + t_diff_prev_int * precip_f_new
                     else:
-                        R_f_ip = R_f_prev[j]
+                        precip_f_ip = precip_f_prev[j]
 
                     t_diff_prev = t_sub - t_prev[j]
                     t_total[j] += t_diff_prev
@@ -817,14 +826,14 @@ def forecast(
                         )
 
                     extrap_kwargs_["displacement_prev"] = D[j]
-                    R_f_ep, D[j] = extrapolator_method(
-                        R_f_ip,
+                    precip_f_ep, D[j] = extrapolator_method(
+                        precip_f_ip,
                         V_pert,
                         [t_diff_prev],
                         **extrap_kwargs_,
                     )
-                    R_f_ep[0][R_f_ep[0] < precip_thr] = precip_min
-                    R_f_out.append(R_f_ep[0])
+                    precip_f_ep[0][precip_f_ep[0] < precip_thr] = precip_min
+                    precip_f_out.append(precip_f_ep[0])
                     t_prev[j] = t_sub
 
             # advect the forecast field by one time step if no subtimesteps in the
@@ -848,9 +857,9 @@ def forecast(
                 )
                 t_prev[j] = t + 1
 
-            R_f_prev[j] = R_f_new
+            precip_f_prev[j] = precip_f_new
 
-            return R_f_out
+            return precip_f_out
 
         res = []
         for j in range(n_ens_members):
@@ -859,7 +868,7 @@ def forecast(
             else:
                 res.append(dask.delayed(worker)(j))
 
-        R_f_ = (
+        precip_f_ = (
             dask.compute(*res, num_workers=num_ensemble_workers)
             if dask_imported and n_ens_members > 1
             else res
@@ -873,20 +882,20 @@ def forecast(
                 print("done.")
 
         if callback is not None:
-            R_f_stacked = np.stack(R_f_)
-            if R_f_stacked.shape[1] > 0:
-                callback(R_f_stacked.squeeze())
-            R_f_ = None
+            precip_f_stacked = np.stack(precip_f_)
+            if precip_f_stacked.shape[1] > 0:
+                callback(precip_f_stacked.squeeze())
+            precip_f_ = None
 
         if return_output:
             for j in range(n_ens_members):
-                R_f[j].extend(R_f_[j])
+                precip_f[j].extend(precip_f_[j])
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
 
     if return_output:
-        outarr = np.stack([np.stack(R_f[j]) for j in range(n_ens_members)])
+        outarr = np.stack([np.stack(precip_f[j]) for j in range(n_ens_members)])
         if measure_time:
             return outarr, init_time, mainloop_time
         else:
@@ -912,11 +921,11 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
 
 
 # TODO: Use the recomponse_cascade method in the cascade.decomposition module
-def _recompose_cascade(R, mu, sigma):
-    R_rc = [(R[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
-    R_rc = np.sum(np.stack(R_rc), axis=0)
+def _recompose_cascade(precip, mu, sigma):
+    precip_rc = [(precip[i, -1, :, :] * sigma[i]) + mu[i] for i in range(len(mu))]
+    precip_rc = np.sum(np.stack(precip_rc), axis=0)
 
-    return R_rc
+    return precip_rc
 
 
 def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
