@@ -988,7 +988,7 @@ def _linda_forecast(
         vps = None
 
     state = {
-        "precip_fct": [precip[-1].copy() for i in range(n_ensemble_members)],
+        "precip_forecast": [precip[-1].copy() for i in range(n_ensemble_members)],
         "precip_lagr_diff": [
             precip_lagr_diff.copy() for i in range(n_ensemble_members)
         ],
@@ -1006,7 +1006,7 @@ def _linda_forecast(
         "psi": fct_gen["psi"],
     }
 
-    precip_f = nowcast_main_loop(
+    precip_forecast = nowcast_main_loop(
         precip[-1],
         fct_gen["velocity"],
         state,
@@ -1022,15 +1022,15 @@ def _linda_forecast(
         measure_time=measure_time,
     )
     if measure_time:
-        precip_f, mainloop_time = precip_f
+        precip_forecast, mainloop_time = precip_forecast
 
     if return_output:
         if not fct_gen["add_perturbations"]:
-            precip_f = precip_f[0]
+            precip_forecast = precip_forecast[0]
         if measure_time:
-            return precip_f, mainloop_time
+            return precip_forecast, mainloop_time
         else:
-            return precip_f
+            return precip_forecast
     else:
         return None
 
@@ -1240,8 +1240,8 @@ def _linda_deterministic_init(
 
     # apply the ARI(p,1) model and integrate the differences
     precip_lagr_diff_c = _iterate_ar_model(precip_lagr_diff_c, psi)
-    precip_fct = precip_lagr[-2] + precip_lagr_diff_c[-1]
-    precip_fct[precip_fct < 0.0] = 0.0
+    precip_forecast = precip_lagr[-2] + precip_lagr_diff_c[-1]
+    precip_forecast[precip_forecast < 0.0] = 0.0
 
     print("Estimating the second convolution kernel... ", end="", flush=True)
 
@@ -1251,7 +1251,7 @@ def _linda_deterministic_init(
     # estimate the second convolution kernels based on the forecast field
     # computed above
     kernels_2 = _estimate_convol_params(
-        precip_fct,
+        precip_forecast,
         precip[-1],
         convol_weights,
         mask_adv,
@@ -1298,7 +1298,7 @@ def _linda_perturbation_init(
     fct_gen["add_perturbations"] = False
     fct_gen["num_ens_members"] = 1
 
-    precip_fct_det = _linda_forecast(
+    precip_forecast_det = _linda_forecast(
         precip[:-1],
         precip_lagr_diff[:-1],
         1,
@@ -1314,12 +1314,16 @@ def _linda_perturbation_init(
     )
 
     # compute multiplicative forecast errors
-    err = precip_fct_det[-1] / precip[-1]
+    err = precip_forecast_det[-1] / precip[-1]
 
     # mask small precipitation intensities
     mask = np.logical_or(
-        np.logical_and(precip_fct_det[-1] >= pert_thrs[1], precip[-1] >= pert_thrs[0]),
-        np.logical_and(precip_fct_det[-1] >= pert_thrs[0], precip[-1] >= pert_thrs[1]),
+        np.logical_and(
+            precip_forecast_det[-1] >= pert_thrs[1], precip[-1] >= pert_thrs[0]
+        ),
+        np.logical_and(
+            precip_forecast_det[-1] >= pert_thrs[0], precip[-1] >= pert_thrs[1]
+        ),
     )
     err[~mask] = np.nan
 
@@ -1384,18 +1388,18 @@ def _update(state, params):
         state["precip_lagr_diff"][j] = _iterate_ar_model(
             state["precip_lagr_diff"][j], params["psi"]
         )
-        state["precip_fct"][j] += state["precip_lagr_diff"][j][-1]
+        state["precip_forecast"][j] += state["precip_lagr_diff"][j][-1]
         for i in range(state["precip_lagr_diff"][j].shape[0]):
             state["precip_lagr_diff"][j][i] = _composite_convolution(
                 state["precip_lagr_diff"][j][i],
                 params["kernels_1"],
                 params["interp_weights"],
             )
-        state["precip_fct"][j] = _composite_convolution(
-            state["precip_fct"][j], params["kernels_2"], params["interp_weights"]
+        state["precip_forecast"][j] = _composite_convolution(
+            state["precip_forecast"][j], params["kernels_2"], params["interp_weights"]
         )
 
-        out = state["precip_fct"][j].copy()
+        out = state["precip_forecast"][j].copy()
         out[out < 0.0] = 0.0
         out[~params["mask_adv"]] = np.nan
 

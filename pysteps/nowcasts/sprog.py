@@ -324,7 +324,7 @@ def forecast(
 
     print("Starting nowcast computation.")
 
-    precip_f = []
+    precip_forecast = []
 
     state = {"precip_c": precip_c, "precip_d": precip_d}
     params = {
@@ -341,7 +341,7 @@ def forecast(
         "war": war,
     }
 
-    precip_f = nowcast_main_loop(
+    precip_forecast = nowcast_main_loop(
         precip,
         velocity,
         state,
@@ -353,14 +353,14 @@ def forecast(
         measure_time=measure_time,
     )
     if measure_time:
-        precip_f, mainloop_time = precip_f
+        precip_forecast, mainloop_time = precip_forecast
 
-    precip_f = np.stack(precip_f)
+    precip_forecast = np.stack(precip_forecast)
 
     if measure_time:
-        return precip_f, init_time, mainloop_time
+        return precip_forecast, init_time, mainloop_time
     else:
-        return precip_f
+        return precip_forecast
 
 
 def _check_inputs(precip, velocity, timesteps, ar_order):
@@ -393,24 +393,26 @@ def _update(state, params):
             state["precip_d"]["cascade_levels"]
         )
 
-    precip_f_recomp = params["recomp_method"](state["precip_d"])
+    precip_forecast_recomp = params["recomp_method"](state["precip_d"])
 
     if params["domain"] == "spectral":
-        precip_f_recomp = params["fft"].irfft2(precip_f_recomp)
+        precip_forecast_recomp = params["fft"].irfft2(precip_forecast_recomp)
 
-    mask = compute_percentile_mask(precip_f_recomp, params["war"])
-    precip_f_recomp[~mask] = params["precip_min"]
+    mask = compute_percentile_mask(precip_forecast_recomp, params["war"])
+    precip_forecast_recomp[~mask] = params["precip_min"]
 
     if params["probmatching_method"] == "cdf":
         # adjust the CDF of the forecast to match the most recently
         # observed precipitation field
-        precip_f_recomp = probmatching.nonparam_match_empirical_cdf(
-            precip_f_recomp, params["precip_0"]
+        precip_forecast_recomp = probmatching.nonparam_match_empirical_cdf(
+            precip_forecast_recomp, params["precip_0"]
         )
     elif params["probmatching_method"] == "mean":
-        mu_fct = np.mean(precip_f_recomp[mask])
-        precip_f_recomp[mask] = precip_f_recomp[mask] - mu_fct + params["mu_0"]
+        mu_fct = np.mean(precip_forecast_recomp[mask])
+        precip_forecast_recomp[mask] = (
+            precip_forecast_recomp[mask] - mu_fct + params["mu_0"]
+        )
 
-    precip_f_recomp[params["domain_mask"]] = np.nan
+    precip_forecast_recomp[params["domain_mask"]] = np.nan
 
-    return precip_f_recomp, state
+    return precip_forecast_recomp, state

@@ -568,7 +568,7 @@ def forecast(
             vps.append(vp_)
 
     D = [None for j in range(n_ens_members)]
-    precip_f = [[] for j in range(n_ens_members)]
+    precip_forecast = [[] for j in range(n_ens_members)]
 
     if measure_time:
         init_time = time.time() - starttime_init
@@ -589,7 +589,7 @@ def forecast(
         timestep_type = "list"
 
     extrap_kwargs["return_displacement"] = True
-    precip_f_prev = [precip for i in range(n_ens_members)]
+    precip_forecast_prev = [precip for i in range(n_ens_members)]
     t_prev = [0.0 for j in range(n_ens_members)]
     t_total = [0.0 for j in range(n_ens_members)]
 
@@ -660,7 +660,7 @@ def forecast(
 
             # compute the recomposed precipitation field(s) from the cascades
             # obtained from the AR(p) model(s)
-            precip_f_new = _recompose_cascade(
+            precip_forecast_new = _recompose_cascade(
                 precip_c, parsglob["mu"], parsglob["sigma"]
             )
             precip_c = None
@@ -744,7 +744,7 @@ def forecast(
                             precip_c = mu_ = sigma_ = None
                             # precip_l_ = _recompose_cascade(precip_c[:, :, :], mu[m, n, :], sigma[m, n, :])
                         else:
-                            precip_l_ = precip_f_new[
+                            precip_l_ = precip_forecast_new[
                                 idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
                             ].copy()
 
@@ -768,15 +768,15 @@ def forecast(
                 precip_l[ind] *= 1 / M_s[ind]
                 precip_l[~ind] = precip_min
 
-                precip_f_new = precip_l.copy()
+                precip_forecast_new = precip_l.copy()
                 precip_l = None
 
             if probmatching_method == "cdf":
                 # adjust the CDF of the forecast to match the most recently
                 # observed precipitation field
-                precip_f_new[precip_f_new < precip_thr] = precip_min
-                precip_f_new = probmatching.nonparam_match_empirical_cdf(
-                    precip_f_new, precip
+                precip_forecast_new[precip_forecast_new < precip_thr] = precip_min
+                precip_forecast_new = probmatching.nonparam_match_empirical_cdf(
+                    precip_forecast_new, precip
                 )
 
             if mask_method is not None:
@@ -785,18 +785,18 @@ def forecast(
                 # observed
                 if mask_method == "incremental":
                     MASK_prec = parsglob["MASK_prec"][j].copy()
-                    precip_f_new = (
-                        precip_f_new.min()
-                        + (precip_f_new - precip_f_new.min()) * MASK_prec
+                    precip_forecast_new = (
+                        precip_forecast_new.min()
+                        + (precip_forecast_new - precip_forecast_new.min()) * MASK_prec
                     )
                     MASK_prec = None
 
             if mask_method == "incremental":
                 parsglob["MASK_prec"][j] = nowcast_utils.compute_dilated_mask(
-                    precip_f_new >= precip_thr, struct, mask_rim
+                    precip_forecast_new >= precip_thr, struct, mask_rim
                 )
 
-            precip_f_out = []
+            precip_forecast_out = []
             extrap_kwargs_ = extrap_kwargs.copy()
             extrap_kwargs_["xy_coords"] = xy_coords
             extrap_kwargs_["return_displacement"] = True
@@ -810,11 +810,13 @@ def forecast(
                 if t_sub > 0:
                     t_diff_prev_int = t_sub - int(t_sub)
                     if t_diff_prev_int > 0.0:
-                        precip_f_ip = (1.0 - t_diff_prev_int) * precip_f_prev[
+                        precip_forecast_ip = (
+                            1.0 - t_diff_prev_int
+                        ) * precip_forecast_prev[
                             j
-                        ] + t_diff_prev_int * precip_f_new
+                        ] + t_diff_prev_int * precip_forecast_new
                     else:
-                        precip_f_ip = precip_f_prev[j]
+                        precip_forecast_ip = precip_forecast_prev[j]
 
                     t_diff_prev = t_sub - t_prev[j]
                     t_total[j] += t_diff_prev
@@ -826,14 +828,16 @@ def forecast(
                         )
 
                     extrap_kwargs_["displacement_prev"] = D[j]
-                    precip_f_ep, D[j] = extrapolator_method(
-                        precip_f_ip,
+                    precip_forecast_ep, D[j] = extrapolator_method(
+                        precip_forecast_ip,
                         V_pert,
                         [t_diff_prev],
                         **extrap_kwargs_,
                     )
-                    precip_f_ep[0][precip_f_ep[0] < precip_thr] = precip_min
-                    precip_f_out.append(precip_f_ep[0])
+                    precip_forecast_ep[0][
+                        precip_forecast_ep[0] < precip_thr
+                    ] = precip_min
+                    precip_forecast_out.append(precip_forecast_ep[0])
                     t_prev[j] = t_sub
 
             # advect the forecast field by one time step if no subtimesteps in the
@@ -857,9 +861,9 @@ def forecast(
                 )
                 t_prev[j] = t + 1
 
-            precip_f_prev[j] = precip_f_new
+            precip_forecast_prev[j] = precip_forecast_new
 
-            return precip_f_out
+            return precip_forecast_out
 
         res = []
         for j in range(n_ens_members):
@@ -868,7 +872,7 @@ def forecast(
             else:
                 res.append(dask.delayed(worker)(j))
 
-        precip_f_ = (
+        precip_forecast_ = (
             dask.compute(*res, num_workers=num_ensemble_workers)
             if dask_imported and n_ens_members > 1
             else res
@@ -882,20 +886,20 @@ def forecast(
                 print("done.")
 
         if callback is not None:
-            precip_f_stacked = np.stack(precip_f_)
-            if precip_f_stacked.shape[1] > 0:
-                callback(precip_f_stacked.squeeze())
-            precip_f_ = None
+            precip_forecast_stacked = np.stack(precip_forecast_)
+            if precip_forecast_stacked.shape[1] > 0:
+                callback(precip_forecast_stacked.squeeze())
+            precip_forecast_ = None
 
         if return_output:
             for j in range(n_ens_members):
-                precip_f[j].extend(precip_f_[j])
+                precip_forecast[j].extend(precip_forecast_[j])
 
     if measure_time:
         mainloop_time = time.time() - starttime_mainloop
 
     if return_output:
-        outarr = np.stack([np.stack(precip_f[j]) for j in range(n_ens_members)])
+        outarr = np.stack([np.stack(precip_forecast[j]) for j in range(n_ens_members)])
         if measure_time:
             return outarr, init_time, mainloop_time
         else:

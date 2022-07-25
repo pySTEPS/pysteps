@@ -204,7 +204,7 @@ def nowcast_main_loop(
         True, return a pair, where the second element is the total computation
         time in the loop.
     """
-    precip_f_out = None
+    precip_forecast_out = None
 
     # create a range of time steps
     # if an integer time step is given, create a simple range iterator
@@ -219,7 +219,7 @@ def nowcast_main_loop(
         timestep_type = "list"
 
     state_cur = state
-    precip_f_prev = None
+    precip_forecast_prev = None
     displacement = None
     t_prev = 0.0
     t_total = 0.0
@@ -273,14 +273,14 @@ def nowcast_main_loop(
 
         # call the function to iterate the integer-timestep part of the model
         # for one time step
-        precip_f_new, state_new = func(state_cur, params)
+        precip_forecast_new, state_new = func(state_cur, params)
 
-        if len(precip_f_new.shape) == 2:
+        if len(precip_forecast_new.shape) == 2:
             ensemble = False
-            precip_f_new = precip_f_new[np.newaxis, :]
+            precip_forecast_new = precip_forecast_new[np.newaxis, :]
         else:
             ensemble = True
-            num_ensemble_members = precip_f_new.shape[0]
+            num_ensemble_members = precip_forecast_new.shape[0]
 
         # advect the currect forecast field to the subtimesteps in the current
         # timestep bin and append the results to the output list
@@ -290,28 +290,28 @@ def nowcast_main_loop(
             if t_sub > 0:
                 t_diff_prev_int = t_sub - int(t_sub)
                 if t_diff_prev_int > 0.0:
-                    precip_f_ip = (
+                    precip_forecast_ip = (
                         1.0 - t_diff_prev_int
-                    ) * precip_f_prev + t_diff_prev_int * precip_f_new
+                    ) * precip_forecast_prev + t_diff_prev_int * precip_forecast_new
                 else:
-                    precip_f_ip = precip_f_prev
+                    precip_forecast_ip = precip_forecast_prev
 
                 t_diff_prev = t_sub - t_prev
                 t_total += t_diff_prev
 
                 if displacement is None:
-                    displacement = [None for i in range(precip_f_ip.shape[0])]
+                    displacement = [None for i in range(precip_forecast_ip.shape[0])]
 
-                if precip_f_out is None and return_output:
-                    precip_f_out = [[] for i in range(precip_f_ip.shape[0])]
+                if precip_forecast_out is None and return_output:
+                    precip_forecast_out = [[] for i in range(precip_forecast_ip.shape[0])]
 
-                precip_f_out_cur = [None for i in range(precip_f_ip.shape[0])]
+                precip_forecast_out_cur = [None for i in range(precip_forecast_ip.shape[0])]
 
                 def worker1(i):
                     extrap_kwargs_ = extrap_kwargs.copy()
                     extrap_kwargs_["displacement_prev"] = displacement[i]
                     extrap_kwargs_["allow_nonfinite_values"] = (
-                        True if np.any(~np.isfinite(precip_f_ip[i])) else False
+                        True if np.any(~np.isfinite(precip_forecast_ip[i])) else False
                     )
 
                     if vel_pert_gen is not None:
@@ -319,31 +319,31 @@ def nowcast_main_loop(
                     else:
                         velocity_ = velocity
 
-                    precip_f_ep, displacement[i] = extrapolator(
-                        precip_f_ip[i],
+                    precip_forecast_ep, displacement[i] = extrapolator(
+                        precip_forecast_ip[i],
                         velocity_,
                         [t_diff_prev],
                         **extrap_kwargs_,
                     )
 
-                    precip_f_out_cur[i] = precip_f_ep[0]
+                    precip_forecast_out_cur[i] = precip_forecast_ep[0]
                     if return_output:
-                        precip_f_out[i].append(precip_f_ep[0])
+                        precip_forecast_out[i].append(precip_forecast_ep[0])
 
                 if DASK_IMPORTED and ensemble and num_ensemble_members > 1:
                     res = []
-                    for i in range(precip_f_ip.shape[0]):
+                    for i in range(precip_forecast_ip.shape[0]):
                         res.append(dask.delayed(worker1)(i))
                     dask.compute(*res, num_workers=num_workers)
                 else:
-                    for i in range(precip_f_ip.shape[0]):
+                    for i in range(precip_forecast_ip.shape[0]):
                         worker1(i)
 
                 if callback is not None:
-                    precip_f_out_cur = np.stack(precip_f_out_cur)
-                    callback(precip_f_out_cur)
+                    precip_forecast_out_cur = np.stack(precip_forecast_out_cur)
+                    callback(precip_forecast_out_cur)
 
-                precip_f_out_cur = None
+                precip_forecast_out_cur = None
                 t_prev = t_sub
 
         # advect the forecast field by one time step if no subtimesteps in the
@@ -353,7 +353,7 @@ def nowcast_main_loop(
             t_total += t_diff_prev
 
             if displacement is None:
-                displacement = [None for i in range(precip_f_new.shape[0])]
+                displacement = [None for i in range(precip_forecast_new.shape[0])]
 
             def worker2(i):
                 extrap_kwargs_ = extrap_kwargs.copy()
@@ -373,16 +373,16 @@ def nowcast_main_loop(
 
             if DASK_IMPORTED and ensemble and num_ensemble_members > 1:
                 res = []
-                for i in range(precip_f_new.shape[0]):
+                for i in range(precip_forecast_new.shape[0]):
                     res.append(dask.delayed(worker2)(i))
                 dask.compute(*res, num_workers=num_workers)
             else:
-                for i in range(precip_f_new.shape[0]):
+                for i in range(precip_forecast_new.shape[0]):
                     worker2(i)
 
             t_prev = t + 1
 
-        precip_f_prev = precip_f_new
+        precip_forecast_prev = precip_forecast_new
         state_cur = state_new
 
         if is_nowcast_time_step:
@@ -392,14 +392,14 @@ def nowcast_main_loop(
                 print("done.")
 
     if return_output:
-        precip_f_out = np.stack(precip_f_out)
+        precip_forecast_out = np.stack(precip_forecast_out)
         if not ensemble:
-            precip_f_out = precip_f_out[0, :]
+            precip_forecast_out = precip_forecast_out[0, :]
 
     if measure_time:
-        return precip_f_out, time.time() - starttime_total
+        return precip_forecast_out, time.time() - starttime_total
     else:
-        return precip_f_out
+        return precip_forecast_out
 
 
 def print_ar_params(PHI):

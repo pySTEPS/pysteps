@@ -566,7 +566,7 @@ def forecast(
     else:
         vps = None
 
-    precip_f = [[] for j in range(n_ens_members)]
+    precip_forecast = [[] for j in range(n_ens_members)]
 
     if probmatching_method == "mean":
         mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
@@ -651,7 +651,7 @@ def forecast(
         "war": war,
     }
 
-    precip_f = nowcast_main_loop(
+    precip_forecast = nowcast_main_loop(
         precip,
         velocity,
         state,
@@ -667,14 +667,16 @@ def forecast(
         measure_time=measure_time,
     )
     if measure_time:
-        precip_f, mainloop_time = precip_f
+        precip_forecast, mainloop_time = precip_forecast
 
     if return_output:
-        precip_f = np.stack([np.stack(precip_f[j]) for j in range(n_ens_members)])
+        precip_forecast = np.stack(
+            [np.stack(precip_forecast[j]) for j in range(n_ens_members)]
+        )
         if measure_time:
-            return precip_f, init_time, mainloop_time
+            return precip_forecast, init_time, mainloop_time
         else:
-            return precip_f
+            return precip_forecast
     else:
         return None
 
@@ -696,7 +698,7 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
 
 
 def _update(state, params):
-    precip_f_out = []
+    precip_forecast_out = []
 
     if params["noise_method"] is None or params["mask_method"] == "sprog":
         for i in range(params["n_cascade_levels"]):
@@ -775,46 +777,49 @@ def _update(state, params):
                 state["precip_d"][j]["cascade_levels"]
             )
 
-        precip_f = params["recomp_method"](state["precip_d"][j])
+        precip_forecast = params["recomp_method"](state["precip_d"][j])
 
         if params["domain"] == "spectral":
-            precip_f = state["fft_objs"][j].irfft2(precip_f)
+            precip_forecast = state["fft_objs"][j].irfft2(precip_forecast)
 
         if params["mask_method"] is not None:
             # apply the precipitation mask to prevent generation of new
             # precipitation into areas where it was not originally
             # observed
-            precip_f_min = precip_f.min()
+            precip_forecast_min = precip_forecast.min()
             if params["mask_method"] == "incremental":
-                precip_f = (
-                    precip_f_min + (precip_f - precip_f_min) * state["mask_prec"][j]
+                precip_forecast = (
+                    precip_forecast_min
+                    + (precip_forecast - precip_forecast_min) * state["mask_prec"][j]
                 )
-                mask_prec_ = precip_f > precip_f_min
+                mask_prec_ = precip_forecast > precip_forecast_min
             else:
                 mask_prec_ = state["mask_prec"]
 
             # set to min value outside mask
-            precip_f[~mask_prec_] = precip_f_min
+            precip_forecast[~mask_prec_] = precip_forecast_min
 
         if params["probmatching_method"] == "cdf":
             # adjust the CDF of the forecast to match the most recently
             # observed precipitation field
-            precip_f = probmatching.nonparam_match_empirical_cdf(
-                precip_f, params["precip"]
+            precip_forecast = probmatching.nonparam_match_empirical_cdf(
+                precip_forecast, params["precip"]
             )
         elif params["probmatching_method"] == "mean":
-            MASK = precip_f >= params["precip_thr"]
-            mu_fct = np.mean(precip_f[MASK])
-            precip_f[MASK] = precip_f[MASK] - mu_fct + params["mu_0"]
+            MASK = precip_forecast >= params["precip_thr"]
+            mu_fct = np.mean(precip_forecast[MASK])
+            precip_forecast[MASK] = precip_forecast[MASK] - mu_fct + params["mu_0"]
 
         if params["mask_method"] == "incremental":
             state["mask_prec"][j] = nowcast_utils.compute_dilated_mask(
-                precip_f >= params["precip_thr"], params["struct"], params["mask_rim"]
+                precip_forecast >= params["precip_thr"],
+                params["struct"],
+                params["mask_rim"],
             )
 
-        precip_f[params["domain_mask"]] = np.nan
+        precip_forecast[params["domain_mask"]] = np.nan
 
-        precip_f_out.append(precip_f)
+        precip_forecast_out.append(precip_forecast)
 
     if (
         DASK_IMPORTED
@@ -829,4 +834,4 @@ def _update(state, params):
         for j in range(params["n_ens_members"]):
             worker(j)
 
-    return np.stack(precip_f_out), state
+    return np.stack(precip_forecast_out), state
