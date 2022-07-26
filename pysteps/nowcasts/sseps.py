@@ -378,34 +378,38 @@ def forecast(
 
         # compute the cascade decompositions of the input precipitation fields
         if parsglob is None:
-            precip_d = []
+            precip_decomp = []
             for i in range(ar_order + 1):
-                precip_d_ = decomp_method(
+                precip_decomp_ = decomp_method(
                     precip[i, :, :],
                     bp_filter,
                     fft_method=fft_method,
                     normalize=True,
                     compute_stats=True,
                 )
-                precip_d.append(precip_d_)
-            precip_d_ = None
+                precip_decomp.append(precip_decomp_)
+            precip_decomp_ = None
 
         # normalize the cascades and rearrange them into a four-dimensional array
         # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
         if parsglob is None:
-            precip_c = nowcast_utils.stack_cascades(precip_d, n_cascade_levels)
-            mu = precip_d[-1]["means"]
-            sigma = precip_d[-1]["stds"]
-            precip_d = None
+            precip_cascade = nowcast_utils.stack_cascades(
+                precip_decomp, n_cascade_levels
+            )
+            mu = precip_decomp[-1]["means"]
+            sigma = precip_decomp[-1]["stds"]
+            precip_decomp = None
 
         else:
-            precip_c = parsglob["precip_c"][0][
+            precip_cascade = parsglob["precip_cascade"][0][
                 :, :, idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
             ].copy()
-            mu = np.mean(precip_c, axis=(2, 3))
-            sigma = np.std(precip_c, axis=(2, 3))
+            mu = np.mean(precip_cascade, axis=(2, 3))
+            sigma = np.std(precip_cascade, axis=(2, 3))
 
-            precip_c = (precip_c - mu[:, :, None, None]) / sigma[:, :, None, None]
+            precip_cascade = (precip_cascade - mu[:, :, None, None]) / sigma[
+                :, :, None, None
+            ]
 
             mu = mu[:, -1]
             sigma = sigma[:, -1]
@@ -416,9 +420,11 @@ def forecast(
         # compute lag-l temporal autocorrelation coefficients for each cascade level
         gamma = np.empty((n_cascade_levels, ar_order))
         for i in range(n_cascade_levels):
-            precip_c_ = np.stack([precip_c[i, j, :, :] for j in range(ar_order + 1)])
-            gamma[i, :] = correlation.temporal_autocorrelation(precip_c_)
-        precip_c_ = None
+            precip_cascade_ = np.stack(
+                [precip_cascade[i, j, :, :] for j in range(ar_order + 1)]
+            )
+            gamma[i, :] = correlation.temporal_autocorrelation(precip_cascade_)
+        precip_cascade_ = None
 
         if ar_order == 2:
             # adjust the local lag-2 correlation coefficient to ensure that the AR(p)
@@ -437,8 +443,8 @@ def forecast(
 
         # stack the cascades into a five-dimensional array containing all ensemble
         # members
-        precip_c = [precip_c.copy() for _ in range(n_ens_members)]
-        pars["precip_c"] = precip_c
+        precip_cascade = [precip_cascade.copy() for _ in range(n_ens_members)]
+        pars["precip_cascade"] = precip_cascade
 
         if mask_method is not None and parsglob is None:
             mask_prec = precip[-1, :, :] >= precip_thr
@@ -510,7 +516,7 @@ def forecast(
                     pars = estimator(precip, parsglob, idxm, idxn)
                     ff_.append(pars["filter"])
                     pp_.append(pars["P"])
-                    rc_.append(pars["precip_c"])
+                    rc_.append(pars["precip_cascade"])
                     mm_.append(pars["mask_prec"])
                     mu[m, n, :] = pars["mu"]
                     sigma[m, n, :] = pars["sigma"]
@@ -639,9 +645,9 @@ def forecast(
                 EPS_d = None
 
             # iterate the AR(p) model for each cascade level
-            precip_c = parsglob["precip_c"][j].copy()
-            if precip_c.shape[1] >= ar_order:
-                precip_c = precip_c[:, -ar_order:, :, :].copy()
+            precip_cascade = parsglob["precip_cascade"][j].copy()
+            if precip_cascade.shape[1] >= ar_order:
+                precip_cascade = precip_cascade[:, -ar_order:, :, :].copy()
             for i in range(n_cascade_levels):
                 # normalize the noise cascade
                 if EPS_d is not None:
@@ -651,19 +657,19 @@ def forecast(
                 else:
                     EPS_ = None
                 # apply AR(p) process to cascade level
-                precip_c[i, :, :, :] = autoregression.iterate_ar_model(
-                    precip_c[i, :, :, :], parsglob["phi"][i, :], eps=EPS_
+                precip_cascade[i, :, :, :] = autoregression.iterate_ar_model(
+                    precip_cascade[i, :, :, :], parsglob["phi"][i, :], eps=EPS_
                 )
                 EPS_ = None
-            parsglob["precip_c"][j] = precip_c.copy()
+            parsglob["precip_cascade"][j] = precip_cascade.copy()
             EPS = None
 
             # compute the recomposed precipitation field(s) from the cascades
             # obtained from the AR(p) model(s)
             precip_forecast_new = _recompose_cascade(
-                precip_c, parsglob["mu"], parsglob["sigma"]
+                precip_cascade, parsglob["mu"], parsglob["sigma"]
             )
-            precip_c = None
+            precip_cascade = None
 
             # then the local steps
             if n_windows_M > 1 or n_windows_N > 1:
@@ -698,9 +704,9 @@ def forecast(
                         # skip if dry
                         if war[m, n] > war_thr:
 
-                            precip_c = rc[m][n][j].copy()
-                            if precip_c.shape[1] >= ar_order:
-                                precip_c = precip_c[:, -ar_order:, :, :]
+                            precip_cascade = rc[m][n][j].copy()
+                            if precip_cascade.shape[1] >= ar_order:
+                                precip_cascade = precip_cascade[:, -ar_order:, :, :]
                             if noise_method is not None:
                                 # extract noise field
                                 EPS_d_l = EPS_d["cascade_levels"][
@@ -723,26 +729,30 @@ def forecast(
                                 else:
                                     EPS_ = None
                                 # apply AR(p) process to cascade level
-                                precip_c[i, :, :, :] = autoregression.iterate_ar_model(
-                                    precip_c[i, :, :, :], phi[m, n, i, :], eps=EPS_
+                                precip_cascade[
+                                    i, :, :, :
+                                ] = autoregression.iterate_ar_model(
+                                    precip_cascade[i, :, :, :],
+                                    phi[m, n, i, :],
+                                    eps=EPS_,
                                 )
                                 EPS_ = None
-                            rc[m][n][j] = precip_c.copy()
+                            rc[m][n][j] = precip_cascade.copy()
                             EPS_d_l = mu_ = sigma_ = None
 
                             # compute the recomposed precipitation field(s) from the cascades
                             # obtained from the AR(p) model(s)
                             mu_ = mu[m, n, :]
                             sigma_ = sigma[m, n, :]
-                            precip_c = [
-                                ((precip_c[i, -1, :, :] * sigma_[i]) + mu_[i])
+                            precip_cascade = [
+                                ((precip_cascade[i, -1, :, :] * sigma_[i]) + mu_[i])
                                 * parsglob["sigma"][i]
                                 + parsglob["mu"][i]
                                 for i in range(len(mu_))
                             ]
-                            precip_l_ = np.sum(np.stack(precip_c), axis=0)
-                            precip_c = mu_ = sigma_ = None
-                            # precip_l_ = _recompose_cascade(precip_c[:, :, :], mu[m, n, :], sigma[m, n, :])
+                            precip_l_ = np.sum(np.stack(precip_cascade), axis=0)
+                            precip_cascade = mu_ = sigma_ = None
+                            # precip_l_ = _recompose_cascade(precip_cascade[:, :, :], mu[m, n, :], sigma[m, n, :])
                         else:
                             precip_l_ = precip_forecast_new[
                                 idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)

@@ -482,13 +482,13 @@ def print_corrcoefs(gamma):
         print(hline_str)
 
 
-def stack_cascades(precip_d, n_levels, convert_to_full_arrays=False):
+def stack_cascades(precip_decomp, n_levels, convert_to_full_arrays=False):
     """
     Stack the given cascades into a larger array.
 
     Parameters
     ----------
-    precip_d: list
+    precip_decomp: list
         List of cascades obtained by calling a method implemented in
         pysteps.cascade.decomposition.
     n_levels: int
@@ -501,22 +501,24 @@ def stack_cascades(precip_d, n_levels, convert_to_full_arrays=False):
     """
     out = []
 
-    n_inputs = len(precip_d)
+    n_inputs = len(precip_decomp)
 
     for i in range(n_levels):
         precip_cur_level = []
         for j in range(n_inputs):
-            precip_cur_input = precip_d[j]["cascade_levels"][i]
-            if precip_d[j]["compact_output"] and convert_to_full_arrays:
+            precip_cur_input = precip_decomp[j]["cascade_levels"][i]
+            if precip_decomp[j]["compact_output"] and convert_to_full_arrays:
                 precip_tmp = np.zeros(
-                    precip_d[j]["weight_masks"].shape[1:], dtype=complex
+                    precip_decomp[j]["weight_masks"].shape[1:], dtype=complex
                 )
-                precip_tmp[precip_d[j]["weight_masks"][i]] = precip_cur_input
+                precip_tmp[precip_decomp[j]["weight_masks"][i]] = precip_cur_input
                 precip_cur_input = precip_tmp
             precip_cur_level.append(precip_cur_input)
         out.append(np.stack(precip_cur_level))
 
-    if not np.any([precip_d[i]["compact_output"] for i in range(len(precip_d))]):
+    if not np.any(
+        [precip_decomp[i]["compact_output"] for i in range(len(precip_decomp))]
+    ):
         out = np.stack(out)
 
     return out
