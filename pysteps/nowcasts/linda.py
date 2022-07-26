@@ -976,14 +976,13 @@ def _linda_forecast(
         velocity_perturbators = []
         np.random.seed(seed)
         for _ in range(n_ensemble_members):
-            rs = np.random.RandomState(seed)
             vp = vel_pert_gen["init_func"](seed)
             velocity_perturbators.append(
                 lambda t, vp=vp: vel_pert_gen["gen_func"](
                     vp, t * vel_pert_gen["timestep"]
                 )
             )
-            seed = rs.randint(0, high=1e9)
+            seed = np.random.RandomState(seed).randint(0, high=1e9)
     else:
         velocity_perturbators = None
 
