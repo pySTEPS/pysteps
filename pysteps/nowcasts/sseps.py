@@ -441,16 +441,16 @@ def forecast(
         pars["precip_c"] = precip_c
 
         if mask_method is not None and parsglob is None:
-            MASK_prec = precip[-1, :, :] >= precip_thr
+            mask_prec = precip[-1, :, :] >= precip_thr
             if mask_method == "incremental":
                 # initialize precip mask for each member
-                MASK_prec = nowcast_utils.compute_dilated_mask(
-                    MASK_prec, struct, mask_rim
+                mask_prec = nowcast_utils.compute_dilated_mask(
+                    mask_prec, struct, mask_rim
                 )
-                MASK_prec = [MASK_prec.copy() for _ in range(n_ens_members)]
+                mask_prec = [mask_prec.copy() for _ in range(n_ens_members)]
         else:
-            MASK_prec = None
-        pars["MASK_prec"] = MASK_prec
+            mask_prec = None
+        pars["mask_prec"] = mask_prec
 
         return pars
 
@@ -511,7 +511,7 @@ def forecast(
                     ff_.append(pars["filter"])
                     pp_.append(pars["P"])
                     rc_.append(pars["precip_c"])
-                    mm_.append(pars["MASK_prec"])
+                    mm_.append(pars["mask_prec"])
                     mu[m, n, :] = pars["mu"]
                     sigma[m, n, :] = pars["sigma"]
                     PHI[m, n, :, :] = pars["PHI"]
@@ -784,15 +784,15 @@ def forecast(
                 # precipitation into areas where it was not originally
                 # observed
                 if mask_method == "incremental":
-                    MASK_prec = parsglob["MASK_prec"][j].copy()
+                    mask_prec = parsglob["mask_prec"][j].copy()
                     precip_forecast_new = (
                         precip_forecast_new.min()
-                        + (precip_forecast_new - precip_forecast_new.min()) * MASK_prec
+                        + (precip_forecast_new - precip_forecast_new.min()) * mask_prec
                     )
-                    MASK_prec = None
+                    mask_prec = None
 
             if mask_method == "incremental":
-                parsglob["MASK_prec"][j] = nowcast_utils.compute_dilated_mask(
+                parsglob["mask_prec"][j] = nowcast_utils.compute_dilated_mask(
                     precip_forecast_new >= precip_thr, struct, mask_rim
                 )
 

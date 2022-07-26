@@ -808,9 +808,9 @@ def _update(state, params):
                 precip_forecast, params["precip"]
             )
         elif params["probmatching_method"] == "mean":
-            MASK = precip_forecast >= params["precip_thr"]
-            mu_fct = np.mean(precip_forecast[MASK])
-            precip_forecast[MASK] = precip_forecast[MASK] - mu_fct + params["mu_0"]
+            mask = precip_forecast >= params["precip_thr"]
+            mu_fct = np.mean(precip_forecast[mask])
+            precip_forecast[mask] = precip_forecast[mask] - mu_fct + params["mu_0"]
 
         if params["mask_method"] == "incremental":
             state["mask_prec"][j] = nowcast_utils.compute_dilated_mask(
