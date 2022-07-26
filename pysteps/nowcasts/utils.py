@@ -7,6 +7,10 @@ Module with common utilities used by nowcasts methods.
 .. autosummary::
     :toctree: ../generated/
 
+    binned_timesteps
+    compute_dilated_mask
+    compute_percentile_mask
+    nowcast_main_loop
     print_ar_params
     print_corrcoefs
     stack_cascades
