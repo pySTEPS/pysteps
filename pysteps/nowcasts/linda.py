@@ -973,19 +973,19 @@ def _linda_forecast(
         rs_precip_pert = None
 
     if vel_pert_gen is not None:
-        vps = []
+        velocity_perturbators = []
         np.random.seed(seed)
         for _ in range(n_ensemble_members):
             rs = np.random.RandomState(seed)
             vp = vel_pert_gen["init_func"](seed)
-            vps.append(
+            velocity_perturbators.append(
                 lambda t, vp=vp: vel_pert_gen["gen_func"](
                     vp, t * vel_pert_gen["timestep"]
                 )
             )
             seed = rs.randint(0, high=1e9)
     else:
-        vps = None
+        velocity_perturbators = None
 
     state = {
         "precip_forecast": [precip[-1].copy() for _ in range(n_ensemble_members)],
@@ -1014,7 +1014,7 @@ def _linda_forecast(
         fct_gen["extrap_method"],
         _update,
         extrap_kwargs=fct_gen["extrap_kwargs"],
-        vel_pert_gen=vps,
+        vel_pert_gen=velocity_perturbators,
         params=params,
         callback=callback,
         return_output=return_output,

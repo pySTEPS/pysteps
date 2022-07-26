@@ -557,7 +557,7 @@ def forecast(
         init_vel_noise, generate_vel_noise = noise.get_method(vel_pert_method)
 
         # initialize the perturbation generators for the motion field
-        vps = []
+        velocity_perturbators = []
         for j in range(n_ens_members):
             kwargs = {
                 "randstate": randgen_motion[j],
@@ -565,7 +565,7 @@ def forecast(
                 "p_perp": vp_perp,
             }
             vp_ = init_vel_noise(velocity, 1.0 / kmperpixel, timestep, **kwargs)
-            vps.append(vp_)
+            velocity_perturbators.append(vp_)
 
     D = [None for _ in range(n_ens_members)]
     precip_forecast = [[] for _ in range(n_ens_members)]
@@ -824,7 +824,7 @@ def forecast(
                     # compute the perturbed motion field
                     if vel_pert_method is not None:
                         V_pert = velocity + generate_vel_noise(
-                            vps[j], t_total[j] * timestep
+                            velocity_perturbators[j], t_total[j] * timestep
                         )
 
                     extrap_kwargs_["displacement_prev"] = D[j]
@@ -849,7 +849,7 @@ def forecast(
                 # compute the perturbed motion field
                 if vel_pert_method is not None:
                     V_pert = velocity + generate_vel_noise(
-                        vps[j], t_total[j] * timestep
+                        velocity_perturbators[j], t_total[j] * timestep
                     )
 
                 extrap_kwargs_["displacement_prev"] = D[j]
