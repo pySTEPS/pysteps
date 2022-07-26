@@ -661,7 +661,7 @@ def forecast(
         extrap_method,
         _update,
         extrap_kwargs=extrap_kwargs,
-        vel_pert_gen=velocity_perturbators,
+        velocity_pert_gen=velocity_perturbators,
         params=params,
         callback=callback,
         return_output=return_output,

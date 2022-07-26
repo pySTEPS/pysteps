@@ -138,7 +138,7 @@ def nowcast_main_loop(
     extrap_method,
     func,
     extrap_kwargs=None,
-    vel_pert_gen=None,
+    velocity_pert_gen=None,
     params=None,
     callback=None,
     return_output=True,
@@ -176,7 +176,7 @@ def nowcast_main_loop(
     extrap_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
-    vel_pert_gen : list, optional
+    velocity_pert_gen : list, optional
         Optional list of functions that generate velocity perturbations. The
         length of the list is expected to be n_ens_members. The functions
         are expected to take lead time (relative to timestep index) as input
@@ -318,8 +318,8 @@ def nowcast_main_loop(
                         True if np.any(~np.isfinite(precip_forecast_ip[i])) else False
                     )
 
-                    if vel_pert_gen is not None:
-                        velocity_ = velocity + vel_pert_gen[i](t_total)
+                    if velocity_pert_gen is not None:
+                        velocity_ = velocity + velocity_pert_gen[i](t_total)
                     else:
                         velocity_ = velocity
 
@@ -363,8 +363,8 @@ def nowcast_main_loop(
                 extrap_kwargs_ = extrap_kwargs.copy()
                 extrap_kwargs_["displacement_prev"] = displacement[i]
 
-                if vel_pert_gen is not None:
-                    velocity_ = velocity + vel_pert_gen[i](t_total)
+                if velocity_pert_gen is not None:
+                    velocity_ = velocity + velocity_pert_gen[i](t_total)
                 else:
                     velocity_ = velocity
 

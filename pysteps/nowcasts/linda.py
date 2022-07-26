@@ -332,13 +332,13 @@ def forecast(
             measure_time,
         )
         if measure_time:
-            precip_pert_gen, vel_pert_gen, pert_init_time = pert_gen
+            precip_pert_gen, velocity_pert_gen, pert_init_time = pert_gen
             init_time += pert_init_time
         else:
-            precip_pert_gen, vel_pert_gen = pert_gen
+            precip_pert_gen, velocity_pert_gen = pert_gen
     else:
         precip_pert_gen = None
-        vel_pert_gen = None
+        velocity_pert_gen = None
 
     precip_forecast = _linda_forecast(
         precip,
@@ -346,7 +346,7 @@ def forecast(
         timesteps,
         forecast_gen,
         precip_pert_gen,
-        vel_pert_gen,
+        velocity_pert_gen,
         n_ens_members,
         seed,
         measure_time,
@@ -940,7 +940,7 @@ def _linda_forecast(
     timesteps,
     forecast_gen,
     precip_pert_gen,
-    vel_pert_gen,
+    velocity_pert_gen,
     n_ensemble_members,
     seed,
     measure_time,
@@ -971,14 +971,14 @@ def _linda_forecast(
     else:
         rs_precip_pert = None
 
-    if vel_pert_gen is not None:
+    if velocity_pert_gen is not None:
         velocity_perturbators = []
         np.random.seed(seed)
         for _ in range(n_ensemble_members):
-            vp = vel_pert_gen["init_func"](seed)
+            vp = velocity_pert_gen["init_func"](seed)
             velocity_perturbators.append(
-                lambda t, vp=vp: vel_pert_gen["gen_func"](
-                    vp, t * vel_pert_gen["timestep"]
+                lambda t, vp=vp: velocity_pert_gen["gen_func"](
+                    vp, t * velocity_pert_gen["timestep"]
                 )
             )
             seed = np.random.RandomState(seed).randint(0, high=1e9)
@@ -1012,7 +1012,7 @@ def _linda_forecast(
         forecast_gen["extrap_method"],
         _update,
         extrap_kwargs=forecast_gen["extrap_kwargs"],
-        vel_pert_gen=velocity_perturbators,
+        velocity_pert_gen=velocity_perturbators,
         params=params,
         callback=callback,
         return_output=return_output,
@@ -1351,7 +1351,7 @@ def _linda_perturbation_init(
             "p_par": vp_par,
             "p_perp": vp_perp,
         }
-        vel_pert_gen = {
+        velocity_pert_gen = {
             "gen_func": generate_vel_noise,
             "init_func": lambda seed: init_vel_noise(
                 velocity, 1.0 / kmperpixel, timestep, seed=seed, **kwargs
@@ -1359,12 +1359,12 @@ def _linda_perturbation_init(
             "timestep": timestep,
         }
     else:
-        vel_pert_gen = None
+        velocity_pert_gen = None
 
     if measure_time:
-        return pert_gen, vel_pert_gen, time.time() - starttime
+        return pert_gen, velocity_pert_gen, time.time() - starttime
     else:
-        return pert_gen, vel_pert_gen
+        return pert_gen, velocity_pert_gen
 
 
 def _masked_convolution(field, kernel):
