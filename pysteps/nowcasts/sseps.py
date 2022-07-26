@@ -414,26 +414,26 @@ def forecast(
         pars["sigma"] = sigma
 
         # compute lag-l temporal autocorrelation coefficients for each cascade level
-        GAMMA = np.empty((n_cascade_levels, ar_order))
+        gamma = np.empty((n_cascade_levels, ar_order))
         for i in range(n_cascade_levels):
             precip_c_ = np.stack([precip_c[i, j, :, :] for j in range(ar_order + 1)])
-            GAMMA[i, :] = correlation.temporal_autocorrelation(precip_c_)
+            gamma[i, :] = correlation.temporal_autocorrelation(precip_c_)
         precip_c_ = None
 
         if ar_order == 2:
             # adjust the local lag-2 correlation coefficient to ensure that the AR(p)
             # process is stationary
             for i in range(n_cascade_levels):
-                GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(
-                    GAMMA[i, 0], GAMMA[i, 1]
+                gamma[i, 1] = autoregression.adjust_lag2_corrcoef2(
+                    gamma[i, 0], gamma[i, 1]
                 )
 
         # estimate the parameters of the AR(p) model from the autocorrelation
         # coefficients
-        PHI = np.empty((n_cascade_levels, ar_order + 1))
+        phi = np.empty((n_cascade_levels, ar_order + 1))
         for i in range(n_cascade_levels):
-            PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
-        pars["PHI"] = PHI
+            phi[i, :] = autoregression.estimate_ar_params_yw(gamma[i, :])
+        pars["phi"] = phi
 
         # stack the cascades into a five-dimensional array containing all ensemble
         # members
@@ -470,7 +470,7 @@ def forecast(
     # loop windows
     if n_windows_M > 1 or n_windows_N > 1:
         war = np.empty((n_windows_M, n_windows_N))
-        PHI = np.empty((n_windows_M, n_windows_N, n_cascade_levels, ar_order + 1))
+        phi = np.empty((n_windows_M, n_windows_N, n_cascade_levels, ar_order + 1))
         mu = np.empty((n_windows_M, n_windows_N, n_cascade_levels))
         sigma = np.empty((n_windows_M, n_windows_N, n_cascade_levels))
         ff = []
@@ -514,7 +514,7 @@ def forecast(
                     mm_.append(pars["mask_prec"])
                     mu[m, n, :] = pars["mu"]
                     sigma[m, n, :] = pars["sigma"]
-                    PHI[m, n, :, :] = pars["PHI"]
+                    phi[m, n, :, :] = pars["phi"]
 
                 else:
                     # dry window
@@ -652,7 +652,7 @@ def forecast(
                     EPS_ = None
                 # apply AR(p) process to cascade level
                 precip_c[i, :, :, :] = autoregression.iterate_ar_model(
-                    precip_c[i, :, :, :], parsglob["PHI"][i, :], eps=EPS_
+                    precip_c[i, :, :, :], parsglob["phi"][i, :], eps=EPS_
                 )
                 EPS_ = None
             parsglob["precip_c"][j] = precip_c.copy()
@@ -724,7 +724,7 @@ def forecast(
                                     EPS_ = None
                                 # apply AR(p) process to cascade level
                                 precip_c[i, :, :, :] = autoregression.iterate_ar_model(
-                                    precip_c[i, :, :, :], PHI[m, n, i, :], eps=EPS_
+                                    precip_c[i, :, :, :], phi[m, n, i, :], eps=EPS_
                                 )
                                 EPS_ = None
                             rc[m][n][j] = precip_c.copy()

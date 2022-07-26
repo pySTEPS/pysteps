@@ -406,13 +406,13 @@ def nowcast_main_loop(
         return precip_forecast_out
 
 
-def print_ar_params(PHI):
+def print_ar_params(phi):
     """
     Print the parameters of an AR(p) model.
 
     Parameters
     ----------
-    PHI: array_like
+    phi: array_like
         Array of shape (n, p) containing the AR(p) parameters for n cascade
         levels.
     """
@@ -420,7 +420,7 @@ def print_ar_params(PHI):
     print("* AR(p) parameters for cascade levels: *")
     print("****************************************")
 
-    n = PHI.shape[1]
+    n = phi.shape[1]
 
     hline_str = "---------"
     for _ in range(n):
@@ -439,18 +439,18 @@ def print_ar_params(PHI):
     for _ in range(n):
         fmt_str += " %-12.6f |"
 
-    for i in range(PHI.shape[0]):
-        print(fmt_str % ((i + 1,) + tuple(PHI[i, :])))
+    for i in range(phi.shape[0]):
+        print(fmt_str % ((i + 1,) + tuple(phi[i, :])))
         print(hline_str)
 
 
-def print_corrcoefs(GAMMA):
+def print_corrcoefs(gamma):
     """
     Print the parameters of an AR(p) model.
 
     Parameters
     ----------
-    GAMMA: array_like
+    gamma: array_like
       Array of shape (m, n) containing n correlation coefficients for m cascade
       levels.
     """
@@ -458,8 +458,8 @@ def print_corrcoefs(GAMMA):
     print("* Correlation coefficients for cascade levels: *")
     print("************************************************")
 
-    m = GAMMA.shape[0]
-    n = GAMMA.shape[1]
+    m = gamma.shape[0]
+    n = gamma.shape[1]
 
     hline_str = "---------"
     for _ in range(n):
@@ -478,7 +478,7 @@ def print_corrcoefs(GAMMA):
         fmt_str += " %-13.6f |"
 
     for i in range(m):
-        print(fmt_str % ((i + 1,) + tuple(GAMMA[i, :])))
+        print(fmt_str % ((i + 1,) + tuple(gamma[i, :])))
         print(hline_str)
 
 
