@@ -320,14 +320,14 @@ def forecast(
     )
 
     res = []
-    f = lambda precip, i: extrapolator_method(
+    extrapolate = lambda precip, i: extrapolator_method(
         precip[i, :, :], velocity, ar_order - i, "min", **extrap_kwargs
     )[-1]
     for i in range(ar_order):
         if not dask_imported:
-            precip[i, :, :] = f(precip, i)
+            precip[i, :, :] = extrapolate(precip, i)
         else:
-            res.append(dask.delayed(f)(precip, i))
+            res.append(dask.delayed(extrapolate)(precip, i))
 
     if dask_imported:
         num_workers_ = len(res) if num_workers > len(res) else num_workers

@@ -471,8 +471,8 @@ def forecast(
             else:
                 print("done.")
         elif noise_stddev_adj == "fixed":
-            f = lambda k: 1.0 / (0.75 + 0.09 * k)
-            noise_std_coeffs = [f(k) for k in range(1, n_cascade_levels + 1)]
+            func = lambda k: 1.0 / (0.75 + 0.09 * k)
+            noise_std_coeffs = [func(k) for k in range(1, n_cascade_levels + 1)]
         else:
             noise_std_coeffs = np.ones(n_cascade_levels)
 

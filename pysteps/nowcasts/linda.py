@@ -866,8 +866,8 @@ def _fit_dist(err, dist, wf, mask):
     """
     Fit a lognormal distribution by maximizing the log-likelihood function
     with the constraint that the mean value is one."""
-    f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p**2)))
-    p_opt = opt.minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
+    func = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p**2)))
+    p_opt = opt.minimize_scalar(func, bounds=(1e-3, 20.0), method="Bounded")
 
     return (p_opt.x, -0.5 * p_opt.x**2)
 
