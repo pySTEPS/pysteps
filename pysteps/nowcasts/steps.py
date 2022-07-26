@@ -499,7 +499,7 @@ def forecast(
 
     # normalize the cascades and rearrange them into a four-dimensional array
     # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    precip_cascade = nowcast_utils.stack_cascades(precip_decomp, n_cascade_levels)
+    precip_cascades = nowcast_utils.stack_cascades(precip_decomp, n_cascade_levels)
 
     precip_decomp = precip_decomp[-1]
     precip_decomp = [precip_decomp.copy() for _ in range(n_ens_members)]
@@ -508,7 +508,7 @@ def forecast(
     gamma = np.empty((n_cascade_levels, ar_order))
     for i in range(n_cascade_levels):
         gamma[i, :] = correlation.temporal_autocorrelation(
-            precip_cascade[i], mask=mask_thr
+            precip_cascades[i], mask=mask_thr
         )
 
     nowcast_utils.print_corrcoefs(gamma)
@@ -529,11 +529,11 @@ def forecast(
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
-    precip_cascade = [precip_cascade[i][-ar_order:] for i in range(n_cascade_levels)]
+    precip_cascades = [precip_cascades[i][-ar_order:] for i in range(n_cascade_levels)]
 
     # stack the cascades into a list containing all ensemble members
-    precip_cascade = [
-        [precip_cascade[j].copy() for j in range(n_cascade_levels)]
+    precip_cascades = [
+        [precip_cascades[j].copy() for j in range(n_cascade_levels)]
         for _ in range(n_ens_members)
     ]
 
@@ -589,7 +589,7 @@ def forecast(
         if mask_method == "sprog":
             # compute the wet area ratio and the precipitation mask
             war = 1.0 * np.sum(mask_prec) / (precip.shape[1] * precip.shape[2])
-            precip_m = [precip_cascade[0][i].copy() for i in range(n_cascade_levels)]
+            precip_m = [precip_cascades[0][i].copy() for i in range(n_cascade_levels)]
             precip_m_d = precip_decomp[0].copy()
         elif mask_method == "incremental":
             # get mask parameters
@@ -607,7 +607,7 @@ def forecast(
         mask_prec = None
 
     if noise_method is None and precip_m is None:
-        precip_m = [precip_cascade[0][i].copy() for i in range(n_cascade_levels)]
+        precip_m = [precip_cascades[0][i].copy() for i in range(n_cascade_levels)]
 
     fft_objs = []
     for _ in range(n_ens_members):
@@ -624,7 +624,7 @@ def forecast(
     state = {
         "fft_objs": fft_objs,
         "mask_prec": mask_prec,
-        "precip_cascade": precip_cascade,
+        "precip_cascades": precip_cascades,
         "precip_decomp": precip_decomp,
         "precip_m": precip_m,
         "precip_m_d": precip_m_d,
@@ -760,13 +760,13 @@ def _update(state, params):
                 eps_ = None
             # apply AR(p) process to cascade level
             if eps is not None or params["vel_pert_method"] is not None:
-                state["precip_cascade"][j][i] = autoregression.iterate_ar_model(
-                    state["precip_cascade"][j][i], params["phi"][i, :], eps=eps_
+                state["precip_cascades"][j][i] = autoregression.iterate_ar_model(
+                    state["precip_cascades"][j][i], params["phi"][i, :], eps=eps_
                 )
             else:
                 # use the deterministic AR(p) model computed above if
                 # perturbations are disabled
-                state["precip_cascade"][j][i] = state["precip_m"][i]
+                state["precip_cascades"][j][i] = state["precip_m"][i]
 
         eps = None
         eps_ = None
@@ -774,7 +774,7 @@ def _update(state, params):
         # compute the recomposed precipitation field(s) from the cascades
         # obtained from the AR(p) model(s)
         state["precip_decomp"][j]["cascade_levels"] = [
-            state["precip_cascade"][j][i][-1, :]
+            state["precip_cascades"][j][i][-1, :]
             for i in range(params["n_cascade_levels"])
         ]
         if params["domain"] == "spatial":

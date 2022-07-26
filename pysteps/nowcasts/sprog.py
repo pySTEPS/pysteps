@@ -266,7 +266,7 @@ def forecast(
 
     # rearrange the cascade levels into a four-dimensional array of shape
     # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    precip_cascade = nowcast_utils.stack_cascades(
+    precip_cascades = nowcast_utils.stack_cascades(
         precip_decomp, n_cascade_levels, convert_to_full_arrays=True
     )
 
@@ -275,14 +275,14 @@ def forecast(
     for i in range(n_cascade_levels):
         if domain == "spatial":
             gamma[i, :] = correlation.temporal_autocorrelation(
-                precip_cascade[i], mask=mask_thr
+                precip_cascades[i], mask=mask_thr
             )
         else:
             gamma[i, :] = correlation.temporal_autocorrelation(
-                precip_cascade[i], domain="spectral", x_shape=precip.shape[1:]
+                precip_cascades[i], domain="spectral", x_shape=precip.shape[1:]
             )
 
-    precip_cascade = nowcast_utils.stack_cascades(
+    precip_cascades = nowcast_utils.stack_cascades(
         precip_decomp, n_cascade_levels, convert_to_full_arrays=False
     )
 
@@ -306,7 +306,7 @@ def forecast(
 
     # discard all except the p-1 last cascades because they are not needed for
     # the AR(p) model
-    precip_cascade = [precip_cascade[i][-ar_order:] for i in range(n_cascade_levels)]
+    precip_cascades = [precip_cascades[i][-ar_order:] for i in range(n_cascade_levels)]
 
     if probmatching_method == "mean":
         mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
@@ -326,7 +326,7 @@ def forecast(
 
     precip_forecast = []
 
-    state = {"precip_cascade": precip_cascade, "precip_decomp": precip_decomp}
+    state = {"precip_cascades": precip_cascades, "precip_decomp": precip_decomp}
     params = {
         "domain": domain,
         "domain_mask": domain_mask,
@@ -381,12 +381,12 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
 
 def _update(state, params):
     for i in range(params["n_cascade_levels"]):
-        state["precip_cascade"][i] = autoregression.iterate_ar_model(
-            state["precip_cascade"][i], params["phi"][i, :]
+        state["precip_cascades"][i] = autoregression.iterate_ar_model(
+            state["precip_cascades"][i], params["phi"][i, :]
         )
 
     state["precip_decomp"]["cascade_levels"] = [
-        state["precip_cascade"][i][-1, :] for i in range(params["n_cascade_levels"])
+        state["precip_cascades"][i][-1, :] for i in range(params["n_cascade_levels"])
     ]
     if params["domain"] == "spatial":
         state["precip_decomp"]["cascade_levels"] = np.stack(
