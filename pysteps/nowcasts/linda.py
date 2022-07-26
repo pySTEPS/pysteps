@@ -293,7 +293,7 @@ def forecast(
         True if np.any(~np.isfinite(precip)) else False
     )
 
-    fct_gen = _linda_deterministic_init(
+    forecast_gen = _linda_deterministic_init(
         precip,
         velocity,
         feature_method,
@@ -309,16 +309,16 @@ def forecast(
         measure_time,
     )
     if measure_time:
-        fct_gen, precip_lagr_diff, init_time = fct_gen
+        forecast_gen, precip_lagr_diff, init_time = forecast_gen
     else:
-        fct_gen, precip_lagr_diff = fct_gen
+        forecast_gen, precip_lagr_diff = forecast_gen
 
     if add_perturbations:
         pert_gen = _linda_perturbation_init(
             precip,
             precip_lagr_diff,
             velocity,
-            fct_gen,
+            forecast_gen,
             pert_thrs,
             localization_window_radius,
             errdist_window_radius,
@@ -340,11 +340,11 @@ def forecast(
         precip_pert_gen = None
         vel_pert_gen = None
 
-    fct = _linda_forecast(
+    precip_forecast = _linda_forecast(
         precip,
         precip_lagr_diff[1:],
         timesteps,
-        fct_gen,
+        forecast_gen,
         precip_pert_gen,
         vel_pert_gen,
         n_ens_members,
@@ -357,9 +357,9 @@ def forecast(
 
     if return_output:
         if measure_time:
-            return fct[0], init_time, fct[1]
+            return precip_forecast[0], init_time, precip_forecast[1]
         else:
-            return fct
+            return precip_forecast
     else:
         return None
 
@@ -729,8 +729,8 @@ def _estimate_convol_params(
 
 
 def _estimate_perturbation_params(
-    fct_err,
-    fct_gen,
+    forecast_err,
+    forecast_gen,
     errdist_window_radius,
     acf_window_radius,
     interp_window_radius,
@@ -741,25 +741,25 @@ def _estimate_perturbation_params(
     """
     Estimate perturbation generator parameters from forecast errors."""
     pert_gen = {}
-    pert_gen["m"] = fct_err.shape[0]
-    pert_gen["n"] = fct_err.shape[1]
+    pert_gen["m"] = forecast_err.shape[0]
+    pert_gen["n"] = forecast_err.shape[1]
 
-    feature_coords = fct_gen["feature_coords"]
+    feature_coords = forecast_gen["feature_coords"]
 
     print("Estimating perturbation parameters... ", end="", flush=True)
 
     if measure_time:
         starttime = time.time()
 
-    mask_finite = np.isfinite(fct_err)
+    mask_finite = np.isfinite(forecast_err)
 
-    fct_err = fct_err.copy()
-    fct_err[~mask_finite] = 1.0
+    forecast_err = forecast_err.copy()
+    forecast_err[~mask_finite] = 1.0
 
     weights_dist = _compute_window_weights(
         feature_coords,
-        fct_err.shape[0],
-        fct_err.shape[1],
+        forecast_err.shape[0],
+        forecast_err.shape[1],
         errdist_window_radius,
     )
 
@@ -767,8 +767,8 @@ def _estimate_perturbation_params(
 
     def worker(i):
         weights_acf = acf_winfunc(
-            fct_err.shape[0],
-            fct_err.shape[1],
+            forecast_err.shape[0],
+            forecast_err.shape[1],
             feature_coords[i, 0],
             feature_coords[i, 1],
             acf_window_radius,
@@ -776,14 +776,14 @@ def _estimate_perturbation_params(
         )
 
         mask = np.logical_and(mask_finite, weights_dist[i] > 0.1)
-        if np.sum(mask) > 10 and np.sum(np.abs(fct_err[mask] - 1.0) >= 1e-3) > 10:
-            distpar = _fit_dist(fct_err, stats.lognorm, weights_dist[i], mask)
+        if np.sum(mask) > 10 and np.sum(np.abs(forecast_err[mask] - 1.0) >= 1e-3) > 10:
+            distpar = _fit_dist(forecast_err, stats.lognorm, weights_dist[i], mask)
             inv_acf_mapping = _compute_inverse_acf_mapping(stats.lognorm, distpar)
             mask_acf = weights_acf > 1e-4
-            std = _weighted_std(fct_err[mask_acf], weights_dist[i][mask_acf])
+            std = _weighted_std(forecast_err[mask_acf], weights_dist[i][mask_acf])
             if np.isfinite(std):
                 acf = inv_acf_mapping(
-                    _compute_sample_acf(weights_acf * (fct_err - 1.0) / std)
+                    _compute_sample_acf(weights_acf * (forecast_err - 1.0) / std)
                 )
                 acf = _fit_acf(acf)
             else:
@@ -824,8 +824,8 @@ def _estimate_perturbation_params(
 
     weights = _compute_window_weights(
         feature_coords,
-        fct_err.shape[0],
-        fct_err.shape[1],
+        forecast_err.shape[0],
+        forecast_err.shape[1],
         interp_window_radius,
     )
     pert_gen["weights"] = weights / np.sum(weights, axis=0)
@@ -938,7 +938,7 @@ def _linda_forecast(
     precip,
     precip_lagr_diff,
     timesteps,
-    fct_gen,
+    forecast_gen,
     precip_pert_gen,
     vel_pert_gen,
     n_ensemble_members,
@@ -953,11 +953,11 @@ def _linda_forecast(
     precip_lagr_diff = precip_lagr_diff.copy()
 
     for i in range(precip_lagr_diff.shape[0]):
-        for _ in range(fct_gen["ari_order"] - i):
+        for _ in range(forecast_gen["ari_order"] - i):
             precip_lagr_diff[i] = _composite_convolution(
                 precip_lagr_diff[i],
-                fct_gen["kernels_1"],
-                fct_gen["interp_weights"],
+                forecast_gen["kernels_1"],
+                forecast_gen["interp_weights"],
             )
 
     # initialize the random generators
@@ -993,37 +993,37 @@ def _linda_forecast(
         "rs_precip_pert": rs_precip_pert,
     }
     params = {
-        "interp_weights": fct_gen["interp_weights"],
-        "kernels_1": fct_gen["kernels_1"],
-        "kernels_2": fct_gen["kernels_2"],
-        "mask_adv": fct_gen["mask_adv"],
+        "interp_weights": forecast_gen["interp_weights"],
+        "kernels_1": forecast_gen["kernels_1"],
+        "kernels_2": forecast_gen["kernels_2"],
+        "mask_adv": forecast_gen["mask_adv"],
         "num_ens_members": n_ensemble_members,
-        "num_workers": fct_gen["num_workers"],
-        "num_ensemble_workers": min(n_ensemble_members, fct_gen["num_workers"]),
+        "num_workers": forecast_gen["num_workers"],
+        "num_ensemble_workers": min(n_ensemble_members, forecast_gen["num_workers"]),
         "precip_pert_gen": precip_pert_gen,
-        "psi": fct_gen["psi"],
+        "psi": forecast_gen["psi"],
     }
 
     precip_forecast = nowcast_main_loop(
         precip[-1],
-        fct_gen["velocity"],
+        forecast_gen["velocity"],
         state,
         timesteps,
-        fct_gen["extrap_method"],
+        forecast_gen["extrap_method"],
         _update,
-        extrap_kwargs=fct_gen["extrap_kwargs"],
+        extrap_kwargs=forecast_gen["extrap_kwargs"],
         vel_pert_gen=velocity_perturbators,
         params=params,
         callback=callback,
         return_output=return_output,
-        num_workers=fct_gen["num_workers"],
+        num_workers=forecast_gen["num_workers"],
         measure_time=measure_time,
     )
     if measure_time:
         precip_forecast, mainloop_time = precip_forecast
 
     if return_output:
-        if not fct_gen["add_perturbations"]:
+        if not forecast_gen["add_perturbations"]:
             precip_forecast = precip_forecast[0]
         if measure_time:
             return precip_forecast, mainloop_time
@@ -1049,13 +1049,13 @@ def _linda_deterministic_init(
     measure_time,
 ):
     """Initialize the deterministic LINDA nowcast model."""
-    fct_gen = {}
-    fct_gen["velocity"] = velocity
-    fct_gen["extrap_method"] = extrap_method
-    fct_gen["ari_order"] = ari_order
-    fct_gen["add_perturbations"] = add_perturbations
-    fct_gen["num_workers"] = num_workers
-    fct_gen["measure_time"] = measure_time
+    forecast_gen = {}
+    forecast_gen["velocity"] = velocity
+    forecast_gen["extrap_method"] = extrap_method
+    forecast_gen["ari_order"] = ari_order
+    forecast_gen["add_perturbations"] = add_perturbations
+    forecast_gen["num_workers"] = num_workers
+    forecast_gen["measure_time"] = measure_time
 
     precip = precip[-(ari_order + 2) :]
     input_length = precip.shape[0]
@@ -1065,8 +1065,8 @@ def _linda_deterministic_init(
     extrapolator = extrapolation.get_method(extrap_method)
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["allow_nonfinite_values"] = True
-    fct_gen["extrapolator"] = extrapolator
-    fct_gen["extrap_kwargs"] = extrap_kwargs
+    forecast_gen["extrapolator"] = extrapolator
+    forecast_gen["extrap_kwargs"] = extrap_kwargs
 
     # detect features from the most recent input field
     if feature_method in {"blob", "shitomasi"}:
@@ -1102,7 +1102,7 @@ def _linda_deterministic_init(
         raise NotImplementedError(
             "feature detector '%s' not implemented" % feature_method
         )
-    fct_gen["feature_coords"] = feature_coords
+    forecast_gen["feature_coords"] = feature_coords
 
     # compute interpolation weights
     interp_weights = _compute_window_weights(
@@ -1112,7 +1112,7 @@ def _linda_deterministic_init(
         localization_window_radius,
     )
     interp_weights /= np.sum(interp_weights, axis=0)
-    fct_gen["interp_weights"] = interp_weights
+    forecast_gen["interp_weights"] = interp_weights
 
     # transform the input fields to the Lagrangian coordinates
     precip_lagr = np.empty(precip.shape)
@@ -1152,7 +1152,7 @@ def _linda_deterministic_init(
     # compute advection mask and set nan to pixels, where one or more of the
     # advected input fields has a nan value
     mask_adv = np.all(np.isfinite(precip_lagr), axis=0)
-    fct_gen["mask_adv"] = mask_adv
+    forecast_gen["mask_adv"] = mask_adv
     for i in range(precip_lagr.shape[0]):
         precip_lagr[i, ~mask_adv] = np.nan
 
@@ -1183,7 +1183,7 @@ def _linda_deterministic_init(
         kernel_type=kernel_type,
         num_workers=num_workers,
     )
-    fct_gen["kernels_1"] = kernels_1
+    forecast_gen["kernels_1"] = kernels_1
 
     if measure_time:
         print(f"{time.time() - starttime:.2f} seconds.")
@@ -1229,7 +1229,7 @@ def _linda_deterministic_init(
             interp_weights,
             num_workers=num_workers,
         )
-    fct_gen["psi"] = psi
+    forecast_gen["psi"] = psi
 
     if measure_time:
         print(f"{time.time() - starttime:.2f} seconds.")
@@ -1256,7 +1256,7 @@ def _linda_deterministic_init(
         kernel_type=kernel_type,
         num_workers=num_workers,
     )
-    fct_gen["kernels_2"] = kernels_2
+    forecast_gen["kernels_2"] = kernels_2
 
     if measure_time:
         print(f"{time.time() - starttime:.2f} seconds.")
@@ -1264,16 +1264,16 @@ def _linda_deterministic_init(
         print("done.")
 
     if measure_time:
-        return fct_gen, precip_lagr_diff, time.time() - starttime_init
+        return forecast_gen, precip_lagr_diff, time.time() - starttime_init
     else:
-        return fct_gen, precip_lagr_diff
+        return forecast_gen, precip_lagr_diff
 
 
 def _linda_perturbation_init(
     precip,
     precip_lagr_diff,
     velocity,
-    fct_gen,
+    forecast_gen,
     pert_thrs,
     localization_window_radius,
     errdist_window_radius,
@@ -1292,15 +1292,15 @@ def _linda_perturbation_init(
 
     print("Estimating forecast errors... ", end="", flush=True)
 
-    fct_gen = fct_gen.copy()
-    fct_gen["add_perturbations"] = False
-    fct_gen["num_ens_members"] = 1
+    forecast_gen = forecast_gen.copy()
+    forecast_gen["add_perturbations"] = False
+    forecast_gen["num_ens_members"] = 1
 
     precip_forecast_det = _linda_forecast(
         precip[:-1],
         precip_lagr_diff[:-1],
         1,
-        fct_gen,
+        forecast_gen,
         None,
         None,
         1,
@@ -1332,7 +1332,7 @@ def _linda_perturbation_init(
 
     pert_gen = _estimate_perturbation_params(
         err,
-        fct_gen,
+        forecast_gen,
         errdist_window_radius,
         acf_window_radius,
         localization_window_radius,
