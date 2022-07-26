@@ -570,8 +570,8 @@ def forecast(
                 "p_par": vp_par,
                 "p_perp": vp_perp,
             }
-            vp_ = init_vel_noise(velocity, 1.0 / kmperpixel, timestep, **kwargs)
-            velocity_perturbators.append(vp_)
+            vp = init_vel_noise(velocity, 1.0 / kmperpixel, timestep, **kwargs)
+            velocity_perturbators.append(vp)
 
     D = [None for _ in range(n_ens_members)]
     precip_forecast = [[] for _ in range(n_ens_members)]
