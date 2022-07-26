@@ -445,7 +445,7 @@ def forecast(
         init_noise, generate_noise = noise.get_method(noise_method)
 
         # initialize the perturbation generator for the precipitation field
-        pp = init_noise(precip, fft_method=fft, **noise_kwargs)
+        pert_gen = init_noise(precip, fft_method=fft, **noise_kwargs)
 
         if noise_stddev_adj == "auto":
             print("Computing noise adjustment coefficients... ", end="", flush=True)
@@ -459,7 +459,7 @@ def forecast(
                 precip_min,
                 bp_filter,
                 decomp_method,
-                pp,
+                pert_gen,
                 generate_noise,
                 20,
                 conditional=True,
@@ -479,7 +479,7 @@ def forecast(
         if noise_stddev_adj is not None:
             print(f"noise std. dev. coeffs:   {str(noise_std_coeffs)}")
     else:
-        pp = None
+        pert_gen = None
         noise_std_coeffs = None
 
     # compute the cascade decompositions of the input precipitation fields
@@ -646,7 +646,7 @@ def forecast(
         "noise_std_coeffs": noise_std_coeffs,
         "num_ensemble_workers": num_ensemble_workers,
         "phi": phi,
-        "pp": pp,
+        "pert_gen": pert_gen,
         "probmatching_method": probmatching_method,
         "precip": precip,
         "precip_thr": precip_thr,
@@ -730,7 +730,7 @@ def _update(state, params):
         if params["noise_method"] is not None:
             # generate noise field
             eps = params["generate_noise"](
-                params["pp"],
+                params["pert_gen"],
                 randstate=state["randgen_prec"][j],
                 fft_method=state["fft_objs"][j],
                 domain=params["domain"],
