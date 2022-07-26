@@ -362,10 +362,10 @@ def forecast(
 
         # initialize the perturbation generator for the precipitation field
         if noise_method is not None and parsglob is None:
-            P = init_noise(precip, fft_method=fft_method, **noise_kwargs)
+            pert_gen = init_noise(precip, fft_method=fft_method, **noise_kwargs)
         else:
-            P = None
-        pars["P"] = P
+            pert_gen = None
+        pars["pert_gen"] = pert_gen
 
         # initialize the band-pass filter
         if parsglob is None:
@@ -515,7 +515,7 @@ def forecast(
                     # estimate local parameters
                     pars = estimator(precip, parsglob, idxm, idxn)
                     ff_.append(pars["filter"])
-                    pp_.append(pars["P"])
+                    pp_.append(pars["pert_gen"])
                     rc_.append(pars["precip_cascades"])
                     mm_.append(pars["mask_prec"])
                     mu[m, n, :] = pars["mu"]
@@ -631,7 +631,9 @@ def forecast(
             if noise_method is not None:
                 # generate noise field
                 EPS = generate_noise(
-                    parsglob["P"], randstate=randgen_prec[j], fft_method=fft_method
+                    parsglob["pert_gen"],
+                    randstate=randgen_prec[j],
+                    fft_method=fft_method,
                 )
                 # decompose the noise field into a cascade
                 EPS_d = decomp_method(
