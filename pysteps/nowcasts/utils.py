@@ -144,6 +144,8 @@ def nowcast_main_loop(
     extrap_kwargs=None,
     velocity_pert_gen=None,
     params=None,
+    ensemble=False,
+    num_ensemble_members=1,
     callback=None,
     return_output=True,
     num_workers=1,
@@ -172,6 +174,10 @@ def nowcast_main_loop(
     extrap_method : str, optional
         Name of the extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`.
+    ensemble : bool
+        Set to True to produce a nowcast ensemble.
+    num_ensemble_members : int
+        Number of ensemble members. Applicable if ensemble is set to True.
     func : function
         A function that takes the current state of the nowcast model and its
         parameters and returns a forecast field and the new state. The shape of
@@ -223,6 +229,10 @@ def nowcast_main_loop(
         timestep_type = "list"
 
     state_cur = state
+    if not ensemble:
+        precip_forecast_prev = precip[np.newaxis, :]
+    else:
+        precip_forecast_prev = np.stack([precip for _ in range(num_ensemble_members)])
     displacement = None
     t_prev = 0.0
     t_total = 0.0
@@ -278,19 +288,8 @@ def nowcast_main_loop(
         # for one time step
         precip_forecast_new, state_new = func(state_cur, params)
 
-        if len(precip_forecast_new.shape) == 2:
-            ensemble = False
-            precip_forecast_new = precip_forecast_new[np.newaxis, :]
-        else:
-            ensemble = True
-            num_ensemble_members = precip_forecast_new.shape[0]
-
         if not ensemble:
-            precip_forecast_prev = precip[np.newaxis, :]
-        else:
-            precip_forecast_prev = np.stack(
-                [precip for _ in range(num_ensemble_members)]
-            )
+            precip_forecast_new = precip_forecast_new[np.newaxis, :]
 
         # advect the currect forecast field to the subtimesteps in the current
         # timestep bin and append the results to the output list

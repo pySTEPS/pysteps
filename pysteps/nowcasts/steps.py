@@ -665,6 +665,8 @@ def forecast(
         extrap_kwargs=extrap_kwargs,
         velocity_pert_gen=velocity_perturbators,
         params=params,
+        ensemble=True,
+        num_ensemble_members=n_ens_members,
         callback=callback,
         return_output=return_output,
         num_workers=num_ensemble_workers,

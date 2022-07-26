@@ -1014,6 +1014,8 @@ def _linda_forecast(
         extrap_kwargs=forecast_gen["extrap_kwargs"],
         velocity_pert_gen=velocity_perturbators,
         params=params,
+        ensemble=True,
+        num_ensemble_members=n_ensemble_members,
         callback=callback,
         return_output=return_output,
         num_workers=forecast_gen["num_workers"],
