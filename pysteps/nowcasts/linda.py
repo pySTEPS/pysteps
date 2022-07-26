@@ -340,7 +340,6 @@ def forecast(
         precip_pert_gen = None
         vel_pert_gen = None
 
-    # TODO: make printing info optional
     fct = _linda_forecast(
         precip,
         precip_lagr_diff[1:],
