@@ -169,10 +169,10 @@ def nowcast_main_loop(
         Name of the extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`.
     func : function
-        A function that takes the current state of the nowcast model and returns
-        a forecast field and the new state. The shape of the forecast field is
-        expected to be (m,n) for a deterministic nowcast and (n_ens_members,m,n)
-        for an ensemble.
+        A function that takes the current state of the nowcast model and its
+        parameters and returns a forecast field and the new state. The shape of
+        the forecast field is expected to be (m,n) for a deterministic nowcast
+        and (n_ens_members,m,n) for an ensemble.
     extrap_kwargs : dict, optional
         Optional dictionary containing keyword arguments for the extrapolation
         method. See the documentation of pysteps.extrapolation.
