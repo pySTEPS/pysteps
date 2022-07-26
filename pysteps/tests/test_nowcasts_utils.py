@@ -25,6 +25,7 @@ main_loop_arg_values = [
 def test_nowcast_main_loop(
     timesteps, ensemble, num_ensemble_members, velocity_perturbations
 ):
+    """Test the nowcast_main_loop function."""
     precip, metadata = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
