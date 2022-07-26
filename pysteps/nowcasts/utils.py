@@ -223,7 +223,6 @@ def nowcast_main_loop(
         timestep_type = "list"
 
     state_cur = state
-    precip_forecast_prev = None
     displacement = None
     t_prev = 0.0
     t_total = 0.0
@@ -285,6 +284,13 @@ def nowcast_main_loop(
         else:
             ensemble = True
             num_ensemble_members = precip_forecast_new.shape[0]
+
+        if not ensemble:
+            precip_forecast_prev = precip[np.newaxis, :]
+        else:
+            precip_forecast_prev = np.stack(
+                [precip for _ in range(num_ensemble_members)]
+            )
 
         # advect the currect forecast field to the subtimesteps in the current
         # timestep bin and append the results to the output list
