@@ -426,11 +426,12 @@ def print_ar_params(PHI):
     for _ in range(n):
         hline_str += "---------------"
 
-    print(hline_str)
     title_str = "| Level |"
     for i in range(n - 1):
         title_str += "    Phi-%d     |" % (i + 1)
     title_str += "    Phi-0     |"
+
+    print(hline_str)
     print(title_str)
     print(hline_str)
 
@@ -464,10 +465,11 @@ def print_corrcoefs(GAMMA):
     for _ in range(n):
         hline_str += "----------------"
 
-    print(hline_str)
     title_str = "| Level |"
     for i in range(n):
         title_str += "     Lag-%d     |" % (i + 1)
+
+    print(hline_str)
     print(title_str)
     print(hline_str)
 
