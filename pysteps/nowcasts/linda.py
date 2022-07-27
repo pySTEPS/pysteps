@@ -57,8 +57,6 @@ from pysteps import extrapolation, feature, noise
 from pysteps.decorators import deprecate_args
 from pysteps.nowcasts.utils import nowcast_main_loop
 
-warnings.filterwarnings("ignore")
-
 
 @deprecate_args(
     {
