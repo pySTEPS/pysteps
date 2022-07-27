@@ -26,11 +26,11 @@ def test_nowcast_main_loop(
     timesteps, ensemble, num_ensemble_members, velocity_perturbations
 ):
     """Test the nowcast_main_loop function."""
-    precip, metadata = get_precipitation_fields(
+    precip = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
-        metadata=True,
+        metadata=False,
         upscale=2000,
     )
     precip = precip.filled()

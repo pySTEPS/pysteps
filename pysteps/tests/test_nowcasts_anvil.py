@@ -31,11 +31,11 @@ def test_anvil_rainrate(
 ):
     """Tests ANVIL nowcast using rain rate precipitation fields."""
     # inputs
-    precip_input, __ = get_precipitation_fields(
+    precip_input = get_precipitation_fields(
         num_prev_files=4,
         num_next_files=0,
         return_raw=False,
-        metadata=True,
+        metadata=False,
         upscale=2000,
     )
     precip_input = precip_input.filled()

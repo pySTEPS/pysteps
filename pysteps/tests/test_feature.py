@@ -14,7 +14,14 @@ def test_feature(method, max_num_features):
     if method == "shitomasi":
         pytest.importorskip("cv2")
 
-    input_field, _ = get_precipitation_fields(0, 0, True, True, None, "mch")
+    input_field = get_precipitation_fields(
+        num_prev_files=0,
+        num_next_files=0,
+        return_raw=True,
+        metadata=False,
+        upscale=None,
+        source="mch",
+    )
 
     detector = feature.get_method(method)
 
