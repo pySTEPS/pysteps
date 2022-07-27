@@ -22,12 +22,13 @@ import numpy as np
 import scipy.ndimage
 import time
 
-from .. import cascade
-from .. import extrapolation
-from .. import noise
-from ..nowcasts import utils as nowcast_utils
-from ..postprocessing import probmatching
-from ..timeseries import autoregression, correlation
+from pysteps import cascade
+from pysteps import extrapolation
+from pysteps import noise
+from pysteps.decorators import deprecate_args
+from pysteps.nowcasts import utils as nowcast_utils
+from pysteps.postprocessing import probmatching
+from pysteps.timeseries import autoregression, correlation
 
 try:
     import dask
@@ -37,6 +38,7 @@ except ImportError:
     dask_imported = False
 
 
+@deprecate_args({"R": "precip", "V": "velocity"}, "1.8.0")
 def forecast(
     precip,
     metadata,
