@@ -39,7 +39,7 @@ def _balanced_spatial_average(x, k):
     return convolve(x, k) / convolve(ones, k)
 
 
-def downscale(precip, alpha=None, ds_factor=16, threshold=None, return_alpha=False):
+def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False):
     """
     Downscale a rainfall field by increasing its spatial resolution by
     a positive integer factor.

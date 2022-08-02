@@ -88,7 +88,7 @@ for n in range(num_realizations):
 
     # Spectral slope estimated from the upscaled field
     precip_hr, alpha = rainfarm.downscale(
-        precip_lr, alpha=alpha, ds_factor=upscaling_factor, return_alpha=True
+        precip_lr, ds_factor=upscaling_factor, alpha=alpha, return_alpha=True
     )
     plt.subplot(num_realizations, 3, n * 3 + 2)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
@@ -97,7 +97,7 @@ for n in range(num_realizations):
 
     # Half the estimated slope
     precip_hr = rainfarm.downscale(
-        precip_lr, alpha=alpha * 0.5, ds_factor=upscaling_factor
+        precip_lr, ds_factor=upscaling_factor, alpha=alpha * 0.5
     )
     plt.subplot(num_realizations, 3, n * 3 + 1)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
@@ -106,7 +106,7 @@ for n in range(num_realizations):
 
     # Double the estimated slope
     precip_hr = rainfarm.downscale(
-        precip_lr, alpha=alpha * 2, ds_factor=upscaling_factor
+        precip_lr, ds_factor=upscaling_factor, alpha=alpha * 2
     )
     plt.subplot(num_realizations, 3, n * 3 + 3)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
