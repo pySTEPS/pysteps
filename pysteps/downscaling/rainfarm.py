@@ -6,6 +6,11 @@ pysteps.downscaling.rainfarm
 Implementation of the RainFARM stochastic downscaling method as described in
 :cite:`Rebora2006`.
 
+RainFARM is a downscaling algorithm for rainfall fields developed by Rebora et
+al. (2006). The method can represent the realistic small-scale variability of the
+downscaled precipitation field by means of Gaussian random fields.
+
+
 .. autosummary::
     :toctree: ../generated/
 
