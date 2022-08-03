@@ -54,6 +54,7 @@ def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False)
     precip: array-like
         Array of shape (m, n) containing the input field.
         The input is expected to contain rain rate values.
+        All values are required to be finite.
     alpha: float, optional
         Spectral slope. If None, the slope is estimated from
         the input array.
