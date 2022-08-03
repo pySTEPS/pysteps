@@ -61,9 +61,9 @@ precip[~np.isfinite(precip)] = metadata["zerovalue"]
 # create a lower resolution field to apply our downscaling method.
 # We are going to use a factor of 16 x.
 
-downscaling_factor = 16
+scale_factor = 16
 upscaled_resolution = (
-    metadata["xpixelsize"] * downscaling_factor
+    metadata["xpixelsize"] * scale_factor
 )  # upscaled resolution : 16 km
 precip_lr, metadata_lr = aggregate_fields_space(precip, metadata, upscaled_resolution)
 
@@ -92,7 +92,7 @@ for n in range(num_realizations):
 
     # Spectral slope estimated from the upscaled field
     precip_hr, alpha = rainfarm.downscale(
-        precip_lr, ds_factor=downscaling_factor, alpha=alpha, return_alpha=True
+        precip_lr, ds_factor=scale_factor, alpha=alpha, return_alpha=True
     )
     plt.subplot(num_realizations, 3, n * 3 + 2)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
@@ -100,18 +100,14 @@ for n in range(num_realizations):
         plt.title(f"alpha={alpha:.1f}")
 
     # Half the estimated slope
-    precip_hr = rainfarm.downscale(
-        precip_lr, ds_factor=downscaling_factor, alpha=alpha * 0.5
-    )
+    precip_hr = rainfarm.downscale(precip_lr, ds_factor=scale_factor, alpha=alpha * 0.5)
     plt.subplot(num_realizations, 3, n * 3 + 1)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
     if n == 0:
         plt.title(f"alpha={alpha * 0.5:.1f}")
 
     # Double the estimated slope
-    precip_hr = rainfarm.downscale(
-        precip_lr, ds_factor=downscaling_factor, alpha=alpha * 2
-    )
+    precip_hr = rainfarm.downscale(precip_lr, ds_factor=scale_factor, alpha=alpha * 2)
     plt.subplot(num_realizations, 3, n * 3 + 3)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
     if n == 0:
