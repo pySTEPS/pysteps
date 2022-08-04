@@ -183,9 +183,14 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     # assumes that frames are evenly spaced
     if ypixelsize == space_window[1] and xpixelsize == space_window[0]:
         return R, metadata
-    if (R.shape[axes[0]] * ypixelsize) % space_window[1] > 1e-10 or (
-        R.shape[axes[1]] * xpixelsize
-    ) % space_window[0] > 1e-10:
+
+    ysize = R.shape[axes[0]] * ypixelsize
+    xsize = R.shape[axes[1]] * xpixelsize
+
+    if (
+        abs(ysize / space_window[1] - int(ysize / space_window[1])) > 1e-10
+        or abs(xsize / space_window[0] - int(xsize / space_window[0])) > 1e-10
+    ):
         raise ValueError("space_window does not equally split R")
 
     nframes = [int(space_window[1] / ypixelsize), int(space_window[0] / xpixelsize)]
