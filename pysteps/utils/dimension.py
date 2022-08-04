@@ -188,8 +188,8 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     xsize = R.shape[axes[1]] * xpixelsize
 
     if (
-        abs(ysize / space_window[1] - int(ysize / space_window[1])) > 1e-10
-        or abs(xsize / space_window[0] - int(xsize / space_window[0])) > 1e-10
+        abs(ysize / space_window[1] - round(ysize / space_window[1])) > 1e-10
+        or abs(xsize / space_window[0] - round(xsize / space_window[0])) > 1e-10
     ):
         raise ValueError("space_window does not equally split R")
 
