@@ -52,14 +52,23 @@ from scipy.interpolate import interp1d
 from scipy import optimize as opt
 from scipy.signal import convolve
 from scipy import stats
+
 from pysteps import extrapolation, feature, noise
+from pysteps.decorators import deprecate_args
+from pysteps.nowcasts.utils import nowcast_main_loop
 
-warnings.filterwarnings("ignore")
 
-
+@deprecate_args(
+    {
+        "precip_fields": "precip",
+        "advection_field": "velocity",
+        "num_ens_members": "n_ens_members",
+    },
+    "1.8.0",
+)
 def forecast(
-    precip_fields,
-    advection_field,
+    precip,
+    velocity,
     timesteps,
     feature_method="blob",
     max_num_features=25,
@@ -73,7 +82,7 @@ def forecast(
     extrap_kwargs=None,
     add_perturbations=True,
     pert_thrs=(0.5, 1.0),
-    num_ens_members=10,
+    n_ens_members=10,
     vel_pert_method=None,
     vel_pert_kwargs=None,
     kmperpixel=None,
@@ -82,6 +91,8 @@ def forecast(
     num_workers=1,
     use_multiprocessing=False,
     measure_time=False,
+    callback=None,
+    return_output=True,
 ):
     """
     Generate a deterministic or ensemble nowcast by using the Lagrangian
@@ -89,12 +100,12 @@ def forecast(
 
     Parameters
     ----------
-    precip_fields: array_like
+    precip: array_like
         Array of shape (ari_order + 2, m, n) containing the input rain rate
         or reflectivity fields (in linear scale) ordered by timestamp from
         oldest to newest. The time steps between the inputs are assumed to be
         regular.
-    advection_field: array_like
+    velocity: array_like
         Array of shape (2, m, n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs.
@@ -148,7 +159,7 @@ def forecast(
     pert_thrs: float
         Two-element tuple containing the threshold values for estimating the
         perturbation parameters (mm/h). Default: (0.5, 1.0)
-    num_ens_members: int, optional
+    n_ens_members: int, optional
         The number of ensemble members to generate. Default: 10
     vel_pert_method: {'bps', None}, optional
         Name of the generator to use for perturbing the advection field. See
@@ -178,17 +189,29 @@ def forecast(
     measure_time: bool, optional
         If set to True, measure, print and return the computation time.
         Default: False
+    callback: function, optional
+        Optional function that is called after computation of each time step of
+        the nowcast. The function takes one argument: a three-dimensional array
+        of shape (n_ens_members,h,w), where h and w are the height and width
+        of the input precipitation fields, respectively. This can be used, for
+        instance, writing the outputs into files. Default: None
+    return_output: bool, optional
+        Set to False to disable returning the outputs as numpy arrays. This can
+        save memory if the intermediate results are written to output files
+        using the callback function. Default: True
 
     Returns
     -------
     out: numpy.ndarray
-        A four-dimensional array of shape (num_ens_members, timesteps, m, n)
+        A four-dimensional array of shape (n_ens_members, timesteps, m, n)
         containing a time series of forecast precipitation fields for each
         ensemble member. If add_perturbations is False, the first dimension is
         dropped. The time series starts from t0 + timestep, where timestep is
         taken from the input fields. If measure_time is True, the return value
         is a three-element tuple containing the nowcast array, the initialization
-        time of the nowcast generator and the time used in the main loop (seconds).
+        time of the nowcast generator and the time used in the main loop
+        (seconds). If return_output is set to False, a single None value is
+        returned instead.
 
     Notes
     -----
@@ -201,7 +224,7 @@ def forecast(
     variable OMP_NUM_THREADS to 1. This avoids slowdown caused by too many
     simultaneous threads.
     """
-    _check_inputs(precip_fields, advection_field, timesteps, ari_order)
+    _check_inputs(precip, velocity, timesteps, ari_order)
 
     if feature_kwargs is None:
         feature_kwargs = dict()
@@ -211,16 +234,12 @@ def forecast(
         extrap_kwargs = extrap_kwargs.copy()
 
     if localization_window_radius is None:
-        localization_window_radius = 0.2 * np.min(precip_fields.shape[1:])
+        localization_window_radius = 0.2 * np.min(precip.shape[1:])
     if add_perturbations:
         if errdist_window_radius is None:
-            errdist_window_radius = 0.15 * min(
-                precip_fields.shape[1], precip_fields.shape[2]
-            )
+            errdist_window_radius = 0.15 * min(precip.shape[1], precip.shape[2])
         if acf_window_radius is None:
-            acf_window_radius = 0.25 * min(
-                precip_fields.shape[1], precip_fields.shape[2]
-            )
+            acf_window_radius = 0.25 * min(precip.shape[1], precip.shape[2])
         if vel_pert_method is not None:
             if kmperpixel is None:
                 raise ValueError("vel_pert_method is set but kmperpixel is None")
@@ -235,8 +254,8 @@ def forecast(
 
     print("Inputs")
     print("------")
-    print(f"dimensions:           {precip_fields.shape[1]}x{precip_fields.shape[2]}")
-    print(f"number of time steps: {precip_fields.shape[0]}")
+    print(f"dimensions:           {precip.shape[1]}x{precip.shape[2]}")
+    print(f"number of time steps: {precip.shape[0]}")
     print("")
 
     print("Methods")
@@ -258,7 +277,7 @@ def forecast(
     if add_perturbations:
         print(f"error dist. window radius:  {errdist_window_radius}")
         print(f"error ACF window radius:    {acf_window_radius}")
-        print(f"ensemble size:              {num_ens_members}")
+        print(f"ensemble size:              {n_ens_members}")
         print(f"parallel workers:           {num_workers}")
         print(f"seed:                       {seed}")
         if vel_pert_method == "bps":
@@ -279,12 +298,12 @@ def forecast(
             vel_pert_kwargs["vp_perp"] = vp_perp
 
     extrap_kwargs["allow_nonfinite_values"] = (
-        True if np.any(~np.isfinite(precip_fields)) else False
+        True if np.any(~np.isfinite(precip)) else False
     )
 
-    fct_gen = _linda_deterministic_init(
-        precip_fields,
-        advection_field,
+    forecast_gen = _linda_deterministic_init(
+        precip,
+        velocity,
         feature_method,
         max_num_features,
         feature_kwargs,
@@ -298,31 +317,16 @@ def forecast(
         measure_time,
     )
     if measure_time:
-        fct_gen, precip_fields_lagr_diff, init_time = fct_gen
+        forecast_gen, precip_lagr_diff, init_time = forecast_gen
     else:
-        fct_gen, precip_fields_lagr_diff = fct_gen
-    if not add_perturbations:
-        fct = _linda_forecast(
-            precip_fields,
-            precip_fields_lagr_diff[1:],
-            timesteps,
-            fct_gen,
-            None,
-            None,
-            None,
-            measure_time,
-            True,
-        )
-        if measure_time:
-            return fct[0], init_time, fct[1]
-        else:
-            return fct
-    else:
+        forecast_gen, precip_lagr_diff = forecast_gen
+
+    if add_perturbations:
         pert_gen = _linda_perturbation_init(
-            precip_fields,
-            precip_fields_lagr_diff,
-            advection_field,
-            fct_gen,
+            precip,
+            precip_lagr_diff,
+            velocity,
+            forecast_gen,
             pert_thrs,
             localization_window_radius,
             errdist_window_radius,
@@ -336,64 +340,50 @@ def forecast(
             measure_time,
         )
         if measure_time:
-            precip_pert_gen, vel_pert_gen, pert_init_time = pert_gen
+            precip_pert_gen, velocity_pert_gen, pert_init_time = pert_gen
             init_time += pert_init_time
         else:
-            precip_pert_gen, vel_pert_gen = pert_gen
+            precip_pert_gen, velocity_pert_gen = pert_gen
+    else:
+        precip_pert_gen = None
+        velocity_pert_gen = None
 
-        def worker(seed):
-            return _linda_forecast(
-                precip_fields,
-                precip_fields_lagr_diff[1:],
-                timesteps,
-                fct_gen,
-                precip_pert_gen,
-                vel_pert_gen,
-                seed,
-                False,
-                False,
-            )
+    precip_forecast = _linda_forecast(
+        precip,
+        precip_lagr_diff[1:],
+        timesteps,
+        forecast_gen,
+        precip_pert_gen,
+        velocity_pert_gen,
+        n_ens_members,
+        seed,
+        measure_time,
+        True,
+        return_output,
+        callback,
+    )
 
-        precip_fct_ensemble = []
-
-        rs = np.random.RandomState(seed)
-
+    if return_output:
         if measure_time:
-            fct_comp_starttime = time.time()
-
-        if DASK_IMPORTED and num_workers > 1:
-            res = []
-            for _ in range(num_ens_members):
-                seed = rs.randint(0, high=1e9)
-                res.append(dask.delayed(worker)(seed))
-            precip_fct_ensemble = dask.compute(
-                *res, num_workers=num_workers, scheduler="threads"
-            )
+            return precip_forecast[0], init_time, precip_forecast[1]
         else:
-            for _ in range(num_ens_members):
-                seed = rs.randint(0, high=1e9)
-                precip_fct_ensemble.append(worker(seed))
-
-        fct = np.stack(precip_fct_ensemble)
-
-        if measure_time:
-            return fct, init_time, time.time() - fct_comp_starttime
-        else:
-            return fct
+            return precip_forecast
+    else:
+        return None
 
 
-def _check_inputs(precip_fields, advection_field, timesteps, ari_order):
+def _check_inputs(precip, velocity, timesteps, ari_order):
     if ari_order not in [1, 2]:
         raise ValueError(f"ari_order {ari_order} given, 1 or 2 required")
-    if len(precip_fields.shape) != 3:
-        raise ValueError("precip_fields must be a three-dimensional array")
-    if precip_fields.shape[0] < ari_order + 2:
-        raise ValueError("precip_fields.shape[0] < ari_order+2")
-    if len(advection_field.shape) != 3:
-        raise ValueError("advection_field must be a three-dimensional array")
-    if precip_fields.shape[1:3] != advection_field.shape[1:3]:
+    if len(precip.shape) != 3:
+        raise ValueError("precip must be a three-dimensional array")
+    if precip.shape[0] < ari_order + 2:
+        raise ValueError("precip.shape[0] < ari_order+2")
+    if len(velocity.shape) != 3:
+        raise ValueError("velocity must be a three-dimensional array")
+    if precip.shape[1:3] != velocity.shape[1:3]:
         raise ValueError(
-            f"dimension mismatch between precip_fields and advection_field: precip_fields.shape={precip_fields.shape}, advection_field.shape={advection_field.shape}"
+            f"dimension mismatch between precip and velocity: precip.shape={precip.shape}, velocity.shape={velocity.shape}"
         )
     if not isinstance(timesteps, int):
         raise ValueError("timesteps is not an integer")
@@ -747,8 +737,8 @@ def _estimate_convol_params(
 
 
 def _estimate_perturbation_params(
-    fct_err,
-    fct_gen,
+    forecast_err,
+    forecast_gen,
     errdist_window_radius,
     acf_window_radius,
     interp_window_radius,
@@ -759,25 +749,25 @@ def _estimate_perturbation_params(
     """
     Estimate perturbation generator parameters from forecast errors."""
     pert_gen = {}
-    pert_gen["m"] = fct_err.shape[0]
-    pert_gen["n"] = fct_err.shape[1]
+    pert_gen["m"] = forecast_err.shape[0]
+    pert_gen["n"] = forecast_err.shape[1]
 
-    feature_coords = fct_gen["feature_coords"]
+    feature_coords = forecast_gen["feature_coords"]
 
     print("Estimating perturbation parameters... ", end="", flush=True)
 
     if measure_time:
         starttime = time.time()
 
-    mask_finite = np.isfinite(fct_err)
+    mask_finite = np.isfinite(forecast_err)
 
-    fct_err = fct_err.copy()
-    fct_err[~mask_finite] = 1.0
+    forecast_err = forecast_err.copy()
+    forecast_err[~mask_finite] = 1.0
 
     weights_dist = _compute_window_weights(
         feature_coords,
-        fct_err.shape[0],
-        fct_err.shape[1],
+        forecast_err.shape[0],
+        forecast_err.shape[1],
         errdist_window_radius,
     )
 
@@ -785,8 +775,8 @@ def _estimate_perturbation_params(
 
     def worker(i):
         weights_acf = acf_winfunc(
-            fct_err.shape[0],
-            fct_err.shape[1],
+            forecast_err.shape[0],
+            forecast_err.shape[1],
             feature_coords[i, 0],
             feature_coords[i, 1],
             acf_window_radius,
@@ -794,14 +784,14 @@ def _estimate_perturbation_params(
         )
 
         mask = np.logical_and(mask_finite, weights_dist[i] > 0.1)
-        if np.sum(mask) > 10 and np.sum(np.abs(fct_err[mask] - 1.0) >= 1e-3) > 10:
-            distpar = _fit_dist(fct_err, stats.lognorm, weights_dist[i], mask)
+        if np.sum(mask) > 10 and np.sum(np.abs(forecast_err[mask] - 1.0) >= 1e-3) > 10:
+            distpar = _fit_dist(forecast_err, stats.lognorm, weights_dist[i], mask)
             inv_acf_mapping = _compute_inverse_acf_mapping(stats.lognorm, distpar)
             mask_acf = weights_acf > 1e-4
-            std = _weighted_std(fct_err[mask_acf], weights_dist[i][mask_acf])
+            std = _weighted_std(forecast_err[mask_acf], weights_dist[i][mask_acf])
             if np.isfinite(std):
                 acf = inv_acf_mapping(
-                    _compute_sample_acf(weights_acf * (fct_err - 1.0) / std)
+                    _compute_sample_acf(weights_acf * (forecast_err - 1.0) / std)
                 )
                 acf = _fit_acf(acf)
             else:
@@ -842,8 +832,8 @@ def _estimate_perturbation_params(
 
     weights = _compute_window_weights(
         feature_coords,
-        fct_err.shape[0],
-        fct_err.shape[1],
+        forecast_err.shape[0],
+        forecast_err.shape[1],
         interp_window_radius,
     )
     pert_gen["weights"] = weights / np.sum(weights, axis=0)
@@ -884,8 +874,8 @@ def _fit_dist(err, dist, wf, mask):
     """
     Fit a lognormal distribution by maximizing the log-likelihood function
     with the constraint that the mean value is one."""
-    f = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p**2)))
-    p_opt = opt.minimize_scalar(f, bounds=(1e-3, 20.0), method="Bounded")
+    func = lambda p: -np.sum(np.log(stats.lognorm.pdf(err[mask], p, -0.5 * p**2)))
+    p_opt = opt.minimize_scalar(func, bounds=(1e-3, 20.0), method="Bounded")
 
     return (p_opt.x, -0.5 * p_opt.x**2)
 
@@ -899,14 +889,14 @@ def _generate_perturbations(pert_gen, num_workers, seed):
     acf_fft_ampl = pert_gen["acf_fft_ampl"]
     weights = pert_gen["weights"]
 
-    noise_field = stats.norm.rvs(size=(m, n), random_state=seed)
-    noise_field_fft = np.fft.rfft2(noise_field)
+    perturb = stats.norm.rvs(size=(m, n), random_state=seed)
+    perturb_fft = np.fft.rfft2(perturb)
 
-    output_field = np.zeros((m, n))
+    out = np.zeros((m, n))
 
     def worker(i):
         if std[i] > 0.0:
-            filtered_noise = np.fft.irfft2(acf_fft_ampl[i] * noise_field_fft, s=(m, n))
+            filtered_noise = np.fft.irfft2(acf_fft_ampl[i] * perturb_fft, s=(m, n))
             filtered_noise /= np.std(filtered_noise)
             filtered_noise = stats.lognorm.ppf(
                 stats.norm.cdf(filtered_noise), *dist_param[i]
@@ -922,12 +912,12 @@ def _generate_perturbations(pert_gen, num_workers, seed):
             res.append(dask.delayed(worker)(i))
         res = dask.compute(*res, num_workers=num_workers, scheduler="threads")
         for r in res:
-            output_field += r
+            out += r
     else:
         for i in range(weights.shape[0]):
-            output_field += worker(i)
+            out += worker(i)
 
-    return output_field
+    return out
 
 
 def _get_acf_params(p):
@@ -953,115 +943,109 @@ def _iterate_ar_model(input_fields, psi):
 
 
 def _linda_forecast(
-    precip_fields,
-    precip_fields_lagr_diff,
+    precip,
+    precip_lagr_diff,
     timesteps,
-    fct_gen,
+    forecast_gen,
     precip_pert_gen,
-    vel_pert_gen,
+    velocity_pert_gen,
+    n_ensemble_members,
     seed,
     measure_time,
     print_info,
+    return_output,
+    callback,
 ):
     """Compute LINDA nowcast."""
-    advection_field = fct_gen["advection_field"]
-    ari_order = fct_gen["ari_order"]
-    extrapolator = fct_gen["extrapolator"]
-    extrap_kwargs = fct_gen["extrap_kwargs"].copy()
-    interp_weights = fct_gen["interp_weights"]
-    kernels_1 = fct_gen["kernels_1"]
-    kernels_2 = fct_gen["kernels_2"]
-    mask_adv = fct_gen["mask_adv"]
-    psi = fct_gen["psi"]
-    num_workers = fct_gen["num_workers"]
+    # compute convolved difference fields
+    precip_lagr_diff = precip_lagr_diff.copy()
 
-    precip_fct = precip_fields[-1].copy()
-    precip_fields_lagr_diff = precip_fields_lagr_diff.copy()
-
-    displacement = None
-    extrap_kwargs["return_displacement"] = True
-    precip_fct_out = []
-
-    if measure_time:
-        starttime_fct_comp = time.time()
-
-    for i in range(precip_fields_lagr_diff.shape[0]):
-        for _ in range(ari_order - i):
-            precip_fields_lagr_diff[i] = _composite_convolution(
-                precip_fields_lagr_diff[i],
-                kernels_1,
-                interp_weights,
+    for i in range(precip_lagr_diff.shape[0]):
+        for _ in range(forecast_gen["ari_order"] - i):
+            precip_lagr_diff[i] = _composite_convolution(
+                precip_lagr_diff[i],
+                forecast_gen["kernels_1"],
+                forecast_gen["interp_weights"],
             )
 
+    # initialize the random generators
     if precip_pert_gen is not None:
-        rs_precip = np.random.RandomState(seed)
-
-    if vel_pert_gen is not None:
-        vel_pert_gen = vel_pert_gen.copy()
-        vel_pert_gen["gen_obj"] = vel_pert_gen["init_func"](seed)
-
-    # iterate each time step
-    for t in range(timesteps):
-        if print_info:
-            print(
-                "Computing nowcast for time step %d... " % (t + 1),
-                end="",
-                flush=True,
-            )
-
-        if measure_time:
-            starttime = time.time()
-
-        precip_fields_lagr_diff = _iterate_ar_model(precip_fields_lagr_diff, psi)
-        precip_fct += precip_fields_lagr_diff[-1]
-        for i in range(precip_fields_lagr_diff.shape[0]):
-            precip_fields_lagr_diff[i] = _composite_convolution(
-                precip_fields_lagr_diff[i],
-                kernels_1,
-                interp_weights,
-            )
-        precip_fct = _composite_convolution(precip_fct, kernels_2, interp_weights)
-
-        precip_fct_out_ = precip_fct.copy()
-        precip_fct_out_[precip_fct_out_ < 0.0] = 0.0
-        precip_fct_out_[~mask_adv] = np.nan
-
-        # apply perturbations
-        if precip_pert_gen is not None:
-            seed = rs_precip.randint(0, high=1e9)
-            pert_field = _generate_perturbations(precip_pert_gen, num_workers, seed)
-            precip_fct_out_ *= pert_field
-
-        # compute the perturbed motion field
-        if vel_pert_gen is not None:
-            advection_field_pert = advection_field + vel_pert_gen["gen_func"](
-                vel_pert_gen["gen_obj"], (t + 1) * vel_pert_gen["timestep"]
-            )
-        else:
-            advection_field_pert = advection_field
-
-        # advect the forecast field for t time steps
-        extrap_kwargs["displacement_prev"] = displacement
-        precip_fct_out_, displacement = extrapolator(
-            precip_fct_out_, advection_field_pert, 1, **extrap_kwargs
-        )
-        precip_fct_out.append(precip_fct_out_[0])
-
-        if print_info:
-            if measure_time:
-                print(f"{time.time() - starttime:.2f} seconds.")
-            else:
-                print("done.")
-
-    if measure_time:
-        return np.stack(precip_fct_out), time.time() - starttime_fct_comp
+        rs_precip_pert = []
+        np.random.seed(seed)
+        for _ in range(n_ensemble_members):
+            rs = np.random.RandomState(seed)
+            rs_precip_pert.append(rs)
+            seed = rs.randint(0, high=1e9)
     else:
-        return np.stack(precip_fct_out)
+        rs_precip_pert = None
+
+    if velocity_pert_gen is not None:
+        velocity_perturbators = []
+        np.random.seed(seed)
+        for _ in range(n_ensemble_members):
+            vp = velocity_pert_gen["init_func"](seed)
+            velocity_perturbators.append(
+                lambda t, vp=vp: velocity_pert_gen["gen_func"](
+                    vp, t * velocity_pert_gen["timestep"]
+                )
+            )
+            seed = np.random.RandomState(seed).randint(0, high=1e9)
+    else:
+        velocity_perturbators = None
+
+    state = {
+        "precip_forecast": [precip[-1].copy() for _ in range(n_ensemble_members)],
+        "precip_lagr_diff": [
+            precip_lagr_diff.copy() for _ in range(n_ensemble_members)
+        ],
+        "rs_precip_pert": rs_precip_pert,
+    }
+    params = {
+        "interp_weights": forecast_gen["interp_weights"],
+        "kernels_1": forecast_gen["kernels_1"],
+        "kernels_2": forecast_gen["kernels_2"],
+        "mask_adv": forecast_gen["mask_adv"],
+        "num_ens_members": n_ensemble_members,
+        "num_workers": forecast_gen["num_workers"],
+        "num_ensemble_workers": min(n_ensemble_members, forecast_gen["num_workers"]),
+        "precip_pert_gen": precip_pert_gen,
+        "psi": forecast_gen["psi"],
+    }
+
+    precip_forecast = nowcast_main_loop(
+        precip[-1],
+        forecast_gen["velocity"],
+        state,
+        timesteps,
+        forecast_gen["extrap_method"],
+        _update,
+        extrap_kwargs=forecast_gen["extrap_kwargs"],
+        velocity_pert_gen=velocity_perturbators,
+        params=params,
+        ensemble=True,
+        num_ensemble_members=n_ensemble_members,
+        callback=callback,
+        return_output=return_output,
+        num_workers=forecast_gen["num_workers"],
+        measure_time=measure_time,
+    )
+    if measure_time:
+        precip_forecast, mainloop_time = precip_forecast
+
+    if return_output:
+        if not forecast_gen["add_perturbations"]:
+            precip_forecast = precip_forecast[0]
+        if measure_time:
+            return precip_forecast, mainloop_time
+        else:
+            return precip_forecast
+    else:
+        return None
 
 
 def _linda_deterministic_init(
-    precip_fields,
-    advection_field,
+    precip,
+    velocity,
     feature_method,
     max_num_features,
     feature_kwargs,
@@ -1075,28 +1059,29 @@ def _linda_deterministic_init(
     measure_time,
 ):
     """Initialize the deterministic LINDA nowcast model."""
-    fct_gen = {}
-    fct_gen["advection_field"] = advection_field
-    fct_gen["ari_order"] = ari_order
-    fct_gen["add_perturbations"] = add_perturbations
-    fct_gen["num_workers"] = num_workers
-    fct_gen["measure_time"] = measure_time
+    forecast_gen = {}
+    forecast_gen["velocity"] = velocity
+    forecast_gen["extrap_method"] = extrap_method
+    forecast_gen["ari_order"] = ari_order
+    forecast_gen["add_perturbations"] = add_perturbations
+    forecast_gen["num_workers"] = num_workers
+    forecast_gen["measure_time"] = measure_time
 
-    precip_fields = precip_fields[-(ari_order + 2) :]
-    input_length = precip_fields.shape[0]
+    precip = precip[-(ari_order + 2) :]
+    input_length = precip.shape[0]
 
     starttime_init = time.time()
 
     extrapolator = extrapolation.get_method(extrap_method)
     extrap_kwargs = extrap_kwargs.copy()
     extrap_kwargs["allow_nonfinite_values"] = True
-    fct_gen["extrapolator"] = extrapolator
-    fct_gen["extrap_kwargs"] = extrap_kwargs
+    forecast_gen["extrapolator"] = extrapolator
+    forecast_gen["extrap_kwargs"] = extrap_kwargs
 
     # detect features from the most recent input field
     if feature_method in {"blob", "shitomasi"}:
-        precip_field_ = precip_fields[-1].copy()
-        precip_field_[~np.isfinite(precip_field_)] = 0.0
+        precip_ = precip[-1].copy()
+        precip_[~np.isfinite(precip_)] = 0.0
         feature_detector = feature.get_method(feature_method)
 
         if measure_time:
@@ -1105,9 +1090,7 @@ def _linda_deterministic_init(
         feature_kwargs = feature_kwargs.copy()
         feature_kwargs["max_num_features"] = max_num_features
 
-        feature_coords = np.fliplr(
-            feature_detector(precip_field_, **feature_kwargs)[:, :2]
-        )
+        feature_coords = np.fliplr(feature_detector(precip_, **feature_kwargs)[:, :2])
 
         feature_type = "blobs" if feature_method == "blob" else "corners"
         print("")
@@ -1129,25 +1112,25 @@ def _linda_deterministic_init(
         raise NotImplementedError(
             "feature detector '%s' not implemented" % feature_method
         )
-    fct_gen["feature_coords"] = feature_coords
+    forecast_gen["feature_coords"] = feature_coords
 
     # compute interpolation weights
     interp_weights = _compute_window_weights(
         feature_coords,
-        precip_fields.shape[1],
-        precip_fields.shape[2],
+        precip.shape[1],
+        precip.shape[2],
         localization_window_radius,
     )
     interp_weights /= np.sum(interp_weights, axis=0)
-    fct_gen["interp_weights"] = interp_weights
+    forecast_gen["interp_weights"] = interp_weights
 
     # transform the input fields to the Lagrangian coordinates
-    precip_fields_lagr = np.empty(precip_fields.shape)
+    precip_lagr = np.empty(precip.shape)
 
     def worker(i):
-        precip_fields_lagr[i, :] = extrapolator(
-            precip_fields[i, :],
-            advection_field,
+        precip_lagr[i, :] = extrapolator(
+            precip[i, :],
+            velocity,
             input_length - 1 - i,
             "min",
             **extrap_kwargs,
@@ -1161,7 +1144,7 @@ def _linda_deterministic_init(
     if measure_time:
         starttime = time.time()
 
-    for i in range(precip_fields.shape[0] - 1):
+    for i in range(precip.shape[0] - 1):
         if DASK_IMPORTED and num_workers > 1:
             res.append(dask.delayed(worker)(i))
         else:
@@ -1169,7 +1152,7 @@ def _linda_deterministic_init(
 
     if DASK_IMPORTED and num_workers > 1:
         dask.compute(*res, num_workers=min(num_workers, len(res)), scheduler="threads")
-    precip_fields_lagr[-1] = precip_fields[-1]
+    precip_lagr[-1] = precip[-1]
 
     if measure_time:
         print(f"{time.time() - starttime:.2f} seconds.")
@@ -1178,13 +1161,13 @@ def _linda_deterministic_init(
 
     # compute advection mask and set nan to pixels, where one or more of the
     # advected input fields has a nan value
-    mask_adv = np.all(np.isfinite(precip_fields_lagr), axis=0)
-    fct_gen["mask_adv"] = mask_adv
-    for i in range(precip_fields_lagr.shape[0]):
-        precip_fields_lagr[i, ~mask_adv] = np.nan
+    mask_adv = np.all(np.isfinite(precip_lagr), axis=0)
+    forecast_gen["mask_adv"] = mask_adv
+    for i in range(precip_lagr.shape[0]):
+        precip_lagr[i, ~mask_adv] = np.nan
 
     # compute differenced input fields in the Lagrangian coordinates
-    precip_fields_lagr_diff = np.diff(precip_fields_lagr, axis=0)
+    precip_lagr_diff = np.diff(precip_lagr, axis=0)
 
     # estimate parameters of the deterministic model (i.e. the convolution and
     # the ARI process)
@@ -1197,20 +1180,20 @@ def _linda_deterministic_init(
     # estimate convolution kernel for the differenced component
     convol_weights = _compute_window_weights(
         feature_coords,
-        precip_fields.shape[1],
-        precip_fields.shape[2],
+        precip.shape[1],
+        precip.shape[2],
         localization_window_radius,
     )
 
     kernels_1 = _estimate_convol_params(
-        precip_fields_lagr_diff[-2],
-        precip_fields_lagr_diff[-1],
+        precip_lagr_diff[-2],
+        precip_lagr_diff[-1],
         convol_weights,
         mask_adv,
         kernel_type=kernel_type,
         num_workers=num_workers,
     )
-    fct_gen["kernels_1"] = kernels_1
+    forecast_gen["kernels_1"] = kernels_1
 
     if measure_time:
         print(f"{time.time() - starttime:.2f} seconds.")
@@ -1218,11 +1201,11 @@ def _linda_deterministic_init(
         print("done.")
 
     # compute convolved difference fields
-    precip_fields_lagr_diff_c = precip_fields_lagr_diff[:-1].copy()
-    for i in range(precip_fields_lagr_diff_c.shape[0]):
+    precip_lagr_diff_c = precip_lagr_diff[:-1].copy()
+    for i in range(precip_lagr_diff_c.shape[0]):
         for _ in range(ari_order - i):
-            precip_fields_lagr_diff_c[i] = _composite_convolution(
-                precip_fields_lagr_diff_c[i],
+            precip_lagr_diff_c[i] = _composite_convolution(
+                precip_lagr_diff_c[i],
                 kernels_1,
                 interp_weights,
             )
@@ -1235,28 +1218,28 @@ def _linda_deterministic_init(
     # estimate ARI(p,1) parameters
     weights = _compute_window_weights(
         feature_coords,
-        precip_fields.shape[1],
-        precip_fields.shape[2],
+        precip.shape[1],
+        precip.shape[2],
         localization_window_radius,
     )
 
     if ari_order == 1:
         psi = _estimate_ar1_params(
-            precip_fields_lagr_diff_c[-1],
-            precip_fields_lagr_diff[-1],
+            precip_lagr_diff_c[-1],
+            precip_lagr_diff[-1],
             weights,
             interp_weights,
             num_workers=num_workers,
         )
     else:
         psi = _estimate_ar2_params(
-            precip_fields_lagr_diff_c[-2:],
-            precip_fields_lagr_diff[-1],
+            precip_lagr_diff_c[-2:],
+            precip_lagr_diff[-1],
             weights,
             interp_weights,
             num_workers=num_workers,
         )
-    fct_gen["psi"] = psi
+    forecast_gen["psi"] = psi
 
     if measure_time:
         print(f"{time.time() - starttime:.2f} seconds.")
@@ -1264,9 +1247,9 @@ def _linda_deterministic_init(
         print("done.")
 
     # apply the ARI(p,1) model and integrate the differences
-    precip_fields_lagr_diff_c = _iterate_ar_model(precip_fields_lagr_diff_c, psi)
-    precip_fct = precip_fields_lagr[-2] + precip_fields_lagr_diff_c[-1]
-    precip_fct[precip_fct < 0.0] = 0.0
+    precip_lagr_diff_c = _iterate_ar_model(precip_lagr_diff_c, psi)
+    precip_forecast = precip_lagr[-2] + precip_lagr_diff_c[-1]
+    precip_forecast[precip_forecast < 0.0] = 0.0
 
     print("Estimating the second convolution kernel... ", end="", flush=True)
 
@@ -1276,14 +1259,14 @@ def _linda_deterministic_init(
     # estimate the second convolution kernels based on the forecast field
     # computed above
     kernels_2 = _estimate_convol_params(
-        precip_fct,
-        precip_fields[-1],
+        precip_forecast,
+        precip[-1],
         convol_weights,
         mask_adv,
         kernel_type=kernel_type,
         num_workers=num_workers,
     )
-    fct_gen["kernels_2"] = kernels_2
+    forecast_gen["kernels_2"] = kernels_2
 
     if measure_time:
         print(f"{time.time() - starttime:.2f} seconds.")
@@ -1291,16 +1274,16 @@ def _linda_deterministic_init(
         print("done.")
 
     if measure_time:
-        return fct_gen, precip_fields_lagr_diff, time.time() - starttime_init
+        return forecast_gen, precip_lagr_diff, time.time() - starttime_init
     else:
-        return fct_gen, precip_fields_lagr_diff
+        return forecast_gen, precip_lagr_diff
 
 
 def _linda_perturbation_init(
-    precip_fields,
-    precip_fields_lagr_diff,
-    advection_field,
-    fct_gen,
+    precip,
+    precip_lagr_diff,
+    velocity,
+    forecast_gen,
     pert_thrs,
     localization_window_radius,
     errdist_window_radius,
@@ -1319,28 +1302,35 @@ def _linda_perturbation_init(
 
     print("Estimating forecast errors... ", end="", flush=True)
 
-    precip_fct_det = _linda_forecast(
-        precip_fields[:-1],
-        precip_fields_lagr_diff[:-1],
+    forecast_gen = forecast_gen.copy()
+    forecast_gen["add_perturbations"] = False
+    forecast_gen["num_ens_members"] = 1
+
+    precip_forecast_det = _linda_forecast(
+        precip[:-1],
+        precip_lagr_diff[:-1],
         1,
-        fct_gen,
+        forecast_gen,
         None,
         None,
+        1,
         None,
         False,
         False,
+        True,
+        None,
     )
 
     # compute multiplicative forecast errors
-    err = precip_fct_det[-1] / precip_fields[-1]
+    err = precip_forecast_det[-1] / precip[-1]
 
     # mask small precipitation intensities
     mask = np.logical_or(
         np.logical_and(
-            precip_fct_det[-1] >= pert_thrs[1], precip_fields[-1] >= pert_thrs[0]
+            precip_forecast_det[-1] >= pert_thrs[1], precip[-1] >= pert_thrs[0]
         ),
         np.logical_and(
-            precip_fct_det[-1] >= pert_thrs[0], precip_fields[-1] >= pert_thrs[1]
+            precip_forecast_det[-1] >= pert_thrs[0], precip[-1] >= pert_thrs[1]
         ),
     )
     err[~mask] = np.nan
@@ -1352,7 +1342,7 @@ def _linda_perturbation_init(
 
     pert_gen = _estimate_perturbation_params(
         err,
-        fct_gen,
+        forecast_gen,
         errdist_window_radius,
         acf_window_radius,
         localization_window_radius,
@@ -1371,20 +1361,20 @@ def _linda_perturbation_init(
             "p_par": vp_par,
             "p_perp": vp_perp,
         }
-        vel_pert_gen = {
+        velocity_pert_gen = {
             "gen_func": generate_vel_noise,
             "init_func": lambda seed: init_vel_noise(
-                advection_field, 1.0 / kmperpixel, timestep, seed=seed, **kwargs
+                velocity, 1.0 / kmperpixel, timestep, seed=seed, **kwargs
             ),
             "timestep": timestep,
         }
     else:
-        vel_pert_gen = None
+        velocity_pert_gen = None
 
     if measure_time:
-        return pert_gen, vel_pert_gen, time.time() - starttime
+        return pert_gen, velocity_pert_gen, time.time() - starttime
     else:
-        return pert_gen, vel_pert_gen
+        return pert_gen, velocity_pert_gen
 
 
 def _masked_convolution(field, kernel):
@@ -1399,6 +1389,51 @@ def _masked_convolution(field, kernel):
     field_c[mask] /= convolve(mask.astype(float), kernel, mode="same")[mask]
 
     return field_c
+
+
+def _update(state, params):
+    def worker(j):
+        state["precip_lagr_diff"][j] = _iterate_ar_model(
+            state["precip_lagr_diff"][j], params["psi"]
+        )
+        state["precip_forecast"][j] += state["precip_lagr_diff"][j][-1]
+        for i in range(state["precip_lagr_diff"][j].shape[0]):
+            state["precip_lagr_diff"][j][i] = _composite_convolution(
+                state["precip_lagr_diff"][j][i],
+                params["kernels_1"],
+                params["interp_weights"],
+            )
+        state["precip_forecast"][j] = _composite_convolution(
+            state["precip_forecast"][j], params["kernels_2"], params["interp_weights"]
+        )
+
+        out = state["precip_forecast"][j].copy()
+        out[out < 0.0] = 0.0
+        out[~params["mask_adv"]] = np.nan
+
+        # apply perturbations
+        if params["precip_pert_gen"] is not None:
+            seed = state["rs_precip_pert"][j].randint(0, high=1e9)
+            perturb = _generate_perturbations(
+                params["precip_pert_gen"], params["num_workers"], seed
+            )
+            out *= perturb
+
+        return out
+
+    out = []
+    if DASK_IMPORTED and params["num_workers"] > 1 and params["num_ens_members"] > 1:
+        res = []
+        for j in range(params["num_ens_members"]):
+            res.append(dask.delayed(worker)(j))
+        out = dask.compute(
+            *res, num_workers=params["num_ensemble_workers"], scheduler="threads"
+        )
+    else:
+        for j in range(params["num_ens_members"]):
+            out.append(worker(j))
+
+    return np.stack(out), state
 
 
 def _weighted_std(f, w):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from pysteps import motion, nowcasts, verification
@@ -11,25 +9,33 @@ anvil_arg_names = (
     "ar_window_radius",
     "timesteps",
     "min_csi",
+    "apply_rainrate_mask",
+    "measure_time",
 )
 
 anvil_arg_values = [
-    (8, 1, 50, 3, 0.6),
-    (8, 1, 50, [3], 0.6),
+    (8, 1, 50, 3, 0.6, True, False),
+    (8, 1, 50, [3], 0.6, False, True),
 ]
 
 
 @pytest.mark.parametrize(anvil_arg_names, anvil_arg_values)
 def test_anvil_rainrate(
-    n_cascade_levels, ar_order, ar_window_radius, timesteps, min_csi
+    n_cascade_levels,
+    ar_order,
+    ar_window_radius,
+    timesteps,
+    min_csi,
+    apply_rainrate_mask,
+    measure_time,
 ):
     """Tests ANVIL nowcast using rain rate precipitation fields."""
     # inputs
-    precip_input, metadata = get_precipitation_fields(
+    precip_input = get_precipitation_fields(
         num_prev_files=4,
         num_next_files=0,
         return_raw=False,
-        metadata=True,
+        metadata=False,
         upscale=2000,
     )
     precip_input = precip_input.filled()
@@ -45,7 +51,7 @@ def test_anvil_rainrate(
 
     nowcast_method = nowcasts.get_method("anvil")
 
-    precip_forecast = nowcast_method(
+    output = nowcast_method(
         precip_input[-(ar_order + 2) :],
         retrieved_motion,
         timesteps=timesteps,
@@ -53,7 +59,13 @@ def test_anvil_rainrate(
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
         ar_window_radius=ar_window_radius,
+        apply_rainrate_mask=apply_rainrate_mask,
+        measure_time=measure_time,
     )
+    if measure_time:
+        precip_forecast, __, __ = output
+    else:
+        precip_forecast = output
 
     assert precip_forecast.ndim == 3
     assert precip_forecast.shape[0] == (
