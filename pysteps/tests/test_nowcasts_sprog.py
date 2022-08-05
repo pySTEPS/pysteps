@@ -54,7 +54,7 @@ def test_sprog(
         precip_input,
         retrieved_motion,
         timesteps=timesteps,
-        R_thr=metadata["threshold"],
+        precip_thr=metadata["threshold"],
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
         probmatching_method=probmatching_method,

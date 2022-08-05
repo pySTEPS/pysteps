@@ -16,6 +16,7 @@ the behavior of some functions in pysteps.
 """
 import inspect
 import uuid
+import warnings
 from collections import defaultdict
 from functools import wraps
 
@@ -282,3 +283,35 @@ def memoize(maxsize=10):
         return _func_with_cache
 
     return _memoize
+
+
+def deprecate_args(old_new_args, deprecation_release):
+    """
+    Support deprecated argument names while issuing deprecation warnings.
+
+    Parameters
+    ----------
+    old_new_args: dict[str, str]
+        Mapping from old to new argument names.
+    deprecation_release: str
+        Specify which future release will convert this warning into an error.
+    """
+
+    def _deprecate(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            kwargs_names = list(kwargs.keys())
+            for key_old in kwargs_names:
+                if key_old in old_new_args:
+                    key_new = old_new_args[key_old]
+                    kwargs[key_new] = kwargs.pop(key_old)
+                    warnings.warn(
+                        f"Argument '{key_old}' has been renamed to '{key_new}'. "
+                        f"This will raise a TypeError in pysteps {deprecation_release}.",
+                        FutureWarning,
+                    )
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return _deprecate

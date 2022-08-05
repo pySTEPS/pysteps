@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.anvil
 ======================
@@ -23,7 +22,7 @@ import time
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from pysteps import cascade, extrapolation
-from pysteps.nowcasts import utils as nowcast_utils
+from pysteps.nowcasts.utils import nowcast_main_loop
 from pysteps.timeseries import autoregression
 from pysteps import utils
 
@@ -149,36 +148,36 @@ def forecast(
     if filter_kwargs is None:
         filter_kwargs = dict()
 
-    print("Computing ANVIL nowcast:")
-    print("------------------------")
+    print("Computing ANVIL nowcast")
+    print("-----------------------")
     print("")
 
-    print("Inputs:")
+    print("Inputs")
+    print("------")
+    print(f"input dimensions: {vil.shape[1]}x{vil.shape[2]}")
+    print("")
+
+    print("Methods")
     print("-------")
-    print("input dimensions: %dx%d" % (vil.shape[1], vil.shape[2]))
+    print(f"extrapolation:   {extrap_method}")
+    print(f"FFT:             {fft_method}")
     print("")
 
-    print("Methods:")
-    print("--------")
-    print("extrapolation:   %s" % extrap_method)
-    print("FFT:             %s" % fft_method)
-    print("")
-
-    print("Parameters:")
-    print("-----------")
+    print("Parameters")
+    print("----------")
     if isinstance(timesteps, int):
-        print("number of time steps:        %d" % timesteps)
+        print(f"number of time steps:        {timesteps}")
     else:
-        print("time steps:                  %s" % timesteps)
-    print("parallel threads:            %d" % num_workers)
-    print("number of cascade levels:    %d" % n_cascade_levels)
-    print("order of the ARI(p,1) model: %d" % ar_order)
+        print(f"time steps:                  {timesteps}")
+    print(f"parallel threads:            {num_workers}")
+    print(f"number of cascade levels:    {n_cascade_levels}")
+    print(f"order of the ARI(p,1) model: {ar_order}")
     if type(ar_window_radius) == int:
-        print("ARI(p,1) window radius:      %d" % ar_window_radius)
+        print(f"ARI(p,1) window radius:      {ar_window_radius}")
     else:
         print("ARI(p,1) window radius:      none")
 
-    print("R(VIL) window radius:        %d" % r_vil_window_radius)
+    print(f"R(VIL) window radius:        {r_vil_window_radius}")
 
     if measure_time:
         starttime_init = time.time()
@@ -188,11 +187,15 @@ def forecast(
 
     if rainrate is None and apply_rainrate_mask:
         rainrate_mask = vil[-1, :] < 0.1
+    else:
+        rainrate_mask = None
 
     if rainrate is not None:
         # determine the coefficients fields of the relation R=a*VIL+b by
         # localized linear regression
         r_vil_a, r_vil_b = _r_vil_regression(vil[-1, :], rainrate, r_vil_window_radius)
+    else:
+        r_vil_a, r_vil_b = None, None
 
     # transform the input fields to Lagrangian coordinates by extrapolation
     extrapolator = extrapolation.get_method(extrap_method)
@@ -287,129 +290,41 @@ def forecast(
 
     print("Starting nowcast computation.")
 
-    if measure_time:
-        starttime_mainloop = time.time()
+    rainrate_f = []
 
-    r_f = []
-
-    if isinstance(timesteps, int):
-        timesteps = range(timesteps + 1)
-        timestep_type = "int"
-    else:
-        original_timesteps = [0] + list(timesteps)
-        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
-        timestep_type = "list"
-
-    if rainrate is not None:
-        r_f_prev = r_vil_a * vil[-1, :] + r_vil_b
-    else:
-        r_f_prev = vil[-1, :]
     extrap_kwargs["return_displacement"] = True
 
-    dp = None
-    t_prev = 0.0
+    state = {"vil_dec": vil_dec}
+    params = {
+        "apply_rainrate_mask": apply_rainrate_mask,
+        "mask": mask,
+        "n_cascade_levels": n_cascade_levels,
+        "phi": phi,
+        "rainrate": rainrate,
+        "rainrate_mask": rainrate_mask,
+        "recomp_method": recomp_method,
+        "r_vil_a": r_vil_a,
+        "r_vil_b": r_vil_b,
+    }
 
-    for t, subtimestep_idx in enumerate(timesteps):
-        if timestep_type == "list":
-            subtimesteps = [original_timesteps[t_] for t_ in subtimestep_idx]
-        else:
-            subtimesteps = [t]
-
-        if (timestep_type == "list" and subtimesteps) or (
-            timestep_type == "int" and t > 0
-        ):
-            is_nowcast_time_step = True
-        else:
-            is_nowcast_time_step = False
-
-        if is_nowcast_time_step:
-            print(
-                "Computing nowcast for time step %d... " % t,
-                end="",
-                flush=True,
-            )
-
-        if measure_time:
-            starttime = time.time()
-
-        # iterate the ARI models for each cascade level
-        for i in range(n_cascade_levels):
-            vil_dec[i, :] = autoregression.iterate_ar_model(vil_dec[i, :], phi[i])
-
-        # recompose the cascade to obtain the forecast field
-        vil_dec_dict = {}
-        vil_dec_dict["cascade_levels"] = vil_dec[:, -1, :]
-        vil_dec_dict["domain"] = "spatial"
-        vil_dec_dict["normalized"] = False
-        vil_f = recomp_method(vil_dec_dict)
-        vil_f[~mask] = np.nan
-
-        if rainrate is not None:
-            # convert VIL to rain rate
-            r_f_new = r_vil_a * vil_f + r_vil_b
-        else:
-            r_f_new = vil_f
-            if apply_rainrate_mask:
-                r_f_new[rainrate_mask] = 0.0
-
-        r_f_new[r_f_new < 0.0] = 0.0
-
-        # advect the recomposed field to obtain the forecast for the current
-        # time step (or subtimesteps if non-integer time steps are given)
-        for t_sub in subtimesteps:
-            if t_sub > 0:
-                t_diff_prev_int = t_sub - int(t_sub)
-                if t_diff_prev_int > 0.0:
-                    r_f_ip = (
-                        1.0 - t_diff_prev_int
-                    ) * r_f_prev + t_diff_prev_int * r_f_new
-                else:
-                    r_f_ip = r_f_prev
-
-                t_diff_prev = t_sub - t_prev
-
-                extrap_kwargs["displacement_prev"] = dp
-                extrap_kwargs["allow_nonfinite_values"] = (
-                    True if np.any(~np.isfinite(r_f_ip)) else False
-                )
-
-                r_f_ep, dp = extrapolator(
-                    r_f_ip,
-                    velocity,
-                    [t_diff_prev],
-                    **extrap_kwargs,
-                )
-                r_f.append(r_f_ep[0])
-                t_prev = t_sub
-
-        # advect the forecast field by one time step if no subtimesteps in the
-        # current interval were found
-        if not subtimesteps:
-            t_diff_prev = t + 1 - t_prev
-            extrap_kwargs["displacement_prev"] = dp
-            _, dp = extrapolator(
-                None,
-                velocity,
-                [t_diff_prev],
-                **extrap_kwargs,
-            )
-            t_prev = t + 1
-
-        r_f_prev = r_f_new
-
-        if is_nowcast_time_step:
-            if measure_time:
-                print("%.2f seconds." % (time.time() - starttime))
-            else:
-                print("done.")
+    rainrate_f = nowcast_main_loop(
+        vil[-1, :],
+        velocity,
+        state,
+        timesteps,
+        extrap_method,
+        _update,
+        extrap_kwargs=extrap_kwargs,
+        params=params,
+        measure_time=measure_time,
+    )
+    if measure_time:
+        rainrate_f, mainloop_time = rainrate_f
 
     if measure_time:
-        mainloop_time = time.time() - starttime_mainloop
-
-    if measure_time:
-        return np.stack(r_f), init_time, mainloop_time
+        return np.stack(rainrate_f), init_time, mainloop_time
     else:
-        return np.stack(r_f)
+        return np.stack(rainrate_f)
 
 
 def _check_inputs(vil, rainrate, velocity, timesteps, ar_order):
@@ -559,3 +474,31 @@ def _r_vil_regression(vil, r, window_radius):
     b[~mask_vil] = 0.0
 
     return a, b
+
+
+def _update(state, params):
+    # iterate the ARI models for each cascade level
+    for i in range(params["n_cascade_levels"]):
+        state["vil_dec"][i, :] = autoregression.iterate_ar_model(
+            state["vil_dec"][i, :], params["phi"][i]
+        )
+
+    # recompose the cascade to obtain the forecast field
+    vil_dec_dict = {}
+    vil_dec_dict["cascade_levels"] = state["vil_dec"][:, -1, :]
+    vil_dec_dict["domain"] = "spatial"
+    vil_dec_dict["normalized"] = False
+    vil_f = params["recomp_method"](vil_dec_dict)
+    vil_f[~params["mask"]] = np.nan
+
+    if params["rainrate"] is not None:
+        # convert VIL to rain rate
+        rainrate_f_new = params["r_vil_a"] * vil_f + params["r_vil_b"]
+    else:
+        rainrate_f_new = vil_f
+        if params["apply_rainrate_mask"]:
+            rainrate_f_new[params["rainrate_mask"]] = 0.0
+
+    rainrate_f_new[rainrate_f_new < 0.0] = 0.0
+
+    return rainrate_f_new, state

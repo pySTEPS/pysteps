@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 from datetime import timedelta
 
@@ -70,7 +68,7 @@ def test_steps_skill(
         precip_input,
         retrieved_motion,
         timesteps=timesteps,
-        R_thr=metadata["threshold"],
+        precip_thr=metadata["threshold"],
         kmperpixel=2.0,
         timestep=metadata["accutime"],
         seed=42,
@@ -133,7 +131,7 @@ def test_steps_callback(tmp_path):
         precip_input,
         motion_field,
         timesteps=n_timesteps,
-        R_thr=metadata["threshold"],
+        precip_thr=metadata["threshold"],
         kmperpixel=2.0,
         timestep=timestep,
         seed=42,
