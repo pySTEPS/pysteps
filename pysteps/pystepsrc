@@ -91,7 +91,7 @@
 		"rmi": {
             "root_path": "./radar/rmi/radqpe",
             "path_fmt": "%Y%m%d",
-            "fn_pattern": "%Y%m%d%H%M00.rad.best.comp.rate.qpe.hdf",
+            "fn_pattern": "%Y%m%d%H%M00.rad.best.comp.rate.qpe",
             "fn_ext": "hdf",
             "importer": "odim_hdf5",
             "timestep": 5,
