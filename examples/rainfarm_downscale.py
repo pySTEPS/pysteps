@@ -57,11 +57,15 @@ precip[~np.isfinite(precip)] = metadata["zerovalue"]
 # -----------------
 #
 # To test our downscaling method, we first need to upscale the original field to
-# a lower resolution. We are going to use an upscaling factor of 16 x.
+# a lower resolution. This is only for demo purposes, as we need to artificially
+# create a lower resolution field to apply our downscaling method.
+# We are going to use a factor of 16 x.
 
-upscaling_factor = 16
-upscale_to = metadata["xpixelsize"] * upscaling_factor  # upscaling factor : 16 x
-precip_lr, metadata_lr = aggregate_fields_space(precip, metadata, upscale_to)
+scale_factor = 16
+upscaled_resolution = (
+    metadata["xpixelsize"] * scale_factor
+)  # upscaled resolution : 16 km
+precip_lr, metadata_lr = aggregate_fields_space(precip, metadata, upscaled_resolution)
 
 # Plot the upscaled rainfall field
 plt.figure()
@@ -81,14 +85,14 @@ num_realizations = 5
 # Per realization, generate a stochastically downscaled precipitation field
 # and plot it.
 # The first time, the spectral slope alpha needs to be estimated. To illustrate
-# the sensitity of this parameter, we are going to plot some realizations with
+# the sensitivity of this parameter, we are going to plot some realizations with
 # half or double the estimated slope.
 alpha = None
 for n in range(num_realizations):
 
     # Spectral slope estimated from the upscaled field
     precip_hr, alpha = rainfarm.downscale(
-        precip_lr, alpha=alpha, ds_factor=upscaling_factor, return_alpha=True
+        precip_lr, ds_factor=scale_factor, alpha=alpha, return_alpha=True
     )
     plt.subplot(num_realizations, 3, n * 3 + 2)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
@@ -96,18 +100,14 @@ for n in range(num_realizations):
         plt.title(f"alpha={alpha:.1f}")
 
     # Half the estimated slope
-    precip_hr = rainfarm.downscale(
-        precip_lr, alpha=alpha * 0.5, ds_factor=upscaling_factor
-    )
+    precip_hr = rainfarm.downscale(precip_lr, ds_factor=scale_factor, alpha=alpha * 0.5)
     plt.subplot(num_realizations, 3, n * 3 + 1)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
     if n == 0:
         plt.title(f"alpha={alpha * 0.5:.1f}")
 
     # Double the estimated slope
-    precip_hr = rainfarm.downscale(
-        precip_lr, alpha=alpha * 2, ds_factor=upscaling_factor
-    )
+    precip_hr = rainfarm.downscale(precip_lr, ds_factor=scale_factor, alpha=alpha * 2)
     plt.subplot(num_realizations, 3, n * 3 + 3)
     plot_precip_field(precip_hr, geodata=metadata, axis="off", colorbar=False)
     if n == 0:

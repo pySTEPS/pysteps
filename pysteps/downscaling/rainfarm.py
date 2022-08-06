@@ -6,6 +6,11 @@ pysteps.downscaling.rainfarm
 Implementation of the RainFARM stochastic downscaling method as described in
 :cite:`Rebora2006`.
 
+RainFARM is a downscaling algorithm for rainfall fields developed by Rebora et
+al. (2006). The method can represent the realistic small-scale variability of the
+downscaled precipitation field by means of Gaussian random fields.
+
+
 .. autosummary::
     :toctree: ../generated/
 
@@ -39,38 +44,35 @@ def _balanced_spatial_average(x, k):
     return convolve(x, k) / convolve(ones, k)
 
 
-def downscale(precip, alpha=None, ds_factor=16, threshold=None, return_alpha=False):
+def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False):
     """
-    Downscale a rainfall field by a given factor.
+    Downscale a rainfall field by increasing its spatial resolution by
+    a positive integer factor.
 
     Parameters
     ----------
-
-    precip: array_like
-        Array of shape (m,n) containing the input field.
+    precip: array-like
+        Array of shape (m, n) containing the input field.
         The input is expected to contain rain rate values.
-
+        All values are required to be finite.
     alpha: float, optional
-        Spectral slope. If none, the slope is estimated from
+        Spectral slope. If None, the slope is estimated from
         the input array.
-
-    ds_factor: int, optional
-        Downscaling factor.
-
+    ds_factor: positive int
+        Downscaling factor, it specifies by how many times
+        to increase the initial grid resolution.
     threshold: float, optional
         Set all values lower than the threshold to zero.
-
     return_alpha: bool, optional
-        Whether to return the estimated spectral slope `alpha`.
-
+        Whether to return the estimated spectral slope ``alpha``.
 
     Returns
     -------
-    r: array_like
-        Array of shape (m*ds_factor,n*ds_factor) containing
+    r: array-like
+        Array of shape (m * ds_factor, n * ds_factor) containing
         the downscaled field.
     alpha: float
-        Returned only when `return_alpha=True`.
+        Returned only when ``return_alpha=True``.
 
     Notes
     -----
