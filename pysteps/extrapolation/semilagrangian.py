@@ -80,7 +80,7 @@ def extrapolate(
         Default: False
     vel_timestep: float
         The time step of the velocity field. It is assumed to have the same
-        unit as the timesteps argument. Applicable if timeseps is a list.
+        unit as the timesteps argument. Applicable if timesteps is a list.
         Default: 1.
     interp_order: int
         The order of interpolation to use. Default: 1 (linear). Setting this
