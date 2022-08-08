@@ -99,7 +99,7 @@ def plot_precip_field(
         of the form (lower left x, lower left y ,upper right x, upper right y).
         If 'geodata' is not None, the bbox is in map coordinates, otherwise
         it represents image pixels.
-    colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
+    colorscale : {'pysteps', 'STEPS-BE', 'STEPS-NL', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
     probthr : float, optional
         Intensity threshold to show in the color bar of the exceedance
@@ -246,7 +246,7 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
     units : {'mm/h', 'mm', 'dBZ'}, optional
         Units of the input array. If ptype is 'prob', this specifies the unit of
         the intensity threshold.
-    colorscale : {'pysteps', 'STEPS-BE', 'BOM-RF3'}, optional
+    colorscale : {'pysteps', 'STEPS-BE', 'STEPS-NL', 'BOM-RF3'}, optional
         Which colorscale to use. Applicable if units is 'mm/h', 'mm' or 'dBZ'.
 
     Returns
@@ -273,6 +273,8 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
             cmap.set_over("black", 1)
         if colorscale == "pysteps":
             cmap.set_over("darkred", 1)
+        if colorscale == "STEPS-NL":
+            cmap.set_over("darkmagenta", 1)
         if colorscale == "STEPS-BE":
             cmap.set_over("black", 1)
         norm = colors.BoundaryNorm(clevs, cmap.N)
@@ -304,7 +306,7 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
     units : str
         Units of the input array (mm/h, mm or dBZ)
     colorscale : str
-        Which colorscale to use (BOM-RF3, pysteps, STEPS-BE)
+        Which colorscale to use (BOM-RF3, pysteps, STEPS-BE, STEPS-NL)
 
     Returns
     -------
@@ -426,6 +428,24 @@ def _get_colorlist(units="mm/h", colorscale="pysteps"):
             ]
         elif units == "dBZ":
             clevs = np.arange(10, 65, 5)
+        else:
+            raise ValueError("Wrong units in get_colorlist: %s" % units)
+    elif colorscale == "STEPS-NL":
+        redgrey_hex = "#%02x%02x%02x" % (156, 126, 148)
+        color_list = [
+            "lightgrey",
+            "lightskyblue",
+            "deepskyblue",
+            "blue",
+            "darkblue",
+            "yellow",
+            "gold",
+            "darkorange",
+            "red",
+            "darkred",
+        ]
+        if units in ["mm/h", "mm"]:
+            clevs = [0.1, 0.5, 1.0, 1.6, 2.5, 4.0, 6.4, 10.0, 16.0, 25.0, 40.0]
         else:
             raise ValueError("Wrong units in get_colorlist: %s" % units)
     elif colorscale == "STEPS-BE":
