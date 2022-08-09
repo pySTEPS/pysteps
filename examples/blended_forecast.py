@@ -99,10 +99,14 @@ plot_precip_field(
     radar_precip[-1, :, :],
     geodata=radar_metadata,
     title=f"Radar observation at {date_str}",
+    colorscale="STEPS-NL",
 )
 plt.subplot(122)
 plot_precip_field(
-    nwp_precip[0, :, :], geodata=nwp_metadata, title=f"NWP forecast at {date_str}"
+    nwp_precip[0, :, :],
+    geodata=nwp_metadata,
+    title=f"NWP forecast at {date_str}",
+    colorscale="STEPS-NL",
 )
 plt.tight_layout()
 plt.show()
@@ -198,6 +202,7 @@ for n, leadtime in enumerate(leadtimes_min):
         geodata=radar_metadata,
         title=f"Nowcast +{leadtime} min",
         axis="off",
+        colorscale="STEPS-NL",
         colorbar=False,
     )
 
@@ -208,6 +213,7 @@ for n, leadtime in enumerate(leadtimes_min):
         geodata=nwp_metadata,
         title=f"NWP +{leadtime} min",
         axis="off",
+        colorscale="STEPS-NL",
         colorbar=False,
     )
 
