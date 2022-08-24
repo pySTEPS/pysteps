@@ -160,7 +160,7 @@ def plot_reldiag(reldiag, ax=None):
         color="gray",
         edgecolor="black",
     )
-    iax.set_yscale("log", base=10)
+    iax.set_yscale("log")
     iax.set_xticks(reldiag["bin_edges"])
     iax.set_xticklabels(["%.1f" % max(v, 1e-6) for v in reldiag["bin_edges"]])
     yt_min = int(max(np.floor(np.log10(min(reldiag["sample_size"][:-1]))), 1))

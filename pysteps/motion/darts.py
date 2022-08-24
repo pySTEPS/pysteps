@@ -95,6 +95,9 @@ def DARTS(input_images, **kwargs):
             "invalid output_type=%s, must be 'spatial' or 'spectral'" % output_type
         )
 
+    if np.any(~np.isfinite(input_images)):
+        raise ValueError("the input images contain non-finite values")
+
     if verbose:
         print("Computing the motion field with the DARTS method.")
         t0 = time.time()

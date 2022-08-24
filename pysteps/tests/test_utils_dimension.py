@@ -152,6 +152,13 @@ test_data = [
         False,
         4 * np.ones((1, 5, 5)),
     ),
+    (
+        np.ones((1, 10, 10)),
+        {"unit": "mm/h", "xpixelsize": 1, "ypixelsize": 2},
+        (2, 4),
+        False,
+        np.ones((1, 5, 5)),
+    ),
 ]
 
 

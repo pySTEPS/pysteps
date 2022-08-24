@@ -130,23 +130,23 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
         Metadata dictionary containing the xpixelsize, ypixelsize and unit
         attributes as described in the documentation of
         :py:mod:`pysteps.io.importers`.
-    space_window: float or None
+    space_window: float, tuple or None
         The length of the space window that is used to upscale the fields.
-        The space_window unit is the same used in the geographical projection
-        of R
-        and hence the same as for the xpixelsize and ypixelsize attributes.
-        The space spanned by the m and n dimensions of R must be a multiple of
-        space_window.
-        If set to None, it returns a copy of the original R and metadata.
+        If a float is given, the same window size is used for the x- and
+        y-directions. Separate window sizes are used for x- and y-directions if
+        a two-element tuple is given. The space_window unit is the same used in
+        the geographical projection of R and hence the same as for the xpixelsize
+        and ypixelsize attributes. The space spanned by the n- and m-dimensions
+        of R must be a multiple of space_window. If set to None, the function
+        returns a copy of the original R and metadata.
     ignore_nan: bool, optional
         If True, ignore nan values.
 
     Returns
     -------
     outputarray: array-like
-        The new array of aggregated fields of shape (k,j), (t,k,j)
-        or (l,t,k,j),
-        where k = m*ypixelsize/space_window and j = n*xpixelsize/space_window.
+        The new array of aggregated fields of shape (k,j), (t,k,j) or (l,t,k,j),
+        where k = m*ypixelsize/space_window[1] and j = n*xpixelsize/space_window[0].
     metadata: dict
         The metadata with updated attributes.
 
@@ -177,15 +177,23 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     if len(R.shape) > 4:
         raise ValueError("The number of dimensions must be <= 4")
 
+    if np.isscalar(space_window):
+        space_window = (space_window, space_window)
+
     # assumes that frames are evenly spaced
-    if ypixelsize == space_window and xpixelsize == space_window:
+    if ypixelsize == space_window[1] and xpixelsize == space_window[0]:
         return R, metadata
-    if (R.shape[axes[0]] * ypixelsize) % space_window or (
-        R.shape[axes[1]] * xpixelsize
-    ) % space_window:
+
+    ysize = R.shape[axes[0]] * ypixelsize
+    xsize = R.shape[axes[1]] * xpixelsize
+
+    if (
+        abs(ysize / space_window[1] - round(ysize / space_window[1])) > 1e-10
+        or abs(xsize / space_window[0] - round(xsize / space_window[0])) > 1e-10
+    ):
         raise ValueError("space_window does not equally split R")
 
-    nframes = [int(space_window / ypixelsize), int(space_window / xpixelsize)]
+    nframes = [int(space_window[1] / ypixelsize), int(space_window[0] / xpixelsize)]
 
     # specify the operator to be used to aggregate the values
     # within the space window
@@ -204,8 +212,8 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     R = aggregate_fields(R, nframes[0], axis=axes[0], method=method)
     R = aggregate_fields(R, nframes[1], axis=axes[1], method=method)
 
-    metadata["ypixelsize"] = space_window
-    metadata["xpixelsize"] = space_window
+    metadata["ypixelsize"] = space_window[1]
+    metadata["xpixelsize"] = space_window[0]
 
     return R, metadata
 
