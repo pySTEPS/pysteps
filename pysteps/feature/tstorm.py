@@ -148,7 +148,7 @@ def detection(
     if np.nanmax(filt_image.flatten()) < minref:
         maxima = np.zeros(filt_image.shape)
     else:
-        maxima = skim.h_maxima(filt_image, h=mindiff, selem=struct)
+        maxima = skim.h_maxima(filt_image, h=mindiff, footprint=struct)
     loc_max = np.where(maxima > 0)
 
     loc_max = longdistance(loc_max, mindis)
