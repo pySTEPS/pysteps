@@ -28,3 +28,4 @@ def test_ascending_time_step():
     not_ascending_timesteps = [1,2,3,5,4,6,7]
     with pytest.raises(ValueError):
         extrapolate(precip, velocity, not_ascending_timesteps)
+
