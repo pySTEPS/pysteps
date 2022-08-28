@@ -19,3 +19,12 @@ def test_semilagrangian():
     # result
     result = extrapolate(precip, velocity, num_timesteps)
     assert_array_almost_equal(result, expected)
+
+def test_ascending_time_step():
+    precip = np.ones((8, 8))
+    v = np.ones((8, 8))
+    velocity = np.stack([v, v])
+
+    not_ascending_timesteps = [1,2,3,5,4,6,7]
+    with pytest.raises(ValueError):
+        extrapolate(precip, velocity, not_ascending_timesteps)
