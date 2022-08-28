@@ -243,8 +243,8 @@ def advect(cells_id, labels, V1):
     for ID, cell in cells_id.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
             continue
-        ad_x = int(np.nanmean(V1[0, cell.y, cell.x]))
-        ad_y = int(np.nanmean(V1[1, cell.y, cell.x]))
+        ad_x = np.round(np.nanmean(V1[0, cell.y, cell.x])).astype(int)
+        ad_y = np.round(np.nanmean(V1[1, cell.y, cell.x])).astype(int)
         new_x = cell.x + ad_x
         new_y = cell.y + ad_y
         new_x[new_x > labels.shape[1] - 1] = labels.shape[1] - 1
