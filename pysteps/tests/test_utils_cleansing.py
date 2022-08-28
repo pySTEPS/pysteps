@@ -174,3 +174,9 @@ def test_detect_outlier_multivariate_local():
     V[-1] = (-3, 3)
     outliers = cleansing.detect_outliers(V, 4, coord=X, k=50)
     assert outliers.sum() == 2
+
+def test_detect_outlier_input_dims():
+    V = np.zeros((20, 3, 2))
+    thr_std_devs = 1
+    with pytest.raises(ValueError):
+        cleansing.detect_outliers(V, thr_std_devs, k=10)
