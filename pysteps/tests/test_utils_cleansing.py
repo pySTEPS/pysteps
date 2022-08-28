@@ -174,3 +174,12 @@ def test_detect_outlier_multivariate_local():
     V[-1] = (-3, 3)
     outliers = cleansing.detect_outliers(V, 4, coord=X, k=50)
     assert outliers.sum() == 2
+
+def test_value_error_is_raise_when_input_has_nan():
+    cor = np.ones((3, 1))
+    iarr = np.ones((3, 1))
+    scale = 20
+
+    iarr[1,0] = np.nan
+    with pytest.raises(ValueError):
+        cleansing.decluster(cor, iarr, scale)
