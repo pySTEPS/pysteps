@@ -247,8 +247,8 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
         maxref = np.nanmax(ref[cells_id.y[n], cells_id.x[n]])
         contours = skime.find_contours(cell_unique, 0.8)
         cells_id.cont.iloc[n] = contours
-        cells_id.cen_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
-        cells_id.cen_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
+        cells_id.cen_x.iloc[n] = np.round(np.nanmean(cells_id.x[n])).astype(int)
+        cells_id.cen_y.iloc[n] = np.round(np.nanmean(cells_id.y[n])).astype(int)
         cells_id.max_ref.iloc[n] = maxref
         cells_id.area.iloc[n] = len(cells_id.x.iloc[n])
         labels[cells == cell_labels[n]] = ID
