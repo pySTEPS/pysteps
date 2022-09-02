@@ -23,7 +23,6 @@ Methods related to autoregressive AR(p) models.
 
 import numpy as np
 from scipy.special import binom
-from scipy import linalg as la
 from scipy import ndimage
 
 
