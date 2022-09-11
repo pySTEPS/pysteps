@@ -133,6 +133,7 @@ nowcast_linda = linda.forecast(
     6,
     max_num_features=15,
     add_perturbations=True,
+    vel_pert_method=None,
     num_ens_members=40,
     num_workers=8,
     measure_time=True,
