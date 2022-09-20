@@ -204,7 +204,10 @@ def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
         metadata["unit"] = unit
         metadata["transform"] = transform
         metadata["zerovalue"] = np.nanmin(precip)
-        metadata["threshold"] = np.nanmin(precip[precip > np.nanmin(precip)])
+        if metadata["zerovalue"] == np.nanmax(precip):
+            metadata["threshold"] = metadata["zerovalue"]
+        else:
+            metadata["threshold"] = np.nanmin(precip[precip > metadata["zerovalue"]])
 
         ds.close()
 
