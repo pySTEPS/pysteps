@@ -44,7 +44,60 @@ def _balanced_spatial_average(x, k):
     return convolve(x, k) / convolve(ones, k)
 
 
-def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False):
+def _smoothconv(P,nas):
+
+    """
+    Parameters
+    ----------
+    
+    P: matrix
+    matrix with the input field to smoothen, with dimensions ns*ns
+    
+    nas : int
+    original size
+
+    Returns
+    -------
+
+    The smoothened field.
+
+    References
+    ----------
+
+    Terzago et al. 2018
+
+    """
+
+    print("smoothing")
+    indmask= ~ np.isfinite(P)
+    P[indmask] = 0.
+    ns = np.shape(P)[1]
+
+    sdim = (ns/nas)/2
+    mask=np.zeros([ns,ns])
+    for i in range(ns): 
+        for j in range(ns):
+            
+            kx = i
+            ky = j
+            if i > (ns/2):
+                kx=i-ns
+            if j > (ns/2):
+                ky=j-ns
+            r2 = kx * kx + ky * ky 
+            mask[i,j] = np.exp(-(r2 / (sdim*sdim))/2)
+
+    fm = np.fft.fft2(mask)
+    pf = np.real(np.fft.ifft2(fm*np.fft.fft2(P))) / np.sum(mask) 
+    if np.sum(indmask) > 0: 
+        P[~ indmask] = 1 
+        pf = pf / (np.real(np.fft.ifft2(fm*np.fft.fft2(P))) / np.sum(P) / len(fm))
+
+    pf[indmask]=np.nan
+    return pf 
+
+
+def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False , smooth=False):
     """
     Downscale a rainfall field by increasing its spatial resolution by
     a positive integer factor.
@@ -86,6 +139,7 @@ def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False)
     :cite:`Rebora2006`
 
     """
+    nas = np.shape(precip)[1]
 
     ki = np.fft.fftfreq(precip.shape[0])
     kj = np.fft.fftfreq(precip.shape[1])
@@ -119,8 +173,18 @@ def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False)
     tophat = ((mx**2 + my**2) <= rad**2).astype(float)
     tophat /= tophat.sum()
 
-    P_agg = _balanced_spatial_average(P_u, tophat)
-    r_agg = _balanced_spatial_average(r, tophat)
+    if smooth:
+        P_agg = _balanced_spatial_average(P_u, tophat)
+        r_agg = _balanced_spatial_average(r, tophat)
+        
+        P_agg = _smoothconv(P_agg, nas)
+        r_agg = _smoothconv(r_agg, nas)
+
+    else:
+        P_agg = _balanced_spatial_average(P_u, tophat)
+        r_agg = _balanced_spatial_average(r, tophat)
+
+
     r *= P_agg / r_agg
 
     if threshold is not None:
