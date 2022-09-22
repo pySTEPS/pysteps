@@ -172,7 +172,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     else:
         raise ValueError(
             f"input_array must have 1 (n) or 2 dimensions (n, m), "
-            f"but it has {coord.ndim}"
+            f"but it has {input_array.ndim}"
         )
 
     if nsamples < 2:
