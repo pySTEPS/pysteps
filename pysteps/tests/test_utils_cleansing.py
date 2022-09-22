@@ -175,6 +175,7 @@ def test_detect_outlier_multivariate_local():
     outliers = cleansing.detect_outliers(V, 4, coord=X, k=50)
     assert outliers.sum() == 2
 
+
 def test_detect_outlier_input_dims():
     V = np.zeros((20, 3, 2))
     thr_std_devs = 1
