@@ -5,12 +5,14 @@ pysteps.feature.tstorm
 Thunderstorm cell detection module, part of Thunderstorm Detection and Tracking (DATing)
 This module was implemented following the procedures used in the TRT Thunderstorms
 Radar Tracking algorithm (:cite:`TRT2004`) used operationally at MeteoSwiss.
+Full documentation is published in :cite:`Feldmann2021`.
 Modifications include advecting the identified thunderstorms with the optical flow
 obtained from pysteps, as well as additional options in the thresholding.
 
 References
 ...............
 :cite:`TRT2004`
+:cite:`Feldmann2021`
 
 @author: mfeldman
 
@@ -247,8 +249,8 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
         maxref = np.nanmax(ref[cells_id.y[n], cells_id.x[n]])
         contours = skime.find_contours(cell_unique, 0.8)
         cells_id.cont.iloc[n] = contours
-        cells_id.cen_x.iloc[n] = int(np.nanmean(cells_id.x[n]))  # int(x[0])
-        cells_id.cen_y.iloc[n] = int(np.nanmean(cells_id.y[n]))  # int(y[0])
+        cells_id.cen_x.iloc[n] = np.round(np.nanmean(cells_id.x[n])).astype(int)
+        cells_id.cen_y.iloc[n] = np.round(np.nanmean(cells_id.y[n])).astype(int)
         cells_id.max_ref.iloc[n] = maxref
         cells_id.area.iloc[n] = len(cells_id.x.iloc[n])
         labels[cells == cell_labels[n]] = ID

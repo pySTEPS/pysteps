@@ -6,12 +6,14 @@ pysteps.tracking.tdating
 Thunderstorm Detection and Tracking (DATing) module
 This module was implemented following the procedures used in the TRT Thunderstorms
 Radar Tracking algorithm (:cite:`TRT2004`) used operationally at MeteoSwiss.
+Full documentation is published in :cite:`Feldmann2021`.
 Modifications include advecting the identified thunderstorms with the optical flow
 obtained from pysteps, as well as additional options in the thresholding.
 
 References
 ...............
 :cite:`TRT2004`
+:cite:`Feldmann2021`
 
 @author: mfeldman
 
@@ -243,8 +245,8 @@ def advect(cells_id, labels, V1):
     for ID, cell in cells_id.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
             continue
-        ad_x = int(np.nanmean(V1[0, cell.y, cell.x]))
-        ad_y = int(np.nanmean(V1[1, cell.y, cell.x]))
+        ad_x = np.round(np.nanmean(V1[0, cell.y, cell.x])).astype(int)
+        ad_y = np.round(np.nanmean(V1[1, cell.y, cell.x])).astype(int)
         new_x = cell.x + ad_x
         new_y = cell.y + ad_y
         new_x[new_x > labels.shape[1] - 1] = labels.shape[1] - 1
