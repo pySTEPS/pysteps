@@ -62,6 +62,15 @@ def test_decluster():
     assert np.all(V_dec == np.median(V, axis=0))
 
 
+def test_decluster_value_error_is_raise_when_input_has_nan():
+    coords = np.ones((3, 1))
+    input_array = np.ones((3, 1))
+
+    input_array[1, 0] = np.nan
+    with pytest.raises(ValueError):
+        cleansing.decluster(coords, input_array, scale=20)
+
+
 def test_detect_outlier_constant():
     """Test that a constant input produces no outliers and that warnings are raised"""
 
@@ -176,8 +185,8 @@ def test_detect_outlier_multivariate_local():
     assert outliers.sum() == 2
 
 
-def test_detect_outlier_input_dims():
-    V = np.zeros((20, 3, 2))
+def test_detect_outlier_wrong_input_dims_raise_error():
+    input_array = np.zeros((20, 3, 2))
     thr_std_devs = 1
     with pytest.raises(ValueError):
-        cleansing.detect_outliers(V, thr_std_devs)
+        cleansing.detect_outliers(input_array, thr_std_devs)
