@@ -16,7 +16,7 @@ The pysteps package needs the following dependencies
 * `opencv <https://opencv.org/>`_
 * `pillow <https://python-pillow.org/>`_
 * `pyproj <https://jswhit.github.io/pyproj/>`_
-* `scipy >=0.19 <https://www.scipy.org/>`_
+* `scipy <https://www.scipy.org/>`_
 
 
 Additionally, the following packages can be installed for better computational
@@ -37,7 +37,7 @@ Other optional dependencies include:
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
 * `pandas <https://pandas.pydata.org/>`_ and
-  `scikit-image <https://scikit-image.org/>`_ (for advanced feature detection methods)
+  `scikit-image >=0.19 <https://scikit-image.org/>`_ (for advanced feature detection methods)
 * `rasterio <https://rasterio.readthedocs.io/en/latest/>`_ (for the reprojection module)
 
 
