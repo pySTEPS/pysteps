@@ -37,7 +37,7 @@ Other optional dependencies include:
 * `pywavelets <https://pywavelets.readthedocs.io/en/latest/>`_
   (for intensity-scale verification)
 * `pandas <https://pandas.pydata.org/>`_ and
-  `scikit-image <https://scikit-image.org/>`_ (for advanced feature detection methods)
+  `scikit-image >=0.19 <https://scikit-image.org/>`_ (for advanced feature detection methods)
 * `rasterio <https://rasterio.readthedocs.io/en/latest/>`_ (for the reprojection module)
 
 
