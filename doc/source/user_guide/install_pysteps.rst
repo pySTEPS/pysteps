@@ -16,7 +16,7 @@ The pysteps package needs the following dependencies
 * `opencv <https://opencv.org/>`_
 * `pillow <https://python-pillow.org/>`_
 * `pyproj <https://jswhit.github.io/pyproj/>`_
-* `scipy <https://www.scipy.org/>`_
+* `scipy >=0.19 <https://www.scipy.org/>`_
 
 
 Additionally, the following packages can be installed for better computational
