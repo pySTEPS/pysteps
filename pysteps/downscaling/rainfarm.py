@@ -21,6 +21,7 @@ import warnings
 
 import numpy as np
 from scipy.ndimage import convolve
+from scipy.ndimage import zoom
 
 
 def _log_slope(log_k, log_power_spectrum):
@@ -40,64 +41,82 @@ def _log_slope(log_k, log_power_spectrum):
 
 
 def _balanced_spatial_average(x, k):
+    indmask = ~np.isfinite(x)
+    x[indmask] = 0.0
+
     ones = np.ones_like(x)
     return convolve(x, k) / convolve(ones, k)
 
 
-def _smoothconv(P,nas):
+def _smoothconv(pr_high_res, orig_res):
 
     """
     Parameters
     ----------
-    
-    P: matrix
-    matrix with the input field to smoothen, with dimensions ns*ns
-    
-    nas : int
-    original size
+    pr_high_res: matrix
+        matrix with the input field to smoothen, with dimensions ns*ns.
+    orig_res : int
+        original size of the precipitation field.
 
     Returns
     -------
-
     The smoothened field.
 
     References
     ----------
-
-    Terzago et al. 2018
+    :cite:`Terzago2018`
 
     """
 
-    print("smoothing")
-    indmask= ~ np.isfinite(P)
-    P[indmask] = 0.
-    ns = np.shape(P)[1]
+    indmask = ~np.isfinite(pr_high_res)
+    pr_high_res[indmask] = 0.0
+    ns = np.shape(pr_high_res)[1]
 
-    sdim = (ns/nas)/2
-    mask=np.zeros([ns,ns])
-    for i in range(ns): 
+    sdim = (ns / orig_res) / 2
+    mask = np.zeros([ns, ns])
+    for i in range(ns):
         for j in range(ns):
-            
+
             kx = i
             ky = j
-            if i > (ns/2):
-                kx=i-ns
-            if j > (ns/2):
-                ky=j-ns
-            r2 = kx * kx + ky * ky 
-            mask[i,j] = np.exp(-(r2 / (sdim*sdim))/2)
+            if i > (ns / 2):
+                kx = i - ns
+            if j > (ns / 2):
+                ky = j - ns
+            r2 = kx * kx + ky * ky
+            mask[i, j] = np.exp(-(r2 / (sdim * sdim)) / 2)
 
     fm = np.fft.fft2(mask)
-    pf = np.real(np.fft.ifft2(fm*np.fft.fft2(P))) / np.sum(mask) 
-    if np.sum(indmask) > 0: 
-        P[~ indmask] = 1 
-        pf = pf / (np.real(np.fft.ifft2(fm*np.fft.fft2(P))) / np.sum(P) / len(fm))
+    pf = np.real(np.fft.ifft2(fm * np.fft.fft2(pr_high_res))) / np.sum(mask)
+    if np.sum(indmask) > 0:
+        pr_high_res[~indmask] = 1
+        pf = pf / (
+            np.real(np.fft.ifft2(fm * np.fft.fft2(pr_high_res)))
+            / np.sum(pr_high_res)
+            / len(fm)
+        )
 
-    pf[indmask]=np.nan
-    return pf 
+    pf[indmask] = np.nan
+    return pf
 
 
-def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False , smooth=False):
+def _check_smooth_value(smooth):
+
+    if smooth is None:
+        return 0
+    elif smooth == "Gaussian":
+        return 1
+    elif smooth == "tophat":
+        return 2
+    else:
+        raise RuntimeError(
+            'the smooth value does not exist, choose from this list {None,"Gaussian","tophat"}'
+        )
+
+
+def downscale(
+    precip, ds_factor, alpha=None, threshold=None, return_alpha=False, smooth=None
+):
     """
     Downscale a rainfall field by increasing its spatial resolution by
     a positive integer factor.
@@ -118,7 +137,8 @@ def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False 
         Set all values lower than the threshold to zero.
     return_alpha: bool, optional
         Whether to return the estimated spectral slope ``alpha``.
-
+    smooth: list, optional
+        Add the smoothing operatore from this list {None,"Gaussian","tophat"}
     Returns
     -------
     r: array-like
@@ -139,7 +159,9 @@ def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False 
     :cite:`Rebora2006`
 
     """
-    nas = np.shape(precip)[1]
+    type_smooth = _check_smooth_value(smooth)
+
+    orig_res = np.shape(precip)[1]
 
     ki = np.fft.fftfreq(precip.shape[0])
     kj = np.fft.fftfreq(precip.shape[1])
@@ -173,19 +195,26 @@ def downscale(precip, ds_factor, alpha=None, threshold=None, return_alpha=False 
     tophat = ((mx**2 + my**2) <= rad**2).astype(float)
     tophat /= tophat.sum()
 
-    if smooth:
+    if type_smooth == 0:
+
+        P_agg = precip
+        r_agg = zoom(r, 1 / ds_factor, order=1)
+        factor = np.repeat(
+            np.repeat(P_agg / r_agg, ds_factor, axis=0), ds_factor, axis=1
+        )
+        r *= factor
+
+    elif type_smooth == 1:
+
+        P_agg = _smoothconv(P_u, orig_res)
+        r_agg = _smoothconv(r, orig_res)
+        r *= P_agg / r_agg
+
+    elif type_smooth == 2:
+
         P_agg = _balanced_spatial_average(P_u, tophat)
         r_agg = _balanced_spatial_average(r, tophat)
-        
-        P_agg = _smoothconv(P_agg, nas)
-        r_agg = _smoothconv(r_agg, nas)
-
-    else:
-        P_agg = _balanced_spatial_average(P_u, tophat)
-        r_agg = _balanced_spatial_average(r, tophat)
-
-
-    r *= P_agg / r_agg
+        r *= P_agg / r_agg
 
     if threshold is not None:
         r[r < threshold] = 0
