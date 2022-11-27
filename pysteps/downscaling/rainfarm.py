@@ -46,14 +46,14 @@ def _balanced_spatial_average(pr_high_res, tophat=None, orig_res=None, kernel="t
     """
     Parameters
     ----------
-    pr_high_res : matrix
-        matrix with the input field to smoothen, with dimensions ns*ns.
-    tophat : array_like
-        Array of weights
-    orig_res : int
-        original size of the precipitation field.
-    kernel : string
-        Choose the smoothing method
+    pr_high_res: array_like
+        Array containing the input precipitation field of shape (m, n).
+    tophat: array_like, optional
+        Array of weights, used only if kernel='tophat'.
+    orig_res: int, optional
+        Original size of the precipitation field, used only if kernel='Gaussian'
+    kernel : string, {None, "Gaussian", "tophat"}
+        The smoothing method.
 
     Returns
     -------
@@ -103,7 +103,7 @@ def _balanced_spatial_average(pr_high_res, tophat=None, orig_res=None, kernel="t
 
     else:
         raise RuntimeError(
-            'the smooth value does not exist, choose from this list {None,"Gaussian","tophat"}'
+            'the kernel value does not exist, choose from this list {None, "Gaussian", "tophat"}'
         )
 
 
@@ -117,22 +117,23 @@ def _check_smooth_value(smooth):
         return 2
     else:
         raise RuntimeError(
-            'the smooth value does not exist, choose from this list {None,"Gaussian","tophat"}'
+            'the smooth value does not exist, choose from this list {None, "Gaussian", "tophat"}'
         )
 
 
 def gaussianize(precip):
     """
-    Gaussianize field using rank ordering
+    Gaussianize field using rank ordering.
 
     Parameters
     ----------
-    precip : matrix
-        matrix containing the input field to be Gaussianized.
+    precip: array_like
+        Array containing the input field to be Gaussianized.
 
     Returns
     -------
-        The Gaussianized field with the same dimensions as the input field.
+    precip_gaussianize: array_like
+        The Gaussianized field with the same shape as the input field.
 
     References
     ----------
@@ -170,7 +171,7 @@ def downscale(
 
     Parameters
     ----------
-    precip: array-like
+    precip: array_like
         Array of shape (m, n) containing the input field.
         The input is expected to contain rain rate values.
         All values are required to be finite.
@@ -184,11 +185,12 @@ def downscale(
         Set all values lower than the threshold to zero.
     return_alpha: bool, optional
         Whether to return the estimated spectral slope ``alpha``.
-    smooth: list, optional
-        Add the smoothing operatore from this list {None,"Gaussian","tophat"}
+    smooth: str, {None, "Gaussian", "tophat"}
+        The name of the smoothing operator.
+
     Returns
     -------
-    r: array-like
+    r: array_like
         Array of shape (m * ds_factor, n * ds_factor) containing
         the downscaled field.
     alpha: float
