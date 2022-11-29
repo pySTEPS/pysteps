@@ -700,7 +700,7 @@ def close_forecast_files(exporter):
         pass  # NOTE: There is no explicit "close" method in GDAL.
         # The files are closed when all objects referencing to the GDAL
         # datasets are deleted (i.e. when the exporter object is deleted).
-    if exporter["method"] == "kineros":
+    elif exporter["method"] == "kineros":
         pass  # no need to close the file
     else:
         exporter["ncfile"].close()
