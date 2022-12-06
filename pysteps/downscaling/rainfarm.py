@@ -71,10 +71,48 @@ def _estimate_alpha(array, k):
 
 
 def _apply_spectral_fusion(array_low, array_high):
-    # TODO: implement same as in
-    # https://github.com/jhardenberg/RainFARM.jl/blob/master/src/rf/mergespec_spaceonly.jl
-    # https://github.com/jhardenberg/rainfarmr/blob/master/R/smoothconv.R
-    raise NotImplementedError
+
+    kmax = array_low.shape[0] // 2
+
+    (nax, nay) = np.shape(array_low)
+    (nx, ny) = np.shape(array_high)
+
+    DFTr = np.fft.fft2(array_low)
+    DFTf = np.fft.fft2(array_high)
+
+    DFTr = np.fft.fftshift(DFTr)
+    DFTf = np.fft.fftshift(DFTf)
+
+    DFTfm = np.zeros([nx, nx])
+    DFTr2 = np.zeros([nax + 1, nax + 1])
+
+    DFTr2[0:nax, 0:nax] = DFTr[:, :]
+    DFTr2[-1, 0:nax] = np.conj(DFTr[0, :])
+    DFTr2[0:nax, -1] = np.conj(DFTr[:, 0])
+
+    kmax2 = kmax**2
+
+    ddx = 2 * np.pi / nax / 2 - 2 * np.pi / nx / 2
+
+    for i in range(nx):
+        for j in range(nx):
+            kx = -(nx // 2) + i - 1
+            ky = -(nx // 2) + j - 1
+            k2 = kx**2 + ky**2
+            ir = (nax // 2) + 1 + kx
+            jr = (nax // 2) + 1 + ky
+            if k2 <= kmax2:
+                DFTfm[i, j] = DFTr2[ir - 1, jr - 1] * np.exp(
+                    complex(0, ddx * kx - ddx * ky)
+                )
+            else:
+                DFTfm[i, j] = DFTf[i, j]
+
+    DFTfm = np.fft.ifftshift(DFTfm)
+    fm = np.fft.ifft2(DFTfm).real
+    fm /= fm.std()
+    fm = np.exp(fm)
+    return fm
 
 
 def _compute_kernel_radius(ds_factor):
@@ -108,8 +146,8 @@ def _balanced_spatial_average(array, kernel):
     array = array.copy()
     mask_valid = np.isfinite(array)
     array[~mask_valid] = 0.0
-    array_conv = convolve(array, kernel, mode="warp")
-    array_conv /= convolve(mask_valid, kernel, mode="warp")
+    array_conv = convolve(array, kernel, mode="same")
+    array_conv /= convolve(mask_valid, kernel, mode="same")
     array_conv[~mask_valid] = np.nan
     return array_conv
 
