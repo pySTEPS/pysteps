@@ -197,10 +197,8 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
 
     # specify the operator to be used to aggregate the values
     # within the space window
-    if unit == "mm/h":
+    if unit == "mm/h" or unit == "mm":
         method = "mean"
-    elif unit == "mm":
-        method = "sum"
     else:
         raise ValueError(
             "can only aggregate units of 'mm/h' or 'mm' " + "not %s" % unit
