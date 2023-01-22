@@ -86,12 +86,12 @@ jobs:
 
       - name: Upload coverage to Codecov (Linux only)
         if: matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         env:
           OS: ${{ matrix.os }}
           PYTHON: ${{ matrix.python-version }}
         with:
-          file: ${{github.workspace}}/pysteps_data/coverage.xml
+          files: ${{github.workspace}}/pysteps_data/coverage.xml
           flags: unit_tests
           env_vars: OS,PYTHON
           fail_ci_if_error: true
