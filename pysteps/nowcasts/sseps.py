@@ -466,8 +466,8 @@ def forecast(
     M, N = precip.shape[1:]
     n_windows_M = np.ceil(1.0 * M / win_size[0]).astype(int)
     n_windows_N = np.ceil(1.0 * N / win_size[1]).astype(int)
-    idxm = np.zeros((2, 1), dtype=int)
-    idxn = np.zeros((2, 1), dtype=int)
+    idxm = np.zeros(2, dtype=int)
+    idxn = np.zeros(2, dtype=int)
 
     if measure_time:
         starttime = time.time()
@@ -677,8 +677,8 @@ def forecast(
 
             # then the local steps
             if n_windows_M > 1 or n_windows_N > 1:
-                idxm = np.zeros((2, 1), dtype=int)
-                idxn = np.zeros((2, 1), dtype=int)
+                idxm = np.zeros(2, dtype=int)
+                idxn = np.zeros(2, dtype=int)
                 precip_l = np.zeros((M, N), dtype=float)
                 M_s = np.zeros((M, N), dtype=float)
                 for m in range(n_windows_M):
