@@ -507,8 +507,8 @@ def initialize_nonparam_2d_ssft_filter(field, **kwargs):
     # SSFT algorithm
 
     # prepare indices
-    idxi = np.zeros((2, 1), dtype=int)
-    idxj = np.zeros((2, 1), dtype=int)
+    idxi = np.zeros(2, dtype=int)
+    idxj = np.zeros(2, dtype=int)
 
     # number of windows
     num_windows_y = np.ceil(float(dim_y) / win_size[0]).astype(int)
@@ -793,8 +793,8 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     cN = np.zeros(dim)
     sM = np.zeros(dim)
 
-    idxi = np.zeros((2, 1), dtype=int)
-    idxj = np.zeros((2, 1), dtype=int)
+    idxi = np.zeros(2, dtype=int)
+    idxj = np.zeros(2, dtype=int)
 
     # get the window size
     win_size = (float(dim_y) / F.shape[0], float(dim_x) / F.shape[1])
