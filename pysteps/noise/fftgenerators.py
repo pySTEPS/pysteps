@@ -691,7 +691,9 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
                     x0 = (
                         Idxinext[n, 1] - Idxinext[n, 0]
                     ) / 2.0  # TODO: consider y dimension, too
-                    merge_weights = 1 / (1 + np.exp(-k * (1 / freq_grid - x0)))
+                    merge_weights = 1 / (
+                        1 + np.exp(-k * (1 / freq_grid - x0 * gridres))
+                    )
                     newfilter *= 1 - merge_weights
 
                     # perform the weighted average of previous and new fourier filters
