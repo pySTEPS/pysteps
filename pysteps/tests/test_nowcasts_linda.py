@@ -9,6 +9,7 @@ from pysteps.tests.helpers import get_precipitation_fields
 
 
 linda_arg_names = (
+    "timesteps",
     "add_perturbations",
     "kernel_type",
     "vel_pert_method",
@@ -19,15 +20,17 @@ linda_arg_names = (
 )
 
 linda_arg_values = [
-    (False, "anisotropic", None, 1, False, 0.5, None),
-    (False, "isotropic", None, 5, True, 0.5, None),
-    (True, "anisotropic", None, 1, True, None, 0.3),
-    (True, "isotropic", "bps", 5, True, None, 0.3),
+    (3, False, "anisotropic", None, 1, False, 0.5, None),
+    ([3], False, "anisotropic", None, 1, False, 0.5, None),
+    (3, False, "isotropic", None, 5, True, 0.5, None),
+    (3, True, "anisotropic", None, 1, True, None, 0.3),
+    (3, True, "isotropic", "bps", 5, True, None, 0.3),
 ]
 
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
 def test_linda(
+    timesteps,
     add_perturbations,
     kernel_type,
     vel_pert_method,
@@ -102,7 +105,6 @@ def test_linda(
 
 
 def test_linda_wrong_inputs():
-
     # dummy inputs
     precip = np.zeros((3, 3, 3))
     velocity = np.zeros((2, 3, 3))
@@ -116,11 +118,6 @@ def test_linda_wrong_inputs():
         forecast(
             precip, velocity, 1, vel_pert_method="bps", kmperpixel=1, timestep=None
         )
-
-    # fractional time steps not yet implemented
-    # timesteps is not an integer
-    with pytest.raises(ValueError):
-        forecast(precip, velocity, [1.0, 2.0])
 
     # ari_order 1 or 2 required
     with pytest.raises(ValueError):
