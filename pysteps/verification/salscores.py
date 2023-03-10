@@ -302,10 +302,10 @@ def _sal_l2_param(prediction, observation, thr_factor, thr_quantile, tstorm_kwar
     )
     obs_r = (
         _sal_weighted_distance(observation, thr_factor, thr_quantile, tstorm_kwargs)
-    ) * (np.nanmean(observation))
+    )
     forc_r = (
         _sal_weighted_distance(prediction, thr_factor, thr_quantile, tstorm_kwargs)
-    ) * (np.nanmean(prediction))
+    ) 
     location_2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
     return float(location_2)
 
