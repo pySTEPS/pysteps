@@ -301,7 +301,6 @@ def _sal_l2_param(prediction, observation, thr_factor, thr_quantile, tstorm_kwar
         ((observation.shape[0]) ** 2) + ((observation.shape[1]) ** 2)
     )
     obs_r = _sal_weighted_distance(observation, thr_factor, thr_quantile, tstorm_kwargs)
-
     forc_r = _sal_weighted_distance(prediction, thr_factor, thr_quantile, tstorm_kwargs)
 
     location_2 = 2 * ((abs(obs_r - forc_r)) / maximum_distance)
