@@ -132,7 +132,6 @@ def initialize_param_2d_fft_filter(field, **kwargs):
         tapering = np.ones((M, N))
 
     if model.lower() == "power-law":
-
         # compute average 2D PSD
         F = np.zeros((M, N), dtype=complex)
         for i in range(nr_fields):
@@ -526,7 +525,6 @@ def initialize_nonparam_2d_ssft_filter(field, **kwargs):
     for i in range(F.shape[0]):
         # loop columns
         for j in range(F.shape[1]):
-
             # compute indices of local window
             idxi[0] = int(np.max((i * win_size[0] - overlap * win_size[0], 0)))
             idxi[1] = int(
@@ -657,16 +655,13 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
     # now loop levels and build composite spectra
     level = 0
     while level < max_level:
-
         for m in range(len(Idxi)):
-
             # the indices of rainfall field
             Idxinext, Idxjnext = _split_field(Idxi[m, :], Idxj[m, :], 2)
             # the indices of the field of fourier filters
             Idxipsdnext, Idxjpsdnext = _split_field(Idxipsd[m, :], Idxjpsd[m, :], 2)
 
             for n in range(len(Idxinext)):
-
                 mask = _get_mask(dim, Idxinext[n, :], Idxjnext[n, :], win_fun)
                 war = np.sum((field * mask[None, :, :]) > 0.01) / float(
                     (Idxinext[n, 1] - Idxinext[n, 0])
@@ -807,7 +802,6 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     for i in range(F.shape[0]):
         # loop columns
         for j in range(F.shape[1]):
-
             # apply fourier filtering with local filter
             lF = F[i, j, :, :]
             flN = fN * lF

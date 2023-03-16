@@ -78,7 +78,6 @@ def test_utils_reproject_grids(
     metadata_src,
     metadata_dst,
 ):
-
     # Reproject
     nwp_array_reproj, metadata_reproj = rpj.reproject_grids(
         nwp_array, radar_array, metadata_src, metadata_dst

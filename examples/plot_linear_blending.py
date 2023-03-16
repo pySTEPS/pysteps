@@ -210,7 +210,6 @@ fig = plt.figure(figsize=(8, 12))
 leadtimes_min = [30, 60, 80, 100, 120]
 n_leadtimes = len(leadtimes_min)
 for n, leadtime in enumerate(leadtimes_min):
-
     # Extrapolation
     plt.subplot(n_leadtimes, 4, n * 4 + 1)
     plot_precip_field(

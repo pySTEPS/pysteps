@@ -102,7 +102,6 @@ def advection_correction(R, T=5, t=1):
         np.arange(R[0].shape[1], dtype=float), np.arange(R[0].shape[0], dtype=float)
     )
     for i in range(t, T + t, t):
-
         pos1 = (y - i / T * V[1], x - i / T * V[0])
         R1 = map_coordinates(R[0], pos1, order=1)
 

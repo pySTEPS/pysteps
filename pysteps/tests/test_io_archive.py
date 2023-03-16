@@ -6,7 +6,6 @@ import pysteps
 
 
 def test_find_by_date_mch():
-
     pytest.importorskip("PIL")
 
     date = datetime.strptime("201505151630", "%Y%m%d%H%M")

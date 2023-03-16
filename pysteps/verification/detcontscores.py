@@ -154,7 +154,6 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     # online scores
     onresult = {}
     if onscores:
-
         err = det_cont_fct_init(axis=axis, conditioning=conditioning, thr=thr)
         det_cont_fct_accum(err, pred, obs)
         onresult = det_cont_fct_compute(err, onscores)
@@ -162,7 +161,6 @@ def det_cont_fct(pred, obs, scores="", axis=None, conditioning=None, thr=0.0):
     # offline scores
     offresult = {}
     if offscores:
-
         pred = np.asarray(pred.copy())
         obs = np.asarray(obs.copy())
 
@@ -650,7 +648,6 @@ def _uniquelist(mylist):
 
 
 def _scatter(pred, obs, axis=None):
-
     pred = pred.copy()
     obs = obs.copy()
 
@@ -704,7 +701,6 @@ def _scatter(pred, obs, axis=None):
 
 
 def _spearmanr(pred, obs, axis=None):
-
     pred = pred.copy()
     obs = obs.copy()
 

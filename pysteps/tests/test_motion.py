@@ -222,7 +222,6 @@ def test_optflow_method_convergence(
     elif optflow_method_name == "proesmans":
         retrieved_motion = oflow_method(precip_obs)
     else:
-
         retrieved_motion = oflow_method(precip_obs, verbose=False)
 
     precip_data, _ = stp.utils.dB_transform(precip_obs.max(axis=0), inverse=True)

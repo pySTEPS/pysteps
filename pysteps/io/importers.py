@@ -156,7 +156,6 @@ def _check_coords_range(selected_range, coordinate, full_range):
         return sorted(full_range)
 
     if not isinstance(selected_range, (list, tuple)):
-
         if len(selected_range) != 2:
             raise ValueError(
                 f"The {coordinate} range must be None or a two-element tuple or list"
@@ -943,7 +942,6 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
     img = Image.open(filename)
 
     if product.lower() in ["azc", "rzc", "precip"]:
-
         # convert 8-bit GIF colortable to RGB values
         img_rgb = img.convert("RGB")
 
@@ -974,7 +972,6 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
         precip[precip > 9999] = np.nan
 
     elif product.lower() in ["aqc", "cpc", "acquire ", "combiprecip"]:
-
         # convert digital numbers to physical values
         img = np.array(img).astype(int)
 
@@ -1546,7 +1543,6 @@ def import_saf_crri(filename, extent=None, **kwargs):
         metadata["y2"] = ycoord[idx_y].max() + metadata["ypixelsize"] / 2
 
     else:
-
         idx_x = None
         idx_y = None
 

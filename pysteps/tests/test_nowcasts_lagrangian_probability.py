@@ -86,7 +86,6 @@ def test_real_case():
 
 
 def test_wrong_inputs():
-
     # dummy inputs
     precip = np.zeros((3, 3))
     velocity = np.zeros((2, *precip.shape))

@@ -70,10 +70,10 @@ R, metadata = conversion.to_rainrate(Z, metadata)
 # Test data transformations
 # -------------------------
 
+
 # Define method to visualize the data distribution with boxplots and plot the
 # corresponding skewness
 def plot_distribution(data, labels, skw):
-
     N = len(data)
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()

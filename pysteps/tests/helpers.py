@@ -165,7 +165,6 @@ def get_precipitation_fields(
     )
 
     if not return_raw:
-
         if (num_prev_files == 0) and (num_next_files == 0):
             # Remove time dimension
             reference_field = np.squeeze(reference_field)

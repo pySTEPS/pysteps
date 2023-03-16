@@ -66,7 +66,6 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     def _postprocess_import(importer):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
-
             precip, *other_args = importer(*args, **kwargs)
 
             _dtype = kwargs.get("dtype", dtype)
