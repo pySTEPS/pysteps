@@ -116,6 +116,7 @@ reference_field.data[reference_field.mask] = np.nan
 # The "precipitation region" includes the precipitation pattern plus a margin of
 # approximately 20 grid points.
 
+
 ################################################################################
 # Let's create a function to construct different motion fields.
 def create_motion_field(input_precip, motion_type):

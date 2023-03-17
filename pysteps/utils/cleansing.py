@@ -179,7 +179,6 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
         return np.zeros(nsamples, dtype=bool)
 
     if coord is not None and k is not None:
-
         coord = np.copy(coord)
         if coord.ndim == 1:
             coord = coord[:, None]
@@ -200,7 +199,6 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
     # global
 
     if k is None or coord is None:
-
         if nvar == 1:
             # univariate
             zdata = np.abs(input_array - np.mean(input_array)) / np.std(input_array)
@@ -219,12 +217,10 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
     # local
     else:
-
         tree = scipy.spatial.cKDTree(coord)
         __, inds = tree.query(coord, k=k)
         outliers = np.empty(shape=0, dtype=bool)
         for i in range(inds.shape[0]):
-
             if nvar == 1:
                 # univariate
                 thisdata = input_array[i]

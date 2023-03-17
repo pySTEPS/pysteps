@@ -488,7 +488,6 @@ def square_domain(R, metadata, method="pad", inverse=False):
     metadata = metadata.copy()
 
     if not inverse:
-
         if len(R.shape) < 2:
             raise ValueError("The number of dimension must be > 1")
         if len(R.shape) == 2:
@@ -508,7 +507,6 @@ def square_domain(R, metadata, method="pad", inverse=False):
         orig_dim_x = orig_dim[3]
 
         if method == "pad":
-
             new_dim = np.max(orig_dim[2:])
             R_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim)) * R.min()
 
@@ -525,7 +523,6 @@ def square_domain(R, metadata, method="pad", inverse=False):
                 metadata["y2"] += idx_buffer * metadata["ypixelsize"]
 
         elif method == "crop":
-
             new_dim = np.min(orig_dim[2:])
             R_ = np.zeros((orig_dim_n, orig_dim_t, new_dim, new_dim))
 
@@ -553,7 +550,6 @@ def square_domain(R, metadata, method="pad", inverse=False):
         return R_.reshape(R_shape), metadata
 
     elif inverse:
-
         if len(R.shape) < 2:
             raise ValueError("The number of dimension must be > 2")
         if len(R.shape) == 2:
@@ -572,7 +568,6 @@ def square_domain(R, metadata, method="pad", inverse=False):
         R_ = np.zeros((R.shape[0], R.shape[1], shape[0], shape[1]))
 
         if method == "pad":
-
             if R.shape[2] == shape[0]:
                 idx_buffer = int((R.shape[3] - shape[1]) / 2.0)
                 R_ = R[:, :, :, idx_buffer : (idx_buffer + shape[1])]
@@ -586,7 +581,6 @@ def square_domain(R, metadata, method="pad", inverse=False):
                 metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
 
         elif method == "crop":
-
             if R.shape[2] == shape[0]:
                 idx_buffer = int((shape[1] - R.shape[3]) / 2.0)
                 R_[:, :, :, idx_buffer : (idx_buffer + R.shape[3])] = R

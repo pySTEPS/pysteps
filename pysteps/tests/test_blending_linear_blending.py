@@ -167,7 +167,6 @@ def test_salient_weight(
     nwp,
     weight_nowcast,
 ):
-
     ranked_salience = _get_ranked_salience(nowcast, nwp)
     ws = _get_ws(weight_nowcast, ranked_salience)
 

@@ -205,7 +205,6 @@ def dense_lucaskanade(
     xy = np.empty(shape=(0, 2))
     uv = np.empty(shape=(0, 2))
     for n in range(nr_fields - 1):
-
         # extract consecutive images
         prvs_img = input_images[n, :, :].copy()
         next_img = input_images[n + 1, :, :].copy()

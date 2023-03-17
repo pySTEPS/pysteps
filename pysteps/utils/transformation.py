@@ -88,7 +88,6 @@ def boxcox_transform(
         metadata = metadata.copy()
 
     if not inverse:
-
         if metadata["transform"] == "BoxCox":
             return R, metadata
 
@@ -120,7 +119,6 @@ def boxcox_transform(
         metadata["threshold"] = threshold
 
     elif inverse:
-
         if metadata["transform"] not in ["BoxCox", "log"]:
             return R, metadata
 
@@ -192,7 +190,6 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
 
     # to dB units
     if not inverse:
-
         if metadata["transform"] == "dB":
             return R, metadata
 
@@ -218,7 +215,6 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
 
     # from dB units
     elif inverse:
-
         if metadata["transform"] != "dB":
             return R, metadata
 

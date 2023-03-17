@@ -36,7 +36,6 @@ def test_visualization_plot_precip_field(source, map_kwargs, pass_geodata):
 
 
 if __name__ == "__main__":
-
     for i, args in enumerate(plt_arg_values):
         test_visualization_plot_precip_field(*args)
         plt.show()

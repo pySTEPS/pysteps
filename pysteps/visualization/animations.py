@@ -204,7 +204,6 @@ def animate(
 
                 # Observations
                 if i < n_obs and (display_animation or n == 0):
-
                     title = title_first_line + "Analysis"
                     if timestamps_obs is not None:
                         title += (
@@ -253,7 +252,6 @@ def animate(
 
                 # Forecasts
                 elif i >= n_obs and precip_fct is not None:
-
                     title = title_first_line + "Forecast"
                     if timestamps_obs is not None:
                         title += f" valid for {timestamps_obs[-1].strftime('%Y-%m-%d %H:%M')}"
