@@ -138,15 +138,21 @@ To get access to it, you need to ask for an invitation or you can use this `auto
 Reference publications
 ======================
 
+The overall library is described in
+
 Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann,
 A. Seed, and L. Foresti, 2019:  Pysteps:  an open-source Python library for
 probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**,
-4185–4219, `doi:10.5194/gmd-12-4185-2019 <https://doi.org/10.5194/gmd-12-4185-2019>`_.
+4185–4219, doi:`10.5194/gmd-12-4185-2019 <https://doi.org/10.5194/gmd-12-4185-2019>`_.
 
-Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann, A. Seed, and
-L. Foresti, 2019: pysteps - a Community-Driven Open-Source Library for Precipitation Nowcasting.
-*Poster presented at the 3rd European Nowcasting Conference, Madrid, ES*,
-`doi:10.13140/RG.2.2.31368.67840 <https://doi.org/10.13140/RG.2.2.31368.67840>`_.
+While the more recent blending module is described in
+
+Imhoff, R.O., L. De Cruz, W. Dewettinck, C.C. Brauer, R. Uijlenhoet, K-J. van Heeringen, 
+C. Velasco-Forero, D. Nerini, M. Van Ginderachter, and A.H. Weerts, 2023:
+Scale-dependent blending of ensemble rainfall nowcasts and NWP in the open-source
+pysteps library. *Q J R Meteorol Soc.*, Accepted Author Manuscript,
+doi: `10.1002/qj.4461 <https://doi.org/10.1002/qj.4461>`_.
+
 
 Contributors
 ============
