@@ -36,7 +36,7 @@ for performance.
 
 import numpy
 from numpy.ma.core import MaskedArray
-from scipy.ndimage.interpolation import zoom
+from scipy.ndimage import zoom
 from scipy.optimize import minimize
 
 from pysteps.decorators import check_input_frames

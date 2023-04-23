@@ -27,7 +27,7 @@ Skill scores for spatial forecasts.
 
 import collections
 import numpy as np
-from scipy.ndimage.filters import uniform_filter
+from scipy.ndimage import uniform_filter
 
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.verification.salscores import sal  # make SAL accessible from this module

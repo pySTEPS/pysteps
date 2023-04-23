@@ -16,7 +16,7 @@ The Spatial-Amplitude-Location (SAL) score by :cite:`WPHF2008`.
 from math import sqrt, hypot
 
 import numpy as np
-from scipy.ndimage.measurements import center_of_mass
+from scipy.ndimage import center_of_mass
 
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.feature import tstorm as tstorm_detect
