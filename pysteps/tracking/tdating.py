@@ -308,10 +308,11 @@ def couple_track(cell_list, max_ID, mintrack):
             index=None,
             columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont"],
         )
+        cell_track = []
         for t in range(len(cell_list)):
             mytime = cell_list[t]
-            mycell = mytime[mytime.ID == n]
-            cell_track = pd.concat([cell_track, mycell], ignore_index=True)
+            cell_track.append(mytime[mytime.ID == n])
+        cell_track = pd.concat(cell_track, axis=0)
 
         if len(cell_track) < mintrack:
             continue
