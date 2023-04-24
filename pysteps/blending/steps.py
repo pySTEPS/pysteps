@@ -1605,7 +1605,7 @@ def _compute_incremental_mask(Rbin, kr, r):
     kr1 = generate_binary_structure(2, 1)
     mask = Rd.astype(float)
     for n in range(r):
-        Rd = sbinary_dilation(Rd, kr1)
+        Rd = binary_dilation(Rd, kr1)
         mask += Rd
     # normalize between 0 and 1
     return mask / mask.max()
