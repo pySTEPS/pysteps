@@ -233,26 +233,33 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
     cells = areas * binary
     cell_labels = cells[loc_max]
     labels = np.zeros(cells.shape)
+    cells_id = []
+    for n, cell_label in enumerate(cell_labels):
+        this_id = n + 1
+        x = np.where(cells == cell_label)[1]
+        y = np.where(cells == cell_label)[0]
+        cell_unique = np.zeros(cells.shape)
+        cell_unique[cells == cell_label] = 1
+        maxref = np.nanmax(ref[y, x])
+        contours = skime.find_contours(cell_unique, 0.8)
+        cells_id.append(
+            {
+                "ID": this_id,
+                "time": time,
+                "x": x,
+                "y": y,
+                "cen_x": np.round(np.nanmean(x)).astype(int),
+                "cen_y": np.round(np.nanmean(y)).astype(int),
+                "max_ref": maxref,
+                "cont": contours,
+                "area": len(x),
+            }
+        )
+        labels[cells == cell_labels[n]] = this_id
     cells_id = pd.DataFrame(
-        data=None,
+        data=cells_id,
         index=range(len(cell_labels)),
         columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont", "area"],
     )
-    cells_id.time = time
-    for n in range(len(cell_labels)):
-        ID = n + 1
-        cells_id.ID.iloc[n] = ID
-        cells_id.x.iloc[n] = np.where(cells == cell_labels[n])[1]
-        cells_id.y.iloc[n] = np.where(cells == cell_labels[n])[0]
-        cell_unique = np.zeros(cells.shape)
-        cell_unique[cells == cell_labels[n]] = 1
-        maxref = np.nanmax(ref[cells_id.y[n], cells_id.x[n]])
-        contours = skime.find_contours(cell_unique, 0.8)
-        cells_id.cont.iloc[n] = contours
-        cells_id.cen_x.iloc[n] = np.round(np.nanmean(cells_id.x[n])).astype(int)
-        cells_id.cen_y.iloc[n] = np.round(np.nanmean(cells_id.y[n])).astype(int)
-        cells_id.max_ref.iloc[n] = maxref
-        cells_id.area.iloc[n] = len(cells_id.x.iloc[n])
-        labels[cells == cell_labels[n]] = ID
 
     return cells_id, labels

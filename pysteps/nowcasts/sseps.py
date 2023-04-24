@@ -19,8 +19,9 @@ size.
 """
 
 import numpy as np
-import scipy.ndimage
 import time
+from scipy.ndimage import generate_binary_structure, iterate_structure
+
 
 from pysteps import cascade
 from pysteps import extrapolation
@@ -342,10 +343,10 @@ def forecast(
         mask_rim = mask_kwargs.get("mask_rim", 10)
         mask_f = mask_kwargs.get("mask_f", 1.0)
         # initialize the structuring element
-        struct = scipy.ndimage.generate_binary_structure(2, 1)
+        struct = generate_binary_structure(2, 1)
         # iterate it to expand it nxn
         n = mask_f * timestep / kmperpixel
-        struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
+        struct = iterate_structure(struct, int((n - 1) / 2.0))
 
     noise_kwargs.update(
         {

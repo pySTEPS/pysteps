@@ -200,7 +200,7 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
     cells_ad = advect(cells_id_prev, labels, V1)
     cells_ov, labels = match(cells_ad, labels)
     newlabels = np.zeros(labels.shape)
-    for ID, cell in cells_id_new.iterrows():
+    for index, cell in cells_id_new.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
             continue
         new_ID = cells_ov[cells_ov.t_ID == cell.ID].ID.values
@@ -211,12 +211,12 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
                 size.append(len(x))
             biggest = np.argmax(size)
             new_ID = new_ID[biggest]
-            cells_id_new.ID.iloc[ID] = new_ID
+            cells_id_new.loc[index, "ID"] = new_ID
         else:
             max_ID += 1
             new_ID = max_ID
-            cells_id_new.ID.iloc[ID] = new_ID
-        newlabels[labels == ID + 1] = new_ID
+            cells_id_new.loc[index, "ID"] = new_ID
+        newlabels[labels == index + 1] = new_ID
         del new_ID
     return cells_id_new, max_ID, newlabels
 
@@ -308,10 +308,11 @@ def couple_track(cell_list, max_ID, mintrack):
             index=None,
             columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont"],
         )
+        cell_track = []
         for t in range(len(cell_list)):
             mytime = cell_list[t]
-            mycell = mytime[mytime.ID == n]
-            cell_track = cell_track.append(mycell)
+            cell_track.append(mytime[mytime.ID == n])
+        cell_track = pd.concat(cell_track, axis=0)
 
         if len(cell_track) < mintrack:
             continue

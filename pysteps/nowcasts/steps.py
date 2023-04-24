@@ -12,7 +12,7 @@ Implementation of the STEPS stochastic nowcasting method as described in
 """
 
 import numpy as np
-import scipy.ndimage
+from scipy.ndimage import generate_binary_structure, iterate_structure
 import time
 
 from pysteps import cascade
@@ -598,10 +598,10 @@ def forecast(
             mask_rim = mask_kwargs.get("mask_rim", 10)
             mask_f = mask_kwargs.get("mask_f", 1.0)
             # initialize the structuring element
-            struct = scipy.ndimage.generate_binary_structure(2, 1)
+            struct = generate_binary_structure(2, 1)
             # iterate it to expand it nxn
             n = mask_f * timestep / kmperpixel
-            struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
+            struct = iterate_structure(struct, int((n - 1) / 2.0))
             # initialize precip mask for each member
             mask_prec = nowcast_utils.compute_dilated_mask(mask_prec, struct, mask_rim)
             mask_prec = [mask_prec.copy() for _ in range(n_ens_members)]

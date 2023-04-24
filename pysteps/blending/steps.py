@@ -46,7 +46,7 @@ consists of the following main steps:
 import time
 
 import numpy as np
-import scipy.ndimage
+from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
 
 from pysteps import cascade
 from pysteps import extrapolation
@@ -1599,13 +1599,13 @@ def _compute_incremental_mask(Rbin, kr, r):
 
     # buffer observation mask
     Rbin = np.ndarray.astype(Rbin.copy(), "uint8")
-    Rd = scipy.ndimage.morphology.binary_dilation(Rbin, kr)
+    Rd = binary_dilation(Rbin, kr)
 
     # add grayscale rim
-    kr1 = scipy.ndimage.generate_binary_structure(2, 1)
+    kr1 = generate_binary_structure(2, 1)
     mask = Rd.astype(float)
     for n in range(r):
-        Rd = scipy.ndimage.morphology.binary_dilation(Rd, kr1)
+        Rd = binary_dilation(Rd, kr1)
         mask += Rd
     # normalize between 0 and 1
     return mask / mask.max()
@@ -1995,10 +1995,10 @@ def _prepare_forecast_loop(
         mask_rim = mask_kwargs.get("mask_rim", 10)
         mask_f = mask_kwargs.get("mask_f", 1.0)
         # initialize the structuring element
-        struct = scipy.ndimage.generate_binary_structure(2, 1)
+        struct = generate_binary_structure(2, 1)
         # iterate it to expand it nxn
         n = mask_f * timestep / kmperpixel
-        struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
+        struct = iterate_structure(struct, int((n - 1) / 2.0))
     else:
         mask_rim, struct = None, None
 

@@ -18,7 +18,8 @@ Module with common utilities used by nowcasts methods.
 
 import time
 import numpy as np
-import scipy.ndimage
+from scipy.ndimage import binary_dilation, generate_binary_structure
+
 from pysteps import extrapolation
 
 
@@ -85,13 +86,13 @@ def compute_dilated_mask(input_mask, kr, r):
     """
     # buffer the input mask
     input_mask = np.ndarray.astype(input_mask.copy(), "uint8")
-    mask_dilated = scipy.ndimage.morphology.binary_dilation(input_mask, kr)
+    mask_dilated = binary_dilation(input_mask, kr)
 
     # add grayscale rim
-    kr1 = scipy.ndimage.generate_binary_structure(2, 1)
+    kr1 = generate_binary_structure(2, 1)
     mask = mask_dilated.astype(float)
     for _ in range(r):
-        mask_dilated = scipy.ndimage.morphology.binary_dilation(mask_dilated, kr1)
+        mask_dilated = binary_dilation(mask_dilated, kr1)
         mask += mask_dilated
 
     # normalize between 0 and 1
