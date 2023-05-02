@@ -91,6 +91,7 @@ jobs:
           OS: ${{ matrix.os }}
           PYTHON: ${{ matrix.python-version }}
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{github.workspace}}/pysteps_data/coverage.xml
           flags: unit_tests
           env_vars: OS,PYTHON
