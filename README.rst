@@ -150,7 +150,7 @@ While the more recent blending module is described in
 Imhoff, R.O., L. De Cruz, W. Dewettinck, C.C. Brauer, R. Uijlenhoet, K-J. van Heeringen, 
 C. Velasco-Forero, D. Nerini, M. Van Ginderachter, and A.H. Weerts, 2023:
 Scale-dependent blending of ensemble rainfall nowcasts and NWP in the open-source
-pysteps library. *Q J R Meteorol Soc.*, Accepted Author Manuscript,
+pysteps library. *Q J R Meteorol Soc.*, 1-30,
 doi: `10.1002/qj.4461 <https://doi.org/10.1002/qj.4461>`_.
 
 
