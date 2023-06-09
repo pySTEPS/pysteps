@@ -172,6 +172,7 @@ def get_method(name, type="deterministic"):
         # categorical
         if name in [
             "acc",
+            "bias",
             "csi",
             "f1",
             "fa",
