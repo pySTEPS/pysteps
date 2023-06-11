@@ -34,11 +34,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install mamba and create environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
-          extra-specs: python=${{ matrix.python-version }}
+          create-args: python=${{ matrix.python-version }}
 
       - name: Install pygrib (not win)
         if: matrix.os != 'windows-latest'
