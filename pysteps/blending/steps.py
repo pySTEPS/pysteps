@@ -578,6 +578,10 @@ def forecast(
 
     # Also initialize the cascade of temporally correlated noise, which has the
     # same shape as precip_cascade, but starts with value zero.
+    #FIXME: Initialize noise with random values with correct spatial correlation
+    #       and standard deviations.
+    #FIXME: Should be done after _init_random_generators. Do we do it below with seperate 
+    #       _init_noise_cascade function or do we incorporate it in the worker loop?
     noise_cascade = np.zeros(precip_cascade.shape)
 
     # 6. Initialize all the random generators and prepare for the forecast loop
@@ -807,6 +811,7 @@ def forecast(
                     normalize=True,
                     compact_output=True,
                 )
+            #FIXME: Could also introduce the noise here with if t==0 clausule
             else:
                 EPS = None
 
@@ -819,6 +824,8 @@ def forecast(
                     precip_cascade[j][i] = autoregression.iterate_ar_model(
                         precip_cascade[j][i], PHI[i, :]
                     )
+                # FIXME: precipitation cascade should be renormalized here!
+                #        but how? Check slack exchange!
 
                 else:
                     # use the deterministic AR(p) model computed above if

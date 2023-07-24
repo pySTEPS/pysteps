@@ -1374,7 +1374,10 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         raise IOError("requested quantity %s not found" % qty)
 
     where = f["where"]
-    proj4str = where.attrs["projdef"].decode()
+    if isinstance(where.attrs["projdef"],str):
+        proj4str = where.attrs["projdef"]
+    else:
+        proj4str = where.attrs["projdef"].decode()
     pr = pyproj.Proj(proj4str)
 
     ll_lat = where.attrs["LL_lat"]
