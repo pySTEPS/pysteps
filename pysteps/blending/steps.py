@@ -725,6 +725,24 @@ def forecast(
             kmperpixel,
         )
 
+        # Also initialize the cascade of temporally correlated noise, which has the
+        # same shape as precip_cascade, but starts random noise.
+        noise_cascade = _init_noise_cascade(
+            shape=precip_cascade.shape, 
+            n_ens_members=n_ens_members,
+            n_cascade_levels=n_cascade_levels,
+            generate_noise=generate_noise,
+            decompositor=decompositor,
+            pp=pp, 
+            randgen_prec=randgen_prec, 
+            fft_objs=fft_objs, 
+            bp_filter=bp_filter, 
+            domain=domain,
+            noise_method=noise_method, 
+            noise_std_coeffs=noise_std_coeffs,
+            ar_order=ar_order
+            )
+
         precip = precip[-1, :, :]
 
         # 7. initizalize the current and previous extrapolation forecast scale
@@ -2179,3 +2197,48 @@ def _compute_initial_nwp_skill(
         **clim_kwargs,
     )
     return rho_nwp_models
+
+
+def _init_noise_cascade(
+        shape,
+        n_ens_members,
+        n_cascade_levels,
+        generate_noise,
+        decompositor,
+        pp,
+        randgen_prec,
+        fft_objs,
+        bp_filter,
+        domain,
+        noise_method,
+        noise_std_coeffs,
+        ar_order
+):
+    """Initialize the noise cascade with identical noise for all AR(n) steps"""
+    noise_cascade = np.zeros(shape)
+    if noise_method:
+        for j in range(n_ens_members):        
+            EPS = generate_noise(
+                pp,
+                randstate=randgen_prec[j],
+                fft_method=fft_objs[j],
+                domain=domain
+                )
+            EPS = decompositor(
+                EPS,
+                bp_filter,
+                fft_method=fft_objs[j],
+                input_domain=domain,
+                output_domain=domain,
+                compute_stats=True,
+                normalize=True,
+                compact_output=True
+                )
+            for i in range(n_cascade_levels):
+                EPS_ = EPS["cascade_levels"][i]
+                EPS_ *= noise_std_coeffs[i]
+                for n in range(ar_order):
+                    noise_cascade[j][i][n] = EPS_
+            EPS = None
+            EPS_ = None
+    return(noise_cascade)
