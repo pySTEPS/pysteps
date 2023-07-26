@@ -970,6 +970,7 @@ def forecast(
                         precip_cascade[j][i] = autoregression.iterate_ar_model(
                             precip_cascade[j][i], PHI[i, :]
                         )
+                        precip_cascade[j][i][1] /= np.std(precip_cascade[j][i][1])
                     else:
                         # use the deterministic AR(p) model computed above if
                         # perturbations are disabled
