@@ -8,13 +8,13 @@ Implementation of the STEPS stochastic blending method as described in
 consists of the following main steps:
 
     #. Set the radar rainfall fields in a Lagrangian space.
-    #. Initialize the noise method.
     #. Perform the cascade decomposition for the input radar rainfall fields.
        The method assumes that the cascade decomposition of the NWP model fields is
        already done prior to calling the function, as the NWP model fields are
        generally not updated with the same frequency (which is more efficient). A
        method to decompose and store the NWP model fields whenever a new NWP model
        field is present, is present in pysteps.blending.utils.decompose_NWP.
+    #. Initialize the noise method.
     #. Estimate AR parameters for the extrapolation nowcast and noise cascade.
     #. Initialize all the random generators.
     #. Calculate the initial skill of the NWP model forecasts at t=0.
@@ -663,10 +663,17 @@ def forecast(
         )
 
         # 3. Initialize the noise method.
-        # TODO: Check If zero_precip_radar is True and zero_model_fields is False.
-        # If so, initialize noise based on the NWP field
+        # If zero_precip_radar is True, initialize noise based on the maximum values
+        # in the NWP field (representing all rain fields in the forecast and
+        # ensuring that there are always value present). Else, initialize the noise
+        # with the radar rainfall data
+        if zero_precip_radar:
+            precip_noise_input = np.max(precip_models_pm, axis=1)
+        else:
+            precip_noise_input = precip.copy()
+
         pp, generate_noise, noise_std_coeffs = _init_noise(
-            precip,
+            precip_noise_input,
             precip_thr,
             n_cascade_levels,
             bp_filter,
@@ -678,10 +685,15 @@ def forecast(
             measure_time,
             num_workers,
         )
+        precip_noise_input = None
 
         # 4. Estimate AR parameters for the radar rainfall field
         PHI = _estimate_ar_parameters_radar(
-            precip_cascade, ar_order, n_cascade_levels, MASK_thr
+            precip_cascade,
+            ar_order,
+            n_cascade_levels,
+            MASK_thr,
+            zero_precip_radar,
         )
 
         # 5. Repeat precip_cascade for n ensemble members
@@ -696,10 +708,6 @@ def forecast(
             for i in range(n_ens_members)
         ]
         precip_cascade = np.stack(precip_cascade)
-
-        # Also initialize the cascade of temporally correlated noise, which has the
-        # same shape as precip_cascade, but starts with value zero.
-        noise_cascade = np.zeros(precip_cascade.shape)
 
         # 6. Initialize all the random generators and prepare for the forecast loop
         randgen_prec, vps, generate_vel_noise = _init_random_generators(
@@ -728,20 +736,20 @@ def forecast(
         # Also initialize the cascade of temporally correlated noise, which has the
         # same shape as precip_cascade, but starts random noise.
         noise_cascade = _init_noise_cascade(
-            shape=precip_cascade.shape, 
+            shape=precip_cascade.shape,
             n_ens_members=n_ens_members,
             n_cascade_levels=n_cascade_levels,
             generate_noise=generate_noise,
             decompositor=decompositor,
-            pp=pp, 
-            randgen_prec=randgen_prec, 
-            fft_objs=fft_objs, 
-            bp_filter=bp_filter, 
+            pp=pp,
+            randgen_prec=randgen_prec,
+            fft_objs=fft_objs,
+            bp_filter=bp_filter,
             domain=domain,
-            noise_method=noise_method, 
+            noise_method=noise_method,
             noise_std_coeffs=noise_std_coeffs,
-            ar_order=ar_order
-            )
+            ar_order=ar_order,
+        )
 
         precip = precip[-1, :, :]
 
@@ -1974,13 +1982,54 @@ def _compute_cascade_decomposition_nwp(
     return precip_models, mu_models, sigma_models, precip_models_pm
 
 
-def _estimate_ar_parameters_radar(R_c, ar_order, n_cascade_levels, MASK_thr):
+def _estimate_ar_parameters_radar(
+    R_c, ar_order, n_cascade_levels, MASK_thr, zero_precip_radar
+):
     """Estimate AR parameters for the radar rainfall field."""
-    # compute lag-l temporal autocorrelation coefficients for each cascade level
+    # If there are values in the radar fields, compute the autocorrelations
     GAMMA = np.empty((n_cascade_levels, ar_order))
-    for i in range(n_cascade_levels):
-        GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], mask=MASK_thr)
+    if not zero_precip_radar:
+        # compute lag-l temporal autocorrelation coefficients for each cascade level
+        for i in range(n_cascade_levels):
+            GAMMA[i, :] = correlation.temporal_autocorrelation(R_c[i], mask=MASK_thr)
 
+    # Else, use standard values for the autocorrelations
+    else:
+        # Get the climatological lag-1 and lag-2 autocorrelation values from Table 2
+        # in `BPS2004`.
+        # Hard coded, change to own (climatological) values when present.
+        GAMMA = np.array(
+            [
+                [0.99805, 0.9925, 0.9776, 0.9297, 0.796, 0.482, 0.079, 0.0006],
+                [0.9933, 0.9752, 0.923, 0.750, 0.367, 0.069, 0.0018, 0.0014],
+            ]
+        )
+
+        # Check whether the number of cascade_levels is correct
+        if GAMMA.shape[1] > n_cascade_levels:
+            GAMMA = GAMMA[:, 0:n_cascade_levels]
+        elif GAMMA.shape[1] < n_cascade_levels:
+            # Get the number of cascade levels that is missing
+            n_extra_lev = n_cascade_levels - GAMMA.shape[1]
+            # Append the array with correlation values of 10e-4
+            GAMMA = np.append(
+                GAMMA,
+                [np.repeat(0.0006, n_extra_lev), np.repeat(0.0014, n_extra_lev)],
+                axis=1,
+            )
+
+        # Finally base GAMMA.shape[0] on the AR-level
+        if ar_order == 1:
+            GAMMA = GAMMA[0, :]
+        if ar_order > 2:
+            for repeat_index in range(ar_order - 2):
+                GAMMA = np.vstack((GAMMA, GAMMA[1, :]))
+
+        # Finally, transpose GAMMA to ensure that the shape is the same as np.empty((n_cascade_levels, ar_order))
+        GAMMA = GAMMA.transpose()
+        assert GAMMA.shape == (n_cascade_levels, ar_order)
+
+    # Print the GAMMA value
     nowcast_utils.print_corrcoefs(GAMMA)
 
     if ar_order == 2:
@@ -2200,30 +2249,27 @@ def _compute_initial_nwp_skill(
 
 
 def _init_noise_cascade(
-        shape,
-        n_ens_members,
-        n_cascade_levels,
-        generate_noise,
-        decompositor,
-        pp,
-        randgen_prec,
-        fft_objs,
-        bp_filter,
-        domain,
-        noise_method,
-        noise_std_coeffs,
-        ar_order
+    shape,
+    n_ens_members,
+    n_cascade_levels,
+    generate_noise,
+    decompositor,
+    pp,
+    randgen_prec,
+    fft_objs,
+    bp_filter,
+    domain,
+    noise_method,
+    noise_std_coeffs,
+    ar_order,
 ):
     """Initialize the noise cascade with identical noise for all AR(n) steps"""
     noise_cascade = np.zeros(shape)
     if noise_method:
-        for j in range(n_ens_members):        
+        for j in range(n_ens_members):
             EPS = generate_noise(
-                pp,
-                randstate=randgen_prec[j],
-                fft_method=fft_objs[j],
-                domain=domain
-                )
+                pp, randstate=randgen_prec[j], fft_method=fft_objs[j], domain=domain
+            )
             EPS = decompositor(
                 EPS,
                 bp_filter,
@@ -2232,8 +2278,8 @@ def _init_noise_cascade(
                 output_domain=domain,
                 compute_stats=True,
                 normalize=True,
-                compact_output=True
-                )
+                compact_output=True,
+            )
             for i in range(n_cascade_levels):
                 EPS_ = EPS["cascade_levels"][i]
                 EPS_ *= noise_std_coeffs[i]
@@ -2241,4 +2287,4 @@ def _init_noise_cascade(
                     noise_cascade[j][i][n] = EPS_
             EPS = None
             EPS_ = None
-    return(noise_cascade)
+    return noise_cascade
