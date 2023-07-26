@@ -502,21 +502,17 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     for i in range(start_i, end_i):
         decomp_dict_ = decomp_dict.copy()
 
+        # Obtain the decomposed cascades for time step i
         cascade_levels = ncf_decomp.variables["pr_decomposed"][i, :, :, :]
-
-        # In the netcdf file this is saved as a masked array, so we're checking if there is no mask
-        assert not cascade_levels.mask
-
+        # Obtain the mean values
         means = ncf_decomp.variables["means"][i, :]
-        assert not means.mask
-
+        # Obtain de standard deviations
         stds = ncf_decomp.variables["stds"][i, :]
-        assert not stds.mask
 
         # Save the values in the dictionary as normal arrays with the filled method
-        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels)
-        decomp_dict_["means"] = np.ma.filled(means)
-        decomp_dict_["stds"] = np.ma.filled(stds)
+        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels, fill_value=np.nan)
+        decomp_dict_["means"] = np.ma.filled(means, fill_value=np.nan)
+        decomp_dict_["stds"] = np.ma.filled(stds, fill_value=np.nan)
 
         # Append the output list
         R_d.append(decomp_dict_)
