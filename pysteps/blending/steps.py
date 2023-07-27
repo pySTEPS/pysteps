@@ -568,10 +568,10 @@ def forecast(
     )
 
     # 2.3 Check for zero input fields in the radar and NWP data.
-    zero_precip_radar = blending.utils.check_norain(precip,precip_thr,norain_thr)
+    zero_precip_radar = blending.utils.check_norain(precip, precip_thr, norain_thr)
     # The norain fraction threshold used for nwp is the default value of 0.0,
     # since nwp does not suffer from clutter.
-    zero_model_fields = blending.utils.check_norain(precip_models_pm,precip_thr)
+    zero_model_fields = blending.utils.check_norain(precip_models_pm, precip_thr)
 
     # 2.3.1 If precip is below the norain threshold and precip_models_pm is zero,
     # we consider it as no rain in the domain.
@@ -653,12 +653,16 @@ def forecast(
             velocity = np.mean(velocity, axis=0)
 
         # 3. Initialize the noise method.
-        # If zero_precip_radar is True, initialize noise based on the maximum values
-        # in the NWP field (representing all rain fields in the forecast and
-        # ensuring that there are always value present). Else, initialize the noise
-        # with the radar rainfall data
+        # If zero_precip_radar is True, initialize noise based on the NWP field time
+        # step where the fraction of rainy cells is highest (because other lead times
+        # might be zero as well). Else, initialize the noise with the radar
+        # rainfall data
         if zero_precip_radar:
-            precip_noise_input = np.max(precip_models_pm, axis=1)
+            precip_noise_input = _determine_max_nr_rainy_cells_nwp(
+                precip_models_pm, precip_thr, n_ens_members, timesteps
+            )
+            # Make sure precip_noise_input is three dimensional
+            precip_noise_input = precip_noise_input[np.newaxis, :, :]
         else:
             precip_noise_input = precip.copy()
 
@@ -2380,3 +2384,24 @@ def _fill_nans_infs_nwp_cascade(
     )
 
     return precip_models_cascade, precip_models_pm, mu_models, sigma_models
+
+
+def _determine_max_nr_rainy_cells_nwp(
+    precip_models_pm, precip_thr, n_ens_members, timesteps
+):
+    """Initialize noise based on the NWP field time step where the fraction of rainy cells is highest"""
+    max_rain_pixels = -1
+    max_rain_pixels_j = -1
+    max_rain_pixels_t = -1
+    for j in range(n_ens_members):
+        for t in range(timesteps):
+            rain_pixels = precip_models_pm[j][t][
+                precip_models_pm[j][t] > precip_thr
+            ].size
+            if rain_pixels > max_rain_pixels:
+                max_rain_pixels = rain_pixels
+                max_rain_pixels_j = j
+                max_rain_pixels_t = t
+    precip_noise_input = precip_models_pm[max_rain_pixels_j][max_rain_pixels_t]
+
+    return precip_noise_input

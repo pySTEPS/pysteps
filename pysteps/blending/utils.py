@@ -15,6 +15,7 @@ Module with common utilities used by the blending methods.
     decompose_NWP
     compute_store_nwp_motion
     load_NWP
+    check_norain
 """
 
 import datetime
@@ -519,6 +520,7 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
 
     return R_d, uv
 
+
 def check_norain(precip_arr, precip_thr, norain_thr=0.0):
     """
 
@@ -541,6 +543,6 @@ def check_norain(precip_arr, precip_thr, norain_thr=0.0):
 
     if precip_thr is None:
         precip_thr = np.nanmin(precip_arr)
-    rain_pixels = precip_arr [precip_arr>precip_thr]
-    norain = rain_pixels.size/precip_arr.size <= norain_thr
+    rain_pixels = precip_arr[precip_arr > precip_thr]
+    norain = rain_pixels.size / precip_arr.size <= norain_thr
     return norain
