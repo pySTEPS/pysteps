@@ -518,3 +518,29 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
         R_d.append(decomp_dict_)
 
     return R_d, uv
+
+def check_norain(precip_arr, precip_thr, norain_thr=0.0):
+    """
+
+    Parameters
+    ----------
+    precip_arr:  array-like
+      Array containing the input precipitation field
+    precip_thr: float, optional
+      Specifies the threshold value for minimum observable precipitation intensity. If None, the
+      minimum value over the domain is taken.
+    norain_thr: float, optional
+      Specifies the threshold value for the fraction of rainy pixels in precip_arr below which we consider there to be
+      no rain. Standard set to 0.0
+    Returns
+    -------
+    norain: bool
+      Returns whether the fraction of rainy pixels is below the norain_thr threshold.
+
+    """
+
+    if precip_thr is None:
+        precip_thr = np.nanmin(precip_arr)
+    rain_pixels = precip_arr [precip_arr>precip_thr]
+    norain = rain_pixels.size/precip_arr.size <= norain_thr
+    return norain

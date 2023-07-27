@@ -77,6 +77,7 @@ def forecast(
     n_cascade_levels=8,
     blend_nwp_members=False,
     precip_thr=None,
+    norain_thr=0.0,
     kmperpixel=None,
     extrap_method="semilagrangian",
     decomp_method="fft",
@@ -161,6 +162,11 @@ def forecast(
     precip_thr: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
+    norain_thr: float, optional
+      Specifies the threshold value for the fraction of rainy (see above) pixels
+      in the radar rainfall field below which we consider there to be no rain.
+      Depends on the amount of clutter typically present.
+      Standard set to 0.0
     kmperpixel: float, optional
       Spatial resolution of the input data (kilometers/pixel). Required if
       vel_pert_method is not None or mask_method is 'incremental'.
@@ -466,6 +472,7 @@ def forecast(
 
     if conditional or mask_method is not None:
         print(f"precip. intensity threshold: {precip_thr}")
+    print(f"no-rain fraction threshold for radar: {norain_thr}")
     print("")
 
     # 0.3 Get the methods that will be used
@@ -560,25 +567,15 @@ def forecast(
         precip_models, bp_filter, decompositor, recompositor, fft, domain
     )
 
-    # 2.3 Check for zero input fields in the radar and NWP data
-    zero_precip_radar = False
-    zero_model_fields = False
-    # 2.3.1 Check if the radar fields are zero.
-    if precip_thr is not None:
-        if np.any(precip > precip_thr) == False:
-            zero_precip_radar = True
-            # Check if the NWP fields are zero as well
-            if np.any(precip_models_pm > precip_thr) == False:
-                zero_model_fields = True
-    else:
-        if np.any(precip > np.nanmin(precip)) == False:
-            zero_precip_radar = True
-            # Check if the NWP fields are zero as well
-            if np.any(precip_models_pm > np.nanmin(precip_models_pm)) == False:
-                zero_model_fields = True
+    # 2.3 Check for zero input fields in the radar and NWP data.
+    zero_precip_radar = blending.utils.check_norain(precip,precip_thr,norain_thr)
+    # The norain fraction threshold used for nwp is the default value of 0.0,
+    # since nwp does not suffer from clutter.
+    zero_model_fields = blending.utils.check_norain(precip_models_pm,precip_thr)
 
-    # 2.3.2 If both precip and precip_models_pm are zero, there is no rain
-    # and the forecast will directly return an array filled with the miminmum
+    # 2.3.1 If precip is below the norain threshold and precip_models_pm is zero,
+    # we consider it as no rain in the domain.
+    # The forecast will directly return an array filled with the miminmum
     # value present in precip (which equals zero rainfall in the used
     # transformation)
     if zero_precip_radar and zero_model_fields:
