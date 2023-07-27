@@ -1374,7 +1374,7 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         raise IOError("requested quantity %s not found" % qty)
 
     where = f["where"]
-    if isinstance(where.attrs["projdef"],str):
+    if isinstance(where.attrs["projdef"], str):
         proj4str = where.attrs["projdef"]
     else:
         proj4str = where.attrs["projdef"].decode()

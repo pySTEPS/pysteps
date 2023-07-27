@@ -578,7 +578,7 @@ def forecast(
 
     # 2.3.1 If precip is below the norain threshold and precip_models_pm is zero,
     # we consider it as no rain in the domain.
-    # The forecast will directly return an array filled with the miminmum
+    # The forecast will directly return an array filled with the minimum
     # value present in precip (which equals zero rainfall in the used
     # transformation)
     if zero_precip_radar and zero_model_fields:
@@ -600,20 +600,22 @@ def forecast(
         # Save per time step to ensure the array does not become too large if
         # no return_output is requested and callback is not None.
         for t, subtimestep_idx in enumerate(timesteps):
-            # Create an empty np array with shape [n_ens_members, rows, cols]
-            # and fill it with the minimum value from precip (corresponding to
-            # zero precipitation)
-            R_f_ = np.full(
-                (n_ens_members, precip_shape[0], precip_shape[1]), np.nanmin(precip)
-            )
-            if callback is not None:
-                if R_f_.shape[1] > 0:
-                    callback(R_f_.squeeze())
-            if return_output:
-                for j in range(n_ens_members):
-                    R_f[j].append(R_f_[j])
+            # If the timestep is not the first one, we need to provide the zero forecast
+            if t > 0:
+                # Create an empty np array with shape [n_ens_members, rows, cols]
+                # and fill it with the minimum value from precip (corresponding to
+                # zero precipitation)
+                R_f_ = np.full(
+                    (n_ens_members, precip_shape[0], precip_shape[1]), np.nanmin(precip)
+                )
+                if callback is not None:
+                    if R_f_.shape[1] > 0:
+                        callback(R_f_.squeeze())
+                if return_output:
+                    for j in range(n_ens_members):
+                        R_f[j].append(R_f_[j])
 
-            R_f_ = None
+                R_f_ = None
 
         if measure_time:
             zero_precip_time = time.time() - starttime_init
@@ -628,7 +630,18 @@ def forecast(
             return None
 
     else:
-        # 2.3.3 Check if the NWP fields contain nans or infinite numbers. If so,
+        # 2.3.3 If zero_precip_radar, make sure that precip_cascade does not contain
+        # only nans or infs. If so, fill it with the zero value.
+        if zero_precip_radar:
+            precip_cascade = np.nan_to_num(
+                precip_cascade,
+                copy=True,
+                nan=np.nanmin(precip_models_cascade),
+                posinf=np.nanmin(precip_models_cascade),
+                neginf=np.nanmin(precip_models_cascade),
+            )
+
+        # 2.3.4 Check if the NWP fields contain nans or infinite numbers. If so,
         # fill these with the minimum value present in precip (corresponding to
         # zero rainfall in the radar observations)
         (
@@ -645,7 +658,7 @@ def forecast(
             sigma_models,
         )
 
-        # 2.3.4 If zero_precip_radar is True, only use the velocity field of the NWP
+        # 2.3.5 If zero_precip_radar is True, only use the velocity field of the NWP
         # forecast. I.e., velocity (radar) equals velocity_model at the first time
         # step.
         if zero_precip_radar:
@@ -662,7 +675,7 @@ def forecast(
         # rainfall data
         if zero_precip_radar:
             precip_noise_input = _determine_max_nr_rainy_cells_nwp(
-                precip_models_pm, precip_thr, n_ens_members, timesteps
+                precip_models_pm, precip_thr, precip_models_pm.shape[0], timesteps
             )
             # Make sure precip_noise_input is three dimensional
             precip_noise_input = precip_noise_input[np.newaxis, :, :]
@@ -1082,12 +1095,21 @@ def forecast(
                         # First recompose the cascade, advect it and decompose it again
                         # This is needed to remove the interpolation artifacts.
                         # In addition, the number of extrapolations is greatly reduced
-                        # A. Rain
+                        # A. Radar Rain
                         R_f_ip_recomp = blending.utils.recompose_cascade(
                             combined_cascade=R_f_ip,
                             combined_mean=mu_extrapolation,
                             combined_sigma=sigma_extrapolation,
                         )
+                        # Make sure we have values outside the mask
+                        if zero_precip_radar:
+                            R_f_ip_recomp = np.nan_to_num(
+                                R_f_ip_recomp,
+                                copy=True,
+                                nan=zerovalue,
+                                posinf=zerovalue,
+                                neginf=zerovalue,
+                            )
                         # Put back the mask
                         R_f_ip_recomp[domain_mask] = np.NaN
                         extrap_kwargs["displacement_prev"] = D[j]
@@ -1112,10 +1134,18 @@ def forecast(
                             compute_stats=True,
                             compact_output=True,
                         )["cascade_levels"]
+                        # Make sure we have values outside the mask
+                        if zero_precip_radar:
+                            R_f_ep = np.nan_to_num(
+                                R_f_ep,
+                                copy=True,
+                                nan=np.nanmin(R_f_ip),
+                                posinf=np.nanmin(R_f_ip),
+                                neginf=np.nanmin(R_f_ip),
+                            )
                         for i in range(n_cascade_levels):
                             R_f_ep[i][temp_mask] = np.NaN
-
-                        #B. Noise
+                        # B. Noise
                         Yn_ip_recomp = blending.utils.recompose_cascade(
                             combined_cascade=Yn_ip,
                             combined_mean=mu_noise[j],
@@ -1235,7 +1265,7 @@ def forecast(
                         [t_diff_prev],
                         allow_nonfinite_values=True,
                         **extrap_kwargs_noise,
-                        )
+                    )
 
                     # Also extrapolate the radar observation, used for the probability
                     # matching and post-processing steps
@@ -1471,11 +1501,12 @@ def forecast(
                             R_f_new[~MASK_prec_] = R_cmin
 
                         if probmatching_method == "cdf":
-                            # adjust the CDF of the forecast to match the most recent
-                            # benchmark rainfall field (R_pm_blended)
-                            R_f_new = probmatching.nonparam_match_empirical_cdf(
-                                R_f_new, R_pm_blended
-                            )
+                            # Adjust the CDF of the forecast to match the most recent
+                            # benchmark rainfall field (R_pm_blended). If the forecast
+                            if np.any(np.isfinite(R_f_new)):
+                                R_f_new = probmatching.nonparam_match_empirical_cdf(
+                                    R_f_new, R_pm_blended
+                                )
                         elif probmatching_method == "mean":
                             # Use R_pm_blended as benchmark field and
                             mu_0 = np.mean(R_pm_blended[R_pm_blended >= precip_thr])
@@ -2389,15 +2420,16 @@ def _fill_nans_infs_nwp_cascade(
 
 
 def _determine_max_nr_rainy_cells_nwp(
-    precip_models_pm, precip_thr, n_ens_members, timesteps
+    precip_models_pm, precip_thr, n_models, timesteps
 ):
     """Initialize noise based on the NWP field time step where the fraction of rainy cells is highest"""
     if precip_thr is None:
         precip_thr = np.nanmin(precip_models_pm)
+
     max_rain_pixels = -1
     max_rain_pixels_j = -1
     max_rain_pixels_t = -1
-    for j in range(n_ens_members):
+    for j in range(n_models):
         for t in range(timesteps):
             rain_pixels = precip_models_pm[j][t][
                 precip_models_pm[j][t] > precip_thr

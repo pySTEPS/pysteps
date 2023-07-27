@@ -491,6 +491,13 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     assert analysis_time + start_i * timestep == start_time
     end_i = start_i + n_timesteps + 1
 
+    # Check if the requested end time (the forecast horizon) is in the stored data.
+    # If not, raise an error
+    if end_i > ncf_decomp.variables["pr_decomposed"].shape[0]:
+        raise IndexError(
+            "The requested forecast horizon is outside the stored NWP forecast horizon. Either request a shorter forecast horizon or store a longer NWP forecast horizon"
+        )
+
     # Add the valid times to the output
     decomp_dict["valid_times"] = valid_times[start_i:end_i]
 
@@ -521,7 +528,7 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     return R_d, uv
 
 
-def check_norain(precip_arr, precip_thr, norain_thr=0.0):
+def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
     """
 
     Parameters
