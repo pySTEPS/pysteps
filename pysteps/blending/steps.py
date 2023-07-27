@@ -514,6 +514,9 @@ def forecast(
     else:
         MASK_thr = None
 
+    # we need to know the zerovalue of precip to replace the mask when decomposing after extrapolation
+    zerovalue = np.nanmin(precip)
+
     # 1. Start with the radar rainfall fields. We want the fields in a
     # Lagrangian space
     precip = _transform_to_lagrangian(
@@ -1098,7 +1101,7 @@ def forecast(
                         R_f_ep_recomp = R_f_ep_recomp_[0].copy()
                         temp_mask = ~np.isfinite(R_f_ep_recomp)
                         # TODO WHERE DO CAN I FIND THIS -15.0
-                        R_f_ep_recomp[~np.isfinite(R_f_ep_recomp)] = -15.0
+                        R_f_ep_recomp[~np.isfinite(R_f_ep_recomp)] = zerovalue
                         R_f_ep = decompositor(
                             R_f_ep_recomp,
                             bp_filter,
@@ -1213,25 +1216,25 @@ def forecast(
                     )
 
                     # Extrapolate the extrapolation and noise cascade
-                    for i in range(n_cascade_levels):
-                        extrap_kwargs_["displacement_prev"] = D[j][i]
-                        extrap_kwargs_noise["displacement_prev"] = D_Yn[j][i]
-                        extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
 
-                        _, D[j][i] = extrapolator(
-                            None,
-                            velocity_blended,
-                            [t_diff_prev],
-                            allow_nonfinite_values=True,
-                            **extrap_kwargs_,
-                        )
+                    extrap_kwargs_["displacement_prev"] = D[j]
+                    extrap_kwargs_noise["displacement_prev"] = D_Yn[j]
+                    extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
 
-                        _, D_Yn[j][i] = extrapolator(
-                            None,
-                            velocity_blended,
-                            [t_diff_prev],
-                            allow_nonfinite_values=True,
-                            **extrap_kwargs_noise,
+                    _, D[j] = extrapolator(
+                        None,
+                        velocity_blended,
+                        [t_diff_prev],
+                        allow_nonfinite_values=True,
+                        **extrap_kwargs_,
+                    )
+
+                    _, D_Yn[j] = extrapolator(
+                        None,
+                        velocity_blended,
+                        [t_diff_prev],
+                        allow_nonfinite_values=True,
+                        **extrap_kwargs_noise,
                         )
 
                     # Also extrapolate the radar observation, used for the probability
