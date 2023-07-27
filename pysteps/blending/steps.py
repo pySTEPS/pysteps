@@ -1086,9 +1086,9 @@ def forecast(
                             combined_sigma=sigma_extrapolation,
                         )
                         # Put back the mask
-                        R_f_ip_recomp[domain_mask]=np.NaN
-                        extrap_kwargs['displacement_prev'] = D[j]
-                        R_f_ep_recomp_, D[j]  = extrapolator(
+                        R_f_ip_recomp[domain_mask] = np.NaN
+                        extrap_kwargs["displacement_prev"] = D[j]
+                        R_f_ep_recomp_, D[j] = extrapolator(
                             R_f_ip_recomp,
                             velocity_blended,
                             [t_diff_prev],
@@ -1108,10 +1108,9 @@ def forecast(
                             normalize=True,
                             compute_stats=True,
                             compact_output=True,
-                        )['cascade_levels']
+                        )["cascade_levels"]
                         for i in range(n_cascade_levels):
                             R_f_ep[i][temp_mask] = np.NaN
-                        
 
                         #B. Noise
                         Yn_ip_recomp = blending.utils.recompose_cascade(
@@ -1119,9 +1118,9 @@ def forecast(
                             combined_mean=mu_noise[j],
                             combined_sigma=sigma_noise[j],
                         )
-                        extrap_kwargs_noise['displacement_prev'] = D_Yn[j]
+                        extrap_kwargs_noise["displacement_prev"] = D_Yn[j]
                         extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
-                        Yn_ep_recomp_, D_Yn[j]  = extrapolator(
+                        Yn_ep_recomp_, D_Yn[j] = extrapolator(
                             Yn_ip_recomp,
                             velocity_blended,
                             [t_diff_prev],
@@ -1138,7 +1137,7 @@ def forecast(
                             normalize=True,
                             compute_stats=True,
                             compact_output=True,
-                        )['cascade_levels']
+                        )["cascade_levels"]
                         for i in range(n_cascade_levels):
                             Yn_ep[i] *= noise_std_coeffs[i]
 
@@ -1147,12 +1146,11 @@ def forecast(
                         R_f_ep_out.append(R_f_ep.copy())
                         Yn_ep_out.append(Yn_ep.copy())
                         R_f_ip_recomp = None
-                        R_f_ep_recomp_=None
-                        R_f_ep_recomp=None
-                        Yn_ip_recomp=None
-                        Yn_ep_recomp_=None
-                        Yn_ep_recomp=None
-                        
+                        R_f_ep_recomp_ = None
+                        R_f_ep_recomp = None
+                        Yn_ip_recomp = None
+                        Yn_ep_recomp_ = None
+                        Yn_ep_recomp = None
 
                         # Finally, also extrapolate the initial radar rainfall
                         # field. This will be blended with the rainfall field(s)
@@ -2308,12 +2306,12 @@ def _init_noise_cascade(
     ar_order,
 ):
     """Initialize the noise cascade with identical noise for all AR(n) steps
-       We also need to return the mean and standard deviations of the noise
-       for the recombination of the noise before advecting it.
+    We also need to return the mean and standard deviations of the noise
+    for the recombination of the noise before advecting it.
     """
     noise_cascade = np.zeros(shape)
-    mu_noise = np.zeros((n_ens_members,n_cascade_levels))
-    sigma_noise = np.zeros((n_ens_members,n_cascade_levels))
+    mu_noise = np.zeros((n_ens_members, n_cascade_levels))
+    sigma_noise = np.zeros((n_ens_members, n_cascade_levels))
     if noise_method:
         for j in range(n_ens_members):
             EPS = generate_noise(
@@ -2339,6 +2337,7 @@ def _init_noise_cascade(
             EPS = None
             EPS_ = None
     return noise_cascade, mu_noise, sigma_noise
+
 
 
 def _fill_nans_infs_nwp_cascade(
@@ -2390,6 +2389,8 @@ def _determine_max_nr_rainy_cells_nwp(
     precip_models_pm, precip_thr, n_ens_members, timesteps
 ):
     """Initialize noise based on the NWP field time step where the fraction of rainy cells is highest"""
+    if precip_thr is None:
+        precip_thr = np.nanmin(precip_models_pm)
     max_rain_pixels = -1
     max_rain_pixels_j = -1
     max_rain_pixels_t = -1
