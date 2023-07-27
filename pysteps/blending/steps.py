@@ -628,36 +628,29 @@ def forecast(
         # 2.3.3 Check if the NWP fields contain nans or infinite numbers. If so,
         # fill these with the minimum value present in precip (corresponding to
         # zero rainfall in the radar observations)
-        precip_models_cascade = np.nan_to_num(
+        (
             precip_models_cascade,
-            copy=True,
-            nan=np.nanmin(precip_cascade),
-            posinf=np.nanmin(precip_cascade),
-            neginf=np.nanmin(precip_cascade),
-        )
-        precip_models_pm = np.nan_to_num(
             precip_models_pm,
-            copy=True,
-            nan=np.nanmin(precip),
-            posinf=np.nanmin(precip),
-            neginf=np.nanmin(precip),
-        )
-        # Also set any nans or infs in the mean and sigma of the cascade to
-        # respectively 0.0 and 1.0
-        mu_models = np.nan_to_num(
             mu_models,
-            copy=True,
-            nan=0.0,
-            posinf=0.0,
-            neginf=0.0,
-        )
-        sigma_models = np.nan_to_num(
             sigma_models,
-            copy=True,
-            nan=0.0,
-            posinf=0.0,
-            neginf=0.0,
+        ) = _fill_nans_infs_nwp_cascade(
+            precip_models_cascade,
+            precip_models_pm,
+            precip_cascade,
+            precip,
+            mu_models,
+            sigma_models,
         )
+
+        # 2.3.4 If zero_precip_radar is True, only use the velocity field of the NWP
+        # forecast. I.e., velocity (radar) equals velocity_model at the first time
+        # step.
+        if zero_precip_radar:
+            # Use the velocity from velocity_models at time step 0
+            velocity = velocity_models[:, 0, :, :, :]
+            # Take the average over the first axis, which corresponds to n_models
+            # (hence, the model average)
+            velocity = np.mean(velocity, axis=0)
 
         # 3. Initialize the noise method.
         # If zero_precip_radar is True, initialize noise based on the maximum values
@@ -827,6 +820,13 @@ def forecast(
                 blend_nwp_members,
             )
 
+            # If zero_precip_radar is True, set the velocity field equal to the NWP
+            # velocity field for the current time step (velocity_models_temp).
+            if zero_precip_radar:
+                # Use the velocity from velocity_models and take the average over
+                # n_models (axis=0)
+                velocity = np.mean(velocity_models_temp, axis=0)
+
             if t == 0:
                 # 8.1.2 Calculate the initial skill of the (NWP) model forecasts at t=0
                 rho_nwp_models = _compute_initial_nwp_skill(
@@ -967,6 +967,7 @@ def forecast(
                         precip_cascade[j][i] = autoregression.iterate_ar_model(
                             precip_cascade[j][i], PHI[i, :]
                         )
+                        # Renormalize the cascade
                         precip_cascade[j][i][1] /= np.std(precip_cascade[j][i][1])
                     else:
                         # use the deterministic AR(p) model computed above if
@@ -2322,7 +2323,7 @@ def _init_noise_cascade(
                 output_domain=domain,
                 compute_stats=True,
                 normalize=True,
-                compact_output=True
+                compact_output=True,
             )
             mu_noise[j] = EPS["means"]
             sigma_noise[j] = EPS["stds"]
@@ -2333,4 +2334,49 @@ def _init_noise_cascade(
                     noise_cascade[j][i][n] = EPS_
             EPS = None
             EPS_ = None
-    return (noise_cascade, mu_noise, sigma_noise)
+    return noise_cascade, mu_noise, sigma_noise
+
+
+def _fill_nans_infs_nwp_cascade(
+    precip_models_cascade,
+    precip_models_pm,
+    precip_cascade,
+    precip,
+    mu_models,
+    sigma_models,
+):
+    """Ensure that the NWP cascade and fields do no contain any nans or infinite number"""
+    # Fill nans and infinite numbers with the minimum value present in precip
+    # (corresponding to zero rainfall in the radar observations)
+    precip_models_cascade = np.nan_to_num(
+        precip_models_cascade,
+        copy=True,
+        nan=np.nanmin(precip_cascade),
+        posinf=np.nanmin(precip_cascade),
+        neginf=np.nanmin(precip_cascade),
+    )
+    precip_models_pm = np.nan_to_num(
+        precip_models_pm,
+        copy=True,
+        nan=np.nanmin(precip),
+        posinf=np.nanmin(precip),
+        neginf=np.nanmin(precip),
+    )
+    # Also set any nans or infs in the mean and sigma of the cascade to
+    # respectively 0.0 and 1.0
+    mu_models = np.nan_to_num(
+        mu_models,
+        copy=True,
+        nan=0.0,
+        posinf=0.0,
+        neginf=0.0,
+    )
+    sigma_models = np.nan_to_num(
+        sigma_models,
+        copy=True,
+        nan=0.0,
+        posinf=0.0,
+        neginf=0.0,
+    )
+
+    return precip_models_cascade, precip_models_pm, mu_models, sigma_models
