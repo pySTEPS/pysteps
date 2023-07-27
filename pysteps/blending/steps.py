@@ -732,7 +732,7 @@ def forecast(
 
         # Also initialize the cascade of temporally correlated noise, which has the
         # same shape as precip_cascade, but starts random noise.
-        noise_cascade = _init_noise_cascade(
+        noise_cascade, mu_noise, sigma_noise = _init_noise_cascade(
             shape=precip_cascade.shape,
             n_ens_members=n_ens_members,
             n_cascade_levels=n_cascade_levels,
@@ -1071,41 +1071,83 @@ def forecast(
                         )
 
                         # Extrapolate both cascades to the next time step
-                        R_f_ep = np.zeros(R_f_ip.shape)
-                        Yn_ep = np.zeros(Yn_ip.shape)
-
+                        # First recompose the cascade, advect it and decompose it again
+                        # This is needed to remove the interpolation artifacts.
+                        # In addition, the number of extrapolations is greatly reduced
+                        # A. Rain
+                        R_f_ip_recomp = blending.utils.recompose_cascade(
+                            combined_cascade=R_f_ip,
+                            combined_mean=mu_extrapolation,
+                            combined_sigma=sigma_extrapolation,
+                        )
+                        # Put back the mask
+                        R_f_ip_recomp[domain_mask]=np.NaN
+                        extrap_kwargs['displacement_prev'] = D[j]
+                        R_f_ep_recomp_, D[j]  = extrapolator(
+                            R_f_ip_recomp,
+                            velocity_blended,
+                            [t_diff_prev],
+                            allow_nonfinite_values=True,
+                            **extrap_kwargs,
+                        )
+                        R_f_ep_recomp = R_f_ep_recomp_[0].copy()
+                        temp_mask = ~np.isfinite(R_f_ep_recomp)
+                        # TODO WHERE DO CAN I FIND THIS -15.0
+                        R_f_ep_recomp[~np.isfinite(R_f_ep_recomp)] = -15.0
+                        R_f_ep = decompositor(
+                            R_f_ep_recomp,
+                            bp_filter,
+                            mask=MASK_thr,
+                            fft_method=fft,
+                            output_domain=domain,
+                            normalize=True,
+                            compute_stats=True,
+                            compact_output=True,
+                        )['cascade_levels']
                         for i in range(n_cascade_levels):
-                            extrap_kwargs_["displacement_prev"] = D[j][i]
-                            extrap_kwargs_noise["displacement_prev"] = D_Yn[j][i]
-                            extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
+                            R_f_ep[i][temp_mask] = np.NaN
+                        
 
-                            # First, extrapolate the extrapolation component
-                            # Apply the domain mask to the extrapolation component
-                            R_f_ip[i][domain_mask] = np.NaN
-                            R_f_ep_, D[j][i] = extrapolator(
-                                R_f_ip[i],
-                                velocity_blended,
-                                [t_diff_prev],
-                                allow_nonfinite_values=True,
-                                **extrap_kwargs_,
-                            )
-                            R_f_ep[i] = R_f_ep_[0]
+                        #B. Noise
+                        Yn_ip_recomp = blending.utils.recompose_cascade(
+                            combined_cascade=Yn_ip,
+                            combined_mean=mu_noise[j],
+                            combined_sigma=sigma_noise[j],
+                        )
+                        extrap_kwargs_noise['displacement_prev'] = D_Yn[j]
+                        extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
+                        Yn_ep_recomp_, D_Yn[j]  = extrapolator(
+                            Yn_ip_recomp,
+                            velocity_blended,
+                            [t_diff_prev],
+                            allow_nonfinite_values=True,
+                            **extrap_kwargs_noise,
+                        )
+                        Yn_ep_recomp = Yn_ep_recomp_[0].copy()
+                        Yn_ep = decompositor(
+                            Yn_ep_recomp,
+                            bp_filter,
+                            mask=MASK_thr,
+                            fft_method=fft,
+                            output_domain=domain,
+                            normalize=True,
+                            compute_stats=True,
+                            compact_output=True,
+                        )['cascade_levels']
+                        for i in range(n_cascade_levels):
+                            Yn_ep[i] *= noise_std_coeffs[i]
 
-                            # Then, extrapolate the noise component
-                            Yn_ep_, D_Yn[j][i] = extrapolator(
-                                Yn_ip[i],
-                                velocity_blended,
-                                [t_diff_prev],
-                                allow_nonfinite_values=True,
-                                **extrap_kwargs_noise,
-                            )
-                            Yn_ep[i] = Yn_ep_[0]
 
                         # Append the results to the output lists
-                        R_f_ep_out.append(R_f_ep)
-                        Yn_ep_out.append(Yn_ep)
-                        R_f_ep_ = None
-                        Yn_ep_ = None
+                        R_f_ep_out.append(R_f_ep.copy())
+                        Yn_ep_out.append(Yn_ep.copy())
+                        R_f_ip_recomp = None
+                        R_f_ep_recomp_=None
+                        R_f_ep_recomp=None
+                        Yn_ip_recomp=None
+                        Yn_ep_recomp_=None
+                        Yn_ep_recomp=None
+                        
 
                         # Finally, also extrapolate the initial radar rainfall
                         # field. This will be blended with the rainfall field(s)
@@ -2185,8 +2227,8 @@ def _prepare_forecast_loop(
 ):
     """Prepare for the forecast loop."""
     # Empty arrays for the previous displacements and the forecast cascade
-    D = np.stack([np.full(n_cascade_levels, None) for j in range(n_ens_members)])
-    D_Yn = np.stack([np.full(n_cascade_levels, None) for j in range(n_ens_members)])
+    D = np.stack([None for j in range(n_ens_members)])
+    D_Yn = np.stack([None for j in range(n_ens_members)])
     D_pb = np.stack([None for j in range(n_ens_members)])
     R_f = [[] for j in range(n_ens_members)]
 
@@ -2260,8 +2302,13 @@ def _init_noise_cascade(
     noise_std_coeffs,
     ar_order,
 ):
-    """Initialize the noise cascade with identical noise for all AR(n) steps"""
+    """Initialize the noise cascade with identical noise for all AR(n) steps
+       We also need to return the mean and standard deviations of the noise
+       for the recombination of the noise before advecting it.
+    """
     noise_cascade = np.zeros(shape)
+    mu_noise = np.zeros((n_ens_members,n_cascade_levels))
+    sigma_noise = np.zeros((n_ens_members,n_cascade_levels))
     if noise_method:
         for j in range(n_ens_members):
             EPS = generate_noise(
@@ -2275,8 +2322,10 @@ def _init_noise_cascade(
                 output_domain=domain,
                 compute_stats=True,
                 normalize=True,
-                compact_output=True,
+                compact_output=True
             )
+            mu_noise[j] = EPS["means"]
+            sigma_noise[j] = EPS["stds"]
             for i in range(n_cascade_levels):
                 EPS_ = EPS["cascade_levels"][i]
                 EPS_ *= noise_std_coeffs[i]
@@ -2284,4 +2333,4 @@ def _init_noise_cascade(
                     noise_cascade[j][i][n] = EPS_
             EPS = None
             EPS_ = None
-    return noise_cascade
+    return (noise_cascade, mu_noise, sigma_noise)
