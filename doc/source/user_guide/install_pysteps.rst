@@ -61,24 +61,24 @@ a community-driven package repository for conda packages.
 
 To install pysteps with mamba in a new environment, run in a terminal::
 
-    $ mamba create -n pysteps python=3.10
-    $ mamba activate pysteps
+    mamba create -n pysteps python=3.10
+    mamba activate pysteps
 
 This will create and activate the new python environment called 'pysteps' using python 3.10.
 The next step is to add the conda-forge channel where the pysteps package is located::
 
-    $ conda config --env --prepend channels conda-forge
+    conda config --env --prepend channels conda-forge
 
 Let's set this channel as the priority one::
 
-    $ conda config --env --set channel_priority strict
+    conda config --env --set channel_priority strict
 
 The latter step is not strictly necessary but is recommended since
 the conda-forge and the default conda channels are not 100% compatible.
 
 Finally, to install pysteps and all its dependencies run::
 
-    $ conda install pysteps
+    conda install pysteps
 
 Install pysteps on Apple Silicon Macs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,32 +88,32 @@ However, thanks to `Rosetta 2 <https://support.apple.com/en-us/HT211861>`_ it is
 possible to install the same package on a Mac computers with an Apple Silicon processor
 (arm-64).
 
-First, make sure that Rosetta 2 is installed:
+First, make sure that Rosetta 2 is installed::
 
-    $ softwareupdate --install-rosetta
+    softwareupdate --install-rosetta
 
-Use mamba to create a new environment called 'pysteps' for intel packages with python 3.10:
+Use mamba to create a new environment called 'pysteps' for intel packages with python 3.10::
 
-    $ CONDA_SUBDIR=osx-64 mamba create -n pysteps python=3.10
-    $ mamba activate pysteps
+    CONDA_SUBDIR=osx-64 mamba create -n pysteps python=3.10
+    mamba activate pysteps
 
-Make sure that conda/mamba commands in this environment use intel packages:
+Make sure that conda/mamba commands in this environment use intel packages::
 
-    $ conda config --env --set subdir osx-64
+    conda config --env --set subdir osx-64
 
-Verify that the correct platform is being used:
+Verify that the correct platform is being used::
 
-    $ python -c "import platform;print(platform.machine())"  # Should print "x86_64"
+    python -c "import platform;print(platform.machine())"  # Should print "x86_64"
 
-Finally, run the same pysteps install instructions as given above:
+Finally, run the same pysteps install instructions as given above::
 
-    $ conda config --env --prepend channels conda-forge
-    $ conda config --env --set channel_priority strict
-    $ mamba install pysteps
+    conda config --env --prepend channels conda-forge
+    conda config --env --set channel_priority strict
+    mamba install pysteps
 
-We can now verify that pysteps loads correctly:
+We can now verify that pysteps loads correctly::
 
-    $ python -c "import pysteps"
+    python -c "import pysteps"
 
 Note that the first time that pysteps is imported will typically take longer, as Rosetta 2
 needs to translate the binary code for the Apple Silicon processor.
@@ -125,8 +125,6 @@ The recommended way to install pysteps from the source is using ``pip``
 to adhere to the `PEP517 standards <https://www.python.org/dev/peps/pep-0517/>`_.
 Using ``pip`` instead of ``setup.py`` guarantees that all the package dependencies
 are properly handled during the installation process.
-
-.. _install_osx_users:
 
 OSX users: gcc compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -166,7 +164,6 @@ the homebrew installation. For example::
 
     export CC=/usr/local/Cellar/gcc/8.3.0/bin/gcc-8
     export CXX=/usr/local/Cellar/gcc/8.3.0/bin/g++-8
-
 
 Then, you can continue with the normal installation procedure described next.
 
