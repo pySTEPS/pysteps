@@ -78,7 +78,7 @@ the conda-forge and the default conda channels are not 100% compatible.
 
 Finally, to install pysteps and all its dependencies run::
 
-    conda install pysteps
+    mamba install pysteps
 
 Install pysteps on Apple Silicon Macs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
