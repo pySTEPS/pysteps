@@ -80,6 +80,43 @@ Finally, to install pysteps and all its dependencies run::
 
     $ conda install pysteps
 
+Install pysteps on Apple Silicon Macs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On conda-forge, pysteps is currently compiled for Mac computers with Intel processors (osx-64).
+However, thanks to `Rosetta 2 <https://support.apple.com/en-us/HT211861>`_ it is
+possible to install the same package on a Mac computers with an Apple Silicon processor
+(arm-64).
+
+First, make sure that Rosetta 2 is installed:
+
+    $ softwareupdate --install-rosetta
+
+Use mamba to create a new environment called 'pysteps' for intel packages with python 3.10:
+
+    $ CONDA_SUBDIR=osx-64 mamba create -n pysteps python=3.10
+    $ mamba activate pysteps
+
+Make sure that conda/mamba commands in this environment use intel packages:
+
+    $ conda config --env --set subdir osx-64
+
+Verify that the correct platform is being used:
+
+    $ python -c "import platform;print(platform.machine())"  # Should print "x86_64"
+
+Finally, run the same pysteps install instructions as given above:
+
+    $ conda config --env --prepend channels conda-forge
+    $ conda config --env --set channel_priority strict
+    $ mamba install pysteps
+
+We can now verify that pysteps loads correctly:
+
+    $ python -c "import pysteps"
+
+Note that the first time that pysteps is imported will typically take longer, as Rosetta 2
+needs to translate the binary code for the Apple Silicon processor.
 
 Install from source
 -------------------
