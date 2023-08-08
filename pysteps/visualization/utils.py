@@ -170,6 +170,9 @@ def proj4_to_cartopy(proj4str):
             proj_dict["lat_1"],
             proj_dict["lat_2"],
         )
+    if "R" in proj_dict.keys():
+        globe_kwargs["semimajor_axis"] = proj_dict["R"]
+        globe_kwargs["semiminor_axis"] = proj_dict["R"]
 
     if globe_kwargs:
         globe = ccrs.Globe(**globe_kwargs)
