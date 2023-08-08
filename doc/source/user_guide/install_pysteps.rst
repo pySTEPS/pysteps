@@ -48,16 +48,18 @@ pysteps in development mode: :ref:`Contributing to pysteps <contributor_guidelin
 Install with conda/mamba (recommended)
 --------------------------------------
 
-Conda is an open-source package management system and environment management system that runs on Windows, macOS, and Linux.
-Mamba is a drop-in replacement for conda offering better performances and more reliable environment
+`Conda <https://docs.conda.io/>`_ is an open-source package management system and environment
+management system that runs on Windows, macOS, and Linux.
+`Mamba <https://mamba.readthedocs.io/>`_ is a drop-in replacement for conda offering
+better performances and more reliable environment
 solutions. Mamba quickly installs, runs, and updates packages and their dependencies.
 It also allows you to easily create, save, load, or switch between different
 environments on your local computer.
 
-Since version 1.0, pysteps is available on conda-forge, a community-driven
-package repository for conda packages.
+Since version 1.0, pysteps is available on `conda-forge <https://conda-forge.org/>`_,
+a community-driven package repository for conda packages.
 
-In a terminal, to create a new conda environment and install pysteps, run::
+To install pysteps with mamba in a new environment, run in a terminal::
 
     $ mamba create -n pysteps python=3.10
     $ mamba activate pysteps
