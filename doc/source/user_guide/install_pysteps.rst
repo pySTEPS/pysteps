@@ -45,31 +45,25 @@ Other optional dependencies include:
 But, if you want to contribute to pysteps or edit the package, you need to install
 pysteps in development mode: :ref:`Contributing to pysteps <contributor_guidelines>`.
 
-Anaconda install (recommended)
-------------------------------
+Install with conda/mamba (recommended)
+--------------------------------------
 
-Conda is an open-source package management system and environment management
-system that runs on Windows, macOS, and Linux.
-Conda quickly installs, runs, and updates packages and their dependencies.
+Conda is an open-source package management system and environment management system that runs on Windows, macOS, and Linux.
+Mamba is a drop-in replacement for conda offering better performances and more reliable environment
+solutions. Mamba quickly installs, runs, and updates packages and their dependencies.
 It also allows you to easily create, save, load, or switch between different
 environments on your local computer.
 
-Since version 1.0, pysteps is available in conda-forge, a community-driven
-package repository for anaconda.
-
-There are two installation alternatives using anaconda: install pysteps in a
-pre-existing environment or install it new environment.
-
-New environment
-~~~~~~~~~~~~~~~
+Since version 1.0, pysteps is available on conda-forge, a community-driven
+package repository for conda packages.
 
 In a terminal, to create a new conda environment and install pysteps, run::
 
-    $ conda create -n pysteps
-    $ source activate pysteps
+    $ mamba create -n pysteps python=3.10
+    $ mamba activate pysteps
 
-This will create and activate the new python environment. The next step is to
-add the conda-forge channel where the pysteps package is located::
+This will create and activate the new python environment called 'pysteps' using python 3.10.
+The next step is to add the conda-forge channel where the pysteps package is located::
 
     $ conda config --env --prepend channels conda-forge
 
@@ -78,7 +72,7 @@ Let's set this channel as the priority one::
     $ conda config --env --set channel_priority strict
 
 The latter step is not strictly necessary but is recommended since
-the conda-forge and the default Anaconda channels are not 100% compatible.
+the conda-forge and the default conda channels are not 100% compatible.
 
 Finally, to install pysteps and all its dependencies run::
 
