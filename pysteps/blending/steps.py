@@ -869,6 +869,8 @@ def forecast(
                 )
 
             # the nowcast iteration for each ensemble member
+            R_f_ = [None for _ in range(n_ens_members)]
+
             def worker(j):
                 # 8.1.2 Determine the skill of the nwp components for lead time (t0 + t)
                 # Then for the model components
@@ -1178,12 +1180,16 @@ def forecast(
                         # Append the results to the output lists
                         R_f_ep_out.append(R_f_ep.copy())
                         Yn_ep_out.append(Yn_ep.copy())
+                        R_f_ip = None
                         R_f_ip_recomp = None
                         R_f_ep_recomp_ = None
                         R_f_ep_recomp = None
+                        R_f_ep = None
+                        Yn_ip = None
                         Yn_ip_recomp = None
                         Yn_ep_recomp_ = None
                         Yn_ep_recomp = None
+                        Yn_ep = None
 
                         # Finally, also extrapolate the initial radar rainfall
                         # field. This will be blended with the rainfall field(s)
@@ -1281,6 +1287,7 @@ def forecast(
                     t_prev[j] = t + 1
 
                 forecast_prev[j] = precip_cascade[j]
+                noise_prev[j] = noise_cascade[j]
 
                 # 8.5 Blend the cascades
                 R_f_out = []
@@ -1516,20 +1523,18 @@ def forecast(
 
                         R_f_out.append(R_f_new)
 
-                return R_f_out
+                R_f_[j] = R_f_out
 
             res = []
-            for j in range(n_ens_members):
-                if not DASK_IMPORTED or n_ens_members == 1:
-                    res.append(worker(j))
-                else:
-                    res.append(dask.delayed(worker)(j))
 
-            R_f_ = (
+            if DASK_IMPORTED and n_ens_members > 1:
+                for j in range(n_ens_members):
+                    res.append(dask.delayed(worker)(j))
                 dask.compute(*res, num_workers=num_ensemble_workers)
-                if DASK_IMPORTED and n_ens_members > 1
-                else res
-            )
+            else:
+                for j in range(n_ens_members):
+                    worker(j)
+
             res = None
 
             if is_nowcast_time_step:
