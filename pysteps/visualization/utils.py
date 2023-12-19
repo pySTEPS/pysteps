@@ -237,8 +237,14 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
     # Reproject grid on fall-back projection
     if return_grid is not None:
         if return_grid == "coords":
-            y_coord = np.linspace(y1, y2, shape[0]) + geodata["ypixelsize"] / 2.0
-            x_coord = np.linspace(x1, x2, shape[1]) + geodata["xpixelsize"] / 2.0
+            y_coord = (
+                np.linspace(y1, y2, shape[0], endpoint=False)
+                + geodata["ypixelsize"] / 2.0
+            )
+            x_coord = (
+                np.linspace(x1, x2, shape[1], endpoint=False)
+                + geodata["xpixelsize"] / 2.0
+            )
         elif return_grid == "quadmesh":
             y_coord = np.linspace(y1, y2, shape[0] + 1)
             x_coord = np.linspace(x1, x2, shape[1] + 1)
