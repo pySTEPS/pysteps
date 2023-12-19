@@ -327,7 +327,7 @@ def get_geogrid(nlat, nlon, geodata=None):
         Four-element tuple specifying the extent of the domain according to
         (lower left x, upper right x, lower left y, upper right y).
     regular_grid: bool
-        True is the grid is regular. False otherwise.
+        True if the grid is regular. False otherwise.
     origin: str
         Place the [0, 0] index of the array to plot in the upper left or lower left
         corner of the axes.
