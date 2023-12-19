@@ -337,13 +337,15 @@ def get_geogrid(nlat, nlon, geodata=None):
         regular_grid = geodata.get("regular_grid", True)
 
         x_lims = sorted((geodata["x1"], geodata["x2"]))
-        x = np.linspace(x_lims[0], x_lims[1], nlon)
-        xpixelsize = np.abs(x[1] - x[0])
+        x, xpixelsize = np.linspace(
+            x_lims[0], x_lims[1], nlon, endpoint=False, retstep=True
+        )
         x += xpixelsize / 2.0
 
         y_lims = sorted((geodata["y1"], geodata["y2"]))
-        y = np.linspace(y_lims[0], y_lims[1], nlat)
-        ypixelsize = np.abs(y[1] - y[0])
+        y, ypixelsize = np.linspace(
+            y_lims[0], y_lims[1], nlat, endpoint=False, retstep=True
+        )
         y += ypixelsize / 2.0
 
         extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
