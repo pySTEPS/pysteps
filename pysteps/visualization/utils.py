@@ -237,8 +237,14 @@ def reproject_geodata(geodata, t_proj4str, return_grid=None):
     # Reproject grid on fall-back projection
     if return_grid is not None:
         if return_grid == "coords":
-            y_coord = np.linspace(y1, y2, shape[0]) + geodata["ypixelsize"] / 2.0
-            x_coord = np.linspace(x1, x2, shape[1]) + geodata["xpixelsize"] / 2.0
+            y_coord = (
+                np.linspace(y1, y2, shape[0], endpoint=False)
+                + geodata["ypixelsize"] / 2.0
+            )
+            x_coord = (
+                np.linspace(x1, x2, shape[1], endpoint=False)
+                + geodata["xpixelsize"] / 2.0
+            )
         elif return_grid == "quadmesh":
             y_coord = np.linspace(y1, y2, shape[0] + 1)
             x_coord = np.linspace(x1, x2, shape[1] + 1)
@@ -327,7 +333,7 @@ def get_geogrid(nlat, nlon, geodata=None):
         Four-element tuple specifying the extent of the domain according to
         (lower left x, upper right x, lower left y, upper right y).
     regular_grid: bool
-        True is the grid is regular. False otherwise.
+        True if the grid is regular. False otherwise.
     origin: str
         Place the [0, 0] index of the array to plot in the upper left or lower left
         corner of the axes.
@@ -337,13 +343,15 @@ def get_geogrid(nlat, nlon, geodata=None):
         regular_grid = geodata.get("regular_grid", True)
 
         x_lims = sorted((geodata["x1"], geodata["x2"]))
-        x = np.linspace(x_lims[0], x_lims[1], nlon)
-        xpixelsize = np.abs(x[1] - x[0])
+        x, xpixelsize = np.linspace(
+            x_lims[0], x_lims[1], nlon, endpoint=False, retstep=True
+        )
         x += xpixelsize / 2.0
 
         y_lims = sorted((geodata["y1"], geodata["y2"]))
-        y = np.linspace(y_lims[0], y_lims[1], nlat)
-        ypixelsize = np.abs(y[1] - y[0])
+        y, ypixelsize = np.linspace(
+            y_lims[0], y_lims[1], nlat, endpoint=False, retstep=True
+        )
         y += ypixelsize / 2.0
 
         extent = (geodata["x1"], geodata["x2"], geodata["y1"], geodata["y2"])
