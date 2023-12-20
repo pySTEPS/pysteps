@@ -8,7 +8,7 @@ Dependencies
 
 The pysteps package needs the following dependencies
 
-* `python >=3.8, <3.11 <http://www.python.org/>`_ (lower or higher versions may work but are not tested).
+* `python >=3.9, <3.12 <http://www.python.org/>`_ (lower or higher versions may work but are not tested).
 * `jsonschema <https://pypi.org/project/jsonschema/>`_
 * `matplotlib <http://matplotlib.org/>`_
 * `netCDF4 <https://pypi.org/project/netCDF4/>`_
