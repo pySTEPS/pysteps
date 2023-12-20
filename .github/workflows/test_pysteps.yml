@@ -38,6 +38,7 @@ jobs:
         with:
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
+          generate-run-shell: false
           create-args: python=${{ matrix.python-version }}
 
       - name: Install pygrib (not win)
