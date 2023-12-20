@@ -3,6 +3,10 @@
 
 version: 2
 
+# the build.os and build.tools section is mandatory
+build:
+  os: ubuntu-22.04
+
 sphinx:
   configuration: doc/source/conf.py
 
