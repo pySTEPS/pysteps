@@ -360,10 +360,10 @@ def _sal_detect_objects(precip, thr_factor, thr_quantile, tstorm_kwargs):
         }
     _, labels = tstorm_detect.detection(precip, **tstorm_kwargs)
     labels = labels.astype(int)
-    precip_objects = pd.DataFrame(regionprops_table(
-        labels, intensity_image=precip, properties=REGIONPROPS
-    ))
-    return (precip_objects)
+    precip_objects = pd.DataFrame(
+        regionprops_table(labels, intensity_image=precip, properties=REGIONPROPS)
+    )
+    return precip_objects
 
 
 def _sal_scaled_volume(precip_objects):
@@ -393,10 +393,14 @@ def _sal_scaled_volume(precip_objects):
         max_intensity = precip_object.max_intensity
         volume_scaled = intensity_sum / max_intensity
         tot_vol = intensity_sum * volume_scaled
-        objects_volume_scaled.append({'intensity_vol':tot_vol, 'intensity_sum_obj':intensity_sum})
+        objects_volume_scaled.append(
+            {"intensity_vol": tot_vol, "intensity_sum_obj": intensity_sum}
+        )
     df_vols = pd.DataFrame(objects_volume_scaled)
-    total_scaled_volum = (np.nansum(df_vols.intensity_vol))/(np.nansum(df_vols.intensity_sum_obj))
-    return (total_scaled_volum)
+    total_scaled_volum = (np.nansum(df_vols.intensity_vol)) / (
+        np.nansum(df_vols.intensity_sum_obj)
+    )
+    return total_scaled_volum
 
 
 def _sal_weighted_distance(precip, thr_factor, thr_quantile, tstorm_kwargs):
