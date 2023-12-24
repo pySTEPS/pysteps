@@ -155,11 +155,11 @@ def sal_structure(
     observation_objects = _sal_detect_objects(
         observation, thr_factor, thr_quantile, tstorm_kwargs
     )
-    prediction_volume = sal_scaled_volume(prediction_objects)
-    observation_volume = sal_scaled_volume(observation_objects)
+    prediction_volume = _sal_scaled_volume(prediction_objects)
+    observation_volume = _sal_scaled_volume(observation_objects)
     nom = prediction_volume - observation_volume
     denom = prediction_volume + observation_volume
-    return nom / (0.5 * denom)
+    return np.divide(nom, (0.5 * denom))
 
 
 def sal_amplitude(prediction, observation):
