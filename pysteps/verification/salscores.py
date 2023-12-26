@@ -391,15 +391,24 @@ def _sal_scaled_volume(precip_objects):
     for _, precip_object in precip_objects.iterrows():
         intensity_sum = np.nansum(precip_object.intensity_image)
         max_intensity = precip_object.max_intensity
-        volume_scaled = intensity_sum / max_intensity
-        tot_vol = intensity_sum * volume_scaled
+        if intensity_sum == 0:
+            intensity_vol = 0
+        else:
+            volume_scaled = intensity_sum / max_intensity
+            tot_vol = intensity_sum * volume_scaled
+            intensity_vol = tot_vol
+
         objects_volume_scaled.append(
-            {"intensity_vol": tot_vol, "intensity_sum_obj": intensity_sum}
+            {"intensity_vol": intensity_vol, "intensity_sum_obj": intensity_sum}
         )
     df_vols = pd.DataFrame(objects_volume_scaled)
-    total_scaled_volum = (np.nansum(df_vols.intensity_vol)) / (
-        np.nansum(df_vols.intensity_sum_obj)
-    )
+
+    if df_vols.empty or (df_vols["intensity_sum_obj"] == 0).all():
+        total_scaled_volum = 0
+    else:
+        total_scaled_volum = np.nansum(df_vols.intensity_vol) / np.nansum(
+            df_vols.intensity_sum_obj
+        )
     return total_scaled_volum
 
 
