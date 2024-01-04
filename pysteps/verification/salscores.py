@@ -155,8 +155,8 @@ def sal_structure(
     observation_objects = _sal_detect_objects(
         observation, thr_factor, thr_quantile, tstorm_kwargs
     )
-    prediction_volume = _sal_scaled_volume(prediction_objects).sum()
-    observation_volume = _sal_scaled_volume(observation_objects).sum()
+    prediction_volume = _sal_scaled_volume(prediction_objects)
+    observation_volume = _sal_scaled_volume(observation_objects)
     nom = prediction_volume - observation_volume
     denom = prediction_volume + observation_volume
     return np.divide(nom, (0.5 * denom))
@@ -360,10 +360,10 @@ def _sal_detect_objects(precip, thr_factor, thr_quantile, tstorm_kwargs):
         }
     _, labels = tstorm_detect.detection(precip, **tstorm_kwargs)
     labels = labels.astype(int)
-    precip_objects = regionprops_table(
-        labels, intensity_image=precip, properties=REGIONPROPS
+    precip_objects = pd.DataFrame(
+        regionprops_table(labels, intensity_image=precip, properties=REGIONPROPS)
     )
-    return pd.DataFrame(precip_objects)
+    return precip_objects
 
 
 def _sal_scaled_volume(precip_objects):
@@ -379,8 +379,8 @@ def _sal_scaled_volume(precip_objects):
 
     Returns
     -------
-    object_volume: pd.Series
-        A pandas Series with the scaled volume of each precipitation object.
+    total_scaled_volum: float
+        The total scaled volume of precipitation objects.
     """
     if not PANDAS_IMPORTED:
         raise MissingOptionalDependency(
@@ -389,13 +389,27 @@ def _sal_scaled_volume(precip_objects):
         )
     objects_volume_scaled = []
     for _, precip_object in precip_objects.iterrows():
-        intensity_sum = precip_object.intensity_image.sum()
+        intensity_sum = np.nansum(precip_object.intensity_image)
         max_intensity = precip_object.max_intensity
-        volume_scaled = intensity_sum / max_intensity
-        objects_volume_scaled.append(volume_scaled)
-    return pd.Series(
-        data=objects_volume_scaled, index=precip_objects.label, name="scaled_volume"
-    )
+        if intensity_sum == 0:
+            intensity_vol = 0
+        else:
+            volume_scaled = intensity_sum / max_intensity
+            tot_vol = intensity_sum * volume_scaled
+            intensity_vol = tot_vol
+
+        objects_volume_scaled.append(
+            {"intensity_vol": intensity_vol, "intensity_sum_obj": intensity_sum}
+        )
+    df_vols = pd.DataFrame(objects_volume_scaled)
+
+    if df_vols.empty or (df_vols["intensity_sum_obj"] == 0).all():
+        total_scaled_volum = 0
+    else:
+        total_scaled_volum = np.nansum(df_vols.intensity_vol) / np.nansum(
+            df_vols.intensity_sum_obj
+        )
+    return total_scaled_volum
 
 
 def _sal_weighted_distance(precip, thr_factor, thr_quantile, tstorm_kwargs):
@@ -443,10 +457,10 @@ def _sal_weighted_distance(precip, thr_factor, thr_quantile, tstorm_kwargs):
         yd = (precip_objects["weighted_centroid-0"][i] - centroid_total[0]) ** 2
 
         dst = sqrt(xd + yd)
-        sumr = (precip_objects.intensity_image[i].sum()) * dst
+        sumr = (np.nansum(precip_objects.intensity_image[i])) * dst
 
-        sump = precip_objects.intensity_image[i].sum()
+        sump = np.nansum(precip_objects.intensity_image[i])
 
         r.append({"sum_dist": sumr, "sum_p": sump})
     rr = pd.DataFrame(r)
-    return rr.sum_dist.sum() / (rr.sum_p.sum())
+    return (np.nansum(rr.sum_dist)) / (np.nansum(rr.sum_p))
