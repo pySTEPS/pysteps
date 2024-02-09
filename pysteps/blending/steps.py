@@ -514,6 +514,7 @@ def forecast(
     )
 
     # 2. Initialize the noise method
+    np.random.seed(seed)
     pp, generate_noise, noise_std_coeffs = _init_noise(
         precip,
         precip_thr,
@@ -526,6 +527,7 @@ def forecast(
         noise_stddev_adj,
         measure_time,
         num_workers,
+        seed
     )
 
     # 3. Perform the cascade decomposition for the input precip fields and
@@ -1662,6 +1664,7 @@ def _init_noise(
     noise_stddev_adj,
     measure_time,
     num_workers,
+    seed
 ):
     """Initialize the noise method."""
     if noise_method is None:
@@ -1690,6 +1693,7 @@ def _init_noise(
             20,
             conditional=True,
             num_workers=num_workers,
+            seed=seed
         )
 
         if measure_time:
@@ -1944,7 +1948,6 @@ def _init_random_generators(
     if noise_method is not None:
         randgen_prec = []
         randgen_motion = []
-        np.random.seed(seed)
         for j in range(n_ens_members):
             rs = np.random.RandomState(seed)
             randgen_prec.append(rs)

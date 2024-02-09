@@ -100,18 +100,18 @@ def compute_noise_stddev_adjs(
         N_stds = []
 
     randstates = []
-    seed = None
+    
     for k in range(num_iter):
         randstates.append(np.random.RandomState(seed=seed))
         seed = np.random.randint(0, high=1e9)
-
+    
     for k in range(num_iter):
 
         def worker():
             # generate Gaussian white noise field, filter it using the chosen
             # method, multiply it with the standard deviation of the observed
             # field and apply the precipitation mask
-            N = noise_generator(noise_filter, randstate=randstates[k], seed=seed)
+            N = noise_generator(noise_filter, randstate=randstates[k])
             N = N / np.std(N) * sigma + mu
             N[~MASK] = R_thr_2
 
