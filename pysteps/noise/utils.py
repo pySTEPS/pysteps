@@ -96,39 +96,37 @@ def compute_noise_stddev_adjs(
 
     if dask_imported and num_workers > 1:
         res = []
-    else:
-        N_stds = []
-
+        
+    N_stds = [None] * num_iter
     randstates = []
     
     for k in range(num_iter):
         randstates.append(np.random.RandomState(seed=seed))
         seed = np.random.randint(0, high=1e9)
     
-    for k in range(num_iter):
+    def worker(k):
+        # generate Gaussian white noise field, filter it using the chosen
+        # method, multiply it with the standard deviation of the observed
+        # field and apply the precipitation mask
+        N = noise_generator(noise_filter, randstate=randstates[k])
+        N = N / np.std(N) * sigma + mu
+        N[~MASK] = R_thr_2
 
-        def worker():
-            # generate Gaussian white noise field, filter it using the chosen
-            # method, multiply it with the standard deviation of the observed
-            # field and apply the precipitation mask
-            N = noise_generator(noise_filter, randstate=randstates[k])
-            N = N / np.std(N) * sigma + mu
-            N[~MASK] = R_thr_2
-
-            # subtract the mean and decompose the masked noise field into a
-            # cascade
-            N -= mu
-            decomp_N = decomp_method(N, F, mask=MASK_)
-
-            return decomp_N["stds"]
-
-        if dask_imported and num_workers > 1:
-            res.append(dask.delayed(worker)())
-        else:
-            N_stds.append(worker())
+        # subtract the mean and decompose the masked noise field into a
+        # cascade
+        N -= mu
+        decomp_N = decomp_method(N, F, mask=MASK_)
+        
+        N_stds[k] = decomp_N["stds"]
 
     if dask_imported and num_workers > 1:
-        N_stds = dask.compute(*res, num_workers=num_workers)
+        for k in range(num_iter):
+            res.append(dask.delayed(worker)(k))
+        dask.compute(*res, num_workers=num_workers)
+ 
+    else:
+        for k in range(num_iter):
+            worker(k)
 
     # for each cascade level, compare the standard deviations between the
     # observed field and the masked noise field, which gives the correction
