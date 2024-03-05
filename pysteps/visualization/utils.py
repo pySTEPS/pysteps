@@ -13,6 +13,7 @@ Miscellaneous utility functions for the visualization module.
     get_geogrid
     get_basemap_axis
 """
+
 import warnings
 
 import matplotlib.pylab as plt

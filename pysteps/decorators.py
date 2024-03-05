@@ -228,9 +228,9 @@ def prepare_interpolator(nchunks=4):
                 indy = 0
                 for subygrid in subygrids:
                     deltay = subygrid.size
-                    interpolated[
-                        :, indy : (indy + deltay), indx : (indx + deltax)
-                    ] = interpolator(xy_coord, values, subxgrid, subygrid, **kwargs)
+                    interpolated[:, indy : (indy + deltay), indx : (indx + deltax)] = (
+                        interpolator(xy_coord, values, subxgrid, subygrid, **kwargs)
+                    )
                     indy += deltay
                 indx += deltax
 

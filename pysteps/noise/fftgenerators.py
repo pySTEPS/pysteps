@@ -708,9 +708,7 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
         # update indices
         level += 1
         Idxi, Idxj = _split_field((0, dim[0]), (0, dim[1]), 2**level)
-        Idxipsd, Idxjpsd = _split_field(
-            (0, 2**max_level), (0, 2**max_level), 2**level
-        )
+        Idxipsd, Idxjpsd = _split_field((0, 2**max_level), (0, 2**max_level), 2**level)
 
     return {"field": F, "input_shape": field.shape[1:], "use_full_fft": True}
 
