@@ -349,7 +349,7 @@ def test_vet_padding():
             verbose=False,
             sectors=((16, 4, 2), (16, 4, 2)),
             options=dict(maxiter=5),
-            padding=padding
+            padding=padding,
             # We use only a few iterations since
             # we don't care about convergence in this test
         )

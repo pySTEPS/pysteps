@@ -467,7 +467,7 @@ def forecast(
                 20,
                 conditional=True,
                 num_workers=num_workers,
-                seed=seed
+                seed=seed,
             )
 
             if measure_time:
@@ -707,7 +707,7 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
 
 
 def _update(state, params):
-    precip_forecast_out = [None]*params["n_ens_members"]
+    precip_forecast_out = [None] * params["n_ens_members"]
 
     if params["noise_method"] is None or params["mask_method"] == "sprog":
         for i in range(params["n_cascade_levels"]):
@@ -829,7 +829,7 @@ def _update(state, params):
 
         precip_forecast[params["domain_mask"]] = np.nan
 
-        precip_forecast_out[j]=precip_forecast
+        precip_forecast_out[j] = precip_forecast
 
     if (
         DASK_IMPORTED

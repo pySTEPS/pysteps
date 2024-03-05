@@ -96,14 +96,14 @@ def compute_noise_stddev_adjs(
 
     if dask_imported and num_workers > 1:
         res = []
-        
+
     N_stds = [None] * num_iter
     randstates = []
-    
+
     for k in range(num_iter):
         randstates.append(np.random.RandomState(seed=seed))
         seed = np.random.randint(0, high=1e9)
-    
+
     def worker(k):
         # generate Gaussian white noise field, filter it using the chosen
         # method, multiply it with the standard deviation of the observed
@@ -116,14 +116,14 @@ def compute_noise_stddev_adjs(
         # cascade
         N -= mu
         decomp_N = decomp_method(N, F, mask=MASK_)
-        
+
         N_stds[k] = decomp_N["stds"]
 
     if dask_imported and num_workers > 1:
         for k in range(num_iter):
             res.append(dask.delayed(worker)(k))
         dask.compute(*res, num_workers=num_workers)
- 
+
     else:
         for k in range(num_iter):
             worker(k)

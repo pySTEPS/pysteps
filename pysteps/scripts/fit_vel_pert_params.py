@@ -51,9 +51,7 @@ for lt in leadtimes:
     mu = dp_perp_sum / dp_perp_n
 
     std_perp.append(
-        np.sqrt(
-            (dp_perp_sq_sum - 2 * mu * dp_perp_sum + dp_perp_n * mu**2) / dp_perp_n
-        )
+        np.sqrt((dp_perp_sq_sum - 2 * mu * dp_perp_sum + dp_perp_n * mu**2) / dp_perp_n)
     )
 
 try:

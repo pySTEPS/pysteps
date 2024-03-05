@@ -217,7 +217,7 @@ latex_preamble = r"""
 latex_elements = {
     "papersize": "a4paper",
     "pointsize": "10pt",
-    "preamble": latex_preamble
+    "preamble": latex_preamble,
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',

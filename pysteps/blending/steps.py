@@ -527,7 +527,7 @@ def forecast(
         noise_stddev_adj,
         measure_time,
         num_workers,
-        seed
+        seed,
     )
 
     # 3. Perform the cascade decomposition for the input precip fields and
@@ -1664,7 +1664,7 @@ def _init_noise(
     noise_stddev_adj,
     measure_time,
     num_workers,
-    seed
+    seed,
 ):
     """Initialize the noise method."""
     if noise_method is None:
@@ -1693,7 +1693,7 @@ def _init_noise(
             20,
             conditional=True,
             num_workers=num_workers,
-            seed=seed
+            seed=seed,
         )
 
         if measure_time:

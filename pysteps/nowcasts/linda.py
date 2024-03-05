@@ -572,8 +572,7 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radius):
             dx = c[1] - grid_x
 
             w[i, :] = np.exp(
-                -dy * dy / (2 * window_radius_1**2)
-                - dx * dx / (2 * window_radius_2**2)
+                -dy * dy / (2 * window_radius_1**2) - dx * dx / (2 * window_radius_2**2)
             )
     else:
         w[0, :] = np.ones((grid_height, grid_width))
