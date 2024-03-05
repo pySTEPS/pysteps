@@ -443,6 +443,7 @@ def forecast(
         precip[i, ~np.isfinite(precip[i, :])] = np.nanmin(precip[i, :])
 
     if noise_method is not None:
+        np.random.seed(seed)
         # get methods for perturbations
         init_noise, generate_noise = noise.get_method(noise_method)
 
@@ -466,6 +467,7 @@ def forecast(
                 20,
                 conditional=True,
                 num_workers=num_workers,
+                seed=seed,
             )
 
             if measure_time:
@@ -543,7 +545,6 @@ def forecast(
     if noise_method is not None:
         randgen_prec = []
         randgen_motion = []
-        np.random.seed(seed)
         for _ in range(n_ens_members):
             rs = np.random.RandomState(seed)
             randgen_prec.append(rs)
@@ -706,7 +707,7 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
 
 
 def _update(state, params):
-    precip_forecast_out = []
+    precip_forecast_out = [None] * params["n_ens_members"]
 
     if params["noise_method"] is None or params["mask_method"] == "sprog":
         for i in range(params["n_cascade_levels"]):
@@ -828,7 +829,7 @@ def _update(state, params):
 
         precip_forecast[params["domain_mask"]] = np.nan
 
-        precip_forecast_out.append(precip_forecast)
+        precip_forecast_out[j] = precip_forecast
 
     if (
         DASK_IMPORTED
