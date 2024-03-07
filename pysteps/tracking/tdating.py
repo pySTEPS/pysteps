@@ -269,7 +269,7 @@ def advect(cells_id, labels, V1):
     return cells_ad
 
 
-def match(cells_ad, labels):
+def match(cells_ad, labels, match_frac=0.4, split_frac=0.1):
     """
     This function matches the advected cells of the previous timestep to the newly
     identified ones. A minimal overlap of 40% is required. In case of split of merge,
@@ -293,7 +293,7 @@ def match(cells_ad, labels):
         m = np.argmax(N)
         ID_match = IDs[m]
         ID_coverage = N[m] / len(ID_vec)
-        if ID_coverage >= 0.4:
+        if ID_coverage >= match_frac:
             cells_ov.t_ID[ID_a] = ID_match
         else:
             cells_ov.t_ID[ID_a] = 0
