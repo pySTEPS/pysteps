@@ -253,13 +253,36 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
                 "max_ref": maxref,
                 "cont": contours,
                 "area": len(x),
+                "splitted": None,
+                "split_IDs": None,
+                "merged": None,
+                "merged_IDs": None,
+                "results_from_split": None,
+                "will_merge": None,
             }
         )
         labels[cells == cell_labels[n]] = this_id
     cells_id = pd.DataFrame(
         data=cells_id,
         index=range(len(cell_labels)),
-        columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont", "area"],
+        columns=[
+            "ID",
+            "time",
+            "x",
+            "y",
+            "cen_x",
+            "cen_y",
+            "max_ref",
+            "cont",
+            "area",
+            "splitted",
+            "split_IDs",
+            "merged",
+            "merged_IDs",
+            "results_from_split",
+            "will_merge",
+        ],
     )
-
+    cells_id["split_IDs"] = cells_id["split_IDs"].astype("object")
+    cells_id["merged_IDs"] = cells_id["merged_IDs"].astype("object")
     return cells_id, labels
