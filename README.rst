@@ -14,7 +14,7 @@ pysteps - Python framework for short-term ensemble prediction systems
     * - package
       - |github| |conda| |pypi| |zenodo|
     * - community
-      - |slack| |contributors| |downloads| |license|
+      - |contributors| |downloads| |license|
 
 
 .. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
@@ -48,10 +48,6 @@ pysteps - Python framework for short-term ensemble prediction systems
 .. |license| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
     :alt: License
     :target: https://opensource.org/licenses/BSD-3-Clause
-
-.. |slack| image:: https://pysteps-slackin.herokuapp.com/badge.svg
-    :alt: Slack invitation page
-    :target: https://pysteps-slackin.herokuapp.com/
 
 .. |contributors| image:: https://img.shields.io/github/contributors/pySTEPS/pysteps
     :alt: GitHub contributors
@@ -129,11 +125,6 @@ For feedback, suggestions for developments, and bug reports please use the dedic
 
 For more information, please read our `contributors guidelines <https://pysteps.readthedocs.io/en/stable/developer_guide/contributors_guidelines.html>`_.
 
-Get in touch
-============
-
-You can get in touch with the pysteps community on our `pysteps slack <https://pysteps.slack.com/>`_.
-To get access to it, you need to ask for an invitation or you can use this `automatic invitation page <https://pysteps-slackin.herokuapp.com/>`_.
 
 Reference publications
 ======================
