@@ -177,9 +177,23 @@ def dating(
             continue
         if t >= 2:
             flowfield = oflow_method(input_video[t - 2 : t + 1, :, :])
-            cells_id, max_ID, newlabels = tracking(
-                cells_id, cell_list[-1], labels, flowfield, max_ID
-            )
+            cells_id, max_ID, newlabels, splitted_cells = tracking(cells_id, cell_list[-1], labels, flowfield, max_ID)
+
+            # Assign splitted parameters for the previous timestep
+            for ID, split_cell in splitted_cells.iterrows():
+                prev_list_id = cell_list[-1][cell_list[-1].ID == split_cell.ID].index.item()
+
+                split_ids = split_cell.split_IDs
+                split_ids_updated = []
+                for sid in split_ids:
+                    split_ids_updated.append(newlabels[labels == sid][0])
+
+                cell_list[-1].at[prev_list_id, "splitted"] = True
+                cell_list[-1].at[prev_list_id, "split_IDs"] = split_ids_updated
+
+                for sid in split_ids_updated:
+                    cur_list_id = cells_id[cells_id.ID == sid].index.item()
+                    cells_id.at[cur_list_id, "results_from_split"] = True
             cid = np.unique(newlabels)
             # max_ID = np.nanmax([np.nanmax(cid), max_ID])
             cell_list.append(cells_id)
@@ -198,7 +212,8 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
     """
     cells_id_new = cells_id.copy()
     cells_ad = advect(cells_id_prev, labels, V1)
-    cells_ov, labels = match(cells_ad, labels)
+    splitted_cells = cells_ov[cells_ov.splitted == True]
+
     newlabels = np.zeros(labels.shape)
     for index, cell in cells_id_new.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
@@ -218,7 +233,7 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
             cells_id_new.loc[index, "ID"] = new_ID
         newlabels[labels == index + 1] = new_ID
         del new_ID
-    return cells_id_new, max_ID, newlabels
+    return cells_id_new, max_ID, newlabels, splitted_cells
 
 
 def advect(cells_id, labels, V1):
@@ -240,6 +255,9 @@ def advect(cells_id, labels, V1):
             "frac",
             "flowx",
             "flowy",
+            "splitted",
+            "split_IDs",
+            "split_fracs",
         ],
     )
     for ID, cell in cells_id.iterrows():
@@ -290,6 +308,16 @@ def match(cells_ad, labels, match_frac=0.4, split_frac=0.1):
         N = np.zeros(n_IDs)
         for n in range(n_IDs):
             N[n] = len(np.where(ID_vec == IDs[n])[0])
+
+        # Only consider possible split if overlap is large enough
+        valid_split_ids = (N / len(ID_vec)) > split_frac
+        # splits here
+        if sum(valid_split_ids) > 1:
+            # Save split information
+            cells_ov.iloc[ID_a]["splitted"] = True
+            cells_ov.iloc[ID_a]["split_IDs"] = IDs[valid_split_ids]
+            cells_ov.iloc[ID_a]["split_fracs"] = N / len(ID_vec)
+
         m = np.argmax(N)
         ID_match = IDs[m]
         ID_coverage = N[m] / len(ID_vec)
