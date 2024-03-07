@@ -194,6 +194,13 @@ def dating(
                 for sid in split_ids_updated:
                     cur_list_id = cells_id[cells_id.ID == sid].index.item()
                     cells_id.at[cur_list_id, "results_from_split"] = True
+
+            merged_cells = cells_id[cells_id.merged == True]
+            for i, cell in merged_cells.iterrows():
+                for merged_id in cell.merged_IDs:
+                    prev_list_id = cell_list[-1][cell_list[-1].ID == merged_id].index.item()
+                    cell_list[-1].at[prev_list_id, "will_merge"] = True
+
             cid = np.unique(newlabels)
             # max_ID = np.nanmax([np.nanmax(cid), max_ID])
             cell_list.append(cells_id)
@@ -204,7 +211,14 @@ def dating(
     return track_list, cell_list, label_list
 
 
-def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
+def tracking(
+    cells_id,
+    cells_id_prev,
+    labels,
+    V1,
+    max_ID,
+    merge_frac=0.1,
+):
     """
     This function performs the actual tracking procedure. First the cells are advected,
     then overlapped and finally their IDs are matched. If no match is found, a new ID
@@ -212,9 +226,11 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
     """
     cells_id_new = cells_id.copy()
     cells_ad = advect(cells_id_prev, labels, V1)
+    cells_ov, labels, possible_merge_ids = match(cells_ad, labels)
     splitted_cells = cells_ov[cells_ov.splitted == True]
 
     newlabels = np.zeros(labels.shape)
+    possible_merge_ids_new = {}
     for index, cell in cells_id_new.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
             continue
@@ -232,7 +248,25 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
             new_ID = max_ID
             cells_id_new.loc[index, "ID"] = new_ID
         newlabels[labels == index + 1] = new_ID
+        possible_merge_ids_new[new_ID] = possible_merge_ids[cell.ID]
         del new_ID
+    # Process possible merges
+    for target_id, possible_IDs in possible_merge_ids_new.items():
+        merge_ids = []
+        for p_id in possible_IDs:
+            cell_a = cells_ad[cells_ad.ID == p_id]
+
+            ID_vec = newlabels[cell_a.y.item(), cell_a.x.item()]
+            overlap = np.sum(ID_vec == target_id) / len(ID_vec)
+            if overlap > merge_frac:
+                merge_ids.append(p_id)
+
+        if len(merge_ids) > 1:
+            cell_id = cells_id_new[cells_id_new.ID == target_id].index.item()
+            # Merge cells
+            cells_id_new.at[cell_id, "merged"] = True
+            cells_id_new.at[cell_id, "merged_IDs"] = merge_ids
+
     return cells_id_new, max_ID, newlabels, splitted_cells
 
 
@@ -294,6 +328,7 @@ def match(cells_ad, labels, match_frac=0.4, split_frac=0.1):
     the larger cell supersedes the smaller one in naming.
     """
     cells_ov = cells_ad.copy()
+    possible_merge_ids = {i: [] for i in np.unique(labels)}
     for ID_a, cell_a in cells_ov.iterrows():
         if cell_a.ID == 0 or np.isnan(cell_a.ID):
             continue
@@ -305,6 +340,10 @@ def match(cells_ad, labels, match_frac=0.4, split_frac=0.1):
             continue
         IDs = IDs[IDs != 0]
         n_IDs = len(IDs)
+
+        for i in IDs:
+            possible_merge_ids[i].append(cell_a.ID)
+
         N = np.zeros(n_IDs)
         for n in range(n_IDs):
             N[n] = len(np.where(ID_vec == IDs[n])[0])
@@ -326,7 +365,7 @@ def match(cells_ad, labels, match_frac=0.4, split_frac=0.1):
         else:
             cells_ov.t_ID[ID_a] = 0
         cells_ov.frac[ID_a] = ID_coverage
-    return cells_ov, labels
+    return cells_ov, labels, possible_merge_ids
 
 
 def couple_track(cell_list, max_ID, mintrack):
