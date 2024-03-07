@@ -282,6 +282,11 @@ def match(cells_ad, labels):
         ID_vec = labels[cell_a.y, cell_a.x]
         IDs = np.unique(ID_vec)
         n_IDs = len(IDs)
+        if n_IDs == 1 and IDs[0] == 0:
+            cells_ov.t_ID[ID_a] = 0
+            continue
+        IDs = IDs[IDs != 0]
+        n_IDs = len(IDs)
         N = np.zeros(n_IDs)
         for n in range(n_IDs):
             N[n] = len(np.where(ID_vec == IDs[n])[0])
