@@ -371,7 +371,11 @@ def initialize_forecast_exporter_netcdf(
     shape,
     metadata,
     n_ens_members=1,
+    datatype=np.float32,
     incremental=None,
+    fill_value=None,
+    scale_factor=None,
+    offset=None,
     **kwargs,
 ):
     """
@@ -401,12 +405,35 @@ def initialize_forecast_exporter_netcdf(
     n_ens_members: int
         Number of ensemble members in the forecast. This argument is ignored if
         incremental is set to 'member'.
+    datatype: np.dtype, optional
+        The datatype of the output values. Defaults to np.float32.
     incremental: {None,'timestep','member'}, optional
         Allow incremental writing of datasets into the netCDF files.\n
         The available options are: 'timestep' = write a forecast or a forecast
         ensemble for  a given time step; 'member' = write a forecast sequence
         for a given ensemble member. If set to None, incremental writing is
         disabled.
+    fill_value: int, optional
+        Fill_value for missing data. Defaults to None, which means that the
+        standard netCDF4 fill_value is used.
+    scale_factor: float, optional
+        The scale factor to scale the data as: store_value = scale_factor *
+        precipitation_value + offset. Defaults to None. The scale_factor
+        can be used to reduce data storage.
+    offset: float, optional
+        The offset to offset the data as: store_value = scale_factor *
+        precipitation_value + offset. Defaults to None.
+
+    Other Parameters
+    ----------------
+    institution: str
+        The instute, company or community that has created the nowcast.
+        Default: the pySTEPS community (https://pysteps.github.io)
+    references: str
+        Any references to be included in the netCDF file. Defaults to " ".
+    comment: str
+        Any comments about the data or storage protocol that should be
+        included in the netCDF file. Defaults to " ".
 
     Returns
     -------
@@ -448,6 +475,13 @@ def initialize_forecast_exporter_netcdf(
         if n_ens_members > 1:
             n_ens_gt_one = True
 
+    # Kwargs to be used as description strings in the netCDF
+    institution = kwargs.get(
+        "institution", "the pySTEPS community (https://pysteps.github.io)"
+    )
+    references = kwargs.get("references", "")
+    comment = kwargs.get("comment", "")
+
     exporter = {}
 
     outfn = os.path.join(outpath, outfnprefix + ".nc")
@@ -455,11 +489,11 @@ def initialize_forecast_exporter_netcdf(
 
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
-    ncf.institution = "the pySTEPS community (https://pysteps.github.io)"
+    ncf.institution = institution
     ncf.source = "pysteps"  # TODO(exporters): Add pySTEPS version here
     ncf.history = ""
-    ncf.references = ""
-    ncf.comment = ""
+    ncf.references = references
+    ncf.comment = comment
 
     h, w = shape
 
@@ -559,14 +593,22 @@ def initialize_forecast_exporter_netcdf(
     if incremental == "member" or n_ens_gt_one:
         var_f = ncf.createVariable(
             var_name,
-            np.float32,
-            dimensions=("ens_number", "time", "y", "x"),
+            datatype=datatype,
+            dimensions=("realization", "time", "y", "x"),
+            compression="zlib",
             zlib=True,
             complevel=9,
+            fill_value=fill_value,
         )
     else:
         var_f = ncf.createVariable(
-            var_name, np.float32, dimensions=("time", "y", "x"), zlib=True, complevel=9
+            var_name,
+            datatype=datatype,
+            dimensions=("time", "y", "x"),
+            compression="zlib",
+            zlib=True,
+            complevel=9,
+            fill_value=fill_value,
         )
 
     if var_standard_name is not None:
@@ -576,6 +618,11 @@ def initialize_forecast_exporter_netcdf(
     var_f.units = var_unit
     if grid_mapping_var_name is not None:
         var_f.grid_mapping = grid_mapping_var_name
+    # Add gain and offset
+    if scale_factor is not None:
+        var_f.scale_factor = scale_factor
+    if offset is not None:
+        var_f.add_offset = offset
 
     exporter["method"] = "netcdf"
     exporter["ncfile"] = ncf
