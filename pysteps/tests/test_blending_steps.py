@@ -7,6 +7,32 @@ import pysteps
 from pysteps import cascade, blending
 
 
+steps_arg_values = [
+    (1, 3, 4, 8, None, None, False, "spn", True, 4, False, False),
+    (1, 3, 4, 8, "obs", None, False, "spn", True, 4, False, False),
+    (1, 3, 4, 8, "incremental", None, False, "spn", True, 4, False, False),
+    (1, 3, 4, 8, None, "mean", False, "spn", True, 4, False, False),
+    (1, 3, 4, 8, None, "cdf", False, "spn", True, 4, False, False),
+    (1, 3, 4, 8, "incremental", "cdf", False, "spn", True, 4, False, False),
+    (1, 3, 4, 6, "incremental", "cdf", False, "bps", True, 4, False, False),
+    (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4, False, False),
+    (1, 3, 4, 9, "incremental", "cdf", False, "spn", True, 4, False, False),
+    (2, 3, 10, 8, "incremental", "cdf", False, "spn", True, 10, False, False),
+    (5, 3, 5, 8, "incremental", "cdf", False, "spn", True, 5, False, False),
+    (1, 10, 1, 8, "incremental", "cdf", False, "spn", True, 1, False, False),
+    (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2, False, False),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False),
+    #    Test the case where the radar image contains no rain.
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, True, False),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False),
+    #   Test the case where the NWP fields contain no rain.
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, True),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, False, True),
+    # Test the case where both the radar image and the NWP fields contain no rain.
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, True, True),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, True),
+    (5, 3, 5, 6, "obs", "mean", True, "spn", True, 5, True, True),
+]
 steps_arg_names = (
     "n_models",
     "n_timesteps",
@@ -18,23 +44,9 @@ steps_arg_names = (
     "weights_method",
     "decomposed_nwp",
     "expected_n_ens_members",
+    "zero_radar",
+    "zero_nwp",
 )
-
-steps_arg_values = [
-    (1, 3, 4, 8, None, None, False, "spn", True, 4),
-    (1, 3, 4, 8, "obs", None, False, "spn", True, 4),
-    (1, 3, 4, 8, "incremental", None, False, "spn", True, 4),
-    (1, 3, 4, 8, None, "mean", False, "spn", True, 4),
-    (1, 3, 4, 8, None, "cdf", False, "spn", True, 4),
-    (1, 3, 4, 8, "incremental", "cdf", False, "spn", True, 4),
-    (1, 3, 4, 6, "incremental", "cdf", False, "bps", True, 4),
-    (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4),
-    (1, 3, 4, 9, "incremental", "cdf", False, "spn", True, 4),
-    (2, 3, 10, 8, "incremental", "cdf", False, "spn", True, 10),
-    (5, 3, 5, 8, "incremental", "cdf", False, "spn", True, 5),
-    (1, 10, 1, 8, "incremental", "cdf", False, "spn", True, 1),
-    (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2),
-]
 
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
@@ -49,6 +61,8 @@ def test_steps_blending(
     weights_method,
     decomposed_nwp,
     expected_n_ens_members,
+    zero_radar,
+    zero_nwp,
 ):
     pytest.importorskip("cv2")
 
@@ -58,49 +72,51 @@ def test_steps_blending(
     # Initialise dummy NWP data
     nwp_precip = np.zeros((n_models, n_timesteps + 1, 200, 200))
 
-    for n_model in range(n_models):
-        for i in range(nwp_precip.shape[1]):
-            nwp_precip[n_model, i, 30:185, 30 + 1 * (i + 1) * n_model] = 0.1
-            nwp_precip[n_model, i, 30:185, 31 + 1 * (i + 1) * n_model] = 0.1
-            nwp_precip[n_model, i, 30:185, 32 + 1 * (i + 1) * n_model] = 1.0
-            nwp_precip[n_model, i, 30:185, 33 + 1 * (i + 1) * n_model] = 5.0
-            nwp_precip[n_model, i, 30:185, 34 + 1 * (i + 1) * n_model] = 5.0
-            nwp_precip[n_model, i, 30:185, 35 + 1 * (i + 1) * n_model] = 4.5
-            nwp_precip[n_model, i, 30:185, 36 + 1 * (i + 1) * n_model] = 4.5
-            nwp_precip[n_model, i, 30:185, 37 + 1 * (i + 1) * n_model] = 4.0
-            nwp_precip[n_model, i, 30:185, 38 + 1 * (i + 1) * n_model] = 2.0
-            nwp_precip[n_model, i, 30:185, 39 + 1 * (i + 1) * n_model] = 1.0
-            nwp_precip[n_model, i, 30:185, 40 + 1 * (i + 1) * n_model] = 0.5
-            nwp_precip[n_model, i, 30:185, 41 + 1 * (i + 1) * n_model] = 0.1
+    if not zero_nwp:
+        for n_model in range(n_models):
+            for i in range(nwp_precip.shape[1]):
+                nwp_precip[n_model, i, 30:185, 30 + 1 * (i + 1) * n_model] = 0.1
+                nwp_precip[n_model, i, 30:185, 31 + 1 * (i + 1) * n_model] = 0.1
+                nwp_precip[n_model, i, 30:185, 32 + 1 * (i + 1) * n_model] = 1.0
+                nwp_precip[n_model, i, 30:185, 33 + 1 * (i + 1) * n_model] = 5.0
+                nwp_precip[n_model, i, 30:185, 34 + 1 * (i + 1) * n_model] = 5.0
+                nwp_precip[n_model, i, 30:185, 35 + 1 * (i + 1) * n_model] = 4.5
+                nwp_precip[n_model, i, 30:185, 36 + 1 * (i + 1) * n_model] = 4.5
+                nwp_precip[n_model, i, 30:185, 37 + 1 * (i + 1) * n_model] = 4.0
+                nwp_precip[n_model, i, 30:185, 38 + 1 * (i + 1) * n_model] = 2.0
+                nwp_precip[n_model, i, 30:185, 39 + 1 * (i + 1) * n_model] = 1.0
+                nwp_precip[n_model, i, 30:185, 40 + 1 * (i + 1) * n_model] = 0.5
+                nwp_precip[n_model, i, 30:185, 41 + 1 * (i + 1) * n_model] = 0.1
 
     # Define dummy nowcast input data
     radar_precip = np.zeros((3, 200, 200))
 
-    for i in range(2):
-        radar_precip[i, 5:150, 30 + 1 * i] = 0.1
-        radar_precip[i, 5:150, 31 + 1 * i] = 0.5
-        radar_precip[i, 5:150, 32 + 1 * i] = 0.5
-        radar_precip[i, 5:150, 33 + 1 * i] = 5.0
-        radar_precip[i, 5:150, 34 + 1 * i] = 5.0
-        radar_precip[i, 5:150, 35 + 1 * i] = 4.5
-        radar_precip[i, 5:150, 36 + 1 * i] = 4.5
-        radar_precip[i, 5:150, 37 + 1 * i] = 4.0
-        radar_precip[i, 5:150, 38 + 1 * i] = 1.0
-        radar_precip[i, 5:150, 39 + 1 * i] = 0.5
-        radar_precip[i, 5:150, 40 + 1 * i] = 0.5
-        radar_precip[i, 5:150, 41 + 1 * i] = 0.1
-    radar_precip[2, 30:155, 30 + 1 * 2] = 0.1
-    radar_precip[2, 30:155, 31 + 1 * 2] = 0.1
-    radar_precip[2, 30:155, 32 + 1 * 2] = 1.0
-    radar_precip[2, 30:155, 33 + 1 * 2] = 5.0
-    radar_precip[2, 30:155, 34 + 1 * 2] = 5.0
-    radar_precip[2, 30:155, 35 + 1 * 2] = 4.5
-    radar_precip[2, 30:155, 36 + 1 * 2] = 4.5
-    radar_precip[2, 30:155, 37 + 1 * 2] = 4.0
-    radar_precip[2, 30:155, 38 + 1 * 2] = 2.0
-    radar_precip[2, 30:155, 39 + 1 * 2] = 1.0
-    radar_precip[2, 30:155, 40 + 1 * 3] = 0.5
-    radar_precip[2, 30:155, 41 + 1 * 3] = 0.1
+    if not zero_radar:
+        for i in range(2):
+            radar_precip[i, 5:150, 30 + 1 * i] = 0.1
+            radar_precip[i, 5:150, 31 + 1 * i] = 0.5
+            radar_precip[i, 5:150, 32 + 1 * i] = 0.5
+            radar_precip[i, 5:150, 33 + 1 * i] = 5.0
+            radar_precip[i, 5:150, 34 + 1 * i] = 5.0
+            radar_precip[i, 5:150, 35 + 1 * i] = 4.5
+            radar_precip[i, 5:150, 36 + 1 * i] = 4.5
+            radar_precip[i, 5:150, 37 + 1 * i] = 4.0
+            radar_precip[i, 5:150, 38 + 1 * i] = 1.0
+            radar_precip[i, 5:150, 39 + 1 * i] = 0.5
+            radar_precip[i, 5:150, 40 + 1 * i] = 0.5
+            radar_precip[i, 5:150, 41 + 1 * i] = 0.1
+        radar_precip[2, 30:155, 30 + 1 * 2] = 0.1
+        radar_precip[2, 30:155, 31 + 1 * 2] = 0.1
+        radar_precip[2, 30:155, 32 + 1 * 2] = 1.0
+        radar_precip[2, 30:155, 33 + 1 * 2] = 5.0
+        radar_precip[2, 30:155, 34 + 1 * 2] = 5.0
+        radar_precip[2, 30:155, 35 + 1 * 2] = 4.5
+        radar_precip[2, 30:155, 36 + 1 * 2] = 4.5
+        radar_precip[2, 30:155, 37 + 1 * 2] = 4.0
+        radar_precip[2, 30:155, 38 + 1 * 2] = 2.0
+        radar_precip[2, 30:155, 39 + 1 * 2] = 1.0
+        radar_precip[2, 30:155, 40 + 1 * 3] = 0.5
+        radar_precip[2, 30:155, 41 + 1 * 3] = 0.1
 
     metadata = dict()
     metadata["unit"] = "mm"

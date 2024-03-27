@@ -15,6 +15,7 @@ from pysteps.blending.utils import (
     decompose_NWP,
     compute_store_nwp_motion,
     load_NWP,
+    check_norain,
 )
 
 pytest.importorskip("netCDF4")
@@ -96,8 +97,8 @@ converter = pysteps.utils.get_method("mm/h")
 precip_nwp, nwp_metadata = converter(precip_nwp, nwp_metadata)
 
 # Threshold the data
-precip_nwp[precip_nwp < 0.1] = 0.0
 nwp_metadata["threshold"] = 0.1
+precip_nwp[precip_nwp < nwp_metadata["threshold"]] = 0.0
 
 # Transform the data
 transformer = pysteps.utils.get_method("dB")
@@ -378,3 +379,28 @@ def test_blending_utils(
         decimal=3,
         err_msg="Recomposed field of second forecast does not equal original field",
     )
+
+    precip_arr = precip_nwp
+    # rainy fraction is 0.005847
+    assert not check_norain(precip_arr)
+    assert not check_norain(precip_arr, precip_thr=nwp_metadata["threshold"])
+    assert not check_norain(
+        precip_arr, precip_thr=nwp_metadata["threshold"], norain_thr=0.005
+    )
+    assert not check_norain(precip_arr, norain_thr=0.005)
+    # so with norain_thr beyond this number it should report that there's no rain
+    assert check_norain(precip_arr, norain_thr=0.006)
+    assert check_norain(
+        precip_arr, precip_thr=nwp_metadata["threshold"], norain_thr=0.006
+    )
+
+    # also if we set the precipitation threshold sufficiently high, it should report there's no rain
+    # rainy fraction > 4mm/h is 0.004385
+    assert not check_norain(precip_arr, precip_thr=4.0, norain_thr=0.004)
+    assert check_norain(precip_arr, precip_thr=4.0, norain_thr=0.005)
+
+    # no rain above 100mm/h so it should give norain
+    assert check_norain(precip_arr, precip_thr=100)
+
+    # should always give norain if the threshold is set to 100%
+    assert check_norain(precip_arr, norain_thr=1.0)
