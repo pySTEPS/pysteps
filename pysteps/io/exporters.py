@@ -594,7 +594,7 @@ def initialize_forecast_exporter_netcdf(
         var_f = ncf.createVariable(
             var_name,
             datatype=datatype,
-            dimensions=("realization", "time", "y", "x"),
+            dimensions=("ens_number", "time", "y", "x"),
             compression="zlib",
             zlib=True,
             complevel=9,
