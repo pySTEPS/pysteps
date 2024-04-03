@@ -33,6 +33,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # need headless opencv on Linux, see https://github.com/conda-forge/opencv-feedstock/issues/401
       - name: Install mamba and create environment for Linux
         if: matrix.os == 'ubuntu-latest'
         uses: mamba-org/setup-micromamba@v1
@@ -42,7 +43,7 @@ jobs:
           generate-run-shell: false
           create-args: >-
             python=${{ matrix.python-version }}
-            libopencv *=headless*
+            libopencv=*=headless*
 
       - name: Install mamba and create environment (not Linux)
         if: matrix.os != 'ubuntu-latest'
