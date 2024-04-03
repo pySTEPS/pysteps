@@ -15,6 +15,7 @@ dependencies:
   - matplotlib
   - netCDF4
   - opencv
+  - libopencv *=headless*
   - pillow
   - pyproj
   - scipy
