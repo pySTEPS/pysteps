@@ -16,14 +16,21 @@ from pysteps.io.exporters import initialize_forecast_exporter_netcdf
 from pysteps.tests.helpers import get_precipitation_fields, get_invalid_mask
 
 # Test arguments
-exporter_arg_names = ("n_ens_members", "incremental")
+exporter_arg_names = (
+    "n_ens_members",
+    "incremental",
+    "datatype",
+    "fill_value",
+    "scale_factor",
+    "offset",
+)
 
 exporter_arg_values = [
-    (1, None),
-    (1, "timestep"),
-    (2, None),
-    (2, "timestep"),
-    (2, "member"),
+    (1, None, np.float32, None, None, None),
+    (1, "timestep", np.float32, 65535, None, None),
+    (2, None, np.float32, 65535, None, None),
+    (2, "timestep", np.float32, None, None, None),
+    (2, "member", np.float64, None, 0.01, 1.0),
 ]
 
 
@@ -46,7 +53,9 @@ def test_get_geotiff_filename():
 
 
 @pytest.mark.parametrize(exporter_arg_names, exporter_arg_values)
-def test_io_export_netcdf_one_member_one_time_step(n_ens_members, incremental):
+def test_io_export_netcdf_one_member_one_time_step(
+    n_ens_members, incremental, datatype, fill_value, scale_factor, offset
+):
     """
     Test the export netcdf.
     Also, test that the exported file can be read by the importer.
@@ -78,7 +87,11 @@ def test_io_export_netcdf_one_member_one_time_step(n_ens_members, incremental):
             shape,
             metadata,
             n_ens_members=n_ens_members,
+            datatype=datatype,
             incremental=incremental,
+            fill_value=fill_value,
+            scale_factor=scale_factor,
+            offset=offset,
         )
 
         if n_ens_members > 1:
