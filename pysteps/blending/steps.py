@@ -1176,7 +1176,6 @@ def forecast(
                         for i in range(n_cascade_levels):
                             Yn_ep[i] *= noise_std_coeffs[i]
 
-
                         # Append the results to the output lists
                         R_f_ep_out.append(R_f_ep.copy())
                         Yn_ep_out.append(Yn_ep.copy())
@@ -2376,7 +2375,6 @@ def _init_noise_cascade(
             EPS = None
             EPS_ = None
     return noise_cascade, mu_noise, sigma_noise
-
 
 
 def _fill_nans_infs_nwp_cascade(
