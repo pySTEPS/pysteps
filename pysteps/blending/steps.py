@@ -694,6 +694,7 @@ def forecast(
             noise_stddev_adj,
             measure_time,
             num_workers,
+            seed,
         )
         precip_noise_input = None
 
