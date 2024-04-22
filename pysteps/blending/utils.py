@@ -525,6 +525,7 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
         # Append the output list
         R_d.append(decomp_dict_)
 
+    ncf_decomp.close()
     return R_d, uv
 
 
@@ -552,4 +553,6 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
         precip_thr = np.nanmin(precip_arr)
     rain_pixels = precip_arr[precip_arr > precip_thr]
     norain = rain_pixels.size / precip_arr.size <= norain_thr
+    print("Field is below no rain fraction :", norain)
+    print("rain fraction is :", rain_pixels.size / precip_arr.size)
     return norain

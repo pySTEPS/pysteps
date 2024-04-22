@@ -523,26 +523,8 @@ def forecast(
         precip, velocity, ar_order, xy_coords, extrapolator, extrap_kwargs, num_workers
     )
 
-    # 2. Initialize the noise method
-    np.random.seed(seed)
-    pp, generate_noise, noise_std_coeffs = _init_noise(
-        precip,
-        precip_thr,
-        n_cascade_levels,
-        bp_filter,
-        decompositor,
-        fft,
-        noise_method,
-        noise_kwargs,
-        noise_stddev_adj,
-        measure_time,
-        num_workers,
-        seed,
-    )
-
-    # 3. Perform the cascade decomposition for the input precip fields and
+    # 2. Perform the cascade decomposition for the input precip fields and
     # and, if necessary, for the (NWP) model fields
-
     # 2.1 Compute the cascade decompositions of the input precipitation fields
     (
         precip_cascade,
@@ -574,7 +556,9 @@ def forecast(
     zero_precip_radar = blending.utils.check_norain(precip, precip_thr, norain_thr)
     # The norain fraction threshold used for nwp is the default value of 0.0,
     # since nwp does not suffer from clutter.
-    zero_model_fields = blending.utils.check_norain(precip_models_pm, precip_thr)
+    zero_model_fields = blending.utils.check_norain(
+        precip_models_pm, precip_thr, norain_thr
+    )
 
     # 2.3.1 If precip is below the norain threshold and precip_models_pm is zero,
     # we consider it as no rain in the domain.
