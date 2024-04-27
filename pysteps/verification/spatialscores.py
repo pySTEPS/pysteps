@@ -27,7 +27,7 @@ Skill scores for spatial forecasts.
 
 import collections
 import numpy as np
-from scipy.ndimage.filters import uniform_filter
+from scipy.ndimage import uniform_filter
 
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.verification.salscores import sal  # make SAL accessible from this module
@@ -156,7 +156,6 @@ def intensity_scale_init(name, thrs, scales=None, wavelet="Haar"):
     intscale["wavelet"] = wavelet
 
     for i, thr in enumerate(intscale["thrs"]):
-
         if name.lower() == "bmse":
             intscale[thr] = binary_mse_init(thr, intscale["wavelet"])
 
@@ -200,7 +199,6 @@ def intensity_scale_accum(intscale, X_f, X_o):
     scales = intscale["scales"]
 
     for i, thr in enumerate(thrs):
-
         if name.lower() == "bmse":
             binary_mse_accum(intscale[thr], X_f, X_o)
 
@@ -248,7 +246,6 @@ def intensity_scale_merge(intscale_1, intscale_2):
     scales = intscale["scales"]
 
     for i, thr in enumerate(thrs):
-
         if name.lower() == "bmse":
             intscale[thr] = binary_mse_merge(intscale[thr], intscale_2[thr])
 
@@ -288,7 +285,6 @@ def intensity_scale_compute(intscale):
     SS = np.zeros((scales.size, thrs.size))
 
     for i, thr in enumerate(thrs):
-
         if name.lower() == "bmse":
             SS[:, i] = binary_mse_compute(intscale[thr], False)
 

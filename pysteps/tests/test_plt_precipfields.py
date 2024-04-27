@@ -41,19 +41,16 @@ def test_visualization_plot_precip_field(
     source, plot_type, bbox, colorscale, probthr, title, colorbar, axis
 ):
     if plot_type == "intensity":
-
         field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
         field = field.squeeze()
         field, metadata = conversion.to_rainrate(field, metadata)
 
     elif plot_type == "depth":
-
         field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
         field = field.squeeze()
         field, metadata = conversion.to_raindepth(field, metadata)
 
     elif plot_type == "prob":
-
         field, metadata = get_precipitation_fields(0, 10, True, True, None, source)
         field, metadata = conversion.to_rainrate(field, metadata)
         field = ensemblestats.excprob(field, probthr)
@@ -81,7 +78,6 @@ def test_visualization_plot_precip_field(
 
 
 if __name__ == "__main__":
-
     for i, args in enumerate(plt_arg_values):
         test_visualization_plot_precip_field(*args)
         plt.show()

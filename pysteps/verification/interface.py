@@ -163,8 +163,7 @@ def get_method(name, type="deterministic"):
     name = name.lower()
     type = type.lower()
 
-    if type in ["deterministic"]:
-
+    if type == "deterministic":
         from .detcatscores import det_cat_fct
         from .detcontscores import det_cont_fct
         from .spatialscores import binary_mse, fss
@@ -173,6 +172,7 @@ def get_method(name, type="deterministic"):
         # categorical
         if name in [
             "acc",
+            "bias",
             "csi",
             "f1",
             "fa",
@@ -213,38 +213,36 @@ def get_method(name, type="deterministic"):
             return f
 
         # spatial
-        elif name in ["binary_mse"]:
+        elif name == "binary_mse":
             return binary_mse
-        elif name in ["fss"]:
+        elif name == "fss":
             return fss
-        elif name in ["sal"]:
+        elif name == "sal":
             return sal
 
         else:
             raise ValueError("unknown deterministic method %s" % name)
 
-    elif type in ["ensemble"]:
-
+    elif type == "ensemble":
         from .ensscores import ensemble_skill, ensemble_spread, rankhist
 
-        if name in ["ens_skill"]:
+        if name == "ens_skill":
             return ensemble_skill
-        elif name in ["ens_spread"]:
+        elif name == "ens_spread":
             return ensemble_spread
-        elif name in ["rankhist"]:
+        elif name == "rankhist":
             return rankhist
         else:
             raise ValueError("unknown ensemble method %s" % name)
 
-    elif type in ["probabilistic"]:
-
+    elif type == "probabilistic":
         from .probscores import CRPS, reldiag, ROC_curve
 
-        if name in ["crps"]:
+        if name == "crps":
             return CRPS
-        elif name in ["reldiag"]:
+        elif name == "reldiag":
             return reldiag
-        elif name in ["roc"]:
+        elif name == "roc":
             return ROC_curve
         else:
             raise ValueError("unknown probabilistic method %s" % name)

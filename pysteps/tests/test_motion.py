@@ -222,7 +222,6 @@ def test_optflow_method_convergence(
     elif optflow_method_name == "proesmans":
         retrieved_motion = oflow_method(precip_obs)
     else:
-
         retrieved_motion = oflow_method(precip_obs, verbose=False)
 
     precip_data, _ = stp.utils.dB_transform(precip_obs.max(axis=0), inverse=True)
@@ -350,7 +349,7 @@ def test_vet_padding():
             verbose=False,
             sectors=((16, 4, 2), (16, 4, 2)),
             options=dict(maxiter=5),
-            padding=padding
+            padding=padding,
             # We use only a few iterations since
             # we don't care about convergence in this test
         )

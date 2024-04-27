@@ -114,7 +114,6 @@ class ShowProgress(object):
         sys.stdout.write(msg)
 
     def __call__(self, count, block_size, total_size, exact=True):
-
         self._clear_line()
 
         downloaded_size = count * block_size / (1024**2)
@@ -245,7 +244,6 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
 
     counter = 0
     while current_date <= final_date:
-
         counter = delay(counter)
 
         sub_dir = os.path.join(dir_path, datetime.strftime(current_date, "%Y/%m/%d"))
@@ -393,7 +391,6 @@ def create_default_pystepsrc(
     dest_path = os.path.join(config_dir, file_name)
 
     if not dryrun:
-
         if not os.path.isdir(config_dir):
             os.makedirs(config_dir)
 

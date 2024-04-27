@@ -9,13 +9,19 @@ The focus is on probabilistic nowcasting of radar precipitation fields,
 but pysteps is designed to allow a wider range of uses.
 
 Pysteps is actively developed on GitHub__, while a more thorough description
-of pysteps is available in the pysteps reference publication:
+of pysteps is available in the pysteps reference publications:
 
 .. note::
    Pulkkinen, S., D. Nerini, A. Perez Hortal, C. Velasco-Forero, U. Germann,
    A. Seed, and L. Foresti, 2019:  Pysteps:  an open-source Python library for
    probabilistic precipitation nowcasting (v1.0). *Geosci. Model Dev.*, **12 (10)**,
    4185–4219, doi:`10.5194/gmd-12-4185-2019 <https://doi.org/10.5194/gmd-12-4185-2019>`_.
+
+   Imhoff, R.O., L. De Cruz, W. Dewettinck, C.C. Brauer, R. Uijlenhoet, K-J. van Heeringen, 
+   C. Velasco-Forero, D. Nerini, M. Van Ginderachter, and A.H. Weerts, 2023:
+   Scale-dependent blending of ensemble rainfall nowcasts and NWP in the open-source
+   pysteps library. *Q J R Meteorol Soc.*, 1-30,
+   doi: `doi:10.1002/qj.4461 <https://doi.org/10.1002/qj.4461>`_.
 
 __ https://github.com/pySTEPS/pysteps
 

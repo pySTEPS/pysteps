@@ -36,7 +36,7 @@ for performance.
 
 import numpy
 from numpy.ma.core import MaskedArray
-from scipy.ndimage.interpolation import zoom
+from scipy.ndimage import zoom
 from scipy.optimize import minimize
 
 from pysteps.decorators import check_input_frames
@@ -506,7 +506,6 @@ def vet(
     sectors = numpy.asarray(sectors, dtype="int", order="C")
 
     if sectors.ndim == 1:
-
         new_sectors = numpy.zeros(
             (2,) + sectors.shape, dtype="int", order="C"
         ) + sectors.reshape((1, sectors.shape[0]))
@@ -545,13 +544,11 @@ def vet(
     previous_sectors_in_j = sectors[1, 0]
 
     for n, (sectors_in_i, sectors_in_j) in enumerate(zip(sectors[0, :], sectors[1, :])):
-
         # Minimize for each sector size
         pad_i = get_padding(input_images.shape[1], sectors_in_i)
         pad_j = get_padding(input_images.shape[2], sectors_in_j)
 
         if (pad_i != (0, 0)) or (pad_j != (0, 0)):
-
             _input_images = numpy.pad(input_images, ((0, 0), pad_i, pad_j), "edge")
 
             _mask = numpy.pad(mask, (pad_i, pad_j), "constant", constant_values=1)

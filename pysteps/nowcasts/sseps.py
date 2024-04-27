@@ -19,8 +19,9 @@ size.
 """
 
 import numpy as np
-import scipy.ndimage
 import time
+from scipy.ndimage import generate_binary_structure, iterate_structure
+
 
 from pysteps import cascade
 from pysteps import extrapolation
@@ -342,10 +343,10 @@ def forecast(
         mask_rim = mask_kwargs.get("mask_rim", 10)
         mask_f = mask_kwargs.get("mask_f", 1.0)
         # initialize the structuring element
-        struct = scipy.ndimage.generate_binary_structure(2, 1)
+        struct = generate_binary_structure(2, 1)
         # iterate it to expand it nxn
         n = mask_f * timestep / kmperpixel
-        struct = scipy.ndimage.iterate_structure(struct, int((n - 1) / 2.0))
+        struct = iterate_structure(struct, int((n - 1) / 2.0))
 
     noise_kwargs.update(
         {
@@ -466,8 +467,8 @@ def forecast(
     M, N = precip.shape[1:]
     n_windows_M = np.ceil(1.0 * M / win_size[0]).astype(int)
     n_windows_N = np.ceil(1.0 * N / win_size[1]).astype(int)
-    idxm = np.zeros((2, 1), dtype=int)
-    idxn = np.zeros((2, 1), dtype=int)
+    idxm = np.zeros(2, dtype=int)
+    idxn = np.zeros(2, dtype=int)
 
     if measure_time:
         starttime = time.time()
@@ -491,7 +492,6 @@ def forecast(
             rc_ = []
             mm_ = []
             for n in range(n_windows_N):
-
                 # compute indices of local window
                 idxm[0] = int(np.max((m * win_size[0] - overlap * win_size[0], 0)))
                 idxm[1] = int(
@@ -513,7 +513,6 @@ def forecast(
                     np.sum(precip_[-1, :, :] >= precip_thr) / precip_[-1, :, :].size
                 )
                 if war[m, n] > war_thr:
-
                     # estimate local parameters
                     pars = estimator(precip, parsglob, idxm, idxn)
                     ff_.append(pars["filter"])
@@ -627,7 +626,6 @@ def forecast(
 
         # iterate each ensemble member
         def worker(j):
-
             # first the global step
 
             if noise_method is not None:
@@ -677,13 +675,12 @@ def forecast(
 
             # then the local steps
             if n_windows_M > 1 or n_windows_N > 1:
-                idxm = np.zeros((2, 1), dtype=int)
-                idxn = np.zeros((2, 1), dtype=int)
+                idxm = np.zeros(2, dtype=int)
+                idxn = np.zeros(2, dtype=int)
                 precip_l = np.zeros((M, N), dtype=float)
                 M_s = np.zeros((M, N), dtype=float)
                 for m in range(n_windows_M):
                     for n in range(n_windows_N):
-
                         # compute indices of local window
                         idxm[0] = int(
                             np.max((m * win_size[0] - overlap * win_size[0], 0))
@@ -707,7 +704,6 @@ def forecast(
 
                         # skip if dry
                         if war[m, n] > war_thr:
-
                             precip_cascades = rc[m][n][j].copy()
                             if precip_cascades.shape[1] >= ar_order:
                                 precip_cascades = precip_cascades[:, -ar_order:, :, :]
@@ -733,12 +729,12 @@ def forecast(
                                 else:
                                     EPS_ = None
                                 # apply AR(p) process to cascade level
-                                precip_cascades[
-                                    i, :, :, :
-                                ] = autoregression.iterate_ar_model(
-                                    precip_cascades[i, :, :, :],
-                                    phi[m, n, i, :],
-                                    eps=EPS_,
+                                precip_cascades[i, :, :, :] = (
+                                    autoregression.iterate_ar_model(
+                                        precip_cascades[i, :, :, :],
+                                        phi[m, n, i, :],
+                                        eps=EPS_,
+                                    )
                                 )
                                 EPS_ = None
                             rc[m][n][j] = precip_cascades.copy()
@@ -971,7 +967,6 @@ def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
         w1dc = np.hanning(win_size[1])
 
     elif win_type == "flat-hanning":
-
         T = win_size[0] / 4.0
         W = win_size[0] / 2.0
         B = np.linspace(-W, W, int(2 * W))
@@ -991,7 +986,6 @@ def _build_2D_tapering_function(win_size, win_type="flat-hanning"):
         w1dc = A
 
     elif win_type == "rectangular":
-
         w1dr = np.ones(win_size[0])
         w1dc = np.ones(win_size[1])
 

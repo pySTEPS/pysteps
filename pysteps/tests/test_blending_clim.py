@@ -18,6 +18,7 @@ n_cascade_levels = 7
 model_names = ["alaro13", "arome13"]
 default_start_skill = [0.8, 0.5]
 
+
 # Helper functions
 def generate_fixed_skill(n_cascade_levels, n_models=1):
     """

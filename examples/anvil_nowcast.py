@@ -123,6 +123,7 @@ refobs_field, _, metadata = io.read_timeseries(filenames, importer, **importer_k
 refobs_field, metadata = utils.to_rainrate(refobs_field[-1], metadata)
 refobs_field[refobs_field < 0.5] = 0.0
 
+
 ###############################################################################
 # Plot the extrapolation, S-PROG and ANVIL nowcasts.
 # --------------------------------------------------

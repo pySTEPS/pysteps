@@ -194,7 +194,6 @@ fig = plt.figure(figsize=(5, 12))
 leadtimes_min = [30, 60, 90, 120, 150, 180]
 n_leadtimes = len(leadtimes_min)
 for n, leadtime in enumerate(leadtimes_min):
-
     # Nowcast with blending into NWP
     plt.subplot(n_leadtimes, 2, n * 2 + 1)
     plot_precip_field(

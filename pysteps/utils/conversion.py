@@ -55,33 +55,25 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
     metadata = metadata.copy()
 
     if metadata["transform"] is not None:
-
         if metadata["transform"] == "dB":
-
             R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
-
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "NQT":
-
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "sqrt":
-
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
         else:
-
             raise ValueError("Unknown transformation %s" % metadata["transform"])
 
     if metadata["unit"] == "mm/h":
-
         pass
 
     elif metadata["unit"] == "mm":
-
         threshold = metadata["threshold"]  # convert the threshold, too
         zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
@@ -93,7 +85,6 @@ def to_rainrate(R, metadata, zr_a=None, zr_b=None):
         metadata["zerovalue"] = zerovalue
 
     elif metadata["unit"] == "dBZ":
-
         threshold = metadata["threshold"]  # convert the threshold, too
         zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
@@ -155,21 +146,16 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
     metadata = metadata.copy()
 
     if metadata["transform"] is not None:
-
         if metadata["transform"] == "dB":
-
             R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
-
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "NQT":
-
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "sqrt":
-
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
         else:
@@ -179,7 +165,6 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
         pass
 
     elif metadata["unit"] == "mm/h":
-
         threshold = metadata["threshold"]  # convert the threshold, too
         zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
@@ -191,7 +176,6 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
         metadata["zerovalue"] = zerovalue
 
     elif metadata["unit"] == "dBZ":
-
         threshold = metadata["threshold"]  # convert the threshold, too
         zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
@@ -253,29 +237,22 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
     metadata = metadata.copy()
 
     if metadata["transform"] is not None:
-
         if metadata["transform"] == "dB":
-
             R, metadata = transformation.dB_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
-
             R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "NQT":
-
             R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
 
         elif metadata["transform"] == "sqrt":
-
             R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
 
         else:
-
             raise ValueError("Unknown transformation %s" % metadata["transform"])
 
     if metadata["unit"] == "mm/h":
-
         # Z to R
         if zr_a is None:
             zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall–Palmer

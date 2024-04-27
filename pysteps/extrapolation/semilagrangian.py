@@ -15,7 +15,7 @@ import time
 import warnings
 
 import numpy as np
-import scipy.ndimage.interpolation as ip
+from scipy.ndimage import map_coordinates
 
 
 def extrapolate(
@@ -182,10 +182,10 @@ def extrapolate(
         coords_warped = xy_coords + displacement
         coords_warped = [coords_warped[1, :, :], coords_warped[0, :, :]]
 
-        velocity_inc_x = ip.map_coordinates(
+        velocity_inc_x = map_coordinates(
             velocity[0, :, :], coords_warped, mode="nearest", order=1, prefilter=False
         )
-        velocity_inc_y = ip.map_coordinates(
+        velocity_inc_y = map_coordinates(
             velocity[1, :, :], coords_warped, mode="nearest", order=1, prefilter=False
         )
 
@@ -222,7 +222,7 @@ def extrapolate(
         coords_warped = [coords_warped[1, :, :], coords_warped[0, :, :]]
 
         if precip is not None:
-            precip_warped = ip.map_coordinates(
+            precip_warped = map_coordinates(
                 precip,
                 coords_warped,
                 mode=map_coordinates_mode,
@@ -232,7 +232,7 @@ def extrapolate(
             )
 
             if interp_order > 1:
-                mask_warped = ip.map_coordinates(
+                mask_warped = map_coordinates(
                     mask_min,
                     coords_warped,
                     mode=map_coordinates_mode,
@@ -242,7 +242,7 @@ def extrapolate(
                 )
                 precip_warped[mask_warped < 0.5] = minval
 
-                mask_warped = ip.map_coordinates(
+                mask_warped = map_coordinates(
                     mask_finite,
                     coords_warped,
                     mode=map_coordinates_mode,
