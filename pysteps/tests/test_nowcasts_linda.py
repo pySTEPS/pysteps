@@ -102,7 +102,6 @@ def test_linda(
 
 
 def test_linda_wrong_inputs():
-
     # dummy inputs
     precip = np.zeros((3, 3, 3))
     velocity = np.zeros((2, 3, 3))

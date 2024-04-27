@@ -89,7 +89,6 @@ num_realizations = 5
 # half or double the estimated slope.
 alpha = None
 for n in range(num_realizations):
-
     # Spectral slope estimated from the upscaled field
     precip_hr, alpha = rainfarm.downscale(
         precip_lr, ds_factor=scale_factor, alpha=alpha, return_alpha=True

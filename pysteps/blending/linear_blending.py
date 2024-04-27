@@ -41,7 +41,6 @@ def forecast(
     saliency=False,
     nowcast_kwargs=None,
 ):
-
     """Generate a forecast by linearly or saliency-based blending of nowcasts with NWP data
 
     Parameters

@@ -24,7 +24,6 @@ arg_values = [
 
 @pytest.mark.parametrize(arg_names, arg_values)
 def test_feature_tstorm_detection(source, output_feat, dry_input, max_num_features):
-
     pytest.importorskip("skimage")
     pytest.importorskip("pandas")
 

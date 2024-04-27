@@ -32,6 +32,25 @@ def test_numerical_example():
     assert np.allclose(fct, ref)
 
 
+def test_numerical_example_with_float_slope_and_float_list_timesteps():
+    """"""
+    precip = np.zeros((20, 20))
+    precip[5:10, 5:10] = 1
+    velocity = np.zeros((2, *precip.shape))
+    timesteps = [1.0, 2.0, 5.0, 12.0]
+    thr = 0.5
+    slope = 1.0  # pixels / timestep
+
+    # compute probability forecast
+    fct = forecast(precip, velocity, timesteps, thr, slope=slope)
+
+    assert fct.ndim == 3
+    assert fct.shape[0] == len(timesteps)
+    assert fct.shape[1:] == precip.shape
+    assert fct.max() <= 1.0
+    assert fct.min() >= 0.0
+
+
 def test_real_case():
     """"""
     pytest.importorskip("cv2")
@@ -67,7 +86,6 @@ def test_real_case():
 
 
 def test_wrong_inputs():
-
     # dummy inputs
     precip = np.zeros((3, 3))
     velocity = np.zeros((2, *precip.shape))

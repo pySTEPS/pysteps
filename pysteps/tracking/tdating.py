@@ -6,12 +6,14 @@ pysteps.tracking.tdating
 Thunderstorm Detection and Tracking (DATing) module
 This module was implemented following the procedures used in the TRT Thunderstorms
 Radar Tracking algorithm (:cite:`TRT2004`) used operationally at MeteoSwiss.
+Full documentation is published in :cite:`Feldmann2021`.
 Modifications include advecting the identified thunderstorms with the optical flow
 obtained from pysteps, as well as additional options in the thresholding.
 
 References
 ...............
 :cite:`TRT2004`
+:cite:`Feldmann2021`
 
 @author: mfeldman
 
@@ -198,7 +200,7 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
     cells_ad = advect(cells_id_prev, labels, V1)
     cells_ov, labels = match(cells_ad, labels)
     newlabels = np.zeros(labels.shape)
-    for ID, cell in cells_id_new.iterrows():
+    for index, cell in cells_id_new.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
             continue
         new_ID = cells_ov[cells_ov.t_ID == cell.ID].ID.values
@@ -209,12 +211,12 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
                 size.append(len(x))
             biggest = np.argmax(size)
             new_ID = new_ID[biggest]
-            cells_id_new.ID.iloc[ID] = new_ID
+            cells_id_new.loc[index, "ID"] = new_ID
         else:
             max_ID += 1
             new_ID = max_ID
-            cells_id_new.ID.iloc[ID] = new_ID
-        newlabels[labels == ID + 1] = new_ID
+            cells_id_new.loc[index, "ID"] = new_ID
+        newlabels[labels == index + 1] = new_ID
         del new_ID
     return cells_id_new, max_ID, newlabels
 
@@ -243,8 +245,8 @@ def advect(cells_id, labels, V1):
     for ID, cell in cells_id.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
             continue
-        ad_x = int(np.nanmean(V1[0, cell.y, cell.x]))
-        ad_y = int(np.nanmean(V1[1, cell.y, cell.x]))
+        ad_x = np.round(np.nanmean(V1[0, cell.y, cell.x])).astype(int)
+        ad_y = np.round(np.nanmean(V1[1, cell.y, cell.x])).astype(int)
         new_x = cell.x + ad_x
         new_y = cell.y + ad_y
         new_x[new_x > labels.shape[1] - 1] = labels.shape[1] - 1
@@ -280,6 +282,11 @@ def match(cells_ad, labels):
         ID_vec = labels[cell_a.y, cell_a.x]
         IDs = np.unique(ID_vec)
         n_IDs = len(IDs)
+        if n_IDs == 1 and IDs[0] == 0:
+            cells_ov.t_ID[ID_a] = 0
+            continue
+        IDs = IDs[IDs != 0]
+        n_IDs = len(IDs)
         N = np.zeros(n_IDs)
         for n in range(n_IDs):
             N[n] = len(np.where(ID_vec == IDs[n])[0])
@@ -306,10 +313,11 @@ def couple_track(cell_list, max_ID, mintrack):
             index=None,
             columns=["ID", "time", "x", "y", "cen_x", "cen_y", "max_ref", "cont"],
         )
+        cell_track = []
         for t in range(len(cell_list)):
             mytime = cell_list[t]
-            mycell = mytime[mytime.ID == n]
-            cell_track = cell_track.append(mycell)
+            cell_track.append(mytime[mytime.ID == n])
+        cell_track = pd.concat(cell_track, axis=0)
 
         if len(cell_track) < mintrack:
             continue

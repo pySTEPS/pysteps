@@ -94,7 +94,6 @@ def config_fname():
 
     file_name = None
     for file_name in _fconfig_candidates_generator():
-
         if file_name is not None:
             if os.path.exists(file_name):
                 st_mode = os.stat(file_name).st_mode

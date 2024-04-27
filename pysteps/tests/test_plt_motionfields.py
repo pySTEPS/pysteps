@@ -102,7 +102,6 @@ def test_visualization_motionfields_streamplot(
 
 
 if __name__ == "__main__":
-
     for i, args in enumerate(arg_values_quiver):
         test_visualization_motionfields_quiver(*args)
         plt.show()

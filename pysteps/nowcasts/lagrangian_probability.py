@@ -87,7 +87,7 @@ def forecast(
     # Compute exceedance probabilities using a neighborhood approach
     precip_forecast = (precip_forecast >= threshold).astype(float)
     for i, timestep in enumerate(timesteps):
-        scale = timestep * slope
+        scale = int(timestep * slope)
         if scale == 0:
             continue
         kernel = _get_kernel(scale)

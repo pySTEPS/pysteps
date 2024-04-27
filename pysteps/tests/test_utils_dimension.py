@@ -150,7 +150,7 @@ test_data = [
         {"unit": "mm", "xpixelsize": 1, "ypixelsize": 1},
         2,
         False,
-        4 * np.ones((1, 5, 5)),
+        np.ones((1, 5, 5)),
     ),
     (
         np.ones((1, 10, 10)),

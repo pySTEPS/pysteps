@@ -83,7 +83,7 @@ def forecast(
     add_perturbations=True,
     pert_thrs=(0.5, 1.0),
     n_ens_members=10,
-    vel_pert_method=None,
+    vel_pert_method="bps",
     vel_pert_kwargs=None,
     kmperpixel=None,
     timestep=None,
@@ -163,7 +163,7 @@ def forecast(
         The number of ensemble members to generate. Default: 10
     vel_pert_method: {'bps', None}, optional
         Name of the generator to use for perturbing the advection field. See
-        :py:mod:`pysteps.noise.interface`. Default: None
+        :py:mod:`pysteps.noise.interface`. Default: 'bps'
     vel_pert_kwargs: dict, optional
         Optional dictionary containing keyword arguments 'p_par' and 'p_perp'
         for the initializer of the velocity perturbator. The choice of the
@@ -572,8 +572,7 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radius):
             dx = c[1] - grid_x
 
             w[i, :] = np.exp(
-                -dy * dy / (2 * window_radius_1**2)
-                - dx * dx / (2 * window_radius_2**2)
+                -dy * dy / (2 * window_radius_1**2) - dx * dx / (2 * window_radius_2**2)
             )
     else:
         w[0, :] = np.ones((grid_height, grid_width))

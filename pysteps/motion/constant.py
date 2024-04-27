@@ -13,8 +13,8 @@ correlation between two images.
 """
 
 import numpy as np
-import scipy.ndimage.interpolation as ip
 import scipy.optimize as op
+from scipy.ndimage import map_coordinates
 
 
 def constant(R, **kwargs):
@@ -40,7 +40,7 @@ def constant(R, **kwargs):
 
     def f(v):
         XYW = [Y + v[1], X + v[0]]
-        R_w = ip.map_coordinates(
+        R_w = map_coordinates(
             R[-2, :, :], XYW, mode="constant", cval=np.nan, order=0, prefilter=False
         )
 
