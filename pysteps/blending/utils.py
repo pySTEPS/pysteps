@@ -552,7 +552,7 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
     if precip_thr is None:
         precip_thr = np.nanmin(precip_arr)
     rain_pixels = precip_arr[precip_arr > precip_thr]
-    norain = rain_pixels.size / precip_arr.size <= norain_thr
-    print("Field is below no rain fraction :", norain)
-    print("rain fraction is :", rain_pixels.size / precip_arr.size)
+    print(
+        f"Rain fraction is: {str(rain_pixels.size / precip_arr.size)}, while minimum fraction is {str(norain_thr)}"
+    )
     return norain
