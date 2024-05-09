@@ -22,6 +22,7 @@ import warnings
 import numpy as np
 from scipy.ndimage import zoom
 from scipy.signal import convolve
+from pysteps.utils.spectral import rapsd
 
 
 def _gaussianize(precip):
@@ -68,59 +69,20 @@ def _estimate_alpha(array, k):
     valid = (k != 0) & np.isfinite(log_power_spectrum)
     alpha = _log_slope(np.log(k[valid]), log_power_spectrum[valid])
     return alpha
-####################################################
-####AFEGIM FUNCIO DE RADI MITJÀ DE POTÈNCIA ESPECTRAL: 
-###################################################
-def fft2d_fromR(z):
-    ns = z.shape[0]
-    ny = z.shape[1]
 
-    if ns != ny:
-        raise ValueError("The input matrix must be square.")
 
-    ns2 = ns // 2
-    nt = z.shape[2] if len(z.shape) > 2 else 1
-
-    if nt == 1:
-        z = np.expand_dims(z, axis=2)
-
-    kx = np.tile(np.concatenate((np.arange(0, ns//2 + 1), np.arange(-ns//2 + 1, 0))), ns).reshape((ns, ns))
-    km = np.sqrt(kx ** 2 + kx.T ** 2)
-
-    fx = np.zeros(ns)
-    nn = np.zeros(ns)
-
-    zf = np.abs(np.fft.fft2(z[:, :]) / (ns * ns)) ** 2
-    zf0 = zf.copy()
-    zf[ns2, :] = zf0[ns2, :] / 2
-    zf[:, ns2] = zf0[:, ns2] / 2
-    for i in range(ns * ns):
-        ik = int(np.floor(km.flat[i] + 1.5))
-        fx[ik] += zf.flat[i]
-        nn[ik] += 1
-
-    fx = fx[1:ns2 + 1] / nn[1:ns2 + 1]
-
-    return fx
-#####################################
-#####################################
-
-def _apply_spectral_fusion(array_low, array_high,ds_factor):
+def _apply_spectral_fusion(array_low, array_high, ds_factor):
 
 
     (nax, nay) = np.shape(array_low)
     (nx, ny) = np.shape(array_high)
 
-    nax2 = nax //2 
+    nax2 = nax //2
 
-    ddx = np.pi*(1/nax - 1/nx)
+    array_low_k0 = rapsd(array_low, fft_method=np.fft)[nax2 - 1] * nax ** 2
+    array_high_k0 = rapsd(array_high, fft_method=np.fft)[nax2 - 1] * nx ** 2
 
-    pstr = fft2d_fromR(array_high)*(nx*nx)**2
-    pstra = fft2d_fromR(array_low)*(nax*nax)**2
-
-    c = pstra[nax2-1]/pstr[nax2-1]
-    array_high *= np.sqrt(c)
-
+    array_high *= np.sqrt(array_low_k0 / array_high_k0)
 
     DFTr = np.fft.fft2(array_low)
     DFTf = np.fft.fft2(array_high)
@@ -150,6 +112,8 @@ def _apply_spectral_fusion(array_low, array_high,ds_factor):
     fi = np.tile(np.fft.fftfreq(array_high.shape[0] , d=1 / ds_factor), nx).reshape((nx, nx))
     fj = fi.T
 
+    ddx = np.pi*(1/nax - 1/nx)
+
     DFTf = DFTf * (fx2 > fax2) + DFTr2 * (fx2 <= fax2) * np.exp(-1j * ddx * fi/fi[1,1] - 1j * ddx * fj/fj[1,1])
 
     r = np.real(np.fft.ifftn(DFTf)) / len(DFTf)
@@ -158,8 +122,6 @@ def _apply_spectral_fusion(array_low, array_high,ds_factor):
     r = np.exp(r)
 
     return r
-
-
 
 
 def _compute_kernel_radius(ds_factor):
