@@ -71,57 +71,45 @@ def _estimate_alpha(array, k):
     return alpha
 
 
-def _apply_spectral_fusion(array_low, array_high, ds_factor):
+def _apply_spectral_fusion(array_low, array_high, freq_array_low, freq_array_high, ds_factor):
 
+    nax, _ = np.shape(array_low)
+    nx, _ = np.shape(array_high)
 
-    (nax, nay) = np.shape(array_low)
-    (nx, ny) = np.shape(array_high)
-
-    nax2 = nax //2
+    nax2 = nax // 2
 
     array_low_k0 = rapsd(array_low, fft_method=np.fft)[nax2 - 1] * nax ** 2
     array_high_k0 = rapsd(array_high, fft_method=np.fft)[nax2 - 1] * nx ** 2
 
     array_high *= np.sqrt(array_low_k0 / array_high_k0)
 
-    DFTr = np.fft.fft2(array_low)
-    DFTf = np.fft.fft2(array_high)
+    fft_array_low = np.fft.fft2(array_low)
+    fft_array_high = np.fft.fft2(array_high)
 
+    fft_merged = np.zeros((nx, nx), dtype=np.complex128)
+    fft_merged[0:nax2, 0:nax2] = fft_array_low[0:nax2, 0:nax2]
+    fft_merged[nx - nax2:nx, 0:nax2] = fft_array_low[nax2:2*nax2, 0:nax2]
+    fft_merged[0:nax2, nx - nax2:nx] = fft_array_low[0:nax2, nax2:2*nax2]
+    fft_merged[nx - nax2:nx, nx - nax2:nx] = fft_array_low[nax2:2*nax2, nax2:2*nax2]
 
-    DFTr2 = np.zeros((nx, nx), dtype=np.complex128)
-    DFTr2[0:nax2, 0:nax2] = DFTr[0:nax2, 0:nax2]
-    DFTr2[nx - nax2:nx, 0:nax2] = DFTr[nax2:2*nax2, 0:nax2]
-    DFTr2[0:nax2, nx - nax2:nx] = DFTr[0:nax2, nax2:2*nax2]
-    DFTr2[nx - nax2:nx, nx - nax2:nx] = DFTr[nax2:2*nax2, nax2:2*nax2]
+    fft_merged[nax2, 0] = np.conj(fft_merged[nx - nax2, 0])
+    fft_merged[0, nax2] = np.conj(fft_merged[0, nx - nax2])
 
-    DFTr2[nax2, 0] = np.conj(DFTr2[nx - nax2, 0])
-    DFTr2[0, nax2] = np.conj(DFTr2[0, nx - nax2])
+    freq_i = np.tile(np.fft.fftfreq(array_high.shape[0], d=1 / ds_factor), nx).reshape((nx, nx))
+    freq_j = freq_i.T
 
+    ddx = np.pi * (1 / nax - 1 / nx) / np.abs(freq_i[0, 1] - freq_i[0, 0])
+    fx2 = freq_array_high ** 2
+    fax2 = np.max(freq_array_low) ** 2
 
+    fft_merged = fft_array_high * (fx2 > fax2) + fft_merged * (fx2 <= fax2) * np.exp(-1j * ddx * freq_i - 1j * ddx * freq_j)
 
+    merged = np.real(np.fft.ifftn(fft_merged)) / len(fft_merged)
 
-    freq_array = _compute_freq_array(array_low)
-    freq_array_highres = _compute_freq_array(array_low, ds_factor)
+    merged /= merged.std()
+    merged = np.exp(merged)
 
-    fax = np.max(freq_array)
-
-    fx2 = freq_array_highres**2 
-    fax2 =fax**2
-
-
-    fi = np.tile(np.fft.fftfreq(array_high.shape[0] , d=1 / ds_factor), nx).reshape((nx, nx))
-    fj = fi.T
-
-    ddx = np.pi*(1/nax - 1/nx)
-
-    DFTf = DFTf * (fx2 > fax2) + DFTr2 * (fx2 <= fax2) * np.exp(-1j * ddx * fi/fi[1,1] - 1j * ddx * fj/fj[1,1])
-
-    r = np.real(np.fft.ifftn(DFTf)) / len(DFTf)
-
-    r /= r.std()
-    r = np.exp(r)
-
-    return r
+    return merged
 
 
 def _compute_kernel_radius(ds_factor):
@@ -236,18 +224,18 @@ def downscale(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         noise_field_complex = white_noise_field_complex * np.sqrt(
-            freq_array_highres**-alpha
+            freq_array_highres**-alpha / 2
         )
     noise_field_complex[0, 0] = 0
     noise_field = np.fft.ifft2(noise_field_complex).real
 
     if spectral_fusion:
-
         noise_field /= noise_field.shape[0] ** 2
         noise_field = np.exp(noise_field)
 
-        noise_field = _apply_spectral_fusion(precip_transformed, noise_field, ds_factor)
-
+        noise_field = _apply_spectral_fusion(
+            precip_transformed, noise_field, freq_array, freq_array_highres, ds_factor
+        )            
     else: 
         noise_field /= noise_field.std()
         noise_field = np.exp(noise_field)
