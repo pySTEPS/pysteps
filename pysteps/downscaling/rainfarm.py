@@ -23,6 +23,7 @@ import numpy as np
 from scipy.ndimage import zoom
 from scipy.signal import convolve
 from pysteps.utils.spectral import rapsd
+from pysteps.utils.dimension import aggregate_fields
 
 
 def _gaussianize(precip):
@@ -71,15 +72,17 @@ def _estimate_alpha(array, k):
     return alpha
 
 
-def _apply_spectral_fusion(array_low, array_high, freq_array_low, freq_array_high, ds_factor):
+def _apply_spectral_fusion(
+    array_low, array_high, freq_array_low, freq_array_high, ds_factor
+):
 
     nax, _ = np.shape(array_low)
     nx, _ = np.shape(array_high)
 
-    nax2 = nax // 2
+    k0 = nax // 2
 
-    array_low_k0 = rapsd(array_low, fft_method=np.fft)[nax2 - 1] * nax ** 2
-    array_high_k0 = rapsd(array_high, fft_method=np.fft)[nax2 - 1] * nx ** 2
+    array_low_k0 = rapsd(array_low, fft_method=np.fft)[k0 - 1] * nax**2
+    array_high_k0 = rapsd(array_high, fft_method=np.fft)[k0 - 1] * nx**2
 
     array_high *= np.sqrt(array_low_k0 / array_high_k0)
 
@@ -87,22 +90,26 @@ def _apply_spectral_fusion(array_low, array_high, freq_array_low, freq_array_hig
     fft_array_high = np.fft.fft2(array_high)
 
     fft_merged = np.zeros((nx, nx), dtype=np.complex128)
-    fft_merged[0:nax2, 0:nax2] = fft_array_low[0:nax2, 0:nax2]
-    fft_merged[nx - nax2:nx, 0:nax2] = fft_array_low[nax2:2*nax2, 0:nax2]
-    fft_merged[0:nax2, nx - nax2:nx] = fft_array_low[0:nax2, nax2:2*nax2]
-    fft_merged[nx - nax2:nx, nx - nax2:nx] = fft_array_low[nax2:2*nax2, nax2:2*nax2]
+    fft_merged[0:k0, 0:k0] = fft_array_low[0:k0, 0:k0]
+    fft_merged[nx - k0:nx, 0:k0] = fft_array_low[k0:2 * k0, 0:k0]
+    fft_merged[0:k0, nx - k0:nx] = fft_array_low[0:k0, k0:2 * k0]
+    fft_merged[nx - k0:nx, nx - k0:nx] = fft_array_low[k0:2 * k0, k0:2 * k0]
 
-    fft_merged[nax2, 0] = np.conj(fft_merged[nx - nax2, 0])
-    fft_merged[0, nax2] = np.conj(fft_merged[0, nx - nax2])
+    fft_merged[k0, 0] = np.conj(fft_merged[nx - k0, 0])
+    fft_merged[0, k0] = np.conj(fft_merged[0, nx - k0])
 
-    freq_i = np.tile(np.fft.fftfreq(array_high.shape[0], d=1 / ds_factor), nx).reshape((nx, nx))
+    freq_i = np.tile(np.fft.fftfreq(array_high.shape[0], d=1 / ds_factor), nx).reshape(
+        (nx, nx)
+    )
     freq_j = freq_i.T
 
     ddx = np.pi * (1 / nax - 1 / nx) / np.abs(freq_i[0, 1] - freq_i[0, 0])
-    fx2 = freq_array_high ** 2
-    fax2 = np.max(freq_array_low) ** 2
+    fx2 = freq_array_high**2
+    fax2 = freq_array_low[k0, k0] ** 2
 
-    fft_merged = fft_array_high * (fx2 > fax2) + fft_merged * (fx2 <= fax2) * np.exp(-1j * ddx * freq_i - 1j * ddx * freq_j)
+    fft_merged = fft_array_high * (fx2 > fax2) + fft_merged * (fx2 <= fax2) * np.exp(
+        -1j * ddx * freq_i - 1j * ddx * freq_j
+    )
 
     merged = np.real(np.fft.ifftn(fft_merged)) / len(fft_merged)
 
@@ -119,7 +126,7 @@ def _compute_kernel_radius(ds_factor):
 def _make_tophat_kernel(ds_factor):
     """Compute 2d uniform (tophat) kernel"""
     radius = _compute_kernel_radius(ds_factor)
-    (mx, my) = np.mgrid[-radius : radius + 0.01, -radius : radius + 0.01]
+    (mx, my) = np.mgrid[-radius:radius + 0.01, -radius:radius + 0.01]
     tophat = ((mx**2 + my**2) <= radius**2).astype(float)
     return tophat / tophat.sum()
 
@@ -235,8 +242,8 @@ def downscale(
 
         noise_field = _apply_spectral_fusion(
             precip_transformed, noise_field, freq_array, freq_array_highres, ds_factor
-        )            
-    else: 
+        )
+    else:
         noise_field /= noise_field.std()
         noise_field = np.exp(noise_field)
 
@@ -248,10 +255,16 @@ def downscale(
             f"available kernels: {list(_make_kernel)}"
         )
 
-    precip_zoomed = zoom(precip, ds_factor, order=1)
-    precip_smoothed = _balanced_spatial_average(precip_zoomed, kernel)
-    noise_smoothed = _balanced_spatial_average(noise_field, kernel)
-    precip_highres = noise_field * precip_smoothed / noise_smoothed
+    noise_lowres = aggregate_fields(noise_field, ds_factor, axis=(0, 1))
+
+    ca = precip / noise_lowres
+
+    cai = np.repeat(np.repeat(ca, ds_factor, axis=0), ds_factor, axis=1)
+
+    precip_highres = noise_field * cai
+
+    if kernel is not None:
+        precip_highres = _balanced_spatial_average(precip_highres, kernel)
 
     if threshold is not None:
         precip_highres[precip_highres < threshold] = 0
