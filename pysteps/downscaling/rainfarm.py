@@ -247,24 +247,26 @@ def downscale(
         noise_field /= noise_field.std()
         noise_field = np.exp(noise_field)
 
-    try:
-        kernel = _make_kernel[kernel_type](ds_factor)
-    except KeyError:
-        raise ValueError(
-            f"kernel type '{kernel_type}' is invalid, "
-            f"available kernels: {list(_make_kernel)}"
-        )
-
     noise_lowres = aggregate_fields(noise_field, ds_factor, axis=(0, 1))
 
-    ca = precip / noise_lowres
+    precip = np.kron(precip, np.ones((ds_factor, ds_factor)))
+    noise_lowres = np.kron(noise_lowres, np.ones((ds_factor, ds_factor)))
 
-    cai = np.repeat(np.repeat(ca, ds_factor, axis=0), ds_factor, axis=1)
+    if kernel_type is not None:
+        try:
+            kernel = _make_kernel[kernel_type](ds_factor)
+        except KeyError:
+            raise ValueError(
+                f"kernel type '{kernel_type}' is invalid, "
+                f"available kernels: {list(_make_kernel)}"
+            )
 
-    precip_highres = noise_field * cai
+        precip = _balanced_spatial_average(precip, kernel)
+        noise_lowres = _balanced_spatial_average(noise_lowres, kernel)
 
-    if kernel is not None:
-        precip_highres = _balanced_spatial_average(precip_highres, kernel)
+    norm_k0 = precip / noise_lowres
+
+    precip_highres = noise_field * norm_k0
 
     if threshold is not None:
         precip_highres[precip_highres < threshold] = 0
