@@ -100,8 +100,6 @@ def test_rainfarm_aggregate(
     precip_low = aggregate_fields(precip_hr, ds_factor, axis=(0, 1))
     precip_lr[precip_lr < threshold] = 0.0
 
-    print(np.max(precip_low), np.max(precip_lr))
-
     np.testing.assert_array_almost_equal(precip_lr, precip_low)
 
 
