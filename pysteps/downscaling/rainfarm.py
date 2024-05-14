@@ -4,7 +4,7 @@ pysteps.downscaling.rainfarm
 ============================
 
 Implementation of the RainFARM stochastic downscaling method as described in
-:cite:`Rebora2006`.
+:cite:`Rebora2006` and :cite:`DOnofrio2014`.
 
 RainFARM is a downscaling algorithm for rainfall fields developed by Rebora et
 al. (2006). The method can represent the realistic small-scale variability of the
@@ -164,7 +164,7 @@ def downscale(
     alpha: None,
     threshold=None,
     return_alpha=False,
-    kernel_type="gaussian",
+    kernel_type=None,
     spectral_fusion=False,
 ):
     """
@@ -187,8 +187,10 @@ def downscale(
         Set all values lower than the threshold to zero.
     return_alpha: bool, optional
         Whether to return the estimated spectral slope ``alpha``.
-    kernel_type: {"gaussian", "uniform", "tophat"}
-        The name of the smoothing operator.
+    kernel_type: {None, "gaussian", "uniform", "tophat"}
+        The name of the smoothing operator. If None no smoothing is applied.
+    spectral_fusion: bool, optional 
+        Whether to apply spectral merging as in :cite:`DOnofrio2014`.
 
     Returns
     -------
@@ -203,11 +205,12 @@ def downscale(
     Currently, the pysteps implementation of RainFARM only covers spatial downscaling.
     That is, it can improve the spatial resolution of a rainfall field. However, unlike
     the original algorithm from Rebora et al. (2006), it cannot downscale the temporal
-    dimension.
+    dimension. It implements spectral merging from D'Onofrio et al. (2014).  
 
     References
     ----------
     :cite:`Rebora2006`
+    :cite:`DOnofrio2014`
 
     """
 
