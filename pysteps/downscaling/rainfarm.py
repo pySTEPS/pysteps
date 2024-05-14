@@ -161,7 +161,7 @@ _make_kernel["uniform"] = _make_tophat_kernel
 def downscale(
     precip,
     ds_factor,
-    alpha: None,
+    alpha=None,
     threshold=None,
     return_alpha=False,
     kernel_type=None,
