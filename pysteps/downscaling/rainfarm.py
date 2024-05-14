@@ -20,7 +20,6 @@ downscaled precipitation field by means of Gaussian random fields.
 import warnings
 
 import numpy as np
-from scipy.ndimage import zoom
 from scipy.signal import convolve
 from pysteps.utils.spectral import rapsd
 from pysteps.utils.dimension import aggregate_fields
@@ -113,9 +112,6 @@ def _apply_spectral_fusion(
 
     merged = np.real(np.fft.ifftn(fft_merged)) / len(fft_merged)
 
-    merged /= merged.std()
-    merged = np.exp(merged)
-
     return merged
 
 
@@ -165,7 +161,7 @@ _make_kernel["uniform"] = _make_tophat_kernel
 def downscale(
     precip,
     ds_factor,
-    alpha=None,
+    alpha: None,
     threshold=None,
     return_alpha=False,
     kernel_type="gaussian",
@@ -243,9 +239,9 @@ def downscale(
         noise_field = _apply_spectral_fusion(
             precip_transformed, noise_field, freq_array, freq_array_highres, ds_factor
         )
-    else:
-        noise_field /= noise_field.std()
-        noise_field = np.exp(noise_field)
+
+    noise_field /= noise_field.std()
+    noise_field = np.exp(noise_field)
 
     noise_lowres = aggregate_fields(noise_field, ds_factor, axis=(0, 1))
 
