@@ -230,7 +230,7 @@ def downscale(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         noise_field_complex = white_noise_field_complex * np.sqrt(
-            freq_array_highres**-alpha / 2
+            freq_array_highres**-alpha
         )
     noise_field_complex[0, 0] = 0
     noise_field = np.fft.ifft2(noise_field_complex).real
