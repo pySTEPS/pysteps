@@ -90,9 +90,9 @@ def _apply_spectral_fusion(
 
     fft_merged = np.zeros((nx, nx), dtype=np.complex128)
     fft_merged[0:k0, 0:k0] = fft_array_low[0:k0, 0:k0]
-    fft_merged[nx - k0:nx, 0:k0] = fft_array_low[k0:2 * k0, 0:k0]
-    fft_merged[0:k0, nx - k0:nx] = fft_array_low[0:k0, k0:2 * k0]
-    fft_merged[nx - k0:nx, nx - k0:nx] = fft_array_low[k0:2 * k0, k0:2 * k0]
+    fft_merged[nx - k0 : nx, 0:k0] = fft_array_low[k0 : 2 * k0, 0:k0]
+    fft_merged[0:k0, nx - k0 : nx] = fft_array_low[0:k0, k0 : 2 * k0]
+    fft_merged[nx - k0 : nx, nx - k0 : nx] = fft_array_low[k0 : 2 * k0, k0 : 2 * k0]
 
     fft_merged[k0, 0] = np.conj(fft_merged[nx - k0, 0])
     fft_merged[0, k0] = np.conj(fft_merged[0, nx - k0])
@@ -122,7 +122,7 @@ def _compute_kernel_radius(ds_factor):
 def _make_tophat_kernel(ds_factor):
     """Compute 2d uniform (tophat) kernel"""
     radius = _compute_kernel_radius(ds_factor)
-    (mx, my) = np.mgrid[-radius:radius + 0.01, -radius:radius + 0.01]
+    (mx, my) = np.mgrid[-radius : radius + 0.01, -radius : radius + 0.01]
     tophat = ((mx**2 + my**2) <= radius**2).astype(float)
     return tophat / tophat.sum()
 
@@ -189,7 +189,7 @@ def downscale(
         Whether to return the estimated spectral slope ``alpha``.
     kernel_type: {None, "gaussian", "uniform", "tophat"}
         The name of the smoothing operator. If None no smoothing is applied.
-    spectral_fusion: bool, optional 
+    spectral_fusion: bool, optional
         Whether to apply spectral merging as in :cite:`DOnofrio2014`.
 
     Returns
@@ -205,7 +205,7 @@ def downscale(
     Currently, the pysteps implementation of RainFARM only covers spatial downscaling.
     That is, it can improve the spatial resolution of a rainfall field. However, unlike
     the original algorithm from Rebora et al. (2006), it cannot downscale the temporal
-    dimension. It implements spectral merging from D'Onofrio et al. (2014).  
+    dimension. It implements spectral merging from D'Onofrio et al. (2014).
 
     References
     ----------
