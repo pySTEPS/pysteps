@@ -42,6 +42,9 @@ def _gaussianize(precip):
 
 
 def _compute_freq_array(array, ds_factor=1):
+    """
+    Compute the frequency array following a given downscaling factor.
+    """
     freq_i = np.fft.fftfreq(array.shape[0] * ds_factor, d=1 / ds_factor)
     freq_j = np.fft.fftfreq(array.shape[1] * ds_factor, d=1 / ds_factor)
     freq_sqr = freq_i[:, None] ** 2 + freq_j[None, :] ** 2
@@ -49,6 +52,10 @@ def _compute_freq_array(array, ds_factor=1):
 
 
 def _log_slope(log_k, log_power_spectrum):
+    """
+    Calculate the log-slope of the power spectrum given an array of logarithmic wavenumbers
+    and an array of logarithmic power spectrum values.
+    """
     lk_min = log_k.min()
     lk_max = log_k.max()
     lk_range = lk_max - lk_min
@@ -63,6 +70,9 @@ def _log_slope(log_k, log_power_spectrum):
 
 
 def _estimate_alpha(array, k):
+    """
+    Estimate the alpha parameter using the power spectrum of the input array.
+    """
     fp = np.fft.fft2(array)
     fp_abs = abs(fp)
     log_power_spectrum = np.log(fp_abs**2)
@@ -71,45 +81,82 @@ def _estimate_alpha(array, k):
     return alpha
 
 
+def _compute_noise_field(freq_array_highres, alpha):
+    """
+    Compute a field of correlated noise field using the given frequency array and alpha
+    value.
+    """
+    white_noise_field = np.random.rand(*freq_array_highres.shape)
+    white_noise_field_complex = np.exp(complex(0, 1) * 2 * np.pi * white_noise_field)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        noise_field_complex = white_noise_field_complex * np.sqrt(
+            freq_array_highres**-alpha
+        )
+    noise_field_complex[0, 0] = 0
+    return np.fft.ifft2(noise_field_complex).real
+
+
 def _apply_spectral_fusion(
     array_low, array_high, freq_array_low, freq_array_high, ds_factor
 ):
+    """
+    Apply spectral fusion to merge two arrays in the frequency domain.
+    """
+
+    # Validate inputs
+    if array_low.shape != freq_array_low.shape:
+        raise ValueError("Shape of array_low must match shape of freq_array_low.")
+    if array_high.shape != freq_array_high.shape:
+        raise ValueError("Shape of array_high must match shape of freq_array_high.")
 
     nax, _ = np.shape(array_low)
     nx, _ = np.shape(array_high)
-
     k0 = nax // 2
 
-    array_low_k0 = rapsd(array_low, fft_method=np.fft)[k0 - 1] * nax**2
-    array_high_k0 = rapsd(array_high, fft_method=np.fft)[k0 - 1] * nx**2
+    # Calculate power spectral density at specific frequency
+    def compute_psd(array, fft_size):
+        return rapsd(array, fft_method=np.fft)[k0 - 1] * fft_size**2
 
-    array_high *= np.sqrt(array_low_k0 / array_high_k0)
+    psd_low = compute_psd(array_low, nax)
+    psd_high = compute_psd(array_high, nx)
 
-    fft_array_low = np.fft.fft2(array_low)
-    fft_array_high = np.fft.fft2(array_high)
+    # Normalize high-resolution array
+    normalization_factor = np.sqrt(psd_low / psd_high)
+    array_high *= normalization_factor
 
-    fft_merged = np.zeros((nx, nx), dtype=np.complex128)
-    fft_merged[0:k0, 0:k0] = fft_array_low[0:k0, 0:k0]
-    fft_merged[nx - k0 : nx, 0:k0] = fft_array_low[k0 : 2 * k0, 0:k0]
-    fft_merged[0:k0, nx - k0 : nx] = fft_array_low[0:k0, k0 : 2 * k0]
-    fft_merged[nx - k0 : nx, nx - k0 : nx] = fft_array_low[k0 : 2 * k0, k0 : 2 * k0]
+    # Perform FFT on both arrays
+    fft_low = np.fft.fft2(array_low)
+    fft_high = np.fft.fft2(array_high)
+
+    # Initialize the merged FFT array with low-resolution data
+    fft_merged = np.zeros_like(fft_high, dtype=np.complex128)
+    fft_merged[0:k0, 0:k0] = fft_low[0:k0, 0:k0]
+    fft_merged[nx - k0 : nx, 0:k0] = fft_low[k0 : 2 * k0, 0:k0]
+    fft_merged[0:k0, nx - k0 : nx] = fft_low[0:k0, k0 : 2 * k0]
+    fft_merged[nx - k0 : nx, nx - k0 : nx] = fft_low[k0 : 2 * k0, k0 : 2 * k0]
 
     fft_merged[k0, 0] = np.conj(fft_merged[nx - k0, 0])
     fft_merged[0, k0] = np.conj(fft_merged[0, nx - k0])
 
-    freq_i = np.tile(np.fft.fftfreq(array_high.shape[0], d=1 / ds_factor), nx).reshape(
-        (nx, nx)
-    )
+    # Compute frequency arrays
+    freq_i = np.fft.fftfreq(nx, d=1 / ds_factor)
+    freq_i = np.tile(freq_i, (nx, 1))
     freq_j = freq_i.T
 
+    # Compute frequency domain adjustment
     ddx = np.pi * (1 / nax - 1 / nx) / np.abs(freq_i[0, 1] - freq_i[0, 0])
-    fx2 = freq_array_high**2
-    fax2 = freq_array_low[k0, k0] ** 2
+    freq_squared_high = freq_array_high**2
+    freq_squared_low_center = freq_array_low[k0, k0] ** 2
 
-    fft_merged = fft_array_high * (fx2 > fax2) + fft_merged * (fx2 <= fax2) * np.exp(
+    # Fuse in the frequency domain
+    mask_high = freq_squared_high > freq_squared_low_center
+    mask_low = ~mask_high
+    fft_merged = fft_high * mask_high + fft_merged * mask_low * np.exp(
         -1j * ddx * freq_i - 1j * ddx * freq_j
     )
 
+    # Inverse FFT to obtain the merged array in the spatial domain
     merged = np.real(np.fft.ifftn(fft_merged)) / len(fft_merged)
 
     return merged
@@ -143,6 +190,10 @@ def _make_gaussian_kernel(ds_factor):
 
 
 def _balanced_spatial_average(array, kernel):
+    """
+    Compute the balanced spatial average of an array using a given kernel while handling
+    missing or invalid values.
+    """
     array = array.copy()
     mask_valid = np.isfinite(array)
     array[~mask_valid] = 0.0
@@ -214,62 +265,64 @@ def downscale(
 
     """
 
-    if spectral_fusion:
-        precip_transformed = _gaussianize(precip)
-    else:
-        precip_transformed = precip
+    # Validate inputs
+    if not np.isfinite(precip).all():
+        raise ValueError("All values in 'precip' must be finite.")
+    if not isinstance(ds_factor, int) or ds_factor <= 0:
+        raise ValueError("'ds_factor' must be a positive integer.")
 
+    # Preprocess the input field if spectral fusion is enabled
+    precip_transformed = _gaussianize(precip) if spectral_fusion else precip
+
+    # Compute frequency arrays for the original and high-resolution fields
     freq_array = _compute_freq_array(precip_transformed)
     freq_array_highres = _compute_freq_array(precip_transformed, ds_factor)
 
+    # Estimate spectral slope alpha if not provided
     if alpha is None:
         alpha = _estimate_alpha(precip_transformed, freq_array)
 
-    white_noise_field = np.random.rand(*freq_array_highres.shape)
-    white_noise_field_complex = np.exp(complex(0, 1) * 2 * np.pi * white_noise_field)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        noise_field_complex = white_noise_field_complex * np.sqrt(
-            freq_array_highres**-alpha
-        )
-    noise_field_complex[0, 0] = 0
-    noise_field = np.fft.ifft2(noise_field_complex).real
+    # Generate noise field
+    noise_field = _compute_noise_field(freq_array_highres, alpha)
 
+    # Apply spectral fusion if enabled
     if spectral_fusion:
         noise_field /= noise_field.shape[0] ** 2
         noise_field = np.exp(noise_field)
-
         noise_field = _apply_spectral_fusion(
             precip_transformed, noise_field, freq_array, freq_array_highres, ds_factor
         )
 
+    # Normalize and exponentiate the noise field
     noise_field /= noise_field.std()
     noise_field = np.exp(noise_field)
 
+    # Aggregate the noise field to low resolution
     noise_lowres = aggregate_fields(noise_field, ds_factor, axis=(0, 1))
 
-    precip = np.kron(precip, np.ones((ds_factor, ds_factor)))
-    noise_lowres = np.kron(noise_lowres, np.ones((ds_factor, ds_factor)))
+    # Expand input and noise fields to high resolution
+    precip_expanded = np.kron(precip, np.ones((ds_factor, ds_factor)))
+    noise_lowres_expanded = np.kron(noise_lowres, np.ones((ds_factor, ds_factor)))
 
-    if kernel_type is not None:
-        try:
-            kernel = _make_kernel[kernel_type](ds_factor)
-        except KeyError:
+    # Apply smoothing if a kernel type is provided
+    if kernel_type:
+        if kernel_type not in _make_kernel:
             raise ValueError(
-                f"kernel type '{kernel_type}' is invalid, "
-                f"available kernels: {list(_make_kernel)}"
+                f"kernel type '{kernel_type}' is invalid, available kernels: {list(_make_kernel)}"
             )
+        kernel = _make_kernel[kernel_type](ds_factor)
+        precip_expanded = _balanced_spatial_average(precip_expanded, kernel)
+        noise_lowres_expanded = _balanced_spatial_average(noise_lowres_expanded, kernel)
 
-        precip = _balanced_spatial_average(precip, kernel)
-        noise_lowres = _balanced_spatial_average(noise_lowres, kernel)
-
-    norm_k0 = precip / noise_lowres
-
+    # Normalize the high-res precipitation field by the low-res noise field
+    norm_k0 = precip_expanded / noise_lowres_expanded
     precip_highres = noise_field * norm_k0
 
+    # Apply thresholding if specified
     if threshold is not None:
         precip_highres[precip_highres < threshold] = 0
 
+    # Return the downscaled field and optionally the spectral slope alpha
     if return_alpha:
         return precip_highres, alpha
 
