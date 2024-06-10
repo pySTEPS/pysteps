@@ -157,7 +157,7 @@ def _apply_spectral_fusion(
     )
 
     # Inverse FFT to obtain the merged array in the spatial domain
-    merged = np.real(np.fft.ifftn(fft_merged)) / len(fft_merged)
+    merged = np.real(np.fft.ifftn(fft_merged)) / fft_merged.size
 
     return merged
 
