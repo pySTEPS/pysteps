@@ -1098,7 +1098,7 @@ def forecast(
                                 neginf=zerovalue,
                             )
                         # Put back the mask
-                        R_f_ip_recomp[domain_mask] = np.NaN
+                        R_f_ip_recomp[domain_mask] = np.nan
                         extrap_kwargs["displacement_prev"] = D[j]
                         R_f_ep_recomp_, D[j] = extrapolator(
                             R_f_ip_recomp,
@@ -1131,7 +1131,7 @@ def forecast(
                                 neginf=np.nanmin(R_f_ip),
                             )
                         for i in range(n_cascade_levels):
-                            R_f_ep[i][temp_mask] = np.NaN
+                            R_f_ep[i][temp_mask] = np.nan
                         # B. Noise
                         Yn_ip_recomp = blending.utils.recompose_cascade(
                             combined_cascade=Yn_ip,
@@ -1182,7 +1182,7 @@ def forecast(
                         extrap_kwargs_pb["displacement_prev"] = D_pb[j]
                         # Apply the domain mask to the extrapolation component
                         R_ = precip.copy()
-                        R_[domain_mask] = np.NaN
+                        R_[domain_mask] = np.nan
                         R_pm_ep_, D_pb[j] = extrapolator(
                             R_,
                             velocity_blended,

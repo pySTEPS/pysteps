@@ -144,6 +144,9 @@ def test_linda_wrong_inputs():
 
 def test_linda_callback(tmp_path):
     """Test LINDA callback functionality to export the output as a netcdf."""
+
+    pytest.importorskip("skimage")
+
     n_ens_members = 2
     n_timesteps = 3
 

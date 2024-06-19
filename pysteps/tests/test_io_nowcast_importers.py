@@ -18,6 +18,9 @@ precip, metadata = get_precipitation_fields(
     [(precip, metadata), (np.zeros_like(precip), metadata)],
 )
 def test_import_netcdf(precip, metadata, tmp_path):
+
+    pytest.importorskip("pyproj")
+
     field_shape = (precip.shape[1], precip.shape[2])
     startdate = metadata["timestamps"][-1]
     timestep = metadata["accutime"]

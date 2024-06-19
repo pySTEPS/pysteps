@@ -810,7 +810,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwa
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
         precip = np.where(
-            precip_intermediate == 65535, np.NaN, precip_intermediate / 100.0
+            precip_intermediate == 65535, np.nan, precip_intermediate / 100.0
         )
 
     # In case reflectivities are imported, the no data value is 255. Values are
@@ -818,7 +818,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwa
     # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
     if qty == "DBZH":
         precip = np.where(
-            precip_intermediate == 255, np.NaN, precip_intermediate * 0.5 - 32.0
+            precip_intermediate == 255, np.nan, precip_intermediate * 0.5 - 32.0
         )
 
     if precip is None:
@@ -1366,9 +1366,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                                     mask = np.logical_and(~mask_u, ~mask_n)
                                     quality = np.empty(arr.shape)  # , dtype=float)
                                     quality[mask] = arr[mask] * gain + offset
-                                    quality[~mask] = (
-                                        np.nan
-                                    )  # a qui -----------------------------
+                                    quality[
+                                        ~mask
+                                    ] = np.nan  # a qui -----------------------------
 
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
