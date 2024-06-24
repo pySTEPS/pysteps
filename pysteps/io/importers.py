@@ -1366,9 +1366,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                                     mask = np.logical_and(~mask_u, ~mask_n)
                                     quality = np.empty(arr.shape)  # , dtype=float)
                                     quality[mask] = arr[mask] * gain + offset
-                                    quality[
-                                        ~mask
-                                    ] = np.nan  # a qui -----------------------------
+                                    quality[~mask] = (
+                                        np.nan
+                                    )  # a qui -----------------------------
 
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
