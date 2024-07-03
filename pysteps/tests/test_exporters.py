@@ -23,14 +23,17 @@ exporter_arg_names = (
     "fill_value",
     "scale_factor",
     "offset",
+    "n_timesteps",
 )
 
 exporter_arg_values = [
-    (1, None, np.float32, None, None, None),
-    (1, "timestep", np.float32, 65535, None, None),
-    (2, None, np.float32, 65535, None, None),
-    (2, "timestep", np.float32, None, None, None),
-    (2, "member", np.float64, None, 0.01, 1.0),
+    (1, None, np.float32, None, None, None, 3),
+    (1, "timestep", np.float32, 65535, None, None, 3),
+    (2, None, np.float32, 65535, None, None, 3),
+    (2, None, np.float32, 65535, None, None, [1, 2, 4]),
+    (2, "timestep", np.float32, None, None, None, 3),
+    (2, "timestep", np.float32, None, None, None, [1, 2, 4]),
+    (2, "member", np.float64, None, 0.01, 1.0, 3),
 ]
 
 
@@ -54,7 +57,7 @@ def test_get_geotiff_filename():
 
 @pytest.mark.parametrize(exporter_arg_names, exporter_arg_values)
 def test_io_export_netcdf_one_member_one_time_step(
-    n_ens_members, incremental, datatype, fill_value, scale_factor, offset
+    n_ens_members, incremental, datatype, fill_value, scale_factor, offset, n_timesteps
 ):
     """
     Test the export netcdf.
@@ -75,7 +78,6 @@ def test_io_export_netcdf_one_member_one_time_step(
         file_path = os.path.join(outpath, outfnprefix + ".nc")
         startdate = metadata["timestamps"][0]
         timestep = metadata["accutime"]
-        n_timesteps = 3
         shape = precip.shape[1:]
 
         exporter = initialize_forecast_exporter_netcdf(
@@ -100,7 +102,11 @@ def test_io_export_netcdf_one_member_one_time_step(
         if incremental == None:
             export_forecast_dataset(precip, exporter)
         if incremental == "timestep":
-            for t in range(n_timesteps):
+            if isinstance(n_timesteps, list):
+                timesteps = len(n_timesteps)
+            else:
+                timesteps = n_timesteps
+            for t in range(timesteps):
                 if n_ens_members > 1:
                     export_forecast_dataset(precip[:, t, :, :], exporter)
                 else:

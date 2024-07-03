@@ -592,7 +592,7 @@ def initialize_forecast_exporter_netcdf(
     var_time = ncf.createVariable("time", int, dimensions=("time",))
     if isinstance(n_timesteps, list):
         if incremental != "timestep":
-            var_time[:] = n_timesteps * timestep * 60
+            var_time[:] = np.array(n_timesteps) * timestep * 60
     else:
         if incremental != "timestep":
             var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
