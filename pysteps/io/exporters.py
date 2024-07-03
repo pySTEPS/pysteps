@@ -392,9 +392,10 @@ def initialize_forecast_exporter_netcdf(
         Start date of the forecast.
     timestep: int
         Time step of the forecast (minutes).
-    n_timesteps: int
-        Number of time steps in the forecast this argument is ignored if
-        incremental is set to 'timestep'.
+    n_timesteps: int or list of integers
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step). The elements of
+      the list are required to be in ascending order.
     shape: tuple of int
         Two-element tuple defining the shape (height,width) of the forecast
         grids.
@@ -460,8 +461,13 @@ def initialize_forecast_exporter_netcdf(
             + "'timestep' or 'member'"
         )
 
+    if isinstance(n_timesteps, list):
+        num_timesteps = len(n_timesteps)
+    else:
+        num_timesteps = n_timesteps
+
     if incremental == "timestep":
-        n_timesteps = None
+        num_timesteps = None
     elif incremental == "member":
         n_ens_members = None
     elif incremental is not None:
@@ -498,7 +504,7 @@ def initialize_forecast_exporter_netcdf(
     h, w = shape
 
     ncf.createDimension("ens_number", size=n_ens_members)
-    ncf.createDimension("time", size=n_timesteps)
+    ncf.createDimension("time", size=num_timesteps)
     ncf.createDimension("y", size=h)
     ncf.createDimension("x", size=w)
 
@@ -584,8 +590,12 @@ def initialize_forecast_exporter_netcdf(
         var_ens_num.units = ""
 
     var_time = ncf.createVariable("time", int, dimensions=("time",))
-    if incremental != "timestep":
-        var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
+    if isinstance(n_timesteps, list):
+        if incremental != "timestep":
+            var_time[:] = n_timesteps * timestep * 60
+    else:
+        if incremental != "timestep":
+            var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
     var_time.long_name = "forecast time"
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
@@ -635,7 +645,8 @@ def initialize_forecast_exporter_netcdf(
     exporter["timestep"] = timestep
     exporter["metadata"] = metadata
     exporter["incremental"] = incremental
-    exporter["num_timesteps"] = n_timesteps
+    exporter["num_timesteps"] = num_timesteps
+    exporter["timesteps"] = n_timesteps
     exporter["num_ens_members"] = n_ens_members
     exporter["shape"] = shape
 
@@ -853,7 +864,12 @@ def _export_netcdf(field, exporter):
         else:
             var_f[var_f.shape[0], :, :] = field
         var_time = exporter["var_time"]
-        var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
+        if isinstance(exporter["timesteps"], list):
+            var_time[len(var_time) - 1] = (
+                exporter["timesteps"][len(var_time) - 1] * exporter["timestep"] * 60
+            )
+        else:
+            var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
     else:
         var_f[var_f.shape[0], :, :, :] = field
         var_ens_num = exporter["var_ens_num"]
