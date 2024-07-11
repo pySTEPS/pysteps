@@ -461,7 +461,8 @@ def initialize_forecast_exporter_netcdf(
             + "'timestep' or 'member'"
         )
 
-    if isinstance(n_timesteps, list):
+    n_timesteps_is_list = isinstance(n_timesteps, list)
+    if n_timesteps_is_list:
         num_timesteps = len(n_timesteps)
     else:
         num_timesteps = n_timesteps
@@ -590,11 +591,10 @@ def initialize_forecast_exporter_netcdf(
         var_ens_num.units = ""
 
     var_time = ncf.createVariable("time", int, dimensions=("time",))
-    if isinstance(n_timesteps, list):
-        if incremental != "timestep":
+    if incremental != "timestep":
+        if n_timesteps_is_list:
             var_time[:] = np.array(n_timesteps) * timestep * 60
-    else:
-        if incremental != "timestep":
+        else:
             var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
     var_time.long_name = "forecast time"
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
