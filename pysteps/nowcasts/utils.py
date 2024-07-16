@@ -21,7 +21,6 @@ import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure
 
 from pysteps import extrapolation
-from pysteps.pysteps.exceptions import MissingOptionalDependency
 
 try:
     import dask
