@@ -21,14 +21,14 @@ import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure
 
 from pysteps import extrapolation
-
+from pysteps.pysteps.exceptions import MissingOptionalDependency
 
 try:
     import dask
-
     DASK_IMPORTED = True
 except ImportError:
     DASK_IMPORTED = False
+
 
 
 def binned_timesteps(timesteps):
@@ -97,7 +97,6 @@ def compute_dilated_mask(input_mask, kr, r):
 
     # normalize between 0 and 1
     return mask / mask.max()
-
 
 def compute_percentile_mask(precip, pct):
     """Compute a precipitation mask, where True/False values are assigned for

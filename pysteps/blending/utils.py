@@ -16,6 +16,7 @@ Module with common utilities used by the blending methods.
     compute_store_nwp_motion
     load_NWP
     check_norain
+    compute_smooth_dilated_mask
 """
 
 import datetime
@@ -35,6 +36,11 @@ try:
 except ImportError:
     NETCDF4_IMPORTED = False
 
+try:
+    import cv2
+    CV2_IMPORTED = True
+except ImportError:
+    CV2_IMPORTED = False
 
 def stack_cascades(R_d, donorm=True):
     """Stack the given cascades into a larger array.
@@ -557,3 +563,77 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
         f"Rain fraction is: {str(rain_pixels.size / precip_arr.size)}, while minimum fraction is {str(norain_thr)}"
     )
     return norain
+
+def compute_smooth_dilated_mask(original_mask, max_padding_size_in_px, gaussian_kernel_size=9,
+                                inverted=False, non_linear_growth_kernel_sizes=False):
+    """
+    Compute a smooth dilated mask using Gaussian blur and dilation with varying kernel sizes.
+
+    Parameters
+    ----------
+    original_mask : array_like
+        Two-dimensional boolean array containing the input mask.
+    max_padding_size_in_px : int
+        The maximum size of the padding in pixels.
+    gaussian_kernel_size : int, optional
+        Size of the Gaussian kernel to use for blurring. Default is 9.
+    inverted : bool, optional
+        If True, invert the original mask before processing. Default is False.
+    non_linear_growth_kernel_sizes : bool, optional
+        If True, use non-linear growth for kernel sizes. Default is False.
+
+    Returns
+    -------
+    initial_mask : array_like
+        The initial binary mask after Gaussian blur and thresholding.
+    new_mask : array_like
+        The smooth dilated mask normalized to the range [0,1].
+    """
+    if not CV2_IMPORTED:
+        raise MissingOptionalDependency(
+            "CV2 package is required to transform the mask into a smoot mask."
+            " Please install it using `pip install opencv-python`."
+        )
+
+    # Convert the original mask to uint8 numpy array and invert if needed
+    array_2d = np.array(original_mask, dtype=np.uint8)
+    if inverted:
+        array_2d = np.bitwise_not(array_2d)
+
+    # Rescale the 2D array values to 0-255 (black or white)
+    rescaled_array = array_2d * 255
+
+    # Apply Gaussian blur to the rescaled array
+    blurred_image = cv2.GaussianBlur(
+        rescaled_array, (gaussian_kernel_size, gaussian_kernel_size), 0
+    )
+
+    # Apply binary threshold to negate the blurring effect
+    _, binary_image = cv2.threshold(blurred_image, 128, 255, cv2.THRESH_BINARY)
+
+    # Define kernel sizes
+    if non_linear_growth_kernel_sizes:
+        lin_space = np.linspace(0, np.sqrt(max_padding_size_in_px), 10)
+        non_lin_space = np.power(lin_space, 2)
+        kernel_sizes = list(set(non_lin_space.astype(np.uint8)))
+    else:
+        kernel_sizes = np.linspace(0, max_padding_size_in_px, 10, dtype=np.uint8)
+
+    # Process each kernel size
+    final_mask = np.zeros_like(binary_image, dtype=np.float64)
+    for kernel_size in kernel_sizes:
+        if kernel_size == 0:
+            dilated_image = binary_image
+        else:
+            kernel = cv2.getStructuringElement(
+                cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
+            )
+            dilated_image = cv2.dilate(binary_image, kernel)
+
+        # Convert the dilated image to a binary array
+        _, binary_array = cv2.threshold(dilated_image, 128, 1, cv2.THRESH_BINARY)
+        final_mask += binary_array
+
+    final_mask = final_mask / final_mask.max()
+
+    return final_mask
