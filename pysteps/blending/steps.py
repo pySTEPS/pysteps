@@ -1458,18 +1458,32 @@ def forecast(
                         if create_smooth_radar_mask is True:
                             # Compute the smooth dilated mask
                             nan_indices = np.isnan(R_f_new)
-                            new_mask = blending.utils.compute_smooth_dilated_mask(nan_indices, 100, gaussian_kernel_size=9, inverted=False, non_linear_growth_kernel_sizes=False)
+                            new_mask = blending.utils.compute_smooth_dilated_mask(
+                                nan_indices,
+                                100,
+                                gaussian_kernel_size=9,
+                                inverted=False,
+                                non_linear_growth_kernel_sizes=False,
+                            )
 
                             # Ensure mask values are between 0 and 1
                             mask_model = new_mask
                             mask_radar = 1 - new_mask
 
                             # Handle NaNs in R_f_new and R_f_new_mod_only by setting NaNs to 0 in the blending step
-                            R_f_new_mod_only_no_nan = np.nan_to_num(R_f_new_mod_only, nan=0)
+                            R_f_new_mod_only_no_nan = np.nan_to_num(
+                                R_f_new_mod_only, nan=0
+                            )
                             R_f_new_no_nan = np.nan_to_num(R_f_new, nan=0)
 
                             # Perform the blending of radar and model inside the radar domain using a weighted combination
-                            R_f_new = np.nansum([mask_model * R_f_new_mod_only_no_nan,  mask_radar * R_f_new_no_nan], axis=0)
+                            R_f_new = np.nansum(
+                                [
+                                    mask_model * R_f_new_mod_only_no_nan,
+                                    mask_radar * R_f_new_no_nan,
+                                ],
+                                axis=0,
+                            )
                             # Finally, fill the remaining nan values, if present, with
                             # the minimum value in the forecast
                             R_f_new[np.isnan(R_f_new)] = np.nanmin(R_f_new)
@@ -1477,7 +1491,9 @@ def forecast(
                             nan_indices = np.isnan(R_f_new)
                             R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
                             nan_indices = np.isnan(R_pm_blended)
-                            R_pm_blended[nan_indices] = R_pm_blended_mod_only[nan_indices]
+                            R_pm_blended[nan_indices] = R_pm_blended_mod_only[
+                                nan_indices
+                            ]
                             # Finally, fill the remaining nan values, if present, with
                             # the minimum value in the forecast
                             nan_indices = np.isnan(R_f_new)

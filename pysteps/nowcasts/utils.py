@@ -24,10 +24,10 @@ from pysteps import extrapolation
 
 try:
     import dask
+
     DASK_IMPORTED = True
 except ImportError:
     DASK_IMPORTED = False
-
 
 
 def binned_timesteps(timesteps):
@@ -96,6 +96,7 @@ def compute_dilated_mask(input_mask, kr, r):
 
     # normalize between 0 and 1
     return mask / mask.max()
+
 
 def compute_percentile_mask(precip, pct):
     """Compute a precipitation mask, where True/False values are assigned for

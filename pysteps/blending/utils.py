@@ -38,9 +38,11 @@ except ImportError:
 
 try:
     import cv2
+
     CV2_IMPORTED = True
 except ImportError:
     CV2_IMPORTED = False
+
 
 def stack_cascades(R_d, donorm=True):
     """Stack the given cascades into a larger array.
@@ -564,8 +566,14 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
     )
     return norain
 
-def compute_smooth_dilated_mask(original_mask, max_padding_size_in_px, gaussian_kernel_size=9,
-                                inverted=False, non_linear_growth_kernel_sizes=False):
+
+def compute_smooth_dilated_mask(
+    original_mask,
+    max_padding_size_in_px,
+    gaussian_kernel_size=9,
+    inverted=False,
+    non_linear_growth_kernel_sizes=False,
+):
     """
     Compute a smooth dilated mask using Gaussian blur and dilation with varying kernel sizes.
 
