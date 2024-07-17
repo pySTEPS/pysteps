@@ -108,6 +108,10 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
         else:
             raise ValueError(f'Unknown transformation {metadata["transform"]}')
 
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
+
     if metadata["units"] == "mm/h":
         pass
 
