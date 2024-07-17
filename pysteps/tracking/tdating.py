@@ -233,7 +233,7 @@ def dating(
 
             if output_splits_merges:
                 # Assign splitted parameters for the previous timestep
-                for ID, split_cell in splitted_cells.iterrows():
+                for _, split_cell in splitted_cells.iterrows():
                     prev_list_id = cell_list[-1][
                         cell_list[-1].ID == split_cell.ID
                     ].index.item()
@@ -251,7 +251,7 @@ def dating(
                         cells_id.at[cur_list_id, "results_from_split"] = True
 
                 merged_cells = cells_id[cells_id.merged == True]
-                for i, cell in merged_cells.iterrows():
+                for _, cell in merged_cells.iterrows():
                     for merged_id in cell.merged_IDs:
                         prev_list_id = cell_list[-1][
                             cell_list[-1].ID == merged_id
