@@ -9,12 +9,14 @@ import pytest
 from numpy.testing import assert_array_almost_equal
 
 from pysteps.io import import_netcdf_pysteps
-from pysteps.io.exporters import _get_geotiff_filename
-from pysteps.io.exporters import close_forecast_files
-from pysteps.io.exporters import export_forecast_dataset
-from pysteps.io.exporters import initialize_forecast_exporter_netcdf
-from pysteps.io.exporters import _convert_proj4_to_grid_mapping
-from pysteps.tests.helpers import get_precipitation_fields, get_invalid_mask
+from pysteps.io.exporters import (
+    _convert_proj4_to_grid_mapping,
+    _get_geotiff_filename,
+    close_forecast_files,
+    export_forecast_dataset,
+    initialize_forecast_exporter_netcdf,
+)
+from pysteps.tests.helpers import get_invalid_mask, get_precipitation_fields
 
 # Test arguments
 exporter_arg_names = (

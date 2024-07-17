@@ -9,6 +9,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+import xarray as xr
 
 import pysteps as stp
 from pysteps import io, rcparams
@@ -22,6 +23,32 @@ _reference_dates["mch"] = datetime(2015, 5, 15, 16, 30)
 _reference_dates["opera"] = datetime(2018, 8, 24, 18, 0)
 _reference_dates["saf"] = datetime(2018, 6, 1, 7, 0)
 _reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
+
+
+def assert_dataset_equivalent(dataset1: xr.Dataset, dataset2: xr.Dataset) -> None:
+    xr.testing.assert_allclose(dataset1, dataset2)
+    assert np.isclose(
+        dataset1["precip_intensity"].attrs["threshold"],
+        dataset2["precip_intensity"].attrs["threshold"],
+    )
+    assert (
+        dataset1["precip_intensity"].attrs["units"]
+        == dataset2["precip_intensity"].attrs["units"]
+    )
+    assert (
+        dataset1["precip_intensity"].attrs["transform"]
+        == dataset2["precip_intensity"].attrs["transform"]
+        or dataset1["precip_intensity"].attrs["transform"] is None
+        and dataset2["precip_intensity"].attrs["transform"] is None
+    )
+    assert (
+        dataset1["precip_intensity"].attrs["accutime"]
+        == dataset2["precip_intensity"].attrs["accutime"]
+    )
+    assert (
+        dataset1["precip_intensity"].attrs["zerovalue"]
+        == dataset2["precip_intensity"].attrs["zerovalue"]
+    )
 
 
 def get_precipitation_fields(
@@ -161,9 +188,7 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    reference_field, __, ref_metadata = io.read_timeseries(
-        fns, importer, **_importer_kwargs
-    )
+    ref_dataset = io.read_timeseries(fns, importer, **_importer_kwargs)
 
     if not return_raw:
         if (num_prev_files == 0) and (num_next_files == 0):
@@ -171,14 +196,10 @@ def get_precipitation_fields(
             reference_field = np.squeeze(reference_field)
 
         # Convert to mm/h
-        reference_field, ref_metadata = stp.utils.to_rainrate(
-            reference_field, ref_metadata
-        )
+        ref_dataset = stp.utils.to_rainrate(ref_dataset)
 
         # Clip domain
-        reference_field, ref_metadata = stp.utils.clip_domain(
-            reference_field, ref_metadata, clip
-        )
+        ref_dataset = stp.utils.clip_domain(ref_dataset, clip)
 
         # Upscale data
         reference_field, ref_metadata = aggregate_fields_space(
