@@ -63,6 +63,9 @@ def dating(
     minmax=41,
     mindis=10,
     dyn_thresh=False,
+    match_frac=0.4,
+    split_frac=0.1,
+    merge_frac=0.1,
     output_splits_merges=False,
 ):
     """
@@ -114,6 +117,17 @@ def dating(
     mindis: float, optional
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
+    match_frac: float, optional
+        Minimum overlap fraction between two objects to be considered the same object.
+        Default is 0.4.
+    split_frac: float, optional
+        Minimum overlap fraction between two objects for the object at second timestep
+        to be considered possibly split from the object at the first timestep.
+        Default is 0.1.
+    merge_frac: float, optional
+        Minimum overlap fraction between two objects for the object at second timestep
+        to be considered possibly merged from the object at the first timestep.
+        Default is 0.1.
     output_splits_merges: bool, optional
         If True, the output will contain information about splits and merges.
         The provided columns are:
@@ -211,8 +225,12 @@ def dating(
                 labels,
                 flowfield,
                 max_ID,
+                match_frac=match_frac,
+                split_frac=split_frac,
+                merge_frac=merge_frac,
                 output_splits_merges=output_splits_merges,
             )
+
             if output_splits_merges:
                 # Assign splitted parameters for the previous timestep
                 for ID, split_cell in splitted_cells.iterrows():
@@ -257,6 +275,7 @@ def tracking(
     V1,
     max_ID,
     merge_frac=0.1,
+    split_frac=0.1,
     output_splits_merges=False,
 ):
     """
@@ -272,6 +291,8 @@ def tracking(
         cells_ad,
         labels,
         output_splits_merges=output_splits_merges,
+        split_frac=split_frac,
+        match_frac=merge_frac,
     )
 
     splitted_cells = None
