@@ -569,7 +569,7 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
 
 def compute_smooth_dilated_mask(
     original_mask,
-    max_padding_size_in_px,
+    max_padding_size_in_px=0,
     gaussian_kernel_size=9,
     inverted=False,
     non_linear_growth_kernel_sizes=False,
@@ -582,7 +582,7 @@ def compute_smooth_dilated_mask(
     original_mask : array_like
         Two-dimensional boolean array containing the input mask.
     max_padding_size_in_px : int
-        The maximum size of the padding in pixels.
+        The maximum size of the padding in pixels. Default is 100.
     gaussian_kernel_size : int, optional
         Size of the Gaussian kernel to use for blurring. Default is 9.
     inverted : bool, optional
@@ -602,6 +602,9 @@ def compute_smooth_dilated_mask(
             "CV2 package is required to transform the mask into a smoot mask."
             " Please install it using `pip install opencv-python`."
         )
+
+    if max_padding_size_in_px < 0:
+        raise ValueError("max_padding_size_in_px must be greater than or equal to 0.")
 
     # Convert the original mask to uint8 numpy array and invert if needed
     array_2d = np.array(original_mask, dtype=np.uint8)

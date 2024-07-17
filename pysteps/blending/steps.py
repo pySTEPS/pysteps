@@ -90,7 +90,7 @@ def forecast(
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
-    create_smooth_radar_mask=False,
+    smooth_radar_mask_range=0,
     callback=None,
     return_output=True,
     seed=None,
@@ -211,9 +211,10 @@ def forecast(
       'obs' = apply precip_thr to the most recently observed precipitation intensity
       field, 'incremental' = iteratively buffer the mask with a certain rate
       (currently it is 1 km/min), None=no masking.
-    create_smooth_radar_mask: bool
-      If set to True, this generates a smooth mask for the radar that removes
-      hard edges between NWP and radar in the final blended product.
+    smooth_radar_mask_range: int, Default  is 0.
+      If 0 this generates a normal forecast. To create a smooth mask, this range
+      should be a positive value. The smooth radar mask for the radar removes
+      the hard edges between NWP and radar in the final blended product.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -1455,12 +1456,13 @@ def forecast(
                         # forecast outside the radar domain. Therefore, fill these
                         # areas with the "..._mod_only" blended forecasts, consisting
                         # of the NWP and noise components.
-                        if create_smooth_radar_mask is True:
+
+                        nan_indices = np.isnan(R_f_new)
+                        if smooth_radar_mask_range != 0:
                             # Compute the smooth dilated mask
-                            nan_indices = np.isnan(R_f_new)
                             new_mask = blending.utils.compute_smooth_dilated_mask(
                                 nan_indices,
-                                100,
+                                max_padding_size_in_px=smooth_radar_mask_range,
                                 gaussian_kernel_size=9,
                                 inverted=False,
                                 non_linear_growth_kernel_sizes=False,
@@ -1484,22 +1486,28 @@ def forecast(
                                 ],
                                 axis=0,
                             )
-                            # Finally, fill the remaining nan values, if present, with
-                            # the minimum value in the forecast
-                            R_f_new[np.isnan(R_f_new)] = np.nanmin(R_f_new)
+
+                            nan_indices = np.isnan(R_pm_blended)
+                            R_pm_blended = np.nansum(
+                                [
+                                    R_pm_blended * mask_radar,
+                                    R_pm_blended_mod_only * mask_model,
+                                ],
+                                axis=0,
+                            )
                         else:
-                            nan_indices = np.isnan(R_f_new)
                             R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
                             nan_indices = np.isnan(R_pm_blended)
                             R_pm_blended[nan_indices] = R_pm_blended_mod_only[
                                 nan_indices
                             ]
-                            # Finally, fill the remaining nan values, if present, with
-                            # the minimum value in the forecast
-                            nan_indices = np.isnan(R_f_new)
-                            R_f_new[nan_indices] = np.nanmin(R_f_new)
-                            nan_indices = np.isnan(R_pm_blended)
-                            R_pm_blended[nan_indices] = np.nanmin(R_pm_blended)
+
+                        # Finally, fill the remaining nan values, if present, with
+                        # the minimum value in the forecast
+                        nan_indices = np.isnan(R_f_new)
+                        R_f_new[nan_indices] = np.nanmin(R_f_new)
+                        nan_indices = np.isnan(R_pm_blended)
+                        R_pm_blended[nan_indices] = np.nanmin(R_pm_blended)
 
                         # 8.7.2. Apply the masking and prob. matching
                         if mask_method is not None:
