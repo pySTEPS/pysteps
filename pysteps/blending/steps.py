@@ -213,7 +213,8 @@ def forecast(
       (currently it is 1 km/min), None=no masking.
     smooth_radar_mask_range: int, Default  is 0.
       If 0 this generates a normal forecast. To create a smooth mask, this range
-      should be a positive value. The smooth radar mask for the radar removes
+      should be a positive value, representing a buffer band of a number of pixels
+      by which the mask is cropped and smoothed. The smooth radar mask removes
       the hard edges between NWP and radar in the final blended product.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
@@ -1469,8 +1470,8 @@ def forecast(
                             )
 
                             # Ensure mask values are between 0 and 1
-                            mask_model = new_mask
-                            mask_radar = 1 - new_mask
+                            mask_model = np.clip(new_mask, 0, 1)
+                            mask_radar = np.clip(1 - new_mask, 0, 1)
 
                             # Handle NaNs in R_f_new and R_f_new_mod_only by setting NaNs to 0 in the blending step
                             R_f_new_mod_only_no_nan = np.nan_to_num(
