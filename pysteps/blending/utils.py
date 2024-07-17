@@ -15,6 +15,7 @@ Module with common utilities used by the blending methods.
     decompose_NWP
     compute_store_nwp_motion
     load_NWP
+    check_norain
 """
 
 import datetime
@@ -490,6 +491,13 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     assert analysis_time + start_i * timestep == start_time
     end_i = start_i + n_timesteps + 1
 
+    # Check if the requested end time (the forecast horizon) is in the stored data.
+    # If not, raise an error
+    if end_i > ncf_decomp.variables["pr_decomposed"].shape[0]:
+        raise IndexError(
+            "The requested forecast horizon is outside the stored NWP forecast horizon. Either request a shorter forecast horizon or store a longer NWP forecast horizon"
+        )
+
     # Add the valid times to the output
     decomp_dict["valid_times"] = valid_times[start_i:end_i]
 
@@ -502,23 +510,50 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     for i in range(start_i, end_i):
         decomp_dict_ = decomp_dict.copy()
 
+        # Obtain the decomposed cascades for time step i
         cascade_levels = ncf_decomp.variables["pr_decomposed"][i, :, :, :]
-
-        # In the netcdf file this is saved as a masked array, so we're checking if there is no mask
-        assert not cascade_levels.mask
-
+        # Obtain the mean values
         means = ncf_decomp.variables["means"][i, :]
-        assert not means.mask
-
+        # Obtain de standard deviations
         stds = ncf_decomp.variables["stds"][i, :]
-        assert not stds.mask
 
         # Save the values in the dictionary as normal arrays with the filled method
-        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels)
-        decomp_dict_["means"] = np.ma.filled(means)
-        decomp_dict_["stds"] = np.ma.filled(stds)
+        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels, fill_value=np.nan)
+        decomp_dict_["means"] = np.ma.filled(means, fill_value=np.nan)
+        decomp_dict_["stds"] = np.ma.filled(stds, fill_value=np.nan)
 
         # Append the output list
         R_d.append(decomp_dict_)
 
+    ncf_decomp.close()
     return R_d, uv
+
+
+def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
+    """
+
+    Parameters
+    ----------
+    precip_arr:  array-like
+      Array containing the input precipitation field
+    precip_thr: float, optional
+      Specifies the threshold value for minimum observable precipitation intensity. If None, the
+      minimum value over the domain is taken.
+    norain_thr: float, optional
+      Specifies the threshold value for the fraction of rainy pixels in precip_arr below which we consider there to be
+      no rain. Standard set to 0.0
+    Returns
+    -------
+    norain: bool
+      Returns whether the fraction of rainy pixels is below the norain_thr threshold.
+
+    """
+
+    if precip_thr is None:
+        precip_thr = np.nanmin(precip_arr)
+    rain_pixels = precip_arr[precip_arr > precip_thr]
+    norain = rain_pixels.size / precip_arr.size <= norain_thr
+    print(
+        f"Rain fraction is: {str(rain_pixels.size / precip_arr.size)}, while minimum fraction is {str(norain_thr)}"
+    )
+    return norain

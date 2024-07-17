@@ -371,7 +371,11 @@ def initialize_forecast_exporter_netcdf(
     shape,
     metadata,
     n_ens_members=1,
+    datatype=np.float32,
     incremental=None,
+    fill_value=None,
+    scale_factor=None,
+    offset=None,
     **kwargs,
 ):
     """
@@ -388,9 +392,10 @@ def initialize_forecast_exporter_netcdf(
         Start date of the forecast.
     timestep: int
         Time step of the forecast (minutes).
-    n_timesteps: int
-        Number of time steps in the forecast this argument is ignored if
-        incremental is set to 'timestep'.
+    n_timesteps: int or list of integers
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step). The elements of
+      the list are required to be in ascending order.
     shape: tuple of int
         Two-element tuple defining the shape (height,width) of the forecast
         grids.
@@ -401,12 +406,35 @@ def initialize_forecast_exporter_netcdf(
     n_ens_members: int
         Number of ensemble members in the forecast. This argument is ignored if
         incremental is set to 'member'.
+    datatype: np.dtype, optional
+        The datatype of the output values. Defaults to np.float32.
     incremental: {None,'timestep','member'}, optional
         Allow incremental writing of datasets into the netCDF files.\n
         The available options are: 'timestep' = write a forecast or a forecast
         ensemble for  a given time step; 'member' = write a forecast sequence
         for a given ensemble member. If set to None, incremental writing is
         disabled.
+    fill_value: int, optional
+        Fill_value for missing data. Defaults to None, which means that the
+        standard netCDF4 fill_value is used.
+    scale_factor: float, optional
+        The scale factor to scale the data as: store_value = scale_factor *
+        precipitation_value + offset. Defaults to None. The scale_factor
+        can be used to reduce data storage.
+    offset: float, optional
+        The offset to offset the data as: store_value = scale_factor *
+        precipitation_value + offset. Defaults to None.
+
+    Other Parameters
+    ----------------
+    institution: str
+        The instute, company or community that has created the nowcast.
+        Default: the pySTEPS community (https://pysteps.github.io)
+    references: str
+        Any references to be included in the netCDF file. Defaults to " ".
+    comment: str
+        Any comments about the data or storage protocol that should be
+        included in the netCDF file. Defaults to " ".
 
     Returns
     -------
@@ -433,8 +461,14 @@ def initialize_forecast_exporter_netcdf(
             + "'timestep' or 'member'"
         )
 
+    n_timesteps_is_list = isinstance(n_timesteps, list)
+    if n_timesteps_is_list:
+        num_timesteps = len(n_timesteps)
+    else:
+        num_timesteps = n_timesteps
+
     if incremental == "timestep":
-        n_timesteps = None
+        num_timesteps = None
     elif incremental == "member":
         n_ens_members = None
     elif incremental is not None:
@@ -448,6 +482,13 @@ def initialize_forecast_exporter_netcdf(
         if n_ens_members > 1:
             n_ens_gt_one = True
 
+    # Kwargs to be used as description strings in the netCDF
+    institution = kwargs.get(
+        "institution", "the pySTEPS community (https://pysteps.github.io)"
+    )
+    references = kwargs.get("references", "")
+    comment = kwargs.get("comment", "")
+
     exporter = {}
 
     outfn = os.path.join(outpath, outfnprefix + ".nc")
@@ -455,16 +496,16 @@ def initialize_forecast_exporter_netcdf(
 
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
-    ncf.institution = "the pySTEPS community (https://pysteps.github.io)"
+    ncf.institution = institution
     ncf.source = "pysteps"  # TODO(exporters): Add pySTEPS version here
     ncf.history = ""
-    ncf.references = ""
-    ncf.comment = ""
+    ncf.references = references
+    ncf.comment = comment
 
     h, w = shape
 
     ncf.createDimension("ens_number", size=n_ens_members)
-    ncf.createDimension("time", size=n_timesteps)
+    ncf.createDimension("time", size=num_timesteps)
     ncf.createDimension("y", size=h)
     ncf.createDimension("x", size=w)
 
@@ -551,7 +592,10 @@ def initialize_forecast_exporter_netcdf(
 
     var_time = ncf.createVariable("time", int, dimensions=("time",))
     if incremental != "timestep":
-        var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
+        if n_timesteps_is_list:
+            var_time[:] = np.array(n_timesteps) * timestep * 60
+        else:
+            var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
     var_time.long_name = "forecast time"
     startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
     var_time.units = "seconds since %s" % startdate_str
@@ -559,14 +603,22 @@ def initialize_forecast_exporter_netcdf(
     if incremental == "member" or n_ens_gt_one:
         var_f = ncf.createVariable(
             var_name,
-            np.float32,
+            datatype=datatype,
             dimensions=("ens_number", "time", "y", "x"),
+            compression="zlib",
             zlib=True,
             complevel=9,
+            fill_value=fill_value,
         )
     else:
         var_f = ncf.createVariable(
-            var_name, np.float32, dimensions=("time", "y", "x"), zlib=True, complevel=9
+            var_name,
+            datatype=datatype,
+            dimensions=("time", "y", "x"),
+            compression="zlib",
+            zlib=True,
+            complevel=9,
+            fill_value=fill_value,
         )
 
     if var_standard_name is not None:
@@ -576,6 +628,11 @@ def initialize_forecast_exporter_netcdf(
     var_f.units = var_unit
     if grid_mapping_var_name is not None:
         var_f.grid_mapping = grid_mapping_var_name
+    # Add gain and offset
+    if scale_factor is not None:
+        var_f.scale_factor = scale_factor
+    if offset is not None:
+        var_f.add_offset = offset
 
     exporter["method"] = "netcdf"
     exporter["ncfile"] = ncf
@@ -588,7 +645,8 @@ def initialize_forecast_exporter_netcdf(
     exporter["timestep"] = timestep
     exporter["metadata"] = metadata
     exporter["incremental"] = incremental
-    exporter["num_timesteps"] = n_timesteps
+    exporter["num_timesteps"] = num_timesteps
+    exporter["timesteps"] = n_timesteps
     exporter["num_ens_members"] = n_ens_members
     exporter["shape"] = shape
 
@@ -806,7 +864,12 @@ def _export_netcdf(field, exporter):
         else:
             var_f[var_f.shape[0], :, :] = field
         var_time = exporter["var_time"]
-        var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
+        if isinstance(exporter["timesteps"], list):
+            var_time[len(var_time) - 1] = (
+                exporter["timesteps"][len(var_time) - 1] * exporter["timestep"] * 60
+            )
+        else:
+            var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
     else:
         var_f[var_f.shape[0], :, :, :] = field
         var_ens_num = exporter["var_ens_num"]

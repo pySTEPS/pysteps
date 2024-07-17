@@ -16,7 +16,7 @@ import warnings
 
 import matplotlib.pylab as plt
 import numpy as np
-from matplotlib import cm, colors
+from matplotlib import pyplot, colors
 
 from pysteps.visualization.utils import get_geogrid, get_basemap_axis
 
@@ -294,7 +294,7 @@ def get_colormap(ptype, units="mm/h", colorscale="pysteps"):
         clevs_str = [f"{clev:.1f}" for clev in clevs]
         return cmap, norm, clevs, clevs_str
 
-    return cm.get_cmap("jet"), colors.Normalize(), None, None
+    return pyplot.get_cmap("jet"), colors.Normalize(), None, None
 
 
 def _get_colorlist(units="mm/h", colorscale="pysteps"):

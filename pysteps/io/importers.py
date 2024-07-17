@@ -810,7 +810,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwa
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
         precip = np.where(
-            precip_intermediate == 65535, np.NaN, precip_intermediate / 100.0
+            precip_intermediate == 65535, np.nan, precip_intermediate / 100.0
         )
 
     # In case reflectivities are imported, the no data value is 255. Values are
@@ -818,7 +818,7 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwa
     # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
     if qty == "DBZH":
         precip = np.where(
-            precip_intermediate == 255, np.NaN, precip_intermediate * 0.5 - 32.0
+            precip_intermediate == 255, np.nan, precip_intermediate * 0.5 - 32.0
         )
 
     if precip is None:
@@ -1374,7 +1374,10 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         raise IOError("requested quantity %s not found" % qty)
 
     where = f["where"]
-    proj4str = where.attrs["projdef"].decode()
+    if isinstance(where.attrs["projdef"], str):
+        proj4str = where.attrs["projdef"]
+    else:
+        proj4str = where.attrs["projdef"].decode()
     pr = pyproj.Proj(proj4str)
 
     ll_lat = where.attrs["LL_lat"]

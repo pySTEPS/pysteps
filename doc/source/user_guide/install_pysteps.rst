@@ -148,12 +148,12 @@ To make sure that the installer uses the homebrew's gcc, export the
 following environmental variables in the terminal
 (supposing that gcc version 8 was installed)::
 
-    export CC=gcc-8
-    export CXX=g++-8
+    export CC=gcc-13
+    export CXX=g++-13
 
 First, check that the homebrew's gcc is detected::
 
-    which gcc-8
+    which gcc-13
 
 This should point to the homebrew's gcc installation.
 
@@ -162,8 +162,8 @@ gcc executables under /usr/local/bin.
 If that is the case, specify the CC and CCX variables using the full path to
 the homebrew installation. For example::
 
-    export CC=/usr/local/Cellar/gcc/8.3.0/bin/gcc-8
-    export CXX=/usr/local/Cellar/gcc/8.3.0/bin/g++-8
+    export CC=/usr/local/Cellar/gcc/13.2.0/bin/gcc-13
+    export CXX=/usr/local/Cellar/gcc/13.2.0/bin/g++-13
 
 Then, you can continue with the normal installation procedure described next.
 

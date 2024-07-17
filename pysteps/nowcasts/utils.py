@@ -103,6 +103,9 @@ def compute_percentile_mask(precip, pct):
     """Compute a precipitation mask, where True/False values are assigned for
     pixels above/below the given percentile.
 
+    .. _ndarray:\
+    https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html
+
     Parameters
     ----------
     precip: array_like
