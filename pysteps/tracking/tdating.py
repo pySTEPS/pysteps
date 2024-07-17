@@ -274,6 +274,7 @@ def tracking(
     labels,
     V1,
     max_ID,
+    match_frac=0.4,
     merge_frac=0.1,
     split_frac=0.1,
     output_splits_merges=False,
@@ -292,7 +293,7 @@ def tracking(
         labels,
         output_splits_merges=output_splits_merges,
         split_frac=split_frac,
-        match_frac=merge_frac,
+        match_frac=match_frac,
     )
 
     splitted_cells = None
