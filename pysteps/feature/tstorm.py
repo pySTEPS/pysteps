@@ -58,6 +58,7 @@ def detection(
     minmax=41,
     mindis=10,
     output_feat=False,
+    output_splits_merges=False,
     time="000000000",
 ):
     """
@@ -93,6 +94,10 @@ def detection(
         smaller distance will be merged. The default is 10 km.
     output_feat: bool, optional
         Set to True to return only the cell coordinates.
+    output_split_merge: bool, optional
+        Set to True to return additional columns in the dataframe for describing the
+        splitting and merging of cells. Note that columns are initialized with None,
+        and the information needs to be analyzed while tracking.
     time: string, optional
         Date and time as string. Used to label time in the resulting dataframe.
         The default is '000000000'.
@@ -166,7 +171,15 @@ def detection(
 
     areas, lines = breakup(input_image, np.nanmin(input_image.flatten()), maxima_dis)
 
-    cells_id, labels = get_profile(areas, binary, input_image, loc_max, time, minref)
+    cells_id, labels = get_profile(
+        areas,
+        binary,
+        input_image,
+        loc_max,
+        time,
+        minref,
+        output_splits_merges=output_splits_merges,
+    )
 
     if max_num_features is not None:
         idx = np.argsort(cells_id.area.to_numpy())[::-1]
@@ -225,10 +238,12 @@ def longdistance(loc_max, mindis):
     return new_max
 
 
-def get_profile(areas, binary, ref, loc_max, time, minref):
+def get_profile(areas, binary, ref, loc_max, time, minref, output_splits_merges=False):
     """
     This function returns the identified cells in a dataframe including their x,y
     locations, location of their maxima, maximum reflectivity and contours.
+    Optionally, the dataframe can include columns for storing information regarding
+    splitting and merging of cells.
     """
     cells = areas * binary
     cell_labels = cells[loc_max]
@@ -253,36 +268,49 @@ def get_profile(areas, binary, ref, loc_max, time, minref):
                 "max_ref": maxref,
                 "cont": contours,
                 "area": len(x),
-                "splitted": None,
-                "split_IDs": None,
-                "merged": None,
-                "merged_IDs": None,
-                "results_from_split": None,
-                "will_merge": None,
             }
         )
+        if output_splits_merges:
+            cells_id[-1].update(
+                {
+                    "splitted": None,
+                    "split_IDs": None,
+                    "merged": None,
+                    "merged_IDs": None,
+                    "results_from_split": None,
+                    "will_merge": None,
+                }
+            )
         labels[cells == cell_labels[n]] = this_id
+
+    columns = [
+        "ID",
+        "time",
+        "x",
+        "y",
+        "cen_x",
+        "cen_y",
+        "max_ref",
+        "cont",
+        "area",
+    ]
+    if output_splits_merges:
+        columns.extend(
+            [
+                "splitted",
+                "split_IDs",
+                "merged",
+                "merged_IDs",
+                "results_from_split",
+                "will_merge",
+            ]
+        )
     cells_id = pd.DataFrame(
         data=cells_id,
         index=range(len(cell_labels)),
-        columns=[
-            "ID",
-            "time",
-            "x",
-            "y",
-            "cen_x",
-            "cen_y",
-            "max_ref",
-            "cont",
-            "area",
-            "splitted",
-            "split_IDs",
-            "merged",
-            "merged_IDs",
-            "results_from_split",
-            "will_merge",
-        ],
+        columns=columns,
     )
-    cells_id["split_IDs"] = cells_id["split_IDs"].astype("object")
-    cells_id["merged_IDs"] = cells_id["merged_IDs"].astype("object")
+    if output_splits_merges:
+        cells_id["split_IDs"] = cells_id["split_IDs"].astype("object")
+        cells_id["merged_IDs"] = cells_id["merged_IDs"].astype("object")
     return cells_id, labels
