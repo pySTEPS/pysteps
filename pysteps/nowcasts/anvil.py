@@ -39,7 +39,7 @@ def forecast(
     velocity,
     timesteps,
     rainrate=None,
-    n_cascade_levels=8,
+    n_cascade_levels=6,
     extrap_method="semilagrangian",
     ar_order=2,
     ar_window_radius=50,

@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 
 
-def get_default_skill(n_cascade_levels=8, n_models=1):
+def get_default_skill(n_cascade_levels=6, n_models=1):
     """
     Get the default climatological skill values as given in :cite:`BPS2006`.
     Take subset of n_cascade_levels or add entries with small values (1e-4) if
@@ -157,7 +157,7 @@ def save_skill(
 
 def calc_clim_skill(
     outdir_path,
-    n_cascade_levels=8,
+    n_cascade_levels=6,
     n_models=1,
     window_length=30,
 ):

@@ -729,12 +729,12 @@ def forecast(
                                 else:
                                     EPS_ = None
                                 # apply AR(p) process to cascade level
-                                precip_cascades[i, :, :, :] = (
-                                    autoregression.iterate_ar_model(
-                                        precip_cascades[i, :, :, :],
-                                        phi[m, n, i, :],
-                                        eps=EPS_,
-                                    )
+                                precip_cascades[
+                                    i, :, :, :
+                                ] = autoregression.iterate_ar_model(
+                                    precip_cascades[i, :, :, :],
+                                    phi[m, n, i, :],
+                                    eps=EPS_,
                                 )
                                 EPS_ = None
                             rc[m][n][j] = precip_cascades.copy()

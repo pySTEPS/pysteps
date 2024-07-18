@@ -74,7 +74,7 @@ def forecast(
     timestep,
     issuetime,
     n_ens_members,
-    n_cascade_levels=8,
+    n_cascade_levels=6,
     blend_nwp_members=False,
     precip_thr=None,
     norain_thr=0.0,
