@@ -53,7 +53,7 @@ from pysteps import extrapolation
 from pysteps import noise
 from pysteps import utils
 from pysteps.nowcasts import utils as nowcast_utils
-from pysteps.postprocessing import probmatching, resample_distributions
+from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
 from pysteps import blending
 
