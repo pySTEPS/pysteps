@@ -138,7 +138,7 @@ def test_io_export_netcdf_one_member_one_time_step(
         assert (new_invalid_mask == invalid_mask).all()
 
 
-@pytest.mark.paramterize(
+@pytest.mark.parametrize(
     ["proj4str", "expected_value"],
     [
         (
