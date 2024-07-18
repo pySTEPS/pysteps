@@ -1507,8 +1507,13 @@ def forecast(
                         nan_indices = np.isnan(R_pm_blended)
                         R_pm_blended[nan_indices] = np.nanmin(R_pm_blended)
 
+                        # This blended product is a kind of "control member" in the sense that it
+                        # is an unperturbed, blended nowcast.
+                        # This will be returned if noise_method is set to None.
+                        if noise_method is None:
+                            R_f_new = R_pm_blended
                         # 8.7.2. Apply the masking and prob. matching
-                        if mask_method is not None:
+                        elif mask_method is not None:
                             # apply the precipitation mask to prevent generation of new
                             # precipitation into areas where it was not originally
                             # observed
@@ -1961,7 +1966,7 @@ def _init_noise(
 ):
     """Initialize the noise method."""
     if noise_method is None:
-        return None, None, None
+        return None, None, np.ones(n_cascade_levels)
 
     # get methods for perturbations
     init_noise, generate_noise = noise.get_method(noise_method)
@@ -2279,6 +2284,7 @@ def _init_random_generators(
     timestep,
 ):
     """Initialize all the random generators."""
+    randgen_prec, vps, generate_vel_noise = None, None, None
     if noise_method is not None:
         randgen_prec = []
         randgen_motion = []
@@ -2303,8 +2309,6 @@ def _init_random_generators(
             }
             vp_ = init_vel_noise(velocity, 1.0 / kmperpixel, timestep, **kwargs)
             vps.append(vp_)
-    else:
-        vps, generate_vel_noise = None, None
 
     return randgen_prec, vps, generate_vel_noise
 
