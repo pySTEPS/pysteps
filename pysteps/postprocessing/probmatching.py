@@ -13,6 +13,7 @@ Methods for matching the probability distribution of two data sets.
     pmm_init
     pmm_compute
     shift_scale
+    resample_distributions
 """
 
 import numpy as np
@@ -257,6 +258,41 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     R[~idx_wet] = 0
 
     return shift, scale, R.reshape(shape)
+
+
+def resample_distributions(a, b, weight):
+    """
+    Merges two distributions (e.g. from the extrapolation nowcast and NWP in the blending module)
+    to effectively combine two distributions for the probability matching without losing extremes.
+    Parameters
+    ----------
+    a: array_like
+        One of the two arrays from which the distribution should be samples (e.g. the extrapolation
+        cascade).
+    b: array_like
+        One of the two arrays from which the distribution should be samples (e.g. the NWP (model)
+        cascade).
+    weight: float
+        The weight that a should get (as a value between 0 and 1).
+
+    Returns
+    ----------
+    csort: array_like
+        The output distribution as a drawn binomial distribution from the input arrays a and b.
+    """
+    # Prepare the input distributions
+    assert a.size == b.size
+    asort = np.sort(a.flatten())[::-1]
+    bsort = np.sort(b.flatten())[::-1]
+    n = asort.shape[0]
+
+    # Resample the distributions
+    idxsamples = np.random.binomial(1, weight, n).astype(bool)
+    csort = bsort.copy()
+    csort[idxsamples] = asort[idxsamples]
+    csort = np.sort(csort)[::-1]
+
+    return csort
 
 
 def _invfunc(y, fx, fy):
