@@ -584,17 +584,15 @@ def compute_smooth_dilated_mask(
     max_padding_size_in_px : int
         The maximum size of the padding in pixels. Default is 100.
     gaussian_kernel_size : int, optional
-        Size of the Gaussian kernel to use for blurring. Default is 9.
+        Size of the Gaussian kernel to use for blurring. This ensures that the nan-fields are large enough to start the smoothing. Without it, the method will also be applied to local nan-values in the radar domain. Default is 9, which is generally a recommended number to work with.
     inverted : bool, optional
-        If True, invert the original mask before processing. Default is False.
+        Typically, the smoothed mask works from the outside of the radar domain inward, using the max_padding_size_in_px. If set to True, it works from the edge of the radar domain outward (generally not recommended). Default is False.
     non_linear_growth_kernel_sizes : bool, optional
         If True, use non-linear growth for kernel sizes. Default is False.
 
     Returns
     -------
-    initial_mask : array_like
-        The initial binary mask after Gaussian blur and thresholding.
-    new_mask : array_like
+    final_mask : array_like
         The smooth dilated mask normalized to the range [0,1].
     """
     if not CV2_IMPORTED:

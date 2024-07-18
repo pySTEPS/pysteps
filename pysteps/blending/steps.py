@@ -211,11 +211,13 @@ def forecast(
       'obs' = apply precip_thr to the most recently observed precipitation intensity
       field, 'incremental' = iteratively buffer the mask with a certain rate
       (currently it is 1 km/min), None=no masking.
-    smooth_radar_mask_range: int, Default  is 0.
-      If 0 this generates a normal forecast. To create a smooth mask, this range
+    smooth_radar_mask_range: int, Default is 0.
+      Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+      blend near the edge of the radar domain (radar mask), where the radar data is either
+      not present anymore or is not reliable. If set to 0 (grid cells), this generates a normal forecast without smoothing. To create a smooth mask, this range
       should be a positive value, representing a buffer band of a number of pixels
       by which the mask is cropped and smoothed. The smooth radar mask removes
-      the hard edges between NWP and radar in the final blended product.
+      the hard edges between NWP and radar in the final blended product. Typically, a value between 50 and 100 km can be used. 80 km generally gives good results.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -1464,9 +1466,6 @@ def forecast(
                             new_mask = blending.utils.compute_smooth_dilated_mask(
                                 nan_indices,
                                 max_padding_size_in_px=smooth_radar_mask_range,
-                                gaussian_kernel_size=9,
-                                inverted=False,
-                                non_linear_growth_kernel_sizes=False,
                             )
 
                             # Ensure mask values are between 0 and 1
