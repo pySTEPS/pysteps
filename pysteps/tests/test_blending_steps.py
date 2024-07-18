@@ -264,6 +264,7 @@ def test_steps_blending(
         conditional=False,
         probmatching_method=probmatching_method,
         mask_method=mask_method,
+        smooth_radar_mask_range=smooth_radar_mask_range,
         callback=None,
         return_output=True,
         seed=None,
