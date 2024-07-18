@@ -72,6 +72,7 @@ def test_steps_blending(
     expected_n_ens_members,
     zero_radar,
     zero_nwp,
+    smooth_radar_mask_range,
 ):
     pytest.importorskip("cv2")
 
