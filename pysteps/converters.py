@@ -187,11 +187,9 @@ def convert_to_xarray_dataset(
     }
     if grid_mapping_var_name is not None:
         coords[grid_mapping_name] = (
-            (
-                [],
-                None,
-                {"grid_mapping_name": grid_mapping_name, **grid_mapping_params},
-            ),
+            [],
+            None,
+            {"grid_mapping_name": grid_mapping_name, **grid_mapping_params},
         )
     attrs = {
         "Conventions": "CF-1.7",
@@ -199,4 +197,5 @@ def convert_to_xarray_dataset(
         "projection": metadata["projection"],
         "precip_var": var_name,
     }
-    return xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
+    dataset = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
+    return dataset.sortby(["y", "x"])
