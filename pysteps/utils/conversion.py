@@ -90,7 +90,6 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
     dataset = dataset.copy(deep=True)
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
-    precip_data = dataset[precip_var].values
 
     if metadata["transform"] is not None:
         if metadata["transform"] == "dB":
@@ -154,18 +153,14 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
     return dataset
 
 
-def to_raindepth(R, metadata, zr_a=None, zr_b=None):
+def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
     """
     Convert to rain depth [mm].
 
     Parameters
     ----------
-    R: array-like
-        Array of any shape to be (back-)transformed.
-    metadata: dict
-        Metadata dictionary containing the accutime, transform, unit, threshold
-        and zerovalue attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+    dataset: Dataset
+        Dataset to be (back-)transformed.
 
         Additionally, in case of conversion to/from reflectivity units, the
         zr_a and zr_b attributes are also required,
@@ -177,46 +172,49 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
 
     Returns
     -------
-    R: array-like
-        Array of any shape containing the converted units.
-    metadata: dict
-        The metadata with updated attributes.
+    dataset: Dataset
+        Dataset containing the converted units.
     """
 
-    R = R.copy()
-    metadata = metadata.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
 
     if metadata["transform"] is not None:
         if metadata["transform"] == "dB":
-            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+            dataset = transformation.dB_transform(dataset, inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
-            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            dataset = transformation.boxcox_transform(dataset, inverse=True)
 
         elif metadata["transform"] == "NQT":
-            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
+            dataset = transformation.NQ_transform(dataset, inverse=True)
 
         elif metadata["transform"] == "sqrt":
-            R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
+            dataset = transformation.sqrt_transform(dataset, inverse=True)
 
         else:
-            raise ValueError("Unknown transformation %s" % metadata["transform"])
+            raise ValueError(f'Unknown transformation {metadata["transform"]}')
 
-    if metadata["unit"] == "mm" and metadata["transform"] is None:
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
+
+    if metadata["units"] == "mm" and metadata["transform"] is None:
         pass
 
-    elif metadata["unit"] == "mm/h":
+    elif metadata["units"] == "mm/h":
         threshold = metadata["threshold"]  # convert the threshold, too
         zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
-        R = R / 60.0 * metadata["accutime"]
+        precip_data = precip_data / 60.0 * metadata["accutime"]
         threshold = threshold / 60.0 * metadata["accutime"]
         zerovalue = zerovalue / 60.0 * metadata["accutime"]
 
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
 
-    elif metadata["unit"] == "dBZ":
+    elif metadata["units"] == "dBZ":
         threshold = metadata["threshold"]  # convert the threshold, too
         zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
 
@@ -225,7 +223,7 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
             zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall–Palmer
         if zr_b is None:
             zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
-        R = (R / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
+        precip_data = (precip_data / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
         threshold = (threshold / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
         zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
 
@@ -236,27 +234,22 @@ def to_raindepth(R, metadata, zr_a=None, zr_b=None):
 
     else:
         raise ValueError(
-            "Cannot convert unit %s and transform %s to mm"
-            % (metadata["unit"], metadata["transform"])
+            f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to mm'
         )
 
-    metadata["unit"] = "mm"
+    dataset[precip_var].data[:] = precip_data
+    dataset = _change_unit(dataset, precip_var, "mm")
+    return dataset
 
-    return R, metadata
 
-
-def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
+def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
     """
     Convert to reflectivity [dBZ].
 
     Parameters
     ----------
-    R: array-like
-        Array of any shape to be (back-)transformed.
-    metadata: dict
-        Metadata dictionary containing the accutime, transform, unit, threshold
-        and zerovalue attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+    dataset: Dataset
+        Dataset to be (back-)transformed.
 
         Additionally, in case of conversion to/from reflectivity units, the
         zr_a and zr_b attributes are also required,
@@ -268,73 +261,81 @@ def to_reflectivity(R, metadata, zr_a=None, zr_b=None):
 
     Returns
     -------
-    R: array-like
-        Array of any shape containing the converted units.
-    metadata: dict
-        The metadata with updated attributes.
+    dataset: Dataset
+        Dataset containing the converted units.
     """
 
-    R = R.copy()
-    metadata = metadata.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
 
     if metadata["transform"] is not None:
         if metadata["transform"] == "dB":
-            R, metadata = transformation.dB_transform(R, metadata, inverse=True)
+            dataset = transformation.dB_transform(dataset, inverse=True)
 
         elif metadata["transform"] in ["BoxCox", "log"]:
-            R, metadata = transformation.boxcox_transform(R, metadata, inverse=True)
+            dataset = transformation.boxcox_transform(dataset, inverse=True)
 
         elif metadata["transform"] == "NQT":
-            R, metadata = transformation.NQ_transform(R, metadata, inverse=True)
+            dataset = transformation.NQ_transform(dataset, inverse=True)
 
         elif metadata["transform"] == "sqrt":
-            R, metadata = transformation.sqrt_transform(R, metadata, inverse=True)
+            dataset = transformation.sqrt_transform(dataset, inverse=True)
 
         else:
-            raise ValueError("Unknown transformation %s" % metadata["transform"])
+            raise ValueError(f'Unknown transformation {metadata["transform"]}')
 
-    if metadata["unit"] == "mm/h":
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
+
+    if metadata["units"] == "mm/h":
         # Z to R
         if zr_a is None:
             zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall–Palmer
         if zr_b is None:
             zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
 
-        R = zr_a * R**zr_b
+        precip_data = zr_a * precip_data**zr_b
         metadata["threshold"] = zr_a * metadata["threshold"] ** zr_b
         metadata["zerovalue"] = zr_a * metadata["zerovalue"] ** zr_b
         metadata["zr_a"] = zr_a
         metadata["zr_b"] = zr_b
 
         # Z to dBZ
-        R, metadata = transformation.dB_transform(R, metadata)
+        dataset = transformation.dB_transform(dataset)
 
-    elif metadata["unit"] == "mm":
+    elif metadata["units"] == "mm":
         # depth to rate
-        R, metadata = to_rainrate(R, metadata)
+        dataset = to_rainrate(dataset)
 
         # Z to R
         if zr_a is None:
             zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall-Palmer
         if zr_b is None:
             zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall-Palmer
-        R = zr_a * R**zr_b
+        precip_data = zr_a * precip_data**zr_b
         metadata["threshold"] = zr_a * metadata["threshold"] ** zr_b
         metadata["zerovalue"] = zr_a * metadata["zerovalue"] ** zr_b
         metadata["zr_a"] = zr_a
         metadata["zr_b"] = zr_b
 
         # Z to dBZ
-        R, metadata = transformation.dB_transform(R, metadata)
+        dataset = transformation.dB_transform(dataset)
 
-    elif metadata["unit"] == "dBZ":
+    elif metadata["units"] == "dBZ":
         # Z to dBZ
-        R, metadata = transformation.dB_transform(R, metadata)
+        dataset = transformation.dB_transform(dataset)
 
     else:
         raise ValueError(
-            "Cannot convert unit %s and transform %s to mm/h"
-            % (metadata["unit"], metadata["transform"])
+            f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to dBZ'
         )
-    metadata["unit"] = "dBZ"
-    return R, metadata
+
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
+
+    dataset[precip_var].data[:] = precip_data
+    dataset = _change_unit(dataset, precip_var, "dBZ")
+    return dataset
