@@ -635,115 +635,288 @@ test_data_to_reflectivity = [
                     np.array([23.01029996]),
                     {
                         "units": "dBZ",
-                        "transform": None,
+                        "transform": "dB",
                         "accutime": 5,
                         "threshold": 23.01029996,
-                        "zerovalue": 23.01029996,
+                        "zerovalue": 18.01029996,
                     },
                 )
             },
             attrs={"precip_var": "reflectivity"},
         ),
     ),
-    # (
-    #     np.array([1]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": None,
-    #         "unit": "mm/h",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([23.01029996]),
-    # ),
-    # (
-    #     np.array([1]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": None,
-    #         "unit": "mm",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([40.27719989]),
-    # ),
-    # (
-    #     np.array([1]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": "dB",
-    #         "unit": "mm/h",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([24.61029996]),
-    # ),
-    # (
-    #     np.array([1]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": "dB",
-    #         "unit": "mm",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([41.87719989]),
-    # ),
-    # (
-    #     np.array([1]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": "dB",
-    #         "unit": "dBZ",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([1]),
-    # ),
-    # (
-    #     np.array([1]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": "log",
-    #         "unit": "mm/h",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([29.95901167]),
-    # ),
-    # (
-    #     np.array([1.0]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": "log",
-    #         "unit": "mm",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([47.2259116]),
-    # ),
-    # (
-    #     np.array([1]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": "sqrt",
-    #         "unit": "mm/h",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([23.01029996]),
-    # ),
-    # (
-    #     np.array([1.0]),
-    #     {
-    #         "accutime": 5,
-    #         "transform": "sqrt",
-    #         "unit": "mm",
-    #         "threshold": 0,
-    #         "zerovalue": 0,
-    #     },
-    #     np.array([40.27719989]),
-    # ),
+    (
+        xr.Dataset(
+            data_vars={
+                "precip_accum": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": 1.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_accum"},
+        ),
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([40.27719989]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 40.27719989,
+                        "zerovalue": 35.27719989,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+    ),
+    (
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": 1.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([24.61029996]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 24.61029996,
+                        "zerovalue": 19.61029996,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+    ),
+    (
+        xr.Dataset(
+            data_vars={
+                "precip_accum": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": 1.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_accum"},
+        ),
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([41.87719989]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 41.87719989,
+                        "zerovalue": 36.87719989,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+    ),
+    (
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": 1.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": -4.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+    ),
+    (
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "log",
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": 1.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([29.95901167]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 29.95901167,
+                        "zerovalue": 24.95901167,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+    ),
+    (
+        xr.Dataset(
+            data_vars={
+                "precip_accum": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm",
+                        "transform": "log",
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": 1.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_accum"},
+        ),
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([47.2259116]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 47.2259116,
+                        "zerovalue": 42.2259116,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+    ),
+    (
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "sqrt",
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": 1.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([23.01029996]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 23.01029996,
+                        "zerovalue": 18.01029996,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+    ),
+    (
+        xr.Dataset(
+            data_vars={
+                "precip_accum": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm",
+                        "transform": "sqrt",
+                        "accutime": 5,
+                        "threshold": 1.0,
+                        "zerovalue": 1.0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_accum"},
+        ),
+        xr.Dataset(
+            data_vars={
+                "reflectivity": (
+                    ["x"],
+                    np.array([40.27719989]),
+                    {
+                        "units": "dBZ",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 40.27719989,
+                        "zerovalue": 35.27719989,
+                    },
+                )
+            },
+            attrs={"precip_var": "reflectivity"},
+        ),
+    ),
 ]
 
 
