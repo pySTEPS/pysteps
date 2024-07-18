@@ -584,9 +584,14 @@ def compute_smooth_dilated_mask(
     max_padding_size_in_px : int
         The maximum size of the padding in pixels. Default is 100.
     gaussian_kernel_size : int, optional
-        Size of the Gaussian kernel to use for blurring. This ensures that the nan-fields are large enough to start the smoothing. Without it, the method will also be applied to local nan-values in the radar domain. Default is 9, which is generally a recommended number to work with.
+        Size of the Gaussian kernel to use for blurring, this should be an uneven number. This option ensures
+        that the nan-fields are large enough to start the smoothing. Without it, the method will also be applied
+        to local nan-values in the radar domain. Default is 9, which is generally a recommended number to work
+        with.
     inverted : bool, optional
-        Typically, the smoothed mask works from the outside of the radar domain inward, using the max_padding_size_in_px. If set to True, it works from the edge of the radar domain outward (generally not recommended). Default is False.
+        Typically, the smoothed mask works from the outside of the radar domain inward, using the
+        max_padding_size_in_px. If set to True, it works from the edge of the radar domain outward
+        (generally not recommended). Default is False.
     non_linear_growth_kernel_sizes : bool, optional
         If True, use non-linear growth for kernel sizes. Default is False.
 
@@ -603,6 +608,9 @@ def compute_smooth_dilated_mask(
 
     if max_padding_size_in_px < 0:
         raise ValueError("max_padding_size_in_px must be greater than or equal to 0.")
+
+    # Check if gaussian_kernel_size is an uneven number
+    assert gaussian_kernel_size % 2
 
     # Convert the original mask to uint8 numpy array and invert if needed
     array_2d = np.array(original_mask, dtype=np.uint8)
