@@ -90,6 +90,7 @@ def forecast(
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
+    smooth_radar_mask_range=0,
     callback=None,
     return_output=True,
     seed=None,
@@ -210,6 +211,13 @@ def forecast(
       'obs' = apply precip_thr to the most recently observed precipitation intensity
       field, 'incremental' = iteratively buffer the mask with a certain rate
       (currently it is 1 km/min), None=no masking.
+    smooth_radar_mask_range: int, Default is 0.
+      Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+      blend near the edge of the radar domain (radar mask), where the radar data is either
+      not present anymore or is not reliable. If set to 0 (grid cells), this generates a normal forecast without smoothing. To create a smooth mask, this range
+      should be a positive value, representing a buffer band of a number of pixels
+      by which the mask is cropped and smoothed. The smooth radar mask removes
+      the hard edges between NWP and radar in the final blended product. Typically, a value between 50 and 100 km can be used. 80 km generally gives good results.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -1451,10 +1459,49 @@ def forecast(
                         # forecast outside the radar domain. Therefore, fill these
                         # areas with the "..._mod_only" blended forecasts, consisting
                         # of the NWP and noise components.
+
                         nan_indices = np.isnan(R_f_new)
-                        R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
-                        nan_indices = np.isnan(R_pm_blended)
-                        R_pm_blended[nan_indices] = R_pm_blended_mod_only[nan_indices]
+                        if smooth_radar_mask_range != 0:
+                            # Compute the smooth dilated mask
+                            new_mask = blending.utils.compute_smooth_dilated_mask(
+                                nan_indices,
+                                max_padding_size_in_px=smooth_radar_mask_range,
+                            )
+
+                            # Ensure mask values are between 0 and 1
+                            mask_model = np.clip(new_mask, 0, 1)
+                            mask_radar = np.clip(1 - new_mask, 0, 1)
+
+                            # Handle NaNs in R_f_new and R_f_new_mod_only by setting NaNs to 0 in the blending step
+                            R_f_new_mod_only_no_nan = np.nan_to_num(
+                                R_f_new_mod_only, nan=0
+                            )
+                            R_f_new_no_nan = np.nan_to_num(R_f_new, nan=0)
+
+                            # Perform the blending of radar and model inside the radar domain using a weighted combination
+                            R_f_new = np.nansum(
+                                [
+                                    mask_model * R_f_new_mod_only_no_nan,
+                                    mask_radar * R_f_new_no_nan,
+                                ],
+                                axis=0,
+                            )
+
+                            nan_indices = np.isnan(R_pm_blended)
+                            R_pm_blended = np.nansum(
+                                [
+                                    R_pm_blended * mask_radar,
+                                    R_pm_blended_mod_only * mask_model,
+                                ],
+                                axis=0,
+                            )
+                        else:
+                            R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
+                            nan_indices = np.isnan(R_pm_blended)
+                            R_pm_blended[nan_indices] = R_pm_blended_mod_only[
+                                nan_indices
+                            ]
+
                         # Finally, fill the remaining nan values, if present, with
                         # the minimum value in the forecast
                         nan_indices = np.isnan(R_f_new)
