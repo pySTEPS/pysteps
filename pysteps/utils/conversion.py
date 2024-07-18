@@ -302,12 +302,13 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
         metadata["zr_a"] = zr_a
         metadata["zr_b"] = zr_b
 
-        # Z to dBZ
-        dataset = transformation.dB_transform(dataset)
-
     elif metadata["units"] == "mm":
         # depth to rate
         dataset = to_rainrate(dataset)
+
+        precip_var = dataset.attrs["precip_var"]
+        metadata = dataset[precip_var].attrs
+        precip_data = dataset[precip_var].values
 
         # Z to R
         if zr_a is None:
@@ -320,17 +321,17 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
         metadata["zr_a"] = zr_a
         metadata["zr_b"] = zr_b
 
-        # Z to dBZ
-        dataset = transformation.dB_transform(dataset)
-
     elif metadata["units"] == "dBZ":
-        # Z to dBZ
-        dataset = transformation.dB_transform(dataset)
+        pass
 
     else:
         raise ValueError(
             f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to dBZ'
         )
+
+    dataset[precip_var].data[:] = precip_data
+    # Z to dBZ
+    dataset = transformation.dB_transform(dataset)
 
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
