@@ -27,27 +27,25 @@ _reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
 
 def assert_dataset_equivalent(dataset1: xr.Dataset, dataset2: xr.Dataset) -> None:
     xr.testing.assert_allclose(dataset1, dataset2)
+    precip_var = dataset1.attrs["precip_var"]
+    assert precip_var == dataset2.attrs["precip_var"]
     assert np.isclose(
-        dataset1["precip_intensity"].attrs["threshold"],
-        dataset2["precip_intensity"].attrs["threshold"],
+        dataset1[precip_var].attrs["threshold"],
+        dataset2[precip_var].attrs["threshold"],
+    )
+    assert np.isclose(
+        dataset1[precip_var].attrs["zerovalue"],
+        dataset2[precip_var].attrs["zerovalue"],
+    )
+    assert dataset1[precip_var].attrs["units"] == dataset2[precip_var].attrs["units"]
+    assert (
+        dataset1[precip_var].attrs["transform"]
+        == dataset2[precip_var].attrs["transform"]
+        or dataset1[precip_var].attrs["transform"] is None
+        and dataset2[precip_var].attrs["transform"] is None
     )
     assert (
-        dataset1["precip_intensity"].attrs["units"]
-        == dataset2["precip_intensity"].attrs["units"]
-    )
-    assert (
-        dataset1["precip_intensity"].attrs["transform"]
-        == dataset2["precip_intensity"].attrs["transform"]
-        or dataset1["precip_intensity"].attrs["transform"] is None
-        and dataset2["precip_intensity"].attrs["transform"] is None
-    )
-    assert (
-        dataset1["precip_intensity"].attrs["accutime"]
-        == dataset2["precip_intensity"].attrs["accutime"]
-    )
-    assert (
-        dataset1["precip_intensity"].attrs["zerovalue"]
-        == dataset2["precip_intensity"].attrs["zerovalue"]
+        dataset1[precip_var].attrs["accutime"] == dataset2[precip_var].attrs["accutime"]
     )
 
 
