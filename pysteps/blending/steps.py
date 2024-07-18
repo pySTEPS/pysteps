@@ -153,8 +153,8 @@ def forecast(
       equal to or larger than the number of NWP ensemble members / number of
       NWP models.
     n_cascade_levels: int, optional
-      The number of cascade levels to use. Default set to 8 due to default
-      climatological skill values on 8 levels.
+      The number of cascade levels to use. Defaults to 6,
+      see issue #385 on GitHub.
     blend_nwp_members: bool
       Check if NWP models/members should be used individually, or if all of
       them are blended together per nowcast ensemble member. Standard set to

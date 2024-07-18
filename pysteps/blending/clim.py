@@ -31,7 +31,7 @@ def get_default_skill(n_cascade_levels=6, n_models=1):
     Parameters
     ----------
     n_cascade_levels: int, optional
-      Number of cascade levels. Defaults to 8.
+      Number of cascade levels. Defaults to 6, see issue #385 on GitHub.
     n_models: int, optional
       Number of NWP models. Defaults to 1.
 
@@ -168,7 +168,7 @@ def calc_clim_skill(
     Parameters
     ----------
     n_cascade_levels: int, optional
-      Number of cascade levels.
+      Number of cascade levels. Defaults to 6, see issue #385 on GitHub.
     outdir_path: string
       Path to folder where the historical skill are stored. Defaults to
       path_workdir from rcparams.

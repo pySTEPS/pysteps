@@ -87,7 +87,8 @@ def forecast(
     n_ens_members: int, optional
         The number of ensemble members to generate.
     n_cascade_levels: int, optional
-        The number of cascade levels to use.
+        The number of cascade levels to use. Defaults to 6, see issue #385
+         on GitHub.
     precip_thr: float, optional
         Specifies the threshold value for minimum observable precipitation
         intensity. Required if mask_method is not None or conditional is True.
