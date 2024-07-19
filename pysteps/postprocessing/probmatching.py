@@ -273,7 +273,8 @@ def resample_distributions(extrapolation_cascade, model_cascade, weight_extrapol
         One of the two arrays from which the distribution should be samples (e.g. the NWP (model)
         cascade).
     weight_extrapolation: float
-        The weight that extrapolation_cascade should get (as a value between 0 and 1).
+        The weight that extrapolation_cascade should get (as a value between 0 and 1). This is
+        typically based on cascade level 2 (as is done for all the probability matching steps in `blending/steps.py`)
 
     Returns
     ----------
