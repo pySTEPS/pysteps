@@ -325,6 +325,7 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
     dataset = dataset.copy(deep=True)
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
 
     x_len = len(dataset.x.values)
     y_len = len(dataset.y.values)
@@ -363,7 +364,7 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
                 idx_buffer = int((len(orig_domain[0]) - y_len) / 2.0)
             else:
                 return dataset
-            return _pad_domain(dataset, dim_to_pad, idx_buffer, metadata["zerovalue"])
+            return _pad_domain(dataset, dim_to_pad, idx_buffer, np.nanmin(precip_data))
 
         raise ValueError(f"Unknown square method: {method}")
 
@@ -382,7 +383,7 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
                 idx_buffer = int((y_len - x_len) / 2.0)
             else:
                 return dataset
-            return _pad_domain(dataset, dim_to_pad, idx_buffer, metadata["zerovalue"])
+            return _pad_domain(dataset, dim_to_pad, idx_buffer, np.nanmin(precip_data))
 
         if method == "crop":
             if x_len > y_len:
