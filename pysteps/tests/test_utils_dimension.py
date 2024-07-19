@@ -137,7 +137,7 @@ def test_aggregate_fields_errors():
 # aggregate_fields_time
 now = dt.datetime.now()
 timestamps = [now + dt.timedelta(minutes=t) for t in range(10)]
-test_data = [
+test_data_time = [
     (
         np.ones((2, 2)),
         {"unit": "mm/h", "timestamps": timestamps},
@@ -156,7 +156,7 @@ test_data = [
 
 
 @pytest.mark.parametrize(
-    "data, metadata, time_window_min, ignore_nan, expected", test_data
+    "data, metadata, time_window_min, ignore_nan, expected", test_data_time
 )
 def test_aggregate_fields_time(data, metadata, time_window_min, ignore_nan, expected):
     """Test the aggregate_fields_time."""
@@ -279,7 +279,7 @@ def test_clip_domain(R, metadata, extent, expected):
 
 # square_domain
 R = np.zeros((4, 2))
-test_data = [
+test_data_square = [
     # square by padding
     (
         R,
@@ -306,7 +306,7 @@ test_data = [
             "y2": 4,
             "xpixelsize": 1,
             "ypixelsize": 1,
-            "orig_domain": (4, 2),
+            "orig_domain": (np.array([0.5, 1.5, 2.5, 3.5]), np.array([0.5, 1.5])),
             "square_method": "pad",
         },
         "pad",
@@ -323,7 +323,7 @@ test_data = [
             "y2": 3,
             "xpixelsize": 1,
             "ypixelsize": 1,
-            "orig_domain": (4, 2),
+            "orig_domain": (np.array([0.5, 1.5, 2.5, 3.5]), np.array([0.5, 1.5])),
             "square_method": "crop",
         },
         "crop",
@@ -333,9 +333,15 @@ test_data = [
 ]
 
 
-@pytest.mark.parametrize("R, metadata, method, inverse, expected", test_data)
-def test_square_domain(R, metadata, method, inverse, expected):
+@pytest.mark.parametrize("data, metadata, method, inverse, expected", test_data_square)
+def test_square_domain(data, metadata, method, inverse, expected):
     """Test the square_domain."""
+    dataset = convert_to_xarray_dataset(data, None, {**fillvalues_metadata, **metadata})
+    dataset["precip_intensity"].attrs = {
+        **dataset["precip_intensity"].attrs,
+        **metadata,
+    }
     assert_array_equal(
-        dimension.square_domain(R, metadata, method, inverse)[0], expected
+        dimension.square_domain(dataset, method, inverse)["precip_intensity"].values,
+        expected,
     )

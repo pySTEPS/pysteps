@@ -12,6 +12,7 @@ Module with data converter functions.
 """
 
 import numpy as np
+import numpy.typing as npt
 import pyproj
 import xarray as xr
 
@@ -67,6 +68,15 @@ def _convert_proj4_to_grid_mapping(proj4str):
     return grid_mapping_var_name, grid_mapping_name, params
 
 
+def compute_lat_lon(
+    x_r: npt.ArrayLike, y_r: npt.ArrayLike, projection: str
+) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+    x_2d, y_2d = np.meshgrid(x_r, y_r)
+    pr = pyproj.Proj(projection)
+    lon, lat = pr(x_2d.flatten(), y_2d.flatten(), inverse=True)
+    return lat.reshape(x_2d.shape), lon.reshape(x_2d.shape)
+
+
 def convert_to_xarray_dataset(
     precip: np.ndarray,
     quality: np.ndarray | None,
@@ -105,9 +115,7 @@ def convert_to_xarray_dataset(
     if metadata["yorigin"] == "upper":
         y_r = np.flip(y_r)
 
-    x_2d, y_2d = np.meshgrid(x_r, y_r)
-    pr = pyproj.Proj(metadata["projection"])
-    lon, lat = pr(x_2d.flatten(), y_2d.flatten(), inverse=True)
+    lat, lon = compute_lat_lon(x_r, y_r, metadata["projection"])
 
     (
         grid_mapping_var_name,
@@ -166,7 +174,7 @@ def convert_to_xarray_dataset(
         ),
         "lon": (
             ["y", "x"],
-            lon.reshape(precip.shape),
+            lon,
             {
                 "long_name": "longitude coordinate",
                 "standard_name": "longitude",
@@ -176,7 +184,7 @@ def convert_to_xarray_dataset(
         ),
         "lat": (
             ["y", "x"],
-            lat.reshape(precip.shape),
+            lat,
             {
                 "long_name": "latitude coordinate",
                 "standard_name": "latitude",
