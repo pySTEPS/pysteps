@@ -17,6 +17,8 @@ Functions to manipulate array dimensions.
 import numpy as np
 import xarray as xr
 
+from pysteps.converters import compute_lat_lon
+
 _aggregation_methods = dict(
     sum=np.sum, mean=np.mean, nanmean=np.nanmean, nansum=np.nansum
 )
@@ -272,19 +274,37 @@ def clip_domain(dataset: xr.Dataset, extent=None):
     return dataset.sel(x=slice(extent[0], extent[1]), y=slice(extent[2], extent[3]))
 
 
-def square_domain(R, metadata, method="pad", inverse=False):
+def _pad_domain(
+    dataset: xr.Dataset, dim_to_pad: str, idx_buffer: int, zerovalue: float
+) -> xr.Dataset:
+    # assumes that frames are evenly spaced
+    delta = dataset[dim_to_pad].values[1] - dataset[dim_to_pad].values[0]
+    end_values = (
+        dataset[dim_to_pad].values[0] - delta * idx_buffer,
+        dataset[dim_to_pad].values[-1] + delta * idx_buffer,
+    )
+
+    dataset_ref = dataset
+    dataset = dataset_ref.pad({dim_to_pad: idx_buffer}, constant_values=zerovalue)
+    dataset[dim_to_pad] = dataset_ref[dim_to_pad].pad(
+        {dim_to_pad: idx_buffer},
+        mode="linear_ramp",
+        end_values={dim_to_pad: end_values},
+    )
+    dataset.lat.data[:], dataset.lon.data[:] = compute_lat_lon(
+        dataset.x.values, dataset.y.values, dataset.attrs["projection"]
+    )
+    return dataset
+
+
+def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
     """
     Either pad or crop a field to obtain a square domain.
 
     Parameters
     ----------
-    R: array-like
-        Array of shape (m,n) or (t,m,n) containing the input fields.
-    metadata: dict
-        Metadata dictionary containing the x1, x2, y1, y2,
-        xpixelsize, ypixelsize,
-        attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+    dataset: Dataset
+        Dataset containing the input fields.
     method: {'pad', 'crop'}, optional
         Either pad or crop.
         If pad, an equal number of zeros is added to both ends of its shortest
@@ -298,123 +318,205 @@ def square_domain(R, metadata, method="pad", inverse=False):
 
     Returns
     -------
-    R: array-like
-        the reshape dataset
-    metadata: dict
-        the metadata with updated attributes.
+    dataset: Dataset
+        the reshaped dataset
     """
 
-    R = R.copy()
-    R_shape = np.array(R.shape)
-    metadata = metadata.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
 
-    if not inverse:
-        if len(R.shape) < 2:
-            raise ValueError("The number of dimension must be > 1")
-        if len(R.shape) == 2:
-            R = R[None, None, :]
-        if len(R.shape) == 3:
-            R = R[None, :]
-        if len(R.shape) > 4:
-            raise ValueError("The number of dimension must be <= 4")
+    x_len = len(dataset.x.values)
+    y_len = len(dataset.y.values)
 
-        if R.shape[2] == R.shape[3]:
-            return R.squeeze()
-
-        orig_dim = R.shape
-        orig_dim_n = orig_dim[0]
-        orig_dim_t = orig_dim[1]
-        orig_dim_y = orig_dim[2]
-        orig_dim_x = orig_dim[3]
+    if inverse:
+        if "orig_domain" not in metadata or "square_method" not in metadata:
+            raise ValueError("Attempting to inverse a non squared dataset")
+        method = metadata.pop("square_method")
+        orig_domain = metadata.pop("orig_domain")
 
         if method == "pad":
-            new_dim = np.max(orig_dim[2:])
-            R_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim)) * R.min()
+            if x_len > len(orig_domain[1]):
+                extent = (
+                    orig_domain[1].min(),
+                    orig_domain[1].max(),
+                    dataset.y.values.min(),
+                    dataset.y.values.max(),
+                )
+            elif y_len > len(orig_domain[0]):
+                extent = (
+                    dataset.x.values.min(),
+                    dataset.x.values.max(),
+                    orig_domain[0].min(),
+                    orig_domain[0].max(),
+                )
+            else:
+                return dataset
+            return clip_domain(dataset, extent)
 
-            if orig_dim_x < new_dim:
-                idx_buffer = int((new_dim - orig_dim_x) / 2.0)
-                R_[:, :, :, idx_buffer : (idx_buffer + orig_dim_x)] = R
-                metadata["x1"] -= idx_buffer * metadata["xpixelsize"]
-                metadata["x2"] += idx_buffer * metadata["xpixelsize"]
+        if method == "crop":
+            if x_len < len(orig_domain[1]):
+                dim_to_pad = "x"
+                idx_buffer = int((len(orig_domain[1]) - x_len) / 2.0)
+            elif y_len < len(orig_domain[0]):
+                dim_to_pad = "y"
+                idx_buffer = int((len(orig_domain[0]) - y_len) / 2.0)
+            else:
+                return dataset
+            return _pad_domain(dataset, dim_to_pad, idx_buffer, metadata["zerovalue"])
 
-            elif orig_dim_y < new_dim:
-                idx_buffer = int((new_dim - orig_dim_y) / 2.0)
-                R_[:, :, idx_buffer : (idx_buffer + orig_dim_y), :] = R
-                metadata["y1"] -= idx_buffer * metadata["ypixelsize"]
-                metadata["y2"] += idx_buffer * metadata["ypixelsize"]
+        raise ValueError(f"Unknown square method: {method}")
 
-        elif method == "crop":
-            new_dim = np.min(orig_dim[2:])
-            R_ = np.zeros((orig_dim_n, orig_dim_t, new_dim, new_dim))
-
-            if orig_dim_x > new_dim:
-                idx_buffer = int((orig_dim_x - new_dim) / 2.0)
-                R_ = R[:, :, :, idx_buffer : (idx_buffer + new_dim)]
-                metadata["x1"] += idx_buffer * metadata["xpixelsize"]
-                metadata["x2"] -= idx_buffer * metadata["xpixelsize"]
-
-            elif orig_dim_y > new_dim:
-                idx_buffer = int((orig_dim_y - new_dim) / 2.0)
-                R_ = R[:, :, idx_buffer : (idx_buffer + new_dim), :]
-                metadata["y1"] += idx_buffer * metadata["ypixelsize"]
-                metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
-
-        else:
-            raise ValueError("Unknown type")
-
-        metadata["orig_domain"] = (orig_dim_y, orig_dim_x)
+    else:
+        if "orig_domain" in metadata and "square_method" in metadata:
+            raise ValueError("Attempting to square an already squared dataset")
+        metadata["orig_domain"] = (dataset.y.values, dataset.x.values)
         metadata["square_method"] = method
 
-        R_shape[-2] = R_.shape[-2]
-        R_shape[-1] = R_.shape[-1]
-
-        return R_.reshape(R_shape), metadata
-
-    elif inverse:
-        if len(R.shape) < 2:
-            raise ValueError("The number of dimension must be > 2")
-        if len(R.shape) == 2:
-            R = R[None, None, :]
-        if len(R.shape) == 3:
-            R = R[None, :]
-        if len(R.shape) > 4:
-            raise ValueError("The number of dimension must be <= 4")
-
-        method = metadata.pop("square_method")
-        shape = metadata.pop("orig_domain")
-
-        if R.shape[2] == shape[0] and R.shape[3] == shape[1]:
-            return R.squeeze(), metadata
-
-        R_ = np.zeros((R.shape[0], R.shape[1], shape[0], shape[1]))
-
         if method == "pad":
-            if R.shape[2] == shape[0]:
-                idx_buffer = int((R.shape[3] - shape[1]) / 2.0)
-                R_ = R[:, :, :, idx_buffer : (idx_buffer + shape[1])]
-                metadata["x1"] += idx_buffer * metadata["xpixelsize"]
-                metadata["x2"] -= idx_buffer * metadata["xpixelsize"]
+            if x_len > y_len:
+                dim_to_pad = "y"
+                idx_buffer = int((x_len - y_len) / 2.0)
+            elif y_len > x_len:
+                dim_to_pad = "x"
+                idx_buffer = int((y_len - x_len) / 2.0)
+            else:
+                return dataset
+            return _pad_domain(dataset, dim_to_pad, idx_buffer, metadata["zerovalue"])
 
-            elif R.shape[3] == shape[1]:
-                idx_buffer = int((R.shape[2] - shape[0]) / 2.0)
-                R_ = R[:, :, idx_buffer : (idx_buffer + shape[0]), :]
-                metadata["y1"] += idx_buffer * metadata["ypixelsize"]
-                metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
+        if method == "crop":
+            if x_len > y_len:
+                idx_buffer = int((x_len - y_len) / 2.0)
+                extent = (
+                    dataset.x.values[idx_buffer],
+                    dataset.x.values[-idx_buffer - 1],
+                    dataset.y.values.min(),
+                    dataset.y.values.max(),
+                )
+            elif y_len > x_len:
+                idx_buffer = int((y_len - x_len) / 2.0)
+                extent = (
+                    dataset.x.values.min(),
+                    dataset.x.values.max(),
+                    dataset.y.values[idx_buffer],
+                    dataset.y.values[-idx_buffer - 1],
+                )
+            else:
+                return dataset
+            return clip_domain(dataset, extent)
 
-        elif method == "crop":
-            if R.shape[2] == shape[0]:
-                idx_buffer = int((shape[1] - R.shape[3]) / 2.0)
-                R_[:, :, :, idx_buffer : (idx_buffer + R.shape[3])] = R
-                metadata["x1"] -= idx_buffer * metadata["xpixelsize"]
-                metadata["x2"] += idx_buffer * metadata["xpixelsize"]
+        raise ValueError(f"Unknown square method: {method}")
+    # R = R.copy()
+    # R_shape = np.array(R.shape)
+    # metadata = metadata.copy()
 
-            elif R.shape[3] == shape[1]:
-                idx_buffer = int((shape[0] - R.shape[2]) / 2.0)
-                R_[:, :, idx_buffer : (idx_buffer + R.shape[2]), :] = R
-                metadata["y1"] -= idx_buffer * metadata["ypixelsize"]
-                metadata["y2"] += idx_buffer * metadata["ypixelsize"]
+    # if not inverse:
+    #     if len(R.shape) < 2:
+    #         raise ValueError("The number of dimension must be > 1")
+    #     if len(R.shape) == 2:
+    #         R = R[None, None, :]
+    #     if len(R.shape) == 3:
+    #         R = R[None, :]
+    #     if len(R.shape) > 4:
+    #         raise ValueError("The number of dimension must be <= 4")
 
-        R_shape[-2] = R_.shape[-2]
-        R_shape[-1] = R_.shape[-1]
+    #     if R.shape[2] == R.shape[3]:
+    #         return R.squeeze()
 
-        return R_.reshape(R_shape), metadata
+    #     orig_dim = R.shape
+    #     orig_dim_n = orig_dim[0]
+    #     orig_dim_t = orig_dim[1]
+    #     orig_dim_y = orig_dim[2]
+    #     orig_dim_x = orig_dim[3]
+
+    #     if method == "pad":
+    #         new_dim = np.max(orig_dim[2:])
+    #         R_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim)) * R.min()
+
+    #         if orig_dim_x < new_dim:
+    #             idx_buffer = int((new_dim - orig_dim_x) / 2.0)
+    #             R_[:, :, :, idx_buffer : (idx_buffer + orig_dim_x)] = R
+    #             metadata["x1"] -= idx_buffer * metadata["xpixelsize"]
+    #             metadata["x2"] += idx_buffer * metadata["xpixelsize"]
+
+    #         elif orig_dim_y < new_dim:
+    #             idx_buffer = int((new_dim - orig_dim_y) / 2.0)
+    #             R_[:, :, idx_buffer : (idx_buffer + orig_dim_y), :] = R
+    #             metadata["y1"] -= idx_buffer * metadata["ypixelsize"]
+    #             metadata["y2"] += idx_buffer * metadata["ypixelsize"]
+
+    #     elif method == "crop":
+    #         new_dim = np.min(orig_dim[2:])
+    #         R_ = np.zeros((orig_dim_n, orig_dim_t, new_dim, new_dim))
+
+    #         if orig_dim_x > new_dim:
+    #             idx_buffer = int((orig_dim_x - new_dim) / 2.0)
+    #             R_ = R[:, :, :, idx_buffer : (idx_buffer + new_dim)]
+    #             metadata["x1"] += idx_buffer * metadata["xpixelsize"]
+    #             metadata["x2"] -= idx_buffer * metadata["xpixelsize"]
+
+    #         elif orig_dim_y > new_dim:
+    #             idx_buffer = int((orig_dim_y - new_dim) / 2.0)
+    #             R_ = R[:, :, idx_buffer : (idx_buffer + new_dim), :]
+    #             metadata["y1"] += idx_buffer * metadata["ypixelsize"]
+    #             metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
+
+    #     else:
+    #         raise ValueError("Unknown type")
+
+    #     metadata["orig_domain"] = (orig_dim_y, orig_dim_x)
+    #     metadata["square_method"] = method
+
+    #     R_shape[-2] = R_.shape[-2]
+    #     R_shape[-1] = R_.shape[-1]
+
+    #     return R_.reshape(R_shape), metadata
+
+    # elif inverse:
+    #     if len(R.shape) < 2:
+    #         raise ValueError("The number of dimension must be > 2")
+    #     if len(R.shape) == 2:
+    #         R = R[None, None, :]
+    #     if len(R.shape) == 3:
+    #         R = R[None, :]
+    #     if len(R.shape) > 4:
+    #         raise ValueError("The number of dimension must be <= 4")
+
+    #     method = metadata.pop("square_method")
+    #     shape = metadata.pop("orig_domain")
+
+    #     if R.shape[2] == shape[0] and R.shape[3] == shape[1]:
+    #         return R.squeeze(), metadata
+
+    #     R_ = np.zeros((R.shape[0], R.shape[1], shape[0], shape[1]))
+
+    #     if method == "pad":
+    #         if R.shape[2] == shape[0]:
+    #             idx_buffer = int((R.shape[3] - shape[1]) / 2.0)
+    #             R_ = R[:, :, :, idx_buffer : (idx_buffer + shape[1])]
+    #             metadata["x1"] += idx_buffer * metadata["xpixelsize"]
+    #             metadata["x2"] -= idx_buffer * metadata["xpixelsize"]
+
+    #         elif R.shape[3] == shape[1]:
+    #             idx_buffer = int((R.shape[2] - shape[0]) / 2.0)
+    #             R_ = R[:, :, idx_buffer : (idx_buffer + shape[0]), :]
+    #             metadata["y1"] += idx_buffer * metadata["ypixelsize"]
+    #             metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
+
+    #     elif method == "crop":
+    #         if R.shape[2] == shape[0]:
+    #             idx_buffer = int((shape[1] - R.shape[3]) / 2.0)
+    #             R_[:, :, :, idx_buffer : (idx_buffer + R.shape[3])] = R
+    #             metadata["x1"] -= idx_buffer * metadata["xpixelsize"]
+    #             metadata["x2"] += idx_buffer * metadata["xpixelsize"]
+
+    #         elif R.shape[3] == shape[1]:
+    #             idx_buffer = int((shape[0] - R.shape[2]) / 2.0)
+    #             R_[:, :, idx_buffer : (idx_buffer + R.shape[2]), :] = R
+    #             metadata["y1"] -= idx_buffer * metadata["ypixelsize"]
+    #             metadata["y2"] += idx_buffer * metadata["ypixelsize"]
+
+    #     R_shape[-2] = R_.shape[-2]
+    #     R_shape[-1] = R_.shape[-1]
+
+    #     return R_.reshape(R_shape), metadata
