@@ -130,7 +130,7 @@ def test_steps_callback(tmp_path):
         return io.export_forecast_dataset(array, exporter)
 
     precip_output = nowcasts.get_method("steps")(
-        precip_input,
+        precip_data,
         motion_field,
         timesteps=n_timesteps,
         precip_thr=metadata["threshold"],
