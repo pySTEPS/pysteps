@@ -280,6 +280,12 @@ def resample_distributions(a, b, weight):
     csort: array_like
         The output distribution as a drawn binomial distribution from the input arrays a and b.
     """
+    # First make sure there are no nans in the input data
+    nan_indices = np.isnan(a)
+    a[nan_indices] = np.nanmin(a)
+    nan_indices = np.isnan(b)
+    b[nan_indices] = np.nanmin(b)
+
     # Prepare the input distributions
     assert a.size == b.size
     asort = np.sort(a.flatten())[::-1]
