@@ -260,42 +260,42 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     return shift, scale, R.reshape(shape)
 
 
-def resample_distributions(extrapolation_cascade, model_cascade, weight_extrapolation):
+def resample_distributions(first_array, second_array, probability_first_array):
     """
     Merges two distributions (e.g. from the extrapolation nowcast and NWP in the blending module)
     to effectively combine two distributions for the probability matching without losing extremes.
     Parameters
     ----------
-    extrapolation_cascade: array_like
+    first_array: array_like
         One of the two arrays from which the distribution should be samples (e.g. the extrapolation
         cascade).
-    model_cascade: array_like
+    second_array: array_like
         One of the two arrays from which the distribution should be samples (e.g. the NWP (model)
         cascade).
-    weight_extrapolation: float
-        The weight that extrapolation_cascade should get (as a value between 0 and 1). This is
+    probability_first_array: float
+        The weight that first_array should get (as a value between 0 and 1). This is
         typically based on cascade level 2 (as is done for all the probability matching steps in `blending/steps.py`)
 
     Returns
     ----------
     csort: array_like
-        The output distribution as extrapolation_cascade drawn binomial distribution from the input arrays extrapolation_cascade and model_cascade.
+        The output distribution as first_array drawn binomial distribution from the input arrays first_array and second_array.
     """
     # First make sure there are no nans in the input data
     # Where the extrapolation cascade is nan (outside the radar domain), we fill it up with the model data
-    nan_indices = np.isnan(model_cascade)
-    model_cascade[nan_indices] = np.nanmin(model_cascade)
-    nan_indices = np.isnan(extrapolation_cascade)
-    extrapolation_cascade[nan_indices] = model_cascade[nan_indices]
+    nan_indices = np.isnan(second_array)
+    second_array[nan_indices] = np.nanmin(second_array)
+    nan_indices = np.isnan(first_array)
+    first_array[nan_indices] = second_array[nan_indices]
 
     # Prepare the input distributions
-    assert extrapolation_cascade.size == model_cascade.size
-    asort = np.sort(extrapolation_cascade.flatten())[::-1]
-    bsort = np.sort(model_cascade.flatten())[::-1]
+    assert first_array.size == second_array.size
+    asort = np.sort(first_array.flatten())[::-1]
+    bsort = np.sort(second_array.flatten())[::-1]
     n = asort.shape[0]
 
     # Resample the distributions
-    idxsamples = np.random.binomial(1, weight_extrapolation, n).astype(bool)
+    idxsamples = np.random.binomial(1, probability_first_array, n).astype(bool)
     csort = bsort.copy()
     csort[idxsamples] = asort[idxsamples]
     csort = np.sort(csort)[::-1]

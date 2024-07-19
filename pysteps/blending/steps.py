@@ -90,7 +90,7 @@ def forecast(
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
-    resample_distribution=False,
+    resample_distribution=True,
     smooth_radar_mask_range=0,
     callback=None,
     return_output=True,
@@ -222,7 +222,7 @@ def forecast(
         Method to resample the distribution from the extrapolation and NWP cascade as input
         for the probability matching. Not resampling these distributions may lead to losing
         some extremes when the weight of both the extrapolation and NWP cascade is similar.
-        Defaults to False.
+        Defaults to True.
     smooth_radar_mask_range: int, Default is 0.
       Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
       blend near the edge of the radar domain (radar mask), where the radar data is either
@@ -1550,9 +1550,9 @@ def forecast(
                         # that for the probability matching
                         if probmatching_method is not None and resample_distribution:
                             R_pm_resampled = probmatching.resample_distributions(
-                                extrapolation_cascade=R_pm_ep[t_index],
-                                model_cascade=precip_models_pm_temp[j],
-                                weight_extrapolation=weights_pm_normalized[0],
+                                first_array=R_pm_ep[t_index],
+                                second_array=precip_models_pm_temp[j],
+                                probability_first_array=weights_pm_normalized[0],
                             )
                         else:
                             R_pm_resampled = R_pm_blended.copy()
