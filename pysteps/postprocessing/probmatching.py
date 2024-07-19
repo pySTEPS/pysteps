@@ -281,6 +281,14 @@ def resample_distributions(first_array, second_array, probability_first_array):
     csort: array_like
         The output distribution as first_array drawn binomial distribution from the input arrays first_array and second_array.
     """
+    # Make sure that the probability is never: <0, >1 or nan
+    if probability_first_array < 0.0:
+        probability_first_array = 0.0
+    elif probability_first_array > 1.0:
+        probability_first_array = 1.0
+    elif np.isnan(probability_first_array):
+        probability_first_array = 0.0
+
     # First make sure there are no nans in the input data
     # Where the extrapolation cascade is nan (outside the radar domain), we fill it up with the model data
     nan_indices = np.isnan(second_array)
