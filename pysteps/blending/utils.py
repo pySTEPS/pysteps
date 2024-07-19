@@ -467,11 +467,11 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     ncf_decomp = netCDF4.Dataset(input_nc_path_decomp, "r", format="NETCDF4")
     velocities = np.load(input_path_velocities)
 
-    # Initialise the decomposition dictionary
-    decomp_dict = dict()
-    decomp_dict["domain"] = ncf_decomp.domain
-    decomp_dict["normalized"] = bool(ncf_decomp.normalized)
-    decomp_dict["compact_output"] = bool(ncf_decomp.compact_output)
+    decomp_dict = {
+        "domain": ncf_decomp.domain,
+        "normalized": bool(ncf_decomp.normalized),
+        "compact_output": bool(ncf_decomp.compact_output)
+    }
 
     # Convert the start time and the timestep to datetime64 and timedelta64 type
     zero_time = np.datetime64("1970-01-01T00:00:00", "ns")
@@ -507,23 +507,16 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     # Initialise the list of dictionaries which will serve as the output (cf: the STEPS function)
     R_d = list()
 
-    for i in range(start_i, end_i):
-        decomp_dict_ = decomp_dict.copy()
+    pr_decomposed = ncf_decomp.variables["pr_decomposed"][start_i:end_i, :, :, :]
+    means = ncf_decomp.variables["means"][start_i:end_i, :]
+    stds = ncf_decomp.variables["stds"][start_i:end_i, :]
 
-        # Obtain the decomposed cascades for time step i
-        cascade_levels = ncf_decomp.variables["pr_decomposed"][i, :, :, :]
-        # Obtain the mean values
-        means = ncf_decomp.variables["means"][i, :]
-        # Obtain de standard deviations
-        stds = ncf_decomp.variables["stds"][i, :]
+    for i in range(n_timesteps + 1):
+        decomp_dict["cascade_levels"] = np.ma.filled(pr_decomposed[i], fill_value=np.nan)
+        decomp_dict["means"] = np.ma.filled(means[i], fill_value=np.nan)
+        decomp_dict["stds"] = np.ma.filled(stds[i], fill_value=np.nan)
 
-        # Save the values in the dictionary as normal arrays with the filled method
-        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels, fill_value=np.nan)
-        decomp_dict_["means"] = np.ma.filled(means, fill_value=np.nan)
-        decomp_dict_["stds"] = np.ma.filled(stds, fill_value=np.nan)
-
-        # Append the output list
-        R_d.append(decomp_dict_)
+        R_d.append(decomp_dict.copy())
 
     ncf_decomp.close()
     return R_d, uv
