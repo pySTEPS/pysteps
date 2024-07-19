@@ -1550,11 +1550,9 @@ def forecast(
                         # that for the probability matching
                         if probmatching_method is not None and resample_distribution:
                             R_pm_resampled = probmatching.resample_distributions(
-                                a=R_pm_ep[t_index],
-                                b=precip_models_pm_temp[j],
-                                weight=weights_pm_normalized[
-                                    0
-                                ],  # Use the weight from the extrapolation cascade here
+                                extrapolation_cascade=R_pm_ep[t_index],
+                                model_cascade=precip_models_pm_temp[j],
+                                weight_extrapolation=weights_pm_normalized[0],
                             )
                         else:
                             R_pm_resampled = R_pm_blended.copy()

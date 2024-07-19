@@ -260,40 +260,41 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     return shift, scale, R.reshape(shape)
 
 
-def resample_distributions(a, b, weight):
+def resample_distributions(extrapolation_cascade, model_cascade, weight_extrapolation):
     """
     Merges two distributions (e.g. from the extrapolation nowcast and NWP in the blending module)
     to effectively combine two distributions for the probability matching without losing extremes.
     Parameters
     ----------
-    a: array_like
+    extrapolation_cascade: array_like
         One of the two arrays from which the distribution should be samples (e.g. the extrapolation
         cascade).
-    b: array_like
+    model_cascade: array_like
         One of the two arrays from which the distribution should be samples (e.g. the NWP (model)
         cascade).
-    weight: float
-        The weight that a should get (as a value between 0 and 1).
+    weight_extrapolation: float
+        The weight that extrapolation_cascade should get (as a value between 0 and 1).
 
     Returns
     ----------
     csort: array_like
-        The output distribution as a drawn binomial distribution from the input arrays a and b.
+        The output distribution as extrapolation_cascade drawn binomial distribution from the input arrays extrapolation_cascade and model_cascade.
     """
     # First make sure there are no nans in the input data
-    nan_indices = np.isnan(a)
-    a[nan_indices] = np.nanmin(a)
-    nan_indices = np.isnan(b)
-    b[nan_indices] = np.nanmin(b)
+    # Where the extrapolation cascade is nan (outside the radar domain), we fill it up with the model data
+    nan_indices = np.isnan(model_cascade)
+    model_cascade[nan_indices] = np.nanmin(model_cascade)
+    nan_indices = np.isnan(extrapolation_cascade)
+    extrapolation_cascade[nan_indices] = model_cascade[nan_indices]
 
     # Prepare the input distributions
-    assert a.size == b.size
-    asort = np.sort(a.flatten())[::-1]
-    bsort = np.sort(b.flatten())[::-1]
+    assert extrapolation_cascade.size == model_cascade.size
+    asort = np.sort(extrapolation_cascade.flatten())[::-1]
+    bsort = np.sort(model_cascade.flatten())[::-1]
     n = asort.shape[0]
 
     # Resample the distributions
-    idxsamples = np.random.binomial(1, weight, n).astype(bool)
+    idxsamples = np.random.binomial(1, weight_extrapolation, n).astype(bool)
     csort = bsort.copy()
     csort[idxsamples] = asort[idxsamples]
     csort = np.sort(csort)[::-1]
