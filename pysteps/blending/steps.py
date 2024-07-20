@@ -46,6 +46,7 @@ consists of the following main steps:
 import time
 
 import numpy as np
+from scipy.linalg import inv
 from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
 
 from pysteps import cascade
@@ -1713,7 +1714,7 @@ def calculate_weights_spn(correlations, cov):
         if isinstance(cov, type(None)):
             raise ValueError("cov must contain a covariance matrix")
         else:
-            # Make a numpy matrix out of cov and get the inverse
+            # Make a numpy array out of cov and get the inverse
             cov = np.where(cov == 0.0, 10e-5, cov)
             # Make sure the determinant of the matrix is not zero, otherwise
             # subtract 10e-5 from the cross-correlations between the models
@@ -1722,26 +1723,25 @@ def calculate_weights_spn(correlations, cov):
             # Ensure the correlation of the model with itself is always 1.0
             for i, _ in enumerate(cov):
                 cov[i][i] = 1.0
-            # Make a numpy matrix out of the array
-            cov_matrix = np.asmatrix(cov)
-            # Get the inverse of the matrix
-            cov_matrix_inv = cov_matrix.getI()
-            # The component weights are the dot product between cov_matrix_inv
-            # and cor_vec
-            weights = cov_matrix_inv.dot(correlations)
+            # Use a numpy array instead of a matrix
+            cov_matrix = np.array(cov)
+            # Get the inverse of the matrix using scipy's inv function
+            cov_matrix_inv = inv(cov_matrix)
+            # The component weights are the dot product between cov_matrix_inv and cor_vec
+            weights = np.dot(cov_matrix_inv, correlations)
             weights = np.nan_to_num(
                 weights, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5
             )
             # If the dot product of the weights with the correlations is
             # larger than 1.0, we assign a weight of 0.0 to the noise (to make
             # it numerically stable)
-            if weights.dot(correlations) > 1.0:
+            if np.dot(weights, correlations) > 1.0:
                 noise_weight = np.array([0])
             # Calculate the noise weight
             else:
-                noise_weight = np.asarray(np.sqrt(1.0 - weights.dot(correlations)))[0]
+                noise_weight = np.sqrt(1.0 - np.dot(weights, correlations))
             # Finally, add the noise_weights to the weights variable.
-            weights = np.concatenate((np.array(weights)[0], noise_weight), axis=0)
+            weights = np.concatenate((weights, [noise_weight]), axis=0)
 
     # Otherwise, the weight equals the correlation on that scale level and
     # the noise component weight equals 1 - this weight. This only occurs for
