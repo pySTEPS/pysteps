@@ -1740,8 +1740,12 @@ def calculate_weights_spn(correlations, cov):
             # Calculate the noise weight
             else:
                 noise_weight = np.sqrt(1.0 - np.dot(weights, correlations))
+            # Convert weights to a 1D array
+            weights = np.array(weights).flatten()
+            # Ensure noise_weight is a 1D array before concatenation
+            noise_weight = np.array(noise_weight).flatten()
             # Finally, add the noise_weights to the weights variable.
-            weights = np.concatenate((weights, [noise_weight]), axis=0)
+            weights = np.concatenate((weights, noise_weight), axis=0)
 
     # Otherwise, the weight equals the correlation on that scale level and
     # the noise component weight equals 1 - this weight. This only occurs for
