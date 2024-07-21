@@ -1732,14 +1732,15 @@ def calculate_weights_spn(correlations, cov):
             weights = np.nan_to_num(
                 weights, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5
             )
+            weights_dot_correlations = np.dot(weights, correlations)
             # If the dot product of the weights with the correlations is
             # larger than 1.0, we assign a weight of 0.0 to the noise (to make
             # it numerically stable)
-            if np.dot(weights, correlations) > 1.0:
+            if weights_dot_correlations > 1.0:
                 noise_weight = np.array([0])
             # Calculate the noise weight
             else:
-                noise_weight = np.sqrt(1.0 - np.dot(weights, correlations))
+                noise_weight = np.sqrt(1.0 - weights_dot_correlations)
             # Convert weights to a 1D array
             weights = np.array(weights).flatten()
             # Ensure noise_weight is a 1D array before concatenation
