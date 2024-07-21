@@ -262,25 +262,36 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
 
 def resample_distributions(first_array, second_array, probability_first_array):
     """
-    Merges two distributions (e.g. from the extrapolation nowcast and NWP in the blending module)
-    to effectively combine two distributions for the probability matching without losing extremes.
+    Merges two distributions (e.g., from the extrapolation nowcast and NWP in the blending module)
+    to effectively combine two distributions for probability matching without losing extremes.
+
     Parameters
     ----------
     first_array: array_like
-        One of the two arrays from which the distribution should be samples (e.g. the extrapolation
-        cascade).
+        One of the two arrays from which the distribution should be sampled (e.g., the extrapolation
+        cascade). It must be of the same shape as `second_array`.
     second_array: array_like
-        One of the two arrays from which the distribution should be samples (e.g. the NWP (model)
-        cascade).
+        One of the two arrays from which the distribution should be sampled (e.g., the NWP (model)
+        cascade). It must be of the same shape as `first_array`.
     probability_first_array: float
-        The weight that first_array should get (as a value between 0 and 1). This is
-        typically based on cascade level 2 (as is done for all the probability matching steps in `blending/steps.py`)
+        The weight that `first_array` should get (a value between 0 and 1). This determines the
+        likelihood of selecting elements from `first_array` over `second_array`.
 
     Returns
-    ----------
+    -------
     csort: array_like
-        The output distribution as first_array drawn binomial distribution from the input arrays first_array and second_array.
+        The combined output distribution. This is an array of the same shape as the input arrays,
+        where each element is chosen from either `first_array` or `second_array` based on the specified
+        probability, and then sorted in descending order.
+
+    Raises
+    ------
+    ValueError
+        If `first_array` and `second_array` do not have the same shape.
     """
+    if first_array.shape != second_array.shape:
+        raise ValueError("first_array and second_array must have the same shape")
+
     # Make sure that the probability is never: <0, >1 or nan
     if probability_first_array < 0.0:
         probability_first_array = 0.0
