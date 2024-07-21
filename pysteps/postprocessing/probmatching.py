@@ -289,16 +289,11 @@ def resample_distributions(first_array, second_array, probability_first_array):
     ValueError
         If `first_array` and `second_array` do not have the same shape.
     """
+
+    # Valide inputs
     if first_array.shape != second_array.shape:
         raise ValueError("first_array and second_array must have the same shape")
-
-    # Make sure that the probability is never: <0, >1 or nan
-    if probability_first_array < 0.0:
-        probability_first_array = 0.0
-    elif probability_first_array > 1.0:
-        probability_first_array = 1.0
-    elif np.isnan(probability_first_array):
-        probability_first_array = 0.0
+    probability_first_array = np.clip(probability_first_array, 0.0, 1.0)
 
     # First make sure there are no nans in the input data
     # Where the extrapolation cascade is nan (outside the radar domain), we fill it up with the model data
@@ -307,16 +302,14 @@ def resample_distributions(first_array, second_array, probability_first_array):
     nan_indices = np.isnan(first_array)
     first_array[nan_indices] = second_array[nan_indices]
 
-    # Prepare the input distributions
-    assert first_array.size == second_array.size
-    asort = np.sort(first_array.flatten())[::-1]
-    bsort = np.sort(second_array.flatten())[::-1]
+    # Flatten and sort the arrays
+    asort = np.sort(first_array, axis=None)[::-1]
+    bsort = np.sort(second_array, axis=None)[::-1]
     n = asort.shape[0]
 
     # Resample the distributions
     idxsamples = np.random.binomial(1, probability_first_array, n).astype(bool)
-    csort = bsort.copy()
-    csort[idxsamples] = asort[idxsamples]
+    csort = np.where(idxsamples, asort, bsort)
     csort = np.sort(csort)[::-1]
 
     return csort
