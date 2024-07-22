@@ -952,6 +952,9 @@ def forecast(
                         "Unknown weights method %s: must be 'bps' or 'spn'"
                         % weights_method
                     )
+                # Set the noise cascade weights to zero in case noise_method is None
+                if noise_method is None:
+                    weights_model_only[-1, :] = 0.0
 
                 # 8.3 Determine the noise cascade and regress this to the subsequent
                 # time step + regress the extrapolation component to the subsequent
@@ -1150,33 +1153,37 @@ def forecast(
                         for i in range(n_cascade_levels):
                             R_f_ep[i][temp_mask] = np.nan
                         # B. Noise
-                        Yn_ip_recomp = blending.utils.recompose_cascade(
-                            combined_cascade=Yn_ip,
-                            combined_mean=mu_noise[j],
-                            combined_sigma=sigma_noise[j],
-                        )
-                        extrap_kwargs_noise["displacement_prev"] = D_Yn[j]
-                        extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
-                        Yn_ep_recomp_, D_Yn[j] = extrapolator(
-                            Yn_ip_recomp,
-                            velocity_blended,
-                            [t_diff_prev],
-                            allow_nonfinite_values=True,
-                            **extrap_kwargs_noise,
-                        )
-                        Yn_ep_recomp = Yn_ep_recomp_[0].copy()
-                        Yn_ep = decompositor(
-                            Yn_ep_recomp,
-                            bp_filter,
-                            mask=MASK_thr,
-                            fft_method=fft,
-                            output_domain=domain,
-                            normalize=True,
-                            compute_stats=True,
-                            compact_output=True,
-                        )["cascade_levels"]
-                        for i in range(n_cascade_levels):
-                            Yn_ep[i] *= noise_std_coeffs[i]
+                        # Control run scenario: zero noise cascade
+                        if noise_method is None:
+                            Yn_ep = np.zeros_like(Yn_ip)
+                        else:
+                            Yn_ip_recomp = blending.utils.recompose_cascade(
+                                combined_cascade=Yn_ip,
+                                combined_mean=mu_noise[j],
+                                combined_sigma=sigma_noise[j],
+                            )
+                            extrap_kwargs_noise["displacement_prev"] = D_Yn[j]
+                            extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
+                            Yn_ep_recomp_, D_Yn[j] = extrapolator(
+                                Yn_ip_recomp,
+                                velocity_blended,
+                                [t_diff_prev],
+                                allow_nonfinite_values=True,
+                                **extrap_kwargs_noise,
+                            )
+                            Yn_ep_recomp = Yn_ep_recomp_[0].copy()
+                            Yn_ep = decompositor(
+                                Yn_ep_recomp,
+                                bp_filter,
+                                mask=MASK_thr,
+                                fft_method=fft,
+                                output_domain=domain,
+                                normalize=True,
+                                compute_stats=True,
+                                compact_output=True,
+                            )["cascade_levels"]
+                            for i in range(n_cascade_levels):
+                                Yn_ep[i] *= noise_std_coeffs[i]
 
                         # Append the results to the output lists
                         R_f_ep_out.append(R_f_ep.copy())
@@ -1361,6 +1368,10 @@ def forecast(
                                     correlations=rho_fc[:, i], cov=cov
                                 )
 
+                        # Control member scenario if noise_method is None: set the weights of noise cascade to zero
+                        if noise_method is None:
+                            weights[-1, :] = 0.0
+
                         # Blend the extrapolation, (NWP) model(s) and noise cascades
                         R_f_blended = blending.utils.blend_cascades(
                             cascades_norm=cascades_stacked, weights=weights
@@ -1517,13 +1528,8 @@ def forecast(
                         nan_indices = np.isnan(R_pm_blended)
                         R_pm_blended[nan_indices] = np.nanmin(R_pm_blended)
 
-                        # This blended product is a kind of "control member" in the sense that it
-                        # is an unperturbed, blended nowcast.
-                        # This will be returned if noise_method is set to None.
-                        if noise_method is None:
-                            R_f_new = R_pm_blended
                         # 8.7.2. Apply the masking and prob. matching
-                        elif mask_method is not None:
+                        if mask_method is not None:
                             # apply the precipitation mask to prevent generation of new
                             # precipitation into areas where it was not originally
                             # observed
