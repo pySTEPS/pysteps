@@ -1549,10 +1549,15 @@ def forecast(
                         # both the extrapolation cascade and the model (NWP) cascade and use
                         # that for the probability matching
                         if probmatching_method is not None and resample_distribution:
-                            # resample weights are based on cascade level 2
+                            # deal with missing values
+                            arr1 = R_pm_ep[t_index]
+                            arr2 = precip_models_pm_temp[j]
+                            arr2 = np.where(np.isnan(arr2), np.nanmin(arr2), arr2)
+                            arr1 = np.where(np.isnan(arr1), arr2, arr1)
+                            # resample weights based on cascade level 2
                             R_pm_resampled = probmatching.resample_distributions(
-                                first_array=R_pm_ep[t_index],
-                                second_array=precip_models_pm_temp[j],
+                                first_array=arr1,
+                                second_array=arr2,
                                 probability_first_array=weights_pm_normalized[0],
                             )
                         else:

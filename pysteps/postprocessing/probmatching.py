@@ -269,10 +269,10 @@ def resample_distributions(first_array, second_array, probability_first_array):
     ----------
     first_array: array_like
         One of the two arrays from which the distribution should be sampled (e.g., the extrapolation
-        cascade). It must be of the same shape as `second_array`.
+        cascade). It must be of the same shape as `second_array`. Input must not contain NaNs.
     second_array: array_like
         One of the two arrays from which the distribution should be sampled (e.g., the NWP (model)
-        cascade). It must be of the same shape as `first_array`.
+        cascade). It must be of the same shape as `first_array`.. Input must not contain NaNs.
     probability_first_array: float
         The weight that `first_array` should get (a value between 0 and 1). This determines the
         likelihood of selecting elements from `first_array` over `second_array`.
@@ -287,20 +287,15 @@ def resample_distributions(first_array, second_array, probability_first_array):
     Raises
     ------
     ValueError
-        If `first_array` and `second_array` do not have the same shape.
+        If `first_array` and `second_array` do not have the same shape or if inputs contain NaNs.
     """
 
     # Valide inputs
     if first_array.shape != second_array.shape:
         raise ValueError("first_array and second_array must have the same shape")
+    if np.isnan(first_array).any() or np.isnan(second_array).any():
+        raise ValueError("Input arrays must not contain NaNs")
     probability_first_array = np.clip(probability_first_array, 0.0, 1.0)
-
-    # First make sure there are no nans in the input data
-    # Where the extrapolation cascade is nan (outside the radar domain), we fill it up with the model data
-    nan_indices = np.isnan(second_array)
-    second_array[nan_indices] = np.nanmin(second_array)
-    nan_indices = np.isnan(first_array)
-    first_array[nan_indices] = second_array[nan_indices]
 
     # Flatten and sort the arrays
     asort = np.sort(first_array, axis=None)[::-1]

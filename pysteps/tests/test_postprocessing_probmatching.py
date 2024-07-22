@@ -39,32 +39,19 @@ class TestResampleDistributions:
         )
         assert np.array_equal(result, np.sort(first_array)[::-1])
 
-    def test_nan_in_first_array(self):
-        first_array_with_nan = np.array([1, 3, np.nan, 7, 9])
-        second_array = np.array([2, 4, 6, 8, 10])
+    def test_nan_in_inputs(self):
+        array_with_nan = np.array([1, 3, np.nan, 7, 9])
+        array_without_nan = np.array([2, 4, 6, 8, 10])
         probability_first_array = 0.6
-        result = resample_distributions(
-            first_array_with_nan, second_array, probability_first_array
-        )
-        assert result.shape == first_array_with_nan.shape
-        assert not np.any(np.isnan(result))
-
-    def test_nan_in_second_array(self):
-        first_array = np.array([1, 3, 5, 7, 9])
-        second_array_with_nan = np.array([2, 4, 6, 8, np.nan])
-        probability_first_array = 0.6
-        result = resample_distributions(
-            first_array, second_array_with_nan, probability_first_array
-        )
-        assert result.shape == first_array.shape
-        assert not np.any(np.isnan(result))
-
-    def test_nan_in_both_arrays(self):
-        first_array_with_nan = np.array([1, np.nan, 5, np.nan, 9])
-        second_array_with_nan = np.array([np.nan, 4, np.nan, 8, 10])
-        probability_first_array = 0.6
-        result = resample_distributions(
-            first_array_with_nan, second_array_with_nan, probability_first_array
-        )
-        assert result.shape == first_array_with_nan.shape
-        assert not np.any(np.isnan(result))
+        with pytest.raises(ValueError, match="Input arrays must not contain NaNs"):
+            resample_distributions(
+                array_with_nan, array_without_nan, probability_first_array
+            )
+        with pytest.raises(ValueError, match="Input arrays must not contain NaNs"):
+            resample_distributions(
+                array_without_nan, array_with_nan, probability_first_array
+            )
+        with pytest.raises(ValueError, match="Input arrays must not contain NaNs"):
+            resample_distributions(
+                array_with_nan, array_with_nan, probability_first_array
+            )
