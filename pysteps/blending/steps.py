@@ -90,6 +90,7 @@ def forecast(
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
+    resample_distribution=True,
     smooth_radar_mask_range=0,
     callback=None,
     return_output=True,
@@ -205,25 +206,32 @@ def forecast(
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
       precip_thr.
-    mask_method: {'obs','incremental',None}, optional
-      The method to use for masking no precipitation areas in the forecast field.
-      The masked pixels are set to the minimum value of the observations.
-      'obs' = apply precip_thr to the most recently observed precipitation intensity
-      field, 'incremental' = iteratively buffer the mask with a certain rate
-      (currently it is 1 km/min), None=no masking.
-    smooth_radar_mask_range: int, Default is 0.
-      Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
-      blend near the edge of the radar domain (radar mask), where the radar data is either
-      not present anymore or is not reliable. If set to 0 (grid cells), this generates a normal forecast without smoothing. To create a smooth mask, this range
-      should be a positive value, representing a buffer band of a number of pixels
-      by which the mask is cropped and smoothed. The smooth radar mask removes
-      the hard edges between NWP and radar in the final blended product. Typically, a value between 50 and 100 km can be used. 80 km generally gives good results.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
       one, 'mean'=adjust only the conditional mean value of the forecast field
       in precipitation areas, None=no matching applied. Using 'mean' requires
       that mask_method is not None.
+    mask_method: {'obs','incremental',None}, optional
+      The method to use for masking no precipitation areas in the forecast field.
+      The masked pixels are set to the minimum value of the observations.
+      'obs' = apply precip_thr to the most recently observed precipitation intensity
+      field, 'incremental' = iteratively buffer the mask with a certain rate
+      (currently it is 1 km/min), None=no masking.
+    resample_distribution: bool, optional
+        Method to resample the distribution from the extrapolation and NWP cascade as input
+        for the probability matching. Not resampling these distributions may lead to losing
+        some extremes when the weight of both the extrapolation and NWP cascade is similar.
+        Defaults to True.
+    smooth_radar_mask_range: int, Default is 0.
+      Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+      blend near the edge of the radar domain (radar mask), where the radar data is either
+      not present anymore or is not reliable. If set to 0 (grid cells), this generates a
+      normal forecast without smoothing. To create a smooth mask, this range should be a
+      positive value, representing a buffer band of a number of pixels by which the mask
+      is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
+      and radar in the final blended product. Typically, a value between 50 and 100 km
+      can be used. 80 km generally gives good results.
     callback: function, optional
       Optional function that is called after computation of each time step of
       the nowcast. The function takes one argument: a three-dimensional array
@@ -1404,7 +1412,6 @@ def forecast(
                         # latest extrapolated radar rainfall field blended with the
                         # nwp model(s) rainfall forecast fields as 'benchmark'.
 
-                        # TODO: Check probability matching method
                         # 8.7.1 first blend the extrapolated rainfall field (the field
                         # that is only used for post-processing steps) with the NWP
                         # rainfall forecast for this time step using the weights
@@ -1538,19 +1545,39 @@ def forecast(
                             # Set to min value outside of mask
                             R_f_new[~MASK_prec_] = R_cmin
 
+                        # If probmatching_method is not None, resample the distribution from
+                        # both the extrapolation cascade and the model (NWP) cascade and use
+                        # that for the probability matching
+                        if probmatching_method is not None and resample_distribution:
+                            # deal with missing values
+                            arr1 = R_pm_ep[t_index]
+                            arr2 = precip_models_pm_temp[j]
+                            arr2 = np.where(np.isnan(arr2), np.nanmin(arr2), arr2)
+                            arr1 = np.where(np.isnan(arr1), arr2, arr1)
+                            # resample weights based on cascade level 2
+                            R_pm_resampled = probmatching.resample_distributions(
+                                first_array=arr1,
+                                second_array=arr2,
+                                probability_first_array=weights_pm_normalized[0],
+                            )
+                        else:
+                            R_pm_resampled = R_pm_blended.copy()
+
                         if probmatching_method == "cdf":
                             # Adjust the CDF of the forecast to match the most recent
                             # benchmark rainfall field (R_pm_blended). If the forecast
                             if np.any(np.isfinite(R_f_new)):
                                 R_f_new = probmatching.nonparam_match_empirical_cdf(
-                                    R_f_new, R_pm_blended
+                                    R_f_new, R_pm_resampled
                                 )
+                                R_pm_resampled = None
                         elif probmatching_method == "mean":
                             # Use R_pm_blended as benchmark field and
-                            mu_0 = np.mean(R_pm_blended[R_pm_blended >= precip_thr])
+                            mu_0 = np.mean(R_pm_resampled[R_pm_resampled >= precip_thr])
                             MASK = R_f_new >= precip_thr
                             mu_fct = np.mean(R_f_new[MASK])
                             R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0
+                            R_pm_resampled = None
 
                         R_f_out.append(R_f_new)
 
