@@ -43,6 +43,7 @@ consists of the following main steps:
     blend_means_sigmas
 """
 
+import math
 import time
 
 import numpy as np
@@ -1887,7 +1888,7 @@ def _check_inputs(
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
     if isinstance(timesteps, list):
-        if precip_models.shape[1] != len(timesteps) + 1:
+        if precip_models.shape[1] != math.ceil(timesteps[-1]) + 1:
             raise ValueError(
                 "precip_models does not contain sufficient lead times for this forecast"
             )
