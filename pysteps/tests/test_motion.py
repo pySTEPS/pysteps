@@ -252,6 +252,7 @@ no_precip_args_names = "optflow_method_name, num_times"
 no_precip_args_values = [
     ("lk", 2),
     ("lk", 3),
+    ("correlation", 2),
     ("vet", 2),
     ("vet", 3),
     ("darts", 9),
@@ -293,6 +294,7 @@ input_tests_args_names = (
 )
 input_tests_args_values = [
     ("lk", 2, np.inf),
+    ("correlation", 2, np.inf),
     ("vet", 2, 3),
     ("darts", 9, 9),
     ("proesmans", 2, 2),
