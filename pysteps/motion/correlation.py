@@ -18,10 +18,10 @@ from pysteps.decorators import check_input_frames
 from pysteps.utils.cleansing import detect_outliers
 from pysteps import utils
 
-#To delete
+# To delete
 import pdb
 
-#Check if numba can be imported
+# Check if numba can be imported
 try:
     from numba import jit
 
@@ -115,8 +115,8 @@ def correlation(
 
     References
     ----------
-    Haiden, T., A. Kann, C. Wittmann, G. Pistotnik, B. Bica, and C. Gruber, 2011: The 
-    Integrated Nowcasting through Comprehensive Analysis (INCA) System and Its 
+    Haiden, T., A. Kann, C. Wittmann, G. Pistotnik, B. Bica, and C. Gruber, 2011: The
+    Integrated Nowcasting through Comprehensive Analysis (INCA) System and Its
     Validation over the Eastern Alpine Region. Wea. Forecasting, 26, 166–183.
     """
 
@@ -132,8 +132,8 @@ def correlation(
     nr_fields = input_images.shape[0]
     domain_size = (input_images.shape[1], input_images.shape[2])
 
-    PMIN = settings.get('PMIN', 0.05)
-    nthin = settings.get('nthin', 15)
+    PMIN = settings.get("PMIN", 0.05)
+    nthin = settings.get("nthin", 15)
 
     NI = domain_size[0]
     NJ = domain_size[1]
@@ -144,7 +144,7 @@ def correlation(
     xgrid = np.arange(domain_size[1])
     ygrid = np.arange(domain_size[0])
     X, Y = xgrid[::nthin], ygrid[::nthin]
-    XX, YY =np.meshgrid(X,Y, indexing='ij')
+    XX, YY = np.meshgrid(X, Y, indexing="ij")
 
     U_t = []
     V_t = []
@@ -155,30 +155,28 @@ def correlation(
         next_img = input_images[n + 1, :, :].copy()
 
         # Removing values below the PMIN threshold
-        prvs_img[prvs_img < PMIN] = 0.
-        next_img[next_img < PMIN] = 0.
+        prvs_img[prvs_img < PMIN] = 0.0
+        next_img[next_img < PMIN] = 0.0
 
-        Uana = np.full((NJ, NI),np.nan)[::nthin, ::nthin]
-        Vana = np.full((NJ, NI),np.nan)[::nthin, ::nthin]
+        Uana = np.full((NJ, NI), np.nan)[::nthin, ::nthin]
+        Vana = np.full((NJ, NI), np.nan)[::nthin, ::nthin]
 
-        Uana, Vana = compute_motion_numba(
-            next_img, prvs_img,
-            NI, NJ, nthin, Uana, Vana)
+        Uana, Vana = compute_motion_numba(next_img, prvs_img, NI, NJ, nthin, Uana, Vana)
 
         U_t.append(Uana)
         V_t.append(Vana)
 
-    Uana = np.nanmean(np.array(U_t),axis=0)
-    Vana = np.nanmean(np.array(V_t),axis=0)
+    Uana = np.nanmean(np.array(U_t), axis=0)
+    Vana = np.nanmean(np.array(V_t), axis=0)
 
     ## Choose computed boxes
-    boole_ = (np.isfinite(Uana) & np.isfinite(Vana))
+    boole_ = np.isfinite(Uana) & np.isfinite(Vana)
 
-    if np.sum(boole_) == 0: 
+    if np.sum(boole_) == 0:
         return np.zeros((2, domain_size[0], domain_size[1]))
 
-    uv = np.vstack([Uana[boole_],Vana[boole_]]).T
-    xy = np.vstack([XX[boole_],YY[boole_]]).T
+    uv = np.vstack([Uana[boole_], Vana[boole_]]).T
+    xy = np.vstack([XX[boole_], YY[boole_]]).T
 
     # detect and remove outliers
     outliers = detect_outliers(uv, nr_std_outlier, xy, k_outlier, verbose)
@@ -203,12 +201,11 @@ def correlation(
 
 
 @jit(nopython=True)
-def compute_motion_numba(image1, image2, NI, NJ, nthin,
-                                         IS_tmp, JS_tmp):
+def compute_motion_numba(image1, image2, NI, NJ, nthin, IS_tmp, JS_tmp):
 
     """
     Compute the motion between two images using a correlation-based method optimized with Numba.
-    
+
     Parameters:
     -----------
     image1 : 2D numpy array
@@ -225,27 +222,27 @@ def compute_motion_numba(image1, image2, NI, NJ, nthin,
         The output array to store the computed motion in the x-direction.
     JS_tmp : 2D numpy array
         The output array to store the computed motion in the y-direction.
-    
+
     Returns:
     --------
     IS_tmp : 2D numpy array
         The updated motion array in the x-direction after computation.
     JS_tmp : 2D numpy array
         The updated motion array in the y-direction after computation.
-    
+
     Notes:
     ------
-    - This function computes the motion by correlating patches of the first image (`image1`) 
+    - This function computes the motion by correlating patches of the first image (`image1`)
       with patches of the second image (`image2`).
-    - The computation is performed on a grid defined by the `nthin` parameter to reduce 
+    - The computation is performed on a grid defined by the `nthin` parameter to reduce
       computational complexity.
-    - The function uses a fixed-size search window (`nsh`) and a quantization parameter (`nqu`) 
+    - The function uses a fixed-size search window (`nsh`) and a quantization parameter (`nqu`)
       to define the neighborhood for correlation computation.
-    - The correlation is calculated within a defined window and the maximum correlation value is 
+    - The correlation is calculated within a defined window and the maximum correlation value is
       used to determine the motion vector.
-    - The function utilizes several optimization techniques to ensure efficient computation 
+    - The function utilizes several optimization techniques to ensure efficient computation
       and is compiled with Numba for further speed-up.
-    
+
     """
 
     ## List of parameters from the original paper (TODO: Optimization as input values in func.)
@@ -255,7 +252,7 @@ def compute_motion_numba(image1, image2, NI, NJ, nthin,
     di = 1
     PAREAMIN = 1.0
     rr_dpa_min = 0.03
-    nn = (2 * nqu / di + 1) ** 2.
+    nn = (2 * nqu / di + 1) ** 2.0
 
     for i in range(0, NI, nthin):
         if (i >= nsq) and (i < NI - nsq):
@@ -266,48 +263,54 @@ def compute_motion_numba(image1, image2, NI, NJ, nthin,
                     jj1 = max(j - nqu, 0)
                     jj2 = min(j + nqu, NJ - 1)
 
-                    sy = 0.
-                    sy2 = 0.
+                    sy = 0.0
+                    sy2 = 0.0
 
-                    for ii in range(ii1, ii2+1, di):
-                        for jj in range(jj1, jj2+1, di):
+                    for ii in range(ii1, ii2 + 1, di):
+                        for jj in range(jj1, jj2 + 1, di):
                             sy = sy + image1[jj, ii]
-                            sy2 = sy2 + image1[jj, ii] ** 2.
+                            sy2 = sy2 + image1[jj, ii] ** 2.0
 
-                    sigy = sy2 - sy ** 2. / nn
+                    sigy = sy2 - sy**2.0 / nn
                     isho = -99
                     jsho = -99
 
-                    if (sigy > 0.) and (sy > PAREAMIN):
+                    if (sigy > 0.0) and (sy > PAREAMIN):
                         corqx = 0.1
                         for ish in range(-nsh, nsh + 1):
                             for jsh in range(-nsh, nsh + 1):
-                                if ( math.sqrt((ish)**2. + (jsh)**2.) > nsh ): continue
-                                sx = 0.
-                                sx2 = 0.
-                                sxy = 0.
-                                for ii in range(ii1, ii2+1, di): 
-                                    for jj in range(jj1, jj2+1, di): 
+                                if math.sqrt((ish) ** 2.0 + (jsh) ** 2.0) > nsh:
+                                    continue
+                                sx = 0.0
+                                sx2 = 0.0
+                                sxy = 0.0
+                                for ii in range(ii1, ii2 + 1, di):
+                                    for jj in range(jj1, jj2 + 1, di):
                                         ind_x = min(max(0, jj + jsh), NJ - 1)
                                         ind_y = min(max(0, ii + ish), NI - 1)
                                         sx += image2[ind_x, ind_y]
-                                        sx2 += image2[ind_x, ind_y] ** 2.
+                                        sx2 += image2[ind_x, ind_y] ** 2.0
                                         sxy += image2[ind_x, ind_y] * image1[jj, ii]
 
-                                sigx = sx2 - sx ** 2. / nn
-                                if sigx > 0.:
-                                    corq = (sxy -sx * sy / nn) ** 2. / (sigx * sigy)
+                                sigx = sx2 - sx**2.0 / nn
+                                if sigx > 0.0:
+                                    corq = (sxy - sx * sy / nn) ** 2.0 / (sigx * sigy)
                                     if corq > corqx:
                                         corqx = corq
                                         isho = ish
                                         jsho = jsh
 
-                        if (isho != -99) and (corqx > 0.3) and (corqx * sy > 1.) and (sigy / sy >= 0.08):
+                        if (
+                            (isho != -99)
+                            and (corqx > 0.3)
+                            and (corqx * sy > 1.0)
+                            and (sigy / sy >= 0.08)
+                        ):
                             if (abs(isho) < nsh) and (abs(jsho) < nsh):
-                                IS_tmp[int(j/nthin),int(i/nthin)] = -isho
-                                JS_tmp[int(j/nthin),int(i/nthin)] = -jsho
+                                IS_tmp[int(j / nthin), int(i / nthin)] = -isho
+                                JS_tmp[int(j / nthin), int(i / nthin)] = -jsho
                         else:
-                            IS_tmp[int(j/nthin),int(i/nthin)] = 0
-                            JS_tmp[int(j/nthin),int(i/nthin)] = 0
+                            IS_tmp[int(j / nthin), int(i / nthin)] = 0
+                            JS_tmp[int(j / nthin), int(i / nthin)] = 0
 
     return IS_tmp, JS_tmp
