@@ -41,7 +41,6 @@ def correlation(
     k_outlier=30,
     verbose=False,
 ):
-
     """
     Run the correlation based optical flow method and interpolate the motion
     vectors. This is using NUMBA to speed up the correlation computation.
@@ -209,7 +208,6 @@ if NUMBA_IMPORTED:
 
     @jit(nopython=True)
     def compute_motion_numba(image1, image2, NI, NJ, nthin, IS_tmp, JS_tmp):
-
         """
         Compute the motion between two images using a correlation-based method optimized with Numba.
 
