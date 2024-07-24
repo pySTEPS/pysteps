@@ -28,6 +28,7 @@ def test_nowcasts_interface():
     )
 
     method_getter = pysteps.nowcasts.interface.get_method
+    
 
     valid_names_func_pair = [
         ("linear_blending", linear_blending.forecast),

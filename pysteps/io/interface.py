@@ -21,6 +21,8 @@ from pysteps.decorators import postprocess_import
 from pysteps.io import importers, exporters
 from pprint import pprint
 
+
+
 _importer_methods = dict(
     bom_rf3=importers.import_bom_rf3,
     fmi_geotiff=importers.import_fmi_geotiff,
@@ -33,6 +35,8 @@ _importer_methods = dict(
     opera_hdf5=importers.import_opera_hdf5,
     knmi_hdf5=importers.import_knmi_hdf5,
     saf_crri=importers.import_saf_crri,
+
+    
 )
 
 _exporter_methods = dict(
@@ -87,6 +91,7 @@ def discover_importers():
 
 
 def importers_info():
+    
     """Print all the available importers."""
 
     # Importers available in the `io.importers` module
@@ -186,7 +191,7 @@ def get_method(name, method_type):
         | saf_crri     | NetCDF SAF CRRI files containing convective rain     |
         |              | rate intensity and other                             |
         +--------------+------------------------------------------------------+
-
+    
         Exporters:
 
         .. tabularcolumns:: |p{2cm}|L|
@@ -208,7 +213,7 @@ def get_method(name, method_type):
         Type of the method (see tables above).
 
     """
-
+   
     if isinstance(method_type, str):
         method_type = method_type.lower()
     else:
