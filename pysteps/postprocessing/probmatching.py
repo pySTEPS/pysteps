@@ -13,6 +13,7 @@ Methods for matching the probability distribution of two data sets.
     pmm_init
     pmm_compute
     shift_scale
+    resample_distributions
 """
 
 import numpy as np
@@ -257,6 +258,56 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     R[~idx_wet] = 0
 
     return shift, scale, R.reshape(shape)
+
+
+def resample_distributions(first_array, second_array, probability_first_array):
+    """
+    Merges two distributions (e.g., from the extrapolation nowcast and NWP in the blending module)
+    to effectively combine two distributions for probability matching without losing extremes.
+
+    Parameters
+    ----------
+    first_array: array_like
+        One of the two arrays from which the distribution should be sampled (e.g., the extrapolation
+        cascade). It must be of the same shape as `second_array`. Input must not contain NaNs.
+    second_array: array_like
+        One of the two arrays from which the distribution should be sampled (e.g., the NWP (model)
+        cascade). It must be of the same shape as `first_array`.. Input must not contain NaNs.
+    probability_first_array: float
+        The weight that `first_array` should get (a value between 0 and 1). This determines the
+        likelihood of selecting elements from `first_array` over `second_array`.
+
+    Returns
+    -------
+    csort: array_like
+        The combined output distribution. This is an array of the same shape as the input arrays,
+        where each element is chosen from either `first_array` or `second_array` based on the specified
+        probability, and then sorted in descending order.
+
+    Raises
+    ------
+    ValueError
+        If `first_array` and `second_array` do not have the same shape or if inputs contain NaNs.
+    """
+
+    # Valide inputs
+    if first_array.shape != second_array.shape:
+        raise ValueError("first_array and second_array must have the same shape")
+    if np.isnan(first_array).any() or np.isnan(second_array).any():
+        raise ValueError("Input arrays must not contain NaNs")
+    probability_first_array = np.clip(probability_first_array, 0.0, 1.0)
+
+    # Flatten and sort the arrays
+    asort = np.sort(first_array, axis=None)[::-1]
+    bsort = np.sort(second_array, axis=None)[::-1]
+    n = asort.shape[0]
+
+    # Resample the distributions
+    idxsamples = np.random.binomial(1, probability_first_array, n).astype(bool)
+    csort = np.where(idxsamples, asort, bsort)
+    csort = np.sort(csort)[::-1]
+
+    return csort
 
 
 def _invfunc(y, fx, fy):

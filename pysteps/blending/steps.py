@@ -43,9 +43,11 @@ consists of the following main steps:
     blend_means_sigmas
 """
 
+import math
 import time
 
 import numpy as np
+from scipy.linalg import inv
 from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
 
 from pysteps import cascade
@@ -74,7 +76,7 @@ def forecast(
     timestep,
     issuetime,
     n_ens_members,
-    n_cascade_levels=8,
+    n_cascade_levels=6,
     blend_nwp_members=False,
     precip_thr=None,
     norain_thr=0.0,
@@ -90,6 +92,8 @@ def forecast(
     conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
+    resample_distribution=True,
+    smooth_radar_mask_range=0,
     callback=None,
     return_output=True,
     seed=None,
@@ -153,8 +157,8 @@ def forecast(
       equal to or larger than the number of NWP ensemble members / number of
       NWP models.
     n_cascade_levels: int, optional
-      The number of cascade levels to use. Default set to 8 due to default
-      climatological skill values on 8 levels.
+      The number of cascade levels to use. Defaults to 6,
+      see issue #385 on GitHub.
     blend_nwp_members: bool
       Check if NWP models/members should be used individually, or if all of
       them are blended together per nowcast ensemble member. Standard set to
@@ -204,18 +208,32 @@ def forecast(
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
       precip_thr.
-    mask_method: {'obs','incremental',None}, optional
-      The method to use for masking no precipitation areas in the forecast field.
-      The masked pixels are set to the minimum value of the observations.
-      'obs' = apply precip_thr to the most recently observed precipitation intensity
-      field, 'incremental' = iteratively buffer the mask with a certain rate
-      (currently it is 1 km/min), None=no masking.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
       one, 'mean'=adjust only the conditional mean value of the forecast field
       in precipitation areas, None=no matching applied. Using 'mean' requires
       that mask_method is not None.
+    mask_method: {'obs','incremental',None}, optional
+      The method to use for masking no precipitation areas in the forecast field.
+      The masked pixels are set to the minimum value of the observations.
+      'obs' = apply precip_thr to the most recently observed precipitation intensity
+      field, 'incremental' = iteratively buffer the mask with a certain rate
+      (currently it is 1 km/min), None=no masking.
+    resample_distribution: bool, optional
+        Method to resample the distribution from the extrapolation and NWP cascade as input
+        for the probability matching. Not resampling these distributions may lead to losing
+        some extremes when the weight of both the extrapolation and NWP cascade is similar.
+        Defaults to True.
+    smooth_radar_mask_range: int, Default is 0.
+      Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+      blend near the edge of the radar domain (radar mask), where the radar data is either
+      not present anymore or is not reliable. If set to 0 (grid cells), this generates a
+      normal forecast without smoothing. To create a smooth mask, this range should be a
+      positive value, representing a buffer band of a number of pixels by which the mask
+      is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
+      and radar in the final blended product. Typically, a value between 50 and 100 km
+      can be used. 80 km generally gives good results.
     callback: function, optional
       Optional function that is called after computation of each time step of
       the nowcast. The function takes one argument: a three-dimensional array
@@ -1396,7 +1414,6 @@ def forecast(
                         # latest extrapolated radar rainfall field blended with the
                         # nwp model(s) rainfall forecast fields as 'benchmark'.
 
-                        # TODO: Check probability matching method
                         # 8.7.1 first blend the extrapolated rainfall field (the field
                         # that is only used for post-processing steps) with the NWP
                         # rainfall forecast for this time step using the weights
@@ -1451,10 +1468,49 @@ def forecast(
                         # forecast outside the radar domain. Therefore, fill these
                         # areas with the "..._mod_only" blended forecasts, consisting
                         # of the NWP and noise components.
+
                         nan_indices = np.isnan(R_f_new)
-                        R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
-                        nan_indices = np.isnan(R_pm_blended)
-                        R_pm_blended[nan_indices] = R_pm_blended_mod_only[nan_indices]
+                        if smooth_radar_mask_range != 0:
+                            # Compute the smooth dilated mask
+                            new_mask = blending.utils.compute_smooth_dilated_mask(
+                                nan_indices,
+                                max_padding_size_in_px=smooth_radar_mask_range,
+                            )
+
+                            # Ensure mask values are between 0 and 1
+                            mask_model = np.clip(new_mask, 0, 1)
+                            mask_radar = np.clip(1 - new_mask, 0, 1)
+
+                            # Handle NaNs in R_f_new and R_f_new_mod_only by setting NaNs to 0 in the blending step
+                            R_f_new_mod_only_no_nan = np.nan_to_num(
+                                R_f_new_mod_only, nan=0
+                            )
+                            R_f_new_no_nan = np.nan_to_num(R_f_new, nan=0)
+
+                            # Perform the blending of radar and model inside the radar domain using a weighted combination
+                            R_f_new = np.nansum(
+                                [
+                                    mask_model * R_f_new_mod_only_no_nan,
+                                    mask_radar * R_f_new_no_nan,
+                                ],
+                                axis=0,
+                            )
+
+                            nan_indices = np.isnan(R_pm_blended)
+                            R_pm_blended = np.nansum(
+                                [
+                                    R_pm_blended * mask_radar,
+                                    R_pm_blended_mod_only * mask_model,
+                                ],
+                                axis=0,
+                            )
+                        else:
+                            R_f_new[nan_indices] = R_f_new_mod_only[nan_indices]
+                            nan_indices = np.isnan(R_pm_blended)
+                            R_pm_blended[nan_indices] = R_pm_blended_mod_only[
+                                nan_indices
+                            ]
+
                         # Finally, fill the remaining nan values, if present, with
                         # the minimum value in the forecast
                         nan_indices = np.isnan(R_f_new)
@@ -1491,19 +1547,39 @@ def forecast(
                             # Set to min value outside of mask
                             R_f_new[~MASK_prec_] = R_cmin
 
+                        # If probmatching_method is not None, resample the distribution from
+                        # both the extrapolation cascade and the model (NWP) cascade and use
+                        # that for the probability matching
+                        if probmatching_method is not None and resample_distribution:
+                            # deal with missing values
+                            arr1 = R_pm_ep[t_index]
+                            arr2 = precip_models_pm_temp[j]
+                            arr2 = np.where(np.isnan(arr2), np.nanmin(arr2), arr2)
+                            arr1 = np.where(np.isnan(arr1), arr2, arr1)
+                            # resample weights based on cascade level 2
+                            R_pm_resampled = probmatching.resample_distributions(
+                                first_array=arr1,
+                                second_array=arr2,
+                                probability_first_array=weights_pm_normalized[0],
+                            )
+                        else:
+                            R_pm_resampled = R_pm_blended.copy()
+
                         if probmatching_method == "cdf":
                             # Adjust the CDF of the forecast to match the most recent
                             # benchmark rainfall field (R_pm_blended). If the forecast
                             if np.any(np.isfinite(R_f_new)):
                                 R_f_new = probmatching.nonparam_match_empirical_cdf(
-                                    R_f_new, R_pm_blended
+                                    R_f_new, R_pm_resampled
                                 )
+                                R_pm_resampled = None
                         elif probmatching_method == "mean":
                             # Use R_pm_blended as benchmark field and
-                            mu_0 = np.mean(R_pm_blended[R_pm_blended >= precip_thr])
+                            mu_0 = np.mean(R_pm_resampled[R_pm_resampled >= precip_thr])
                             MASK = R_f_new >= precip_thr
                             mu_fct = np.mean(R_f_new[MASK])
                             R_f_new[MASK] = R_f_new[MASK] - mu_fct + mu_0
+                            R_pm_resampled = None
 
                         R_f_out.append(R_f_new)
 
@@ -1666,7 +1742,7 @@ def calculate_weights_spn(correlations, cov):
         if isinstance(cov, type(None)):
             raise ValueError("cov must contain a covariance matrix")
         else:
-            # Make a numpy matrix out of cov and get the inverse
+            # Make a numpy array out of cov and get the inverse
             cov = np.where(cov == 0.0, 10e-5, cov)
             # Make sure the determinant of the matrix is not zero, otherwise
             # subtract 10e-5 from the cross-correlations between the models
@@ -1675,26 +1751,30 @@ def calculate_weights_spn(correlations, cov):
             # Ensure the correlation of the model with itself is always 1.0
             for i, _ in enumerate(cov):
                 cov[i][i] = 1.0
-            # Make a numpy matrix out of the array
-            cov_matrix = np.asmatrix(cov)
-            # Get the inverse of the matrix
-            cov_matrix_inv = cov_matrix.getI()
-            # The component weights are the dot product between cov_matrix_inv
-            # and cor_vec
-            weights = cov_matrix_inv.dot(correlations)
+            # Use a numpy array instead of a matrix
+            cov_matrix = np.array(cov)
+            # Get the inverse of the matrix using scipy's inv function
+            cov_matrix_inv = inv(cov_matrix)
+            # The component weights are the dot product between cov_matrix_inv and cor_vec
+            weights = np.dot(cov_matrix_inv, correlations)
             weights = np.nan_to_num(
                 weights, copy=True, nan=10e-5, posinf=10e-5, neginf=10e-5
             )
+            weights_dot_correlations = np.dot(weights, correlations)
             # If the dot product of the weights with the correlations is
             # larger than 1.0, we assign a weight of 0.0 to the noise (to make
             # it numerically stable)
-            if weights.dot(correlations) > 1.0:
+            if weights_dot_correlations > 1.0:
                 noise_weight = np.array([0])
             # Calculate the noise weight
             else:
-                noise_weight = np.asarray(np.sqrt(1.0 - weights.dot(correlations)))[0]
+                noise_weight = np.sqrt(1.0 - weights_dot_correlations)
+            # Convert weights to a 1D array
+            weights = np.array(weights).flatten()
+            # Ensure noise_weight is a 1D array before concatenation
+            noise_weight = np.array(noise_weight).flatten()
             # Finally, add the noise_weights to the weights variable.
-            weights = np.concatenate((np.array(weights)[0], noise_weight), axis=0)
+            weights = np.concatenate((weights, noise_weight), axis=0)
 
     # Otherwise, the weight equals the correlation on that scale level and
     # the noise component weight equals 1 - this weight. This only occurs for
@@ -1808,7 +1888,7 @@ def _check_inputs(
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
     if isinstance(timesteps, list):
-        if precip_models.shape[1] != len(timesteps) + 1:
+        if precip_models.shape[1] != math.ceil(timesteps[-1]) + 1:
             raise ValueError(
                 "precip_models does not contain sufficient lead times for this forecast"
             )

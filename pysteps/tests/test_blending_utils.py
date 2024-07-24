@@ -16,6 +16,7 @@ from pysteps.blending.utils import (
     compute_store_nwp_motion,
     load_NWP,
     check_norain,
+    compute_smooth_dilated_mask,
 )
 
 pytest.importorskip("netCDF4")
@@ -140,12 +141,27 @@ utils_arg_values = [
     )
 ]
 
+smoothing_arg_names = (
+    "precip_nwp",
+    "max_padding_size_in_px",
+    "gaussian_kernel_size",
+    "inverted",
+    "non_linear_growth_kernel_sizes",
+)
+
+smoothing_arg_values = [
+    (precip_nwp, 80, 9, False, False),
+    (precip_nwp, 10, 9, False, False),
+    (precip_nwp, 80, 5, False, False),
+    (precip_nwp, 80, 9, True, False),
+    (precip_nwp, 80, 9, False, True),
+]
+
 
 ###
 # The test
 ###
 @pytest.mark.parametrize(utils_arg_names, utils_arg_values)
-
 # The test function to be used
 def test_blending_utils(
     precip_nwp,
@@ -404,3 +420,28 @@ def test_blending_utils(
 
     # should always give norain if the threshold is set to 100%
     assert check_norain(precip_arr, norain_thr=1.0)
+
+
+# Finally, also test the compute_smooth_dilated mask functionality
+@pytest.mark.parametrize(smoothing_arg_names, smoothing_arg_values)
+def test_blending_smoothing_utils(
+    precip_nwp,
+    max_padding_size_in_px,
+    gaussian_kernel_size,
+    inverted,
+    non_linear_growth_kernel_sizes,
+):
+    # First add some nans to indicate a mask
+    precip_nwp[:, 0:100, 0:100] = np.nan
+    nan_indices = np.isnan(precip_nwp[0])
+    new_mask = compute_smooth_dilated_mask(
+        nan_indices,
+        max_padding_size_in_px=max_padding_size_in_px,
+        gaussian_kernel_size=gaussian_kernel_size,
+        inverted=inverted,
+        non_linear_growth_kernel_sizes=non_linear_growth_kernel_sizes,
+    )
+    assert new_mask.shape == nan_indices.shape
+
+    if max_padding_size_in_px > 0 and inverted == False:
+        assert np.sum((new_mask > 0) & (new_mask < 1)) > 0

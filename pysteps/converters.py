@@ -60,6 +60,24 @@ def _convert_proj4_to_grid_mapping(proj4str):
         v1 = d["lat_1"] if "lat_1" in d else float(0)
         v2 = d["lat_2"] if "lat_2" in d else float(0)
         params["standard_parallel"] = (float(v1), float(v2))
+    elif d["proj"] == "lcc":
+        grid_mapping_var_name = "lcc"
+        grid_mapping_name = "lambert_conformal_conic"
+        params["false_easting"] = float(d["x_0"]) if "x_0" in d else float(0)
+        params["false_northing"] = float(d["y_0"]) if "y_0" in d else float(0)
+        v = d["lon_0"] if "lon_0" in d else float(0)
+        params["longitude_of_central_meridian"] = float(v)
+        v = d["lat_0"] if "lat_0" in d else float(0)
+        params["latitude_of_projection_origin"] = float(v)
+        v1 = d["lat_1"] if "lat_1" in d else float(0)
+        v2 = d["lat_2"] if "lat_2" in d else float(0)
+        params["standard_parallel"] = (float(v1), float(v2))
+        v = d["ellps"] if "ellps" in d else ""
+        if len(v):
+            params["reference_ellipsoid_name"] = v
+        v = d["towgs84"] if "towgs84" in d else ""
+        if len(v):
+            params["towgs84"] = v
     else:
         print("unknown projection", d["proj"])
         return None, None, None

@@ -40,7 +40,7 @@ def forecast(
     velocity,
     timesteps,
     rainrate=None,
-    n_cascade_levels=8,
+    n_cascade_levels=6,
     extrap_method="semilagrangian",
     ar_order=2,
     ar_window_radius=50,
@@ -87,7 +87,8 @@ def forecast(
         field. If set to None, no R(VIL) conversion is done and the outputs
         are in the same units as the inputs.
     n_cascade_levels: int, optional
-        The number of cascade levels to use.
+        The number of cascade levels to use. Defaults to 6, see issue #385
+        on GitHub.
     extrap_method: str, optional
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
