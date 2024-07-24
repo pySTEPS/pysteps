@@ -48,7 +48,8 @@ import time
 
 import numpy as np
 from scipy.linalg import inv
-from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
+from scipy.ndimage import (binary_dilation, generate_binary_structure,
+                           iterate_structure)
 
 from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
@@ -606,12 +607,13 @@ def forecast(
                 R_f_ = np.full(
                     (n_ens_members, precip_shape[0], precip_shape[1]), np.nanmin(precip)
                 )
-                if callback is not None:
-                    if R_f_.shape[1] > 0:
-                        callback(R_f_.squeeze())
-                if return_output:
-                    for j in range(n_ens_members):
-                        R_f[j].append(R_f_[j])
+                if subtimestep_idx:
+                    if callback is not None:
+                        if R_f_.shape[1] > 0:
+                            callback(R_f_.squeeze())
+                    if return_output:
+                        for j in range(n_ens_members):
+                            R_f[j].append(R_f_[j])
 
                 R_f_ = None
 
