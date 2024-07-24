@@ -942,9 +942,12 @@ def forecast(
                         "Unknown weights method %s: must be 'bps' or 'spn'"
                         % weights_method
                     )
-                # Set the noise cascade weights to zero in case noise_method is None
+                # Set the noise cascade weights to zero and renormalize other weights in case noise_method is None
                 if noise_method is None:
                     weights_model_only[-1, :] = 0.0
+                    weights_model_only = weights_model_only / np.sum(
+                        weights_model_only, axis=0
+                    )
 
                 # 8.3 Determine the noise cascade and regress this to the subsequent
                 # time step + regress the extrapolation component to the subsequent
@@ -1359,8 +1362,10 @@ def forecast(
                                 )
 
                         # Control member scenario if noise_method is None: set the weights of noise cascade to zero
+                        # and renormalize the other weights to 1.
                         if noise_method is None:
                             weights[-1, :] = 0.0
+                            weights = weights / np.sum(weights, axis=0)
 
                         # Blend the extrapolation, (NWP) model(s) and noise cascades
                         R_f_blended = blending.utils.blend_cascades(
