@@ -48,8 +48,7 @@ import time
 
 import numpy as np
 from scipy.linalg import inv
-from scipy.ndimage import (binary_dilation, generate_binary_structure,
-                           iterate_structure)
+from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
 
 from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
