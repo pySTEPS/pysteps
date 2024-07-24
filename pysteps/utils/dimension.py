@@ -236,6 +236,8 @@ def aggregate_fields(
                 f"dataset.sizes[dim]={dataset.sizes[d]}"
             )
 
+    # FIXME: The aggregation method is applied to all DataArrays in the Dataset
+    #        Fix to allow support for an aggregation method per DataArray
     return (
         dataset.rolling(dict(zip(dim, window_size)))
         .reduce(_aggregation_methods[method])
@@ -285,6 +287,9 @@ def _pad_domain(
     )
 
     dataset_ref = dataset
+
+    # FIXME: The same zerovalue is used for all DataArrays in the Dataset
+    #        Fix to allow support for a zerovalue per DataArray
     dataset = dataset_ref.pad({dim_to_pad: idx_buffer}, constant_values=zerovalue)
     dataset[dim_to_pad] = dataset_ref[dim_to_pad].pad(
         {dim_to_pad: idx_buffer},
@@ -324,17 +329,16 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
 
     dataset = dataset.copy(deep=True)
     precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
     precip_data = dataset[precip_var].values
 
     x_len = len(dataset.x.values)
     y_len = len(dataset.y.values)
 
     if inverse:
-        if "orig_domain" not in metadata or "square_method" not in metadata:
+        if "orig_domain" not in dataset.attrs or "square_method" not in dataset.attrs:
             raise ValueError("Attempting to inverse a non squared dataset")
-        method = metadata.pop("square_method")
-        orig_domain = metadata.pop("orig_domain")
+        method = dataset.attrs.pop("square_method")
+        orig_domain = dataset.attrs.pop("orig_domain")
 
         if method == "pad":
             if x_len > len(orig_domain[1]):
@@ -369,10 +373,10 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
         raise ValueError(f"Unknown square method: {method}")
 
     else:
-        if "orig_domain" in metadata and "square_method" in metadata:
+        if "orig_domain" in dataset.attrs and "square_method" in dataset.attrs:
             raise ValueError("Attempting to square an already squared dataset")
-        metadata["orig_domain"] = (dataset.y.values, dataset.x.values)
-        metadata["square_method"] = method
+        dataset.attrs["orig_domain"] = (dataset.y.values, dataset.x.values)
+        dataset.attrs["square_method"] = method
 
         if method == "pad":
             if x_len > y_len:
