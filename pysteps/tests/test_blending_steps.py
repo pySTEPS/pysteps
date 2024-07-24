@@ -23,9 +23,7 @@ steps_arg_values = [
     (1, 3, 4, 9, "incremental", "cdf", False, "spn", True, 4, False, False, 0, False),
     (2, 3, 10, 8, "incremental", "cdf", False, "spn", True, 10, False, False, 0, False),
     (5, 3, 5, 8, "incremental", "cdf", False, "spn", True, 5, False, False, 0, False),
-    (5, 3, 5, 8, "incremental", "cdf", False, "spn", True, 5, False, False, 0, False),
     (1, 10, 1, 8, "incremental", "cdf", False, "spn", True, 1, False, False, 0, False),
-    (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2, False, False, 0, False),
     (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2, False, False, 0, False),
     (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 0, False),
     #    Test the case where the radar image contains no rain.
