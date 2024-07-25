@@ -39,14 +39,12 @@ def discover_diagnostics():
     importlib.reload(pkg_resources)
 
     for entry_point in pkg_resources.iter_entry_points(
-            group="pysteps.plugins.diagnostics", name=None
+        group="pysteps.plugins.diagnostics", name=None
     ):
         _diagnostics = entry_point.load()
 
         diagnostics_function_name = _diagnostics.__name__
-        diagnostics_short_name = diagnostics_function_name.replace(
-            "diagnostics_", ""
-        )
+        diagnostics_short_name = diagnostics_function_name.replace("diagnostics_", "")
 
         _diagnostics_kws = getattr(_diagnostics, "diagnostics_kws", dict())
         if diagnostics_short_name not in _diagnostics_methods:
@@ -78,9 +76,7 @@ def diagnostics_info():
         if attr.startswith("diagnostics")
     ]
 
-    print(
-        "\ndiagnostics available in the pysteps.postprocessing.diagnostics module"
-    )
+    print("\ndiagnostics available in the pysteps.postprocessing.diagnostics module")
     pprint(available_diagnostics)
 
     # diagnostics declared in the pysteps.postprocessing.get_method interface
@@ -88,9 +84,7 @@ def diagnostics_info():
         f for f in list(postprocessing.interface._diagnostics_methods.keys())
     ]
 
-    print(
-        "\ndiagnostics available in the pysteps.postprocessing.get_method interface"
-    )
+    print("\ndiagnostics available in the pysteps.postprocessing.get_method interface")
     pprint(
         [
             (short_name, f.__name__)
