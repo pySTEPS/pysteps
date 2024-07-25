@@ -16,8 +16,8 @@ import importlib
 
 from pkg_resources import iter_entry_points
 
-import postprocessing
-from postprocessing import diagnostics
+import pysteps.postprocessing
+from pysteps.postprocessing import diagnostics
 from pprint import pprint
 
 _diagnostics_methods = dict()
@@ -72,7 +72,7 @@ def diagnostics_info():
     # diagnostics available in the 'postprocessing.diagnostics' module
     available_diagnostics = [
         attr
-        for attr in dir(postprocessing.diagnostics)
+        for attr in dir(pysteps.postprocessing.diagnostics)
         if attr.startswith("diagnostics")
     ]
 
@@ -81,14 +81,14 @@ def diagnostics_info():
 
     # diagnostics declared in the pysteps.postprocessing.get_method interface
     diagnostics_in_the_interface = [
-        f for f in list(postprocessing.interface._diagnostics_methods.keys())
+        f for f in list(pysteps.postprocessing.interface._diagnostics_methods.keys())
     ]
 
     print("\ndiagnostics available in the pysteps.postprocessing.get_method interface")
     pprint(
         [
             (short_name, f.__name__)
-            for short_name, f in postprocessing.interface._diagnostics_methods.items()
+            for short_name, f in pysteps.postprocessing.interface._diagnostics_methods.items()
         ]
     )
 
