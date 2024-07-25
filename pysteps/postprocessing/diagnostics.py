@@ -21,19 +21,6 @@ Available Postprocessors
 
 """
 
-import gzip
-import os
-from functools import partial
-
-import numpy as np
-
-from matplotlib.pyplot import imread
-
-from pysteps.decorators import postprocess_import
-from pysteps.exceptions import DataModelError
-from pysteps.exceptions import MissingOptionalDependency
-from pysteps.utils import aggregate_fields
-
 try:
     from osgeo import gdal, gdalconst, osr
 
