@@ -108,6 +108,7 @@ def test_io_interface():
     from pysteps.io import initialize_forecast_exporter_geotiff
     from pysteps.io import initialize_forecast_exporter_kineros
     from pysteps.io import initialize_forecast_exporter_netcdf
+    from pysteps.io import initialize_forecast_exporter_xarray_netcdf
 
     # Test importers
     valid_names_func_pair = [
@@ -137,6 +138,7 @@ def test_io_interface():
         ("geotiff", initialize_forecast_exporter_geotiff),
         ("kineros", initialize_forecast_exporter_kineros),
         ("netcdf", initialize_forecast_exporter_netcdf),
+        ("xarray_netcdf", initialize_forecast_exporter_xarray_netcdf),
     ]
     invalid_names = ["hdf"]
 

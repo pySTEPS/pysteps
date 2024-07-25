@@ -166,3 +166,81 @@ def test_steps_callback(tmp_path):
     timestamps = [startdate + (i + 1) * td for i in range(n_timesteps)]
     assert (metadata_netcdf["leadtimes"] == leadtimes).all(), "Wrong leadtimes"
     assert (metadata_netcdf["timestamps"] == timestamps).all(), "Wrong timestamps"
+
+
+def test_steps_xarray_callback(tmp_path):
+    """Test STEPS callback functionality to export the output as a netcdf."""
+
+    pytest.importorskip("netCDF4")
+
+    n_ens_members = 2
+    n_timesteps = 3
+
+    precip_input, metadata = get_precipitation_fields(
+        num_prev_files=2,
+        num_next_files=0,
+        return_raw=False,
+        metadata=True,
+        upscale=2000,
+    )
+    precip_input = precip_input.filled()
+    field_shape = (precip_input.shape[1], precip_input.shape[2])
+    startdate = metadata["timestamps"][-1]
+    timestep = metadata["accutime"]
+
+    motion_field = np.zeros((2, *field_shape))
+
+    exporter = io.initialize_forecast_exporter_xarray_netcdf(
+        outpath=tmp_path.as_posix(),
+        outfnprefix="test_steps",
+        startdate=startdate,
+        timestep=timestep,
+        n_timesteps=n_timesteps,
+        shape=field_shape,
+        n_ens_members=n_ens_members,
+        metadata=metadata,
+        incremental="timestep",
+    )
+
+    def callback(array):
+        return io.export_forecast_dataset(array, exporter)
+
+    precip_output = nowcasts.get_method("steps")(
+        precip_input,
+        motion_field,
+        timesteps=n_timesteps,
+        precip_thr=metadata["threshold"],
+        kmperpixel=2.0,
+        timestep=timestep,
+        seed=42,
+        n_ens_members=n_ens_members,
+        vel_pert_method=None,
+        callback=callback,
+        return_output=True,
+    )
+    io.close_forecast_files(exporter)
+
+    # assert that netcdf exists and its size is not zero
+    tmp_file = os.path.join(tmp_path, "test_steps.nc")
+    assert os.path.exists(tmp_file) and os.path.getsize(tmp_file) > 0
+
+    # assert that the file can be read by the nowcast importer
+    precip_netcdf, metadata_netcdf = io.import_netcdf_pysteps(tmp_file, dtype="float64")
+
+    # assert that the dimensionality of the array is as expected
+    assert precip_netcdf.ndim == 4, "Wrong number of dimensions"
+    assert precip_netcdf.shape[0] == n_ens_members, "Wrong ensemble size"
+    assert precip_netcdf.shape[1] == n_timesteps, "Wrong number of lead times"
+    assert precip_netcdf.shape[2:] == field_shape, "Wrong field shape"
+
+    # assert that the saved output is the same as the original output
+    assert np.allclose(
+        precip_netcdf, precip_output, equal_nan=True
+    ), "Wrong output values"
+
+    # assert that leadtimes and timestamps are as expected
+    td = timedelta(minutes=timestep)
+    leadtimes = [(i + 1) * timestep for i in range(n_timesteps)]
+    timestamps = [startdate + (i + 1) * td for i in range(n_timesteps)]
+    assert (metadata_netcdf["leadtimes"] == leadtimes).all(), "Wrong leadtimes"
+    assert (metadata_netcdf["timestamps"] == timestamps).all(), "Wrong timestamps"

@@ -94,6 +94,7 @@ import os
 from datetime import datetime
 
 import numpy as np
+import xarray as xr
 
 from pysteps.exceptions import MissingOptionalDependency
 
@@ -115,6 +116,13 @@ try:
     PYPROJ_IMPORTED = True
 except ImportError:
     PYPROJ_IMPORTED = False
+
+try:
+    import xarray as xr
+
+    XARRAY_IMPORTED = True
+except ImportError:
+    XARRAY_IMPORTED = False
 
 
 def initialize_forecast_exporter_geotiff(
@@ -653,6 +661,325 @@ def initialize_forecast_exporter_netcdf(
     return exporter
 
 
+def initialize_forecast_exporter_xarray_netcdf(
+    outpath,
+    outfnprefix,
+    startdate,
+    timestep,
+    n_timesteps,
+    shape,
+    metadata,
+    n_ens_members=1,
+    datatype=np.float32,
+    incremental=None,
+    fill_value=None,
+    scale_factor=None,
+    offset=None,
+    **kwargs,
+):
+    """
+    Initialize a Xarray bassed netCDF forecast exporter. All outputs are written to a
+    single file named as '<outfnprefix>_.nc'.
+
+    Parameters
+    ----------
+    outpath: str
+        Output path.
+    outfnprefix: str
+        Prefix for output file names.
+    startdate: datetime.datetime
+        Start date of the forecast.
+    timestep: int
+        Time step of the forecast (minutes).
+    n_timesteps: int or list of integers
+      Number of time steps to forecast or a list of time steps for which the
+      forecasts are computed (relative to the input time step). The elements of
+      the list are required to be in ascending order.
+    shape: tuple of int
+        Two-element tuple defining the shape (height,width) of the forecast
+        grids.
+    metadata: dict
+        Metadata dictionary containing the projection, x1, x2, y1, y2,
+        unit attributes (projection and variable units) described in the
+        documentation of :py:mod:`pysteps.io.importers`.
+    n_ens_members: int
+        Number of ensemble members in the forecast. This argument is ignored if
+        incremental is set to 'member'.
+    datatype: np.dtype, optional
+        The datatype of the output values. Defaults to np.float32.
+    incremental: {None,'timestep','member'}, optional
+        Allow incremental writing of datasets into the netCDF files.\n
+        The available options are: 'timestep' = write a forecast or a forecast
+        ensemble for  a given time step; 'member' = write a forecast sequence
+        for a given ensemble member. If set to None, incremental writing is
+        disabled.
+    fill_value: int, optional
+        Fill_value for missing data. Defaults to None, which means that the
+        standard netCDF4 fill_value is used.
+    scale_factor: float, optional
+        The scale factor to scale the data as: store_value = scale_factor *
+        precipitation_value + offset. Defaults to None. The scale_factor
+        can be used to reduce data storage.
+    offset: float, optional
+        The offset to offset the data as: store_value = scale_factor *
+        precipitation_value + offset. Defaults to None.
+
+    Other Parameters
+    ----------------
+    institution: str
+        The instute, company or community that has created the nowcast.
+        Default: the pySTEPS community (https://pysteps.github.io)
+    references: str
+        Any references to be included in the netCDF file. Defaults to " ".
+    comment: str
+        Any comments about the data or storage protocol that should be
+        included in the netCDF file. Defaults to " ".
+
+    Returns
+    -------
+    exporter: dict
+        The return value is a dictionary containing an exporter object. This c
+        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
+        to write datasets into the given file format.
+    """
+    if not XARRAY_IMPORTED:
+        raise MissingOptionalDependency(
+            "Xarray package is required for xarray netcdf exporter but it is not installed"
+        )
+
+    if not NETCDF4_IMPORTED:
+        raise MissingOptionalDependency(
+            "netCDF4 package is required for netcdf "
+            "exporters but it is not installed"
+        )
+
+    if not PYPROJ_IMPORTED:
+        raise MissingOptionalDependency(
+            "pyproj package is required for netcdf " "exporters but it is not installed"
+        )
+
+    if incremental not in [None, "timestep", "member"]:
+        raise ValueError(
+            f"unknown option {incremental}: incremental must be "
+            + "'timestep' or 'member'"
+        )
+
+    n_timesteps_is_list = isinstance(n_timesteps, list)
+    if n_timesteps_is_list:
+        num_timesteps = len(n_timesteps)
+    else:
+        num_timesteps = n_timesteps
+
+    if incremental == "timestep":
+        num_timesteps = None
+    elif incremental == "member":
+        n_ens_members = None
+    elif incremental is not None:
+        raise ValueError(
+            f"unknown argument value incremental='{str(incremental)}': "
+            + "must be 'timestep' or 'member'"
+        )
+
+    n_ens_gt_one = False
+    if n_ens_members is not None:
+        if n_ens_members > 1:
+            n_ens_gt_one = True
+
+    # Kwargs to be used as description strings in the netCDF
+    institution = kwargs.get(
+        "institution", "the pySTEPS community (https://pysteps.github.io)"
+    )
+    references = kwargs.get("references", "")
+    comment = kwargs.get("comment", "")
+
+    exporter = {}
+
+    outfn = os.path.join(outpath, outfnprefix)
+
+    attrs = {
+        "Conventions": "CF-1.7",
+        "title": "pysteps-generated nowcast",
+        "institution": institution,
+        "source": "pysteps",
+        "history": "",
+        "references": references,
+        "comment": comment,
+    }
+
+    h, w = shape
+
+    if metadata["unit"] == "mm/h":
+        var_name = "precip_intensity"
+        var_standard_name = None
+        var_long_name = "instantaneous precipitation rate"
+        var_unit = "mm h-1"
+    elif metadata["unit"] == "mm":
+        var_name = "precip_accum"
+        var_standard_name = None
+        var_long_name = "accumulated precipitation"
+        var_unit = "mm"
+    elif metadata["unit"] == "dBZ":
+        var_name = "reflectivity"
+        var_long_name = "equivalent reflectivity factor"
+        var_standard_name = "equivalent_reflectivity_factor"
+        var_unit = "dBZ"
+    else:
+        raise ValueError("unknown unit %s" % metadata["unit"])
+
+    x_r = np.linspace(metadata["x1"], metadata["x2"], w + 1)[:-1]
+    x_r += 0.5 * (x_r[1] - x_r[0])
+    y_r = np.linspace(metadata["y1"], metadata["y2"], h + 1)[:-1]
+    y_r += 0.5 * (y_r[1] - y_r[0])
+
+    # flip yr vector if yorigin is upper
+    if metadata["yorigin"] == "upper":
+        y_r = np.flip(y_r)
+
+    coords = {
+        "x": (
+            ["x"],
+            x_r,
+            {
+                "axis": "X",
+                "standard_name": "projection_x_coordinate",
+                "long_name": "x-coordinate in Cartesian system",
+                "units": metadata["cartesian_unit"],
+            },
+        ),
+        "y": (
+            ["y"],
+            y_r,
+            {
+                "axis": "Y",
+                "standard_name": "projection_y_coordinate",
+                "long_name": "y-coordinate in Cartesian system",
+                "units": metadata["cartesian_unit"],
+            },
+        ),
+    }
+
+    if incremental == "member" or n_ens_gt_one:
+        var_end_num = list()
+        if incremental != "member":
+            var_ens_num = list(range(1, n_ens_members + 1))
+        coords["ens_number"] = (
+            ["end_number"],
+            var_ens_num,
+            {
+                "long_name": "ensemble member",
+                "standard_name": "realization",
+                "units": "",
+            },
+        )
+
+    startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
+    if n_timesteps_is_list:
+        time_arr_ = np.array(n_timesteps) * timestep * 60
+    else:
+        time_arr_ = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
+
+    coords["time"] = (
+        ["time"],
+        time_arr_,
+        {"long_name": "forecast time", "units": f"seconds since %s" % startdate_str},
+    )
+
+    if incremental == "member" or n_ens_gt_one:
+        var_name_dims = ["ens_number", "time", "y", "x"]
+        zero_vars_array = np.zeros(shape=(n_ens_members, len(time_arr_), h, w))
+    else:
+        var_name_dims = ["time", "y", "x"]
+        zero_vars_array = np.zeros(shape=(len(time_arr_), h, w))
+
+    x_2d, y_2d = np.meshgrid(x_r, y_r)
+    pr = pyproj.Proj(metadata["projection"])
+    lon, lat = pr(x_2d.flatten(), y_2d.flatten(), inverse=True)
+
+    if fill_value == None:
+        fill_value = "None"
+
+    data_vars = {
+        var_name: (
+            var_name_dims,
+            zero_vars_array,
+            {
+                "compression": "zlib",
+                "zlib": "True",
+                "complevel": 9,
+                "fill_value": fill_value,
+                "long_name": var_long_name,
+                "coordinates": "y x",
+                "units": var_unit,
+            },
+        ),
+        "lon": (
+            ["y", "x"],
+            lon.reshape(shape),
+            {
+                "long_name": "longitude coordinate",
+                "standard_name": "longitude",
+                "units": "degrees_east",
+            },
+        ),
+        "lat": (
+            ["y", "x"],
+            lat.reshape(shape),
+            {
+                "long_name": "latitude coordinate",
+                "standard_name": "latitude",
+                "units": "degrees_north",
+            },
+        ),
+    }
+
+    (
+        grid_mapping_var_name,
+        grid_mapping_name,
+        grid_mapping_params,
+    ) = _convert_proj4_to_grid_mapping(metadata["projection"])
+
+    if var_standard_name is not None:
+        data_vars[var_name].standard_name = var_standard_name
+
+    if grid_mapping_var_name is not None:
+        data_vars[var_name].grid_mapping = grid_mapping_var_name
+
+    if grid_mapping_var_name is not None:
+        coords[grid_mapping_name] = (
+            (
+                [],
+                None,
+                {"grid_mapping_name": grid_mapping_name, **grid_mapping_params},
+            ),
+        )
+
+    attrs = {
+        "Conventions": "CF-1.7",
+        "institution": metadata["institution"],
+        "projection": metadata["projection"],
+        "precip_var": var_name,
+    }
+
+    exporter["method"] = "xarray_netcdf"
+    exporter["ds"] = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
+    if incremental == "member" or n_ens_gt_one:
+        exporter["var_ens_num"] = var_ens_num
+    exporter["var_name"] = var_name
+    exporter["startdate"] = startdate
+    exporter["timestep"] = timestep
+    exporter["metadata"] = metadata
+    exporter["incremental"] = incremental
+    exporter["num_timesteps"] = num_timesteps
+    exporter["timesteps"] = n_timesteps
+    exporter["num_ens_members"] = n_ens_members
+    exporter["shape"] = shape
+    exporter["time_step"] = 0
+    exporter["member_no"] = 0
+    exporter["outfn"] = outfn
+
+    return exporter
+
+
 def export_forecast_dataset(field, exporter):
     """Write a forecast array into a file.
 
@@ -736,6 +1063,8 @@ def export_forecast_dataset(field, exporter):
         _export_netcdf(field, exporter)
     elif exporter["method"] == "kineros":
         _export_kineros(field, exporter)
+    elif exporter["method"] == "xarray_netcdf":
+        _export_xarray_netcdf(field, exporter)
     else:
         raise ValueError("unknown exporter method %s" % exporter["method"])
 
@@ -760,6 +1089,10 @@ def close_forecast_files(exporter):
         # datasets are deleted (i.e. when the exporter object is deleted).
     if exporter["method"] == "kineros":
         pass  # no need to close the file
+    if exporter["method"] == "xarray_netcdf":
+        exporter["ds"].to_netcdf(
+            path=exporter["outfn"], mode="w", engine="h5netcdf", format="NETCDF4"
+        )
     else:
         exporter["ncfile"].close()
 
@@ -874,6 +1207,34 @@ def _export_netcdf(field, exporter):
         var_f[var_f.shape[0], :, :, :] = field
         var_ens_num = exporter["var_ens_num"]
         var_ens_num[len(var_ens_num) - 1] = len(var_ens_num)
+
+
+def _export_xarray_netcdf(field, exporter):
+
+    ds = exporter["ds"]
+    curr_time_step = exporter["time_step"]
+    if exporter["incremental"] is None:
+        ds[exporter["var_name"]].values = field
+
+    elif exporter["incremental"] == "timestep":
+        if exporter["num_ens_members"] > 1:
+            ds[exporter["var_name"]].values[:, curr_time_step, :, :] = field
+        else:
+            ds[exporter["var_name"]].values[curr_time_step, :, :] = field
+        var_time = ds["time"].values
+        if isinstance(exporter["timesteps"], list):
+            var_time[len(var_time) - 1] = (
+                exporter["timesteps"][len(var_time) - 1] * exporter["timestep"] * 60
+            )
+        else:
+            var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
+
+        exporter["time_step"] += 1
+    else:
+        ds[exporter["var_name"]].values[exporter["member_no"], :, :, :] = field
+        var_ens_num = exporter["var_ens_num"]
+        var_ens_num[len(var_ens_num) - 1] = len(var_ens_num)
+        exporter["member_no"] += 1
 
 
 # TODO(exporters): Write methods for converting Proj.4 projection definitions
