@@ -1,5 +1,5 @@
 """
-pysteps.io.postprocessors
+pysteps.postprocessing.diagnostics
 ====================
 
 Methods for applying postprocessing.
@@ -10,7 +10,8 @@ The methods in this module implement the following interface::
 
 where **xxx** is the name of the postprocess to be applied.
 
-Postprocessor standardizations can be specified here if there is a desired input and output format that all should adhere to.
+Postprocessor standardizations can be specified here if there is a desired input and output format that all should
+adhere to.
 
 Available Postprocessors
 ------------------------
