@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import datetime
-import pytest
-import pysteps
-from pysteps import cascade, blending
 
+import numpy as np
+import pytest
+
+import pysteps
+from pysteps import blending, cascade
 
 steps_arg_values = [
     (1, 3, 4, 8, None, None, False, "spn", True, 4, False, False, 0, False),
@@ -14,6 +15,7 @@ steps_arg_values = [
     (1, 3, 4, 8, None, "mean", False, "spn", True, 4, False, False, 0, False),
     (1, 3, 4, 8, None, "mean", False, "spn", True, 4, False, False, 0, True),
     (1, 3, 4, 8, None, "cdf", False, "spn", True, 4, False, False, 0, False),
+    (1, [1, 2, 3], 4, 8, None, "cdf", False, "spn", True, 4, False, False, 0, False),
     (1, 3, 4, 8, "incremental", "cdf", False, "spn", True, 4, False, False, 0, False),
     (1, 3, 4, 6, "incremental", "cdf", False, "bps", True, 4, False, False, 0, False),
     (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4, False, False, 0, False),
@@ -42,11 +44,13 @@ steps_arg_values = [
     (1, 3, 6, 8, None, None, False, "spn", True, 6, False, True, 80, False),
     (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False, 80, True),
     (5, 3, 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False),
+    (5, [1, 2, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False),
+    (5, [1, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False),
 ]
 
 steps_arg_names = (
     "n_models",
-    "n_timesteps",
+    "timesteps",
     "n_ens_members",
     "n_cascade_levels",
     "mask_method",
@@ -65,7 +69,7 @@ steps_arg_names = (
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
 def test_steps_blending(
     n_models,
-    n_timesteps,
+    timesteps,
     n_ens_members,
     n_cascade_levels,
     mask_method,
@@ -85,7 +89,14 @@ def test_steps_blending(
     # The input data
     ###
     # Initialise dummy NWP data
-    nwp_precip = np.zeros((n_models, n_timesteps + 1, 200, 200))
+    if not isinstance(timesteps, int):
+        n_timesteps = len(timesteps)
+        last_timestep = timesteps[-1]
+    else:
+        n_timesteps = timesteps
+        last_timestep = timesteps
+
+    nwp_precip = np.zeros((n_models, last_timestep + 1, 200, 200))
 
     if not zero_nwp:
         for n_model in range(n_models):
@@ -250,7 +261,7 @@ def test_steps_blending(
         precip_models=nwp_precip_decomp,
         velocity=radar_velocity,
         velocity_models=nwp_velocity,
-        timesteps=n_timesteps,
+        timesteps=timesteps,
         timestep=5.0,
         issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
         n_ens_members=n_ens_members,
