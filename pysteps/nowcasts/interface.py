@@ -60,7 +60,6 @@ _nowcast_methods["steps"] = steps.forecast
 
 
 
-
 def discover_nowcasts():
     """
     Search for installed importers plugins in the entrypoint 'pysteps.nowcast'
@@ -165,30 +164,8 @@ def nowcasts_info():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def get_method(name):
     
-   
     """
     Return a callable function for computing nowcasts.
 
