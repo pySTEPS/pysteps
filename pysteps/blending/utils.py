@@ -470,7 +470,7 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     decomp_dict = {
         "domain": ncf_decomp.domain,
         "normalized": bool(ncf_decomp.normalized),
-        "compact_output": bool(ncf_decomp.compact_output)
+        "compact_output": bool(ncf_decomp.compact_output),
     }
 
     # Convert the start time and the timestep to datetime64 and timedelta64 type
@@ -512,7 +512,9 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     stds = ncf_decomp.variables["stds"][start_i:end_i, :]
 
     for i in range(n_timesteps + 1):
-        decomp_dict["cascade_levels"] = np.ma.filled(pr_decomposed[i], fill_value=np.nan)
+        decomp_dict["cascade_levels"] = np.ma.filled(
+            pr_decomposed[i], fill_value=np.nan
+        )
         decomp_dict["means"] = np.ma.filled(means[i], fill_value=np.nan)
         decomp_dict["stds"] = np.ma.filled(stds[i], fill_value=np.nan)
 

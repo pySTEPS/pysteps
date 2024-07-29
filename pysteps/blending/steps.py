@@ -57,6 +57,8 @@ from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
 from pysteps import blending
 
+from copy import deepcopy
+
 try:
     import dask
 
@@ -694,15 +696,11 @@ def forecast(
         # 5. Repeat precip_cascade for n ensemble members
         # First, discard all except the p-1 last cascades because they are not needed
         # for the AR(p) model
-        precip_cascade = [
-            precip_cascade[i][-ar_order:] for i in range(n_cascade_levels)
-        ]
 
-        precip_cascade = [
-            [precip_cascade[j].copy() for j in range(n_cascade_levels)]
-            for i in range(n_ens_members)
-        ]
-        precip_cascade = np.stack(precip_cascade)
+        precip_cascade = np.stack(
+            [[precip_cascade[i][-ar_order:].copy() for i in range(n_cascade_levels)]]
+            * n_ens_members
+        )
 
         # 6. Initialize all the random generators and prepare for the forecast loop
         randgen_prec, vps, generate_vel_noise = _init_random_generators(
@@ -773,8 +771,10 @@ def forecast(
             timestep_type = "list"
 
         extrap_kwargs["return_displacement"] = True
-        forecast_prev = precip_cascade
-        noise_prev = noise_cascade
+
+        forecast_prev = deepcopy(precip_cascade)
+        noise_prev = deepcopy(noise_cascade)
+
         t_prev = [0.0 for j in range(n_ens_members)]
         t_total = [0.0 for j in range(n_ens_members)]
 
