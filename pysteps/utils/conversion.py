@@ -70,7 +70,7 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset to be (back-)transformed.
 
         Additionally, in case of conversion to/from reflectivity units, the
@@ -83,7 +83,7 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the converted units.
     """
 
@@ -159,7 +159,7 @@ def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset to be (back-)transformed.
 
         Additionally, in case of conversion to/from reflectivity units, the
@@ -172,7 +172,7 @@ def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the converted units.
     """
 
@@ -248,7 +248,7 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset to be (back-)transformed.
 
         Additionally, in case of conversion to/from reflectivity units, the
@@ -261,7 +261,7 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the converted units.
     """
 

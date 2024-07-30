@@ -41,7 +41,7 @@ def boxcox_transform(
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset to be transformed.
     Lambda: float, optional
         Parameter Lambda of the Box-Cox transformation.
@@ -62,7 +62,7 @@ def boxcox_transform(
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the (back-)transformed units.
 
     References
@@ -146,7 +146,7 @@ def dB_transform(
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset to be (back-)transformed.
     threshold: float, optional
         Optional value that is used for thresholding with the same units as in the dataset.
@@ -161,7 +161,7 @@ def dB_transform(
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the (back-)transformed units.
     """
 
@@ -223,7 +223,7 @@ def NQ_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.Dat
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
        Dataset to be transformed.
     inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
@@ -238,7 +238,7 @@ def NQ_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.Dat
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the (back-)transformed units.
 
     References
@@ -309,14 +309,14 @@ def sqrt_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.D
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset to be transformed.
     inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the (back-)transformed units.
 
     """

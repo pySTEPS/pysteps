@@ -124,7 +124,7 @@ def get_precipitation_fields(
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
     """
 
     if source == "bom":

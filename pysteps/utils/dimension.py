@@ -24,12 +24,21 @@ _aggregation_methods = dict(
 )
 
 
-def aggregate_fields_time(dataset: xr.Dataset, time_window_min, ignore_nan=False):
+def aggregate_fields_time(
+    dataset: xr.Dataset, time_window_min, ignore_nan=False
+) -> xr.Dataset:
     """Aggregate fields in time.
+
+    It attempts to aggregate the given dataset in the time direction in an integer
+    number of sections of length = ``time_window_min``.
+    If such a aggregation is not possible, an error is raised.
+    The data is aggregated by a method chosen based on the unit of the precipitation
+    data in the dataset. ``mean`` is used when the unit is ``mm/h`` and ``sum``
+    is used when the unit is ``mm``. For other units an error is raised.
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing
         a time series of (ensemble) input fields.
         They must be evenly spaced in time.
@@ -44,7 +53,7 @@ def aggregate_fields_time(dataset: xr.Dataset, time_window_min, ignore_nan=False
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         The new dataset.
 
     See also
@@ -87,30 +96,37 @@ def aggregate_fields_time(dataset: xr.Dataset, time_window_min, ignore_nan=False
     return aggregate_fields(dataset, window_size, dim="time", method=method)
 
 
-def aggregate_fields_space(dataset: xr.Dataset, space_window, ignore_nan=False):
+def aggregate_fields_space(
+    dataset: xr.Dataset, space_window, ignore_nan=False
+) -> xr.Dataset:
     """
     Upscale fields in space.
 
+    It attempts to aggregate the given dataset in y and x direction in an integer
+    number of sections of length = ``(window_size_y, window_size_x)``.
+    If such a aggregation is not possible, an error is raised.
+    The data is aggregated by computing the mean. Only datasets with precipitation
+    data in the ``mm`` or ``mm/h`` unit are currently supported.
+
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing a single field or
         a time series of (ensemble) input fields.
     space_window: float, tuple or None
         The length of the space window that is used to upscale the fields.
         If a float is given, the same window size is used for the x- and
         y-directions. Separate window sizes are used for x- and y-directions if
-        a two-element tuple is given. The space_window unit is the same used in
-        the geographical projection of R and hence the same as for the xpixelsize
-        and ypixelsize attributes. The space spanned by the n- and m-dimensions
-        of R must be a multiple of space_window. If set to None, the function
-        returns a copy of the original R and metadata.
+        a two-element tuple is given (y, x). The space_window unit is the same
+        as the unit of x and y in the input dataset. The space spanned by the
+        n- and m-dimensions of the dataset content must be a multiple of space_window.
+        If set to None, the function returns a copy of the original dataset.
     ignore_nan: bool, optional
         If True, ignore nan values.
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         The new dataset.
 
     See also
@@ -154,10 +170,10 @@ def aggregate_fields_space(dataset: xr.Dataset, space_window, ignore_nan=False):
 
 def aggregate_fields(
     dataset: xr.Dataset, window_size, dim="x", method="mean", trim=False
-):
+) -> xr.Dataset:
     """Aggregate fields along a given direction.
 
-    It attempts to aggregate the given R dim in an integer number of sections
+    It attempts to aggregate the given dataset dim in an integer number of sections
     of length = ``window_size``.
     If such a aggregation is not possible, an error is raised unless ``trim``
     set to True, in which case the dim is trimmed (from the end)
@@ -165,7 +181,7 @@ def aggregate_fields(
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the input fields.
     window_size: int or array-like of ints
         The length of the window that is used to aggregate the fields.
@@ -195,7 +211,7 @@ def aggregate_fields(
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         The new dataset.
 
     See also
@@ -256,7 +272,7 @@ def clip_domain(dataset: xr.Dataset, extent=None):
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the input fields.
     extent: scalars (left, right, bottom, top), optional
         The extent of the bounding box in data coordinates to be used to clip
@@ -268,7 +284,7 @@ def clip_domain(dataset: xr.Dataset, extent=None):
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         The clipped dataset
     """
     if extent is None:
@@ -308,7 +324,7 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
 
     Parameters
     ----------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the input fields.
     method: {'pad', 'crop'}, optional
         Either pad or crop.
@@ -323,7 +339,7 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         the reshaped dataset
     """
 
