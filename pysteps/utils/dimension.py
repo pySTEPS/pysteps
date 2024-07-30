@@ -39,8 +39,8 @@ def aggregate_fields_time(
     Parameters
     ----------
     dataset: xarray.Dataset
-        Dataset containing
-        a time series of (ensemble) input fields.
+        Dataset containing a time series of (ensemble) input fields
+        as described in the documentation of :py:mod:`pysteps.io.importers`.
         They must be evenly spaced in time.
     time_window_min: float or None
         The length in minutes of the time window that is used to
@@ -112,7 +112,8 @@ def aggregate_fields_space(
     ----------
     dataset: xarray.Dataset
         Dataset containing a single field or
-        a time series of (ensemble) input fields.
+        a time series of (ensemble) input fields as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     space_window: float, tuple or None
         The length of the space window that is used to upscale the fields.
         If a float is given, the same window size is used for the x- and
@@ -182,7 +183,8 @@ def aggregate_fields(
     Parameters
     ----------
     dataset: xarray.Dataset
-        Dataset containing the input fields.
+        Dataset containing the input fields as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     window_size: int or array-like of ints
         The length of the window that is used to aggregate the fields.
         If a single integer value is given, the same window is used for
@@ -273,7 +275,8 @@ def clip_domain(dataset: xr.Dataset, extent=None):
     Parameters
     ----------
     dataset: xarray.Dataset
-        Dataset containing the input fields.
+        Dataset containing the input fields as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     extent: scalars (left, right, bottom, top), optional
         The extent of the bounding box in data coordinates to be used to clip
         the data.
@@ -325,7 +328,8 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
     Parameters
     ----------
     dataset: xarray.Dataset
-        Dataset containing the input fields.
+        Dataset containing the input fields as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     method: {'pad', 'crop'}, optional
         Either pad or crop.
         If pad, an equal number of zeros is added to both ends of its shortest

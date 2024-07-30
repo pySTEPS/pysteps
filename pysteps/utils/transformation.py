@@ -42,7 +42,8 @@ def boxcox_transform(
     Parameters
     ----------
     dataset: xarray.Dataset
-        Dataset to be transformed.
+        Dataset to be transformed as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     Lambda: float, optional
         Parameter Lambda of the Box-Cox transformation.
         It is 0 by default, which produces the log transformation.
@@ -147,7 +148,8 @@ def dB_transform(
     Parameters
     ----------
     dataset: xarray.Dataset
-        Dataset to be (back-)transformed.
+        Dataset to be (back-)transformed as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     threshold: float, optional
         Optional value that is used for thresholding with the same units as in the dataset.
         If None, the threshold contained in metadata is used.
@@ -224,7 +226,8 @@ def NQ_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.Dat
     Parameters
     ----------
     dataset: xarray.Dataset
-       Dataset to be transformed.
+       Dataset to be transformed as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
@@ -310,7 +313,8 @@ def sqrt_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.D
     Parameters
     ----------
     dataset: xarray.Dataset
-        Dataset to be transformed.
+        Dataset to be transformed as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
     inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 

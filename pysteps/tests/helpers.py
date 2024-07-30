@@ -125,6 +125,7 @@ def get_precipitation_fields(
     Returns
     -------
     dataset: xarray.Dataset
+        As described in the documentation of :py:mod:`pysteps.io.importers`.
     """
 
     if source == "bom":
