@@ -50,14 +50,10 @@ import numpy as np
 from scipy.linalg import inv
 from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
 
-from pysteps import cascade
-from pysteps import extrapolation
-from pysteps import noise
-from pysteps import utils
+from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps import blending
 
 try:
     import dask
@@ -578,6 +574,14 @@ def forecast(
         precip_models_pm, precip_thr, norain_thr
     )
 
+    if isinstance(timesteps, int):
+        timesteps = list(range(timesteps + 1))
+        timestep_type = "int"
+    else:
+        original_timesteps = [0] + list(timesteps)
+        timesteps = nowcast_utils.binned_timesteps(original_timesteps)
+        timestep_type = "list"
+
     # 2.3.1 If precip is below the norain threshold and precip_models_pm is zero,
     # we consider it as no rain in the domain.
     # The forecast will directly return an array filled with the minimum
@@ -591,14 +595,6 @@ def forecast(
         # Create the output list
         R_f = [[] for j in range(n_ens_members)]
 
-        if isinstance(timesteps, int):
-            timesteps = range(timesteps + 1)
-            timestep_type = "int"
-        else:
-            original_timesteps = [0] + list(timesteps)
-            timesteps = nowcast_utils.binned_timesteps(original_timesteps)
-            timestep_type = "list"
-
         # Save per time step to ensure the array does not become too large if
         # no return_output is requested and callback is not None.
         for t, subtimestep_idx in enumerate(timesteps):
@@ -610,12 +606,13 @@ def forecast(
                 R_f_ = np.full(
                     (n_ens_members, precip_shape[0], precip_shape[1]), np.nanmin(precip)
                 )
-                if callback is not None:
-                    if R_f_.shape[1] > 0:
-                        callback(R_f_.squeeze())
-                if return_output:
-                    for j in range(n_ens_members):
-                        R_f[j].append(R_f_[j])
+                if subtimestep_idx:
+                    if callback is not None:
+                        if R_f_.shape[1] > 0:
+                            callback(R_f_.squeeze())
+                    if return_output:
+                        for j in range(n_ens_members):
+                            R_f[j].append(R_f_[j])
 
                 R_f_ = None
 
@@ -680,7 +677,8 @@ def forecast(
                 precip_models_pm, precip_thr, precip_models_pm.shape[0], timesteps
             )
             # Make sure precip_noise_input is three dimensional
-            precip_noise_input = precip_noise_input[np.newaxis, :, :]
+            if len(precip_noise_input.shape) != 3:
+                precip_noise_input = precip_noise_input[np.newaxis, :, :]
         else:
             precip_noise_input = precip.copy()
 
@@ -781,14 +779,6 @@ def forecast(
 
         if measure_time:
             starttime_mainloop = time.time()
-
-        if isinstance(timesteps, int):
-            timesteps = range(timesteps + 1)
-            timestep_type = "int"
-        else:
-            original_timesteps = [0] + list(timesteps)
-            timesteps = nowcast_utils.binned_timesteps(original_timesteps)
-            timestep_type = "list"
 
         extrap_kwargs["return_displacement"] = True
         forecast_prev = precip_cascade
@@ -2498,7 +2488,7 @@ def _determine_max_nr_rainy_cells_nwp(
     max_rain_pixels_j = -1
     max_rain_pixels_t = -1
     for j in range(n_models):
-        for t in range(timesteps):
+        for t in timesteps:
             rain_pixels = precip_models_pm[j][t][
                 precip_models_pm[j][t] > precip_thr
             ].size
