@@ -89,7 +89,10 @@ import os
 from functools import partial
 
 import numpy as np
+import xarray as xr
 from matplotlib.pyplot import imread
+from .. import converters
+
 
 from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
@@ -1251,7 +1254,7 @@ def _import_mch_geodata():
 
 
 @postprocess_import()
-def import_odim_hdf5(filename, qty="RATE", **kwargs):
+def import_odim_hdf5(filename, qty="RATE", **kwargs) -> xr.Dataset:
     """
     Import a precipitation field (and optionally the quality field) from a
     HDF5 file conforming to the ODIM specification.
@@ -1464,7 +1467,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
 
     f.close()
 
-    return precip, quality, metadata
+    return converters.convert_to_xarray_dataset(
+        precip=precip, quality=quality, metadata=metadata
+    )
 
 
 def import_opera_hdf5(filename, qty="RATE", **kwargs):

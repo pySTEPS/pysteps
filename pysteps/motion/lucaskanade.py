@@ -33,11 +33,13 @@ from pysteps.utils.cleansing import decluster, detect_outliers
 from pysteps.utils.images import morph_opening
 
 import time
+import xarray as xr
+import numpy.typing as npt
 
 
-@check_input_frames(2)
+# @check_input_frames(2)
 def dense_lucaskanade(
-    input_images,
+    dataset: xr.Dataset,
     lk_kwargs=None,
     fd_method="shitomasi",
     fd_kwargs=None,
@@ -49,7 +51,7 @@ def dense_lucaskanade(
     size_opening=3,
     decl_scale=20,
     verbose=False,
-):
+) -> npt.NDArray | tuple[npt.NDArray, npt.NDArray] | None:
     """
     Run the Lucas-Kanade optical flow routine and interpolate the motion
     vectors.
@@ -73,10 +75,9 @@ def dense_lucaskanade(
 
     Parameters
     ----------
-    input_images: ndarray_ or MaskedArray_
-        Array of shape (T, m, n) containing a sequence of *T* two-dimensional
-        input images of shape (m, n). The indexing order in **input_images** is
-        assumed to be (time, latitude, longitude).
+    dataset: dataset
+        a time series of (ensemble) input fields.
+        They must be evenly spaced in time.
 
         *T* = 2 is the minimum required number of images.
         With *T* > 2, all the resulting sparse vectors are pooled together for
@@ -179,14 +180,17 @@ def dense_lucaskanade(
     Understanding Workshop, pp. 121–130, 1981.
     """
 
-    input_images = input_images.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+
+    precip = dataset[precip_var].values
 
     if verbose:
         print("Computing the motion field with the Lucas-Kanade method.")
         t0 = time.time()
 
-    nr_fields = input_images.shape[0]
-    domain_size = (input_images.shape[1], input_images.shape[2])
+    nr_fields = precip.shape[0]
+    domain_size = (precip.shape[1], precip.shape[2])
 
     feature_detection_method = feature.get_method(fd_method)
     interpolation_method = utils.get_method(interp_method)
@@ -206,8 +210,8 @@ def dense_lucaskanade(
     uv = np.empty(shape=(0, 2))
     for n in range(nr_fields - 1):
         # extract consecutive images
-        prvs_img = input_images[n, :, :].copy()
-        next_img = input_images[n + 1, :, :].copy()
+        prvs_img = precip[n, :, :].copy()
+        next_img = precip[n + 1, :, :].copy()
 
         # Check if a MaskedArray is used. If not, mask the ndarray
         if not isinstance(prvs_img, MaskedArray):

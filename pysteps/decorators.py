@@ -21,6 +21,7 @@ from collections import defaultdict
 from functools import wraps
 
 import numpy as np
+import xarray as xr
 
 from pysteps.converters import convert_to_xarray_dataset
 
@@ -68,7 +69,19 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     def _postprocess_import(importer):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
-            precip, quality, metadata = importer(*args, **kwargs)
+            ds = importer(*args, **kwargs)
+
+            if type(ds) is xr.Dataset:
+                precip_var = ds.attrs["precip_var"]
+                metadata = ds[precip_var].attrs
+                precip = ds[precip_var].values
+                quality = None
+
+                if ds.get("quality") is not None:
+                    quality = ds["quality"]
+
+            else:
+                precip, quality, metadata = ds
 
             _dtype = kwargs.get("dtype", dtype)
 

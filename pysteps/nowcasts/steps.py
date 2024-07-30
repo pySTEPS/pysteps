@@ -12,6 +12,9 @@ Implementation of the STEPS stochastic nowcasting method as described in
 """
 
 import numpy as np
+import xarray as xr
+import numpy.typing as npt
+
 from scipy.ndimage import generate_binary_structure, iterate_structure
 import time
 
@@ -35,7 +38,7 @@ except ImportError:
 
 @deprecate_args({"R": "precip", "V": "velocity", "R_thr": "precip_thr"}, "1.8.0")
 def forecast(
-    precip,
+    dataset: xr.Dataset,
     velocity,
     timesteps,
     n_ens_members=24,
@@ -72,10 +75,9 @@ def forecast(
 
     Parameters
     ----------
-    precip: array-like
-        Array of shape (ar_order+1,m,n) containing the input precipitation fields
-        ordered by timestamp from oldest to newest. The time steps between the
-        inputs are assumed to be regular.
+    dataset: dataset
+        a time series of (ensemble) input fields.
+        They must be evenly spaced in time.
     velocity: array-like
         Array of shape (2,m,n) containing the x- and y-components of the advection
         field. The velocities are assumed to represent one time step between the
@@ -261,7 +263,13 @@ def forecast(
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
     """
 
-    _check_inputs(precip, velocity, timesteps, ar_order)
+    dataset = dataset.copy(deep=True)
+
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip = dataset[precip_var].values
+
+    _check_inputs(dataset, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -691,7 +699,10 @@ def forecast(
         return None
 
 
-def _check_inputs(precip, velocity, timesteps, ar_order):
+def _check_inputs(dataset, velocity, timesteps, ar_order):
+    precip_var = dataset.attrs["precip_var"]
+    precip = dataset[precip_var].values
+
     if precip.ndim != 3:
         raise ValueError("precip must be a three-dimensional array")
     if precip.shape[0] < ar_order + 1:

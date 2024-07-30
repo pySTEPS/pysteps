@@ -16,6 +16,7 @@ import warnings
 
 import matplotlib.pylab as plt
 import numpy as np
+import xarray as xr
 from matplotlib import pyplot, colors
 
 from pysteps.visualization.utils import get_geogrid, get_basemap_axis
@@ -30,11 +31,9 @@ PRECIP_VALID_UNITS = ("mm/h", "mm", "dBZ")
 
 
 def plot_precip_field(
-    precip,
+    dataset: xr.Dataset,
     ptype="intensity",
     ax=None,
-    geodata=None,
-    units="mm/h",
     bbox=None,
     colorscale="pysteps",
     probthr=None,
@@ -127,6 +126,12 @@ def plot_precip_field(
         Figure axes. Needed if one wants to add e.g. text inside the plot.
     """
 
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip = dataset[precip_var].values[-1, :, :]
+
+    units = metadata["units"]
+
     if map_kwargs is None:
         map_kwargs = {}
 
@@ -152,10 +157,10 @@ def plot_precip_field(
     nlat, nlon = precip.shape
 
     x_grid, y_grid, extent, regular_grid, origin = get_geogrid(
-        nlat, nlon, geodata=geodata
+        nlat, nlon, geodata=metadata
     )
 
-    ax = get_basemap_axis(extent, ax=ax, geodata=geodata, map_kwargs=map_kwargs)
+    ax = get_basemap_axis(extent, ax=ax, geodata=metadata, map_kwargs=map_kwargs)
 
     precip = np.ma.masked_invalid(precip)
     # plot rainfield
@@ -189,7 +194,7 @@ def plot_precip_field(
         else:
             cbar.set_label(f"P(R > {probthr:.1f} {units})")
 
-    if geodata is None or axis == "off":
+    if metadata is None or axis == "off":
         ax.xaxis.set_ticks([])
         ax.xaxis.set_ticklabels([])
         ax.yaxis.set_ticks([])

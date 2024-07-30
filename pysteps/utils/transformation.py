@@ -140,7 +140,11 @@ def boxcox_transform(
 
 
 def dB_transform(
-    dataset: xr.Dataset, threshold=None, zerovalue=None, inverse=False
+    dataset: xr.Dataset,
+    threshold=None,
+    zerovalue=None,
+    infintevalue=None,
+    inverse=False,
 ) -> xr.Dataset:
     """Methods to transform precipitation intensities to/from dB units.
 
@@ -156,6 +160,8 @@ def dB_transform(
     zerovalue: float, optional
         The value to be assigned to no rain pixels as defined by the threshold.
         It is equal to the threshold - 1 by default.
+    infintevalue: float, optional
+        The value to be assigned to the missing pixels.
     inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
@@ -212,6 +218,9 @@ def dB_transform(
         metadata["zerovalue"] = zerovalue
 
     dataset[precip_var].data[:] = precip_data
+
+    if infintevalue is not None:
+        dataset[precip_var].data[~np.isfinite(dataset[precip_var])] = infintevalue
 
     return dataset
 

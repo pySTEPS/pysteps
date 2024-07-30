@@ -13,6 +13,9 @@ Implementation of the anisotropic diffusion method of Proesmans et al. (1994).
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
+import pyximport
+
+pyximport.install(reload_support=True)
 
 from pysteps.decorators import check_input_frames
 from pysteps.motion._proesmans import _compute_advection_field
