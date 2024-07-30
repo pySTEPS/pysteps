@@ -104,7 +104,8 @@ def forecast(
     n_ens_members: int
         The number of ensemble members to generate.
     n_cascade_levels: int
-        The number of cascade levels to use.
+        The number of cascade levels to use. Defaults to 6, see issue #385
+         on GitHub.
     extrap_method: {'semilagrangian'}
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.

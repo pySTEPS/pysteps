@@ -71,7 +71,8 @@ def forecast(
     precip_thr: float, required
         The threshold value for minimum observable precipitation intensity.
     n_cascade_levels: int, optional
-        The number of cascade levels to use.
+        The number of cascade levels to use. Defaults to 6, see issue #385
+        on GitHub.
     extrap_method: str, optional
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.

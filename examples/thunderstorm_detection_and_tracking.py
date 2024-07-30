@@ -91,6 +91,17 @@ cells_id, labels = tstorm_detect.detection(input_image, time=time)
 print(cells_id.iloc[0])
 
 ###############################################################################
+# Optionally, one can also ask to consider splits and merges of thunderstorm cells.
+# A cell at time t is considered to split if it will verlap more than 10% with more than
+# one cell at time t+1. Conversely, a cell is considered to be a merge, if more
+# than one cells fron time t will overlap more than 10% with it.
+
+cells_id, labels = tstorm_detect.detection(
+    input_image, time=time, output_splits_merges=True
+)
+print(cells_id.iloc[0])
+
+###############################################################################
 # Example of thunderstorm tracking over a timeseries
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # The tstorm-dating function requires the entire pre-loaded time series.

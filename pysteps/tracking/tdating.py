@@ -63,6 +63,10 @@ def dating(
     minmax=41,
     mindis=10,
     dyn_thresh=False,
+    match_frac=0.4,
+    split_frac=0.1,
+    merge_frac=0.1,
+    output_splits_merges=False,
 ):
     """
     This function performs the thunderstorm detection and tracking DATing.
@@ -113,6 +117,43 @@ def dating(
     mindis: float, optional
         Minimum distance between two maxima of identified objects. Objects with a
         smaller distance will be merged. The default is 10 km.
+    match_frac: float, optional
+        Minimum overlap fraction between two objects to be considered the same object.
+        Default is 0.4.
+    split_frac: float, optional
+        Minimum overlap fraction between two objects for the object at second timestep
+        to be considered possibly split from the object at the first timestep.
+        Default is 0.1.
+    merge_frac: float, optional
+        Minimum overlap fraction between two objects for the object at second timestep
+        to be considered possibly merged from the object at the first timestep.
+        Default is 0.1.
+    output_splits_merges: bool, optional
+        If True, the output will contain information about splits and merges.
+        The provided columns are:
+
+        .. tabularcolumns:: |p{2cm}|L|
+
+        +-------------------+--------------------------------------------------------------+
+        | Attribute         | Description                                                  |
+        +===================+==============================================================+
+        | splitted          | Indicates if the cell is considered split into multiple cells|
+        +-------------------+--------------------------------------------------------------+
+        | split_IDs         | List of IDs at the next timestep that the cell split into    |
+        +-------------------+--------------------------------------------------------------+
+        | merged            | Indicates if the cell is considered a merge of multiple cells|
+        +-------------------+--------------------------------------------------------------+
+        | merged_IDs        | List of IDs from the previous timestep that merged into this |
+        |                   | cell                                                         |
+        +-------------------+--------------------------------------------------------------+
+        | results_from_split| True if the cell is a result of a split (i.e., the ID of the |
+        |                   | cell is present in the split_IDs of some cell at the previous|
+        |                   | timestep)                                                    |
+        +-------------------+--------------------------------------------------------------+
+        | will_merge        | True if the cell will merge at the next timestep (i.e., the  |
+        |                   | ID of the cell is present in the merge_IDs of some cell at   |
+        |                   | the next timestep; empty if the next timestep is not tracked)|
+        +-------------------+--------------------------------------------------------------+
 
     Returns
     -------
@@ -168,6 +209,7 @@ def dating(
             minmax=minmax,
             mindis=mindis,
             time=timelist[t],
+            output_splits_merges=output_splits_merges,
         )
         if len(cell_list) < 2:
             cell_list.append(cells_id)
@@ -177,9 +219,45 @@ def dating(
             continue
         if t >= 2:
             flowfield = oflow_method(input_video[t - 2 : t + 1, :, :])
-            cells_id, max_ID, newlabels = tracking(
-                cells_id, cell_list[-1], labels, flowfield, max_ID
+            cells_id, max_ID, newlabels, splitted_cells = tracking(
+                cells_id,
+                cell_list[-1],
+                labels,
+                flowfield,
+                max_ID,
+                match_frac=match_frac,
+                split_frac=split_frac,
+                merge_frac=merge_frac,
+                output_splits_merges=output_splits_merges,
             )
+
+            if output_splits_merges:
+                # Assign splitted parameters for the previous timestep
+                for _, split_cell in splitted_cells.iterrows():
+                    prev_list_id = cell_list[-1][
+                        cell_list[-1].ID == split_cell.ID
+                    ].index.item()
+
+                    split_ids = split_cell.split_IDs
+                    split_ids_updated = []
+                    for sid in split_ids:
+                        split_ids_updated.append(newlabels[labels == sid][0])
+
+                    cell_list[-1].at[prev_list_id, "splitted"] = True
+                    cell_list[-1].at[prev_list_id, "split_IDs"] = split_ids_updated
+
+                    for sid in split_ids_updated:
+                        cur_list_id = cells_id[cells_id.ID == sid].index.item()
+                        cells_id.at[cur_list_id, "results_from_split"] = True
+
+                merged_cells = cells_id[cells_id.merged == True]
+                for _, cell in merged_cells.iterrows():
+                    for merged_id in cell.merged_IDs:
+                        prev_list_id = cell_list[-1][
+                            cell_list[-1].ID == merged_id
+                        ].index.item()
+                        cell_list[-1].at[prev_list_id, "will_merge"] = True
+
             cid = np.unique(newlabels)
             # max_ID = np.nanmax([np.nanmax(cid), max_ID])
             cell_list.append(cells_id)
@@ -190,16 +268,40 @@ def dating(
     return track_list, cell_list, label_list
 
 
-def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
+def tracking(
+    cells_id,
+    cells_id_prev,
+    labels,
+    V1,
+    max_ID,
+    match_frac=0.4,
+    merge_frac=0.1,
+    split_frac=0.1,
+    output_splits_merges=False,
+):
     """
     This function performs the actual tracking procedure. First the cells are advected,
     then overlapped and finally their IDs are matched. If no match is found, a new ID
     is assigned.
     """
     cells_id_new = cells_id.copy()
-    cells_ad = advect(cells_id_prev, labels, V1)
-    cells_ov, labels = match(cells_ad, labels)
+    cells_ad = advect(
+        cells_id_prev, labels, V1, output_splits_merges=output_splits_merges
+    )
+    cells_ov, labels, possible_merge_ids = match(
+        cells_ad,
+        labels,
+        output_splits_merges=output_splits_merges,
+        split_frac=split_frac,
+        match_frac=match_frac,
+    )
+
+    splitted_cells = None
+    if output_splits_merges:
+        splitted_cells = cells_ov[cells_ov.splitted == True]
+
     newlabels = np.zeros(labels.shape)
+    possible_merge_ids_new = {}
     for index, cell in cells_id_new.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
             continue
@@ -217,30 +319,53 @@ def tracking(cells_id, cells_id_prev, labels, V1, max_ID):
             new_ID = max_ID
             cells_id_new.loc[index, "ID"] = new_ID
         newlabels[labels == index + 1] = new_ID
+        possible_merge_ids_new[new_ID] = possible_merge_ids[cell.ID]
         del new_ID
-    return cells_id_new, max_ID, newlabels
+
+    if output_splits_merges:
+        # Process possible merges
+        for target_id, possible_IDs in possible_merge_ids_new.items():
+            merge_ids = []
+            for p_id in possible_IDs:
+                cell_a = cells_ad[cells_ad.ID == p_id]
+
+                ID_vec = newlabels[cell_a.y.item(), cell_a.x.item()]
+                overlap = np.sum(ID_vec == target_id) / len(ID_vec)
+                if overlap > merge_frac:
+                    merge_ids.append(p_id)
+
+            if len(merge_ids) > 1:
+                cell_id = cells_id_new[cells_id_new.ID == target_id].index.item()
+                # Merge cells
+                cells_id_new.at[cell_id, "merged"] = True
+                cells_id_new.at[cell_id, "merged_IDs"] = merge_ids
+
+    return cells_id_new, max_ID, newlabels, splitted_cells
 
 
-def advect(cells_id, labels, V1):
+def advect(cells_id, labels, V1, output_splits_merges=False):
     """
     This function advects all identified cells with the estimated flow.
     """
+    columns = [
+        "ID",
+        "x",
+        "y",
+        "cen_x",
+        "cen_y",
+        "max_ref",
+        "cont",
+        "t_ID",
+        "frac",
+        "flowx",
+        "flowy",
+    ]
+    if output_splits_merges:
+        columns.extend(["splitted", "split_IDs", "split_fracs"])
     cells_ad = pd.DataFrame(
         data=None,
         index=range(len(cells_id)),
-        columns=[
-            "ID",
-            "x",
-            "y",
-            "cen_x",
-            "cen_y",
-            "max_ref",
-            "cont",
-            "t_ID",
-            "frac",
-            "flowx",
-            "flowy",
-        ],
+        columns=columns,
     )
     for ID, cell in cells_id.iterrows():
         if cell.ID == 0 or np.isnan(cell.ID):
@@ -255,27 +380,30 @@ def advect(cells_id, labels, V1):
         new_y[new_y < 0] = 0
         new_cen_x = cell.cen_x + ad_x
         new_cen_y = cell.cen_y + ad_y
-        cells_ad.x[ID] = new_x
-        cells_ad.y[ID] = new_y
-        cells_ad.flowx[ID] = ad_x
-        cells_ad.flowy[ID] = ad_y
-        cells_ad.cen_x[ID] = new_cen_x
-        cells_ad.cen_y[ID] = new_cen_y
-        cells_ad.ID[ID] = cell.ID
+
+        cells_ad.loc[ID, "x"] = new_x
+        cells_ad.loc[ID, "y"] = new_y
+        cells_ad.loc[ID, "flowx"] = ad_x
+        cells_ad.loc[ID, "flowy"] = ad_y
+        cells_ad.loc[ID, "cen_x"] = new_cen_x
+        cells_ad.loc[ID, "cen_y"] = new_cen_y
+        cells_ad.loc[ID, "ID"] = cell.ID
+
         cell_unique = np.zeros(labels.shape)
         cell_unique[new_y, new_x] = 1
-        cells_ad.cont[ID] = skime.find_contours(cell_unique, 0.8)
+        cells_ad.loc[ID, "cont"] = skime.find_contours(cell_unique, 0.8)
 
     return cells_ad
 
 
-def match(cells_ad, labels):
+def match(cells_ad, labels, match_frac=0.4, split_frac=0.1, output_splits_merges=False):
     """
     This function matches the advected cells of the previous timestep to the newly
     identified ones. A minimal overlap of 40% is required. In case of split of merge,
     the larger cell supersedes the smaller one in naming.
     """
     cells_ov = cells_ad.copy()
+    possible_merge_ids = {i: [] for i in np.unique(labels)}
     for ID_a, cell_a in cells_ov.iterrows():
         if cell_a.ID == 0 or np.isnan(cell_a.ID):
             continue
@@ -283,22 +411,37 @@ def match(cells_ad, labels):
         IDs = np.unique(ID_vec)
         n_IDs = len(IDs)
         if n_IDs == 1 and IDs[0] == 0:
-            cells_ov.t_ID[ID_a] = 0
+            cells_ov.loc[ID_a, "t_ID"] = 0
             continue
         IDs = IDs[IDs != 0]
         n_IDs = len(IDs)
+
+        for i in IDs:
+            possible_merge_ids[i].append(cell_a.ID)
+
         N = np.zeros(n_IDs)
         for n in range(n_IDs):
             N[n] = len(np.where(ID_vec == IDs[n])[0])
+
+        if output_splits_merges:
+            # Only consider possible split if overlap is large enough
+            valid_split_ids = (N / len(ID_vec)) > split_frac
+            # splits here
+            if sum(valid_split_ids) > 1:
+                # Save split information
+                cells_ov.loc[ID_a, "splitted"] = True
+                cells_ov.loc[ID_a, "split_IDs"] = IDs[valid_split_ids]
+                cells_ov.loc[ID_a, "split_fracs"] = N / len(ID_vec)
+
         m = np.argmax(N)
         ID_match = IDs[m]
         ID_coverage = N[m] / len(ID_vec)
-        if ID_coverage >= 0.4:
-            cells_ov.t_ID[ID_a] = ID_match
+        if ID_coverage >= match_frac:
+            cells_ov.loc[ID_a, "t_ID"] = ID_match
         else:
-            cells_ov.t_ID[ID_a] = 0
-        cells_ov.frac[ID_a] = ID_coverage
-    return cells_ov, labels
+            cells_ov.loc[ID_a, "t_ID"] = 0
+        cells_ov.loc[ID_a, "frac"] = ID_coverage
+    return cells_ov, labels, possible_merge_ids
 
 
 def couple_track(cell_list, max_ID, mintrack):
