@@ -87,7 +87,7 @@ The dataset can contain the following coordinate variables:
 +---------------+-------------------------------------------------------------------------------------------+
 |   time        | forecast time in seconds since forecast start time                                        |
 +---------------+-------------------------------------------------------------------------------------------+
-|   member      | ensemble member number (integer)                                                          |
+|   ens_number  | ensemble member number (integer)                                                          |
 +---------------+-------------------------------------------------------------------------------------------+
 
 

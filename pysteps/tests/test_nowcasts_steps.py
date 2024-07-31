@@ -59,12 +59,12 @@ def test_steps_skill(
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
-    retrieved_motion = oflow_method(dataset_input)
+    dataset_w_motion = oflow_method(dataset_input)
 
     nowcast_method = nowcasts.get_method("steps")
 
-    precip_forecast = nowcast_method(
-        retrieved_motion,
+    dataset_forecast = nowcast_method(
+        dataset_w_motion,
         timesteps=timesteps,
         precip_thr=metadata["threshold"],
         kmperpixel=2.0,
@@ -77,16 +77,16 @@ def test_steps_skill(
         probmatching_method=probmatching_method,
         domain=domain,
     )
-    precip_forecast_data = precip_forecast[precip_var].values
+    precip_forecast = dataset_forecast[precip_var].values
 
-    assert precip_forecast_data.ndim == 4
-    assert precip_forecast_data.shape[0] == n_ens_members
-    assert precip_forecast_data.shape[1] == (
+    assert precip_forecast.ndim == 4
+    assert precip_forecast.shape[0] == n_ens_members
+    assert precip_forecast.shape[1] == (
         timesteps if isinstance(timesteps, int) else len(timesteps)
     )
 
     crps = verification.probscores.CRPS(
-        precip_forecast_data[:, -1], dataset_obs[precip_var].values[-1]
+        precip_forecast[:, -1], dataset_obs[precip_var].values[-1]
     )
     assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 
