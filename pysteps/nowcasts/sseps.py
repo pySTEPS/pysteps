@@ -18,18 +18,17 @@ size.
     forecast
 """
 
-import numpy as np
 import time
+
+import numpy as np
 from scipy.ndimage import generate_binary_structure, iterate_structure
 
-
-from pysteps import cascade
-from pysteps import extrapolation
-from pysteps import noise
+from pysteps import cascade, extrapolation, noise
 from pysteps.decorators import deprecate_args
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.xarray_decorators import xarray_nowcast
 
 try:
     import dask
@@ -39,12 +38,12 @@ except ImportError:
     dask_imported = False
 
 
-@deprecate_args({"R": "precip", "V": "velocity"}, "1.8.0")
+@xarray_nowcast
 def forecast(
     precip,
-    metadata,
     velocity,
     timesteps,
+    metadata,
     n_ens_members=24,
     n_cascade_levels=6,
     win_size=256,

@@ -40,7 +40,8 @@ from scipy.ndimage import zoom
 from scipy.optimize import minimize
 
 from pysteps.decorators import check_input_frames
-from pysteps.motion._vet import _warp, _cost_function
+from pysteps.motion._vet import _cost_function, _warp
+from pysteps.xarray_decorators import xarray_motion
 
 
 def round_int(scalar):
@@ -299,6 +300,7 @@ def vet_cost_function(
         return residuals + smoothness_penalty
 
 
+@xarray_motion
 @check_input_frames(2, 3)
 def vet(
     input_images,

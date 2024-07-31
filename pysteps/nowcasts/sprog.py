@@ -10,17 +10,17 @@ Implementation of the S-PROG method described in :cite:`Seed2003`
     forecast
 """
 
-import numpy as np
 import time
 
-from pysteps import cascade
-from pysteps import extrapolation
-from pysteps import utils
+import numpy as np
+
+from pysteps import cascade, extrapolation, utils
 from pysteps.decorators import deprecate_args
 from pysteps.nowcasts import utils as nowcast_utils
+from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
+from pysteps.xarray_decorators import xarray_nowcast
 
 try:
     import dask
@@ -30,7 +30,7 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-@deprecate_args({"R": "precip", "V": "velocity", "R_thr": "precip_thr"}, "1.8.0")
+@xarray_nowcast
 def forecast(
     precip,
     velocity,

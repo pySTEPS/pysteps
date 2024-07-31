@@ -22,19 +22,20 @@ regular grid to return a motion field.
     dense_lucaskanade
 """
 
+import time
+
 import numpy as np
 from numpy.ma.core import MaskedArray
 
+from pysteps import feature, utils
 from pysteps.decorators import check_input_frames
-
-from pysteps import utils, feature
 from pysteps.tracking.lucaskanade import track_features
 from pysteps.utils.cleansing import decluster, detect_outliers
 from pysteps.utils.images import morph_opening
+from pysteps.xarray_decorators import xarray_motion
 
-import time
 
-
+@xarray_motion
 @check_input_frames(2)
 def dense_lucaskanade(
     input_images,

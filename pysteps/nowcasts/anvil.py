@@ -26,6 +26,7 @@ from scipy.ndimage import gaussian_filter
 from pysteps import cascade, extrapolation, utils
 from pysteps.nowcasts.utils import nowcast_main_loop
 from pysteps.timeseries import autoregression
+from pysteps.xarray_decorators import xarray_nowcast
 
 try:
     import dask
@@ -35,6 +36,7 @@ except ImportError:
     DASK_IMPORTED = False
 
 
+@xarray_nowcast
 def forecast(
     vil,
     velocity,

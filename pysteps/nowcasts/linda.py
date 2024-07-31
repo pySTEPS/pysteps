@@ -40,6 +40,8 @@ the short-space Fourier transform (SSFT) methodology developed in
 import time
 import warnings
 
+from pysteps.xarray_decorators import xarray_nowcast
+
 try:
     import dask
 
@@ -47,25 +49,18 @@ try:
 except ImportError:
     DASK_IMPORTED = False
 import numpy as np
+from scipy import optimize as opt
+from scipy import stats
 from scipy.integrate import nquad
 from scipy.interpolate import interp1d
-from scipy import optimize as opt
 from scipy.signal import convolve
-from scipy import stats
 
 from pysteps import extrapolation, feature, noise
 from pysteps.decorators import deprecate_args
 from pysteps.nowcasts.utils import nowcast_main_loop
 
 
-@deprecate_args(
-    {
-        "precip_fields": "precip",
-        "advection_field": "velocity",
-        "num_ens_members": "n_ens_members",
-    },
-    "1.8.0",
-)
+@xarray_nowcast
 def forecast(
     precip,
     velocity,

@@ -15,8 +15,10 @@ import numpy as np
 from scipy.signal import convolve
 
 from pysteps.nowcasts import extrapolation
+from pysteps.xarray_decorators import xarray_nowcast
 
 
+@xarray_nowcast
 def forecast(
     precip,
     velocity,
