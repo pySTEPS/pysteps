@@ -11,14 +11,17 @@ Implementation of the DARTS algorithm.
     DARTS
 """
 
-import numpy as np
 import time
+
+import numpy as np
 from numpy.linalg import lstsq, svd
 
 from pysteps import utils
 from pysteps.decorators import check_input_frames
+from pysteps.xarray_decorators import xarray_motion
 
 
+@xarray_motion
 @check_input_frames(just_ndim=True)
 def DARTS(input_images, **kwargs):
     """

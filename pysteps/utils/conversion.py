@@ -70,8 +70,9 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    dataset: Dataset
-        Dataset to be (back-)transformed.
+    dataset: xarray.Dataset
+        Dataset to be (back-)transformed as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
         zr_a and zr_b attributes are also required,
@@ -83,7 +84,7 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the converted units.
     """
 
@@ -159,8 +160,9 @@ def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    dataset: Dataset
-        Dataset to be (back-)transformed.
+    dataset: xarray.Dataset
+        Dataset to be (back-)transformed as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
         zr_a and zr_b attributes are also required,
@@ -172,7 +174,7 @@ def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the converted units.
     """
 
@@ -248,8 +250,9 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Parameters
     ----------
-    dataset: Dataset
-        Dataset to be (back-)transformed.
+    dataset: xarray.Dataset
+        Dataset to be (back-)transformed as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
 
         Additionally, in case of conversion to/from reflectivity units, the
         zr_a and zr_b attributes are also required,
@@ -261,7 +264,7 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     Returns
     -------
-    dataset: Dataset
+    dataset: xarray.Dataset
         Dataset containing the converted units.
     """
 

@@ -16,8 +16,10 @@ from scipy.ndimage import gaussian_filter
 
 from pysteps.decorators import check_input_frames
 from pysteps.motion._proesmans import _compute_advection_field
+from pysteps.xarray_decorators import xarray_motion
 
 
+@xarray_motion
 @check_input_frames(2, 2)
 def proesmans(
     input_images,

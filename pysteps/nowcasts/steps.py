@@ -11,19 +11,18 @@ Implementation of the STEPS stochastic nowcasting method as described in
     forecast
 """
 
-import numpy as np
-from scipy.ndimage import generate_binary_structure, iterate_structure
 import time
 
-from pysteps import cascade
-from pysteps import extrapolation
-from pysteps import noise
-from pysteps import utils
+import numpy as np
+from scipy.ndimage import generate_binary_structure, iterate_structure
+
+from pysteps import cascade, extrapolation, noise, utils
 from pysteps.decorators import deprecate_args
 from pysteps.nowcasts import utils as nowcast_utils
+from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
+from pysteps.xarray_decorators import xarray_nowcast
 
 try:
     import dask
@@ -33,7 +32,7 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-@deprecate_args({"R": "precip", "V": "velocity", "R_thr": "precip_thr"}, "1.8.0")
+@xarray_nowcast
 def forecast(
     precip,
     velocity,

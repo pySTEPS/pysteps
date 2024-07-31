@@ -16,7 +16,10 @@ import numpy as np
 import scipy.optimize as op
 from scipy.ndimage import map_coordinates
 
+from pysteps.xarray_decorators import xarray_motion
 
+
+@xarray_motion
 def constant(R, **kwargs):
     """
     Compute a constant advection field by finding a translation vector that
