@@ -102,6 +102,10 @@ The dataset can contain the following data variables:
 | precip_accum      | precip_intensity if unit is ``mm/h``, precip_accum if unit is ``mm`` and reflectivity if unit is ``dBZ``, |
 | or reflectivity   | the attributes of this variable contain metadata relevant to this attribute (see below)                   |
 +-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_x        | x-component of the advection field in cartesian_unit per timestep                                         |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_y        | y-component of the advection field in cartesian_unit per timestep                                         |
++-------------------+-----------------------------------------------------------------------------------------------------------+
 | quality           | value between 0 and 1 denoting the quality of the precipitation data, currently not used for anything     |
 +-------------------+-----------------------------------------------------------------------------------------------------------+
 

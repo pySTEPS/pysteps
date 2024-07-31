@@ -11,11 +11,14 @@ Implementation of extrapolation-based nowcasting methods.
 """
 
 import time
+
 import numpy as np
 
 from pysteps import extrapolation
+from pysteps.xarray_decorators import xarray_nowcast
 
 
+@xarray_nowcast
 def forecast(
     precip,
     velocity,
