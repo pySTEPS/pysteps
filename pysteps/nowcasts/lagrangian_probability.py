@@ -12,22 +12,20 @@ described in :cite:`GZ2004`.
 """
 
 import numpy as np
+import xarray as xr
 from scipy.signal import convolve
 
 from pysteps.nowcasts import extrapolation
-from pysteps.xarray_decorators import xarray_nowcast
 
 
-@xarray_nowcast
 def forecast(
-    precip,
-    velocity,
+    dataset: xr.Dataset,
     timesteps,
     threshold,
     extrap_method="semilagrangian",
     extrap_kwargs=None,
     slope=5,
-):
+) -> xr.Dataset:
     """
     Generate a probability nowcast by a local lagrangian approach. The ouput is
     the probability of exceeding a given intensity threshold, i.e.
@@ -73,13 +71,11 @@ def forecast(
         timesteps = np.arange(1, timesteps + 1)
     elif not isinstance(timesteps, list):
         raise ValueError(f"invalid value for argument 'timesteps': {timesteps}")
-    precip_forecast = extrapolation.forecast(
-        precip,
-        velocity,
-        timesteps,
-        extrap_method,
-        extrap_kwargs,
+    dataset_forecast = extrapolation.forecast(
+        dataset, timesteps, extrap_method, extrap_kwargs
     )
+    precip_var = dataset_forecast.attrs["precip_var"]
+    precip_forecast = dataset_forecast[precip_var].values
 
     # Ignore missing values
     nanmask = np.isnan(precip_forecast)
@@ -106,7 +102,8 @@ def forecast(
         precip_forecast[i, ...] /= kernel_sum
     precip_forecast = np.clip(precip_forecast, 0, 1)
     precip_forecast[nanmask] = np.nan
-    return precip_forecast
+    dataset_forecast[precip_var].data[:] = precip_forecast
+    return dataset_forecast
 
 
 def _get_kernel(size):

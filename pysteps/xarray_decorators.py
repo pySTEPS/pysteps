@@ -23,30 +23,37 @@ def xarray_nowcast(nowcast_method):
     @wraps(nowcast_method)
     def _nowcast_method_wrapper(
         dataset: xr.Dataset, timesteps: int | list[int], *args, **kwargs
-    ) -> xr.Dataset:
+    ) -> xr.Dataset | tuple[xr.Dataset, ...]:
+        dataset = dataset.copy(deep=True)
         precip_var = dataset.attrs["precip_var"]
         precip = dataset[precip_var].values
         velocity = np.stack([dataset["velocity_x"], dataset["velocity_y"]])
 
         output = nowcast_method(precip, velocity, timesteps, *args, **kwargs)
         metadata = dataset[precip_var].attrs
-        last_timestamp = (
-            dataset.time[-1].values.astype("datetime64[us]").astype(datetime)
-        )
-        time_metadata = dataset["time"].attrs
-        timestep_seconds = (
-            dataset["time"][1].values.astype("datetime64[us]").astype(datetime)
-            - dataset["time"][0].values.astype("datetime64[us]").astype(datetime)
-        ).total_seconds()
-        dataset = dataset.drop_vars([precip_var]).drop_dims(["time"])
-        if isinstance(timesteps, int):
-            timesteps = list(range(1, timesteps + 1))
-        next_timestamps = [
-            last_timestamp + timedelta(seconds=timestep_seconds * i) for i in timesteps
-        ]
-        dataset = dataset.assign_coords(
-            {"time": (["time"], next_timestamps, time_metadata)}
-        )
+        if "time" in dataset:
+            last_timestamp = (
+                dataset["time"][-1].values.astype("datetime64[us]").astype(datetime)
+            )
+            time_metadata = dataset["time"].attrs
+            timestep_seconds = (
+                dataset["time"][1].values.astype("datetime64[us]").astype(datetime)
+                - dataset["time"][0].values.astype("datetime64[us]").astype(datetime)
+            ).total_seconds()
+            dataset = dataset.drop_vars([precip_var]).drop_dims(["time"])
+            if isinstance(timesteps, int):
+                timesteps = list(range(1, timesteps + 1))
+            next_timestamps = [
+                last_timestamp + timedelta(seconds=timestep_seconds * i)
+                for i in timesteps
+            ]
+            dataset = dataset.assign_coords(
+                {"time": (["time"], next_timestamps, time_metadata)}
+            )
+        rest = None
+        if isinstance(output, tuple):
+            rest = output[1:]
+            output = output[0]
         if output.ndim == 4:
             dataset = dataset.assign_coords(
                 {
@@ -65,6 +72,8 @@ def xarray_nowcast(nowcast_method):
         else:
             dataset[precip_var] = (["time", "y", "x"], output, metadata)
 
+        if rest is not None:
+            return dataset, *rest
         return dataset
 
     return _nowcast_method_wrapper
