@@ -2,3 +2,5 @@
 """Methods for post-processing of forecasts."""
 
 from . import ensemblestats
+from .diagnostics import *
+from .interface import *
