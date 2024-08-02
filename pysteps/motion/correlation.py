@@ -188,7 +188,8 @@ def correlation(
     uv = uv[~outliers, :]
 
     if verbose:
-        print("--- LK found %i sparse vectors ---" % xy.shape[0])
+        print("--- found %i sparse vectors ---" % xy.shape[0])
+
 
     # return sparse vectors if required
     if not dense:
