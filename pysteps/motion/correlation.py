@@ -120,7 +120,7 @@ def correlation(
     """
 
     if not NUMBA_IMPORTED:
-        raise ImportError(
+        raise MissingOptionalDependency(
             "Numba is not installed. The correlation function cannot be loaded."
         )
 
