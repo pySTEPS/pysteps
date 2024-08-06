@@ -63,10 +63,10 @@ _nowcast_methods["steps"] = steps.forecast
 
 def discover_nowcasts():
     """
-    Search for installed importers plugins in the entrypoint 'pysteps.nowcast'
+    Search for installed nowcasts plugins in the entrypoint 'pysteps.nowcasts'
 
-    The importers found are added to the `pysteps.io.interface_importer_methods`
-    dictionary containing the available importers.
+    The nowcasts method found are added to the `pysteps.nowcasts.interface_nowcasts_methods`
+    dictionary containing the available nowcasts_methods.
     """
 
     # The pkg resources needs to be reload to detect new packages installed during
@@ -79,40 +79,23 @@ def discover_nowcasts():
     for entry_point in pkg_resources.iter_entry_points(
         group="pysteps.plugin.nowcasts", name=None
     ):
-        nowcast_module_name=entry_point.module_name
-
-        
+        _nowcast_module_name=entry_point.name
     
-        # importer_short_name = importer_function_name.replace("import_", "")
-
-        # _postprocess_kws = getattr(_importer, "postprocess_kws", dict())
-        # _importer = postprocess_import(**_postprocess_kws)(_importer)
-        if nowcast_module_name not in _nowcast_methods:
+        if _nowcast_module_name not in _nowcast_methods:
             
             module = importlib.import_module(entry_point.module_name)
             
-            
-            _nowcast_methods[module] =module.forecast
+            _nowcast_methods[_nowcast_module_name] =module.forecast
             
         else:
             RuntimeWarning(
-                f"The importer identifier '{nowcast_module_name}' is already available in"
+                f"The Nowcasts methode '{_nowcast_module_name}' is already available in"
                 "'pysteps.nowcasts._nowcasts_methods'.\n"
                 f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
             )
-   
-
-        # if hasattr(nowcasts, nowcast_module_name):
-        #     RuntimeWarning(
-        #         f"The importer function '{nowcast_module_name}' is already an attribute"
-        #         "of 'pysteps.nowcasts`.\n"
-        #         f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
-        #     )
-        # else:
-        #     setattr(importers, importer_function_name, _importer)
 
 
-def nowcasts_info():
+   def nowcasts_info():
     
     
     """Print all the available importers."""
