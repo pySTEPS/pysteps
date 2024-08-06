@@ -19,12 +19,13 @@ than S-PROG.
 """
 
 import time
+
 import numpy as np
 from scipy.ndimage import gaussian_filter
-from pysteps import cascade, extrapolation
+
+from pysteps import cascade, extrapolation, utils
 from pysteps.nowcasts.utils import nowcast_main_loop
 from pysteps.timeseries import autoregression
-from pysteps import utils
 
 try:
     import dask

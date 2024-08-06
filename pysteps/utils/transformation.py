@@ -14,9 +14,11 @@ Methods for transforming data values.
     sqrt_transform
 """
 
+import warnings
+
 import numpy as np
 import scipy.stats as scipy_stats
-import warnings
+import xarray as xr
 from scipy.interpolate import interp1d
 
 warnings.filterwarnings(
@@ -25,8 +27,8 @@ warnings.filterwarnings(
 
 
 def boxcox_transform(
-    R, metadata=None, Lambda=None, threshold=None, zerovalue=None, inverse=False
-):
+    dataset: xr.Dataset, Lambda=None, threshold=None, zerovalue=None, inverse=False
+) -> xr.Dataset:
     """
     The one-parameter Box-Cox transformation.
 
@@ -39,12 +41,8 @@ def boxcox_transform(
 
     Parameters
     ----------
-    R: array-like
-        Array of any shape to be transformed.
-    metadata: dict, optional
-        Metadata dictionary containing the transform, zerovalue and threshold
-        attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+    dataset: Dataset
+        Dataset to be transformed.
     Lambda: float, optional
         Parameter Lambda of the Box-Cox transformation.
         It is 0 by default, which produces the log transformation.
@@ -52,7 +50,7 @@ def boxcox_transform(
         Choose Lambda < 1 for positively skewed data, Lambda > 1 for negatively
         skewed data.
     threshold: float, optional
-        The value that is used for thresholding with the same units as R.
+        The value that is used for thresholding with the same units as in the dataset.
         If None, the threshold contained in metadata is used.
         If no threshold is found in the metadata,
         a value of 0.1 is used as default.
@@ -64,10 +62,8 @@ def boxcox_transform(
 
     Returns
     -------
-    R: array-like
-        Array of any shape containing the (back-)transformed units.
-    metadata: dict
-        The metadata with updated attributes.
+    dataset: Dataset
+        Dataset containing the (back-)transformed units.
 
     References
     ----------
@@ -76,20 +72,14 @@ def boxcox_transform(
     doi:10.1111/j.2517-6161.1964.tb00553.x
     """
 
-    R = R.copy()
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "BoxCox"}
-        else:
-            metadata = {"transform": None}
-
-    else:
-        metadata = metadata.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
 
     if not inverse:
         if metadata["transform"] == "BoxCox":
-            return R, metadata
+            return dataset
 
         if Lambda is None:
             Lambda = metadata.get("BoxCox_lambda", 0.0)
@@ -97,21 +87,21 @@ def boxcox_transform(
         if threshold is None:
             threshold = metadata.get("threshold", 0.1)
 
-        zeros = R < threshold
+        zeros = precip_data < threshold
 
         # Apply Box-Cox transform
         if Lambda == 0.0:
-            R[~zeros] = np.log(R[~zeros])
+            precip_data[~zeros] = np.log(precip_data[~zeros])
             threshold = np.log(threshold)
 
         else:
-            R[~zeros] = (R[~zeros] ** Lambda - 1) / Lambda
+            precip_data[~zeros] = (precip_data[~zeros] ** Lambda - 1) / Lambda
             threshold = (threshold**Lambda - 1) / Lambda
 
         # Set value for zeros
         if zerovalue is None:
             zerovalue = threshold - 1  # TODO: set to a more meaningful value
-        R[zeros] = zerovalue
+        precip_data[zeros] = zerovalue
 
         metadata["transform"] = "BoxCox"
         metadata["BoxCox_lambda"] = Lambda
@@ -120,7 +110,7 @@ def boxcox_transform(
 
     elif inverse:
         if metadata["transform"] not in ["BoxCox", "log"]:
-            return R, metadata
+            return precip_data, metadata
 
         if Lambda is None:
             Lambda = metadata.pop("BoxCox_lambda", 0.0)
@@ -131,35 +121,35 @@ def boxcox_transform(
 
         # Apply inverse Box-Cox transform
         if Lambda == 0.0:
-            R = np.exp(R)
+            precip_data = np.exp(precip_data)
             threshold = np.exp(threshold)
 
         else:
-            R = np.exp(np.log(Lambda * R + 1) / Lambda)
+            precip_data = np.exp(np.log(Lambda * precip_data + 1) / Lambda)
             threshold = np.exp(np.log(Lambda * threshold + 1) / Lambda)
 
-        R[R < threshold] = zerovalue
+        precip_data[precip_data < threshold] = zerovalue
 
         metadata["transform"] = None
         metadata["zerovalue"] = zerovalue
         metadata["threshold"] = threshold
 
-    return R, metadata
+    dataset[precip_var].data[:] = precip_data
+
+    return dataset
 
 
-def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False):
+def dB_transform(
+    dataset: xr.Dataset, threshold=None, zerovalue=None, inverse=False
+) -> xr.Dataset:
     """Methods to transform precipitation intensities to/from dB units.
 
     Parameters
     ----------
-    R: array-like
-        Array of any shape to be (back-)transformed.
-    metadata: dict, optional
-        Metadata dictionary containing the transform, zerovalue and threshold
-        attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+    dataset: Dataset
+        Dataset to be (back-)transformed.
     threshold: float, optional
-        Optional value that is used for thresholding with the same units as R.
+        Optional value that is used for thresholding with the same units as in the dataset.
         If None, the threshold contained in metadata is used.
         If no threshold is found in the metadata,
         a value of 0.1 is used as default.
@@ -171,82 +161,70 @@ def dB_transform(R, metadata=None, threshold=None, zerovalue=None, inverse=False
 
     Returns
     -------
-    R: array-like
-        Array of any shape containing the (back-)transformed units.
-    metadata: dict
-        The metadata with updated attributes.
+    dataset: Dataset
+        Dataset containing the (back-)transformed units.
     """
 
-    R = R.copy()
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "dB"}
-        else:
-            metadata = {"transform": None}
-
-    else:
-        metadata = metadata.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
 
     # to dB units
     if not inverse:
         if metadata["transform"] == "dB":
-            return R, metadata
+            return dataset
 
         if threshold is None:
             threshold = metadata.get("threshold", 0.1)
 
-        zeros = R < threshold
+        zeros = precip_data < threshold
 
         # Convert to dB
-        R[~zeros] = 10.0 * np.log10(R[~zeros])
+        precip_data[~zeros] = 10.0 * np.log10(precip_data[~zeros])
         threshold = 10.0 * np.log10(threshold)
 
         # Set value for zeros
         if zerovalue is None:
             zerovalue = threshold - 5  # TODO: set to a more meaningful value
-        R[zeros] = zerovalue
+        precip_data[zeros] = zerovalue
 
         metadata["transform"] = "dB"
         metadata["zerovalue"] = zerovalue
         metadata["threshold"] = threshold
 
-        return R, metadata
-
     # from dB units
     elif inverse:
         if metadata["transform"] != "dB":
-            return R, metadata
+            return dataset
 
         if threshold is None:
             threshold = metadata.get("threshold", -10.0)
         if zerovalue is None:
             zerovalue = 0.0
 
-        R = 10.0 ** (R / 10.0)
+        precip_data = 10.0 ** (precip_data / 10.0)
         threshold = 10.0 ** (threshold / 10.0)
-        R[R < threshold] = zerovalue
+        precip_data[precip_data < threshold] = zerovalue
 
         metadata["transform"] = None
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
 
-        return R, metadata
+    dataset[precip_var].data[:] = precip_data
+
+    return dataset
 
 
-def NQ_transform(R, metadata=None, inverse=False, **kwargs):
+def NQ_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.Dataset:
     """
     The normal quantile transformation as in Bogner et al (2012).
     Zero rain vales are set to zero in norm space.
 
     Parameters
     ----------
-    R: array-like
-        Array of any shape to be transformed.
-    metadata: dict, optional
-        Metadata dictionary containing the transform, zerovalue and threshold
-        attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+    dataset: Dataset
+       Dataset to be transformed.
     inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
@@ -260,10 +238,8 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
 
     Returns
     -------
-    R: array-like
-        Array of any shape containing the (back-)transformed units.
-    metadata: dict
-        The metadata with updated attributes.
+    dataset: Dataset
+        Dataset containing the (back-)transformed units.
 
     References
     ----------
@@ -276,105 +252,95 @@ def NQ_transform(R, metadata=None, inverse=False, **kwargs):
     # defaults
     a = kwargs.get("a", 0.0)
 
-    R = R.copy()
-    shape0 = R.shape
-    R = R.ravel().astype(float)
-    idxNan = np.isnan(R)
-    R_ = R[~idxNan]
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
 
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "NQT"}
-        else:
-            metadata = {"transform": None}
-        metadata["zerovalue"] = np.min(R_)
-
-    else:
-        metadata = metadata.copy()
+    shape0 = precip_data.shape
+    precip_data = precip_data.ravel().astype(float)
+    idxNan = np.isnan(precip_data)
+    precip_data_ = precip_data[~idxNan]
 
     if not inverse:
         # Plotting positions
         # https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot#Plotting_position
-        n = R_.size
-        Rpp = ((np.arange(n) + 1 - a) / (n + 1 - 2 * a)).reshape(R_.shape)
+        n = precip_data_.size
+        Rpp = ((np.arange(n) + 1 - a) / (n + 1 - 2 * a)).reshape(precip_data_.shape)
 
         # NQ transform
         Rqn = scipy_stats.norm.ppf(Rpp)
-        R__ = np.interp(R_, R_[np.argsort(R_)], Rqn)
+        precip_data__ = np.interp(
+            precip_data_, precip_data_[np.argsort(precip_data_)], Rqn
+        )
 
         # set zero rain to 0 in norm space
-        R__[R[~idxNan] == metadata["zerovalue"]] = 0
+        precip_data__[precip_data[~idxNan] == metadata["zerovalue"]] = 0
 
         # build inverse transform
         metadata["inqt"] = interp1d(
-            Rqn, R_[np.argsort(R_)], bounds_error=False, fill_value=(R_.min(), R_.max())
+            Rqn,
+            precip_data_[np.argsort(precip_data_)],
+            bounds_error=False,
+            fill_value=(precip_data_.min(), precip_data_.max()),
         )
 
         metadata["transform"] = "NQT"
         metadata["zerovalue"] = 0
-        metadata["threshold"] = R__[R__ > 0].min()
+        metadata["threshold"] = precip_data__[precip_data__ > 0].min()
 
     else:
         f = metadata.pop("inqt")
-        R__ = f(R_)
+        precip_data__ = f(precip_data_)
         metadata["transform"] = None
-        metadata["zerovalue"] = R__.min()
-        metadata["threshold"] = R__[R__ > R__.min()].min()
+        metadata["zerovalue"] = precip_data__.min()
+        metadata["threshold"] = precip_data__[precip_data__ > precip_data__.min()].min()
 
-    R[~idxNan] = R__
+    precip_data[~idxNan] = precip_data__
 
-    return R.reshape(shape0), metadata
+    dataset[precip_var].data[:] = precip_data.reshape(shape0)
+
+    return dataset
 
 
-def sqrt_transform(R, metadata=None, inverse=False, **kwargs):
+def sqrt_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.Dataset:
     """
     Square-root transform.
 
     Parameters
     ----------
-    R: array-like
-        Array of any shape to be transformed.
-    metadata: dict, optional
-        Metadata dictionary containing the transform, zerovalue and threshold
-        attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
+    dataset: Dataset
+        Dataset to be transformed.
     inverse: bool, optional
         If set to True, it performs the inverse transform. False by default.
 
     Returns
     -------
-    R: array-like
-        Array of any shape containing the (back-)transformed units.
-    metadata: dict
-        The metadata with updated attributes.
+    dataset: Dataset
+        Dataset containing the (back-)transformed units.
 
     """
 
-    R = R.copy()
-
-    if metadata is None:
-        if inverse:
-            metadata = {"transform": "sqrt"}
-        else:
-            metadata = {"transform": None}
-        metadata["zerovalue"] = np.nan
-        metadata["threshold"] = np.nan
-    else:
-        metadata = metadata.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+    precip_data = dataset[precip_var].values
 
     if not inverse:
         # sqrt transform
-        R = np.sqrt(R)
+        precip_data = np.sqrt(precip_data)
 
         metadata["transform"] = "sqrt"
         metadata["zerovalue"] = np.sqrt(metadata["zerovalue"])
         metadata["threshold"] = np.sqrt(metadata["threshold"])
     else:
         # inverse sqrt transform
-        R = R**2
+        precip_data = precip_data**2
 
         metadata["transform"] = None
         metadata["zerovalue"] = metadata["zerovalue"] ** 2
         metadata["threshold"] = metadata["threshold"] ** 2
 
-    return R, metadata
+    dataset[precip_var].data[:] = precip_data
+
+    return dataset

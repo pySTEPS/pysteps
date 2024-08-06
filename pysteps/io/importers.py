@@ -89,12 +89,10 @@ import os
 from functools import partial
 
 import numpy as np
-
 from matplotlib.pyplot import imread
 
 from pysteps.decorators import postprocess_import
-from pysteps.exceptions import DataModelError
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 
 try:

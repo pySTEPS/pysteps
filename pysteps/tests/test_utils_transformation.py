@@ -1,190 +1,392 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
-from numpy.testing import assert_array_almost_equal
+import xarray as xr
 
+from pysteps.tests.helpers import assert_dataset_equivalent
 from pysteps.utils import transformation
 
 # boxcox_transform
-test_data = [
+test_data_boxcox_transform = [
     (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": np.e,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         None,
         None,
         None,
         False,
-        np.array([0]),
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([0.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "BoxCox",
+                        "accutime": 5,
+                        "threshold": 1,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
     ),
     (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": "BoxCox",
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "BoxCox",
+                        "accutime": 5,
+                        "threshold": 1,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         None,
         None,
         None,
         True,
-        np.array([np.exp(1)]),
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([np.exp(1.0)]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": np.e,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
     ),
     (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": np.e,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         1.0,
         None,
         None,
         False,
-        np.array([0]),
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([np.e - 2]),
+                    {
+                        "units": "mm/h",
+                        "transform": "BoxCox",
+                        "accutime": 5,
+                        "threshold": np.e - 1,
+                        "zerovalue": np.e - 2,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
     ),
     (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": "BoxCox",
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([np.e - 2]),
+                    {
+                        "units": "mm/h",
+                        "transform": "BoxCox",
+                        "accutime": 5,
+                        "threshold": np.e - 1,
+                        "zerovalue": np.e - 2,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         1.0,
         None,
         None,
         True,
-        np.array([2.0]),
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([0.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": np.e,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
     ),
 ]
 
 
 @pytest.mark.parametrize(
-    "R, metadata, Lambda, threshold, zerovalue, inverse, expected", test_data
+    "dataset, Lambda, threshold, zerovalue, inverse, expected",
+    test_data_boxcox_transform,
 )
-def test_boxcox_transform(R, metadata, Lambda, threshold, zerovalue, inverse, expected):
+def test_boxcox_transform(dataset, Lambda, threshold, zerovalue, inverse, expected):
     """Test the boxcox_transform."""
-    assert_array_almost_equal(
-        transformation.boxcox_transform(
-            R, metadata, Lambda, threshold, zerovalue, inverse
-        )[0],
-        expected,
+    actual = transformation.boxcox_transform(
+        dataset, Lambda, threshold, zerovalue, inverse
     )
+    assert_dataset_equivalent(actual, expected)
 
 
 # dB_transform
-test_data = [
+test_data_dB_transform = [
     (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": 1,
+                        "zerovalue": 1,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         None,
         None,
         False,
-        np.array([0]),
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([0.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 0,
+                        "zerovalue": -5,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
     ),
     (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": "dB",
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([0.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "dB",
+                        "accutime": 5,
+                        "threshold": 0,
+                        "zerovalue": -5,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         None,
         None,
         True,
-        np.array([1.25892541]),
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": 1,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
     ),
 ]
 
 
 @pytest.mark.parametrize(
-    "R, metadata, threshold, zerovalue, inverse, expected", test_data
+    "dataset, threshold, zerovalue, inverse, expected", test_data_dB_transform
 )
-def test_dB_transform(R, metadata, threshold, zerovalue, inverse, expected):
+def test_dB_transform(dataset, threshold, zerovalue, inverse, expected):
     """Test the dB_transform."""
-    assert_array_almost_equal(
-        transformation.dB_transform(R, metadata, threshold, zerovalue, inverse)[0],
-        expected,
-    )
+    actual = transformation.dB_transform(dataset, threshold, zerovalue, inverse)
+    assert_dataset_equivalent(actual, expected)
 
 
 # NQ_transform
-test_data = [
+test_data_NQ_transform = [
     (
-        np.array([1, 2]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0, 2.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": 0,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         False,
-        np.array([-0.4307273, 0.4307273]),
-    )
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([-0.4307273, 0.4307273]),
+                    {
+                        "units": "mm/h",
+                        "transform": "NQT",
+                        "accutime": 5,
+                        "threshold": 0.4307273,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
+    ),
 ]
 
 
-@pytest.mark.parametrize("R, metadata, inverse, expected", test_data)
-def test_NQ_transform(R, metadata, inverse, expected):
+@pytest.mark.parametrize("dataset, inverse, expected", test_data_NQ_transform)
+def test_NQ_transform(dataset, inverse, expected):
     """Test the NQ_transform."""
-    assert_array_almost_equal(
-        transformation.NQ_transform(R, metadata, inverse)[0], expected
-    )
+    actual = transformation.NQ_transform(dataset, inverse)
+    assert_dataset_equivalent(actual, expected)
 
 
 # sqrt_transform
-test_data = [
+test_data_sqrt_transform = [
     (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": None,
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0, 4.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": 4,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         False,
-        np.array([1]),
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0, 2.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "sqrt",
+                        "accutime": 5,
+                        "threshold": 2,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
     ),
     (
-        np.array([1]),
-        {
-            "accutime": 5,
-            "transform": "sqrt",
-            "unit": "mm/h",
-            "threshold": 0,
-            "zerovalue": 0,
-        },
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0, 2.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": "sqrt",
+                        "accutime": 5,
+                        "threshold": 2,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
         True,
-        np.array([1]),
+        xr.Dataset(
+            data_vars={
+                "precip_intensity": (
+                    ["x"],
+                    np.array([1.0, 4.0]),
+                    {
+                        "units": "mm/h",
+                        "transform": None,
+                        "accutime": 5,
+                        "threshold": 4,
+                        "zerovalue": 0,
+                    },
+                )
+            },
+            attrs={"precip_var": "precip_intensity"},
+        ),
     ),
 ]
 
 
-@pytest.mark.parametrize("R, metadata, inverse, expected", test_data)
-def test_sqrt_transform(R, metadata, inverse, expected):
+@pytest.mark.parametrize("dataset, inverse, expected", test_data_sqrt_transform)
+def test_sqrt_transform(dataset, inverse, expected):
     """Test the sqrt_transform."""
-    assert_array_almost_equal(
-        transformation.sqrt_transform(R, metadata, inverse)[0], expected
-    )
+    actual = transformation.sqrt_transform(dataset, inverse)
+    assert_dataset_equivalent(actual, expected)

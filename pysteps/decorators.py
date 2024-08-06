@@ -22,6 +22,8 @@ from functools import wraps
 
 import numpy as np
 
+from pysteps.converters import convert_to_xarray_dataset
+
 
 def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
     """
@@ -66,7 +68,7 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     def _postprocess_import(importer):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
-            precip, *other_args = importer(*args, **kwargs)
+            precip, quality, metadata = importer(*args, **kwargs)
 
             _dtype = kwargs.get("dtype", dtype)
 
@@ -88,7 +90,7 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                     mask = ~np.isfinite(precip)
                     precip[mask] = _fillna
 
-            return (precip.astype(_dtype),) + tuple(other_args)
+            return convert_to_xarray_dataset(precip.astype(_dtype), quality, metadata)
 
         extra_kwargs_doc = """
             Other Parameters
