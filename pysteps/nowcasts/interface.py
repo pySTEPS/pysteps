@@ -77,10 +77,11 @@ def discover_nowcasts():
     importlib.reload(pkg_resources)
 
     for entry_point in pkg_resources.iter_entry_points(
-        group="pysteps.nowcasts", name=None
+        group="pysteps.plugin.nowcasts", name=None
     ):
-        _new_nowcast= entry_point.load()
-        nowcast_module_name=entry_point.name
+        nowcast_module_name=entry_point.module_name
+
+        
     
         # importer_short_name = importer_function_name.replace("import_", "")
 
@@ -90,7 +91,8 @@ def discover_nowcasts():
             
             module = importlib.import_module(entry_point.module_name)
             
-            _nowcast_methods[nowcast_module_name] =module.forecast
+            
+            _nowcast_methods[module] =module.forecast
             
         else:
             RuntimeWarning(
