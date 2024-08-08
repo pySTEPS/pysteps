@@ -95,7 +95,7 @@ def discover_nowcasts():
             )
 
 
-   def nowcasts_info():
+def nowcasts_info():
     
     
     """Print all the available importers."""
