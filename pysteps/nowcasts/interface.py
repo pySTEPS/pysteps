@@ -29,6 +29,7 @@ The time step of the output is taken from the inputs.
 
     get_method
 """
+
 from pprint import pprint
 from pysteps import nowcasts
 import importlib
@@ -46,7 +47,6 @@ from pysteps.nowcasts import lagrangian_probability
 import os
 
 
-
 _nowcast_methods = dict()
 _nowcast_methods["anvil"] = anvil.forecast
 _nowcast_methods["eulerian"] = eulerian_persistence
@@ -58,7 +58,6 @@ _nowcast_methods["probability"] = lagrangian_probability.forecast
 _nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["sseps"] = sseps.forecast
 _nowcast_methods["steps"] = steps.forecast
-
 
 
 def discover_nowcasts():
@@ -79,14 +78,14 @@ def discover_nowcasts():
     for entry_point in pkg_resources.iter_entry_points(
         group="pysteps.plugin.nowcasts", name=None
     ):
-        _nowcast_module_name=entry_point.name
-    
+        _nowcast_module_name = entry_point.name
+
         if _nowcast_module_name not in _nowcast_methods:
-            
+
             module = importlib.import_module(entry_point.module_name)
-            
-            _nowcast_methods[_nowcast_module_name] =module.forecast
-            
+
+            _nowcast_methods[_nowcast_module_name] = module.forecast
+
         else:
             RuntimeWarning(
                 f"The Nowcasts methode '{_nowcast_module_name}' is already available in"
@@ -96,48 +95,40 @@ def discover_nowcasts():
 
 
 def nowcasts_info():
-    
-    
     """Print all the available importers."""
-     
+
     # nowcasts methods available in the `nowcasts` package
     available_nowcasts = [
-        attr.split('.')[0] for attr in os.listdir(' '.join(nowcasts.__path__)) if not attr.startswith("__")
-        and attr!='interface.py'
+        attr.split(".")[0]
+        for attr in os.listdir(" ".join(nowcasts.__path__))
+        if not attr.startswith("__") and attr != "interface.py"
     ]
 
     print("\nMethods available in the pysteps.nowcasts")
     pprint(available_nowcasts)
     # nowcasts declared in the pysteps.nowcast interface
-    
-    nowcasts_in_the_interface = [
-        f for f in _nowcast_methods.keys()
-    ]
+
+    nowcasts_in_the_interface = [f for f in _nowcast_methods.keys()]
 
     print("\nMethods available in the pysteps.nowcasts.get_method interface")
-    pprint(
-        [
-            (short_name, f.__name__)
-            for short_name, f in _nowcast_methods.items()
-        ]
-    )
+    pprint([(short_name, f.__name__) for short_name, f in _nowcast_methods.items()])
 
     # Let's use sets to find out if there are importers present in the importer module
     # but not declared in the interface, and viceversa.
     available_nowcasts = set(available_nowcasts)
-    nowcasts_in_the_interface  = set(nowcasts_in_the_interface )
+    nowcasts_in_the_interface = set(nowcasts_in_the_interface)
 
-    difference = available_nowcasts ^ nowcasts_in_the_interface 
+    difference = available_nowcasts ^ nowcasts_in_the_interface
     if len(difference) > 0:
         print("\nIMPORTANT:")
-        _diff = available_nowcasts - nowcasts_in_the_interface 
+        _diff = available_nowcasts - nowcasts_in_the_interface
         if len(_diff) > 0:
             print(
                 "\nIMPORTANT:\nThe following importers are available in pysteps.nowcasts module "
                 "but not in the pysteps.nowcasts.get_method interface"
             )
             pprint(_diff)
-        _diff = nowcasts_in_the_interface  - available_nowcasts
+        _diff = nowcasts_in_the_interface - available_nowcasts
         if len(_diff) > 0:
             print(
                 "\nWARNING:\n"
@@ -146,12 +137,10 @@ def nowcasts_info():
             )
             pprint(_diff)
 
-    return available_nowcasts, nowcasts_in_the_interface 
-
+    return available_nowcasts, nowcasts_in_the_interface
 
 
 def get_method(name):
-    
     """
     Return a callable function for computing nowcasts.
 
@@ -186,12 +175,12 @@ def get_method(name):
     +-----------------+-------------------------------------------------------+
     |  sseps          | short-space ensemble prediction system (SSEPS).       |
     |                 | Essentially, this is a localization of STEPS          |
-    +-----------------+-------------------------------------------------------+ 
+    +-----------------+-------------------------------------------------------+
     |  dgmr           | a deep generative model for the probabilistic    .    |
     |                 | nowcasting  of precipitation from radar  developed by |
     |                 |  researchers from DeepMind                            |
     +-----------------+-------------------------------------------------------+
-    
+
 
     """
     if isinstance(name, str):
