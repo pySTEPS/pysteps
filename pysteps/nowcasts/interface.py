@@ -79,13 +79,9 @@ def discover_nowcasts():
         group="pysteps.plugin.nowcasts", name=None
     ):
         _nowcast_module_name = entry_point.name
-
         if _nowcast_module_name not in _nowcast_methods:
-
             module = importlib.import_module(entry_point.module_name)
-
             _nowcast_methods[_nowcast_module_name] = module.forecast
-
         else:
             RuntimeWarning(
                 f"The Nowcasts methode '{_nowcast_module_name}' is already available in"
@@ -103,7 +99,6 @@ def nowcasts_info():
         for attr in os.listdir(" ".join(nowcasts.__path__))
         if not attr.startswith("__") and attr != "interface.py"
     ]
-
     print("\nMethods available in the pysteps.nowcasts")
     pprint(available_nowcasts)
     # nowcasts declared in the pysteps.nowcast interface
@@ -180,7 +175,6 @@ def get_method(name):
     |                 | nowcasting  of precipitation from radar  developed by |
     |                 |  researchers from DeepMind                            |
     +-----------------+-------------------------------------------------------+
-
 
     """
     if isinstance(name, str):
