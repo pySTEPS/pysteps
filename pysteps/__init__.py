@@ -218,4 +218,4 @@ load_config_file()
 
 # After the sub-modules are loaded, register the discovered importers plugin.
 io.interface.discover_importers()
-nowcasts.discover_nowcasts()
+nowcasts.interface.discover_nowcasts()
