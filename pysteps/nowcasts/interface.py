@@ -63,7 +63,7 @@ _nowcast_methods["steps"] = steps.forecast
 
 def discover_nowcasts():
     """
-    Search for installed nowcasts plugins in the entrypoint 'pysteps.nowcasts'
+    Search for installed nowcasts plugins in the entrypoint 'pysteps.plugin.nowcasts'
 
     The nowcasts method found are added to the `pysteps.nowcasts.interface_nowcasts_methods`
     dictionary containing the available nowcasts_methods.
@@ -95,12 +95,12 @@ def discover_nowcasts():
             )
 
 
-   def nowcasts_info():
+def nowcasts_info():
     
     
     """Print all the available importers."""
      
-    # nowcasts available in the `nowcasts` package
+    # nowcasts methods available in the `nowcasts` package
     available_nowcasts = [
         attr.split('.')[0] for attr in os.listdir(' '.join(nowcasts.__path__)) if not attr.startswith("__")
         and attr!='interface.py'
