@@ -1545,7 +1545,7 @@ def forecast(
                             arr1 = R_pm_ep[t_index]
                             arr2 = precip_models_pm_temp[j]
                             arr2 = np.where(np.isnan(arr2), np.nanmin(arr2), arr2)
-                            arr1 = np.where(np.isnan(arr1), arr2, arr1)
+                            arr1 = np.where(np.isnan(arr1), np.nanmin(arr1), arr1)
                             # resample weights based on cascade level 2
                             R_pm_resampled = probmatching.resample_distributions(
                                 first_array=arr1,
