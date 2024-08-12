@@ -366,9 +366,6 @@ def test_nowcasts_interface():
     """Test the discover_nowcasts and nowcasts_info function."""
     from pysteps.nowcasts.interface import discover_nowcasts
     from pysteps.nowcasts.interface import nowcasts_info
-
-    # Clear the existing methods to test the discovery process
-    global _nowcast_methods
     # Call the function to get nowcasts info
     available_nowcasts, nowcasts_in_interface = nowcasts_info()
 
