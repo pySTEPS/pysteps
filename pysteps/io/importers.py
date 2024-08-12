@@ -65,6 +65,93 @@ The metadata dictionary contains the following recommended key-value pairs:
 |   zr_b           | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
+The data and metadata is then postprocessed into an xarray dataset. This dataset will
+always contain an x and y dimension, but can be extended with a time dimension and/or
+an ensemble member dimension over the course of the process.
+
+The dataset can contain the following coordinate variables:
+
+
+.. tabularcolumns:: |p{2cm}|L|
+
++---------------+-------------------------------------------------------------------------------------------+
+|  Coordinate   |                Description                                                                |
++===============+===========================================================================================+
+|   y           | y-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
++---------------+-------------------------------------------------------------------------------------------+
+|   x           | x-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
++---------------+-------------------------------------------------------------------------------------------+
+|   lat         | latitude coordinate in degrees                                                            |
++---------------+-------------------------------------------------------------------------------------------+
+|   lon         | longitude coordinate in degrees                                                           |
++---------------+-------------------------------------------------------------------------------------------+
+|   time        | forecast time in seconds since forecast start time                                        |
++---------------+-------------------------------------------------------------------------------------------+
+|   member      | ensemble member number (integer)                                                          |
++---------------+-------------------------------------------------------------------------------------------+
+
+
+The dataset can contain the following data variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++-------------------+-----------------------------------------------------------------------------------------------------------+
+|    Variable       |                Description                                                                                |
++===================+===========================================================================================================+
+| precip_intensity, | precipitation data, based on the unit the data has it is stored in one of these 3 possible variables      |
+| precip_accum      | precip_intensity if unit is ``mm/h``, precip_accum if unit is ``mm`` and reflectivity if unit is ``dBZ``, |
+| or reflectivity   | the attributes of this variable contain metadata relevant to this attribute (see below)                   |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| quality           | value between 0 and 1 denoting the quality of the precipitation data, currently not used for anything     |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+
+Some of the metadata in the metadata dictionary is not explicitely stored in the dataset,
+but is still implicitly present. For example ``x1`` can easily be found by taking the first
+value from the x coordinate variable. Metadata that is not implicitly present is explicitly
+stored either in the datasets global attributes or as attributes of the precipitation variable.
+Data that relates to the entire dataset is stored in the global attributes. The following data
+is stored in the global attributes:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   projection     | PROJ.4-compatible projection definition                  |
++------------------+----------------------------------------------------------+
+|   institution    | name of the institution who provides the data            |
++------------------+----------------------------------------------------------+
+|   precip_var     | the name of the precipitation variable in this dataset   |
++------------------+----------------------------------------------------------+
+
+The following data is stored as attributes of the precipitation variable:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   units          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
++------------------+----------------------------------------------------------+
+|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|                  | others                                                   |
++------------------+----------------------------------------------------------+
+|   accutime       | the accumulation time in minutes of the data, float      |
++------------------+----------------------------------------------------------+
+|   threshold      | the rain/no rain threshold with the same unit,           |
+|                  | transformation and accutime of the data.                 |
++------------------+----------------------------------------------------------+
+|   zerovalue      | the value assigned to the no rain pixels with the same   |
+|                  | unit, transformation and accutime of the data.           |
++------------------+----------------------------------------------------------+
+|   zr_a           | the Z-R constant a in Z = a*R**b                         |
++------------------+----------------------------------------------------------+
+|   zr_b           | the Z-R exponent b in Z = a*R**b                         |
++------------------+----------------------------------------------------------+
+
+Furthermore the dataset can contain some additional metadata to make the dataset
+CF-compliant.
+
 Available Importers
 -------------------
 
