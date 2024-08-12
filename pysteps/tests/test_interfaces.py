@@ -366,8 +366,9 @@ def test_nowcasts_interface():
     """Test the discover_nowcasts and nowcasts_info function."""
     from pysteps.nowcasts.interface import discover_nowcasts
     from pysteps.nowcasts.interface import nowcasts_info
+
     # Call the function to get nowcasts info
-    available_nowcasts, nowcasts_in_interface = nowcasts_info()
+    _, nowcasts_in_interface = nowcasts_info()
 
     # Call the function to discover nowcasts
     discover_nowcasts()
