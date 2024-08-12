@@ -337,10 +337,10 @@ test_data_square = [
 def test_square_domain(data, metadata, method, inverse, expected):
     """Test the square_domain."""
     dataset = convert_to_xarray_dataset(data, None, {**fillvalues_metadata, **metadata})
-    dataset["precip_intensity"].attrs = {
-        **dataset["precip_intensity"].attrs,
-        **metadata,
-    }
+    if "square_method" in metadata:
+        dataset.attrs["square_method"] = metadata["square_method"]
+    if "orig_domain" in metadata:
+        dataset.attrs["orig_domain"] = metadata["orig_domain"]
     assert_array_equal(
         dimension.square_domain(dataset, method, inverse)["precip_intensity"].values,
         expected,
