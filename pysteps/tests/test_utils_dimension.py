@@ -5,7 +5,7 @@ import datetime as dt
 import numpy as np
 import pytest
 import xarray as xr
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from pytest import raises
 
 from pysteps.converters import convert_to_xarray_dataset
@@ -32,7 +32,6 @@ fillvalues_metadata = {
 }
 
 test_data_not_trim = (
-    # "data, window_size, axis, method, expected"
     (
         np.arange(12).reshape(2, 6),
         2,
@@ -113,6 +112,78 @@ def test_aggregate_fields(data, window_size, dim, method, expected):
 
     with raises(ValueError):
         dimension.aggregate_fields(dataset, window_size, dim=dim, method=method)
+
+
+test_data_agg_w_velocity = (
+    (
+        np.arange(12).reshape(2, 6),
+        np.arange(12).reshape(2, 6),
+        np.arange(12).reshape(2, 6),
+        np.arange(0, 1.2, 0.1).reshape(2, 6),
+        2,
+        "x",
+        "mean",
+        "mean",
+        np.array([[0.5, 2.5, 4.5], [6.5, 8.5, 10.5]]),
+        np.array([[0.5, 2.5, 4.5], [6.5, 8.5, 10.5]]),
+        np.array([[0, 0.2, 0.4], [0.6, 0.8, 1]]),
+    ),
+    (
+        np.arange(4 * 6).reshape(4, 6),
+        np.arange(4 * 6).reshape(4, 6),
+        np.arange(4 * 6).reshape(4, 6),
+        np.arange(0, 1.2, 0.05).reshape(4, 6),
+        (2, 3),
+        ("y", "x"),
+        "mean",
+        "sum",
+        np.array([[4, 7], [16, 19]]),
+        np.array([[24, 42], [96, 114]]),
+        np.array([[0, 0.15], [0.6, 0.75]]),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "data, data_vx, data_vy, data_qual, window_size, dim, method, velocity_method, expected, expected_v, expected_qual",
+    test_data_agg_w_velocity,
+)
+def test_aggregate_fields_w_velocity(
+    data,
+    data_vx,
+    data_vy,
+    data_qual,
+    window_size,
+    dim,
+    method,
+    velocity_method,
+    expected,
+    expected_v,
+    expected_qual,
+):
+    """
+    Test the aggregate_fields function for dataset with velocity information.
+    The windows size must divide exactly the data dimensions.
+    Internally, additional test are generated for situations where the
+    windows size does not divide the data dimensions.
+    The length of each dimension should be larger than 2.
+    """
+    dataset = convert_to_xarray_dataset(data, None, fillvalues_metadata)
+    dataset = dataset.assign(
+        {
+            "velocity_x": (("y", "x"), data_vx),
+            "velocity_y": (("y", "x"), data_vy),
+            "quality": (("y", "x"), data_qual),
+        }
+    )
+
+    actual = dimension.aggregate_fields(
+        dataset, window_size, dim=dim, method=method, velocity_method=velocity_method
+    )
+    assert_array_equal(actual["precip_intensity"].values, expected)
+    assert_array_equal(actual["velocity_x"].values, expected_v)
+    assert_array_equal(actual["velocity_y"].values, expected_v)
+    assert_array_almost_equal(actual["quality"].values, expected_qual)
 
 
 def test_aggregate_fields_errors():
@@ -344,4 +415,55 @@ def test_square_domain(data, metadata, method, inverse, expected):
     assert_array_equal(
         dimension.square_domain(dataset, method, inverse)["precip_intensity"].values,
         expected,
+    )
+
+
+# square_domain
+R = np.ones((4, 2))
+test_data_square_w_velocity = [
+    # square by padding
+    (
+        R,
+        {"x1": 0, "x2": 2, "y1": 0, "y2": 4, "xpixelsize": 1, "ypixelsize": 1},
+        "pad",
+        False,
+        np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]),
+        np.array([[0, 1, 1, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 1, 1, 0]]),
+    )
+]
+
+
+@pytest.mark.parametrize(
+    "data, metadata, method, inverse, expected, expected_velqual",
+    test_data_square_w_velocity,
+)
+def test_square_w_velocity(data, metadata, method, inverse, expected, expected_velqual):
+    """Test the square_domain."""
+    dataset = convert_to_xarray_dataset(data, None, {**fillvalues_metadata, **metadata})
+    dataset = dataset.assign(
+        {
+            "velocity_x": (("y", "x"), data),
+            "velocity_y": (("y", "x"), data),
+            "quality": (("y", "x"), data),
+        }
+    )
+    if "square_method" in metadata:
+        dataset.attrs["square_method"] = metadata["square_method"]
+    if "orig_domain" in metadata:
+        dataset.attrs["orig_domain"] = metadata["orig_domain"]
+    assert_array_equal(
+        dimension.square_domain(dataset, method, inverse)["precip_intensity"].values,
+        expected,
+    )
+    assert_array_equal(
+        dimension.square_domain(dataset, method, inverse)["velocity_x"].values,
+        expected_velqual,
+    )
+    assert_array_equal(
+        dimension.square_domain(dataset, method, inverse)["velocity_y"].values,
+        expected_velqual,
+    )
+    assert_array_equal(
+        dimension.square_domain(dataset, method, inverse)["quality"].values,
+        expected_velqual,
     )

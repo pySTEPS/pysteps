@@ -14,14 +14,23 @@ Functions to manipulate array dimensions.
     clip_domain
     square_domain
 """
+from typing import Any, Callable
+
 import numpy as np
 import xarray as xr
 
 from pysteps.converters import compute_lat_lon
 
-_aggregation_methods = dict(
-    sum=np.sum, mean=np.mean, nanmean=np.nanmean, nansum=np.nansum
-)
+_aggregation_methods: dict[str, Callable[..., Any]] = {
+    "sum": np.sum,
+    "mean": np.mean,
+    "min": np.min,
+    "max": np.max,
+    "nanmean": np.nanmean,
+    "nansum": np.nansum,
+    "nanmin": np.nanmin,
+    "nanmax": np.nanmax,
+}
 
 
 def aggregate_fields_time(
@@ -93,7 +102,9 @@ def aggregate_fields_time(
     if ignore_nan:
         method = "".join(("nan", method))
 
-    return aggregate_fields(dataset, window_size, dim="time", method=method)
+    return aggregate_fields(
+        dataset, window_size, dim="time", method=method, velocity_method="sum"
+    )
 
 
 def aggregate_fields_space(
@@ -166,11 +177,16 @@ def aggregate_fields_space(
 
     window_size = (int(space_window[0] / ydelta), int(space_window[1] / xdelta))
 
-    return aggregate_fields(dataset, window_size, ["y", "x"], method)
+    return aggregate_fields(dataset, window_size, ["y", "x"], method, "mean")
 
 
 def aggregate_fields(
-    dataset: xr.Dataset, window_size, dim="x", method="mean", trim=False
+    dataset: xr.Dataset,
+    window_size,
+    dim="x",
+    method="mean",
+    velocity_method="mean",
+    trim=False,
 ) -> xr.Dataset:
     """Aggregate fields along a given direction.
 
@@ -201,7 +217,11 @@ def aggregate_fields(
         dims, instead of a single dim
     method: string, optional
         Optional argument that specifies the operation to use
-        to aggregate the values within the window.
+        to aggregate the precipitation values within the window.
+        Default to mean operator.
+    velocity_method: string, optional
+        Optional argument that specifies the operation to use
+        to aggregate the velocity values within the window.
         Default to mean operator.
     trim: bool
          In case that the ``data`` is not perfectly divisible by
@@ -254,9 +274,8 @@ def aggregate_fields(
                 f"dataset.sizes[dim]={dataset.sizes[d]}"
             )
 
-    # FIXME: The aggregation method is applied to all DataArrays in the Dataset
-    #        Fix to allow support for an aggregation method per DataArray
-    return (
+    dataset_ref = dataset
+    dataset = (
         dataset.rolling(dict(zip(dim, window_size)))
         .reduce(_aggregation_methods[method])
         .isel(
@@ -266,6 +285,50 @@ def aggregate_fields(
             }
         )
     )
+    if "velocity_x" in dataset_ref:
+        dataset["velocity_x"] = (
+            dataset_ref["velocity_x"]
+            .rolling(dict(zip(dim, window_size)))
+            .reduce(_aggregation_methods[velocity_method])
+            .isel(
+                {
+                    d: slice(
+                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
+                    )
+                    for d, ws in zip(dim, window_size)
+                }
+            )
+        )
+    if "velocity_y" in dataset_ref:
+        dataset["velocity_y"] = (
+            dataset_ref["velocity_y"]
+            .rolling(dict(zip(dim, window_size)))
+            .reduce(_aggregation_methods[velocity_method])
+            .isel(
+                {
+                    d: slice(
+                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
+                    )
+                    for d, ws in zip(dim, window_size)
+                }
+            )
+        )
+    if "quality" in dataset_ref:
+        dataset["quality"] = (
+            dataset_ref["quality"]
+            .rolling(dict(zip(dim, window_size)))
+            .reduce(_aggregation_methods["min"])
+            .isel(
+                {
+                    d: slice(
+                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
+                    )
+                    for d, ws in zip(dim, window_size)
+                }
+            )
+        )
+
+    return dataset
 
 
 def clip_domain(dataset: xr.Dataset, extent=None):
@@ -307,8 +370,6 @@ def _pad_domain(
 
     dataset_ref = dataset
 
-    # FIXME: The same zerovalue is used for all DataArrays in the Dataset
-    #        Fix to allow support for a zerovalue per DataArray
     dataset = dataset_ref.pad({dim_to_pad: idx_buffer}, constant_values=zerovalue)
     dataset[dim_to_pad] = dataset_ref[dim_to_pad].pad(
         {dim_to_pad: idx_buffer},
@@ -318,6 +379,24 @@ def _pad_domain(
     dataset.lat.data[:], dataset.lon.data[:] = compute_lat_lon(
         dataset.x.values, dataset.y.values, dataset.attrs["projection"]
     )
+    if "velocity_x" in dataset_ref:
+        dataset["velocity_x"].data = (
+            dataset_ref["velocity_x"]
+            .pad({dim_to_pad: idx_buffer}, constant_values=0.0)
+            .values
+        )
+    if "velocity_y" in dataset_ref:
+        dataset["velocity_y"].data = (
+            dataset_ref["velocity_y"]
+            .pad({dim_to_pad: idx_buffer}, constant_values=0.0)
+            .values
+        )
+    if "quality" in dataset_ref:
+        dataset["quality"].data = (
+            dataset_ref["quality"]
+            .pad({dim_to_pad: idx_buffer}, constant_values=0.0)
+            .values
+        )
     return dataset
 
 
@@ -332,14 +411,17 @@ def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
         :py:mod:`pysteps.io.importers`.
     method: {'pad', 'crop'}, optional
         Either pad or crop.
-        If pad, an equal number of zeros is added to both ends of its shortest
-        side in order to produce a square domain.
+        If pad, an equal number of pixels
+        filled with the minimum value of the precipitation
+        field is added to both ends of the precipitation fields shortest
+        side in order to produce a square domain. The quality and velocity fields
+        are always padded with zeros.
         If crop, an equal number of pixels is removed
         to both ends of its longest side in order to produce a square domain.
         Note that the crop method involves an irreversible loss of data.
     inverse: bool, optional
         Perform the inverse method to recover the original domain shape.
-        After a crop, the inverse is performed by padding the field with zeros.
+        After a crop, the inverse is performed by doing a pad.
 
     Returns
     -------
