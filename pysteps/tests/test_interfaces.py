@@ -390,9 +390,11 @@ def test_nowcasts_interface():
 
     for method in expected_methods:
         if method == "dgmr":
-            assert (
-                method in nowcasts_in_interface
-            ), f"Method {method} not found in discovered nowcasts. Please intall dgmr_plugin through 'pip install dgmr_plugin'"
+            if method not in nowcasts_in_interface:
+                print(
+                    f"Warning: Method {method} not found in discovered nowcasts. Please install dgmr_plugin through 'pip install dgmr_plugin'"
+                )
+                continue
         assert (
             method in nowcasts_in_interface
         ), f"Method {method} not found in discovered nowcasts."
