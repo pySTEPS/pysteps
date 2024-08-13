@@ -74,21 +74,23 @@ The dataset can contain the following coordinate variables:
 
 .. tabularcolumns:: |p{2cm}|L|
 
-+---------------+-------------------------------------------------------------------------------------------+
-|  Coordinate   |                Description                                                                |
-+===============+===========================================================================================+
-|   y           | y-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
-+---------------+-------------------------------------------------------------------------------------------+
-|   x           | x-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
-+---------------+-------------------------------------------------------------------------------------------+
-|   lat         | latitude coordinate in degrees                                                            |
-+---------------+-------------------------------------------------------------------------------------------+
-|   lon         | longitude coordinate in degrees                                                           |
-+---------------+-------------------------------------------------------------------------------------------+
-|   time        | forecast time in seconds since forecast start time                                        |
-+---------------+-------------------------------------------------------------------------------------------+
-|   ens_number  | ensemble member number (integer)                                                          |
-+---------------+-------------------------------------------------------------------------------------------+
++--------------------+-------------------------------------------------------------------------------------------+
+|  Coordinate        |                Description                                                                |
++====================+===========================================================================================+
+|   y                | y-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
++--------------------+-------------------------------------------------------------------------------------------+
+|   x                | x-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
++--------------------+-------------------------------------------------------------------------------------------+
+|   lat              | latitude coordinate in degrees                                                            |
++--------------------+-------------------------------------------------------------------------------------------+
+|   lon              | longitude coordinate in degrees                                                           |
++--------------------+-------------------------------------------------------------------------------------------+
+|   time             | forecast time in seconds since forecast start time                                        |
++--------------------+-------------------------------------------------------------------------------------------+
+|   ens_number       | ensemble member number (integer)                                                          |
++--------------------+-------------------------------------------------------------------------------------------+
+|   direction        | used by proesmans to return the forward and backward advection and consistency fields     |
++--------------------+-------------------------------------------------------------------------------------------+
 
 The time, x and y dimensions all MUST be regularly spaced, with the stepsize included
 in a ``stepsize`` attribute. The stepsize is given in the unit of the dimension (this
@@ -110,6 +112,8 @@ The dataset can contain the following data variables:
 | velocity_y        | y-component of the advection field in cartesian_unit per timestep                                         |
 +-------------------+-----------------------------------------------------------------------------------------------------------+
 | quality           | value between 0 and 1 denoting the quality of the precipitation data, currently not used for anything     |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_quality  | value between 0 and 1 denoting the quality of the velocity data, currently only returned by proesmans     |
 +-------------------+-----------------------------------------------------------------------------------------------------------+
 
 Some of the metadata in the metadata dictionary is not explicitely stored in the dataset,

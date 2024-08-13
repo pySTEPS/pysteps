@@ -52,10 +52,15 @@ def forecast(
 
     Returns
     -------
-    out: ndarray
-        Three-dimensional array of shape (num_timesteps, m, n) containing a time
-        series of nowcast exceedence probabilities. The time series starts from
-        t0 + timestep, where timestep is taken from the advection field velocity.
+    out: xarray.Dataset
+        If return_output is True, a dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
+        precipitation fields. Otherwise, a None value
+        is returned. The time series starts from t0+timestep, where timestep is
+        taken from the metadata of the time coordinate. If measure_time is True, the
+        return value is a three-element tuple containing the nowcast dataset, the
+        initialization time of the nowcast generator and the time used in the
+        main loop (seconds).
 
     References
     ----------

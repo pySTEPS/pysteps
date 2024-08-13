@@ -193,16 +193,15 @@ def forecast(
 
     Returns
     -------
-    out: numpy.ndarray
-        A four-dimensional array of shape (n_ens_members, timesteps, m, n)
-        containing a time series of forecast precipitation fields for each
-        ensemble member. If add_perturbations is False, the first dimension is
-        dropped. The time series starts from t0 + timestep, where timestep is
-        taken from the input fields. If measure_time is True, the return value
-        is a three-element tuple containing the nowcast array, the initialization
-        time of the nowcast generator and the time used in the main loop
-        (seconds). If return_output is set to False, a single None value is
-        returned instead.
+    out: xarray.Dataset
+        If return_output is True, a dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
+        precipitation fields for each ensemble member. Otherwise, a None value
+        is returned. The time series starts from t0+timestep, where timestep is
+        taken from the metadata of the time coordinate. If measure_time is True, the
+        return value is a three-element tuple containing the nowcast dataset, the
+        initialization time of the nowcast generator and the time used in the
+        main loop (seconds).
 
     Notes
     -----

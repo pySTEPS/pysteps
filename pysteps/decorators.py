@@ -128,7 +128,9 @@ def check_input_frames(
             target motion_method_func function.
             """
 
-            input_images = args[0]
+            dataset = args[0]
+            precip_var = dataset.attrs["precip_var"]
+            input_images = dataset[precip_var].values
             if input_images.ndim != 3:
                 raise ValueError(
                     "input_images dimension mismatch.\n"

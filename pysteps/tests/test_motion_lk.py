@@ -83,10 +83,12 @@ def test_lk(
         decl_scale=decl_scale,
         verbose=verbose,
     )
-    output = np.stack([output_dataset["velocity_x"], output_dataset["velocity_y"]])
 
     # Check format of ouput
     if dense:
+        output = np.stack(
+            [output_dataset["velocity_x"].values, output_dataset["velocity_y"].values]
+        )
         assert isinstance(output, np.ndarray)
         assert output.ndim == 3
         assert output.shape[0] == 2
@@ -94,6 +96,7 @@ def test_lk(
         if nr_std_outlier == 0:
             assert output.sum() == 0
     else:
+        output = output_dataset
         assert isinstance(output, tuple)
         assert len(output) == 2
         assert isinstance(output[0], np.ndarray)

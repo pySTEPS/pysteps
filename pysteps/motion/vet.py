@@ -35,13 +35,13 @@ for performance.
 """
 
 import numpy
+import xarray as xr
 from numpy.ma.core import MaskedArray
 from scipy.ndimage import zoom
 from scipy.optimize import minimize
 
 from pysteps.decorators import check_input_frames
 from pysteps.motion._vet import _cost_function, _warp
-from pysteps.xarray_decorators import xarray_motion
 
 
 def round_int(scalar):
@@ -300,10 +300,9 @@ def vet_cost_function(
         return residuals + smoothness_penalty
 
 
-@xarray_motion
 @check_input_frames(2, 3)
 def vet(
-    input_images,
+    dataset: xr.Dataset,
     sectors=((32, 16, 4, 2), (32, 16, 4, 2)),
     smooth_gain=1e6,
     first_guess=None,
@@ -368,15 +367,13 @@ def vet(
 
     Parameters
     ----------
-    input_images: ndarray_ or MaskedArray
-        Input images, sequence of 2D arrays, or 3D arrays.
-        The first dimension represents the images time dimension.
-
-        The template_image (first element in first dimensions) denotes the
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain a precipitation data variable.
+        The dataset has to have a time dimension. The size of this dimension
+        has to be 2. The first element in the time dimension denotes the
         reference image used to obtain the displacement (2D array).
         The second is the target image.
-
-        The expected dimensions are (2,ni,nj).
     sectors: list or array, optional
         Number of sectors on each dimension used in the scaling procedure.
         If dimension is 1, the same sectors will be used both image dimensions
@@ -413,13 +410,11 @@ def vet(
 
     Returns
     -------
-    displacement_field: ndarray_
-        Displacement Field (2D array representing the transformation) that
-        warps the template image into the input image.
-        The dimensions are (2,ni,nj), where the first
-        dimension indicates the displacement along x (0) or y (1) in units of
-        pixels / timestep as given by the input_images array.
-    intermediate_steps: list of ndarray_
+    out: xarray.Dataset
+        The input dataset with the displacement field that
+        warps the template image into the input image added in the ``velocity_x``
+        and ``velocity_y`` data variables.
+    intermediate_steps: list of ndarray_, optional
         List with the first guesses obtained during the scaling procedure.
 
     References
@@ -439,6 +434,9 @@ def vet(
     Nocedal, J, and S J Wright. 2006. Numerical Optimization. Springer New York.
     """
 
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    input_images = dataset[precip_var].values
     if verbose:
 
         def debug_print(*args, **kwargs):
@@ -644,7 +642,10 @@ def vet(
     if padding > 0:
         first_guess = first_guess[:, padding:-padding, padding:-padding]
 
-    if intermediate_steps:
-        return first_guess, scaling_guesses
+    dataset["velocity_x"] = (["y", "x"], first_guess[0])
+    dataset["velocity_y"] = (["y", "x"], first_guess[1])
 
-    return first_guess
+    if intermediate_steps:
+        return dataset, scaling_guesses
+
+    return dataset
