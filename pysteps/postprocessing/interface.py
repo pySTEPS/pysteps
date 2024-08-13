@@ -20,7 +20,9 @@ import pysteps.postprocessing
 from pysteps.postprocessing import diagnostics
 from pprint import pprint
 
-_diagnostics_methods = dict()
+_diagnostics_methods = dict(
+    example1=diagnostics.diagnostics_example1, example3=lambda x: [x, x]
+)
 
 
 def discover_diagnostics():
@@ -97,6 +99,8 @@ def diagnostics_info():
     available_diagnostics = set(available_diagnostics)
     diagnostics_in_the_interface = set(diagnostics_in_the_interface)
 
+    available_diagnostics = {s.split("_")[1] for s in available_diagnostics}
+
     difference = available_diagnostics ^ diagnostics_in_the_interface
     if len(difference) > 0:
         print("\nIMPORTANT:")
@@ -145,7 +149,7 @@ def get_method(name, method_type):
         |     Name    |              Description                              |
         +=============+=======================================================+
 
-    method_type: {'diagnostics', diagnostic_diagnostics}
+    method_type: {'diagnostics', diagnostics_name}
             Type of the method (see tables above).
 
     """
