@@ -22,7 +22,7 @@ from functools import wraps
 
 import numpy as np
 
-from pysteps.converters import convert_to_xarray_dataset
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 
 def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
@@ -90,7 +90,9 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                     mask = ~np.isfinite(precip)
                     precip[mask] = _fillna
 
-            return convert_to_xarray_dataset(precip.astype(_dtype), quality, metadata)
+            return convert_input_to_xarray_dataset(
+                precip.astype(_dtype), quality, metadata
+            )
 
         extra_kwargs_doc = """
             Other Parameters

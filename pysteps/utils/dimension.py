@@ -19,7 +19,7 @@ from typing import Any, Callable
 import numpy as np
 import xarray as xr
 
-from pysteps.converters import compute_lat_lon
+from pysteps.xarray_helpers import compute_lat_lon
 
 _aggregation_methods: dict[str, Callable[..., Any]] = {
     "sum": np.sum,
@@ -158,9 +158,8 @@ def aggregate_fields_space(
     if np.isscalar(space_window):
         space_window = (space_window, space_window)
 
-    # assumes that frames are evenly spaced
-    ydelta = dataset["y"].values[1] - dataset["y"].values[0]
-    xdelta = dataset["x"].values[1] - dataset["x"].values[0]
+    ydelta = dataset["y"].attrs["stepsize"]
+    xdelta = dataset["x"].attrs["stepsize"]
 
     if space_window[0] % ydelta > 1e-10 or space_window[1] % xdelta > 1e-10:
         raise ValueError("space_window does not equally split dataset")
@@ -361,8 +360,7 @@ def clip_domain(dataset: xr.Dataset, extent=None):
 def _pad_domain(
     dataset: xr.Dataset, dim_to_pad: str, idx_buffer: int, zerovalue: float
 ) -> xr.Dataset:
-    # assumes that frames are evenly spaced
-    delta = dataset[dim_to_pad].values[1] - dataset[dim_to_pad].values[0]
+    delta = dataset[dim_to_pad].attrs["stepsize"]
     end_values = (
         dataset[dim_to_pad].values[0] - delta * idx_buffer,
         dataset[dim_to_pad].values[-1] + delta * idx_buffer,

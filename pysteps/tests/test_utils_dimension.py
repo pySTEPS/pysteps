@@ -8,16 +8,14 @@ import xarray as xr
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from pytest import raises
 
-from pysteps.converters import convert_to_xarray_dataset
 from pysteps.utils import dimension
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 fillvalues_metadata = {
     "x1": 0,
     "x2": 4,
     "y1": 0,
     "y2": 4,
-    "xpixelsize": 1,
-    "ypixelsize": 1,
     "zerovalue": 0,
     "yorigin": "lower",
     "unit": "mm/h",
@@ -93,7 +91,7 @@ def test_aggregate_fields(data, window_size, dim, method, expected):
     windows size does not divide the data dimensions.
     The length of each dimension should be larger than 2.
     """
-    dataset = convert_to_xarray_dataset(data, None, fillvalues_metadata)
+    dataset = convert_input_to_xarray_dataset(data, None, fillvalues_metadata)
 
     actual = dimension.aggregate_fields(dataset, window_size, dim=dim, method=method)
     assert_array_equal(actual["precip_intensity"].values, expected)
@@ -103,7 +101,7 @@ def test_aggregate_fields(data, window_size, dim, method, expected):
         data = np.pad(data, ((0, 0), (0, 1)))
     else:
         data = np.pad(data, (0, 1))
-    dataset = convert_to_xarray_dataset(data, None, fillvalues_metadata)
+    dataset = convert_input_to_xarray_dataset(data, None, fillvalues_metadata)
 
     actual = dimension.aggregate_fields(
         dataset, window_size, dim=dim, method=method, trim=True
@@ -168,7 +166,7 @@ def test_aggregate_fields_w_velocity(
     windows size does not divide the data dimensions.
     The length of each dimension should be larger than 2.
     """
-    dataset = convert_to_xarray_dataset(data, None, fillvalues_metadata)
+    dataset = convert_input_to_xarray_dataset(data, None, fillvalues_metadata)
     dataset = dataset.assign(
         {
             "velocity_x": (("y", "x"), data_vx),
@@ -192,7 +190,7 @@ def test_aggregate_fields_errors():
     function.
     """
     data = np.arange(4 * 6).reshape(4, 6)
-    dataset = convert_to_xarray_dataset(data, None, fillvalues_metadata)
+    dataset = convert_input_to_xarray_dataset(data, None, fillvalues_metadata)
 
     with raises(ValueError):
         dimension.aggregate_fields(dataset, -1, dim="y")
@@ -231,7 +229,7 @@ test_data_time = [
 )
 def test_aggregate_fields_time(data, metadata, time_window_min, ignore_nan, expected):
     """Test the aggregate_fields_time."""
-    dataset_ref = convert_to_xarray_dataset(
+    dataset_ref = convert_input_to_xarray_dataset(
         data, None, {**fillvalues_metadata, **metadata}
     )
     datasets = []
@@ -305,7 +303,9 @@ test_data_space = [
 )
 def test_aggregate_fields_space(data, metadata, space_window, ignore_nan, expected):
     """Test the aggregate_fields_space."""
-    dataset = convert_to_xarray_dataset(data, None, {**fillvalues_metadata, **metadata})
+    dataset = convert_input_to_xarray_dataset(
+        data, None, {**fillvalues_metadata, **metadata}
+    )
     assert_array_equal(
         dimension.aggregate_fields_space(dataset, space_window, ignore_nan)[
             "precip_intensity" if metadata["unit"] == "mm/h" else "precip_accum"
@@ -342,7 +342,9 @@ test_data_clip_domain = [
 @pytest.mark.parametrize("R, metadata, extent, expected", test_data_clip_domain)
 def test_clip_domain(R, metadata, extent, expected):
     """Test the clip_domain."""
-    dataset = convert_to_xarray_dataset(R, None, {**fillvalues_metadata, **metadata})
+    dataset = convert_input_to_xarray_dataset(
+        R, None, {**fillvalues_metadata, **metadata}
+    )
     assert_array_equal(
         dimension.clip_domain(dataset, extent)["precip_intensity"].values, expected
     )
@@ -407,7 +409,9 @@ test_data_square = [
 @pytest.mark.parametrize("data, metadata, method, inverse, expected", test_data_square)
 def test_square_domain(data, metadata, method, inverse, expected):
     """Test the square_domain."""
-    dataset = convert_to_xarray_dataset(data, None, {**fillvalues_metadata, **metadata})
+    dataset = convert_input_to_xarray_dataset(
+        data, None, {**fillvalues_metadata, **metadata}
+    )
     if "square_method" in metadata:
         dataset.attrs["square_method"] = metadata["square_method"]
     if "orig_domain" in metadata:
@@ -439,7 +443,9 @@ test_data_square_w_velocity = [
 )
 def test_square_w_velocity(data, metadata, method, inverse, expected, expected_velqual):
     """Test the square_domain."""
-    dataset = convert_to_xarray_dataset(data, None, {**fillvalues_metadata, **metadata})
+    dataset = convert_input_to_xarray_dataset(
+        data, None, {**fillvalues_metadata, **metadata}
+    )
     dataset = dataset.assign(
         {
             "velocity_x": (("y", "x"), data),

@@ -53,7 +53,6 @@ def test_anvil_rainrate(
     output = nowcast_method(
         dataset_w_motion.isel(time=slice(-(ar_order + 2), None, None)),
         timesteps=timesteps,
-        rainrate=None,  # no R(VIL) conversion is done
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
         ar_window_radius=ar_window_radius,

@@ -13,14 +13,14 @@ Implementation of the S-PROG method described in :cite:`Seed2003`
 import time
 
 import numpy as np
+import xarray as xr
 
 from pysteps import cascade, extrapolation, utils
-from pysteps.decorators import deprecate_args
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.xarray_decorators import xarray_nowcast
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask
@@ -30,10 +30,8 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-@xarray_nowcast
 def forecast(
-    precip,
-    velocity,
+    dataset: xr.Dataset,
     timesteps,
     precip_thr=None,
     n_cascade_levels=6,
@@ -55,15 +53,13 @@ def forecast(
 
     Parameters
     ----------
-    precip: array-like
-        Array of shape (ar_order+1,m,n) containing the input precipitation fields
-        ordered by timestamp from oldest to newest. The time steps between
-        the inputs are assumed to be regular.
-    velocity: array-like
-        Array of shape (2,m,n) containing the x- and y-components of the
-        advection field.
-        The velocities are assumed to represent one time step between the
-        inputs. All values are required to be finite.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+        ``velocity_y`` data variables, as well as any precipitation data variable.
+        The time dimension of the dataset has to be size
+        ``ar_order + 1`` and the precipitation variable has to have this dimension. All
+        velocity values are required to be finite.
     timesteps: int or list of floats
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
@@ -137,6 +133,10 @@ def forecast(
     :cite:`Seed2003`, :cite:`PCH2019a`
     """
 
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    precip = dataset[precip_var].values
+    velocity = np.stack([dataset["velocity_x"], dataset["velocity_y"]])
     _check_inputs(precip, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
@@ -327,8 +327,6 @@ def forecast(
 
     print("Starting nowcast computation.")
 
-    precip_forecast = []
-
     state = {"precip_cascades": precip_cascades, "precip_decomp": precip_decomp}
     params = {
         "domain": domain,
@@ -358,12 +356,14 @@ def forecast(
     if measure_time:
         precip_forecast, mainloop_time = precip_forecast
 
-    precip_forecast = np.stack(precip_forecast)
+    output_dataset = convert_output_to_xarray_dataset(
+        dataset, timesteps, precip_forecast
+    )
 
     if measure_time:
-        return precip_forecast, init_time, mainloop_time
+        return output_dataset, init_time, mainloop_time
     else:
-        return precip_forecast
+        return output_dataset
 
 
 def _check_inputs(precip, velocity, timesteps, ar_order):

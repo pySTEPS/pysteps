@@ -21,12 +21,13 @@ than S-PROG.
 import time
 
 import numpy as np
+import xarray as xr
 from scipy.ndimage import gaussian_filter
 
 from pysteps import cascade, extrapolation, utils
 from pysteps.nowcasts.utils import nowcast_main_loop
 from pysteps.timeseries import autoregression
-from pysteps.xarray_decorators import xarray_nowcast
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask
@@ -36,12 +37,9 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-@xarray_nowcast
 def forecast(
-    vil,
-    velocity,
+    dataset: xr.Dataset,
     timesteps,
-    rainrate=None,
     n_cascade_levels=6,
     extrap_method="semilagrangian",
     ar_order=2,
@@ -72,22 +70,21 @@ def forecast(
 
     Parameters
     ----------
-    vil: array_like
-        Array of shape (ar_order+2,m,n) containing the input fields ordered by
-        timestamp from oldest to newest. The inputs are expected to contain VIL
-        or rain rate. The time steps between the inputs are assumed to be regular.
-    velocity: array_like
-        Array of shape (2,m,n) containing the x- and y-components of the
-        advection field. The velocities are assumed to represent one time step
-        between the inputs. All values are required to be finite.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+        ``velocity_y`` data variables, as well as either VIL values in the
+        ``precip_accum`` data variable or rainrate in the ``precip_intensity``
+        data variable. The time dimension of the dataset has to be size
+        ``ar_order + 2`` and the precipitation variable has to have this dimension.
+        When VIL values are supplied, optionally ``precip_accum`` can be supplied
+        as well without a time dimension, containing the most recently observed rain
+        rate field. If not supplied, no R(VIL) conversion is done and the outputs
+        are in the same units as the inputs.
     timesteps: int or list of floats
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
         of the list are required to be in ascending order.
-    rainrate: array_like
-        Array of shape (m,n) containing the most recently observed rain rate
-        field. If set to None, no R(VIL) conversion is done and the outputs
-        are in the same units as the inputs.
     n_cascade_levels: int, optional
         The number of cascade levels to use. Defaults to 6, see issue #385
         on GitHub.
@@ -142,6 +139,14 @@ def forecast(
     ----------
     :cite:`PCLH2020`
     """
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    vil = dataset[precip_var].values
+    velocity = np.stack([dataset["velocity_x"], dataset["velocity_y"]])
+    rainrate = None
+    if precip_var == "precip_intensity" and "precip_accum" in dataset:
+        rainrate = dataset["precip_accum"].values
+
     _check_inputs(vil, rainrate, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
@@ -294,8 +299,6 @@ def forecast(
 
     print("Starting nowcast computation.")
 
-    rainrate_f = []
-
     extrap_kwargs["return_displacement"] = True
 
     state = {"vil_dec": vil_dec}
@@ -325,10 +328,11 @@ def forecast(
     if measure_time:
         rainrate_f, mainloop_time = rainrate_f
 
+    output_dataset = convert_output_to_xarray_dataset(dataset, timesteps, rainrate_f)
     if measure_time:
-        return np.stack(rainrate_f), init_time, mainloop_time
+        return output_dataset, init_time, mainloop_time
     else:
-        return np.stack(rainrate_f)
+        return output_dataset
 
 
 def _check_inputs(vil, rainrate, velocity, timesteps, ar_order):

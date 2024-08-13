@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime, timezone
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -13,12 +15,14 @@ def test_numerical_example():
     precip = np.zeros((20, 20))
     precip[5:10, 5:10] = 1
     velocity = np.zeros((2, *precip.shape))
+    now = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     dataset_input = xr.Dataset(
         data_vars={
-            "precip_intensity": (["y", "x"], precip),
+            "precip_intensity": (["time", "y", "x"], [precip]),
             "velocity_x": (["y", "x"], velocity[0]),
             "velocity_y": (["y", "x"], velocity[1]),
         },
+        coords={"time": (["time"], [now], {"stepsize": 300})},
         attrs={"precip_var": "precip_intensity"},
     )
     timesteps = 4
@@ -48,12 +52,14 @@ def test_numerical_example_with_float_slope_and_float_list_timesteps():
     precip = np.zeros((20, 20))
     precip[5:10, 5:10] = 1
     velocity = np.zeros((2, *precip.shape))
+    now = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     dataset_input = xr.Dataset(
         data_vars={
-            "precip_intensity": (["y", "x"], precip),
+            "precip_intensity": (["time", "y", "x"], [precip]),
             "velocity_x": (["y", "x"], velocity[0]),
             "velocity_y": (["y", "x"], velocity[1]),
         },
+        coords={"time": (["time"], [now], {"stepsize": 300})},
         attrs={"precip_var": "precip_intensity"},
     )
     timesteps = [1.0, 2.0, 5.0, 12.0]
@@ -97,7 +103,7 @@ def test_real_case():
     # compute probability forecast
     extrap_kwargs = dict(allow_nonfinite_values=True)
     dataset_forecast = forecast(
-        dataset_w_motion.isel(time=-1).drop_vars(["time"]),
+        dataset_w_motion.isel(time=slice(-1, None, None)),
         timesteps,
         thr,
         slope=slope,

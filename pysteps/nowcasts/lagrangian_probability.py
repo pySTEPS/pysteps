@@ -33,13 +33,11 @@ def forecast(
 
     Parameters
     ----------
-    precip: array_like
-       Two-dimensional array of shape (m,n) containing the input precipitation
-       field.
-    velocity: array_like
-       Array of shape (2,m,n) containing the x- and y-components of the
-       advection field. The velocities are assumed to represent one time step
-       between the inputs.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+        ``velocity_y`` data variables, as well as any pecipitation data variable.
+        It should contain a time dimension of size 1.
     timesteps: int or list of floats
        Number of time steps to forecast or a sorted list of time steps for which
        the forecasts are computed (relative to the input time step).
@@ -68,7 +66,7 @@ def forecast(
     """
     # Compute deterministic extrapolation forecast
     if isinstance(timesteps, int) and timesteps > 0:
-        timesteps = np.arange(1, timesteps + 1)
+        timesteps = list(range(1, timesteps + 1))
     elif not isinstance(timesteps, list):
         raise ValueError(f"invalid value for argument 'timesteps': {timesteps}")
     dataset_forecast = extrapolation.forecast(

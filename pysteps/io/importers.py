@@ -90,6 +90,9 @@ The dataset can contain the following coordinate variables:
 |   ens_number  | ensemble member number (integer)                                                          |
 +---------------+-------------------------------------------------------------------------------------------+
 
+The time, x and y dimensions all MUST be regularly spaced, with the stepsize included
+in a ``stepsize`` attribute. The stepsize is given in the unit of the dimension (this
+is alwyas seconds for the time dimension).
 
 The dataset can contain the following data variables:
 

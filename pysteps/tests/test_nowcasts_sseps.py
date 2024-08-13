@@ -43,7 +43,6 @@ def test_sseps(
         upscale=2000,
     )
     precip_var = dataset_input.attrs["precip_var"]
-    metadata = dataset_input[precip_var].attrs
 
     dataset_obs = get_precipitation_fields(
         num_prev_files=0, num_next_files=3, return_raw=False, upscale=2000
@@ -58,10 +57,6 @@ def test_sseps(
     dataset_forecast = nowcast_method(
         dataset_w_motion,
         timesteps,
-        {
-            "xpixelsize": dataset_input["x"].values[1] - dataset_input["x"].values[0],
-            **metadata,
-        },
         win_size=win_size,
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,

@@ -36,10 +36,8 @@ extrapolated fields of shape (num_timesteps, m, n).
 import numpy as np
 
 from pysteps.extrapolation import semilagrangian
-from pysteps.xarray_decorators import xarray_nowcast
 
 
-@xarray_nowcast
 def eulerian_persistence(precip, velocity, timesteps, outval=np.nan, **kwargs):
     """
     A dummy extrapolation method to apply Eulerian persistence to a
