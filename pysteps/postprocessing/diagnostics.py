@@ -2,13 +2,13 @@
 pysteps.postprocessing.diagnostics
 ====================
 
-Methods for applying postprocessing.
+Methods for diagnostic postprocessing.
 
 The methods in this module implement the following interface::
 
-    postprocess_xxx(optional arguments)
+    diagnostic_xyz(optional arguments)
 
-where **xxx** is the name of the postprocess to be applied.
+where **xyz** is the name of the diagnostic postprocessing to be applied.
 
 Postprocessor standardizations can be specified here if there is a desired input and output format that all should
 adhere to.
@@ -21,51 +21,10 @@ Available Postprocessors
 
 """
 
-try:
-    from osgeo import gdal, gdalconst, osr
 
-    GDAL_IMPORTED = True
-except ImportError:
-    GDAL_IMPORTED = False
+def diagnostics_example1(filename, **kwargs):
+    return "Hello, I am an example postprocessor."
 
-try:
-    import h5py
 
-    H5PY_IMPORTED = True
-except ImportError:
-    H5PY_IMPORTED = False
-
-try:
-    import metranet
-
-    METRANET_IMPORTED = True
-except ImportError:
-    METRANET_IMPORTED = False
-
-try:
-    import netCDF4
-
-    NETCDF4_IMPORTED = True
-except ImportError:
-    NETCDF4_IMPORTED = False
-
-try:
-    from PIL import Image
-
-    PIL_IMPORTED = True
-except ImportError:
-    PIL_IMPORTED = False
-
-try:
-    import pyproj
-
-    PYPROJ_IMPORTED = True
-except ImportError:
-    PYPROJ_IMPORTED = False
-
-try:
-    import pygrib
-
-    PYGRIB_IMPORTED = True
-except ImportError:
-    PYGRIB_IMPORTED = False
+def diagnostics_example2(filename, **kwargs):
+    return 42
