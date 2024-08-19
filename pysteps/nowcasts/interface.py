@@ -78,16 +78,26 @@ def discover_nowcasts():
     for entry_point in pkg_resources.iter_entry_points(
         group="pysteps.plugin.nowcasts", name=None
     ):
-        _nowcast_module_name = entry_point.name
-        if _nowcast_module_name not in _nowcast_methods:
-            module = importlib.import_module(entry_point.module_name)
-            _nowcast_methods[_nowcast_module_name] = module.forecast
+        _module = entry_point.load()
+        nowcast_module_name = entry_point.name
+
+        if nowcast_module_name not in _nowcast_methods:
+            _nowcast_methods[nowcast_module_name] = _module
+
         else:
             RuntimeWarning(
-                f"The Nowcasts methode '{_nowcast_module_name}' is already available in"
+                f"The Nowcasts methode '{nowcast_module_name}' is already available in"
                 "'pysteps.nowcasts._nowcasts_methods'.\n"
                 f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
             )
+        if hasattr(nowcasts, nowcast_module_name):
+            RuntimeWarning(
+                f"The nowcasts method '{nowcast_module_name}' is already an attribute"
+                "of 'pysteps.nowcasts'.\n"
+                f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
+            )
+        else:
+            setattr(nowcasts, nowcast_module_name, _module)
 
 
 def nowcasts_info():
