@@ -260,6 +260,20 @@ def test_nowcasts_interface():
         for i in range(num_timesteps):
             assert numpy.all(forecast[i] == precip)
 
+    # Test for invalid method types
+    with pytest.raises(ValueError):
+        pysteps.nowcasts.interface.get_method("linear")
+
+    assert isinstance(
+        pysteps.nowcasts.interface.nowcasts_info()[0],
+        set,
+    )
+
+    assert isinstance(
+        pysteps.nowcasts.interface.nowcasts_info()[1],
+        set,
+    )
+
 
 def test_utils_interface():
     """Test utils module interface."""
@@ -360,43 +374,3 @@ def test_tracking_interface():
 
     invalid_names = ["lucas-kanade", "dating"]
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
-
-
-def test_nowcasts_interface():
-    """Test the discover_nowcasts and nowcasts_info function."""
-    from pysteps.nowcasts.interface import discover_nowcasts
-    from pysteps.nowcasts.interface import nowcasts_info
-
-    # Call the function to get nowcasts info
-    _, nowcasts_in_interface = nowcasts_info()
-
-    # Call the function to discover nowcasts
-    discover_nowcasts()
-
-    # Check if the expected methods are added
-    expected_methods = [
-        "anvil",
-        "eulerian",
-        "extrapolation",
-        "lagrangian",
-        "lagrangian_probability",
-        "linda",
-        "probability",
-        "sprog",
-        "sseps",
-        "steps",
-        "dgmr",
-    ]
-
-    for method in expected_methods:
-        if method == "dgmr":
-            if method not in nowcasts_in_interface:
-                print(
-                    f"Warning: Method {method} not found in discovered nowcasts. Please install dgmr_plugin through 'pip install dgmr_plugin'"
-                )
-                continue
-        assert (
-            method in nowcasts_in_interface
-        ), f"Method {method} not found in discovered nowcasts."
-
-    print("All expected nowcast methods discovered successfully.")
