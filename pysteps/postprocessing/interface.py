@@ -14,8 +14,6 @@ Interface for the postprocessing module.
 """
 import importlib
 
-from pkg_resources import iter_entry_points
-
 import pysteps.postprocessing
 from pysteps.postprocessing import diagnostics
 from pprint import pprint
@@ -48,7 +46,6 @@ def discover_diagnostics():
         diagnostics_function_name = _diagnostics.__name__
         diagnostics_short_name = diagnostics_function_name.replace("diagnostics_", "")
 
-        _diagnostics_kws = getattr(_diagnostics, "diagnostics_kws", dict())
         if diagnostics_short_name not in _diagnostics_methods:
             _diagnostics_methods[diagnostics_short_name] = _diagnostics
         else:
