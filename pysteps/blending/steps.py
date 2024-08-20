@@ -45,6 +45,7 @@ consists of the following main steps:
 
 import math
 import time
+from copy import deepcopy
 
 import numpy as np
 from scipy.linalg import inv
@@ -54,8 +55,6 @@ from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-
-from copy import deepcopy
 
 try:
     import dask
@@ -2443,36 +2442,14 @@ def _fill_nans_infs_nwp_cascade(
     """Ensure that the NWP cascade and fields do no contain any nans or infinite number"""
     # Fill nans and infinite numbers with the minimum value present in precip
     # (corresponding to zero rainfall in the radar observations)
-    precip_models_cascade = np.nan_to_num(
-        precip_models_cascade,
-        copy=True,
-        nan=np.nanmin(precip_cascade),
-        posinf=np.nanmin(precip_cascade),
-        neginf=np.nanmin(precip_cascade),
-    )
-    precip_models_pm = np.nan_to_num(
-        precip_models_pm,
-        copy=True,
-        nan=np.nanmin(precip),
-        posinf=np.nanmin(precip),
-        neginf=np.nanmin(precip),
-    )
+    min_cascade = np.nanmin(precip_cascade)
+    min_precip = np.nanmin(precip)
+    precip_models_cascade[~np.isfinite(precip_models_cascade)] = min_cascade
+    precip_models_pm[~np.isfinite(precip_models_pm)] = min_precip
     # Also set any nans or infs in the mean and sigma of the cascade to
     # respectively 0.0 and 1.0
-    mu_models = np.nan_to_num(
-        mu_models,
-        copy=True,
-        nan=0.0,
-        posinf=0.0,
-        neginf=0.0,
-    )
-    sigma_models = np.nan_to_num(
-        sigma_models,
-        copy=True,
-        nan=0.0,
-        posinf=0.0,
-        neginf=0.0,
-    )
+    mu_models[~np.isfinite(mu_models)] = 0.0
+    sigma_models[~np.isfinite(sigma_models)] = 0.0
 
     return precip_models_cascade, precip_models_pm, mu_models, sigma_models
 
