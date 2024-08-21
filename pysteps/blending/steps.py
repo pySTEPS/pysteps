@@ -1556,10 +1556,11 @@ def forecast(
                         # both the extrapolation cascade and the model (NWP) cascade and use
                         # that for the probability matching
                         if probmatching_method is not None and resample_distribution:
+                            # deal with missing values
                             arr1 = R_pm_ep[t_index]
                             arr2 = precip_models_pm_temp[j]
-                            # arr2 = np.where(np.isnan(arr2), np.nanmin(arr2), arr2)
-                            # arr1 = np.where(np.isnan(arr1), arr2, arr1)
+                            arr2 = np.where(np.isnan(arr2), np.nanmin(arr2), arr2)
+                            arr1 = np.where(np.isnan(arr1), arr2, arr1)
                             # resample weights based on cascade level 2
                             R_pm_resampled = probmatching.resample_distributions(
                                 first_array=arr1,
@@ -1570,14 +1571,11 @@ def forecast(
                             R_pm_resampled = R_pm_blended.copy()
 
                         if probmatching_method == "cdf":
-                            # nan indices in the extrapolation nowcast
-                            nan_indices = np.isnan(R_pm_ep[t_index])
                             # Adjust the CDF of the forecast to match the most recent
-                            # benchmark rainfall field (R_pm_blended).
-                            # Rainfall outside the pure extrapolation domain is not taken into account.
+                            # benchmark rainfall field (R_pm_blended). If the forecast
                             if np.any(np.isfinite(R_f_new)):
                                 R_f_new = probmatching.nonparam_match_empirical_cdf(
-                                    R_f_new, R_pm_resampled, nan_indices
+                                    R_f_new, R_pm_resampled
                                 )
                                 R_pm_resampled = None
                         elif probmatching_method == "mean":
