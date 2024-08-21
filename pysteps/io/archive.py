@@ -94,7 +94,6 @@ def _find_matching_filename(
     date, root_path, path_fmt, fn_pattern, fn_ext, silent=False
 ):
     path = _generate_path(date, root_path, path_fmt)
-    fn = None
 
     if os.path.exists(path):
         fn = datetime.strftime(date, fn_pattern) + "." + fn_ext
@@ -111,15 +110,15 @@ def _find_matching_filename(
         fn = os.path.join(path, fn)
 
         if os.path.exists(fn):
-            fn = fn
+            return fn
         else:
-            fn = None
             if not silent:
-                print("file not found: %s" % fn)
-    elif not silent:
-        print("path", path, "not found.")
-
-    return fn
+                print(f"file not found: {fn}")
+            return None
+    else:
+        if not silent:
+            print(f"path not found: {path}")
+        return None
 
 
 def _generate_path(date, root_path, path_format):
