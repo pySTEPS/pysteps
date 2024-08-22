@@ -275,6 +275,7 @@ def resample_distributions(first_array, second_array, probability_first_array):
     """
     Merges two distributions (e.g., from the extrapolation nowcast and NWP in the blending module)
     to effectively combine two distributions for probability matching without losing extremes.
+    Entries for which one array has a nan will not be included from the other array either.
 
     Parameters
     ----------
@@ -306,10 +307,13 @@ def resample_distributions(first_array, second_array, probability_first_array):
         raise ValueError("first_array and second_array must have the same shape")
     probability_first_array = np.clip(probability_first_array, 0.0, 1.0)
 
-    # Propagate the NaN values of the arrays to each other.
-    nanmask = np.logical_or(np.isnan(first_array), np.isnan(second_array))
-    first_array[nanmask] = np.nan
-    second_array[nanmask] = np.nan
+    # Propagate the NaN values of the arrays to each other if there are any; convert to float to make sure this works.
+    nanmask = np.isnan(first_array) | np.isnan(second_array)
+    if np.any(nanmask):
+        first_array = first_array.astype(float)
+        first_array[nanmask] = np.nan
+        second_array = second_array.astype(float)
+        second_array[nanmask] = np.nan
 
     # Flatten and sort the arrays
     asort = np.sort(first_array, axis=None)[::-1]
@@ -321,6 +325,7 @@ def resample_distributions(first_array, second_array, probability_first_array):
     csort = np.where(idxsamples, asort, bsort)
     csort = np.sort(csort)[::-1]
 
+    # Return the resampled array in descending order (starting with the nan values)
     return csort
 
 
