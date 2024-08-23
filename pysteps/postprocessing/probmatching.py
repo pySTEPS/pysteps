@@ -52,7 +52,7 @@ def compute_empirical_cdf(bin_edges, hist):
     return cdf
 
 
-def nonparam_match_empirical_cdf(initial_array, target_array, nan_indices=None):
+def nonparam_match_empirical_cdf(initial_array, target_array, ignore_indices=None):
     """
     Matches the empirical CDF of the initial array with the empirical CDF
     of a target array. Initial ranks are conserved, but empirical distribution
@@ -65,7 +65,7 @@ def nonparam_match_empirical_cdf(initial_array, target_array, nan_indices=None):
         The initial array whose CDF is to be matched with the target.
     target_array: array_like
         The target array
-    nan_indices: array_like, optional
+    ignore_indices: array_like, optional
         Indices of pixels in the initial_array which are to be ignored (not rescaled)
 
     Returns
@@ -74,53 +74,53 @@ def nonparam_match_empirical_cdf(initial_array, target_array, nan_indices=None):
         The matched array of the same shape as the initial array.
     """
 
-    if np.any(~np.isfinite(initial_array)):
-        raise ValueError("initial array contains non-finite values")
+    if np.all(np.isnan(initial_array)):
+        raise ValueError("Initial array contains only nans.")
     if initial_array.size != target_array.size:
         raise ValueError(
             "dimension mismatch between initial_array and target_array: "
             f"initial_array.shape={initial_array.shape}, target_array.shape={target_array.shape}"
         )
 
-    initial_array = np.array(initial_array)
-    target_array = np.array(target_array)
+    initial_array_copy = np.array(initial_array, dtype=float)
+    target_array = np.array(target_array, dtype=float)
 
-    # zeros in initial array
-    zvalue = np.nanmin(initial_array)
+    # Determine zero in initial array and set nans to zero
+    zvalue = np.nanmin(initial_array_copy)
+    if ignore_indices is not None:
+        initial_array_copy[ignore_indices] = zvalue
+    # Check if there are still nans left after setting the values at ignore_indices to zero.
+    if np.any(~np.isfinite(initial_array_copy)):
+        raise ValueError(
+            "Initial array contains non-finite values outside ignore_indices mask."
+        )
 
-    # zeros in the target array
+    idxzeros = initial_array_copy == zvalue
+
+    # Determine zero of target_array and set nans to zero.
     zvalue_trg = np.nanmin(target_array)
-
-    # Apply the masks to the arrays - set all values outside it to zero.
-    if nan_indices is not None:
-        initial_array_clipped = initial_array.copy()
-        initial_array_clipped[nan_indices] = zvalue
-        # replace nans in target array by zvalue_trg
-        target_array = np.where(np.isnan(target_array), zvalue_trg, target_array)
-
-    idxzeros = initial_array_clipped == zvalue
+    target_array = np.where(np.isnan(target_array), zvalue_trg, target_array)
 
     # adjust the fraction of rain in target distribution if the number of
-    # nonzeros is greater than in the initial array
-    if np.sum(target_array > zvalue_trg) > np.sum(initial_array > zvalue):
-        war = np.sum(initial_array > zvalue) / initial_array.size
+    # nonzeros is greater than in the initial array (the lowest values will be set to zero)
+    if np.sum(target_array > zvalue_trg) > np.sum(initial_array_copy > zvalue):
+        war = np.sum(initial_array_copy > zvalue) / initial_array_copy.size
         p = np.percentile(target_array, 100 * (1 - war))
-        target_array = target_array.copy()
         target_array[target_array < p] = zvalue_trg
 
     # flatten the arrays
-    arrayshape = initial_array.shape
+    arrayshape = initial_array_copy.shape
     target_array = target_array.flatten()
-    initial_array_clipped = initial_array_clipped.flatten()
+    initial_array_copy = initial_array_copy.flatten()
 
     # rank target values
     order = target_array.argsort()
     ranked = target_array[order]
 
     # rank initial values order
-    orderin = initial_array_clipped.argsort()
-    ranks = np.empty(len(initial_array_clipped), int)
-    ranks[orderin] = np.arange(len(initial_array_clipped))
+    orderin = initial_array_copy.argsort()
+    ranks = np.empty(len(initial_array_copy), int)
+    ranks[orderin] = np.arange(len(initial_array_copy))
 
     # get ranked values from target and rearrange with the initial order
     output_array = ranked[ranks]
@@ -132,8 +132,8 @@ def nonparam_match_empirical_cdf(initial_array, target_array, nan_indices=None):
     output_array[idxzeros] = zvalue_trg
 
     # Put back the original values outside the nan-mask of the target array.
-    output_array[nan_indices] = initial_array[nan_indices]
-
+    if ignore_indices is not None:
+        output_array[ignore_indices] = initial_array[ignore_indices]
     return output_array
 
 
