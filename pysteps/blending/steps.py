@@ -1538,13 +1538,12 @@ def forecast(
 
                         # If probmatching_method is not None, resample the distribution from
                         # both the extrapolation cascade and the model (NWP) cascade and use
-                        # that for the probability matching
+                        # that for the probability matching.
                         if probmatching_method is not None and resample_distribution:
                             arr1 = R_pm_ep[t_index]
                             arr2 = precip_models_pm_temp[j]
-                            # arr2 = np.where(np.isnan(arr2), np.nanmin(arr2), arr2)
-                            # arr1 = np.where(np.isnan(arr1), arr2, arr1)
-                            # resample weights based on cascade level 2
+                            # resample weights based on cascade level 2.
+                            # Areas where one of the fields is nan are not included.
                             R_pm_resampled = probmatching.resample_distributions(
                                 first_array=arr1,
                                 second_array=arr2,
@@ -1556,8 +1555,8 @@ def forecast(
                         if probmatching_method == "cdf":
                             # nan indices in the extrapolation nowcast
                             nan_indices = np.isnan(R_pm_ep[t_index])
-                            # Adjust the CDF of the forecast to match the most recent
-                            # benchmark rainfall field (R_pm_blended).
+                            # Adjust the CDF of the forecast to match the resampled distribution combined from
+                            # extrapolation and model fields.
                             # Rainfall outside the pure extrapolation domain is not taken into account.
                             if np.any(np.isfinite(R_f_new)):
                                 R_f_new = probmatching.nonparam_match_empirical_cdf(
