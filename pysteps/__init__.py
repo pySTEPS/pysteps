@@ -218,3 +218,4 @@ load_config_file()
 
 # After the sub-modules are loaded, register the discovered importers plugin.
 io.interface.discover_importers()
+postprocessing.interface.discover_postprocessors()
