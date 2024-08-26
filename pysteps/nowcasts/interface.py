@@ -187,10 +187,6 @@ def get_method(name):
     |  sseps          | short-space ensemble prediction system (SSEPS).       |
     |                 | Essentially, this is a localization of STEPS          |
     +-----------------+-------------------------------------------------------+
-    |  dgmr           | a deep generative model for the probabilistic    .    |
-    |                 | nowcasting  of precipitation from radar  developed by |
-    |                 |  researchers from DeepMind                            |
-    +-----------------+-------------------------------------------------------+
 
     """
     if isinstance(name, str):
