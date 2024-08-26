@@ -111,10 +111,9 @@ def nonparam_match_empirical_cdf(initial_array, target_array, ignore_indices=Non
         p = np.percentile(target_array, 100 * (1 - war))
         target_array[target_array < p] = zvalue_trg
 
-    # flatten the arrays
-    arrayshape = initial_array_copy.shape
-    target_array = target_array.flatten()
-    initial_array_copy = initial_array_copy.flatten()
+    # flatten the arrays without copying them
+    target_array.reshape(-1)
+    initial_array_copy.reshape(-1)
 
     # rank target values
     order = target_array.argsort()
