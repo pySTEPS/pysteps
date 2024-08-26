@@ -10,7 +10,6 @@ import subprocess
 import sys
 import tempfile
 
-
 __ = pytest.importorskip("cookiecutter")
 from cookiecutter.main import cookiecutter
 
@@ -79,3 +78,46 @@ def test_importers_plugins():
         with _create_and_install_plugin("test_importer_bbb", "importer_bbb"):
             _check_installed_plugin("importer_aaa_xxx")
             _check_installed_plugin("importer_bbb_xxx")
+
+
+def test_nowcasts_plugin_discovery():
+    """Testing the discover_nowcast method to effectively see whether the plugin has been installed."""
+
+    from unittest.mock import Mock, patch
+
+    # Ensure we patch the correct location where iter_entry_points is used
+
+    with patch("pkg_resources.iter_entry_points") as mock_iter_entry_points:
+        # Create mock plugins
+        mock_plugin = Mock()
+        mock_plugin.name = "nowcast_method"
+        mock_plugin.load.return_value = "mock_module"
+
+        # Set the return value of iter_entry_points to include the mock plugins
+        mock_iter_entry_points.return_value = [mock_plugin]
+
+        # Clear the _nowcast_methods dictionary before the test
+        pysteps.nowcasts.interface._nowcast_methods.clear()
+
+        # Call the function under test
+        pysteps.nowcasts.interface.discover_nowcasts()
+
+        # Print the call arguments for debugging
+        print(
+            "mock_iter_entry_points.call_args_list:",
+            mock_iter_entry_points.call_args_list,
+        )
+
+        # Assert that the entry point was called
+        mock_iter_entry_points.assert_called_with(
+            group="pysteps.plugins.nowcasts", name=None
+        )
+
+        # Assert that the _nowcast_methods dictionary is updated correctly
+        assert (
+            mock_plugin.name in pysteps.nowcasts.interface._nowcast_methods
+        ), "Expected 'nowcast_method' to be in _nowcast_methods, but it was not found."
+        assert (
+            pysteps.nowcasts.interface._nowcast_methods[mock_plugin.name]
+            == mock_plugin.load
+        ), "Expected the value of 'nowcast_method' to be 'mock_module'."
