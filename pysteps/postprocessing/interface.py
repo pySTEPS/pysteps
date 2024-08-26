@@ -54,19 +54,9 @@ def discover_postprocessors():
             "postprocessors_", ""
         )
 
-<<<<<<< Updated upstream
-        if diagnostics_short_name not in _diagnostics_methods:
-            _diagnostics_methods[diagnostics_short_name] = _diagnostics
-        else:
-            RuntimeWarning(
-                f"The diagnostics identifier '{diagnostics_short_name}' is already available in "
-                "'pysteps.postprocessing.interface_diagnostics_methods'.\n"
-                f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
-=======
         if postprocessors_short_name.startswith("diagnostics_"):
             diagnostics_short_name = postprocessors_short_name.replace(
                 "diagnostics_", ""
->>>>>>> Stashed changes
             )
             if diagnostics_short_name not in _diagnostics_methods:
                 _diagnostics_methods[diagnostics_short_name] = _postprocessors
@@ -107,7 +97,7 @@ def discover_postprocessors():
                 )
             else:
                 setattr(ensemblestats, postprocessors_function_name, _postprocessors)
-
+                
 
 def postprocessors_info():
     """Print all the available postprocessors."""
