@@ -191,3 +191,10 @@ class TestNonparamMatchEmpiricalCDF:
         )
         expected_result = np.array([0, 0, 10, 8, 0, 0, 0, 0, 0, 0])
         assert np.allclose(result, expected_result, equal_nan=True)
+
+    def test_2dim_array(self):
+        initial_array = np.array([[1, 3, 5], [11, 9, 7]])
+        target_array = np.array([[2, 4, 6], [8, 10, 12]])
+        result = nonparam_match_empirical_cdf(initial_array, target_array)
+        expected_result = np.array([[2, 4, 6], [12, 10, 8]])
+        assert np.allclose(result, expected_result, equal_nan=True)
