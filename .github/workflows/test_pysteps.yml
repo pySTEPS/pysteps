@@ -4,11 +4,11 @@ on:
   # Triggers the workflow on push or pull request events to the master branch
   push:
     branches:
-      - main
+      - master
       - pysteps-v2
   pull_request:
       branches:
-        - main
+        - master
         - pysteps-v2
 
 jobs:
