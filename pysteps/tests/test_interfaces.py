@@ -152,6 +152,82 @@ def test_io_interface():
         pysteps.io.interface.get_method("mch_gif", "io")
 
 
+def test_postprocessing_interface():
+    """Test the postprocessing module interface."""
+
+    import pysteps.postprocessing as postprocessing
+    from pysteps.postprocessing import postprocessors_diagnostics_example1
+    from pysteps.postprocessing import postprocessors_diagnostics_example2
+    from pysteps.postprocessing import postprocessors_ensemblestats_example1
+    from pysteps.postprocessing import postprocessors_ensemblestats_example2
+
+    valid_diagnostics_names_func_pair = [
+        ("diagnostics_example1", postprocessors_diagnostics_example1)
+    ]
+
+    def method_getter_diagnostics(name):
+        return pysteps.postprocessing.interface.get_method(name, "diagnostics")
+
+    invalid_names = ["bom", "fmi", "knmi", "mch", "mrms", "opera", "saf"]
+    _generic_interface_test(
+        method_getter_diagnostics, valid_diagnostics_names_func_pair, invalid_names
+    )
+
+    valid_ensemblestats_names_func_pair = [
+        ("ensemblestats_example1", postprocessors_ensemblestats_example1)
+    ]
+
+    def method_getter_ensemblestats(name):
+        return pysteps.postprocessing.interface.get_method(name, "ensemblestats")
+
+    invalid_names = ["bom", "fmi", "knmi", "mch", "mrms", "opera", "saf"]
+    _generic_interface_test(
+        method_getter_ensemblestats, valid_ensemblestats_names_func_pair, invalid_names
+    )
+
+    # Test for invalid argument type
+    with pytest.raises(TypeError):
+        pysteps.postprocessing.interface.get_method("diagnostics_example1", None)
+        pysteps.postprocessing.interface.get_method(None, "diagnostics")
+
+    # Test for invalid method types
+    with pytest.raises(ValueError):
+        pysteps.postprocessing.interface.get_method("diagnostics_example1", "io")
+
+    with pytest.raises(TypeError):
+        pysteps.postprocessing.interface.get_method(24, "diagnostics")
+
+    assert isinstance(
+        pysteps.postprocessing.interface.postprocessors_info()[0],
+        set,
+    )
+
+    assert isinstance(
+        pysteps.postprocessing.interface.postprocessors_info()[1],
+        set,
+    )
+
+    assert isinstance(
+        postprocessors_diagnostics_example1(filename="example_filename"),
+        str,
+    )
+
+    assert isinstance(
+        postprocessors_diagnostics_example2(filename="example_filename"),
+        list,
+    )
+
+    assert isinstance(
+        postprocessors_ensemblestats_example1(filename="example_filename"),
+        str,
+    )
+
+    assert isinstance(
+        postprocessors_ensemblestats_example2(filename="example_filename"),
+        list,
+    )
+
+
 def test_motion_interface():
     """Test the motion module interface."""
 
@@ -360,51 +436,3 @@ def test_tracking_interface():
 
     invalid_names = ["lucas-kanade", "dating"]
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
-
-
-def test_postprocessing_interface():
-    """Test the postprocessing module interface."""
-
-    import pysteps.postprocessing as postprocessing
-    from pysteps.postprocessing import diagnostics_example1
-    from pysteps.postprocessing import diagnostics_example2
-
-    valid_names_func_pair = [("example1", diagnostics_example1)]
-
-    def method_getter(name):
-        return pysteps.postprocessing.interface.get_method(name, "diagnostics")
-
-    invalid_names = ["bom", "fmi", "knmi", "mch", "mrms", "opera", "saf"]
-    _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
-
-    # Test for invalid argument type
-    with pytest.raises(TypeError):
-        pysteps.postprocessing.interface.get_method("example1", None)
-        pysteps.postprocessing.interface.get_method(None, "diagnostics")
-
-    # Test for invalid method types
-    with pytest.raises(ValueError):
-        pysteps.postprocessing.interface.get_method("example1", "io")
-
-    with pytest.raises(TypeError):
-        pysteps.postprocessing.interface.get_method(24, "diagnostics")
-
-    assert isinstance(
-        pysteps.postprocessing.interface.diagnostics_info()[0],
-        set,
-    )
-
-    assert isinstance(
-        pysteps.postprocessing.interface.diagnostics_info()[1],
-        set,
-    )
-
-    assert isinstance(
-        diagnostics_example1(filename="example_filename"),
-        str,
-    )
-
-    assert isinstance(
-        diagnostics_example2(filename="example_filename"),
-        int,
-    )

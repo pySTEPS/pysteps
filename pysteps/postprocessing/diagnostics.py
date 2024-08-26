@@ -2,18 +2,15 @@
 pysteps.postprocessing.diagnostics
 ====================
 
-Methods for diagnostic postprocessing.
+Methods for applying diagnostics postprocessing.
 
 The methods in this module implement the following interface::
 
-    diagnostic_xyz(optional arguments)
+    diagnostics_xxx(optional arguments)
 
-where **xyz** is the name of the diagnostic postprocessing to be applied.
+where **xxx** is the name of the diagnostic to be applied.
 
-Postprocessor standardizations can be specified here if there is a desired input and output format that all should
-adhere to.
-
-Available Postprocessors
+Available Diagnostics Postprocessors
 ------------------------
 
 .. autosummary::
@@ -21,10 +18,59 @@ Available Postprocessors
 
 """
 
+try:
+    from osgeo import gdal, gdalconst, osr
 
-def diagnostics_example1(filename, **kwargs):
-    return "Hello, I am an example postprocessor."
+    GDAL_IMPORTED = True
+except ImportError:
+    GDAL_IMPORTED = False
+
+try:
+    import h5py
+
+    H5PY_IMPORTED = True
+except ImportError:
+    H5PY_IMPORTED = False
+
+try:
+    import metranet
+
+    METRANET_IMPORTED = True
+except ImportError:
+    METRANET_IMPORTED = False
+
+try:
+    import netCDF4
+
+    NETCDF4_IMPORTED = True
+except ImportError:
+    NETCDF4_IMPORTED = False
+
+try:
+    from PIL import Image
+
+    PIL_IMPORTED = True
+except ImportError:
+    PIL_IMPORTED = False
+
+try:
+    import pyproj
+
+    PYPROJ_IMPORTED = True
+except ImportError:
+    PYPROJ_IMPORTED = False
+
+try:
+    import pygrib
+
+    PYGRIB_IMPORTED = True
+except ImportError:
+    PYGRIB_IMPORTED = False
 
 
-def diagnostics_example2(filename, **kwargs):
-    return 42
+def postprocessors_diagnostics_example1(filename, **kwargs):
+    return "Hello, I am an example diagnostics postprocessor."
+
+
+def postprocessors_diagnostics_example2(filename, **kwargs):
+    return [[42, 42], [42, 42]]
