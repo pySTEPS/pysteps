@@ -52,7 +52,7 @@ def compute_empirical_cdf(bin_edges, hist):
     return cdf
 
 
-def nonparam_match_empirical_cdf(initial_array, target_array):
+def nonparam_match_empirical_cdf(initial_array, target_array, ignore_indices=None):
     """
     Matches the empirical CDF of the initial array with the empirical CDF
     of a target array. Initial ranks are conserved, but empirical distribution
@@ -64,7 +64,12 @@ def nonparam_match_empirical_cdf(initial_array, target_array):
     initial_array: array_like
         The initial array whose CDF is to be matched with the target.
     target_array: array_like
-        The target array.
+        The target array
+    ignore_indices: array_like, optional
+        Indices of pixels in the initial_array which are to be ignored (not
+        rescaled) or an array of booleans with True at the pixel locations to
+        be ignored in initial_array and False elsewhere.
+
 
     Returns
     -------
@@ -72,47 +77,53 @@ def nonparam_match_empirical_cdf(initial_array, target_array):
         The matched array of the same shape as the initial array.
     """
 
-    if np.any(~np.isfinite(initial_array)):
-        raise ValueError("initial array contains non-finite values")
-    if np.any(~np.isfinite(target_array)):
-        raise ValueError("target array contains non-finite values")
+    if np.all(np.isnan(initial_array)):
+        raise ValueError("Initial array contains only nans.")
     if initial_array.size != target_array.size:
         raise ValueError(
             "dimension mismatch between initial_array and target_array: "
             f"initial_array.shape={initial_array.shape}, target_array.shape={target_array.shape}"
         )
 
-    initial_array = np.array(initial_array)
-    target_array = np.array(target_array)
+    initial_array_copy = np.array(initial_array, dtype=float)
+    target_array = np.array(target_array, dtype=float)
 
-    # zeros in initial array
-    zvalue = initial_array.min()
-    idxzeros = initial_array == zvalue
+    # Determine zero in initial array and set nans to zero
+    zvalue = np.nanmin(initial_array_copy)
+    if ignore_indices is not None:
+        initial_array_copy[ignore_indices] = zvalue
+    # Check if there are still nans left after setting the values at ignore_indices to zero.
+    if np.any(~np.isfinite(initial_array_copy)):
+        raise ValueError(
+            "Initial array contains non-finite values outside ignore_indices mask."
+        )
 
-    # zeros in the target array
-    zvalue_trg = target_array.min()
+    idxzeros = initial_array_copy == zvalue
+
+    # Determine zero of target_array and set nans to zero.
+    zvalue_trg = np.nanmin(target_array)
+    target_array = np.where(np.isnan(target_array), zvalue_trg, target_array)
 
     # adjust the fraction of rain in target distribution if the number of
-    # nonzeros is greater than in the initial array
-    if np.sum(target_array > zvalue_trg) > np.sum(initial_array > zvalue):
-        war = np.sum(initial_array > zvalue) / initial_array.size
+    # nonzeros is greater than in the initial array (the lowest values will be set to zero)
+    if np.sum(target_array > zvalue_trg) > np.sum(initial_array_copy > zvalue):
+        war = np.sum(initial_array_copy > zvalue) / initial_array_copy.size
         p = np.percentile(target_array, 100 * (1 - war))
-        target_array = target_array.copy()
         target_array[target_array < p] = zvalue_trg
 
-    # flatten the arrays
-    arrayshape = initial_array.shape
-    target_array = target_array.flatten()
-    initial_array = initial_array.flatten()
+    # flatten the arrays without copying them
+    arrayshape = initial_array_copy.shape
+    target_array = target_array.reshape(-1)
+    initial_array_copy = initial_array_copy.reshape(-1)
 
     # rank target values
     order = target_array.argsort()
     ranked = target_array[order]
 
     # rank initial values order
-    orderin = initial_array.argsort()
-    ranks = np.empty(len(initial_array), int)
-    ranks[orderin] = np.arange(len(initial_array))
+    orderin = initial_array_copy.argsort()
+    ranks = np.empty(len(initial_array_copy), int)
+    ranks[orderin] = np.arange(len(initial_array_copy))
 
     # get ranked values from target and rearrange with the initial order
     output_array = ranked[ranks]
@@ -123,6 +134,9 @@ def nonparam_match_empirical_cdf(initial_array, target_array):
     # read original zeros
     output_array[idxzeros] = zvalue_trg
 
+    # Put back the original values outside the nan-mask of the target array.
+    if ignore_indices is not None:
+        output_array[ignore_indices] = initial_array[ignore_indices]
     return output_array
 
 
@@ -264,6 +278,7 @@ def resample_distributions(first_array, second_array, probability_first_array):
     """
     Merges two distributions (e.g., from the extrapolation nowcast and NWP in the blending module)
     to effectively combine two distributions for probability matching without losing extremes.
+    Entries for which one array has a nan will not be included from the other array either.
 
     Parameters
     ----------
@@ -287,15 +302,21 @@ def resample_distributions(first_array, second_array, probability_first_array):
     Raises
     ------
     ValueError
-        If `first_array` and `second_array` do not have the same shape or if inputs contain NaNs.
+        If `first_array` and `second_array` do not have the same shape.
     """
 
     # Valide inputs
     if first_array.shape != second_array.shape:
         raise ValueError("first_array and second_array must have the same shape")
-    if np.isnan(first_array).any() or np.isnan(second_array).any():
-        raise ValueError("Input arrays must not contain NaNs")
     probability_first_array = np.clip(probability_first_array, 0.0, 1.0)
+
+    # Propagate the NaN values of the arrays to each other if there are any; convert to float to make sure this works.
+    nanmask = np.isnan(first_array) | np.isnan(second_array)
+    if np.any(nanmask):
+        first_array = first_array.astype(float)
+        first_array[nanmask] = np.nan
+        second_array = second_array.astype(float)
+        second_array[nanmask] = np.nan
 
     # Flatten and sort the arrays
     asort = np.sort(first_array, axis=None)[::-1]
@@ -307,6 +328,7 @@ def resample_distributions(first_array, second_array, probability_first_array):
     csort = np.where(idxsamples, asort, bsort)
     csort = np.sort(csort)[::-1]
 
+    # Return the resampled array in descending order (starting with the nan values)
     return csort
 
 
