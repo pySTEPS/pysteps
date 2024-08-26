@@ -97,7 +97,7 @@ def discover_postprocessors():
                 )
             else:
                 setattr(ensemblestats, postprocessors_function_name, _postprocessors)
-                
+
 
 def postprocessors_info():
     """Print all the available postprocessors."""
