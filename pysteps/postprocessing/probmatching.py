@@ -66,7 +66,10 @@ def nonparam_match_empirical_cdf(initial_array, target_array, ignore_indices=Non
     target_array: array_like
         The target array
     ignore_indices: array_like, optional
-        Indices of pixels in the initial_array which are to be ignored (not rescaled)
+        Indices of pixels in the initial_array which are to be ignored (not
+        rescaled) or an array of booleans with True at the pixel locations to
+        be ignored in initial_array and False elsewhere.
+
 
     Returns
     -------
