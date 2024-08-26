@@ -112,6 +112,7 @@ def nonparam_match_empirical_cdf(initial_array, target_array, ignore_indices=Non
         target_array[target_array < p] = zvalue_trg
 
     # flatten the arrays without copying them
+    arrayshape = initial_array_copy.shape
     target_array.reshape(-1)
     initial_array_copy.reshape(-1)
 
