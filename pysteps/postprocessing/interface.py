@@ -29,6 +29,33 @@ _ensemblestats_methods = dict(
 )
 
 
+def add_postprocessor(
+    postprocessors_short_name,
+    postprocessors_function_name,
+    _postprocessors,
+    methods_dict,
+    module,
+):
+    short_name = postprocessors_short_name.replace(f"{module}_", "")
+    if short_name not in methods_dict:
+        methods_dict[short_name] = _postprocessors
+    else:
+        RuntimeWarning(
+            f"The {module} identifier '{short_name}' is already available in "
+            f"'pysteps.postprocessing.interface_{module}_methods'.\n"
+            f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
+        )
+
+    if hasattr(globals()[module], postprocessors_short_name):
+        RuntimeWarning(
+            f"The {module} function '{short_name}' is already an attribute"
+            f"of 'pysteps.postprocessing.{module}'.\n"
+            f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
+        )
+    else:
+        setattr(globals()[module], postprocessors_function_name, _postprocessors)
+
+
 def discover_postprocessors():
     """
     Search for installed postprocessing plugins in the entrypoint 'pysteps.plugins.postprocessors'
@@ -51,159 +78,101 @@ def discover_postprocessors():
 
         postprocessors_function_name = _postprocessors.__name__
         postprocessors_short_name = postprocessors_function_name.replace(
-            "postprocessors_", ""
+            "postprocessor_", ""
         )
 
-        if postprocessors_short_name.startswith("diagnostics_"):
-            diagnostics_short_name = postprocessors_short_name.replace(
-                "diagnostics_", ""
+        if "diagnostics" in entry_point.module_name:
+            add_postprocessor(
+                postprocessors_short_name,
+                postprocessors_function_name,
+                _postprocessors,
+                _diagnostics_methods,
+                "diagnostics",
             )
-            if diagnostics_short_name not in _diagnostics_methods:
-                _diagnostics_methods[diagnostics_short_name] = _postprocessors
-            else:
-                RuntimeWarning(
-                    f"The diagnostics identifier '{diagnostics_short_name}' is already available in "
-                    "'pysteps.postprocessing.interface_diagnostics_methods'.\n"
-                    f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
-                )
-
-            if hasattr(diagnostics, postprocessors_short_name):
-                RuntimeWarning(
-                    f"The diagnostics function '{diagnostics_short_name}' is already an attribute"
-                    "of 'pysteps.postprocessing.diagnostics'.\n"
-                    f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
-                )
-            else:
-                setattr(diagnostics, postprocessors_function_name, _postprocessors)
-
-        elif postprocessors_short_name.startswith("ensemblestats_"):
-            ensemblestats_short_name = postprocessors_short_name.replace(
-                "ensemblestats_", ""
+        elif "ensemblestats" in entry_point.module_name:
+            add_postprocessor(
+                postprocessors_short_name,
+                postprocessors_function_name,
+                _postprocessors,
+                _ensemblestats_methods,
+                "ensemblestats",
             )
-            if ensemblestats_short_name not in _ensemblestats_methods:
-                _ensemblestats_methods[ensemblestats_short_name] = _postprocessors
-            else:
-                RuntimeWarning(
-                    f"The ensemblestats identifier '{ensemblestats_short_name}' is already available in "
-                    "'pysteps.postprocessing.interface_ensemblestats_methods'.\n"
-                    f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
-                )
+        else:
+            raise ValueError(
+                f"Unknown module {entry_point.module_name} in the entrypoint {entry_point.name}"
+            )
 
-            if hasattr(ensemblestats, postprocessors_short_name):
-                RuntimeWarning(
-                    f"The ensemblestats function '{ensemblestats_short_name}' is already an attribute"
-                    "of 'pysteps.postprocessing.diagnostics'.\n"
-                    f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
-                )
-            else:
-                setattr(ensemblestats, postprocessors_function_name, _postprocessors)
+
+def print_postprocessors_info(module_name, interface_methods, module_methods):
+    """
+    Helper function to print the postprocessors available in the module and in the interface.
+
+    Parameters
+    ----------
+    module_name: str
+        Name of the module, for example 'pysteps.postprocessing.diagnostics'.
+    interface_methods: dict
+        Dictionary of the postprocessors declared in the interface, for example _diagnostics_methods.
+    module_methods: list
+        List of the postprocessors available in the module, for example 'postprocessors_diagnostics_example1'.
+
+    """
+    print(f"\npostprocessors available in the {module_name} module")
+    pprint(module_methods)
+
+    print(
+        f"\npostprocessors available in the pysteps.postprocessing.get_method interface"
+    )
+    pprint([(short_name, f.__name__) for short_name, f in interface_methods.items()])
+
+    module_methods_set = set(module_methods)
+    interface_methods_set = set(interface_methods.keys())
+
+    difference = module_methods_set ^ interface_methods_set
+    if len(difference) > 0:
+        print("\nIMPORTANT:")
+        _diff = module_methods_set - interface_methods_set
+        if len(_diff) > 0:
+            print(
+                f"\nIMPORTANT:\nThe following postprocessors are available in {module_name} module but not in the pysteps.postprocessing.get_method interface"
+            )
+            pprint(_diff)
+        _diff = interface_methods_set - module_methods_set
+        if len(_diff) > 0:
+            print(
+                "\nWARNING:\n"
+                f"The following postprocessors are available in the pysteps.postprocessing.get_method interface but not in the {module_name} module"
+            )
+            pprint(_diff)
 
 
 def postprocessors_info():
     """Print all the available postprocessors."""
 
-    # diagnostics available in the 'postprocessing.diagnostics' module
-    available_diagnostics = [
-        attr
-        for attr in dir(pysteps.postprocessing.diagnostics)
-        if attr.startswith("postprocessors")
-    ]
-
-    print("\npostprocessors available in the pysteps.postprocessing.diagnostics module")
-    pprint(available_diagnostics)
-
-    # diagnostics postprocessors declared in the pysteps.postprocessing.get_method interface
-    diagnostics_in_the_interface = [
-        f for f in list(pysteps.postprocessing.interface._diagnostics_methods.keys())
-    ]
-
-    print("\ndiagnostics available in the pysteps.postprocessing.get_method interface")
-    pprint(
-        [
-            (short_name, f.__name__)
-            for short_name, f in pysteps.postprocessing.interface._diagnostics_methods.items()
+    available_postprocessors = set()
+    postprocessors_in_the_interface = set()
+    # Discover the postprocessors available in the plugins
+    for plugintype in ["diagnostics", "ensemblestats"]:
+        interface_methods = (
+            _diagnostics_methods
+            if plugintype == "diagnostics"
+            else _ensemblestats_methods
+        )
+        module_name = f"pysteps.postprocessing.{plugintype}"
+        available_module_methods = [
+            attr
+            for attr in dir(importlib.import_module(module_name))
+            if attr.startswith("postprocessors")
         ]
-    )
-
-    # Let's use sets to find out if there are postprocessors present in the diagnostics module
-    # but not declared in the interface, and vice versa.
-    available_diagnostics = set(available_diagnostics)
-    diagnostics_in_the_interface = set(diagnostics_in_the_interface)
-
-    difference = available_diagnostics ^ diagnostics_in_the_interface
-    if len(difference) > 0:
-        print("\nIMPORTANT:")
-        _diff = available_diagnostics - diagnostics_in_the_interface
-        if len(_diff) > 0:
-            print(
-                "\nIMPORTANT:\nThe following postprocessors are available in pysteps.postprocessing.diagnostics "
-                "module but not in the pysteps.postprocessing.get_method interface"
-            )
-            pprint(_diff)
-        _diff = diagnostics_in_the_interface - available_diagnostics
-        if len(_diff) > 0:
-            print(
-                "\nWARNING:\n"
-                "The following postprocessors are available in the pysteps.postprocessing.get_method "
-                "interface but not in the pysteps.postprocessing.diagnostics module"
-            )
-            pprint(_diff)
-
-    # postprocessors available in the 'postprocessing.ensemblestats' module
-    available_ensemblestats = [
-        attr
-        for attr in dir(pysteps.postprocessing.ensemblestats)
-        if attr.startswith("postprocessors")
-    ]
-
-    print(
-        "\npostprocessors available in the pysteps.postprocessing.ensemblestats module"
-    )
-    pprint(available_ensemblestats)
-
-    # ensemblestats postprocessors declared in the pysteps.postprocessing.get_method interface
-    ensemblestats_in_the_interface = [
-        f for f in list(pysteps.postprocessing.interface._ensemblestats_methods.keys())
-    ]
-
-    print(
-        "\npostprocessors available in the pysteps.postprocessing.get_method interface"
-    )
-    pprint(
-        [
-            (short_name, f.__name__)
-            for short_name, f in pysteps.postprocessing.interface._ensemblestats_methods.items()
-        ]
-    )
-
-    # Let's use sets to find out if there are postprocessors present in the ensemblestats module
-    # but not declared in the interface, and vice versa.
-    available_ensemblestats = set(available_ensemblestats)
-    ensemblestats_in_the_interface = set(ensemblestats_in_the_interface)
-
-    difference = available_ensemblestats ^ ensemblestats_in_the_interface
-    if len(difference) > 0:
-        print("\nIMPORTANT:")
-        _diff = available_ensemblestats - ensemblestats_in_the_interface
-        if len(_diff) > 0:
-            print(
-                "\nIMPORTANT:\nThe following postprocessors are available in pysteps.postprocessing.ensemblestats "
-                "module but not in the pysteps.postprocessing.get_method interface"
-            )
-            pprint(_diff)
-        _diff = ensemblestats_in_the_interface - available_ensemblestats
-        if len(_diff) > 0:
-            print(
-                "\nWARNING:\n"
-                "The following postprocessors are available in the pysteps.postprocessing.get_method "
-                "interface but not in the pysteps.postprocessing.ensemblestats module"
-            )
-            pprint(_diff)
-
-    available_postprocessors = available_diagnostics.union(available_ensemblestats)
-    postprocessors_in_the_interface = ensemblestats_in_the_interface.union(
-        diagnostics_in_the_interface
-    )
+        print_postprocessors_info(
+            module_name, interface_methods, available_module_methods
+        )
+        available_postprocessors = available_postprocessors.union(
+            available_module_methods
+        )
+        postprocessors_in_the_interface = postprocessors_in_the_interface.union(
+            interface_methods.keys()
+        )
 
     return available_postprocessors, postprocessors_in_the_interface
 
