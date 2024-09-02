@@ -31,31 +31,28 @@ def test_anvil_rainrate(
 ):
     """Tests ANVIL nowcast using rain rate precipitation fields."""
     # inputs
-    precip_input = get_precipitation_fields(
+    dataset_input = get_precipitation_fields(
         num_prev_files=4,
         num_next_files=0,
         return_raw=False,
         metadata=False,
         upscale=2000,
     )
-    precip_input = precip_input.filled()
 
-    precip_obs = get_precipitation_fields(
+    dataset_obs = get_precipitation_fields(
         num_prev_files=0, num_next_files=3, return_raw=False, upscale=2000
-    )[1:, :, :]
-    precip_obs = precip_obs.filled()
+    ).isel(time=slice(1, None, None))
+    precip_var = dataset_input.attrs["precip_var"]
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
-    retrieved_motion = oflow_method(precip_input)
+    dataset_w_motion = oflow_method(dataset_input)
 
     nowcast_method = nowcasts.get_method("anvil")
 
     output = nowcast_method(
-        precip_input[-(ar_order + 2) :],
-        retrieved_motion,
+        dataset_w_motion.isel(time=slice(-(ar_order + 2), None, None)),
         timesteps=timesteps,
-        rainrate=None,  # no R(VIL) conversion is done
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
         ar_window_radius=ar_window_radius,
@@ -63,9 +60,10 @@ def test_anvil_rainrate(
         measure_time=measure_time,
     )
     if measure_time:
-        precip_forecast, __, __ = output
+        dataset_forecast, __, __ = output
     else:
-        precip_forecast = output
+        dataset_forecast = output
+    precip_forecast = dataset_forecast[precip_var].values
 
     assert precip_forecast.ndim == 3
     assert precip_forecast.shape[0] == (
@@ -73,7 +71,7 @@ def test_anvil_rainrate(
     )
 
     result = verification.det_cat_fct(
-        precip_forecast[-1], precip_obs[-1], thr=0.1, scores="CSI"
+        precip_forecast[-1], dataset_obs[precip_var].values[-1], thr=0.1, scores="CSI"
     )["CSI"]
     assert result > min_csi, f"CSI={result:.2f}, required > {min_csi:.2f}"
 

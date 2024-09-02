@@ -22,7 +22,7 @@ from functools import wraps
 
 import numpy as np
 
-from pysteps.converters import convert_to_xarray_dataset
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 
 def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
@@ -90,7 +90,9 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                     mask = ~np.isfinite(precip)
                     precip[mask] = _fillna
 
-            return convert_to_xarray_dataset(precip.astype(_dtype), quality, metadata)
+            return convert_input_to_xarray_dataset(
+                precip.astype(_dtype), quality, metadata
+            )
 
         extra_kwargs_doc = """
             Other Parameters
@@ -126,7 +128,9 @@ def check_input_frames(
             target motion_method_func function.
             """
 
-            input_images = args[0]
+            dataset = args[0]
+            precip_var = dataset.attrs["precip_var"]
+            input_images = dataset[precip_var].values
             if input_images.ndim != 3:
                 raise ValueError(
                     "input_images dimension mismatch.\n"

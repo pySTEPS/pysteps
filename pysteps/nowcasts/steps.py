@@ -11,19 +11,18 @@ Implementation of the STEPS stochastic nowcasting method as described in
     forecast
 """
 
-import numpy as np
-from scipy.ndimage import generate_binary_structure, iterate_structure
 import time
 
-from pysteps import cascade
-from pysteps import extrapolation
-from pysteps import noise
-from pysteps import utils
-from pysteps.decorators import deprecate_args
+import numpy as np
+import xarray as xr
+from scipy.ndimage import generate_binary_structure, iterate_structure
+
+from pysteps import cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
+from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask
@@ -33,10 +32,8 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-@deprecate_args({"R": "precip", "V": "velocity", "R_thr": "precip_thr"}, "1.8.0")
 def forecast(
-    precip,
-    velocity,
+    dataset: xr.Dataset,
     timesteps,
     n_ens_members=24,
     n_cascade_levels=6,
@@ -72,14 +69,13 @@ def forecast(
 
     Parameters
     ----------
-    precip: array-like
-        Array of shape (ar_order+1,m,n) containing the input precipitation fields
-        ordered by timestamp from oldest to newest. The time steps between the
-        inputs are assumed to be regular.
-    velocity: array-like
-        Array of shape (2,m,n) containing the x- and y-components of the advection
-        field. The velocities are assumed to represent one time step between the
-        inputs. All values are required to be finite.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+        ``velocity_y`` data variables, as well as any precipitation data variable.
+        The time dimension of the dataset has to be size
+        ``ar_order + 1`` and the precipitation variable has to have this dimension. All
+        velocity values are required to be finite.
     timesteps: int or list of floats
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
@@ -241,13 +237,13 @@ def forecast(
 
     Returns
     -------
-    out: ndarray
-        If return_output is True, a four-dimensional array of shape
-        (n_ens_members,num_timesteps,m,n) containing a time series of forecast
+    out: xarray.Dataset
+        If return_output is True, a dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
         precipitation fields for each ensemble member. Otherwise, a None value
         is returned. The time series starts from t0+timestep, where timestep is
-        taken from the input precipitation fields. If measure_time is True, the
-        return value is a three-element tuple containing the nowcast array, the
+        taken from the metadata of the time coordinate. If measure_time is True, the
+        return value is a three-element tuple containing the nowcast dataset, the
         initialization time of the nowcast generator and the time used in the
         main loop (seconds).
 
@@ -261,6 +257,11 @@ def forecast(
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
     """
 
+    timesteps_in = timesteps
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    precip = dataset[precip_var].values
+    velocity = np.stack([dataset["velocity_x"], dataset["velocity_y"]])
     _check_inputs(precip, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
@@ -574,8 +575,6 @@ def forecast(
     else:
         velocity_perturbators = None
 
-    precip_forecast = [[] for _ in range(n_ens_members)]
-
     if probmatching_method == "mean":
         mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
     else:
@@ -680,13 +679,13 @@ def forecast(
         precip_forecast, mainloop_time = precip_forecast
 
     if return_output:
-        precip_forecast = np.stack(
-            [np.stack(precip_forecast[j]) for j in range(n_ens_members)]
+        output_dataset = convert_output_to_xarray_dataset(
+            dataset, timesteps_in, precip_forecast
         )
         if measure_time:
-            return precip_forecast, init_time, mainloop_time
+            return output_dataset, init_time, mainloop_time
         else:
-            return precip_forecast
+            return output_dataset
     else:
         return None
 
