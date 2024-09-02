@@ -40,6 +40,8 @@ the short-space Fourier transform (SSFT) methodology developed in
 import time
 import warnings
 
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
+
 try:
     import dask
 
@@ -47,28 +49,19 @@ try:
 except ImportError:
     DASK_IMPORTED = False
 import numpy as np
+import xarray as xr
+from scipy import optimize as opt
+from scipy import stats
 from scipy.integrate import nquad
 from scipy.interpolate import interp1d
-from scipy import optimize as opt
 from scipy.signal import convolve
-from scipy import stats
 
 from pysteps import extrapolation, feature, noise
-from pysteps.decorators import deprecate_args
 from pysteps.nowcasts.utils import nowcast_main_loop
 
 
-@deprecate_args(
-    {
-        "precip_fields": "precip",
-        "advection_field": "velocity",
-        "num_ens_members": "n_ens_members",
-    },
-    "1.8.0",
-)
 def forecast(
-    precip,
-    velocity,
+    dataset: xr.Dataset,
     timesteps,
     feature_method="blob",
     max_num_features=25,
@@ -100,15 +93,13 @@ def forecast(
 
     Parameters
     ----------
-    precip: array_like
-        Array of shape (ari_order + 2, m, n) containing the input rain rate
-        or reflectivity fields (in linear scale) ordered by timestamp from
-        oldest to newest. The time steps between the inputs are assumed to be
-        regular.
-    velocity: array_like
-        Array of shape (2, m, n) containing the x- and y-components of the
-        advection field. The velocities are assumed to represent one time step
-        between the inputs.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+        ``velocity_y`` data variables, as well as either reflectivity values in the
+        ``reflectivity`` data variable (in linear scale) or rainrate in the ``precip_intensity``
+        data variable. The time dimension of the dataset has to be size
+        ``ari_order + 2`` and the precipitation variable has to have this dimension.
     timesteps: int
         Number of time steps to forecast.
     feature_method: {'blob', 'domain' 'shitomasi'}
@@ -202,16 +193,15 @@ def forecast(
 
     Returns
     -------
-    out: numpy.ndarray
-        A four-dimensional array of shape (n_ens_members, timesteps, m, n)
-        containing a time series of forecast precipitation fields for each
-        ensemble member. If add_perturbations is False, the first dimension is
-        dropped. The time series starts from t0 + timestep, where timestep is
-        taken from the input fields. If measure_time is True, the return value
-        is a three-element tuple containing the nowcast array, the initialization
-        time of the nowcast generator and the time used in the main loop
-        (seconds). If return_output is set to False, a single None value is
-        returned instead.
+    out: xarray.Dataset
+        If return_output is True, a dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
+        precipitation fields for each ensemble member. Otherwise, a None value
+        is returned. The time series starts from t0+timestep, where timestep is
+        taken from the metadata of the time coordinate. If measure_time is True, the
+        return value is a three-element tuple containing the nowcast dataset, the
+        initialization time of the nowcast generator and the time used in the
+        main loop (seconds).
 
     Notes
     -----
@@ -224,6 +214,10 @@ def forecast(
     variable OMP_NUM_THREADS to 1. This avoids slowdown caused by too many
     simultaneous threads.
     """
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    precip = dataset[precip_var].values
+    velocity = np.stack([dataset["velocity_x"], dataset["velocity_y"]])
     _check_inputs(precip, velocity, timesteps, ari_order)
 
     if feature_kwargs is None:
@@ -363,13 +357,20 @@ def forecast(
         callback,
     )
 
-    if return_output:
-        if measure_time:
-            return precip_forecast[0], init_time, precip_forecast[1]
-        else:
-            return precip_forecast
-    else:
+    if not return_output:
         return None
+
+    if measure_time:
+        precip_forecast, mainloop_time = precip_forecast
+
+    output_dataset = convert_output_to_xarray_dataset(
+        dataset, timesteps, precip_forecast
+    )
+
+    if measure_time:
+        return output_dataset, init_time, mainloop_time
+    else:
+        return output_dataset
 
 
 def _check_inputs(precip, velocity, timesteps, ari_order):

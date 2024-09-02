@@ -3,13 +3,15 @@
 pysteps.converters
 ==================
 
-Module with data converter functions.
+Module with xarray helper functions.
 
 .. autosummary::
     :toctree: ../generated/
 
     convert_to_xarray_dataset
 """
+
+from datetime import datetime, timedelta
 
 import numpy as np
 import numpy.typing as npt
@@ -77,7 +79,7 @@ def compute_lat_lon(
     return lat.reshape(x_2d.shape), lon.reshape(x_2d.shape)
 
 
-def convert_to_xarray_dataset(
+def convert_input_to_xarray_dataset(
     precip: np.ndarray,
     quality: np.ndarray | None,
     metadata: dict[str, str | float | None],
@@ -110,6 +112,21 @@ def convert_to_xarray_dataset(
     x_r += 0.5 * (x_r[1] - x_r[0])
     y_r = np.linspace(metadata["y1"], metadata["y2"], h + 1)[:-1]
     y_r += 0.5 * (y_r[1] - y_r[0])
+
+    if "xpixelsize" in metadata:
+        xpixelsize = metadata["xpixelsize"]
+    else:
+        xpixelsize = x_r[1] - x_r[0]
+
+    if "ypixelsize" in metadata:
+        ypixelsize = metadata["ypixelsize"]
+    else:
+        ypixelsize = y_r[1] - y_r[0]
+
+    if x_r[1] - x_r[0] != xpixelsize:
+        raise ValueError("xpixelsize does not match x1, x2 and array shape")
+    if y_r[1] - y_r[0] != ypixelsize:
+        raise ValueError("ypixelsize does not match y1, y2 and array shape")
 
     # flip yr vector if yorigin is upper
     if metadata["yorigin"] == "upper":
@@ -160,6 +177,7 @@ def convert_to_xarray_dataset(
                 "long_name": "y-coordinate in Cartesian system",
                 "standard_name": "projection_y_coordinate",
                 "units": metadata["cartesian_unit"],
+                "stepsize": ypixelsize,
             },
         ),
         "x": (
@@ -170,6 +188,7 @@ def convert_to_xarray_dataset(
                 "long_name": "x-coordinate in Cartesian system",
                 "standard_name": "projection_x_coordinate",
                 "units": metadata["cartesian_unit"],
+                "stepsize": xpixelsize,
             },
         ),
         "lon": (
@@ -178,7 +197,6 @@ def convert_to_xarray_dataset(
             {
                 "long_name": "longitude coordinate",
                 "standard_name": "longitude",
-                # TODO(converters): Don't hard-code the unit.
                 "units": "degrees_east",
             },
         ),
@@ -188,7 +206,6 @@ def convert_to_xarray_dataset(
             {
                 "long_name": "latitude coordinate",
                 "standard_name": "latitude",
-                # TODO(converters): Don't hard-code the unit.
                 "units": "degrees_north",
             },
         ),
@@ -207,3 +224,45 @@ def convert_to_xarray_dataset(
     }
     dataset = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
     return dataset.sortby(["y", "x"])
+
+
+def convert_output_to_xarray_dataset(
+    dataset: xr.Dataset, timesteps: int | list[int], output: np.ndarray
+) -> xr.Dataset:
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
+
+    last_timestamp = (
+        dataset["time"][-1].values.astype("datetime64[us]").astype(datetime)
+    )
+    time_metadata = dataset["time"].attrs
+    timestep_seconds = dataset["time"].attrs["stepsize"]
+    dataset = dataset.drop_vars([precip_var]).drop_dims(["time"])
+    if isinstance(timesteps, int):
+        timesteps = list(range(1, timesteps + 1))
+    next_timestamps = [
+        last_timestamp + timedelta(seconds=timestep_seconds * i) for i in timesteps
+    ]
+    dataset = dataset.assign_coords(
+        {"time": (["time"], next_timestamps, time_metadata)}
+    )
+
+    if output.ndim == 4:
+        dataset = dataset.assign_coords(
+            {
+                "ens_number": (
+                    ["ens_number"],
+                    list(range(1, output.shape[0] + 1)),
+                    {
+                        "long_name": "ensemble member",
+                        "standard_name": "realization",
+                        "units": "",
+                    },
+                )
+            }
+        )
+        dataset[precip_var] = (["ens_number", "time", "y", "x"], output, metadata)
+    else:
+        dataset[precip_var] = (["time", "y", "x"], output, metadata)
+
+    return dataset

@@ -56,17 +56,15 @@ def test_steps_skill(
     ).isel(time=slice(1, None, None))
     precip_var = dataset_input.attrs["precip_var"]
     metadata = dataset_input[precip_var].attrs
-    precip_data = dataset_input[precip_var].values
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
-    retrieved_motion = oflow_method(precip_data)
+    dataset_w_motion = oflow_method(dataset_input)
 
     nowcast_method = nowcasts.get_method("steps")
 
-    precip_forecast = nowcast_method(
-        precip_data,
-        retrieved_motion,
+    dataset_forecast = nowcast_method(
+        dataset_w_motion,
         timesteps=timesteps,
         precip_thr=metadata["threshold"],
         kmperpixel=2.0,
@@ -79,6 +77,7 @@ def test_steps_skill(
         probmatching_method=probmatching_method,
         domain=domain,
     )
+    precip_forecast = dataset_forecast[precip_var].values
 
     assert precip_forecast.ndim == 4
     assert precip_forecast.shape[0] == n_ens_members

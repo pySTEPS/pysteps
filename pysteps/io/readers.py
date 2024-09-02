@@ -15,7 +15,7 @@ import numpy as np
 import xarray as xr
 
 
-def read_timeseries(inputfns, importer, **kwargs) -> xr.Dataset | None:
+def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset | None:
     """
     Read a time series of input files using the methods implemented in the
     :py:mod:`pysteps.io.importers` module and stack them into a 3d xarray
@@ -28,6 +28,9 @@ def read_timeseries(inputfns, importer, **kwargs) -> xr.Dataset | None:
         :py:mod:`pysteps.io.archive` module.
     importer: function
         A function implemented in the :py:mod:`pysteps.io.importers` module.
+    timestep: int, optional
+        The timestep in seconds, this value is optional if more than 1 inputfns
+        are given.
     kwargs: dict
         Optional keyword arguments for the importer.
 
@@ -58,6 +61,16 @@ def read_timeseries(inputfns, importer, **kwargs) -> xr.Dataset | None:
         return None
 
     startdate = min(inputfns[1])
+    sorted_dates = sorted(inputfns[1])
+    timestep_dates = int((sorted_dates[1] - sorted_dates[0]).total_seconds())
+
+    if timestep is None:
+        timestep = timestep_dates
+    if timestep != timestep_dates:
+        raise ValueError("given timestep does not match inputfns")
+    for i in range(len(sorted_dates) - 1):
+        if int((sorted_dates[i + 1] - sorted_dates[i]).total_seconds()) != timestep:
+            raise ValueError("supplied dates are not evenly spaced")
 
     datasets = []
     for i, ifn in enumerate(inputfns[0]):
@@ -73,6 +86,7 @@ def read_timeseries(inputfns, importer, **kwargs) -> xr.Dataset | None:
                 {
                     "long_name": "forecast time",
                     "units": f"seconds since {startdate:%Y-%m-%d %H:%M:%S}",
+                    "stepsize": timestep,
                 },
             )
         )
