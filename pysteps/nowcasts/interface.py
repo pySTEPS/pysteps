@@ -74,12 +74,6 @@ def discover_nowcasts():
     import pkg_resources
 
     importlib.reload(pkg_resources)
-    entry_points = list(
-        pkg_resources.iter_entry_points(group="pysteps.plugins.nowcasts", name=None)
-    )
-    if not entry_points:
-        print("No entry points found in 'pysteps.plugins.nowcasts'.")
-        return
 
     for entry_point in pkg_resources.iter_entry_points(
         group="pysteps.plugins.nowcasts", name=None
@@ -107,7 +101,7 @@ def discover_nowcasts():
 
 
 def nowcasts_info():
-    """Print all the available importers."""
+    """Print all the available nowcast methods."""
 
     # nowcasts methods available in the `nowcasts` package
     available_nowcasts = [
