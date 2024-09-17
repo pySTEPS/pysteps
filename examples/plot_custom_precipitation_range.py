@@ -76,11 +76,6 @@ plot_precip_field(R[0, :, :], geodata=metadata, axis="off")
 plt.tight_layout()
 plt.show()
 
-# Save the plot if needed
-# plt.savefig("precipitation.png", bbox_inches="tight", pad_inches=0.1)
-# print("The precipitation field has been plotted and saved as precipitation.png")
-
-
 ###############################################################################
 # Define the custom colormap
 # --------------------------
@@ -146,7 +141,3 @@ plot_precip_field(R[0, :, :], geodata=metadata, axis="off", colormap_config=conf
 
 plt.tight_layout()
 plt.show()
-
-# Save the plot if needed
-plt.savefig("precipitation_custom.png", bbox_inches="tight")
-print("The precipitation field has been plotted and saved as precipitation_custom.png")
