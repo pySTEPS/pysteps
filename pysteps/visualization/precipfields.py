@@ -43,6 +43,7 @@ def plot_precip_field(
     axis="on",
     cax=None,
     map_kwargs=None,
+    colormap_config=None,
 ):
     """
     Function to plot a precipitation intensity or probability field with a
@@ -114,6 +115,11 @@ def plot_precip_field(
     cax : Axes_ object, optional
         Axes into which the colorbar will be drawn. If no axes is provided
         the colorbar axes are created next to the plot.
+    colormap_config : ColormapConfig, optional
+        Custom colormap configuration. If provided, this will override the
+        colorscale parameter.
+        The ColormapConfig class must have the following attributes: cmap,
+        norm, clevs.
 
     Other parameters
     ----------------
@@ -158,20 +164,24 @@ def plot_precip_field(
     ax = get_basemap_axis(extent, ax=ax, geodata=geodata, map_kwargs=map_kwargs)
 
     precip = np.ma.masked_invalid(precip)
-    # plot rainfield
-    if regular_grid:
-        im = _plot_field(precip, ax, ptype, units, colorscale, extent, origin=origin)
+
+    # Handle colormap configuration
+    if colormap_config is None:
+        cmap, norm, clevs, clevs_str = get_colormap(ptype, units, colorscale)
     else:
-        im = _plot_field(
-            precip, ax, ptype, units, colorscale, extent, x_grid=x_grid, y_grid=y_grid
-        )
+        cmap, norm, clevs = _validate_colormap_config(colormap_config, ptype)
+        clevs_str = _dynamic_formatting_floats(clevs)
+
+    # Plot the precipitation field
+    if regular_grid:
+        im = _plot_field(precip, ax, extent, cmap, norm, origin=origin)
+    else:
+        im = _plot_field(precip, ax, extent, cmap, norm, x_grid=x_grid, y_grid=y_grid)
 
     plt.title(title)
 
-    # add colorbar
+    # Add colorbar
     if colorbar:
-        # get colormap and color levels
-        _, _, clevs, clevs_str = get_colormap(ptype, units, colorscale)
         if ptype in ["intensity", "depth"]:
             extend = "max"
         else:
@@ -202,13 +212,8 @@ def plot_precip_field(
     return ax
 
 
-def _plot_field(
-    precip, ax, ptype, units, colorscale, extent, origin=None, x_grid=None, y_grid=None
-):
+def _plot_field(precip, ax, extent, cmap, norm, origin=None, x_grid=None, y_grid=None):
     precip = precip.copy()
-
-    # Get colormap and color levels
-    cmap, norm, _, _ = get_colormap(ptype, units, colorscale)
 
     if (x_grid is None) or (y_grid is None):
         im = ax.imshow(
@@ -510,3 +515,40 @@ def _dynamic_formatting_floats(float_array, colorscale="pysteps"):
             labels.append(str(int(label)))
 
     return labels
+
+
+def _validate_colormap_config(colormap_config, ptype):
+    """Validate the colormap configuration provided by the user."""
+
+    # Ensure colormap_config has the necessary attributes
+    required_attrs = ["cmap", "norm", "clevs"]
+    missing_attrs = [
+        attr for attr in required_attrs if not hasattr(colormap_config, attr)
+    ]
+    if missing_attrs:
+        raise ValueError(
+            f"colormap_config is missing required attributes: {', '.join(missing_attrs)}"
+        )
+
+    # Ensure that ptype is appropriate when colormap_config is provided
+    if ptype not in ["intensity", "depth"]:
+        raise ValueError(
+            "colormap_config is only supported for ptype='intensity' or 'depth'"
+        )
+
+    cmap = colormap_config.cmap
+    clevs = colormap_config.clevs
+
+    # Validate that the number of colors matches len(clevs)
+    if isinstance(cmap, colors.ListedColormap):
+        num_colors = len(cmap.colors)
+    else:
+        num_colors = cmap.N
+
+    expected_colors = len(clevs)
+    if num_colors != expected_colors:
+        raise ValueError(
+            f"Number of colors in colormap (N={num_colors}) does not match len(clevs) (N={expected_colors})."
+        )
+
+    return colormap_config.cmap, colormap_config.norm, colormap_config.clevs
