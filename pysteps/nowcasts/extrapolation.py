@@ -11,14 +11,16 @@ Implementation of extrapolation-based nowcasting methods.
 """
 
 import time
+
 import numpy as np
+import xarray as xr
 
 from pysteps import extrapolation
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 
 def forecast(
-    precip,
-    velocity,
+    dataset: xr.Dataset,
     timesteps,
     extrap_method="semilagrangian",
     extrap_kwargs=None,
@@ -32,13 +34,11 @@ def forecast(
 
     Parameters
     ----------
-    precip: array-like
-        Two-dimensional array of shape (m,n) containing the input precipitation
-        field.
-    velocity: array-like
-        Array of shape (2,m,n) containing the x- and y-components of the
-        advection field. The velocities are assumed to represent one time step
-        between the inputs.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+        ``velocity_y`` data variables, as well as any pecipitation data variable.
+        It should contain a time dimension of size 1.
     timesteps: int or list of floats
         Number of time steps to forecast or a list of time steps for which the
         forecasts are computed (relative to the input time step). The elements
@@ -54,18 +54,25 @@ def forecast(
 
     Returns
     -------
-    out: ndarray_
-      Three-dimensional array of shape (num_timesteps, m, n) containing a time
-      series of nowcast precipitation fields. The time series starts from
-      t0 + timestep, where timestep is taken from the advection field velocity.
-      If *measure_time* is True, the return value is a two-element tuple
-      containing this array and the computation time (seconds).
+    out: xarray.Dataset
+        If return_output is True, a dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
+        precipitation fields. Otherwise, a None value
+        is returned. The time series starts from t0+timestep, where timestep is
+        taken from the metadata of the time coordinate. If measure_time is True, the
+        return value is a three-element tuple containing the nowcast dataset, the
+        initialization time of the nowcast generator and the time used in the
+        main loop (seconds).
 
     See also
     --------
     pysteps.extrapolation.interface
     """
 
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    precip = dataset[precip_var].values[0]
+    velocity = np.stack([dataset["velocity_x"], dataset["velocity_y"]])
     _check_inputs(precip, velocity, timesteps)
 
     if extrap_kwargs is None:
@@ -95,10 +102,13 @@ def forecast(
         computation_time = time.time() - start_time
         print(f"{computation_time:.2f} seconds.")
 
+    output_dataset = convert_output_to_xarray_dataset(
+        dataset, timesteps, precip_forecast
+    )
     if measure_time:
-        return precip_forecast, computation_time
+        return output_dataset, computation_time
     else:
-        return precip_forecast
+        return output_dataset
 
 
 def _check_inputs(precip, velocity, timesteps):
