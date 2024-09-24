@@ -788,33 +788,33 @@ def forecast(
 
             if precip_models_cascade is not None:
                 decomp_precip_models = list(precip_models_cascade[:, t])
-
-            if precip_models.shape[0] == 1:
-                decomp_precip_models = [
-                    decompositor(
-                        precip_models[0, t, :, :],
-                        bp_filter=bp_filter,
-                        fft_method=fft,
-                        output_domain=domain,
-                        normalize=True,
-                        compute_stats=True,
-                        compact_output=True,
-                    )
-                ]
             else:
-                with ThreadPool(num_workers) as pool:
-                    decomp_precip_models = pool.map(
-                        partial(
-                            decompositor,
+                if precip_models.shape[0] == 1:
+                    decomp_precip_models = [
+                        decompositor(
+                            precip_models[0, t, :, :],
                             bp_filter=bp_filter,
                             fft_method=fft,
                             output_domain=domain,
                             normalize=True,
                             compute_stats=True,
                             compact_output=True,
-                        ),
-                        list(precip_models[:, t, :, :]),
-                    )
+                        )
+                    ]
+                else:
+                    with ThreadPool(num_workers) as pool:
+                        decomp_precip_models = pool.map(
+                            partial(
+                                decompositor,
+                                bp_filter=bp_filter,
+                                fft_method=fft,
+                                output_domain=domain,
+                                normalize=True,
+                                compute_stats=True,
+                                compact_output=True,
+                            ),
+                            list(precip_models[:, t, :, :]),
+                        )
 
             precip_models_cascade_temp = np.array(
                 [decomp["cascade_levels"] for decomp in decomp_precip_models]
