@@ -119,24 +119,37 @@ def forecast(
       ordered by timestamp from oldest to newest. The time steps between the
       inputs are assumed to be regular.
     precip_models: array-like
-      Array of shape (n_models,timesteps+1) containing, per timestep (t=0 to
-      lead time here) and per (NWP) model or model ensemble member, a
-      dictionary with a list of cascades obtained by calling a method
-      implemented in :py:mod:`pysteps.cascade.decomposition`. In case of one
-      (deterministic) model as input, add an extra dimension to make sure
-      precip_models is five dimensional prior to calling this function.
-      It is also possible to supply the original (NWP) model forecasts containing
-      rainfall fields as an array of shape (n_models,timestep+1,m,n), which will
-      then be decomposed in this function. Note that for an operational application
-      or for testing with multiple model runs, it is recommended to decompose
-      the model forecasts outside beforehand, as this reduces calculation times.
+      Either raw (NWP) model forecast data or decomposed (NWP) model forecast data.
+      If you supply decomposed data, it needs to be an array of shape
+      (n_models,timesteps+1) containing, per timestep (t=0 to lead time here) and
+      per (NWP) model or model ensemble member, a dictionary with a list of cascades
+      obtained by calling a method implemented in :py:mod:`pysteps.cascade.decomposition`.
+      If you supply the original (NWP) model forecast data, it needs to be an array of shape
+      (n_models,timestep+1,m,n) containing rainfall fields, which will
+      then be decomposed in this function.
+
+      Depending on your use case it can be advantageous to decompose the model
+      forecasts outside beforehand, as this slightly reduces calculation times.
       This is possible with :py:func:`pysteps.blending.utils.decompose_NWP`,
       :py:func:`pysteps.blending.utils.compute_store_nwp_motion`, and
-      :py:func:`pysteps.blending.utils.load_NWP`.
+      :py:func:`pysteps.blending.utils.load_NWP`. However, if you have a lot of (NWP) model
+      members (e.g. 1 model member per nowcast member), this can lead to excessive memory
+      usage.
+
+      To further reduce memory usage, both this array and the ``velocity_models`` array
+      can be given as float32, they will then be converted to float64 before computations
+      to minimize loss in precision
+
+      In case of one (deterministic) model as input, add an extra dimension to make sure
+      precip_models is five dimensional prior to calling this function.
     velocity: array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
+
+      To reduce memory usage, both this array and the ``precip_models`` array
+      can be given as float32, they will then be converted to float64 before computations
+      to minimize loss in precision
     velocity_models: array-like
       Array of shape (n_models,timestep,2,m,n) containing the x- and y-components
       of the advection field for the (NWP) model field per forecast lead time.
