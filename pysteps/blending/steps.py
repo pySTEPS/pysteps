@@ -47,11 +47,12 @@ import math
 import time
 from copy import deepcopy
 from functools import partial
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 
 import numpy as np
 from scipy.linalg import inv
-from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
+from scipy.ndimage import (binary_dilation, generate_binary_structure,
+                           iterate_structure)
 
 from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
@@ -801,7 +802,7 @@ def forecast(
                     )
                 ]
             else:
-                with Pool(num_workers) as pool:
+                with ThreadPool(num_workers) as pool:
                     decomp_precip_models = pool.map(
                         partial(
                             decompositor,
