@@ -595,7 +595,7 @@ def forecast(
         timesteps = nowcast_utils.binned_timesteps(original_timesteps)
         timestep_type = "list"
 
-    # 2.3.1 If precip is below the norain threshold and precip_models_pm is zero,
+    # 2.3.1 If precip is below the norain threshold and precip_models is zero,
     # we consider it as no rain in the domain.
     # The forecast will directly return an array filled with the minimum
     # value present in precip (which equals zero rainfall in the used
@@ -861,7 +861,7 @@ def forecast(
             # the maximum number of (ensemble) members in the input (either the nowcasts or NWP).
             (
                 precip_models_cascade_temp,
-                precip_models_pm_temp,
+                precip_models_temp,
                 velocity_models_temp,
                 mu_models_temp,
                 sigma_models_temp,
@@ -1467,7 +1467,7 @@ def forecast(
                             R_pm_stacked = np.concatenate(
                                 (
                                     R_pm_ep[None, t_index],
-                                    precip_models_pm_temp,
+                                    precip_models_temp,
                                 ),
                                 axis=0,
                             )
@@ -1475,7 +1475,7 @@ def forecast(
                             R_pm_stacked = np.concatenate(
                                 (
                                     R_pm_ep[None, t_index],
-                                    precip_models_pm_temp[None, j],
+                                    precip_models_temp[None, j],
                                 ),
                                 axis=0,
                             )
@@ -1492,11 +1492,11 @@ def forecast(
                                 weights_pm_normalized_mod_only.reshape(
                                     weights_pm_normalized_mod_only.shape[0], 1, 1
                                 )
-                                * precip_models_pm_temp,
+                                * precip_models_temp,
                                 axis=0,
                             )
                         else:
-                            R_pm_blended_mod_only = precip_models_pm_temp[j]
+                            R_pm_blended_mod_only = precip_models_temp[j]
 
                         # The extrapolation components are NaN outside the advected
                         # radar domain. This results in NaN values in the blended
@@ -1587,7 +1587,7 @@ def forecast(
                         # that for the probability matching.
                         if probmatching_method is not None and resample_distribution:
                             arr1 = R_pm_ep[t_index]
-                            arr2 = precip_models_pm_temp[j]
+                            arr2 = precip_models_temp[j]
                             # resample weights based on cascade level 2.
                             # Areas where one of the fields is nan are not included.
                             R_pm_resampled = probmatching.resample_distributions(
@@ -2090,7 +2090,7 @@ def _compute_cascade_decomposition_radar(
 
 
 def _compute_cascade_recomposition_nwp(precip_models, recompositor):
-    """If necessary, recompose (NWP) model forecasts and stack cascades."""
+    """If necessary, recompose (NWP) model forecasts."""
     precip_models_cascade = precip_models
     precip_models_pm = None
 
