@@ -51,8 +51,7 @@ from multiprocessing import Pool
 
 import numpy as np
 from scipy.linalg import inv
-from scipy.ndimage import (binary_dilation, generate_binary_structure,
-                           iterate_structure)
+from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
 
 from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
@@ -787,7 +786,7 @@ def forecast(
                 starttime = time.time()
 
             if precip_models_cascade is not None:
-                decomp_precip_models = list(precip_models_cascade[:,t])
+                decomp_precip_models = list(precip_models_cascade[:, t])
 
             if precip_models.shape[0] == 1:
                 decomp_precip_models = [
