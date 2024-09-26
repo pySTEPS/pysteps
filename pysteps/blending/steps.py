@@ -125,7 +125,7 @@ def forecast(
       per (NWP) model or model ensemble member, a dictionary with a list of cascades
       obtained by calling a method implemented in :py:mod:`pysteps.cascade.decomposition`.
       If you supply the original (NWP) model forecast data, it needs to be an array of shape
-      (n_models,timestep+1,m,n) containing rainfall fields, which will
+      (n_models,timestep+1,m,n) containing precipitation (or other) fields, which will
       then be decomposed in this function.
 
       Depending on your use case it can be advantageous to decompose the model
@@ -137,19 +137,19 @@ def forecast(
       usage.
 
       To further reduce memory usage, both this array and the ``velocity_models`` array
-      can be given as float32, they will then be converted to float64 before computations
-      to minimize loss in precision
+      can be given as float32. They will then be converted to float64 before computations
+      to minimize loss in precision.
 
       In case of one (deterministic) model as input, add an extra dimension to make sure
-      precip_models is five dimensional prior to calling this function.
+      precip_models is four dimensional prior to calling this function.
     velocity: array-like
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
 
-      To reduce memory usage, both this array and the ``precip_models`` array
-      can be given as float32, they will then be converted to float64 before computations
-      to minimize loss in precision
+      To reduce memory usage, this array
+      can be given as float32. They will then be converted to float64 before computations
+      to minimize loss in precision.
     velocity_models: array-like
       Array of shape (n_models,timestep,2,m,n) containing the x- and y-components
       of the advection field for the (NWP) model field per forecast lead time.
