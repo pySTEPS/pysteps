@@ -146,14 +146,14 @@ def forecast(
       Array of shape (2,m,n) containing the x- and y-components of the advection
       field. The velocities are assumed to represent one time step between the
       inputs. All values are required to be finite.
-
-      To reduce memory usage, this array
-      can be given as float32. They will then be converted to float64 before computations
-      to minimize loss in precision.
     velocity_models: array-like
       Array of shape (n_models,timestep,2,m,n) containing the x- and y-components
       of the advection field for the (NWP) model field per forecast lead time.
       All values are required to be finite.
+
+      To reduce memory usage, this array
+      can be given as float32. They will then be converted to float64 before computations
+      to minimize loss in precision.
     timesteps: int or list of floats
       Number of time steps to forecast or a list of time steps for which the
       forecasts are computed (relative to the input time step). The elements of
