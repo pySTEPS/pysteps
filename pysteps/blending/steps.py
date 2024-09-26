@@ -2089,25 +2089,24 @@ def _compute_cascade_decomposition_radar(
     return R_c, mu_extrapolation, sigma_extrapolation
 
 
-def _compute_cascade_recomposition_nwp(precip_models, recompositor):
+def _compute_cascade_recomposition_nwp(precip_models_cascade, recompositor):
     """If necessary, recompose (NWP) model forecasts."""
-    precip_models_cascade = precip_models
-    precip_models_pm = None
+    precip_models = None
 
     # Recompose the (NWP) model cascades to have rainfall fields per
     # model and time step, which will be used in the probability matching steps.
     # Recomposed cascade will have shape: [n_models, n_timesteps, m, n]
-    precip_models_pm = []
+    precip_models = []
     for i in range(precip_models_cascade.shape[0]):
-        precip_model_pm = []
+        precip_model = []
         for time_step in range(precip_models_cascade.shape[1]):
-            precip_model_pm.append(recompositor(precip_models_cascade[i, time_step]))
-        precip_models_pm.append(precip_model_pm)
+            precip_model.append(recompositor(precip_models_cascade[i, time_step]))
+        precip_models.append(precip_model)
 
-    precip_models_pm = np.stack(precip_models_pm)
-    precip_model_pm = None
+    precip_models = np.stack(precip_models)
+    precip_model = None
 
-    return precip_models_pm
+    return precip_models
 
 
 def _estimate_ar_parameters_radar(
