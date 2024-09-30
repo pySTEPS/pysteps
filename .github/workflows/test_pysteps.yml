@@ -38,6 +38,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: mamba-org/setup-micromamba@v1
         with:
+          # https://github.com/mamba-org/setup-micromamba/issues/225
+          micromamba-version: 1.5.10-0
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
           generate-run-shell: false
@@ -49,6 +51,8 @@ jobs:
         if: matrix.os != 'ubuntu-latest'
         uses: mamba-org/setup-micromamba@v1
         with:
+          # https://github.com/mamba-org/setup-micromamba/issues/225
+          micromamba-version: 1.5.10-0
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
           generate-run-shell: false
