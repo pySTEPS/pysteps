@@ -36,8 +36,11 @@ jobs:
       # need headless opencv on Linux, see https://github.com/conda-forge/opencv-feedstock/issues/401
       - name: Install mamba and create environment for Linux
         if: matrix.os == 'ubuntu-latest'
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v1.9.0
         with:
+          # https://github.com/mamba-org/setup-micromamba/issues/225
+          micromamba-version: 1.5.10-0
+          micromamba-binary-path: /home/runner/micromamba-bin-versioned/micromamba
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
           generate-run-shell: false
@@ -47,8 +50,11 @@ jobs:
 
       - name: Install mamba and create environment (not Linux)
         if: matrix.os != 'ubuntu-latest'
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v1.9.0
         with:
+          # https://github.com/mamba-org/setup-micromamba/issues/225
+          micromamba-version: 1.5.10-0
+          micromamba-binary-path: /home/runner/micromamba-bin-versioned/micromamba
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
           generate-run-shell: false
