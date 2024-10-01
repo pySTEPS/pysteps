@@ -646,6 +646,10 @@ def forecast(
         # only nans or infs. If so, fill it with the zero value.
         if np.any(precip_cascade[np.isfinite(precip_cascade)]):
             precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(precip_cascade)
+        elif precip_models_cascade is not None:
+            precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(
+                precip_models_cascade
+            )
         else:
             done = False
             for t in timesteps:
