@@ -51,7 +51,8 @@ from multiprocessing.pool import ThreadPool
 
 import numpy as np
 from scipy.linalg import inv
-from scipy.ndimage import binary_dilation, generate_binary_structure, iterate_structure
+from scipy.ndimage import (binary_dilation, generate_binary_structure,
+                           iterate_structure)
 
 from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
@@ -671,6 +672,7 @@ def forecast(
                         precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(
                             precip_models_cascade_temp
                         )
+                        done = True
                         break
 
         # 2.3.5 If zero_precip_radar is True, only use the velocity field of the NWP
