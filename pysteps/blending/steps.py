@@ -644,8 +644,30 @@ def forecast(
     else:
         # 2.3.3 If zero_precip_radar, make sure that precip_cascade does not contain
         # only nans or infs. If so, fill it with the zero value.
-        if zero_precip_radar:
-            precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(precip)
+        if np.any(precip_cascade[np.isfinite(precip_cascade)]):
+            precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(precip_cascade)
+        else:
+            done = False
+            for t in timesteps:
+                if done:
+                    break
+                for j in range(precip_models.shape[0]):
+                    if not blending.utils.check_norain(
+                        precip_models, precip_thr, norain_thr
+                    ):
+                        precip_models_cascade_temp = decompositor(
+                            precip_models[j, t, :, :],
+                            bp_filter=bp_filter,
+                            fft_method=fft,
+                            output_domain=domain,
+                            normalize=True,
+                            compute_stats=True,
+                            compact_output=True,
+                        )["cascade_levels"]
+                        precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(
+                            precip_models_cascade_temp
+                        )
+                        break
 
         # 2.3.5 If zero_precip_radar is True, only use the velocity field of the NWP
         # forecast. I.e., velocity (radar) equals velocity_model at the first time
@@ -2426,7 +2448,7 @@ def _init_noise_cascade(
 
 def _fill_nans_infs_nwp_cascade(
     precip_models_cascade,
-    precip_models_pm,
+    precip_models,
     precip_cascade,
     precip,
     mu_models,
@@ -2438,34 +2460,30 @@ def _fill_nans_infs_nwp_cascade(
     min_cascade = np.nanmin(precip_cascade)
     min_precip = np.nanmin(precip)
     precip_models_cascade[~np.isfinite(precip_models_cascade)] = min_cascade
-    precip_models_pm[~np.isfinite(precip_models_pm)] = min_precip
+    precip_models[~np.isfinite(precip_models)] = min_precip
     # Also set any nans or infs in the mean and sigma of the cascade to
     # respectively 0.0 and 1.0
     mu_models[~np.isfinite(mu_models)] = 0.0
     sigma_models[~np.isfinite(sigma_models)] = 0.0
 
-    return precip_models_cascade, precip_models_pm, mu_models, sigma_models
+    return precip_models_cascade, precip_models, mu_models, sigma_models
 
 
-def _determine_max_nr_rainy_cells_nwp(
-    precip_models_pm, precip_thr, n_models, timesteps
-):
+def _determine_max_nr_rainy_cells_nwp(precip_models, precip_thr, n_models, timesteps):
     """Initialize noise based on the NWP field time step where the fraction of rainy cells is highest"""
     if precip_thr is None:
-        precip_thr = np.nanmin(precip_models_pm)
+        precip_thr = np.nanmin(precip_models)
 
     max_rain_pixels = -1
     max_rain_pixels_j = -1
     max_rain_pixels_t = -1
     for j in range(n_models):
         for t in timesteps:
-            rain_pixels = precip_models_pm[j][t][
-                precip_models_pm[j][t] > precip_thr
-            ].size
+            rain_pixels = precip_models[j][t][precip_models[j][t] > precip_thr].size
             if rain_pixels > max_rain_pixels:
                 max_rain_pixels = rain_pixels
                 max_rain_pixels_j = j
                 max_rain_pixels_t = t
-    precip_noise_input = precip_models_pm[max_rain_pixels_j][max_rain_pixels_t]
+    precip_noise_input = precip_models[max_rain_pixels_j][max_rain_pixels_t]
 
     return precip_noise_input.astype(np.float64, copy=False)
