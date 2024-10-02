@@ -650,12 +650,13 @@ def forecast(
                 if done:
                     break
                 for j in range(precip_models.shape[0]):
+                    # Look for a timestep and member with rain so that we have a sensible decomposition
                     if not blending.utils.check_norain(
-                        precip_models, precip_thr, norain_thr
+                        precip_models[j, t], precip_thr, norain_thr
                     ):
                         if precip_models_cascade is not None:
                             precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(
-                                precip_models_cascade[j, t]
+                                precip_models_cascade[j, t]["cascade_levels"]
                             )
                             continue
                         precip_models_cascade_temp = decompositor(
