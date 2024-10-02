@@ -644,35 +644,34 @@ def forecast(
     else:
         # 2.3.3 If zero_precip_radar, make sure that precip_cascade does not contain
         # only nans or infs. If so, fill it with the zero value.
-        if np.any(precip_cascade[np.isfinite(precip_cascade)]):
-            precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(precip_cascade)
-        elif precip_models_cascade is not None:
-            precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(
-                precip_models_cascade
-            )
-        else:
-            done = False
-            for t in timesteps:
-                if done:
-                    break
-                for j in range(precip_models.shape[0]):
-                    if not blending.utils.check_norain(
-                        precip_models, precip_thr, norain_thr
-                    ):
-                        precip_models_cascade_temp = decompositor(
-                            precip_models[j, t, :, :],
-                            bp_filter=bp_filter,
-                            fft_method=fft,
-                            output_domain=domain,
-                            normalize=True,
-                            compute_stats=True,
-                            compact_output=True,
-                        )["cascade_levels"]
-                        precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(
-                            precip_models_cascade_temp
-                        )
-                        done = True
+        if zero_precip_radar:
+            if precip_models_cascade is not None:
+                precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(
+                    precip_models_cascade
+                )
+            else:
+                done = False
+                for t in timesteps:
+                    if done:
                         break
+                    for j in range(precip_models.shape[0]):
+                        if not blending.utils.check_norain(
+                            precip_models, precip_thr, norain_thr
+                        ):
+                            precip_models_cascade_temp = decompositor(
+                                precip_models[j, t, :, :],
+                                bp_filter=bp_filter,
+                                fft_method=fft,
+                                output_domain=domain,
+                                normalize=True,
+                                compute_stats=True,
+                                compact_output=True,
+                            )["cascade_levels"]
+                            precip_cascade[~np.isfinite(precip_cascade)] = np.nanmin(
+                                precip_models_cascade_temp
+                            )
+                            done = True
+                            break
 
         # 2.3.5 If zero_precip_radar is True, only use the velocity field of the NWP
         # forecast. I.e., velocity (radar) equals velocity_model at the first time
