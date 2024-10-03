@@ -645,12 +645,12 @@ def forecast(
         # 2.3.3 If zero_precip_radar, make sure that precip_cascade does not contain
         # only nans or infs. If so, fill it with the zero value.
         if zero_precip_radar:
+            # Look for a timestep and member with rain so that we have a sensible decomposition
             done = False
             for t in timesteps:
                 if done:
                     break
                 for j in range(precip_models.shape[0]):
-                    # Look for a timestep and member with rain so that we have a sensible decomposition
                     if not blending.utils.check_norain(
                         precip_models[j, t], precip_thr, norain_thr
                     ):
