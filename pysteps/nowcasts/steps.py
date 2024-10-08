@@ -83,6 +83,16 @@ class StepsNowcaster:
         self.precip_forecast = None
         self.mask_prec = None
         self.mask_thr = None
+        self.precip_decomp = None
+        self.vp_par = None
+        self.vp_perp = None
+        self.fft_objs = None
+        self.generate_noise = None
+
+        # Additional variables for time measurement
+        self.start_time_init = None
+        self.init_time = None
+        self.mainloop_time = None
 
         # Initialize number of ensemble workers
         self.num_ensemble_workers = min(self.n_ens_members, self.num_workers)
@@ -96,40 +106,73 @@ class StepsNowcaster:
         self._print_forecast_info()
         # Measure time for initialization
         if self.measure_time:
-            start_time_init = time.time()
+            self.start_time_init = time.time()
 
         self._initialize_nowcast_components()
         # Slice the precipitation field to only use the last ar_order + 1 fields
         self.precip = self.precip[-(self.ar_order + 1) :, :, :].copy()
-        # Measure and print initialization time
-        if self.measure_time:
-            self._measure_time("Initialization", start_time_init)
 
         self._perform_extrapolation()
-
         self._apply_noise_and_ar_model()
+        self._initialize_velocity_perturbators()
+        self._initialize_precipitation_mask()
+        self._initialize_fft_objects()
+        # Measure and print initialization time
+        if self.measure_time:
+            self._measure_time("Initialization", self.start_time_init)
 
-        # Main forecasting loop for each timestep
-        for t in range(len(self.timesteps)):
-            # Measure time for each timestep
+        # RUn the main nowcast loop
+        self._nowcast_main()
+
+        if self.measure_time:
+            self.precip_forecast, self.mainloop_time = self.precip_forecast
+
+        # Stack and return the forecast output
+        if self.return_output:
+            self.precip_forecast = np.stack(
+                [np.stack(self.precip_forecast[j]) for j in range(self.n_ens_members)]
+            )
             if self.measure_time:
-                start_time_loop = time.time()
+                return self.precip_forecast, self.init_time, self.mainloop_time
+            else:
+                return self.precip_forecast
+        else:
+            return None
 
-            # Apply noise and autoregressive model
-            self._apply_noise_and_ar_model()
+    def _nowcast_main(self):
+        """
+        Main nowcast loop that iterates through the ensemble members and time steps
+        to generate forecasts.
+        """
+        # Prepare state and params dictionaries
+        state = self._initialize_state()
+        params = self._initialize_params(self.precip)
 
-            # Recompose the cascades into forecast fields
-            self._recompose_cascades()
+        # Isolate the last time slice of precipitation
+        self.precip = self.precip[
+            -1, :, :
+        ]  # Extract the last available precipitation field
 
-            # Optionally apply a mask if required
-            if self.mask_method:
-                self._apply_mask()
+        print("Starting nowcast computation.")
 
-            # Measure and print time taken for each timestep
-            if self.measure_time:
-                self._measure_time(f"Timestep {t}", start_time_loop)
-
-        print("Forecasting complete.")
+        # Run the nowcast main loop
+        self.precip_forecast = nowcast_main_loop(
+            self.precip,
+            self.velocity,
+            state,
+            self.timesteps,
+            self.extrap_method,
+            self._update_state,  # Reference to the update function
+            extrap_kwargs=self.extrap_kwargs,
+            velocity_pert_gen=self.velocity_perturbators,
+            params=params,
+            ensemble=True,
+            num_ensemble_members=self.n_ens_members,
+            callback=self.callback,
+            return_output=self.return_output,
+            num_workers=self.num_ensemble_workers,
+            measure_time=self.measure_time,
+        )
 
     def _check_inputs(self):
         """
@@ -255,17 +298,17 @@ class StepsNowcaster:
         print(f"order of the AR(p) model: {self.ar_order}")
 
         if self.vel_pert_method == "bps":
-            vp_par = self.vel_pert_kwargs.get(
+            self.vp_par = self.vel_pert_kwargs.get(
                 "p_par", noise.motion.get_default_params_bps_par()
             )
-            vp_perp = self.vel_pert_kwargs.get(
+            self.vp_perp = self.vel_pert_kwargs.get(
                 "p_perp", noise.motion.get_default_params_bps_perp()
             )
             print(
-                f"velocity perturbations, parallel:      {vp_par[0]},{vp_par[1]},{vp_par[2]}"
+                f"velocity perturbations, parallel:      {self.vp_par[0]},{self.vp_par[1]},{self.vp_par[2]}"
             )
             print(
-                f"velocity perturbations, perpendicular: {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
+                f"velocity perturbations, perpendicular: {self.vp_perp[0]},{self.vp_perp[1]},{self.vp_perp[2]}"
             )
 
         if self.precip_thr is not None:
@@ -375,7 +418,7 @@ class StepsNowcaster:
         # Initialize the noise generator if the noise_method is provided
         if self.noise_method is not None:
             np.random.seed(self.seed)  # Set the random seed for reproducibility
-            init_noise, generate_noise = noise.get_method(
+            init_noise, self.generate_noise = noise.get_method(
                 self.noise_method
             )  # Get noise methods
 
@@ -398,7 +441,7 @@ class StepsNowcaster:
                     self.bp_filter,
                     self.decomp_method,
                     self.pert_gen,
-                    generate_noise,
+                    self.generate_noise,
                     20,
                     conditional=self.conditional,
                     num_workers=self.num_workers,
@@ -434,10 +477,9 @@ class StepsNowcaster:
             self.noise_std_coeffs = np.ones(
                 self.n_cascade_levels
             )  # Keep default as 1.0 to avoid breaking AR model
-        # TODO: The following parts of the method are not yet fully checked compared to the original
 
         # Decompose the input precipitation fields
-        precip_decomp = []
+        self.precip_decomp = []
         for i in range(self.ar_order + 1):
             precip_ = self.decomp_method(
                 self.precip[i, :, :],
@@ -449,14 +491,16 @@ class StepsNowcaster:
                 compute_stats=True,
                 compact_output=True,
             )
-            precip_decomp.append(precip_)
+            self.precip_decomp.append(precip_)
 
         # Normalize the cascades and rearrange them into a 4D array
         self.precip_cascades = nowcast_utils.stack_cascades(
-            precip_decomp, self.n_cascade_levels
+            self.precip_decomp, self.n_cascade_levels
         )
-        precip_decomp = precip_decomp[-1]
-        precip_decomp = [precip_decomp.copy() for _ in range(self.n_ens_members)]
+        self.precip_decomp = self.precip_decomp[-1]
+        self.precip_decomp = [
+            self.precip_decomp.copy() for _ in range(self.n_ens_members)
+        ]
 
         # Compute temporal autocorrelation coefficients for each cascade level
         self.gamma = np.empty((self.n_cascade_levels, self.ar_order))
@@ -496,34 +540,161 @@ class StepsNowcaster:
         # Initialize random generators if noise_method is provided
         if self.noise_method is not None:
             self.randgen_prec = []
+            self.randgen_motion = []
+
             for _ in range(self.n_ens_members):
+                # Create random state for precipitation noise generator
                 rs = np.random.RandomState(self.seed)
                 self.randgen_prec.append(rs)
-                self.seed = rs.randint(0, high=int(1e9))
+                self.seed = rs.randint(0, high=int(1e9))  # Update seed after generating
+
+                # Create random state for motion perturbations generator
+                rs = np.random.RandomState(self.seed)
+                self.randgen_motion.append(rs)
+                self.seed = rs.randint(0, high=int(1e9))  # Update seed after generating
         else:
             self.randgen_prec = None
-
+            self.randgen_motion = None
         print("AR model and noise applied to precipitation cascades.")
 
-    def _recompose_cascades(self):
+    def _initialize_velocity_perturbators(self):
         """
-        Recompose the cascades into the final precipitation forecast fields.
+        Initialize the velocity perturbators for each ensemble member if the velocity
+        perturbation method is specified.
         """
-        # Logic to recompose cascades back into forecast fields
-        pass
+        if self.vel_pert_method is not None:
+            init_vel_noise, generate_vel_noise = noise.get_method(self.vel_pert_method)
 
-    def _apply_mask(self):
+            self.velocity_perturbators = []
+            for j in range(self.n_ens_members):
+                kwargs = {
+                    "randstate": self.randgen_motion[j],
+                    "p_par": self.vel_pert_kwargs.get("p_par", self.vp_par),
+                    "p_perp": self.vel_pert_kwargs.get("p_perp", self.vp_perp),
+                }
+                vp = init_vel_noise(
+                    self.velocity, 1.0 / self.kmperpixel, self.timestep, **kwargs
+                )
+                self.velocity_perturbators.append(
+                    lambda t, vp=vp: generate_vel_noise(vp, t * self.timestep)
+                )
+        else:
+            self.velocity_perturbators = None
+        print("Velocity perturbations initialized successfully.")
+
+    def _initialize_precipitation_mask(self):
         """
-        Apply the precipitation mask (if applicable) to the forecast fields.
+        Initialize the precipitation mask and handle different mask methods (sprog, incremental).
         """
-        # Logic for applying the mask based on the mask method
-        pass
+        self.precip_forecast = [[] for _ in range(self.n_ens_members)]
+
+        if self.probmatching_method == "mean":
+            self.mu_0 = np.mean(
+                self.precip[-1, :, :][self.precip[-1, :, :] >= self.precip_thr]
+            )
+        else:
+            self.mu_0 = None
+
+        self.precip_m = None
+        self.precip_m_d = None
+        self.war = None
+        self.struct = None
+        self.mask_rim = None
+
+        if self.mask_method is not None:
+            self.mask_prec = self.precip[-1, :, :] >= self.precip_thr
+
+            if self.mask_method == "sprog":
+                # Compute the wet area ratio and the precipitation mask
+                self.war = np.sum(self.mask_prec) / (
+                    self.precip.shape[1] * self.precip.shape[2]
+                )
+                self.precip_m = [
+                    self.precip_cascades[0][i].copy()
+                    for i in range(self.n_cascade_levels)
+                ]
+                self.precip_m_d = self.precip_decomp[0].copy()
+
+            elif self.mask_method == "incremental":
+                # Get mask parameters
+                self.mask_rim = self.mask_kwargs.get("mask_rim", 10)
+                mask_f = self.mask_kwargs.get("mask_f", 1.0)
+                # Initialize the structuring element
+                self.struct = generate_binary_structure(2, 1)
+                # Expand the structuring element based on mask factor and timestep
+                n = mask_f * self.timestep / self.kmperpixel
+                self.struct = iterate_structure(self.struct, int((n - 1) / 2.0))
+                # Compute and apply the dilated mask for each ensemble member
+                self.mask_prec = nowcast_utils.compute_dilated_mask(
+                    self.mask_prec, self.struct, self.mask_rim
+                )
+                self.mask_prec = [
+                    self.mask_prec.copy() for _ in range(self.n_ens_members)
+                ]
+        else:
+            self.mask_prec = None
+
+        if self.noise_method is None and self.precip_m is None:
+            self.precip_m = [
+                self.precip_cascades[0][i].copy() for i in range(self.n_cascade_levels)
+            ]
+        print("Precipitation mask initialized successfully.")
+
+    def _initialize_fft_objects(self):
+        """
+        Initialize FFT objects for each ensemble member.
+        """
+        self.fft_objs = []
+        for _ in range(self.n_ens_members):
+            fft_obj = utils.get_method(self.fft_method, shape=self.precip.shape[1:])
+            self.fft_objs.append(fft_obj)
+        print("FFT objects initialized successfully.")
+
+    def _initialize_state(self):
+        """
+        Initialize the state dictionary used during the nowcast iteration.
+        """
+        return {
+            "fft_objs": self.fft_objs,
+            "mask_prec": self.mask_prec,
+            "precip_cascades": self.precip_cascades,
+            "precip_decomp": self.precip_decomp,
+            "precip_m": self.precip_m,
+            "precip_m_d": self.precip_m_d,
+            "randgen_prec": self.randgen_prec,
+        }
+
+    def _initialize_params(self, precip):
+        """
+        Initialize the params dictionary used during the nowcast iteration.
+        """
+        return {
+            "decomp_method": self.decomp_method,
+            "domain": self.domain,
+            "domain_mask": self.domain_mask,
+            "filter": self.bp_filter,
+            "fft": self.fft,
+            "generate_noise": self.generate_noise,
+            "mask_method": self.mask_method,
+            "mask_rim": self.mask_rim,
+            "mu_0": self.mu_0,
+            "n_cascade_levels": self.n_cascade_levels,
+            "n_ens_members": self.n_ens_members,
+            "noise_method": self.noise_method,
+            "noise_std_coeffs": self.noise_std_coeffs,
+            "num_ensemble_workers": self.num_ensemble_workers,
+            "phi": self.phi,
+            "pert_gen": self.pert_gen,
+            "probmatching_method": self.probmatching_method,
+            "precip": precip,
+            "precip_thr": self.precip_thr,
+            "recomp_method": self.recomp_method,
+            "struct": self.struct,
+            "war": self.war,
+        }
 
     def _update_state(self):
-        """
-        Update the internal state of the nowcasting system after each loop iteration.
-        """
-        # Logic to handle updates to internal state (e.g., for velocity, precipitation, etc.)
+        # TODO
         pass
 
     def _measure_time(self, label, start_time):
@@ -540,76 +711,6 @@ class StepsNowcaster:
 
 
 # Wrapper function to preserve backward compatibility
-def forecast(
-    precip,
-    velocity,
-    timesteps,
-    n_ens_members=24,
-    n_cascade_levels=6,
-    precip_thr=None,
-    kmperpixel=None,
-    timestep=None,
-    extrap_method="semilagrangian",
-    decomp_method="fft",
-    bandpass_filter_method="gaussian",
-    noise_method="nonparametric",
-    noise_stddev_adj=None,
-    ar_order=2,
-    vel_pert_method="bps",
-    conditional=False,
-    probmatching_method="cdf",
-    mask_method="incremental",
-    seed=None,
-    num_workers=1,
-    fft_method="numpy",
-    domain="spatial",
-    extrap_kwargs=None,
-    filter_kwargs=None,
-    noise_kwargs=None,
-    vel_pert_kwargs=None,
-    mask_kwargs=None,
-    measure_time=False,
-    callback=None,
-    return_output=True,
-):
-    # Create an instance of the new class with all the provided arguments
-    nowcaster = StepsNowcaster(
-        precip,
-        velocity,
-        timesteps,
-        n_ens_members=n_ens_members,
-        n_cascade_levels=n_cascade_levels,
-        precip_thr=precip_thr,
-        kmperpixel=kmperpixel,
-        timestep=timestep,
-        extrap_method=extrap_method,
-        decomp_method=decomp_method,
-        bandpass_filter_method=bandpass_filter_method,
-        noise_method=noise_method,
-        noise_stddev_adj=noise_stddev_adj,
-        ar_order=ar_order,
-        vel_pert_method=vel_pert_method,
-        conditional=conditional,
-        probmatching_method=probmatching_method,
-        mask_method=mask_method,
-        seed=seed,
-        num_workers=num_workers,
-        fft_method=fft_method,
-        domain=domain,
-        extrap_kwargs=extrap_kwargs,
-        filter_kwargs=filter_kwargs,
-        noise_kwargs=noise_kwargs,
-        vel_pert_kwargs=vel_pert_kwargs,
-        mask_kwargs=mask_kwargs,
-        measure_time=measure_time,
-        callback=callback,
-        return_output=return_output,
-    )
-
-    # Call the appropriate methods within the class
-    return nowcaster.compute_forecast()
-
-
 @deprecate_args({"R": "precip", "V": "velocity", "R_thr": "precip_thr"}, "1.8.0")
 def forecast(
     precip,
@@ -838,208 +939,42 @@ def forecast(
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
     """
 
-    # compute the cascade decompositions of the input precipitation fields
-    precip_decomp = []
-    for i in range(ar_order + 1):
-        precip_ = decomp_method(
-            precip[i, :, :],
-            bp_filter,
-            mask=mask_thr,
-            fft_method=fft,
-            output_domain=domain,
-            normalize=True,
-            compute_stats=True,
-            compact_output=True,
-        )
-        precip_decomp.append(precip_)
-
-    # normalize the cascades and rearrange them into a four-dimensional array
-    # of shape (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-    precip_cascades = nowcast_utils.stack_cascades(precip_decomp, n_cascade_levels)
-
-    precip_decomp = precip_decomp[-1]
-    precip_decomp = [precip_decomp.copy() for _ in range(n_ens_members)]
-
-    # compute lag-l temporal autocorrelation coefficients for each cascade level
-    gamma = np.empty((n_cascade_levels, ar_order))
-    for i in range(n_cascade_levels):
-        gamma[i, :] = correlation.temporal_autocorrelation(
-            precip_cascades[i], mask=mask_thr
-        )
-
-    nowcast_utils.print_corrcoefs(gamma)
-
-    if ar_order == 2:
-        # adjust the lag-2 correlation coefficient to ensure that the AR(p)
-        # process is stationary
-        for i in range(n_cascade_levels):
-            gamma[i, 1] = autoregression.adjust_lag2_corrcoef2(gamma[i, 0], gamma[i, 1])
-
-    # estimate the parameters of the AR(p) model from the autocorrelation
-    # coefficients
-    phi = np.empty((n_cascade_levels, ar_order + 1))
-    for i in range(n_cascade_levels):
-        phi[i, :] = autoregression.estimate_ar_params_yw(gamma[i, :])
-
-    nowcast_utils.print_ar_params(phi)
-
-    # discard all except the p-1 last cascades because they are not needed for
-    # the AR(p) model
-    precip_cascades = [precip_cascades[i][-ar_order:] for i in range(n_cascade_levels)]
-
-    # stack the cascades into a list containing all ensemble members
-    precip_cascades = [
-        [precip_cascades[j].copy() for j in range(n_cascade_levels)]
-        for _ in range(n_ens_members)
-    ]
-
-    # initialize the random generators
-    if noise_method is not None:
-        randgen_prec = []
-        randgen_motion = []
-        for _ in range(n_ens_members):
-            rs = np.random.RandomState(seed)
-            randgen_prec.append(rs)
-            seed = rs.randint(0, high=1e9)
-            rs = np.random.RandomState(seed)
-            randgen_motion.append(rs)
-            seed = rs.randint(0, high=1e9)
-    else:
-        randgen_prec = None
-
-    if vel_pert_method is not None:
-        init_vel_noise, generate_vel_noise = noise.get_method(vel_pert_method)
-
-        # initialize the perturbation generators for the motion field
-        velocity_perturbators = []
-        for j in range(n_ens_members):
-            kwargs = {
-                "randstate": randgen_motion[j],
-                "p_par": vp_par,
-                "p_perp": vp_perp,
-            }
-            vp = init_vel_noise(velocity, 1.0 / kmperpixel, timestep, **kwargs)
-            velocity_perturbators.append(
-                lambda t, vp=vp: generate_vel_noise(vp, t * timestep)
-            )
-    else:
-        velocity_perturbators = None
-
-    precip_forecast = [[] for _ in range(n_ens_members)]
-
-    if probmatching_method == "mean":
-        mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
-    else:
-        mu_0 = None
-
-    precip_m = None
-    precip_m_d = None
-    war = None
-    struct = None
-    mask_rim = None
-
-    if mask_method is not None:
-        mask_prec = precip[-1, :, :] >= precip_thr
-
-        if mask_method == "sprog":
-            # compute the wet area ratio and the precipitation mask
-            war = 1.0 * np.sum(mask_prec) / (precip.shape[1] * precip.shape[2])
-            precip_m = [precip_cascades[0][i].copy() for i in range(n_cascade_levels)]
-            precip_m_d = precip_decomp[0].copy()
-        elif mask_method == "incremental":
-            # get mask parameters
-            mask_rim = mask_kwargs.get("mask_rim", 10)
-            mask_f = mask_kwargs.get("mask_f", 1.0)
-            # initialize the structuring element
-            struct = generate_binary_structure(2, 1)
-            # iterate it to expand it nxn
-            n = mask_f * timestep / kmperpixel
-            struct = iterate_structure(struct, int((n - 1) / 2.0))
-            # initialize precip mask for each member
-            mask_prec = nowcast_utils.compute_dilated_mask(mask_prec, struct, mask_rim)
-            mask_prec = [mask_prec.copy() for _ in range(n_ens_members)]
-    else:
-        mask_prec = None
-
-    if noise_method is None and precip_m is None:
-        precip_m = [precip_cascades[0][i].copy() for i in range(n_cascade_levels)]
-
-    fft_objs = []
-    for _ in range(n_ens_members):
-        fft_objs.append(utils.get_method(fft_method, shape=precip.shape[1:]))
-
-    if measure_time:
-        init_time = time.time() - starttime_init
-
-    precip = precip[-1, :, :]
-
-    print("Starting nowcast computation.")
-
-    # the nowcast iteration for each ensemble member
-    state = {
-        "fft_objs": fft_objs,
-        "mask_prec": mask_prec,
-        "precip_cascades": precip_cascades,
-        "precip_decomp": precip_decomp,
-        "precip_m": precip_m,
-        "precip_m_d": precip_m_d,
-        "randgen_prec": randgen_prec,
-    }
-    params = {
-        "decomp_method": decomp_method,
-        "domain": domain,
-        "domain_mask": domain_mask,
-        "filter": bp_filter,
-        "fft": fft,
-        "generate_noise": generate_noise,
-        "mask_method": mask_method,
-        "mask_rim": mask_rim,
-        "mu_0": mu_0,
-        "n_cascade_levels": n_cascade_levels,
-        "n_ens_members": n_ens_members,
-        "noise_method": noise_method,
-        "noise_std_coeffs": noise_std_coeffs,
-        "num_ensemble_workers": num_ensemble_workers,
-        "phi": phi,
-        "pert_gen": pert_gen,
-        "probmatching_method": probmatching_method,
-        "precip": precip,
-        "precip_thr": precip_thr,
-        "recomp_method": recomp_method,
-        "struct": struct,
-        "war": war,
-    }
-
-    precip_forecast = nowcast_main_loop(
+    # Create an instance of the new class with all the provided arguments
+    nowcaster = StepsNowcaster(
         precip,
         velocity,
-        state,
         timesteps,
-        extrap_method,
-        _update,
+        n_ens_members=n_ens_members,
+        n_cascade_levels=n_cascade_levels,
+        precip_thr=precip_thr,
+        kmperpixel=kmperpixel,
+        timestep=timestep,
+        extrap_method=extrap_method,
+        decomp_method=decomp_method,
+        bandpass_filter_method=bandpass_filter_method,
+        noise_method=noise_method,
+        noise_stddev_adj=noise_stddev_adj,
+        ar_order=ar_order,
+        vel_pert_method=vel_pert_method,
+        conditional=conditional,
+        probmatching_method=probmatching_method,
+        mask_method=mask_method,
+        seed=seed,
+        num_workers=num_workers,
+        fft_method=fft_method,
+        domain=domain,
         extrap_kwargs=extrap_kwargs,
-        velocity_pert_gen=velocity_perturbators,
-        params=params,
-        ensemble=True,
-        num_ensemble_members=n_ens_members,
+        filter_kwargs=filter_kwargs,
+        noise_kwargs=noise_kwargs,
+        vel_pert_kwargs=vel_pert_kwargs,
+        mask_kwargs=mask_kwargs,
+        measure_time=measure_time,
         callback=callback,
         return_output=return_output,
-        num_workers=num_ensemble_workers,
-        measure_time=measure_time,
     )
-    if measure_time:
-        precip_forecast, mainloop_time = precip_forecast
 
-    if return_output:
-        precip_forecast = np.stack(
-            [np.stack(precip_forecast[j]) for j in range(n_ens_members)]
-        )
-        if measure_time:
-            return precip_forecast, init_time, mainloop_time
-        else:
-            return precip_forecast
-    else:
-        return None
+    # Call the appropriate methods within the class
+    return nowcaster.compute_forecast()
 
 
 def _update(state, params):
