@@ -146,18 +146,16 @@ class StepsNowcaster:
         """
         # Prepare state and params dictionaries
         state = self._initialize_state()
-        params = self._initialize_params(self.precip)
+        params = self._initialize_params()
 
         # Isolate the last time slice of precipitation
-        self.precip = self.precip[
-            -1, :, :
-        ]  # Extract the last available precipitation field
+        precip = self.precip[-1, :, :]  # Extract the last available precipitation field
 
         print("Starting nowcast computation.")
 
         # Run the nowcast main loop
         self.precip_forecast = nowcast_main_loop(
-            self.precip,
+            precip,
             self.velocity,
             state,
             self.timesteps,
@@ -408,12 +406,12 @@ class StepsNowcaster:
         and adds noise perturbations if necessary.
         """
         # Make a copy of the precipitation data and replace non-finite values
-        self.precip = self.precip.copy()
+        precip = self.precip.copy()
         for i in range(self.precip.shape[0]):
             # Replace non-finite values with the minimum finite value of the precipitation field
-            self.precip[i, ~np.isfinite(self.precip[i, :])] = np.nanmin(
-                self.precip[i, :]
-            )
+            precip[i, ~np.isfinite(precip[i, :])] = np.nanmin(precip[i, :])
+        # Store the precipitation data back in the object
+        self.precip = precip
 
         # Initialize the noise generator if the noise_method is provided
         if self.noise_method is not None:
@@ -664,7 +662,7 @@ class StepsNowcaster:
             "randgen_prec": self.randgen_prec,
         }
 
-    def _initialize_params(self, precip):
+    def _initialize_params(self):
         """
         Initialize the params dictionary used during the nowcast iteration.
         """
@@ -686,7 +684,7 @@ class StepsNowcaster:
             "phi": self.phi,
             "pert_gen": self.pert_gen,
             "probmatching_method": self.probmatching_method,
-            "precip": precip,
+            "precip": self.precip,
             "precip_thr": self.precip_thr,
             "recomp_method": self.recomp_method,
             "struct": self.struct,
