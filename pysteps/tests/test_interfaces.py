@@ -260,6 +260,20 @@ def test_nowcasts_interface():
         for i in range(num_timesteps):
             assert numpy.all(forecast[i] == precip)
 
+    # Test for invalid method types
+    with pytest.raises(ValueError):
+        pysteps.nowcasts.interface.get_method("linear")
+
+    assert isinstance(
+        pysteps.nowcasts.interface.nowcasts_info()[0],
+        set,
+    )
+
+    assert isinstance(
+        pysteps.nowcasts.interface.nowcasts_info()[1],
+        set,
+    )
+
 
 def test_utils_interface():
     """Test utils module interface."""
