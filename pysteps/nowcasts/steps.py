@@ -144,12 +144,12 @@ class StepsNowcaster:
         Main nowcast loop that iterates through the ensemble members and time steps
         to generate forecasts.
         """
-        # Prepare state and params dictionaries
-        state = self._initialize_state()
-        params = self._initialize_params()
-
         # Isolate the last time slice of precipitation
         precip = self.precip[-1, :, :]  # Extract the last available precipitation field
+
+        # Prepare state and params dictionaries
+        state = self._initialize_state()
+        params = self._initialize_params(precip)
 
         print("Starting nowcast computation.")
 
@@ -662,7 +662,7 @@ class StepsNowcaster:
             "randgen_prec": self.randgen_prec,
         }
 
-    def _initialize_params(self):
+    def _initialize_params(self, precip):
         """
         Initialize the params dictionary used during the nowcast iteration.
         """
@@ -684,7 +684,7 @@ class StepsNowcaster:
             "phi": self.phi,
             "pert_gen": self.pert_gen,
             "probmatching_method": self.probmatching_method,
-            "precip": self.precip,
+            "precip": precip,
             "precip_thr": self.precip_thr,
             "recomp_method": self.recomp_method,
             "struct": self.struct,
