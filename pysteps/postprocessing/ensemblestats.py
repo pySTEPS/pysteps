@@ -177,3 +177,11 @@ def banddepth(X, thr=None, norm=False):
         depth = (depth - depth.min()) / (depth.max() - depth.min())
 
     return depth
+
+
+def postprocessors_ensemblestats_example1(filename, **kwargs):
+    return "Hello, I am an example of postprocessing ensemble statistics."
+
+
+def postprocessors_ensemblestats_example2(filename, **kwargs):
+    return [[42, 42], [42, 42]]
