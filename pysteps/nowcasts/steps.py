@@ -77,8 +77,8 @@ class StepsNowcaster:
         self.phi = None
         self.perturbation_generator = None
         self.noise_std_coeffs = None
-        self.randgen_prec = None
-        self.randgen_motion = None
+        self.random_generator_precip = None
+        self.random_generator_motion = None
         self.velocity_perturbations = None
         self.precip_forecast = None
         self.mask_precip = None
@@ -541,22 +541,22 @@ class StepsNowcaster:
 
         # Initialize random generators if noise_method is provided
         if self.noise_method is not None:
-            self.randgen_prec = []
-            self.randgen_motion = []
+            self.random_generator_precip = []
+            self.random_generator_motion = []
 
             for _ in range(self.n_ens_members):
                 # Create random state for precipitation noise generator
                 rs = np.random.RandomState(self.seed)
-                self.randgen_prec.append(rs)
+                self.random_generator_precip.append(rs)
                 self.seed = rs.randint(0, high=int(1e9))  # Update seed after generating
 
                 # Create random state for motion perturbations generator
                 rs = np.random.RandomState(self.seed)
-                self.randgen_motion.append(rs)
+                self.random_generator_motion.append(rs)
                 self.seed = rs.randint(0, high=int(1e9))  # Update seed after generating
         else:
-            self.randgen_prec = None
-            self.randgen_motion = None
+            self.random_generator_precip = None
+            self.random_generator_motion = None
         print("AR model and noise applied to precipitation cascades.")
 
     def _initialize_velocity_perturbations(self):
@@ -572,7 +572,7 @@ class StepsNowcaster:
             self.velocity_perturbations = []
             for j in range(self.n_ens_members):
                 kwargs = {
-                    "randstate": self.randgen_motion[j],
+                    "randstate": self.random_generator_motion[j],
                     "p_par": self.velocity_perturbation_kwargs.get(
                         "p_par", self.velocity_perturbation_parallel
                     ),
@@ -669,7 +669,7 @@ class StepsNowcaster:
             "precip_decomp": self.precip_decomposed,
             "precip_m": self.precip_mask,
             "precip_m_d": self.precip_mask_decomposed,
-            "randgen_prec": self.randgen_prec,
+            "randgen_prec": self.random_generator_precip,
         }
 
     def _initialize_params(self, precip):
