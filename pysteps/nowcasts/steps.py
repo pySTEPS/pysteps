@@ -473,7 +473,7 @@ class StepsNowcaster:
 
         # If Dask is available, perform the parallel computation
         if DASK_IMPORTED and res:
-            num_workers_ = min(self.num_ensemble_workers, len(res))
+            num_workers_ = min(self.params.num_ensemble_workers, len(res))
             self.precip = np.stack(
                 list(dask.compute(*res, num_workers=num_workers_))
                 + [self.precip[-1, :, :]]
@@ -777,7 +777,7 @@ class StepsNowcaster:
             "n_ens_members": self.config.n_ens_members,
             "noise_method": self.config.noise_method,
             "noise_std_coeffs": self.noise_std_coeffs,
-            "num_ensemble_workers": self.num_ensemble_workers,
+            "num_ensemble_workers": self.params.num_ensemble_workers,
             "phi": self.phi,
             "pert_gen": self.perturbation_generator,
             "probmatching_method": self.config.probmatching_method,
