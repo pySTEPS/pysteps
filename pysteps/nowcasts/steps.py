@@ -25,7 +25,7 @@ from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
 from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import Optional, Dict, Any, Callable
 
 try:
@@ -98,6 +98,8 @@ class StepsNowcaster:
         self.decomposition_method = None
         self.recomp_method = None
         self.xy_coords = None
+
+        self.mu_0 = None
 
         # Additional variables for time measurement
         self.start_time_init = None
@@ -542,7 +544,7 @@ class StepsNowcaster:
                     self.gamma[i, 0], self.gamma[i, 1]
                 )
 
-        # Estimate the parameters of the AR model using autocorrelation coefficients
+        # Estimate the parameters of the AR model using auto-correlation coefficients
         self.phi = np.empty((self.config.n_cascade_levels, self.config.ar_order + 1))
         for i in range(self.config.n_cascade_levels):
             self.phi[i, :] = autoregression.estimate_ar_params_yw(self.gamma[i, :])
@@ -571,12 +573,12 @@ class StepsNowcaster:
 
             for _ in range(self.config.n_ens_members):
                 # Create random state for precipitation noise generator
-                rs = np.random.RandomState(self.seed)
+                rs = np.random.RandomState(self.config.seed)
                 self.random_generator_precip.append(rs)
                 self.seed = rs.randint(0, high=int(1e9))  # Update seed after generating
 
                 # Create random state for motion perturbations generator
-                rs = np.random.RandomState(self.seed)
+                rs = np.random.RandomState(self.config.seed)
                 self.random_generator_motion.append(rs)
                 self.seed = rs.randint(0, high=int(1e9))  # Update seed after generating
         else:
