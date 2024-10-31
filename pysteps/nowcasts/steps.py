@@ -113,7 +113,7 @@ class StepsNowcaster:
         # Store inputs and optional parameters
         self.precip = precip
         self.velocity = velocity
-        self.tim_esteps = time_steps
+        self.time_steps = time_steps
 
         # Store the config data:
         self.config = steps_config
@@ -121,7 +121,7 @@ class StepsNowcaster:
         # Additional variables for internal state management
         self.fft = None
         self.bandpass_filter = None
-        self.extrapolator_method = None
+        self.extrapolation_method = None
         self.domain_mask = None
         self.precip_cascades = None
         self.gamma = None
@@ -140,14 +140,14 @@ class StepsNowcaster:
         self.fft_objs = None
         self.generate_noise = None
         self.decomposition_method = None
-        self.recomp_method = None
+        self.recomposition_method = None
         self.xy_coords = None
-
         self.precipitation_mean = None
-        # Initialize number of ensemble workers
-        self.num_ensemble_workers = min(
-            self.config.n_ens_members, self.config.num_workers
-        )
+        self.precip_mask = None
+        self.precip_mask_decomposed = None
+        self.war = None
+        self.struct = None
+        self.mask_rim = None
 
         # Store the state and params data:
         self.state = StepsNowcasterState()
@@ -222,17 +222,17 @@ class StepsNowcaster:
             precip,
             self.velocity,
             state,
-            self.tim_esteps,
+            self.time_steps,
             self.config.extrapolation_method,
             self._update_state,  # Reference to the update function
-            extrap_kwargs=self.extrapolation_kwargs,
+            extrap_kwargs=self.config.extrapolation_kwargs,
             velocity_pert_gen=self.velocity_perturbations,
             params=params,
             ensemble=True,
             num_ensemble_members=self.config.n_ens_members,
             callback=self.config.callback,
             return_output=self.config.return_output,
-            num_workers=self.num_ensemble_workers,
+            num_workers=self.params.num_ensemble_workers,
             measure_time=self.config.measure_time,
         )
 
@@ -256,8 +256,8 @@ class StepsNowcaster:
                 f"shape(precip)={self.precip.shape}, shape(velocity)={self.velocity.shape}"
             )
         if (
-            isinstance(self.tim_esteps, list)
-            and not sorted(self.tim_esteps) == self.tim_esteps
+            isinstance(self.time_steps, list)
+            and not sorted(self.time_steps) == self.time_steps
         ):
             raise ValueError("timesteps must be in ascending order")
         if np.any(~np.isfinite(self.velocity)):
@@ -301,15 +301,15 @@ class StepsNowcaster:
 
         # Handle None values for various kwargs
         if self.config.extrapolation_kwargs is None:
-            self.extrapolation_kwargs = {}
+            self.config.extrapolation_kwargs = {}
         if self.config.filter_kwargs is None:
-            self.filter_kwargs = {}
+            self.config.filter_kwargs = {}
         if self.config.noise_kwargs is None:
-            self.noise_kwargs = {}
+            self.config.noise_kwargs = {}
         if self.config.velocity_perturbation_kwargs is None:
-            self.velocity_perturbation_kwargs = {}
+            self.config.velocity_perturbation_kwargs = {}
         if self.config.mask_kwargs is None:
-            self.mask_kwargs = {}
+            self.config.mask_kwargs = {}
 
         print("Inputs validated and initialized successfully.")
 
@@ -355,21 +355,23 @@ class StepsNowcaster:
 
         print("Parameters")
         print("----------")
-        if isinstance(self.tim_esteps, int):
-            print(f"number of time steps:     {self.tim_esteps}")
+        if isinstance(self.time_steps, int):
+            print(f"number of time steps:     {self.time_steps}")
         else:
-            print(f"time steps:               {self.tim_esteps}")
+            print(f"time steps:               {self.time_steps}")
         print(f"ensemble size:            {self.config.n_ens_members}")
         print(f"parallel threads:         {self.config.num_workers}")
         print(f"number of cascade levels: {self.config.n_cascade_levels}")
         print(f"order of the AR(p) model: {self.config.ar_order}")
 
         if self.config.velocity_perturbation_method == "bps":
-            self.velocity_perturbation_parallel = self.velocity_perturbation_kwargs.get(
-                "p_par", noise.motion.get_default_params_bps_par()
+            self.velocity_perturbation_parallel = (
+                self.config.velocity_perturbation_kwargs.get(
+                    "p_par", noise.motion.get_default_params_bps_par()
+                )
             )
             self.velocity_perturbation_perpendicular = (
-                self.velocity_perturbation_kwargs.get(
+                self.config.velocity_perturbation_kwargs.get(
                     "p_perp", noise.motion.get_default_params_bps_perp()
                 )
             )
@@ -402,16 +404,16 @@ class StepsNowcaster:
         # Initialize the band-pass filter for the cascade decomposition
         filter_method = cascade.get_method(self.config.bandpass_filter_method)
         self.bandpass_filter = filter_method(
-            (M, N), self.config.n_cascade_levels, **(self.filter_kwargs or {})
+            (M, N), self.config.n_cascade_levels, **(self.config.filter_kwargs or {})
         )
 
         # Get the decomposition method (e.g., FFT)
-        self.decomposition_method, self.recomp_method = cascade.get_method(
+        self.decomposition_method, self.recomposition_method = cascade.get_method(
             self.config.decomposition_method
         )
 
         # Get the extrapolation method (e.g., semilagrangian)
-        self.extrapolator_method = extrapolation.get_method(
+        self.extrapolation_method = extrapolation.get_method(
             self.config.extrapolation_method
         )
 
@@ -442,7 +444,7 @@ class StepsNowcaster:
         else:
             self.mask_threshold = None
 
-        extrap_kwargs = self.extrapolation_kwargs.copy()
+        extrap_kwargs = self.config.extrapolation_kwargs.copy()
         extrap_kwargs["xy_coords"] = self.xy_coords
         extrap_kwargs["allow_nonfinite_values"] = (
             True if np.any(~np.isfinite(self.precip)) else False
@@ -452,7 +454,7 @@ class StepsNowcaster:
 
         def _extrapolate_single_field(precip, i):
             # Extrapolate a single precipitation field using the velocity field
-            return self.extrapolator_method(
+            return self.extrapolation_method(
                 precip[i, :, :],
                 self.velocity,
                 self.config.ar_order - i,
@@ -502,7 +504,7 @@ class StepsNowcaster:
 
             # Initialize the perturbation generator for the precipitation field
             self.perturbation_generator = init_noise(
-                self.precip, fft_method=self.fft, **self.noise_kwargs
+                self.precip, fft_method=self.fft, **self.config.noise_kwargs
             )
 
             # Handle noise standard deviation adjustments if necessary
@@ -627,12 +629,16 @@ class StepsNowcaster:
                 # Create random state for precipitation noise generator
                 rs = np.random.RandomState(self.config.seed)
                 self.random_generator_precip.append(rs)
-                self.seed = rs.randint(0, high=int(1e9))  # Update seed after generating
+                self.config.seed = rs.randint(
+                    0, high=int(1e9)
+                )  # Update seed after generating
 
                 # Create random state for motion perturbations generator
                 rs = np.random.RandomState(self.config.seed)
                 self.random_generator_motion.append(rs)
-                self.seed = rs.randint(0, high=int(1e9))  # Update seed after generating
+                self.config.seed = rs.randint(
+                    0, high=int(1e9)
+                )  # Update seed after generating
         else:
             self.random_generator_precip = None
             self.random_generator_motion = None
@@ -652,10 +658,10 @@ class StepsNowcaster:
             for j in range(self.config.n_ens_members):
                 kwargs = {
                     "randstate": self.random_generator_motion[j],
-                    "p_par": self.velocity_perturbation_kwargs.get(
+                    "p_par": self.config.velocity_perturbation_kwargs.get(
                         "p_par", self.velocity_perturbation_parallel
                     ),
-                    "p_perp": self.velocity_perturbation_kwargs.get(
+                    "p_perp": self.config.velocity_perturbation_kwargs.get(
                         "p_perp", self.velocity_perturbation_perpendicular
                     ),
                 }
@@ -687,12 +693,6 @@ class StepsNowcaster:
         else:
             self.precipitation_mean = None
 
-        self.precip_mask = None
-        self.precip_mask_decomposed = None
-        self.war = None
-        self.struct = None
-        self.mask_rim = None
-
         if self.config.mask_method is not None:
             self.mask_precip = self.precip[-1, :, :] >= self.config.precip_threshold
 
@@ -709,8 +709,8 @@ class StepsNowcaster:
 
             elif self.config.mask_method == "incremental":
                 # Get mask parameters
-                self.mask_rim = self.mask_kwargs.get("mask_rim", 10)
-                mask_f = self.mask_kwargs.get("mask_f", 1.0)
+                self.mask_rim = self.config.mask_kwargs.get("mask_rim", 10)
+                mask_f = self.config.mask_kwargs.get("mask_f", 1.0)
                 # Initialize the structuring element
                 self.struct = generate_binary_structure(2, 1)
                 # Expand the structuring element based on mask factor and timestep
@@ -783,7 +783,7 @@ class StepsNowcaster:
             "probmatching_method": self.config.probmatching_method,
             "precip": precip,
             "precip_thr": self.config.precip_threshold,
-            "recomp_method": self.recomp_method,
+            "recomp_method": self.recomposition_method,
             "struct": self.struct,
             "war": self.war,
         }
