@@ -987,9 +987,20 @@ class StepsNowcaster:
             elapsed_time = time.time() - start_time
             print(f"{label} took {elapsed_time:.2f} seconds.")
 
-    def reset_states(self):
-        # TODO: Implement a method to reset the state of the nowcast object to make multiple iterations possible
-        pass
+    def reset_states_and_params(self):
+        """
+        Reset the internal state and parameters of the nowcaster to allow multiple forecasts.
+        This method resets the state and params to their initial conditions without reinitializing
+        the inputs like precip, velocity, time_steps, or config.
+        """
+        # Re-initialize the state and parameters
+        self.state = StepsNowcasterState()
+        self.params = StepsNowcasterParams()
+
+        # Reset time measurement variables
+        self.start_time_init = None
+        self.init_time = None
+        self.mainloop_time = None
 
 
 # Wrapper function to preserve backward compatibility
@@ -1256,6 +1267,6 @@ def forecast(
         precip, velocity, timesteps, steps_config=nowcaster_config
     )
     forecast_steps_nowcast = nowcaster.compute_forecast()
-    nowcaster.reset_states()
+    nowcaster.reset_states_and_params()
     # Call the appropriate methods within the class
     return forecast_steps_nowcast
