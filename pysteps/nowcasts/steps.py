@@ -84,10 +84,7 @@ class StepsNowcasterParams:
     precipitation_mean: Optional[float] = None
     wet_area_ratio: Optional[float] = None
     mask_rim: Optional[int] = None
-    # TODO: remove these comented fields
-    # num_workers: int = 1
     num_ensemble_workers: int = 1
-    # generate_noise: Optional[callable] = None
     xy_coordinates: Optional[np.ndarray] = None
     velocity_perturbation_parallel: Optional[List[float]] = None
     velocity_perturbation_perpendicular: Optional[List[float]] = None
