@@ -25,8 +25,8 @@ from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
 from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 
-from dataclasses import field
-from typing import Optional, Dict, Any, Callable
+from dataclasses import dataclass, field
+from typing import Optional, Dict, Any, Callable, List
 
 try:
     import dask
@@ -36,6 +36,7 @@ except ImportError:
     DASK_IMPORTED = False
 
 
+@dataclass
 class StepsNowcasterConfig:
     n_ens_members: int = 24
     n_cascade_levels: int = 6
@@ -66,13 +67,51 @@ class StepsNowcasterConfig:
     return_output: bool = True
 
 
+@dataclass
+class StepsNowcasterParams:
+    fft: Any = None
+    bandpass_filter: Any = None
+    decomposition_method: Any = None
+    recomposition_method: Any = None
+    noise_generator: Optional[callable] = None
+    perturbation_generator: Optional[callable] = None
+    noise_std_coeffs: Optional[np.ndarray] = None
+    ar_model_coefficients: Optional[np.ndarray] = None
+    domain_mask: Optional[np.ndarray] = None
+    structuring_element: Optional[np.ndarray] = None
+    precipitation_mean: Optional[float] = None
+    wet_area_ratio: Optional[float] = None
+    num_workers: int = 1
+
+
+@dataclass
+class StepsNowcasterState:
+    precip_cascades: Optional[List[List[np.ndarray]]] = field(default_factory=list)
+    precip_decomposed: Optional[List[Dict[str, Any]]] = field(default_factory=list)
+    mask_precip: Optional[np.ndarray] = None
+    random_generator_precip: Optional[List[np.random.RandomState]] = field(
+        default_factory=list
+    )
+    random_generator_motion: Optional[List[np.random.RandomState]] = field(
+        default_factory=list
+    )
+    velocity_perturbations: Optional[List[callable]] = field(default_factory=list)
+    fft_objects: Optional[List[Any]] = field(default_factory=list)
+
+
 class StepsNowcaster:
-    def __init__(self, precip, velocity, timesteps, steps_config, **kwargs):
-        self.config = steps_config
+    def __init__(self, precip, velocity, timesteps, steps_config):
         # Store inputs and optional parameters
         self.precip = precip
         self.velocity = velocity
         self.timesteps = timesteps
+
+        # Store the config data:
+        self.config = steps_config
+
+        # Store the state and params data:
+        self.state = StepsNowcasterState()
+        self.params = StepsNowcasterParams()
 
         # Additional variables for internal state management
         self.fft = None
@@ -1201,7 +1240,7 @@ def forecast(
     nowcaster = StepsNowcaster(
         precip, velocity, timesteps, steps_config=nowcaster_config
     )
-    forecast = nowcaster.compute_forecast()
+    forecast_steps_nowcast = nowcaster.compute_forecast()
     nowcaster.reset_states()
     # Call the appropriate methods within the class
-    return forecast
+    return forecast_steps_nowcast
