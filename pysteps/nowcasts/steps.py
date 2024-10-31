@@ -71,7 +71,7 @@ class StepsNowcasterConfig:
 class StepsNowcasterParams:
     fft: Any = None
     bandpass_filter: Any = None
-    extrapolator_method: Any = None
+    extrapolation_method: Any = None
     decomposition_method: Any = None
     recomposition_method: Any = None
     noise_generator: Optional[callable] = None
@@ -83,18 +83,25 @@ class StepsNowcasterParams:
     structuring_element: Optional[np.ndarray] = None
     precipitation_mean: Optional[float] = None
     wet_area_ratio: Optional[float] = None
-    num_workers: int = 1
-    generate_noise: Optional[callable] = None
+    mask_rim: Optional[int] = None
+    # TODO: remove these comented fields
+    # num_workers: int = 1
+    num_ensemble_workers: int = 1
+    # generate_noise: Optional[callable] = None
     xy_coordinates: Optional[np.ndarray] = None
     velocity_perturbation_parallel: Optional[List[float]] = None
     velocity_perturbation_perpendicular: Optional[List[float]] = None
-    num_ensemble_workers: int = 1
 
 
 @dataclass
 class StepsNowcasterState:
+    precip_forecast: Optional[List[Any]] = field(default_factory=list)
     precip_cascades: Optional[List[List[np.ndarray]]] = field(default_factory=list)
     precip_decomposed: Optional[List[Dict[str, Any]]] = field(default_factory=list)
+    # The observation mask (where the radar can observe the precipitation)
+    precip_mask: Optional[List[Any]] = field(default_factory=list)
+    precip_mask_decomposed: Optional[Dict[str, Any]] = field(default_factory=dict)
+    # The mask around the precipitation fields (to get only non-zero values)
     mask_precip: Optional[np.ndarray] = None
     mask_threshold: Optional[np.ndarray] = None
     random_generator_precip: Optional[List[np.random.RandomState]] = field(
@@ -105,7 +112,6 @@ class StepsNowcasterState:
     )
     velocity_perturbations: Optional[List[callable]] = field(default_factory=list)
     fft_objects: Optional[List[Any]] = field(default_factory=list)
-    precip_forecast: Optional[List[Any]] = field(default_factory=list)
 
 
 class StepsNowcaster:
@@ -117,37 +123,6 @@ class StepsNowcaster:
 
         # Store the config data:
         self.config = steps_config
-
-        # Additional variables for internal state management
-        self.fft = None
-        self.bandpass_filter = None
-        self.extrapolation_method = None
-        self.domain_mask = None
-        self.precip_cascades = None
-        self.gamma = None
-        self.phi = None
-        self.perturbation_generator = None
-        self.noise_std_coeffs = None
-        self.random_generator_precip = None
-        self.random_generator_motion = None
-        self.velocity_perturbations = None
-        self.precip_forecast = None
-        self.mask_precip = None
-        self.mask_threshold = None
-        self.precip_decomposed = None
-        self.velocity_perturbation_parallel = None
-        self.velocity_perturbation_perpendicular = None
-        self.fft_objs = None
-        self.generate_noise = None
-        self.decomposition_method = None
-        self.recomposition_method = None
-        self.xy_coords = None
-        self.precipitation_mean = None
-        self.precip_mask = None
-        self.precip_mask_decomposed = None
-        self.war = None
-        self.struct = None
-        self.mask_rim = None
 
         # Store the state and params data:
         self.state = StepsNowcasterState()
@@ -186,20 +161,20 @@ class StepsNowcaster:
         self._nowcast_main()
 
         if self.config.measure_time:
-            self.precip_forecast, self.mainloop_time = self.precip_forecast
+            self.state.precip_forecast, self.mainloop_time = self.state.precip_forecast
 
         # Stack and return the forecast output
         if self.config.return_output:
-            self.precip_forecast = np.stack(
+            self.state.precip_forecast = np.stack(
                 [
-                    np.stack(self.precip_forecast[j])
+                    np.stack(self.state.precip_forecast[j])
                     for j in range(self.config.n_ens_members)
                 ]
             )
             if self.config.measure_time:
-                return self.precip_forecast, self.init_time, self.mainloop_time
+                return self.state.precip_forecast, self.init_time, self.mainloop_time
             else:
-                return self.precip_forecast
+                return self.state.precip_forecast
         else:
             return None
 
@@ -211,14 +186,14 @@ class StepsNowcaster:
         # Isolate the last time slice of precipitation
         precip = self.precip[-1, :, :]  # Extract the last available precipitation field
 
-        # Prepare state and params dictionaries
+        # Prepare state and params dictionaries, these need to be formatted a specific way for the nowcast_main_loop
         state = self._initialize_state()
         params = self._initialize_params(precip)
 
         print("Starting nowcast computation.")
 
         # Run the nowcast main loop
-        self.precip_forecast = nowcast_main_loop(
+        self.state.precip_forecast = nowcast_main_loop(
             precip,
             self.velocity,
             state,
@@ -226,7 +201,7 @@ class StepsNowcaster:
             self.config.extrapolation_method,
             self._update_state,  # Reference to the update function
             extrap_kwargs=self.config.extrapolation_kwargs,
-            velocity_pert_gen=self.velocity_perturbations,
+            velocity_pert_gen=self.state.velocity_perturbations,
             params=params,
             ensemble=True,
             num_ensemble_members=self.config.n_ens_members,
@@ -365,21 +340,21 @@ class StepsNowcaster:
         print(f"order of the AR(p) model: {self.config.ar_order}")
 
         if self.config.velocity_perturbation_method == "bps":
-            self.velocity_perturbation_parallel = (
+            self.params.velocity_perturbation_parallel = (
                 self.config.velocity_perturbation_kwargs.get(
                     "p_par", noise.motion.get_default_params_bps_par()
                 )
             )
-            self.velocity_perturbation_perpendicular = (
+            self.params.velocity_perturbation_perpendicular = (
                 self.config.velocity_perturbation_kwargs.get(
                     "p_perp", noise.motion.get_default_params_bps_perp()
                 )
             )
             print(
-                f"velocity perturbations, parallel:      {self.velocity_perturbation_parallel[0]},{self.velocity_perturbation_parallel[1]},{self.velocity_perturbation_parallel[2]}"
+                f"velocity perturbations, parallel:      {self.params.velocity_perturbation_parallel[0]},{self.params.velocity_perturbation_parallel[1]},{self.params.velocity_perturbation_parallel[2]}"
             )
             print(
-                f"velocity perturbations, perpendicular: {self.velocity_perturbation_perpendicular[0]},{self.velocity_perturbation_perpendicular[1]},{self.velocity_perturbation_perpendicular[2]}"
+                f"velocity perturbations, perpendicular: {self.params.velocity_perturbation_perpendicular[0]},{self.params.velocity_perturbation_perpendicular[1]},{self.params.velocity_perturbation_perpendicular[2]}"
             )
 
         if self.config.precip_threshold is not None:
@@ -397,32 +372,32 @@ class StepsNowcaster:
         M, N = self.precip.shape[1:]  # Extract the spatial dimensions (height, width)
 
         # Initialize FFT method
-        self.fft = utils.get_method(
+        self.params.fft = utils.get_method(
             self.config.fft_method, shape=(M, N), n_threads=self.config.num_workers
         )
 
         # Initialize the band-pass filter for the cascade decomposition
         filter_method = cascade.get_method(self.config.bandpass_filter_method)
-        self.bandpass_filter = filter_method(
+        self.params.bandpass_filter = filter_method(
             (M, N), self.config.n_cascade_levels, **(self.config.filter_kwargs or {})
         )
 
         # Get the decomposition method (e.g., FFT)
-        self.decomposition_method, self.recomposition_method = cascade.get_method(
-            self.config.decomposition_method
+        self.params.decomposition_method, self.params.recomposition_method = (
+            cascade.get_method(self.config.decomposition_method)
         )
 
         # Get the extrapolation method (e.g., semilagrangian)
-        self.extrapolation_method = extrapolation.get_method(
+        self.params.extrapolation_method = extrapolation.get_method(
             self.config.extrapolation_method
         )
 
         # Generate the mesh grid for spatial coordinates
         x_values, y_values = np.meshgrid(np.arange(N), np.arange(M))
-        self.xy_coords = np.stack([x_values, y_values])
+        self.params.xy_coordinates = np.stack([x_values, y_values])
 
         # Determine the domain mask from non-finite values in the precipitation data
-        self.domain_mask = np.logical_or.reduce(
+        self.params.domain_mask = np.logical_or.reduce(
             [~np.isfinite(self.precip[i, :]) for i in range(self.precip.shape[0])]
         )
 
@@ -435,17 +410,17 @@ class StepsNowcaster:
         """
         # Determine the precipitation threshold mask if conditional is set
         if self.config.conditional:
-            self.mask_threshold = np.logical_and.reduce(
+            self.state.mask_threshold = np.logical_and.reduce(
                 [
                     self.precip[i, :, :] >= self.config.precip_threshold
                     for i in range(self.precip.shape[0])
                 ]
             )
         else:
-            self.mask_threshold = None
+            self.state.mask_threshold = None
 
         extrap_kwargs = self.config.extrapolation_kwargs.copy()
-        extrap_kwargs["xy_coords"] = self.xy_coords
+        extrap_kwargs["xy_coords"] = self.params.xy_coordinates
         extrap_kwargs["allow_nonfinite_values"] = (
             True if np.any(~np.isfinite(self.precip)) else False
         )
@@ -454,7 +429,7 @@ class StepsNowcaster:
 
         def _extrapolate_single_field(precip, i):
             # Extrapolate a single precipitation field using the velocity field
-            return self.extrapolation_method(
+            return self.params.extrapolation_method(
                 precip[i, :, :],
                 self.velocity,
                 self.config.ar_order - i,
@@ -498,13 +473,11 @@ class StepsNowcaster:
         # Initialize the noise generator if the noise_method is provided
         if self.config.noise_method is not None:
             np.random.seed(self.config.seed)  # Set the random seed for reproducibility
-            init_noise, self.generate_noise = noise.get_method(
-                self.config.noise_method
-            )  # Get noise methods
+            init_noise, generate_noise = noise.get_method(self.config.noise_method)
+            self.params.noise_generator = generate_noise
 
-            # Initialize the perturbation generator for the precipitation field
-            self.perturbation_generator = init_noise(
-                self.precip, fft_method=self.fft, **self.config.noise_kwargs
+            self.params.perturbation_generator = init_noise(
+                self.precip, fft_method=self.params.fft, **self.config.noise_kwargs
             )
 
             # Handle noise standard deviation adjustments if necessary
@@ -514,18 +487,20 @@ class StepsNowcaster:
                     starttime = time.time()
 
                 # Compute noise adjustment coefficients
-                self.noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(
-                    self.precip[-1, :, :],
-                    self.config.precip_threshold,
-                    np.min(self.precip),
-                    self.bandpass_filter,
-                    self.decomposition_method,
-                    self.perturbation_generator,
-                    self.config.generate_noise,
-                    20,
-                    conditional=self.config.conditional,
-                    num_workers=self.config.num_workers,
-                    seed=self.config.seed,
+                self.params.noise_std_coefficients = (
+                    noise.utils.compute_noise_stddev_adjs(
+                        self.precip[-1, :, :],
+                        self.config.precip_threshold,
+                        np.min(self.precip),
+                        self.params.bandpass_filter,
+                        self.params.decomposition_method,
+                        self.params.perturbation_generator,
+                        self.params.noise_generator,
+                        20,
+                        conditional=self.config.conditional,
+                        num_workers=self.config.num_workers,
+                        seed=self.config.seed,
+                    )
                 )
 
                 # Measure and print time taken
@@ -539,82 +514,100 @@ class StepsNowcaster:
             elif self.config.noise_stddev_adj == "fixed":
                 # Set fixed noise adjustment coefficients
                 func = lambda k: 1.0 / (0.75 + 0.09 * k)
-                self.noise_std_coeffs = [
+                self.params.noise_std_coefficients = [
                     func(k) for k in range(1, self.config.n_cascade_levels + 1)
                 ]
 
             else:
                 # Default to no adjustment
-                self.noise_std_coeffs = np.ones(self.config.n_cascade_levels)
+                self.params.noise_std_coefficients = np.ones(
+                    self.config.n_cascade_levels
+                )
 
             if self.config.noise_stddev_adj is not None:
                 # Print noise std deviation coefficients if adjustments were made
-                print(f"noise std. dev. coeffs:   {str(self.noise_std_coeffs)}")
+                print(
+                    f"noise std. dev. coeffs:   {str(self.params.noise_std_coefficients)}"
+                )
 
         else:
-            # No noise, so set perturbation generator and noise_std_coeffs to None
-            self.perturbation_generator = None
-            self.noise_std_coeffs = np.ones(
+            # No noise, so set perturbation generator and noise_std_coefficients to None
+            self.params.perturbation_generator = None
+            self.params.noise_std_coefficients = np.ones(
                 self.config.n_cascade_levels
             )  # Keep default as 1.0 to avoid breaking AR model
 
         # Decompose the input precipitation fields
-        self.precip_decomposed = []
+        self.state.precip_decomposed = []
         for i in range(self.config.ar_order + 1):
-            precip_ = self.decomposition_method(
+            precip_ = self.params.decomposition_method(
                 self.precip[i, :, :],
-                self.bandpass_filter,
-                mask=self.mask_threshold,
-                fft_method=self.fft,
+                self.params.bandpass_filter,
+                mask=self.state.mask_threshold,
+                fft_method=self.params.fft,
                 output_domain=self.config.domain,
                 normalize=True,
                 compute_stats=True,
                 compact_output=True,
             )
-            self.precip_decomposed.append(precip_)
+            self.state.precip_decomposed.append(precip_)
 
         # Normalize the cascades and rearrange them into a 4D array
-        self.precip_cascades = nowcast_utils.stack_cascades(
-            self.precip_decomposed, self.config.n_cascade_levels
+        self.state.precip_cascades = nowcast_utils.stack_cascades(
+            self.state.precip_decomposed, self.config.n_cascade_levels
         )
-        self.precip_decomposed = self.precip_decomposed[-1]
-        self.precip_decomposed = [
-            self.precip_decomposed.copy() for _ in range(self.config.n_ens_members)
+        self.state.precip_decomposed = self.state.precip_decomposed[-1]
+        self.state.precip_decomposed = [
+            self.state.precip_decomposed.copy()
+            for _ in range(self.config.n_ens_members)
         ]
 
         # Compute temporal autocorrelation coefficients for each cascade level
-        self.gamma = np.empty((self.config.n_cascade_levels, self.config.ar_order))
+        self.params.autocorrelation_coefficients = np.empty(
+            (self.config.n_cascade_levels, self.config.ar_order)
+        )
         for i in range(self.config.n_cascade_levels):
-            self.gamma[i, :] = correlation.temporal_autocorrelation(
-                self.precip_cascades[i], mask=self.mask_threshold
+            self.params.autocorrelation_coefficients[i, :] = (
+                correlation.temporal_autocorrelation(
+                    self.state.precip_cascades[i], mask=self.state.mask_threshold
+                )
             )
 
-        nowcast_utils.print_corrcoefs(self.gamma)
+        nowcast_utils.print_corrcoefs(self.params.autocorrelation_coefficients)
 
         # Adjust the lag-2 correlation coefficient if AR(2) model is used
         if self.config.ar_order == 2:
             for i in range(self.config.n_cascade_levels):
-                self.gamma[i, 1] = autoregression.adjust_lag2_corrcoef2(
-                    self.gamma[i, 0], self.gamma[i, 1]
+                self.params.autocorrelation_coefficients[i, 1] = (
+                    autoregression.adjust_lag2_corrcoef2(
+                        self.params.autocorrelation_coefficients[i, 0],
+                        self.params.autocorrelation_coefficients[i, 1],
+                    )
                 )
 
         # Estimate the parameters of the AR model using auto-correlation coefficients
-        self.phi = np.empty((self.config.n_cascade_levels, self.config.ar_order + 1))
+        self.params.ar_model_coefficients = np.empty(
+            (self.config.n_cascade_levels, self.config.ar_order + 1)
+        )
         for i in range(self.config.n_cascade_levels):
-            self.phi[i, :] = autoregression.estimate_ar_params_yw(self.gamma[i, :])
+            self.params.ar_model_coefficients[i, :] = (
+                autoregression.estimate_ar_params_yw(
+                    self.params.autocorrelation_coefficients[i, :]
+                )
+            )
 
-        nowcast_utils.print_ar_params(self.phi)
+        nowcast_utils.print_ar_params(self.params.ar_model_coefficients)
 
         # Discard all except the last ar_order cascades for AR model
-        self.precip_cascades = [
-            self.precip_cascades[i][-self.config.ar_order :]
+        self.state.precip_cascades = [
+            self.state.precip_cascades[i][-self.config.ar_order :]
             for i in range(self.config.n_cascade_levels)
         ]
 
         # Stack the cascades into a list containing all ensemble members
-        self.precip_cascades = [
+        self.state.precip_cascades = [
             [
-                self.precip_cascades[j].copy()
+                self.state.precip_cascades[j].copy()
                 for j in range(self.config.n_cascade_levels)
             ]
             for _ in range(self.config.n_ens_members)
@@ -622,26 +615,26 @@ class StepsNowcaster:
 
         # Initialize random generators if noise_method is provided
         if self.config.noise_method is not None:
-            self.random_generator_precip = []
-            self.random_generator_motion = []
+            self.state.random_generator_precip = []
+            self.state.random_generator_motion = []
 
             for _ in range(self.config.n_ens_members):
                 # Create random state for precipitation noise generator
                 rs = np.random.RandomState(self.config.seed)
-                self.random_generator_precip.append(rs)
+                self.state.random_generator_precip.append(rs)
                 self.config.seed = rs.randint(
                     0, high=int(1e9)
                 )  # Update seed after generating
 
                 # Create random state for motion perturbations generator
                 rs = np.random.RandomState(self.config.seed)
-                self.random_generator_motion.append(rs)
+                self.state.random_generator_motion.append(rs)
                 self.config.seed = rs.randint(
                     0, high=int(1e9)
                 )  # Update seed after generating
         else:
-            self.random_generator_precip = None
-            self.random_generator_motion = None
+            self.state.random_generator_precip = None
+            self.state.random_generator_motion = None
         print("AR model and noise applied to precipitation cascades.")
 
     def _initialize_velocity_perturbations(self):
@@ -654,15 +647,15 @@ class StepsNowcaster:
                 self.config.velocity_perturbation_method
             )
 
-            self.velocity_perturbations = []
+            self.state.velocity_perturbations = []
             for j in range(self.config.n_ens_members):
                 kwargs = {
-                    "randstate": self.random_generator_motion[j],
+                    "randstate": self.state.random_generator_motion[j],
                     "p_par": self.config.velocity_perturbation_kwargs.get(
-                        "p_par", self.velocity_perturbation_parallel
+                        "p_par", self.params.velocity_perturbation_parallel
                     ),
                     "p_perp": self.config.velocity_perturbation_kwargs.get(
-                        "p_perp", self.velocity_perturbation_perpendicular
+                        "p_perp", self.params.velocity_perturbation_perpendicular
                     ),
                 }
                 vp = init_vel_noise(
@@ -671,64 +664,73 @@ class StepsNowcaster:
                     self.config.timestep,
                     **kwargs,
                 )
-                self.velocity_perturbations.append(
+                self.state.velocity_perturbations.append(
                     lambda t, vp=vp: generate_vel_noise(vp, t * self.config.timestep)
                 )
         else:
-            self.velocity_perturbations = None
+            self.state.velocity_perturbations = None
         print("Velocity perturbations initialized successfully.")
 
     def _initialize_precipitation_mask(self):
         """
         Initialize the precipitation mask and handle different mask methods (sprog, incremental).
         """
-        self.precip_forecast = [[] for _ in range(self.config.n_ens_members)]
+        self.state.precip_forecast = [[] for _ in range(self.config.n_ens_members)]
 
         if self.config.probmatching_method == "mean":
-            self.precipitation_mean = np.mean(
+            self.params.precipitation_mean = np.mean(
                 self.precip[-1, :, :][
                     self.precip[-1, :, :] >= self.config.precip_threshold
                 ]
             )
         else:
-            self.precipitation_mean = None
+            self.params.precipitation_mean = None
 
         if self.config.mask_method is not None:
-            self.mask_precip = self.precip[-1, :, :] >= self.config.precip_threshold
+            self.state.mask_precip = (
+                self.precip[-1, :, :] >= self.config.precip_threshold
+            )
 
             if self.config.mask_method == "sprog":
                 # Compute the wet area ratio and the precipitation mask
-                self.war = np.sum(self.mask_precip) / (
+                self.params.wet_area_ratio = np.sum(self.state.mask_precip) / (
                     self.precip.shape[1] * self.precip.shape[2]
                 )
-                self.precip_mask = [
-                    self.precip_cascades[0][i].copy()
+                self.state.precip_mask = [
+                    self.state.precip_cascades[0][i].copy()
                     for i in range(self.config.n_cascade_levels)
                 ]
-                self.precip_mask_decomposed = self.precip_decomposed[0].copy()
+                self.state.precip_mask_decomposed = self.state.precip_decomposed[
+                    0
+                ].copy()
 
             elif self.config.mask_method == "incremental":
                 # Get mask parameters
-                self.mask_rim = self.config.mask_kwargs.get("mask_rim", 10)
+                self.params.mask_rim = self.config.mask_kwargs.get("mask_rim", 10)
                 mask_f = self.config.mask_kwargs.get("mask_f", 1.0)
                 # Initialize the structuring element
-                self.struct = generate_binary_structure(2, 1)
+                self.params.structuring_element = generate_binary_structure(2, 1)
                 # Expand the structuring element based on mask factor and timestep
                 n = mask_f * self.config.timestep / self.config.kmperpixel
-                self.struct = iterate_structure(self.struct, int((n - 1) / 2.0))
-                # Compute and apply the dilated mask for each ensemble member
-                self.mask_precip = nowcast_utils.compute_dilated_mask(
-                    self.mask_precip, self.struct, self.mask_rim
+                self.params.structuring_element = iterate_structure(
+                    self.params.structuring_element, int((n - 1) / 2.0)
                 )
-                self.mask_precip = [
-                    self.mask_precip.copy() for _ in range(self.config.n_ens_members)
+                # Compute and apply the dilated mask for each ensemble member
+                self.state.mask_precip = nowcast_utils.compute_dilated_mask(
+                    self.state.mask_precip,
+                    self.params.structuring_element,
+                    self.params.mask_rim,
+                )
+                self.state.mask_precip = [
+                    self.state.mask_precip.copy()
+                    for _ in range(self.config.n_ens_members)
                 ]
         else:
-            self.mask_precip = None
+            self.state.mask_precip = None
 
-        if self.config.noise_method is None and self.precip_mask is None:
-            self.precip_mask = [
-                self.precip_cascades[0][i].copy()
+        if self.config.noise_method is None and self.state.precip_mask is None:
+            self.state.precip_mask = [
+                self.state.precip_cascades[0][i].copy()
                 for i in range(self.config.n_cascade_levels)
             ]
         print("Precipitation mask initialized successfully.")
@@ -737,12 +739,12 @@ class StepsNowcaster:
         """
         Initialize FFT objects for each ensemble member.
         """
-        self.fft_objs = []
+        self.state.fft_objs = []
         for _ in range(self.config.n_ens_members):
             fft_obj = utils.get_method(
                 self.config.fft_method, shape=self.precip.shape[1:]
             )
-            self.fft_objs.append(fft_obj)
+            self.state.fft_objs.append(fft_obj)
         print("FFT objects initialized successfully.")
 
     def _initialize_state(self):
@@ -750,13 +752,13 @@ class StepsNowcaster:
         Initialize the state dictionary used during the nowcast iteration.
         """
         return {
-            "fft_objs": self.fft_objs,
-            "mask_prec": self.mask_precip,
-            "precip_cascades": self.precip_cascades,
-            "precip_decomp": self.precip_decomposed,
-            "precip_m": self.precip_mask,
-            "precip_m_d": self.precip_mask_decomposed,
-            "randgen_prec": self.random_generator_precip,
+            "fft_objs": self.state.fft_objs,
+            "mask_prec": self.state.mask_precip,
+            "precip_cascades": self.state.precip_cascades,
+            "precip_decomp": self.state.precip_decomposed,
+            "precip_m": self.state.precip_mask,
+            "precip_m_d": self.state.precip_mask_decomposed,
+            "randgen_prec": self.state.random_generator_precip,
         }
 
     def _initialize_params(self, precip):
@@ -764,28 +766,28 @@ class StepsNowcaster:
         Initialize the params dictionary used during the nowcast iteration.
         """
         return {
-            "decomp_method": self.decomposition_method,
+            "decomp_method": self.params.decomposition_method,
             "domain": self.config.domain,
-            "domain_mask": self.domain_mask,
-            "filter": self.bandpass_filter,
-            "fft": self.fft,
-            "generate_noise": self.generate_noise,
+            "domain_mask": self.params.domain_mask,
+            "filter": self.params.bandpass_filter,
+            "fft": self.params.fft,
+            "generate_noise": self.params.noise_generator,
             "mask_method": self.config.mask_method,
-            "mask_rim": self.mask_rim,
-            "mu_0": self.precipitation_mean,
+            "mask_rim": self.params.mask_rim,
+            "mu_0": self.params.precipitation_mean,
             "n_cascade_levels": self.config.n_cascade_levels,
             "n_ens_members": self.config.n_ens_members,
             "noise_method": self.config.noise_method,
-            "noise_std_coeffs": self.noise_std_coeffs,
+            "noise_std_coeffs": self.params.noise_std_coefficients,
             "num_ensemble_workers": self.params.num_ensemble_workers,
-            "phi": self.phi,
-            "pert_gen": self.perturbation_generator,
+            "phi": self.params.ar_model_coefficients,
+            "pert_gen": self.params.perturbation_generator,
             "probmatching_method": self.config.probmatching_method,
             "precip": precip,
             "precip_thr": self.config.precip_threshold,
-            "recomp_method": self.recomposition_method,
-            "struct": self.struct,
-            "war": self.war,
+            "recomp_method": self.params.recomposition_method,
+            "struct": self.params.structuring_element,
+            "war": self.params.wet_area_ratio,
         }
 
     def _update_state(self, state, params):
