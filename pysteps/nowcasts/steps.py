@@ -112,7 +112,7 @@ class StepsNowcasterState:
 
 
 class StepsNowcaster:
-    def __init__(self, precip, velocity, time_steps, steps_config):
+    def __init__(self, precip, velocity, time_steps, steps_config: StepsNowcasterConfig):
         # Store inputs and optional parameters
         self.precip = precip
         self.velocity = velocity
