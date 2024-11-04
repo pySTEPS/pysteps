@@ -222,7 +222,6 @@ class StepsNowcaster:
         """
         Validate the inputs to ensure consistency and correct shapes.
         """
-
         if self.__precip.ndim != 3:
             raise ValueError("precip must be a three-dimensional array")
         if self.__precip.shape[0] < self.__config.ar_order + 1:
