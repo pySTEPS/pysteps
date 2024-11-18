@@ -66,6 +66,224 @@ except ImportError:
     DASK_IMPORTED = False
 
 
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+
+@dataclass
+class StepsBlendingConfig:
+    # Configuration parameters
+    n_ens_members: int
+    n_cascade_levels: int
+    ar_order: int
+    timestep: float
+    blend_nwp_members: bool
+    precip_thr: float
+    norain_thr: float
+    kmperpixel: float
+    seed: Optional[int]
+    num_workers: int
+    measure_time: bool
+    domain: str = "spatial"
+    fft_method: str = "numpy"
+    extrap_method: str = "semilagrangian"
+    extrap_kwargs: Dict[str, Any] = field(default_factory=dict)
+    decomp_method: str = "fft"
+    bandpass_filter_method: str = "gaussian"
+    filter_kwargs: Dict[str, Any] = field(default_factory=dict)
+    noise_method: Optional[str] = "nonparametric"
+    noise_stddev_adj: Optional[str] = "auto"
+    noise_kwargs: Dict[str, Any] = field(default_factory=dict)
+    vel_pert_method: Optional[str] = "bps"
+    vel_pert_kwargs: Dict[str, Any] = field(default_factory=dict)
+    weights_method: str = "bps"
+    mask_method: Optional[str] = "incremental"
+    mask_kwargs: Dict[str, Any] = field(default_factory=dict)
+    probmatching_method: Optional[str] = "cdf"
+    resample_distribution: bool = True
+    smooth_radar_mask_range: int = 0
+    outdir_path_skill: str = "./tmp/"
+    clim_kwargs: Dict[str, Any] = field(default_factory=dict)
+    callback: Optional[Any] = None
+    return_output: bool = True
+    # Additional configuration parameters as needed
+
+
+@dataclass
+class StepsBlendingState:
+    issuetime: Any  # Replace with appropriate type, e.g., datetime.datetime
+    # Precomputed or intermediate data
+    domain_mask: Optional[np.ndarray] = None
+    MASK_thr: Optional[np.ndarray] = None
+    forecast_output: Optional[np.ndarray] = None
+    # Additional state variables as needed
+
+
+@dataclass
+class StepsBlendingParams:
+    # Parameters and variables calculated during initialization or processing
+    fft_method: Any = None
+    bandpass_filter: Any = None
+    decomposer: Any = None
+    recomposer: Any = None
+    generate_perturb: Any = None
+    generate_noise: Any = None
+    noise_std_coeffs: Optional[np.ndarray] = None
+    PHI: Optional[np.ndarray] = None
+    randgen_precip: Optional[List[np.random.RandomState]] = None
+    velocity_perturbations: Optional[List[Any]] = None
+    generate_vel_noise: Any = None
+    previous_displacement: Optional[np.ndarray] = None
+    previous_displacement_noise_cascade: Optional[np.ndarray] = None
+    previous_displacement_prob_matching: Optional[np.ndarray] = None
+    precip_cascade: Optional[np.ndarray] = None
+    mu: Optional[np.ndarray] = None
+    sigma: Optional[np.ndarray] = None
+    noise_cascade: Optional[np.ndarray] = None
+    mask_rim: Optional[int] = None
+    struct: Any = None
+    fft_objs: Optional[List[Any]] = None
+    # Additional parameters and variables as needed
+
+
+class BlendingEngine:
+    def __init__(
+        self,
+        precip,
+        precip_models,
+        velocity,
+        velocity_models,
+        time_steps,
+        steps_blending_config: StepsBlendingConfig,
+    ):
+        # Store inputs and optional parameters
+        self.__precip = precip
+        self.__precip_models = precip_models
+        self.__velocity = velocity
+        self.__velocity_models = velocity_models
+        self.__time_steps = time_steps
+
+        # Store the config data:
+        self.__config = steps_blending_config
+
+        # Store the state and params data:
+        self.__state = StepsBlendingState()
+        self.__params = StepsBlendingParams()
+
+    def forecast(self):
+        """Main method to perform the forecast."""
+        self._check_inputs()
+        self._initialize()
+        self._prepare_data()
+        self._initialize_noise()
+        self._estimate_ar_parameters()
+        self._init_random_generators()
+        self._prepare_forecast_loop()
+        self._compute_forecast()
+        return self.state.forecast_output
+
+    # Private methods for internal processing
+    def _initialize_methods(self):
+        """Set up methods for extrapolation, decomposition, etc."""
+        pass
+
+    def _initialize_bandpass_filter(self):
+        """Initialize the bandpass filter."""
+        pass
+
+    def _prepare_data(self):
+        """Transform data into Lagrangian coordinates and perform initial decomposition."""
+        pass
+
+    def _initialize_noise(self):
+        """Set up the noise generation mechanism."""
+        pass
+
+    def _estimate_ar_parameters(self):
+        """Estimate autoregressive model parameters."""
+        self._estimate_ar_parameters_radar()
+
+    def _init_random_generators(self):
+        """Initialize random number generators."""
+        self._init_random_generators_for_noise()
+        if self.config.vel_pert_method:
+            self._init_velocity_perturbations()
+
+    def _prepare_forecast_loop(self):
+        """Set up variables and structures for the forecasting loop."""
+        self._initialize_forecast_variables()
+
+    def _compute_forecast(self):
+        """Main loop to compute the forecast over the specified time steps."""
+        self._run_forecast_loop()
+
+    # Methods for specific functionalities
+    def _check_inputs(self):
+        """Validate input data and configurations."""
+        # Implement input checks as needed
+        pass
+
+    def _initialize(self):
+        """Perform any additional initialization steps."""
+        # Initialize variables in self.params as needed
+        pass
+
+    def _transform_to_lagrangian(self):
+        """Transform precipitation data to Lagrangian coordinates."""
+        # Use self.state and self.params as needed
+        pass
+
+    def _compute_cascade_decomposition_radar(self):
+        """Compute the cascade decomposition for radar data."""
+        # Update self.params with computed cascades
+        pass
+
+    def _estimate_ar_parameters_radar(self):
+        """Estimate AR parameters for radar data."""
+        # Update self.params.PHI
+        pass
+
+    def _init_random_generators_for_noise(self):
+        """Initialize random generators for noise."""
+        # Update self.params.randgen_precip
+        pass
+
+    def _init_velocity_perturbations(self):
+        """Initialize velocity perturbations if required."""
+        # Update self.params.velocity_perturbations, generate_vel_noise
+        pass
+
+    def _initialize_forecast_variables(self):
+        """Set up variables needed for the forecast loop."""
+        # Initialize variables in self.params
+        pass
+
+    def _run_forecast_loop(self):
+        """Run the main forecast loop over time steps."""
+        # Use self.state and self.params as needed
+        pass
+
+    # Additional helper methods as needed
+
+
+class SkillScoreManager:
+    def __init__(self, config: StepsBlendingConfig):
+        self.outdir_path_skill = config.outdir_path_skill
+        self.clim_kwargs = config.clim_kwargs
+
+    def compute_initial_skill(self, observed_cascades, model_cascades, domain_mask):
+        """Calculate the initial skill of NWP models at t=0."""
+        pass  # Implement as needed
+
+    def update_skill(self, lead_time, correlations, model_indices):
+        """Update the skill scores based on lead time."""
+        pass  # Implement as needed
+
+    def save_skill(self, current_skill, validtime):
+        """Save the skill scores to disk."""
+        pass  # Implement as needed
+
+
 def forecast(
     precip,
     precip_models,
