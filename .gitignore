@@ -91,3 +91,6 @@ venv.bak/
 
 # Mac OS Stuff
 .DS_Store
+
+# Running lcoal tests
+/tmp

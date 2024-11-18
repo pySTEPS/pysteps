@@ -616,18 +616,18 @@ def forecast(
                 # Create an empty np array with shape [n_ens_members, rows, cols]
                 # and fill it with the minimum value from precip (corresponding to
                 # zero precipitation)
-                precip_forecast_temp = np.full(
+                precip_forecast_workers = np.full(
                     (n_ens_members, precip_shape[0], precip_shape[1]), np.nanmin(precip)
                 )
                 if subtimestep_idx:
                     if callback is not None:
-                        if precip_forecast_temp.shape[1] > 0:
-                            callback(precip_forecast_temp.squeeze())
+                        if precip_forecast_workers.shape[1] > 0:
+                            callback(precip_forecast_workers.squeeze())
                     if return_output:
                         for j in range(n_ens_members):
-                            precip_forecast[j].append(precip_forecast_temp[j])
+                            precip_forecast[j].append(precip_forecast_workers[j])
 
-                precip_forecast_temp = None
+                precip_forecast_workers = None
 
         if measure_time:
             zero_precip_time = time.time() - starttime_init
@@ -955,7 +955,7 @@ def forecast(
                 )
 
             # the nowcast iteration for each ensemble member
-            precip_forecast_temp = [None for _ in range(n_ens_members)]
+            precip_forecast_workers = [None for _ in range(n_ens_members)]
 
             def worker(j):
                 # 8.1.2 Determine the skill of the nwp components for lead time (t0 + t)
@@ -1329,13 +1329,15 @@ def forecast(
                             previous_displacement_prob_matching[j]
                         )
                         # Apply the domain mask to the extrapolation component
-                        precip_forecast_temp = precip.copy()
-                        precip_forecast_temp[domain_mask] = np.nan
+                        precip_forecast_temp_for_probability_matching = precip.copy()
+                        precip_forecast_temp_for_probability_matching[domain_mask] = (
+                            np.nan
+                        )
                         (
                             precip_forecast_extrapolated_probability_matching_temp,
                             previous_displacement_prob_matching[j],
                         ) = extrapolator(
-                            precip_forecast_temp,
+                            precip_forecast_temp_for_probability_matching,
                             velocity_blended,
                             [t_diff_prev_subtimestep],
                             allow_nonfinite_values=True,
@@ -1837,7 +1839,7 @@ def forecast(
 
                         final_blended_forecast.append(precip_forecast_recomposed)
 
-                precip_forecast_temp[j] = final_blended_forecast
+                precip_forecast_workers[j] = final_blended_forecast
 
             res = []
 
@@ -1858,15 +1860,15 @@ def forecast(
                     print("done.")
 
             if callback is not None:
-                precip_forecast_final = np.stack(precip_forecast_temp)
+                precip_forecast_final = np.stack(precip_forecast_workers)
                 if precip_forecast_final.shape[1] > 0:
                     callback(precip_forecast_final.squeeze())
 
             if return_output:
                 for j in range(n_ens_members):
-                    precip_forecast[j].extend(precip_forecast_temp[j])
+                    precip_forecast[j].extend(precip_forecast_workers[j])
 
-            precip_forecast_temp = None
+            precip_forecast_workers = None
 
         if measure_time:
             mainloop_time = time.time() - starttime_mainloop
