@@ -1214,7 +1214,6 @@ class StepsNowcaster:
 
 
 # Wrapper function to preserve backward compatibility
-@deprecate_args({"R": "precip", "V": "velocity", "R_thr": "precip_thr"}, "1.8.0")
 def forecast(
     precip,
     velocity,
