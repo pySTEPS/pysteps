@@ -606,7 +606,7 @@ def forecast(
         )
         print("The resulting forecast will contain only zeros")
         # Create the output list
-        R_f = [[] for j in range(n_ens_members)]
+        precip_forecast = [[] for j in range(n_ens_members)]
 
         # Save per time step to ensure the array does not become too large if
         # no return_output is requested and callback is not None.
@@ -616,25 +616,25 @@ def forecast(
                 # Create an empty np array with shape [n_ens_members, rows, cols]
                 # and fill it with the minimum value from precip (corresponding to
                 # zero precipitation)
-                precip_forecast = np.full(
+                precip_forecast_temp = np.full(
                     (n_ens_members, precip_shape[0], precip_shape[1]), np.nanmin(precip)
                 )
                 if subtimestep_idx:
                     if callback is not None:
-                        if precip_forecast.shape[1] > 0:
-                            callback(precip_forecast.squeeze())
+                        if precip_forecast_temp.shape[1] > 0:
+                            callback(precip_forecast_temp.squeeze())
                     if return_output:
                         for j in range(n_ens_members):
-                            R_f[j].append(precip_forecast[j])
+                            precip_forecast[j].append(precip_forecast_temp[j])
 
-                precip_forecast = None
+                precip_forecast_temp = None
 
         if measure_time:
             zero_precip_time = time.time() - starttime_init
 
         if return_output:
             precip_forecast_all_members_all_times = np.stack(
-                [np.stack(R_f[j]) for j in range(n_ens_members)]
+                [np.stack(precip_forecast[j]) for j in range(n_ens_members)]
             )
             if measure_time:
                 return (
@@ -757,7 +757,7 @@ def forecast(
             previous_displacement,
             previous_displacement_noise_cascade,
             previous_displacement_prob_matching,
-            R_f,
+            precip_forecast,
             precip_forecast_non_perturbed,
             mask_rim,
             struct,
@@ -955,7 +955,7 @@ def forecast(
                 )
 
             # the nowcast iteration for each ensemble member
-            precip_forecast = [None for _ in range(n_ens_members)]
+            precip_forecast_temp = [None for _ in range(n_ens_members)]
 
             def worker(j):
                 # 8.1.2 Determine the skill of the nwp components for lead time (t0 + t)
@@ -1329,13 +1329,13 @@ def forecast(
                             previous_displacement_prob_matching[j]
                         )
                         # Apply the domain mask to the extrapolation component
-                        precip_forecast = precip.copy()
-                        precip_forecast[domain_mask] = np.nan
+                        precip_forecast_temp = precip.copy()
+                        precip_forecast_temp[domain_mask] = np.nan
                         (
                             precip_forecast_extrapolated_probability_matching_temp,
                             previous_displacement_prob_matching[j],
                         ) = extrapolator(
-                            precip_forecast,
+                            precip_forecast_temp,
                             velocity_blended,
                             [t_diff_prev_subtimestep],
                             allow_nonfinite_values=True,
@@ -1610,7 +1610,7 @@ def forecast(
                         )
                         # Stack the fields
                         if blend_nwp_members:
-                            R_pm_stacked = np.concatenate(
+                            precip_forecast_probability_matching_final = np.concatenate(
                                 (
                                     precip_forecast_extrapolated_probability_matching[
                                         None, t_index
@@ -1620,7 +1620,7 @@ def forecast(
                                 axis=0,
                             )
                         else:
-                            R_pm_stacked = np.concatenate(
+                            precip_forecast_probability_matching_final = np.concatenate(
                                 (
                                     precip_forecast_extrapolated_probability_matching[
                                         None, t_index
@@ -1634,7 +1634,7 @@ def forecast(
                             weights_probability_matching_normalized.reshape(
                                 weights_probability_matching_normalized.shape[0], 1, 1
                             )
-                            * R_pm_stacked,
+                            * precip_forecast_probability_matching_final,
                             axis=0,
                         )
                         if blend_nwp_members:
@@ -1785,7 +1785,7 @@ def forecast(
                             arr2 = precip_models_temp[j]
                             # resample weights based on cascade level 2.
                             # Areas where one of the fields is nan are not included.
-                            R_pm_resampled = probmatching.resample_distributions(
+                            precip_forecast_probability_matching_resampled = probmatching.resample_distributions(
                                 first_array=arr1,
                                 second_array=arr2,
                                 probability_first_array=weights_probability_matching_normalized[
@@ -1793,7 +1793,7 @@ def forecast(
                                 ],
                             )
                         else:
-                            R_pm_resampled = (
+                            precip_forecast_probability_matching_resampled = (
                                 precip_forecast_probability_matching_blended.copy()
                             )
 
@@ -1811,15 +1811,18 @@ def forecast(
                                 precip_forecast_recomposed = (
                                     probmatching.nonparam_match_empirical_cdf(
                                         precip_forecast_recomposed,
-                                        R_pm_resampled,
+                                        precip_forecast_probability_matching_resampled,
                                         nan_indices,
                                     )
                                 )
-                                R_pm_resampled = None
+                                precip_forecast_probability_matching_resampled = None
                         elif probmatching_method == "mean":
                             # Use R_pm_blended as benchmark field and
                             mean_probabiltity_matching_forecast = np.mean(
-                                R_pm_resampled[R_pm_resampled >= precip_thr]
+                                precip_forecast_probability_matching_resampled[
+                                    precip_forecast_probability_matching_resampled
+                                    >= precip_thr
+                                ]
                             )
                             no_rain_mask = precip_forecast_recomposed >= precip_thr
                             mean_precip_forecast = np.mean(
@@ -1830,11 +1833,11 @@ def forecast(
                                 - mean_precip_forecast
                                 + mean_probabiltity_matching_forecast
                             )
-                            R_pm_resampled = None
+                            precip_forecast_probability_matching_resampled = None
 
                         final_blended_forecast.append(precip_forecast_recomposed)
 
-                precip_forecast[j] = final_blended_forecast
+                precip_forecast_temp[j] = final_blended_forecast
 
             res = []
 
@@ -1855,22 +1858,22 @@ def forecast(
                     print("done.")
 
             if callback is not None:
-                precip_forecast_final = np.stack(precip_forecast)
+                precip_forecast_final = np.stack(precip_forecast_temp)
                 if precip_forecast_final.shape[1] > 0:
                     callback(precip_forecast_final.squeeze())
 
             if return_output:
                 for j in range(n_ens_members):
-                    R_f[j].extend(precip_forecast[j])
+                    precip_forecast[j].extend(precip_forecast_temp[j])
 
-            precip_forecast = None
+            precip_forecast_temp = None
 
         if measure_time:
             mainloop_time = time.time() - starttime_mainloop
 
         if return_output:
             precip_forecast_all_members_all_times = np.stack(
-                [np.stack(R_f[j]) for j in range(n_ens_members)]
+                [np.stack(precip_forecast[j]) for j in range(n_ens_members)]
             )
             if measure_time:
                 return precip_forecast_all_members_all_times, init_time, mainloop_time
@@ -2545,7 +2548,7 @@ def _prepare_forecast_loop(
     previous_displacement = np.stack([None for j in range(n_ens_members)])
     previous_displacement_noise_cascade = np.stack([None for j in range(n_ens_members)])
     previous_displacement_prob_matching = np.stack([None for j in range(n_ens_members)])
-    R_f = [[] for j in range(n_ens_members)]
+    precip_forecast = [[] for j in range(n_ens_members)]
 
     if mask_method == "incremental":
         # get mask parameters
@@ -2576,7 +2579,7 @@ def _prepare_forecast_loop(
         previous_displacement,
         previous_displacement_noise_cascade,
         previous_displacement_prob_matching,
-        R_f,
+        precip_forecast,
         precip_forecast_non_perturbed,
         mask_rim,
         struct,
