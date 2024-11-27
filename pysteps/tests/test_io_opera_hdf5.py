@@ -9,15 +9,37 @@ from pysteps.tests.helpers import smart_assert
 
 pytest.importorskip("h5py")
 
+# tests for three OPERA products:
+# Odyssey rain rate composite (production discontinued on October 30th 2024)
+# CIRRUS max. reflectivity composites
+# NIMBUS rain rate composites
 
 root_path = pysteps.rcparams.data_sources["opera"]["root_path"]
 filename = os.path.join(root_path, "20180824", "T_PAAH21_C_EUOC_20180824180000.hdf")
-precip, _, metadata = pysteps.io.import_opera_hdf5(filename)
+precip_odyssey, _, metadata_odyssey = pysteps.io.import_opera_hdf5(filename, qty="RATE")
+filename = os.path.join(
+    root_path, "20241126", "CIRRUS", "T_PABV21_C_EUOC_20241126010000.hdf"
+)
+precip_cirrus, _, metadata_cirrus = pysteps.io.import_opera_hdf5(filename, qty="DBZH")
+filename = os.path.join(
+    root_path, "20241126", "NIMBUS", "T_PAAH22_C_EUOC_20241126010000.hdf"
+)
+precip_nimbus, _, metadata_nimbus = pysteps.io.import_opera_hdf5(filename, qty="RATE")
 
 
-def test_io_import_opera_hdf5_shape():
+def test_io_import_opera_hdf5_odyssey_shape():
     """Test the importer OPERA HDF5."""
-    assert precip.shape == (2200, 1900)
+    assert precip_odyssey.shape == (2200, 1900)
+
+
+def test_io_import_opera_hdf5_cirrus_shape():
+    """Test the importer OPERA HDF5."""
+    assert precip_cirrus.shape == (4400, 3800)
+
+
+def test_io_import_opera_hdf5_nimbus_shape():
+    """Test the importer OPERA HDF5."""
+    assert precip_nimbus.shape == (2200, 1900)
 
 
 # test_metadata: list of (variable,expected, tolerance) tuples
@@ -30,7 +52,7 @@ expected_proj = (
 )
 
 # list of (variable,expected,tolerance) tuples
-test_attrs = [
+test_odyssey_attrs = [
     ("projection", expected_proj, None),
     ("ll_lon", -10.434576838640398, 1e-10),
     ("ll_lat", 31.746215319325056, 1e-10),
@@ -53,7 +75,67 @@ test_attrs = [
 ]
 
 
-@pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
-def test_io_import_opera_hdf5_dataset_attrs(variable, expected, tolerance):
+@pytest.mark.parametrize("variable, expected, tolerance", test_odyssey_attrs)
+def test_io_import_opera_hdf5_odyssey_dataset_attrs(variable, expected, tolerance):
     """Test the importer OPERA HDF5."""
-    smart_assert(metadata[variable], expected, tolerance)
+    smart_assert(metadata_odyssey[variable], expected, tolerance)
+
+
+# list of (variable,expected,tolerance) tuples
+test_cirrus_attrs = [
+    ("projection", expected_proj, None),
+    ("ll_lon", -10.4345768386404, 1e-10),
+    ("ll_lat", 31.7462153182675, 1e-10),
+    ("ur_lon", 57.8119647501499, 1e-10),
+    ("ur_lat", 67.6210371071631, 1e-10),
+    ("x1", -0.00027143326587975025, 1e-6),
+    ("y1", -4400000.00116988, 1e-10),
+    ("x2", 3800000.0000817003, 1e-10),
+    ("y2", -8.761277422308922e-05, 1e-6),
+    ("xpixelsize", 1000.0, 1e-10),
+    ("ypixelsize", 1000.0, 1e-10),
+    ("cartesian_unit", "m", None),
+    ("accutime", 15.0, 1e-10),
+    ("yorigin", "upper", None),
+    ("unit", "dBZ", None),
+    ("institution", "Odyssey datacentre", None),
+    ("transform", "dB", None),
+    ("zerovalue", -32.0, 1e-10),
+    ("threshold", -31.5, 1e-10),
+]
+
+
+@pytest.mark.parametrize("variable, expected, tolerance", test_cirrus_attrs)
+def test_io_import_opera_hdf5_cirrus_dataset_attrs(variable, expected, tolerance):
+    """Test the importer OPERA HDF5."""
+    smart_assert(metadata_cirrus[variable], expected, tolerance)
+
+
+# list of (variable,expected,tolerance) tuples
+test_nimbus_attrs = [
+    ("projection", expected_proj, None),
+    ("ll_lon", -10.434599999137568, 1e-10),
+    ("ll_lat", 31.74619995126678, 1e-10),
+    ("ur_lon", 57.8119032106317, 1e-10),
+    ("ur_lat", 67.62104536996274, 1e-10),
+    ("x1", -2.5302714337594807, 1e-6),
+    ("y1", -4400001.031169886, 1e-10),
+    ("x2", 3799997.4700817037, 1e-10),
+    ("y2", -1.0300876162946224, 1e-6),
+    ("xpixelsize", 2000.0, 1e-10),
+    ("ypixelsize", 2000.0, 1e-10),
+    ("cartesian_unit", "m", None),
+    ("accutime", 15.0, 1e-10),
+    ("yorigin", "upper", None),
+    ("unit", "mm/h", None),
+    ("institution", "Odyssey datacentre", None),
+    ("transform", None, None),
+    ("zerovalue", 0.0, 1e-10),
+    ("threshold", 0.01, 1e-10),
+]
+
+
+@pytest.mark.parametrize("variable, expected, tolerance", test_nimbus_attrs)
+def test_io_import_opera_hdf5_nimbus_dataset_attrs(variable, expected, tolerance):
+    """Test the importer OPERA HDF5."""
+    smart_assert(metadata_nimbus[variable], expected, tolerance)
