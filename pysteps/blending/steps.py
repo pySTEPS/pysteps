@@ -65,88 +65,111 @@ try:
 except ImportError:
     DASK_IMPORTED = False
 
-
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Optional, List, Dict, Any, Callable
 
 
 @dataclass
 class StepsBlendingConfig:
-    # Configuration parameters
+    precip_threshold: Optional[float]
+    norain_threshold: float
+    kmperpixel: float
+    timestep: float
     n_ens_members: int
     n_cascade_levels: int
-    ar_order: int
-    timestep: float
     blend_nwp_members: bool
-    precip_thr: float
-    norain_thr: float
-    kmperpixel: float
+    extrapolation_method: str
+    decomposition_method: str
+    bandpass_filter_method: str
+    noise_method: Optional[str]
+    noise_stddev_adj: Optional[str]
+    ar_order: int
+    vel_pert_method: Optional[str]
+    weights_method: str
+    conditional: bool
+    probmatching_method: Optional[str]
+    mask_method: Optional[str]
+    resample_distribution: bool
+    smooth_radar_mask_range: int
     seed: Optional[int]
     num_workers: int
-    measure_time: bool
-    domain: str = "spatial"
-    fft_method: str = "numpy"
-    extrap_method: str = "semilagrangian"
+    fft_method: str
+    domain: str
+    outdir_path_skill: str
     extrap_kwargs: Dict[str, Any] = field(default_factory=dict)
-    decomp_method: str = "fft"
-    bandpass_filter_method: str = "gaussian"
     filter_kwargs: Dict[str, Any] = field(default_factory=dict)
-    noise_method: Optional[str] = "nonparametric"
-    noise_stddev_adj: Optional[str] = "auto"
     noise_kwargs: Dict[str, Any] = field(default_factory=dict)
-    vel_pert_method: Optional[str] = "bps"
     vel_pert_kwargs: Dict[str, Any] = field(default_factory=dict)
-    weights_method: str = "bps"
-    mask_method: Optional[str] = "incremental"
-    mask_kwargs: Dict[str, Any] = field(default_factory=dict)
-    probmatching_method: Optional[str] = "cdf"
-    resample_distribution: bool = True
-    smooth_radar_mask_range: int = 0
-    outdir_path_skill: str = "./tmp/"
     clim_kwargs: Dict[str, Any] = field(default_factory=dict)
+    mask_kwargs: Dict[str, Any] = field(default_factory=dict)
+    measure_time: bool = False
     callback: Optional[Any] = None
     return_output: bool = True
-    # Additional configuration parameters as needed
-
-
-@dataclass
-class StepsBlendingState:
-    issuetime: Any  # Replace with appropriate type, e.g., datetime.datetime
-    # Precomputed or intermediate data
-    domain_mask: Optional[np.ndarray] = None
-    MASK_thr: Optional[np.ndarray] = None
-    forecast_output: Optional[np.ndarray] = None
-    # Additional state variables as needed
 
 
 @dataclass
 class StepsBlendingParams:
-    # Parameters and variables calculated during initialization or processing
-    fft_method: Any = None
-    bandpass_filter: Any = None
-    decomposer: Any = None
-    recomposer: Any = None
+    PHI: np.ndarray  # AR(p) model parameters
+    noise_std_coeffs: np.ndarray  # Noise standard deviation coefficients
+    mu_extrapolation: np.ndarray  # Means of extrapolated cascades
+    sigma_extrapolation: np.ndarray  # Std devs of extrapolated cascades
+    bandpass_filter: Any  # Band-pass filter object
+    fft: Any  # FFT method object
+    generate_perturb: Callable  # Perturbation generator
+    generate_noise: Callable  # Noise generator
+    generate_vel_noise: Optional[Callable]  # Velocity noise generator
+    extrapolation_method: Any = None
+    decomposition_method: Any = None
+    recomposition_method: Any = None
+    vp_par: Optional[np.ndarray] = None  # Velocity perturbation parameters (parallel)
+    vp_perp: Optional[np.ndarray] = (
+        None  # Velocity perturbation parameters (perpendicular)
+    )
+    fft_objs: List[Any] = field(
+        default_factory=list
+    )  # FFT objects for ensemble members
+    mask_rim: Optional[int] = None  # Rim size for masking
+    struct: Optional[np.ndarray] = None  # Structuring element for mask
+    n_model_indices: Optional[np.ndarray] = None  # NWP model indices
+    noise_method: Optional[str] = None  # Noise method used
+    ar_order: int = 2  # Order of the AR model
+    seed: Optional[int] = None  # Random seed for reproducibility
+    time_steps_is_list: bool = False  # Time steps is a list
+    precip_models_provided_is_cascade: bool = False  # Precip models are decomposed
+    xy_coordinates: np.ndarray | None = None
+    precip_zerovalue: Any = None
+    mask_threshold: Any = None
+    zero_precip_radar: bool = False
+    zero_precip_model_fields: bool = False
+
+
+@dataclass
+class StepsBlendingState:
+    precip_cascade: Any = None
+    mu_extrapolation: Any = None
+    sigma_extrapolation: Any = None
+    precip_models_cascade: Any = None
     generate_perturb: Any = None
     generate_noise: Any = None
-    noise_std_coeffs: Optional[np.ndarray] = None
-    PHI: Optional[np.ndarray] = None
-    randgen_precip: Optional[List[np.random.RandomState]] = None
-    velocity_perturbations: Optional[List[Any]] = None
+    noise_std_coeffs: Any = None
+    PHI: Any = None
+    randgen_precip: Any = None
+    velocity_perturbations: Any = None
     generate_vel_noise: Any = None
-    previous_displacement: Optional[np.ndarray] = None
-    previous_displacement_noise_cascade: Optional[np.ndarray] = None
-    previous_displacement_prob_matching: Optional[np.ndarray] = None
-    precip_cascade: Optional[np.ndarray] = None
-    mu: Optional[np.ndarray] = None
-    sigma: Optional[np.ndarray] = None
-    noise_cascade: Optional[np.ndarray] = None
-    mask_rim: Optional[int] = None
+    previous_displacement: Any = None
+    previous_displacement_noise_cascade: Any = None
+    previous_displacement_prob_matching: Any = None
+    precip_forecast: Any = None
+    precip_forecast_non_perturbed: Any = None
+    mask_rim: Any = None
     struct: Any = None
-    fft_objs: Optional[List[Any]] = None
-    # Additional parameters and variables as needed
+    fft_objs: Any = None
+    t_prev_timestep: Any = None
+    t_leadtime_since_start_forecast: Any = None
+    # Add more state variables as needed
 
 
-class BlendingEngine:
+class StepsBlendingNowcaster:
     def __init__(
         self,
         precip,
@@ -154,134 +177,586 @@ class BlendingEngine:
         velocity,
         velocity_models,
         time_steps,
+        issue_time,
         steps_blending_config: StepsBlendingConfig,
     ):
-        # Store inputs and optional parameters
+        """Initializes the StepsBlendingNowcaster with inputs and configurations."""
+        # Store inputs
         self.__precip = precip
         self.__precip_models = precip_models
         self.__velocity = velocity
         self.__velocity_models = velocity_models
-        self.__time_steps = time_steps
+        self.__timesteps = time_steps
+        self.__issuetime = issue_time
 
-        # Store the config data:
         self.__config = steps_blending_config
 
-        # Store the state and params data:
+        # Initialize Params and State
+        self.__params = StepsBlendingParams()
+        self.__state = StepsBlendingState()
+
+        # Perform input validation
+        self.__check_inputs()
+
+        # Initialize nowcast components and parameters
+        self.__initialize_nowcast_components()
+
+        # Additional variables for time measurement
+        self.__start_time_init = None
+        self.__init_time = None
+        self.__mainloop_time = None
+
+    def compute_forecast(self):
+        pass
+
+    def __nowcast_main(self):
+        self.__check_inputs()
+        self.__print_forecast_info()
+        # Measure time for initialization
+        if self.__config.measure_time:
+            self.__start_time_init = time.time()
+
+        # Slice the precipitation field to only use the last ar_order + 1 fields
+        self.__precip = self.__precip[-(self.__config.ar_order + 1) :, :, :].copy()
+        self.__initialize_nowcast_components()
+        self.__prepare_radar_and_NWP_fields()
+        if self.__params.zero_precip_radar and self.__params.zero_precip_model_fields:
+            self.__zero_precipitation_forecast()
+        else:
+            pass
+
+    def __check_inputs(self):
+        """Validates the inputs and determines if the user provided raw forecasts or decomposed forecasts."""
+        # Check dimensions of precip
+        if self.__precip.ndim != 3:
+            raise ValueError(
+                "precip must be a three-dimensional array of shape (ar_order + 1, m, n)"
+            )
+        if self.__precip.shape[0] < self.__config.ar_order + 1:
+            raise ValueError(
+                f"precip must have at least {self.__config.ar_order + 1} time steps in the first dimension "
+                f"to match the autoregressive order (ar_order={self.__config.ar_order})"
+            )
+
+        # Check dimensions of velocity
+        if self.__velocity.ndim != 3:
+            raise ValueError(
+                "velocity must be a three-dimensional array of shape (2, m, n)"
+            )
+        if self.__velocity_models.ndim != 5:
+            raise ValueError(
+                "velocity_models must be a five-dimensional array of shape (n_models, timestep, 2, m, n)"
+            )
+        if self.__velocity.shape[0] != 2 or self.__velocity_models.shape[2] != 2:
+            raise ValueError(
+                "velocity and velocity_models must have an x- and y-component, check the shape"
+            )
+
+        # Check that spatial dimensions match between precip and velocity
+        if self.__precip.shape[1:3] != self.__velocity.shape[1:3]:
+            raise ValueError(
+                f"Spatial dimensions of precip and velocity do not match: "
+                f"{self.__precip.shape[1:3]} vs {self.__velocity.shape[1:3]}"
+            )
+        # Check if the number of members in the precipitation models and velocity models match
+        if self.__precip_models.shape[0] != self.__velocity_models.shape[0]:
+            raise ValueError(
+                "The number of members in the precipitation models and velocity models must match"
+            )
+
+        if isinstance(self.__timesteps, list):
+            self.__params.time_steps_is_list = True
+            original_timesteps = [0] + list(self.__timesteps)
+            self.__timesteps = nowcast_utils.binned_timesteps(original_timesteps)
+            if not sorted(self.__timesteps) == self.__timesteps:
+                raise ValueError("timesteps is not in ascending order")
+            if self.__precip_models.shape[1] != math.ceil(self.__timesteps[-1]) + 1:
+                raise ValueError(
+                    "precip_models does not contain sufficient lead times for this forecast"
+                )
+        else:
+            self.__params.time_steps_is_list = False
+            self.__timesteps = list(range(self.__timesteps + 1))
+            if self.__precip_models.shape[1] != self.__timesteps + 1:
+                raise ValueError(
+                    "precip_models does not contain sufficient lead times for this forecast"
+                )
+
+        precip_nwp_dim = self.__precip_models.ndim
+        if precip_nwp_dim == 2:
+            if isinstance(self.__precip_models[0], dict):
+                # It's a 2D array of dictionaries with decomposed cascades
+                self.__params.precip_models_provided_is_cascade = True
+            else:
+                raise ValueError(
+                    "When precip_models has ndim == 2, it must contain dictionaries with decomposed cascades."
+                )
+        elif precip_nwp_dim == 4:
+            self.__params.precip_models_provided_is_cascade = False
+        else:
+            raise ValueError(
+                "precip_models must be either a two-dimensional array containing dictionaries with decomposed model fields"
+                "or a four-dimensional array containing the original (NWP) model forecasts"
+            )
+
+        if self.__config.extrap_kwargs is None:
+            self.__config.extrap_kwargs = dict()
+
+        if self.__config.filter_kwargs is None:
+            self.__config.filter_kwargs = dict()
+
+        if self.__config.noise_kwargs is None:
+            self.__config.noise_kwargs = dict()
+
+        if self.__config.vel_pert_kwargs is None:
+            self.__config.vel_pert_kwargs = dict()
+
+        if not self.__params.precip_models_provided_is_cascade:
+            if self.__config.clim_kwargs is None:
+                # Make sure clim_kwargs at least contains the number of models
+                self.__config.clim_kwargs = dict(
+                    {"n_models": self.__precip_models.shape[0]}
+                )
+
+        if self.__config.mask_kwargs is None:
+            mask_kwargs = dict()
+
+        if np.any(~np.isfinite(self.__velocity)):
+            raise ValueError("velocity contains non-finite values")
+
+        if self.__config.mask_method not in ["obs", "incremental", None]:
+            raise ValueError(
+                "unknown mask method %s: must be 'obs', 'incremental' or None"
+                % self.__config.mask_method
+            )
+
+        if self.__config.conditional and self.__config.precip_threshold is None:
+            raise ValueError("conditional=True but precip_thr is not set")
+
+        if (
+            self.__config.mask_method is not None
+            and self.__config.precip_threshold is None
+        ):
+            raise ValueError("mask_method!=None but precip_thr=None")
+
+        if self.__config.noise_stddev_adj not in ["auto", "fixed", None]:
+            raise ValueError(
+                "unknown noise_std_dev_adj method %s: must be 'auto', 'fixed', or None"
+                % self.__config.noise_stddev_adj
+            )
+
+        if self.__config.kmperpixel is None:
+            if self.__config.vel_pert_method is not None:
+                raise ValueError("vel_pert_method is set but kmperpixel=None")
+            if self.__config.mask_method == "incremental":
+                raise ValueError("mask_method='incremental' but kmperpixel=None")
+
+        if self.__config.timestep is None:
+            if self.__config.vel_pert_method is not None:
+                raise ValueError("vel_pert_method is set but timestep=None")
+            if self.__config.mask_method == "incremental":
+                raise ValueError("mask_method='incremental' but timestep=None")
+
+    def __print_forecast_info(self):
+        print("STEPS blending")
+        print("==============")
+        print("")
+
+        print("Inputs")
+        print("------")
+        print(f"forecast issue time:         {self.__issuetime.isoformat()}")
+        print(
+            f"input dimensions:            {self.__precip.shape[1]}x{self.__precip.shape[2]}"
+        )
+        if self.__config.kmperpixel is not None:
+            print(f"km/pixel:                    {self.__config.kmperpixel}")
+        if self.__config.timestep is not None:
+            print(f"time step:                   {self.__config.timestep} minutes")
+        print("")
+
+        print("NWP and blending inputs")
+        print("-----------------------")
+        print(f"number of (NWP) models:      {self.__precip_models.shape[0]}")
+        print(f"blend (NWP) model members:   {self.__config.blend_nwp_members}")
+        print(
+            f"decompose (NWP) models:      {'yes' if self.__precip_models.ndim == 4 else 'no'}"
+        )
+        print("")
+
+        print("Methods")
+        print("-------")
+        print(f"extrapolation:               {self.__config.extrapolation_method}")
+        print(f"bandpass filter:             {self.__config.bandpass_filter_method}")
+        print(f"decomposition:               {self.__config.decomposition_method}")
+        print(f"noise generator:             {self.__config.noise_method}")
+        print(
+            f"noise adjustment:            {'yes' if self.__config.noise_stddev_adj else 'no'}"
+        )
+        print(f"velocity perturbator:        {self.__config.vel_pert_method}")
+        print(f"blending weights method:     {self.__config.weights_method}")
+        print(
+            f"conditional statistics:      {'yes' if self.__config.conditional else 'no'}"
+        )
+        print(f"precip. mask method:         {self.__config.mask_method}")
+        print(f"probability matching:        {self.__config.probmatching_method}")
+        print(f"FFT method:                  {self.__config.fft_method}")
+        print(f"domain:                      {self.__config.domain}")
+        print("")
+
+        print("Parameters")
+        print("----------")
+        if isinstance(self.__timesteps, int):
+            print(f"number of time steps:        {self.__timesteps}")
+        else:
+            print(f"time steps:                  {self.__timesteps}")
+        print(f"ensemble size:               {self.__config.n_ens_members}")
+        print(f"parallel threads:            {self.__config.num_workers}")
+        print(f"number of cascade levels:    {self.__config.n_cascade_levels}")
+        print(f"order of the AR(p) model:    {self.__config.ar_order}")
+        if self.__config.vel_pert_method == "bps":
+            vp_par = self.__config.vel_pert_kwargs.get(
+                "p_par", noise.motion.get_default_params_bps_par()
+            )
+            vp_perp = self.__config.vel_pert_kwargs.get(
+                "p_perp", noise.motion.get_default_params_bps_perp()
+            )
+            print(f"vel. pert., parallel:        {vp_par[0]},{vp_par[1]},{vp_par[2]}")
+            print(
+                f"vel. pert., perpendicular:   {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
+            )
+        else:
+            vp_par, vp_perp = None, None
+
+        if self.__config.conditional or self.__config.mask_method is not None:
+            print(f"precip. intensity threshold: {self.__config.precip_threshold}")
+        print(f"no-rain fraction threshold for radar: {self.__config.norain_threshold}")
+        print("")
+
+    def __initialize_nowcast_components(self):
+        """
+        Initialize the FFT, bandpass filters, decomposition methods, and extrapolation method.
+        """
+        # Initialize number of ensemble workers
+        self.__params.num_ensemble_workers = min(
+            self.__config.n_ens_members, self.__config.num_workers
+        )
+
+        M, N = self.__precip.shape[1:]  # Extract the spatial dimensions (height, width)
+
+        # Initialize FFT method
+        self.__params.fft = utils.get_method(
+            self.__config.fft_method, shape=(M, N), n_threads=self.__config.num_workers
+        )
+
+        # Initialize the band-pass filter for the cascade decomposition
+        filter_method = cascade.get_method(self.__config.bandpass_filter_method)
+        self.__params.bandpass_filter = filter_method(
+            (M, N),
+            self.__config.n_cascade_levels,
+            **(self.__config.filter_kwargs or {}),
+        )
+
+        # Get the decomposition method (e.g., FFT)
+        (
+            self.__params.decomposition_method,
+            self.__params.recomposition_method,
+        ) = cascade.get_method(self.__config.decomposition_method)
+
+        # Get the extrapolation method (e.g., semilagrangian)
+        self.__params.extrapolation_method = extrapolation.get_method(
+            self.__config.extrapolation_method
+        )
+
+        # Generate the mesh grid for spatial coordinates
+        x_values, y_values = np.meshgrid(np.arange(N), np.arange(M))
+        self.__params.xy_coordinates = np.stack([x_values, y_values])
+
+        precip_copy = self.__precip[-(self.__config.ar_order + 1) :, :, :].copy()
+        # Determine the domain mask from non-finite values in the precipitation data
+        self.__params.domain_mask = np.logical_or.reduce(
+            [~np.isfinite(precip_copy[i, :]) for i in range(precip_copy.shape[0])]
+        )
+
+        print("Blended nowcast components initialized successfully.")
+
+    def __prepare_radar_and_NWP_fields(self):
+        # determine the precipitation threshold mask
+        if self.__config.conditional:
+            self.__params.mask_threshold = np.logical_and.reduce(
+                [
+                    self.__precip[i, :, :] >= self.__config.precip_threshold
+                    for i in range(self.__precip.shape[0])
+                ]
+            )
+        else:
+            self.__params.mask_threshold = None
+
+        # we need to know the zerovalue of precip to replace the mask when decomposing after
+        # extrapolation
+        self.__params.precip_zerovalue = np.nanmin(self.__precip)
+
+        # 1. Start with the radar rainfall fields. We want the fields in a
+        # Lagrangian space
+        self.__precip = _transform_to_lagrangian(
+            self.__precip,
+            self.__velocity,
+            self.__config.ar_order,
+            self.__params.xy_coordinates,
+            self.__params.extrapolation_method,
+            self.__config.extrap_kwargs,
+            self.__config.num_workers,
+        )
+
+        # 2. Perform the cascade decomposition for the input precip fields and
+        # and, if necessary, for the (NWP) model fields
+        # 2.1 Compute the cascade decompositions of the input precipitation fields
+        """Compute the cascade decompositions of the input precipitation fields."""
+        precip_forecast_decomp = []
+        for i in range(self.__config.ar_order + 1):
+            precip_forecast = self.__params.extrapolation_method(
+                self.__precip[i, :, :],
+                self.__params.bandpass_filter,
+                mask=self.__params.mask_threshold,
+                fft_method=self.__params.fft,
+                output_domain=self.__config.domain,
+                normalize=True,
+                compute_stats=True,
+                compact_output=True,
+            )
+            precip_forecast_decomp.append(precip_forecast)
+
+        # Rearrange the cascaded into a four-dimensional array of shape
+        # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
+        self.__state.precip_cascade = nowcast_utils.stack_cascades(
+            precip_forecast_decomp, self.__config.n_cascade_levels
+        )
+
+        precip_forecast_decomp = precip_forecast_decomp[-1]
+        self.__state.mu_extrapolation = np.array(precip_forecast_decomp["means"])
+        self.__state.sigma_extrapolation = np.array(precip_forecast_decomp["stds"])
+
+        # 2.2 If necessary, recompose (NWP) model forecasts
+        self.__state.precip_models_cascade = None
+
+        if self.__precip_models.ndim != 4:
+            self.__state.precip_models_cascade = self.__precip_models
+            self.__precip_models = _compute_cascade_recomposition_nwp(
+                self.__precip_models, self.__params.recomposition_method
+            )
+
+        # 2.3 Check for zero input fields in the radar and NWP data.
+        self.__params.zero_precip_radar = blending.utils.check_norain(
+            self.__precip,
+            self.__config.precip_threshold,
+            self.__config.norain_threshold,
+        )
+        # The norain fraction threshold used for nwp is the default value of 0.0,
+        # since nwp does not suffer from clutter.
+        self.__params.zero_precip_model_fields = blending.utils.check_norain(
+            self.__precip_models,
+            self.__config.precip_threshold,
+            self.__config.norain_threshold,
+        )
+
+    def __zero_precipitation_forecast(self):
+        print(
+            "No precipitation above the threshold found in both the radar and NWP fields"
+        )
+        print("The resulting forecast will contain only zeros")
+        # Create the output list
+        precip_forecast = [[] for j in range(self.__config.n_ens_members)]
+
+        # Save per time step to ensure the array does not become too large if
+        # no return_output is requested and callback is not None.
+        for t, subtimestep_idx in enumerate(self.__timesteps):
+            # If the timestep is not the first one, we need to provide the zero forecast
+            if t > 0:
+                # Create an empty np array with shape [n_ens_members, rows, cols]
+                # and fill it with the minimum value from precip (corresponding to
+                # zero precipitation)
+                N, M = self.__precip.shape
+                precip_forecast_workers = np.full(
+                    (self.__config.n_ens_members, N, M), self.__params.precip_zerovalue
+                )
+                if subtimestep_idx:
+                    if self.__config.callback is not None:
+                        if precip_forecast_workers.shape[1] > 0:
+                            self.__config.callback(precip_forecast_workers.squeeze())
+                    if self.__config.return_output:
+                        for j in range(self.__config.n_ens_members):
+                            precip_forecast[j].append(precip_forecast_workers[j])
+
+                precip_forecast_workers = None
+
+        if self.__config.measure_time:
+            zero_precip_time = time.time() - self.__start_time_init
+
+        if self.__config.return_output:
+            precip_forecast_all_members_all_times = np.stack(
+                [
+                    np.stack(precip_forecast[j])
+                    for j in range(self.__config.n_ens_members)
+                ]
+            )
+            if self.__config.measure_time:
+                return (
+                    precip_forecast_all_members_all_times,
+                    zero_precip_time,
+                    zero_precip_time,
+                )
+            else:
+                return precip_forecast_all_members_all_times
+        else:
+            return None
+
+    def __perform_extrapolation(self):
+        pass
+
+    def __apply_noise_and_ar_model(self):
+        pass
+
+    def __initialize_velocity_perturbations(self):
+        pass
+
+    def __initialize_precipitation_mask(self):
+        pass
+
+    def __initialize_fft_objects(self):
+        pass
+
+    def __return_state_dict(self):
+        pass
+
+    def __return_params_dict(self):
+        pass
+
+    def __update_state(self, state, params):
+        pass
+
+    def __update_deterministic_ar_model(self, state, params):
+        pass
+
+    def __apply_ar_model_to_cascades(self, j, state, params):
+        pass
+
+    def __generate_and_decompose_noise(self, j, state, params):
+        pass
+
+    def __recompose_and_apply_mask(self, j, state, params):
+        pass
+
+    def __apply_precipitation_mask(self, precip_forecast, j, state, params):
+        pass
+
+    def __measure_time(self, label, start_time):
+        """
+        Measure and print the time taken for a specific part of the process.
+
+        Parameters:
+        - label: A description of the part of the process being measured.
+        - start_time: The timestamp when the process started (from time.time()).
+        """
+        if self.__config.measure_time:
+            elapsed_time = time.time() - start_time
+            print(f"{label} took {elapsed_time:.2f} seconds.")
+
+    def reset_states_and_params(self):
+        """
+        Reset the internal state and parameters of the nowcaster to allow multiple forecasts.
+        This method resets the state and params to their initial conditions without reinitializing
+        the inputs like precip, velocity, time_steps, or config.
+        """
+        # Re-initialize the state and parameters
         self.__state = StepsBlendingState()
         self.__params = StepsBlendingParams()
 
-    def forecast(self):
-        """Main method to perform the forecast."""
-        self._check_inputs()
-        self._initialize()
-        self._prepare_data()
-        self._initialize_noise()
-        self._estimate_ar_parameters()
-        self._init_random_generators()
-        self._prepare_forecast_loop()
-        self._compute_forecast()
-        return self.state.forecast_output
-
-    # Private methods for internal processing
-    def _initialize_methods(self):
-        """Set up methods for extrapolation, decomposition, etc."""
-        pass
-
-    def _initialize_bandpass_filter(self):
-        """Initialize the bandpass filter."""
-        pass
-
-    def _prepare_data(self):
-        """Transform data into Lagrangian coordinates and perform initial decomposition."""
-        pass
-
-    def _initialize_noise(self):
-        """Set up the noise generation mechanism."""
-        pass
-
-    def _estimate_ar_parameters(self):
-        """Estimate autoregressive model parameters."""
-        self._estimate_ar_parameters_radar()
-
-    def _init_random_generators(self):
-        """Initialize random number generators."""
-        self._init_random_generators_for_noise()
-        if self.config.vel_pert_method:
-            self._init_velocity_perturbations()
-
-    def _prepare_forecast_loop(self):
-        """Set up variables and structures for the forecasting loop."""
-        self._initialize_forecast_variables()
-
-    def _compute_forecast(self):
-        """Main loop to compute the forecast over the specified time steps."""
-        self._run_forecast_loop()
-
-    # Methods for specific functionalities
-    def _check_inputs(self):
-        """Validate input data and configurations."""
-        # Implement input checks as needed
-        pass
-
-    def _initialize(self):
-        """Perform any additional initialization steps."""
-        # Initialize variables in self.params as needed
-        pass
-
-    def _transform_to_lagrangian(self):
-        """Transform precipitation data to Lagrangian coordinates."""
-        # Use self.state and self.params as needed
-        pass
-
-    def _compute_cascade_decomposition_radar(self):
-        """Compute the cascade decomposition for radar data."""
-        # Update self.params with computed cascades
-        pass
-
-    def _estimate_ar_parameters_radar(self):
-        """Estimate AR parameters for radar data."""
-        # Update self.params.PHI
-        pass
-
-    def _init_random_generators_for_noise(self):
-        """Initialize random generators for noise."""
-        # Update self.params.randgen_precip
-        pass
-
-    def _init_velocity_perturbations(self):
-        """Initialize velocity perturbations if required."""
-        # Update self.params.velocity_perturbations, generate_vel_noise
-        pass
-
-    def _initialize_forecast_variables(self):
-        """Set up variables needed for the forecast loop."""
-        # Initialize variables in self.params
-        pass
-
-    def _run_forecast_loop(self):
-        """Run the main forecast loop over time steps."""
-        # Use self.state and self.params as needed
-        pass
-
-    # Additional helper methods as needed
+        # Reset time measurement variables
+        self.__start_time_init = None
+        self.__init_time = None
+        self.__mainloop_time = None
 
 
-class SkillScoreManager:
-    def __init__(self, config: StepsBlendingConfig):
-        self.outdir_path_skill = config.outdir_path_skill
-        self.clim_kwargs = config.clim_kwargs
+def calculate_ratios(correlations):
+    """Calculate explained variance ratios from correlation.
 
-    def compute_initial_skill(self, observed_cascades, model_cascades, domain_mask):
-        """Calculate the initial skill of NWP models at t=0."""
-        pass  # Implement as needed
+    Parameters
+    ----------
+    Array of shape [component, scale_level, ...]
+      containing correlation (skills) for each component (NWP and nowcast),
+      scale level, and optionally along [y, x] dimensions.
 
-    def update_skill(self, lead_time, correlations, model_indices):
-        """Update the skill scores based on lead time."""
-        pass  # Implement as needed
+    Returns
+    -------
+    out : numpy array
+      An array containing the ratios of explain variance for each
+      component, scale level, ...
+    """
+    # correlations: [component, scale, ...]
+    square_corrs = np.square(correlations)
+    # Calculate the ratio of the explained variance to the unexplained
+    # variance of the nowcast and NWP model components
+    out = square_corrs / (1 - square_corrs)
+    # out: [component, scale, ...]
+    return out
 
-    def save_skill(self, current_skill, validtime):
-        """Save the skill scores to disk."""
-        pass  # Implement as needed
+
+def calculate_weights_bps(correlations):
+    """Calculate BPS blending weights for STEPS blending from correlation.
+
+    Parameters
+    ----------
+    correlations : array-like
+      Array of shape [component, scale_level, ...]
+      containing correlation (skills) for each component (NWP and nowcast),
+      scale level, and optionally along [y, x] dimensions.
+
+    Returns
+    -------
+    weights : array-like
+      Array of shape [component+1, scale_level, ...]
+      containing the weights to be used in STEPS blending for
+      each original component plus an addtional noise component, scale level,
+      and optionally along [y, x] dimensions.
+
+    References
+    ----------
+    :cite:`BPS2006`
+
+    Notes
+    -----
+    The weights in the BPS method can sum op to more than 1.0.
+    """
+    # correlations: [component, scale, ...]
+    # Check if the correlations are positive, otherwise rho = 10e-5
+    correlations = np.where(correlations < 10e-5, 10e-5, correlations)
+
+    # If we merge more than one component with the noise cascade, we follow
+    # the weights impolementation in either :cite:`BPS2006` or :cite:`SPN2013`.
+    if correlations.shape[0] > 1:
+        # Calculate weights for each source
+        ratios = calculate_ratios(correlations)
+        # ratios: [component, scale, ...]
+        total_ratios = np.sum(ratios, axis=0)
+        # total_ratios: [scale, ...] - the denominator of eq. 11 & 12 in BPS2006
+        weights = correlations * np.sqrt(ratios / total_ratios)
+        # weights: [component, scale, ...]
+        # Calculate the weight of the noise component.
+        # Original BPS2006 method in the following two lines (eq. 13)
+        total_square_weights = np.sum(np.square(weights), axis=0)
+        noise_weight = np.sqrt(1.0 - total_square_weights)
+        # Finally, add the noise_weights to the weights variable.
+        weights = np.concatenate((weights, noise_weight[None, ...]), axis=0)
+
+    # Otherwise, the weight equals the correlation on that scale level and
+    # the noise component weight equals 1 - this weight. This only occurs for
+    # the weights calculation outside the radar domain where in the case of 1
+    # NWP model or ensemble member, no blending of multiple models has to take
+    # place
+    else:
+        noise_weight = 1.0 - correlations
+        weights = np.concatenate((correlations, noise_weight), axis=0)
+
+    return weights
 
 
 def forecast(
@@ -380,7 +855,6 @@ def forecast(
       Time step of the motion vectors (minutes). Required if vel_pert_method is
       not None or mask_method is 'incremental'.
     issuetime: datetime
-      Datetime object containing the date and time for which the forecast
       is issued.
     n_ens_members: int
       The number of ensemble members to generate. This number should always be
@@ -958,18 +1432,20 @@ def forecast(
         )
 
         # 6. Initialize all the random generators and prepare for the forecast loop
-        randgen_precip, velocity_perturbations, generate_vel_noise = (
-            _init_random_generators(
-                velocity,
-                noise_method,
-                vel_pert_method,
-                vp_par,
-                vp_perp,
-                seed,
-                n_ens_members,
-                kmperpixel,
-                timestep,
-            )
+        (
+            randgen_precip,
+            velocity_perturbations,
+            generate_vel_noise,
+        ) = _init_random_generators(
+            velocity,
+            noise_method,
+            vel_pert_method,
+            vp_par,
+            vp_perp,
+            seed,
+            n_ens_members,
+            kmperpixel,
+            timestep,
         )
         (
             previous_displacement,
@@ -2101,89 +2577,6 @@ def forecast(
                 return precip_forecast_all_members_all_times
         else:
             return None
-
-
-def calculate_ratios(correlations):
-    """Calculate explained variance ratios from correlation.
-
-    Parameters
-    ----------
-    Array of shape [component, scale_level, ...]
-      containing correlation (skills) for each component (NWP and nowcast),
-      scale level, and optionally along [y, x] dimensions.
-
-    Returns
-    -------
-    out : numpy array
-      An array containing the ratios of explain variance for each
-      component, scale level, ...
-    """
-    # correlations: [component, scale, ...]
-    square_corrs = np.square(correlations)
-    # Calculate the ratio of the explained variance to the unexplained
-    # variance of the nowcast and NWP model components
-    out = square_corrs / (1 - square_corrs)
-    # out: [component, scale, ...]
-    return out
-
-
-def calculate_weights_bps(correlations):
-    """Calculate BPS blending weights for STEPS blending from correlation.
-
-    Parameters
-    ----------
-    correlations : array-like
-      Array of shape [component, scale_level, ...]
-      containing correlation (skills) for each component (NWP and nowcast),
-      scale level, and optionally along [y, x] dimensions.
-
-    Returns
-    -------
-    weights : array-like
-      Array of shape [component+1, scale_level, ...]
-      containing the weights to be used in STEPS blending for
-      each original component plus an addtional noise component, scale level,
-      and optionally along [y, x] dimensions.
-
-    References
-    ----------
-    :cite:`BPS2006`
-
-    Notes
-    -----
-    The weights in the BPS method can sum op to more than 1.0.
-    """
-    # correlations: [component, scale, ...]
-    # Check if the correlations are positive, otherwise rho = 10e-5
-    correlations = np.where(correlations < 10e-5, 10e-5, correlations)
-
-    # If we merge more than one component with the noise cascade, we follow
-    # the weights impolementation in either :cite:`BPS2006` or :cite:`SPN2013`.
-    if correlations.shape[0] > 1:
-        # Calculate weights for each source
-        ratios = calculate_ratios(correlations)
-        # ratios: [component, scale, ...]
-        total_ratios = np.sum(ratios, axis=0)
-        # total_ratios: [scale, ...] - the denominator of eq. 11 & 12 in BPS2006
-        weights = correlations * np.sqrt(ratios / total_ratios)
-        # weights: [component, scale, ...]
-        # Calculate the weight of the noise component.
-        # Original BPS2006 method in the following two lines (eq. 13)
-        total_square_weights = np.sum(np.square(weights), axis=0)
-        noise_weight = np.sqrt(1.0 - total_square_weights)
-        # Finally, add the noise_weights to the weights variable.
-        weights = np.concatenate((weights, noise_weight[None, ...]), axis=0)
-
-    # Otherwise, the weight equals the correlation on that scale level and
-    # the noise component weight equals 1 - this weight. This only occurs for
-    # the weights calculation outside the radar domain where in the case of 1
-    # NWP model or ensemble member, no blending of multiple models has to take
-    # place
-    else:
-        noise_weight = 1.0 - correlations
-        weights = np.concatenate((correlations, noise_weight), axis=0)
-
-    return weights
 
 
 def calculate_weights_spn(correlations, covariance):

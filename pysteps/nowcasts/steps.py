@@ -341,9 +341,9 @@ class StepsNowcaster:
         if self.__config.measure_time:
             self.__start_time_init = time.time()
 
-        self.__initialize_nowcast_components()
         # Slice the precipitation field to only use the last ar_order + 1 fields
         self.__precip = self.__precip[-(self.__config.ar_order + 1) :, :, :].copy()
+        self.__initialize_nowcast_components()
 
         self.__perform_extrapolation()
         self.__apply_noise_and_ar_model()
@@ -358,9 +358,10 @@ class StepsNowcaster:
         self.__nowcast_main()
 
         if self.__config.measure_time:
-            self.__state.precip_forecast, self.__mainloop_time = (
-                self.__state.precip_forecast
-            )
+            (
+                self.__state.precip_forecast,
+                self.__mainloop_time,
+            ) = self.__state.precip_forecast
 
         # Stack and return the forecast output
         if self.__config.return_output:
@@ -392,8 +393,8 @@ class StepsNowcaster:
         ]  # Extract the last available precipitation field
 
         # Prepare state and params dictionaries, these need to be formatted a specific way for the nowcast_main_loop
-        state = self.__initialize_state()
-        params = self.__initialize_params(precip)
+        state = self.__return_state_dict()
+        params = self.__return_params_dict(precip)
 
         print("Starting nowcast computation.")
 
@@ -589,9 +590,10 @@ class StepsNowcaster:
         )
 
         # Get the decomposition method (e.g., FFT)
-        self.__params.decomposition_method, self.__params.recomposition_method = (
-            cascade.get_method(self.__config.decomposition_method)
-        )
+        (
+            self.__params.decomposition_method,
+            self.__params.recomposition_method,
+        ) = cascade.get_method(self.__config.decomposition_method)
 
         # Get the extrapolation method (e.g., semilagrangian)
         self.__params.extrapolation_method = extrapolation.get_method(
@@ -957,7 +959,7 @@ class StepsNowcaster:
             self.__state.fft_objs.append(fft_obj)
         print("FFT objects initialized successfully.")
 
-    def __initialize_state(self):
+    def __return_state_dict(self):
         """
         Initialize the state dictionary used during the nowcast iteration.
         """
@@ -971,7 +973,7 @@ class StepsNowcaster:
             "randgen_prec": self.__state.random_generator_precip,
         }
 
-    def __initialize_params(self, precip):
+    def __return_params_dict(self, precip):
         """
         Initialize the params dictionary used during the nowcast iteration.
         """
