@@ -54,6 +54,6 @@ test_attrs = [
 
 
 @pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
-def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
+def test_io_import_opera_hdf5_dataset_attrs(variable, expected, tolerance):
     """Test the importer OPERA HDF5."""
     smart_assert(metadata[variable], expected, tolerance)
