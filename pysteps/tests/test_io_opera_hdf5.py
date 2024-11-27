@@ -60,7 +60,6 @@ def test_io_import_opera_hdf5_nimbus_rain_accum_shape():
 
 
 # test_metadata: list of (variable,expected, tolerance) tuples
-
 expected_proj = (
     "+proj=laea +lat_0=55.0 +lon_0=10.0 "
     "+x_0=1950000.0 "
@@ -124,7 +123,7 @@ test_cirrus_attrs = [
 
 @pytest.mark.parametrize("variable, expected, tolerance", test_cirrus_attrs)
 def test_io_import_opera_hdf5_cirrus_dataset_attrs(variable, expected, tolerance):
-    """Test the importer OPERA HDF5."""
+    """Test OPERA HDF5 importer: max. reflectivity composites from CIRRUS."""
     smart_assert(metadata_cirrus[variable], expected, tolerance)
 
 
@@ -156,7 +155,7 @@ test_nimbus_rain_rate_attrs = [
 def test_io_import_opera_hdf5_nimbus_rain_rate_dataset_attrs(
     variable, expected, tolerance
 ):
-    """Test the importer OPERA HDF5."""
+    """Test OPERA HDF5 importer: rain rate composites from NIMBUS."""
     smart_assert(metadata_nimbus_rain_rate[variable], expected, tolerance)
 
 
@@ -188,5 +187,5 @@ test_nimbus_rain_accum_attrs = [
 def test_io_import_opera_hdf5_nimbus_rain_accum_dataset_attrs(
     variable, expected, tolerance
 ):
-    """Test the importer OPERA HDF5."""
+    """Test OPERA HDF5 importer: rain accumulation composites from NIMBUS."""
     smart_assert(metadata_nimbus_rain_accum[variable], expected, tolerance)
