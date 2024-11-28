@@ -141,6 +141,7 @@ class StepsBlendingParams:
     mask_threshold: Any = None
     zero_precip_radar: bool = False
     zero_precip_model_fields: bool = False
+    PHI: Any = None
 
 
 @dataclass
@@ -166,6 +167,7 @@ class StepsBlendingState:
     fft_objs: Any = None
     t_prev_timestep: Any = None
     t_leadtime_since_start_forecast: Any = None
+    precip_noise_input: Any = None
     # Add more state variables as needed
 
 
@@ -220,10 +222,17 @@ class StepsBlendingNowcaster:
         self.__precip = self.__precip[-(self.__config.ar_order + 1) :, :, :].copy()
         self.__initialize_nowcast_components()
         self.__prepare_radar_and_NWP_fields()
+
+        # Determine if rain is present in both radar and NWP fields
         if self.__params.zero_precip_radar and self.__params.zero_precip_model_fields:
             self.__zero_precipitation_forecast()
         else:
-            pass
+            # Prepare the data for the zero precipitation radar case and initialize the noise correctly
+            if self.__params.zero_precip_radar:
+                self.__prepare_nowcast_for_zero_radar()
+            else:
+                self.__state.precip_noise_input = self.__precip.copy()
+            self.__estimate_ar_parameters_radar()
 
     def __check_inputs(self):
         """Validates the inputs and determines if the user provided raw forecasts or decomposed forecasts."""
@@ -482,6 +491,7 @@ class StepsBlendingNowcaster:
     def __prepare_radar_and_NWP_fields(self):
         # determine the precipitation threshold mask
         if self.__config.conditional:
+            # TODO: is this logical_and correct here? Now only those places where precip is in all images is saved?
             self.__params.mask_threshold = np.logical_and.reduce(
                 [
                     self.__precip[i, :, :] >= self.__config.precip_threshold
@@ -507,8 +517,8 @@ class StepsBlendingNowcaster:
             self.__config.num_workers,
         )
 
-        # 2. Perform the cascade decomposition for the input precip fields and
-        # and, if necessary, for the (NWP) model fields
+        # 2. Perform the cascade decomposition for the input precip fields and,
+        # if necessary, for the (NWP) model fields
         # 2.1 Compute the cascade decompositions of the input precipitation fields
         """Compute the cascade decompositions of the input precipitation fields."""
         precip_forecast_decomp = []
@@ -608,6 +618,158 @@ class StepsBlendingNowcaster:
                 return precip_forecast_all_members_all_times
         else:
             return None
+
+    def __prepare_nowcast_for_zero_radar(self):
+        # 2.3.3 If zero_precip_radar, make sure that precip_cascade does not contain
+        # only nans or infs. If so, fill it with the zero value.
+
+        # Look for a timestep and member with rain so that we have a sensible decomposition
+        done = False
+        for t in self.__timesteps:
+            if done:
+                break
+            for j in range(self.__precip_models.shape[0]):
+                if not blending.utils.check_norain(
+                    self.__precip_models[j, t],
+                    self.__config.precip_threshold,
+                    self.__config.norain_threshold,
+                ):
+                    if self.__state.precip_models_cascade is not None:
+                        self.__state.precip_cascade[
+                            ~np.isfinite(self.__state.precip_cascade)
+                        ] = np.nanmin(
+                            self.__state.precip_models_cascade[j, t]["cascade_levels"]
+                        )
+                        continue
+                    precip_models_cascade_temp = self.__params.decomposition_method(
+                        self.__precip_models[j, t, :, :],
+                        bp_filter=self.__params.bandpass_filter,
+                        fft_method=self.__params.fft,
+                        output_domain=self.__config.domain,
+                        normalize=True,
+                        compute_stats=True,
+                        compact_output=True,
+                    )["cascade_levels"]
+                    self.__state.precip_cascade[
+                        ~np.isfinite(self.__state.precip_cascade)
+                    ] = np.nanmin(precip_models_cascade_temp)
+                    done = True
+                    break
+
+        # 2.3.5 If zero_precip_radar is True, only use the velocity field of the NWP
+        # forecast. I.e., velocity (radar) equals velocity_model at the first time
+        # step.
+        # Use the velocity from velocity_models at time step 0
+        self.__velocity = self.__velocity_models[:, 0, :, :, :].astype(
+            np.float64, copy=False
+        )
+        # Take the average over the first axis, which corresponds to n_models
+        # (hence, the model average)
+        self.__velocity = np.mean(self.__velocity, axis=0)
+
+        # 3. Initialize the noise method.
+        # If zero_precip_radar is True, initialize noise based on the NWP field time
+        # step where the fraction of rainy cells is highest (because other lead times
+        # might be zero as well). Else, initialize the noise with the radar
+        # rainfall data
+        """Initialize noise based on the NWP field time step where the fraction of rainy cells is highest"""
+        if self.__config.precip_threshold is None:
+            self.__config.precip_threshold = np.nanmin(self.__precip_models)
+
+        max_rain_pixels = -1
+        max_rain_pixels_j = -1
+        max_rain_pixels_t = -1
+        for j in range(self.__precip_models.shape[0]):
+            for t in self.__timesteps:
+                rain_pixels = self.__precip_models[j][t][
+                    self.__precip_models[j][t] > self.__config.precip_threshold
+                ].size
+                if rain_pixels > max_rain_pixels:
+                    max_rain_pixels = rain_pixels
+                    max_rain_pixels_j = j
+                    max_rain_pixels_t = t
+        self.__state.precip_noise_input = self.__precip_models[max_rain_pixels_j][
+            max_rain_pixels_t
+        ]
+
+        # Make sure precip_noise_input is three-dimensional
+        if len(self.__state.precip_noise_input.shape) != 3:
+            self.__state.precip_noise_input = self.__state.precip_noise_input[
+                np.newaxis, :, :
+            ]
+
+    def __estimate_ar_parameters_radar(self):
+        # 4. Estimate AR parameters for the radar rainfall field
+        """Estimate AR parameters for the radar rainfall field."""
+        # If there are values in the radar fields, compute the auto-correlations
+        GAMMA = np.empty((self.__config.n_cascade_levels, self.__config.ar_order))
+        if not self.__params.zero_precip_radar:
+            # compute lag-l temporal auto-correlation coefficients for each cascade level
+            for i in range(self.__config.n_cascade_levels):
+                GAMMA[i, :] = correlation.temporal_autocorrelation(
+                    self.__state.precip_cascade[i], mask=self.__params.mask_threshold
+                )
+
+        # Else, use standard values for the auto-correlations
+        else:
+            # Get the climatological lag-1 and lag-2 auto-correlation values from Table 2
+            # in `BPS2004`.
+            # Hard coded, change to own (climatological) values when present.
+            # TODO: add user warning here so users can be aware of this without reading the code?
+            GAMMA = np.array(
+                [
+                    [0.99805, 0.9925, 0.9776, 0.9297, 0.796, 0.482, 0.079, 0.0006],
+                    [0.9933, 0.9752, 0.923, 0.750, 0.367, 0.069, 0.0018, 0.0014],
+                ]
+            )
+
+            # Check whether the number of cascade_levels is correct
+            if GAMMA.shape[1] > self.__config.n_cascade_levels:
+                GAMMA = GAMMA[:, 0 : self.__config.n_cascade_levels]
+            elif GAMMA.shape[1] < self.__config.n_cascade_levels:
+                # Get the number of cascade levels that is missing
+                n_extra_lev = self.__config.n_cascade_levels - GAMMA.shape[1]
+                # Append the array with correlation values of 10e-4
+                GAMMA = np.append(
+                    GAMMA,
+                    [np.repeat(0.0006, n_extra_lev), np.repeat(0.0014, n_extra_lev)],
+                    axis=1,
+                )
+
+            # Finally base GAMMA.shape[0] on the AR-level
+            if self.__config.ar_order == 1:
+                GAMMA = GAMMA[0, :]
+            if self.__config.ar_order > 2:
+                for repeat_index in range(self.__config.ar_order - 2):
+                    GAMMA = np.vstack((GAMMA, GAMMA[1, :]))
+
+            # Finally, transpose GAMMA to ensure that the shape is the same as np.empty((n_cascade_levels, ar_order))
+            GAMMA = GAMMA.transpose()
+            assert GAMMA.shape == (
+                self.__config.n_cascade_levels,
+                self.__config.ar_order,
+            )
+
+        # Print the GAMMA value
+        nowcast_utils.print_corrcoefs(GAMMA)
+
+        if self.__config.ar_order == 2:
+            # adjust the lag-2 correlation coefficient to ensure that the AR(p)
+            # process is stationary
+            for i in range(self.__config.n_cascade_levels):
+                GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(
+                    GAMMA[i, 0], GAMMA[i, 1]
+                )
+
+        # estimate the parameters of the AR(p) model from the auto-correlation
+        # coefficients
+        self.__params.PHI = np.empty(
+            (self.__config.n_cascade_levels, self.__config.ar_order + 1)
+        )
+        for i in range(self.__config.n_cascade_levels):
+            self.__params.PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
+
+        nowcast_utils.print_ar_params(self.__params.PHI)
 
     def __perform_extrapolation(self):
         pass
