@@ -84,7 +84,7 @@ class StepsBlendingConfig:
     noise_method: Optional[str]
     noise_stddev_adj: Optional[str]
     ar_order: int
-    vel_pert_method: Optional[str]
+    velocity_perturbation_method: Optional[str]
     weights_method: str
     conditional: bool
     probmatching_method: Optional[str]
@@ -115,14 +115,16 @@ class StepsBlendingParams:
     sigma_extrapolation: np.ndarray  # Std devs of extrapolated cascades
     bandpass_filter: Any  # Band-pass filter object
     fft: Any  # FFT method object
-    generate_perturb: Callable  # Perturbation generator
-    generate_noise: Callable  # Noise generator
+    perturbation_generator: Callable  # Perturbation generator
+    noise_generator: Callable  # Noise generator
     generate_vel_noise: Optional[Callable]  # Velocity noise generator
     extrapolation_method: Any = None
     decomposition_method: Any = None
     recomposition_method: Any = None
-    vp_par: Optional[np.ndarray] = None  # Velocity perturbation parameters (parallel)
-    vp_perp: Optional[np.ndarray] = (
+    velocity_perturbations_parallel: Optional[np.ndarray] = (
+        None  # Velocity perturbation parameters (parallel)
+    )
+    velocity_perturbations_perpendicular: Optional[np.ndarray] = (
         None  # Velocity perturbation parameters (perpendicular)
     )
     fft_objs: List[Any] = field(
@@ -146,17 +148,14 @@ class StepsBlendingParams:
 
 @dataclass
 class StepsBlendingState:
-    precip_cascade: Any = None
+    precip_cascades: Any = None
     mu_extrapolation: Any = None
     sigma_extrapolation: Any = None
-    precip_models_cascade: Any = None
-    generate_perturb: Any = None
-    generate_noise: Any = None
-    noise_std_coeffs: Any = None
+    precip_models_cascades: Any = None
     PHI: Any = None
     randgen_precip: Any = None
     velocity_perturbations: Any = None
-    generate_vel_noise: Any = None
+    generate_velocity_noise: Any = None
     previous_displacement: Any = None
     previous_displacement_noise_cascade: Any = None
     previous_displacement_prob_matching: Any = None
@@ -168,6 +167,9 @@ class StepsBlendingState:
     t_prev_timestep: Any = None
     t_leadtime_since_start_forecast: Any = None
     precip_noise_input: Any = None
+    precip_noise_cascade: Any = None
+    precip_mean_noise: Any = None
+    precip_std_noise: Any = None
     # Add more state variables as needed
 
 
@@ -232,7 +234,12 @@ class StepsBlendingNowcaster:
                 self.__prepare_nowcast_for_zero_radar()
             else:
                 self.__state.precip_noise_input = self.__precip.copy()
+            self.__initialize_noise()
             self.__estimate_ar_parameters_radar()
+            self.__multiply_precip_cascade_to_match_ensemble_members()
+            self.__initialize_random_generators()
+            self.__prepare_forecast_loop()
+            self.__initialize_noise_cascade()
 
     def __check_inputs(self):
         """Validates the inputs and determines if the user provided raw forecasts or decomposed forecasts."""
@@ -355,14 +362,18 @@ class StepsBlendingNowcaster:
             )
 
         if self.__config.kmperpixel is None:
-            if self.__config.vel_pert_method is not None:
-                raise ValueError("vel_pert_method is set but kmperpixel=None")
+            if self.__config.velocity_perturbation_method is not None:
+                raise ValueError(
+                    "velocity_perturbation_method is set but kmperpixel=None"
+                )
             if self.__config.mask_method == "incremental":
                 raise ValueError("mask_method='incremental' but kmperpixel=None")
 
         if self.__config.timestep is None:
-            if self.__config.vel_pert_method is not None:
-                raise ValueError("vel_pert_method is set but timestep=None")
+            if self.__config.velocity_perturbation_method is not None:
+                raise ValueError(
+                    "velocity_perturbation_method is set but timestep=None"
+                )
             if self.__config.mask_method == "incremental":
                 raise ValueError("mask_method='incremental' but timestep=None")
 
@@ -401,7 +412,9 @@ class StepsBlendingNowcaster:
         print(
             f"noise adjustment:            {'yes' if self.__config.noise_stddev_adj else 'no'}"
         )
-        print(f"velocity perturbator:        {self.__config.vel_pert_method}")
+        print(
+            f"velocity perturbator:        {self.__config.velocity_perturbation_method}"
+        )
         print(f"blending weights method:     {self.__config.weights_method}")
         print(
             f"conditional statistics:      {'yes' if self.__config.conditional else 'no'}"
@@ -422,19 +435,28 @@ class StepsBlendingNowcaster:
         print(f"parallel threads:            {self.__config.num_workers}")
         print(f"number of cascade levels:    {self.__config.n_cascade_levels}")
         print(f"order of the AR(p) model:    {self.__config.ar_order}")
-        if self.__config.vel_pert_method == "bps":
-            vp_par = self.__config.vel_pert_kwargs.get(
-                "p_par", noise.motion.get_default_params_bps_par()
+        if self.__config.velocity_perturbation_method == "bps":
+            self.__params.velocity_perturbations_parallel = (
+                self.__config.vel_pert_kwargs.get(
+                    "p_par", noise.motion.get_default_params_bps_par()
+                )
             )
-            vp_perp = self.__config.vel_pert_kwargs.get(
-                "p_perp", noise.motion.get_default_params_bps_perp()
+            self.__params.velocity_perturbations_perpendicular = (
+                self.__config.vel_pert_kwargs.get(
+                    "p_perp", noise.motion.get_default_params_bps_perp()
+                )
             )
-            print(f"vel. pert., parallel:        {vp_par[0]},{vp_par[1]},{vp_par[2]}")
             print(
-                f"vel. pert., perpendicular:   {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
+                f"vel. pert., parallel:        {self.__params.velocity_perturbations_parallel[0]},{self.__params.velocity_perturbations_parallel[1]},{self.__params.velocity_perturbations_parallel[2]}"
+            )
+            print(
+                f"vel. pert., perpendicular:   {self.__params.velocity_perturbations_perpendicular[0]},{self.__params.velocity_perturbations_perpendicular[1]},{self.__params.velocity_perturbations_perpendicular[2]}"
             )
         else:
-            vp_par, vp_perp = None, None
+            (
+                self.__params.velocity_perturbations_parallel,
+                self.__params.velocity_perturbations_perpendicular,
+            ) = (None, None)
 
         if self.__config.conditional or self.__config.mask_method is not None:
             print(f"precip. intensity threshold: {self.__config.precip_threshold}")
@@ -537,7 +559,7 @@ class StepsBlendingNowcaster:
 
         # Rearrange the cascaded into a four-dimensional array of shape
         # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-        self.__state.precip_cascade = nowcast_utils.stack_cascades(
+        self.__state.precip_cascades = nowcast_utils.stack_cascades(
             precip_forecast_decomp, self.__config.n_cascade_levels
         )
 
@@ -546,10 +568,10 @@ class StepsBlendingNowcaster:
         self.__state.sigma_extrapolation = np.array(precip_forecast_decomp["stds"])
 
         # 2.2 If necessary, recompose (NWP) model forecasts
-        self.__state.precip_models_cascade = None
+        self.__state.precip_models_cascades = None
 
         if self.__precip_models.ndim != 4:
-            self.__state.precip_models_cascade = self.__precip_models
+            self.__state.precip_models_cascades = self.__precip_models
             self.__precip_models = _compute_cascade_recomposition_nwp(
                 self.__precip_models, self.__params.recomposition_method
             )
@@ -634,11 +656,11 @@ class StepsBlendingNowcaster:
                     self.__config.precip_threshold,
                     self.__config.norain_threshold,
                 ):
-                    if self.__state.precip_models_cascade is not None:
-                        self.__state.precip_cascade[
-                            ~np.isfinite(self.__state.precip_cascade)
+                    if self.__state.precip_models_cascades is not None:
+                        self.__state.precip_cascades[
+                            ~np.isfinite(self.__state.precip_cascades)
                         ] = np.nanmin(
-                            self.__state.precip_models_cascade[j, t]["cascade_levels"]
+                            self.__state.precip_models_cascades[j, t]["cascade_levels"]
                         )
                         continue
                     precip_models_cascade_temp = self.__params.decomposition_method(
@@ -650,8 +672,8 @@ class StepsBlendingNowcaster:
                         compute_stats=True,
                         compact_output=True,
                     )["cascade_levels"]
-                    self.__state.precip_cascade[
-                        ~np.isfinite(self.__state.precip_cascade)
+                    self.__state.precip_cascades[
+                        ~np.isfinite(self.__state.precip_cascades)
                     ] = np.nanmin(precip_models_cascade_temp)
                     done = True
                     break
@@ -698,6 +720,61 @@ class StepsBlendingNowcaster:
                 np.newaxis, :, :
             ]
 
+    def __initialize_noise(self):
+        """Initialize the noise method."""
+        if self.__config.noise_method is not None:
+            # get methods for perturbations
+            init_noise, self.__params.noise_generator = noise.get_method(
+                self.__config.noise_method
+            )
+
+            # initialize the perturbation generator for the precipitation field
+            self.__params.perturbation_generator = init_noise(
+                self.__precip,
+                fft_method=self.__params.fft,
+                **self.__config.noise_kwargs,
+            )
+
+            if self.__config.noise_stddev_adj == "auto":
+                print("Computing noise adjustment coefficients... ", end="", flush=True)
+                if self.__config.measure_time:
+                    starttime = time.time()
+
+                precip_forecast_min = np.min(self.__precip)
+                self.__params.noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(
+                    self.__precip[-1, :, :],
+                    self.__config.precip_threshold,
+                    precip_forecast_min,
+                    self.__params.bandpass_filter,
+                    self.__params.decomposition_method,
+                    self.__params.perturbation_generator,
+                    self.__params.noise_generator,
+                    20,
+                    conditional=True,
+                    num_workers=self.__config.num_workers,
+                    seed=self.__config.seed,
+                )
+
+                if self.__config.measure_time:
+                    print(f"{time.time() - starttime:.2f} seconds.")
+                else:
+                    print("done.")
+            elif self.__config.noise_stddev_adj == "fixed":
+                f = lambda k: 1.0 / (0.75 + 0.09 * k)
+                self.__params.noise_std_coeffs = [
+                    f(k) for k in range(1, self.__config.n_cascade_levels + 1)
+                ]
+            else:
+                self.__params.noise_std_coeffs = np.ones(self.__config.n_cascade_levels)
+
+            if self.__params.noise_stddev_adj is not None:
+                print(f"noise std. dev. coeffs:   {self.__params.noise_std_coeffs}")
+
+        else:
+            self.__params.perturbation_generator = None
+            self.__params.noise_generator = None
+            self.__params.noise_std_coeffs = None
+
     def __estimate_ar_parameters_radar(self):
         # 4. Estimate AR parameters for the radar rainfall field
         """Estimate AR parameters for the radar rainfall field."""
@@ -707,7 +784,7 @@ class StepsBlendingNowcaster:
             # compute lag-l temporal auto-correlation coefficients for each cascade level
             for i in range(self.__config.n_cascade_levels):
                 GAMMA[i, :] = correlation.temporal_autocorrelation(
-                    self.__state.precip_cascade[i], mask=self.__params.mask_threshold
+                    self.__state.precip_cascades[i], mask=self.__params.mask_threshold
                 )
 
         # Else, use standard values for the auto-correlations
@@ -770,6 +847,147 @@ class StepsBlendingNowcaster:
             self.__params.PHI[i, :] = autoregression.estimate_ar_params_yw(GAMMA[i, :])
 
         nowcast_utils.print_ar_params(self.__params.PHI)
+
+    def __multiply_precip_cascade_to_match_ensemble_members(self):
+        # 5. Repeat precip_cascade for n ensemble members
+        # First, discard all except the p-1 last cascades because they are not needed
+        # for the AR(p) model
+
+        self.__state.precip_cascades = np.stack(
+            [
+                [
+                    self.__state.precip_cascades[i][-self.__config.ar_order :].copy()
+                    for i in range(self.__config.n_cascade_levels)
+                ]
+            ]
+            * self.__config.n_ens_members
+        )
+
+    def __initialize_random_generators(self):
+        # 6. Initialize all the random generators and prepare for the forecast loop
+        """Initialize all the random generators."""
+        # TODO: randgen_motion and randgen_precip are not defined if no noise method is given? Should we end the program in that case?
+        if self.__config.noise_method is not None:
+            self.__state.randgen_precip = []
+            randgen_motion = []
+            for j in range(self.__config.n_ens_members):
+                rs = np.random.RandomState(self.__config.seed)
+                self.__state.randgen_precip.append(rs)
+                seed = rs.randint(0, high=1e9)
+                rs = np.random.RandomState(seed)
+                randgen_motion.append(rs)
+                seed = rs.randint(0, high=1e9)
+
+        if self.__config.velocity_perturbation_method is not None:
+            (
+                init_velocity_noise,
+                self.__state.generate_velocity_noise,
+            ) = noise.get_method(self.__config.velocity_perturbation_method)
+
+            # initialize the perturbation generators for the motion field
+            self.__state.velocity_perturbations = []
+            for j in range(self.__config.n_ens_members):
+                kwargs = {
+                    "randstate": randgen_motion[j],
+                    "p_par": self.__params.velocity_perturbations_parallel,
+                    "p_perp": self.__params.velocity_perturbations_perpendicular,
+                }
+                vp_ = init_velocity_noise(
+                    self.__velocity,
+                    1.0 / self.__config.kmperpixel,
+                    self.__config.timestep,
+                    **kwargs,
+                )
+                self.__state.velocity_perturbations.append(vp_)
+        else:
+            (
+                self.__state.velocity_perturbations,
+                self.__state.generate_velocity_noise,
+            ) = (None, None)
+
+    def __prepare_forecast_loop(self):
+        """Prepare for the forecast loop."""
+        # Empty arrays for the previous displacements and the forecast cascade
+        self.__state.previous_displacement = np.stack(
+            [None for j in range(self.__config.n_ens_members)]
+        )
+        self.__state.previous_displacement_noise_cascade = np.stack(
+            [None for j in range(self.__config.n_ens_members)]
+        )
+        self.__state.previous_displacement_prob_matching = np.stack(
+            [None for j in range(self.__config.n_ens_members)]
+        )
+        self.__state.precip_forecast = [[] for j in range(self.__config.n_ens_members)]
+
+        if self.__config.mask_method == "incremental":
+            # get mask parameters
+            self.__state.mask_rim = self.__config.mask_kwargs.get("mask_rim", 10)
+            mask_f = self.__config.mask_kwargs.get("mask_f", 1.0)
+            # initialize the structuring element
+            struct = generate_binary_structure(2, 1)
+            # iterate it to expand it nxn
+            n = mask_f * self.__config.timestep / self.__config.kmperpixel
+            self.__state.struct = iterate_structure(struct, int((n - 1) / 2.0))
+        else:
+            self.__state.mask_rim, self.__state.struct = None, None
+
+        if self.__config.noise_method is None:
+            self.__state.precip_forecast_non_perturbed = [
+                self.__state.precip_cascades[0][i].copy()
+                for i in range(self.__config.n_cascade_levels)
+            ]
+        else:
+            self.__state.precip_forecast_non_perturbed = None
+
+        self.__state.fft_objs = []
+        for i in range(self.__config.n_ens_members):
+            self.__state.fft_objs.append(
+                utils.get_method(
+                    self.__config.fft_method,
+                    shape=self.__state.precip_cascades.shape[-2:],
+                )
+            )
+
+    def __initialize_noise_cascade(self):
+        """Initialize the noise cascade with identical noise for all AR(n) steps
+        We also need to return the mean and standard deviations of the noise
+        for the recombination of the noise before advecting it.
+        """
+        self.__state.precip_noise_cascade = np.zeros(self.__state.precip_cascades.shape)
+        self.__state.precip_mean_noise = np.zeros(
+            (self.__config.n_ens_members, self.__config.n_cascade_levels)
+        )
+        self.__state.precip_std_noise = np.zeros(
+            (self.__config.n_ens_members, self.__config.n_cascade_levels)
+        )
+        if self.__config.noise_method:
+            for j in range(self.__config.n_ens_members):
+                # TODO: check rest later, starts at #3 so should look above what these terms match to
+                epsilon = self.__params.noise_generator(
+                    self.__params.perturbation_generator,
+                    randstate=self.__state.randgen_precip[j],
+                    fft_method=self.__state.fft_objs[j],
+                    domain=self.__config.domain,
+                )
+                epsilon_decomposed = self.__params.decomposition_method(
+                    epsilon,
+                    self.__params.bandpass_filter,
+                    fft_method=self.__state.fft_objs[j],
+                    input_domain=self.__config.domain,
+                    output_domain=self.__config.domain,
+                    compute_stats=True,
+                    normalize=True,
+                    compact_output=True,
+                )
+                self.__state.precip_mean_noise[j] = epsilon_decomposed["means"]
+                self.__state.precip_std_noise[j] = epsilon_decomposed["stds"]
+                for i in range(self.__config.n_cascade_levels):
+                    epsilon_temp = epsilon_decomposed["cascade_levels"][i]
+                    epsilon_temp *= self.__params.noise_std_coeffs[i]
+                    for n in range(self.__config.ar_order):
+                        self.__state.precip_noise_cascade[j][i][n] = epsilon_temp
+                epsilon_decomposed = None
+                epsilon_temp = None
 
     def __perform_extrapolation(self):
         pass
