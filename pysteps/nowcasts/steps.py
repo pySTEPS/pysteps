@@ -352,11 +352,14 @@ class StepsNowcaster:
         self.__initialize_fft_objects()
         # Measure and print initialization time
         if self.__config.measure_time:
-            self.__measure_time("Initialization", self.__start_time_init)
+            self.__init_time = self.__measure_time(
+                "Initialization", self.__start_time_init
+            )
 
         # Run the main nowcast loop
         self.__nowcast_main()
 
+        # Unstack nowcast output if return_output is True
         if self.__config.measure_time:
             (
                 self.__state.precip_forecast,
@@ -387,7 +390,7 @@ class StepsNowcaster:
         Main nowcast loop that iterates through the ensemble members and time steps
         to generate forecasts.
         """
-        # Isolate the last time slice of precipitation
+        # Isolate the last time slice of observed precipitation
         precip = self.__precip[
             -1, :, :
         ]  # Extract the last available precipitation field
@@ -717,7 +720,7 @@ class StepsNowcaster:
 
                 # Measure and print time taken
                 if self.__config.measure_time:
-                    self.__measure_time(
+                    __ = self.__measure_time(
                         "Noise adjustment coefficient computation", starttime
                     )
                 else:
@@ -1198,6 +1201,8 @@ class StepsNowcaster:
         if self.__config.measure_time:
             elapsed_time = time.time() - start_time
             print(f"{label} took {elapsed_time:.2f} seconds.")
+            return elapsed_time
+        return None
 
     def reset_states_and_params(self):
         """
