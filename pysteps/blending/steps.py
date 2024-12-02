@@ -255,7 +255,7 @@ class StepsBlendingNowcaster:
             self.__multiply_precip_cascade_to_match_ensemble_members()
             self.__initialize_random_generators()
             self.__prepare_forecast_loop()
-            self.__initialize_noise_cascade()
+            self.__initialize_noise_cascades()
             if self.__config.measure_time:
                 self.__init_time = self.__measure_time(
                     "initialization", self.__start_time_init
@@ -1045,7 +1045,7 @@ class StepsBlendingNowcaster:
             1.0 - self.__params.PHI[:, 1]
         )
 
-    def __initialize_noise_cascade(self):
+    def __initialize_noise_cascades(self):
         """Initialize the noise cascade with identical noise for all AR(n) steps
         We also need to return the mean and standard deviations of the noise
         for the recombination of the noise before advecting it.
