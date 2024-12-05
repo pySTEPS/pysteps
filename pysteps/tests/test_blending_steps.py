@@ -9,6 +9,7 @@ import pysteps
 from pysteps import blending, cascade
 
 steps_arg_values = [
+    # Test the case where both the radar image and the NWP fields contain no rain.
     (1, 3, 4, 8, None, None, False, "spn", True, 4, False, False, 0, False),
     (1, 3, 4, 8, "obs", None, False, "spn", True, 4, False, False, 0, False),
     (1, 3, 4, 8, "incremental", None, False, "spn", True, 4, False, False, 0, False),
@@ -35,7 +36,6 @@ steps_arg_values = [
     #   Test the case where the NWP fields contain no rain.
     (1, 3, 6, 8, None, None, False, "spn", True, 6, False, True, 0, False),
     (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, False, True, 0, True),
-    # Test the case where both the radar image and the NWP fields contain no rain.
     (1, 3, 6, 8, None, None, False, "spn", True, 6, True, True, 0, False),
     (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, True, 0, False),
     (5, 3, 5, 6, "obs", "mean", True, "spn", True, 5, True, True, 0, False),
