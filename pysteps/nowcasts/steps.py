@@ -19,7 +19,6 @@ from pysteps import cascade
 from pysteps import extrapolation
 from pysteps import noise
 from pysteps import utils
-from pysteps.decorators import deprecate_args
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation

@@ -180,11 +180,11 @@ class StepsBlendingState:
     subtimesteps: Any = None
     is_nowcast_time_step: bool = None
     # Variables to save data over (sub)time steps
-    precip_models_cascades_temp: Any = None
-    precip_models_temp: Any = None
-    mean_models_temp: Any = None
-    std_models_temp: Any = None
-    velocity_models_temp: Any = None
+    precip_models_cascades_timestep: Any = None
+    precip_models_timestep: Any = None
+    mean_models_timestep: Any = None
+    std_models_timestep: Any = None
+    velocity_models_timestep: Any = None
     n_model_indices: Optional[np.ndarray] = None  # NWP model indices
     rho_forecast: Any = None
     weights: Any = None
@@ -194,6 +194,16 @@ class StepsBlendingState:
     precip_forecast_extrapolated_probability_matching: Any = None
     precip_forecast_prev_subtimestep: Any = None
     noise_prev_subtimestep: Any = None
+    final_blended_forecast_single_member: Any = None
+    means_blended: Any = None
+    sigmas_blended: Any = None
+    means_blended_mod_only: Any = None
+    sigmas_blended_mod_only: Any = None
+    precip_forecast_blended: Any = None
+    precip_forecast_blended_mod_only: Any = None
+    precip_forecast_recomposed: Any = None
+    precip_forecast_recomposed_mod_only: Any = None
+    t_index: Any = None
 
 
 class StepsBlendingNowcaster:
@@ -295,7 +305,8 @@ class StepsBlendingNowcaster:
         # 8. Start the forecasting loop
         ###
         # Isolate the last time slice of observed precipitation
-        precip = self.__precip[-1, :, :]
+        # TODO: This precip was "precip = self.__precip[-1, :, :]", changed to self.__precip = self.__precip[-1, :, :]. Might need to chage again and user local variable precip in all following functions
+        self.__precip = self.__precip[-1, :, :]
         print("Starting blended nowcast computation.")
 
         if self.__config.measure_time:
@@ -335,14 +346,17 @@ class StepsBlendingNowcaster:
                     t, j
                 )
                 # 8.5 Blend the cascades
-                final_blended_forecast_single_member = []
+                self.__state.final_blended_forecast_single_member = []
                 for t_sub in self.__state.subtimesteps:
                     # TODO: does it make sense to use sub time steps - check if it works?
                     if t_sub > 0:
-                        self.__blend_cascades()
-                        self.__recompose_cascade_to_rainfall_field()
-                        self.__post_process_output(final_blended_forecast_single_member)
-                precip_forecast_workers[j] = final_blended_forecast_single_member
+                        self.__blend_cascades(t_sub, j)
+                        self.__recompose_cascade_to_rainfall_field(j)
+                        # TODO: could be I need to return and ave final_blended_forecast_single_member
+                        self.__post_process_output(j)
+                precip_forecast_workers[j] = (
+                    self.__state.final_blended_forecast_single_member
+                )
 
             result = []
 
@@ -706,6 +720,7 @@ class StepsBlendingNowcaster:
         # 2.2 If necessary, recompose (NWP) model forecasts
         self.__state.precip_models_cascades = None
 
+        # TODO: This type of check needs to be changed when going to xarray
         if self.__precip_models.ndim != 4:
             self.__state.precip_models_cascades = self.__precip_models
             self.__precip_models = _compute_cascade_recomposition_nwp(
@@ -799,7 +814,7 @@ class StepsBlendingNowcaster:
                             self.__state.precip_models_cascades[j, t]["cascade_levels"]
                         )
                         continue
-                    precip_models_cascade_temp = self.__params.decomposition_method(
+                    precip_models_cascade_timestep = self.__params.decomposition_method(
                         self.__precip_models[j, t, :, :],
                         bp_filter=self.__params.bandpass_filter,
                         fft_method=self.__params.fft,
@@ -810,7 +825,7 @@ class StepsBlendingNowcaster:
                     )["cascade_levels"]
                     self.__state.precip_cascades[
                         ~np.isfinite(self.__state.precip_cascades)
-                    ] = np.nanmin(precip_models_cascade_temp)
+                    ] = np.nanmin(precip_models_cascade_timestep)
                     done = True
                     break
 
@@ -903,7 +918,7 @@ class StepsBlendingNowcaster:
             else:
                 self.__params.noise_std_coeffs = np.ones(self.__config.n_cascade_levels)
 
-            if self.__params.noise_stddev_adj is not None:
+            if self.__config.noise_stddev_adj is not None:
                 print(f"noise std. dev. coeffs:   {self.__params.noise_std_coeffs}")
 
         else:
@@ -1189,13 +1204,13 @@ class StepsBlendingNowcaster:
                         list(self.__precip_models[:, t, :, :]),
                     )
 
-        self.__state.precip_models_cascades_temp = np.array(
+        self.__state.precip_models_cascades_timestep = np.array(
             [decomp["cascade_levels"] for decomp in decomp_precip_models]
         )
-        self.__state.mean_models_temp = np.array(
+        self.__state.mean_models_timestep = np.array(
             [decomp["means"] for decomp in decomp_precip_models]
         )
-        self.__state.std_models_temp = np.array(
+        self.__state.std_models_timestep = np.array(
             [decomp["stds"] for decomp in decomp_precip_models]
         )
 
@@ -1205,21 +1220,25 @@ class StepsBlendingNowcaster:
 
         """Ensure that the NWP cascade and fields do no contain any nans or infinite number"""
         # Fill nans and infinite numbers with the minimum value present in precip
-        self.__state.precip_models_temp = self.__precip_models[:, t, :, :].astype(
+        self.__state.precip_models_timestep = self.__precip_models[:, t, :, :].astype(
             np.float64, copy=False
         )  # (corresponding to zero rainfall in the radar observations)
         min_cascade = np.nanmin(self.__state.precip_cascades)
         min_precip = np.nanmin(self.__precip)
-        self.__state.precip_models_cascades_temp[
-            ~np.isfinite(self.__state.precip_models_cascades_temp)
+        self.__state.precip_models_cascades_timestep[
+            ~np.isfinite(self.__state.precip_models_cascades_timestep)
         ] = min_cascade
-        self.__state.precip_models_temp[
-            ~np.isfinite(self.__state.precip_models_temp)
+        self.__state.precip_models_timestep[
+            ~np.isfinite(self.__state.precip_models_timestep)
         ] = min_precip
         # Also set any nans or infs in the mean and sigma of the cascade to
         # respectively 0.0 and 1.0
-        self.__state.mean_models_temp[~np.isfinite(self.__state.mean_models_temp)] = 0.0
-        self.__state.std_models_temp[~np.isfinite(self.__state.std_models_temp)] = 0.0
+        self.__state.mean_models_timestep[
+            ~np.isfinite(self.__state.mean_models_timestep)
+        ] = 0.0
+        self.__state.std_models_timestep[
+            ~np.isfinite(self.__state.std_models_timestep)
+        ] = 0.0
 
     def __find_nowcast_NWP_combination(self, t):
         # 8.1.1 Before calling the worker for the forecast loop, determine which (NWP)
@@ -1231,11 +1250,11 @@ class StepsBlendingNowcaster:
         With the way it is implemented at this moment: n_ens_members of the output equals
         the maximum number of (ensemble) members in the input (either the nowcasts or NWP).
         """
-        self.__state.velocity_models_temp = self.__velocity_models[
+        self.__state.velocity_models_timestep = self.__velocity_models[
             :, t, :, :, :
         ].astype(np.float64, copy=False)
         # Make sure the number of model members is not larger than or equal to n_ens_members
-        n_model_members = self.__state.precip_models_cascades_temp.shape[0]
+        n_model_members = self.__state.precip_models_cascades_timestep.shape[0]
         if n_model_members > self.__config.n_ens_members:
             raise ValueError(
                 "The number of NWP model members is larger than the given number of ensemble members. n_model_members <= n_ens_members."
@@ -1269,23 +1288,23 @@ class StepsBlendingNowcaster:
             # member 5, etc.), until 10 is reached.
             if n_ens_members_min != n_ens_members_max:
                 if n_model_members == 1:
-                    self.__state.precip_models_cascades_temp = np.repeat(
-                        self.__state.precip_models_cascades_temp,
+                    self.__state.precip_models_cascades_timestep = np.repeat(
+                        self.__state.precip_models_cascades_timestep,
                         n_ens_members_max,
                         axis=0,
                     )
-                    self.__state.mean_models_temp = np.repeat(
-                        self.__state.mean_models_temp, n_ens_members_max, axis=0
+                    self.__state.mean_models_timestep = np.repeat(
+                        self.__state.mean_models_timestep, n_ens_members_max, axis=0
                     )
-                    self.__state.std_models_temp = np.repeat(
-                        self.__state.std_models_temp, n_ens_members_max, axis=0
+                    self.__state.std_models_timestep = np.repeat(
+                        self.__state.std_models_timestep, n_ens_members_max, axis=0
                     )
-                    self.__state.velocity_models_temp = np.repeat(
-                        self.__state.velocity_models_temp, n_ens_members_max, axis=0
+                    self.__state.velocity_models_timestep = np.repeat(
+                        self.__state.velocity_models_timestep, n_ens_members_max, axis=0
                     )
                     # For the prob. matching
-                    self.__state.precip_models_temp = np.repeat(
-                        self.__state.precip_models_temp, n_ens_members_max, axis=0
+                    self.__state.precip_models_timestep = np.repeat(
+                        self.__state.precip_models_timestep, n_ens_members_max, axis=0
                     )
                     # Finally, for the model indices
                     self.__state.n_model_indices = np.repeat(
@@ -1298,21 +1317,23 @@ class StepsBlendingNowcaster:
                         for i in range(n_ens_members_min)
                     ]
                     if n_model_members == n_ens_members_min:
-                        self.__state.precip_models_cascades_temp = np.repeat(
-                            self.__state.precip_models_cascades_temp, repeats, axis=0
+                        self.__state.precip_models_cascades_timestep = np.repeat(
+                            self.__state.precip_models_cascades_timestep,
+                            repeats,
+                            axis=0,
                         )
-                        self.__state.mean_models_temp = np.repeat(
-                            self.__state.mean_models_temp, repeats, axis=0
+                        self.__state.mean_models_timestep = np.repeat(
+                            self.__state.mean_models_timestep, repeats, axis=0
                         )
-                        self.__state.std_models_temp = np.repeat(
-                            self.__state.std_models_temp, repeats, axis=0
+                        self.__state.std_models_timestep = np.repeat(
+                            self.__state.std_models_timestep, repeats, axis=0
                         )
-                        self.__state.velocity_models_temp = np.repeat(
-                            self.__state.velocity_models_temp, repeats, axis=0
+                        self.__state.velocity_models_timestep = np.repeat(
+                            self.__state.velocity_models_timestep, repeats, axis=0
                         )
                         # For the prob. matching
-                        self.__state.precip_models_temp = np.repeat(
-                            self.__state.precip_models_temp, repeats, axis=0
+                        self.__state.precip_models_timestep = np.repeat(
+                            self.__state.precip_models_timestep, repeats, axis=0
                         )
                         # Finally, for the model indices
                         self.__state.n_model_indices = np.repeat(
@@ -1325,7 +1346,7 @@ class StepsBlendingNowcaster:
         if self.__params.zero_precip_radar:
             # Use the velocity from velocity_models and take the average over
             # n_models (axis=0)
-            self.__velocity = np.mean(self.__state.velocity_models_temp, axis=0)
+            self.__velocity = np.mean(self.__state.velocity_models_timestep, axis=0)
 
     def __determine_skill_for_current_timestep(self, t):
         if t == 0:
@@ -1334,18 +1355,22 @@ class StepsBlendingNowcaster:
             self.__params.rho_nwp_models = [
                 blending.skill_scores.spatial_correlation(
                     obs=self.__state.precip_cascades[0, :, -1, :, :].copy(),
-                    mod=self.__state.precip_models_cascades_temp[
+                    mod=self.__state.precip_models_cascades_timestep[
                         n_model, :, :, :
                     ].copy(),
                     domain_mask=self.__params.domain_mask,
                 )
-                for n_model in range(self.__state.precip_models_cascades_temp.shape[0])
+                for n_model in range(
+                    self.__state.precip_models_cascades_timestep.shape[0]
+                )
             ]
             self.__params.rho_nwp_models = np.stack(self.__params.rho_nwp_models)
 
             # Ensure that the model skill decreases with increasing scale level.
-            for n_model in range(self.__state.precip_models_cascades_temp.shape[0]):
-                for i in range(1, self.__state.precip_models_cascades_temp.shape[1]):
+            for n_model in range(self.__state.precip_models_cascades_timestep.shape[0]):
+                for i in range(
+                    1, self.__state.precip_models_cascades_timestep.shape[1]
+                ):
                     if (
                         self.__params.rho_nwp_models[n_model, i]
                         > self.__params.rho_nwp_models[n_model, i - 1]
@@ -1398,7 +1423,7 @@ class StepsBlendingNowcaster:
                 lt=(t * int(self.__config.timestep)),
                 correlations=self.__params.rho_nwp_models[j],
                 outdir_path=self.__config.outdir_path_skill,
-                n_model=self.__params.n_model_indices[j],
+                n_model=self.__state.n_model_indices[j],
                 skill_kwargs=self.__config.clim_kwargs,
             )
             # Concatenate rho_extrap_cascade and rho_nwp
@@ -1430,11 +1455,11 @@ class StepsBlendingNowcaster:
             # determined after the extrapolation step in this method.
             if (
                 self.__config.blend_nwp_members
-                and self.__state.precip_models_cascades_temp.shape[0] > 1
+                and self.__state.precip_models_cascades_timestep.shape[0] > 1
             ):
                 self.__state.weights_model_only = np.zeros(
                     (
-                        self.__state.precip_models_cascades_temp.shape[0] + 1,
+                        self.__state.precip_models_cascades_timestep.shape[0] + 1,
                         self.__config.n_cascade_levels,
                     )
                 )
@@ -1444,11 +1469,13 @@ class StepsBlendingNowcaster:
                     covariance_nwp_models = np.corrcoef(
                         np.stack(
                             [
-                                self.__state.precip_models_cascades_temp[
+                                self.__state.precip_models_cascades_timestep[
                                     n_model, i, :, :
                                 ].flatten()
                                 for n_model in range(
-                                    self.__state.precip_models_cascades_temp.shape[0]
+                                    self.__state.precip_models_cascades_timestep.shape[
+                                        0
+                                    ]
                                 )
                             ]
                         )
@@ -1618,12 +1645,12 @@ class StepsBlendingNowcaster:
                     velocity_stack_all = np.concatenate(
                         (
                             velocity_perturbations_extrapolation[None, :, :, :],
-                            self.__state.velocity_models_temp,
+                            self.__state.velocity_models_timestep,
                         ),
                         axis=0,
                     )
                 else:
-                    velocity_models = self.__state.velocity_models_temp[j]
+                    velocity_models = self.__state.velocity_models_timestep[j]
                     velocity_stack_all = np.concatenate(
                         (
                             velocity_perturbations_extrapolation[None, :, :, :],
@@ -1825,12 +1852,12 @@ class StepsBlendingNowcaster:
                 velocity_stack_all = np.concatenate(
                     (
                         velocity_perturbations_extrapolation[None, :, :, :],
-                        self.__state.velocity_models_temp,
+                        self.__state.velocity_models_timestep,
                     ),
                     axis=0,
                 )
             else:
-                velocity_models = self.__state.velocity_models_temp[j]
+                velocity_models = self.__state.velocity_models_timestep[j]
                 velocity_stack_all = np.concatenate(
                     (
                         velocity_perturbations_extrapolation[None, :, :, :],
@@ -1899,57 +1926,82 @@ class StepsBlendingNowcaster:
         ]
         self.__state.noise_prev_subtimestep[j] = self.__state.precip_noise_cascades[j]
 
-    def __blend_cascades(self):
-        t_index = np.where(np.array(subtimesteps) == t_sub)[0][0]
+    def __blend_cascades(self, t_sub, j):
+        self.__state.t_index = np.where(np.array(self.__state.subtimesteps) == t_sub)[
+            0
+        ][0]
         # First concatenate the cascades and the means and sigmas
         # precip_models = [n_models,timesteps,n_cascade_levels,m,n]
-        if blend_nwp_members:
+        if self.__config.blend_nwp_members:
             cascade_stack_all_components = np.concatenate(
                 (
-                    precip_forecast_extrapolated_decomp_done[None, t_index],
-                    precip_models_cascade_temp,
-                    noise_extrapolated_decomp_done[None, t_index],
+                    self.__state.precip_forecast_extrapolated_decomp_done[
+                        None, self.__state.t_index
+                    ],
+                    self.__state.precip_models_cascades_timestep,
+                    self.__state.noise_extrapolated_decomp_done[
+                        None, self.__state.t_index
+                    ],
                 ),
                 axis=0,
             )  # [(extr_field, n_model_fields, noise), n_cascade_levels, ...]
             means_stacked = np.concatenate(
-                (mu_extrapolation[None, :], mu_models_temp), axis=0
+                (
+                    self.__state.mean_extrapolation[None, :],
+                    self.__state.mean_models_timestep,
+                ),
+                axis=0,
             )
             sigmas_stacked = np.concatenate(
-                (sigma_extrapolation[None, :], sigma_models_temp),
+                (
+                    self.__state.std_extrapolation[None, :],
+                    self.__state.std_models_timestep,
+                ),
                 axis=0,
             )
         else:
             cascade_stack_all_components = np.concatenate(
                 (
-                    precip_forecast_extrapolated_decomp_done[None, t_index],
-                    precip_models_cascade_temp[None, j],
-                    noise_extrapolated_decomp_done[None, t_index],
+                    self.__state.precip_forecast_extrapolated_decomp_done[
+                        None, self.__state.t_index
+                    ],
+                    self.__state.precip_models_cascades_timestep[None, j],
+                    self.__state.noise_extrapolated_decomp_done[
+                        None, self.__state.t_index
+                    ],
                 ),
                 axis=0,
             )  # [(extr_field, n_model_fields, noise), n_cascade_levels, ...]
             means_stacked = np.concatenate(
-                (mu_extrapolation[None, :], mu_models_temp[None, j]),
+                (
+                    self.__state.mean_extrapolation[None, :],
+                    self.__state.mean_models_timestep[None, j],
+                ),
                 axis=0,
             )
             sigmas_stacked = np.concatenate(
                 (
-                    sigma_extrapolation[None, :],
-                    sigma_models_temp[None, j],
+                    self.__state.std_extrapolation[None, :],
+                    self.__state.std_models_timestep[None, j],
                 ),
                 axis=0,
             )
 
         # First determine the blending weights if method is spn. The
         # weights for method bps have already been determined.
-        if weights_method == "spn":
-            weights = np.zeros(
+        # TODO: no other weight method is possible, should we not al least give a user warning if a different weight
+        #  method is given? Or does this mean that in all other circumstances the weights
+        #  have been calculated in a different way?
+
+        # TODO: changed weights to self.__state.weights
+        if self.__config.weights_method == "spn":
+            self.__state.weights = np.zeros(
                 (
                     cascade_stack_all_components.shape[0],
-                    n_cascade_levels,
+                    self.__config.n_cascade_levels,
                 )
             )
-            for i in range(n_cascade_levels):
+            for i in range(self.__config.n_cascade_levels):
                 # Determine the normalized covariance matrix (containing)
                 # the cross-correlations between the models
                 cascade_stack_all_components_temp = np.stack(
@@ -1962,61 +2014,68 @@ class StepsBlendingNowcaster:
                     np.ma.masked_invalid(cascade_stack_all_components_temp)
                 )
                 # Determine the weights for this cascade level
-                weights[:, i] = calculate_weights_spn(
-                    correlations=rho_fc[:, i],
+                self.__state.weights[:, i] = calculate_weights_spn(
+                    correlations=self.__state.rho_forecast[:, i],
                     covariance=covariance_nwp_models,
                 )
 
         # Blend the extrapolation, (NWP) model(s) and noise cascades
-        precip_forecast_blended = blending.utils.blend_cascades(
-            cascades_norm=cascade_stack_all_components, weights=weights
+        self.__state.precip_forecast_blended = blending.utils.blend_cascades(
+            cascades_norm=cascade_stack_all_components, weights=self.__state.weights
         )
 
         # Also blend the cascade without the extrapolation component
-        precip_forecast_blended_mod_only = blending.utils.blend_cascades(
+        self.__state.precip_forecast_blended_mod_only = blending.utils.blend_cascades(
             cascades_norm=cascade_stack_all_components[1:, :],
-            weights=weights_model_only,
+            weights=self.__state.weights_model_only,
         )
 
         # Blend the means and standard deviations
         # Input is array of shape [number_components, scale_level, ...]
-        means_blended, sigmas_blended = blend_means_sigmas(
-            means=means_stacked, sigmas=sigmas_stacked, weights=weights
+        self.__state.means_blended, self.__state.sigmas_blended = blend_means_sigmas(
+            means=means_stacked, sigmas=sigmas_stacked, weights=self.__state.weights
         )
         # Also blend the means and sigmas for the cascade without extrapolation
+
         (
-            means_blended_mod_only,
-            sigmas_blended_mod_only,
+            self.__state.means_blended_mod_only,
+            self.__state.sigmas_blended_mod_only,
         ) = blend_means_sigmas(
             means=means_stacked[1:, :],
             sigmas=sigmas_stacked[1:, :],
-            weights=weights_model_only,
+            weights=self.__state.weights_model_only,
         )
 
-    def __recompose_cascade_to_rainfall_field(self):
+    def __recompose_cascade_to_rainfall_field(self, j):
         # 8.6 Recompose the cascade to a precipitation field
         # (The function first normalizes the blended cascade, precip_forecast_blended
         # again)
-        precip_forecast_recomposed = blending.utils.recompose_cascade(
-            combined_cascade=precip_forecast_blended,
-            combined_mean=means_blended,
-            combined_sigma=sigmas_blended,
+        self.__state.precip_forecast_recomposed = blending.utils.recompose_cascade(
+            combined_cascade=self.__state.precip_forecast_blended,
+            combined_mean=self.__state.means_blended,
+            combined_sigma=self.__state.sigmas_blended,
         )
         # The recomposed cascade without the extrapolation (for NaN filling
         # outside the radar domain)
-        precip_forecast_recomposed_mod_only = blending.utils.recompose_cascade(
-            combined_cascade=precip_forecast_blended_mod_only,
-            combined_mean=means_blended_mod_only,
-            combined_sigma=sigmas_blended_mod_only,
-        )
-        if domain == "spectral":
-            # TODO: Check this! (Only tested with domain == 'spatial')
-            precip_forecast_recomposed = fft_objs[j].irfft2(precip_forecast_recomposed)
-            precip_forecast_recomposed_mod_only = fft_objs[j].irfft2(
-                precip_forecast_recomposed_mod_only
+        self.__state.precip_forecast_recomposed_mod_only = (
+            blending.utils.recompose_cascade(
+                combined_cascade=self.__state.precip_forecast_blended_mod_only,
+                combined_mean=self.__state.means_blended_mod_only,
+                combined_sigma=self.__state.sigmas_blended_mod_only,
             )
+        )
+        if self.__config.domain == "spectral":
+            # TODO: Check this! (Only tested with domain == 'spatial')
 
-    def __post_process_output(self, final_blended_forecast_single_member):
+            # TODO: what needs to happen with above TODO?
+            self.__state.precip_forecast_recomposed = self.__state.fft_objs[j].irfft2(
+                self.__state.precip_forecast_recomposed
+            )
+            self.__state.precip_forecast_recomposed_mod_only = self.__state.fft_objs[
+                j
+            ].irfft2(self.__state.precip_forecast_recomposed_mod_only)
+
+    def __post_process_output(self, j):
         # 8.7 Post-processing steps - use the mask and fill no data with
         # the blended NWP forecast. Probability matching following
         # Lagrangian blended probability matching which uses the
@@ -2027,12 +2086,14 @@ class StepsBlendingNowcaster:
         # that is only used for post-processing steps) with the NWP
         # rainfall forecast for this time step using the weights
         # at scale level 2.
-        weights_probability_matching = weights[:-1, 1]  # Weights without noise, level 2
+        weights_probability_matching = self.__state.weights[
+            :-1, 1
+        ]  # Weights without noise, level 2
         weights_probability_matching_normalized = weights_probability_matching / np.sum(
             weights_probability_matching
         )
         # And the weights for outside the radar domain
-        weights_probability_matching_mod_only = weights_model_only[
+        weights_probability_matching_mod_only = self.__state.weights_model_only[
             :-1, 1
         ]  # Weights without noise, level 2
         weights_probability_matching_normalized_mod_only = (
@@ -2040,19 +2101,23 @@ class StepsBlendingNowcaster:
             / np.sum(weights_probability_matching_mod_only)
         )
         # Stack the fields
-        if blend_nwp_members:
+        if self.__config.blend_nwp_members:
             precip_forecast_probability_matching_final = np.concatenate(
                 (
-                    precip_forecast_extrapolated_probability_matching[None, t_index],
-                    precip_models_temp,
+                    self.__state.precip_forecast_extrapolated_probability_matching[
+                        None, self.__state.t_index
+                    ],
+                    self.__state.precip_models_timestep,
                 ),
                 axis=0,
             )
         else:
             precip_forecast_probability_matching_final = np.concatenate(
                 (
-                    precip_forecast_extrapolated_probability_matching[None, t_index],
-                    precip_models_temp[None, j],
+                    self.__state.precip_forecast_extrapolated_probability_matching[
+                        None, self.__state.t_index
+                    ],
+                    self.__state.precip_models_timestep[None, j],
                 ),
                 axis=0,
             )
@@ -2064,20 +2129,20 @@ class StepsBlendingNowcaster:
             * precip_forecast_probability_matching_final,
             axis=0,
         )
-        if blend_nwp_members:
+        if self.__config.blend_nwp_members:
             precip_forecast_probability_matching_blended_mod_only = np.sum(
                 weights_probability_matching_normalized_mod_only.reshape(
                     weights_probability_matching_normalized_mod_only.shape[0],
                     1,
                     1,
                 )
-                * precip_models_temp,
+                * self.__state.precip_models_timestep,
                 axis=0,
             )
         else:
-            precip_forecast_probability_matching_blended_mod_only = precip_models_temp[
-                j
-            ]
+            precip_forecast_probability_matching_blended_mod_only = (
+                self.__state.precip_models_timestep[j]
+            )
 
         # The extrapolation components are NaN outside the advected
         # radar domain. This results in NaN values in the blended
@@ -2085,12 +2150,12 @@ class StepsBlendingNowcaster:
         # areas with the "..._mod_only" blended forecasts, consisting
         # of the NWP and noise components.
 
-        nan_indices = np.isnan(precip_forecast_recomposed)
-        if smooth_radar_mask_range != 0:
+        nan_indices = np.isnan(self.__state.precip_forecast_recomposed)
+        if self.__config.smooth_radar_mask_range != 0:
             # Compute the smooth dilated mask
             new_mask = blending.utils.compute_smooth_dilated_mask(
                 nan_indices,
-                max_padding_size_in_px=smooth_radar_mask_range,
+                max_padding_size_in_px=self.__config.smooth_radar_mask_range,
             )
 
             # Ensure mask values are between 0 and 1
@@ -2099,10 +2164,10 @@ class StepsBlendingNowcaster:
 
             # Handle NaNs in precip_forecast_new and precip_forecast_new_mod_only by setting NaNs to 0 in the blending step
             precip_forecast_recomposed_mod_only_no_nan = np.nan_to_num(
-                precip_forecast_recomposed_mod_only, nan=0
+                self.__state.precip_forecast_recomposed_mod_only, nan=0
             )
             precip_forecast_recomposed_no_nan = np.nan_to_num(
-                precip_forecast_recomposed, nan=0
+                self.__state.precip_forecast_recomposed, nan=0
             )
 
             # Perform the blending of radar and model inside the radar domain using a weighted combination
@@ -2114,7 +2179,6 @@ class StepsBlendingNowcaster:
                 axis=0,
             )
 
-            nan_indices = np.isnan(precip_forecast_probability_matching_blended)
             precip_forecast_probability_matching_blended = np.nansum(
                 [
                     precip_forecast_probability_matching_blended * mask_radar,
@@ -2123,8 +2187,8 @@ class StepsBlendingNowcaster:
                 axis=0,
             )
         else:
-            precip_forecast_recomposed[nan_indices] = (
-                precip_forecast_recomposed_mod_only[nan_indices]
+            self.__state.precip_forecast_recomposed[nan_indices] = (
+                self.__state.precip_forecast_recomposed_mod_only[nan_indices]
             )
             nan_indices = np.isnan(precip_forecast_probability_matching_blended)
             precip_forecast_probability_matching_blended[nan_indices] = (
@@ -2133,20 +2197,23 @@ class StepsBlendingNowcaster:
 
         # Finally, fill the remaining nan values, if present, with
         # the minimum value in the forecast
-        nan_indices = np.isnan(precip_forecast_recomposed)
-        precip_forecast_recomposed[nan_indices] = np.nanmin(precip_forecast_recomposed)
+        nan_indices = np.isnan(self.__state.precip_forecast_recomposed)
+        self.__state.precip_forecast_recomposed[nan_indices] = np.nanmin(
+            self.__state.precip_forecast_recomposed
+        )
         nan_indices = np.isnan(precip_forecast_probability_matching_blended)
         precip_forecast_probability_matching_blended[nan_indices] = np.nanmin(
             precip_forecast_probability_matching_blended
         )
 
         # 8.7.2. Apply the masking and prob. matching
-        if mask_method is not None:
+        precip_field_mask_temp = None
+        if self.__config.mask_method is not None:
             # apply the precipitation mask to prevent generation of new
             # precipitation into areas where it was not originally
             # observed
-            precip_forecast_min_value = precip_forecast_recomposed.min()
-            if mask_method == "incremental":
+            precip_forecast_min_value = self.__state.precip_forecast_recomposed.min()
+            if self.__config.mask_method == "incremental":
                 # The incremental mask is slightly different from
                 # the implementation in the non-blended steps.py, as
                 # it is not based on the last forecast, but instead
@@ -2154,39 +2221,49 @@ class StepsBlendingNowcaster:
                 # increase over time.
                 # Get the mask for this forecast
                 precip_field_mask = (
-                    precip_forecast_probability_matching_blended >= precip_thr
+                    precip_forecast_probability_matching_blended
+                    >= self.__config.precip_threshold
                 )
                 # Buffer the mask
                 precip_field_mask = _compute_incremental_mask(
-                    precip_field_mask, struct, mask_rim
+                    precip_field_mask, self.__params.struct, self.__params.mask_rim
                 )
                 # Get the final mask
-                precip_forecast_recomposed = (
+                self.__state.precip_forecast_recomposed = (
                     precip_forecast_min_value
-                    + (precip_forecast_recomposed - precip_forecast_min_value)
+                    + (
+                        self.__state.precip_forecast_recomposed
+                        - precip_forecast_min_value
+                    )
                     * precip_field_mask
                 )
                 precip_field_mask_temp = (
-                    precip_forecast_recomposed > precip_forecast_min_value
+                    self.__state.precip_forecast_recomposed > precip_forecast_min_value
                 )
-            elif mask_method == "obs":
+            elif self.__config.mask_method == "obs":
                 # The mask equals the most recent benchmark
                 # rainfall field
                 precip_field_mask_temp = (
-                    precip_forecast_probability_matching_blended >= precip_thr
+                    precip_forecast_probability_matching_blended
+                    >= self.__config.precip_threshold
                 )
 
             # Set to min value outside of mask
-            precip_forecast_recomposed[~precip_field_mask_temp] = (
+            self.__state.precip_forecast_recomposed[~precip_field_mask_temp] = (
                 precip_forecast_min_value
             )
 
         # If probmatching_method is not None, resample the distribution from
         # both the extrapolation cascade and the model (NWP) cascade and use
         # that for the probability matching.
-        if probmatching_method is not None and resample_distribution:
-            arr1 = precip_forecast_extrapolated_probability_matching[t_index]
-            arr2 = precip_models_temp[j]
+        if (
+            self.__config.probmatching_method is not None
+            and self.__config.resample_distribution
+        ):
+            arr1 = self.__state.precip_forecast_extrapolated_probability_matching[
+                self.__state.t_index
+            ]
+            arr2 = self.__state.precip_models_timestep[j]
             # resample weights based on cascade level 2.
             # Areas where one of the fields is nan are not included.
             precip_forecast_probability_matching_resampled = (
@@ -2201,38 +2278,50 @@ class StepsBlendingNowcaster:
                 precip_forecast_probability_matching_blended.copy()
             )
 
-        if probmatching_method == "cdf":
+        if self.__config.probmatching_method == "cdf":
             # nan indices in the extrapolation nowcast
             nan_indices = np.isnan(
-                precip_forecast_extrapolated_probability_matching[t_index]
+                self.__state.precip_forecast_extrapolated_probability_matching[
+                    self.__state.t_index
+                ]
             )
             # Adjust the CDF of the forecast to match the resampled distribution combined from
             # extrapolation and model fields.
             # Rainfall outside the pure extrapolation domain is not taken into account.
-            if np.any(np.isfinite(precip_forecast_recomposed)):
-                precip_forecast_recomposed = probmatching.nonparam_match_empirical_cdf(
-                    precip_forecast_recomposed,
-                    precip_forecast_probability_matching_resampled,
-                    nan_indices,
+            if np.any(np.isfinite(self.__state.precip_forecast_recomposed)):
+                self.__state.precip_forecast_recomposed = (
+                    probmatching.nonparam_match_empirical_cdf(
+                        self.__state.precip_forecast_recomposed,
+                        precip_forecast_probability_matching_resampled,
+                        nan_indices,
+                    )
                 )
                 precip_forecast_probability_matching_resampled = None
-        elif probmatching_method == "mean":
+        elif self.__config.probmatching_method == "mean":
             # Use R_pm_blended as benchmark field and
             mean_probabiltity_matching_forecast = np.mean(
                 precip_forecast_probability_matching_resampled[
-                    precip_forecast_probability_matching_resampled >= precip_thr
+                    precip_forecast_probability_matching_resampled
+                    >= self.__config.precip_threshold
                 ]
             )
-            no_rain_mask = precip_forecast_recomposed >= precip_thr
-            mean_precip_forecast = np.mean(precip_forecast_recomposed[no_rain_mask])
-            precip_forecast_recomposed[no_rain_mask] = (
-                precip_forecast_recomposed[no_rain_mask]
+            no_rain_mask = (
+                self.__state.precip_forecast_recomposed
+                >= self.__config.precip_threshold
+            )
+            mean_precip_forecast = np.mean(
+                self.__state.precip_forecast_recomposed[no_rain_mask]
+            )
+            self.__state.precip_forecast_recomposed[no_rain_mask] = (
+                self.__state.precip_forecast_recomposed[no_rain_mask]
                 - mean_precip_forecast
                 + mean_probabiltity_matching_forecast
             )
             precip_forecast_probability_matching_resampled = None
 
-        final_blended_forecast_single_member.append(precip_forecast_recomposed)
+        self.__state.final_blended_forecast_single_member.append(
+            self.__state.precip_forecast_recomposed
+        )
 
     def __measure_time(self, label, start_time):
         """
