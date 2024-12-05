@@ -94,3 +94,4 @@ venv.bak/
 
 # Running lcoal tests
 /tmp
+./pysteps/tests/tmp/*
