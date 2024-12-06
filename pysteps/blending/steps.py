@@ -65,11 +65,12 @@ except ImportError:
     DASK_IMPORTED = False
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any, Callable
+from typing import Optional, List, Dict, Any, Callable, Union
 
 # TODO: compare old and new version of the code
 # TODO: look for better typing in state and params
 # TODO: GO over all other todos and check if they can be removed
+# TODO: look at the documentation and try to improve it, lots of things are now combined together
 
 
 @dataclass
@@ -113,109 +114,104 @@ class StepsBlendingConfig:
 # TODO: typing could be improved here
 @dataclass
 class StepsBlendingParams:
-    noise_std_coeffs: np.ndarray = None  # Noise standard deviation coefficients
-    bandpass_filter: Any = None  # Band-pass filter object
-    fft: Any = None  # FFT method object
-    perturbation_generator: Callable = None  # Perturbation generator
-    noise_generator: Callable = None  # Noise generator
-    PHI: np.ndarray = None  # AR(p) model parameters
-    extrapolation_method: Any = None
-    decomposition_method: Any = None
-    recomposition_method: Any = None
+    noise_std_coeffs: Optional[np.ndarray] = (
+        None  # Noise standard deviation coefficients
+    )
+    bandpass_filter: Optional[Any] = None  # Band-pass filter object
+    fft: Optional[Any] = None  # FFT method object
+    perturbation_generator: Optional[Callable[..., np.ndarray]] = (
+        None  # Perturbation generator
+    )
+    noise_generator: Optional[Callable[..., np.ndarray]] = None  # Noise generator
+    PHI: Optional[np.ndarray] = None  # AR(p) model parameters
+    extrapolation_method: Optional[Callable[..., Any]] = None
+    decomposition_method: Optional[Callable[..., dict]] = None
+    recomposition_method: Optional[Callable[..., np.ndarray]] = None
     # TODO: check of the following two are relevant or can be replaced vel_pert_... and noise_generator
-    velocity_perturbations: Any = None
-    generate_velocity_noise: Any = None
-    velocity_perturbations_parallel: Optional[np.ndarray] = (
-        None  # Velocity perturbation parameters (parallel)
-    )
-    velocity_perturbations_perpendicular: Optional[np.ndarray] = (
-        None  # Velocity perturbation parameters (perpendicular)
-    )
-    fft_objs: List[Any] = field(
-        default_factory=list
-    )  # FFT objects for ensemble members
+    velocity_perturbations: Optional[Any] = None
+    generate_velocity_noise: Optional[Callable[[Any, float], np.ndarray]] = None
+    velocity_perturbations_parallel: Optional[np.ndarray] = None
+    velocity_perturbations_perpendicular: Optional[np.ndarray] = None
+    fft_objs: List[Any] = field(default_factory=list)
     mask_rim: Optional[int] = None  # Rim size for masking
     struct: Optional[np.ndarray] = None  # Structuring element for mask
     time_steps_is_list: bool = False  # Time steps is a list
     precip_models_provided_is_cascade: bool = False  # Precip models are decomposed
-    xy_coordinates: np.ndarray | None = None
-    precip_zerovalue: Any = None
-    mask_threshold: Any = None
+    xy_coordinates: Optional[np.ndarray] = None
+    precip_zerovalue: Optional[float] = None
+    mask_threshold: Optional[np.ndarray] = None
     zero_precip_radar: bool = False
     zero_precip_model_fields: bool = False
-    original_timesteps: Any = None
-    num_ensemble_workers: int = None
-    rho_nwp_models: Any = None
-    domain_mask: Any = None
+    original_timesteps: Optional[Union[list, np.ndarray]] = None
+    num_ensemble_workers: Optional[int] = None
+    rho_nwp_models: Optional[np.ndarray] = None
+    domain_mask: Optional[np.ndarray] = None
 
 
 # TODO: typing could be improved here
 @dataclass
 class StepsBlendingState:
-    # States related to the observations
-    precip_cascades: Any = None
-    precip_noise_input: Any = None
-    precip_noise_cascades: Any = None
-    precip_mean_noise: Any = None
-    precip_std_noise: Any = None
+    # Radar and noise states
+    precip_cascades: Optional[np.ndarray] = None
+    precip_noise_input: Optional[np.ndarray] = None
+    precip_noise_cascades: Optional[np.ndarray] = None
+    precip_mean_noise: Optional[np.ndarray] = None
+    precip_std_noise: Optional[np.ndarray] = None
 
-    # States related to the extrapolation
-    mean_extrapolation: Any = None
-    std_extrapolation: Any = None
-    rho_extrap_cascade_prev: Any = None
-    rho_extrap_cascade: Any = None
-    precip_cascades_prev_subtimestep: Any = None
-    cascade_noise_prev_subtimestep: Any = None
-    precip_extrapolated_after_decomp: Any = None
-    noise_extrapolated_after_decomp: Any = None
-    precip_extrapolated_probability_matching: Any = None
+    # Extrapolation states
+    mean_extrapolation: Optional[np.ndarray] = None
+    std_extrapolation: Optional[np.ndarray] = None
+    rho_extrap_cascade_prev: Optional[np.ndarray] = None
+    rho_extrap_cascade: Optional[np.ndarray] = None
+    precip_cascades_prev_subtimestep: Optional[np.ndarray] = None
+    cascade_noise_prev_subtimestep: Optional[np.ndarray] = None
+    precip_extrapolated_after_decomp: Optional[np.ndarray] = None
+    noise_extrapolated_after_decomp: Optional[np.ndarray] = None
+    precip_extrapolated_probability_matching: Optional[np.ndarray] = None
 
-    # States related to the NWP models
-    precip_models_cascades: Any = None
-    # States related to NWP models for (sub)time steps
-    precip_models_cascades_timestep: Any = None
-    precip_models_timestep: Any = None
-    mean_models_timestep: Any = None
-    std_models_timestep: Any = None
-    velocity_models_timestep: Any = None
+    # NWP model states
+    precip_models_cascades: Optional[np.ndarray] = None
+    precip_models_cascades_timestep: Optional[np.ndarray] = None
+    precip_models_timestep: Optional[np.ndarray] = None
+    mean_models_timestep: Optional[np.ndarray] = None
+    std_models_timestep: Optional[np.ndarray] = None
+    velocity_models_timestep: Optional[np.ndarray] = None
 
-    # State that links NWP member to final output ensemble member
-    mapping_list_NWP_member_to_ensemble_member: Optional[np.ndarray] = (
-        None  # NWP model indices
-    )
+    # Mapping from NWP members to ensemble members
+    mapping_list_NWP_member_to_ensemble_member: Optional[np.ndarray] = None
 
-    # States related to the random generation of precip and motion
-    randgen_precip: Any = None
-    randgen_motion: Any = None
+    # Random states for precipitation and motion
+    randgen_precip: Optional[List[np.random.RandomState]] = None
+    randgen_motion: Optional[List[np.random.RandomState]] = None
 
-    # Variables related to the (sub)timestep calculations of the final forecast
-    previous_displacement: Any = None
-    previous_displacement_noise_cascade: Any = None
-    previous_displacement_prob_matching: Any = None
-    rho_final_blended_forecast: Any = None
-    final_blended_forecast_means: Any = None
-    final_blended_forecast_stds: Any = None
-    final_blended_forecast_means_mod_only: Any = None
-    final_blended_forecast_stds_mod_only: Any = None
-    final_blended_forecast_cascades: Any = None
-    final_blended_forecast_cascades_mod_only: Any = None
-    final_blended_forecast_recomposed: Any = None
-    final_blended_forecast_recomposed_mod_only: Any = None
+    # Variables for final forecast computation
+    previous_displacement: Optional[List[Any]] = None
+    previous_displacement_noise_cascade: Optional[List[Any]] = None
+    previous_displacement_prob_matching: Optional[List[Any]] = None
+    rho_final_blended_forecast: Optional[np.ndarray] = None
+    final_blended_forecast_means: Optional[np.ndarray] = None
+    final_blended_forecast_stds: Optional[np.ndarray] = None
+    final_blended_forecast_means_mod_only: Optional[np.ndarray] = None
+    final_blended_forecast_stds_mod_only: Optional[np.ndarray] = None
+    final_blended_forecast_cascades: Optional[np.ndarray] = None
+    final_blended_forecast_cascades_mod_only: Optional[np.ndarray] = None
+    final_blended_forecast_recomposed: Optional[np.ndarray] = None
+    final_blended_forecast_recomposed_mod_only: Optional[np.ndarray] = None
 
-    # The return outputs and probability matching are stored in these states:
-    final_blended_forecast: Any = None
-    final_blended_forecast_non_perturbed: Any = None
+    # Final outputs
+    final_blended_forecast: Optional[np.ndarray] = None
+    final_blended_forecast_non_perturbed: Optional[np.ndarray] = None
 
-    # Variables to keep track of the times for the forecast
-    time_prev_timestep: Any = None
-    leadtime_since_start_forecast: Any = None
-    subtimesteps: Any = None
-    is_nowcast_time_step: bool = None
-    subtimestep_index: Any = None
+    # Timing and indexing
+    time_prev_timestep: Optional[List[float]] = None
+    leadtime_since_start_forecast: Optional[List[float]] = None
+    subtimesteps: Optional[List[float]] = None
+    is_nowcast_time_step: Optional[bool] = None
+    subtimestep_index: Optional[int] = None
 
-    # States related to weights
-    weights: Any = None
-    weights_model_only: Any = None
+    # Weights used for blending
+    weights: Optional[np.ndarray] = None
+    weights_model_only: Optional[np.ndarray] = None
 
 
 class StepsBlendingNowcaster:
@@ -311,7 +307,6 @@ class StepsBlendingNowcaster:
         # 8. Start the forecasting loop
         ###
         # Isolate the last time slice of observed precipitation
-        # TODO: This precip was "precip = self.__precip[-1, :, :]", changed to self.__precip = self.__precip[-1, :, :]. Might need to chage again and user local variable precip in all following functions
         self.__precip = self.__precip[-1, :, :]
         print("Starting blended nowcast computation.")
 
@@ -364,7 +359,6 @@ class StepsBlendingNowcaster:
                     if t_sub > 0:
                         self.__blend_cascades(t_sub, j, worker_state)
                         self.__recompose_cascade_to_rainfall_field(j, worker_state)
-                        # TODO: could be I need to return and ave final_blended_forecast_single_member
                         final_blended_forecast_single_member = (
                             self.__post_process_output(
                                 j, final_blended_forecast_single_member, worker_state
@@ -676,7 +670,6 @@ class StepsBlendingNowcaster:
         x_values, y_values = np.meshgrid(np.arange(N), np.arange(M))
         self.__params.xy_coordinates = np.stack([x_values, y_values])
 
-        # TODO: changed precip_copy for self.__precip
         self.__precip = self.__precip[-(self.__config.ar_order + 1) :, :, :].copy()
         # Determine the domain mask from non-finite values in the precipitation data
         self.__params.domain_mask = np.logical_or.reduce(
@@ -745,7 +738,6 @@ class StepsBlendingNowcaster:
         # 2.2 If necessary, recompose (NWP) model forecasts
         self.__state.precip_models_cascades = None
 
-        # TODO: This type of check needs to be changed when going to xarray
         if self.__params.precip_models_provided_is_cascade:
             self.__state.precip_models_cascades = self.__precip_models
             self.__precip_models = _compute_cascade_recomposition_nwp(
@@ -1127,7 +1119,7 @@ class StepsBlendingNowcaster:
                     shape=self.__state.precip_cascades.shape[-2:],
                 )
             )
-        # TODO: moved this from # 7 to here as it seems to fit better here. The only parameter used and needed is PHI, this is its last use untill # 7
+
         # initizalize the current and previous extrapolation forecast scale for the nowcasting component
         # phi1 / (1 - phi2), see BPS2004
         self.__state.rho_extrap_cascade_prev = np.repeat(
@@ -1377,7 +1369,7 @@ class StepsBlendingNowcaster:
                             )
                         )
 
-        # TODO: is this not duplicate from part 2.3.5?
+        # TODO: is this not duplicate from part 2.3.5? If so, is it still needed here?
         # If zero_precip_radar is True, set the velocity field equal to the NWP
         # velocity field for the current time step (velocity_models_temp).
         if self.__params.zero_precip_radar:
@@ -1388,19 +1380,18 @@ class StepsBlendingNowcaster:
     def __determine_skill_for_current_timestep(self, t):
         if t == 0:
             """Calculate the initial skill of the (NWP) model forecasts at t=0."""
-            # TODO rewrite loop
-            self.__params.rho_nwp_models = [
-                blending.skill_scores.spatial_correlation(
+            self.__params.rho_nwp_models = []
+            for model_index in range(
+                self.__state.precip_models_cascades_timestep.shape[0]
+            ):
+                rho_value = blending.skill_scores.spatial_correlation(
                     obs=self.__state.precip_cascades[0, :, -1, :, :].copy(),
                     mod=self.__state.precip_models_cascades_timestep[
                         model_index, :, :, :
                     ].copy(),
                     domain_mask=self.__params.domain_mask,
                 )
-                for model_index in range(
-                    self.__state.precip_models_cascades_timestep.shape[0]
-                )
-            ]
+                self.__params.rho_nwp_models.append(rho_value)
             self.__params.rho_nwp_models = np.stack(self.__params.rho_nwp_models)
 
             # Ensure that the model skill decreases with increasing scale level.
@@ -1442,17 +1433,16 @@ class StepsBlendingNowcaster:
         # 8.1.2 Determine the skill of the nwp components for lead time (t0 + t)
         # Then for the model components
         if self.__config.blend_nwp_members:
-            # TODO rewrite loop
-            rho_nwp_forecast = [
-                blending.skill_scores.lt_dependent_cor_nwp(
+            rho_nwp_forecast = []
+            for model_index in range(self.__params.rho_nwp_models.shape[0]):
+                rho_value = blending.skill_scores.lt_dependent_cor_nwp(
                     lt=(t * int(self.__config.timestep)),
                     correlations=self.__params.rho_nwp_models[model_index],
                     outdir_path=self.__config.outdir_path_skill,
                     n_model=model_index,
                     skill_kwargs=self.__config.climatology_kwargs,
                 )
-                for model_index in range(self.__params.rho_nwp_models.shape[0])
-            ]
+                rho_nwp_forecast.append(rho_value)
             rho_nwp_forecast = np.stack(rho_nwp_forecast)
             # Concatenate rho_extrap_cascade and rho_nwp
             worker_state.rho_final_blended_forecast = np.concatenate(
@@ -2032,7 +2022,6 @@ class StepsBlendingNowcaster:
         #  method is given? Or does this mean that in all other circumstances the weights
         #  have been calculated in a different way?
 
-        # TODO: changed weights to worker_state.weights
         if self.__config.weights_method == "spn":
             worker_state.weights = np.zeros(
                 (
@@ -2112,8 +2101,6 @@ class StepsBlendingNowcaster:
         )
         if self.__config.domain == "spectral":
             # TODO: Check this! (Only tested with domain == 'spatial')
-
-            # TODO: what needs to happen with above TODO?
             worker_state.final_blended_forecast_recomposed = self.__params.fft_objs[
                 j
             ].irfft2(worker_state.final_blended_forecast_recomposed)
