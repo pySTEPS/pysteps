@@ -382,7 +382,7 @@ class StepsBlendingNowcaster:
 
             if self.__state.is_nowcast_time_step:
                 if self.__config.measure_time:
-                    __ = self.__measure_time("subtimestep", starttime)
+                    _ = self.__measure_time("subtimestep", starttime)
                 else:
                     print("done.")
 
@@ -695,9 +695,9 @@ class StepsBlendingNowcaster:
         # 1. Start with the radar rainfall fields. We want the fields in a
         # Lagrangian space
 
-        """Advect the previous precipitation fields to the same position with the
-        most recent one (i.e. transform them into the Lagrangian coordinates).
-        """
+        # Advect the previous precipitation fields to the same position with the
+        # most recent one (i.e. transform them into the Lagrangian coordinates).
+
         self.__config.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
         res = []
 
@@ -740,7 +740,7 @@ class StepsBlendingNowcaster:
         # 2. Perform the cascade decomposition for the input precip fields and,
         # if necessary, for the (NWP) model fields
         # 2.1 Compute the cascade decompositions of the input precipitation fields
-        """Compute the cascade decompositions of the input precipitation fields."""
+        # Compute the cascade decompositions of the input precipitation fields.
         precip_forecast_decomp = []
         for i in range(self.__config.ar_order + 1):
             precip_forecast = self.__params.decomposition_method(
@@ -902,7 +902,7 @@ class StepsBlendingNowcaster:
         # step where the fraction of rainy cells is highest (because other lead times
         # might be zero as well). Else, initialize the noise with the radar
         # rainfall data
-        """Initialize noise based on the NWP field time step where the fraction of rainy cells is highest"""
+        # Initialize noise based on the NWP field time step where the fraction of rainy cells is highest
         if self.__config.precip_threshold is None:
             self.__config.precip_threshold = np.nanmin(self.__precip_models)
 
@@ -967,7 +967,7 @@ class StepsBlendingNowcaster:
                 )
 
                 if self.__config.measure_time:
-                    __ = self.__measure_time("Initialize noise", starttime)
+                    _ = self.__measure_time("Initialize noise", starttime)
                 else:
                     print("done.")
             elif self.__config.noise_stddev_adj == "fixed":
@@ -1028,7 +1028,7 @@ class StepsBlendingNowcaster:
             if self.__config.ar_order == 1:
                 GAMMA = GAMMA[0, :]
             if self.__config.ar_order > 2:
-                for repeat_index in range(self.__config.ar_order - 2):
+                for _ in range(self.__config.ar_order - 2):
                     GAMMA = np.vstack((GAMMA, GAMMA[1, :]))
 
             # Finally, transpose GAMMA to ensure that the shape is the same as np.empty((n_cascade_levels, ar_order))
@@ -1279,7 +1279,7 @@ class StepsBlendingNowcaster:
         # fill these with the minimum value present in precip (corresponding to
         # zero rainfall in the radar observations)
 
-        """Ensure that the NWP cascade and fields do no contain any nans or infinite number"""
+        # Ensure that the NWP cascade and fields do no contain any nans or infinite number
         # Fill nans and infinite numbers with the minimum value present in precip
         self.__state.precip_models_timestep = self.__precip_models[:, t, :, :].astype(
             np.float64, copy=False
@@ -1419,7 +1419,7 @@ class StepsBlendingNowcaster:
 
     def __determine_skill_for_current_timestep(self, t):
         if t == 0:
-            """Calculate the initial skill of the (NWP) model forecasts at t=0."""
+            # Calculate the initial skill of the (NWP) model forecasts at t=0.
             self.__params.rho_nwp_models = []
             for model_index in range(
                 self.__state.precip_models_cascades_timestep.shape[0]
@@ -1949,24 +1949,26 @@ class StepsBlendingNowcaster:
             )
             extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
 
-            _, worker_state.previous_displacement[j] = (
-                self.__params.extrapolation_method(
-                    None,
-                    velocity_blended,
-                    [t_diff_prev_subtimestep],
-                    allow_nonfinite_values=True,
-                    **extrap_kwargs_,
-                )
+            (
+                _,
+                worker_state.previous_displacement[j],
+            ) = self.__params.extrapolation_method(
+                None,
+                velocity_blended,
+                [t_diff_prev_subtimestep],
+                allow_nonfinite_values=True,
+                **extrap_kwargs_,
             )
 
-            _, worker_state.previous_displacement_noise_cascade[j] = (
-                self.__params.extrapolation_method(
-                    None,
-                    velocity_blended,
-                    [t_diff_prev_subtimestep],
-                    allow_nonfinite_values=True,
-                    **extrap_kwargs_noise,
-                )
+            (
+                _,
+                worker_state.previous_displacement_noise_cascade[j],
+            ) = self.__params.extrapolation_method(
+                None,
+                velocity_blended,
+                [t_diff_prev_subtimestep],
+                allow_nonfinite_values=True,
+                **extrap_kwargs_noise,
             )
 
             # Also extrapolate the radar observation, used for the probability
@@ -1974,14 +1976,15 @@ class StepsBlendingNowcaster:
             extrap_kwargs_pb["displacement_prev"] = (
                 worker_state.previous_displacement_prob_matching[j]
             )
-            _, worker_state.previous_displacement_prob_matching[j] = (
-                self.__params.extrapolation_method(
-                    None,
-                    velocity_blended,
-                    [t_diff_prev_subtimestep],
-                    allow_nonfinite_values=True,
-                    **extrap_kwargs_pb,
-                )
+            (
+                _,
+                worker_state.previous_displacement_prob_matching[j],
+            ) = self.__params.extrapolation_method(
+                None,
+                velocity_blended,
+                [t_diff_prev_subtimestep],
+                allow_nonfinite_values=True,
+                **extrap_kwargs_pb,
             )
 
             worker_state.time_prev_timestep[j] = t + 1
@@ -2246,7 +2249,7 @@ class StepsBlendingNowcaster:
             )
 
             # Perform the blending of radar and model inside the radar domain using a weighted combination
-            precip_forecast_recomposed = np.nansum(
+            worker_state.final_blended_forecast_recomposed = np.nansum(
                 [
                     mask_model * precip_forecast_recomposed_mod_only_no_nan,
                     mask_radar * precip_forecast_recomposed_no_nan,
@@ -2302,23 +2305,25 @@ class StepsBlendingNowcaster:
                     >= self.__config.precip_threshold
                 )
                 # Buffer the mask
-                # buffer the observation mask Rbin using the kernel kr
-                # add a grayscale rim r (for smooth rain/no-rain transition)
+                # Convert the precipitation field mask into an 8-bit unsigned integer mask
+                obs_mask_uint8 = precip_field_mask.astype("uint8")
 
-                # buffer observation mask
-                precip_field_mask_temp = np.ndarray.astype(
-                    precip_field_mask.copy(), "uint8"
-                )
-                Rd = binary_dilation(precip_field_mask_temp, self.__params.struct)
+                # Perform an initial binary dilation using the provided structuring element
+                dilated_mask = binary_dilation(obs_mask_uint8, self.__params.struct)
 
-                # add grayscale rim
-                kr1 = generate_binary_structure(2, 1)
-                mask = Rd.astype(float)
-                for n in range(self.__params.mask_rim):
-                    Rd = binary_dilation(Rd, kr1)
-                    mask += Rd
-                # normalize between 0 and 1
-                precip_field_mask = mask / mask.max()
+                # Create a binary structure element for incremental dilations
+                struct_element = generate_binary_structure(2, 1)
+
+                # Initialize a floating-point mask to accumulate dilations for a smooth transition
+                accumulated_mask = dilated_mask.astype(float)
+
+                # Iteratively dilate the mask and accumulate the results to create a grayscale rim
+                for _ in range(self.__params.mask_rim):
+                    dilated_mask = binary_dilation(dilated_mask, struct_element)
+                    accumulated_mask += dilated_mask
+
+                # Normalize the accumulated mask values between 0 and 1
+                precip_field_mask = accumulated_mask / np.max(accumulated_mask)
                 # Get the final mask
                 worker_state.final_blended_forecast_recomposed = (
                     precip_forecast_min_value
