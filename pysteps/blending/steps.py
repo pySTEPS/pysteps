@@ -1551,7 +1551,7 @@ class StepsBlendingNowcaster:
             epsilon = self.__params.noise_generator(
                 self.__params.perturbation_generator,
                 randstate=worker_state.randgen_precip[j],
-                fft_method=worker_state.fft_objs[j],
+                fft_method=self.__params.fft_objs[j],
                 domain=self.__config.domain,
             )
 
@@ -1559,7 +1559,7 @@ class StepsBlendingNowcaster:
             epsilon_decomposed = self.__params.decomposition_method(
                 epsilon,
                 self.__params.bandpass_filter,
-                fft_method=worker_state.fft_objs[j],
+                fft_method=self.__params.fft_objs[j],
                 input_domain=self.__config.domain,
                 output_domain=self.__config.domain,
                 compute_stats=True,
@@ -2114,11 +2114,11 @@ class StepsBlendingNowcaster:
             # TODO: Check this! (Only tested with domain == 'spatial')
 
             # TODO: what needs to happen with above TODO?
-            worker_state.final_blended_forecast_recomposed = worker_state.fft_objs[
+            worker_state.final_blended_forecast_recomposed = self.__params.fft_objs[
                 j
             ].irfft2(worker_state.final_blended_forecast_recomposed)
             worker_state.final_blended_forecast_recomposed_mod_only = (
-                worker_state.fft_objs[j].irfft2(
+                self.__params.fft_objs[j].irfft2(
                     worker_state.final_blended_forecast_recomposed_mod_only
                 )
             )
