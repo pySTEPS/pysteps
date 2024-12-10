@@ -14,7 +14,7 @@ Interface for the io module.
 """
 import importlib
 
-from pkg_resources import iter_entry_points
+from importlib.metadata import entry_points
 
 from pysteps import io
 from pysteps.decorators import postprocess_import
@@ -49,17 +49,7 @@ def discover_importers():
     The importers found are added to the `pysteps.io.interface_importer_methods`
     dictionary containing the available importers.
     """
-
-    # The pkg resources needs to be reload to detect new packages installed during
-    # the execution of the python application. For example, when the plugins are
-    # installed during the tests
-    import pkg_resources
-
-    importlib.reload(pkg_resources)
-
-    for entry_point in pkg_resources.iter_entry_points(
-        group="pysteps.plugins.importers", name=None
-    ):
+    for entry_point in entry_points(group="pysteps.plugins.importers"):
         _importer = entry_point.load()
 
         importer_function_name = _importer.__name__
