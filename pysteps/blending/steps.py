@@ -142,12 +142,14 @@ class StepsBlendingParams:
 
 @dataclass
 class StepsBlendingState:
+    # Radar and noise states
     precip_cascades: np.ndarray | None = None
     precip_noise_input: np.ndarray | None = None
     precip_noise_cascades: np.ndarray | None = None
     precip_mean_noise: np.ndarray | None = None
     precip_std_noise: np.ndarray | None = None
 
+    # Extrapolation states
     mean_extrapolation: np.ndarray | None = None
     std_extrapolation: np.ndarray | None = None
     rho_extrap_cascade_prev: np.ndarray | None = None
@@ -158,6 +160,7 @@ class StepsBlendingState:
     noise_extrapolated_after_decomp: np.ndarray | None = None
     precip_extrapolated_probability_matching: np.ndarray | None = None
 
+    # NWP model states
     precip_models_cascades: np.ndarray | None = None
     precip_models_cascades_timestep: np.ndarray | None = None
     precip_models_timestep: np.ndarray | None = None
@@ -165,11 +168,14 @@ class StepsBlendingState:
     std_models_timestep: np.ndarray | None = None
     velocity_models_timestep: np.ndarray | None = None
 
+    # Mapping from NWP members to ensemble members
     mapping_list_NWP_member_to_ensemble_member: np.ndarray | None = None
 
+    # Random states for precipitation and motion
     randgen_precip: list[np.random.RandomState] | None = None
     randgen_motion: list[np.random.RandomState] | None = None
 
+    # Variables for final forecast computation
     previous_displacement: list[Any] | None = None
     previous_displacement_noise_cascade: list[Any] | None = None
     previous_displacement_prob_matching: list[Any] | None = None
@@ -183,18 +189,22 @@ class StepsBlendingState:
     final_blended_forecast_recomposed: np.ndarray | None = None
     final_blended_forecast_recomposed_mod_only: np.ndarray | None = None
 
+    # Final outputs
     final_blended_forecast: np.ndarray | None = None
     final_blended_forecast_non_perturbed: np.ndarray | None = None
 
+    # Timing and indexing
     time_prev_timestep: list[float] | None = None
     leadtime_since_start_forecast: list[float] | None = None
     subtimesteps: list[float] | None = None
     is_nowcast_time_step: bool | None = None
     subtimestep_index: int | None = None
 
+    # Weights used for blending
     weights: np.ndarray | None = None
     weights_model_only: np.ndarray | None = None
 
+    # This is stores here as well because this is changed during the forecast loop and thus no longer part of the config
     extrapolation_kwargs: dict[str, Any] = field(default_factory=dict)
 
 
