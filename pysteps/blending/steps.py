@@ -701,7 +701,7 @@ class StepsBlendingNowcaster:
         self.__config.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
         res = []
 
-        # TODO: create beter names here fore this part, adapted from previous code which is now inlined (old function was called _transform_to_lagrangian)
+        # TODO: create beter names here for this part, adapted from previous code which is now inlined (old function was called _transform_to_lagrangian)
         def f(precip, i):
             return self.__params.extrapolation_method(
                 precip[i, :, :],

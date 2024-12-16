@@ -28,6 +28,7 @@ steps_arg_values = [
     (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2, False, False, 0, False),
     # TODO: make next test work! This is currently not working on the main branch
     # (2, 3, 4, 8, "incremental", "cdf", True, "spn", True, 2, False, False, 0, False),
+    # (2, 3, 4, 8, "incremental", "cdf", False, "spn", True, 2, False, False, 0, False),
     (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 0, False),
     #    Test the case where the radar image contains no rain.
     (1, 3, 6, 8, None, None, False, "spn", True, 6, True, False, 0, False),
