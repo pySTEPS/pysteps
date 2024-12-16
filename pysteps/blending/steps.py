@@ -65,7 +65,7 @@ except ImportError:
     DASK_IMPORTED = False
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any, Callable, Union
+from typing import Any, Callable
 
 # TODO: compare old and new version of the code, run a benchmark to compare the two
 # TODO: look at the documentation and try to improve it, lots of things are now combined together
@@ -73,7 +73,7 @@ from typing import Optional, List, Dict, Any, Callable, Union
 
 @dataclass
 class StepsBlendingConfig:
-    precip_threshold: Optional[float]
+    precip_threshold: float | None
     norain_threshold: float
     kmperpixel: float
     timestep: float
@@ -83,133 +83,119 @@ class StepsBlendingConfig:
     extrapolation_method: str
     decomposition_method: str
     bandpass_filter_method: str
-    noise_method: Optional[str]
-    noise_stddev_adj: Optional[str]
+    noise_method: str | None
+    noise_stddev_adj: str | None
     ar_order: int
-    velocity_perturbation_method: Optional[str]
+    velocity_perturbation_method: str | None
     weights_method: str
     conditional: bool
-    probmatching_method: Optional[str]
-    mask_method: Optional[str]
+    probmatching_method: str | None
+    mask_method: str | None
     resample_distribution: bool
     smooth_radar_mask_range: int
-    seed: Optional[int]
+    seed: int | None
     num_workers: int
     fft_method: str
     domain: str
     outdir_path_skill: str
-    extrapolation_kwargs: Dict[str, Any] = field(default_factory=dict)
-    filter_kwargs: Dict[str, Any] = field(default_factory=dict)
-    noise_kwargs: Dict[str, Any] = field(default_factory=dict)
-    velocity_perturbation_kwargs: Dict[str, Any] = field(default_factory=dict)
-    climatology_kwargs: Dict[str, Any] = field(default_factory=dict)
-    mask_kwargs: Dict[str, Any] = field(default_factory=dict)
+    extrapolation_kwargs: dict[str, Any] = field(default_factory=dict)
+    filter_kwargs: dict[str, Any] = field(default_factory=dict)
+    noise_kwargs: dict[str, Any] = field(default_factory=dict)
+    velocity_perturbation_kwargs: dict[str, Any] = field(default_factory=dict)
+    climatology_kwargs: dict[str, Any] = field(default_factory=dict)
+    mask_kwargs: dict[str, Any] = field(default_factory=dict)
     measure_time: bool = False
-    callback: Optional[Any] = None
+    callback: Any | None = None
     return_output: bool = True
 
 
 @dataclass
 class StepsBlendingParams:
-    noise_std_coeffs: Optional[np.ndarray] = (
-        None  # Noise standard deviation coefficients
-    )
-    bandpass_filter: Optional[Any] = None  # Band-pass filter object
-    fft: Optional[Any] = None  # FFT method object
-    perturbation_generator: Optional[Callable[..., np.ndarray]] = (
-        None  # Perturbation generator
-    )
-    noise_generator: Optional[Callable[..., np.ndarray]] = None  # Noise generator
-    PHI: Optional[np.ndarray] = None  # AR(p) model parameters
-    extrapolation_method: Optional[Callable[..., Any]] = None
-    decomposition_method: Optional[Callable[..., dict]] = None
-    recomposition_method: Optional[Callable[..., np.ndarray]] = None
-    velocity_perturbations: Optional[Any] = None
-    generate_velocity_noise: Optional[Callable[[Any, float], np.ndarray]] = None
-    velocity_perturbations_parallel: Optional[np.ndarray] = None
-    velocity_perturbations_perpendicular: Optional[np.ndarray] = None
-    fft_objs: List[Any] = field(default_factory=list)
-    mask_rim: Optional[int] = None  # Rim size for masking
-    struct: Optional[np.ndarray] = None  # Structuring element for mask
-    time_steps_is_list: bool = False  # Time steps is a list
-    precip_models_provided_is_cascade: bool = False  # Precip models are decomposed
-    xy_coordinates: Optional[np.ndarray] = None
-    precip_zerovalue: Optional[float] = None
-    mask_threshold: Optional[np.ndarray] = None
+    noise_std_coeffs: np.ndarray | None = None
+    bandpass_filter: Any | None = None
+    fft: Any | None = None
+    perturbation_generator: Callable[..., np.ndarray] | None = None
+    noise_generator: Callable[..., np.ndarray] | None = None
+    PHI: np.ndarray | None = None
+    extrapolation_method: Callable[..., Any] | None = None
+    decomposition_method: Callable[..., dict] | None = None
+    recomposition_method: Callable[..., np.ndarray] | None = None
+    velocity_perturbations: Any | None = None
+    generate_velocity_noise: Callable[[Any, float], np.ndarray] | None = None
+    velocity_perturbations_parallel: np.ndarray | None = None
+    velocity_perturbations_perpendicular: np.ndarray | None = None
+    fft_objs: list[Any] = field(default_factory=list)
+    mask_rim: int | None = None
+    struct: np.ndarray | None = None
+    time_steps_is_list: bool = False
+    precip_models_provided_is_cascade: bool = False
+    xy_coordinates: np.ndarray | None = None
+    precip_zerovalue: float | None = None
+    mask_threshold: np.ndarray | None = None
     zero_precip_radar: bool = False
     zero_precip_model_fields: bool = False
-    original_timesteps: Optional[Union[list, np.ndarray]] = None
-    num_ensemble_workers: Optional[int] = None
-    rho_nwp_models: Optional[np.ndarray] = None
-    domain_mask: Optional[np.ndarray] = None
+    original_timesteps: list | np.ndarray | None = None
+    num_ensemble_workers: int | None = None
+    rho_nwp_models: np.ndarray | None = None
+    domain_mask: np.ndarray | None = None
 
 
 @dataclass
 class StepsBlendingState:
-    # Radar and noise states
-    precip_cascades: Optional[np.ndarray] = None
-    precip_noise_input: Optional[np.ndarray] = None
-    precip_noise_cascades: Optional[np.ndarray] = None
-    precip_mean_noise: Optional[np.ndarray] = None
-    precip_std_noise: Optional[np.ndarray] = None
+    precip_cascades: np.ndarray | None = None
+    precip_noise_input: np.ndarray | None = None
+    precip_noise_cascades: np.ndarray | None = None
+    precip_mean_noise: np.ndarray | None = None
+    precip_std_noise: np.ndarray | None = None
 
-    # Extrapolation states
-    mean_extrapolation: Optional[np.ndarray] = None
-    std_extrapolation: Optional[np.ndarray] = None
-    rho_extrap_cascade_prev: Optional[np.ndarray] = None
-    rho_extrap_cascade: Optional[np.ndarray] = None
-    precip_cascades_prev_subtimestep: Optional[np.ndarray] = None
-    cascade_noise_prev_subtimestep: Optional[np.ndarray] = None
-    precip_extrapolated_after_decomp: Optional[np.ndarray] = None
-    noise_extrapolated_after_decomp: Optional[np.ndarray] = None
-    precip_extrapolated_probability_matching: Optional[np.ndarray] = None
+    mean_extrapolation: np.ndarray | None = None
+    std_extrapolation: np.ndarray | None = None
+    rho_extrap_cascade_prev: np.ndarray | None = None
+    rho_extrap_cascade: np.ndarray | None = None
+    precip_cascades_prev_subtimestep: np.ndarray | None = None
+    cascade_noise_prev_subtimestep: np.ndarray | None = None
+    precip_extrapolated_after_decomp: np.ndarray | None = None
+    noise_extrapolated_after_decomp: np.ndarray | None = None
+    precip_extrapolated_probability_matching: np.ndarray | None = None
 
-    # NWP model states
-    precip_models_cascades: Optional[np.ndarray] = None
-    precip_models_cascades_timestep: Optional[np.ndarray] = None
-    precip_models_timestep: Optional[np.ndarray] = None
-    mean_models_timestep: Optional[np.ndarray] = None
-    std_models_timestep: Optional[np.ndarray] = None
-    velocity_models_timestep: Optional[np.ndarray] = None
+    precip_models_cascades: np.ndarray | None = None
+    precip_models_cascades_timestep: np.ndarray | None = None
+    precip_models_timestep: np.ndarray | None = None
+    mean_models_timestep: np.ndarray | None = None
+    std_models_timestep: np.ndarray | None = None
+    velocity_models_timestep: np.ndarray | None = None
 
-    # Mapping from NWP members to ensemble members
-    mapping_list_NWP_member_to_ensemble_member: Optional[np.ndarray] = None
+    mapping_list_NWP_member_to_ensemble_member: np.ndarray | None = None
 
-    # Random states for precipitation and motion
-    randgen_precip: Optional[List[np.random.RandomState]] = None
-    randgen_motion: Optional[List[np.random.RandomState]] = None
+    randgen_precip: list[np.random.RandomState] | None = None
+    randgen_motion: list[np.random.RandomState] | None = None
 
-    # Variables for final forecast computation
-    previous_displacement: Optional[List[Any]] = None
-    previous_displacement_noise_cascade: Optional[List[Any]] = None
-    previous_displacement_prob_matching: Optional[List[Any]] = None
-    rho_final_blended_forecast: Optional[np.ndarray] = None
-    final_blended_forecast_means: Optional[np.ndarray] = None
-    final_blended_forecast_stds: Optional[np.ndarray] = None
-    final_blended_forecast_means_mod_only: Optional[np.ndarray] = None
-    final_blended_forecast_stds_mod_only: Optional[np.ndarray] = None
-    final_blended_forecast_cascades: Optional[np.ndarray] = None
-    final_blended_forecast_cascades_mod_only: Optional[np.ndarray] = None
-    final_blended_forecast_recomposed: Optional[np.ndarray] = None
-    final_blended_forecast_recomposed_mod_only: Optional[np.ndarray] = None
+    previous_displacement: list[Any] | None = None
+    previous_displacement_noise_cascade: list[Any] | None = None
+    previous_displacement_prob_matching: list[Any] | None = None
+    rho_final_blended_forecast: np.ndarray | None = None
+    final_blended_forecast_means: np.ndarray | None = None
+    final_blended_forecast_stds: np.ndarray | None = None
+    final_blended_forecast_means_mod_only: np.ndarray | None = None
+    final_blended_forecast_stds_mod_only: np.ndarray | None = None
+    final_blended_forecast_cascades: np.ndarray | None = None
+    final_blended_forecast_cascades_mod_only: np.ndarray | None = None
+    final_blended_forecast_recomposed: np.ndarray | None = None
+    final_blended_forecast_recomposed_mod_only: np.ndarray | None = None
 
-    # Final outputs
-    final_blended_forecast: Optional[np.ndarray] = None
-    final_blended_forecast_non_perturbed: Optional[np.ndarray] = None
+    final_blended_forecast: np.ndarray | None = None
+    final_blended_forecast_non_perturbed: np.ndarray | None = None
 
-    # Timing and indexing
-    time_prev_timestep: Optional[List[float]] = None
-    leadtime_since_start_forecast: Optional[List[float]] = None
-    subtimesteps: Optional[List[float]] = None
-    is_nowcast_time_step: Optional[bool] = None
-    subtimestep_index: Optional[int] = None
+    time_prev_timestep: list[float] | None = None
+    leadtime_since_start_forecast: list[float] | None = None
+    subtimesteps: list[float] | None = None
+    is_nowcast_time_step: bool | None = None
+    subtimestep_index: int | None = None
 
-    # Weights used for blending
-    weights: Optional[np.ndarray] = None
-    weights_model_only: Optional[np.ndarray] = None
+    weights: np.ndarray | None = None
+    weights_model_only: np.ndarray | None = None
 
-    # Is stores here aswell becasue this is changed during the forecast loop and thus not part of the config
-    extrapolation_kwargs: Dict[str, Any] = field(default_factory=dict)
+    extrapolation_kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 class StepsBlendingNowcaster:
