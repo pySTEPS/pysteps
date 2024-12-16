@@ -828,7 +828,7 @@ class StepsBlendingNowcaster:
                 precip_forecast_workers = None
 
         if self.__config.measure_time:
-            zero_precip_time = time.time() - self.__start_time_init
+            self.__zero_precip_time = time.time() - self.__start_time_init
 
         if self.__config.return_output:
             precip_forecast_all_members_all_times = np.stack(
@@ -841,8 +841,8 @@ class StepsBlendingNowcaster:
             if self.__config.measure_time:
                 return (
                     precip_forecast_all_members_all_times,
-                    zero_precip_time,
-                    zero_precip_time,
+                    self.__zero_precip_time,
+                    self.__zero_precip_time,
                 )
             else:
                 return precip_forecast_all_members_all_times
