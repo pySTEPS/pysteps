@@ -1091,7 +1091,7 @@ class StepsBlendingNowcaster:
             ) = noise.get_method(self.__config.velocity_perturbation_method)
 
             # initialize the perturbation generators for the motion field
-            self.__state.velocity_perturbations = []
+            self.__params.velocity_perturbations = []
             for j in range(self.__config.n_ens_members):
                 kwargs = {
                     "randstate": self.__state.randgen_motion[j],
@@ -1104,7 +1104,7 @@ class StepsBlendingNowcaster:
                     self.__config.timestep,
                     **kwargs,
                 )
-                self.__state.velocity_perturbations.append(vp_)
+                self.__params.velocity_perturbations.append(vp_)
         else:
             (
                 self.__params.velocity_perturbations,
@@ -2902,7 +2902,6 @@ def forecast(
     forecast_steps_nowcast = blended_nowcaster.compute_forecast()
     print(forecast_steps_nowcast)
     blended_nowcaster.reset_states_and_params()
-    # Call the appropriate methods within the class
     return forecast_steps_nowcast
 
 
