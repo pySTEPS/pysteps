@@ -71,7 +71,7 @@ from typing import Any, Callable
 # TODO: look at the documentation and try to improve it, lots of things are now combined together
 
 
-@dataclass
+@dataclass(frozen=True)
 class StepsBlendingConfig:
     precip_threshold: float | None
     norain_threshold: float
@@ -477,27 +477,6 @@ class StepsBlendingNowcaster:
                 "or a four-dimensional array containing the original (NWP) model forecasts"
             )
 
-        if self.__config.extrapolation_kwargs is None:
-            self.__config.extrapolation_kwargs = dict()
-
-        if self.__config.filter_kwargs is None:
-            self.__config.filter_kwargs = dict()
-
-        if self.__config.noise_kwargs is None:
-            self.__config.noise_kwargs = dict()
-
-        if self.__config.velocity_perturbation_kwargs is None:
-            self.__config.velocity_perturbation_kwargs = dict()
-
-        if self.__config.climatology_kwargs is None:
-            # Make sure clim_kwargs at least contains the number of models
-            self.__config.climatology_kwargs = dict(
-                {"n_models": self.__precip_models.shape[0]}
-            )
-
-        if self.__config.mask_kwargs is None:
-            self.__config.mask_kwargs = dict()
-
         if np.any(~np.isfinite(self.__velocity)):
             raise ValueError("velocity contains non-finite values")
 
@@ -694,7 +673,6 @@ class StepsBlendingNowcaster:
         # Advect the previous precipitation fields to the same position with the
         # most recent one (i.e. transform them into the Lagrangian coordinates).
 
-        self.__config.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
         res = []
 
         # TODO: create beter names here for this part, adapted from previous code which is now inlined (old function was called _transform_to_lagrangian)
@@ -705,6 +683,7 @@ class StepsBlendingNowcaster:
                 self.__config.ar_order - i,
                 "min",
                 allow_nonfinite_values=True,
+                xy_coords=self.__params.xy_coordinates,
                 **self.__config.extrapolation_kwargs.copy(),
             )[-1]
 
@@ -1073,11 +1052,12 @@ class StepsBlendingNowcaster:
     def __initialize_random_generators(self):
         # 6. Initialize all the random generators and prepare for the forecast loop
         """Initialize all the random generators."""
+        seed = self.__config.seed
         if self.__config.noise_method is not None:
             self.__state.randgen_precip = []
             self.__state.randgen_motion = []
             for j in range(self.__config.n_ens_members):
-                rs = np.random.RandomState(self.__config.seed)
+                rs = np.random.RandomState(seed)
                 self.__state.randgen_precip.append(rs)
                 seed = rs.randint(0, high=1e9)
                 rs = np.random.RandomState(seed)
@@ -2850,6 +2830,20 @@ def forecast(
     which enhances the AR process. This can become a future development if this
     turns out to be a warranted functionality.
     """
+    kwargs_dict = {}
+
+    if extrap_kwargs is not None:
+        kwargs_dict["extrapolation_kwargs"] = extrap_kwargs
+    if filter_kwargs is not None:
+        kwargs_dict["filter_kwargs"] = filter_kwargs
+    if noise_kwargs is not None:
+        kwargs_dict["noise_kwargs"] = noise_kwargs
+    if vel_pert_kwargs is not None:
+        kwargs_dict["velocity_perturbation_kwargs"] = vel_pert_kwargs
+    if clim_kwargs is not None:
+        kwargs_dict["climatology_kwargs"] = clim_kwargs
+    if mask_kwargs is not None:
+        kwargs_dict["mask_kwargs"] = mask_kwargs
 
     blending_config = StepsBlendingConfig(
         n_ens_members=n_ens_members,
@@ -2877,15 +2871,10 @@ def forecast(
         fft_method=fft_method,
         domain=domain,
         outdir_path_skill=outdir_path_skill,
-        extrapolation_kwargs=extrap_kwargs,
-        filter_kwargs=filter_kwargs,
-        noise_kwargs=noise_kwargs,
-        velocity_perturbation_kwargs=vel_pert_kwargs,
-        climatology_kwargs=clim_kwargs,
-        mask_kwargs=mask_kwargs,
         measure_time=measure_time,
         callback=callback,
         return_output=return_output,
+        **kwargs_dict,
     )
 
     # Create an instance of the new class with all the provided arguments
