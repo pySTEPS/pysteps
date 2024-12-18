@@ -339,7 +339,7 @@ class StepsBlendingNowcaster:
             def worker(j):
                 # The state needs to be copied as a dataclass is not threadsafe in python
                 worker_state = deepcopy(self.__state)
-                self.__determine_skill_for_next_timestep(t, j, worker_state)
+                self.__determine_NWP_skill_for_next_timestep(t, j, worker_state)
                 self.__determine_weights_per_component(worker_state)
                 self.__regress_extrapolation_and_noise_cascades(j, worker_state)
                 self.__perturb_blend_and_advect_extrapolation_and_noise_to_current_timestep(
@@ -697,7 +697,7 @@ class StepsBlendingNowcaster:
         self.__config.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
         res = []
 
-        # TODO: create beter names here for this part, adapted from previous code which is now inlined (old function was called _transform_to_lagrangian)
+        # TODO: create better names here for this part, adapted from previous code which is now inlined (old function was called _transform_to_lagrangian)
         def f(precip, i):
             return self.__params.extrapolation_method(
                 precip[i, :, :],
@@ -1377,41 +1377,30 @@ class StepsBlendingNowcaster:
                         (n_ens_members_max + i) // n_ens_members_min
                         for i in range(n_ens_members_min)
                     ]
-                    if n_model_members == n_ens_members_min:
-                        self.__state.precip_models_cascades_timestep = np.repeat(
-                            self.__state.precip_models_cascades_timestep,
-                            repeats,
-                            axis=0,
-                        )
-                        self.__state.mean_models_timestep = np.repeat(
-                            self.__state.mean_models_timestep, repeats, axis=0
-                        )
-                        self.__state.std_models_timestep = np.repeat(
-                            self.__state.std_models_timestep, repeats, axis=0
-                        )
-                        self.__state.velocity_models_timestep = np.repeat(
-                            self.__state.velocity_models_timestep, repeats, axis=0
-                        )
-                        # For the prob. matching
-                        self.__state.precip_models_timestep = np.repeat(
-                            self.__state.precip_models_timestep, repeats, axis=0
-                        )
-                        # Finally, for the model indices
-                        self.__state.mapping_list_NWP_member_to_ensemble_member = (
-                            np.repeat(
-                                self.__state.mapping_list_NWP_member_to_ensemble_member,
-                                repeats,
-                                axis=0,
-                            )
-                        )
-
-        # TODO: is this not duplicate from part 2.3.5? If so, is it still needed here?
-        # If zero_precip_radar is True, set the velocity field equal to the NWP
-        # velocity field for the current time step (velocity_models_temp).
-        if self.__params.zero_precip_radar:
-            # Use the velocity from velocity_models and take the average over
-            # n_models (axis=0)
-            self.__velocity = np.mean(self.__state.velocity_models_timestep, axis=0)
+                    self.__state.precip_models_cascades_timestep = np.repeat(
+                        self.__state.precip_models_cascades_timestep,
+                        repeats,
+                        axis=0,
+                    )
+                    self.__state.mean_models_timestep = np.repeat(
+                        self.__state.mean_models_timestep, repeats, axis=0
+                    )
+                    self.__state.std_models_timestep = np.repeat(
+                        self.__state.std_models_timestep, repeats, axis=0
+                    )
+                    self.__state.velocity_models_timestep = np.repeat(
+                        self.__state.velocity_models_timestep, repeats, axis=0
+                    )
+                    # For the prob. matching
+                    self.__state.precip_models_timestep = np.repeat(
+                        self.__state.precip_models_timestep, repeats, axis=0
+                    )
+                    # Finally, for the model indices
+                    self.__state.mapping_list_NWP_member_to_ensemble_member = np.repeat(
+                        self.__state.mapping_list_NWP_member_to_ensemble_member,
+                        repeats,
+                        axis=0,
+                    )
 
     def __determine_skill_for_current_timestep(self, t):
         if t == 0:
@@ -1465,7 +1454,7 @@ class StepsBlendingNowcaster:
                 correlations_prev=self.__state.rho_extrap_cascade_prev,
             )
 
-    def __determine_skill_for_next_timestep(self, t, j, worker_state):
+    def __determine_NWP_skill_for_next_timestep(self, t, j, worker_state):
         # 8.1.2 Determine the skill of the nwp components for lead time (t0 + t)
         # Then for the model components
         if self.__config.blend_nwp_members:
@@ -1650,7 +1639,7 @@ class StepsBlendingNowcaster:
         extrap_kwargs_noise = self.__state.extrapolation_kwargs.copy()
         extrap_kwargs_pb = self.__state.extrapolation_kwargs.copy()
         velocity_perturbations_extrapolation = self.__velocity
-        # The following should be accesseble after this function
+        # The following should be accessible after this function
         worker_state.precip_extrapolated_decomp = []
         worker_state.noise_extrapolated_decomp = []
         worker_state.precip_extrapolated_probability_matching = []
@@ -2447,89 +2436,6 @@ class StepsBlendingNowcaster:
         self.__mainloop_time = None
 
 
-def calculate_ratios(correlations):
-    """Calculate explained variance ratios from correlation.
-
-    Parameters
-    ----------
-    Array of shape [component, scale_level, ...]
-      containing correlation (skills) for each component (NWP and nowcast),
-      scale level, and optionally along [y, x] dimensions.
-
-    Returns
-    -------
-    out : numpy array
-      An array containing the ratios of explain variance for each
-      component, scale level, ...
-    """
-    # correlations: [component, scale, ...]
-    square_corrs = np.square(correlations)
-    # Calculate the ratio of the explained variance to the unexplained
-    # variance of the nowcast and NWP model components
-    out = square_corrs / (1 - square_corrs)
-    # out: [component, scale, ...]
-    return out
-
-
-def calculate_weights_bps(correlations):
-    """Calculate BPS blending weights for STEPS blending from correlation.
-
-    Parameters
-    ----------
-    correlations : array-like
-      Array of shape [component, scale_level, ...]
-      containing correlation (skills) for each component (NWP and nowcast),
-      scale level, and optionally along [y, x] dimensions.
-
-    Returns
-    -------
-    weights : array-like
-      Array of shape [component+1, scale_level, ...]
-      containing the weights to be used in STEPS blending for
-      each original component plus an addtional noise component, scale level,
-      and optionally along [y, x] dimensions.
-
-    References
-    ----------
-    :cite:`BPS2006`
-
-    Notes
-    -----
-    The weights in the BPS method can sum op to more than 1.0.
-    """
-    # correlations: [component, scale, ...]
-    # Check if the correlations are positive, otherwise rho = 10e-5
-    correlations = np.where(correlations < 10e-5, 10e-5, correlations)
-
-    # If we merge more than one component with the noise cascade, we follow
-    # the weights impolementation in either :cite:`BPS2006` or :cite:`SPN2013`.
-    if correlations.shape[0] > 1:
-        # Calculate weights for each source
-        ratios = calculate_ratios(correlations)
-        # ratios: [component, scale, ...]
-        total_ratios = np.sum(ratios, axis=0)
-        # total_ratios: [scale, ...] - the denominator of eq. 11 & 12 in BPS2006
-        weights = correlations * np.sqrt(ratios / total_ratios)
-        # weights: [component, scale, ...]
-        # Calculate the weight of the noise component.
-        # Original BPS2006 method in the following two lines (eq. 13)
-        total_square_weights = np.sum(np.square(weights), axis=0)
-        noise_weight = np.sqrt(1.0 - total_square_weights)
-        # Finally, add the noise_weights to the weights variable.
-        weights = np.concatenate((weights, noise_weight[None, ...]), axis=0)
-
-    # Otherwise, the weight equals the correlation on that scale level and
-    # the noise component weight equals 1 - this weight. This only occurs for
-    # the weights calculation outside the radar domain where in the case of 1
-    # NWP model or ensemble member, no blending of multiple models has to take
-    # place
-    else:
-        noise_weight = 1.0 - correlations
-        weights = np.concatenate((correlations, noise_weight), axis=0)
-
-    return weights
-
-
 def forecast(
     precip,
     precip_models,
@@ -2798,7 +2704,7 @@ def forecast(
 
       fmi=Finland, mch=Switzerland, fmi+mch=both pooled into the same data set
 
-      The above parameters have been fitten by using run_vel_pert_analysis.py
+      The above parameters have been fitted by using run_vel_pert_analysis.py
       and fit_vel_pert_params.py located in the scripts directory.
 
       See :py:mod:`pysteps.noise.motion` for additional documentation.
@@ -2903,6 +2809,91 @@ def forecast(
     print(forecast_steps_nowcast)
     blended_nowcaster.reset_states_and_params()
     return forecast_steps_nowcast
+
+
+# TODO: Where does this piece of code best fit: in utils or inside the class?
+def calculate_ratios(correlations):
+    """Calculate explained variance ratios from correlation.
+
+    Parameters
+    ----------
+    Array of shape [component, scale_level, ...]
+      containing correlation (skills) for each component (NWP and nowcast),
+      scale level, and optionally along [y, x] dimensions.
+
+    Returns
+    -------
+    out : numpy array
+      An array containing the ratios of explain variance for each
+      component, scale level, ...
+    """
+    # correlations: [component, scale, ...]
+    square_corrs = np.square(correlations)
+    # Calculate the ratio of the explained variance to the unexplained
+    # variance of the nowcast and NWP model components
+    out = square_corrs / (1 - square_corrs)
+    # out: [component, scale, ...]
+    return out
+
+
+# TODO: Where does this piece of code best fit: in utils or inside the class?
+def calculate_weights_bps(correlations):
+    """Calculate BPS blending weights for STEPS blending from correlation.
+
+    Parameters
+    ----------
+    correlations : array-like
+      Array of shape [component, scale_level, ...]
+      containing correlation (skills) for each component (NWP and nowcast),
+      scale level, and optionally along [y, x] dimensions.
+
+    Returns
+    -------
+    weights : array-like
+      Array of shape [component+1, scale_level, ...]
+      containing the weights to be used in STEPS blending for
+      each original component plus an addtional noise component, scale level,
+      and optionally along [y, x] dimensions.
+
+    References
+    ----------
+    :cite:`BPS2006`
+
+    Notes
+    -----
+    The weights in the BPS method can sum op to more than 1.0.
+    """
+    # correlations: [component, scale, ...]
+    # Check if the correlations are positive, otherwise rho = 10e-5
+    correlations = np.where(correlations < 10e-5, 10e-5, correlations)
+
+    # If we merge more than one component with the noise cascade, we follow
+    # the weights impolementation in either :cite:`BPS2006` or :cite:`SPN2013`.
+    if correlations.shape[0] > 1:
+        # Calculate weights for each source
+        ratios = calculate_ratios(correlations)
+        # ratios: [component, scale, ...]
+        total_ratios = np.sum(ratios, axis=0)
+        # total_ratios: [scale, ...] - the denominator of eq. 11 & 12 in BPS2006
+        weights = correlations * np.sqrt(ratios / total_ratios)
+        # weights: [component, scale, ...]
+        # Calculate the weight of the noise component.
+        # Original BPS2006 method in the following two lines (eq. 13)
+        total_square_weights = np.sum(np.square(weights), axis=0)
+        noise_weight = np.sqrt(1.0 - total_square_weights)
+        # Finally, add the noise_weights to the weights variable.
+        weights = np.concatenate((weights, noise_weight[None, ...]), axis=0)
+
+    # Otherwise, the weight equals the correlation on that scale level and
+    # the noise component weight equals 1 - this weight. This only occurs for
+    # the weights calculation outside the radar domain where in the case of 1
+    # NWP model or ensemble member, no blending of multiple models has to take
+    # place
+    else:
+        noise_weight = 1.0 - correlations
+        weights = np.concatenate((correlations, noise_weight), axis=0)
+
+    return weights
 
 
 # TODO: Where does this piece of code best fit: in utils or inside the class?
@@ -3049,6 +3040,5 @@ def blend_means_sigmas(means, sigmas, weights):
     for i in range(weights.shape[0]):
         combined_means += (weights[i] / total_weight) * means[i]
         combined_sigmas += (weights[i] / total_weight) * sigmas[i]
-    # TODO: substract covariances to weigthed sigmas - still necessary?
 
     return combined_means, combined_sigmas
