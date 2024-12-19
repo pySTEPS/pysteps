@@ -14,6 +14,7 @@ Implementation of the STEPS stochastic nowcasting method as described in
 import numpy as np
 from scipy.ndimage import generate_binary_structure, iterate_structure
 import time
+from copy import deepcopy
 
 from pysteps import cascade
 from pysteps import extrapolation
@@ -35,7 +36,7 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-@dataclass
+@dataclass(frozen=True)
 class StepsNowcasterConfig:
     """
     Parameters
@@ -247,6 +248,10 @@ class StepsNowcasterParams:
     xy_coordinates: np.ndarray | None = None
     velocity_perturbation_parallel: list[float] | None = None
     velocity_perturbation_perpendicular: list[float] | None = None
+    filter_kwargs: dict | None = None
+    noise_kwargs: dict | None = None
+    velocity_perturbation_kwargs: dict | None = None
+    mask_kwargs: dict | None = None
 
 
 @dataclass
@@ -268,6 +273,7 @@ class StepsNowcasterState:
     )
     velocity_perturbations: list[Callable] | None = field(default_factory=list)
     fft_objects: list[Any] | None = field(default_factory=list)
+    extrapolation_kwargs: dict[str, Any] | None = field(default_factory=dict)
 
 
 class StepsNowcaster:
@@ -408,7 +414,7 @@ class StepsNowcaster:
             self.__time_steps,
             self.__config.extrapolation_method,
             self.__update_state,  # Reference to the update function
-            extrap_kwargs=self.__config.extrapolation_kwargs,
+            extrap_kwargs=self.__state.extrapolation_kwargs,
             velocity_pert_gen=self.__state.velocity_perturbations,
             params=params,
             ensemble=True,
@@ -483,15 +489,33 @@ class StepsNowcaster:
 
         # Handle None values for various kwargs
         if self.__config.extrapolation_kwargs is None:
-            self.__config.extrapolation_kwargs = {}
+            self.__state.extrapolation_kwargs = dict()
+        else:
+            self.__state.extrapolation_kwargs = deepcopy(
+                self.__config.extrapolation_kwargs
+            )
+
         if self.__config.filter_kwargs is None:
-            self.__config.filter_kwargs = {}
+            self.__params.filter_kwargs = dict()
+        else:
+            self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
+
         if self.__config.noise_kwargs is None:
-            self.__config.noise_kwargs = {}
+            self.__params.noise_kwargs = dict()
+        else:
+            self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
+
         if self.__config.velocity_perturbation_kwargs is None:
-            self.__config.velocity_perturbation_kwargs = {}
+            self.__params.velocity_perturbation_kwargs = dict()
+        else:
+            self.__params.velocity_perturbation_kwargs = deepcopy(
+                self.__config.velocity_perturbation_kwargs
+            )
+
         if self.__config.mask_kwargs is None:
-            self.__config.mask_kwargs = {}
+            self.__params.mask_kwargs = dict()
+        else:
+            self.__params.mask_kwargs = deepcopy(self.__config.mask_kwargs)
 
         print("Inputs validated and initialized successfully.")
 
@@ -548,12 +572,12 @@ class StepsNowcaster:
 
         if self.__config.velocity_perturbation_method == "bps":
             self.__params.velocity_perturbation_parallel = (
-                self.__config.velocity_perturbation_kwargs.get(
+                self.__params.velocity_perturbation_kwargs.get(
                     "p_par", noise.motion.get_default_params_bps_par()
                 )
             )
             self.__params.velocity_perturbation_perpendicular = (
-                self.__config.velocity_perturbation_kwargs.get(
+                self.__params.velocity_perturbation_kwargs.get(
                     "p_perp", noise.motion.get_default_params_bps_perp()
                 )
             )
@@ -588,7 +612,7 @@ class StepsNowcaster:
         self.__params.bandpass_filter = filter_method(
             (M, N),
             self.__config.n_cascade_levels,
-            **(self.__config.filter_kwargs or {}),
+            **(self.__params.filter_kwargs or {}),
         )
 
         # Get the decomposition method (e.g., FFT)
@@ -629,7 +653,7 @@ class StepsNowcaster:
         else:
             self.__state.mask_threshold = None
 
-        extrap_kwargs = self.__config.extrapolation_kwargs.copy()
+        extrap_kwargs = self.__state.extrapolation_kwargs.copy()
         extrap_kwargs["xy_coords"] = self.__params.xy_coordinates
         extrap_kwargs["allow_nonfinite_values"] = (
             True if np.any(~np.isfinite(self.__precip)) else False
@@ -691,7 +715,7 @@ class StepsNowcaster:
             self.__params.perturbation_generator = init_noise(
                 self.__precip,
                 fft_method=self.__params.fft,
-                **self.__config.noise_kwargs,
+                **self.__params.noise_kwargs,
             )
 
             # Handle noise standard deviation adjustments if necessary
@@ -831,21 +855,16 @@ class StepsNowcaster:
         if self.__config.noise_method is not None:
             self.__state.random_generator_precip = []
             self.__state.random_generator_motion = []
-
+            seed = self.__config.seed
             for _ in range(self.__config.n_ens_members):
                 # Create random state for precipitation noise generator
-                rs = np.random.RandomState(self.__config.seed)
+                rs = np.random.RandomState(seed)
                 self.__state.random_generator_precip.append(rs)
-                self.__config.seed = rs.randint(
-                    0, high=int(1e9)
-                )  # Update seed after generating
-
+                seed = rs.randint(0, high=int(1e9))
                 # Create random state for motion perturbations generator
-                rs = np.random.RandomState(self.__config.seed)
+                rs = np.random.RandomState(seed)
                 self.__state.random_generator_motion.append(rs)
-                self.__config.seed = rs.randint(
-                    0, high=int(1e9)
-                )  # Update seed after generating
+                seed = rs.randint(0, high=int(1e9))
         else:
             self.__state.random_generator_precip = None
             self.__state.random_generator_motion = None
@@ -865,10 +884,10 @@ class StepsNowcaster:
             for j in range(self.__config.n_ens_members):
                 kwargs = {
                     "randstate": self.__state.random_generator_motion[j],
-                    "p_par": self.__config.velocity_perturbation_kwargs.get(
+                    "p_par": self.__params.velocity_perturbation_kwargs.get(
                         "p_par", self.__params.velocity_perturbation_parallel
                     ),
-                    "p_perp": self.__config.velocity_perturbation_kwargs.get(
+                    "p_perp": self.__params.velocity_perturbation_kwargs.get(
                         "p_perp", self.__params.velocity_perturbation_perpendicular
                     ),
                 }
@@ -920,8 +939,8 @@ class StepsNowcaster:
 
             elif self.__config.mask_method == "incremental":
                 # Get mask parameters
-                self.__params.mask_rim = self.__config.mask_kwargs.get("mask_rim", 10)
-                mask_f = self.__config.mask_kwargs.get("mask_f", 1.0)
+                self.__params.mask_rim = self.__params.mask_kwargs.get("mask_rim", 10)
+                mask_f = self.__params.mask_kwargs.get("mask_f", 1.0)
                 # Initialize the structuring element
                 self.__params.structuring_element = generate_binary_structure(2, 1)
                 # Expand the structuring element based on mask factor and timestep

@@ -311,7 +311,6 @@ class StepsBlendingNowcaster:
 
         if self.__config.measure_time:
             starttime_mainloop = time.time()
-        # self.__state.extrapolation_kwargs = deepcopy(self.__config.extrapolation_kwargs)
         self.__state.extrapolation_kwargs["return_displacement"] = True
 
         self.__state.precip_cascades_prev_subtimestep = deepcopy(
