@@ -2067,9 +2067,6 @@ class StepsBlendingNowcaster:
 
         # First determine the blending weights if method is spn. The
         # weights for method bps have already been determined.
-        # TODO: no other weight method is possible, should we not al least give a user warning if a different weight
-        #  method is given? Or does this mean that in all other circumstances the weights
-        #  have been calculated in a different way?
 
         if self.__config.weights_method == "spn":
             worker_state.weights = np.zeros(
