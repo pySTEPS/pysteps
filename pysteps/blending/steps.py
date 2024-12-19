@@ -71,7 +71,7 @@ from typing import Any, Callable
 # TODO: look at the documentation and try to improve it, lots of things are now combined together
 
 
-@dataclass
+@dataclass(frozen=True)
 class StepsBlendingConfig:
     precip_threshold: float | None
     norain_threshold: float
@@ -138,6 +138,11 @@ class StepsBlendingParams:
     num_ensemble_workers: int | None = None
     rho_nwp_models: np.ndarray | None = None
     domain_mask: np.ndarray | None = None
+    filter_kwargs: dict | None = None
+    noise_kwargs: dict | None = None
+    velocity_perturbation_kwargs: dict | None = None
+    climatology_kwargs: dict | None = None
+    mask_kwargs: dict | None = None
 
 
 @dataclass
@@ -306,7 +311,7 @@ class StepsBlendingNowcaster:
 
         if self.__config.measure_time:
             starttime_mainloop = time.time()
-        self.__state.extrapolation_kwargs = deepcopy(self.__config.extrapolation_kwargs)
+        # self.__state.extrapolation_kwargs = deepcopy(self.__config.extrapolation_kwargs)
         self.__state.extrapolation_kwargs["return_displacement"] = True
 
         self.__state.precip_cascades_prev_subtimestep = deepcopy(
@@ -478,25 +483,43 @@ class StepsBlendingNowcaster:
             )
 
         if self.__config.extrapolation_kwargs is None:
-            self.__config.extrapolation_kwargs = dict()
+            self.__state.extrapolation_kwargs = dict()
+        else:
+            self.__state.extrapolation_kwargs = deepcopy(
+                self.__config.extrapolation_kwargs
+            )
 
         if self.__config.filter_kwargs is None:
-            self.__config.filter_kwargs = dict()
+            self.__params.filter_kwargs = dict()
+        else:
+            self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
 
         if self.__config.noise_kwargs is None:
-            self.__config.noise_kwargs = dict()
+            self.__params.noise_kwargs = dict()
+        else:
+            self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
 
         if self.__config.velocity_perturbation_kwargs is None:
-            self.__config.velocity_perturbation_kwargs = dict()
+            self.__params.velocity_perturbation_kwargs = dict()
+        else:
+            self.__params.velocity_perturbation_kwargs = deepcopy(
+                self.__config.velocity_perturbation_kwargs
+            )
 
         if self.__config.climatology_kwargs is None:
             # Make sure clim_kwargs at least contains the number of models
-            self.__config.climatology_kwargs = dict(
+            self.__params.climatology_kwargs = dict(
                 {"n_models": self.__precip_models.shape[0]}
+            )
+        else:
+            self.__params.climatology_kwargs = deepcopy(
+                self.__config.climatology_kwargs
             )
 
         if self.__config.mask_kwargs is None:
-            self.__config.mask_kwargs = dict()
+            self.__params.mask_kwargs = dict()
+        else:
+            self.__params.mask_kwargs = deepcopy(self.__config.mask_kwargs)
 
         if np.any(~np.isfinite(self.__velocity)):
             raise ValueError("velocity contains non-finite values")
@@ -598,12 +621,12 @@ class StepsBlendingNowcaster:
         print(f"order of the AR(p) model:    {self.__config.ar_order}")
         if self.__config.velocity_perturbation_method == "bps":
             self.__params.velocity_perturbations_parallel = (
-                self.__config.velocity_perturbation_kwargs.get(
+                self.__params.velocity_perturbation_kwargs.get(
                     "p_par", noise.motion.get_default_params_bps_par()
                 )
             )
             self.__params.velocity_perturbations_perpendicular = (
-                self.__config.velocity_perturbation_kwargs.get(
+                self.__params.velocity_perturbation_kwargs.get(
                     "p_perp", noise.motion.get_default_params_bps_perp()
                 )
             )
@@ -645,7 +668,7 @@ class StepsBlendingNowcaster:
         self.__params.bandpass_filter = filter_method(
             (M, N),
             self.__config.n_cascade_levels,
-            **(self.__config.filter_kwargs or {}),
+            **(self.__params.filter_kwargs or {}),
         )
 
         # Get the decomposition method (e.g., FFT)
@@ -694,7 +717,7 @@ class StepsBlendingNowcaster:
         # Advect the previous precipitation fields to the same position with the
         # most recent one (i.e. transform them into the Lagrangian coordinates).
 
-        self.__config.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
+        self.__state.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
         res = []
 
         # TODO: create better names here for this part, adapted from previous code which is now inlined (old function was called _transform_to_lagrangian)
@@ -705,7 +728,7 @@ class StepsBlendingNowcaster:
                 self.__config.ar_order - i,
                 "min",
                 allow_nonfinite_values=True,
-                **self.__config.extrapolation_kwargs.copy(),
+                **self.__state.extrapolation_kwargs.copy(),
             )[-1]
 
         if not DASK_IMPORTED:
@@ -939,7 +962,7 @@ class StepsBlendingNowcaster:
             self.__params.perturbation_generator = init_noise(
                 self.__state.precip_noise_input,
                 fft_method=self.__params.fft,
-                **self.__config.noise_kwargs,
+                **self.__params.noise_kwargs,
             )
 
             if self.__config.noise_stddev_adj == "auto":
@@ -1076,8 +1099,9 @@ class StepsBlendingNowcaster:
         if self.__config.noise_method is not None:
             self.__state.randgen_precip = []
             self.__state.randgen_motion = []
+            seed = self.__config.seed
             for j in range(self.__config.n_ens_members):
-                rs = np.random.RandomState(self.__config.seed)
+                rs = np.random.RandomState(seed)
                 self.__state.randgen_precip.append(rs)
                 seed = rs.randint(0, high=1e9)
                 rs = np.random.RandomState(seed)
@@ -1129,8 +1153,8 @@ class StepsBlendingNowcaster:
 
         if self.__config.mask_method == "incremental":
             # get mask parameters
-            self.__params.mask_rim = self.__config.mask_kwargs.get("mask_rim", 10)
-            mask_f = self.__config.mask_kwargs.get("mask_f", 1.0)
+            self.__params.mask_rim = self.__params.mask_kwargs.get("mask_rim", 10)
+            mask_f = self.__params.mask_kwargs.get("mask_f", 1.0)
             # initialize the structuring element
             struct = generate_binary_structure(2, 1)
             # iterate it to expand it nxn
@@ -1440,7 +1464,7 @@ class StepsBlendingNowcaster:
                 current_skill=self.__params.rho_nwp_models,
                 validtime=self.__issuetime,
                 outdir_path=self.__config.outdir_path_skill,
-                **self.__config.climatology_kwargs,
+                **self.__params.climatology_kwargs,
             )
         if t > 0:
             # 8.1.3 Determine the skill of the components for lead time (t0 + t)
@@ -1465,7 +1489,7 @@ class StepsBlendingNowcaster:
                     correlations=self.__params.rho_nwp_models[model_index],
                     outdir_path=self.__config.outdir_path_skill,
                     n_model=model_index,
-                    skill_kwargs=self.__config.climatology_kwargs,
+                    skill_kwargs=self.__params.climatology_kwargs,
                 )
                 rho_nwp_forecast.append(rho_value)
             rho_nwp_forecast = np.stack(rho_nwp_forecast)
@@ -1480,7 +1504,7 @@ class StepsBlendingNowcaster:
                 correlations=self.__params.rho_nwp_models[j],
                 outdir_path=self.__config.outdir_path_skill,
                 n_model=worker_state.mapping_list_NWP_member_to_ensemble_member[j],
-                skill_kwargs=self.__config.climatology_kwargs,
+                skill_kwargs=self.__params.climatology_kwargs,
             )
             # Concatenate rho_extrap_cascade and rho_nwp
             worker_state.rho_final_blended_forecast = np.concatenate(
@@ -2420,21 +2444,6 @@ class StepsBlendingNowcaster:
             return elapsed_time
         return None
 
-    def reset_states_and_params(self):
-        """
-        Reset the internal state and parameters of the nowcaster to allow multiple forecasts.
-        This method resets the state and params to their initial conditions without reinitializing
-        the inputs like precip, velocity, time_steps, or config.
-        """
-        # Re-initialize the state and parameters
-        self.__state = StepsBlendingState()
-        self.__params = StepsBlendingParams()
-
-        # Reset time measurement variables
-        self.__start_time_init = None
-        self.__init_time = None
-        self.__mainloop_time = None
-
 
 def forecast(
     precip,
@@ -2794,6 +2803,8 @@ def forecast(
         return_output=return_output,
     )
 
+    # TODO: add comment about how this class based method is supposed to be used: for each forecast run, a new forecaster needs to be made. The config file can stay the same.
+
     # Create an instance of the new class with all the provided arguments
     blended_nowcaster = StepsBlendingNowcaster(
         precip,
@@ -2807,7 +2818,6 @@ def forecast(
 
     forecast_steps_nowcast = blended_nowcaster.compute_forecast()
     print(forecast_steps_nowcast)
-    blended_nowcaster.reset_states_and_params()
     return forecast_steps_nowcast
 
 
