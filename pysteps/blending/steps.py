@@ -176,9 +176,10 @@ class StepsBlendingState:
     # Mapping from NWP members to ensemble members
     mapping_list_NWP_member_to_ensemble_member: np.ndarray | None = None
 
-    # Random states for precipitation and motion
+    # Random states for precipitation, motion and probmatching
     randgen_precip: list[np.random.RandomState] | None = None
     randgen_motion: list[np.random.RandomState] | None = None
+    randgen_probmatching: list[np.random.RandomState] | None = None
 
     # Variables for final forecast computation
     previous_displacement: list[Any] | None = None
@@ -1097,7 +1098,6 @@ class StepsBlendingNowcaster:
         """Initialize all the random generators."""
         if self.__config.noise_method is not None:
             self.__state.randgen_precip = []
-            self.__state.randgen_motion = []
             seed = self.__config.seed
             for j in range(self.__config.n_ens_members):
                 rs = np.random.RandomState(seed)
@@ -1107,7 +1107,21 @@ class StepsBlendingNowcaster:
                 self.__state.randgen_motion.append(rs)
                 seed = rs.randint(0, high=1e9)
 
+        if self.__config.probmatching_method is not None:
+            self.__state.randgen_probmatching = []
+            seed = self.__config.seed
+            for j in range(self.__config.n_ens_members):
+                rs = np.random.RandomState(seed)
+                self.__state.randgen_probmatching.append(rs)
+                seed = rs.randint(0, high=1e9)
+
         if self.__config.velocity_perturbation_method is not None:
+            self.__state.randgen_motion = []
+            for j in range(self.__config.n_ens_members):
+                rs = np.random.RandomState(seed)
+                self.__state.randgen_motion.append(rs)
+                seed = rs.randint(0, high=1e9)
+
             (
                 init_velocity_noise,
                 self.__params.generate_velocity_noise,
@@ -2373,6 +2387,7 @@ class StepsBlendingNowcaster:
                     first_array=arr1,
                     second_array=arr2,
                     probability_first_array=weights_probability_matching_normalized[0],
+                    randgen=self.__state.randgen_probmatching[j],
                 )
             )
         else:
