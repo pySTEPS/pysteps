@@ -274,7 +274,7 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     return shift, scale, R.reshape(shape)
 
 
-def resample_distributions(first_array, second_array, probability_first_array):
+def resample_distributions(first_array, second_array, probability_first_array, randgen):
     """
     Merges two distributions (e.g., from the extrapolation nowcast and NWP in the blending module)
     to effectively combine two distributions for probability matching without losing extremes.
@@ -324,7 +324,7 @@ def resample_distributions(first_array, second_array, probability_first_array):
     n = asort.shape[0]
 
     # Resample the distributions
-    idxsamples = np.random.binomial(1, probability_first_array, n).astype(bool)
+    idxsamples = randgen.binomial(1, probability_first_array, n).astype(bool)
     csort = np.where(idxsamples, asort, bsort)
     csort = np.sort(csort)[::-1]
 
