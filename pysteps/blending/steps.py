@@ -1096,20 +1096,16 @@ class StepsBlendingNowcaster:
     def __initialize_random_generators(self):
         # 6. Initialize all the random generators and prepare for the forecast loop
         """Initialize all the random generators."""
+        seed = self.__config.seed
         if self.__config.noise_method is not None:
             self.__state.randgen_precip = []
-            seed = self.__config.seed
             for j in range(self.__config.n_ens_members):
                 rs = np.random.RandomState(seed)
                 self.__state.randgen_precip.append(rs)
                 seed = rs.randint(0, high=1e9)
-                rs = np.random.RandomState(seed)
-                self.__state.randgen_motion.append(rs)
-                seed = rs.randint(0, high=1e9)
 
         if self.__config.probmatching_method is not None:
             self.__state.randgen_probmatching = []
-            seed = self.__config.seed
             for j in range(self.__config.n_ens_members):
                 rs = np.random.RandomState(seed)
                 self.__state.randgen_probmatching.append(rs)
