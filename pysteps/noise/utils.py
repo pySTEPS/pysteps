@@ -101,8 +101,9 @@ def compute_noise_stddev_adjs(
     randstates = []
 
     for k in range(num_iter):
-        randstates.append(np.random.RandomState(seed=seed))
-        seed = np.random.randint(0, high=1e9)
+        rs = np.random.RandomState(seed=seed)
+        randstates.append(rs)
+        seed = rs.randint(0, high=1e9)
 
     def worker(k):
         # generate Gaussian white noise field, filter it using the chosen

@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
-from pysteps.postprocessing.probmatching import resample_distributions
-from pysteps.postprocessing.probmatching import nonparam_match_empirical_cdf
+
+from pysteps.postprocessing.probmatching import (
+    nonparam_match_empirical_cdf,
+    resample_distributions,
+)
 
 
 class TestResampleDistributions:
@@ -16,7 +19,7 @@ class TestResampleDistributions:
         second_array = np.array([2, 4, 6, 8, 10])
         probability_first_array = 0.6
         result = resample_distributions(
-            first_array, second_array, probability_first_array
+            first_array, second_array, probability_first_array, np.random
         )
         expected_result = np.array([9, 8, 6, 3, 1])  # Expected result based on the seed
         assert result.shape == first_array.shape
@@ -27,7 +30,7 @@ class TestResampleDistributions:
         second_array = np.array([2, 4, 6, 8, 10])
         probability_first_array = 0.0
         result = resample_distributions(
-            first_array, second_array, probability_first_array
+            first_array, second_array, probability_first_array, np.random
         )
         assert np.array_equal(result, np.sort(second_array)[::-1])
 
@@ -36,7 +39,7 @@ class TestResampleDistributions:
         second_array = np.array([2, 4, 6, 8, 10])
         probability_first_array = 1.0
         result = resample_distributions(
-            first_array, second_array, probability_first_array
+            first_array, second_array, probability_first_array, np.random
         )
         assert np.array_equal(result, np.sort(first_array)[::-1])
 
@@ -45,7 +48,7 @@ class TestResampleDistributions:
         array_without_nan = np.array([2.0, 4, 6, 8, 10])
         probability_first_array = 1.0
         result = resample_distributions(
-            array_with_nan, array_without_nan, probability_first_array
+            array_with_nan, array_without_nan, probability_first_array, np.random
         )
         expected_result = np.array([np.nan, 9, 7, 3, 1], dtype=float)
         assert np.allclose(result, expected_result, equal_nan=True)
@@ -55,7 +58,7 @@ class TestResampleDistributions:
         array_without_nan = np.array([2, 4, 6, 8, 10])
         probability_first_array = 0.0
         result = resample_distributions(
-            array_with_nan, array_without_nan, probability_first_array
+            array_with_nan, array_without_nan, probability_first_array, np.random
         )
         expected_result = np.array([np.nan, 10, 8, 4, 2], dtype=float)
         assert np.allclose(result, expected_result, equal_nan=True)
@@ -65,7 +68,7 @@ class TestResampleDistributions:
         array_with_nan = np.array([2.0, 4, 6, np.nan, 10])
         probability_first_array = 1.0
         result = resample_distributions(
-            array_without_nan, array_with_nan, probability_first_array
+            array_without_nan, array_with_nan, probability_first_array, np.random
         )
         expected_result = np.array([np.nan, 9, 5, 3, 1], dtype=float)
         assert np.allclose(result, expected_result, equal_nan=True)
@@ -75,7 +78,7 @@ class TestResampleDistributions:
         array_with_nan = np.array([2, 4, 6, np.nan, 10])
         probability_first_array = 0.0
         result = resample_distributions(
-            array_without_nan, array_with_nan, probability_first_array
+            array_without_nan, array_with_nan, probability_first_array, np.random
         )
         expected_result = np.array([np.nan, 10, 6, 4, 2], dtype=float)
         assert np.allclose(result, expected_result, equal_nan=True)
@@ -85,7 +88,7 @@ class TestResampleDistributions:
         array2_with_nan = np.array([2.0, 4, np.nan, np.nan, 10])
         probability_first_array = 1.0
         result = resample_distributions(
-            array1_with_nan, array2_with_nan, probability_first_array
+            array1_with_nan, array2_with_nan, probability_first_array, np.random
         )
         expected_result = np.array([np.nan, np.nan, np.nan, 9, 1], dtype=float)
         assert np.allclose(result, expected_result, equal_nan=True)
@@ -95,7 +98,7 @@ class TestResampleDistributions:
         array2_with_nan = np.array([2.0, 4, np.nan, np.nan, 10])
         probability_first_array = 0.0
         result = resample_distributions(
-            array1_with_nan, array2_with_nan, probability_first_array
+            array1_with_nan, array2_with_nan, probability_first_array, np.random
         )
         expected_result = np.array([np.nan, np.nan, np.nan, 10, 2], dtype=float)
         assert np.allclose(result, expected_result, equal_nan=True)
