@@ -2304,23 +2304,21 @@ def _init_random_generators(
     timestep,
 ):
     """Initialize all the random generators."""
+    randgen_prec = None
     if noise_method is not None:
         randgen_prec = []
         for j in range(n_ens_members):
             rs = np.random.RandomState(seed)
             randgen_prec.append(rs)
             seed = rs.randint(0, high=1e9)
-    else:
-        randgen_prec = None
 
+    randgen_probmatching = None
     if probmatching_method is not None:
         randgen_probmatching = []
         for j in range(n_ens_members):
             rs = np.random.RandomState(seed)
             randgen_probmatching.append(rs)
             seed = rs.randint(0, high=1e9)
-    else:
-        randgen_probmatching = None
 
     if vel_pert_method is not None:
         randgen_motion = []
