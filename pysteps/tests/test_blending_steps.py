@@ -27,6 +27,7 @@ steps_arg_values = [
     (1, 10, 1, 8, "incremental", "cdf", False, "spn", True, 1, False, False, 0, False, None),
     (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2, False, False, 0, False, None),
     (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 0, False, None),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 0, False, "bps"),
     #    Test the case where the radar image contains no rain.
     (1, 3, 6, 8, None, None, False, "spn", True, 6, True, False, 0, False, None),
     (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False, 0, False, None),
@@ -47,7 +48,6 @@ steps_arg_values = [
     (5, 3, 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False, None),
     (5, [1, 2, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False, None),
     (5, [1, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False, None),
-    (5, [1, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False, "bps"),
 ]
 # fmt:on
 
