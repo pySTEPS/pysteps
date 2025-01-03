@@ -342,24 +342,22 @@ class StepsBlendingNowcaster:
             ]
 
             def worker(j):
-                # The state needs to be copied as a dataclass is not threadsafe in python
-                worker_state = deepcopy(self.__state)
-                self.__determine_NWP_skill_for_next_timestep(t, j, worker_state)
-                self.__determine_weights_per_component(worker_state)
-                self.__regress_extrapolation_and_noise_cascades(j, worker_state)
+                self.__determine_NWP_skill_for_next_timestep(t, j, self.__state)
+                self.__determine_weights_per_component(self.__state)
+                self.__regress_extrapolation_and_noise_cascades(j, self.__state)
                 self.__perturb_blend_and_advect_extrapolation_and_noise_to_current_timestep(
-                    t, j, worker_state
+                    t, j, self.__state
                 )
                 # 8.5 Blend the cascades
                 final_blended_forecast_single_member = []
                 for t_sub in self.__state.subtimesteps:
                     # TODO: does it make sense to use sub time steps - check if it works?
                     if t_sub > 0:
-                        self.__blend_cascades(t_sub, j, worker_state)
-                        self.__recompose_cascade_to_rainfall_field(j, worker_state)
+                        self.__blend_cascades(t_sub, j, self.__state)
+                        self.__recompose_cascade_to_rainfall_field(j, self.__state)
                         final_blended_forecast_single_member = (
                             self.__post_process_output(
-                                j, final_blended_forecast_single_member, worker_state
+                                j, final_blended_forecast_single_member, self.__state
                             )
                         )
                     final_blended_forecast_all_members_one_timestep[j] = (
