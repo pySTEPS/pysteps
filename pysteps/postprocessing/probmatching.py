@@ -274,7 +274,9 @@ def shift_scale(R, f, rain_fraction_trg, second_moment_trg, **kwargs):
     return shift, scale, R.reshape(shape)
 
 
-def resample_distributions(first_array, second_array, probability_first_array):
+def resample_distributions(
+    first_array, second_array, probability_first_array, randgen=np.random
+):
     """
     Merges two distributions (e.g., from the extrapolation nowcast and NWP in the blending module)
     to effectively combine two distributions for probability matching without losing extremes.
@@ -287,10 +289,13 @@ def resample_distributions(first_array, second_array, probability_first_array):
         cascade). It must be of the same shape as `second_array`. Input must not contain NaNs.
     second_array: array_like
         One of the two arrays from which the distribution should be sampled (e.g., the NWP (model)
-        cascade). It must be of the same shape as `first_array`.. Input must not contain NaNs.
+        cascade). It must be of the same shape as `first_array`. Input must not contain NaNs.
     probability_first_array: float
         The weight that `first_array` should get (a value between 0 and 1). This determines the
         likelihood of selecting elements from `first_array` over `second_array`.
+    randgen: numpy.random or numpy.RandomState
+        The random number generator to be used for the binomial distribution. You can pass a seeded
+        random state here for reproducibility. Default is numpy.random.
 
     Returns
     -------
@@ -324,7 +329,7 @@ def resample_distributions(first_array, second_array, probability_first_array):
     n = asort.shape[0]
 
     # Resample the distributions
-    idxsamples = np.random.binomial(1, probability_first_array, n).astype(bool)
+    idxsamples = randgen.binomial(1, probability_first_array, n).astype(bool)
     csort = np.where(idxsamples, asort, bsort)
     csort = np.sort(csort)[::-1]
 
