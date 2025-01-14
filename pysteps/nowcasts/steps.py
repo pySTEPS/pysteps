@@ -266,48 +266,14 @@ class StepsNowcasterState:
         default_factory=list
     )
     velocity_perturbations: list[Callable] | None = field(default_factory=list)
-    fft_objs: list[Any] | None = field(default_factory=list)
+    fft_objects: list[Any] | None = field(default_factory=list)
 
 
 class StepsNowcaster:
     def __init__(
-        self, dataset: xr.Dataset, time_steps, steps_config: StepsNowcasterConfig
+        self, precip, velocity, time_steps, steps_config: StepsNowcasterConfig
     ):
-        """
-        Initialize a nowcast class to be called with `compute_forecast`.
-
-        Parameters
-        ----------
-        dataset: xarray.Dataset
-            Input dataset as described in the documentation of
-            :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
-            ``velocity_y`` data variables, as well as any precipitation data variable.
-            The time dimension of the dataset has to be size
-            ``ar_order + 1`` and the precipitation variable has to have this dimension. All
-            velocity values are required to be finite.
-        timesteps: int or list of floats
-            Number of time steps to forecast or a list of time steps for which the
-            forecasts are computed (relative to the input time step). The elements
-            of the list are required to be in ascending order.
-        config: StepsNowcasterConfig
-            Provides a set of configuration parameters for the nowcast ensemble generation.
-
-        See also
-        --------
-        pysteps.extrapolation.interface, pysteps.cascade.interface,
-        pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
-
-        References
-        ----------
-        :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
-        """
-        precip_var = dataset.attrs["precip_var"]
-        precip = dataset[precip_var].values
-        velocity = np.stack(
-            [dataset["velocity_x"].values, dataset["velocity_y"].values]
-        )
         # Store inputs and optional parameters
-        self.__dataset = dataset
         self.__precip = precip
         self.__velocity = velocity
         self.__time_steps = time_steps
@@ -329,15 +295,32 @@ class StepsNowcaster:
         Generate a nowcast ensemble by using the Short-Term Ensemble Prediction
         System (STEPS) method.
 
+        Parameters
+        ----------
+        precip: array-like
+            Array of shape (ar_order+1,m,n) containing the input precipitation fields
+            ordered by timestamp from oldest to newest. The time steps between the
+            inputs are assumed to be regular.
+        velocity: array-like
+            Array of shape (2,m,n) containing the x- and y-components of the advection
+            field. The velocities are assumed to represent one time step between the
+            inputs. All values are required to be finite.
+        timesteps: int or list of floats
+            Number of time steps to forecast or a list of time steps for which the
+            forecasts are computed (relative to the input time step). The elements
+            of the list are required to be in ascending order.
+        config: StepsNowcasterConfig
+            Provides a set of configuration parameters for the nowcast ensemble generation.
+
         Returns
         -------
-        out: xarray.Dataset
-            If return_output is True, a dataset as described in the documentation of
-            :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
+        out: ndarray
+            If return_output is True, a four-dimensional array of shape
+            (n_ens_members,num_timesteps,m,n) containing a time series of forecast
             precipitation fields for each ensemble member. Otherwise, a None value
             is returned. The time series starts from t0+timestep, where timestep is
-            taken from the metadata of the time coordinate. If measure_time is True, the
-            return value is a three-element tuple containing the nowcast dataset, the
+            taken from the input precipitation fields. If measure_time is True, the
+            return value is a three-element tuple containing the nowcast array, the
             initialization time of the nowcast generator and the time used in the
             main loop (seconds).
 
@@ -379,13 +362,22 @@ class StepsNowcaster:
 
         # Stack and return the forecast output
         if self.__config.return_output:
-            output_dataset = convert_output_to_xarray_dataset(
-                self.__dataset, self.__time_steps, self.__state.precip_forecast
+            self.__state.precip_forecast = np.stack(
+                [
+                    np.stack(self.__state.precip_forecast[j])
+                    for j in range(self.__config.n_ens_members)
+                ]
             )
             if self.__config.measure_time:
-                return (output_dataset, self.__init_time, self.__mainloop_time)
-            return output_dataset
-        return None
+                return (
+                    self.__state.precip_forecast,
+                    self.__init_time,
+                    self.__mainloop_time,
+                )
+            else:
+                return self.__state.precip_forecast
+        else:
+            return None
 
     def __nowcast_main(self):
         """
@@ -1476,7 +1468,9 @@ def forecast(
     )
 
     # Create an instance of the new class with all the provided arguments
-    nowcaster = StepsNowcaster(dataset, timesteps, steps_config=nowcaster_config)
+    nowcaster = StepsNowcaster(
+        precip, velocity, timesteps, steps_config=nowcaster_config
+    )
     forecast_steps_nowcast = nowcaster.compute_forecast()
     nowcaster.reset_states_and_params()
     # Call the appropriate methods within the class
