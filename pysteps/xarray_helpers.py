@@ -11,6 +11,7 @@ Module with xarray helper functions.
     convert_to_xarray_dataset
 """
 
+import warnings
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -151,9 +152,13 @@ def convert_input_to_xarray_dataset(
         ypixelsize = y_r[1] - y_r[0]
 
     if x_r[1] - x_r[0] != xpixelsize:
-        raise ValueError("xpixelsize does not match x1, x2 and array shape")
+        warnings.warn(
+            "xpixelsize does not match x1, x2 and array shape, using xpixelsize for pixel size"
+        )
     if y_r[1] - y_r[0] != ypixelsize:
-        raise ValueError("ypixelsize does not match y1, y2 and array shape")
+        warnings.warn(
+            "ypixelsize does not match y1, y2 and array shape, using ypixelsize for pixel size"
+        )
 
     # flip yr vector if yorigin is upper
     if metadata["yorigin"] == "upper":
