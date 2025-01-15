@@ -8,45 +8,48 @@ import pytest
 import pysteps
 from pysteps import blending, cascade
 
+# fmt:off
 steps_arg_values = [
-    (1, 3, 4, 8, None, None, False, "spn", True, 4, False, False, 0, False),
-    (1, 3, 4, 8, "obs", None, False, "spn", True, 4, False, False, 0, False),
-    (1, 3, 4, 8, "incremental", None, False, "spn", True, 4, False, False, 0, False),
-    (1, 3, 4, 8, None, "mean", False, "spn", True, 4, False, False, 0, False),
-    (1, 3, 4, 8, None, "mean", False, "spn", True, 4, False, False, 0, True),
-    (1, 3, 4, 8, None, "cdf", False, "spn", True, 4, False, False, 0, False),
-    (1, [1, 2, 3], 4, 8, None, "cdf", False, "spn", True, 4, False, False, 0, False),
-    (1, 3, 4, 8, "incremental", "cdf", False, "spn", True, 4, False, False, 0, False),
-    (1, 3, 4, 6, "incremental", "cdf", False, "bps", True, 4, False, False, 0, False),
-    (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4, False, False, 0, False),
-    (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4, False, False, 0, True),
-    (1, 3, 4, 9, "incremental", "cdf", False, "spn", True, 4, False, False, 0, False),
-    (2, 3, 10, 8, "incremental", "cdf", False, "spn", True, 10, False, False, 0, False),
-    (5, 3, 5, 8, "incremental", "cdf", False, "spn", True, 5, False, False, 0, False),
-    (1, 10, 1, 8, "incremental", "cdf", False, "spn", True, 1, False, False, 0, False),
-    (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2, False, False, 0, False),
-    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 0, False),
+    (1, 3, 4, 8, None, None, False, "spn", True, 4, False, False, 0, False, None),
+    (1, 3, 4, 8, "obs", None, False, "spn", True, 4, False, False, 0, False, None),
+    (1, 3, 4, 8, "incremental", None, False, "spn", True, 4, False, False, 0, False, None),
+    (1, 3, 4, 8, None, "mean", False, "spn", True, 4, False, False, 0, False, None),
+    (1, 3, 4, 8, None, "mean", False, "spn", True, 4, False, False, 0, True, None),
+    (1, 3, 4, 8, None, "cdf", False, "spn", True, 4, False, False, 0, False, None),
+    (1, [1, 2, 3], 4, 8, None, "cdf", False, "spn", True, 4, False, False, 0, False, None),
+    (1, 3, 4, 8, "incremental", "cdf", False, "spn", True, 4, False, False, 0, False, None),
+    (1, 3, 4, 6, "incremental", "cdf", False, "bps", True, 4, False, False, 0, False, None),
+    (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4, False, False, 0, False, None),
+    (1, 3, 4, 6, "incremental", "cdf", False, "bps", False, 4, False, False, 0, True, None),
+    (1, 3, 4, 9, "incremental", "cdf", False, "spn", True, 4, False, False, 0, False, None),
+    (2, 3, 10, 8, "incremental", "cdf", False, "spn", True, 10, False, False, 0, False, None),
+    (5, 3, 5, 8, "incremental", "cdf", False, "spn", True, 5, False, False, 0, False, None),
+    (1, 10, 1, 8, "incremental", "cdf", False, "spn", True, 1, False, False, 0, False, None),
+    (2, 3, 2, 8, "incremental", "cdf", True, "spn", True, 2, False, False, 0, False, None),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 0, False, None),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 0, False, "bps"),
     #    Test the case where the radar image contains no rain.
-    (1, 3, 6, 8, None, None, False, "spn", True, 6, True, False, 0, False),
-    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False, 0, False),
-    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False, 0, True),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, True, False, 0, False, None),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False, 0, False, None),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False, 0, True, None),
     #   Test the case where the NWP fields contain no rain.
-    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, True, 0, False),
-    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, False, True, 0, True),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, True, 0, False, None),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, False, True, 0, True, None),
     # Test the case where both the radar image and the NWP fields contain no rain.
-    (1, 3, 6, 8, None, None, False, "spn", True, 6, True, True, 0, False),
-    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, True, 0, False),
-    (5, 3, 5, 6, "obs", "mean", True, "spn", True, 5, True, True, 0, False),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, True, True, 0, False, None),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, True, 0, False, None),
+    (5, 3, 5, 6, "obs", "mean", True, "spn", True, 5, True, True, 0, False, None),
     # Test for smooth radar mask
-    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 80, False),
-    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, False, False, 80, False),
-    (5, 3, 5, 6, "obs", "mean", False, "spn", False, 5, False, False, 80, False),
-    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, True, 80, False),
-    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False, 80, True),
-    (5, 3, 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False),
-    (5, [1, 2, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False),
-    (5, [1, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, False, 80, False, None),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, False, False, 80, False, None),
+    (5, 3, 5, 6, "obs", "mean", False, "spn", False, 5, False, False, 80, False, None),
+    (1, 3, 6, 8, None, None, False, "spn", True, 6, False, True, 80, False, None),
+    (5, 3, 5, 6, "incremental", "cdf", False, "spn", False, 5, True, False, 80, True, None),
+    (5, 3, 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False, None),
+    (5, [1, 2, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False, None),
+    (5, [1, 3], 5, 6, "obs", "mean", False, "spn", False, 5, True, True, 80, False, None),
 ]
+# fmt:on
 
 steps_arg_names = (
     "n_models",
@@ -63,6 +66,7 @@ steps_arg_names = (
     "zero_nwp",
     "smooth_radar_mask_range",
     "resample_distribution",
+    "vel_pert_method",
 )
 
 
@@ -82,6 +86,7 @@ def test_steps_blending(
     zero_nwp,
     smooth_radar_mask_range,
     resample_distribution,
+    vel_pert_method,
 ):
     pytest.importorskip("cv2")
 
@@ -275,7 +280,7 @@ def test_steps_blending(
         noise_method="nonparametric",
         noise_stddev_adj="auto",
         ar_order=2,
-        vel_pert_method=None,
+        vel_pert_method=vel_pert_method,
         weights_method=weights_method,
         conditional=False,
         probmatching_method=probmatching_method,

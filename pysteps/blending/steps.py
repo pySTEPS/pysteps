@@ -734,16 +734,19 @@ def forecast(
         )
 
         # 6. Initialize all the random generators and prepare for the forecast loop
-        randgen_prec, vps, generate_vel_noise = _init_random_generators(
-            velocity,
-            noise_method,
-            vel_pert_method,
-            vp_par,
-            vp_perp,
-            seed,
-            n_ens_members,
-            kmperpixel,
-            timestep,
+        randgen_prec, vps, generate_vel_noise, randgen_probmatching = (
+            _init_random_generators(
+                velocity,
+                noise_method,
+                probmatching_method,
+                vel_pert_method,
+                vp_par,
+                vp_perp,
+                seed,
+                n_ens_members,
+                kmperpixel,
+                timestep,
+            )
         )
         D, D_Yn, D_pb, R_f, R_m, mask_rim, struct, fft_objs = _prepare_forecast_loop(
             precip_cascade,
@@ -1621,6 +1624,7 @@ def forecast(
                                 first_array=arr1,
                                 second_array=arr2,
                                 probability_first_array=weights_pm_normalized[0],
+                                randgen=randgen_probmatching[j],
                             )
                         else:
                             R_pm_resampled = R_pm_blended.copy()
@@ -2290,6 +2294,7 @@ def _find_nwp_combination(
 def _init_random_generators(
     velocity,
     noise_method,
+    probmatching_method,
     vel_pert_method,
     vp_par,
     vp_perp,
@@ -2299,18 +2304,28 @@ def _init_random_generators(
     timestep,
 ):
     """Initialize all the random generators."""
+    randgen_prec = None
     if noise_method is not None:
         randgen_prec = []
-        randgen_motion = []
         for j in range(n_ens_members):
             rs = np.random.RandomState(seed)
             randgen_prec.append(rs)
             seed = rs.randint(0, high=1e9)
+
+    randgen_probmatching = None
+    if probmatching_method is not None:
+        randgen_probmatching = []
+        for j in range(n_ens_members):
             rs = np.random.RandomState(seed)
-            randgen_motion.append(rs)
+            randgen_probmatching.append(rs)
             seed = rs.randint(0, high=1e9)
 
     if vel_pert_method is not None:
+        randgen_motion = []
+        for j in range(n_ens_members):
+            rs = np.random.RandomState(seed)
+            randgen_motion.append(rs)
+            seed = rs.randint(0, high=1e9)
         init_vel_noise, generate_vel_noise = noise.get_method(vel_pert_method)
 
         # initialize the perturbation generators for the motion field
@@ -2326,7 +2341,7 @@ def _init_random_generators(
     else:
         vps, generate_vel_noise = None, None
 
-    return randgen_prec, vps, generate_vel_noise
+    return randgen_prec, vps, generate_vel_noise, randgen_probmatching
 
 
 def _prepare_forecast_loop(
