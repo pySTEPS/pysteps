@@ -44,7 +44,7 @@ consists of the following main steps:
 """
 import math
 import time
-from copy import deepcopy
+from copy import copy, deepcopy
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
@@ -342,22 +342,23 @@ class StepsBlendingNowcaster:
             ]
 
             def worker(j):
-                self.__determine_NWP_skill_for_next_timestep(t, j, self.__state)
-                self.__determine_weights_per_component(self.__state)
-                self.__regress_extrapolation_and_noise_cascades(j, self.__state)
+                worker_state = copy(self.__state)
+                self.__determine_NWP_skill_for_next_timestep(t, j, worker_state)
+                self.__determine_weights_per_component(worker_state)
+                self.__regress_extrapolation_and_noise_cascades(j, worker_state)
                 self.__perturb_blend_and_advect_extrapolation_and_noise_to_current_timestep(
-                    t, j, self.__state
+                    t, j, worker_state
                 )
                 # 8.5 Blend the cascades
                 final_blended_forecast_single_member = []
                 for t_sub in self.__state.subtimesteps:
                     # TODO: does it make sense to use sub time steps - check if it works?
                     if t_sub > 0:
-                        self.__blend_cascades(t_sub, j, self.__state)
-                        self.__recompose_cascade_to_rainfall_field(j, self.__state)
+                        self.__blend_cascades(t_sub, j, worker_state)
+                        self.__recompose_cascade_to_rainfall_field(j, worker_state)
                         final_blended_forecast_single_member = (
                             self.__post_process_output(
-                                j, final_blended_forecast_single_member, self.__state
+                                j, final_blended_forecast_single_member, worker_state
                             )
                         )
                     final_blended_forecast_all_members_one_timestep[j] = (
@@ -1666,9 +1667,9 @@ class StepsBlendingNowcaster:
         # (or subtimesteps if non-integer time steps are given)
 
         # Settings and initialize the output
-        extrap_kwargs_ = self.__state.extrapolation_kwargs.copy()
-        extrap_kwargs_noise = self.__state.extrapolation_kwargs.copy()
-        extrap_kwargs_pb = self.__state.extrapolation_kwargs.copy()
+        extrap_kwargs_ = worker_state.extrapolation_kwargs.copy()
+        extrap_kwargs_noise = worker_state.extrapolation_kwargs.copy()
+        extrap_kwargs_pb = worker_state.extrapolation_kwargs.copy()
         velocity_perturbations_extrapolation = self.__velocity
         # The following should be accessible after this function
         worker_state.precip_extrapolated_decomp = []
@@ -1777,7 +1778,7 @@ class StepsBlendingNowcaster:
                     )
                 # Put back the mask
                 precip_forecast_recomp_subtimestep[self.__params.domain_mask] = np.nan
-                self.__state.extrapolation_kwargs["displacement_prev"] = (
+                worker_state.extrapolation_kwargs["displacement_prev"] = (
                     worker_state.previous_displacement[j]
                 )
                 (
@@ -1788,7 +1789,7 @@ class StepsBlendingNowcaster:
                     velocity_blended,
                     [t_diff_prev_subtimestep],
                     allow_nonfinite_values=True,
-                    **self.__state.extrapolation_kwargs,
+                    **worker_state.extrapolation_kwargs,
                 )
                 precip_extrapolated_recomp_subtimestep = (
                     precip_forecast_extrapolated_recomp_subtimestep_temp[0].copy()
@@ -1883,6 +1884,7 @@ class StepsBlendingNowcaster:
                 precip_forecast_temp_for_probability_matching[
                     self.__params.domain_mask
                 ] = np.nan
+
                 (
                     precip_forecast_extrapolated_probability_matching_temp,
                     worker_state.previous_displacement_prob_matching[j],
@@ -1893,6 +1895,7 @@ class StepsBlendingNowcaster:
                     allow_nonfinite_values=True,
                     **extrap_kwargs_pb,
                 )
+
                 worker_state.precip_extrapolated_probability_matching.append(
                     precip_forecast_extrapolated_probability_matching_temp[0]
                 )
@@ -2381,7 +2384,7 @@ class StepsBlendingNowcaster:
                     first_array=arr1,
                     second_array=arr2,
                     probability_first_array=weights_probability_matching_normalized[0],
-                    randgen=self.__state.randgen_probmatching[j],
+                    randgen=worker_state.randgen_probmatching[j],
                 )
             )
         else:
@@ -2822,7 +2825,6 @@ def forecast(
     )
 
     forecast_steps_nowcast = blended_nowcaster.compute_forecast()
-    print(forecast_steps_nowcast)
     return forecast_steps_nowcast
 
 
