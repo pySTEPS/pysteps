@@ -1304,10 +1304,13 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
                 if "quantity" in dsg[1]["what"].attrs.keys():
-                    qty_, gain, offset, nodata, undetect = _read_opera_hdf5_what_group(
-                        dsg[1]["what"]
-                    )
-                    what_grp_found = True
+                    try:
+                        qty_, gain, offset, nodata, undetect = (
+                            _read_opera_hdf5_what_group(dsg[1]["what"])
+                        )
+                        what_grp_found = True
+                    except KeyError:
+                        pass
 
             for dg in dsg[1].items():
                 if dg[0][0:4] == "data":
@@ -1480,7 +1483,7 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
 
 
 def _read_opera_hdf5_what_group(whatgrp):
-    qty = whatgrp.attrs["quantity"]
+    qty = whatgrp.attrs["quantity"] if "quantity" in whatgrp.attrs.keys() else b"QIND"
     gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
     offset = whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
     nodata = whatgrp.attrs["nodata"] if "nodata" in whatgrp.attrs.keys() else np.nan
