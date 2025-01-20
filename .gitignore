@@ -92,6 +92,3 @@ venv.bak/
 # Mac OS Stuff
 .DS_Store
 
-# Running local tests
-/tmp
-/pysteps/tests/tmp/
