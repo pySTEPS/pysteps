@@ -18,25 +18,35 @@ import pysteps.postprocessing
 from pysteps.postprocessing import diagnostics, ensemblestats
 from pprint import pprint
 
-_diagnostics_methods = dict(
-    diagnostics_example1=diagnostics.postprocessors_diagnostics_example1,
-    diagnostics_example3=lambda x: [x, x],
+_diagnostic_methods = dict(
 )
 
-_ensemblestats_methods = dict(
-    ensemblestats_example1=ensemblestats.postprocessors_ensemblestats_example1,
-    ensemblestats_example3=lambda x, y: [x, y],
+_ensemblestat_methods = dict(
+    mean=ensemblestats.mean,
+    excprob=ensemblestats.excprob,
+    banddepth=ensemblestats.banddepth,
 )
-
 
 def add_postprocessor(
-    postprocessors_short_name,
+    """
+    Add the postprocessor to the appropriate _methods dictionary and to the module.
+    Parameters
+    ----------
+
+    postprocessors_function_name: str
+        for example, e.g. diagnostic_example1
+    _postprocessors: function
+        the function to be added
+    @param methods_dict: the dictionary where the function is added
+    @param module: the module where the function is added, e.g. 'diagnostics'
+    """
     postprocessors_function_name,
     _postprocessors,
     methods_dict,
     module,
 ):
-    short_name = postprocessors_short_name.replace(f"{module}_", "")
+
+    short_name = postprocessors_function_name.replace(f"{module}_", "")
     if short_name not in methods_dict:
         methods_dict[short_name] = _postprocessors
     else:
@@ -77,25 +87,21 @@ def discover_postprocessors():
         _postprocessors = entry_point.load()
 
         postprocessors_function_name = _postprocessors.__name__
-        postprocessors_short_name = postprocessors_function_name.replace(
-            "postprocessor_", ""
-        )
+
 
         if "diagnostics" in entry_point.module_name:
             add_postprocessor(
-                postprocessors_short_name,
                 postprocessors_function_name,
                 _postprocessors,
                 _diagnostics_methods,
-                "diagnostics",
+                "diagnostic",
             )
         elif "ensemblestats" in entry_point.module_name:
             add_postprocessor(
-                postprocessors_short_name,
                 postprocessors_function_name,
                 _postprocessors,
                 _ensemblestats_methods,
-                "ensemblestats",
+                "ensemblestat",
             )
         else:
             raise ValueError(
