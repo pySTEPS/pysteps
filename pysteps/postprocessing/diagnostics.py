@@ -19,9 +19,9 @@ Available Diagnostics Postprocessors
 """
 
 
-def postprocessors_diagnostics_example1(filename, **kwargs):
+def diagnostics_example1(filename, **kwargs):
     return "Hello, I am an example diagnostics postprocessor."
 
 
-def postprocessors_diagnostics_example2(filename, **kwargs):
+def diagnostics_example2(filename, **kwargs):
     return [[42, 42], [42, 42]]
