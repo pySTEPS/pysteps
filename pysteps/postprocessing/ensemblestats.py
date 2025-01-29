@@ -179,9 +179,9 @@ def banddepth(X, thr=None, norm=False):
     return depth
 
 
-def ensemblestats_example1(filename, **kwargs):
+def ensemblestat_example1(filename, **kwargs):
     return "Hello, I am an example of postprocessing ensemble statistics."
 
 
-def ensemblestats_example2(filename, **kwargs):
+def ensemblestat_example2(filename, **kwargs):
     return [[42, 42], [42, 42]]
