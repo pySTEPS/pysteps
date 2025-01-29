@@ -183,7 +183,7 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    dataset = io.read_timeseries(fns, importer, **_importer_kwargs)
+    dataset = io.read_timeseries(fns, importer, timestep=timestep, **_importer_kwargs)
 
     if not return_raw:
         precip_var = dataset.attrs["precip_var"]
