@@ -18,16 +18,22 @@ import pysteps.postprocessing
 from pysteps.postprocessing import diagnostics, ensemblestats
 from pprint import pprint
 
-_diagnostic_methods = dict(
+_diagnostics_methods = dict(
 )
 
-_ensemblestat_methods = dict(
+_ensemblestats_methods = dict(
     mean=ensemblestats.mean,
     excprob=ensemblestats.excprob,
     banddepth=ensemblestats.banddepth,
 )
 
 def add_postprocessor(
+    postprocessors_function_name,
+    _postprocessors,
+    methods_dict,
+    module,
+    attributes
+):
     """
     Add the postprocessor to the appropriate _methods dictionary and to the module.
     Parameters
@@ -39,28 +45,27 @@ def add_postprocessor(
         the function to be added
     @param methods_dict: the dictionary where the function is added
     @param module: the module where the function is added, e.g. 'diagnostics'
+    @param attributes: the existing functions in the selected module
     """
-    postprocessors_function_name,
-    _postprocessors,
-    methods_dict,
-    module,
-):
 
-    short_name = postprocessors_function_name.replace(f"{module}_", "")
+    # module_name ends with an "s", the function prefix is without "s"
+    function_prefix = module[:-1]
+    # get funtion name without mo
+    short_name = postprocessors_function_name.replace(f"{function_prefix}_", "")
     if short_name not in methods_dict:
         methods_dict[short_name] = _postprocessors
     else:
         RuntimeWarning(
             f"The {module} identifier '{short_name}' is already available in "
             f"'pysteps.postprocessing.interface_{module}_methods'.\n"
-            f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
+            f"Skipping {module}:{'.'.join(attributes)}"
         )
 
-    if hasattr(globals()[module], postprocessors_short_name):
+    if hasattr(globals()[module], postprocessors_function_name):
         RuntimeWarning(
             f"The {module} function '{short_name}' is already an attribute"
             f"of 'pysteps.postprocessing.{module}'.\n"
-            f"Skipping {entry_point.module_name}:{'.'.join(entry_point.attrs)}"
+            f"Skipping {module}:{'.'.join(attributes)}"
         )
     else:
         setattr(globals()[module], postprocessors_function_name, _postprocessors)
@@ -89,19 +94,21 @@ def discover_postprocessors():
         postprocessors_function_name = _postprocessors.__name__
 
 
-        if "diagnostics" in entry_point.module_name:
+        if "diagnostic" in entry_point.module_name:
             add_postprocessor(
                 postprocessors_function_name,
                 _postprocessors,
                 _diagnostics_methods,
-                "diagnostic",
+                "diagnostics",
+                entry_point.attrs,
             )
-        elif "ensemblestats" in entry_point.module_name:
+        elif "ensemblestat" in entry_point.module_name:
             add_postprocessor(
                 postprocessors_function_name,
                 _postprocessors,
                 _ensemblestats_methods,
-                "ensemblestat",
+                "ensemblestats",
+                entry_point.attrs,
             )
         else:
             raise ValueError(
