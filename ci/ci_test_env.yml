@@ -18,6 +18,7 @@ dependencies:
   - pillow
   - pyproj
   - scipy
+  - xarray
   # Optional dependencies
   - dask
   - pyfftw

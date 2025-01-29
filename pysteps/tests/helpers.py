@@ -9,10 +9,12 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+import xarray as xr
 
 import pysteps as stp
 from pysteps import io, rcparams
 from pysteps.utils import aggregate_fields_space
+from pysteps.utils.dimension import clip_domain
 
 _reference_dates = dict()
 _reference_dates["bom"] = datetime(2018, 6, 16, 10, 0)
@@ -24,11 +26,34 @@ _reference_dates["saf"] = datetime(2018, 6, 1, 7, 0)
 _reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
 
 
+def assert_dataset_equivalent(dataset1: xr.Dataset, dataset2: xr.Dataset) -> None:
+    xr.testing.assert_allclose(dataset1, dataset2)
+    precip_var = dataset1.attrs["precip_var"]
+    assert precip_var == dataset2.attrs["precip_var"]
+    assert np.isclose(
+        dataset1[precip_var].attrs["threshold"],
+        dataset2[precip_var].attrs["threshold"],
+    )
+    assert np.isclose(
+        dataset1[precip_var].attrs["zerovalue"],
+        dataset2[precip_var].attrs["zerovalue"],
+    )
+    assert dataset1[precip_var].attrs["units"] == dataset2[precip_var].attrs["units"]
+    assert (
+        dataset1[precip_var].attrs["transform"]
+        == dataset2[precip_var].attrs["transform"]
+        or dataset1[precip_var].attrs["transform"] is None
+        and dataset2[precip_var].attrs["transform"] is None
+    )
+    assert (
+        dataset1[precip_var].attrs["accutime"] == dataset2[precip_var].attrs["accutime"]
+    )
+
+
 def get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=False,
-    metadata=False,
     upscale=None,
     source="mch",
     log_transform=True,
@@ -75,9 +100,6 @@ def get_precipitation_fields(
         The pre-processing steps are: 1) Convert to mm/h,
         2) Mask invalid values, 3) Log-transform the data [dBR].
 
-    metadata: bool, optional
-        If True, also return file metadata.
-
     upscale: float or None, optional
         Upscale fields in space during the pre-processing steps.
         If it is None, the precipitation field is not modified.
@@ -102,8 +124,8 @@ def get_precipitation_fields(
 
     Returns
     -------
-    reference_field : array
-    metadata : dict
+    dataset: xarray.Dataset
+        As described in the documentation of :py:mod:`pysteps.io.importers`.
     """
 
     if source == "bom":
@@ -161,47 +183,34 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    reference_field, __, ref_metadata = io.read_timeseries(
-        fns, importer, **_importer_kwargs
-    )
+    dataset = io.read_timeseries(fns, importer, **_importer_kwargs)
 
     if not return_raw:
-        if (num_prev_files == 0) and (num_next_files == 0):
-            # Remove time dimension
-            reference_field = np.squeeze(reference_field)
+        precip_var = dataset.attrs["precip_var"]
 
         # Convert to mm/h
-        reference_field, ref_metadata = stp.utils.to_rainrate(
-            reference_field, ref_metadata
-        )
+        dataset = stp.utils.to_rainrate(dataset)
+        precip_var = dataset.attrs["precip_var"]
 
         # Clip domain
-        reference_field, ref_metadata = stp.utils.clip_domain(
-            reference_field, ref_metadata, clip
-        )
+        dataset = clip_domain(dataset, clip)
 
         # Upscale data
-        reference_field, ref_metadata = aggregate_fields_space(
-            reference_field, ref_metadata, upscale
-        )
+        dataset = aggregate_fields_space(dataset, upscale)
 
         # Mask invalid values
-        reference_field = np.ma.masked_invalid(reference_field)
+        valid_mask = np.isfinite(dataset[precip_var].values)
 
         if log_transform:
             # Log-transform the data [dBR]
-            reference_field, ref_metadata = stp.utils.dB_transform(
-                reference_field, ref_metadata, threshold=0.1, zerovalue=-15.0
-            )
+            dataset = stp.utils.dB_transform(dataset, threshold=0.1, zerovalue=-15.0)
 
         # Set missing values with the fill value
-        np.ma.set_fill_value(reference_field, ref_metadata["zerovalue"])
-        reference_field.data[reference_field.mask] = ref_metadata["zerovalue"]
+        metadata = dataset[precip_var].attrs
+        zerovalue = metadata["zerovalue"]
+        dataset[precip_var].data[~valid_mask] = zerovalue
 
-    if metadata:
-        return reference_field, ref_metadata
-
-    return reference_field
+    return dataset
 
 
 def smart_assert(actual_value, expected, tolerance=None):
