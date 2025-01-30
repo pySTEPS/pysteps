@@ -14,7 +14,6 @@ Interface for the postprocessing module.
 """
 import importlib
 
-import pysteps.postprocessing
 from pysteps.postprocessing import diagnostics, ensemblestats
 from pprint import pprint
 
@@ -127,7 +126,7 @@ def print_postprocessors_info(module_name, interface_methods, module_methods):
     interface_methods: dict
         Dictionary of the postprocessors declared in the interface, for example _diagnostics_methods.
     module_methods: list
-        List of the postprocessors available in the module, for example 'postprocessors_diagnostics_example1'.
+        List of the postprocessors available in the module, for example 'diagnostic_example1'.
 
     """
     print(f"\npostprocessors available in the {module_name} module")
@@ -143,7 +142,7 @@ def print_postprocessors_info(module_name, interface_methods, module_methods):
 
     difference = module_methods_set ^ interface_methods_set
     if len(difference) > 0:
-        print("\nIMPORTANT:")
+        #print("\nIMPORTANT:")
         _diff = module_methods_set - interface_methods_set
         if len(_diff) > 0:
             print(
@@ -166,11 +165,13 @@ def postprocessors_info():
     postprocessors_in_the_interface = set()
     # List the plugins that have been added to the postprocessing.[plugintype] module
     for plugintype in ["diagnostics", "ensemblestats"]:
+        # in the dictionary and found by get_methods() function
         interface_methods = (
             _diagnostics_methods
             if plugintype == "diagnostics"
             else _ensemblestats_methods
         )
+        # in the pysteps.postprocessing module
         module_name = f"pysteps.postprocessing.{plugintype}"
         available_module_methods = [
             attr
@@ -178,7 +179,9 @@ def postprocessors_info():
             if attr.startswith(plugintype[:-1])
         ]
         # add the pre-existing ensemblestats functions (see _ensemblestats_methods above)
-        if "ensemblestats" in plugintype: available_module_methods += ["mean","excprob","banddepth"] 
+        # that do not follow the convention to start with "ensemblestat_" as the plugins
+        if "ensemblestats" in plugintype:
+            available_module_methods += [em for em in _ensemblestats_methods.keys() if not em.startswith('ensemblestat_')] 
         print_postprocessors_info(
             module_name, interface_methods, available_module_methods
         )
@@ -209,10 +212,10 @@ def get_method(name, method_type):
         +---------------+-------------------------------------------------------+
         |     Name      |                   Description                         |
         +===============+=======================================================+
-        |  Diagnostics  |           Example that returns a string               |
+        |  Diagnostic   |           Example that returns a string               |
         |   Example1    |                                                       |
         +---------------+-------------------------------------------------------+
-        |  Diagnostics  |           Example that returns an array               |
+        |  Diagnostic   |           Example that returns an array               |
         |   Example3    |                                                       |
         +---------------+-------------------------------------------------------+
 
@@ -223,10 +226,10 @@ def get_method(name, method_type):
         +---------------+-------------------------------------------------------+
         |     Name      |                   Description                         |
         +===============+=======================================================+
-        | EnsembleStats |           Example that returns a string               |
+        | EnsembleStat  |           Example that returns a string               |
         |   Example1    |                                                       |
         +---------------+-------------------------------------------------------+
-        | EnsembleStats |           Example that returns an array               |
+        | EnsembleStat  |           Example that returns an array               |
         |   Example3    |                                                       |
         +---------------+-------------------------------------------------------+
 

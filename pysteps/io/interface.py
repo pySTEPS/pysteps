@@ -14,11 +14,8 @@ Interface for the io module.
 """
 import importlib
 
-from pkg_resources import iter_entry_points
-
-from pysteps import io
 from pysteps.decorators import postprocess_import
-from pysteps.io import importers, exporters
+from pysteps.io import importers, exporters, interface
 from pprint import pprint
 
 _importer_methods = dict(
@@ -58,7 +55,7 @@ def discover_importers():
     importlib.reload(pkg_resources)
 
     for entry_point in pkg_resources.iter_entry_points(
-        group="pysteps.plugins.importers", name=None
+        group="pysteps.plugins.importer", name=None
     ):
         _importer = entry_point.load()
 
@@ -91,7 +88,7 @@ def importers_info():
 
     # Importers available in the `io.importers` module
     available_importers = [
-        attr for attr in dir(io.importers) if attr.startswith("import_")
+        attr for attr in dir(importers) if attr.startswith("import_")
     ]
 
     print("\nImporters available in the pysteps.io.importers module")
@@ -99,14 +96,14 @@ def importers_info():
 
     # Importers declared in the pysteps.io.get_method interface
     importers_in_the_interface = [
-        f.__name__ for f in io.interface._importer_methods.values()
+        f.__name__ for f in interface._importer_methods.values()
     ]
 
     print("\nImporters available in the pysteps.io.get_method interface")
     pprint(
         [
             (short_name, f.__name__)
-            for short_name, f in io.interface._importer_methods.items()
+            for short_name, f in interface._importer_methods.items()
         ]
     )
 
@@ -117,7 +114,7 @@ def importers_info():
 
     difference = available_importers ^ importers_in_the_interface
     if len(difference) > 0:
-        print("\nIMPORTANT:")
+        #print("\nIMPORTANT:")
         _diff = available_importers - importers_in_the_interface
         if len(_diff) > 0:
             print(
