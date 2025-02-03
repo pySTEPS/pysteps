@@ -91,7 +91,7 @@ nowcast_sprog = sprog.forecast(
     advection,
     6,
     n_cascade_levels=6,
-    R_thr=-10.0,
+    precip_thr=-10.0,
 )
 
 # Convert reflectivity nowcast to rain rate
@@ -146,7 +146,7 @@ nowcast_steps = steps.forecast(
     6,
     40,
     n_cascade_levels=6,
-    R_thr=-10.0,
+    precip_thr=-10.0,
     mask_method="incremental",
     kmperpixel=2.0,
     timestep=datasource_params["timestep"],

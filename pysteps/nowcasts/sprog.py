@@ -16,7 +16,6 @@ import time
 from pysteps import cascade
 from pysteps import extrapolation
 from pysteps import utils
-from pysteps.decorators import deprecate_args
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
@@ -30,7 +29,6 @@ except ImportError:
     DASK_IMPORTED = False
 
 
-@deprecate_args({"R": "precip", "V": "velocity", "R_thr": "precip_thr"}, "1.8.0")
 def forecast(
     precip,
     velocity,
