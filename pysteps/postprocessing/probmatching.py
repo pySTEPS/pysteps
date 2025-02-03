@@ -289,7 +289,7 @@ def resample_distributions(
         cascade). It must be of the same shape as `second_array`. Input must not contain NaNs.
     second_array: array_like
         One of the two arrays from which the distribution should be sampled (e.g., the NWP (model)
-        cascade). It must be of the same shape as `first_array`.. Input must not contain NaNs.
+        cascade). It must be of the same shape as `first_array`. Input must not contain NaNs.
     probability_first_array: float
         The weight that `first_array` should get (a value between 0 and 1). This determines the
         likelihood of selecting elements from `first_array` over `second_array`.

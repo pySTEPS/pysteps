@@ -3,7 +3,7 @@
 Extrapolation nowcast
 =====================
 
-This tutorial shows how to compute and plot an extrapolation nowcast using 
+This tutorial shows how to compute and plot an extrapolation nowcast using
 Finnish radar data.
 
 """
