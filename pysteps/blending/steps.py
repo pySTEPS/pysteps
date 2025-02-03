@@ -67,12 +67,205 @@ except ImportError:
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-# TODO: compare old and new version of the code, run a benchmark to compare the two
-# TODO: look at the documentation and try to improve it, lots of things are now combined together
-
 
 @dataclass(frozen=True)
 class StepsBlendingConfig:
+    """
+    Parameters
+    ----------
+
+    precip_threshold: float, optional
+      Specifies the threshold value for minimum observable precipitation
+      intensity. Required if mask_method is not None or conditional is True.
+    norain_threshold: float, optional
+      Specifies the threshold value for the fraction of rainy (see above) pixels
+      in the radar rainfall field below which we consider there to be no rain.
+      Depends on the amount of clutter typically present.
+      Standard set to 0.0
+    kmperpixel: float, optional
+      Spatial resolution of the input data (kilometers/pixel). Required if
+      vel_pert_method is not None or mask_method is 'incremental'.
+    timestep: float
+      Time step of the motion vectors (minutes). Required if vel_pert_method is
+      not None or mask_method is 'incremental'.
+    n_ens_members: int
+      The number of ensemble members to generate. This number should always be
+      equal to or larger than the number of NWP ensemble members / number of
+      NWP models.
+    n_cascade_levels: int, optional
+      The number of cascade levels to use. Defaults to 6,
+      see issue #385 on GitHub.
+    blend_nwp_members: bool
+      Check if NWP models/members should be used individually, or if all of
+      them are blended together per nowcast ensemble member. Standard set to
+      false.
+    extrapolation_method: str, optional
+      Name of the extrapolation method to use. See the documentation of
+      :py:mod:`pysteps.extrapolation.interface`.
+    decomposition_method: {'fft'}, optional
+      Name of the cascade decomposition method to use. See the documentation
+      of :py:mod:`pysteps.cascade.interface`.
+    bandpass_filter_method: {'gaussian', 'uniform'}, optional
+      Name of the bandpass filter method to use with the cascade decomposition.
+      See the documentation of :py:mod:`pysteps.cascade.interface`.
+    noise_method: {'parametric','nonparametric','ssft','nested',None}, optional
+      Name of the noise generator to use for perturbating the precipitation
+      field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to None,
+      no noise is generated.
+    noise_stddev_adj: {'auto','fixed',None}, optional
+      Optional adjustment for the standard deviations of the noise fields added
+      to each cascade level. This is done to compensate incorrect std. dev.
+      estimates of casace levels due to presence of no-rain areas. 'auto'=use
+      the method implemented in :py:func:`pysteps.noise.utils.compute_noise_stddev_adjs`.
+      'fixed'= use the formula given in :cite:`BPS2006` (eq. 6), None=disable
+      noise std. dev adjustment.
+    ar_order: int, optional
+      The order of the autoregressive model to use. Must be >= 1.
+    velocity_perturbation_method: {'bps',None}, optional
+      Name of the noise generator to use for perturbing the advection field. See
+      the documentation of :py:mod:`pysteps.noise.interface`. If set to None, the advection
+      field is not perturbed.
+    weights_method: {'bps','spn'}, optional
+      The calculation method of the blending weights. Options are the method
+      by :cite:`BPS2006` and the covariance-based method by :cite:`SPN2013`.
+      Defaults to bps.
+    conditional: bool, optional
+      If set to True, compute the statistics of the precipitation field
+      conditionally by excluding pixels where the values are below the threshold
+      precip_thr.
+    probmatching_method: {'cdf','mean',None}, optional
+      Method for matching the statistics of the forecast field with those of
+      the most recently observed one. 'cdf'=map the forecast CDF to the observed
+      one, 'mean'=adjust only the conditional mean value of the forecast field
+      in precipitation areas, None=no matching applied. Using 'mean' requires
+      that mask_method is not None.
+    mask_method: {'obs','incremental',None}, optional
+      The method to use for masking no precipitation areas in the forecast field.
+      The masked pixels are set to the minimum value of the observations.
+      'obs' = apply precip_thr to the most recently observed precipitation intensity
+      field, 'incremental' = iteratively buffer the mask with a certain rate
+      (currently it is 1 km/min), None=no masking.
+    resample_distribution: bool, optional
+        Method to resample the distribution from the extrapolation and NWP cascade as input
+        for the probability matching. Not resampling these distributions may lead to losing
+        some extremes when the weight of both the extrapolation and NWP cascade is similar.
+        Defaults to True.
+    smooth_radar_mask_range: int, Default is 0.
+      Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+      blend near the edge of the radar domain (radar mask), where the radar data is either
+      not present anymore or is not reliable. If set to 0 (grid cells), this generates a
+      normal forecast without smoothing. To create a smooth mask, this range should be a
+      positive value, representing a buffer band of a number of pixels by which the mask
+      is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
+      and radar in the final blended product. Typically, a value between 50 and 100 km
+      can be used. 80 km generally gives good results.
+    seed: int, optional
+      Optional seed number for the random generators.
+    num_workers: int, optional
+      The number of workers to use for parallel computation. Applicable if dask
+      is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
+      is advisable to disable OpenMP by setting the environment variable
+      OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
+      threads.
+    fft_method: str, optional
+      A string defining the FFT method to use (see FFT methods in
+      :py:func:`pysteps.utils.interface.get_method`).
+      Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
+      the recommended method is 'pyfftw'.
+    domain: {"spatial", "spectral"}
+      If "spatial", all computations are done in the spatial domain (the
+      classical STEPS model). If "spectral", the AR(2) models and stochastic
+      perturbations are applied directly in the spectral domain to reduce
+      memory footprint and improve performance :cite:`PCH2019b`.
+    outdir_path_skill: string, optional
+      Path to folder where the historical skill are stored. Defaults to
+      path_workdir from rcparams. If no path is given, './tmp' will be used.
+    extrapolation_kwargs: dict, optional
+      Optional dictionary containing keyword arguments for the extrapolation
+      method. See the documentation of :py:func:`pysteps.extrapolation.interface`.
+    filter_kwargs: dict, optional
+      Optional dictionary containing keyword arguments for the filter method.
+      See the documentation of :py:mod:`pysteps.cascade.bandpass_filters`.
+    noise_kwargs: dict, optional
+      Optional dictionary containing keyword arguments for the initializer of
+      the noise generator. See the documentation of :py:mod:`pysteps.noise.fftgenerators`.
+    velocity_perturbation_kwargs: dict, optional
+      Optional dictionary containing keyword arguments 'p_par' and 'p_perp' for
+      the initializer of the velocity perturbator. The choice of the optimal
+      parameters depends on the domain and the used optical flow method.
+
+      Default parameters from :cite:`BPS2006`:
+      p_par  = [10.88, 0.23, -7.68]
+      p_perp = [5.76, 0.31, -2.72]
+
+      Parameters fitted to the data (optical flow/domain):
+
+      darts/fmi:
+      p_par  = [13.71259667, 0.15658963, -16.24368207]
+      p_perp = [8.26550355, 0.17820458, -9.54107834]
+
+      darts/mch:
+      p_par  = [24.27562298, 0.11297186, -27.30087471]
+      p_perp = [-7.80797846e+01, -3.38641048e-02, 7.56715304e+01]
+
+      darts/fmi+mch:
+      p_par  = [16.55447057, 0.14160448, -19.24613059]
+      p_perp = [14.75343395, 0.11785398, -16.26151612]
+
+      lucaskanade/fmi:
+      p_par  = [2.20837526, 0.33887032, -2.48995355]
+      p_perp = [2.21722634, 0.32359621, -2.57402761]
+
+      lucaskanade/mch:
+      p_par  = [2.56338484, 0.3330941, -2.99714349]
+      p_perp = [1.31204508, 0.3578426, -1.02499891]
+
+      lucaskanade/fmi+mch:
+      p_par  = [2.31970635, 0.33734287, -2.64972861]
+      p_perp = [1.90769947, 0.33446594, -2.06603662]
+
+      vet/fmi:
+      p_par  = [0.25337388, 0.67542291, 11.04895538]
+      p_perp = [0.02432118, 0.99613295, 7.40146505]
+
+      vet/mch:
+      p_par  = [0.5075159, 0.53895212, 7.90331791]
+      p_perp = [0.68025501, 0.41761289, 4.73793581]
+
+      vet/fmi+mch:
+      p_par  = [0.29495222, 0.62429207, 8.6804131 ]
+      p_perp = [0.23127377, 0.59010281, 5.98180004]
+
+      fmi=Finland, mch=Switzerland, fmi+mch=both pooled into the same data set
+
+      The above parameters have been fitted by using run_vel_pert_analysis.py
+      and fit_vel_pert_params.py located in the scripts directory.
+
+      See :py:mod:`pysteps.noise.motion` for additional documentation.
+    climatology_kwargs: dict, optional
+      Optional dictionary containing keyword arguments for the climatological
+      skill file. Arguments can consist of: 'outdir_path', 'n_models'
+      (the number of NWP models) and 'window_length' (the minimum number of
+      days the clim file should have, otherwise the default is used).
+    mask_kwargs: dict
+      Optional dictionary containing mask keyword arguments 'mask_f' and
+      'mask_rim', the factor defining the the mask increment and the rim size,
+      respectively.
+      The mask increment is defined as mask_f*timestep/kmperpixel.
+    measure_time: bool
+      If set to True, measure, print and return the computation time.
+    callback: function, optional
+      Optional function that is called after computation of each time step of
+      the nowcast. The function takes one argument: a three-dimensional array
+      of shape (n_ens_members,h,w), where h and w are the height and width
+      of the input field precip, respectively. This can be used, for instance,
+      writing the outputs into files.
+    return_output: bool, optional
+      Set to False to disable returning the outputs as numpy arrays. This can
+      save memory if the intermediate results are written to output files using
+      the callback function.
+    """
+
     precip_threshold: float | None
     norain_threshold: float
     kmperpixel: float
@@ -247,6 +440,97 @@ class StepsBlendingNowcaster:
         self.__mainloop_time = None
 
     def compute_forecast(self):
+        """
+        Generate a blended nowcast ensemble by using the Short-Term Ensemble
+        Prediction System (STEPS) method.
+
+        Parameters
+        ----------
+        precip: array-like
+          Array of shape (ar_order+1,m,n) containing the input precipitation fields
+          ordered by timestamp from oldest to newest. The time steps between the
+          inputs are assumed to be regular.
+        precip_models: array-like
+          Either raw (NWP) model forecast data or decomposed (NWP) model forecast data.
+          If you supply decomposed data, it needs to be an array of shape
+          (n_models,timesteps+1) containing, per timestep (t=0 to lead time here) and
+          per (NWP) model or model ensemble member, a dictionary with a list of cascades
+          obtained by calling a method implemented in :py:mod:`pysteps.cascade.decomposition`.
+          If you supply the original (NWP) model forecast data, it needs to be an array of shape
+          (n_models,timestep+1,m,n) containing precipitation (or other) fields, which will
+          then be decomposed in this function.
+
+          Depending on your use case it can be advantageous to decompose the model
+          forecasts outside beforehand, as this slightly reduces calculation times.
+          This is possible with :py:func:`pysteps.blending.utils.decompose_NWP`,
+          :py:func:`pysteps.blending.utils.compute_store_nwp_motion`, and
+          :py:func:`pysteps.blending.utils.load_NWP`. However, if you have a lot of (NWP) model
+          members (e.g. 1 model member per nowcast member), this can lead to excessive memory
+          usage.
+
+          To further reduce memory usage, both this array and the ``velocity_models`` array
+          can be given as float32. They will then be converted to float64 before computations
+          to minimize loss in precision.
+
+          In case of one (deterministic) model as input, add an extra dimension to make sure
+          precip_models is four dimensional prior to calling this function.
+        velocity: array-like
+          Array of shape (2,m,n) containing the x- and y-components of the advection
+          field. The velocities are assumed to represent one time step between the
+          inputs. All values are required to be finite.
+        velocity_models: array-like
+          Array of shape (n_models,timestep,2,m,n) containing the x- and y-components
+          of the advection field for the (NWP) model field per forecast lead time.
+          All values are required to be finite.
+
+          To reduce memory usage, this array
+          can be given as float32. They will then be converted to float64 before computations
+          to minimize loss in precision.
+        time_steps: int or list of floats
+          Number of time steps to forecast or a list of time steps for which the
+          forecasts are computed (relative to the input time step). The elements of
+          the list are required to be in ascending order.
+        issue_time: datetime
+          is issued.
+        config: StepsBlendingConfig
+            Provides a set of configuration parameters for the nowcast ensemble generation.
+
+        Returns
+        -------
+        out: ndarray
+          If return_output is True, a four-dimensional array of shape
+          (n_ens_members,num_timesteps,m,n) containing a time series of forecast
+          precipitation fields for each ensemble member. Otherwise, a None value
+          is returned. The time series starts from t0+timestep, where timestep is
+          taken from the input precipitation fields precip. If measure_time is True, the
+          return value is a three-element tuple containing the nowcast array, the
+          initialization time of the nowcast generator and the time used in the
+          main loop (seconds).
+
+        See also
+        --------
+        :py:mod:`pysteps.extrapolation.interface`, :py:mod:`pysteps.cascade.interface`,
+        :py:mod:`pysteps.noise.interface`, :py:func:`pysteps.noise.utils.compute_noise_stddev_adjs`
+
+        References
+        ----------
+        :cite:`Seed2003`, :cite:`BPS2004`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
+
+        Notes
+        -----
+        1. The blending currently does not blend the beta-parameters in the parametric
+        noise method. It is recommended to use the non-parameteric noise method.
+
+        2. If blend_nwp_members is True, the BPS2006 method for the weights is
+        suboptimal. It is recommended to use the SPN2013 method instead.
+
+        3. Not yet implemented (and neither in the steps nowcasting module): The regression
+        of the lag-1 and lag-2 parameters to their climatological values. See also eq.
+        12 - 19 in :cite: `BPS2004`. By doing so, the Phi parameters change over time,
+        which enhances the AR process. This can become a future development if this
+        turns out to be a warranted functionality.
+        """
+
         self.__check_inputs()
         self.__print_forecast_info()
         # Measure time for initialization
@@ -303,9 +587,6 @@ class StepsBlendingNowcaster:
         Main nowcast loop that iterates through the ensemble members and time steps
         to generate forecasts.
         """
-        ###
-        # 8. Start the forecasting loop
-        ###
         # Isolate the last time slice of observed precipitation
         self.__precip = self.__precip[-1, :, :]
         print("Starting blended nowcast computation.")
@@ -404,7 +685,9 @@ class StepsBlendingNowcaster:
             self.__mainloop_time = time.time() - starttime_mainloop
 
     def __check_inputs(self):
-        """Validates the inputs and determines if the user provided raw forecasts or decomposed forecasts."""
+        """
+        Validates the inputs and determines if the user provided raw forecasts or decomposed forecasts.
+        """
         # Check dimensions of precip
         if self.__precip.ndim != 3:
             raise ValueError(
@@ -561,6 +844,9 @@ class StepsBlendingNowcaster:
                 raise ValueError("mask_method='incremental' but timestep=None")
 
     def __print_forecast_info(self):
+        """
+        Print information about the forecast setup, including inputs, methods, and parameters.
+        """
         print("STEPS blending")
         print("==============")
         print("")
@@ -694,6 +980,12 @@ class StepsBlendingNowcaster:
         print("Blended nowcast components initialized successfully.")
 
     def __prepare_radar_and_NWP_fields(self):
+        """
+        Prepare radar and NWP precipitation fields for nowcasting.
+        This includes generating a threshold mask, transforming fields into
+        Lagrangian coordinates, cascade decomposing/recomposing, and checking
+        for zero-precip areas. The results are stored in class attributes.
+        """
         # determine the precipitation threshold mask
         if self.__config.conditional:
             # TODO: is this logical_and correct here? Now only those places where precip is in all images is saved?
@@ -719,8 +1011,7 @@ class StepsBlendingNowcaster:
         self.__state.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
         res = []
 
-        # TODO: create better names here for this part, adapted from previous code which is now inlined (old function was called _transform_to_lagrangian)
-        def f(precip, i):
+        def transform_to_lagrangian(precip, i):
             return self.__params.extrapolation_method(
                 precip[i, :, :],
                 self.__velocity,
@@ -733,11 +1024,11 @@ class StepsBlendingNowcaster:
         if not DASK_IMPORTED:
             # Process each earlier precipitation field directly
             for i in range(self.__config.ar_order):
-                self.__precip[i, :, :] = f(self.__precip, i)
+                self.__precip[i, :, :] = transform_to_lagrangian(self.__precip, i)
         else:
             # Use Dask delayed for parallelization if DASK_IMPORTED is True
             for i in range(self.__config.ar_order):
-                res.append(dask.delayed(f)(self.__precip, i))
+                res.append(dask.delayed(transform_to_lagrangian)(self.__precip, i))
             num_workers_ = (
                 len(res)
                 if self.__config.num_workers > len(res)
@@ -755,10 +1046,9 @@ class StepsBlendingNowcaster:
                 self.__precip[i, :]
             )
 
-        # 2. Perform the cascade decomposition for the input precip fields and,
+        # Perform the cascade decomposition for the input precip fields and,
         # if necessary, for the (NWP) model fields
-        # 2.1 Compute the cascade decompositions of the input precipitation fields
-        # Compute the cascade decompositions of the input precipitation fields.
+        # Compute the cascade decompositions of the input precipitation fields
         precip_forecast_decomp = []
         for i in range(self.__config.ar_order + 1):
             precip_forecast = self.__params.decomposition_method(
@@ -783,7 +1073,7 @@ class StepsBlendingNowcaster:
         self.__state.mean_extrapolation = np.array(precip_forecast_decomp["means"])
         self.__state.std_extrapolation = np.array(precip_forecast_decomp["stds"])
 
-        # 2.2 If necessary, recompose (NWP) model forecasts
+        # If necessary, recompose (NWP) model forecasts
         self.__state.precip_models_cascades = None
 
         if self.__params.precip_models_provided_is_cascade:
@@ -802,7 +1092,7 @@ class StepsBlendingNowcaster:
 
             self.__precip_models = np.stack(temp_precip_models)
 
-        # 2.3 Check for zero input fields in the radar and NWP data.
+        # Check for zero input fields in the radar and NWP data.
         self.__params.zero_precip_radar = blending.utils.check_norain(
             self.__precip,
             self.__config.precip_threshold,
@@ -817,6 +1107,11 @@ class StepsBlendingNowcaster:
         )
 
     def __zero_precipitation_forecast(self):
+        """
+        Generate a zero-precipitation forecast (filled with the minimum precip value)
+        when no precipitation above the threshold is detected. The forecast is
+        optionally returned or passed to a callback.
+        """
         print(
             "No precipitation above the threshold found in both the radar and NWP fields"
         )
@@ -868,7 +1163,12 @@ class StepsBlendingNowcaster:
             return None
 
     def __prepare_nowcast_for_zero_radar(self):
-        # 2.3.3 If zero_precip_radar, make sure that precip_cascade does not contain
+        """
+        Handle the case when radar fields indicate zero precipitation. This method
+        updates the cascade with NWP data, uses the NWP velocity field, and
+        initializes the noise model based on the time step with the most rain.
+        """
+        # If zero_precip_radar, make sure that precip_cascade does not contain
         # only nans or infs. If so, fill it with the zero value.
 
         # Look for a timestep and member with rain so that we have a sensible decomposition
@@ -904,7 +1204,7 @@ class StepsBlendingNowcaster:
                     done = True
                     break
 
-        # 2.3.5 If zero_precip_radar is True, only use the velocity field of the NWP
+        # If zero_precip_radar is True, only use the velocity field of the NWP
         # forecast. I.e., velocity (radar) equals velocity_model at the first time
         # step.
         # Use the velocity from velocity_models at time step 0
@@ -915,7 +1215,7 @@ class StepsBlendingNowcaster:
         # (hence, the model average)
         self.__velocity = np.mean(self.__velocity, axis=0)
 
-        # 3. Initialize the noise method.
+        # Initialize the noise method.
         # If zero_precip_radar is True, initialize noise based on the NWP field time
         # step where the fraction of rainy cells is highest (because other lead times
         # might be zero as well). Else, initialize the noise with the radar
@@ -950,7 +1250,10 @@ class StepsBlendingNowcaster:
             ]
 
     def __initialize_noise(self):
-        """Initialize the noise method."""
+        """
+        Initialize noise-based perturbations if configured, computing any required
+        adjustment coefficients and setting up the perturbation generator.
+        """
         if self.__config.noise_method is not None:
             # get methods for perturbations
             init_noise, self.__params.noise_generator = noise.get_method(
@@ -1005,8 +1308,13 @@ class StepsBlendingNowcaster:
             self.__params.noise_std_coeffs = None
 
     def __estimate_ar_parameters_radar(self):
-        # 4. Estimate AR parameters for the radar rainfall field
-        """Estimate AR parameters for the radar rainfall field."""
+        """
+        Estimate autoregressive (AR) parameters for the radar rainfall field. If
+        precipitation exists, compute temporal auto-correlations; otherwise, use
+        predefined climatological values. Adjust coefficients if necessary and
+        estimate AR model parameters.
+        """
+
         # If there are values in the radar fields, compute the auto-correlations
         GAMMA = np.empty((self.__config.n_cascade_levels, self.__config.ar_order))
         if not self.__params.zero_precip_radar:
@@ -1078,10 +1386,10 @@ class StepsBlendingNowcaster:
         nowcast_utils.print_ar_params(self.__params.PHI)
 
     def __multiply_precip_cascade_to_match_ensemble_members(self):
-        # 5. Repeat precip_cascade for n ensemble members
-        # First, discard all except the p-1 last cascades because they are not needed
-        # for the AR(p) model
-
+        """
+        Duplicate the last p-1 precipitation cascades across all ensemble members
+        for the AR(p) model, ensuring each member has the required input structure.
+        """
         self.__state.precip_cascades = np.stack(
             [
                 [
@@ -1093,8 +1401,11 @@ class StepsBlendingNowcaster:
         )
 
     def __initialize_random_generators(self):
-        # 6. Initialize all the random generators and prepare for the forecast loop
-        """Initialize all the random generators."""
+        """
+        Initialize random generators for precipitation noise, probability matching,
+        and velocity perturbations. Each ensemble member gets a separate generator,
+        ensuring reproducibility and controlled randomness in forecasts.
+        """
         seed = self.__config.seed
         if self.__config.noise_method is not None:
             self.__state.randgen_precip = []
@@ -1144,7 +1455,11 @@ class StepsBlendingNowcaster:
             ) = (None, None)
 
     def __prepare_forecast_loop(self):
-        """Prepare for the forecast loop."""
+        """
+        Initialize variables and structures needed for the forecast loop, including
+        displacement tracking, mask parameters, noise handling, FFT objects, and
+        extrapolation scaling for nowcasting.
+        """
         # Empty arrays for the previous displacements and the forecast cascade
         self.__state.previous_displacement = np.stack(
             [None for j in range(self.__config.n_ens_members)]
@@ -1198,7 +1513,8 @@ class StepsBlendingNowcaster:
         )
 
     def __initialize_noise_cascades(self):
-        """Initialize the noise cascade with identical noise for all AR(n) steps
+        """
+        Initialize the noise cascade with identical noise for all AR(n) steps
         We also need to return the mean and standard deviations of the noise
         for the recombination of the noise before advecting it.
         """
@@ -1240,6 +1556,10 @@ class StepsBlendingNowcaster:
                 epsilon_temp = None
 
     def __determine_subtimesteps_and_nowcast_time_step(self, t, subtimestep_idx):
+        """
+        Determine the current sub-timesteps and check if the current time step
+        requires nowcasting. Updates the `is_nowcast_time_step` flag accordingly.
+        """
         if self.__params.time_steps_is_list:
             self.__state.subtimesteps = [
                 self.__params.original_timesteps[t_] for t_ in subtimestep_idx
@@ -1262,6 +1582,10 @@ class StepsBlendingNowcaster:
             )
 
     def __decompose_nwp_if_needed_and_fill_nans_in_nwp(self, t):
+        """
+        Decompose NWP model precipitation fields if needed, store cascade components,
+        and replace any NaN or infinite values with appropriate minimum values.
+        """
         if self.__state.precip_models_cascades is not None:
             decomp_precip_models = list(self.__state.precip_models_cascades[:, t])
 
@@ -1303,7 +1627,7 @@ class StepsBlendingNowcaster:
             [decomp["stds"] for decomp in decomp_precip_models]
         )
 
-        # 2.3.4 Check if the NWP fields contain nans or infinite numbers. If so,
+        # Check if the NWP fields contain nans or infinite numbers. If so,
         # fill these with the minimum value present in precip (corresponding to
         # zero rainfall in the radar observations)
 
@@ -1330,12 +1654,8 @@ class StepsBlendingNowcaster:
         ] = 0.0
 
     def __find_nowcast_NWP_combination(self, t):
-        # 8.1.1 Before calling the worker for the forecast loop, determine which (NWP)
-        # models will be combined with which nowcast ensemble members. With the
-        # way it is implemented at this moment: n_ens_members of the output equals
-        # the maximum number of (ensemble) members in the input (either the nowcasts or NWP).
-
-        """Determine which (NWP) models will be combined with which nowcast ensemble members.
+        """
+        Determine which (NWP) models will be combined with which nowcast ensemble members.
         With the way it is implemented at this moment: n_ens_members of the output equals
         the maximum number of (ensemble) members in the input (either the nowcasts or NWP).
         """
@@ -1435,6 +1755,11 @@ class StepsBlendingNowcaster:
                     )
 
     def __determine_skill_for_current_timestep(self, t):
+        """
+        Compute the skill of NWP model forecasts at t=0 using spatial correlation,
+        ensuring skill decreases with increasing scale level. For t>0, update
+        extrapolation skill based on lead time.
+        """
         if t == 0:
             # Calculate the initial skill of the (NWP) model forecasts at t=0.
             self.__params.rho_nwp_models = []
@@ -1475,7 +1800,7 @@ class StepsBlendingNowcaster:
                 **self.__params.climatology_kwargs,
             )
         if t > 0:
-            # 8.1.3 Determine the skill of the components for lead time (t0 + t)
+            # Determine the skill of the components for lead time (t0 + t)
             # First for the extrapolation component. Only calculate it when t > 0.
             (
                 self.__state.rho_extrap_cascade,
@@ -1487,8 +1812,11 @@ class StepsBlendingNowcaster:
             )
 
     def __determine_NWP_skill_for_next_timestep(self, t, j, worker_state):
-        # 8.1.2 Determine the skill of the nwp components for lead time (t0 + t)
-        # Then for the model components
+        """
+        Compute the skill of NWP model components for the next lead time (t0 + t),
+        blending with extrapolation skill if configured. Updates the worker state
+        with the final blended skill forecast.
+        """
         if self.__config.blend_nwp_members:
             rho_nwp_forecast = []
             for model_index in range(self.__params.rho_nwp_models.shape[0]):
@@ -1521,8 +1849,11 @@ class StepsBlendingNowcaster:
             )
 
     def __determine_weights_per_component(self, worker_state):
-        # 8.2 Determine the weights per component
-
+        """
+        Compute blending weights for each component based on the selected method
+        ('bps' or 'spn'). Weights are determined for both full blending and
+        model-only scenarios, accounting for correlations and covariance.
+        """
         # Weights following the bps method. These are needed for the velocity
         # weights prior to the advection step. If weights method spn is
         # selected, weights will be overwritten with those weights prior to
@@ -1587,11 +1918,12 @@ class StepsBlendingNowcaster:
             )
 
     def __regress_extrapolation_and_noise_cascades(self, j, worker_state):
-        # 8.3 Determine the noise cascade and regress this to the subsequent
-        # time step + regress the extrapolation component to the subsequent
-        # time step
-
-        # 8.3.1 Determine the epsilon, a cascade of temporally independent
+        """
+        Apply autoregressive (AR) updates to the extrapolation and noise cascades
+        for the next time step. If noise is enabled, generate and decompose a
+        spatially correlated noise field before applying the AR process.
+        """
+        # Determine the epsilon, a cascade of temporally independent
         # but spatially correlated noise
         if self.__config.noise_method is not None:
             # generate noise field
@@ -1616,7 +1948,7 @@ class StepsBlendingNowcaster:
         else:
             epsilon_decomposed = None
 
-        # 8.3.2 regress the extrapolation component to the subsequent time
+        # Regress the extrapolation component to the subsequent time
         # step
         # iterate the AR(p) model for each cascade level
         for i in range(self.__config.n_cascade_levels):
@@ -1639,7 +1971,7 @@ class StepsBlendingNowcaster:
                     worker_state.final_blended_forecast_non_perturbed[i]
                 )
 
-        # 8.3.3 regress the noise component to the subsequent time step
+        # Regress the noise component to the subsequent time step
         # iterate the AR(p) model for each cascade level
         for i in range(self.__config.n_cascade_levels):
             # normalize the noise cascade
@@ -1662,10 +1994,11 @@ class StepsBlendingNowcaster:
     def __perturb_blend_and_advect_extrapolation_and_noise_to_current_timestep(
         self, t, j, worker_state
     ):
-        # 8.4 Perturb and blend the advection fields + advect the
-        # extrapolation and noise cascade to the current time step
-        # (or subtimesteps if non-integer time steps are given)
-
+        """
+        Apply perturbations, blend motion fields, and advect extrapolated and noise
+        cascades to the current time step (or sub-timesteps). This step ensures
+        realistic motion updates in nowcasting.
+        """
         # Settings and initialize the output
         extrap_kwargs_ = worker_state.extrapolation_kwargs.copy()
         extrap_kwargs_noise = worker_state.extrapolation_kwargs.copy()
@@ -2016,6 +2349,11 @@ class StepsBlendingNowcaster:
         )
 
     def __blend_cascades(self, t_sub, j, worker_state):
+        """
+        Blend extrapolated, NWP model, and noise cascades using predefined weights.
+        Computes both full and model-only blends while also blending means and
+        standard deviations across scales.
+        """
         worker_state.subtimestep_index = np.where(
             np.array(worker_state.subtimesteps) == t_sub
         )[0][0]
@@ -2137,9 +2475,11 @@ class StepsBlendingNowcaster:
         )
 
     def __recompose_cascade_to_rainfall_field(self, j, worker_state):
-        # 8.6 Recompose the cascade to a precipitation field
-        # (The function first normalizes the blended cascade, precip_forecast_blended
-        # again)
+        """
+        Recompose the blended cascade into a precipitation field using the blended
+        means and standard deviations. If using the spectral domain, apply inverse
+        FFT for reconstruction.
+        """
         worker_state.final_blended_forecast_recomposed = (
             blending.utils.recompose_cascade(
                 combined_cascade=worker_state.final_blended_forecast_cascades,
@@ -2170,16 +2510,37 @@ class StepsBlendingNowcaster:
     def __post_process_output(
         self, j, final_blended_forecast_single_member, worker_state
     ):
-        # 8.7 Post-processing steps - use the mask and fill no data with
-        # the blended NWP forecast. Probability matching following
-        # Lagrangian blended probability matching which uses the
-        # latest extrapolated radar rainfall field blended with the
-        # nwp model(s) rainfall forecast fields as 'benchmark'.
+        """
+        Apply post-processing steps to refine the final blended forecast. This
+        involves masking, filling missing data with the blended NWP forecast,
+        and applying probability matching to ensure consistency.
 
-        # 8.7.1 first blend the extrapolated rainfall field (the field
-        # that is only used for post-processing steps) with the NWP
-        # rainfall forecast for this time step using the weights
-        # at scale level 2.
+        **Steps:**
+
+        1. **Use Mask and Fill Missing Data:**
+           - Areas without reliable radar extrapolation are filled using the
+             blended NWP forecast to maintain spatial coherence.
+
+        2. **Lagrangian Blended Probability Matching:**
+           - Uses the latest extrapolated radar rainfall field blended with
+             the NWP model(s) forecast as a reference.
+           - Ensures that the statistical distribution of the final forecast
+             remains consistent with the benchmark dataset.
+
+        3. **Blend the Extrapolated Rainfall Field with NWP Forecasts:**
+           - The extrapolated rainfall field is used only for post-processing.
+           - The forecast is blended using predefined weights at scale level 2.
+           - This ensures that both extrapolated and modeled precipitation
+             contribute appropriately to the final output.
+
+        4. **Apply Probability Matching:**
+           - Adjusts the final precipitation distribution using either empirical
+             cumulative distribution functions (CDF) or mean adjustments to
+             match the reference dataset.
+
+        The final processed forecast is stored in `final_blended_forecast_single_member`.
+        """
+
         weights_probability_matching = worker_state.weights[
             :-1, 1
         ]  # Weights without noise, level 2
@@ -2300,7 +2661,7 @@ class StepsBlendingNowcaster:
             precip_forecast_probability_matching_blended
         )
 
-        # 8.7.2. Apply the masking and prob. matching
+        # Apply the masking and prob. matching
         precip_field_mask_temp = None
         if self.__config.mask_method is not None:
             # apply the precipitation mask to prevent generation of new
@@ -2811,8 +3172,12 @@ def forecast(
         return_output=return_output,
     )
 
-    # TODO: add comment about how this class based method is supposed to be used: for each forecast run, a new forecaster needs to be made. The config file can stay the same.
-
+    """
+    With the new refactoring, the blending nowcaster is a class that can be used in multiple ways.
+    This method is here to ensure that the class can be used in a similar way as the old function.
+    The new refactoring provides more possibilities, eg. when doing multiple forecasts in a row, 
+    the config does not need to be provided each time
+    """
     # Create an instance of the new class with all the provided arguments
     blended_nowcaster = StepsBlendingNowcaster(
         precip,
