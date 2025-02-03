@@ -3,7 +3,7 @@
 Ensemble verification
 =====================
 
-In this tutorial we perform a verification of a probabilistic extrapolation nowcast 
+In this tutorial we perform a verification of a probabilistic extrapolation nowcast
 using MeteoSwiss radar data.
 
 """
