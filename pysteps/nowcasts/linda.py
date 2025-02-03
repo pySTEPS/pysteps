@@ -54,18 +54,9 @@ from scipy.signal import convolve
 from scipy import stats
 
 from pysteps import extrapolation, feature, noise
-from pysteps.decorators import deprecate_args
 from pysteps.nowcasts.utils import nowcast_main_loop
 
 
-@deprecate_args(
-    {
-        "precip_fields": "precip",
-        "advection_field": "velocity",
-        "num_ens_members": "n_ens_members",
-    },
-    "1.8.0",
-)
 def forecast(
     precip,
     velocity,
