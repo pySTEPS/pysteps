@@ -2727,16 +2727,10 @@ class StepsBlendingNowcaster:
             elif self.__config.mask_method == "obs":
                 # The mask equals the most recent benchmark
                 # rainfall field
-                if hasattr(worker_state, "blended_forecast_recomposed_t_prev"):
-                    precip_field_mask_temp = (
-                        worker_state.blended_forecast_recomposed_t_prev
-                        >= self.__config.precip_threshold
-                    )
-                else:
-                    precip_field_mask_temp = (
-                        precip_forecast_probability_matching_blended
-                        >= self.__config.precip_threshold
-                    )
+                precip_field_mask_temp = (
+                    precip_forecast_probability_matching_blended
+                    >= self.__config.precip_threshold
+                )
 
             # Set to min value outside of mask
             worker_state.final_blended_forecast_recomposed[~precip_field_mask_temp] = (
