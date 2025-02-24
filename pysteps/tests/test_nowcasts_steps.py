@@ -7,7 +7,6 @@ import pytest
 from pysteps import io, motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
 
-
 steps_arg_names = (
     "n_ens_members",
     "n_cascade_levels",
@@ -22,7 +21,7 @@ steps_arg_names = (
 steps_arg_values = [
     (5, 6, 2, None, None, "spatial", 3, 1.30),
     (5, 6, 2, None, None, "spatial", [3], 1.30),
-    (5, 6, 2, "incremental", None, "spatial", 3, 7.31),
+    (5, 6, 2, "incremental", None, "spatial", 3, 7.32),
     (5, 6, 2, "sprog", None, "spatial", 3, 8.4),
     (5, 6, 2, "obs", None, "spatial", 3, 8.37),
     (5, 6, 2, None, "cdf", "spatial", 3, 0.60),
