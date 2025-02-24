@@ -777,7 +777,7 @@ class StepsBlendingNowcaster:
             self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
 
         if self.__config.noise_kwargs is None:
-            self.__params.noise_kwargs = dict()
+            self.__params.noise_kwargs = {"win_fun": "tukey"}
         else:
             self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
 
@@ -1092,16 +1092,31 @@ class StepsBlendingNowcaster:
 
             self.__precip_models = np.stack(temp_precip_models)
 
+        if self.__params.noise_kwargs["win_fun"] is not None:
+            tapering = utils.tapering.compute_window_function(
+                self.__precip.shape[1],
+                self.__precip.shape[2],
+                self.__params.noise_kwargs["win_fun"],
+            )
+        else:
+            tapering = np.ones((self.__precip.shape[1], self.__precip.shape[2]))
+
+        tapering_mask = tapering == 0.0
+        masked_precip = self.__precip.copy()
+        masked_precip[:, tapering_mask] = np.nanmin(self.__precip)
+        masked_precip_models = self.__precip_models.copy()
+        masked_precip_models[:, :, tapering_mask] = np.nanmin(self.__precip_models)
+
         # Check for zero input fields in the radar and NWP data.
         self.__params.zero_precip_radar = blending.utils.check_norain(
-            self.__precip,
+            masked_precip,
             self.__config.precip_threshold,
             self.__config.norain_threshold,
         )
         # The norain fraction threshold used for nwp is the default value of 0.0,
         # since nwp does not suffer from clutter.
         self.__params.zero_precip_model_fields = blending.utils.check_norain(
-            self.__precip_models,
+            masked_precip_models,
             self.__config.precip_threshold,
             self.__config.norain_threshold,
         )
