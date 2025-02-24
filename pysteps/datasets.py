@@ -328,7 +328,9 @@ def download_pysteps_data(dir_path, force=True):
 
         zip_obj.extractall(tmp_dir.name)
 
-        shutil.copytree(os.path.join(tmp_dir.name, common_path), dir_path, dirs_exist_ok=True)
+        shutil.copytree(
+            os.path.join(tmp_dir.name, common_path), dir_path, dirs_exist_ok=True
+        )
 
 
 def create_default_pystepsrc(
