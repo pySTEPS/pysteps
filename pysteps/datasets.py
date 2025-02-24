@@ -21,7 +21,6 @@ import shutil
 import sys
 import time
 from datetime import datetime, timedelta
-from distutils.dir_util import copy_tree
 from logging.handlers import RotatingFileHandler
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from urllib import request
@@ -329,7 +328,7 @@ def download_pysteps_data(dir_path, force=True):
 
         zip_obj.extractall(tmp_dir.name)
 
-        copy_tree(os.path.join(tmp_dir.name, common_path), dir_path)
+        shutil.copytree(os.path.join(tmp_dir.name, common_path), dir_path, dirs_exist_ok=True)
 
 
 def create_default_pystepsrc(
