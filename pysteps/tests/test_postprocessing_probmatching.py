@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
-from pysteps.postprocessing.probmatching import resample_distributions
-from pysteps.postprocessing.probmatching import nonparam_match_empirical_cdf
+
+from pysteps.postprocessing.probmatching import (
+    nonparam_match_empirical_cdf,
+    resample_distributions,
+)
 
 
 class TestResampleDistributions:
