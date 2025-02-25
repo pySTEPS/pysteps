@@ -17,8 +17,7 @@ import importlib
 from pysteps.postprocessing import diagnostics, ensemblestats
 from pprint import pprint
 
-_diagnostics_methods = dict(
-)
+_diagnostics_methods = dict()
 
 _ensemblestats_methods = dict(
     mean=ensemblestats.mean,
@@ -26,12 +25,9 @@ _ensemblestats_methods = dict(
     banddepth=ensemblestats.banddepth,
 )
 
+
 def add_postprocessor(
-    postprocessors_function_name,
-    _postprocessors,
-    methods_dict,
-    module,
-    attributes
+    postprocessors_function_name, _postprocessors, methods_dict, module, attributes
 ):
     """
     Add the postprocessor to the appropriate _methods dictionary and to the module.
@@ -89,10 +85,9 @@ def discover_postprocessors():
             group=f"pysteps.plugins.{plugintype}", name=None
         ):
             _postprocessors = entry_point.load()
-    
+
             postprocessors_function_name = _postprocessors.__name__
-    
-    
+
             if "diagnostic" in entry_point.module_name:
                 add_postprocessor(
                     postprocessors_function_name,
@@ -142,7 +137,7 @@ def print_postprocessors_info(module_name, interface_methods, module_methods):
 
     difference = module_methods_set ^ interface_methods_set
     if len(difference) > 0:
-        #print("\nIMPORTANT:")
+        # print("\nIMPORTANT:")
         _diff = module_methods_set - interface_methods_set
         if len(_diff) > 0:
             print(
@@ -181,7 +176,11 @@ def postprocessors_info():
         # add the pre-existing ensemblestats functions (see _ensemblestats_methods above)
         # that do not follow the convention to start with "ensemblestat_" as the plugins
         if "ensemblestats" in plugintype:
-            available_module_methods += [em for em in _ensemblestats_methods.keys() if not em.startswith('ensemblestat_')] 
+            available_module_methods += [
+                em
+                for em in _ensemblestats_methods.keys()
+                if not em.startswith("ensemblestat_")
+            ]
         print_postprocessors_info(
             module_name, interface_methods, available_module_methods
         )
