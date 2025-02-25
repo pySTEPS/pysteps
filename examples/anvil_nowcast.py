@@ -99,7 +99,7 @@ rainrate_thr, _ = transformation.dB_transform(
     np.array([0.5]), metadata, threshold=0.1, zerovalue=-15.0
 )
 forecast_sprog = sprog.forecast(
-    rainrate_field_db[-3:], velocity, 3, n_cascade_levels=6, R_thr=rainrate_thr[0]
+    rainrate_field_db[-3:], velocity, 3, n_cascade_levels=6, precip_thr=rainrate_thr[0]
 )
 forecast_sprog, _ = transformation.dB_transform(
     forecast_sprog, threshold=-10.0, inverse=True
