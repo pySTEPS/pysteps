@@ -1168,42 +1168,6 @@ class StepsBlendingNowcaster:
         updates the cascade with NWP data, uses the NWP velocity field, and
         initializes the noise model based on the time step with the most rain.
         """
-        # If zero_precip_radar, make sure that precip_cascade does not contain
-        # only nans or infs. If so, fill it with the zero value.
-
-        # Look for a timestep and member with rain so that we have a sensible decomposition
-        done = False
-        for t in self.__timesteps:
-            if done:
-                break
-            for j in range(self.__precip_models.shape[0]):
-                if not blending.utils.check_norain(
-                    self.__precip_models[j, t],
-                    self.__config.precip_threshold,
-                    self.__config.norain_threshold,
-                ):
-                    if self.__state.precip_models_cascades is not None:
-                        self.__state.precip_cascades[
-                            ~np.isfinite(self.__state.precip_cascades)
-                        ] = np.nanmin(
-                            self.__state.precip_models_cascades[j, t]["cascade_levels"]
-                        )
-                        continue
-                    precip_models_cascade_timestep = self.__params.decomposition_method(
-                        self.__precip_models[j, t, :, :],
-                        bp_filter=self.__params.bandpass_filter,
-                        fft_method=self.__params.fft,
-                        output_domain=self.__config.domain,
-                        normalize=True,
-                        compute_stats=True,
-                        compact_output=True,
-                    )["cascade_levels"]
-                    self.__state.precip_cascades[
-                        ~np.isfinite(self.__state.precip_cascades)
-                    ] = np.nanmin(precip_models_cascade_timestep)
-                    done = True
-                    break
-
         # If zero_precip_radar is True, only use the velocity field of the NWP
         # forecast. I.e., velocity (radar) equals velocity_model at the first time
         # step.
@@ -1242,6 +1206,30 @@ class StepsBlendingNowcaster:
         self.__state.precip_noise_input = self.__state.precip_noise_input.astype(
             np.float64, copy=False
         )
+
+        # If zero_precip_radar, make sure that precip_cascade does not contain
+        # only nans or infs. If so, fill it with the zero value.
+        if self.__state.precip_models_cascades is not None:
+            self.__state.precip_cascades[~np.isfinite(self.__state.precip_cascades)] = (
+                np.nanmin(
+                    self.__state.precip_models_cascades[
+                        max_rain_pixels_j, max_rain_pixels_t
+                    ]["cascade_levels"]
+                )
+            )
+        else:
+            precip_models_cascade_timestep = self.__params.decomposition_method(
+                self.__precip_models[max_rain_pixels_j, max_rain_pixels_t, :, :],
+                bp_filter=self.__params.bandpass_filter,
+                fft_method=self.__params.fft,
+                output_domain=self.__config.domain,
+                normalize=True,
+                compute_stats=True,
+                compact_output=True,
+            )["cascade_levels"]
+            self.__state.precip_cascades[~np.isfinite(self.__state.precip_cascades)] = (
+                np.nanmin(precip_models_cascade_timestep)
+            )
 
         # Make sure precip_noise_input is three-dimensional
         if len(self.__state.precip_noise_input.shape) != 3:
