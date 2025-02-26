@@ -30,6 +30,39 @@ steps_arg_values = [
 ]
 
 
+def test_default_steps_norain(
+    n_ens_members,
+    n_cascade_levels,
+    ar_order,
+    mask_method,
+    probmatching_method,
+    domain,
+    timesteps,
+    max_crps,
+):
+    """Tests STEPS nowcast with default params and all-zero inputs."""
+
+    # Define dummy nowcast input data
+    precip_input = np.zeros((3, 100, 100))
+
+    pytest.importorskip("cv2")
+    oflow_method = motion.get_method("LK")
+    retrieved_motion = oflow_method(precip_input)
+
+    nowcast_method = nowcasts.get_method("steps")
+    precip_forecast = nowcast_method(
+        precip_input,
+        retrieved_motion,
+        n_ens_members=2,
+        timesteps=3,
+    )
+
+    assert precip_forecast.ndim == 4
+    assert precip_forecast.shape[0] == 3
+    assert precip_forecast.shape[1] == 3
+    assert precip_forecast.sum() == 0.0
+
+
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
 def test_steps_skill(
     n_ens_members,
