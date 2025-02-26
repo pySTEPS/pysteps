@@ -56,6 +56,7 @@ from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.utils.check_norain import check_norain
 
 try:
     import dask
@@ -1092,33 +1093,20 @@ class StepsBlendingNowcaster:
 
             self.__precip_models = np.stack(temp_precip_models)
 
-        if self.__params.noise_kwargs["win_fun"] is not None:
-            tapering = utils.tapering.compute_window_function(
-                self.__precip.shape[1],
-                self.__precip.shape[2],
-                self.__params.noise_kwargs["win_fun"],
-            )
-        else:
-            tapering = np.ones((self.__precip.shape[1], self.__precip.shape[2]))
-
-        tapering_mask = tapering == 0.0
-        masked_precip = self.__precip.copy()
-        masked_precip[:, tapering_mask] = np.nanmin(self.__precip)
-        masked_precip_models = self.__precip_models.copy()
-        masked_precip_models[:, :, tapering_mask] = np.nanmin(self.__precip_models)
-
         # Check for zero input fields in the radar and NWP data.
-        self.__params.zero_precip_radar = blending.utils.check_norain(
-            masked_precip,
+        self.__params.zero_precip_radar = check_norain(
+            self.__precip,
             self.__config.precip_threshold,
             self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
         )
         # The norain fraction threshold used for nwp is the default value of 0.0,
         # since nwp does not suffer from clutter.
-        self.__params.zero_precip_model_fields = blending.utils.check_norain(
-            masked_precip_models,
+        self.__params.zero_precip_model_fields = check_norain(
+            self.__precip_models,
             self.__config.precip_threshold,
             self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
         )
 
     def __zero_precipitation_forecast(self):
@@ -1192,10 +1180,11 @@ class StepsBlendingNowcaster:
             if done:
                 break
             for j in range(self.__precip_models.shape[0]):
-                if not blending.utils.check_norain(
+                if not check_norain(
                     self.__precip_models[j, t],
                     self.__config.precip_threshold,
                     self.__config.norain_threshold,
+                    self.__params.noise_kwargs["win_fun"],
                 ):
                     if self.__state.precip_models_cascades is not None:
                         self.__state.precip_cascades[
