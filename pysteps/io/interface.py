@@ -69,14 +69,14 @@ def discover_importers():
             RuntimeWarning(
                 f"The importer identifier '{importer_short_name}' is already available in"
                 "'pysteps.io.interface._importer_methods'.\n"
-                f"Skipping {entry_point.module}:{entry_point.attr}"
+                f"Skipping {entry_point.module_name}:{entry_point.attrs}"
             )
 
         if hasattr(importers, importer_function_name):
             RuntimeWarning(
                 f"The importer function '{importer_function_name}' is already an attribute"
                 "of 'pysteps.io.importers`.\n"
-                f"Skipping {entry_point.module}:{entry_point.attr}"
+                f"Skipping {entry_point.module_name}:{entry_point.attrs}"
             )
         else:
             setattr(importers, importer_function_name, _importer)
