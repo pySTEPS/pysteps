@@ -18,9 +18,5 @@ Available Diagnostics Postprocessors
 
 """
 
-# def diagnostic_example1(filename, **kwargs):
-#     return "Hello, I am an example diagnostics postprocessor."
-
-
-# def diagnostic_example2(filename, **kwargs):
-#     return [[42, 42], [42, 42]]
+# Add your diagnostic_ function here AND add this method to the _diagnostics_methods
+# dictionary in postprocessing.interface.py

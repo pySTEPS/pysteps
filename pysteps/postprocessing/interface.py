@@ -205,32 +205,12 @@ def get_method(name, method_type):
         Name of the method. The available options are:\n
 
         diagnostics:
-
-        .. tabularcolumns:: |p{2cm}|L|
-
-        +---------------+-------------------------------------------------------+
-        |     Name      |                   Description                         |
-        +===============+=======================================================+
-        |  Diagnostic   |           Example that returns a string               |
-        |   Example1    |                                                       |
-        +---------------+-------------------------------------------------------+
-        |  Diagnostic   |           Example that returns an array               |
-        |   Example3    |                                                       |
-        +---------------+-------------------------------------------------------+
+        [nothing pre-installed]
 
         ensemblestats:
+        pre-installed: mean, excprob, banddepth
 
-        .. tabularcolumns:: |p{2cm}|L|
-
-        +---------------+-------------------------------------------------------+
-        |     Name      |                   Description                         |
-        +===============+=======================================================+
-        | EnsembleStat  |           Example that returns a string               |
-        |   Example1    |                                                       |
-        +---------------+-------------------------------------------------------+
-        | EnsembleStat  |           Example that returns an array               |
-        |   Example3    |                                                       |
-        +---------------+-------------------------------------------------------+
+        Additional options might exist if plugins are installed.
 
     method_type: {'diagnostics', 'ensemblestats'}
             Type of the method (see tables above).
