@@ -165,6 +165,16 @@ def test_postprocessing_interface():
         ("banddepth", banddepth),
     ]
 
+    # Test for exisiting functions
+    with pytest.raises(RuntimeWarning):
+        pysteps.postprocessing.interface.add_postprocessor(
+            "excprob",
+            "ensemblestat_excprob",
+            "ensemblestats",
+            [tup[0] for tup in valid_names_func_pair],
+        )
+
+    # Test get method for valid and invalid names
     def method_getter(name):
         return pysteps.postprocessing.interface.get_method(name, "ensemblestats")
 
@@ -177,7 +187,7 @@ def test_postprocessing_interface():
 
     # Test diagnostics
     def method_getter(name):
-        return pysteps.io.interface.get_method(name, "diagnostics")
+        return pysteps.postprocessing.interface.get_method(name, "diagnostics")
 
     valid_names_func_pair = []
     invalid_names = ["unknown"]
@@ -187,8 +197,7 @@ def test_postprocessing_interface():
     # Test for invalid argument type
     with pytest.raises(TypeError):
         pysteps.postprocessing.interface.get_method("mean", None)
-        pysteps.postprocessing.interface.get_method(None, "ensemblestat")
-        pysteps.postprocessing.interface.get_method(None, "diagnostic")
+        pysteps.postprocessing.interface.get_method(None, "ensemblestats")
 
     # Test for invalid method types
     with pytest.raises(ValueError):

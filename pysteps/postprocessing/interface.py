@@ -14,20 +14,21 @@ Interface for the postprocessing module.
 """
 import importlib
 
-from pysteps.postprocessing import diagnostics, ensemblestats
+# from pysteps.postprocessing import diagnostics, ensemblestats
+from pysteps import postprocessing as pp
 from pprint import pprint
 
 _diagnostics_methods = dict()
 
 _ensemblestats_methods = dict(
-    mean=ensemblestats.mean,
-    excprob=ensemblestats.excprob,
-    banddepth=ensemblestats.banddepth,
+    mean=pp.ensemblestats.mean,
+    excprob=pp.ensemblestats.excprob,
+    banddepth=pp.ensemblestats.banddepth,
 )
 
 
 def add_postprocessor(
-    postprocessors_function_name, _postprocessors, methods_dict, module, attributes
+    postprocessors_function_name, _postprocessors, module, attributes
 ):
     """
     Add the postprocessor to the appropriate _methods dictionary and to the module.
@@ -38,10 +39,13 @@ def add_postprocessor(
         for example, e.g. diagnostic_example1
     _postprocessors: function
         the function to be added
-    @param methods_dict: the dictionary where the function is added
     @param module: the module where the function is added, e.g. 'diagnostics'
     @param attributes: the existing functions in the selected module
     """
+    # the dictionary where the function is added
+    methods_dict = (
+        _diagnostics_methods if "diagnostic" in module else _ensemblestats_methods
+    )
 
     # get funtion name without mo
     short_name = postprocessors_function_name.replace(f"{module}_", "")
@@ -88,20 +92,11 @@ def discover_postprocessors():
 
             postprocessors_function_name = _postprocessors.__name__
 
-            if "diagnostic" in entry_point.module_name:
+            if plugintype in entry_point.module_name:
                 add_postprocessor(
                     postprocessors_function_name,
                     _postprocessors,
-                    _diagnostics_methods,
-                    "diagnostics",
-                    entry_point.attrs,
-                )
-            elif "ensemblestat" in entry_point.module_name:
-                add_postprocessor(
-                    postprocessors_function_name,
-                    _postprocessors,
-                    _ensemblestats_methods,
-                    "ensemblestats",
+                    f"{plugintype}s",
                     entry_point.attrs,
                 )
             else:
@@ -128,7 +123,7 @@ def print_postprocessors_info(module_name, interface_methods, module_methods):
     pprint(module_methods)
 
     print(
-        f"\npostprocessors available in the pysteps.postprocessing.get_method interface"
+        "\npostprocessors available in the pysteps.postprocessing.get_method interface"
     )
     pprint([(short_name, f.__name__) for short_name, f in interface_methods.items()])
 
