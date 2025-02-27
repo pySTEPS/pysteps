@@ -150,6 +150,45 @@ def test_io_interface():
     # Test for invalid method types
     with pytest.raises(ValueError):
         pysteps.io.interface.get_method("mch_gif", "io")
+        
+
+def test_postprocessing_interface():
+    """Test the postprocessing module interface."""
+    
+    # ensemblestats pre-installed methods
+    from pysteps.postprocessing import mean, excprob, banddepth
+
+    # Test ensemblestats
+    valid_names_func_pair = [
+        ("mean", mean),
+        ("excprob", excprob),
+        ("banddepth", banddepth),
+    ]
+
+    def method_getter(name):
+        return pysteps.postprocessing.interface.get_method(name, "ensemblestat")
+
+    invalid_names = ["ensemblestat_mean", "ensemblestat_excprob", "ensemblestat_banddepth"]
+    _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
+
+    # Test diagnostics
+    def method_getter(name):
+        return pysteps.io.interface.get_method(name, "diagnostic")
+
+    valid_names_func_pair = []
+    invalid_names = ["unknown"]
+
+    _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
+
+    # Test for invalid argument type
+    with pytest.raises(TypeError):
+        pysteps.postprocessing.interface.get_method("mean", None)
+        pysteps.postprocessing.interface.get_method(None, "ensemblestat")
+        pysteps.postprocessing.interface.get_method(None, "diagnostic")
+
+    # Test for invalid method types
+    with pytest.raises(ValueError):
+        pysteps.postprocessing.interface.get_method("mean", "forecast")
 
 
 def test_motion_interface():
