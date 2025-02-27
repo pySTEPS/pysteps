@@ -166,7 +166,7 @@ def test_postprocessing_interface():
     ]
 
     def method_getter(name):
-        return pysteps.postprocessing.interface.get_method(name, "ensemblestat")
+        return pysteps.postprocessing.interface.get_method(name, "ensemblestats")
 
     invalid_names = [
         "ensemblestat_mean",
@@ -177,7 +177,7 @@ def test_postprocessing_interface():
 
     # Test diagnostics
     def method_getter(name):
-        return pysteps.io.interface.get_method(name, "diagnostic")
+        return pysteps.io.interface.get_method(name, "diagnostics")
 
     valid_names_func_pair = []
     invalid_names = ["unknown"]
