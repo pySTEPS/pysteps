@@ -166,7 +166,7 @@ def test_postprocessing_interface():
     ]
 
     # Test for exisiting functions
-    with pytest.raises(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         pysteps.postprocessing.interface.add_postprocessor(
             "excprob",
             "ensemblestat_excprob",
