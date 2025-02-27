@@ -30,16 +30,7 @@ steps_arg_values = [
 ]
 
 
-def test_default_steps_norain(
-    n_ens_members,
-    n_cascade_levels,
-    ar_order,
-    mask_method,
-    probmatching_method,
-    domain,
-    timesteps,
-    max_crps,
-):
+def test_default_steps_norain():
     """Tests STEPS nowcast with default params and all-zero inputs."""
 
     # Define dummy nowcast input data
@@ -53,7 +44,7 @@ def test_default_steps_norain(
     precip_forecast = nowcast_method(
         precip_input,
         retrieved_motion,
-        n_ens_members=2,
+        n_ens_members=3,
         timesteps=3,
     )
 

@@ -25,6 +25,29 @@ linda_arg_values = [
     (True, "isotropic", "bps", 5, True, None, 0.3),
 ]
 
+def test_default_linda_norain():
+    """Tests linda nowcast with default params and all-zero inputs."""
+
+    # Define dummy nowcast input data
+    precip_input = np.zeros((3, 100, 100))
+
+    pytest.importorskip("cv2")
+    oflow_method = motion.get_method("LK")
+    retrieved_motion = oflow_method(precip_input)
+
+    nowcast_method = nowcasts.get_method("linda")
+    precip_forecast = nowcast_method(
+        precip_input,
+        retrieved_motion,
+        n_ens_members=3,
+        timesteps=3,
+    )
+
+    assert precip_forecast.ndim == 4
+    assert precip_forecast.shape[0] == 3
+    assert precip_forecast.shape[1] == 3
+    assert precip_forecast.sum() == 0.0
+
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
 def test_linda(
