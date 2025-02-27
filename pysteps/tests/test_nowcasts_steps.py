@@ -46,6 +46,7 @@ def test_default_steps_norain():
         retrieved_motion,
         n_ens_members=3,
         timesteps=3,
+        precip_thr=0.1,
     )
 
     assert precip_forecast.ndim == 4

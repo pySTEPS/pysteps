@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pysteps import motion, nowcasts, verification
