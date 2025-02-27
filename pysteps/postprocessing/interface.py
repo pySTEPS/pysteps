@@ -5,6 +5,10 @@ pysteps.postprocessing.interface
 
 Interface for the postprocessing module.
 
+Support postprocessing types:
+    - ensmeblestats
+    - diagnostics
+
 .. currentmodule:: pysteps.postprocessing.interface
 
 .. autosummary::
@@ -100,10 +104,6 @@ def discover_postprocessors():
                     _postprocessors,
                     f"{plugintype}s",
                     entry_point.attrs,
-                )
-            else:
-                raise ValueError(
-                    f"Unknown module {entry_point.module_name} in the entrypoint {entry_point.name}"
                 )
 
 

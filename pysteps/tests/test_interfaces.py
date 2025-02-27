@@ -197,11 +197,15 @@ def test_postprocessing_interface():
     # Test for invalid argument type
     with pytest.raises(TypeError):
         pysteps.postprocessing.interface.get_method("mean", None)
+    with pytest.raises(TypeError):
         pysteps.postprocessing.interface.get_method(None, "ensemblestats")
 
     # Test for invalid method types
     with pytest.raises(ValueError):
         pysteps.postprocessing.interface.get_method("mean", "forecast")
+
+    # Test print
+    pysteps.postprocessing.postprocessors_info()
 
 
 def test_motion_interface():
