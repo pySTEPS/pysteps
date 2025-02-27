@@ -14,16 +14,16 @@ Interface for the postprocessing module.
 """
 import importlib
 
-# from pysteps.postprocessing import diagnostics, ensemblestats
-from pysteps import postprocessing as pp
+from pysteps.postprocessing import diagnostics, ensemblestats
 from pprint import pprint
+import warnings
 
 _diagnostics_methods = dict()
 
 _ensemblestats_methods = dict(
-    mean=pp.ensemblestats.mean,
-    excprob=pp.ensemblestats.excprob,
-    banddepth=pp.ensemblestats.banddepth,
+    mean=ensemblestats.mean,
+    excprob=ensemblestats.excprob,
+    banddepth=ensemblestats.banddepth,
 )
 
 
@@ -52,17 +52,19 @@ def add_postprocessor(
     if short_name not in methods_dict:
         methods_dict[short_name] = _postprocessors
     else:
-        RuntimeWarning(
+        warnings.warn(
             f"The {module} identifier '{short_name}' is already available in "
             f"'pysteps.postprocessing.interface_{module}_methods'.\n"
-            f"Skipping {module}:{'.'.join(attributes)}"
+            f"Skipping {module}:{'.'.join(attributes)}",
+            RuntimeWarning,
         )
 
     if hasattr(globals()[module], postprocessors_function_name):
-        RuntimeWarning(
+        warnings.warn(
             f"The {module} function '{short_name}' is already an attribute"
             f"of 'pysteps.postprocessing.{module}'.\n"
-            f"Skipping {module}:{'.'.join(attributes)}"
+            f"Skipping {module}:{'.'.join(attributes)}",
+            RuntimeWarning,
         )
     else:
         setattr(globals()[module], postprocessors_function_name, _postprocessors)
