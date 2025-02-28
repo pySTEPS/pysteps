@@ -23,7 +23,7 @@ def test_default_anvil_norain():
     """Tests anvil nowcast with default params and all-zero inputs."""
 
     # Define dummy nowcast input data
-    precip_input = np.zeros((3, 100, 100))
+    precip_input = np.zeros((4, 100, 100))
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
