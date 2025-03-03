@@ -104,6 +104,7 @@ def initialize_param_2d_fft_filter(field, **kwargs):
             "field contains non-finite values, this typically happens when the input\n"
             + "precipitation field provided to pysteps contains (mostly)zero values.\n"
             + "To prevent this error please call pysteps.utils.check_norain first,\n"
+            + "using the same win_fun as used in this method (tukey by default)\n"
             + "and then only call this method if that check fails."
         )
 
@@ -264,6 +265,7 @@ def initialize_nonparam_2d_fft_filter(field, **kwargs):
             "field contains non-finite values, this typically happens when the input\n"
             + "precipitation field provided to pysteps contains (mostly)zero values.\n"
             + "To prevent this error please call pysteps.utils.check_norain first,\n"
+            + "using the same win_fun as used in this method (tukey by default)\n"
             + "and then only call this method if that check fails."
         )
 
@@ -376,6 +378,7 @@ def generate_noise_2d_fft_filter(
             "field contains non-finite values, this typically happens when the input\n"
             + "precipitation field provided to pysteps contains (mostly)zero values.\n"
             + "To prevent this error please call pysteps.utils.check_norain first,\n"
+            + "using the same win_fun as used in this method (tukey by default)\n"
             + "and then only call this method if that check fails."
         )
 
@@ -775,6 +778,7 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
             "field contains non-finite values, this typically happens when the input\n"
             + "precipitation field provided to pysteps contains (mostly) zero value.s\n"
             + "To prevent this error please call pysteps.utils.check_norain first,\n"
+            + "using the same win_fun as used in this method (tukey by default)\n"
             + "and then only call this method if that check fails."
         )
 

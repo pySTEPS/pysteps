@@ -151,6 +151,45 @@ def zero_precipitation_forecast(
     Generate a zero-precipitation forecast (filled with the minimum precip value)
     when no precipitation above the threshold is detected. The forecast is
     optionally returned or passed to a callback.
+
+    Parameters
+    ----------
+    n_ens_members: int, optional
+        The number of ensemble members to generate.
+    timesteps: int or list of floats
+        Number of time steps to forecast or a list of time steps for which the
+        forecasts are computed (relative to the input time step). The elements
+        of the list are required to be in ascending order.
+    precip: array-like
+        Array of shape (ar_order+1,m,n) containing the input precipitation fields
+        ordered by timestamp from oldest to newest. The time steps between the
+        inputs are assumed to be regular.
+    callback: function, optional
+        Optional function that is called after computation of each time step of
+        the nowcast. The function takes one argument: a three-dimensional array
+        of shape (n_ens_members,h,w), where h and w are the height and width
+        of the input precipitation fields, respectively. This can be used, for
+        instance, writing the outputs into files.
+    return_output: bool, optional
+        Set to False to disable returning the outputs as numpy arrays. This can
+        save memory if the intermediate results are written to output files using
+        the callback function.
+    measure_time: bool
+        If set to True, measure, print and return the computation time.
+    start_time_init: float
+        The value of the start time counter used to compute total run time.
+
+    Returns
+    -------
+    out: ndarray
+        If return_output is True, a four-dimensional array of shape
+        (n_ens_members,num_timesteps,m,n) containing a time series of forecast
+        precipitation fields for each ensemble member. Otherwise, a None value
+        is returned. The time series starts from t0+timestep, where timestep is
+        taken from the input precipitation fields. If measure_time is True, the
+        return value is a three-element tuple containing the nowcast array, the
+        initialization time of the nowcast generator and the time used in the
+        main loop (seconds).
     """
     print("No precipitation above the threshold found in the radar field")
     print("The resulting forecast will contain only zeros")
