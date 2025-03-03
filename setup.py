@@ -2,7 +2,7 @@
 
 import sys
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
 try:
@@ -70,7 +70,7 @@ requirements = [
 
 setup(
     name="pysteps",
-    version="1.14.0",
+    version="1.15.0",
     author="PySteps developers",
     packages=find_packages(),
     license="LICENSE",
