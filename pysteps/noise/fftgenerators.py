@@ -46,6 +46,7 @@ field of correlated noise cN of shape (m, n).
 
 import numpy as np
 from scipy import optimize
+
 from .. import utils
 
 
@@ -99,7 +100,13 @@ def initialize_param_2d_fft_filter(field, **kwargs):
     if len(field.shape) < 2 or len(field.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
     if np.any(~np.isfinite(field)):
-        raise ValueError("field contains non-finite values")
+        raise ValueError(
+            "field contains non-finite values, this typically happens when the input\n"
+            + "precipitation field provided to pysteps contains (mostly)zero values.\n"
+            + "To prevent this error please call pysteps.utils.check_norain first,\n"
+            + "using the same win_fun as used in this method (tukey by default)\n"
+            + "and then only call this method if that check fails."
+        )
 
     # defaults
     win_fun = kwargs.get("win_fun", None)
@@ -254,7 +261,13 @@ def initialize_nonparam_2d_fft_filter(field, **kwargs):
     if len(field.shape) < 2 or len(field.shape) > 3:
         raise ValueError("the input is not two- or three-dimensional array")
     if np.any(~np.isfinite(field)):
-        raise ValueError("field contains non-finite values")
+        raise ValueError(
+            "field contains non-finite values, this typically happens when the input\n"
+            + "precipitation field provided to pysteps contains (mostly)zero values.\n"
+            + "To prevent this error please call pysteps.utils.check_norain first,\n"
+            + "using the same win_fun as used in this method (tukey by default)\n"
+            + "and then only call this method if that check fails."
+        )
 
     # defaults
     win_fun = kwargs.get("win_fun", "tukey")
@@ -361,7 +374,13 @@ def generate_noise_2d_fft_filter(
     if len(F.shape) != 2:
         raise ValueError("field is not two-dimensional array")
     if np.any(~np.isfinite(F)):
-        raise ValueError("field contains non-finite values")
+        raise ValueError(
+            "field contains non-finite values, this typically happens when the input\n"
+            + "precipitation field provided to pysteps contains (mostly)zero values.\n"
+            + "To prevent this error please call pysteps.utils.check_norain first,\n"
+            + "using the same win_fun as used in this method (tukey by default)\n"
+            + "and then only call this method if that check fails."
+        )
 
     if randstate is None:
         randstate = np.random
@@ -755,7 +774,13 @@ def generate_noise_2d_ssft_filter(F, randstate=None, seed=None, **kwargs):
     if len(F.shape) != 4:
         raise ValueError("the input is not four-dimensional array")
     if np.any(~np.isfinite(F)):
-        raise ValueError("field contains non-finite values")
+        raise ValueError(
+            "field contains non-finite values, this typically happens when the input\n"
+            + "precipitation field provided to pysteps contains (mostly) zero value.s\n"
+            + "To prevent this error please call pysteps.utils.check_norain first,\n"
+            + "using the same win_fun as used in this method (tukey by default)\n"
+            + "and then only call this method if that check fails."
+        )
 
     if "domain" in kwargs.keys() and kwargs["domain"] == "spectral":
         raise NotImplementedError(

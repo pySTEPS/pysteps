@@ -15,11 +15,11 @@ Module with common utilities used by the blending methods.
     decompose_NWP
     compute_store_nwp_motion
     load_NWP
-    check_norain
     compute_smooth_dilated_mask
 """
 
 import datetime
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -28,6 +28,7 @@ from pysteps.cascade import get_method as cascade_get_method
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.utils import get_method as utils_get_method
+from pysteps.utils.check_norain import check_norain as new_check_norain
 
 try:
     import netCDF4
@@ -534,7 +535,7 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
 
 def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
     """
-
+    DEPRECATED use :py:mod:`pysteps.utils.check_norain.check_norain` in stead
     Parameters
     ----------
     precip_arr:  array-like
@@ -551,15 +552,10 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
       Returns whether the fraction of rainy pixels is below the norain_thr threshold.
 
     """
-
-    if precip_thr is None:
-        precip_thr = np.nanmin(precip_arr)
-    rain_pixels = precip_arr[precip_arr > precip_thr]
-    norain = rain_pixels.size / precip_arr.size <= norain_thr
-    print(
-        f"Rain fraction is: {str(rain_pixels.size / precip_arr.size)}, while minimum fraction is {str(norain_thr)}"
+    warnings.warn(
+        "pysteps.blending.utils.check_norain has been deprecated, use pysteps.utils.check_norain.check_norain instead"
     )
-    return norain
+    return new_check_norain(precip_arr, precip_thr, norain_thr, None)
 
 
 def compute_smooth_dilated_mask(
