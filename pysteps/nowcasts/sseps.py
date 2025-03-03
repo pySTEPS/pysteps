@@ -187,7 +187,13 @@ def forecast(
 
     See also
     --------
-    pysteps.extrapolation.interface, pystepsemilagrangian
+    pysteps.extrapolation.interface, pysteps.cascade.interface,
+    pysteps.noise.interface, pysteps.noise.utils.compute_noise_stddev_adjs
+
+    Notes
+    -----
+    Please be aware that this represents a (very) experimental implementation.
+
     References
     ----------
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`NBSG2017`
