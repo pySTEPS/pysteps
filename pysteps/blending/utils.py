@@ -553,7 +553,7 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
 
     """
     warnings.warn(
-        "pysteps.blending.utils.check_norain has been deprecated, use pysteps.utils.check_norain.check_norain in stead"
+        "pysteps.blending.utils.check_norain has been deprecated, use pysteps.utils.check_norain.check_norain instead"
     )
     return new_check_norain(precip_arr, precip_thr, norain_thr, None)
 
