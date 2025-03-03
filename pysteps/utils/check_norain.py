@@ -3,7 +3,7 @@ import numpy as np
 from pysteps import utils
 
 
-def check_norain(precip_arr, precip_thr=None, norain_thr=0.0, win_fun="tukey"):
+def check_norain(precip_arr, precip_thr=None, norain_thr=0.0, win_fun=None):
     """
 
     Parameters
@@ -19,7 +19,7 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0, win_fun="tukey"):
     win_fun: {'hann', 'tukey', None}
       Optional tapering function to be applied to the input field, generated with
       :py:func:`pysteps.utils.tapering.compute_window_function`
-      (default 'tukey').
+      (default None).
       This parameter needs to match the window function you use in later noise generation,
       or else this method will say that there is rain, while after the tapering function is
       applied there is no rain left, so you will run into a ValueError.
