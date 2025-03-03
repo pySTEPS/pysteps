@@ -324,6 +324,7 @@ class StepsBlendingParams:
     precip_models_provided_is_cascade: bool = False
     xy_coordinates: np.ndarray | None = None
     precip_zerovalue: float | None = None
+    precip_threshold: float | None = None
     mask_threshold: np.ndarray | None = None
     zero_precip_radar: bool = False
     zero_precip_model_fields: bool = False
@@ -803,6 +804,8 @@ class StepsBlendingNowcaster:
         else:
             self.__params.mask_kwargs = deepcopy(self.__config.mask_kwargs)
 
+        self.__params.precip_threshold = self.__config.precip_threshold
+
         if np.any(~np.isfinite(self.__velocity)):
             raise ValueError("velocity contains non-finite values")
 
@@ -812,12 +815,12 @@ class StepsBlendingNowcaster:
                 % self.__config.mask_method
             )
 
-        if self.__config.conditional and self.__config.precip_threshold is None:
+        if self.__config.conditional and self.__params.precip_threshold is None:
             raise ValueError("conditional=True but precip_thr is not set")
 
         if (
             self.__config.mask_method is not None
-            and self.__config.precip_threshold is None
+            and self.__params.precip_threshold is None
         ):
             raise ValueError("mask_method!=None but precip_thr=None")
 
@@ -928,7 +931,7 @@ class StepsBlendingNowcaster:
             ) = (None, None)
 
         if self.__config.conditional or self.__config.mask_method is not None:
-            print(f"precip. intensity threshold: {self.__config.precip_threshold}")
+            print(f"precip. intensity threshold: {self.__params.precip_threshold}")
         print(f"no-rain fraction threshold for radar: {self.__config.norain_threshold}")
         print("")
 
@@ -991,7 +994,7 @@ class StepsBlendingNowcaster:
             # TODO: is this logical_and correct here? Now only those places where precip is in all images is saved?
             self.__params.mask_threshold = np.logical_and.reduce(
                 [
-                    self.__precip[i, :, :] >= self.__config.precip_threshold
+                    self.__precip[i, :, :] >= self.__params.precip_threshold
                     for i in range(self.__precip.shape[0])
                 ]
             )
@@ -1095,14 +1098,14 @@ class StepsBlendingNowcaster:
         # Check for zero input fields in the radar and NWP data.
         self.__params.zero_precip_radar = blending.utils.check_norain(
             self.__precip,
-            self.__config.precip_threshold,
+            self.__params.precip_threshold,
             self.__config.norain_threshold,
         )
         # The norain fraction threshold used for nwp is the default value of 0.0,
         # since nwp does not suffer from clutter.
         self.__params.zero_precip_model_fields = blending.utils.check_norain(
             self.__precip_models,
-            self.__config.precip_threshold,
+            self.__params.precip_threshold,
             self.__config.norain_threshold,
         )
 
@@ -1185,8 +1188,8 @@ class StepsBlendingNowcaster:
         # might be zero as well). Else, initialize the noise with the radar
         # rainfall data
         # Initialize noise based on the NWP field time step where the fraction of rainy cells is highest
-        if self.__config.precip_threshold is None:
-            self.__config.precip_threshold = np.nanmin(self.__precip_models)
+        if self.__params.precip_threshold is None:
+            self.__params.precip_threshold = np.nanmin(self.__precip_models)
 
         max_rain_pixels = -1
         max_rain_pixels_j = -1
@@ -1194,7 +1197,7 @@ class StepsBlendingNowcaster:
         for j in range(self.__precip_models.shape[0]):
             for t in self.__timesteps:
                 rain_pixels = self.__precip_models[j][t][
-                    self.__precip_models[j][t] > self.__config.precip_threshold
+                    self.__precip_models[j][t] > self.__params.precip_threshold
                 ].size
                 if rain_pixels > max_rain_pixels:
                     max_rain_pixels = rain_pixels
@@ -1263,7 +1266,7 @@ class StepsBlendingNowcaster:
                 precip_forecast_min = np.min(self.__state.precip_noise_input)
                 self.__params.noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(
                     self.__state.precip_noise_input[-1, :, :],
-                    self.__config.precip_threshold,
+                    self.__params.precip_threshold,
                     precip_forecast_min,
                     self.__params.bandpass_filter,
                     self.__params.decomposition_method,
@@ -2667,7 +2670,7 @@ class StepsBlendingNowcaster:
                 # Get the mask for this forecast
                 precip_field_mask = (
                     precip_forecast_probability_matching_blended
-                    >= self.__config.precip_threshold
+                    >= self.__params.precip_threshold
                 )
                 # Buffer the mask
                 # Convert the precipitation field mask into an 8-bit unsigned integer mask
@@ -2707,7 +2710,7 @@ class StepsBlendingNowcaster:
                 # rainfall field
                 precip_field_mask_temp = (
                     precip_forecast_probability_matching_blended
-                    >= self.__config.precip_threshold
+                    >= self.__params.precip_threshold
                 )
 
             # Set to min value outside of mask
@@ -2765,12 +2768,12 @@ class StepsBlendingNowcaster:
             mean_probabiltity_matching_forecast = np.mean(
                 precip_forecast_probability_matching_resampled[
                     precip_forecast_probability_matching_resampled
-                    >= self.__config.precip_threshold
+                    >= self.__params.precip_threshold
                 ]
             )
             no_rain_mask = (
                 worker_state.final_blended_forecast_recomposed
-                >= self.__config.precip_threshold
+                >= self.__params.precip_threshold
             )
             mean_precip_forecast = np.mean(
                 worker_state.final_blended_forecast_recomposed[no_rain_mask]
