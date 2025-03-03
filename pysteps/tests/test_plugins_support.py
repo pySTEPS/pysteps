@@ -10,7 +10,6 @@ import subprocess
 import sys
 import tempfile
 
-
 __ = pytest.importorskip("cookiecutter")
 from cookiecutter.main import cookiecutter
 
