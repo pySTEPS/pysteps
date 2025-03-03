@@ -78,7 +78,7 @@ class StepsBlendingConfig:
     precip_threshold: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
-    norain_threshold: float, optional
+    norain_threshold: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
       Depends on the amount of clutter typically present.
@@ -436,7 +436,6 @@ class StepsBlendingNowcaster:
 
         # Additional variables for time measurement
         self.__start_time_init = None
-        self.__zero_precip_time = None
         self.__init_time = None
         self.__mainloop_time = None
 
@@ -1144,7 +1143,7 @@ class StepsBlendingNowcaster:
                 precip_forecast_workers = None
 
         if self.__config.measure_time:
-            self.__zero_precip_time = time.time() - self.__start_time_init
+            zero_precip_time = time.time() - self.__start_time_init
 
         if self.__config.return_output:
             precip_forecast_all_members_all_times = np.stack(
@@ -1157,8 +1156,8 @@ class StepsBlendingNowcaster:
             if self.__config.measure_time:
                 return (
                     precip_forecast_all_members_all_times,
-                    self.__zero_precip_time,
-                    self.__zero_precip_time,
+                    zero_precip_time,
+                    zero_precip_time,
                 )
             else:
                 return precip_forecast_all_members_all_times
@@ -2929,7 +2928,7 @@ def forecast(
     precip_thr: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
-    norain_thr: float, optional
+    norain_thr: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
       Depends on the amount of clutter typically present.

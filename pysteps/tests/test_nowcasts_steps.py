@@ -48,6 +48,7 @@ def test_default_steps_norain():
         timesteps=3,
         precip_thr=0.1,
         kmperpixel=1,
+        timestep=5,
     )
 
     assert precip_forecast.ndim == 4

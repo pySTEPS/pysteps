@@ -17,6 +17,7 @@ Module with common utilities used by nowcasts methods.
 """
 
 import time
+
 import numpy as np
 from scipy.ndimage import binary_dilation, generate_binary_structure
 
@@ -137,6 +138,91 @@ def compute_percentile_mask(precip, pct):
     return precip >= precip_pct_thr
 
 
+def zero_precipitation_forecast(
+    n_ens_members,
+    timesteps,
+    precip,
+    callback,
+    return_output,
+    measure_time,
+    start_time_init,
+):
+    """
+    Generate a zero-precipitation forecast (filled with the minimum precip value)
+    when no precipitation above the threshold is detected. The forecast is
+    optionally returned or passed to a callback.
+    """
+    print("No precipitation above the threshold found in the radar field")
+    print("The resulting forecast will contain only zeros")
+    return_single_member = False
+    if n_ens_members is None:
+        n_ens_members = 1
+        return_single_member = True
+    # Create the output list
+    precip_forecast = [[] for j in range(n_ens_members)]
+
+    # Save per time step to ensure the array does not become too large if
+    # no return_output is requested and callback is not None.
+    timesteps, _, __ = create_timestep_range(timesteps)
+    for t, subtimestep_idx in enumerate(timesteps):
+        # If the timestep is not the first one, we need to provide the zero forecast
+        if t > 0:
+            # Create an empty np array with shape [n_ens_members, rows, cols]
+            # and fill it with the minimum value from precip (corresponding to
+            # zero precipitation)
+            N, M = precip.shape[1:]
+            precip_forecast_workers = np.full((n_ens_members, N, M), np.nanmin(precip))
+            if subtimestep_idx:
+                if callback is not None:
+                    if precip_forecast_workers.shape[1] > 0:
+                        callback(precip_forecast_workers.squeeze())
+                if return_output:
+                    for j in range(n_ens_members):
+                        precip_forecast[j].append(precip_forecast_workers[j])
+            precip_forecast_workers = None
+
+    if measure_time:
+        zero_precip_time = time.time() - start_time_init
+
+    if return_output:
+        precip_forecast_all_members_all_times = np.stack(
+            [np.stack(precip_forecast[j]) for j in range(n_ens_members)]
+        )
+        if return_single_member:
+            precip_forecast_all_members_all_times = (
+                precip_forecast_all_members_all_times[0]
+            )
+
+        if measure_time:
+            return (
+                precip_forecast_all_members_all_times,
+                zero_precip_time,
+                zero_precip_time,
+            )
+        else:
+            return precip_forecast_all_members_all_times
+    else:
+        return None
+
+
+def create_timestep_range(timesteps):
+    """
+    create a range of time steps
+    if an integer time step is given, create a simple range iterator
+    otherwise, assing the time steps to integer bins so that each bin
+    contains a list of time steps belonging to that bin
+    """
+    if isinstance(timesteps, int):
+        timesteps = range(timesteps + 1)
+        timestep_type = "int"
+        original_timesteps = None
+    else:
+        original_timesteps = [0] + list(timesteps)
+        timesteps = binned_timesteps(original_timesteps)
+        timestep_type = "list"
+    return timesteps, original_timesteps, timestep_type
+
+
 def nowcast_main_loop(
     precip,
     velocity,
@@ -219,17 +305,7 @@ def nowcast_main_loop(
     """
     precip_forecast_out = None
 
-    # create a range of time steps
-    # if an integer time step is given, create a simple range iterator
-    # otherwise, assing the time steps to integer bins so that each bin
-    # contains a list of time steps belonging to that bin
-    if isinstance(timesteps, int):
-        timesteps = range(timesteps + 1)
-        timestep_type = "int"
-    else:
-        original_timesteps = [0] + list(timesteps)
-        timesteps = binned_timesteps(original_timesteps)
-        timestep_type = "list"
+    timesteps, original_timesteps, timestep_type = create_timestep_range(timesteps)
 
     state_cur = state
     if not ensemble:
