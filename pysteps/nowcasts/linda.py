@@ -40,6 +40,8 @@ the short-space Fourier transform (SSFT) methodology developed in
 import time
 import warnings
 
+from pysteps.utils.check_norain import check_norain
+
 try:
     import dask
 
@@ -47,14 +49,14 @@ try:
 except ImportError:
     DASK_IMPORTED = False
 import numpy as np
+from scipy import optimize as opt
+from scipy import stats
 from scipy.integrate import nquad
 from scipy.interpolate import interp1d
-from scipy import optimize as opt
 from scipy.signal import convolve
-from scipy import stats
 
 from pysteps import extrapolation, feature, noise
-from pysteps.nowcasts.utils import nowcast_main_loop
+from pysteps.nowcasts.utils import nowcast_main_loop, zero_precipitation_forecast
 
 
 def forecast(
@@ -291,6 +293,19 @@ def forecast(
     extrap_kwargs["allow_nonfinite_values"] = (
         True if np.any(~np.isfinite(precip)) else False
     )
+
+    starttime_init = time.time()
+
+    if check_norain(precip, 0.0, 0.0, None):
+        return zero_precipitation_forecast(
+            n_ens_members if nowcast_type == "ensemble" else None,
+            timesteps,
+            precip,
+            callback,
+            return_output,
+            measure_time,
+            starttime_init,
+        )
 
     forecast_gen = _linda_deterministic_init(
         precip,
