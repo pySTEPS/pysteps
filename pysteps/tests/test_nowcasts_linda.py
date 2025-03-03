@@ -25,6 +25,7 @@ linda_arg_values = [
     (True, "isotropic", "bps", 5, True, None, 0.3),
 ]
 
+
 def test_default_linda_norain():
     """Tests linda nowcast with default params and all-zero inputs."""
 

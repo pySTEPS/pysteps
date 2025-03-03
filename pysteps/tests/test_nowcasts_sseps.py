@@ -22,6 +22,7 @@ sseps_arg_values = [
     (5, 6, 2, "incremental", "cdf", 200, [3], 0.60),
 ]
 
+
 def test_default_sseps_norain():
     """Tests SSEPS nowcast with default params and all-zero inputs."""
 
@@ -31,7 +32,7 @@ def test_default_sseps_norain():
         "accutime": 5,
         "xpixelsize": 1000,
         "threshold": 0.1,
-        "zerovalue": 0, 
+        "zerovalue": 0,
     }
 
     pytest.importorskip("cv2")

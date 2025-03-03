@@ -24,6 +24,7 @@ sprog_arg_values = [
     (6, 2, "cdf", "spectral", 3, 0.5),
 ]
 
+
 def test_default_sprog_norain():
     """Tests SPROG nowcast with default params and all-zero inputs."""
 
@@ -45,6 +46,7 @@ def test_default_sprog_norain():
     assert precip_forecast.ndim == 3
     assert precip_forecast.shape[0] == 3
     assert precip_forecast.sum() == 0.0
+
 
 @pytest.mark.parametrize(sprog_arg_names, sprog_arg_values)
 def test_sprog(

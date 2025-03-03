@@ -19,6 +19,7 @@ anvil_arg_values = [
     (8, 1, 50, [3], 0.6, False, True),
 ]
 
+
 def test_default_anvil_norain():
     """Tests anvil nowcast with default params and all-zero inputs."""
 
