@@ -53,8 +53,10 @@ def discover_importers():
 
     importlib.reload(pkg_resources)
 
-    for entry_point in pkg_resources.iter_entry_points(
-        group="pysteps.plugins.importer", name=None
+    for entry_point in list(
+        pkg_resources.iter_entry_points(group="pysteps.plugins.importer", name=None)
+    ) + list(
+        pkg_resources.iter_entry_points(group="pysteps.plugins.importers", name=None)
     ):
         _importer = entry_point.load()
 
