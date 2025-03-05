@@ -56,6 +56,7 @@ from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.utils.check_norain import check_norain
 
 try:
     import dask
@@ -77,7 +78,7 @@ class StepsBlendingConfig:
     precip_threshold: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
-    norain_threshold: float, optional
+    norain_threshold: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
       Depends on the amount of clutter typically present.
@@ -435,7 +436,6 @@ class StepsBlendingNowcaster:
 
         # Additional variables for time measurement
         self.__start_time_init = None
-        self.__zero_precip_time = None
         self.__init_time = None
         self.__mainloop_time = None
 
@@ -777,7 +777,7 @@ class StepsBlendingNowcaster:
             self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
 
         if self.__config.noise_kwargs is None:
-            self.__params.noise_kwargs = dict()
+            self.__params.noise_kwargs = {"win_fun": "tukey"}
         else:
             self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
 
@@ -1093,17 +1093,19 @@ class StepsBlendingNowcaster:
             self.__precip_models = np.stack(temp_precip_models)
 
         # Check for zero input fields in the radar and NWP data.
-        self.__params.zero_precip_radar = blending.utils.check_norain(
+        self.__params.zero_precip_radar = check_norain(
             self.__precip,
             self.__config.precip_threshold,
             self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
         )
         # The norain fraction threshold used for nwp is the default value of 0.0,
         # since nwp does not suffer from clutter.
-        self.__params.zero_precip_model_fields = blending.utils.check_norain(
+        self.__params.zero_precip_model_fields = check_norain(
             self.__precip_models,
             self.__config.precip_threshold,
             self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
         )
 
     def __zero_precipitation_forecast(self):
@@ -1141,7 +1143,7 @@ class StepsBlendingNowcaster:
                 precip_forecast_workers = None
 
         if self.__config.measure_time:
-            self.__zero_precip_time = time.time() - self.__start_time_init
+            zero_precip_time = time.time() - self.__start_time_init
 
         if self.__config.return_output:
             precip_forecast_all_members_all_times = np.stack(
@@ -1154,8 +1156,8 @@ class StepsBlendingNowcaster:
             if self.__config.measure_time:
                 return (
                     precip_forecast_all_members_all_times,
-                    self.__zero_precip_time,
-                    self.__zero_precip_time,
+                    zero_precip_time,
+                    zero_precip_time,
                 )
             else:
                 return precip_forecast_all_members_all_times
@@ -1177,10 +1179,11 @@ class StepsBlendingNowcaster:
             if done:
                 break
             for j in range(self.__precip_models.shape[0]):
-                if not blending.utils.check_norain(
+                if not check_norain(
                     self.__precip_models[j, t],
                     self.__config.precip_threshold,
                     self.__config.norain_threshold,
+                    self.__params.noise_kwargs["win_fun"],
                 ):
                     if self.__state.precip_models_cascades is not None:
                         self.__state.precip_cascades[
@@ -2925,7 +2928,7 @@ def forecast(
     precip_thr: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
-    norain_thr: float, optional
+    norain_thr: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
       Depends on the amount of clutter typically present.
