@@ -52,7 +52,7 @@ def discover_importers():
     import pkg_resources
 
     importlib.reload(pkg_resources)
-
+    # Backward compatibility with previous entry point 'pysteps.plugins.importers' next to 'pysteps.plugins.importer'
     for entry_point in list(
         pkg_resources.iter_entry_points(group="pysteps.plugins.importer", name=None)
     ) + list(
@@ -115,7 +115,6 @@ def importers_info():
 
     difference = available_importers ^ importers_in_the_interface
     if len(difference) > 0:
-        # print("\nIMPORTANT:")
         _diff = available_importers - importers_in_the_interface
         if len(_diff) > 0:
             print(
