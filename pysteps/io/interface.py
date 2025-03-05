@@ -15,7 +15,7 @@ Interface for the io module.
 import importlib
 
 from pysteps.decorators import postprocess_import
-from pysteps.io import importers, exporters, interface
+from pysteps.io import importers, exporters
 from pprint import pprint
 
 _importer_methods = dict(
@@ -96,17 +96,10 @@ def importers_info():
     pprint(available_importers)
 
     # Importers declared in the pysteps.io.get_method interface
-    importers_in_the_interface = [
-        f.__name__ for f in interface._importer_methods.values()
-    ]
+    importers_in_the_interface = [f.__name__ for f in _importer_methods.values()]
 
     print("\nImporters available in the pysteps.io.get_method interface")
-    pprint(
-        [
-            (short_name, f.__name__)
-            for short_name, f in interface._importer_methods.items()
-        ]
-    )
+    pprint([(short_name, f.__name__) for short_name, f in _importer_methods.items()])
 
     # Let's use sets to find out if there are importers present in the importer module
     # but not declared in the interface, and viceversa.
