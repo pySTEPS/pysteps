@@ -2704,10 +2704,9 @@ class StepsBlendingNowcaster:
                 accumulated_mask = dilated_mask.astype(float)
 
                 # Iteratively dilate the mask and accumulate the results to create a grayscale rim
-                if (self.__params.mask_rim + t_sub - 1) <= self.__params.max_mask_rim:
-                    mask_rim_temp = self.__params.mask_rim + t_sub - 1
-                else:
-                    mask_rim_temp = self.__params.max_mask_rim
+                mask_rim_temp = min(
+                    self.__params.mask_rim + t_sub - 1, self.__params.max_mask_rim
+                )
                 for _ in range(mask_rim_temp):
                     dilated_mask = binary_dilation(dilated_mask, struct_element)
                     accumulated_mask += dilated_mask
