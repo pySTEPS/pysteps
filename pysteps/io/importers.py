@@ -1306,7 +1306,7 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                 if "quantity" in dsg[1]["what"].attrs.keys():
                     try:
                         qty_, gain, offset, nodata, undetect = (
-                            _read_opera_hdf5_what_group(dsg[1]["what"])
+                            _read_opera_hdf5_what_group(dsg[1]["what"], **kwargs)
                         )
                         what_grp_found = True
                     except KeyError:
@@ -1322,7 +1322,7 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                             offset,
                             nodata,
                             undetect,
-                        ) = _read_opera_hdf5_what_group(dg[1]["what"])
+                        ) = _read_opera_hdf5_what_group(dg[1]["what"], **kwargs)
                     elif not what_grp_found:
                         raise DataModelError(
                             "Non ODIM compliant file: "
@@ -1361,7 +1361,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                                         offset,
                                         nodata,
                                         undetect,
-                                    ) = _read_opera_hdf5_what_group(dgg[1]["what"])
+                                    ) = _read_opera_hdf5_what_group(
+                                        dgg[1]["what"], **kwargs
+                                    )
                                 if qty_.decode() == "QIND":
                                     arr = dgg[1]["data"][...]
                                     mask_n = arr == nodata
@@ -1482,12 +1484,15 @@ def import_opera_hdf5(filename, qty="RATE", **kwargs):
     return import_odim_hdf5(filename, qty=qty, **kwargs)
 
 
-def _read_opera_hdf5_what_group(whatgrp):
+def _read_opera_hdf5_what_group(whatgrp, **kwargs):
     qty = whatgrp.attrs["quantity"] if "quantity" in whatgrp.attrs.keys() else b"QIND"
     gain = whatgrp.attrs["gain"] if "gain" in whatgrp.attrs.keys() else 1.0
     offset = whatgrp.attrs["offset"] if "offset" in whatgrp.attrs.keys() else 0.0
     nodata = whatgrp.attrs["nodata"] if "nodata" in whatgrp.attrs.keys() else np.nan
     undetect = whatgrp.attrs["undetect"] if "undetect" in whatgrp.attrs.keys() else 0.0
+    if kwargs.get("ignore_gain_offset", False):
+        gain = 1.0
+        offset = 0.0
 
     return qty, gain, offset, nodata, undetect
 
