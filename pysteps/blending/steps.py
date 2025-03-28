@@ -3104,9 +3104,9 @@ def forecast(
       (the number of NWP models) and 'window_length' (the minimum number of
       days the clim file should have, otherwise the default is used).
     mask_kwargs: dict
-      Optional dictionary containing mask keyword arguments 'mask_f' and
-      'mask_rim', the factor defining the the mask increment and the rim size,
-      respectively.
+      Optional dictionary containing mask keyword arguments 'mask_f',
+      'mask_rim' and 'max_mask_rim', the factor defining the the mask
+      increment and the (maximum) rim size, respectively.
       The mask increment is defined as mask_f*timestep/kmperpixel.
     measure_time: bool
       If set to True, measure, print and return the computation time.
