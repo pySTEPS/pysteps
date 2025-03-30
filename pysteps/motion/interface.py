@@ -30,6 +30,7 @@ from pysteps.motion.darts import DARTS
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.motion.proesmans import proesmans
 from pysteps.motion.vet import vet
+from pysteps.motion.correlation import correlation
 
 _methods = dict()
 _methods["constant"] = constant
@@ -38,6 +39,7 @@ _methods["lucaskanade"] = dense_lucaskanade
 _methods["darts"] = DARTS
 _methods["proesmans"] = proesmans
 _methods["vet"] = vet
+_methods["correlation"] = correlation
 _methods[None] = lambda precip, *args, **kw: np.zeros(
     (2, precip.shape[1], precip.shape[2])
 )
@@ -71,6 +73,9 @@ def get_method(name):
     |  vet              | implementation of the VET method of                  |
     |                   | Laroche and Zawadzki (1995) and                      |
     |                   | Germann and Zawadzki (2002)                          |
+    +-------------------+------------------------------------------------------+
+    |  correlation      | implementation of the classical correlation based    |
+    |                   | method used in Haiden et al (2011)                   |
     +-------------------+------------------------------------------------------+
 
     +--------------------------------------------------------------------------+
