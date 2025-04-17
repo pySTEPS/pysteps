@@ -105,6 +105,10 @@ def forecast(
     if nowcast_kwargs is None:
         nowcast_kwargs = dict()
 
+    # Ensure that only the most recent precip timestep is used
+    if len(precip.shape) == 3:
+        precip = precip[-1, :, :]
+
     # Calculate the nowcasts
     nowcast_method_func = nowcasts.get_method(nowcast_method)
     precip_nowcast = nowcast_method_func(
