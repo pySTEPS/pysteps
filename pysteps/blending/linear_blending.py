@@ -177,6 +177,17 @@ def forecast(
             precip_nwp.shape, precip_nowcast.shape
         )
 
+        # Ensure we are not working with nans in the bleding.
+        # Check if the NWP data contains any nans. If so, fill them with 0.0.
+        precip_nwp = np.nan_to_num(precip_nwp, nan=0.0)
+
+        # Fill nans in precip_nowcast
+        nan_indices = np.isnan(precip_nowcast)
+        if fill_nwp:
+            precip_nowcast[nan_indices] = precip_nwp[nan_indices]
+        else:
+            precip_nowcast[nan_indices] = 0.0
+
         # Initialise output
         precip_blended = np.zeros_like(precip_nowcast)
 
@@ -228,10 +239,6 @@ def forecast(
                         + weight_nowcast * precip_nowcast[slc_id]
                     )
 
-            # Find where the NaN values are and replace them with NWP data
-            if fill_nwp:
-                nan_indices = np.isnan(precip_blended)
-                precip_blended[nan_indices] = precip_nwp[nan_indices]
     else:
         # If no NWP data is given, the blended field is simply equal to the nowcast field
         precip_blended = precip_nowcast
