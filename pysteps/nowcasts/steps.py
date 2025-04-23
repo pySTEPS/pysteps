@@ -11,22 +11,24 @@ Implementation of the STEPS stochastic nowcasting method as described in
     forecast
 """
 
-import numpy as np
-from scipy.ndimage import generate_binary_structure, iterate_structure
 import time
 from copy import deepcopy
-
-from pysteps import cascade
-from pysteps import extrapolation
-from pysteps import noise
-from pysteps import utils
-from pysteps.nowcasts import utils as nowcast_utils
-from pysteps.postprocessing import probmatching
-from pysteps.timeseries import autoregression, correlation
-from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
-
 from dataclasses import dataclass, field
 from typing import Any, Callable
+
+import numpy as np
+from scipy.ndimage import generate_binary_structure, iterate_structure
+
+from pysteps import cascade, extrapolation, noise, utils
+from pysteps.nowcasts import utils as nowcast_utils
+from pysteps.nowcasts.utils import (
+    compute_percentile_mask,
+    nowcast_main_loop,
+    zero_precipitation_forecast,
+)
+from pysteps.postprocessing import probmatching
+from pysteps.timeseries import autoregression, correlation
+from pysteps.utils.check_norain import check_norain
 
 try:
     import dask
@@ -50,6 +52,11 @@ class StepsNowcasterConfig:
     precip_threshold: float, optional
         Specifies the threshold value for minimum observable precipitation
         intensity. Required if mask_method is not None or conditional is True.
+    norain_threshold: float
+      Specifies the threshold value for the fraction of rainy (see above) pixels
+      in the radar rainfall field below which we consider there to be no rain.
+      Depends on the amount of clutter typically present.
+      Standard set to 0.0
     kmperpixel: float, optional
         Spatial resolution of the input data (kilometers/pixel). Required if
         vel_pert_method is not None or mask_method is 'incremental'.
@@ -201,6 +208,7 @@ class StepsNowcasterConfig:
     n_ens_members: int = 24
     n_cascade_levels: int = 6
     precip_threshold: float | None = None
+    norain_threshold: float = 0.0
     kmperpixel: float | None = None
     timestep: float | None = None
     extrapolation_method: str = "semilagrangian"
@@ -349,6 +357,21 @@ class StepsNowcaster:
         # Slice the precipitation field to only use the last ar_order + 1 fields
         self.__precip = self.__precip[-(self.__config.ar_order + 1) :, :, :].copy()
         self.__initialize_nowcast_components()
+        if check_norain(
+            self.__precip,
+            self.__config.precip_threshold,
+            self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
+        ):
+            return zero_precipitation_forecast(
+                self.__config.n_ens_members,
+                self.__time_steps,
+                self.__precip,
+                self.__config.callback,
+                self.__config.return_output,
+                self.__config.measure_time,
+                self.__start_time_init,
+            )
 
         self.__perform_extrapolation()
         self.__apply_noise_and_ar_model()
@@ -501,7 +524,7 @@ class StepsNowcaster:
             self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
 
         if self.__config.noise_kwargs is None:
-            self.__params.noise_kwargs = dict()
+            self.__params.noise_kwargs = {"win_fun": "tukey"}
         else:
             self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
 
@@ -1246,6 +1269,7 @@ def forecast(
     n_ens_members=24,
     n_cascade_levels=6,
     precip_thr=None,
+    norain_thr=0.0,
     kmperpixel=None,
     timestep=None,
     extrap_method="semilagrangian",
@@ -1297,6 +1321,11 @@ def forecast(
     precip_thr: float, optional
         Specifies the threshold value for minimum observable precipitation
         intensity. Required if mask_method is not None or conditional is True.
+    norain_thr: float
+      Specifies the threshold value for the fraction of rainy (see above) pixels
+      in the radar rainfall field below which we consider there to be no rain.
+      Depends on the amount of clutter typically present.
+      Standard set to 0.0
     kmperpixel: float, optional
         Spatial resolution of the input data (kilometers/pixel). Required if
         vel_pert_method is not None or mask_method is 'incremental'.
@@ -1470,6 +1499,7 @@ def forecast(
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         precip_threshold=precip_thr,
+        norain_threshold=norain_thr,
         kmperpixel=kmperpixel,
         timestep=timestep,
         extrapolation_method=extrap_method,

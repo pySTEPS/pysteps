@@ -56,6 +56,7 @@ from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.utils.check_norain import check_norain
 
 try:
     import dask
@@ -77,7 +78,7 @@ class StepsBlendingConfig:
     precip_threshold: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
-    norain_threshold: float, optional
+    norain_threshold: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
       Depends on the amount of clutter typically present.
@@ -146,10 +147,10 @@ class StepsBlendingConfig:
       field, 'incremental' = iteratively buffer the mask with a certain rate
       (currently it is 1 km/min), None=no masking.
     resample_distribution: bool, optional
-        Method to resample the distribution from the extrapolation and NWP cascade as input
-        for the probability matching. Not resampling these distributions may lead to losing
-        some extremes when the weight of both the extrapolation and NWP cascade is similar.
-        Defaults to True.
+      Method to resample the distribution from the extrapolation and NWP cascade as input
+      for the probability matching. Not resampling these distributions may lead to losing
+      some extremes when the weight of both the extrapolation and NWP cascade is similar.
+      Defaults to True.
     smooth_radar_mask_range: int, Default is 0.
       Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
       blend near the edge of the radar domain (radar mask), where the radar data is either
@@ -248,9 +249,9 @@ class StepsBlendingConfig:
       (the number of NWP models) and 'window_length' (the minimum number of
       days the clim file should have, otherwise the default is used).
     mask_kwargs: dict
-      Optional dictionary containing mask keyword arguments 'mask_f' and
-      'mask_rim', the factor defining the the mask increment and the rim size,
-      respectively.
+      Optional dictionary containing mask keyword arguments 'mask_f',
+      'mask_rim' and 'max_mask_rim', the factor defining the the mask
+      increment and the (maximum) rim size, respectively.
       The mask increment is defined as mask_f*timestep/kmperpixel.
     measure_time: bool
       If set to True, measure, print and return the computation time.
@@ -324,6 +325,7 @@ class StepsBlendingParams:
     precip_models_provided_is_cascade: bool = False
     xy_coordinates: np.ndarray | None = None
     precip_zerovalue: float | None = None
+    precip_threshold: float | None = None
     mask_threshold: np.ndarray | None = None
     zero_precip_radar: bool = False
     zero_precip_model_fields: bool = False
@@ -435,7 +437,6 @@ class StepsBlendingNowcaster:
 
         # Additional variables for time measurement
         self.__start_time_init = None
-        self.__zero_precip_time = None
         self.__init_time = None
         self.__mainloop_time = None
 
@@ -639,7 +640,10 @@ class StepsBlendingNowcaster:
                         self.__recompose_cascade_to_rainfall_field(j, worker_state)
                         final_blended_forecast_single_member = (
                             self.__post_process_output(
-                                j, final_blended_forecast_single_member, worker_state
+                                j,
+                                t_sub,
+                                final_blended_forecast_single_member,
+                                worker_state,
                             )
                         )
                     final_blended_forecast_all_members_one_timestep[j] = (
@@ -777,7 +781,7 @@ class StepsBlendingNowcaster:
             self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
 
         if self.__config.noise_kwargs is None:
-            self.__params.noise_kwargs = dict()
+            self.__params.noise_kwargs = {"win_fun": "tukey"}
         else:
             self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
 
@@ -803,6 +807,8 @@ class StepsBlendingNowcaster:
         else:
             self.__params.mask_kwargs = deepcopy(self.__config.mask_kwargs)
 
+        self.__params.precip_threshold = self.__config.precip_threshold
+
         if np.any(~np.isfinite(self.__velocity)):
             raise ValueError("velocity contains non-finite values")
 
@@ -812,12 +818,12 @@ class StepsBlendingNowcaster:
                 % self.__config.mask_method
             )
 
-        if self.__config.conditional and self.__config.precip_threshold is None:
+        if self.__config.conditional and self.__params.precip_threshold is None:
             raise ValueError("conditional=True but precip_thr is not set")
 
         if (
             self.__config.mask_method is not None
-            and self.__config.precip_threshold is None
+            and self.__params.precip_threshold is None
         ):
             raise ValueError("mask_method!=None but precip_thr=None")
 
@@ -928,7 +934,7 @@ class StepsBlendingNowcaster:
             ) = (None, None)
 
         if self.__config.conditional or self.__config.mask_method is not None:
-            print(f"precip. intensity threshold: {self.__config.precip_threshold}")
+            print(f"precip. intensity threshold: {self.__params.precip_threshold}")
         print(f"no-rain fraction threshold for radar: {self.__config.norain_threshold}")
         print("")
 
@@ -991,7 +997,7 @@ class StepsBlendingNowcaster:
             # TODO: is this logical_and correct here? Now only those places where precip is in all images is saved?
             self.__params.mask_threshold = np.logical_and.reduce(
                 [
-                    self.__precip[i, :, :] >= self.__config.precip_threshold
+                    self.__precip[i, :, :] >= self.__params.precip_threshold
                     for i in range(self.__precip.shape[0])
                 ]
             )
@@ -1093,17 +1099,19 @@ class StepsBlendingNowcaster:
             self.__precip_models = np.stack(temp_precip_models)
 
         # Check for zero input fields in the radar and NWP data.
-        self.__params.zero_precip_radar = blending.utils.check_norain(
+        self.__params.zero_precip_radar = check_norain(
             self.__precip,
-            self.__config.precip_threshold,
+            self.__params.precip_threshold,
             self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
         )
         # The norain fraction threshold used for nwp is the default value of 0.0,
         # since nwp does not suffer from clutter.
-        self.__params.zero_precip_model_fields = blending.utils.check_norain(
+        self.__params.zero_precip_model_fields = check_norain(
             self.__precip_models,
-            self.__config.precip_threshold,
+            self.__params.precip_threshold,
             self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
         )
 
     def __zero_precipitation_forecast(self):
@@ -1141,7 +1149,7 @@ class StepsBlendingNowcaster:
                 precip_forecast_workers = None
 
         if self.__config.measure_time:
-            self.__zero_precip_time = time.time() - self.__start_time_init
+            zero_precip_time = time.time() - self.__start_time_init
 
         if self.__config.return_output:
             precip_forecast_all_members_all_times = np.stack(
@@ -1154,8 +1162,8 @@ class StepsBlendingNowcaster:
             if self.__config.measure_time:
                 return (
                     precip_forecast_all_members_all_times,
-                    self.__zero_precip_time,
-                    self.__zero_precip_time,
+                    zero_precip_time,
+                    zero_precip_time,
                 )
             else:
                 return precip_forecast_all_members_all_times
@@ -1168,42 +1176,6 @@ class StepsBlendingNowcaster:
         updates the cascade with NWP data, uses the NWP velocity field, and
         initializes the noise model based on the time step with the most rain.
         """
-        # If zero_precip_radar, make sure that precip_cascade does not contain
-        # only nans or infs. If so, fill it with the zero value.
-
-        # Look for a timestep and member with rain so that we have a sensible decomposition
-        done = False
-        for t in self.__timesteps:
-            if done:
-                break
-            for j in range(self.__precip_models.shape[0]):
-                if not blending.utils.check_norain(
-                    self.__precip_models[j, t],
-                    self.__config.precip_threshold,
-                    self.__config.norain_threshold,
-                ):
-                    if self.__state.precip_models_cascades is not None:
-                        self.__state.precip_cascades[
-                            ~np.isfinite(self.__state.precip_cascades)
-                        ] = np.nanmin(
-                            self.__state.precip_models_cascades[j, t]["cascade_levels"]
-                        )
-                        continue
-                    precip_models_cascade_timestep = self.__params.decomposition_method(
-                        self.__precip_models[j, t, :, :],
-                        bp_filter=self.__params.bandpass_filter,
-                        fft_method=self.__params.fft,
-                        output_domain=self.__config.domain,
-                        normalize=True,
-                        compute_stats=True,
-                        compact_output=True,
-                    )["cascade_levels"]
-                    self.__state.precip_cascades[
-                        ~np.isfinite(self.__state.precip_cascades)
-                    ] = np.nanmin(precip_models_cascade_timestep)
-                    done = True
-                    break
-
         # If zero_precip_radar is True, only use the velocity field of the NWP
         # forecast. I.e., velocity (radar) equals velocity_model at the first time
         # step.
@@ -1221,8 +1193,8 @@ class StepsBlendingNowcaster:
         # might be zero as well). Else, initialize the noise with the radar
         # rainfall data
         # Initialize noise based on the NWP field time step where the fraction of rainy cells is highest
-        if self.__config.precip_threshold is None:
-            self.__config.precip_threshold = np.nanmin(self.__precip_models)
+        if self.__params.precip_threshold is None:
+            self.__params.precip_threshold = np.nanmin(self.__precip_models)
 
         max_rain_pixels = -1
         max_rain_pixels_j = -1
@@ -1230,7 +1202,7 @@ class StepsBlendingNowcaster:
         for j in range(self.__precip_models.shape[0]):
             for t in self.__timesteps:
                 rain_pixels = self.__precip_models[j][t][
-                    self.__precip_models[j][t] > self.__config.precip_threshold
+                    self.__precip_models[j][t] > self.__params.precip_threshold
                 ].size
                 if rain_pixels > max_rain_pixels:
                     max_rain_pixels = rain_pixels
@@ -1242,6 +1214,30 @@ class StepsBlendingNowcaster:
         self.__state.precip_noise_input = self.__state.precip_noise_input.astype(
             np.float64, copy=False
         )
+
+        # If zero_precip_radar, make sure that precip_cascade does not contain
+        # only nans or infs. If so, fill it with the zero value.
+        if self.__state.precip_models_cascades is not None:
+            self.__state.precip_cascades[~np.isfinite(self.__state.precip_cascades)] = (
+                np.nanmin(
+                    self.__state.precip_models_cascades[
+                        max_rain_pixels_j, max_rain_pixels_t
+                    ]["cascade_levels"]
+                )
+            )
+        else:
+            precip_models_cascade_timestep = self.__params.decomposition_method(
+                self.__precip_models[max_rain_pixels_j, max_rain_pixels_t, :, :],
+                bp_filter=self.__params.bandpass_filter,
+                fft_method=self.__params.fft,
+                output_domain=self.__config.domain,
+                normalize=True,
+                compute_stats=True,
+                compact_output=True,
+            )["cascade_levels"]
+            self.__state.precip_cascades[~np.isfinite(self.__state.precip_cascades)] = (
+                np.nanmin(precip_models_cascade_timestep)
+            )
 
         # Make sure precip_noise_input is three-dimensional
         if len(self.__state.precip_noise_input.shape) != 3:
@@ -1275,7 +1271,7 @@ class StepsBlendingNowcaster:
                 precip_forecast_min = np.min(self.__state.precip_noise_input)
                 self.__params.noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(
                     self.__state.precip_noise_input[-1, :, :],
-                    self.__config.precip_threshold,
+                    self.__params.precip_threshold,
                     precip_forecast_min,
                     self.__params.bandpass_filter,
                     self.__params.decomposition_method,
@@ -1477,6 +1473,9 @@ class StepsBlendingNowcaster:
         if self.__config.mask_method == "incremental":
             # get mask parameters
             self.__params.mask_rim = self.__params.mask_kwargs.get("mask_rim", 10)
+            self.__params.max_mask_rim = self.__params.mask_kwargs.get(
+                "max_mask_rim", 10
+            )
             mask_f = self.__params.mask_kwargs.get("mask_f", 1.0)
             # initialize the structuring element
             struct = generate_binary_structure(2, 1)
@@ -2508,7 +2507,7 @@ class StepsBlendingNowcaster:
             )
 
     def __post_process_output(
-        self, j, final_blended_forecast_single_member, worker_state
+        self, j, t_sub, final_blended_forecast_single_member, worker_state
     ):
         """
         Apply post-processing steps to refine the final blended forecast. This
@@ -2671,16 +2670,16 @@ class StepsBlendingNowcaster:
                 worker_state.final_blended_forecast_recomposed.min()
             )
             if self.__config.mask_method == "incremental":
-                # The incremental mask is slightly different from
-                # the implementation in the non-blended steps.py, as
-                # it is not based on the last forecast, but instead
-                # on R_pm_blended. Therefore, the buffer does not
-                # increase over time.
-                # Get the mask for this forecast
+                # The incremental mask is slightly different from the implementation in
+                # nowcasts.steps.py, as it is not computed in the Lagrangian space. Instead,
+                # we use precip_forecast_probability_matched and let the mask_rim increase with
+                # the time step until mask_rim_max. This ensures that for the first t time
+                # steps, the buffer mask keeps increasing.
                 precip_field_mask = (
                     precip_forecast_probability_matching_blended
-                    >= self.__config.precip_threshold
+                    >= self.__params.precip_threshold
                 )
+
                 # Buffer the mask
                 # Convert the precipitation field mask into an 8-bit unsigned integer mask
                 obs_mask_uint8 = precip_field_mask.astype("uint8")
@@ -2695,7 +2694,10 @@ class StepsBlendingNowcaster:
                 accumulated_mask = dilated_mask.astype(float)
 
                 # Iteratively dilate the mask and accumulate the results to create a grayscale rim
-                for _ in range(self.__params.mask_rim):
+                mask_rim_temp = min(
+                    self.__params.mask_rim + t_sub - 1, self.__params.max_mask_rim
+                )
+                for _ in range(mask_rim_temp):
                     dilated_mask = binary_dilation(dilated_mask, struct_element)
                     accumulated_mask += dilated_mask
 
@@ -2719,7 +2721,7 @@ class StepsBlendingNowcaster:
                 # rainfall field
                 precip_field_mask_temp = (
                     precip_forecast_probability_matching_blended
-                    >= self.__config.precip_threshold
+                    >= self.__params.precip_threshold
                 )
 
             # Set to min value outside of mask
@@ -2777,12 +2779,12 @@ class StepsBlendingNowcaster:
             mean_probabiltity_matching_forecast = np.mean(
                 precip_forecast_probability_matching_resampled[
                     precip_forecast_probability_matching_resampled
-                    >= self.__config.precip_threshold
+                    >= self.__params.precip_threshold
                 ]
             )
             no_rain_mask = (
                 worker_state.final_blended_forecast_recomposed
-                >= self.__config.precip_threshold
+                >= self.__params.precip_threshold
             )
             mean_precip_forecast = np.mean(
                 worker_state.final_blended_forecast_recomposed[no_rain_mask]
@@ -2925,7 +2927,7 @@ def forecast(
     precip_thr: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
-    norain_thr: float, optional
+    norain_thr: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
       Depends on the amount of clutter typically present.
@@ -3092,9 +3094,9 @@ def forecast(
       (the number of NWP models) and 'window_length' (the minimum number of
       days the clim file should have, otherwise the default is used).
     mask_kwargs: dict
-      Optional dictionary containing mask keyword arguments 'mask_f' and
-      'mask_rim', the factor defining the the mask increment and the rim size,
-      respectively.
+      Optional dictionary containing mask keyword arguments 'mask_f',
+      'mask_rim' and 'max_mask_rim', the factor defining the the mask
+      increment and the (maximum) rim size, respectively.
       The mask increment is defined as mask_f*timestep/kmperpixel.
     measure_time: bool
       If set to True, measure, print and return the computation time.

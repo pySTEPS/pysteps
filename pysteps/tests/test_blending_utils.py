@@ -3,21 +3,21 @@
 import os
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
 import pytest
+from numpy.testing import assert_array_almost_equal
 
 import pysteps
 from pysteps.blending.utils import (
-    stack_cascades,
     blend_cascades,
-    recompose_cascade,
     blend_optical_flows,
-    decompose_NWP,
-    compute_store_nwp_motion,
-    load_NWP,
-    check_norain,
     compute_smooth_dilated_mask,
+    compute_store_nwp_motion,
+    decompose_NWP,
+    load_NWP,
+    recompose_cascade,
+    stack_cascades,
 )
+from pysteps.utils.check_norain import check_norain
 
 pytest.importorskip("netCDF4")
 
@@ -398,28 +398,30 @@ def test_blending_utils(
 
     precip_arr = precip_nwp
     # rainy fraction is 0.005847
-    assert not check_norain(precip_arr)
-    assert not check_norain(precip_arr, precip_thr=nwp_metadata["threshold"])
+    assert not check_norain(precip_arr, win_fun=None)
     assert not check_norain(
-        precip_arr, precip_thr=nwp_metadata["threshold"], norain_thr=0.005
+        precip_arr, precip_thr=nwp_metadata["threshold"], win_fun=None
     )
-    assert not check_norain(precip_arr, norain_thr=0.005)
+    assert not check_norain(
+        precip_arr, precip_thr=nwp_metadata["threshold"], norain_thr=0.005, win_fun=None
+    )
+    assert not check_norain(precip_arr, norain_thr=0.005, win_fun=None)
     # so with norain_thr beyond this number it should report that there's no rain
-    assert check_norain(precip_arr, norain_thr=0.006)
+    assert check_norain(precip_arr, norain_thr=0.006, win_fun=None)
     assert check_norain(
-        precip_arr, precip_thr=nwp_metadata["threshold"], norain_thr=0.006
+        precip_arr, precip_thr=nwp_metadata["threshold"], norain_thr=0.006, win_fun=None
     )
 
     # also if we set the precipitation threshold sufficiently high, it should report there's no rain
     # rainy fraction > 4mm/h is 0.004385
-    assert not check_norain(precip_arr, precip_thr=4.0, norain_thr=0.004)
-    assert check_norain(precip_arr, precip_thr=4.0, norain_thr=0.005)
+    assert not check_norain(precip_arr, precip_thr=4.0, norain_thr=0.004, win_fun=None)
+    assert check_norain(precip_arr, precip_thr=4.0, norain_thr=0.005, win_fun=None)
 
     # no rain above 100mm/h so it should give norain
-    assert check_norain(precip_arr, precip_thr=100)
+    assert check_norain(precip_arr, precip_thr=100, win_fun=None)
 
     # should always give norain if the threshold is set to 100%
-    assert check_norain(precip_arr, norain_thr=1.0)
+    assert check_norain(precip_arr, norain_thr=1.0, win_fun=None)
 
 
 # Finally, also test the compute_smooth_dilated mask functionality

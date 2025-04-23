@@ -8,33 +8,155 @@ from pysteps.utils import transformation
 
 # Test function arguments
 linear_arg_values = [
-    (5, 30, 60, 20, 45, "eulerian", None, 1, False, True),
-    (5, 30, 60, 20, 45, "eulerian", None, 2, False, False),
-    (5, 30, 60, 20, 45, "eulerian", None, 0, False, False),
-    (4, 23, 33, 9, 28, "eulerian", None, 1, False, False),
-    (3, 18, 36, 13, 27, "eulerian", None, 1, False, False),
-    (7, 30, 68, 11, 49, "eulerian", None, 1, False, False),
-    (10, 100, 160, 25, 130, "eulerian", None, 1, False, False),
-    (6, 60, 180, 22, 120, "eulerian", None, 1, False, False),
-    (5, 100, 200, 40, 150, "eulerian", None, 1, False, False),
-    (5, 30, 60, 20, 45, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
-    (4, 23, 33, 9, 28, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
-    (3, 18, 36, 13, 27, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
-    (7, 30, 68, 11, 49, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
-    (10, 100, 160, 25, 130, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
-    (6, 60, 180, 22, 120, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
-    (5, 100, 200, 40, 150, "extrapolation", np.zeros((2, 200, 200)), 1, False, False),
-    (5, 30, 60, 20, 45, "eulerian", None, 1, True, True),
-    (5, 30, 60, 20, 45, "eulerian", None, 2, True, False),
-    (5, 30, 60, 20, 45, "eulerian", None, 0, True, False),
-    (5, 30, 60, 20, 45, "extrapolation", np.zeros((2, 200, 200)), 1, True, False),
-    (4, 23, 33, 9, 28, "extrapolation", np.zeros((2, 200, 200)), 1, True, False),
-    (3, 18, 36, 13, 27, "extrapolation", np.zeros((2, 200, 200)), 1, True, False),
+    (5, 30, 60, 20, 45, "eulerian", None, 1, False, True, False),
+    (5, 30, 60, 20, 45, "eulerian", None, 2, False, False, False),
+    (5, 30, 60, 20, 45, "eulerian", None, 0, False, False, False),
+    (4, 23, 33, 9, 28, "eulerian", None, 1, False, False, False),
+    (3, 18, 36, 13, 27, "eulerian", None, 1, False, False, False),
+    (7, 30, 68, 11, 49, "eulerian", None, 1, False, False, False),
+    (7, 30, 68, 11, 49, "eulerian", None, 1, False, False, True),
+    (10, 100, 160, 25, 130, "eulerian", None, 1, False, False, False),
+    (6, 60, 180, 22, 120, "eulerian", None, 1, False, False, False),
+    (5, 100, 200, 40, 150, "eulerian", None, 1, False, False, False),
+    (
+        5,
+        30,
+        60,
+        20,
+        45,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        False,
+        False,
+        False,
+    ),
+    (
+        4,
+        23,
+        33,
+        9,
+        28,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        False,
+        False,
+        False,
+    ),
+    (
+        3,
+        18,
+        36,
+        13,
+        27,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        False,
+        False,
+        False,
+    ),
+    (
+        7,
+        30,
+        68,
+        11,
+        49,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        False,
+        False,
+        False,
+    ),
+    (
+        10,
+        100,
+        160,
+        25,
+        130,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        False,
+        False,
+        False,
+    ),
+    (
+        6,
+        60,
+        180,
+        22,
+        120,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        False,
+        False,
+        False,
+    ),
+    (
+        5,
+        100,
+        200,
+        40,
+        150,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        False,
+        False,
+        False,
+    ),
+    (
+        5,
+        100,
+        200,
+        40,
+        150,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        False,
+        False,
+        True,
+    ),
+    (5, 30, 60, 20, 45, "eulerian", None, 1, True, True, False),
+    (5, 30, 60, 20, 45, "eulerian", None, 2, True, False, False),
+    (5, 30, 60, 20, 45, "eulerian", None, 0, True, False, False),
+    (
+        5,
+        30,
+        60,
+        20,
+        45,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        True,
+        False,
+        False,
+    ),
+    (4, 23, 33, 9, 28, "extrapolation", np.zeros((2, 200, 200)), 1, True, False, False),
+    (
+        3,
+        18,
+        36,
+        13,
+        27,
+        "extrapolation",
+        np.zeros((2, 200, 200)),
+        1,
+        True,
+        False,
+        False,
+    ),
 ]
 
 
 @pytest.mark.parametrize(
-    "timestep, start_blending, end_blending, n_timesteps, controltime, nowcast_method, V, n_models, salient_blending, squeeze_nwp_array",
+    "timestep, start_blending, end_blending, n_timesteps, controltime, nowcast_method, V, n_models, salient_blending, squeeze_nwp_array, fill_nwp",
     linear_arg_values,
 )
 def test_linear_blending(
@@ -48,6 +170,7 @@ def test_linear_blending(
     n_models,
     salient_blending,
     squeeze_nwp_array,
+    fill_nwp,
 ):
     """Tests if the linear blending function is correct. For the nowcast data a precipitation field
     which is constant over time is taken. One half of the field has no rain and the other half
@@ -89,11 +212,15 @@ def test_linear_blending(
         if squeeze_nwp_array:
             r_nwp = np.squeeze(r_nwp)
 
-    # Define nowcast input data
-    r_input = np.zeros((200, 200))
-
-    for i in range(100, 200):
-        r_input[i, :] = 11.0
+    # Define nowcast input data (alternate between 2D and 3D arrays for testing)
+    if timestep % 2 == 0:
+        r_input = np.zeros((4, 200, 200))
+        for i in range(100, 200):
+            r_input[:, i, :] = 11.0
+    else:
+        r_input = np.zeros((200, 200))
+        for i in range(100, 200):
+            r_input[i, :] = 11.0
 
     # Transform from mm/h to dB
     r_input, _ = transformation.dB_transform(
@@ -112,6 +239,7 @@ def test_linear_blending(
         dict({"unit": "mm/h", "transform": None}),
         start_blending=start_blending,
         end_blending=end_blending,
+        fill_nwp=fill_nwp,
         saliency=salient_blending,
     )
 
