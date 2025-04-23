@@ -182,11 +182,11 @@ def forecast(
         precip_nwp = np.nan_to_num(precip_nwp, nan=0.0)
 
         # Fill nans in precip_nowcast
-        nan_indices = np.isnan(precip_nowcast)
+        nan_mask = np.isnan(precip_nowcast)
         if fill_nwp:
-            precip_nowcast[nan_indices] = precip_nwp[nan_indices]
+            precip_nowcast[nan_mask] = precip_nwp[nan_mask]
         else:
-            precip_nowcast[nan_indices] = 0.0
+            precip_nowcast[nan_mask] = 0.0
 
         # Initialise output
         precip_blended = np.zeros_like(precip_nowcast)
