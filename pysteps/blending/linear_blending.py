@@ -109,20 +109,26 @@ def forecast(
     if len(precip.shape) == 3:
         precip = precip[-1, :, :]
 
-    # Calculate the nowcasts
-    nowcast_method_func = nowcasts.get_method(nowcast_method)
-    precip_nowcast = nowcast_method_func(
-        precip,
-        velocity,
-        timesteps,
-        **nowcast_kwargs,
-    )
+    # First calculate the number of needed timesteps (up to end_blending) for the nowcast
+    # to ensure that the nowcast calculation time is limited.
+    timesteps_nowcast = int(end_blending / timestep)
 
-    # Make sure that precip_nowcast and precip_nwp are in mm/h
-    precip_nowcast, _ = conversion.to_rainrate(precip_nowcast, metadata=precip_metadata)
+    nowcast_method_func = nowcasts.get_method(nowcast_method)
 
     # Check if NWP data is given as input
     if precip_nwp is not None:
+        # Calculate the nowcast
+        precip_nowcast = nowcast_method_func(
+            precip,
+            velocity,
+            timesteps_nowcast,
+            **nowcast_kwargs,
+        )
+
+        # Make sure that precip_nowcast and precip_nwp are in mm/h
+        precip_nowcast, _ = conversion.to_rainrate(
+            precip_nowcast, metadata=precip_metadata
+        )
         precip_nwp, _ = conversion.to_rainrate(precip_nwp, metadata=precip_nwp_metadata)
 
         if len(precip_nowcast.shape) == 4:
@@ -133,10 +139,17 @@ def forecast(
             n_ens_members_nowcast = 1
 
         if len(precip_nwp.shape) == 4:
+            # Ensure precip_nwp has t = n_timesteps
+            precip_nwp = precip_nwp[:, 0:timesteps, :, :]
+            # Set the number of ensemble members
             n_ens_members_nwp = precip_nwp.shape[0]
             if n_ens_members_nwp == 1:
                 precip_nwp = np.squeeze(precip_nwp)
+
         else:
+            # Ensure precip_nwp has t = n_timesteps
+            precip_nwp = precip_nwp[0:timesteps, :, :]
+            # Set the number of ensemble members
             n_ens_members_nwp = 1
 
         # Now, repeat the nowcast ensemble members or the nwp models/members until
@@ -172,9 +185,9 @@ def forecast(
 
         # Check if dimensions are correct
         assert (
-            precip_nwp.shape == precip_nowcast.shape
-        ), "The dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {} and dimension of precip_nowcast = {}".format(
-            precip_nwp.shape, precip_nowcast.shape
+            precip_nwp.shape[-2:] == precip_nowcast.shape[-2:]
+        ), "The x and y dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {} and dimension of precip_nowcast = {}".format(
+            precip_nwp.shape[-2:], precip_nowcast.shape[-2:]
         )
 
         # Ensure we are not working with nans in the bleding.
@@ -184,12 +197,19 @@ def forecast(
         # Fill nans in precip_nowcast
         nan_mask = np.isnan(precip_nowcast)
         if fill_nwp:
-            precip_nowcast[nan_mask] = precip_nwp[nan_mask]
+            if len(precip_nwp.shape) == 4:
+                precip_nowcast[nan_mask] = precip_nwp[:, 0:timesteps_nowcast, :, :][
+                    nan_mask
+                ]
+            else:
+                precip_nowcast[nan_mask] = precip_nwp[0:timesteps_nowcast, :, :][
+                    nan_mask
+                ]
         else:
             precip_nowcast[nan_mask] = 0.0
 
         # Initialise output
-        precip_blended = np.zeros_like(precip_nowcast)
+        precip_blended = np.zeros_like(precip_nwp)
 
         # Calculate the weights
         for i in range(timesteps):
@@ -240,6 +260,19 @@ def forecast(
                     )
 
     else:
+        # Calculate the nowcast
+        precip_nowcast = nowcast_method_func(
+            precip,
+            velocity,
+            timesteps,
+            **nowcast_kwargs,
+        )
+
+        # Make sure that precip_nowcast and precip_nwp are in mm/h
+        precip_nowcast, _ = conversion.to_rainrate(
+            precip_nowcast, metadata=precip_metadata
+        )
+
         # If no NWP data is given, the blended field is simply equal to the nowcast field
         precip_blended = precip_nowcast
 
