@@ -799,16 +799,22 @@ def _estimate_perturbation_params(
                     _compute_sample_acf(weights_acf * (forecast_err - 1.0) / std)
                 )
                 acf = _fit_acf(acf)
-            else:
-                distpar = None
-                std = None
-                acf = None
-        else:
-            distpar = None
-            std = None
-            acf = None
 
-        return distpar, std, np.sqrt(np.abs(np.fft.rfft2(acf)))
+                valid_data = True
+            else:
+                valid_data = False
+        else:
+            valid_data = False
+
+        if valid_data:
+            return distpar, std, np.sqrt(np.abs(np.fft.rfft2(acf)))
+        else:
+            return (
+                (1e-10, 1e-10),
+                1e-10,
+                np.ones((weights_acf.shape[0], int(weights_acf.shape[1] / 2) + 1))
+                * 1e-10,
+            )
 
     dist_params = []
     stds = []
