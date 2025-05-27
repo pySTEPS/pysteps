@@ -86,6 +86,7 @@ Available Importers
 
 import gzip
 import os
+import array
 from functools import partial
 
 import numpy as np
@@ -1615,5 +1616,353 @@ def _import_saf_crri_geodata(filename):
     geodata["institution"] = ds_rainfall.getncattr("institution")
 
     ds_rainfall.close()
+
+    return geodata
+
+
+@postprocess_import()
+def import_dwd_hdf5(filename, qty="RATE", **kwargs):
+    """
+    Import a DWD precipitation product field (and optionally the quality
+    field) from a HDF5 file conforming to the ODIM specification
+
+    Parameters
+    ----------
+    filename: str
+        Name of the file to import.
+    qty: {'RATE', 'ACRR', 'DBZH'}
+        The quantity to read from the file. The currently supported identitiers
+        are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
+        accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
+        is 'RATE'.
+
+    {extra_kwargs_doc}
+
+    Returns
+    -------
+    out: tuple
+        A three-element tuple containing the DWD preciptiaton product with the
+        requested quantity and the associated quality field and metadata. The
+        quality field is read from the file if it contains a dataset whose
+        quantity identifier is 'QIND'.
+    """
+    if not H5PY_IMPORTED:
+        raise MissingOptionalDependency(
+            "h5py package is required to import "
+            "radar reflectivity composites using ODIM HDF5 specification "
+            "but it is not installed"
+        )
+
+    if qty not in ["ACRR", "DBZH", "RATE"]:
+        raise ValueError(
+            "unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'"
+        )
+
+    f = h5py.File(filename, "r")
+
+    precip = None
+    quality = None
+
+    for dsg in f.items():
+        if dsg[0].startswith("dataset"):
+            what_grp_found = False
+            # check if the "what" group is in the "dataset" group
+            if "what" in list(dsg[1].keys()):
+                if "quantity" in dsg[1]["what"].attrs.keys():
+                    try:
+                        qty_, gain, offset, nodata, undetect = (
+                            _read_opera_hdf5_what_group(dsg[1]["what"])
+                        )
+                        what_grp_found = True
+                    except KeyError:
+                        pass
+
+            for dg in dsg[1].items():
+                if dg[0][0:4] == "data":
+                    # check if the "what" group is in the "data" group
+                    if "what" in list(dg[1].keys()):
+                        (
+                            qty_,
+                            gain,
+                            offset,
+                            nodata,
+                            undetect,
+                        ) = _read_opera_hdf5_what_group(dg[1]["what"])
+                    elif not what_grp_found:
+                        raise DataModelError(
+                            "Non ODIM compliant file: "
+                            "no what group found from {} "
+                            "or its subgroups".format(dg[0])
+                        )
+
+                    if qty_.decode() in [qty, "QIND"]:
+                        arr = dg[1]["data"][...]
+                        mask_n = arr == nodata
+                        mask_u = arr == undetect
+                        mask = np.logical_and(~mask_u, ~mask_n)
+
+                        if qty_.decode() == qty:
+                            precip = np.empty(arr.shape)
+                            precip[mask] = arr[mask] * gain + offset
+                            if qty != "DBZH":
+                                precip[mask_u] = offset
+                            else:
+                                precip[mask_u] = -30.0
+                            precip[mask_n] = np.nan
+                        elif qty_.decode() == "QIND":
+                            quality = np.empty(arr.shape, dtype=float)
+                            quality[mask] = arr[mask]
+                            quality[~mask] = np.nan
+
+    if precip is None:
+        raise IOError("requested quantity %s not found" % qty)
+
+    where = f["where"]
+    if isinstance(where.attrs["projdef"], str):
+        proj4str = where.attrs["projdef"]
+    else:
+        proj4str = where.attrs["projdef"].decode()
+    pr = pyproj.Proj(proj4str)
+
+    ll_lat = where.attrs["LL_lat"]
+    ll_lon = where.attrs["LL_lon"]
+    ur_lat = where.attrs["UR_lat"]
+    ur_lon = where.attrs["UR_lon"]
+    if (
+        "LR_lat" in where.attrs.keys()
+        and "LR_lon" in where.attrs.keys()
+        and "UL_lat" in where.attrs.keys()
+        and "UL_lon" in where.attrs.keys()
+    ):
+        lr_lat = float(where.attrs["LR_lat"])
+        lr_lon = float(where.attrs["LR_lon"])
+        ul_lat = float(where.attrs["UL_lat"])
+        ul_lon = float(where.attrs["UL_lon"])
+        full_cornerpts = True
+    else:
+        full_cornerpts = False
+
+    ll_x, ll_y = pr(ll_lon, ll_lat)
+    ur_x, ur_y = pr(ur_lon, ur_lat)
+
+    if full_cornerpts:
+        lr_x, lr_y = pr(lr_lon, lr_lat)
+        ul_x, ul_y = pr(ul_lon, ul_lat)
+        x1 = min(ll_x, ul_x)
+        y1 = min(ll_y, lr_y)
+        x2 = max(lr_x, ur_x)
+        y2 = max(ul_y, ur_y)
+    else:
+        x1 = ll_x
+        y1 = ll_y
+        x2 = ur_x
+        y2 = ur_y
+
+    dataset1 = f["dataset1"]
+
+    if "xscale" in where.attrs.keys() and "yscale" in where.attrs.keys():
+        xpixelsize = where.attrs["xscale"]
+        ypixelsize = where.attrs["yscale"]
+    elif (
+        "xscale" in dataset1["where"].attrs.keys()
+        and "yscale" in dataset1["where"].attrs.keys()
+    ):
+        where = dataset1["where"]
+        xpixelsize = where.attrs["xscale"]
+        ypixelsize = where.attrs["yscale"]
+    else:
+        xpixelsize = None
+        ypixelsize = None
+
+    if qty == "ACRR":
+        unit = "mm"
+        transform = None
+    elif qty == "DBZH":
+        unit = "dBZ"
+        transform = "dB"
+    else:
+        unit = "mm/h"
+        transform = None
+
+    metadata = {
+        "projection": proj4str,
+        "ll_lon": ll_lon,
+        "ll_lat": ll_lat,
+        "ur_lon": ur_lon,
+        "ur_lat": ur_lat,
+        "x1": x1,
+        "y1": y1,
+        "x2": x2,
+        "y2": y2,
+        "xpixelsize": xpixelsize,
+        "ypixelsize": ypixelsize,
+        "cartesian_unit": "m",
+        "yorigin": "lower",
+        "institution": "Deutscher Wetterdienst",
+        "accutime": None,
+        "unit": unit,
+        "transform": transform,
+        "zerovalue": np.nanmin(precip),
+        "threshold": _get_threshold_value(precip),
+    }
+
+    metadata.update(kwargs)
+
+    f.close()
+
+    return precip, quality, metadata
+
+
+@postprocess_import()
+def import_dwd_radolan(filename, product):
+    """
+    Import a RADOLAN precipitation product from a binary file.
+
+    Parameters
+    ----------
+    filename: str
+        Name of the file to import.
+    product: {'WX','RX','EX','RY','RW','AY','RS','YW','WN'}
+        The specific product to read from the file. Please see
+        https://www.dwd.de/DE/leistungen/radolan/radolan_info/
+        radolan_radvor_op_komposit_format_pdf.pdf
+        for a detailed description.
+
+    {extra_kwargs_doc}
+
+    Returns
+    -------
+    out: tuple
+        A three-element tuple containing the precipitation field in mm/h imported
+        from a MeteoSwiss gif file and the associated quality field and metadata.
+        The quality field is currently set to None.
+    """
+    size_file = os.path.getsize(filename)
+    size_data = np.round(size_file, -3)
+    size_header = size_file - size_data
+
+    f = open(filename, "rb")
+    header = f.read(size_header).decode("utf-8")
+
+    prod = header[:2]
+
+    assert prod == product, "Product not in File!"
+
+    prod_cat1 = np.array(["WX", "RX", "EX"])
+    prod_cat2 = np.array(["RY", "RW", "AY", "RS", "YW"])
+
+    nbyte = 1 if prod in prod_cat1 else 2
+    signed = "B" if prod in prod_cat1 else "H"
+
+    fac = int(header.split("E-")[1].split("INT")[0])
+    dimsplit = header.split("x")
+    dims = np.array((dimsplit[0][-4:], dimsplit[1][:4]), dtype=int)[::-1]
+
+    data = array.array(signed)
+    data.fromfile(f, size_data // nbyte)
+
+    f.close()
+
+    data = np.array(np.reshape(data, dims, order="F"), dtype=float).T
+
+    if prod == "SF":
+        no_echo_value = 0.0
+    elif prod in prod_cat2:
+        no_echo_value = -0.01
+    else:
+        no_echo_value = -32.5
+
+    if prod in prod_cat1:
+        data[data >= 249] = np.nan
+        data = data / 2.0 + no_echo_value
+    elif prod in prod_cat2:
+        data, no_data_mask = _identify_info_bits(data)
+        if prod == "AY":
+            data = (10 ** (fac * -1)) * data / 2.0 + no_echo_value
+        else:
+            data = (10 ** (fac * -1)) * data + no_echo_value
+    else:
+        data, no_data_mask = _identify_info_bits(data)
+        data = (10 ** (fac * -1)) * data / 2.0 + no_echo_value
+
+    data[no_data_mask] = np.nan
+
+    geodata = _import_dwd_geodata(product, dims)
+    metadata = geodata
+
+    return data, None, metadata
+
+
+def _identify_info_bits(data):
+
+    # clutter
+    clutter_mask = data - 2**15 >= 0.0
+    data[clutter_mask] = 0
+
+    # negative values
+    mask = data - 2**14 >= 0.0
+    data[mask] -= 2**14
+
+    # no data
+    no_data_mask = data - 2**13 == 2500.0
+
+    if np.sum(no_data_mask) == 0.0:
+
+        no_data_mask = data - 2**13 == 0.0
+
+    data[no_data_mask] = 0.0
+
+    # secondary data
+    data[data - 2**12 > 0.0] -= 2**12
+
+    data[mask] *= -1
+
+    return data, no_data_mask
+
+
+def _import_dwd_geodata(product, dims):
+    """
+    Geodata for RADOLAN products. Hard-coded here, cause there is only basic
+    information about the projection in the header of the binary RADOLAN
+    files.
+    """
+
+    geodata = {}
+
+    projdef = "+a=6378137.0 +b=6356752.0 +proj=stere +lat_ts=60.0 +lat_0=90.0 +lon_0=10.0 +x_0=0 +y_0=0"
+    geodata["projection"] = projdef
+
+    geodata["xpixelsize"] = 1000.0
+    geodata["ypixelsize"] = 1000.0
+    geodata["cartesian_unit"] = "m"
+    geodata["yorigin"] = "lower"
+
+    prod_cat1 = ["RY", "RW", "RX"]  # 900x900
+    prod_cat2 = ["WN"]  # 1100x1200
+    prod_cat3 = ["YW"]  # 900x1100
+
+    if product in prod_cat1:  # lower left
+        lon = 3.604382995
+        lat = 46.95361536
+    if product in prod_cat2:  # lower left
+        lon = 3.566994635
+        lat = 45.69642538
+    if product in prod_cat3:  # center
+        lon = 9.0
+        lat = 51.0
+
+    pr = pyproj.Proj(projdef)
+    x1, y1 = pr(lon, lat)
+    if product in prod_cat3:
+        x1 -= dims[0] * 1000 // 2
+        y1 -= dims[1] * 1000 // 2 - 80000
+
+    x2 = x1 + dims[0] * 1000
+    y2 = y1 + dims[1] * 1000
+
+    geodata["x1"] = x1
+    geodata["y1"] = y1
+    geodata["x2"] = x2
+    geodata["y2"] = y2
 
     return geodata
