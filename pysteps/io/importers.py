@@ -82,11 +82,14 @@ Available Importers
     import_odim_hdf5
     import_opera_hdf5
     import_saf_crri
+    import_dwd_hdf5
+    import_dwd_radolan
 """
 
 import gzip
 import os
 import array
+import datetime
 from functools import partial
 
 import numpy as np
@@ -1663,91 +1666,46 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     precip = None
     quality = None
 
-    for dsg in f.items():
-        if dsg[0].startswith("dataset"):
-            what_grp_found = False
-            # check if the "what" group is in the "dataset" group
-            if "what" in list(dsg[1].keys()):
-                if "quantity" in dsg[1]["what"].attrs.keys():
-                    try:
-                        qty_, gain, offset, nodata, undetect = (
-                            _read_opera_hdf5_what_group(dsg[1]["what"])
-                        )
-                        what_grp_found = True
-                    except KeyError:
-                        pass
+    file_content = {}
+    _read_hdf5_cont(f, file_content)
+    f.close()
 
-            for dg in dsg[1].items():
-                if dg[0][0:4] == "data":
-                    # check if the "what" group is in the "data" group
-                    if "what" in list(dg[1].keys()):
-                        (
-                            qty_,
-                            gain,
-                            offset,
-                            nodata,
-                            undetect,
-                        ) = _read_opera_hdf5_what_group(dg[1]["what"])
-                    elif not what_grp_found:
-                        raise DataModelError(
-                            "Non ODIM compliant file: "
-                            "no what group found from {} "
-                            "or its subgroups".format(dg[0])
-                        )
+    data_prop = {}
+    _get_whatgrp(file_content, data_prop)
 
-                    if qty_.decode() in [qty, "QIND"]:
-                        arr = dg[1]["data"][...]
-                        mask_n = arr == nodata
-                        mask_u = arr == undetect
-                        mask = np.logical_and(~mask_u, ~mask_n)
+    arr = file_content["dataset1"]["data1"]["data"]
+    mask_n = arr == data_prop["nodata"]
+    mask_u = arr == data_prop["undetect"]
+    mask = np.logical_and(~mask_u, ~mask_n)
 
-                        if qty_.decode() == qty:
-                            precip = np.empty(arr.shape)
-                            precip[mask] = arr[mask] * gain + offset
-                            if qty != "DBZH":
-                                precip[mask_u] = offset
-                            else:
-                                precip[mask_u] = -30.0
-                            precip[mask_n] = np.nan
-                        elif qty_.decode() == "QIND":
-                            quality = np.empty(arr.shape, dtype=float)
-                            quality[mask] = arr[mask]
-                            quality[~mask] = np.nan
+    if data_prop["quantity"] == qty:
+        precip = np.empty(arr.shape)
+        precip[mask] = arr[mask] * data_prop["gain"] + data_prop["offset"]
+        if qty != "DBZH":
+            precip[mask_u] = data_prop["offset"]
+        else:
+            precip[mask_u] = -32.5
+        precip[mask_n] = np.nan
+    elif data_prop["quantity"] == "QIND":
+        quality = np.empty(arr.shape, dtype=float)
+        quality[mask] = arr[mask]
+        quality[~mask] = np.nan
 
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
 
-    where = f["where"]
-    if isinstance(where.attrs["projdef"], str):
-        proj4str = where.attrs["projdef"]
-    else:
-        proj4str = where.attrs["projdef"].decode()
-    pr = pyproj.Proj(proj4str)
+    pr = pyproj.Proj(file_content["where"]["projdef"])
 
-    ll_lat = where.attrs["LL_lat"]
-    ll_lon = where.attrs["LL_lon"]
-    ur_lat = where.attrs["UR_lat"]
-    ur_lon = where.attrs["UR_lon"]
-    if (
-        "LR_lat" in where.attrs.keys()
-        and "LR_lon" in where.attrs.keys()
-        and "UL_lat" in where.attrs.keys()
-        and "UL_lon" in where.attrs.keys()
-    ):
-        lr_lat = float(where.attrs["LR_lat"])
-        lr_lon = float(where.attrs["LR_lon"])
-        ul_lat = float(where.attrs["UL_lat"])
-        ul_lon = float(where.attrs["UL_lon"])
-        full_cornerpts = True
-    else:
-        full_cornerpts = False
+    ll_x, ll_y = pr(file_content["where"]["LL_lon"], file_content["where"]["LL_lat"])
+    ur_x, ur_y = pr(file_content["where"]["UR_lon"], file_content["where"]["UR_lat"])
 
-    ll_x, ll_y = pr(ll_lon, ll_lat)
-    ur_x, ur_y = pr(ur_lon, ur_lat)
-
-    if full_cornerpts:
-        lr_x, lr_y = pr(lr_lon, lr_lat)
-        ul_x, ul_y = pr(ul_lon, ul_lat)
+    if len([k for k in file_content["where"].keys() if "_lat" in k]) == 4:
+        lr_x, lr_y = pr(
+            file_content["where"]["LR_lon"], file_content["where"]["LR_lat"]
+        )
+        ul_x, ul_y = pr(
+            file_content["where"]["UL_lon"], file_content["where"]["UL_lat"]
+        )
         x1 = min(ll_x, ul_x)
         y1 = min(ll_y, lr_y)
         x2 = max(lr_x, ur_x)
@@ -1758,18 +1716,15 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         x2 = ur_x
         y2 = ur_y
 
-    dataset1 = f["dataset1"]
-
-    if "xscale" in where.attrs.keys() and "yscale" in where.attrs.keys():
-        xpixelsize = where.attrs["xscale"]
-        ypixelsize = where.attrs["yscale"]
-    elif (
-        "xscale" in dataset1["where"].attrs.keys()
-        and "yscale" in dataset1["where"].attrs.keys()
+    if (
+        "where" in file_content["dataset1"].keys()
+        and "xscale" in file_content["dataset1"]["where"].keys()
     ):
-        where = dataset1["where"]
-        xpixelsize = where.attrs["xscale"]
-        ypixelsize = where.attrs["yscale"]
+        xpixelsize = file_content["dataset1"]["where"]["xscale"]
+        ypixelsize = file_content["dataset1"]["where"]["yscale"]
+    elif "xscale" in file_content["where"].keys():
+        xpixelsize = file_content["where"]["xscale"]
+        ypixelsize = file_content["where"]["yscale"]
     else:
         xpixelsize = None
         ypixelsize = None
@@ -1784,12 +1739,22 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         unit = "mm/h"
         transform = None
 
+    startdate = datetime.datetime.strptime(
+        f"{file_content['dataset1']['what']['startdate']}{file_content['dataset1']['what']['starttime']}",
+        "%Y%m%d%H%M%S",
+    )
+    enddate = datetime.datetime.strptime(
+        f"{file_content['dataset1']['what']['enddate']}{file_content['dataset1']['what']['endtime']}",
+        "%Y%m%d%H%M%S",
+    )
+    accutime = (enddate - startdate).total_seconds() / 60.0
+
     metadata = {
-        "projection": proj4str,
-        "ll_lon": ll_lon,
-        "ll_lat": ll_lat,
-        "ur_lon": ur_lon,
-        "ur_lat": ur_lat,
+        "projection": file_content["where"]["projdef"],
+        "ll_lon": file_content["where"]["LL_lon"],
+        "ll_lat": file_content["where"]["LL_lat"],
+        "ur_lon": file_content["where"]["UR_lon"],
+        "ur_lat": file_content["where"]["UR_lat"],
         "x1": x1,
         "y1": y1,
         "x2": x2,
@@ -1798,8 +1763,8 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         "ypixelsize": ypixelsize,
         "cartesian_unit": "m",
         "yorigin": "lower",
-        "institution": "Deutscher Wetterdienst",
-        "accutime": None,
+        "institution": file_content["what"]["source"],
+        "accutime": accutime,
         "unit": unit,
         "transform": transform,
         "zerovalue": np.nanmin(precip),
@@ -1811,6 +1776,68 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     f.close()
 
     return precip, quality, metadata
+
+
+def _read_hdf5_cont(f, d):
+    """
+    Recursively read nested dictionaries from a HDF5 file.
+    """
+
+    # set simple types of hdf content
+    group_type = h5py._hl.group.Group
+
+    for key, value in f.items():
+
+        if isinstance(value, group_type):
+
+            d[key] = {}
+
+            if len(list(value.items())) > 0:
+
+                _read_hdf5_cont(value, d[key])
+
+            else:
+
+                d[key] = {attr: value.attrs[attr] for attr in value.attrs}
+                d[key] = {
+                    k: v.decode() if type(v) == np.bytes_ else v
+                    for k, v in d[key].items()
+                }
+
+        else:
+
+            try:
+
+                d[key] = np.array(value)
+
+            except TypeError:
+
+                d[key] = np.array(value.astype(float))
+
+            except:
+
+                d[key] = value.value
+
+    return
+
+
+def _get_whatgrp(d, g):
+    """
+    Recursively get the what group containing the data field properties.
+    """
+    if "what" in d.keys():
+        if "gain" in d["what"].keys():
+            g.update(d["what"])
+        else:
+            k = [k for k in d.keys() if "data" in k][0]
+            _get_whatgrp(d[k], g)
+    else:
+        raise DataModelError(
+            "Non ODIM compliant file: "
+            "no what group found from {} "
+            "or its subgroups".format(d.keys()[0])
+        )
+    return
 
 
 @postprocess_import()
@@ -1848,8 +1875,8 @@ def import_dwd_radolan(filename, product):
 
     assert prod == product, "Product not in File!"
 
-    prod_cat1 = np.array(["WX", "RX", "EX"])
-    prod_cat2 = np.array(["RY", "RW", "AY", "RS", "YW"])
+    prod_cat1 = np.array(["WX", "RX"])
+    prod_cat2 = np.array(["RY", "RW", "YW"])
 
     nbyte = 1 if prod in prod_cat1 else 2
     signed = "B" if prod in prod_cat1 else "H"
@@ -1937,9 +1964,9 @@ def _import_dwd_geodata(product, dims):
     geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "lower"
 
-    prod_cat1 = ["RY", "RW", "RX"]  # 900x900
-    prod_cat2 = ["WN"]  # 1100x1200
-    prod_cat3 = ["YW"]  # 900x1100
+    prod_cat1 = ["RX", "RY", "RW"]  # 900x900
+    prod_cat2 = ["WN"]  # 1200x1100
+    prod_cat3 = ["WX", "YW"]  # 1100x900
 
     if product in prod_cat1:  # lower left
         lon = 3.604382995
