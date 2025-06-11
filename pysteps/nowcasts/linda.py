@@ -102,8 +102,10 @@ def forecast(
         Array of shape (2, m, n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs.
-    timesteps: int
-        Number of time steps to forecast.
+    timesteps: int or list of floats
+        Number of time steps to forecast or a list of time steps. If a list is
+        given, the values are assumed to be relative to the input time step and
+        in ascending order.
     feature_method: {'blob', 'domain' 'shitomasi'}
         Feature detection method:
 
@@ -196,7 +198,7 @@ def forecast(
     Returns
     -------
     out: numpy.ndarray
-        A four-dimensional array of shape (n_ens_members, timesteps, m, n)
+        A four-dimensional array of shape (n_ens_members, len(timesteps), m, n)
         containing a time series of forecast precipitation fields for each
         ensemble member. If add_perturbations is False, the first dimension is
         dropped. The time series starts from t0 + timestep, where timestep is
@@ -264,7 +266,10 @@ def forecast(
 
     print("Parameters")
     print("----------")
-    print(f"number of time steps:       {timesteps}")
+    if isinstance(timesteps, int):
+        print(f"number of time steps:     {timesteps}")
+    else:
+        print(f"time steps:               {timesteps}")
     print(f"ARI model order:            {ari_order}")
     print(f"localization window radius: {localization_window_radius}")
     if add_perturbations:
@@ -391,8 +396,8 @@ def _check_inputs(precip, velocity, timesteps, ari_order):
         raise ValueError(
             f"dimension mismatch between precip and velocity: precip.shape={precip.shape}, velocity.shape={velocity.shape}"
         )
-    if not isinstance(timesteps, int):
-        raise ValueError("timesteps is not an integer")
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps must be in ascending order")
 
 
 def _composite_convolution(field, kernels, weights):
