@@ -9,6 +9,7 @@ from pysteps.tests.helpers import get_precipitation_fields
 
 
 linda_arg_names = (
+    "timesteps",
     "add_perturbations",
     "kernel_type",
     "vel_pert_method",
@@ -19,10 +20,11 @@ linda_arg_names = (
 )
 
 linda_arg_values = [
-    (False, "anisotropic", None, 1, False, 0.5, None),
-    (False, "isotropic", None, 5, True, 0.5, None),
-    (True, "anisotropic", None, 1, True, None, 0.3),
-    (True, "isotropic", "bps", 5, True, None, 0.3),
+    (3, False, "anisotropic", None, 1, False, 0.5, None),
+    ([3], False, "anisotropic", None, 1, False, 0.5, None),
+    (3, False, "isotropic", None, 5, True, 0.5, None),
+    (3, True, "anisotropic", None, 1, True, None, 0.3),
+    (3, True, "isotropic", "bps", 5, True, None, 0.3),
 ]
 
 
@@ -54,6 +56,7 @@ def test_default_linda_norain():
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
 def test_linda(
+    timesteps,
     add_perturbations,
     kernel_type,
     vel_pert_method,
@@ -91,7 +94,7 @@ def test_linda(
     precip_forecast = forecast(
         precip_input,
         retrieved_motion,
-        3,
+        timesteps,
         kernel_type=kernel_type,
         vel_pert_method=vel_pert_method,
         feature_kwargs={"threshold": 1.5, "min_sigma": 2, "max_sigma": 10},
@@ -103,14 +106,15 @@ def test_linda(
         num_workers=num_workers,
         seed=42,
     )
+    num_nowcast_timesteps = timesteps if isinstance(timesteps, int) else len(timesteps)
     if measure_time:
-        assert len(precip_forecast) == 3
+        assert len(precip_forecast) == num_nowcast_timesteps
         assert isinstance(precip_forecast[1], float)
         precip_forecast = precip_forecast[0]
 
     if not add_perturbations:
         assert precip_forecast.ndim == 3
-        assert precip_forecast.shape[0] == 3
+        assert precip_forecast.shape[0] == num_nowcast_timesteps
         assert precip_forecast.shape[1:] == precip_input.shape[1:]
 
         csi = verification.det_cat_fct(
@@ -120,7 +124,7 @@ def test_linda(
     else:
         assert precip_forecast.ndim == 4
         assert precip_forecast.shape[0] == 5
-        assert precip_forecast.shape[1] == 3
+        assert precip_forecast.shape[1] == num_nowcast_timesteps
         assert precip_forecast.shape[2:] == precip_input.shape[1:]
 
         crps = verification.probscores.CRPS(precip_forecast[:, -1], precip_obs[-1])
@@ -141,11 +145,6 @@ def test_linda_wrong_inputs():
         forecast(
             precip, velocity, 1, vel_pert_method="bps", kmperpixel=1, timestep=None
         )
-
-    # fractional time steps not yet implemented
-    # timesteps is not an integer
-    with pytest.raises(ValueError):
-        forecast(precip, velocity, [1.0, 2.0])
 
     # ari_order 1 or 2 required
     with pytest.raises(ValueError):
