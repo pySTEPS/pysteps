@@ -1656,6 +1656,13 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
             "but it is not installed"
         )
 
+    if not PYPROJ_IMPORTED:
+        raise MissingOptionalDependency(
+            "pyproj package is required to import "
+            "DWD's radar reflectivity composite "
+            "but it is not installed"
+        )
+
     if qty not in ["ACRR", "DBZH", "RATE"]:
         raise ValueError(
             "unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'"
@@ -1740,11 +1747,13 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         transform = None
 
     startdate = datetime.datetime.strptime(
-        f"{file_content['dataset1']['what']['startdate']}{file_content['dataset1']['what']['starttime']}",
+        file_content["dataset1"]["what"]["startdate"]
+        + file_content["dataset1"]["what"]["starttime"],
         "%Y%m%d%H%M%S",
     )
     enddate = datetime.datetime.strptime(
-        f"{file_content['dataset1']['what']['enddate']}{file_content['dataset1']['what']['endtime']}",
+        file_content["dataset1"]["what"]["enddate"]
+        + file_content["dataset1"]["what"]["endtime"],
         "%Y%m%d%H%M%S",
     )
     accutime = (enddate - startdate).total_seconds() / 60.0
@@ -1762,7 +1771,7 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         "xpixelsize": xpixelsize,
         "ypixelsize": ypixelsize,
         "cartesian_unit": "m",
-        "yorigin": "lower",
+        "yorigin": "upper",
         "institution": file_content["what"]["source"],
         "accutime": accutime,
         "unit": unit,
@@ -1962,7 +1971,7 @@ def _import_dwd_geodata(product, dims):
     geodata["xpixelsize"] = 1000.0
     geodata["ypixelsize"] = 1000.0
     geodata["cartesian_unit"] = "m"
-    geodata["yorigin"] = "lower"
+    geodata["yorigin"] = "upper"
 
     prod_cat1 = ["RX", "RY", "RW"]  # 900x900
     prod_cat2 = ["WN"]  # 1200x1100
