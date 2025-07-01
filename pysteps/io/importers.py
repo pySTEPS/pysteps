@@ -1668,8 +1668,8 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
             "unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'"
         )
 
+    # Read the data
     f = h5py.File(filename, "r")
-
     precip = None
     quality = None
 
@@ -1685,6 +1685,7 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     mask_u = arr == data_prop["undetect"]
     mask = np.logical_and(~mask_u, ~mask_n)
 
+    # Read the precipitation variable and quantity from the data
     if data_prop["quantity"] == qty:
         precip = np.empty(arr.shape)
         precip[mask] = arr[mask] * data_prop["gain"] + data_prop["offset"]
@@ -1701,8 +1702,8 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
 
+    # Get the projection and grid information from the HDF5 file
     pr = pyproj.Proj(file_content["where"]["projdef"])
-
     ll_x, ll_y = pr(file_content["where"]["LL_lon"], file_content["where"]["LL_lat"])
     ur_x, ur_y = pr(file_content["where"]["UR_lon"], file_content["where"]["UR_lat"])
 
@@ -1723,6 +1724,7 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         x2 = ur_x
         y2 = ur_y
 
+    # Get the grid cell size
     if (
         "where" in file_content["dataset1"].keys()
         and "xscale" in file_content["dataset1"]["where"].keys()
@@ -1736,6 +1738,7 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         xpixelsize = None
         ypixelsize = None
 
+    # Get the unit and transform
     if qty == "ACRR":
         unit = "mm"
         transform = None
@@ -1746,6 +1749,7 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         unit = "mm/h"
         transform = None
 
+    # Extract the time step
     startdate = datetime.datetime.strptime(
         file_content["dataset1"]["what"]["startdate"]
         + file_content["dataset1"]["what"]["starttime"],
@@ -1758,6 +1762,7 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     )
     accutime = (enddate - startdate).total_seconds() / 60.0
 
+    # Finally, fill out the metadata
     metadata = {
         "projection": file_content["where"]["projdef"],
         "ll_lon": file_content["where"]["LL_lon"],
@@ -1790,23 +1795,30 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
 def _read_hdf5_cont(f, d):
     """
     Recursively read nested dictionaries from a HDF5 file.
-    """
 
+
+    Parameters:
+    -----------
+    f : h5py.Group or h5py.File
+        The current group or file object from which to read data.
+    d : dict
+        The dictionary to populate with the contents of the HDF5 group.
+
+    Returns:
+    --------
+    None.
+    """
     # set simple types of hdf content
     group_type = h5py._hl.group.Group
 
     for key, value in f.items():
-
         if isinstance(value, group_type):
-
             d[key] = {}
-
             if len(list(value.items())) > 0:
-
+                # Recurse into non-empty group
                 _read_hdf5_cont(value, d[key])
-
             else:
-
+                # Handle empty group with attributes
                 d[key] = {attr: value.attrs[attr] for attr in value.attrs}
                 d[key] = {
                     k: v.decode() if type(v) == np.bytes_ else v
@@ -1814,17 +1826,11 @@ def _read_hdf5_cont(f, d):
                 }
 
         else:
-
             try:
-
                 d[key] = np.array(value)
-
             except TypeError:
-
                 d[key] = np.array(value.astype(float))
-
             except:
-
                 d[key] = value.value
 
     return
@@ -1873,34 +1879,41 @@ def import_dwd_radolan(filename, product):
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
     """
+    # Determine file size and header size
     size_file = os.path.getsize(filename)
     size_data = np.round(size_file, -3)
     size_header = size_file - size_data
 
+    # Read the file
     f = open(filename, "rb")
     header = f.read(size_header).decode("utf-8")
 
+    # Check if the product code is the same as the provided product variable
     prod = header[:2]
-
     assert prod == product, "Product not in File!"
 
+    # Define product categories
     prod_cat1 = np.array(["WX", "RX"])
     prod_cat2 = np.array(["RY", "RW", "YW"])
 
+    # Determine byte size and data type
     nbyte = 1 if prod in prod_cat1 else 2
     signed = "B" if prod in prod_cat1 else "H"
 
+    # Extract the scaling factor and grid dimensions
     fac = int(header.split("E-")[1].split("INT")[0])
     dimsplit = header.split("x")
     dims = np.array((dimsplit[0][-4:], dimsplit[1][:4]), dtype=int)[::-1]
 
+    # Read binary data
     data = array.array(signed)
     data.fromfile(f, size_data // nbyte)
-
     f.close()
 
+    # Reshape and transpose data to match grid layout
     data = np.array(np.reshape(data, dims, order="F"), dtype=float).T
 
+    # Define no-echo values based on product type
     if prod == "SF":
         no_echo_value = 0.0
     elif prod in prod_cat2:
@@ -1908,21 +1921,24 @@ def import_dwd_radolan(filename, product):
     else:
         no_echo_value = -32.5
 
+    # Apply scaling and handle missing data
     if prod in prod_cat1:
         data[data >= 249] = np.nan
         data = data / 2.0 + no_echo_value
     elif prod in prod_cat2:
         data, no_data_mask = _identify_info_bits(data)
         if prod == "AY":
-            data = (10 ** (fac * -1)) * data / 2.0 + no_echo_value
+            data = (10 ** (-fac)) * data / 2.0 + no_echo_value
         else:
-            data = (10 ** (fac * -1)) * data + no_echo_value
+            data = (10 ** (-fac)) * data + no_echo_value
     else:
         data, no_data_mask = _identify_info_bits(data)
-        data = (10 ** (fac * -1)) * data / 2.0 + no_echo_value
+        data = (10 ** (-fac)) * data / 2.0 + no_echo_value
 
+    # Mask out no-data values
     data[no_data_mask] = np.nan
 
+    # Load geospatial metadata
     geodata = _import_dwd_geodata(product, dims)
     metadata = geodata
 
@@ -1930,27 +1946,47 @@ def import_dwd_radolan(filename, product):
 
 
 def _identify_info_bits(data):
+    """
+    Identifies and processes information bits embedded in RADOLAN data values.
 
-    # clutter
+    This function decodes metadata flags embedded in the RADOLAN data array, such as:
+    - Clutter (bit 15)
+    - Negative values (bit 14)
+    - No data (bit 13)
+    - Secondary data (bit 12)
+
+    Parameters
+    ----------
+    data : np.ndarray
+        The raw RADOLAN data array containing encoded information bits.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - data : np.ndarray
+            The cleaned and decoded data array.
+        - no_data_mask : np.ndarray
+            A boolean mask indicating positions of no-data values.
+    """
+    # Identify and remove clutter (bit 15)
     clutter_mask = data - 2**15 >= 0.0
     data[clutter_mask] = 0
 
-    # negative values
+    # Identify and convert negative values (bit 14)
     mask = data - 2**14 >= 0.0
     data[mask] -= 2**14
 
-    # no data
+    # Identify no-data values (bit 13)
     no_data_mask = data - 2**13 == 2500.0
-
     if np.sum(no_data_mask) == 0.0:
-
         no_data_mask = data - 2**13 == 0.0
-
     data[no_data_mask] = 0.0
 
-    # secondary data
+    # Identify and remove secondary data flag (bit 12)
     data[data - 2**12 > 0.0] -= 2**12
 
+    # Apply negative sign to previously marked negative values
     data[mask] *= -1
 
     return data, no_data_mask
@@ -1958,41 +1994,66 @@ def _identify_info_bits(data):
 
 def _import_dwd_geodata(product, dims):
     """
-    Geodata for RADOLAN products. Hard-coded here, cause there is only basic
-    information about the projection in the header of the binary RADOLAN
-    files.
-    """
+    Generate geospatial metadata for RADOLAN precipitation products.
 
+    Since RADOLAN binary files contain only limited projection metadata,
+    this function provides hard-coded geospatial definitions and calculates
+    the bounding box of the data grid based on the product type and dimensions.
+
+    Parameters
+    ----------
+    product : str
+        The RADOLAN product code (e.g., 'RX', 'WX', 'WN', etc.).
+    dims : tuple of int
+        The dimensions of the data grid (rows, columns).
+
+    Returns
+    -------
+    geodata : dict
+        A dictionary containing:
+        - 'projection': PROJ.4 string defining the stereographic projection.
+        - 'xpixelsize', 'ypixelsize': Pixel size in meters.
+        - 'cartesian_unit': Unit of the coordinate system (meters).
+        - 'yorigin': Origin of the y-axis ('upper').
+        - 'x1', 'y1': Coordinates of the lower-left corner.
+        - 'x2', 'y2': Coordinates of the upper-right corner.
+    """
     geodata = {}
 
-    projdef = "+a=6378137.0 +b=6356752.0 +proj=stere +lat_ts=60.0 +lat_0=90.0 +lon_0=10.0 +x_0=0 +y_0=0"
+    # Define stereographic projection used by RADOLAN
+    projdef = (
+        "+a=6378137.0 +b=6356752.0 +proj=stere +lat_ts=60.0 "
+        "+lat_0=90.0 +lon_0=10.0 +x_0=0 +y_0=0"
+    )
     geodata["projection"] = projdef
-
     geodata["xpixelsize"] = 1000.0
     geodata["ypixelsize"] = 1000.0
     geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
-    prod_cat1 = ["RX", "RY", "RW"]  # 900x900
-    prod_cat2 = ["WN"]  # 1200x1100
-    prod_cat3 = ["WX", "YW"]  # 1100x900
+    # Define product categories and their reference points
+    prod_cat1 = ["RX", "RY", "RW"]
+    prod_cat2 = ["WN"]
+    prod_cat3 = ["WX", "YW"]
 
-    if product in prod_cat1:  # lower left
-        lon = 3.604382995
-        lat = 46.95361536
-    if product in prod_cat2:  # lower left
-        lon = 3.566994635
-        lat = 45.69642538
-    if product in prod_cat3:  # center
-        lon = 9.0
-        lat = 51.0
+    # Assign reference coordinates based on product type
+    if product in prod_cat1:
+        lon, lat = 3.604382995, 46.95361536
+    elif product in prod_cat2:
+        lon, lat = 3.566994635, 45.69642538
+    elif product in prod_cat3:
+        lon, lat = 9.0, 51.0
 
+    # Project reference coordinates to Cartesian system
     pr = pyproj.Proj(projdef)
     x1, y1 = pr(lon, lat)
+
+    # Adjust origin for center-based products
     if product in prod_cat3:
         x1 -= dims[0] * 1000 // 2
         y1 -= dims[1] * 1000 // 2 - 80000
 
+    # Calculate bounding box
     x2 = x1 + dims[0] * 1000
     y2 = y1 + dims[1] * 1000
 
