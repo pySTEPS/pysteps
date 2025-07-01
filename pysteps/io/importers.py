@@ -82,10 +82,14 @@ Available Importers
     import_odim_hdf5
     import_opera_hdf5
     import_saf_crri
+    import_dwd_hdf5
+    import_dwd_radolan
 """
 
 import gzip
 import os
+import array
+import datetime
 from functools import partial
 
 import numpy as np
@@ -1615,5 +1619,447 @@ def _import_saf_crri_geodata(filename):
     geodata["institution"] = ds_rainfall.getncattr("institution")
 
     ds_rainfall.close()
+
+    return geodata
+
+
+@postprocess_import()
+def import_dwd_hdf5(filename, qty="RATE", **kwargs):
+    """
+    Import a DWD precipitation product field (and optionally the quality
+    field) from a HDF5 file conforming to the ODIM specification
+
+    Parameters
+    ----------
+    filename: str
+        Name of the file to import.
+    qty: {'RATE', 'ACRR', 'DBZH'}
+        The quantity to read from the file. The currently supported identitiers
+        are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
+        accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
+        is 'RATE'.
+
+    {extra_kwargs_doc}
+
+    Returns
+    -------
+    out: tuple
+        A three-element tuple containing the DWD preciptiaton product with the
+        requested quantity and the associated quality field and metadata. The
+        quality field is read from the file if it contains a dataset whose
+        quantity identifier is 'QIND'.
+    """
+    if not H5PY_IMPORTED:
+        raise MissingOptionalDependency(
+            "h5py package is required to import "
+            "radar reflectivity composites using ODIM HDF5 specification "
+            "but it is not installed"
+        )
+
+    if not PYPROJ_IMPORTED:
+        raise MissingOptionalDependency(
+            "pyproj package is required to import "
+            "DWD's radar reflectivity composite "
+            "but it is not installed"
+        )
+
+    if qty not in ["ACRR", "DBZH", "RATE"]:
+        raise ValueError(
+            "unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'"
+        )
+
+    # Read the data
+    f = h5py.File(filename, "r")
+    precip = None
+    quality = None
+
+    file_content = {}
+    _read_hdf5_cont(f, file_content)
+    f.close()
+
+    data_prop = {}
+    _get_whatgrp(file_content, data_prop)
+
+    arr = file_content["dataset1"]["data1"]["data"]
+    mask_n = arr == data_prop["nodata"]
+    mask_u = arr == data_prop["undetect"]
+    mask = np.logical_and(~mask_u, ~mask_n)
+
+    # Read the precipitation variable and quantity from the data
+    if data_prop["quantity"] == qty:
+        precip = np.empty(arr.shape)
+        precip[mask] = arr[mask] * data_prop["gain"] + data_prop["offset"]
+        if qty != "DBZH":
+            precip[mask_u] = data_prop["offset"]
+        else:
+            precip[mask_u] = -32.5
+        precip[mask_n] = np.nan
+    elif data_prop["quantity"] == "QIND":
+        quality = np.empty(arr.shape, dtype=float)
+        quality[mask] = arr[mask]
+        quality[~mask] = np.nan
+
+    if precip is None:
+        raise IOError("requested quantity %s not found" % qty)
+
+    # Get the projection and grid information from the HDF5 file
+    pr = pyproj.Proj(file_content["where"]["projdef"])
+    ll_x, ll_y = pr(file_content["where"]["LL_lon"], file_content["where"]["LL_lat"])
+    ur_x, ur_y = pr(file_content["where"]["UR_lon"], file_content["where"]["UR_lat"])
+
+    if len([k for k in file_content["where"].keys() if "_lat" in k]) == 4:
+        lr_x, lr_y = pr(
+            file_content["where"]["LR_lon"], file_content["where"]["LR_lat"]
+        )
+        ul_x, ul_y = pr(
+            file_content["where"]["UL_lon"], file_content["where"]["UL_lat"]
+        )
+        x1 = min(ll_x, ul_x)
+        y1 = min(ll_y, lr_y)
+        x2 = max(lr_x, ur_x)
+        y2 = max(ul_y, ur_y)
+    else:
+        x1 = ll_x
+        y1 = ll_y
+        x2 = ur_x
+        y2 = ur_y
+
+    # Get the grid cell size
+    if (
+        "where" in file_content["dataset1"].keys()
+        and "xscale" in file_content["dataset1"]["where"].keys()
+    ):
+        xpixelsize = file_content["dataset1"]["where"]["xscale"]
+        ypixelsize = file_content["dataset1"]["where"]["yscale"]
+    elif "xscale" in file_content["where"].keys():
+        xpixelsize = file_content["where"]["xscale"]
+        ypixelsize = file_content["where"]["yscale"]
+    else:
+        xpixelsize = None
+        ypixelsize = None
+
+    # Get the unit and transform
+    if qty == "ACRR":
+        unit = "mm"
+        transform = None
+    elif qty == "DBZH":
+        unit = "dBZ"
+        transform = "dB"
+    else:
+        unit = "mm/h"
+        transform = None
+
+    # Extract the time step
+    startdate = datetime.datetime.strptime(
+        file_content["dataset1"]["what"]["startdate"]
+        + file_content["dataset1"]["what"]["starttime"],
+        "%Y%m%d%H%M%S",
+    )
+    enddate = datetime.datetime.strptime(
+        file_content["dataset1"]["what"]["enddate"]
+        + file_content["dataset1"]["what"]["endtime"],
+        "%Y%m%d%H%M%S",
+    )
+    accutime = (enddate - startdate).total_seconds() / 60.0
+
+    # Finally, fill out the metadata
+    metadata = {
+        "projection": file_content["where"]["projdef"],
+        "ll_lon": file_content["where"]["LL_lon"],
+        "ll_lat": file_content["where"]["LL_lat"],
+        "ur_lon": file_content["where"]["UR_lon"],
+        "ur_lat": file_content["where"]["UR_lat"],
+        "x1": x1,
+        "y1": y1,
+        "x2": x2,
+        "y2": y2,
+        "xpixelsize": xpixelsize,
+        "ypixelsize": ypixelsize,
+        "cartesian_unit": "m",
+        "yorigin": "upper",
+        "institution": file_content["what"]["source"],
+        "accutime": accutime,
+        "unit": unit,
+        "transform": transform,
+        "zerovalue": np.nanmin(precip),
+        "threshold": _get_threshold_value(precip),
+    }
+
+    metadata.update(kwargs)
+
+    f.close()
+
+    return precip, quality, metadata
+
+
+def _read_hdf5_cont(f, d):
+    """
+    Recursively read nested dictionaries from a HDF5 file.
+
+
+    Parameters:
+    -----------
+    f : h5py.Group or h5py.File
+        The current group or file object from which to read data.
+    d : dict
+        The dictionary to populate with the contents of the HDF5 group.
+
+    Returns:
+    --------
+    None.
+    """
+    # set simple types of hdf content
+    group_type = h5py._hl.group.Group
+
+    for key, value in f.items():
+        if isinstance(value, group_type):
+            d[key] = {}
+            if len(list(value.items())) > 0:
+                # Recurse into non-empty group
+                _read_hdf5_cont(value, d[key])
+            else:
+                # Handle empty group with attributes
+                d[key] = {attr: value.attrs[attr] for attr in value.attrs}
+                d[key] = {
+                    k: v.decode() if type(v) == np.bytes_ else v
+                    for k, v in d[key].items()
+                }
+
+        else:
+            try:
+                d[key] = np.array(value)
+            except TypeError:
+                d[key] = np.array(value.astype(float))
+            except:
+                d[key] = value.value
+
+    return
+
+
+def _get_whatgrp(d, g):
+    """
+    Recursively get the what group containing the data field properties.
+    """
+    if "what" in d.keys():
+        if "gain" in d["what"].keys():
+            g.update(d["what"])
+        else:
+            k = [k for k in d.keys() if "data" in k][0]
+            _get_whatgrp(d[k], g)
+    else:
+        raise DataModelError(
+            "Non ODIM compliant file: "
+            "no what group found from {} "
+            "or its subgroups".format(d.keys()[0])
+        )
+    return
+
+
+@postprocess_import()
+def import_dwd_radolan(filename, product):
+    """
+    Import a RADOLAN precipitation product from a binary file.
+
+    Parameters
+    ----------
+    filename: str
+        Name of the file to import.
+    product: {'WX','RX','EX','RY','RW','AY','RS','YW','WN'}
+        The specific product to read from the file. Please see
+        https://www.dwd.de/DE/leistungen/radolan/radolan_info/
+        radolan_radvor_op_komposit_format_pdf.pdf
+        for a detailed description.
+
+    {extra_kwargs_doc}
+
+    Returns
+    -------
+    out: tuple
+        A three-element tuple containing the precipitation field in mm/h imported
+        from a MeteoSwiss gif file and the associated quality field and metadata.
+        The quality field is currently set to None.
+    """
+    # Determine file size and header size
+    size_file = os.path.getsize(filename)
+    size_data = np.round(size_file, -3)
+    size_header = size_file - size_data
+
+    # Read the file
+    f = open(filename, "rb")
+    header = f.read(size_header).decode("utf-8")
+
+    # Check if the product code is the same as the provided product variable
+    prod = header[:2]
+    assert prod == product, "Product not in File!"
+
+    # Define product categories
+    prod_cat1 = np.array(["WX", "RX"])
+    prod_cat2 = np.array(["RY", "RW", "YW"])
+
+    # Determine byte size and data type
+    nbyte = 1 if prod in prod_cat1 else 2
+    signed = "B" if prod in prod_cat1 else "H"
+
+    # Extract the scaling factor and grid dimensions
+    fac = int(header.split("E-")[1].split("INT")[0])
+    dimsplit = header.split("x")
+    dims = np.array((dimsplit[0][-4:], dimsplit[1][:4]), dtype=int)[::-1]
+
+    # Read binary data
+    data = array.array(signed)
+    data.fromfile(f, size_data // nbyte)
+    f.close()
+
+    # Reshape and transpose data to match grid layout
+    data = np.array(np.reshape(data, dims, order="F"), dtype=float).T
+
+    # Define no-echo values based on product type
+    if prod == "SF":
+        no_echo_value = 0.0
+    elif prod in prod_cat2:
+        no_echo_value = -0.01
+    else:
+        no_echo_value = -32.5
+
+    # Apply scaling and handle missing data
+    if prod in prod_cat1:
+        data[data >= 249] = np.nan
+        data = data / 2.0 + no_echo_value
+    elif prod in prod_cat2:
+        data, no_data_mask = _identify_info_bits(data)
+        if prod == "AY":
+            data = (10 ** (-fac)) * data / 2.0 + no_echo_value
+        else:
+            data = (10 ** (-fac)) * data + no_echo_value
+    else:
+        data, no_data_mask = _identify_info_bits(data)
+        data = (10 ** (-fac)) * data / 2.0 + no_echo_value
+
+    # Mask out no-data values
+    data[no_data_mask] = np.nan
+
+    # Load geospatial metadata
+    geodata = _import_dwd_geodata(product, dims)
+    metadata = geodata
+
+    return data, None, metadata
+
+
+def _identify_info_bits(data):
+    """
+    Identifies and processes information bits embedded in RADOLAN data values.
+
+    This function decodes metadata flags embedded in the RADOLAN data array, such as:
+    - Clutter (bit 15)
+    - Negative values (bit 14)
+    - No data (bit 13)
+    - Secondary data (bit 12)
+
+    Parameters
+    ----------
+    data : np.ndarray
+        The raw RADOLAN data array containing encoded information bits.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - data : np.ndarray
+            The cleaned and decoded data array.
+        - no_data_mask : np.ndarray
+            A boolean mask indicating positions of no-data values.
+    """
+    # Identify and remove clutter (bit 15)
+    clutter_mask = data - 2**15 >= 0.0
+    data[clutter_mask] = 0
+
+    # Identify and convert negative values (bit 14)
+    mask = data - 2**14 >= 0.0
+    data[mask] -= 2**14
+
+    # Identify no-data values (bit 13)
+    no_data_mask = data - 2**13 == 2500.0
+    if np.sum(no_data_mask) == 0.0:
+        no_data_mask = data - 2**13 == 0.0
+    data[no_data_mask] = 0.0
+
+    # Identify and remove secondary data flag (bit 12)
+    data[data - 2**12 > 0.0] -= 2**12
+
+    # Apply negative sign to previously marked negative values
+    data[mask] *= -1
+
+    return data, no_data_mask
+
+
+def _import_dwd_geodata(product, dims):
+    """
+    Generate geospatial metadata for RADOLAN precipitation products.
+
+    Since RADOLAN binary files contain only limited projection metadata,
+    this function provides hard-coded geospatial definitions and calculates
+    the bounding box of the data grid based on the product type and dimensions.
+
+    Parameters
+    ----------
+    product : str
+        The RADOLAN product code (e.g., 'RX', 'WX', 'WN', etc.).
+    dims : tuple of int
+        The dimensions of the data grid (rows, columns).
+
+    Returns
+    -------
+    geodata : dict
+        A dictionary containing:
+        - 'projection': PROJ.4 string defining the stereographic projection.
+        - 'xpixelsize', 'ypixelsize': Pixel size in meters.
+        - 'cartesian_unit': Unit of the coordinate system (meters).
+        - 'yorigin': Origin of the y-axis ('upper').
+        - 'x1', 'y1': Coordinates of the lower-left corner.
+        - 'x2', 'y2': Coordinates of the upper-right corner.
+    """
+    geodata = {}
+
+    # Define stereographic projection used by RADOLAN
+    projdef = (
+        "+a=6378137.0 +b=6356752.0 +proj=stere +lat_ts=60.0 "
+        "+lat_0=90.0 +lon_0=10.0 +x_0=0 +y_0=0"
+    )
+    geodata["projection"] = projdef
+    geodata["xpixelsize"] = 1000.0
+    geodata["ypixelsize"] = 1000.0
+    geodata["cartesian_unit"] = "m"
+    geodata["yorigin"] = "upper"
+
+    # Define product categories and their reference points
+    prod_cat1 = ["RX", "RY", "RW"]
+    prod_cat2 = ["WN"]
+    prod_cat3 = ["WX", "YW"]
+
+    # Assign reference coordinates based on product type
+    if product in prod_cat1:
+        lon, lat = 3.604382995, 46.95361536
+    elif product in prod_cat2:
+        lon, lat = 3.566994635, 45.69642538
+    elif product in prod_cat3:
+        lon, lat = 9.0, 51.0
+
+    # Project reference coordinates to Cartesian system
+    pr = pyproj.Proj(projdef)
+    x1, y1 = pr(lon, lat)
+
+    # Adjust origin for center-based products
+    if product in prod_cat3:
+        x1 -= dims[0] * 1000 // 2
+        y1 -= dims[1] * 1000 // 2 - 80000
+
+    # Calculate bounding box
+    x2 = x1 + dims[0] * 1000
+    y2 = y1 + dims[1] * 1000
+
+    geodata["x1"] = x1
+    geodata["y1"] = y1
+    geodata["x2"] = x2
+    geodata["y2"] = y2
 
     return geodata
