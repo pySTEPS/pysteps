@@ -8,7 +8,7 @@ Dependencies
 
 The pysteps package needs the following dependencies
 
-* `python >=3.10, <3.13 <http://www.python.org/>`_ (lower or higher versions may work but are not tested).
+* `python >=3.11, <3.14 <http://www.python.org/>`_ (lower or higher versions may work but are not tested).
 * `jsonschema <https://pypi.org/project/jsonschema/>`_
 * `matplotlib <http://matplotlib.org/>`_
 * `netCDF4 <https://pypi.org/project/netCDF4/>`_
@@ -61,10 +61,10 @@ a community-driven package repository for conda packages.
 
 To install pysteps with mamba in a new environment, run in a terminal::
 
-    mamba create -n pysteps python=3.10
+    mamba create -n pysteps python=3.11
     mamba activate pysteps
 
-This will create and activate the new python environment called 'pysteps' using python 3.10.
+This will create and activate the new python environment called 'pysteps' using python 3.11.
 The next step is to add the conda-forge channel where the pysteps package is located::
 
     conda config --env --prepend channels conda-forge
@@ -92,9 +92,9 @@ First, make sure that Rosetta 2 is installed::
 
     softwareupdate --install-rosetta
 
-Use mamba to create a new environment called 'pysteps' for intel packages with python 3.10::
+Use mamba to create a new environment called 'pysteps' for intel packages with python 3.11::
 
-    CONDA_SUBDIR=osx-64 mamba create -n pysteps python=3.10
+    CONDA_SUBDIR=osx-64 mamba create -n pysteps python=3.11
     mamba activate pysteps
 
 Make sure that conda/mamba commands in this environment use intel packages::
