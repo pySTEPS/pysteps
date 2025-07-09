@@ -140,13 +140,13 @@ the following error during the installation::
 To solve this issue, obtain the latest gcc version with
 Homebrew_ that has multi-threading enabled::
 
-    brew install gcc
+    brew install gcc@13
 
 .. _Homebrew: https://brew.sh/
 
 To make sure that the installer uses the homebrew's gcc, export the
 following environmental variables in the terminal
-(supposing that gcc version 8 was installed)::
+(supposing that gcc version 13 was installed)::
 
     export CC=gcc-13
     export CXX=g++-13
