@@ -17,6 +17,7 @@ Support postprocessing types:
     get_method
 """
 import importlib
+from importlib.metadata import entry_points
 
 from pysteps.postprocessing import diagnostics, ensemblestats
 from pprint import pprint
@@ -82,28 +83,19 @@ def discover_postprocessors():
     dictionary in 'pysteps.postprocessing.interface' containing the available postprocessors.
     """
 
-    # The pkg resources needs to be reloaded to detect new packages installed during
-    # the execution of the python application. For example, when the plugins are
-    # installed during the tests
-    import pkg_resources
-
-    importlib.reload(pkg_resources)
-
     # Discover the postprocessors available in the plugins
     for plugintype in ["diagnostic", "ensemblestat"]:
-        for entry_point in pkg_resources.iter_entry_points(
-            group=f"pysteps.plugins.{plugintype}", name=None
-        ):
+        for entry_point in entry_points(group=f"pysteps.plugins.{plugintype}"):
             _postprocessors = entry_point.load()
 
             postprocessors_function_name = _postprocessors.__name__
 
-            if plugintype in entry_point.module_name:
+            if plugintype in entry_point.module:
                 add_postprocessor(
                     postprocessors_function_name,
                     _postprocessors,
                     f"{plugintype}s",
-                    entry_point.attrs,
+                    entry_point.attr,
                 )
 
 
