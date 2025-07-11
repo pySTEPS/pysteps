@@ -47,9 +47,7 @@ def discover_importers():
     dictionary containing the available importers.
     """
     # Backward compatibility with previous entry point 'pysteps.plugins.importers' next to 'pysteps.plugins.importer'
-    for entry_point in list(
-        entry_points(group="pysteps.plugins.importer")
-    ) + list(
+    for entry_point in list(entry_points(group="pysteps.plugins.importer")) + list(
         entry_points(group="pysteps.plugins.importers")
     ):
         _importer = entry_point.load()
