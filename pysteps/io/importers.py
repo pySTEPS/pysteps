@@ -1790,6 +1790,17 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
 def _read_hdf5_cont(f, d):
     """
     Recursively read nested dictionaries from a HDF5 file.
+
+    Parameters
+    ----------
+    f: h5py file object
+        HDF5 data to read and store in output dictionary.
+    d: dictionary
+        Output dictionary that contains data of the HDF5 file.
+
+    Returns
+    -------
+    None.
     """
 
     # set simple types of hdf content
@@ -1823,10 +1834,6 @@ def _read_hdf5_cont(f, d):
 
                 d[key] = np.array(value.astype(float))
 
-            except:
-
-                d[key] = value.value
-
     return
 
 
@@ -1850,7 +1857,7 @@ def _get_whatgrp(d, g):
 
 
 @postprocess_import()
-def import_dwd_radolan(filename, product):
+def import_dwd_radolan(filename, product_name):
     """
     Import a RADOLAN precipitation product from a binary file.
 
@@ -1858,7 +1865,7 @@ def import_dwd_radolan(filename, product):
     ----------
     filename: str
         Name of the file to import.
-    product: {'WX','RX','EX','RY','RW','AY','RS','YW','WN'}
+    product_name: {'WX','RX','EX','RY','RW','AY','RS','YW','WN'}
         The specific product to read from the file. Please see
         https://www.dwd.de/DE/leistungen/radolan/radolan_info/
         radolan_radvor_op_komposit_format_pdf.pdf
@@ -1873,27 +1880,34 @@ def import_dwd_radolan(filename, product):
         from a MeteoSwiss gif file and the associated quality field and metadata.
         The quality field is currently set to None.
     """
+    # get file and header size
     size_file = os.path.getsize(filename)
     size_data = np.round(size_file, -3)
     size_header = size_file - size_data
 
+    # open file and read header
     f = open(filename, "rb")
     header = f.read(size_header).decode("utf-8")
 
-    prod = header[:2]
+    # get product name from header
+    product = header[:2]
 
-    assert prod == product, "Product not in File!"
+    # check if its the correct product
+    assert product == product_name, "Product not in File!"
 
-    prod_cat1 = np.array(["WX", "RX"])
-    prod_cat2 = np.array(["RY", "RW", "YW"])
+    # distinguish between products saved with 8 or 16bit
+    product_cat1 = np.array(["WX", "RX"])
+    product_cat2 = np.array(["RY", "RW", "YW"])
 
-    nbyte = 1 if prod in prod_cat1 else 2
-    signed = "B" if prod in prod_cat1 else "H"
+    nbyte = 1 if product in product_cat1 else 2
+    signed = "B" if product in product_cat1 else "H"
 
+    # get precision and dimensions
     fac = int(header.split("E-")[1].split("INT")[0])
     dimsplit = header.split("x")
     dims = np.array((dimsplit[0][-4:], dimsplit[1][:4]), dtype=int)[::-1]
 
+    # read data
     data = array.array(signed)
     data.fromfile(f, size_data // nbyte)
 
@@ -1901,19 +1915,20 @@ def import_dwd_radolan(filename, product):
 
     data = np.array(np.reshape(data, dims, order="F"), dtype=float).T
 
-    if prod == "SF":
+    # convert data
+    if product == "SF":
         no_echo_value = 0.0
-    elif prod in prod_cat2:
+    elif product in product_cat2:
         no_echo_value = -0.01
     else:
         no_echo_value = -32.5
 
-    if prod in prod_cat1:
+    if product in product_cat1:
         data[data >= 249] = np.nan
         data = data / 2.0 + no_echo_value
-    elif prod in prod_cat2:
+    elif product in product_cat2:
         data, no_data_mask = _identify_info_bits(data)
-        if prod == "AY":
+        if product == "AY":
             data = (10 ** (fac * -1)) * data / 2.0 + no_echo_value
         else:
             data = (10 ** (fac * -1)) * data + no_echo_value
@@ -1923,13 +1938,31 @@ def import_dwd_radolan(filename, product):
 
     data[no_data_mask] = np.nan
 
-    geodata = _import_dwd_geodata(product, dims)
+    # get geo data
+    geodata = _import_dwd_geodata(product_name, dims)
     metadata = geodata
 
     return data, None, metadata
 
 
 def _identify_info_bits(data):
+    """
+    Identify additional information about clutter, negative values,
+    no data, and secondary data, since these information are encoded
+    in the Radolan format by specific bits.
+    Further, create a no data mask.
+
+    Parameters
+    ----------
+    data: array-like
+        Raw input data from the Radolan file.
+
+    Returns
+    -------
+    out: tuple
+        A two-element tuple containing the cleared input data and the
+        no data mask.
+    """
 
     # clutter
     clutter_mask = data - 2**15 >= 0.0
@@ -1956,40 +1989,57 @@ def _identify_info_bits(data):
     return data, no_data_mask
 
 
-def _import_dwd_geodata(product, dims):
+def _import_dwd_geodata(product_name, dims):
     """
-    Geodata for RADOLAN products. Hard-coded here, cause there is only basic
-    information about the projection in the header of the binary RADOLAN
-    files.
+    Get basic geodata for RADOLAN products. Hard-coded here, cause there
+    is only basic information about the projection in the header of the
+    files in RADOLAN format.
+
+    Parameters
+    ----------
+    product_name: str
+        Namee of the specific RADOLAN product.
+    dims: array-like
+        Dimensions in x- and y-direction read from file header.
+
+    Returns
+    -------
+    out: ditionary
+        Dictionary containing the geodata.
     """
 
     geodata = {}
 
+    # WGS84 projection definition
     projdef = "+a=6378137.0 +b=6356752.0 +proj=stere +lat_ts=60.0 +lat_0=90.0 +lon_0=10.0 +x_0=0 +y_0=0"
     geodata["projection"] = projdef
 
+    # Spatial resolution of 1km
     geodata["xpixelsize"] = 1000.0
     geodata["ypixelsize"] = 1000.0
     geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
-    prod_cat1 = ["RX", "RY", "RW"]  # 900x900
-    prod_cat2 = ["WN"]  # 1200x1100
-    prod_cat3 = ["WX", "YW"]  # 1100x900
+    # In the Radolan format, different products have different domain sizes
+    product_cat1 = ["RX", "RY", "RW"]  # 900x900
+    product_cat2 = ["WN"]  # 1200x1100
+    product_cat3 = ["WX", "YW"]  # 1100x900
 
-    if product in prod_cat1:  # lower left
+    # define coordinates of ll corner
+    if product_name in product_cat1:  # lower left
         lon = 3.604382995
         lat = 46.95361536
-    if product in prod_cat2:  # lower left
+    if product_name in product_cat2:  # lower left
         lon = 3.566994635
         lat = 45.69642538
-    if product in prod_cat3:  # center
+    if product_name in product_cat3:  # center
         lon = 9.0
         lat = 51.0
 
+    # get corners in carthesian coordinates
     pr = pyproj.Proj(projdef)
     x1, y1 = pr(lon, lat)
-    if product in prod_cat3:
+    if product_name in product_cat3:
         x1 -= dims[0] * 1000 // 2
         y1 -= dims[1] * 1000 // 2 - 80000
 

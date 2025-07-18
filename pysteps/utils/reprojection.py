@@ -131,14 +131,15 @@ def reproject_grids(src_array, dst_array, metadata_src, metadata_dst):
 
 def unstructured2regular(src_array, metadata_src, metadata_dst):
     """
-    Reproject unstructured data onto a regular grid.
+    Reproject unstructured data onto a regular grid on the assumption that
+    both src data and dst grid have the same projection.
 
     Parameters
     ----------
-    src_array: xarray
-        xarray of shape (t, n_ens, ngridcells) containing a time
-        series of precipitation enesemble forecasts. These precipitation fields
-        will be reprojected.
+    src_array: array-like
+        Three-dimensional array of shape (t, n_ens, n_gridcells) containing a
+        time series of precipitation ensemble forecasts. These precipitation
+        fields will be reprojected.
     metadata_src: dict
         Metadata dictionary containing the projection, clon, clat, and ngridcells
         and attributes of the src_array as described in the documentation of
@@ -149,8 +150,8 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
 
     Returns
     -------
-    r_rprj: xarray
-        Three-dimensional array of shape (t, n_ens, x, y) containing the
+    r_rprj: array-like
+        Four-dimensional array of shape (t, n_ens, x, y) containing the
         precipitation fields of src_array, but reprojected to the domain
         of dst_array.
     metadata: dict
@@ -164,8 +165,13 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
             "but it is not installed"
         )
 
+    if not "clon" in metadata_src.keys():
+        raise KeyError("Center longitude (clon) is missing in metadata_src")
+    if not "clat" in metadata_src.keys():
+        raise KeyError("Center latitude (clat) is missing in metadata_src")
+
     # Get number of grid cells
-    Nc = src_array["longitude"].shape[0]
+    Nc = metadata_src["clon"].shape[0]
     ic_in = np.arange(Nc)
 
     # Get cartesian coordinates of destination grid
@@ -181,50 +187,36 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
         metadata_dst["ypixelsize"],
     )
 
+    # Create destination grid
     if metadata_dst["yorigin"] == "upper":
         y_dst = y_dst[::-1]
     xx_dst, yy_dst = np.meshgrid(x_dst, y_dst)
     s_out = yy_dst.shape
-    P_out = np.array((xx_dst.flatten(), yy_dst.flatten())).T
 
     # Extract the grid info from src_array assuming the same projection of src and dst
     pr = pyproj.Proj(metadata_dst["projection"])
-    x_src, y_src = pr(src_array["longitude"].values, src_array["latitude"].values)
-    P_in = np.stack((x_src, y_src)).T
+    x_src, y_src = pr(metadata_src["clon"], metadata_src["clat"])
 
+    # Create array of x-y pairs for interpolation
+    P_in = np.stack((x_src, y_src)).T
+    P_out = np.array((xx_dst.flatten(), yy_dst.flatten())).T
+
+    # Nearest neighbor interpolation of x-y pairs
     ic_out = (
         griddata(P_in, ic_in.flatten(), P_out, method="nearest")
         .reshape(s_out)
         .astype(int)
     )
 
-    data_rprj = np.array(
+    # Apply interpolation on all time steps and ensemble members
+    r_rprj = np.array(
         [
-            [src_array[i, j].values[ic_out] for j in range(src_array.shape[1])]
+            [src_array[i, j][ic_out] for j in range(src_array.shape[1])]
             for i in range(src_array.shape[0])
         ]
     )
-    dims = ["time", "ens_no", "south_north", "west_east"]
-    lon, lat = pr(xx_dst, yy_dst, inverse=True)
-    coords = {
-        "time": src_array["time"],
-        "ens_no": src_array["ens_no"],
-        "west_east": np.arange(0, len(x_dst), 1),
-        "south_north": np.arange(0, len(y_dst), 1),
-        "x": ("west_east", np.arange(0, len(x_dst), 1), {"units": "1"}),
-        "y": ("south_north", np.arange(0, len(y_dst), 1), {"units": "1"}),
-        "projection_x_coordinate": ("west_east", x_dst, {"units": "m"}),
-        "projection_y_coordinate": ("south_north", y_dst, {"units": "m"}),
-        "longitude": (
-            ["south_north", "west_east"],
-            lon,
-            {"units": "degrees_north"},
-        ),
-        "latitude": (["south_north", "west_east"], lat, {"units": "degrees_east"}),
-    }
-    xr_rprj = xr.DataArray(data=data_rprj, dims=dims, coords=coords)
 
-    # Update the metadata
+    # Update the src metadata
     metadata = metadata_src.copy()
 
     for key in [
@@ -240,4 +232,4 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
     ]:
         metadata[key] = metadata_dst[key]
 
-    return xr_rprj, metadata
+    return r_rprj, metadata
