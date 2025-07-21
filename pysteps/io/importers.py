@@ -1830,8 +1830,6 @@ def _read_hdf5_cont(f, d):
                 d[key] = np.array(value)
             except TypeError:
                 d[key] = np.array(value.astype(float))
-            except:
-                d[key] = value.value
 
     return
 
@@ -1856,7 +1854,7 @@ def _get_whatgrp(d, g):
 
 
 @postprocess_import()
-def import_dwd_radolan(filename, product):
+def import_dwd_radolan(filename, product_name):
     """
     Import a RADOLAN precipitation product from a binary file.
 
@@ -1864,7 +1862,7 @@ def import_dwd_radolan(filename, product):
     ----------
     filename: str
         Name of the file to import.
-    product: {'WX','RX','EX','RY','RW','AY','RS','YW','WN'}
+    product_name: {'WX','RX','EX','RY','RW','AY','RS','YW','WN'}
         The specific product to read from the file. Please see
         https://www.dwd.de/DE/leistungen/radolan/radolan_info/
         radolan_radvor_op_komposit_format_pdf.pdf
@@ -1884,17 +1882,19 @@ def import_dwd_radolan(filename, product):
     size_data = np.round(size_file, -3)
     size_header = size_file - size_data
 
-    # Read the file
+    # open file and read header
     f = open(filename, "rb")
     header = f.read(size_header).decode("utf-8")
 
-    # Check if the product code is the same as the provided product variable
-    prod = header[:2]
-    assert prod == product, "Product not in File!"
+    # get product name from header
+    product = header[:2]
 
-    # Define product categories
-    prod_cat1 = np.array(["WX", "RX"])
-    prod_cat2 = np.array(["RY", "RW", "YW"])
+    # check if its the correct product
+    assert product == product_name, "Product not in File!"
+
+    # distinguish between products saved with 8 or 16bit
+    product_cat1 = np.array(["WX", "RX"])
+    product_cat2 = np.array(["RY", "RW", "YW"])
 
     # Determine byte size and data type
     nbyte = 1 if prod in prod_cat1 else 2
@@ -1916,18 +1916,18 @@ def import_dwd_radolan(filename, product):
     # Define no-echo values based on product type
     if prod == "SF":
         no_echo_value = 0.0
-    elif prod in prod_cat2:
+    elif product in product_cat2:
         no_echo_value = -0.01
     else:
         no_echo_value = -32.5
 
     # Apply scaling and handle missing data
-    if prod in prod_cat1:
+    if product in product_cat1:
         data[data >= 249] = np.nan
         data = data / 2.0 + no_echo_value
-    elif prod in prod_cat2:
+    elif product in product_cat2:
         data, no_data_mask = _identify_info_bits(data)
-        if prod == "AY":
+        if product == "AY":
             data = (10 ** (-fac)) * data / 2.0 + no_echo_value
         else:
             data = (10 ** (-fac)) * data + no_echo_value
@@ -1939,7 +1939,8 @@ def import_dwd_radolan(filename, product):
     data[no_data_mask] = np.nan
 
     # Load geospatial metadata
-    geodata = _import_dwd_geodata(product, dims)
+    # get geo data
+    geodata = _import_dwd_geodata(product_name, dims)
     metadata = geodata
 
     return data, None, metadata
@@ -1992,7 +1993,7 @@ def _identify_info_bits(data):
     return data, no_data_mask
 
 
-def _import_dwd_geodata(product, dims):
+def _import_dwd_geodata(product_name, dims):
     """
     Generate geospatial metadata for RADOLAN precipitation products.
 
@@ -2026,6 +2027,7 @@ def _import_dwd_geodata(product, dims):
         "+lat_0=90.0 +lon_0=10.0 +x_0=0 +y_0=0"
     )
     geodata["projection"] = projdef
+    # Spatial resolution of 1km
     geodata["xpixelsize"] = 1000.0
     geodata["ypixelsize"] = 1000.0
     geodata["cartesian_unit"] = "m"
@@ -2049,7 +2051,7 @@ def _import_dwd_geodata(product, dims):
     x1, y1 = pr(lon, lat)
 
     # Adjust origin for center-based products
-    if product in prod_cat3:
+    if product_name in product_cat3:
         x1 -= dims[0] * 1000 // 2
         y1 -= dims[1] * 1000 // 2 - 80000
 
