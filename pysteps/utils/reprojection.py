@@ -136,7 +136,7 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
 
     Parameters
     ----------
-    src_array: array-like
+    src_array: np.ndarray
         Three-dimensional array of shape (t, n_ens, n_gridcells) containing a
         time series of precipitation ensemble forecasts. These precipitation
         fields will be reprojected.
@@ -150,13 +150,19 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
 
     Returns
     -------
-    r_rprj: array-like
-        Four-dimensional array of shape (t, n_ens, x, y) containing the
-        precipitation fields of src_array, but reprojected to the domain
-        of dst_array.
-    metadata: dict
-        Metadata dictionary containing the projection, x- and ypixelsize, x1 and
-        y2 attributes of the reprojected src_array.
+    tuple
+        A tuple containing:
+        - r_rprj: np.ndarray
+            Four dimensional array of shape (t, n_ens, x, y) containing the
+            precipitation fields of src_array, but reprojected to the grid
+            of dst_array.
+        - metadata: dict
+            Dictionary containing geospatial metadat such as:
+            - 'projection' : PROJ.4 string defining the stereographic projection.
+            - 'xpixelsize', 'ypixelsize': Pixel size in meters.
+            - 'x1', 'y1': Carthesian coordinates of the lower-left corner.
+            - 'x2', 'y2': Carthesian coordinates of the upper-right corner.
+            - 'cartesian_unit': Unit of the coordinate system (meters).
     """
 
     if not PYPROJ_IMPORTED:
@@ -193,7 +199,7 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
     xx_dst, yy_dst = np.meshgrid(x_dst, y_dst)
     s_out = yy_dst.shape
 
-    # Extract the grid info from src_array assuming the same projection of src and dst
+    # Extract the grid info of src_array assuming the same projection of src and dst
     pr = pyproj.Proj(metadata_dst["projection"])
     x_src, y_src = pr(metadata_src["clon"], metadata_src["clat"])
 

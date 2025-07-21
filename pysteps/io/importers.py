@@ -195,7 +195,10 @@ def _get_grib_projection(grib_msg):
     _grib_shapes_of_earth[4] = {"ellps": "GRS80"}
     _grib_shapes_of_earth[5] = {"ellps": "WGS84"}
     _grib_shapes_of_earth[6] = {"R": 6371229}
-    _grib_shapes_of_earth[8] = {"datum": "WGS84", "R": 6371200}
+    _grib_shapes_of_earth[8] = {
+        "datum": "WGS84",
+        "R": 6371200,
+    }
     _grib_shapes_of_earth[9] = {"datum": "OSGB36"}
 
     # pygrib defines the ellipsoids using "a" and "b" only.
@@ -358,7 +361,10 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         lons = block_reduce(lons, window_size[1])
 
         # Update the limits
-        ul_lat, lr_lat = lats[0], lats[-1]  # Lat from North to south!
+        ul_lat, lr_lat = (
+            lats[0],
+            lats[-1],
+        )  # Lat from North to south!
         ul_lon, lr_lon = lons[0], lons[-1]
 
         precip[no_data_mask] = 0  # block_reduce does not handle nan values
@@ -367,7 +373,9 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         # Consider that if a single invalid observation is located in the block,
         # then mark that value as invalid.
         no_data_mask = block_reduce(
-            no_data_mask.astype("int"), window_size, axis=(0, 1)
+            no_data_mask.astype("int"),
+            window_size,
+            axis=(0, 1),
         ).astype(bool)
 
     lons, lats = np.meshgrid(lons, lats)
@@ -376,11 +384,15 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     if extent is not None:
         # clip domain
         ul_lon, lr_lon = _check_coords_range(
-            (extent[0], extent[1]), "longitude", (ul_lon, lr_lon)
+            (extent[0], extent[1]),
+            "longitude",
+            (ul_lon, lr_lon),
         )
 
         lr_lat, ul_lat = _check_coords_range(
-            (extent[2], extent[3]), "latitude", (ul_lat, lr_lat)
+            (extent[2], extent[3]),
+            "latitude",
+            (ul_lat, lr_lat),
         )
 
         mask_lat = (lats >= lr_lat) & (lats <= ul_lat)
@@ -747,7 +759,13 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
 
 
 @postprocess_import()
-def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwargs):
+def import_knmi_hdf5(
+    filename,
+    qty="ACRR",
+    accutime=5.0,
+    pixelsize=1000.0,
+    **kwargs,
+):
     """
     Import a precipitation or reflectivity field (and optionally the quality
     field) from a HDF5 file conforming to the KNMI Data Centre specification.
@@ -814,7 +832,9 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwa
     # the no data value. The precision of the data is two decimals (0.01 mm).
     if qty == "ACRR":
         precip = np.where(
-            precip_intermediate == 65535, np.nan, precip_intermediate / 100.0
+            precip_intermediate == 65535,
+            np.nan,
+            precip_intermediate / 100.0,
         )
 
     # In case reflectivities are imported, the no data value is 255. Values are
@@ -822,7 +842,9 @@ def import_knmi_hdf5(filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, **kwa
     # as: dBZ = 0.5 * pixel_value - 32.0 (this used to be 31.5).
     if qty == "DBZH":
         precip = np.where(
-            precip_intermediate == 255, np.nan, precip_intermediate * 0.5 - 32.0
+            precip_intermediate == 255,
+            np.nan,
+            precip_intermediate * 0.5 - 32.0,
         )
 
     if precip is None:
@@ -952,14 +974,21 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
         # load lookup table
         if product.lower() == "azc":
             lut_filename = os.path.join(
-                os.path.dirname(__file__), "mch_lut_8bit_Metranet_AZC_V104.txt"
+                os.path.dirname(__file__),
+                "mch_lut_8bit_Metranet_AZC_V104.txt",
             )
         else:
             lut_filename = os.path.join(
-                os.path.dirname(__file__), "mch_lut_8bit_Metranet_v103.txt"
+                os.path.dirname(__file__),
+                "mch_lut_8bit_Metranet_v103.txt",
             )
         lut = np.genfromtxt(lut_filename, skip_header=1)
-        lut = dict(zip(zip(lut[:, 1], lut[:, 2], lut[:, 3]), lut[:, -1]))
+        lut = dict(
+            zip(
+                zip(lut[:, 1], lut[:, 2], lut[:, 3]),
+                lut[:, -1],
+            )
+        )
 
         # apply lookup table conversion
         precip = np.zeros(len(img_rgb.getdata()))
@@ -975,7 +1004,12 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
         precip[precip < 0] = 0
         precip[precip > 9999] = np.nan
 
-    elif product.lower() in ["aqc", "cpc", "acquire ", "combiprecip"]:
+    elif product.lower() in [
+        "aqc",
+        "cpc",
+        "acquire ",
+        "combiprecip",
+    ]:
         # convert digital numbers to physical values
         img = np.array(img).astype(int)
 
@@ -1309,9 +1343,13 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
             if "what" in list(dsg[1].keys()):
                 if "quantity" in dsg[1]["what"].attrs.keys():
                     try:
-                        qty_, gain, offset, nodata, undetect = (
-                            _read_opera_hdf5_what_group(dsg[1]["what"])
-                        )
+                        (
+                            qty_,
+                            gain,
+                            offset,
+                            nodata,
+                            undetect,
+                        ) = _read_opera_hdf5_what_group(dsg[1]["what"])
                         what_grp_found = True
                     except KeyError:
                         pass
@@ -1535,11 +1573,19 @@ def import_saf_crri(filename, extent=None, **kwargs):
 
     if extent:
         xcoord = (
-            np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
+            np.arange(
+                metadata["x1"],
+                metadata["x2"],
+                metadata["xpixelsize"],
+            )
             + metadata["xpixelsize"] / 2
         )
         ycoord = (
-            np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+            np.arange(
+                metadata["y1"],
+                metadata["y2"],
+                metadata["ypixelsize"],
+            )
             + metadata["ypixelsize"] / 2
         )
         ycoord = ycoord[::-1]  # yorigin = "upper"
@@ -1643,11 +1689,27 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
 
     Returns
     -------
-    out: tuple
-        A three-element tuple containing the DWD preciptiaton product with the
-        requested quantity and the associated quality field and metadata. The
-        quality field is read from the file if it contains a dataset whose
-        quantity identifier is 'QIND'.
+    tuple
+        A tuple containing:
+        - data : np.ndarray
+            The requested precipitation product imported from a HDF5 file
+        - quality : None
+        - metadata : dict
+            Dictionary containing geospatial metadata such as:
+            - 'projection': PROJ.4 string defining the stereographic projection.
+            - 'll_lon', 'll_lat': Coordinates of the lower-left corner.
+            - 'ur_lon', 'ur_lat': Coordinates of the upper-right corner.
+            - 'x1', 'y1': Carthesian coordinates of the lower-left corner.
+            - 'x2', 'y2': Carthesian coordinates of the upper-right corner.
+            - 'xpixelsize', 'ypixelsize': Pixel size in meters.
+            - 'cartesian_unit': Unit of the coordinate system (meters).
+            - 'yorigin': Origin of the y-axis ('lower').
+            - 'institution': Originating institution ('DWD' or 'DWD Radolan')
+            - 'accutime': Accumulation period of the requested precipitation product
+            - 'unit': Unit.
+            - 'transform': Logarithmic transformation.
+            - 'zerovalue': No echo value.
+            - 'threshold': Precipitation threshold.
     """
     if not H5PY_IMPORTED:
         raise MissingOptionalDependency(
@@ -1668,32 +1730,39 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
             "unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'"
         )
 
-    # Read the data
+    # Open file
     f = h5py.File(filename, "r")
     precip = None
     quality = None
 
+    # Read data recursively
     file_content = {}
     _read_hdf5_cont(f, file_content)
     f.close()
 
+    # Read attributes
     data_prop = {}
     _get_whatgrp(file_content, data_prop)
 
+    # Get data as well as no data and no echo masks
     arr = file_content["dataset1"]["data1"]["data"]
     mask_n = arr == data_prop["nodata"]
     mask_u = arr == data_prop["undetect"]
     mask = np.logical_and(~mask_u, ~mask_n)
 
-    # Read the precipitation variable and quantity from the data
+    # If the requested quantity in the file
+    # Transform precipitation data by gain and offset
     if data_prop["quantity"] == qty:
         precip = np.empty(arr.shape)
         precip[mask] = arr[mask] * data_prop["gain"] + data_prop["offset"]
         if qty != "DBZH":
             precip[mask_u] = data_prop["offset"]
         else:
+            # Set the no echo value manually to -32.5
+            # if the file contains horizontal reflectivity
             precip[mask_u] = -32.5
         precip[mask_n] = np.nan
+    # Get possible information about data quality
     elif data_prop["quantity"] == "QIND":
         quality = np.empty(arr.shape, dtype=float)
         quality[mask] = arr[mask]
@@ -1704,15 +1773,24 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
 
     # Get the projection and grid information from the HDF5 file
     pr = pyproj.Proj(file_content["where"]["projdef"])
-    ll_x, ll_y = pr(file_content["where"]["LL_lon"], file_content["where"]["LL_lat"])
-    ur_x, ur_y = pr(file_content["where"]["UR_lon"], file_content["where"]["UR_lat"])
+    ll_x, ll_y = pr(
+        file_content["where"]["LL_lon"],
+        file_content["where"]["LL_lat"],
+    )
+    ur_x, ur_y = pr(
+        file_content["where"]["UR_lon"],
+        file_content["where"]["UR_lat"],
+    )
 
+    # Determine domain corners in geographic and carthesian coordinates
     if len([k for k in file_content["where"].keys() if "_lat" in k]) == 4:
         lr_x, lr_y = pr(
-            file_content["where"]["LR_lon"], file_content["where"]["LR_lat"]
+            file_content["where"]["LR_lon"],
+            file_content["where"]["LR_lat"],
         )
         ul_x, ul_y = pr(
-            file_content["where"]["UL_lon"], file_content["where"]["UL_lat"]
+            file_content["where"]["UL_lon"],
+            file_content["where"]["UL_lat"],
         )
         x1 = min(ll_x, ul_x)
         y1 = min(ll_y, lr_y)
@@ -1808,7 +1886,7 @@ def _read_hdf5_cont(f, d):
     --------
     None.
     """
-    # set simple types of hdf content
+    # Set simple types of hdf content
     group_type = h5py._hl.group.Group
 
     for key, value in f.items():
@@ -1821,24 +1899,39 @@ def _read_hdf5_cont(f, d):
                 # Handle empty group with attributes
                 d[key] = {attr: value.attrs[attr] for attr in value.attrs}
                 d[key] = {
-                    k: v.decode() if type(v) == np.bytes_ else v
+                    k: (v.decode() if type(v) == np.bytes_ else v)
                     for k, v in d[key].items()
                 }
 
         else:
-            try:
-                d[key] = np.array(value)
-            except TypeError:
-                d[key] = np.array(value.astype(float))
+
+            # Save h5py.Dataset by group name
+            d[key] = np.array(value)
 
     return
 
 
 def _get_whatgrp(d, g):
     """
-    Recursively get the what group containing the data field properties.
+    Recursively get attributes of the what group containing
+    the scaling properties.
+
+    Parameters:
+    -----------
+    d : dict
+        Dictionary including content of an ODIM compliant
+        HDF5 file.
+    g : dict
+        Dictionary containing attributes of what group.
+
+
+    Returns:
+    --------
+    None.
     """
     if "what" in d.keys():
+        # Searching for the corresponding what group
+        # that contains the scaling properties
         if "gain" in d["what"].keys():
             g.update(d["what"])
         else:
@@ -1872,33 +1965,42 @@ def import_dwd_radolan(filename, product_name):
 
     Returns
     -------
-    out: tuple
-        A three-element tuple containing the precipitation field in mm/h imported
-        from a MeteoSwiss gif file and the associated quality field and metadata.
-        The quality field is currently set to None.
+    tuple
+        A tuple containing:
+        - data : np.ndarray
+            The desired precipitation product in mm/h imported from a RADOLAN file
+        - quality : None
+        - metadata : dict
+            Dictionary containing geospatial metadata such as:
+            - 'projection': PROJ.4 string defining the stereographic projection.
+            - 'xpixelsize', 'ypixelsize': Pixel size in meters.
+            - 'cartesian_unit': Unit of the coordinate system (meters).
+            - 'yorigin': Origin of the y-axis ('upper').
+            - 'x1', 'y1': Coordinates of the lower-left corner.
+            - 'x2', 'y2': Coordinates of the upper-right corner.
     """
     # Determine file size and header size
     size_file = os.path.getsize(filename)
     size_data = np.round(size_file, -3)
     size_header = size_file - size_data
 
-    # open file and read header
+    # Open file and read header
     f = open(filename, "rb")
     header = f.read(size_header).decode("utf-8")
 
-    # get product name from header
+    # Get product name from header
     product = header[:2]
 
-    # check if its the correct product
+    # Check if its the desired product
     assert product == product_name, "Product not in File!"
 
-    # distinguish between products saved with 8 or 16bit
+    # Distinguish between products saved with 8 or 16bit
     product_cat1 = np.array(["WX", "RX"])
     product_cat2 = np.array(["RY", "RW", "YW"])
 
     # Determine byte size and data type
-    nbyte = 1 if prod in prod_cat1 else 2
-    signed = "B" if prod in prod_cat1 else "H"
+    nbyte = 1 if product in product_cat1 else 2
+    signed = "B" if product in product_cat1 else "H"
 
     # Extract the scaling factor and grid dimensions
     fac = int(header.split("E-")[1].split("INT")[0])
@@ -1914,7 +2016,7 @@ def import_dwd_radolan(filename, product_name):
     data = np.array(np.reshape(data, dims, order="F"), dtype=float).T
 
     # Define no-echo values based on product type
-    if prod == "SF":
+    if product == "SF":
         no_echo_value = 0.0
     elif product in product_cat2:
         no_echo_value = -0.01
@@ -1939,7 +2041,6 @@ def import_dwd_radolan(filename, product_name):
     data[no_data_mask] = np.nan
 
     # Load geospatial metadata
-    # get geo data
     geodata = _import_dwd_geodata(product_name, dims)
     metadata = geodata
 
@@ -1951,10 +2052,10 @@ def _identify_info_bits(data):
     Identifies and processes information bits embedded in RADOLAN data values.
 
     This function decodes metadata flags embedded in the RADOLAN data array, such as:
-    - Clutter (bit 15)
-    - Negative values (bit 14)
-    - No data (bit 13)
-    - Secondary data (bit 12)
+    - Clutter (bit 16)
+    - Negative values (bit 15)
+    - No data (bit 14)
+    - Secondary data (bit 13)
 
     Parameters
     ----------
@@ -1970,21 +2071,21 @@ def _identify_info_bits(data):
         - no_data_mask : np.ndarray
             A boolean mask indicating positions of no-data values.
     """
-    # Identify and remove clutter (bit 15)
+    # Identify and remove clutter (bit 16)
     clutter_mask = data - 2**15 >= 0.0
     data[clutter_mask] = 0
 
-    # Identify and convert negative values (bit 14)
+    # Identify and convert negative values (bit 15)
     mask = data - 2**14 >= 0.0
     data[mask] -= 2**14
 
-    # Identify no-data values (bit 13)
+    # Identify no-data values (bit 14)
     no_data_mask = data - 2**13 == 2500.0
     if np.sum(no_data_mask) == 0.0:
         no_data_mask = data - 2**13 == 0.0
     data[no_data_mask] = 0.0
 
-    # Identify and remove secondary data flag (bit 12)
+    # Identify and remove secondary data flag (bit 13)
     data[data - 2**12 > 0.0] -= 2**12
 
     # Apply negative sign to previously marked negative values
@@ -2033,17 +2134,17 @@ def _import_dwd_geodata(product_name, dims):
     geodata["cartesian_unit"] = "m"
     geodata["yorigin"] = "upper"
 
-    # Define product categories and their reference points
-    prod_cat1 = ["RX", "RY", "RW"]
-    prod_cat2 = ["WN"]
-    prod_cat3 = ["WX", "YW"]
+    # Define product categories
+    product_cat1 = ["RX", "RY", "RW"]
+    product_cat2 = ["WN"]
+    product_cat3 = ["WX", "YW"]
 
     # Assign reference coordinates based on product type
-    if product in prod_cat1:
+    if product_name in product_cat1:
         lon, lat = 3.604382995, 46.95361536
-    elif product in prod_cat2:
+    elif product_name in product_cat2:
         lon, lat = 3.566994635, 45.69642538
-    elif product in prod_cat3:
+    elif product_name in product_cat3:
         lon, lat = 9.0, 51.0
 
     # Project reference coordinates to Cartesian system
