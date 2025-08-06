@@ -4,7 +4,7 @@ from scipy.interpolate import interp1d
 from typing import Optional
 
 class BaseTransformer:
-    def __init__(self, threshold: float = 0.1, zerovalue: Optional[float] = None):
+    def __init__(self, threshold: float = 0.5, zerovalue: Optional[float] = None):
         self.threshold = threshold
         self.zerovalue = zerovalue
         self.metadata = {}
@@ -19,30 +19,38 @@ class BaseTransformer:
         return self.metadata.copy()
 
 class DBTransformer(BaseTransformer):
+    """
+    DBTransformer applies a thresholded dB transform to rain rate fields.
+
+    Parameters:
+        threshold (float): Rain rate threshold (in mm/h). Values below this are set to `zerovalue` in dB.
+        zerovalue (Optional[float]): Value in dB space to assign below-threshold pixels. If None, defaults to log10(threshold) - 0.1
+    """
+
+    def __init__(self, threshold: float = 0.5, zerovalue: Optional[float] = None):
+        super().__init__(threshold, zerovalue)
+        threshold_db = 10.0 * np.log10(self.threshold)
+
+        if self.zerovalue is None:
+            self.zerovalue = threshold_db - 0.1
+
+        self.metadata = {
+            "transform": "dB",
+            "threshold": self.threshold,      # stored in mm/h
+            "zerovalue": self.zerovalue       # stored in dB
+        }
+
     def transform(self, R: np.ndarray) -> np.ndarray:
         R = R.copy()
         mask = R < self.threshold
         R[~mask] = 10.0 * np.log10(R[~mask])
-        threshold_db = 10.0 * np.log10(self.threshold)
-
-        if self.zerovalue is None:
-            self.zerovalue = threshold_db - 5
-
         R[mask] = self.zerovalue
-
-        self.metadata = {
-            "transform": "dB",
-            "threshold": threshold_db,
-            "zerovalue": self.zerovalue,
-        }
         return R
 
     def inverse_transform(self, R: np.ndarray) -> np.ndarray:
         R = R.copy()
-        threshold_lin = 10.0 ** (self.metadata["threshold"] / 10.0)
         R = 10.0 ** (R / 10.0)
-        R[R < threshold_lin] = self.metadata["zerovalue"]
-        self.metadata["transform"] = None
+        R[R < self.threshold] = 0
         return R
 
 
