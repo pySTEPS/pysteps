@@ -15,11 +15,13 @@ from functools import partial
 
 from pysteps.blending import linear_blending
 from pysteps.blending import steps
+from pysteps.blending import pca_enkf
 
 _blending_methods = dict()
 _blending_methods["linear_blending"] = linear_blending.forecast
 _blending_methods["salient_blending"] = partial(linear_blending.forecast, saliency=True)
 _blending_methods["steps"] = steps.forecast
+_blending_methods["pca_enkf"] = pca_enkf.forecast
 
 
 def get_method(name):
@@ -46,6 +48,9 @@ def get_method(name):
     |                  | described in :cite:`Seed2003`, :cite:`BPS2006` and   |
     |                  | :cite:`SPN2013`. The blending weights approach       |
     |                  | currently follows :cite:`BPS2006`.                   |
+    +------------------+------------------------------------------------------+
+    | pca_enkf         | the reduced-space EnKF combination method described  |
+    |                  | in :cite:`Nerini2019`.                               |
     +------------------+------------------------------------------------------+
     """
     if isinstance(name, str):

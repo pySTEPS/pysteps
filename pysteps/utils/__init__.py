@@ -12,3 +12,4 @@ from .spectral import *
 from .tapering import *
 from .transformation import *
 from .reprojection import *
+from .pca import *
