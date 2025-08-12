@@ -15,7 +15,6 @@ from pysteps.exceptions import MissingOptionalDependency
 from scipy.interpolate import griddata
 
 import numpy as np
-import xarray as xr
 
 try:
     from rasterio import Affine as A
@@ -66,8 +65,7 @@ def reproject_grids(src_array, dst_array, metadata_src, metadata_dst):
 
     if not RASTERIO_IMPORTED:
         raise MissingOptionalDependency(
-            "rasterio package is required for the reprojection module, but it is "
-            "not installed"
+            "rasterio package is required for the reprojection module, but it is " "not installed"
         )
 
     # Extract the grid info from src_array
@@ -167,8 +165,7 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
 
     if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
-            "pyproj package is required to reproject DWD's NWP data"
-            "but it is not installed"
+            "pyproj package is required to reproject DWD's NWP data" "but it is not installed"
         )
 
     if not "clon" in metadata_src.keys():
@@ -208,11 +205,7 @@ def unstructured2regular(src_array, metadata_src, metadata_dst):
     P_out = np.array((xx_dst.flatten(), yy_dst.flatten())).T
 
     # Nearest neighbor interpolation of x-y pairs
-    ic_out = (
-        griddata(P_in, ic_in.flatten(), P_out, method="nearest")
-        .reshape(s_out)
-        .astype(int)
-    )
+    ic_out = griddata(P_in, ic_in.flatten(), P_out, method="nearest").reshape(s_out).astype(int)
 
     # Apply interpolation on all time steps and ensemble members
     r_rprj = np.array(
