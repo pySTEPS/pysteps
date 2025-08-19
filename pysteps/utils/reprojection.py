@@ -15,7 +15,6 @@ from pysteps.exceptions import MissingOptionalDependency
 from scipy.interpolate import griddata
 
 import numpy as np
-import xarray as xr
 
 try:
     from rasterio import Affine as A

@@ -29,6 +29,8 @@ _importer_methods = dict(
     odim_hdf5=importers.import_odim_hdf5,
     opera_hdf5=importers.import_opera_hdf5,
     knmi_hdf5=importers.import_knmi_hdf5,
+    dwd_hdf5=importers.import_dwd_hdf5,
+    dwd_radolan=importers.import_dwd_radolan,
     saf_crri=importers.import_saf_crri,
 )
 
