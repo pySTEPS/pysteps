@@ -1899,7 +1899,7 @@ def _read_hdf5_cont(f, d):
                 # Handle empty group with attributes
                 d[key] = {attr: value.attrs[attr] for attr in value.attrs}
                 d[key] = {
-                    k: (v.decode() if type(v) == np.bytes_ else v)
+                    k: (v.decode() if isinstance(v, np.bytes_) else v)
                     for k, v in d[key].items()
                 }
 
