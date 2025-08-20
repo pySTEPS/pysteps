@@ -20,17 +20,17 @@ from pprint import pprint
 
 _importer_methods = dict(
     bom_rf3=importers.import_bom_rf3,
+    dwd_hdf5=importers.import_dwd_hdf5,
+    dwd_radolan=importers.import_dwd_radolan,
     fmi_geotiff=importers.import_fmi_geotiff,
     fmi_pgm=importers.import_fmi_pgm,
+    knmi_hdf5=importers.import_knmi_hdf5,
     mch_gif=importers.import_mch_gif,
     mch_hdf5=importers.import_mch_hdf5,
     mch_metranet=importers.import_mch_metranet,
     mrms_grib=importers.import_mrms_grib,
     odim_hdf5=importers.import_odim_hdf5,
     opera_hdf5=importers.import_opera_hdf5,
-    knmi_hdf5=importers.import_knmi_hdf5,
-    dwd_hdf5=importers.import_dwd_hdf5,
-    dwd_radolan=importers.import_dwd_radolan,
     saf_crri=importers.import_saf_crri,
 )
 
@@ -57,9 +57,7 @@ def discover_importers():
     # Backward compatibility with previous entry point 'pysteps.plugins.importers' next to 'pysteps.plugins.importer'
     for entry_point in list(
         pkg_resources.iter_entry_points(group="pysteps.plugins.importer", name=None)
-    ) + list(
-        pkg_resources.iter_entry_points(group="pysteps.plugins.importers", name=None)
-    ):
+    ) + list(pkg_resources.iter_entry_points(group="pysteps.plugins.importers", name=None)):
         _importer = entry_point.load()
 
         importer_function_name = _importer.__name__
@@ -90,25 +88,16 @@ def importers_info():
     """Print all the available importers."""
 
     # Importers available in the `io.importers` module
-    available_importers = [
-        attr for attr in dir(importers) if attr.startswith("import_")
-    ]
+    available_importers = [attr for attr in dir(importers) if attr.startswith("import_")]
 
     print("\nImporters available in the pysteps.io.importers module")
     pprint(available_importers)
 
     # Importers declared in the pysteps.io.get_method interface
-    importers_in_the_interface = [
-        f.__name__ for f in interface._importer_methods.values()
-    ]
+    importers_in_the_interface = [f.__name__ for f in interface._importer_methods.values()]
 
     print("\nImporters available in the pysteps.io.get_method interface")
-    pprint(
-        [
-            (short_name, f.__name__)
-            for short_name, f in interface._importer_methods.items()
-        ]
-    )
+    pprint([(short_name, f.__name__) for short_name, f in interface._importer_methods.items()])
 
     # Let's use sets to find out if there are importers present in the importer module
     # but not declared in the interface, and viceversa.
