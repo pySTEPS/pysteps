@@ -118,10 +118,14 @@ def test_utils_reproject_grids(
 root_path_radar = pysteps.rcparams.data_sources["dwd"]["root_path"]
 root_path_nwp = pysteps.rcparams.data_sources["dwd_nwp"]["root_path"]
 
-filename_radar = os.path.join(root_path_radar, "RY", "2025", "06", "04", "20250604_1700_RY.h5")
+filename_radar = os.path.join(
+    root_path_radar, "RY", "2025", "06", "04", "20250604_1700_RY.h5"
+)
 _, _, metadata_dst = pysteps.io.import_dwd_hdf5(filename_radar, qty="RATE")
 
-filename_nwp = os.path.join(root_path_nwp, "2025", "06", "04", "20250604_1600_PR_GSP_060_120.grib2")
+filename_nwp = os.path.join(
+    root_path_nwp, "2025", "06", "04", "20250604_1600_PR_GSP_060_120.grib2"
+)
 kwargs = {
     "varname": "PR_GSP",
     "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc",
@@ -143,7 +147,9 @@ restructure_arg_values = [(array_src, metadata_src, metadata_dst)]
 @pytest.mark.parametrize(restructure_arg_names, restructure_arg_values)
 def test_utils_unstructured2regular(array_src, metadata_src, metadata_dst):
     # Run unstructured2regular
-    array_rprj, metadata_rprj = rpj.unstructured2regular(array_src, metadata_src, metadata_dst)
+    array_rprj, metadata_rprj = rpj.unstructured2regular(
+        array_src, metadata_src, metadata_dst
+    )
 
     # The tests
     assert (

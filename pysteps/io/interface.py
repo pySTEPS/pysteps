@@ -57,7 +57,9 @@ def discover_importers():
     # Backward compatibility with previous entry point 'pysteps.plugins.importers' next to 'pysteps.plugins.importer'
     for entry_point in list(
         pkg_resources.iter_entry_points(group="pysteps.plugins.importer", name=None)
-    ) + list(pkg_resources.iter_entry_points(group="pysteps.plugins.importers", name=None)):
+    ) + list(
+        pkg_resources.iter_entry_points(group="pysteps.plugins.importers", name=None)
+    ):
         _importer = entry_point.load()
 
         importer_function_name = _importer.__name__
@@ -88,16 +90,25 @@ def importers_info():
     """Print all the available importers."""
 
     # Importers available in the `io.importers` module
-    available_importers = [attr for attr in dir(importers) if attr.startswith("import_")]
+    available_importers = [
+        attr for attr in dir(importers) if attr.startswith("import_")
+    ]
 
     print("\nImporters available in the pysteps.io.importers module")
     pprint(available_importers)
 
     # Importers declared in the pysteps.io.get_method interface
-    importers_in_the_interface = [f.__name__ for f in interface._importer_methods.values()]
+    importers_in_the_interface = [
+        f.__name__ for f in interface._importer_methods.values()
+    ]
 
     print("\nImporters available in the pysteps.io.get_method interface")
-    pprint([(short_name, f.__name__) for short_name, f in interface._importer_methods.items()])
+    pprint(
+        [
+            (short_name, f.__name__)
+            for short_name, f in interface._importer_methods.items()
+        ]
+    )
 
     # Let's use sets to find out if there are importers present in the importer module
     # but not declared in the interface, and viceversa.
