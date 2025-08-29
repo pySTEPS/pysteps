@@ -15,12 +15,12 @@ from pysteps.timeseries.autoregression import (
 )
 from pysteps import extrapolation
 
-from utils.transformer import DBTransformer
-from steps_params import StepsParameters
-from stochastic_generator import gen_stoch_field, normalize_db_field
-from rainfield_stats import correlation_length
-from rainfield_stats import power_spectrum_1D
-from cascade_utils import lagr_auto_cor
+from pysteps.utils.transformer import DBTransformer
+from .steps_params import StepsParameters
+from .stochastic_generator import gen_stoch_field, normalize_db_field
+from .rainfield_stats import correlation_length
+from .rainfield_stats import power_spectrum_1D
+from .cascade_utils import lagr_auto_cor
 
 
 def update_field(

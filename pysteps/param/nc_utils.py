@@ -66,7 +66,7 @@ def read_qpe_netcdf(file_path):
     """
 
     try:
-        ds = xr.open_dataset(file_path, decode_times=True)
+        ds = xr.open_dataset(file_path, decode_cf=True, mask_and_scale=True)
         ds.load()
 
         # Make the times timezone-aware UTC
