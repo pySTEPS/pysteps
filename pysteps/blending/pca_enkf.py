@@ -5,9 +5,39 @@ pysteps.blending.pca_enkf
 
 Implementation of the reduced-space ensemble Kalman filter method described in
 :cite:`Nerini2019`. The nowcast is iteratively corrected by NWP data utilizing
-an ensemble Kalman filter in PCA space.
+an ensemble Kalman filter in PCA space. The reduced-space ensemble Kalman filter
+method consists of the following main steps:
+
+    Initialization Step
+    ===================
+    #. Set the radar rainfall fields in a Lagrangian space.
+    #. Perform the cascade decomposition for the input radar rainfall fields.
+    #. Estimate AR parameters for the extrapolation nowcast and noise cascade.
+    #. Initialize the noise method and precompute a set of noise fields.
+    #. Initialize forecast models equal to the number of ensemble members.
+    #. Initialize the ensemble Kalman filter method.
+    #. Start the forecasting loop:
+
+        Forecast Step
+        =============
+        #. Decompose rainfall forecast field of the previous timestep.
+        #. Update the common precipitation mask of Nowcast and NWP fields for noise
+           imprint.
+        #. Iterate AR model.
+        #. Recompose rainfall forecast field.
+        #. Extrapolate the recomposed rainfall field to the current timestep.
+
+        Correction Step
+        ===============
+        #. Get grid boxes where rainfall is forecast.
+        #. Reduce Nowcast and NWP ensemble onto these grid boxes and apply principal
+           component analysis to further reduce the dimensionality.
+        #. Apply update step of ensemble Kalman filter.
+        #. (optional) Apply probability matching.
+
+    #. Set no data values in final forecast fields.
+    #. Iterate between forecast and correction step.
 """
-import math
 import time
 import datetime
 from copy import deepcopy
@@ -15,8 +45,6 @@ from copy import deepcopy
 import numpy as np
 from scipy.ndimage import (
     binary_dilation,
-    generate_binary_structure,
-    iterate_structure,
     gaussian_filter,
 )
 
@@ -41,42 +69,118 @@ class EnKFCombinationConfig:
     Parameters
     ----------
 
+    n_ens_members: int
+        The number of ensemble members to generate. This number should always be
+        equal to the number of NWP ensemble members / number of NWP models.
+    n_cascade_levels: int
+        The number of cascade levels to use. Defaults to 6,
+        see issue #385 on GitHub.
+    precip_threshold: float
+        Specifies the threshold value for minimum observable precipitation
+        intensity.
+    norain_threshold: float
+        Specifies the threshold value for the fraction of rainy (see above) pixels
+        in the radar rainfall field below which we consider there to be no rain.
+        Depends on the amount of clutter typically present.
+    precip_mask_dilation: int
+        Number of grid boxes by which the precipitation mask should be extended per
+        timestep.
+    extrapolation_method: str
+        Name of the extrapolation method to use. See the documentation of
+        :py:mod:`pysteps.extrapolation.interface`.
+    decomposition_method: str, {'fft'}
+        Name of the cascade decomposition method to use. See the documentation
+        of :py:mod:`pysteps.cascade.interface`.
+    bandpass_filter_method: str, {'gaussian', 'uniform'}
+        Name of the bandpass filter method to use with the cascade decomposition.
+        See the documentation of :py:mod:`pysteps.cascade.interface`.
+    noise_method: str, {'parametric','nonparametric','ssft','nested',None}
+        Name of the noise generator to use for perturbating the precipitation
+        field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to
+        None, no noise is generated.
+    enkf_method: str, {'masked_enkf'}
+        Name of the ensemble Kalman filter method to use for the correction step.
+        Currently, only 'masked_enkf' is implemented. This method corresponds to the
+        reduced-space ensemble Kalman filter method described by Nerini et al., 2019.
+    enable_combination: bool
+        Flag to specify whether the correction step or only the forecast steps should
+        be processed.
+    noise_stddev_adj: str, {'auto','fixed',None}
+        Optional adjustment for the standard deviations of the noise fields added
+        to each cascade level. This is done to compensate incorrect std. dev.
+        estimates of casace levels due to presence of no-rain areas. 'auto'=use
+        the method implemented in :py:func:`pysteps.noise.utils.
+        compute_noise_stddev_adjs`.
+        'fixed'= use the formula given in :cite:`BPS2006` (eq. 6), None=disable
+        noise std. dev adjustment.
+    ar_order: int
+        The order of the autoregressive model to use. Currently, only AR(1) is
+        implemented.
+    seed: int
+        Optional seed number for the random generators.
+    num_workers: int
+        The number of workers to use for parallel computation. Applicable if dask
+        is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
+        is advisable to disable OpenMP by setting the environment variable
+        OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
+        threads.
+    fft_method: str
+        A string defining the FFT method to use (see FFT methods in
+        :py:func:`pysteps.utils.interface.get_method`).
+        Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
+        the recommended method is 'pyfftw'.
+    domain: str, {"spatial", "spectral"}
+        If "spatial", all computations are done in the spatial domain (the
+        classical STEPS model). If "spectral", the AR(2) models and stochastic
+        perturbations are applied directly in the spectral domain to reduce
+        memory footprint and improve performance :cite:`PCH2019b`.
+    extrapolation_kwargs: dict
+        Optional dictionary containing keyword arguments for the extrapolation
+        method. See the documentation of :py:func:`pysteps.extrapolation.interface`.
+    filter_kwargs: dict
+        Optional dictionary containing keyword arguments for the filter method.
+        See the documentation of :py:mod:`pysteps.cascade.bandpass_filters`.
+    noise_kwargs: dict
+        Optional dictionary containing keyword arguments for the initializer of
+        the noise generator. See the documentation of :py:mod:`pysteps.noise.
+        fftgenerators`.
+    combination_kwargs: dict
+        Optional dictionary containing keyword arguments for the initializer of the
+        correction step. See the documentation of :py:mod:`pysteps.combination.
+        ensemble_kalman_filter`.
+    measure_time: bool
+        If set to True, measure, print and return the computation time.
+    return_output: bool
+        Set to False to disable returning the outputs as numpy arrays. This can
+        save memory if the intermediate results are written to output files using
+        the callback function. (Call back function is currently not implemented.)
+    n_noise_fields: int
+        Number of precomputed noise fields. A number of 30 is adequate to generate
+        sufficient spread in the Nowcast.
     """
 
     n_ens_members: int
     n_cascade_levels: int
     precip_threshold: float | None
     norain_threshold: float
-    kmperpixel: float
     precip_mask_dilation: int
     extrapolation_method: str
     decomposition_method: str
     bandpass_filter_method: str
     noise_method: str | None
     enkf_method: str | None
+    enable_combination: bool
     noise_stddev_adj: str | None
     ar_order: int
-    velocity_perturbation_method: str | None
-    conditional: bool
-    probmatching_method: str | None
-    iter_probability_matching: bool
-    post_probability_matching: bool
-    non_precip_mask: bool
     seed: int | None
     num_workers: int
     fft_method: str
     domain: str
-    n_tapering: int
-    n_ens_prec: int
-    lien_criterion: bool
-    n_lien: int
     extrapolation_kwargs: dict[str, Any] = field(default_factory=dict)
     filter_kwargs: dict[str, Any] = field(default_factory=dict)
     noise_kwargs: dict[str, Any] = field(default_factory=dict)
-    velocity_perturbation_kwargs: dict[str, Any] = field(default_factory=dict)
-    mask_kwargs: dict[str, Any] = field(default_factory=dict)
+    combination_kwargs: dict[str, Any] = field(default_factory=dict)
     measure_time: bool = False
-    callback: Any | None = None
     return_output: bool = True
     n_noise_fields: int = 30
 
@@ -92,33 +196,18 @@ class EnKFCombinationParams:
     extrapolation_method: Callable[..., Any] | None = None
     decomposition_method: Callable[..., dict] | None = None
     recomposition_method: Callable[..., np.ndarray] | None = None
-    velocity_perturbations: Any | None = None
-    generate_velocity_noise: Callable[[Any, float], np.ndarray] | None = None
-    velocity_perturbations_parallel: np.ndarray | None = None
-    velocity_perturbations_perpendicular: np.ndarray | None = None
     fft_objs: list[Any] = field(default_factory=list)
-    time_steps_is_list: bool = False
     xy_coordinates: np.ndarray | None = None
     precip_threshold: float | None = None
     mask_threshold: np.ndarray | None = None
-    original_timesteps: list | np.ndarray | None = None
     num_ensemble_workers: int | None = None
-    rho_nwp_models: np.ndarray | None = None
     domain_mask: np.ndarray | None = None
     extrapolation_kwargs: dict | None = None
     filter_kwargs: dict | None = None
     noise_kwargs: dict | None = None
-    velocity_perturbation_kwargs: dict | None = None
-    mask_kwargs: dict | None = None
+    combination_kwargs: dict | None = None
     len_y: int | None = None
     len_x: int | None = None
-    inflation_factor_bg: float | None = None
-    inflation_factor_obs: float | None = None
-    offset_bg: float | None = None
-    offset_obs: float | None = None
-
-    subtimesteps: list[float] | None = None
-    is_nowcast_time_step: bool | None = None
 
 
 class ForecastInitialization:
@@ -145,10 +234,6 @@ class ForecastInitialization:
         self.__prepare_radar_data_and_ar_parameters()
 
         self.__initialize_noise()
-
-        self.__initialize_random_generators()
-
-        self.__prepare_forecast_loop()
 
         self.__initialize_noise_field_pool()
 
@@ -396,88 +481,6 @@ class ForecastInitialization:
 
         return
 
-    # Initialize the random generators
-    def __initialize_random_generators(self):
-        """
-        Initialize random generators for precipitation noise, probability matching,
-        and velocity perturbations. Each ensemble member gets a separate generator,
-        ensuring reproducibility and controlled randomness in forecasts.
-        """
-        seed = self.__config.seed
-        if self.__config.noise_method is not None:
-            self.__randgen_precip = []
-            # for j in range(self.__config.n_ens_members):
-            for j in range(self.__config.n_noise_fields):
-                rs = np.random.RandomState(seed)
-                self.__randgen_precip.append(rs)
-                seed = rs.randint(0, high=1e9)
-
-        if self.__config.probmatching_method is not None:
-            self.__randgen_probmatching = []
-            for j in range(self.__config.n_ens_members):
-                rs = np.random.RandomState(seed)
-                self.__randgen_probmatching.append(rs)
-                seed = rs.randint(0, high=1e9)
-
-        if self.__config.velocity_perturbation_method is not None:
-            self.__randgen_motion = []
-            for j in range(self.__config.n_ens_members):
-                rs = np.random.RandomState(seed)
-                self.__randgen_motion.append(rs)
-                seed = rs.randint(0, high=1e9)
-
-            (
-                init_velocity_noise,
-                self.__params.generate_velocity_noise,
-            ) = noise.get_method(self.__config.velocity_perturbation_method)
-
-            # initialize the perturbation generators for the motion field
-            self.__params.velocity_perturbations = []
-            for j in range(self.__config.n_ens_members):
-                kwargs = {
-                    "randstate": self.__randgen_motion[j],
-                    "p_par": self.__params.velocity_perturbations_parallel,
-                    "p_perp": self.__params.velocity_perturbations_perpendicular,
-                }
-                vp_ = init_velocity_noise(
-                    self.__obs_velocity,
-                    1.0 / self.__config.kmperpixel,
-                    self.__config.temporal_resolution,
-                    **kwargs,
-                )
-                self.__params.velocity_perturbations.append(vp_)
-        else:
-            (
-                self.__params.velocity_perturbations,
-                self.__params.generate_velocity_noise,
-            ) = (None, None)
-
-        return
-
-    # Prepare all necessary values and objects for the main forecast loop
-    def __prepare_forecast_loop(self):
-        """
-        Initialize variables and structures needed for the forecast loop, including
-        displacement tracking, mask parameters, noise handling, FFT objects, and
-        extrapolation scaling for nowcasting.
-        """
-
-        self.__params.fft_objs = []
-        for _ in range(self.__config.n_noise_fields):
-            self.__params.fft_objs.append(
-                utils.get_method(
-                    self.__config.fft_method,
-                    shape=self.precip_cascades.shape[-2:],
-                )
-            )
-
-        # TODO: Implement adpative inflation factor functions
-        # For the moment, set inflation factors and offsets here
-        self.__params.inflation_factor_bg = 1.0
-        self.__params.inflation_factor_obs = 1.0
-        self.__params.offset_bg = 0.0
-        self.__params.offset_obs = 0.0
-
     # Create n noise fields
     def __initialize_noise_field_pool(self):
         """
@@ -491,6 +494,24 @@ class ForecastInitialization:
                 self.__params.len_x,
             )
         )
+
+        seed = self.__config.seed
+        if self.__config.noise_method is not None:
+            self.__randgen_precip = []
+            # for j in range(self.__config.n_ens_members):
+            for j in range(self.__config.n_noise_fields):
+                rs = np.random.RandomState(seed)
+                self.__randgen_precip.append(rs)
+                seed = rs.randint(0, high=1e9)
+
+        self.__params.fft_objs = []
+        for _ in range(self.__config.n_noise_fields):
+            self.__params.fft_objs.append(
+                utils.get_method(
+                    self.__config.fft_method,
+                    shape=self.precip_cascades.shape[-2:],
+                )
+            )
 
         for j in range(self.__config.n_noise_fields):
             epsilon = self.__params.noise_generator(
@@ -520,13 +541,11 @@ class ForecastModel:
     __params: EnKFCombinationParams | None = None
     __noise_field_pool: np.ndarray | None = None
     __precip_mask: np.ndarray | None = None
-    __mu: np.ndarray | None = None
-    __sigma: np.ndarray | None = None
 
     nwc_prediction: np.ndarray | None = None
     nwc_prediction_btf: np.ndarray | None = None
 
-    final_blended_forecast: list | None = None
+    final_combined_forecast: list | None = None
 
     def __init__(
         self,
@@ -550,8 +569,6 @@ class ForecastModel:
             ForecastModel.__precip_mask = np.repeat(
                 precip_mask[None, :], self.__config.n_ens_members, axis=0
             )
-            ForecastModel.__mu = mu
-            ForecastModel.__sigma = sigma
 
             latest_obs[~np.isfinite(latest_obs)] = self.__config.norain_threshold
             ForecastModel.nwc_prediction = np.repeat(
@@ -559,10 +576,13 @@ class ForecastModel:
             )
             ForecastModel.nwc_prediction_btf = ForecastModel.nwc_prediction.copy()
 
-            ForecastModel.final_blended_forecast = []
+            ForecastModel.final_combined_forecast = []
 
         self.__precip_cascades = precip_cascades
         self.__velocity = velocity
+
+        self.__mu = mu
+        self.__sigma = sigma
 
         self.__previous_displacement = np.zeros(
             (2, ForecastModel.__params.len_y, ForecastModel.__params.len_x)
@@ -577,20 +597,18 @@ class ForecastModel:
         # decompose preicpitation fields
         self.__decompose()
 
-        # advect oldest cascade if ar_order = 2
-        # self.__advect_cascade(time_step=timestep)
-
         # update precipitation mask
         self.__update_precip_mask(nwp=nwp)
 
         # compute forecast step
         self.__iterate()
 
+        # Recompose the precipitation field for the correction step
         ForecastModel.nwc_prediction[self.__ens_member] = (
             blending.utils.recompose_cascade(
                 combined_cascade=self.__precip_cascades[:, -1],
-                combined_mean=ForecastModel.__mu,
-                combined_sigma=ForecastModel.__sigma,
+                combined_mean=self.__mu,
+                combined_sigma=self.__sigma,
             )
         )
 
@@ -608,31 +626,23 @@ class ForecastModel:
 
     def __decompose(self):
 
-        self.__precip_cascades[:, -1] = self.__params.decomposition_method(
+        precip_extrap_decomp = self.__params.decomposition_method(
             ForecastModel.nwc_prediction[self.__ens_member],
             self.__params.bandpass_filter,
             fft_method=self.__params.fft_objs[self.__ens_member],
             input_domain=self.__config.domain,
             output_domain=self.__config.domain,
             compute_stats=False,
-            normalize=False,
+            normalize=True,
             compact_output=False,
-        )["cascade_levels"]
+        )
 
-        self.__renormalize_latest_cascade()
-
-        return
-
-    def __renormalize_latest_cascade(self):
-
-        self.__precip_cascades[:, -1] = (
-            self.__precip_cascades[:, -1] - ForecastModel.__mu[:, None, None]
-        ) / ForecastModel.__sigma[:, None, None]
-        return
-
-    def __advect_cascade(self, time_step):
-
-        # TODO: Implement for ar_order=2
+        self.__precip_cascades[:, -1] = precip_extrap_decomp["cascade_levels"]
+        self.__mu = np.array(precip_extrap_decomp["means"])
+        self.__sigma = np.sqrt(
+            self.__params.PHI[:, 0] ** 2.0 * self.__sigma**2.0
+            + self.__params.PHI[:, 1] ** 2.0 * self.__params.noise_std_coeffs**2.0
+        )
 
         return
 
@@ -663,6 +673,7 @@ class ForecastModel:
                 np.random.randint(ForecastModel.__config.n_noise_fields)
             ]
             * ForecastModel.__precip_mask[self.__ens_member][None, :, :]
+            * self.__params.noise_std_coeffs[:, None, None]
         )
 
         for i in range(self.__config.n_cascade_levels):
@@ -705,7 +716,7 @@ class ForecastModel:
         precip_mask[precip_mask >= 1.0] = 1.0
         precip_mask = gaussian_filter(precip_mask, (1, 1))
 
-        # precip_mask[ForecastModel.__params.domain_mask] = 0.0
+        precip_mask[ForecastModel.__params.domain_mask] = 0.0
 
         ForecastModel.__precip_mask[self.__ens_member] = np.array(
             precip_mask, dtype=bool
@@ -793,19 +804,19 @@ class EnKFCombinationNowcaster:
             FC = ForecastModel(
                 enkf_combination_config=self.__config,
                 enkf_combination_params=self.__params,
-                precip_cascades=self.FI.precip_cascades.copy(),
+                precip_cascades=deepcopy(self.FI.precip_cascades),
                 velocity=self.__obs_velocity,
                 noise_field_pool=self.FI.noise_field_pool,
                 latest_obs=self.__obs_precip[-1, :, :],
                 precip_mask=precip_mask.copy(),
-                mu=self.FI.mean_extrapolation,
-                sigma=self.FI.std_extrapolation,
+                mu=deepcopy(self.FI.mean_extrapolation),
+                sigma=deepcopy(self.FI.std_extrapolation),
                 ens_member=j,
             )
             self.FC_Models[j] = FC
 
         # Initialize the combination model
-        kalman_filter_model = combination.get_method("masked_enkf")
+        kalman_filter_model = combination.get_method(self.__config.enkf_method)
         self.KalmanFilterModel = kalman_filter_model(self.__config, self.__params)
 
         # Start the main forecast loop
@@ -813,24 +824,18 @@ class EnKFCombinationNowcaster:
 
         # Stack and return the forecast output
         if self.__config.return_output:
-            ForecastModel.final_blended_forecast = np.array(
-                ForecastModel.final_blended_forecast
+            ForecastModel.final_combined_forecast = np.array(
+                ForecastModel.final_combined_forecast
             ).swapaxes(0, 1)
 
-            # ForecastModel.final_blended_forecast = np.stack(
-            #    [
-            #        np.stack(ForecastModel.final_blended_forecast[j])
-            #        for j in range(self.__config.n_ens_members)
-            #    ]
-            # )
             if self.__config.measure_time:
                 return (
-                    ForecastModel.final_blended_forecast,
+                    ForecastModel.final_combined_forecast,
                     self.__fc_init,
                     self.__mainloop_time,
                 )
             else:
-                return ForecastModel.final_blended_forecast
+                return ForecastModel.final_combined_forecast
         else:
             return None
 
@@ -994,22 +999,13 @@ class EnKFCombinationNowcaster:
         else:
             self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
 
-        # Check for velocity perturbation kwargs
-        if self.__config.velocity_perturbation_kwargs is None:
-            self.__params.velocity_perturbation_kwargs = dict()
+        # Check for combination kwargs
+        if self.__config.combination_kwargs is None:
+            self.__params.combination_kwargs = dict()
         else:
-            self.__params.velocity_perturbation_kwargs = deepcopy(
-                self.__config.velocity_perturbation_kwargs
+            self.__params.combination_kwargs = deepcopy(
+                self.__config.combination_kwargs
             )
-
-        # Check whether there are mask kwargs
-        if self.__config.mask_kwargs is None:
-            self.__params.mask_kwargs = dict()
-        else:
-            self.__params.mask_kwargs = deepcopy(self.__config.mask_kwargs)
-
-        if self.__config.conditional and self.__params.precip_threshold is None:
-            raise ValueError("conditional=True but precip_thr is not set")
 
         # Set the precipitation threshold also in params
         self.__params.precip_threshold = self.__config.precip_threshold
@@ -1020,13 +1016,6 @@ class EnKFCombinationNowcaster:
                 "unknown noise_std_dev_adj method %s: must be 'auto', 'fixed', or None"
                 % self.__config.noise_stddev_adj
             )
-
-        # Check whether the horizontal resolution is given
-        if self.__config.kmperpixel is None:
-            if self.__config.velocity_perturbation_method is not None:
-                raise ValueError(
-                    "velocity_perturbation_method is set but kmperpixel=None"
-                )
 
     def __print_forecast_info(self):
         """
@@ -1043,8 +1032,6 @@ class EnKFCombinationNowcaster:
         print(
             f"input dimensions:                   {self.__obs_precip.shape[1]}x{self.__obs_precip.shape[2]}"
         )
-        if self.__config.kmperpixel is not None:
-            print(f"km/pixel:                           {self.__config.kmperpixel}")
         print(f"temporal resolution:                {self.__temporal_res} minutes")
         print("")
 
@@ -1068,20 +1055,9 @@ class EnKFCombinationNowcaster:
         print(
             f"noise adjustment:                   {'yes' if self.__config.noise_stddev_adj else 'no'}"
         )
-        print(
-            f"velocity perturbator:               {self.__config.velocity_perturbation_method}"
-        )
 
         print(f"EnKF implementation:                {self.__config.enkf_method}")
-        print(
-            f"probability matching:               {self.__config.probmatching_method}"
-        )
-        print(
-            f"iterative probability matching:     {self.__config.iter_probability_matching}"
-        )
-        print(
-            f"post forecast probability matching: {self.__config.post_probability_matching}"
-        )
+
         print(f"FFT method:                         {self.__config.fft_method}")
         print(f"domain:                             {self.__config.domain}")
         print("")
@@ -1111,11 +1087,7 @@ class EnKFCombinationNowcaster:
 
             if t > 0:
 
-                print(
-                    f"Computing combination for lead time +{fc_leadtime}min... ",
-                    end="",
-                    flush=True,
-                )
+                print(f"Computing combination for lead time +{fc_leadtime}min... ")
                 # Set t_corr to -1 to compute the precip mask with the first NWP fields
                 # Afterwards, the NWP fields closest in the future are used
                 t_corr = -1
@@ -1141,23 +1113,26 @@ class EnKFCombinationNowcaster:
 
                 dask_worker_collection = None
 
-                if fc_leadtime in self.__correction_leadtimes:
+                if (
+                    fc_leadtime in self.__correction_leadtimes
+                    and self.__config.enable_combination
+                ):
                     t_corr = np.where(self.__correction_leadtimes == fc_leadtime)[0][0]
 
                     ForecastModel.nwc_prediction = self.KalmanFilterModel.correct_step(
                         ForecastModel.nwc_prediction, self.__nwp_precip[:, t_corr]
                     )
 
-                    [FC_Model.backtransform() for FC_Model in self.FC_Models.values()]
+            [FC_Model.backtransform() for FC_Model in self.FC_Models.values()]
 
-                if self.__config.measure_time:
-                    _ = self.__measure_time("timestep", starttime)
-                else:
-                    print("done.")
+            if self.__config.measure_time:
+                _ = self.__measure_time("timestep", starttime)
+            else:
+                print("...done.")
 
             if self.__config.return_output:
 
-                ForecastModel.final_blended_forecast.append(
+                ForecastModel.final_combined_forecast.append(
                     ForecastModel.nwc_prediction_btf.copy()
                 )
 
@@ -1195,21 +1170,14 @@ def forecast(
     n_cascade_levels=12,
     precip_thr=-10.0,
     norain_thr=-15.0,
-    kmperpixel=1.0,
     extrap_method="semilagrangian",
     decomp_method="fft",
     bandpass_filter_method="gaussian",
     noise_method="nonparametric",
     enkf_method="masked_enkf",
+    enable_combination=True,
     noise_stddev_adj=None,
     ar_order=1,
-    vel_pert_method=None,
-    conditional=False,
-    probmatching_method="cdf",
-    iter_probability_matching=True,
-    post_probability_matching=False,
-    non_precip_mask=True,
-    callback=None,
     return_output=True,
     seed=None,
     num_workers=1,
@@ -1218,13 +1186,8 @@ def forecast(
     extrap_kwargs=None,
     filter_kwargs=None,
     noise_kwargs=None,
-    vel_pert_kwargs=None,
-    mask_kwargs=None,
+    combination_kwargs=None,
     measure_time=False,
-    n_tapering=0,
-    n_ens_prec=1,
-    lien_criterion=True,
-    n_lien=10,
 ):
 
     # TODO: Add descriptions and docstrings
@@ -1234,21 +1197,15 @@ def forecast(
         n_cascade_levels=n_cascade_levels,
         precip_threshold=precip_thr,
         norain_threshold=norain_thr,
-        kmperpixel=kmperpixel,
         precip_mask_dilation=precip_mask_dilation,
         extrapolation_method=extrap_method,
         decomposition_method=decomp_method,
         bandpass_filter_method=bandpass_filter_method,
         noise_method=noise_method,
         enkf_method=enkf_method,
+        enable_combination=enable_combination,
         noise_stddev_adj=noise_stddev_adj,
         ar_order=ar_order,
-        velocity_perturbation_method=vel_pert_method,
-        conditional=conditional,
-        probmatching_method=probmatching_method,
-        iter_probability_matching=iter_probability_matching,
-        post_probability_matching=post_probability_matching,
-        non_precip_mask=non_precip_mask,
         seed=seed,
         num_workers=num_workers,
         fft_method=fft_method,
@@ -1256,16 +1213,10 @@ def forecast(
         extrapolation_kwargs=extrap_kwargs,
         filter_kwargs=filter_kwargs,
         noise_kwargs=noise_kwargs,
-        velocity_perturbation_kwargs=vel_pert_kwargs,
-        mask_kwargs=mask_kwargs,
+        combination_kwargs=combination_kwargs,
         measure_time=measure_time,
-        callback=callback,
         return_output=return_output,
         n_noise_fields=30,
-        n_tapering=n_tapering,
-        n_ens_prec=n_ens_prec,
-        lien_criterion=lien_criterion,
-        n_lien=n_lien,
     )
 
     combination_nowcaster = EnKFCombinationNowcaster(

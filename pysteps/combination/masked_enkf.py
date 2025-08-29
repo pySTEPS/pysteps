@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 pysteps.combination.masked_enkf
-=========================
+===============================
 
-Implementation of the ensemble Kalman filter as it is utilized in :cite:`Nerini2019`.
+Implementation of the ensemble Kalman filter as it is described in :cite:`Nerini2019`.
 """
 
 import numpy as np
@@ -24,12 +24,47 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
     def __init__(self, config, params):
 
-        EnsembleKalmanFilter.__init__(self, config)
+        EnsembleKalmanFilter.__init__(self, config, params)
         self.__params = params
+
+        # Read arguments from combination kwargs or set standard values if kwargs not
+        # given
+        self.__iterative_prob_matching = self.__params.combination_kwargs.get(
+            "iterative_prob_matching", True
+        )
+        self.__inflation_factor_bg = self.__params.combination_kwargs.get(
+            "inflation_factor_bg", 1.0
+        )
+        self.__inflation_factor_obs = self.__params.combination_kwargs.get(
+            "inflation_factor_obs", 1.0
+        )
+        self.__offset_bg = self.__params.combination_kwargs.get("offset_bg", 0.0)
+        self.__offset_obs = self.__params.combination_kwargs.get("offset_obs", 0.0)
 
         return
 
     def correct_step(self, X_nwc, X_nwp):
+        """
+        Prepare input ensembles of Nowcast and NWP for the ensemble Kalman filter
+        update step.
+
+        Parameters
+        ----------
+        X_nwc: np.ndarray
+            Three-dimensional array of shape (n_ens, m, n) containing the Nowcast
+            ensemble forecast for one timestep. This data is used as background
+            ensemble in the ensemble Kalman filter.
+        X_nwp: np.ndarray
+            Three-dimensional array of shape (n_ens, m, n) containing the NWP ensemble
+            forecast for one timestep. This data is used as observation ensemble in the
+            ensemble Kalman filter.
+
+        Returns
+        -------
+        X_ana: np.ndarray
+            Three-dimensional array of shape (n_ens, m, n) containing the Nowcast
+            ensemble forecast corrected by NWP ensemble data.
+        """
 
         # Get indices with predicted precipitation.
         idx_prec = np.logical_or(
@@ -63,17 +98,14 @@ class MaskedEnKF(EnsembleKalmanFilter):
             X=X_ens_stacked, mask=idx_lien, pca_params=pca_params, **kwargs
         )
 
-        # TODO: Add the Kalman gain adjustment to reduce smoothing effects due to
-        # different horizontal resolutions
-
         # Get the updated background ensemble (Nowcast ensemble) in PC space.
-        X_ana_pc = self.update(
+        X_ana_pc, K = self.update(
             X_bg=X_ens_stacked_pc[: X_nwc.shape[0]],
             Y_obs=X_ens_stacked_pc[X_nwc.shape[0] :],
-            inflation_factor_bg=self.__params.inflation_factor_bg,
-            inflation_factor_obs=self.__params.inflation_factor_obs,
-            offset_bg=self.__params.offset_bg,
-            offset_obs=self.__params.offset_obs,
+            inflation_factor_bg=self.__inflation_factor_bg,
+            inflation_factor_obs=self.__inflation_factor_obs,
+            offset_bg=self.__offset_bg,
+            offset_obs=self.__offset_obs,
             X_bg_lien=X_lien_pc[: X_nwc.shape[0]],
             Y_obs_lien=X_lien_pc[X_nwc.shape[0] :],
         )
@@ -83,15 +115,22 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
         # Get the weighting for the probability matching.
         input_weight = self.get_weighting_for_probability_matching(
-            X_bg=X_ens_stacked[: X_nwc.shape[0]],
-            X_ana=X_ana,
-            Y_obs=X_ens_stacked[X_nwc.shape[0] :],
+            X_bg=X_ens_stacked[: X_nwc.shape[0]][:, idx_lien],
+            X_ana=X_ana[:, idx_lien],
+            Y_obs=X_ens_stacked[X_nwc.shape[0] :][:, idx_lien],
         )
 
-        if self._config.iter_probability_matching == True:
+        # Compute the input weight based on the explained variance weighted Kalman gain
+        input_weight_exp_var = np.sum(np.diag(K) * pca_params["explained_variance"])
+        print(f"Explained Variance-Based Input Weight:     {input_weight_exp_var:1.4f}")
+        print(f"Ensemble-Based Input Weight:               {input_weight:1.4f}")
+
+        # Apply probability matching to the analysis ensemble
+        if self.__iterative_prob_matching == True:
 
             def worker(j):
 
+                # Get the combined distribution based on the input weight
                 precip_forecast_probability_matching_resampled = (
                     probmatching.resample_distributions(
                         first_array=X_ens_stacked[j],
@@ -100,6 +139,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
                     )
                 )
 
+                # Apply probability matching
                 X_ana[j] = probmatching.nonparam_match_empirical_cdf(
                     X_ana[j],
                     precip_forecast_probability_matching_resampled,
@@ -120,6 +160,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
             dask_worker_collection = None
 
+        # Set analysis ensemble into the Nowcast ensemble
         X_nwc[:, idx_prec] = X_ana
 
         return X_nwc

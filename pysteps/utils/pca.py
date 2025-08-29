@@ -65,6 +65,9 @@ def pca_transform(
         -mean: np.ndarray
             One-dimensional array of shape (n_features) containing the per-feature
             empirical mean estimated from the input data.
+        -explained_variance: np.ndarray
+            One-dimensional array of shape (n_features) containg the per-feature
+            explained variance ratio
     """
 
     # Input data have to be two-dimensional
@@ -85,6 +88,7 @@ def pca_transform(
         pca_params = {}
         pca_params["principal_components"] = pca.components_
         pca_params["mean"] = pca.mean_
+        pca_params["explained_variance"] = pca.explained_variance_ratio_
 
     else:
 

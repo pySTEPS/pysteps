@@ -8,9 +8,29 @@ import numpy as np
 
 class EnsembleKalmanFilter:
 
-    def __init__(self, config):
+    def __init__(self, config, params):
 
         self._config = config
+
+        # Check for combination kwargs in params
+        self.__n_tapering = params.combination_kwargs.get("n_tapering", 0)
+        self.__non_precip_mask = params.combination_kwargs.get("non_precip_mask", True)
+        self.__n_ens_prec = params.combination_kwargs.get("n_ens_prec", 1)
+        self.__lien_criterion = params.combination_kwargs.get("lien_criterion", True)
+        self.__n_lien = params.combination_kwargs.get(
+            "n_lien", self._config.n_ens_members // 2
+        )
+
+        print("Initialize ensemble Kalman filter")
+        print("=================================")
+        print("")
+
+        print(f"Non-tapered diagonals:              {self.__n_tapering}")
+        print(f"Non precip mask:                    {self.__non_precip_mask}")
+        print(f"No. ens mems with precipitation:    {self.__n_ens_prec}")
+        print(f"Lien Criterion:                     {self.__lien_criterion}")
+        print(f"No. ens mems with precip (Lien):    {self.__n_lien}")
+        print("")
 
         return
 
@@ -90,7 +110,7 @@ class EnsembleKalmanFilter:
         # Update the background ensemble
         X_ana = X_bg.T + np.dot(K, (Y_obs - X_bg).T)
 
-        return X_ana
+        return X_ana, K
 
     def get_covariance_matrix(
         self, M: np.ndarray, inflation_factor: float, offset: float
@@ -149,12 +169,12 @@ class EnsembleKalmanFilter:
         window_function = np.eye(n)
         # Get the weightings of a hanning window function with respect to the number of
         # diagonals that on want to keep
-        hanning_values = np.hanning(self._config.n_tapering * 2 + 1)[
-            (self._config.n_tapering + 1) :
+        hanning_values = np.hanning(self.__n_tapering * 2 + 1)[
+            (self.__n_tapering + 1) :
         ]
 
         # Add the respective values to I
-        for d in range(self._config.n_tapering):
+        for d in range(self.__n_tapering):
 
             window_function += np.diag(np.ones(n - d - 1) * hanning_values[d], k=d + 1)
             window_function += np.diag(np.ones(n - d - 1) * hanning_values[d], k=-d - 1)
@@ -185,9 +205,9 @@ class EnsembleKalmanFilter:
         # If the masking of areas without precipitation requested, mask grid boxes
         # where less ensemble members predict precipitation as the limit
         # n_ens_prec...
-        if self._config.non_precip_mask == True:
+        if self.__non_precip_mask == True:
 
-            idx_prec = X_sum >= self._config.n_ens_prec
+            idx_prec = X_sum >= self.__n_ens_prec
 
         # ...otherwise set all to True.
         else:
@@ -225,10 +245,10 @@ class EnsembleKalmanFilter:
         # If the masking of areas without precipitation requested, mask grid boxes
         # where less ensemble members predict precipitation as the limit
         # n_ens_fc_prec...
-        if self._config.lien_criterion == True:
+        if self.__lien_criterion == True:
 
             idx_lien = np.logical_and(
-                X_nwc_sum >= self._config.n_lien, X_nwp_sum >= self._config.n_lien
+                X_nwc_sum >= self.__n_lien, X_nwp_sum >= self.__n_lien
             )
 
         # ...otherwise set all to True.
