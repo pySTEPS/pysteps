@@ -15,13 +15,13 @@ from functools import partial
 
 from pysteps.blending import linear_blending
 from pysteps.blending import steps
-from pysteps.blending import pca_enkf
+from pysteps.blending import pca_ens_kalman_filter
 
 _blending_methods = dict()
 _blending_methods["linear_blending"] = linear_blending.forecast
 _blending_methods["salient_blending"] = partial(linear_blending.forecast, saliency=True)
 _blending_methods["steps"] = steps.forecast
-_blending_methods["pca_enkf"] = pca_enkf.forecast
+_blending_methods["pca_enkf"] = pca_ens_kalman_filter.forecast
 
 
 def get_method(name):

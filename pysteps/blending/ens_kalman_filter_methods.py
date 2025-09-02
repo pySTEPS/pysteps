@@ -1,9 +1,65 @@
 # -*- coding: utf-8 -*-
-"""Class for an ensemble Kalman filter in which the observations are also available as
-a full ensemble. The class contains the update step, the computation of the covariance
-matrices and several filter/masking functions."""
+"""
+pysteps.blending.ens_kalman_filter_methods
+=============================================
+Methods to calculate the ensemble Kalman filter based correction methods for blending
+between nowcast and NWP.
+The core of the method occurs in the EnsembleKalmanFilter class. The specific method
+to use this core class can be selected. Currently, only the implementation of the
+ensemble Kalman filter from :cite:`Nerini2019` is available.
+
+Additional keyword arguments for the ensemble Kalman filter are:
+
+n_tapering: int, (0)
+    Number of grid boxes/principal components of the ensemble forecast for that
+    the covariance matrix is computed.
+non_precip_mask: bool, (True)
+    Flag to specify whether the computation should be truncated on grid boxes where at
+    least a minimum number (configurable) of ensemble members forecast precipitation.
+n_ens_prec: int, (1)
+    Minimum number of ensemble members that forecast precipitation for the above
+    mentioned mask.
+lien_criterion: bool, (True)
+    Flag to specify whether Lien criterion (Lien et al., 2013) should be applied for
+    the computation of the update step within the ensemble Kalman filter.
+n_lien: int, (n_ens_members/2)
+    Minimum number of ensemble members that forecast precipitation for the Lien
+    criterion. As standard, half of the ensemble members should forecast precipitation.
+post_prob_matching: bool, (False)
+    Flag to specify whether a probability matching should be applied at the end of the
+    forecast computation.
+iterative_prob_matching: bool, (True)
+    Flag to specify whether a probability matching should be applied at each correction
+    step.
+inflation_factor_bg: float, (1.0)
+    Inflation factor of the background (NWC) covariance matrix.
+inflation_factor_obs: float, (1.0)
+    Inflation factor of the observation (NWP) covariance matrix.
+offset_bg: float, (0.0)
+    Offset of the background (NWC) covariance matrix.
+offset_obs: float, (0.0)
+    Offset of the observation (NWP) covariance matrix.
+nwp_hres_eff: float
+    Effective horizontal resolution of the utilized NWP model.
+sampling_prob_source: str, {'ensemble','explained_var'}
+    Computation method of the sampling probability for the probability matching.
+    'ensemble' computes this probability as the ratio between the ensemble differences
+    of X_ana - X_bg and X_obs - X_bg. 'explained_var' uses the sum of the Kalman gain
+    weighted by the explained variance ratio.
+"""
+
 
 import numpy as np
+
+from pysteps import utils
+from pysteps.postprocessing import probmatching
+
+try:
+    import dask
+
+    DASK_IMPORTED = True
+except ImportError:
+    DASK_IMPORTED = False
 
 
 class EnsembleKalmanFilter:
@@ -105,12 +161,12 @@ class EnsembleKalmanFilter:
             )
 
         # Estimate the Kalman gain
-        K = np.dot(P, np.linalg.inv(P + R))
+        self.K = np.dot(P, np.linalg.inv(P + R))
 
         # Update the background ensemble
-        X_ana = X_bg.T + np.dot(K, (Y_obs - X_bg).T)
+        X_ana = X_bg.T + np.dot(self.K, (Y_obs - X_bg).T)
 
-        return X_ana, K
+        return X_ana
 
     def get_covariance_matrix(
         self, M: np.ndarray, inflation_factor: float, offset: float
@@ -184,7 +240,7 @@ class EnsembleKalmanFilter:
     def get_precipitation_mask(self, X: np.ndarray):
         """
         Create the set of grid boxes where at least a minimum number (configurable)
-        ensemble members forecast precipitation.
+        of ensemble members forecast precipitation.
 
         Parameters
         ----------
@@ -313,3 +369,171 @@ class EnsembleKalmanFilter:
             input_weight = 1.0
 
         return input_weight
+
+
+class MaskedEnKF(EnsembleKalmanFilter):
+
+    def __init__(self, config, params):
+
+        EnsembleKalmanFilter.__init__(self, config, params)
+        self.__params = params
+
+        # Read arguments from combination kwargs or set standard values if kwargs not
+        # given
+        self.__iterative_prob_matching = self.__params.combination_kwargs.get(
+            "iterative_prob_matching", True
+        )
+        self.__inflation_factor_bg = self.__params.combination_kwargs.get(
+            "inflation_factor_bg", 1.0
+        )
+        self.__inflation_factor_obs = self.__params.combination_kwargs.get(
+            "inflation_factor_obs", 1.0
+        )
+        self.__offset_bg = self.__params.combination_kwargs.get("offset_bg", 0.0)
+        self.__offset_obs = self.__params.combination_kwargs.get("offset_obs", 0.0)
+        self.__sampling_prob_source = self.__params.combination_kwargs.get(
+            "sampling_prob_source", "ensemble"
+        )
+
+        print("Initialize masked ensemble Kalman filter")
+        print("========================================")
+        print("")
+
+        print(f"Iterative probability matching:     {self.__iterative_prob_matching}")
+        print(f"Background inflation factor:        {self.__inflation_factor_bg}")
+        print(f"Observation inflation factor:       {self.__inflation_factor_obs}")
+        print(f"Background offset:                  {self.__offset_bg}")
+        print(f"Observation offset:                 {self.__offset_obs}")
+        print(f"Sampling probability source:        {self.__sampling_prob_source}")
+        print("")
+
+        return
+
+    def correct_step(self, X_nwc, X_nwp):
+        """
+        Prepare input ensembles of Nowcast and NWP for the ensemble Kalman filter
+        update step.
+
+        Parameters
+        ----------
+        X_nwc: np.ndarray
+            Three-dimensional array of shape (n_ens, m, n) containing the Nowcast
+            ensemble forecast for one timestep. This data is used as background
+            ensemble in the ensemble Kalman filter.
+        X_nwp: np.ndarray
+            Three-dimensional array of shape (n_ens, m, n) containing the NWP ensemble
+            forecast for one timestep. This data is used as observation ensemble in the
+            ensemble Kalman filter.
+
+        Returns
+        -------
+        X_ana: np.ndarray
+            Three-dimensional array of shape (n_ens, m, n) containing the Nowcast
+            ensemble forecast corrected by NWP ensemble data.
+        """
+
+        # Get indices with predicted precipitation.
+        idx_prec = np.logical_or(
+            self.get_precipitation_mask(X_nwc), self.get_precipitation_mask(X_nwp)
+        )
+
+        # Get indices with satisfied Lien criterion and truncate the array onto the
+        # precipitation area.
+        idx_lien = self.get_lien_criterion(X_nwc, X_nwp)[idx_prec]
+
+        # Stack both ensemble forecasts and truncate them onto the precipitation area.
+        X_ens_stacked = np.vstack((X_nwc, X_nwp))[:, idx_prec]
+
+        # Remove possible non-finite values
+        X_ens_stacked[~np.isfinite(X_ens_stacked)] = self._config.norain_threshold
+
+        # Check whether there are more rainy grid boxes as two times the ensemble
+        # members
+        if np.sum(idx_prec) <= X_ens_stacked.shape[0]:
+            # If this is the case, the NWP ensemble forecast is returned
+            return X_nwp
+
+        # Transform both ensemble forecasts into the PC space.
+        kwargs = {"n_components": X_ens_stacked.shape[0], "svd_solver": "full"}
+        X_ens_stacked_pc, pca_params = utils.pca.pca_transform(
+            X=X_ens_stacked, get_params=True, **kwargs
+        )
+
+        # And do that transformation also for the Lien criterion masked values.
+        X_lien_pc = utils.pca.pca_transform(
+            X=X_ens_stacked, mask=idx_lien, pca_params=pca_params, **kwargs
+        )
+
+        # Get the updated background ensemble (Nowcast ensemble) in PC space.
+        X_ana_pc = self.update(
+            X_bg=X_ens_stacked_pc[: X_nwc.shape[0]],
+            Y_obs=X_ens_stacked_pc[X_nwc.shape[0] :],
+            inflation_factor_bg=self.__inflation_factor_bg,
+            inflation_factor_obs=self.__inflation_factor_obs,
+            offset_bg=self.__offset_bg,
+            offset_obs=self.__offset_obs,
+            X_bg_lien=X_lien_pc[: X_nwc.shape[0]],
+            Y_obs_lien=X_lien_pc[X_nwc.shape[0] :],
+        )
+
+        # Transform the analysis ensemble back into physical space.
+        X_ana = utils.pca.pca_backtransform(X_pc=X_ana_pc, pca_params=pca_params)
+
+        # Get the sampling probability either based on the ensembles...
+        if self.__sampling_prob_source == "ensemble":
+            sampling_probability = self.get_weighting_for_probability_matching(
+                X_bg=X_ens_stacked[: X_nwc.shape[0]][:, idx_lien],
+                X_ana=X_ana[:, idx_lien],
+                Y_obs=X_ens_stacked[X_nwc.shape[0] :][:, idx_lien],
+            )
+        # ...or based on the explained variance weighted Kalman gain.
+        elif self.__sampling_prob_source == "explained_var":
+            sampling_probability = np.sum(
+                np.diag(self.K) * pca_params["explained_variance"]
+            )
+        else:
+            raise ValueError(
+                f"Sampling probability source should be either 'ensemble' or 'explained_var', but is {self.__sampling_prob_source}!"
+            )
+
+        print(f"Sampling probability:               {sampling_probability:1.4f}")
+
+        # Apply probability matching to the analysis ensemble
+        if self.__iterative_prob_matching == True:
+
+            def worker(j):
+
+                # Get the combined distribution based on the input weight
+                precip_forecast_probability_matching_resampled = (
+                    probmatching.resample_distributions(
+                        first_array=X_ens_stacked[j],
+                        second_array=X_ens_stacked[j + X_nwc.shape[0]],
+                        probability_first_array=1 - sampling_probability,
+                    )
+                )
+
+                # Apply probability matching
+                X_ana[j] = probmatching.nonparam_match_empirical_cdf(
+                    X_ana[j],
+                    precip_forecast_probability_matching_resampled,
+                )
+
+            dask_worker_collection = []
+
+            if DASK_IMPORTED and self._config.n_ens_members > 1:
+                for j in range(self._config.n_ens_members):
+                    dask_worker_collection.append(dask.delayed(worker)(j))
+                dask.compute(
+                    *dask_worker_collection,
+                    num_workers=self.__params.num_ensemble_workers,
+                )
+            else:
+                for j in range(self._config.n_ens_members):
+                    worker(j)
+
+            dask_worker_collection = None
+
+        # Set analysis ensemble into the Nowcast ensemble
+        X_nwc[:, idx_prec] = X_ana
+
+        return X_nwc
