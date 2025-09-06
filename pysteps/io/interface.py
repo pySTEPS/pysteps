@@ -12,7 +12,7 @@ Interface for the io module.
 
     get_method
 """
-import importlib
+from importlib.metadata import entry_points
 
 from pysteps.decorators import postprocess_import
 from pysteps.io import importers, exporters, interface
@@ -46,17 +46,9 @@ def discover_importers():
     The importers found are added to the `pysteps.io.interface_importer_methods`
     dictionary containing the available importers.
     """
-    # The pkg resources needs to be reload to detect new packages installed during
-    # the execution of the python application. For example, when the plugins are
-    # installed during the tests
-    import pkg_resources
-
-    importlib.reload(pkg_resources)
     # Backward compatibility with previous entry point 'pysteps.plugins.importers' next to 'pysteps.plugins.importer'
-    for entry_point in list(
-        pkg_resources.iter_entry_points(group="pysteps.plugins.importer", name=None)
-    ) + list(
-        pkg_resources.iter_entry_points(group="pysteps.plugins.importers", name=None)
+    for entry_point in list(entry_points(group="pysteps.plugins.importer")) + list(
+        entry_points(group="pysteps.plugins.importers")
     ):
         _importer = entry_point.load()
 
@@ -71,14 +63,14 @@ def discover_importers():
             RuntimeWarning(
                 f"The importer identifier '{importer_short_name}' is already available in"
                 "'pysteps.io.interface._importer_methods'.\n"
-                f"Skipping {entry_point.module_name}:{entry_point.attrs}"
+                f"Skipping {entry_point.module}:{entry_point.attr}"
             )
 
         if hasattr(importers, importer_function_name):
             RuntimeWarning(
                 f"The importer function '{importer_function_name}' is already an attribute"
                 "of 'pysteps.io.importers`.\n"
-                f"Skipping {entry_point.module_name}:{entry_point.attrs}"
+                f"Skipping {entry_point.module}:{entry_point.attr}"
             )
         else:
             setattr(importers, importer_function_name, _importer)
