@@ -20,17 +20,17 @@ from pprint import pprint
 
 _importer_methods = dict(
     bom_rf3=importers.import_bom_rf3,
+    dwd_hdf5=importers.import_dwd_hdf5,
+    dwd_radolan=importers.import_dwd_radolan,
     fmi_geotiff=importers.import_fmi_geotiff,
     fmi_pgm=importers.import_fmi_pgm,
+    knmi_hdf5=importers.import_knmi_hdf5,
     mch_gif=importers.import_mch_gif,
     mch_hdf5=importers.import_mch_hdf5,
     mch_metranet=importers.import_mch_metranet,
     mrms_grib=importers.import_mrms_grib,
     odim_hdf5=importers.import_odim_hdf5,
     opera_hdf5=importers.import_opera_hdf5,
-    knmi_hdf5=importers.import_knmi_hdf5,
-    dwd_hdf5=importers.import_dwd_hdf5,
-    dwd_radolan=importers.import_dwd_radolan,
     saf_crri=importers.import_saf_crri,
 )
 
