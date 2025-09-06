@@ -52,6 +52,7 @@ from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.timeseries import autoregression, correlation
 from pysteps.blending.ens_kalman_filter_methods import MaskedEnKF
+from pysteps.postprocessing import probmatching
 
 try:
     import dask
@@ -565,6 +566,7 @@ class ForecastModel:
     nwc_prediction: np.ndarray | None = None
     nwc_prediction_btf: np.ndarray | None = None
 
+    fc_resampled: np.ndarray | None = None
     final_combined_forecast: list | None = None
 
     def __init__(
@@ -593,6 +595,9 @@ class ForecastModel:
 
             latest_obs[~np.isfinite(latest_obs)] = self.__config.norain_threshold
             ForecastModel.nwc_prediction = np.repeat(
+                latest_obs[None, :, :], self.__config.n_ens_members, axis=0
+            )
+            ForecastModel.fc_resampled = np.repeat(
                 latest_obs[None, :, :], self.__config.n_ens_members, axis=0
             )
             ForecastModel.nwc_prediction_btf = ForecastModel.nwc_prediction.copy()
@@ -641,6 +646,9 @@ class ForecastModel:
             )
         )
 
+        # Apply probability matching
+        self.__probability_matching()
+
         # Extrapolate the precipitation field onto the position of the current timestep.
         self.__advect()
 
@@ -649,7 +657,8 @@ class ForecastModel:
     # implemented in this function.
     def backtransform(self):
 
-        # Set the resulting field as shallow copy of the field that is used continuously for forecast computation.
+        # Set the resulting field as shallow copy of the field that is used
+        # continuously for forecast computation.
         ForecastModel.nwc_prediction_btf[self.__ens_member] = (
             ForecastModel.nwc_prediction[self.__ens_member]
         )
@@ -802,6 +811,19 @@ class ForecastModel:
         # Convert mask into bool.
         ForecastModel.__precip_mask[self.__ens_member] = np.array(
             precip_mask, dtype=bool
+        )
+
+        return
+
+    # Apply probability matching
+    def __probability_matching(self):
+
+        # Apply probability matching
+        ForecastModel.nwc_prediction[self.__ens_member] = (
+            probmatching.nonparam_match_empirical_cdf(
+                ForecastModel.nwc_prediction[self.__ens_member],
+                ForecastModel.fc_resampled[self.__ens_member],
+            )
         )
 
         return
@@ -1257,9 +1279,12 @@ class EnKFCombinationNowcaster:
                         self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
                     )[0][0]
 
-                    ForecastModel.nwc_prediction = self.KalmanFilterModel.correct_step(
-                        ForecastModel.nwc_prediction,
-                        self.__nwp_precip[:, t_corr],
+                    ForecastModel.nwc_prediction, ForecastModel.fc_resampled = (
+                        self.KalmanFilterModel.correct_step(
+                            ForecastModel.nwc_prediction,
+                            self.__nwp_precip[:, t_corr],
+                            ForecastModel.fc_resampled,
+                        )
                     )
 
                 # Run forecast step

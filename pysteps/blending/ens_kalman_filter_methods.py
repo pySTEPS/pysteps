@@ -394,6 +394,11 @@ class MaskedEnKF(EnsembleKalmanFilter):
         self.__sampling_prob_source = self.__params.combination_kwargs.get(
             "sampling_prob_source", "ensemble"
         )
+        self.__use_accum_sampling_prob = self.__params.combination_kwargs.get(
+            "use_accum_sampling_prob", False
+        )
+
+        self.__sampling_probability = 0.0
 
         print("Initialize masked ensemble Kalman filter")
         print("========================================")
@@ -405,11 +410,12 @@ class MaskedEnKF(EnsembleKalmanFilter):
         print(f"Background offset:                  {self.__offset_bg}")
         print(f"Observation offset:                 {self.__offset_obs}")
         print(f"Sampling probability source:        {self.__sampling_prob_source}")
+        print(f"Use accum. sampling probability:    {self.__use_accum_sampling_prob}")
         print("")
 
         return
 
-    def correct_step(self, X_nwc, X_nwp):
+    def correct_step(self, X_nwc, X_nwp, X_resampled):
         """
         Prepare input ensembles of Nowcast and NWP for the ensemble Kalman filter
         update step.
@@ -481,14 +487,16 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
         # Get the sampling probability either based on the ensembles...
         if self.__sampling_prob_source == "ensemble":
-            sampling_probability = self.get_weighting_for_probability_matching(
-                X_bg=X_ens_stacked[: X_nwc.shape[0]][:, idx_lien],
-                X_ana=X_ana[:, idx_lien],
-                Y_obs=X_ens_stacked[X_nwc.shape[0] :][:, idx_lien],
+            sampling_probability_single_step = (
+                self.get_weighting_for_probability_matching(
+                    X_bg=X_ens_stacked[: X_nwc.shape[0]][:, idx_lien],
+                    X_ana=X_ana[:, idx_lien],
+                    Y_obs=X_ens_stacked[X_nwc.shape[0] :][:, idx_lien],
+                )
             )
         # ...or based on the explained variance weighted Kalman gain.
         elif self.__sampling_prob_source == "explained_var":
-            sampling_probability = np.sum(
+            sampling_probability_single_step = np.sum(
                 np.diag(self.K) * pca_params["explained_variance"]
             )
         else:
@@ -496,7 +504,14 @@ class MaskedEnKF(EnsembleKalmanFilter):
                 f"Sampling probability source should be either 'ensemble' or 'explained_var', but is {self.__sampling_prob_source}!"
             )
 
-        print(f"Sampling probability:               {sampling_probability:1.4f}")
+        if self.__use_accum_sampling_prob == True:
+            self.__sampling_probability = (
+                1 - sampling_probability_single_step
+            ) * self.__sampling_probability + sampling_probability_single_step
+        else:
+            self.__sampling_probability = sampling_probability_single_step
+
+        print(f"Sampling probability:               {self.__sampling_probability:1.4f}")
 
         # Apply probability matching to the analysis ensemble
         if self.__iterative_prob_matching == True:
@@ -504,19 +519,11 @@ class MaskedEnKF(EnsembleKalmanFilter):
             def worker(j):
 
                 # Get the combined distribution based on the input weight
-                precip_forecast_probability_matching_resampled = (
-                    probmatching.resample_distributions(
-                        first_array=X_ens_stacked[j],
-                        second_array=X_ens_stacked[j + X_nwc.shape[0]],
-                        probability_first_array=1 - sampling_probability,
-                    )
-                )
-
-                # Apply probability matching
-                X_ana[j] = probmatching.nonparam_match_empirical_cdf(
-                    X_ana[j],
-                    precip_forecast_probability_matching_resampled,
-                )
+                X_resampled[j] = probmatching.resample_distributions(
+                    first_array=X_nwc[j],
+                    second_array=X_nwp[j],
+                    probability_first_array=1 - self.__sampling_probability,
+                ).reshape(self.__params.len_y, self.__params.len_x)
 
             dask_worker_collection = []
 
@@ -536,4 +543,4 @@ class MaskedEnKF(EnsembleKalmanFilter):
         # Set analysis ensemble into the Nowcast ensemble
         X_nwc[:, idx_prec] = X_ana
 
-        return X_nwc
+        return X_nwc, X_resampled
