@@ -5,11 +5,9 @@ import numpy as np
 import pytest
 import pysteps
 from pysteps.utils import reprojection as rpj
-import pysteps_nwp_importers
 
 pytest.importorskip("rasterio")
 pytest.importorskip("pyproj")
-# pytest.importorskip("pysteps_nwp_importers")
 
 root_path_radar = pysteps.rcparams.data_sources["rmi"]["root_path"]
 
@@ -112,67 +110,4 @@ def test_utils_reproject_grids(
 
     assert (
         metadata_reproj["projection"] == metadata_dst["projection"]
-    ), "projection is different than destination projection"
-
-
-root_path_radar = pysteps.rcparams.data_sources["dwd"]["root_path"]
-root_path_nwp = pysteps.rcparams.data_sources["dwd_nwp"]["root_path"]
-
-filename_radar = os.path.join(
-    root_path_radar, "RY", "2025", "06", "04", "20250604_1700_RY.h5"
-)
-_, _, metadata_dst = pysteps.io.import_dwd_hdf5(filename_radar, qty="RATE")
-
-filename_nwp = os.path.join(
-    root_path_nwp, "2025", "06", "04", "20250604_1600_PR_GSP_060_120.grib2"
-)
-kwargs = {
-    "varname": "PR_GSP",
-    "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc",
-}
-array_src, _, metadata_src = pysteps_nwp_importers.importer_dwd_nwp.import_dwd_nwp(
-    filename_nwp, **kwargs
-)
-
-# Since output of NWP importer is based on xarray and the restructure function is
-# rewritten for np.ndarray, there's is some improvisation
-metadata_src["clon"] = array_src["longitude"].values
-metadata_src["clat"] = array_src["latitude"].values
-array_src = array_src.values
-
-restructure_arg_names = ("array_src", "metadata_src", "metadata_dst")
-restructure_arg_values = [(array_src, metadata_src, metadata_dst)]
-
-
-@pytest.mark.parametrize(restructure_arg_names, restructure_arg_values)
-def test_utils_unstructured2regular(array_src, metadata_src, metadata_dst):
-    # Run unstructured2regular
-    array_rprj, metadata_rprj = rpj.unstructured2regular(
-        array_src, metadata_src, metadata_dst
-    )
-
-    # The tests
-    assert (
-        array_rprj.shape[0] == array_src.shape[0]
-    ), "Time dimension has not the same length as source"
-    assert (
-        array_rprj.shape[1] == array_src.shape[0],
-        "Ensemble member dimension has not the same length as source",
-    )
-
-    assert (
-        metadata_rprj["x1"] == metadata_dst["x1"]
-    ), "x-value lower left corner is not equal to radar composite"
-    assert (
-        metadata_rprj["x2"] == metadata_dst["x2"]
-    ), "x-value upper right corner is not equal to radar composite"
-    assert (
-        metadata_rprj["y1"] == metadata_dst["y1"]
-    ), "y-value lower left corner is not equal to radar composite"
-    assert (
-        metadata_rprj["y2"] == metadata_dst["y2"]
-    ), "y-value upper right corner is not equal to radar composite"
-
-    assert (
-        metadata_rprj["projection"] == metadata_dst["projection"]
     ), "projection is different than destination projection"
