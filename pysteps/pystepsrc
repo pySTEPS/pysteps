@@ -25,7 +25,7 @@
             }
         },
         "dwd": {
-            "root_path": "./radar/dwd",
+            "root_path": "./radar/dwd/RY",
             "path_fmt": "%Y/%m/%d",
             "fn_pattern": "%Y%m%d_%H%M_RY",
             "fn_ext": "h5",
