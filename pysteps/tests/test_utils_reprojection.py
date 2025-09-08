@@ -7,6 +7,7 @@ import pysteps
 from pysteps.utils import reprojection as rpj
 
 pytest.importorskip("rasterio")
+pytest.importorskip("pyproj")
 
 root_path_radar = pysteps.rcparams.data_sources["rmi"]["root_path"]
 
@@ -109,4 +110,4 @@ def test_utils_reproject_grids(
 
     assert (
         metadata_reproj["projection"] == metadata_dst["projection"]
-    ), "projection is different than destionation projection"
+    ), "projection is different than destination projection"
