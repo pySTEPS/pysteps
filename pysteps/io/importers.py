@@ -71,7 +71,7 @@ an ensemble member dimension over the course of the process.
 
 The dataset can contain the following coordinate variables:
 
-
+# XR: Move this to appropriate place
 .. tabularcolumns:: |p{2cm}|L|
 
 +--------------------+-------------------------------------------------------------------------------------------+
