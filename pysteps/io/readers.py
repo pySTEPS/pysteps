@@ -11,6 +11,8 @@ Module with the reader functions.
     read_timeseries
 """
 
+import warnings
+
 import numpy as np
 import xarray as xr
 
@@ -62,12 +64,20 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
 
     startdate = min(inputfns[1])
     sorted_dates = sorted(inputfns[1])
-    timestep_dates = int((sorted_dates[1] - sorted_dates[0]).total_seconds())
+    timestep_dates = None
+    if len(sorted_dates) > 1:
+        timestep_dates = int((sorted_dates[1] - sorted_dates[0]).total_seconds())
 
+    if timestep is None and timestep_dates is None:
+        raise ValueError("either provide a timestep or provide more than one inputfn")
     if timestep is None:
         timestep = timestep_dates
-    if timestep != timestep_dates:
-        raise ValueError("given timestep does not match inputfns")
+    if timestep_dates is not None and timestep != timestep_dates:
+        warnings.warn(
+            "Supplied timestep does not match actual timestep spacing in input data, "
+            + "using actual spacing as timestep."
+        )
+        timestep = timestep_dates
     for i in range(len(sorted_dates) - 1):
         if int((sorted_dates[i + 1] - sorted_dates[i]).total_seconds()) != timestep:
             raise ValueError("supplied dates are not evenly spaced")

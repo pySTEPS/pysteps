@@ -255,8 +255,10 @@ class StepsNowcasterParams:
 
 @dataclass
 class StepsNowcasterState:
-    precip_forecast: list[Any] | None = field(default_factory=list)
-    precip_cascades: list[list[np.ndarray]] | None = field(default_factory=list)
+    precip: np.ndarray
+    velocity: np.ndarray
+    precip_forecast: np.ndarray | None = None
+    precip_cascades: np.ndarray | None = None
     precip_decomposed: list[dict[str, Any]] | None = field(default_factory=list)
     # The observation mask (where the radar can observe the precipitation)
     precip_mask: list[Any] | None = field(default_factory=list)
@@ -276,19 +278,22 @@ class StepsNowcasterState:
 
 
 class StepsNowcaster:
-    def __init__(
-        self, precip, velocity, time_steps, steps_config: StepsNowcasterConfig
-    ):
+    def __init__(self, dataset, time_steps, steps_config: StepsNowcasterConfig):
         # Store inputs and optional parameters
-        self.__precip = precip
-        self.__velocity = velocity
         self.__time_steps = time_steps
 
         # Store the config data:
         self.__config = steps_config
 
+        self.__dataset = dataset.copy(deep=True)
+        precip_var = self.__dataset.attrs["precip_var"]
+        precip = self.__dataset[precip_var].values
+        velocity = np.stack(
+            [self.__dataset["velocity_x"], self.__dataset["velocity_y"]]
+        )
+
         # Store the state and params data:
-        self.__state = StepsNowcasterState()
+        self.__state = StepsNowcasterState(precip, velocity)
         self.__params = StepsNowcasterParams()
 
         # Additional variables for time measurement
@@ -303,14 +308,13 @@ class StepsNowcaster:
 
         Parameters
         ----------
-        precip: array-like
-            Array of shape (ar_order+1,m,n) containing the input precipitation fields
-            ordered by timestamp from oldest to newest. The time steps between the
-            inputs are assumed to be regular.
-        velocity: array-like
-            Array of shape (2,m,n) containing the x- and y-components of the advection
-            field. The velocities are assumed to represent one time step between the
-            inputs. All values are required to be finite.
+        dataset: xarray.Dataset
+            Input dataset as described in the documentation of
+            :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+            ``velocity_y`` data variables, as well as any precipitation data variable.
+            The time dimension of the dataset has to be size
+            ``ar_order + 1`` and the precipitation variable has to have this dimension. All
+            velocity values are required to be finite.
         timesteps: int or list of floats
             Number of time steps to forecast or a list of time steps for which the
             forecasts are computed (relative to the input time step). The elements
@@ -320,13 +324,13 @@ class StepsNowcaster:
 
         Returns
         -------
-        out: ndarray
-            If return_output is True, a four-dimensional array of shape
-            (n_ens_members,num_timesteps,m,n) containing a time series of forecast
+        out: xarray.Dataset
+            If return_output is True, a dataset as described in the documentation of
+            :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
             precipitation fields for each ensemble member. Otherwise, a None value
             is returned. The time series starts from t0+timestep, where timestep is
-            taken from the input precipitation fields. If measure_time is True, the
-            return value is a three-element tuple containing the nowcast array, the
+            taken from the metadata of the time coordinate. If measure_time is True, the
+            return value is a three-element tuple containing the nowcast dataset, the
             initialization time of the nowcast generator and the time used in the
             main loop (seconds).
 
@@ -346,7 +350,9 @@ class StepsNowcaster:
             self.__start_time_init = time.time()
 
         # Slice the precipitation field to only use the last ar_order + 1 fields
-        self.__precip = self.__precip[-(self.__config.ar_order + 1) :, :, :].copy()
+        self.__state.precip = self.__state.precip[
+            -(self.__config.ar_order + 1) :, :, :
+        ].copy()
         self.__initialize_nowcast_components()
 
         self.__perform_extrapolation()
@@ -378,14 +384,13 @@ class StepsNowcaster:
                     for j in range(self.__config.n_ens_members)
                 ]
             )
+            output_dataset = convert_output_to_xarray_dataset(
+                self.__dataset, self.__time_steps, self.__state.precip_forecast
+            )
             if self.__config.measure_time:
-                return (
-                    self.__state.precip_forecast,
-                    self.__init_time,
-                    self.__mainloop_time,
-                )
+                return (output_dataset, self.__init_time, self.__mainloop_time)
             else:
-                return self.__state.precip_forecast
+                return output_dataset
         else:
             return None
 
@@ -395,7 +400,7 @@ class StepsNowcaster:
         to generate forecasts.
         """
         # Isolate the last time slice of observed precipitation
-        precip = self.__precip[
+        precip = self.__state.precip[
             -1, :, :
         ]  # Extract the last available precipitation field
 
@@ -408,7 +413,7 @@ class StepsNowcaster:
         # Run the nowcast main loop
         self.__state.precip_forecast = nowcast_main_loop(
             precip,
-            self.__velocity,
+            self.__state.velocity,
             state,
             self.__time_steps,
             self.__config.extrapolation_method,
@@ -428,26 +433,26 @@ class StepsNowcaster:
         """
         Validate the inputs to ensure consistency and correct shapes.
         """
-        if self.__precip.ndim != 3:
+        if self.__state.precip.ndim != 3:
             raise ValueError("precip must be a three-dimensional array")
-        if self.__precip.shape[0] < self.__config.ar_order + 1:
+        if self.__state.precip.shape[0] < self.__config.ar_order + 1:
             raise ValueError(
                 f"precip.shape[0] must be at least ar_order+1, "
-                f"but found {self.__precip.shape[0]}"
+                f"but found {self.__state.precip.shape[0]}"
             )
-        if self.__velocity.ndim != 3:
+        if self.__state.velocity.ndim != 3:
             raise ValueError("velocity must be a three-dimensional array")
-        if self.__precip.shape[1:3] != self.__velocity.shape[1:3]:
+        if self.__state.precip.shape[1:3] != self.__state.velocity.shape[1:3]:
             raise ValueError(
                 f"Dimension mismatch between precip and velocity: "
-                f"shape(precip)={self.__precip.shape}, shape(velocity)={self.__velocity.shape}"
+                f"shape(precip)={self.__state.precip.shape}, shape(velocity)={self.__state.velocity.shape}"
             )
         if (
             isinstance(self.__time_steps, list)
             and not sorted(self.__time_steps) == self.__time_steps
         ):
             raise ValueError("timesteps must be in ascending order")
-        if np.any(~np.isfinite(self.__velocity)):
+        if np.any(~np.isfinite(self.__state.velocity)):
             raise ValueError("velocity contains non-finite values")
         if self.__config.mask_method not in ["obs", "sprog", "incremental", None]:
             raise ValueError(
@@ -528,7 +533,9 @@ class StepsNowcaster:
 
         print("Inputs")
         print("------")
-        print(f"input dimensions: {self.__precip.shape[1]}x{self.__precip.shape[2]}")
+        print(
+            f"input dimensions: {self.__state.precip.shape[1]}x{self.__state.precip.shape[2]}"
+        )
         if self.__config.kmperpixel is not None:
             print(f"km/pixel:         {self.__config.kmperpixel}")
         if self.__config.timestep is not None:
@@ -599,7 +606,9 @@ class StepsNowcaster:
             self.__config.n_ens_members, self.__config.num_workers
         )
 
-        M, N = self.__precip.shape[1:]  # Extract the spatial dimensions (height, width)
+        M, N = self.__state.precip.shape[
+            1:
+        ]  # Extract the spatial dimensions (height, width)
 
         # Initialize FFT method
         self.__params.fft = utils.get_method(
@@ -631,7 +640,10 @@ class StepsNowcaster:
 
         # Determine the domain mask from non-finite values in the precipitation data
         self.__params.domain_mask = np.logical_or.reduce(
-            [~np.isfinite(self.__precip[i, :]) for i in range(self.__precip.shape[0])]
+            [
+                ~np.isfinite(self.__state.precip[i, :])
+                for i in range(self.__state.precip.shape[0])
+            ]
         )
 
         print("Nowcast components initialized successfully.")
@@ -645,8 +657,8 @@ class StepsNowcaster:
         if self.__config.conditional:
             self.__state.mask_threshold = np.logical_and.reduce(
                 [
-                    self.__precip[i, :, :] >= self.__config.precip_threshold
-                    for i in range(self.__precip.shape[0])
+                    self.__state.precip[i, :, :] >= self.__config.precip_threshold
+                    for i in range(self.__state.precip.shape[0])
                 ]
             )
         else:
@@ -655,7 +667,7 @@ class StepsNowcaster:
         extrap_kwargs = self.__state.extrapolation_kwargs.copy()
         extrap_kwargs["xy_coords"] = self.__params.xy_coordinates
         extrap_kwargs["allow_nonfinite_values"] = (
-            True if np.any(~np.isfinite(self.__precip)) else False
+            True if np.any(~np.isfinite(self.__state.precip)) else False
         )
 
         res = []
@@ -664,7 +676,7 @@ class StepsNowcaster:
             # Extrapolate a single precipitation field using the velocity field
             return self.__params.extrapolation_method(
                 precip[i, :, :],
-                self.__velocity,
+                self.__state.velocity,
                 self.__config.ar_order - i,
                 "min",
                 **extrap_kwargs,
@@ -674,17 +686,21 @@ class StepsNowcaster:
             if (
                 not DASK_IMPORTED
             ):  # If Dask is not available, perform sequential extrapolation
-                self.__precip[i, :, :] = __extrapolate_single_field(self.__precip, i)
+                self.__state.precip[i, :, :] = __extrapolate_single_field(
+                    self.__state.precip, i
+                )
             else:
                 # If Dask is available, accumulate delayed computations for parallel execution
-                res.append(dask.delayed(__extrapolate_single_field)(self.__precip, i))
+                res.append(
+                    dask.delayed(__extrapolate_single_field)(self.__state.precip, i)
+                )
 
         # If Dask is available, perform the parallel computation
         if DASK_IMPORTED and res:
             num_workers_ = min(self.__params.num_ensemble_workers, len(res))
-            self.__precip = np.stack(
+            self.__state.precip = np.stack(
                 list(dask.compute(*res, num_workers=num_workers_))
-                + [self.__precip[-1, :, :]]
+                + [self.__state.precip[-1, :, :]]
             )
 
         print("Extrapolation complete and precipitation fields aligned.")
@@ -696,12 +712,12 @@ class StepsNowcaster:
         and adds noise perturbations if necessary.
         """
         # Make a copy of the precipitation data and replace non-finite values
-        precip = self.__precip.copy()
-        for i in range(self.__precip.shape[0]):
+        precip = self.__state.precip.copy()
+        for i in range(self.__state.precip.shape[0]):
             # Replace non-finite values with the minimum finite value of the precipitation field
             precip[i, ~np.isfinite(precip[i, :])] = np.nanmin(precip[i, :])
         # Store the precipitation data back in the object
-        self.__precip = precip
+        self.__state.precip = precip
 
         # Initialize the noise generator if the noise_method is provided
         if self.__config.noise_method is not None:
@@ -712,7 +728,7 @@ class StepsNowcaster:
             self.__params.noise_generator = generate_noise
 
             self.__params.perturbation_generator = init_noise(
-                self.__precip,
+                self.__state.precip,
                 fft_method=self.__params.fft,
                 **self.__params.noise_kwargs,
             )
@@ -726,9 +742,9 @@ class StepsNowcaster:
                 # Compute noise adjustment coefficients
                 self.__params.noise_std_coefficients = (
                     noise.utils.compute_noise_stddev_adjs(
-                        self.__precip[-1, :, :],
+                        self.__state.precip[-1, :, :],
                         self.__config.precip_threshold,
-                        np.min(self.__precip),
+                        np.min(self.__state.precip),
                         self.__params.bandpass_filter,
                         self.__params.decomposition_method,
                         self.__params.perturbation_generator,
@@ -778,7 +794,7 @@ class StepsNowcaster:
         self.__state.precip_decomposed = []
         for i in range(self.__config.ar_order + 1):
             precip_ = self.__params.decomposition_method(
-                self.__precip[i, :, :],
+                self.__state.precip[i, :, :],
                 self.__params.bandpass_filter,
                 mask=self.__state.mask_threshold,
                 fft_method=self.__params.fft,
@@ -891,7 +907,7 @@ class StepsNowcaster:
                     ),
                 }
                 vp = init_vel_noise(
-                    self.__velocity,
+                    self.__state.velocity,
                     1.0 / self.__config.kmperpixel,
                     self.__config.timestep,
                     **kwargs,
@@ -911,8 +927,8 @@ class StepsNowcaster:
 
         if self.__config.probmatching_method == "mean":
             self.__params.precipitation_mean = np.mean(
-                self.__precip[-1, :, :][
-                    self.__precip[-1, :, :] >= self.__config.precip_threshold
+                self.__state.precip[-1, :, :][
+                    self.__state.precip[-1, :, :] >= self.__config.precip_threshold
                 ]
             )
         else:
@@ -920,13 +936,13 @@ class StepsNowcaster:
 
         if self.__config.mask_method is not None:
             self.__state.mask_precip = (
-                self.__precip[-1, :, :] >= self.__config.precip_threshold
+                self.__state.precip[-1, :, :] >= self.__config.precip_threshold
             )
 
             if self.__config.mask_method == "sprog":
                 # Compute the wet area ratio and the precipitation mask
                 self.__params.wet_area_ratio = np.sum(self.__state.mask_precip) / (
-                    self.__precip.shape[1] * self.__precip.shape[2]
+                    self.__state.precip.shape[1] * self.__state.precip.shape[2]
                 )
                 self.__state.precip_mask = [
                     self.__state.precip_cascades[0][i].copy()
@@ -974,7 +990,7 @@ class StepsNowcaster:
         self.__state.fft_objs = []
         for _ in range(self.__config.n_ens_members):
             fft_obj = utils.get_method(
-                self.__config.fft_method, shape=self.__precip.shape[1:]
+                self.__config.fft_method, shape=self.__state.precip.shape[1:]
             )
             self.__state.fft_objs.append(fft_obj)
         print("FFT objects initialized successfully.")
@@ -1220,21 +1236,6 @@ class StepsNowcaster:
             print(f"{label} took {elapsed_time:.2f} seconds.")
             return elapsed_time
         return None
-
-    def reset_states_and_params(self):
-        """
-        Reset the internal state and parameters of the nowcaster to allow multiple forecasts.
-        This method resets the state and params to their initial conditions without reinitializing
-        the inputs like precip, velocity, time_steps, or config.
-        """
-        # Re-initialize the state and parameters
-        self.__state = StepsNowcasterState()
-        self.__params = StepsNowcasterParams()
-
-        # Reset time measurement variables
-        self.__start_time_init = None
-        self.__init_time = None
-        self.__mainloop_time = None
 
 
 # Wrapper function to preserve backward compatibility
@@ -1494,10 +1495,7 @@ def forecast(
     )
 
     # Create an instance of the new class with all the provided arguments
-    nowcaster = StepsNowcaster(
-        precip, velocity, timesteps, steps_config=nowcaster_config
-    )
+    nowcaster = StepsNowcaster(dataset, timesteps, steps_config=nowcaster_config)
     forecast_steps_nowcast = nowcaster.compute_forecast()
-    nowcaster.reset_states_and_params()
     # Call the appropriate methods within the class
     return forecast_steps_nowcast
