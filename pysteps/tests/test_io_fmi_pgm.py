@@ -3,23 +3,24 @@ import os
 import pytest
 
 import pysteps
-from pysteps.tests.helpers import smart_assert
+from pysteps.tests.helpers import smart_assert, get_precipitation_fields
 
-pytest.importorskip("pyproj")
-
-
-root_path = pysteps.rcparams.data_sources["fmi"]["root_path"]
-filename = os.path.join(
-    root_path,
-    "20160928",
-    "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz",
+precip_dataset = get_precipitation_fields(
+    num_prev_files=0,
+    num_next_files=0,
+    return_raw=True,
+    metadata=True,
+    source="fmi",
+    log_transform=False,
 )
-precip, _, metadata = pysteps.io.import_fmi_pgm(filename, gzipped=True)
+
+precip_var = precip_dataset.attrs["precip_var"]
+precip_dataarray = precip_dataset[precip_var]
 
 
 def test_io_import_fmi_pgm_shape():
     """Test the importer FMI PGM."""
-    assert precip.shape == (1226, 760)
+    assert precip_dataarray.shape == (1, 1226, 760)
 
 
 expected_proj = (

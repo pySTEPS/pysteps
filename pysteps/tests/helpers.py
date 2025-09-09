@@ -19,6 +19,7 @@ from pysteps.utils.dimension import clip_domain
 _reference_dates = dict()
 _reference_dates["bom"] = datetime(2018, 6, 16, 10, 0)
 _reference_dates["fmi"] = datetime(2016, 9, 28, 16, 0)
+_reference_dates["fmi_geotiff"] = datetime(2016, 9, 28, 16, 0)
 _reference_dates["knmi"] = datetime(2010, 8, 26, 0, 0)
 _reference_dates["mch"] = datetime(2015, 5, 15, 16, 30)
 _reference_dates["dwd"] = datetime(2025, 6, 4, 17, 0)
@@ -137,6 +138,10 @@ def get_precipitation_fields(
 
     if source == "fmi":
         pytest.importorskip("pyproj")
+
+    if source == "fmi_geotiff":
+        pytest.importorskip("pyproj")
+        pytest.importorskip("osgeo")
 
     if source == "knmi":
         pytest.importorskip("h5py")

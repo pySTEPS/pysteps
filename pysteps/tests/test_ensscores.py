@@ -7,8 +7,13 @@ from numpy.testing import assert_array_almost_equal
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.verification import ensscores
 
-precip = get_precipitation_fields(num_next_files=10, return_raw=True)
+precip_dataset = get_precipitation_fields(num_next_files=10, return_raw=True)
 np.random.seed(42)
+
+# XR: extract values from array because score functions are not xarray compatible
+precip_var = precip_dataset.attrs["precip_var"]
+precip = precip_dataset[precip_var].values
+
 
 # rankhist
 test_data = [

@@ -3,23 +3,24 @@ import os
 import pytest
 
 import pysteps
-from pysteps.tests.helpers import smart_assert
+from pysteps.tests.helpers import smart_assert, get_precipitation_fields
 
-pytest.importorskip("pyproj")
-pytest.importorskip("osgeo")
-
-root_path = pysteps.rcparams.data_sources["fmi_geotiff"]["root_path"]
-filename = os.path.join(
-    root_path,
-    "20160928",
-    "201609281600_FINUTM.tif",
+precip_dataset = get_precipitation_fields(
+    num_prev_files=0,
+    num_next_files=0,
+    return_raw=True,
+    metadata=True,
+    source="fmi_geotiff",
+    log_transform=False,
 )
-precip, _, metadata = pysteps.io.import_fmi_geotiff(filename)
+
+precip_var = precip_dataset.attrs["precip_var"]
+precip_dataarray = precip_dataset[precip_var]
 
 
 def test_io_import_fmi_geotiff_shape():
     """Test the shape of the read file."""
-    assert precip.shape == (7316, 4963)
+    assert precip_dataarray.shape == (1, 7316, 4963)
 
 
 expected_proj = (
