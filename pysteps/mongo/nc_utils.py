@@ -1,93 +1,126 @@
 """
-    Refactored IO utilities for pysteps.
+Refactored IO utilities for pysteps.
 """
+
 import numpy as np
 from pyproj import CRS
 import netCDF4
-from datetime import datetime, timezone
+import datetime
 from typing import Optional
 import io
+from pathlib import Path
+
 
 def replace_extension(filename: str, new_ext: str) -> str:
     return f"{filename.rsplit('.', 1)[0]}{new_ext}"
 
+
 def convert_timestamps_to_datetimes(timestamps):
     """Convert POSIX timestamps to datetime objects."""
-    return [datetime.fromtimestamp(ts, tz=timezone.utc) for ts in timestamps]
+    return [
+        datetime.datetime.fromtimestamp(ts, tz=datetime.timezone.utc)
+        for ts in timestamps
+    ]
 
 
-def write_netcdf(rain: np.ndarray, geo_data: dict, time: int):
+def write_netcdf_file(
+    file_path: Path,
+    rain: np.ndarray,
+    geo_data: dict,
+    valid_times: list[datetime.datetime],
+    ensembles: list[int] | None,
+) -> None:
     """
-    Write rain data as a NetCDF4 memory buffer.
+    Write a set of rainfall grids to a CF-compliant NetCDF file using i2 data and scale_factor.
 
-    :param buffer: A BytesIO buffer to store the NetCDF data.
-    :param rain: Rainfall data as a NumPy array.
-    :param geo_data: Dictionary containing geo-referencing data with keys:
-                     'x', 'y', 'projection', and other metadata.
-    :param time: POSIX timestamp representing the time dimension.
-    :return: The BytesIO buffer containing the NetCDF data.
+    Args:
+        file_path (Path): Full path to the output file.
+        rain (np.ndarray): Rainfall array. Shape is [ensemble, time, y, x] if ensembles is provided,
+                           otherwise [time, y, x], with units in mm/h as float.
+        geo_data (dict): Geospatial metadata (must include 'x', 'y', and optionally 'projection').
+        valid_times (list[datetime.datetime]): List of timezone-aware valid times.
+        ensembles (list[int] | None): Optional list of ensemble member IDs.
     """
-    x = geo_data['x']
-    y = geo_data['y']
-    # Default to WGS84 if not provided
-    projection = geo_data.get('projection', 'EPSG:4326')
+    # Convert datetime to seconds since epoch
+    time_stamps = [vt.timestamp() for vt in valid_times]
 
-    # Create an in-memory NetCDF dataset
-    ds = netCDF4.Dataset('inmemory.nc', mode='w', memory=1024)
+    x = geo_data["x"]
+    y = geo_data["y"]
+    projection = geo_data.get("projection", "EPSG:4326")
+    rain_fill_value = -1
 
-    # Define dimensions
-    y_dim = ds.createDimension("y", len(y))
-    x_dim = ds.createDimension("x", len(x))
-    t_dim = ds.createDimension("time", 1)
+    with netCDF4.Dataset(file_path, mode="w", format="NETCDF4") as ds:
+        # Define dimensions
+        ds.createDimension("y", len(y))
+        ds.createDimension("x", len(x))
+        ds.createDimension("time", len(valid_times))
+        if ensembles is not None:
+            ds.createDimension("ensemble", len(ensembles))
 
-    # Define coordinate variables
-    y_var = ds.createVariable("y", "f4", ("y",))
-    x_var = ds.createVariable("x", "f4", ("x",))
-    t_var = ds.createVariable("time", "i8", ("time",))
+        # Define coordinate variables
+        x_var = ds.createVariable("x", "f4", ("x",))
+        x_var[:] = x
+        x_var.standard_name = "projection_x_coordinate"
+        x_var.units = "m"
 
-    # Define rain variable
-    rain_var = ds.createVariable(
-        "rainfall", "i2", ("time", "y", "x"), zlib=True
-    )  # int16 with a fill value
-    rain_var.scale_factor = 0.1
-    rain_var.add_offset = 0.0
-    rain_var.units = "mm/h"
-    rain_var.long_name = "Rainfall rate"
-    rain_var.grid_mapping = "projection"
+        y_var = ds.createVariable("y", "f4", ("y",))
+        y_var[:] = y
+        y_var.standard_name = "projection_y_coordinate"
+        y_var.units = "m"
 
-    # Assign coordinate values
-    y_var[:] = y
-    y_var.standard_name = "projection_y_coordinate"
-    y_var.units = "m"
+        t_var = ds.createVariable("time", "f8", ("time",))
+        t_var[:] = time_stamps
+        t_var.standard_name = "time"
+        t_var.units = "seconds since 1970-01-01T00:00:00Z"
+        t_var.calendar = "standard"
 
-    x_var[:] = x
-    x_var.standard_name = "projection_x_coordinate"
-    x_var.units = "m"
+        if ensembles is not None:
+            e_var = ds.createVariable("ensemble", "i4", ("ensemble",))
+            e_var[:] = ensembles
+            e_var.standard_name = "ensemble"
+            e_var.units = "1"
 
-    t_var[:] = [time]
-    t_var.standard_name = "time"
-    t_var.units = "seconds since 1970-01-01T00:00:00Z"
+        # Define the rainfall variable with proper fill_value
+        rain_dims = (
+            ("time", "y", "x") if ensembles is None else ("ensemble", "time", "y", "x")
+        )
+        rain_var = ds.createVariable(
+            "rainfall",
+            "i2",
+            rain_dims,
+            zlib=True,
+            complevel=5,
+            fill_value=rain_fill_value,
+        )
 
-    # Handle NaNs in rain data and assign to variable
-    rain[np.isnan(rain)] = -1
-    rain_var[0,:, :] = rain
+        # Scale and store rainfall
+        rain_scaled = np.where(
+            np.isnan(rain), rain_fill_value, np.round(rain * 10).astype(np.int16)
+        )
+        rain_var[...] = rain_scaled
 
-    # Define spatial reference (CRS)
-    crs = CRS.from_user_input(projection)
-    cf_grid_mapping = crs.to_cf()
+        # Metadata
+        rain_var.scale_factor = 0.1
+        rain_var.add_offset = 0.0
+        rain_var.units = "mm/h"
+        rain_var.long_name = "Rainfall rate"
+        rain_var.grid_mapping = "projection"
+        rain_var.coordinates = " ".join(rain_dims)
 
-    # Create spatial reference variable
-    spatial_ref = ds.createVariable("projection", "i4")
-    for key, value in cf_grid_mapping.items():
-        setattr(spatial_ref, key, value)
+        # CRS
+        crs = CRS.from_user_input(projection)
+        cf_grid_mapping = crs.to_cf()
+        spatial_ref = ds.createVariable("projection", "i4")
+        for key, value in cf_grid_mapping.items():
+            setattr(spatial_ref, key, value)
 
-    # Add global attributes
-    ds.Conventions = "CF-1.7"
-    ds.title = "Rainfall data"
-    ds.institution = "Weather Radar New Zealand Ltd"
-    ds.references = ""
-    ds.comment = ""
-    return ds.close()
+        # Global attributes
+        ds.Conventions = "CF-1.8"
+        ds.title = ""
+        ds.institution = ""
+        ds.references = ""
+        ds.comment = ""
+
 
 import io
 import tempfile
@@ -96,21 +129,28 @@ import os
 import numpy as np
 from pyproj import CRS
 
-def write_netcdf_io(rain: np.ndarray, geo_data: dict, time: int) -> io.BytesIO:
-    """
-    Write a NetCDF file to a temporary file, read it into memory, and return a BytesIO buffer.
-    """
 
-    x = geo_data['x']
-    y = geo_data['y']
-    projection = geo_data.get('projection', 'EPSG:4326')
+def make_netcdf_buffer(rain: np.ndarray, geo_data: dict, time: int) -> io.BytesIO:
+    """
+    Make the BytesIO netcdf object that is needed for writing to GridFS database
+    Args:
+        rain (np.ndarray): array of rain rates in mm/h as float
+        geo_data (dict): spatial metadata
+        time (int): seconds since 1970-01-01T00:00:00Z
+
+    Returns:
+        io.BytesIO: _description_
+    """
+    x = geo_data["x"]
+    y = geo_data["y"]
+    projection = geo_data.get("projection", "EPSG:4326")
 
     # Use NamedTemporaryFile to create a temp NetCDF file
     with tempfile.NamedTemporaryFile(suffix=".nc", delete=False) as tmp:
         tmp_path = tmp.name
 
     # Create NetCDF file on disk
-    ds = netCDF4.Dataset(tmp_path, mode='w', format='NETCDF4')
+    ds = netCDF4.Dataset(tmp_path, mode="w", format="NETCDF4")
 
     # Define dimensions
     ds.createDimension("y", len(y))
@@ -122,10 +162,10 @@ def write_netcdf_io(rain: np.ndarray, geo_data: dict, time: int) -> io.BytesIO:
     x_var = ds.createVariable("x", "f4", ("x",))
     t_var = ds.createVariable("time", "i8", ("time",))
 
-    # Rainfall variable
+    # Rainfall variable,
+    # Expects a float input array and the packing to i2 is done by the netCDF4 library
     rain_var = ds.createVariable(
-        "rainfall", "i2", ("time", "y", "x"),
-        zlib=True, complevel=5, fill_value=-1
+        "rainfall", "i2", ("time", "y", "x"), zlib=True, complevel=5, fill_value=-1
     )
     rain_var.scale_factor = 0.1
     rain_var.add_offset = 0.0
@@ -154,9 +194,9 @@ def write_netcdf_io(rain: np.ndarray, geo_data: dict, time: int) -> io.BytesIO:
         setattr(spatial_ref, key, value)
 
     # Global attributes
-    ds.Conventions = "CF-1.7"
+    ds.Conventions = "CF-1.8"
     ds.title = "Rainfall data"
-    ds.institution = "Weather Radar New Zealand Ltd"
+    ds.institution = ""
     ds.references = ""
     ds.comment = ""
 
@@ -170,25 +210,48 @@ def write_netcdf_io(rain: np.ndarray, geo_data: dict, time: int) -> io.BytesIO:
     return io.BytesIO(nc_bytes)
 
 
-def generate_geo_data(x, y, projection='EPSG:2193'):
-    """Generate geo-referencing data."""
-    return {
-        "projection": projection,
-        "x": x,
-        "y": y,
-        "x1": np.round(x[0],decimals=0),
-        "x2": np.round(x[-1],decimals=0),
-        "y1": np.round(y[0],decimals=0),
-        "y2": np.round(y[-1],decimals=0),
-        "xpixelsize": np.round(x[1] - x[0],decimals=0),
-        "ypixelsize": np.round(y[1] - y[0],decimals=0),
-        "cartesian_unit": 'm',
-        "yorigin": 'lower',
-        "unit": 'mm/h',
-        "transform": None,
-        "threshold": 0.1,
-        "zerovalue": 0
-    }
+def generate_geo_dict(domain: dict) -> dict:
+    """
+    Generate the pysteps geo-spatial metadata from a domain dictionary.
+
+    Args:
+        domain (dict): pysteps_param domain dictionary
+
+    Returns:
+        dict: pysteps geo-data dictionary, or {} if required keys are missing
+    """
+    required_keys = {"n_cols", "n_rows", "p_size", "start_x", "start_y"}
+    missing = required_keys - domain.keys()
+    if missing:
+        # Missing keys, return empty dict
+        return {}
+
+    ncols = domain.get("n_cols")
+    nrows = domain.get("n_rows")
+    psize = domain.get("p_size")
+    start_x = domain.get("start_x")
+    start_y = domain.get("start_y")
+
+    x = [start_x + i * psize for i in range(ncols)]  # type: ignore
+    y = [start_y + i * psize for i in range(nrows)]  # type: ignore
+
+    out_geo = {}
+    out_geo["x"] = x
+    out_geo["y"] = y
+    out_geo["xpixelsize"] = psize
+    out_geo["ypixelsize"] = psize
+    out_geo["x1"] = start_x
+    out_geo["y1"] = start_y
+    out_geo["x2"] = start_x + (ncols - 1) * psize  # type: ignore
+    out_geo["y2"] = start_y + (nrows - 1) * psize  # type: ignore
+    out_geo["projection"] = domain["projection"]["epsg"]
+    out_geo["cartesian_unit"] = ("m",)
+    out_geo["yorigin"] = ("lower",)
+    out_geo["unit"] = "mm/h"
+    out_geo["threshold"] = 0
+    out_geo["transform"] = None
+
+    return out_geo
 
 
 def read_nc(buffer: bytes):
@@ -202,11 +265,19 @@ def read_nc(buffer: bytes):
     byte_stream = io.BytesIO(buffer)
 
     # Open the NetCDF dataset
-    with netCDF4.Dataset('inmemory', mode='r', memory=byte_stream.getvalue()) as ds:
+    with netCDF4.Dataset("inmemory", mode="r", memory=byte_stream.getvalue()) as ds:
+
         # Extract geo-referencing data
         x = ds.variables["x"][:]
         y = ds.variables["y"][:]
-        geo_data = generate_geo_data(x, y)
+
+        domain = {}
+        domain["ncols"] = len(x)
+        domain["nrows"] = len(y)
+        domain["psize"] = abs(x[1] - x[0])
+        domain["start_x"] = x[0]
+        domain["start_y"] = y[0]
+        geo_data = generate_geo_dict(domain)
 
         # Convert timestamps to datetime
         valid_times = convert_timestamps_to_datetimes(ds.variables["time"][:])
@@ -214,10 +285,9 @@ def read_nc(buffer: bytes):
         # Extract rain rates
         rain_rate = ds.variables["rainfall"][:]
 
-        # Replace invalid data with NaN and squeeze dimensions
+        # Replace invalid data with NaN and squeeze dimensions of np.ndarray
         rain_rate = np.squeeze(rain_rate)
         rain_rate[rain_rate < 0] = np.nan
-        valid_times = np.squeeze(valid_times)
 
     return geo_data, valid_times, rain_rate
 
@@ -228,91 +298,93 @@ def validate_keys(keys, mandatory_keys):
     if missing_keys:
         raise KeyError(f"Missing mandatory keys: {', '.join(missing_keys)}")
 
-def make_nc_name_dt(out_file_name, name, out_product, valid_time, base_time, iens):
 
-    vtime = valid_time
-    if vtime.tzinfo is None:
-        vtime = vtime.replace(tzinfo=timezone.utc)
-    vtime_stamp = vtime.timestamp() 
-
-    if base_time is not None:    
-        btime = base_time
-        if btime.tzinfo is None:
-            btime = btime.replace(tzinfo=timezone.utc)
-        btime_stamp = btime.timestamp()
-    else:
-        btime_stamp = None 
-        
-    fx_file_name = make_nc_name(
-        out_file_name, name, out_product, vtime_stamp, btime_stamp, iens)
-    return fx_file_name
-
-
-def make_nc_name(name_template: str, name: str, prod: str, valid_time: int,
-                 base_time: Optional[int] = None, ens: Optional[int] = None) -> str:
+def make_nc_name(
+    domain: str,
+    prod: str,
+    valid_time: datetime.datetime,
+    base_time: Optional[datetime.datetime] = None,
+    ens: Optional[int] = None,
+    name_template: Optional[str] = None,
+) -> str:
     """
-    Generate a file name using a template.
+    Generate a unique name for a single rain field using a formatting template.
 
-    :param name_template: Template for the file name
-    :param name: Name of the domain - Mandatory
-    :param prod: Name of the product - Mandatory
-    :param valid_time: Valid time of the field - Mandatory
-    :param run_time: NWP run time - Optional
-    :param ens: Ensemble member - Optional
-    :return: String with the file name
+    Default templates:
+        Forecast products: "$D_$P_$V{%Y%m%dT%H%M%S}_$B{%Y%m%dT%H%M%S}_$E.nc"
+        QPE products: "$D_$P_$V{%Y%m%dT%H%M%S}.nc"
+
+    Where:
+        $D = Domain name
+        $P = Product name
+        $V = Valid time (with strftime format)
+        $B = Base time (with strftime format)
+        $E = Ensemble number (zero-padded 2-digit)
+
+    Returns:
+        str: Unique NetCDF file name.
     """
+
+    if not isinstance(valid_time, datetime.datetime):
+        raise TypeError(f"valid_time must be datetime, got {type(valid_time)}")
+
+    if base_time is not None and not isinstance(base_time, datetime.datetime):
+        raise TypeError(f"base_time must be datetime or None, got {type(base_time)}")
+
+    # Default template logic
+    if name_template is None:
+        name_template = "$D_$P_$V{%Y-%m-%dT%H:%M:%S}"
+        if base_time is not None:
+            name_template += "_$B{%Y-%m-%dT%H:%M:%S}"
+        if ens is not None:
+            name_template += "_$E"
+        name_template += ".nc"
+
     result = name_template
 
-    # Set up the valid time
-    vtime_info = datetime.fromtimestamp(valid_time, tz=timezone.utc)
+    # Ensure timezone-aware times
+    if valid_time.tzinfo is None:
+        valid_time = valid_time.replace(tzinfo=datetime.timezone.utc)
+    if base_time is not None and base_time.tzinfo is None:
+        base_time = base_time.replace(tzinfo=datetime.timezone.utc)
 
-    # Set up the NWP base time if available
-    btime_info = datetime.fromtimestamp(
-        base_time, tz=timezone.utc) if base_time is not None else None
-
-    has_flag = True
-    while has_flag:
-        # Search for a flag
+    # Replace flags
+    while "$" in result:
         flag_posn = result.find("$")
         if flag_posn == -1:
-            has_flag = False
-        else:
-            # Get the field type
-            f_type = result[flag_posn + 1]
+            break
+        f_type = result[flag_posn + 1]
 
-            try:
-                # Add the valid and base times 
-                if f_type in ['V', 'B']:
-                    # Get the required format string
-                    field_start = result.find("{", flag_posn + 1)
-                    field_end = result.find("}", flag_posn + 1)
-                    if field_start == -1 or field_end == -1:
-                        raise ValueError(f"Invalid time format for flag '${
-                                         f_type}' in template.")
+        try:
+            if f_type in ["V", "B"]:
+                field_start = result.find("{", flag_posn + 1)
+                field_end = result.find("}", flag_posn + 1)
+                if field_start == -1 or field_end == -1:
+                    raise ValueError(
+                        f"Missing braces for format of '${f_type}' in template."
+                    )
 
-                    time_format = result[field_start + 1:field_end]
-                    if f_type == 'V':
-                        date_str = vtime_info.strftime(time_format)
-                    elif f_type == 'B' and btime_info:
-                        date_str = btime_info.strftime(time_format)
-                    else:
-                        date_str = ""
-
-                    # Replace the format field with the formatted time
-                    result = result[:flag_posn] + \
-                        date_str + result[field_end + 1:]
-                elif f_type == 'P':
-                    result = result[:flag_posn] + prod + result[flag_posn + 2:]
-                elif f_type == 'N':
-                    result = result[:flag_posn] + name + result[flag_posn + 2:]
-                elif f_type == 'E' and ens is not None:
-                    result = result[:flag_posn] + \
-                        f"{ens:02d}" + result[flag_posn + 2:]
+                fmt = result[field_start + 1 : field_end]
+                if f_type == "V":
+                    time_str = valid_time.strftime(fmt)
+                elif f_type == "B" and base_time is not None:
+                    time_str = base_time.strftime(fmt)
                 else:
-                    raise ValueError(f"Unknown or unsupported flag '${
-                                     f_type}' in template.")
-            except Exception as e:
-                raise ValueError(f"Error processing flag '${
-                                 f_type}': {str(e)}")
+                    time_str = ""
+
+                result = result[:flag_posn] + time_str + result[field_end + 1 :]
+
+            elif f_type == "D":
+                result = result[:flag_posn] + domain + result[flag_posn + 2 :]
+            elif f_type == "P":
+                result = result[:flag_posn] + prod + result[flag_posn + 2 :]
+            elif f_type == "E" and ens is not None:
+                result = result[:flag_posn] + f"{ens:02d}" + result[flag_posn + 2 :]
+            else:
+                raise ValueError(
+                    f"Unknown or unsupported flag '${f_type}' in template."
+                )
+        except Exception as e:
+            raise ValueError(f"Error processing flag '${f_type}': {e}")
 
     return result
