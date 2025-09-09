@@ -148,8 +148,10 @@ class EnKFCombinationConfig:
         fftgenerators`.
     combination_kwargs: dict
         Optional dictionary containing keyword arguments for the initializer of the
-        correction step. See the documentation of :py:mod:`pysteps.combination.
-        ensemble_kalman_filter`.
+        correction step. Options are: {nwp_hres_eff: float, the effective horizontal
+        resolution of the utilized NWP model; prob_matching: str, specifies the
+        probability matching method that should be applied}. See the documentation of
+        :py:mod:`pysteps.blending.ens_kalman_filter_methods`.
     measure_time: bool
         If set to True, measure, print and return the computation time.
     callback: function, optional
@@ -338,12 +340,9 @@ class ForecastInitialization:
         estimate AR model parameters.
         """
 
-        # 1. Start with the radar rainfall fields. We want the fields in a
-        # Lagrangian space
-
-        # Advect the previous precipitation fields to the same position with the
-        # most recent one (i.e. transform them into the Lagrangian coordinates).
-
+        # Start with the radar rainfall fields. We want the fields in a Lagrangian
+        # space. Advect the previous precipitation fields to the same position with
+        # the most recent one (i.e. transform them into the Lagrangian coordinates).
         self.__params.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
         self.__params.extrapolation_kwargs["outval"] = self.__config.norain_threshold
         res = []
@@ -377,6 +376,7 @@ class ForecastInitialization:
                 + [self.__obs_precip[-1, :, :]]
             )
 
+        # Mask the observations
         obs_mask = np.logical_or(
             ~np.isfinite(self.__obs_precip),
             self.__obs_precip < self.__config.precip_threshold,
@@ -404,6 +404,7 @@ class ForecastInitialization:
             precip_forecast_decomp, self.__config.n_cascade_levels
         )
 
+        # Set the mean and standard deviations based on the most recent field.
         precip_forecast_decomp = precip_forecast_decomp[-1]
         self.mean_extrapolation = np.array(precip_forecast_decomp["means"])
         self.std_extrapolation = np.array(precip_forecast_decomp["stds"])
@@ -421,14 +422,14 @@ class ForecastInitialization:
         nowcast_utils.print_corrcoefs(GAMMA)
 
         if self.__config.ar_order == 2:
-            # adjust the lag-2 correlation coefficient to ensure that the AR(p)
+            # Adjust the lag-2 correlation coefficient to ensure that the AR(p)
             # process is stationary
             for i in range(self.__config.n_cascade_levels):
                 GAMMA[i, 1] = autoregression.adjust_lag2_corrcoef2(
                     GAMMA[i, 0], GAMMA[i, 1]
                 )
 
-        # estimate the parameters of the AR(p) model from the auto-correlation
+        # Estimate the parameters of the AR(p) model from the auto-correlation
         # coefficients
         self.__params.PHI = np.empty(
             (self.__config.n_cascade_levels, self.__config.ar_order + 1)
@@ -502,7 +503,9 @@ class ForecastInitialization:
     # Create a pool of n noise fields.
     def __initialize_noise_field_pool(self):
         """
-        Initialize a pool of noise fields avoiding the separate generation of noise fields for each time step and ensemble member. A pool of 30 fields is sufficient to generate adequate spread in the nowcast for combination.
+        Initialize a pool of noise fields avoiding the separate generation of noise fields for each
+        time step and ensemble member. A pool of 30 fields is sufficient to generate adequate spread
+        in the nowcast for combination.
         """
         self.noise_field_pool = np.zeros(
             (
@@ -513,6 +516,7 @@ class ForecastInitialization:
             )
         )
 
+        # Get a seed value for each ensemble member
         seed = self.__config.seed
         if self.__config.noise_method is not None:
             self.__randgen_precip = []
@@ -522,6 +526,7 @@ class ForecastInitialization:
                 self.__randgen_precip.append(rs)
                 seed = rs.randint(0, high=1e9)
 
+        # Get the decomposition method
         self.__params.fft_objs = []
         for _ in range(self.__config.n_noise_fields):
             self.__params.fft_objs.append(
@@ -531,6 +536,7 @@ class ForecastInitialization:
                 )
             )
 
+        # Determine the noise field for each ensemble member
         for j in range(self.__config.n_noise_fields):
             epsilon = self.__params.noise_generator(
                 self.__params.perturbation_generator,
@@ -538,7 +544,7 @@ class ForecastInitialization:
                 fft_method=self.__params.fft_objs[j],
                 domain=self.__config.domain,
             )
-            # decompose the noise field into a cascade
+            # Decompose the noise field into a cascade
             self.noise_field_pool[j] = self.__params.decomposition_method(
                 epsilon,
                 self.__params.bandpass_filter,
@@ -703,8 +709,7 @@ class ForecastModel:
         # If NWP information is incorporated, use the current mean of the decomposed
         # field and adjust standard deviation on spatial scales that have a central
         # wavelength below the effective horizontal resolution of the NWP model.
-        if is_correction_timestep == True:
-
+        if is_correction_timestep:
             # Set the mean of the spatial scales onto the mean values of the currently
             # decomposed field.
             self.__mu = np.array(precip_extrap_decomp["means"])
@@ -719,12 +724,10 @@ class ForecastModel:
             self.__sigma[self.__resolution_mask] = np.array(
                 precip_extrap_decomp["stds"]
             )[self.__resolution_mask]
-
-        # Keep mean and standard deviation constant for pure nowcasting forecast steps.
+        # Else, keep mean and standard deviation constant for pure nowcasting forecast steps.
         # It's not necessary but describes better the handling of the scaling
         # parameters.
         else:
-
             self.__mu = self.__mu
             self.__sigma = self.__sigma
 
