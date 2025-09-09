@@ -161,7 +161,9 @@ def _check_coords_range(selected_range, coordinate, full_range):
 
     if not isinstance(selected_range, (list, tuple)):
         if len(selected_range) != 2:
-            raise ValueError(f"The {coordinate} range must be None or a two-element tuple or list")
+            raise ValueError(
+                f"The {coordinate} range must be None or a two-element tuple or list"
+            )
 
         selected_range = list(selected_range)  # Make mutable
 
@@ -807,11 +809,15 @@ def import_knmi_hdf5(
 
     if not H5PY_IMPORTED:
         raise MissingOptionalDependency(
-            "h5py package is required to import " "KNMI's radar datasets " "but it is not installed"
+            "h5py package is required to import "
+            "KNMI's radar datasets "
+            "but it is not installed"
         )
 
     if qty not in ["ACRR", "DBZH"]:
-        raise ValueError("unknown quantity %s: the available options are 'ACRR' and 'DBZH' ")
+        raise ValueError(
+            "unknown quantity %s: the available options are 'ACRR' and 'DBZH' "
+        )
 
     ####
     # Precipitation fields
@@ -1072,7 +1078,9 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
         )
 
     if qty not in ["ACRR", "DBZH", "RATE"]:
-        raise ValueError("unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'")
+        raise ValueError(
+            "unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'"
+        )
 
     f = h5py.File(filename, "r")
 
@@ -1084,7 +1092,9 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
             what_grp_found = False
             # check if the "what" group is in the "dataset" group
             if "what" in list(dsg[1].keys()):
-                qty_, gain, offset, nodata, undetect = _read_mch_hdf5_what_group(dsg[1]["what"])
+                qty_, gain, offset, nodata, undetect = _read_mch_hdf5_what_group(
+                    dsg[1]["what"]
+                )
                 what_grp_found = True
 
             for dg in dsg[1].items():
@@ -1317,7 +1327,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         )
 
     if qty not in ["ACRR", "DBZH", "RATE"]:
-        raise ValueError("unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'")
+        raise ValueError(
+            "unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'"
+        )
 
     f = h5py.File(filename, "r")
 
@@ -1379,7 +1391,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                             quality[mask] = arr[mask]
                             quality[~mask] = np.nan
                     if quality is None:
-                        for dgg in dg[1].items():  # da qui  ----------------------------
+                        for dgg in dg[
+                            1
+                        ].items():  # da qui  ----------------------------
                             if dgg[0][0:7] == "quality":
                                 quality_keys = list(dgg[1].keys())
                                 if "what" in quality_keys:
@@ -1397,7 +1411,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
                                     mask = np.logical_and(~mask_u, ~mask_n)
                                     quality = np.empty(arr.shape)  # , dtype=float)
                                     quality[mask] = arr[mask] * gain + offset
-                                    quality[~mask] = np.nan  # a qui -----------------------------
+                                    quality[~mask] = (
+                                        np.nan
+                                    )  # a qui -----------------------------
 
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
@@ -1448,7 +1464,10 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
     if "xscale" in where.attrs.keys() and "yscale" in where.attrs.keys():
         xpixelsize = where.attrs["xscale"]
         ypixelsize = where.attrs["yscale"]
-    elif "xscale" in dataset1["where"].attrs.keys() and "yscale" in dataset1["where"].attrs.keys():
+    elif (
+        "xscale" in dataset1["where"].attrs.keys()
+        and "yscale" in dataset1["where"].attrs.keys()
+    ):
         where = dataset1["where"]
         xpixelsize = where.attrs["xscale"]
         ypixelsize = where.attrs["yscale"]
@@ -1545,7 +1564,8 @@ def import_saf_crri(filename, extent=None, **kwargs):
     """
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
-            "netCDF4 package is required to import CRRI SAF products " "but it is not installed"
+            "netCDF4 package is required to import CRRI SAF products "
+            "but it is not installed"
         )
 
     geodata = _import_saf_crri_geodata(filename)
@@ -1706,7 +1726,9 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         )
 
     if qty not in ["ACRR", "DBZH", "RATE"]:
-        raise ValueError("unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'")
+        raise ValueError(
+            "unknown quantity %s: the available options are 'ACRR', 'DBZH' and 'RATE'"
+        )
 
     # Open file
     f = h5py.File(filename, "r")
@@ -1812,7 +1834,8 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         "%Y%m%d%H%M%S",
     )
     enddate = datetime.datetime.strptime(
-        file_content["dataset1"]["what"]["enddate"] + file_content["dataset1"]["what"]["endtime"],
+        file_content["dataset1"]["what"]["enddate"]
+        + file_content["dataset1"]["what"]["endtime"],
         "%Y%m%d%H%M%S",
     )
     accutime = (enddate - startdate).total_seconds() / 60.0
@@ -1841,6 +1864,7 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     }
 
     metadata.update(kwargs)
+
     f.close()
 
     return precip, quality, metadata
@@ -1875,7 +1899,8 @@ def _read_hdf5_cont(f, d):
                 # Handle empty group with attributes
                 d[key] = {attr: value.attrs[attr] for attr in value.attrs}
                 d[key] = {
-                    k: (v.decode() if isinstance(v, np.bytes_) else v) for k, v in d[key].items()
+                    k: (v.decode() if isinstance(v, np.bytes_) else v)
+                    for k, v in d[key].items()
                 }
 
         else:

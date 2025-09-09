@@ -24,6 +24,17 @@
                 "gzipped": true
             }
         },
+        "dwd": {
+            "root_path": "./radar/dwd/RY",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "%Y%m%d_%H%M_RY",
+            "fn_ext": "h5",
+            "importer": "dwd_hdf5",
+            "timestep": 5,
+            "importer_kwargs": {
+                "qty": "RATE"
+            }
+        },
         "fmi": {
             "root_path": "./radar/fmi/pgm",
             "path_fmt": "%Y%m%d",
@@ -121,16 +132,18 @@
                 "gzipped": true
             }
         },
-        "rmi_nwp": {
-            "root_path": "./nwp/rmi",
+        "dwd_nwp": {
+            "root_path": "./nwp/dwd",
             "path_fmt": "%Y/%m/%d",
-            "fn_pattern": "ao13_%Y%m%d%H_native_5min",
-            "fn_ext": "nc",
-            "importer": "rmi_nwp",
+            "fn_ext": ".grib2",
+            "fn_pattern": "%Y%m%d_%H%M_PR_GSP_060_120",
+            "importer": "dwd_nwp",
             "timestep": 5,
             "importer_kwargs": {
-                "gzipped": true
+                "varname": "PR_GSP",
+                "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
             }
+            
         },
         "knmi_nwp": {
             "root_path": "./nwp/knmi",
@@ -139,6 +152,17 @@
             "fn_ext": "nc",
             "importer": "knmi_nwp",
             "timestep": 60,
+            "importer_kwargs": {
+                "gzipped": true
+            }
+        },
+        "rmi_nwp": {
+            "root_path": "./nwp/rmi",
+            "path_fmt": "%Y/%m/%d",
+            "fn_pattern": "ao13_%Y%m%d%H_native_5min",
+            "fn_ext": "nc",
+            "importer": "rmi_nwp",
+            "timestep": 5,
             "importer_kwargs": {
                 "gzipped": true
             }
