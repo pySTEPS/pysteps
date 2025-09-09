@@ -73,6 +73,7 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
     if timestep is None:
         timestep = timestep_dates
     if timestep_dates is not None and timestep != timestep_dates:
+        # XR: This should be an error, but some test fail on this.
         warnings.warn(
             "Supplied timestep does not match actual timestep spacing in input data, "
             + "using actual spacing as timestep."

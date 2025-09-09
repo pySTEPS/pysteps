@@ -5,13 +5,23 @@ import os
 import pytest
 
 import pysteps
-from pysteps.tests.helpers import smart_assert
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
 pytest.importorskip("PIL")
 
 root_path = pysteps.rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20170131", "AQC170310945F_00005.801.gif")
-precip, _, metadata = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
+# dataset = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
+
+dataset = get_precipitation_fields(
+    0,
+    0,
+    True,
+    metadata=True,
+    source="mch",
+    log_transform=False,
+    importer_kwargs=dict(qty="AQC"),
+)
 
 
 def test_io_import_mch_gif_shape():

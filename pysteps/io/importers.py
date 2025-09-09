@@ -144,20 +144,38 @@ The following data is stored as attributes of the precipitation variable:
 +==================+==========================================================+
 |   units          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
 +------------------+----------------------------------------------------------+
-|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
-|                  | others                                                   |
-+------------------+----------------------------------------------------------+
-|   accutime       | the accumulation time in minutes of the data, float      |
-+------------------+----------------------------------------------------------+
 |   threshold      | the rain/no rain threshold with the same unit,           |
 |                  | transformation and accutime of the data.                 |
 +------------------+----------------------------------------------------------+
 |   zerovalue      | the value assigned to the no rain pixels with the same   |
 |                  | unit, transformation and accutime of the data.           |
 +------------------+----------------------------------------------------------+
+|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|   (optional)     | others                                                   |
++------------------+----------------------------------------------------------+
+|   accutime       | the accumulation time in minutes of the data, float      |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
 |   zr_a           | the Z-R constant a in Z = a*R**b                         |
+|   (optional)     |                                                          |
 +------------------+----------------------------------------------------------+
 |   zr_b           | the Z-R exponent b in Z = a*R**b                         |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
+
+The following data is stored as attributes of the coordinate variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   units          | the unit  e.g. 'm' or 'km' for the cartesian coordinates |
++------------------+----------------------------------------------------------+
+|   stepsize       | the stepsize of the data (in minutes in case of the time |
+|                  | coordinate), this stepsize should be exactly the         |
+|                  | difference between every value of this coordinate and    |
+|                  | the next                                                 |
 +------------------+----------------------------------------------------------+
 
 Furthermore the dataset can contain some additional metadata to make the dataset

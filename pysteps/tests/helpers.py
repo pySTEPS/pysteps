@@ -46,9 +46,15 @@ def assert_dataset_equivalent(dataset1: xr.Dataset, dataset2: xr.Dataset) -> Non
         or dataset1[precip_var].attrs["transform"] is None
         and dataset2[precip_var].attrs["transform"] is None
     )
-    assert (
-        dataset1[precip_var].attrs["accutime"] == dataset2[precip_var].attrs["accutime"]
-    )
+    if (
+        "accutime" in dataset1[precip_var].attrs
+        or "accutime" in dataset2[precip_var].attrs
+    ):
+        assert (
+            dataset1[precip_var].attrs["accutime"]
+            == dataset2[precip_var].attrs["accutime"]
+        )
+    # XR: should we test more attributes
 
 
 def get_precipitation_fields(

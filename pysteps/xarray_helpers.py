@@ -187,18 +187,17 @@ def convert_input_to_xarray_dataset(
         )
     }
 
-    metadata_keys = [
-        "transform",
-        "accutime",
-        "threshold",
-        "zerovalue",
-        "zr_a",
-        "zr_b",
-    ]
+    # XR: accutime vs timestep, what should be optional and what required?
+    optional_metadata_keys = ["transform", "accutime", "zr_a", "zr_b"]
 
-    for metadata_field in metadata_keys:
+    required_metadata_keys = ["threshold", "zerovalue"]
+
+    for metadata_field in optional_metadata_keys:
         if metadata_field in metadata:
             data_vars[var_name][2][metadata_field] = metadata[metadata_field]
+
+    for metadata_field in required_metadata_keys:
+        data_vars[var_name][2][metadata_field] = metadata[metadata_field]
 
     if quality is not None:
         data_vars["quality"] = (
