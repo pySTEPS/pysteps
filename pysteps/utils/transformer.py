@@ -3,6 +3,7 @@ import scipy.stats as scipy_stats
 from scipy.interpolate import interp1d
 from typing import Optional
 
+
 class BaseTransformer:
     def __init__(self, threshold: float = 0.5, zerovalue: Optional[float] = None):
         self.threshold = threshold
@@ -17,6 +18,7 @@ class BaseTransformer:
 
     def get_metadata(self) -> dict:
         return self.metadata.copy()
+
 
 class DBTransformer(BaseTransformer):
     """
@@ -36,8 +38,8 @@ class DBTransformer(BaseTransformer):
 
         self.metadata = {
             "transform": "dB",
-            "threshold": self.threshold,      # stored in mm/h
-            "zerovalue": self.zerovalue       # stored in dB
+            "threshold": self.threshold,  # stored in mm/h
+            "zerovalue": self.zerovalue,  # stored in dB
         }
 
     def transform(self, R: np.ndarray) -> np.ndarray:
@@ -68,7 +70,7 @@ class BoxCoxTransformer(BaseTransformer):
             tval = np.log(self.threshold)
         else:
             R[~mask] = (R[~mask] ** self.Lambda - 1) / self.Lambda
-            tval = (self.threshold ** self.Lambda - 1) / self.Lambda
+            tval = (self.threshold**self.Lambda - 1) / self.Lambda
 
         if self.zerovalue is None:
             self.zerovalue = tval - 1
@@ -85,26 +87,34 @@ class BoxCoxTransformer(BaseTransformer):
 
     def inverse_transform(self, R: np.ndarray) -> np.ndarray:
         R = R.copy()
+        tval = self.metadata["threshold"]
+        zeroval = self.metadata["zerovalue"]
+
+        # mask of values that were transformed (>= threshold in transformed space)
+        m = R >= tval
+
         if self.Lambda == 0.0:
-            R = np.exp(R)
+            R[m] = np.exp(R[m])
         else:
-            R = np.exp(np.log(self.Lambda * R + 1) / self.Lambda)
+            # safe: we're not touching the below-threshold cells
+            R[m] = np.exp(np.log(self.Lambda * R[m] + 1.0) / self.Lambda)
 
-        threshold_inv = (
-            np.exp(np.log(self.Lambda * self.metadata["threshold"] + 1) / self.Lambda)
-            if self.Lambda != 0.0 else
-            np.exp(self.metadata["threshold"])
-        )
+        # below-threshold cells get filled to zerovalue directly
+        R[~m] = zeroval
 
-        R[R < threshold_inv] = self.metadata["zerovalue"]
         self.metadata["transform"] = None
         return R
+
 
 class NQTransformer(BaseTransformer):
     def __init__(self, a: float = 0.0, **kwargs):
         super().__init__(**kwargs)
         self.a = a
         self._inverse_interp = None
+        self._qmin = None
+        self._qmax = None
+        self._min_value = None
+        self._zero_token = 0.0
 
     def transform(self, R: np.ndarray) -> np.ndarray:
         R = R.copy()
@@ -114,26 +124,34 @@ class NQTransformer(BaseTransformer):
         R_ = R[mask]
 
         n = R_.size
-        Rpp = ((np.arange(n) + 1 - self.a) / (n + 1 - 2 * self.a))
+        Rpp = (np.arange(n) + 1 - self.a) / (n + 1 - 2 * self.a)
         Rqn = scipy_stats.norm.ppf(Rpp)
-        R_sorted = R_[np.argsort(R_)]
+        order = np.argsort(R_)
+        R_sorted = R_[order]
         R_trans = np.interp(R_, R_sorted, Rqn)
 
-        self.zerovalue = np.min(R_)
-        R_trans[R_ == self.zerovalue] = 0
+        # Record and map the minimum to zero (token)
+        self._min_value = float(R_sorted[0])
+        self.zerovalue = self._min_value
+        self._zero_token = 0.0
+        R_trans[R_ == self._min_value] = self._zero_token
 
+        # Build inverse; we'll clip inputs
         self._inverse_interp = interp1d(
-            Rqn, R_sorted, bounds_error=False,
-            fill_value=(float(R_sorted.min()), float(R_sorted.max())) # type: ignore
+            Rqn, R_sorted, bounds_error=False, fill_value="extrapolate"  # type: ignore
         )
+        self._qmin = float(Rqn.min())
+        self._qmax = float(Rqn.max())
 
         R[mask] = R_trans
         R = R.reshape(shape)
 
+        # Metadata: threshold is the smallest positive transformed value
+        pos = R_trans[R_trans > self._zero_token]
         self.metadata = {
             "transform": "NQT",
-            "threshold": R_trans[R_trans > 0].min(),
-            "zerovalue": 0,
+            "threshold": float(pos.min()) if pos.size else np.inf,
+            "zerovalue": self._zero_token,
         }
         return R
 
@@ -145,19 +163,32 @@ class NQTransformer(BaseTransformer):
         shape = R.shape
         R = R.ravel()
         mask = ~np.isnan(R)
-        R[mask] = self._inverse_interp(R[mask])
+
+        vals = R[mask]
+
+        # 1) Exact zeros (the token) must map back to the minimum original value
+        zero_mask = np.isclose(vals, self._zero_token, atol=1e-12)
+
+        # 2) For the rest, clip to valid quantile range and interpolate back
+        to_inv = np.clip(vals[~zero_mask], self._qmin, self._qmax)
+        inv_vals = np.empty_like(vals)
+        inv_vals[zero_mask] = self._min_value
+        inv_vals[~zero_mask] = self._inverse_interp(to_inv)
+
+        R[mask] = inv_vals
         R = R.reshape(shape)
 
         self.metadata["transform"] = None
         return R
-    
+
+
 class SqrtTransformer(BaseTransformer):
     def transform(self, R: np.ndarray) -> np.ndarray:
         R = np.sqrt(R)
         self.metadata = {
             "transform": "sqrt",
             "threshold": np.sqrt(self.threshold),
-            "zerovalue": np.sqrt(self.zerovalue) if self.zerovalue else 0.0
+            "zerovalue": np.sqrt(self.zerovalue) if self.zerovalue else 0.0,
         }
         return R
 
@@ -165,6 +196,7 @@ class SqrtTransformer(BaseTransformer):
         R = R**2
         self.metadata["transform"] = None
         return R
+
 
 def get_transformer(name: str, **kwargs) -> BaseTransformer:
     name = name.lower()
