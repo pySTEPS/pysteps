@@ -65,13 +65,13 @@ The metadata dictionary contains the following recommended key-value pairs:
 |   zr_b           | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
+# XR: Move this to appropriate place
 The data and metadata is then postprocessed into an xarray dataset. This dataset will
 always contain an x and y dimension, but can be extended with a time dimension and/or
 an ensemble member dimension over the course of the process.
 
 The dataset can contain the following coordinate variables:
 
-# XR: Move this to appropriate place
 .. tabularcolumns:: |p{2cm}|L|
 
 +--------------------+-------------------------------------------------------------------------------------------+
