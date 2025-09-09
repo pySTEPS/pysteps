@@ -56,6 +56,10 @@ sampling_prob_source: str, {'ensemble','explained_var'}
 use_accum_sampling_prob: bool, (False)
     Flag to specify whether the current sampling probability should be used for the
     probability matching or a probability integrated over the previous forecast time.
+    Defaults to True.
+ensure_full_nwp_weight: bool, (True)
+    Flag to specify whether the end of the combination should be represent the pure NWP
+    forecast. Defaults to True.
 """
 
 
@@ -422,8 +426,14 @@ class MaskedEnKF(EnsembleKalmanFilter):
         self.__use_accum_sampling_prob = self.__params.combination_kwargs.get(
             "use_accum_sampling_prob", False
         )
+        self.__ensure_full_nwp_weight = self.__params.combination_kwargs.get(
+            "ensure_full_nwp_weight", True
+        )
 
         self.__sampling_probability = 0.0
+        self.__accumulated_sampling_prob = 0.0
+        self.__degradation_timestep = 0.2
+        self.__inflation_factor_obs_tmp = 1.0
 
         print("Initialize masked ensemble Kalman filter")
         print("========================================")
@@ -436,7 +446,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
         print(f"Observation offset:                 {self.__offset_obs}")
         print(f"Sampling probability source:        {self.__sampling_prob_source}")
         print(f"Use accum. sampling probability:    {self.__use_accum_sampling_prob}")
-        print("")
+        print(f"Ensure full NWP weight:             {self.__ensure_full_nwp_weight}")
 
         return
 
@@ -513,6 +523,15 @@ class MaskedEnKF(EnsembleKalmanFilter):
             **kwargs,
         )
 
+        if not np.isclose(self.__accumulated_sampling_prob, 1.0, rtol=1e-2):
+            self.__inflation_factor_obs_tmp = (
+                self.__inflation_factor_obs
+                - self.__accumulated_sampling_prob * (self.__inflation_factor_obs - 1.0)
+            )
+        else:
+            self.__inflation_factor_obs_tmp = np.cos(self.__degradation_timestep)
+            self.__degradation_timestep += 0.2
+
         # Get the updated background ensemble (Nowcast ensemble) in PC space.
         analysis_ensemble_pc = self.update(
             background_ensemble=forecast_ens_stacked_pc[: background_ensemble.shape[0]],
@@ -520,7 +539,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
                 background_ensemble.shape[0] :
             ],
             inflation_factor_bg=self.__inflation_factor_bg,
-            inflation_factor_obs=self.__inflation_factor_obs,
+            inflation_factor_obs=self.__inflation_factor_obs_tmp,
             offset_bg=self.__offset_bg,
             offset_obs=self.__offset_obs,
             background_ensemble_valid_lien=forecast_ens_lien_pc[
@@ -559,12 +578,21 @@ class MaskedEnKF(EnsembleKalmanFilter):
                 f"Sampling probability source should be either 'ensemble' or 'explained_var', but is {self.__sampling_prob_source}!"
             )
 
-        if self.__use_accum_sampling_prob:
+        # Adjust sampling probability when the accumulation flag is set
+        if self.__use_accum_sampling_prob == True:
             self.__sampling_probability = (
                 1 - sampling_probability_single_step
             ) * self.__sampling_probability + sampling_probability_single_step
         else:
             self.__sampling_probability = sampling_probability_single_step
+
+        # The accumulation is divided for cases one would not use the accumulated
+        # sampling probability for the probability matching, but still wants to have
+        # the pure NWP forecast at the end of a combined forecast.
+        if self.__ensure_full_nwp_weight == True:
+            self.__accumulated_sampling_prob = (
+                1 - sampling_probability_single_step
+            ) * self.__accumulated_sampling_prob + sampling_probability_single_step
 
         print(f"Sampling probability: {self.__sampling_probability:1.4f}")
 
@@ -598,3 +626,12 @@ class MaskedEnKF(EnsembleKalmanFilter):
         background_ensemble[:, idx_prec] = analysis_ensemble
 
         return background_ensemble, resampled_forecast
+
+    def get_inflation_factor_obs(self):
+        """
+        Helper function for ensuring the full NWP weight at the end of a combined
+        forecast. If an accumulated sampling probability of 1 is reached, the
+        observation inflation factor is reduced to 0 by a cosine function.
+        """
+
+        return self.__inflation_factor_obs_tmp

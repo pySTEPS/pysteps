@@ -36,7 +36,7 @@ method consists of the following main steps:
         #. Apply update step of ensemble Kalman filter.
 
     #. Set no data values in final forecast fields.
-    #. In the origin approach, it is iterated between forecast and correction step. 
+    #. In the origin approach, it is iterated between forecast and correction step.
        However, to reduce smoothing effects, at the first timestep a pure forecast step is computed and then it is iterated between correction and forecast step. The mentioned smoothing effects arise due to the NWP effective horizontal resolution and due to the spatial decomposition at each forecast time step.
 """
 import time
@@ -1203,6 +1203,7 @@ class EnKFCombinationNowcaster:
                 self.__nwp_precip[:, 0] >= self.__config.precip_threshold, axis=(1, 2)
             )
             / self.__nwp_precip[0, 0].size
+            * 100.0
         )
 
         # If there is no precipitation in the observation, set no_rain_case to "obs"
@@ -1230,47 +1231,47 @@ class EnKFCombinationNowcaster:
 
         print("Inputs")
         print("------")
-        print(f"forecast issue time:                {self.__fc_init.isoformat()}")
+        print(f"Forecast issue time:                {self.__fc_init.isoformat()}")
         print(
-            f"input dimensions:                   {self.__obs_precip.shape[1]}x{self.__obs_precip.shape[2]}"
+            f"Input dimensions:                   {self.__obs_precip.shape[1]}x{self.__obs_precip.shape[2]}"
         )
-        print(f"temporal resolution:                {self.__temporal_res} minutes")
+        print(f"Temporal resolution:                {self.__temporal_res} minutes")
         print("")
 
         print("NWP and blending inputs")
         print("-----------------------")
-        print(f"number of (NWP) models:             {self.__nwp_precip.shape[0]}")
+        print(f"Number of (NWP) models:             {self.__nwp_precip.shape[0]}")
         print("")
 
         print("Methods")
         print("-------")
         print(
-            f"extrapolation:                      {self.__config.extrapolation_method}"
+            f"Extrapolation:                      {self.__config.extrapolation_method}"
         )
         print(
-            f"bandpass filter:                    {self.__config.bandpass_filter_method}"
+            f"Bandpass filter:                    {self.__config.bandpass_filter_method}"
         )
         print(
-            f"decomposition:                      {self.__config.decomposition_method}"
+            f"Decomposition:                      {self.__config.decomposition_method}"
         )
-        print(f"noise generator:                    {self.__config.noise_method}")
+        print(f"Noise generator:                    {self.__config.noise_method}")
         print(
-            f"noise adjustment:                   {'yes' if self.__config.noise_stddev_adj else 'no'}"
+            f"Noise adjustment:                   {'yes' if self.__config.noise_stddev_adj else 'no'}"
         )
 
         print(f"EnKF implementation:                {self.__config.enkf_method}")
 
         print(f"FFT method:                         {self.__config.fft_method}")
-        print(f"domain:                             {self.__config.domain}")
+        print(f"Domain:                             {self.__config.domain}")
         print("")
 
         print("Parameters")
         print("----------")
         print(f"Forecast length in min:             {self.__fc_period}")
-        print(f"ensemble size:                      {self.__config.n_ens_members}")
-        print(f"parallel threads:                   {self.__config.num_workers}")
-        print(f"number of cascade levels:           {self.__config.n_cascade_levels}")
-        print(f"order of the AR(p) model:           {self.__config.ar_order}")
+        print(f"Ensemble size:                      {self.__config.n_ens_members}")
+        print(f"Parallel threads:                   {self.__config.num_workers}")
+        print(f"Number of cascade levels:           {self.__config.n_cascade_levels}")
+        print(f"Order of the AR(p) model:           {self.__config.ar_order}")
         print("")
 
         print(f"No rain forecast:                   {self.__params.no_rain_case}")
@@ -1303,47 +1304,62 @@ class EnKFCombinationNowcaster:
                     )
                 )
 
+                is_full_nwp_weight = (
+                    self.KalmanFilterModel.get_inflation_factor_obs() <= 0.02
+                )
+
+                if is_full_nwp_weight:
+                    if is_correction_timestep:
+                        t_corr = np.where(
+                            self.__correction_leadtimes
+                            == self.__forecast_leadtimes[t - 1]
+                        )[0][0]
+                    for i, FC_Model in enumerate(self.FC_Models.values()):
+                        FC_Model.nwc_prediction = self.__nwp_precip[i, t_corr]
+
                 # If the temporal resolution of the NWP data is equal to those of the
                 # observation, the correction step can be applied after the forecast
                 # step for the current forecast leadtime.
                 # However, if the temporal resolution is different, the correction step
                 # has to be applied before the forecast step to avoid smoothing effects
                 # in the resulting precipitation fields.
-                if is_correction_timestep:
-                    t_corr = np.where(
-                        self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
-                    )[0][0]
-
-                    ForecastModel.nwc_prediction, ForecastModel.fc_resampled = (
-                        self.KalmanFilterModel.correct_step(
-                            ForecastModel.nwc_prediction,
-                            self.__nwp_precip[:, t_corr],
-                            ForecastModel.fc_resampled,
-                        )
-                    )
-
-                # Run forecast step
-                def worker(j):
-
-                    self.FC_Models[j].run_forecast_step(
-                        nwp=self.__nwp_precip[j, t_corr],
-                        is_correction_timestep=is_correction_timestep,
-                    )
-
-                dask_worker_collection = []
-
-                if DASK_IMPORTED and self.__config.n_ens_members > 1:
-                    for j in range(self.__config.n_ens_members):
-                        dask_worker_collection.append(dask.delayed(worker)(j))
-                    dask.compute(
-                        *dask_worker_collection,
-                        num_workers=self.__params.num_ensemble_workers,
-                    )
                 else:
-                    for j in range(self.__config.n_ens_members):
-                        worker(j)
+                    if is_correction_timestep:
+                        t_corr = np.where(
+                            self.__correction_leadtimes
+                            == self.__forecast_leadtimes[t - 1]
+                        )[0][0]
 
-                dask_worker_collection = None
+                        ForecastModel.nwc_prediction, ForecastModel.fc_resampled = (
+                            self.KalmanFilterModel.correct_step(
+                                ForecastModel.nwc_prediction,
+                                self.__nwp_precip[:, t_corr],
+                                ForecastModel.fc_resampled,
+                            )
+                        )
+
+                    # Run forecast step
+                    def worker(j):
+
+                        self.FC_Models[j].run_forecast_step(
+                            nwp=self.__nwp_precip[j, t_corr],
+                            is_correction_timestep=is_correction_timestep,
+                        )
+
+                    dask_worker_collection = []
+
+                    if DASK_IMPORTED and self.__config.n_ens_members > 1:
+                        for j in range(self.__config.n_ens_members):
+                            dask_worker_collection.append(dask.delayed(worker)(j))
+                        dask.compute(
+                            *dask_worker_collection,
+                            num_workers=self.__params.num_ensemble_workers,
+                        )
+                    else:
+                        for j in range(self.__config.n_ens_members):
+                            worker(j)
+
+                    dask_worker_collection = None
 
             # Apply back transformation
             [FC_Model.backtransform() for FC_Model in self.FC_Models.values()]
