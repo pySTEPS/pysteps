@@ -25,6 +25,7 @@ method consists of the following main steps:
            imprint.
         #. Iterate AR model.
         #. Recompose rainfall forecast field.
+        #. (optional) Apply probability matching.
         #. Extrapolate the recomposed rainfall field to the current timestep.
 
         Correction Step
@@ -33,10 +34,10 @@ method consists of the following main steps:
         #. Reduce Nowcast and NWP ensemble onto these grid boxes and apply principal
            component analysis to further reduce the dimensionality.
         #. Apply update step of ensemble Kalman filter.
-        #. (optional) Apply probability matching.
 
     #. Set no data values in final forecast fields.
-    #. Iterate between forecast and correction step.
+    #. In the origin approach, it is iterated between forecast and correction step. 
+       However, to reduce smoothing effects, at the first timestep a pure forecast step is computed and then it is iterated between correction and forecast step. The mentioned smoothing effects arise due to the NWP effective horizontal resolution and due to the spatial decomposition at each forecast time step.
 """
 import time
 import datetime
@@ -219,6 +220,7 @@ class EnKFCombinationParams:
     combination_kwargs: dict | None = None
     len_y: int | None = None
     len_x: int | None = None
+    no_rain_case: str | None = None
 
 
 class ForecastInitialization:
@@ -918,12 +920,15 @@ class EnKFCombinationNowcaster:
         forecast step.
         """
 
+        # Check for the inputs.
+        self.__check_inputs()
+
         # Check timestamps of radar and nwp input and determine forecast and correction
         # timesteps as well as the temporal resolution
         self.__check_input_timestamps()
 
-        # Check for the inputs.
-        self.__check_inputs()
+        # Check wehther there is no precipitation in observation, but in NWP or the other way around
+        self.__check_no_rain_case()
 
         # Print forecast information.
         self.__print_forecast_info()
@@ -976,7 +981,12 @@ class EnKFCombinationNowcaster:
         self.KalmanFilterModel = kalman_filter_model(self.__config, self.__params)
 
         # Start the main forecast loop.
-        self.__integrated_nowcast_main_loop()
+        if self.__params.no_rain_case == "none":
+            self.__integrated_nowcast_main_loop()
+        elif self.__params.no_rain_case == "obs":
+            self.__no_rain_case()
+        else:
+            self.__integrated_nowcast_main_loop()
 
         # Stack and return the forecast output.
         if self.__config.return_output:
@@ -994,6 +1004,105 @@ class EnKFCombinationNowcaster:
 
         # Else, return None
         return None
+
+    def __check_inputs(self):
+        """
+        Validates user's input.
+        """
+
+        # Check dimensions of obs precip
+        if self.__obs_precip.ndim != 3:
+            raise ValueError(
+                "Precipitation observation must be a three-dimensional "
+                "array of shape (ar_order + 1, m, n)"
+            )
+        if self.__obs_precip.shape[0] < self.__config.ar_order + 1:
+            raise ValueError(
+                f"Precipitation observation must have at least "
+                f"{self.__config.ar_order + 1} time steps in the first"
+                f"dimension to match the autoregressive order "
+                f"(ar_order={self.__config.ar_order})"
+            )
+
+        # If it is necessary, slice the precipitation field to only use the last
+        # ar_order +1 time steps.
+        if self.__obs_precip.shape[0] > self.__config.ar_order + 1:
+            self.__obs_precip = np.delete(
+                self.__obs_precip,
+                np.arange(
+                    0, self.__obs_precip.shape[0] - (self.__config.ar_order + 1), 1
+                ),
+                axis=0,
+            )
+
+        # Check NWP data dimensions
+        NWP_shape = self.__nwp_precip.shape
+        NWP_timestamps_len = len(self.__nwp_timestamps)
+        if not NWP_timestamps_len in NWP_shape:
+            raise ValueError(
+                f"nwp_timestamps has not the same length as NWP data!"
+                f"nwp_timestamps length: {NWP_timestamps_len}"
+                f"nwp_precip shape:      {NWP_shape}"
+            )
+        if NWP_shape[0] == NWP_timestamps_len:
+            self.__nwp_precip = self.__nwp_precip.swapaxes(0, 1)
+
+        # Check dimensions of obs velocity
+        if self.__obs_velocity.ndim != 3:
+            raise ValueError(
+                "The velocity field must be a three-dimensional array of shape (2, m, n)"
+            )
+
+        # Check whether the spatial dimensions match between obs precip and
+        # obs velocity
+        if self.__obs_precip.shape[1:3] != self.__obs_velocity.shape[1:3]:
+            raise ValueError(
+                f"Spatial dimension of Precipitation observation and the"
+                "velocity field do not match: "
+                f"{self.__obs_precip.shape[1:3]} vs. {self.__obs_velocity.shape[1:3]}"
+            )
+
+        # Check velocity field for non-finite values
+        if np.any(~np.isfinite(self.__obs_velocity)):
+            raise ValueError("Velocity contains non-finite values")
+
+        # Check whether there are extrapolation kwargs
+        if self.__config.extrapolation_kwargs is None:
+            self.__params.extrapolation_kwargs = dict()
+        else:
+            self.__params.extrapolation_kwargs = deepcopy(
+                self.__config.extrapolation_kwargs
+            )
+
+        # Check whether there are filter kwargs
+        if self.__config.filter_kwargs is None:
+            self.__params.filter_kwargs = dict()
+        else:
+            self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
+
+        # Check for noise kwargs
+        if self.__config.noise_kwargs is None:
+            self.__params.noise_kwargs = {"win_fun": "tukey"}
+        else:
+            self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
+
+        # Check for combination kwargs
+        if self.__config.combination_kwargs is None:
+            self.__params.combination_kwargs = dict()
+        else:
+            self.__params.combination_kwargs = deepcopy(
+                self.__config.combination_kwargs
+            )
+
+        # Set the precipitation threshold also in params
+        self.__params.precip_threshold = self.__config.precip_threshold
+
+        # Check for the standard deviation adjustment of the noise fields
+        if self.__config.noise_stddev_adj not in ["auto", "fixed", None]:
+            raise ValueError(
+                f"Unknown noise_std_dev_adj method {self.__config.noise_stddev_adj}. "
+                "Must be 'auto', 'fixed', or None"
+            )
 
     def __check_input_timestamps(self):
         """
@@ -1078,92 +1187,37 @@ class EnKFCombinationNowcaster:
             [int(timestamp.total_seconds() / 60) for timestamp in trunc_nwp_timestamps]
         )
 
-    def __check_inputs(self):
-        """
-        Validates user's input.
-        """
+    def __check_no_rain_case(self):
 
-        # Check dimensions of obs precip
-        if self.__obs_precip.ndim != 3:
-            raise ValueError(
-                "Precipitation observation must be a three-dimensional "
-                "array of shape (ar_order + 1, m, n)"
+        # Compute the wet area ratio of the latest observation
+        wet_area_ratio_obs = (
+            np.sum(self.__obs_precip[-1] >= self.__config.precip_threshold)
+            / (self.__obs_precip[-1].size - np.sum(~np.isfinite(self.__obs_precip[-1])))
+            * 100.0
+        )
+
+        # Compute the wet area ratio of the NWP ensemble forecast at the first usable
+        # time step
+        wet_area_ratio_nwp = (
+            np.sum(
+                self.__nwp_precip[:, 0] >= self.__config.precip_threshold, axis=(1, 2)
             )
-        if self.__obs_precip.shape[0] < self.__config.ar_order + 1:
-            raise ValueError(
-                f"Precipitation observation must have at least "
-                f"{self.__config.ar_order + 1} time steps in the first"
-                f"dimension to match the autoregressive order "
-                f"(ar_order={self.__config.ar_order})"
-            )
+            / self.__nwp_precip[0, 0].size
+        )
 
-        # If it is necessary, slice the precipitation field to only use the last
-        # ar_order +1 time steps.
-        if self.__obs_precip.shape[0] > self.__config.ar_order + 1:
-            self.__obs_precip = np.delete(
-                self.__obs_precip,
-                np.arange(
-                    0, self.__obs_precip.shape[0] - (self.__config.ar_order + 1), 1
-                ),
-                axis=0,
-            )
-
-        # Check dimensions of obs velocity
-        if self.__obs_velocity.ndim != 3:
-            raise ValueError(
-                "The velocity field must be a three-dimensional array of shape (2, m, n)"
-            )
-
-        # Check whether the spatial dimensions match between obs precip and
-        # obs velocity
-        if self.__obs_precip.shape[1:3] != self.__obs_velocity.shape[1:3]:
-            raise ValueError(
-                f"Spatial dimension of Precipitation observation and the"
-                "velocity field do not match: "
-                f"{self.__obs_precip.shape[1:3]} vs. {self.__obs_velocity.shape[1:3]}"
-            )
-
-        # Check velocity field for non-finite values
-        if np.any(~np.isfinite(self.__obs_velocity)):
-            raise ValueError("Velocity contains non-finite values")
-
-        # Check whether there are extrapolation kwargs
-        if self.__config.extrapolation_kwargs is None:
-            self.__params.extrapolation_kwargs = dict()
+        # If there is no precipitation in the observation, set no_rain_case to "obs"
+        # and use only the NWP ensemble forecast
+        if wet_area_ratio_obs < 1.0:
+            self.__params.no_rain_case = "obs"
+        # If there is no precipitation at the first usable NWP forecast timestep, but
+        # in the observation, compute an extrapolation forecast
+        elif wet_area_ratio_obs > 1.0 and np.all(wet_area_ratio_nwp < 1.0):
+            self.__params.no_rain_case = "nwp"
+        # Otherwise, set no_rain_case to 'none' and compute combined forecast as usual
         else:
-            self.__params.extrapolation_kwargs = deepcopy(
-                self.__config.extrapolation_kwargs
-            )
+            self.__params.no_rain_case = "none"
 
-        # Check whether there are filter kwargs
-        if self.__config.filter_kwargs is None:
-            self.__params.filter_kwargs = dict()
-        else:
-            self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
-
-        # Check for noise kwargs
-        if self.__config.noise_kwargs is None:
-            self.__params.noise_kwargs = {"win_fun": "tukey"}
-        else:
-            self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
-
-        # Check for combination kwargs
-        if self.__config.combination_kwargs is None:
-            self.__params.combination_kwargs = dict()
-        else:
-            self.__params.combination_kwargs = deepcopy(
-                self.__config.combination_kwargs
-            )
-
-        # Set the precipitation threshold also in params
-        self.__params.precip_threshold = self.__config.precip_threshold
-
-        # Check for the standard deviation adjustment of the noise fields
-        if self.__config.noise_stddev_adj not in ["auto", "fixed", None]:
-            raise ValueError(
-                f"Unknown noise_std_dev_adj method {self.__config.noise_stddev_adj}. "
-                "Must be 'auto', 'fixed', or None"
-            )
+        return
 
     def __print_forecast_info(self):
         """
@@ -1219,6 +1273,8 @@ class EnKFCombinationNowcaster:
         print(f"order of the AR(p) model:           {self.__config.ar_order}")
         print("")
 
+        print(f"No rain forecast:                   {self.__params.no_rain_case}")
+
     def __integrated_nowcast_main_loop(self):
 
         if self.__config.measure_time:
@@ -1241,7 +1297,10 @@ class EnKFCombinationNowcaster:
                 is_correction_timestep = (
                     self.__forecast_leadtimes[t - 1] in self.__correction_leadtimes
                     and t > 1
-                    and self.__config.enable_combination
+                    and np.logical_and(
+                        self.__config.enable_combination,
+                        self.__params.no_rain_case != "nwp",
+                    )
                 )
 
                 # If the temporal resolution of the NWP data is equal to those of the
@@ -1311,6 +1370,57 @@ class EnKFCombinationNowcaster:
             print(
                 f"Elapsed time for computing forecast: {self.__mainloop_time / 60.0} min"
             )
+
+    def __no_rain_case(self):
+
+        if self.__config.measure_time:
+            starttime_mainloop = time.time()
+
+        is_correction_timestep = False
+        # Set t_corr to 0 to compute the precip mask with the first NWP fields
+        # Afterwards, the NWP fields closest in the future are used
+        t_corr = 0
+
+        for t, _ in enumerate(self.__forecast_leadtimes):
+
+            if self.__config.measure_time:
+                starttime = time.time()
+
+            if is_correction_timestep:
+                t_corr = np.where(
+                    self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
+                )[0][0]
+
+            for i, FC_Model in enumerate(self.FC_Models.values()):
+                # Set NWP data into ForecastModel instances
+                FC_Model.nwc_prediction = self.__nwp_precip[i, t_corr]
+                # Apply back transformation
+                FC_Model.backtransform()
+
+            if self.__config.measure_time:
+                _ = self.__measure_time("timestep", starttime)
+            else:
+                print("...done.")
+
+            if (
+                self.__config.callback is not None
+                and ForecastModel.nwc_prediction_btf.shape[1] > 0
+            ):
+                self.__config.callback(ForecastModel.nwc_prediction_btf)
+
+            if self.__config.return_output:
+
+                ForecastModel.final_combined_forecast.append(
+                    ForecastModel.nwc_prediction_btf.copy()
+                )
+
+        if self.__config.measure_time:
+            self.__mainloop_time = time.time() - starttime_mainloop
+            print(
+                f"Elapsed time for computing forecast: {self.__mainloop_time / 60.0} min"
+            )
+
+        return
 
     def __measure_time(self, label, start_time):
         """
