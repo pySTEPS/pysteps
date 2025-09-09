@@ -262,8 +262,6 @@ class ForecastInitialization:
                 f"Elapsed time for initialization:    {time.time() - self.__start_time_init}"
             )
 
-        return
-
     # Initialize FFT, bandpass filters, decomposition methods, and extrapolation
     # method.
     def __initialize_nowcast_components(self):
@@ -322,8 +320,6 @@ class ForecastInitialization:
         )
 
         print("Nowcast components initialized successfully.")
-
-        return
 
     # Prepare radar precipitation fields for nowcasting and estimate the AR
     # parameters.
@@ -439,8 +435,6 @@ class ForecastInitialization:
 
         nowcast_utils.print_ar_params(self.__params.PHI)
 
-        return
-
     # Initialize the noise generation and get n_noise_fields.
     def __initialize_noise(self):
         """
@@ -498,8 +492,6 @@ class ForecastInitialization:
             self.__params.noise_generator = None
             self.__params.noise_std_coeffs = None
 
-        return
-
     # Create a pool of n noise fields.
     def __initialize_noise_field_pool(self):
         """
@@ -555,8 +547,6 @@ class ForecastInitialization:
                 normalize=True,
                 compact_output=True,
             )["cascade_levels"]
-
-        return
 
 
 class ForecastModel:
@@ -641,8 +631,6 @@ class ForecastModel:
 
         self.__ens_member = ens_member
 
-        return
-
     # Bundle single steps of the forecast.
     def run_forecast_step(self, nwp, is_correction_timestep=False):
 
@@ -685,16 +673,13 @@ class ForecastModel:
         # Set no data area
         self.__set_no_data()
 
-        return
-
     # Call spatial decomposition function and compute an adjusted standard deviation of
     # each spatial scale at timesteps where NWP information is incorporated.
     def __decompose(self, is_correction_timestep):
 
         if self.__ens_member == 1:
-
-            print(f"Scaling parameters before renormalization")
-            print(f"=========================================")
+            print("Scaling parameters before renormalization")
+            print("=========================================")
             for i in range(len(self.__precip_cascades[:, -1])):
                 print(
                     f"Mu: {np.mean(self.__precip_cascades[i, -1]):.4} Sigma: {np.std(self.__precip_cascades[i, -1]):.4}"
@@ -740,8 +725,6 @@ class ForecastModel:
             self.__mu = self.__mu
             self.__sigma = self.__sigma
 
-        return
-
     # Call extrapolation function to extrapolate the precipitation field onto the
     # position of the current timestep.
     def __advect(self):
@@ -767,15 +750,13 @@ class ForecastModel:
         # Get the difference of the previous displacement field.
         self.__previous_displacement -= displacement_tmp
 
-        return
-
     # Get a noise field out of the respective pool and iterate through the AR(1)
     # process.
     def __iterate(self):
 
         # Get a noise field out of the noise field pool and multiply it with
         # precipitation mask and the standard deviation coefficients.
-        eps = (
+        epsilon = (
             ForecastModel.__noise_field_pool[
                 np.random.randint(ForecastModel.__config.n_noise_fields)
             ]
@@ -787,10 +768,8 @@ class ForecastModel:
         for i in range(self.__config.n_cascade_levels):
 
             self.__precip_cascades[i] = autoregression.iterate_ar_model(
-                self.__precip_cascades[i], self.__params.PHI[i], eps[i]
+                self.__precip_cascades[i], self.__params.PHI[i], epsilon[i]
             )
-
-        return
 
     # Update the precipitation mask for the forecast step by incorporating areas
     # where the NWP model forecast precipitation.
@@ -838,8 +817,6 @@ class ForecastModel:
             precip_mask, dtype=bool
         )
 
-        return
-
     # Apply probability matching
     def __probability_matching(self):
 
@@ -851,16 +828,12 @@ class ForecastModel:
             )
         )
 
-        return
-
     # Set no data area in the resulting precipitation field.
     def __set_no_data(self):
 
         ForecastModel.nwc_prediction_btf[self.__ens_member][
             ForecastModel.__params.domain_mask
         ] = np.nan
-
-        return
 
 
 class EnKFCombinationNowcaster:
@@ -894,8 +867,6 @@ class EnKFCombinationNowcaster:
         # Store input timestamps
         self.__obs_timestamps = obs_timestamps
         self.__nwp_timestamps = nwp_timestamps
-
-        return
 
     def compute_forecast(self):
         """
@@ -1027,10 +998,10 @@ class EnKFCombinationNowcaster:
                     self.__fc_init,
                     self.__mainloop_time,
                 )
-            else:
-                return ForecastModel.final_combined_forecast
-        else:
-            return None
+            return ForecastModel.final_combined_forecast
+
+        # Else, return None
+        return None
 
     def __check_input_timestamps(self):
         """
@@ -1051,8 +1022,7 @@ class EnKFCombinationNowcaster:
         nwp_time_diff = np.unique(np.diff(self.__nwp_timestamps))
         if nwp_time_diff.size > 1:
             raise ValueError(
-                "NWP data has a different temporal resolution or "
-                "some timesteps are missing!"
+                "NWP data has a different temporal resolution or some time steps are missing!"
             )
         nwp_temporal_res = int(nwp_time_diff[0].total_seconds() / 60)
 
@@ -1083,8 +1053,7 @@ class EnKFCombinationNowcaster:
         ) * nwp_temporal_res
         if max_nwp_fc_period < self.__fc_period - nwp_temporal_res:
             raise ValueError(
-                "The remaining NWP forecast is not sufficient for the combined "
-                "forecast period"
+                "The remaining NWP forecast is not sufficient for the combined forecast period"
             )
 
         # Truncate the NWP dataset if there sufficient remaining timesteps are available
@@ -1116,8 +1085,6 @@ class EnKFCombinationNowcaster:
         self.__correction_leadtimes = np.array(
             [int(timestamp.total_seconds() / 60) for timestamp in trunc_nwp_timestamps]
         )
-
-        return
 
     def __check_inputs(self):
         """
@@ -1152,8 +1119,7 @@ class EnKFCombinationNowcaster:
         # Check dimensions of obs velocity
         if self.__obs_velocity.ndim != 3:
             raise ValueError(
-                "The velocity field must be a three-dimensional array"
-                "of shape (2, m, n)"
+                "The velocity field must be a three-dimensional array of shape (2, m, n)"
             )
 
         # Check whether the spatial dimensions match between obs precip and
@@ -1167,7 +1133,7 @@ class EnKFCombinationNowcaster:
 
         # Check velocity field for non-finite values
         if np.any(~np.isfinite(self.__obs_velocity)):
-            raise ValueError("velocity contains non-finite values")
+            raise ValueError("Velocity contains non-finite values")
 
         # Check whether there are extrapolation kwargs
         if self.__config.extrapolation_kwargs is None:
@@ -1203,8 +1169,8 @@ class EnKFCombinationNowcaster:
         # Check for the standard deviation adjustment of the noise fields
         if self.__config.noise_stddev_adj not in ["auto", "fixed", None]:
             raise ValueError(
-                "unknown noise_std_dev_adj method %s: must be 'auto', 'fixed', or None"
-                % self.__config.noise_stddev_adj
+                f"Unknown noise_std_dev_adj method {self.__config.noise_stddev_adj}. "
+                "Must be 'auto', 'fixed', or None"
             )
 
     def __print_forecast_info(self):
@@ -1261,8 +1227,6 @@ class EnKFCombinationNowcaster:
         print(f"order of the AR(p) model:           {self.__config.ar_order}")
         print("")
 
-        return
-
     def __integrated_nowcast_main_loop(self):
 
         if self.__config.measure_time:
@@ -1280,9 +1244,7 @@ class EnKFCombinationNowcaster:
                 starttime = time.time()
 
             if t > 0:
-
-                print(f"Computing combination for lead time +{fc_leadtime}min... ")
-
+                print(f"Computing combination for lead time + {fc_leadtime} min")
                 # Check whether forecast time step is also a correction time step
                 is_correction_timestep = (
                     self.__forecast_leadtimes[t - 1] in self.__correction_leadtimes
@@ -1296,7 +1258,7 @@ class EnKFCombinationNowcaster:
                 # However, if the temporal resolution is different, the correction step
                 # has to be applied before the forecast step to avoid smoothing effects
                 # in the resulting precipitation fields.
-                if is_correction_timestep == True:
+                if is_correction_timestep:
                     t_corr = np.where(
                         self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
                     )[0][0]
@@ -1354,9 +1316,9 @@ class EnKFCombinationNowcaster:
 
         if self.__config.measure_time:
             self.__mainloop_time = time.time() - starttime_mainloop
-            print(f"Elapsed time for computing forecast:{self.__mainloop_time}")
-
-        return
+            print(
+                f"Elapsed time for computing forecast: {self.__mainloop_time / 60.0} min"
+            )
 
     def __measure_time(self, label, start_time):
         """
@@ -1379,11 +1341,11 @@ def forecast(
     nwp_precip,
     nwp_timestamps,
     velocity,
-    forecast_period,
+    forecast_horizon,
     issuetime,
     n_ens_members,
     precip_mask_dilation=1,
-    n_cascade_levels=12,
+    n_cascade_levels=6,
     precip_thr=-10.0,
     norain_thr=-15.0,
     extrap_method="semilagrangian",
@@ -1430,8 +1392,8 @@ def forecast(
         field. The velocities are based on the observed input precipitation fields
         and are assumed to represent one time step between the inputs. All values
         are required to be finite.
-    forecast_period: int
-        Forecast range in minutes.
+    forecast_horizon: int
+        The length of the forecast horizon (the length of the forecast) in minutes.
     issuetime: datetime object
         Issuetime of the combined forecast to compute.
     n_ens_members: int
@@ -1440,37 +1402,39 @@ def forecast(
         NWP models.
     precip_mask_dilation: int
         Range by which the precipitation mask within the forecast step should be
-        extended per time step.
+        extended per time step. Defaults to 1.
     n_cascade_levels: int, optional
         The number of cascade levels to use. Defaults to 6, see issue #385 on GitHub.
     precip_thr: float, optional
         pecifies the threshold value for minimum observable precipitation
         intensity. Required if mask_method is not None or conditional is True.
+        Defaults to -10.0.
     norain_thr: float
         Specifies the threshold value for the fraction of rainy (see above) pixels
         in the radar rainfall field below which we consider there to be no rain.
-        Depends on the amount of clutter typically present.
-        Standard set to 0.0
+        Depends on the amount of clutter typically present. Defaults to -15.0.
     extrap_method: str, optional
         Name of the extrapolation method to use. See the documentation of
-        :py:mod:`pysteps.extrapolation.interface`.
+        :py:mod:`pysteps.extrapolation.interface`. Defaults to 'semilagrangian'.
     decomp_method: {'fft'}, optional
         Name of the cascade decomposition method to use. See the documentation
-        of :py:mod:`pysteps.cascade.interface`.
+        of :py:mod:`pysteps.cascade.interface`. Defaults to 'fft'.
     bandpass_filter_method: {'gaussian', 'uniform'}, optional
         Name of the bandpass filter method to use with the cascade decomposition.
-        See the documentation of :py:mod:`pysteps.cascade.interface`.
+        See the documentation of :py:mod:`pysteps.cascade.interface`. Defaults to
+        'guassian'.
     noise_method: {'parametric','nonparametric','ssft','nested',None}, optional
         Name of the noise generator to use for perturbating the precipitation
         field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to
-        None, no noise is generated.
+        None, no noise is generated. Defaults to 'nonparametric'.
     enkf_method: {'masked_enkf}, optional
         Name of the ensemble Kalman filter method to use for the correction step.
         Currently, only 'masked_enkf' method is implemented that corresponds to the
         reduced-space ensemble Kalman filter technique described in Nerini et al. 2019.
+        Defaults to 'masked_enkf'.
     enable_combination: bool, optional
         Flag to specify whether the correction step should be applied or a pure
-        nowcasting ensemble should be computed.
+        nowcasting ensemble should be computed. Defaults to True.
     noise_stddev_adj: {'auto','fixed',None}, optional
         Optional adjustment for the standard deviations of the noise fields added
         to each cascade level. This is done to compensate incorrect std. dev.
@@ -1584,10 +1548,11 @@ def forecast(
         nwp_precip=nwp_precip,
         nwp_timestamps=nwp_timestamps,
         obs_velocity=velocity,
-        fc_period=forecast_period,
+        fc_period=forecast_horizon,
         fc_init=issuetime,
         enkf_combination_config=combination_config,
     )
 
     forecast_enkf_combination = combination_nowcaster.compute_forecast()
+
     return forecast_enkf_combination
