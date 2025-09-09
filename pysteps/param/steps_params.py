@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import datetime
 
+# These are representative values from a 250 km in Auckland N.Z
 #                       95%         50%         5%
 # nonzero_mean_db      6.883147    4.590082   2.815397
 # nonzero_stdev_db     3.793680    2.489131   1.298552
