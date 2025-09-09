@@ -21,6 +21,7 @@ from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
 from pysteps.xarray_helpers import convert_output_to_xarray_dataset
+from pysteps.utils.check_norain import check_norain
 
 try:
     import dask
@@ -34,6 +35,7 @@ def forecast(
     dataset: xr.Dataset,
     timesteps,
     precip_thr=None,
+    norain_thr=0.0,
     n_cascade_levels=6,
     extrap_method="semilagrangian",
     decomp_method="fft",
@@ -66,6 +68,11 @@ def forecast(
         of the list are required to be in ascending order.
     precip_thr: float, required
         The threshold value for minimum observable precipitation intensity.
+    norain_thr: float
+      Specifies the threshold value for the fraction of rainy (see above) pixels
+      in the radar rainfall field below which we consider there to be no rain.
+      Depends on the amount of clutter typically present.
+      Standard set to 0.0
     n_cascade_levels: int, optional
         The number of cascade levels to use. Defaults to 6, see issue #385
         on GitHub.
@@ -186,6 +193,8 @@ def forecast(
 
     if measure_time:
         starttime_init = time.time()
+    else:
+        starttime_init = None
 
     fft = utils.get_method(fft_method, shape=precip.shape[1:], n_threads=num_workers)
 
@@ -206,6 +215,11 @@ def forecast(
     domain_mask = np.logical_or.reduce(
         [~np.isfinite(precip[i, :]) for i in range(precip.shape[0])]
     )
+
+    if check_norain(precip, precip_thr, norain_thr, None):
+        return nowcast_utils.zero_precipitation_forecast(
+            None, timesteps, precip, None, True, measure_time, starttime_init
+        )
 
     # determine the precipitation threshold mask
     if conditional:

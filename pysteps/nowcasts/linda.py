@@ -41,6 +41,7 @@ import time
 import warnings
 
 from pysteps.xarray_helpers import convert_output_to_xarray_dataset
+from pysteps.utils.check_norain import check_norain
 
 try:
     import dask
@@ -57,7 +58,7 @@ from scipy.interpolate import interp1d
 from scipy.signal import convolve
 
 from pysteps import extrapolation, feature, noise
-from pysteps.nowcasts.utils import nowcast_main_loop
+from pysteps.nowcasts.utils import nowcast_main_loop, zero_precipitation_forecast
 
 
 def forecast(
@@ -93,15 +94,19 @@ def forecast(
 
     Parameters
     ----------
-    dataset: xarray.Dataset
-        Input dataset as described in the documentation of
-        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
-        ``velocity_y`` data variables, as well as either reflectivity values in the
-        ``reflectivity`` data variable (in linear scale) or rainrate in the ``precip_intensity``
-        data variable. The time dimension of the dataset has to be size
-        ``ari_order + 2`` and the precipitation variable has to have this dimension.
-    timesteps: int
-        Number of time steps to forecast.
+    precip: array_like
+        Array of shape (ari_order + 2, m, n) containing the input rain rate
+        or reflectivity fields (in linear scale) ordered by timestamp from
+        oldest to newest. The time steps between the inputs are assumed to be
+        regular.
+    velocity: array_like
+        Array of shape (2, m, n) containing the x- and y-components of the
+        advection field. The velocities are assumed to represent one time step
+        between the inputs.
+    timesteps: int or list of floats
+        Number of time steps to forecast or a list of time steps. If a list is
+        given, the values are assumed to be relative to the input time step and
+        in ascending order.
     feature_method: {'blob', 'domain' 'shitomasi'}
         Feature detection method:
 
@@ -193,15 +198,16 @@ def forecast(
 
     Returns
     -------
-    out: xarray.Dataset
-        If return_output is True, a dataset as described in the documentation of
-        :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
-        precipitation fields for each ensemble member. Otherwise, a None value
-        is returned. The time series starts from t0+timestep, where timestep is
-        taken from the metadata of the time coordinate. If measure_time is True, the
-        return value is a three-element tuple containing the nowcast dataset, the
-        initialization time of the nowcast generator and the time used in the
-        main loop (seconds).
+    out: numpy.ndarray
+        A four-dimensional array of shape (n_ens_members, len(timesteps), m, n)
+        containing a time series of forecast precipitation fields for each
+        ensemble member. If add_perturbations is False, the first dimension is
+        dropped. The time series starts from t0 + timestep, where timestep is
+        taken from the input fields. If measure_time is True, the return value
+        is a three-element tuple containing the nowcast array, the initialization
+        time of the nowcast generator and the time used in the main loop
+        (seconds). If return_output is set to False, a single None value is
+        returned instead.
 
     Notes
     -----
@@ -265,7 +271,10 @@ def forecast(
 
     print("Parameters")
     print("----------")
-    print(f"number of time steps:       {timesteps}")
+    if isinstance(timesteps, int):
+        print(f"number of time steps:     {timesteps}")
+    else:
+        print(f"time steps:               {timesteps}")
     print(f"ARI model order:            {ari_order}")
     print(f"localization window radius: {localization_window_radius}")
     if add_perturbations:
@@ -294,6 +303,19 @@ def forecast(
     extrap_kwargs["allow_nonfinite_values"] = (
         True if np.any(~np.isfinite(precip)) else False
     )
+
+    starttime_init = time.time()
+
+    if check_norain(precip, 0.0, 0.0, None):
+        return zero_precipitation_forecast(
+            n_ens_members if nowcast_type == "ensemble" else None,
+            timesteps,
+            precip,
+            callback,
+            return_output,
+            measure_time,
+            starttime_init,
+        )
 
     forecast_gen = _linda_deterministic_init(
         precip,
@@ -386,8 +408,8 @@ def _check_inputs(precip, velocity, timesteps, ari_order):
         raise ValueError(
             f"dimension mismatch between precip and velocity: precip.shape={precip.shape}, velocity.shape={velocity.shape}"
         )
-    if not isinstance(timesteps, int):
-        raise ValueError("timesteps is not an integer")
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps must be in ascending order")
 
 
 def _composite_convolution(field, kernels, weights):
@@ -794,16 +816,22 @@ def _estimate_perturbation_params(
                     _compute_sample_acf(weights_acf * (forecast_err - 1.0) / std)
                 )
                 acf = _fit_acf(acf)
-            else:
-                distpar = None
-                std = None
-                acf = None
-        else:
-            distpar = None
-            std = None
-            acf = None
 
-        return distpar, std, np.sqrt(np.abs(np.fft.rfft2(acf)))
+                valid_data = True
+            else:
+                valid_data = False
+        else:
+            valid_data = False
+
+        if valid_data:
+            return distpar, std, np.sqrt(np.abs(np.fft.rfft2(acf)))
+        else:
+            return (
+                (1e-10, 1e-10),
+                1e-10,
+                np.ones((weights_acf.shape[0], int(weights_acf.shape[1] / 2) + 1))
+                * 1e-10,
+            )
 
     dist_params = []
     stds = []

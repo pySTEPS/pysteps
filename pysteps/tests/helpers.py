@@ -21,6 +21,7 @@ _reference_dates["bom"] = datetime(2018, 6, 16, 10, 0)
 _reference_dates["fmi"] = datetime(2016, 9, 28, 16, 0)
 _reference_dates["knmi"] = datetime(2010, 8, 26, 0, 0)
 _reference_dates["mch"] = datetime(2015, 5, 15, 16, 30)
+_reference_dates["dwd"] = datetime(2025, 6, 4, 17, 0)
 _reference_dates["opera"] = datetime(2018, 8, 24, 18, 0)
 _reference_dates["saf"] = datetime(2018, 6, 1, 7, 0)
 _reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
@@ -74,6 +75,9 @@ def get_precipitation_fields(
 
     Source: mch
     Reference time: 2015/05/15 1630 UTC
+
+    Source: dwd
+    Reference time: 2025/06/04 1700 UTC
 
     Source: opera
     Reference time: 2018/08/24 1800 UTC
@@ -139,6 +143,9 @@ def get_precipitation_fields(
 
     if source == "mch":
         pytest.importorskip("PIL")
+
+    if source == "dwd":
+        pytest.importorskip("h5py")
 
     if source == "opera":
         pytest.importorskip("h5py")

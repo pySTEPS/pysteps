@@ -2,7 +2,7 @@
 
 import sys
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
 try:
@@ -70,7 +70,7 @@ requirements = [
 
 setup(
     name="pysteps",
-    version="1.13.0",
+    version="1.18.1",
     author="PySteps developers",
     packages=find_packages(),
     license="LICENSE",
@@ -94,9 +94,9 @@ setup(
         "Topic :: Scientific/Engineering :: Hydrology",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Operating System :: OS Independent",
     ],
     ext_modules=external_modules,

@@ -9,6 +9,7 @@ from pysteps import io, motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
 
 linda_arg_names = (
+    "timesteps",
     "add_perturbations",
     "kernel_type",
     "vel_pert_method",
@@ -19,15 +20,45 @@ linda_arg_names = (
 )
 
 linda_arg_values = [
-    (False, "anisotropic", None, 1, False, 0.5, None),
-    (False, "isotropic", None, 5, True, 0.5, None),
-    (True, "anisotropic", None, 1, True, None, 0.3),
-    (True, "isotropic", "bps", 5, True, None, 0.3),
+    (3, False, "anisotropic", None, 1, False, 0.5, None),
+    ([3], False, "anisotropic", None, 1, False, 0.5, None),
+    (3, False, "isotropic", None, 5, True, 0.5, None),
+    (3, True, "anisotropic", None, 1, True, None, 0.3),
+    (3, True, "isotropic", "bps", 5, True, None, 0.3),
 ]
+
+
+def test_default_linda_norain():
+    """Tests linda nowcast with default params and all-zero inputs."""
+
+    # Define dummy nowcast input data
+    dataset_input = xr.Dataset(
+        data_vars={"precip_intensity": (["time", "y", "x"], np.zeros((3, 100, 100)))},
+        attrs={"precip_var": "precip_intensity"},
+    )
+
+    pytest.importorskip("cv2")
+    oflow_method = motion.get_method("LK")
+    retrieved_motion = oflow_method(dataset_input)
+
+    nowcast_method = nowcasts.get_method("linda")
+    precip_forecast = nowcast_method(
+        retrieved_motion,
+        n_ens_members=3,
+        timesteps=3,
+        kmperpixel=1,
+        timestep=5,
+    )
+
+    assert precip_forecast.ndim == 4
+    assert precip_forecast.shape[0] == 3
+    assert precip_forecast.shape[1] == 3
+    assert precip_forecast.sum() == 0.0
 
 
 @pytest.mark.parametrize(linda_arg_names, linda_arg_values)
 def test_linda(
+    timesteps,
     add_perturbations,
     kernel_type,
     vel_pert_method,
@@ -68,7 +99,7 @@ def test_linda(
 
     dataset_forecast = nowcast_method(
         dataset_w_motion,
-        3,
+        timesteps,
         kernel_type=kernel_type,
         vel_pert_method=vel_pert_method,
         feature_kwargs={"threshold": 1.5, "min_sigma": 2, "max_sigma": 10},
@@ -80,8 +111,9 @@ def test_linda(
         num_workers=num_workers,
         seed=42,
     )
+    num_nowcast_timesteps = timesteps if isinstance(timesteps, int) else len(timesteps)
     if measure_time:
-        assert len(dataset_forecast) == 3
+        assert len(dataset_forecast) == num_nowcast_timesteps
         assert isinstance(dataset_forecast[1], float)
         dataset_forecast = dataset_forecast[0]
 
@@ -89,7 +121,7 @@ def test_linda(
 
     if not add_perturbations:
         assert precip_forecast.ndim == 3
-        assert precip_forecast.shape[0] == 3
+        assert precip_forecast.shape[0] == num_nowcast_timesteps
         assert precip_forecast.shape[1:] == dataset_input[precip_var].values.shape[1:]
 
         csi = verification.det_cat_fct(
@@ -102,7 +134,7 @@ def test_linda(
     else:
         assert precip_forecast.ndim == 4
         assert precip_forecast.shape[0] == 5
-        assert precip_forecast.shape[1] == 3
+        assert precip_forecast.shape[1] == num_nowcast_timesteps
         assert precip_forecast.shape[2:] == dataset_input[precip_var].values.shape[1:]
 
         crps = verification.probscores.CRPS(

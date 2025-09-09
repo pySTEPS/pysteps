@@ -3,6 +3,7 @@ from datetime import timedelta
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from pysteps import io, motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
@@ -21,13 +22,42 @@ steps_arg_names = (
 steps_arg_values = [
     (5, 6, 2, None, None, "spatial", 3, 1.30),
     (5, 6, 2, None, None, "spatial", [3], 1.30),
-    (5, 6, 2, "incremental", None, "spatial", 3, 7.31),
+    (5, 6, 2, "incremental", None, "spatial", 3, 7.32),
     (5, 6, 2, "sprog", None, "spatial", 3, 8.4),
     (5, 6, 2, "obs", None, "spatial", 3, 8.37),
     (5, 6, 2, None, "cdf", "spatial", 3, 0.60),
     (5, 6, 2, None, "mean", "spatial", 3, 1.35),
     (5, 6, 2, "incremental", "cdf", "spectral", 3, 0.60),
 ]
+
+
+def test_default_steps_norain():
+    """Tests STEPS nowcast with default params and all-zero inputs."""
+
+    # Define dummy nowcast input data
+    dataset_input = xr.Dataset(
+        data_vars={"precip_intensity": (["time", "y", "x"], np.zeros((3, 100, 100)))},
+        attrs={"precip_var": "precip_intensity"},
+    )
+
+    pytest.importorskip("cv2")
+    oflow_method = motion.get_method("LK")
+    retrieved_motion = oflow_method(dataset_input)
+
+    nowcast_method = nowcasts.get_method("steps")
+    precip_forecast = nowcast_method(
+        retrieved_motion,
+        n_ens_members=3,
+        timesteps=3,
+        precip_thr=0.1,
+        kmperpixel=1,
+        timestep=5,
+    )
+
+    assert precip_forecast.ndim == 4
+    assert precip_forecast.shape[0] == 3
+    assert precip_forecast.shape[1] == 3
+    assert precip_forecast.sum() == 0.0
 
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)

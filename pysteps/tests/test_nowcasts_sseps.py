@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
 from pysteps import motion, nowcasts, verification
@@ -20,6 +21,37 @@ sseps_arg_values = [
     (5, 6, 2, "incremental", "cdf", 200, 3, 0.62),
     (5, 6, 2, "incremental", "cdf", 200, [3], 0.62),
 ]
+
+
+def test_default_sseps_norain():
+    """Tests SSEPS nowcast with default params and all-zero inputs."""
+
+    # Define dummy nowcast input data
+    precip_input = np.zeros((3, 100, 100))
+    metadata = {
+        "accutime": 5,
+        "xpixelsize": 1000,
+        "threshold": 0.1,
+        "zerovalue": 0,
+    }
+
+    pytest.importorskip("cv2")
+    oflow_method = motion.get_method("LK")
+    retrieved_motion = oflow_method(precip_input)
+
+    nowcast_method = nowcasts.get_method("sseps")
+    precip_forecast = nowcast_method(
+        precip_input,
+        metadata,
+        retrieved_motion,
+        n_ens_members=3,
+        timesteps=3,
+    )
+
+    assert precip_forecast.ndim == 4
+    assert precip_forecast.shape[0] == 3
+    assert precip_forecast.shape[1] == 3
+    assert precip_forecast.sum() == 0.0
 
 
 @pytest.mark.parametrize(sseps_arg_names, sseps_arg_values)

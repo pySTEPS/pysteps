@@ -3,7 +3,7 @@
 Ensemble verification
 =====================
 
-In this tutorial we perform a verification of a probabilistic extrapolation nowcast 
+In this tutorial we perform a verification of a probabilistic extrapolation nowcast
 using MeteoSwiss radar data.
 
 """
@@ -95,7 +95,7 @@ R_f = nowcast_method(
     n_leadtimes,
     n_ens_members,
     n_cascade_levels=6,
-    R_thr=-10.0,
+    precip_thr=-10.0,
     kmperpixel=2.0,
     timestep=timestep,
     decomp_method="fft",
