@@ -20,7 +20,7 @@ from .steps_params import StepsParameters
 from .stochastic_generator import gen_stoch_field, normalize_db_field
 from .rainfield_stats import correlation_length
 from .rainfield_stats import power_spectrum_1D
-from .cascade_utils import lagr_auto_cor
+from .cascade_utils import lagr_auto_cor, calculate_wavelengths
 
 
 def update_field(
@@ -28,37 +28,31 @@ def update_field(
     oflow: np.ndarray,
     params: StepsParameters,
     bp_filter: dict,
-    config: dict,
-    dom: dict,
+    kmperpixel: float,
+    scale_break_km: float,
+    db_threshold: float,
+    zerovalue: float,
 ) -> np.ndarray:
     """
-    Update a rainfall field using the parametric STEPS algorithm.
-    Assumes that the cascades list has the correct number of valid cascades
+    Generate a field conditioned on the cascades that are passed into the function
 
     Args:
-        cascades (list): List of 1 or 2 cascades for initial conditions
-        oflow(np.ndarray): Optical flow array
-        params (StepsParameters): Parameters for the update.
-        bp_filter: Bandpass filter dictionary returned by pysteps.cascade.bandpass_filters.filter_gaussian
-        config: The configuration dictionary
-        dom: the domain dictionary
+        cascades (list): cascades in reverse time order [t-1,t-2]
+        oflow (np.ndarray): _description_
+        params (StepsParameters): _description_
+        bp_filter (dict): _description_
+        kmperpixel (float): _description_
+        scale_break_km (float): _description_
+        db_threshold (float): _description_
+        zerovalue (float): _description_
 
     Returns:
-        np.ndarray: Updated rainfall field in decibels (dB) of rain intensity
+        np.ndarray: _description_
     """
-
-    ar_order = config["ar_order"]
-    n_levels = config["n_cascade_levels"]
-    n_rows = dom["n_rows"]
-    n_cols = dom["n_cols"]
-
-    scale_break_km = config["scale_break"]
-    kmperpixel = config["kmperpixel"]
-
-    rain_threshold = config["precip_threshold"]
-    db_threshold = 10 * np.log10(rain_threshold)
-    transformer = DBTransformer(rain_threshold)
-    zerovalue = transformer.zerovalue
+    ar_order = 2  # Assume AR(2) for now (It is the best option)
+    n_levels = cascades[0]["cascade_levels"].shape[0]
+    n_rows = cascades[0]["cascade_levels"].shape[1]
+    n_cols = cascades[0]["cascade_levels"].shape[2]
 
     # Set up the AR(2) parameters
     phi = np.zeros((n_levels, ar_order + 1))
@@ -129,10 +123,17 @@ def update_field(
     return norm_field
 
 
-def zero_state(config, domain):
-    n_cascade_levels = config["n_cascade_levels"]
-    n_rows = domain["n_rows"]
-    n_cols = domain["n_cols"]
+def zero_state(n_rows: int, n_cols: int, n_levels: int):
+    """_summary_
+    Generate a dictionary with the data that is needed for the steps nowcast
+    Args:
+        n_rows (int): _description_
+        n_cols (int): _description_
+        n_levels (int): _description_
+
+    Returns:
+        _type_: _description_
+    """
     metadata_dict = {
         "transform": None,
         "threshold": None,
@@ -142,9 +143,9 @@ def zero_state(config, domain):
         "wetted_area_ratio": float(0),
     }
     cascade_dict = {
-        "cascade_levels": np.zeros((n_cascade_levels, n_rows, n_cols)),
-        "means": np.zeros(n_cascade_levels),
-        "stds": np.zeros(n_cascade_levels),
+        "cascade_levels": np.zeros((n_levels, n_rows, n_cols)),
+        "means": np.zeros(n_levels),
+        "stds": np.zeros(n_levels),
         "domain": "spatial",
         "normalized": True,
     }
@@ -153,7 +154,16 @@ def zero_state(config, domain):
     return state
 
 
-def is_zero_state(state, tol=1e-6):
+def is_zero_state(state, tol=1e-6) -> bool:
+    """
+    Determine if the state is empty
+    Args:
+        state (_type_): _description_
+        tol (_type_, optional): _description_. Defaults to 1e-6.
+
+    Returns:
+        _type_: True or False
+    """
     return abs(state["metadata"]["mean"]) < tol
 
 
@@ -167,7 +177,7 @@ def is_zero_state(state, tol=1e-6):
 # corl_zero         1074.976508  188.058276  23.489147
 
 
-def qc_params(ens_df, config):
+def qc_params(ens_df: pd.DataFrame, config: dict, domain: dict) -> pd.DataFrame:
     """
     Apply QC to the 'param' column in the ensemble DataFrame.
     The DataFrame is assumed to have 'valid_time' as the index.
@@ -182,9 +192,10 @@ def qc_params(ens_df, config):
         "rain_fraction",
         "beta_1",
         "beta_2",
+        "corl_zero",
     ]
-    var_lower = [2.81, 1.30, 0.0, -2.73, -4.01]
-    var_upper = [9.50, 5.00, 1.0, -2.05, -2.32]
+    var_lower = [2.81, 1.30, 0.0, -2.73, -4.01, 60]
+    var_upper = [9.50, 5.00, 1.0, -2.05, -2.32, 1000]
 
     qc_df = ens_df.copy(deep=True)
     qc_dict = {}
@@ -205,24 +216,6 @@ def qc_params(ens_df, config):
         )
         qc_dict[var] = np.clip(model.fittedvalues, var_lower[iv], var_upper[iv])
 
-    # Extract correlation length thresholds from config
-    corl_pvals = config["dynamic_scaling"]["cor_len_pvals"]
-    corl_min = min(corl_pvals)
-    corl_max = max(corl_pvals)
-    corl_def = corl_pvals[1]  # median
-
-    # Prepare and smooth corl_zero
-    corl_list = []
-    for idx in qc_df.index:
-        corl = qc_df.at[idx, "param"].get("corl_zero", corl_def)
-        corl = corl_def if corl is None else max(corl_min, min(corl, corl_max))
-        corl_list.append(corl)
-
-    model = SimpleExpSmoothing(corl_list, initialization_method="estimated").fit(
-        smoothing_level=0.1, optimized=False
-    )
-    qc_dict["corl_zero"] = model.fittedvalues
-
     # Assign smoothed parameters and compute lags
     for i, idx in enumerate(qc_df.index):
         param = copy.deepcopy(qc_df.at[idx, "param"])
@@ -236,8 +229,8 @@ def qc_params(ens_df, config):
             setattr(param, var, qc_dict[var][i])
         param.corl_zero = qc_dict["corl_zero"][i]
 
-        # Compute lag-1 and lag-2 for this correlation length
-        lags, _ = calc_auto_corls(config, param.corl_zero)
+        # Compute lag-1 and lag-2 for each level in the cascade
+        lags, _ = calc_auto_cors(config, domain, param.corl_zero)
         param.lag_1 = list(lags[:, 0])
         param.lag_2 = list(lags[:, 1])
 
@@ -266,7 +259,8 @@ def blend_param(qpe_params, nwp_params, param_names, weight):
 
 
 def blend_parameters(
-    config: dict[str, object],
+    config: dict,
+    domain: dict,
     blend_base_time: datetime.datetime,
     nwp_param_df: pd.DataFrame,
     rad_param: StepsParameters,
@@ -312,7 +306,7 @@ def blend_parameters(
         updated = blend_param(rad_param, clean_original, blended_param_names, weight)
 
         # Compute lag-1 and lag-2 for this correlation length
-        lags, _ = calc_auto_corls(config, updated.corl_zero)
+        lags = calc_auto_cors(config, domain, updated.corl_zero)
         updated.lag_1 = list(lags[:, 0])
         updated.lag_2 = list(lags[:, 1])
 
@@ -382,42 +376,6 @@ def fill_param_gaps(
 
     records = [{"valid_time": t, "param": p} for t, p in sorted(filled_map.items())]
     return pd.DataFrame(records)
-
-
-def calc_auto_corls(config: dict, T_ref: float) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Compute lag-1 and lag-2 autocorrelations for each cascade level using a power-law model.
-
-    Args:
-        config (dict): Configuration dictionary with 'pysteps.timestep' (in seconds)
-                       and 'dynamic_scaling' parameters.
-        T_ref (float): Reference correlation length T(t, L) at the largest scale (in minutes).
-
-    Returns:
-        np.ndarray: Array of shape (n_levels, 2) with [lag1, lag2] for each level.
-        np.ndarray: Array of corelation lengths per level
-    """
-    dt_seconds = config["timestep"]
-    dt_mins = dt_seconds / 60.0
-
-    ds_config = config.get("dynamic_scaling", {})
-    scales = ds_config["central_wave_lengths"]
-    ht = ds_config["space_time_exponent"]
-    a = ds_config["lag2_constants"]
-    b = ds_config["lag2_exponents"]
-
-    L = scales[0]
-    T_levels = [T_ref * (l / L) ** ht for l in scales]
-
-    lags = np.empty((len(scales), 2), dtype=np.float32)
-    for ia, T_l in enumerate(T_levels):
-        pl_lag1 = np.exp(-dt_mins / T_l)
-        pl_lag2 = a[ia] * (pl_lag1 ** b[ia])
-        lags[ia, 0] = pl_lag1
-        lags[ia, 1] = pl_lag2
-
-    levels = np.array(T_levels)
-    return lags, levels
 
 
 def fit_auto_cors(
@@ -521,7 +479,7 @@ def fit_auto_cors(
     return lag1, lag2
 
 
-def calc_corls(scales, czero, ht):
+def calc_cor_lengths(scales: np.ndarray, czero: float, ht: float) -> list[float]:
     # Power law function for correlation length
     corls = [czero]
     lzero = scales[0]
@@ -531,14 +489,49 @@ def calc_corls(scales, czero, ht):
     return corls
 
 
+def calc_auto_cors(config: dict, domain: dict, czero: float) -> np.ndarray:
+    timestep = config["timestep"]
+    dt = timestep / 60
+    n_levels = config["n_cascade_levels"]
+    ht = config.get("ht", 0.96)
+    alpha = config.get("alpha", 2.83)
+    n_cols = domain["n_cols"]
+    n_rows = domain["n_rows"]
+    p_size = domain["p_size"]
+    domain_size = max(n_rows, n_cols)
+    d = 1000 / p_size
+    scales = calculate_wavelengths(n_levels, domain_size, d)
+    cor_lens = calc_cor_lengths(scales, czero, ht)
+    lags = np.zeros((n_levels, 2))
+    for ilev in range(n_levels):
+        r1, r2 = fit_auto_cors(cor_lens[ilev], alpha, dt)  # type: ignore
+        lags[ilev, 0] = r1
+        lags[ilev, 1] = r2
+    return lags
+
+
 def calculate_parameters(
     db_field: np.ndarray,
-    cascades: dict,
+    cascades: list[dict],
     oflow: np.ndarray,
     scale_break: float,
     zero_value: float,
     dt: int,
-):
+) -> StepsParameters:
+    """
+    Calculate the steps parameters
+
+    Args:
+        db_field (np.ndarray):
+        cascades (list[dict]): list of cascade dictionaries in order t-2, t-1, t0
+        oflow (np.ndarray): Optical flow from t-1 to t0
+        scale_break (float): Location of the power spectum scale break in pixels
+        zero_value (float): zero value for the dBR transformation
+        dt (int): time step in minutes
+
+    Returns:
+        StepsParameters: Dataclass with the steps parameters
+    """
     p_dict = {}
 
     # Probability distribution moments
