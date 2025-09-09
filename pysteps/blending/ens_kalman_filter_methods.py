@@ -12,33 +12,35 @@ Additional keyword arguments for the ensemble Kalman filter are:
 
 n_tapering: int, (0)
     Number of grid boxes/principal components of the ensemble forecast for that
-    the covariance matrix is computed.
+    the covariance matrix is computed. Defaults to 0.
 non_precip_mask: bool, (True)
     Flag to specify whether the computation should be truncated on grid boxes where at
     least a minimum number (configurable) of ensemble members forecast precipitation.
+    Defaults to True.
 n_ens_prec: int, (1)
     Minimum number of ensemble members that forecast precipitation for the above
-    mentioned mask.
+    mentioned mask. Defaults to 1.
 lien_criterion: bool, (True)
     Flag to specify whether Lien criterion (Lien et al., 2013) should be applied for
-    the computation of the update step within the ensemble Kalman filter.
+    the computation of the update step within the ensemble Kalman filter. Defaults to
+    True.
 n_lien: int, (n_ens_members/2)
     Minimum number of ensemble members that forecast precipitation for the Lien
-    criterion. As standard, half of the ensemble members should forecast precipitation.
+    criterion. Defaults to half of the ensemble members.
 post_prob_matching: bool, (False)
     Flag to specify whether a probability matching should be applied at the end of the
-    forecast computation.
+    forecast computation. Defaults to False.
 iterative_prob_matching: bool, (True)
     Flag to specify whether a probability matching should be applied at each correction
-    step.
+    step. Defaults to True.
 inflation_factor_bg: float, (1.0)
-    Inflation factor of the background (NWC) covariance matrix.
+    Inflation factor of the background (NWC) covariance matrix. Defaults to 1.0.
 inflation_factor_obs: float, (1.0)
-    Inflation factor of the observation (NWP) covariance matrix.
+    Inflation factor of the observation (NWP) covariance matrix. Defaults to 1.0.
 offset_bg: float, (0.0)
-    Offset of the background (NWC) covariance matrix.
+    Offset of the background (NWC) covariance matrix. Defaults to 0.0.
 offset_obs: float, (0.0)
-    Offset of the observation (NWP) covariance matrix.
+    Offset of the observation (NWP) covariance matrix. Defaults to 0.0.
 nwp_hres_eff: float
     Effective horizontal resolution of the utilized NWP model.
 sampling_prob_source: str, {'ensemble','explained_var'}
@@ -73,9 +75,7 @@ class EnsembleKalmanFilter:
         self.__non_precip_mask = params.combination_kwargs.get("non_precip_mask", True)
         self.__n_ens_prec = params.combination_kwargs.get("n_ens_prec", 1)
         self.__lien_criterion = params.combination_kwargs.get("lien_criterion", True)
-        self.__n_lien = params.combination_kwargs.get(
-            "n_lien", self._config.n_ens_members // 2
-        )
+        self.__n_lien = params.combination_kwargs.get("n_lien", self._config.n_ens_members // 2)
 
         print("Initialize ensemble Kalman filter")
         print("=================================")
@@ -168,9 +168,7 @@ class EnsembleKalmanFilter:
 
         return X_ana
 
-    def get_covariance_matrix(
-        self, M: np.ndarray, inflation_factor: float, offset: float
-    ):
+    def get_covariance_matrix(self, M: np.ndarray, inflation_factor: float, offset: float):
         """
         Compute the covariance matrix of a given ensemble forecast along the grid boxes
         or principal components.
@@ -225,9 +223,7 @@ class EnsembleKalmanFilter:
         window_function = np.eye(n)
         # Get the weightings of a hanning window function with respect to the number of
         # diagonals that on want to keep
-        hanning_values = np.hanning(self.__n_tapering * 2 + 1)[
-            (self.__n_tapering + 1) :
-        ]
+        hanning_values = np.hanning(self.__n_tapering * 2 + 1)[(self.__n_tapering + 1) :]
 
         # Add the respective values to I
         for d in range(self.__n_tapering):
@@ -303,9 +299,7 @@ class EnsembleKalmanFilter:
         # n_ens_fc_prec...
         if self.__lien_criterion == True:
 
-            idx_lien = np.logical_and(
-                X_nwc_sum >= self.__n_lien, X_nwp_sum >= self.__n_lien
-            )
+            idx_lien = np.logical_and(X_nwc_sum >= self.__n_lien, X_nwp_sum >= self.__n_lien)
 
         # ...otherwise set all to True.
         else:
@@ -487,12 +481,10 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
         # Get the sampling probability either based on the ensembles...
         if self.__sampling_prob_source == "ensemble":
-            sampling_probability_single_step = (
-                self.get_weighting_for_probability_matching(
-                    X_bg=X_ens_stacked[: X_nwc.shape[0]][:, idx_lien],
-                    X_ana=X_ana[:, idx_lien],
-                    Y_obs=X_ens_stacked[X_nwc.shape[0] :][:, idx_lien],
-                )
+            sampling_probability_single_step = self.get_weighting_for_probability_matching(
+                X_bg=X_ens_stacked[: X_nwc.shape[0]][:, idx_lien],
+                X_ana=X_ana[:, idx_lien],
+                Y_obs=X_ens_stacked[X_nwc.shape[0] :][:, idx_lien],
             )
         # ...or based on the explained variance weighted Kalman gain.
         elif self.__sampling_prob_source == "explained_var":
