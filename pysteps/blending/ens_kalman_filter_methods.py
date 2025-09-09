@@ -43,7 +43,8 @@ offset_bg: float, (0.0)
     convergence towards the observation ensemble by linearly increasing all elements
     of the background covariance matrix. Defaults to 0.0.
 offset_obs: float, (0.0)
-    Offset of the observation (NWP) covariance matrix. This offset supports a slower convergence towards the observation ensemble by linearly incerasing all elements
+    Offset of the observation (NWP) covariance matrix. This offset supports a slower
+    convergence towards the observation ensemble by linearly incerasing all elements
     of the observation covariance matrix. Defaults to 0.0.
 nwp_hres_eff: float
     Effective horizontal resolution of the utilized NWP model.
@@ -291,7 +292,7 @@ class EnsembleKalmanFilter:
 
         return idx_prec
 
-    def get_lien_criterion(self, X_nwc: np.ndarray, X_nwp: np.ndarray):
+    def get_lien_criterion(self, nwc_ensemble: np.ndarray, nwp_ensemble: np.ndarray):
         """
         Create the set of grid boxes where the Lien criterion is satisfied (Lien et
         al., 2013) and thus, at least half (configurable) of the ensemble members of
@@ -299,10 +300,10 @@ class EnsembleKalmanFilter:
 
         Parameters
         ----------
-        X_nwc: np.ndarray
+        nwc_ensemble: np.ndarray
             Two-dimensional array (n_ens, n_grid) containing the nowcast ensemble
             forecast for one lead time.
-        X_nwp: np.ndarray
+        nwp_ensemble: np.ndarray
             Two-dimensional array (n_ens, n_grid) containg the NWP ensemble forecast
             for one lead time.
 
@@ -314,22 +315,18 @@ class EnsembleKalmanFilter:
         """
 
         # Check the number of ensemble members forecast precipitation at each grid box.
-        X_nwc_sum = np.sum(X_nwc >= self._config.precip_threshold, axis=0)
-        X_nwp_sum = np.sum(X_nwp >= self._config.precip_threshold, axis=0)
+        nwc_ensemble_sum = np.sum(nwc_ensemble >= self._config.precip_threshold, axis=0)
+        nwp_ensemble_sum = np.sum(nwp_ensemble >= self._config.precip_threshold, axis=0)
 
-        # If the masking of areas without precipitation requested, mask grid boxes
-        # where less ensemble members predict precipitation as the limit
-        # n_ens_fc_prec...
-        if self.__lien_criterion == True:
-
+        # If the masking of areas without precipitation is requested, mask grid boxes
+        # where less ensemble members predict precipitation than the set limit of n_ens_fc_prec.
+        if self.__lien_criterion:
             idx_lien = np.logical_and(
-                X_nwc_sum >= self.__n_lien, X_nwp_sum >= self.__n_lien
+                nwc_ensemble_sum >= self.__n_lien, nwp_ensemble_sum >= self.__n_lien
             )
-
-        # ...otherwise set all to True.
+        # Else, set all to True.
         else:
-
-            idx_lien = np.ones_like(X_nwc_sum).astype(bool)
+            idx_lien = np.ones_like(nwc_ensemble_sum).astype(bool)
 
         return idx_lien
 
