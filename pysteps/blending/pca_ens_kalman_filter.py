@@ -691,6 +691,15 @@ class ForecastModel:
     # each spatial scale at timesteps where NWP information is incorporated.
     def __decompose(self, is_correction_timestep):
 
+        if self.__ens_member == 1:
+
+            print(f"Scaling parameters before renormalization")
+            print(f"=========================================")
+            for i in range(len(self.__precip_cascades[:, -1])):
+                print(
+                    f"Mu: {np.mean(self.__precip_cascades[i, -1]):.4} Sigma: {np.std(self.__precip_cascades[i, -1]):.4}"
+                )
+
         # Call spatial decomposition method.
         precip_extrap_decomp = self.__params.decomposition_method(
             ForecastModel.nwc_prediction[self.__ens_member],
@@ -1139,9 +1148,6 @@ class EnKFCombinationNowcaster:
                 ),
                 axis=0,
             )
-            # self.__obs_precip = self.__obs_precip[
-            #    -(self.__config.ar_order + 1) :, :, :
-            # ].copy()
 
         # Check dimensions of obs velocity
         if self.__obs_velocity.ndim != 3:

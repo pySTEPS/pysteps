@@ -53,6 +53,9 @@ sampling_prob_source: str, {'ensemble','explained_var'}
     'ensemble' computes this probability as the ratio between the ensemble differences
     of analysis_ensemble - background_ensemble and observation_ensemble - background_ensemble.
     'explained_var' uses the sum of the Kalman gain weighted by the explained variance ratio.
+use_accum_sampling_prob: bool, (False)
+    Flag to specify whether the current sampling probability should be used for the
+    probability matching or a probability integrated over the previous forecast time.
 """
 
 
