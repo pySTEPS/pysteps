@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from pysteps import motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
@@ -29,15 +30,17 @@ def test_default_sprog_norain():
     """Tests SPROG nowcast with default params and all-zero inputs."""
 
     # Define dummy nowcast input data
-    precip_input = np.zeros((3, 100, 100))
+    dataset_input = xr.Dataset(
+        data_vars={"precip_intensity": (["time", "y", "x"], np.zeros((3, 100, 100)))},
+        attrs={"precip_var": "precip_intensity"},
+    )
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
-    retrieved_motion = oflow_method(precip_input)
+    retrieved_motion = oflow_method(dataset_input)
 
     nowcast_method = nowcasts.get_method("sprog")
     precip_forecast = nowcast_method(
-        precip_input,
         retrieved_motion,
         timesteps=3,
         precip_thr=0.1,

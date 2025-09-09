@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from pysteps import motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
@@ -27,22 +28,61 @@ def test_default_sseps_norain():
     """Tests SSEPS nowcast with default params and all-zero inputs."""
 
     # Define dummy nowcast input data
-    precip_input = np.zeros((3, 100, 100))
-    metadata = {
-        "accutime": 5,
-        "xpixelsize": 1000,
-        "threshold": 0.1,
-        "zerovalue": 0,
-    }
+    dataset_input = xr.Dataset(
+        data_vars={
+            "precip_intensity": (
+                ["time", "y", "x"],
+                np.zeros((3, 100, 100)),
+                {
+                    "units": "mm/h",
+                    "accutime": 5,
+                    "threshold": 0.1,
+                    "zerovalue": 0,
+                },
+            )
+        },
+        coords={
+            "time": (
+                ["time"],
+                np.arange(3.0) * 5.0,
+                {
+                    "long_name": "forecast time",
+                    "units": "seconds since 1970-01-01 00:00:00",
+                    "stepsize": 5.0,
+                },
+            ),
+            "y": (
+                ["y"],
+                np.arange(100.0) * 1000.0,
+                {
+                    "axis": "X",
+                    "long_name": "x-coordinate in Cartesian system",
+                    "standard_name": "projection_x_coordinate",
+                    "units": "m",
+                    "stepsize": 1000.0,
+                },
+            ),
+            "x": (
+                ["x"],
+                np.arange(100.0) * 1000.0,
+                {
+                    "axis": "X",
+                    "long_name": "x-coordinate in Cartesian system",
+                    "standard_name": "projection_x_coordinate",
+                    "units": "m",
+                    "stepsize": 1000.0,
+                },
+            ),
+        },
+        attrs={"precip_var": "precip_intensity"},
+    )
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
-    retrieved_motion = oflow_method(precip_input)
+    retrieved_motion = oflow_method(dataset_input)
 
     nowcast_method = nowcasts.get_method("sseps")
     precip_forecast = nowcast_method(
-        precip_input,
-        metadata,
         retrieved_motion,
         n_ens_members=3,
         timesteps=3,

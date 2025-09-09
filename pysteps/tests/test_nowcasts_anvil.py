@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import xarray as xr
 
 from pysteps import motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
@@ -24,18 +25,54 @@ def test_default_anvil_norain():
     """Tests anvil nowcast with default params and all-zero inputs."""
 
     # Define dummy nowcast input data
-    precip_input = np.zeros((4, 100, 100))
+    dataset_input = xr.Dataset(
+        data_vars={"precip_intensity": (["time", "y", "x"], np.zeros((4, 100, 100)))},
+        coords={
+            "time": (
+                ["time"],
+                np.arange(4.0) * 5.0,
+                {
+                    "long_name": "forecast time",
+                    "units": "seconds since 1970-01-01 00:00:00",
+                    "stepsize": 5.0,
+                },
+            ),
+            "y": (
+                ["y"],
+                np.arange(100.0) * 1000.0,
+                {
+                    "axis": "X",
+                    "long_name": "x-coordinate in Cartesian system",
+                    "standard_name": "projection_x_coordinate",
+                    "units": "m",
+                    "stepsize": 1000.0,
+                },
+            ),
+            "x": (
+                ["x"],
+                np.arange(100.0) * 1000.0,
+                {
+                    "axis": "X",
+                    "long_name": "x-coordinate in Cartesian system",
+                    "standard_name": "projection_x_coordinate",
+                    "units": "m",
+                    "stepsize": 1000.0,
+                },
+            ),
+        },
+        attrs={"precip_var": "precip_intensity"},
+    )
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
-    retrieved_motion = oflow_method(precip_input)
+    retrieved_motion = oflow_method(dataset_input)
 
     nowcast_method = nowcasts.get_method("anvil")
-    precip_forecast = nowcast_method(
-        precip_input,
+    dataset_forecast = nowcast_method(
         retrieved_motion,
         timesteps=3,
     )
+    precip_forecast = dataset_forecast["precip_intensity"].values
 
     assert precip_forecast.ndim == 3
     assert precip_forecast.shape[0] == 3
