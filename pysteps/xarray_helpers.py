@@ -152,10 +152,12 @@ def convert_input_to_xarray_dataset(
         ypixelsize = y_r[1] - y_r[0]
 
     if x_r[1] - x_r[0] != xpixelsize:
+        # XR: This should be an error, but the importers don't always provide correct pixelsizes
         warnings.warn(
             "xpixelsize does not match x1, x2 and array shape, using xpixelsize for pixel size"
         )
     if y_r[1] - y_r[0] != ypixelsize:
+        # XR: This should be an error, but the importers don't always provide correct pixelsizes
         warnings.warn(
             "ypixelsize does not match y1, y2 and array shape, using ypixelsize for pixel size"
         )
