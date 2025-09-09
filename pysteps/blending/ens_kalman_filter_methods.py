@@ -98,24 +98,24 @@ class EnsembleKalmanFilter:
 
     def update(
         self,
-        X_bg: np.ndarray,
-        Y_obs: np.ndarray,
+        background_ensemble: np.ndarray,
+        observation_ensemble: np.ndarray,
         inflation_factor_bg: float,
         inflation_factor_obs: float,
         offset_bg: float,
         offset_obs: float,
-        X_bg_lien: np.ndarray | None = None,
-        Y_obs_lien: np.ndarray | None = None,
+        background_ensemble_valid_lien: np.ndarray | None = None,
+        observation_ensemble_valid_lien: np.ndarray | None = None,
     ):
         """
         Compute the ensemble Kalman filter update step.
 
         Parameters
         ----------
-        X_bg: np.ndarray
+        background_ensemble: np.ndarray
             Two-dimensional array of shape (n_ens, n_pc) containing the background
             ensemble that corresponds to the Nowcast ensemble forecast.
-        Y_obs: np.ndarray
+        observation_ensemble: np.ndarray
             Two-dimensional array of shape (n_ens, n_pc) containing the observations
             that correspond to the NWP ensemble forecast.
         inflation_factor_bg: float
@@ -129,50 +129,63 @@ class EnsembleKalmanFilter:
 
         Other Parameters
         ----------------
-        X_bg_lien: np.ndarray
+        background_ensemble_valid_lien: np.ndarray
             Two-dimensional array of shape (n_ens, n_pc) containing the background
             ensemble that consists only of grid boxes at which the Lien criterion is
             satisfied.
-        Y_obs_lien: np.ndarray
+        observation_ensemble_valid_lien: np.ndarray
             Two-dimensional array of shape (n_ens, n_pc) containing the observations
             that consists only of grid boxes at which the Lien criterion is satisfied.
 
         Returns
         -------
-        X_ana: np.ndarray
+        analysis_ensemble: np.ndarray
             Two-dimensional array of shape (n_ens, n_pc) containing the updated
             analysis matrix.
         """
 
         # If the masked background and observation arrays are given, compute the
         # covariance matrices P and R only on these values.
-        if X_bg_lien is not None and Y_obs_lien is not None:
+        if (
+            background_ensemble_valid_lien is not None
+            and observation_ensemble_valid_lien is not None
+        ):
             # Equation 13 in Nerini et al. (2019)
             P = self.get_covariance_matrix(
-                X_bg_lien, inflation_factor=inflation_factor_bg, offset=offset_bg
+                background_ensemble_valid_lien,
+                inflation_factor=inflation_factor_bg,
+                offset=offset_bg,
             )
             # Equation 14 in Nerini et al. (2019)
             R = self.get_covariance_matrix(
-                Y_obs_lien, inflation_factor=inflation_factor_obs, offset=offset_obs
+                observation_ensemble_valid_lien,
+                inflation_factor=inflation_factor_obs,
+                offset=offset_obs,
             )
         # Otherwise use the complete arrays.
         else:
             # Equation 13 in Nerini et al. (2019)
             P = self.get_covariance_matrix(
-                X_bg, inflation_factor=inflation_factor_bg, offset=offset_bg
+                background_ensemble,
+                inflation_factor=inflation_factor_bg,
+                offset=offset_bg,
             )
             # Equation 14 in Nerini et al. (2019)
             R = self.get_covariance_matrix(
-                Y_obs, inflation_factor=inflation_factor_obs, offset=offset_obs
+                observation_ensemble,
+                inflation_factor=inflation_factor_obs,
+                offset=offset_obs,
             )
 
         # Estimate the Kalman gain (eq. 15 in Nerini et al., 2019)
         self.K = np.dot(P, np.linalg.inv(P + R))
 
         # Update the background ensemble (eq. 16 in Nerini et al., 2019)
-        X_ana = X_bg.T + np.dot(self.K, (Y_obs - X_bg).T)
+        analysis_ensemble = background_ensemble.T + np.dot(
+            self.K, (observation_ensemble - background_ensemble).T
+        )
 
-        return X_ana
+        return analysis_ensemble
 
     def get_covariance_matrix(
         self, forecast_array: np.ndarray, inflation_factor: float, offset: float
@@ -321,7 +334,10 @@ class EnsembleKalmanFilter:
         return idx_lien
 
     def get_weighting_for_probability_matching(
-        self, X_bg: np.ndarray, X_ana: np.ndarray, Y_obs: np.ndarray
+        self,
+        background_ensemble: np.ndarray,
+        analysis_ensemble: np.ndarray,
+        observation_ensemble: np.ndarray,
     ):
         """
         Compute the weighting between background and observation ensemble that results
@@ -330,13 +346,13 @@ class EnsembleKalmanFilter:
 
         Parameters
         ----------
-        X_bg: np.ndarray
+        background_ensemble: np.ndarray
             Two-dimensional array of shape (n_ens, n_grid) containing the background
             ensemble.
-        X_ana: np.ndarray
+        analysis_ensemble: np.ndarray
             Two-dimensional array of shape (n_ens, n_grid) containing the updated
             analysis ensemble.
-        Y_obs: np.ndarray
+        observation_ensemble: np.ndarray
             Two-dimensional array of shape (n_ens, n_grid) containing the observation
             ensemble.
 
@@ -351,8 +367,8 @@ class EnsembleKalmanFilter:
 
         # Compute the sum of differences between X_ana and X_bg as well as Y_obs and
         # X_bg along the grid boxes.
-        w1 = np.sum(X_ana - X_bg, axis=0)
-        w2 = np.sum(Y_obs - X_bg, axis=0)
+        w1 = np.sum(analysis_ensemble - background_ensemble, axis=0)
+        w2 = np.sum(observation_ensemble - background_ensemble, axis=0)
 
         # Check for infinitesimal differences between w1 and w2 as well as 0.
         w_close = np.isclose(w1, w2)
@@ -478,14 +494,14 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
         # Get the updated background ensemble (Nowcast ensemble) in PC space.
         X_ana_pc = self.update(
-            X_bg=X_ens_stacked_pc[: X_nwc.shape[0]],
-            Y_obs=X_ens_stacked_pc[X_nwc.shape[0] :],
+            background_ensemble=X_ens_stacked_pc[: X_nwc.shape[0]],
+            observation_ensemble=X_ens_stacked_pc[X_nwc.shape[0] :],
             inflation_factor_bg=self.__inflation_factor_bg,
             inflation_factor_obs=self.__inflation_factor_obs,
             offset_bg=self.__offset_bg,
             offset_obs=self.__offset_obs,
-            X_bg_lien=X_lien_pc[: X_nwc.shape[0]],
-            Y_obs_lien=X_lien_pc[X_nwc.shape[0] :],
+            background_ensemble_valid_lien=X_lien_pc[: X_nwc.shape[0]],
+            observation_ensemble_valid_lien=X_lien_pc[X_nwc.shape[0] :],
         )
 
         # Transform the analysis ensemble back into physical space.
