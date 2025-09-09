@@ -6,12 +6,12 @@ Methods to calculate the ensemble Kalman filter based correction methods for ble
 between nowcast and NWP.
 The core of the method occurs in the EnsembleKalmanFilter class. The specific method
 to use this core class can be selected. Currently, only the implementation of the
-ensemble Kalman filter from :cite:`Nerini2019` is available.
+ensemble Kalman filter from :cite:`Nerini2019MWR` is available.
 
 Additional keyword arguments for the ensemble Kalman filter are:
 
 n_tapering: int, (0)
-    Number of grid boxes/principal components of the ensemble forecast for that
+    Number of grid boxes/principal components of the ensemble forecast for which
     the covariance matrix is computed. Defaults to 0.
 non_precip_mask: bool, (True)
     Flag to specify whether the computation should be truncated on grid boxes where at

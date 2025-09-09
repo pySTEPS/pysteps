@@ -4,7 +4,7 @@ pysteps.blending.pca_ens_kalman_filter
 ======================================
 
 Implementation of the reduced-space ensemble Kalman filter method described in
-:cite:`Nerini2019`. The nowcast is iteratively corrected by NWP data utilizing
+:cite:`Nerini2019MWR`. The nowcast is iteratively corrected by NWP data utilizing
 an ensemble Kalman filter in PCA space. The reduced-space ensemble Kalman filter
 method consists of the following main steps:
 

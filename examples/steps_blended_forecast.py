@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Blended forecast
+STEPS Blended Forecast
 ====================
 
 This tutorial shows how to construct a blended forecast from an ensemble nowcast
