@@ -1841,7 +1841,6 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     }
 
     metadata.update(kwargs)
-
     f.close()
 
     return precip, quality, metadata
