@@ -12,12 +12,11 @@ Principal component analysis for pysteps.
 """
 
 import numpy as np
-
 from sklearn import decomposition
 
 
 def pca_transform(
-    X: np.ndarray,
+    forecast_ens: np.ndarray,
     mask: np.ndarray | None = None,
     pca_params: dict | None = None,
     get_params: bool = False,
@@ -28,31 +27,32 @@ def pca_transform(
 
     Parameters
     ----------
-    X: np.ndarray
+    forecast_ens: np.ndarray
         Two-dimensional array of shape (n_ens, n_gridpoints) containing the
-        precipitation ensemble forecast that should be decomposed in PC space.
+        precipitation ensemble forecast that should be decomposed in principal component
+        (PC) space.
 
     Other Parameters
     ----------------
     mask: np.ndarray
         Optional mask to transform only grid points at which at least 10 ensemble
         members have forecast precipitaton to fulfill the Lien criterion (Lien et al.,
-        2013) that is mentioned in Nerini et al., 2019.
+        2013) that is mentioned in Nerini et al., 2019. Defaults to None.
     pca_params: dict
         Optional output dictionary containing the preconstructed Principal Component
         Analysis, since this construction is performed on the full precipitation
-        forecast dataset.
+        forecast dataset. Defaults to None.
     get_params: bool
-        Optional flag whether pca_params should output or not.
+        Optional flag whether pca_params should output or not. Defaults to False.
     n_components: int
-        Number of principal components
+        Number of principal components.
     svd_solver: {'auto', 'full', 'covariance_eigh', 'arpack', 'randomized'}
         Solver for the singular vector decomposition. For a detailed description see
-        the documentation of sklearn.decomposition.PCA
+        the documentation of sklearn.decomposition.PCA.
 
     Returns
     -------
-    X_pc: np.ndarray
+    forecast_ens_pc: np.ndarray
         Two-dimensional array of shape (n_components, n_ens) containing the input data
         transformed into PC space. If not a mask is given as input, the full dataset is
         transformed, otherwise only the mask-filtered values are transformed.
@@ -67,22 +67,21 @@ def pca_transform(
             empirical mean estimated from the input data.
         -explained_variance: np.ndarray
             One-dimensional array of shape (n_features) containg the per-feature
-            explained variance ratio
+            explained variance ratio.
     """
 
     # Input data have to be two-dimensional
-    if X.ndim != 2:
+    if forecast_ens.ndim != 2:
         raise ValueError("Input array should be two-dimensional!")
 
     if pca_params is None:
-
         # Check whether n_components and svd_solver are given as keyword arguments
-        n_components = kwargs.get("n_components", X.shape[0])
+        n_components = kwargs.get("n_components", forecast_ens.shape[0])
         svd_solver = kwargs.get("svd_solver", "full")
 
         # Initialize PCA and fit it to the input data
         pca = decomposition.PCA(n_components=n_components, svd_solver=svd_solver)
-        pca.fit(X)
+        pca.fit(forecast_ens)
 
         # Create output dictionary and save principal components and mean
         pca_params = {}
@@ -91,7 +90,6 @@ def pca_transform(
         pca_params["explained_variance"] = pca.explained_variance_ratio_
 
     else:
-
         # If output dict is given, check whether principal components and mean are included
         if not "principal_components" in pca_params.keys():
             raise KeyError("Output is not None but has no key 'principal_components'!")
@@ -99,35 +97,37 @@ def pca_transform(
             raise KeyError("Output is not None but has no key 'mean'!")
 
         # Check whether PC and mean have the correct shape
-        if X.shape[1] != len(pca_params["mean"]):
+        if forecast_ens.shape[1] != len(pca_params["mean"]):
             raise ValueError("pca mean has not the same length as the input array!")
-        if X.shape[1] != pca_params["principal_components"].shape[1]:
+        if forecast_ens.shape[1] != pca_params["principal_components"].shape[1]:
             raise ValueError(
                 "principal components have not the same length as the input array"
             )
 
     # If no mask is given, transform the full input data into PC space.
     if mask is None:
-        X_pc = np.dot((X - pca_params["mean"]), pca_params["principal_components"].T)
+        forecast_ens_pc = np.dot(
+            (forecast_ens - pca_params["mean"]), pca_params["principal_components"].T
+        )
     else:
-        X_pc = np.dot(
-            (X[:, mask] - pca_params["mean"][mask]),
+        forecast_ens_pc = np.dot(
+            (forecast_ens[:, mask] - pca_params["mean"][mask]),
             pca_params["principal_components"][:, mask].T,
         )
 
-    if get_params == True:
-        return X_pc, pca_params
+    if get_params:
+        return forecast_ens_pc, pca_params
     else:
-        return X_pc
+        return forecast_ens_pc
 
 
-def pca_backtransform(X_pc: np.ndarray, pca_params: dict):
+def pca_backtransform(forecast_ens_pc: np.ndarray, pca_params: dict):
     """
     Transform a given PC transformation back into physical space.
 
     Parameters
     ----------
-    X_pc: np.ndarray
+    forecast_ens_pc: np.ndarray
         Two-dimensional array of shape (n_components, n_ens) containing the full input
         data transformed into PC space.
     pca_params: dict
@@ -142,7 +142,7 @@ def pca_backtransform(X_pc: np.ndarray, pca_params: dict):
 
     Returns
     -------
-    X: np.ndarray
+    forecast_ens: np.ndarray
         Two-dimensional of shape (n_ens, n_gridpoints) containing the backtransformed
         precipitation forecast.
     """
@@ -153,11 +153,14 @@ def pca_backtransform(X_pc: np.ndarray, pca_params: dict):
     if not "mean" in pca_params.keys():
         raise KeyError("Output is not None but has no key 'mean'!")
 
-    # Check whether PC and X_pc have the correct shape
-    if X_pc.shape[0] != pca_params["principal_components"].shape[0]:
+    # Check whether PC and forecast_ens_pc have the correct shape
+    if forecast_ens_pc.shape[0] != pca_params["principal_components"].shape[0]:
         raise ValueError("pca mean has not the same length as the input array!")
 
-    # Transform X_pc back into physical space.
-    X = np.dot(X_pc.T, pca_params["principal_components"]) + pca_params["mean"]
+    # Transform forecast_ens_pc back into physical space.
+    forecast_ens = (
+        np.dot(forecast_ens_pc.T, pca_params["principal_components"])
+        + pca_params["mean"]
+    )
 
-    return X
+    return forecast_ens
