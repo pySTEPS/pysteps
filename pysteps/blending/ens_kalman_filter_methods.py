@@ -179,7 +179,7 @@ class EnsembleKalmanFilter:
 
         Parameters
         ----------
-        M: np.ndarray
+        forecast_array: np.ndarray
             Two-dimensional array of shape (n_ens, n_pc) containing an ensemble
             forecast of one lead time.
         inflation_factor: float
@@ -236,20 +236,19 @@ class EnsembleKalmanFilter:
 
         # Add the respective values to I
         for d in range(self.__n_tapering):
-
             window_function += np.diag(np.ones(n - d - 1) * hanning_values[d], k=d + 1)
             window_function += np.diag(np.ones(n - d - 1) * hanning_values[d], k=-d - 1)
 
         return window_function
 
-    def get_precipitation_mask(self, X: np.ndarray):
+    def get_precipitation_mask(self, forecast_array: np.ndarray):
         """
         Create the set of grid boxes where at least a minimum number (configurable)
         of ensemble members forecast precipitation.
 
         Parameters
         ----------
-        X: np.ndarray
+        forecast_array: np.ndarray
             Two-dimensional array of shape (n_ens, n_grid) containg the ensemble
             forecast for one lead time.
 
@@ -261,19 +260,17 @@ class EnsembleKalmanFilter:
         """
 
         # Check the number of ensemble members forecast precipitation at each grid box.
-        X_sum = np.sum(X >= self._config.precip_threshold, axis=0)
+        forecast_array_sum = np.sum(
+            forecast_array >= self._config.precip_threshold, axis=0
+        )
 
-        # If the masking of areas without precipitation requested, mask grid boxes
-        # where less ensemble members predict precipitation as the limit
-        # n_ens_prec...
+        # If the masking of areas without precipitation is requested, mask grid boxes
+        # where less ensemble members predict precipitation than the set limit n_ens_prec.
         if self.__non_precip_mask == True:
-
-            idx_prec = X_sum >= self.__n_ens_prec
-
-        # ...otherwise set all to True.
+            idx_prec = forecast_array_sum >= self.__n_ens_prec
+        # Else, set all to True.
         else:
-
-            idx_prec = np.ones_like(X_sum).astype(bool)
+            idx_prec = np.ones_like(forecast_array_sum).astype(bool)
 
         return idx_prec
 
