@@ -75,7 +75,9 @@ class EnsembleKalmanFilter:
         self.__non_precip_mask = params.combination_kwargs.get("non_precip_mask", True)
         self.__n_ens_prec = params.combination_kwargs.get("n_ens_prec", 1)
         self.__lien_criterion = params.combination_kwargs.get("lien_criterion", True)
-        self.__n_lien = params.combination_kwargs.get("n_lien", self._config.n_ens_members // 2)
+        self.__n_lien = params.combination_kwargs.get(
+            "n_lien", self._config.n_ens_members // 2
+        )
 
         print("Initialize ensemble Kalman filter")
         print("=================================")
@@ -139,36 +141,38 @@ class EnsembleKalmanFilter:
         """
 
         # If the masked background and observation arrays are given, compute the
-        # covariance matrices P and R only on these values...
+        # covariance matrices P and R only on these values.
         if X_bg_lien is not None and Y_obs_lien is not None:
-
+            # Equation 13 in Nerini et al. (2019)
             P = self.get_covariance_matrix(
                 X_bg_lien, inflation_factor=inflation_factor_bg, offset=offset_bg
             )
-
+            # Equation 14 in Nerini et al. (2019)
             R = self.get_covariance_matrix(
                 Y_obs_lien, inflation_factor=inflation_factor_obs, offset=offset_obs
             )
-        # ...otherwise use the complete arrays.
+        # Otherwise use the complete arrays.
         else:
-
+            # Equation 13 in Nerini et al. (2019)
             P = self.get_covariance_matrix(
                 X_bg, inflation_factor=inflation_factor_bg, offset=offset_bg
             )
-
+            # Equation 14 in Nerini et al. (2019)
             R = self.get_covariance_matrix(
                 Y_obs, inflation_factor=inflation_factor_obs, offset=offset_obs
             )
 
-        # Estimate the Kalman gain
+        # Estimate the Kalman gain (eq. 15 in Nerini et al., 2019)
         self.K = np.dot(P, np.linalg.inv(P + R))
 
-        # Update the background ensemble
+        # Update the background ensemble (eq. 16 in Nerini et al., 2019)
         X_ana = X_bg.T + np.dot(self.K, (Y_obs - X_bg).T)
 
         return X_ana
 
-    def get_covariance_matrix(self, M: np.ndarray, inflation_factor: float, offset: float):
+    def get_covariance_matrix(
+        self, forecast_array: np.ndarray, inflation_factor: float, offset: float
+    ):
         """
         Compute the covariance matrix of a given ensemble forecast along the grid boxes
         or principal components.
@@ -191,14 +195,17 @@ class EnsembleKalmanFilter:
         """
 
         # Compute the ensemble mean
-        M_mean = np.mean(M, axis=0)
+        ensemble_mean = np.mean(forecast_array, axis=0)
         # Center the ensemble forecast and multiply with the given inflation factor
-        M_centered = (M - M_mean) * inflation_factor
+        centered_ensemble = (forecast_array - ensemble_mean) * inflation_factor
         # Compute the covariance matrix and add the respective offset and filter
         # unwanted diagonals, respectively.
         Cov = (
-            1 / (M.shape[0] - 1) * np.dot(M_centered.T, M_centered) + offset
-        ) * self.get_tapering(M.shape[1])
+            1
+            / (forecast_array.shape[0] - 1)
+            * np.dot(centered_ensemble.T, centered_ensemble)
+            + offset
+        ) * self.get_tapering(forecast_array.shape[1])
 
         return Cov
 
@@ -223,7 +230,9 @@ class EnsembleKalmanFilter:
         window_function = np.eye(n)
         # Get the weightings of a hanning window function with respect to the number of
         # diagonals that on want to keep
-        hanning_values = np.hanning(self.__n_tapering * 2 + 1)[(self.__n_tapering + 1) :]
+        hanning_values = np.hanning(self.__n_tapering * 2 + 1)[
+            (self.__n_tapering + 1) :
+        ]
 
         # Add the respective values to I
         for d in range(self.__n_tapering):
@@ -299,7 +308,9 @@ class EnsembleKalmanFilter:
         # n_ens_fc_prec...
         if self.__lien_criterion == True:
 
-            idx_lien = np.logical_and(X_nwc_sum >= self.__n_lien, X_nwp_sum >= self.__n_lien)
+            idx_lien = np.logical_and(
+                X_nwc_sum >= self.__n_lien, X_nwp_sum >= self.__n_lien
+            )
 
         # ...otherwise set all to True.
         else:
@@ -481,10 +492,12 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
         # Get the sampling probability either based on the ensembles...
         if self.__sampling_prob_source == "ensemble":
-            sampling_probability_single_step = self.get_weighting_for_probability_matching(
-                X_bg=X_ens_stacked[: X_nwc.shape[0]][:, idx_lien],
-                X_ana=X_ana[:, idx_lien],
-                Y_obs=X_ens_stacked[X_nwc.shape[0] :][:, idx_lien],
+            sampling_probability_single_step = (
+                self.get_weighting_for_probability_matching(
+                    X_bg=X_ens_stacked[: X_nwc.shape[0]][:, idx_lien],
+                    X_ana=X_ana[:, idx_lien],
+                    Y_obs=X_ens_stacked[X_nwc.shape[0] :][:, idx_lien],
+                )
             )
         # ...or based on the explained variance weighted Kalman gain.
         elif self.__sampling_prob_source == "explained_var":
