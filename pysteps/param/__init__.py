@@ -15,9 +15,8 @@ from .shared_utils import (
     blend_parameters,
     zero_state,
     is_zero_state,
-    calc_corls,
+    calc_auto_cors,
     fit_auto_cors,
     calculate_parameters,
 )
-from .nc_utils import generate_geo_dict, generate_geo_dict_xy, read_qpe_netcdf
 from .transformer import DBTransformer
