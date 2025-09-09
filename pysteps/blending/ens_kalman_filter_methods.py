@@ -27,20 +27,24 @@ lien_criterion: bool, (True)
 n_lien: int, (n_ens_members/2)
     Minimum number of ensemble members that forecast precipitation for the Lien
     criterion. Defaults to half of the ensemble members.
-post_prob_matching: bool, (False)
-    Flag to specify whether a probability matching should be applied at the end of the
-    forecast computation. Defaults to False.
-iterative_prob_matching: bool, (True)
-    Flag to specify whether a probability matching should be applied at each correction
-    step. Defaults to True.
+prob_matching: str, {'iterative','post_forecast','none'}
+    Specify the probability matching method that should be applied as an additional
+    processing step of the forecast computation. Defaults to 'iterative'.
 inflation_factor_bg: float, (1.0)
-    Inflation factor of the background (NWC) covariance matrix. Defaults to 1.0.
+    Inflation factor of the background (NWC) covariance matrix. This factor increases
+    the covariances of the background ensemble and, thus, supports a faster convergence
+    towards the observation ensemble. Defaults to 1.0.
 inflation_factor_obs: float, (1.0)
-    Inflation factor of the observation (NWP) covariance matrix. Defaults to 1.0.
+    Inflation factor of the observation (NWP) covariance matrix. This factor increases
+    the covariances of the observation ensemble and, thus, supports a slower convergence
+    towards the observation ensemble. Defaults to 1.0.
 offset_bg: float, (0.0)
-    Offset of the background (NWC) covariance matrix. Defaults to 0.0.
+    Offset of the background (NWC) covariance matrix. This offset supports a faster
+    convergence towards the observation ensemble by linearly increasing all elements
+    of the background covariance matrix. Defaults to 0.0.
 offset_obs: float, (0.0)
-    Offset of the observation (NWP) covariance matrix. Defaults to 0.0.
+    Offset of the observation (NWP) covariance matrix. This offset supports a slower convergence towards the observation ensemble by linearly incerasing all elements
+    of the observation covariance matrix. Defaults to 0.0.
 nwp_hres_eff: float
     Effective horizontal resolution of the utilized NWP model.
 sampling_prob_source: str, {'ensemble','explained_var'}
@@ -175,7 +179,7 @@ class EnsembleKalmanFilter:
     ):
         """
         Compute the covariance matrix of a given ensemble forecast along the grid boxes
-        or principal components.
+        or principal components as it is done by Eq. 13 and 14 in Nerini et al., 2019.
 
         Parameters
         ----------

@@ -615,10 +615,22 @@ class ForecastModel:
             (2, ForecastModel.__params.len_y, ForecastModel.__params.len_x)
         )
 
-        # Get spatial scales whose central wavelengths are above the effective horizontal resolution of the NWP model.
+        # Get NWP effective horizontal resolution and type of probability matching from
+        # combination kwargs.
+        # It's not the best practice to mix parameters. Maybe the cascade mask as well
+        # as the probability matching should be implemented at another location.
+        self.__nwp_hres_eff = self.__params.combination_kwargs.get("nwp_hres_eff", 0.0)
+        self.__prob_matching = self.__params.combination_kwargs.get(
+            "prob_matching", "iterative"
+        )
+
+        # Get spatial scales whose central wavelengths are above the effective
+        # horizontal resolution of the NWP model.
+        # Factor 3 on the effective resolution is similar to that factor of the
+        # localization of AR parameters and scaling parameters.
         self.__resolution_mask = (
-            self.__params.bandpass_filter["central_wavenumbers"] ** -1.0
-            >= self.__config.combination_kwargs["nwp_hres_eff"]
+            self.__params.len_y / self.__params.bandpass_filter["central_wavenumbers"]
+            >= self.__nwp_hres_eff * 3.0
         )
 
         self.__ens_member = ens_member
@@ -647,7 +659,8 @@ class ForecastModel:
         )
 
         # Apply probability matching
-        self.__probability_matching()
+        if self.__prob_matching == "iterative":
+            self.__probability_matching()
 
         # Extrapolate the precipitation field onto the position of the current timestep.
         self.__advect()
