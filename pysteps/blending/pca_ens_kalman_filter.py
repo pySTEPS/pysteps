@@ -677,14 +677,6 @@ class ForecastModel:
     # each spatial scale at timesteps where NWP information is incorporated.
     def __decompose(self, is_correction_timestep):
 
-        if self.__ens_member == 1:
-            print("Scaling parameters before renormalization")
-            print("=========================================")
-            for i in range(len(self.__precip_cascades[:, -1])):
-                print(
-                    f"Mu: {np.mean(self.__precip_cascades[i, -1]):.4} Sigma: {np.std(self.__precip_cascades[i, -1]):.4}"
-                )
-
         # Call spatial decomposition method.
         precip_extrap_decomp = self.__params.decomposition_method(
             ForecastModel.nwc_prediction[self.__ens_member],

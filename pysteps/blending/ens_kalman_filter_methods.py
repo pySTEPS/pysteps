@@ -502,12 +502,15 @@ class MaskedEnKF(EnsembleKalmanFilter):
         # Transform both ensemble forecasts into the PC space.
         kwargs = {"n_components": forecast_ens_stacked.shape[0], "svd_solver": "full"}
         forecast_ens_stacked_pc, pca_params = utils.pca.pca_transform(
-            X=forecast_ens_stacked, get_params=True, **kwargs
+            forecast_ens=forecast_ens_stacked, get_params=True, **kwargs
         )
 
         # And do that transformation also for the Lien criterion masked values.
         forecast_ens_lien_pc = utils.pca.pca_transform(
-            X=forecast_ens_stacked, mask=idx_lien, pca_params=pca_params, **kwargs
+            forecast_ens=forecast_ens_stacked,
+            mask=idx_lien,
+            pca_params=pca_params,
+            **kwargs,
         )
 
         # Get the updated background ensemble (Nowcast ensemble) in PC space.
@@ -530,7 +533,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
         # Transform the analysis ensemble back into physical space.
         analysis_ensemble = utils.pca.pca_backtransform(
-            X_pc=analysis_ensemble_pc, pca_params=pca_params
+            forecast_ens_pc=analysis_ensemble_pc, pca_params=pca_params
         )
 
         # Get the sampling probability either based on the ensembles...
