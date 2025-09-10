@@ -174,6 +174,7 @@ def get_precipitation_fields(
     _importer_kwargs = data_source["importer_kwargs"].copy()
     _importer_kwargs.update(**importer_kwargs)
     timestep = data_source["timestep"]
+    timestep_in_seconds = timestep * 60
 
     # Find the input files from the archive
     fns = io.archive.find_by_date(
@@ -190,7 +191,7 @@ def get_precipitation_fields(
     # Read the radar composites
     importer = io.get_method(importer_name, "importer")
 
-    dataset = io.read_timeseries(fns, importer, timestep=timestep, **_importer_kwargs)
+    dataset = io.read_timeseries(fns, importer, timestep=timestep_in_seconds, **_importer_kwargs)
 
     if not return_raw:
         precip_var = dataset.attrs["precip_var"]
