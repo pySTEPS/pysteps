@@ -14,107 +14,69 @@ input field to a destination field.
 from pysteps.exceptions import MissingOptionalDependency
 
 import numpy as np
+import xarray as xr
 
 try:
-    from rasterio import Affine as A
-    from rasterio.warp import reproject, Resampling
+    import pyproj
 
-    RASTERIO_IMPORTED = True
+    PYPROJ_IMPORTED = True
 except ImportError:
-    RASTERIO_IMPORTED = False
+    PYPROJ_IMPORTED = False
 
 
-def reproject_grids(src_array, dst_array, metadata_src, metadata_dst):
+def reproject_grids(src_dataset, dst_dataset):
     """
     Reproject precipitation fields to the domain of another precipitation field.
 
     Parameters
     ----------
-    src_array: array-like
-        Three-dimensional array of shape (t, x, y) containing a time series of
-        precipitation fields. These precipitation fields will be reprojected.
-    dst_array: array-like
-        Array containing a precipitation field or a time series of precipitation
-        fields. The src_array will be reprojected to the domain of
-        dst_array.
-    metadata_src: dict
-        Metadata dictionary containing the projection, x- and ypixelsize, x1 and
-        y2 attributes of the src_array as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
-    metadata_dst: dict
-        Metadata dictionary containing the projection, x- and ypixelsize, x1 and
-        y2 attributes of the dst_array.
+    src_dataset: xr.Dataset
+        xr.Dataset containing a precipitation variable which needs to be reprojected
+    dst_dataset: xr.Dataset
+        xr.Dataset containing a precipitation variable which is used to project the provided src_dataset
 
     Returns
     -------
-    r_rprj: array-like
-        Three-dimensional array of shape (t, x, y) containing the precipitation
-        fields of src_array, but reprojected to the domain of dst_array.
-    metadata: dict
-        Metadata dictionary containing the projection, x- and ypixelsize, x1 and
-        y2 attributes of the reprojected src_array.
+    reprojected_dataset: xr.Dataset
+        xr.Dataset containing the reprojected precipitation variable
     """
 
-    if not RASTERIO_IMPORTED:
+    if not PYPROJ_IMPORTED:
         raise MissingOptionalDependency(
-            "rasterio package is required for the reprojection module, but it is "
+            "pyproj package is required for the reprojection module, but it is "
             "not installed"
         )
 
-    # Extract the grid info from src_array
-    src_crs = metadata_src["projection"]
-    x1_src = metadata_src["x1"]
-    y2_src = metadata_src["y2"]
-    xpixelsize_src = metadata_src["xpixelsize"]
-    ypixelsize_src = metadata_src["ypixelsize"]
-    src_transform = A.translation(float(x1_src), float(y2_src)) * A.scale(
-        float(xpixelsize_src), float(-ypixelsize_src)
+    x_r = dst_dataset.x.values
+    y_r = dst_dataset.y.values
+    x_2d, y_2d = np.meshgrid(x_r, y_r)
+    # Calculate match  between the two projections
+    transfomer = pyproj.Transformer.from_proj(
+        src_dataset.attrs["projection"], dst_dataset.attrs["projection"]
     )
-
-    # Extract the grid info from dst_array
-    dst_crs = metadata_dst["projection"]
-    x1_dst = metadata_dst["x1"]
-    y2_dst = metadata_dst["y2"]
-    xpixelsize_dst = metadata_dst["xpixelsize"]
-    ypixelsize_dst = metadata_dst["ypixelsize"]
-    dst_transform = A.translation(float(x1_dst), float(y2_dst)) * A.scale(
-        float(xpixelsize_dst), float(-ypixelsize_dst)
+    dest_src_x, dest_src_y = transfomer.transform(
+        x_2d.flatten(), y_2d.flatten(), direction="INVERSE"
     )
+    dest_src_x, dest_src_y = dest_src_x.reshape(x_2d.shape), dest_src_y.reshape(
+        y_2d.shape
+    )
+    dest_src_x_dataarray = xr.DataArray(
+        dest_src_x, dims=("y_src", "x_src"), coords={"y_src": y_r, "x_src": x_r}
+    )
+    dest_src_y_dataarray = xr.DataArray(
+        dest_src_y, dims=("y_src", "x_src"), coords={"y_src": y_r, "x_src": x_r}
+    )
+    # Select the nearest neighbour in the source dataset for each point in the destination dataset
+    reproj_dataset = src_dataset.sel(
+        x=dest_src_x_dataarray, y=dest_src_y_dataarray, method="nearest"
+    )
+    # Clean up the dataset
+    reproj_dataset = reproj_dataset.drop_vars(["x", "y"])
+    reproj_dataset = reproj_dataset.rename({"x_src": "x", "y_src": "y"})
+    # Fill attributes from dst_dataset to reproj_dataset
+    reproj_dataset.attrs = dst_dataset.attrs
+    reproj_dataset[reproj_dataset.attrs["precip_var"]].attrs = dst_dataset[
+        dst_dataset.attrs["precip_var"]
+    ].attrs
 
-    # Initialise the reprojected array
-    r_rprj = np.zeros((src_array.shape[0], dst_array.shape[-2], dst_array.shape[-1]))
-
-    # For every timestep, reproject the precipitation field of src_array to
-    # the domain of dst_array
-    if metadata_src["yorigin"] != metadata_dst["yorigin"]:
-        src_array = src_array[:, ::-1, :]
-
-    for i in range(src_array.shape[0]):
-        reproject(
-            src_array[i, :, :],
-            r_rprj[i, :, :],
-            src_transform=src_transform,
-            src_crs=src_crs,
-            dst_transform=dst_transform,
-            dst_crs=dst_crs,
-            resampling=Resampling.nearest,
-            dst_nodata=np.nan,
-        )
-
-    # Update the metadata
-    metadata = metadata_src.copy()
-
-    for key in [
-        "projection",
-        "yorigin",
-        "xpixelsize",
-        "ypixelsize",
-        "x1",
-        "x2",
-        "y1",
-        "y2",
-        "cartesian_unit",
-    ]:
-        metadata[key] = metadata_dst[key]
-
-    return r_rprj, metadata
+    return reproj_dataset

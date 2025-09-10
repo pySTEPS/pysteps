@@ -28,12 +28,12 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 def cf_parameters_from_unit(unit: str) -> tuple[str, dict[str, str | None]]:
     if unit == "mm/h":
         var_name = "precip_intensity"
-        var_standard_name = None
+        var_standard_name = "instantaneous_precipitation_rate"
         var_long_name = "instantaneous precipitation rate"
         var_unit = "mm/h"
     elif unit == "mm":
         var_name = "precip_accum"
-        var_standard_name = None
+        var_standard_name = "accumulated_precipitation"
         var_long_name = "accumulated precipitation"
         var_unit = "mm"
     elif unit == "dBZ":
