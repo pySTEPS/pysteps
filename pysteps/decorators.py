@@ -32,6 +32,8 @@ def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
     """
     # Clean up indentation from docstrings for the
     # docstrings to be merged correctly.
+    if target_func.__doc__ is None:
+        return target_func
     extra_kwargs_doc = inspect.cleandoc(extra_kwargs_doc_text)
     target_func.__doc__ = inspect.cleandoc(target_func.__doc__)
 
