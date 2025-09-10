@@ -352,7 +352,6 @@ def _get_threshold_value(precip):
         return np.nan
 
 
-@postprocess_import(dtype="float32")
 def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
@@ -407,7 +406,14 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         image dimensions.
         Default: window_size=4.
 
-    {extra_kwargs_doc}
+    Other Parameters
+    ----------------
+    dtype: str
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -420,7 +426,32 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     metadata: dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
+    dataset = _import_mrms_grib(filename, extent, window_size, **kwargs)
+    # Create a function with default arguments for aggregate_fields
+    block_reduce = partial(aggregate_fields, method="mean", trim=True)
 
+    if window_size != (1, 1):
+        # Downscale data
+        precip_var = dataset.attrs["precip_var"]
+        # block_reduce does not handle nan values
+        if "fillna" in kwargs:
+            no_data_mask = dataset[precip_var].values == kwargs["fillna"]
+        else:
+            no_data_mask = np.isnan(dataset[precip_var].values)
+        dataset[precip_var].data[no_data_mask] = 0
+        dataset["no_data_mask"] = (("y", "x"), no_data_mask)
+        dataset = block_reduce(dataset, window_size, dim=("y", "x"))
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        no_data_mask = dataset.no_data_mask.values == 1.0
+        dataset = dataset.drop_vars("no_data_mask")
+
+    return dataset
+
+
+@postprocess_import(dtype="float32")
+def _import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     del kwargs
 
     if not PYGRIB_IMPORTED:
@@ -465,32 +496,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
     precip = grib_msg.values
     no_data_mask = precip == -3  # Missing values
-
-    # Create a function with default arguments for aggregate_fields
-    block_reduce = partial(aggregate_fields, method="mean", trim=True)
-
-    if window_size != (1, 1):
-        # Downscale data
-        lats = block_reduce(lats, window_size[0])
-        lons = block_reduce(lons, window_size[1])
-
-        # Update the limits
-        ul_lat, lr_lat = (
-            lats[0],
-            lats[-1],
-        )  # Lat from North to south!
-        ul_lon, lr_lon = lons[0], lons[-1]
-
-        precip[no_data_mask] = 0  # block_reduce does not handle nan values
-        precip = block_reduce(precip, window_size, axis=(0, 1))
-
-        # Consider that if a single invalid observation is located in the block,
-        # then mark that value as invalid.
-        no_data_mask = block_reduce(
-            no_data_mask.astype("int"),
-            window_size,
-            axis=(0, 1),
-        ).astype(bool)
 
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = np.nan

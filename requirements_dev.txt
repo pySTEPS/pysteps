@@ -19,6 +19,10 @@ h5py
 scikit-image
 pandas
 rasterio
+pygrib
+pywavelets
+geotiff
+gdal==3.4.1; "22.04" in platform_version and "Ubuntu" in platform_version
 
 # Testing
 pytest
