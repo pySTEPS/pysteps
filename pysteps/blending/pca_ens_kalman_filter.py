@@ -54,6 +54,7 @@ from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.timeseries import autoregression, correlation
 from pysteps.blending.ens_kalman_filter_methods import MaskedEnKF
 from pysteps.postprocessing import probmatching
+from pysteps.utils.check_norain import check_norain
 
 try:
     import dask
@@ -342,7 +343,9 @@ class ForecastInitialization:
         # space. Advect the previous precipitation fields to the same position with
         # the most recent one (i.e. transform them into the Lagrangian coordinates).
         self.__params.extrapolation_kwargs["xy_coords"] = self.__params.xy_coordinates
-        self.__params.extrapolation_kwargs["outval"] = self.__config.norain_threshold
+        self.__params.extrapolation_kwargs["outval"] = (
+            self.__config.precip_threshold - 2.0
+        )
         res = []
 
         def transform_to_lagrangian(precip, i):
@@ -379,7 +382,7 @@ class ForecastInitialization:
             ~np.isfinite(self.__obs_precip),
             self.__obs_precip < self.__config.precip_threshold,
         )
-        self.__obs_precip[obs_mask] = self.__config.norain_threshold
+        self.__obs_precip[obs_mask] = self.__config.precip_threshold - 2.0
 
         # Compute the cascade decompositions of the input precipitation fields
         precip_forecast_decomp = []
@@ -591,7 +594,7 @@ class ForecastModel:
                 precip_mask[None, :], self.__config.n_ens_members, axis=0
             )
 
-            latest_obs[~np.isfinite(latest_obs)] = self.__config.norain_threshold
+            latest_obs[~np.isfinite(latest_obs)] = self.__config.precip_threshold - 2.0
             ForecastModel.nwc_prediction = np.repeat(
                 latest_obs[None, :, :], self.__config.n_ens_members, axis=0
             )
@@ -943,7 +946,7 @@ class EnKFCombinationNowcaster:
             ~np.isfinite(self.__nwp_precip),
             self.__nwp_precip < self.__config.precip_threshold,
         )
-        self.__nwp_precip[nwp_mask] = self.__config.norain_threshold
+        self.__nwp_precip[nwp_mask] = self.__config.precip_threshold - 2.0
 
         # Set an initial precipitation mask for the NWC models.
         precip_mask = binary_dilation(
@@ -981,12 +984,7 @@ class EnKFCombinationNowcaster:
         self.KalmanFilterModel = kalman_filter_model(self.__config, self.__params)
 
         # Start the main forecast loop.
-        if self.__params.no_rain_case == "none":
-            self.__integrated_nowcast_main_loop()
-        elif self.__params.no_rain_case == "obs":
-            self.__no_rain_case()
-        else:
-            self.__integrated_nowcast_main_loop()
+        self.__integrated_nowcast_main_loop()
 
         # Stack and return the forecast output.
         if self.__config.return_output:
@@ -1189,30 +1187,29 @@ class EnKFCombinationNowcaster:
 
     def __check_no_rain_case(self):
 
-        # Compute the wet area ratio of the latest observation
-        wet_area_ratio_obs = (
-            np.sum(self.__obs_precip[-1] >= self.__config.precip_threshold)
-            / (self.__obs_precip[-1].size - np.sum(~np.isfinite(self.__obs_precip[-1])))
-            * 100.0
+        # Check for zero input fields in the radar and NWP data.
+        zero_precip_radar = check_norain(
+            self.__obs_precip,
+            self.__config.precip_threshold,
+            self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
         )
-
-        # Compute the wet area ratio of the NWP ensemble forecast at the first usable
-        # time step
-        wet_area_ratio_nwp = (
-            np.sum(
-                self.__nwp_precip[:, 0] >= self.__config.precip_threshold, axis=(1, 2)
-            )
-            / self.__nwp_precip[0, 0].size
-            * 100.0
+        # The norain fraction threshold used for nwp is the default value of 0.0,
+        # since nwp does not suffer from clutter.
+        zero_precip_nwp_forecast = check_norain(
+            self.__nwp_precip,
+            self.__config.precip_threshold,
+            self.__config.norain_threshold,
+            self.__params.noise_kwargs["win_fun"],
         )
 
         # If there is no precipitation in the observation, set no_rain_case to "obs"
         # and use only the NWP ensemble forecast
-        if wet_area_ratio_obs < 1.0:
+        if zero_precip_radar:
             self.__params.no_rain_case = "obs"
         # If there is no precipitation at the first usable NWP forecast timestep, but
         # in the observation, compute an extrapolation forecast
-        elif wet_area_ratio_obs > 1.0 and np.all(wet_area_ratio_nwp < 1.0):
+        elif zero_precip_nwp_forecast:
             self.__params.no_rain_case = "nwp"
         # Otherwise, set no_rain_case to 'none' and compute combined forecast as usual
         else:
@@ -1292,53 +1289,60 @@ class EnKFCombinationNowcaster:
             if self.__config.measure_time:
                 starttime = time.time()
 
-            if t > 0:
+            # Check whether forecast time step is also a correction time step.
+            is_correction_timestep = (
+                self.__forecast_leadtimes[t - 1] in self.__correction_leadtimes
+                and t > 1
+                and np.logical_and(
+                    self.__config.enable_combination,
+                    self.__params.no_rain_case != "nwp",
+                )
+            )
+
+            # Check whether forecast time step is a nowcasting time step.
+            is_nowcasting_timestep = t > 0
+
+            # Check whether full NWP weight is reached.
+            is_full_nwp_weight = (
+                self.KalmanFilterModel.get_inflation_factor_obs() <= 0.02
+                or self.__params.no_rain_case == "obs"
+            )
+
+            # If full NWP weight is reached, set pure NWP ensemble forecast in combined
+            # forecast output
+            if is_full_nwp_weight:
+                print(f"Full NWP weight is reached for lead time + {fc_leadtime} min")
+                if is_correction_timestep:
+                    t_corr = np.where(
+                        self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
+                    )[0][0]
+                ForecastModel.nwc_prediction = self.__nwp_precip[:, t_corr]
+
+            # Otherwise compute the combined forecast.
+            else:
                 print(f"Computing combination for lead time + {fc_leadtime} min")
-                # Check whether forecast time step is also a correction time step
-                is_correction_timestep = (
-                    self.__forecast_leadtimes[t - 1] in self.__correction_leadtimes
-                    and t > 1
-                    and np.logical_and(
-                        self.__config.enable_combination,
-                        self.__params.no_rain_case != "nwp",
-                    )
-                )
-
-                is_full_nwp_weight = (
-                    self.KalmanFilterModel.get_inflation_factor_obs() <= 0.02
-                )
-
-                if is_full_nwp_weight:
-                    if is_correction_timestep:
-                        t_corr = np.where(
-                            self.__correction_leadtimes
-                            == self.__forecast_leadtimes[t - 1]
-                        )[0][0]
-                    for i, FC_Model in enumerate(self.FC_Models.values()):
-                        FC_Model.nwc_prediction = self.__nwp_precip[i, t_corr]
-
                 # If the temporal resolution of the NWP data is equal to those of the
                 # observation, the correction step can be applied after the forecast
                 # step for the current forecast leadtime.
                 # However, if the temporal resolution is different, the correction step
                 # has to be applied before the forecast step to avoid smoothing effects
                 # in the resulting precipitation fields.
-                else:
-                    if is_correction_timestep:
-                        t_corr = np.where(
-                            self.__correction_leadtimes
-                            == self.__forecast_leadtimes[t - 1]
-                        )[0][0]
+                if is_correction_timestep:
+                    t_corr = np.where(
+                        self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
+                    )[0][0]
 
-                        ForecastModel.nwc_prediction, ForecastModel.fc_resampled = (
-                            self.KalmanFilterModel.correct_step(
-                                ForecastModel.nwc_prediction,
-                                self.__nwp_precip[:, t_corr],
-                                ForecastModel.fc_resampled,
-                            )
+                    ForecastModel.nwc_prediction, ForecastModel.fc_resampled = (
+                        self.KalmanFilterModel.correct_step(
+                            ForecastModel.nwc_prediction,
+                            self.__nwp_precip[:, t_corr],
+                            ForecastModel.fc_resampled,
                         )
+                    )
 
-                    # Run forecast step
+                # Run nowcasting time step
+                if is_nowcasting_timestep:
+
                     def worker(j):
 
                         self.FC_Models[j].run_forecast_step(
@@ -1384,56 +1388,7 @@ class EnKFCombinationNowcaster:
         if self.__config.measure_time:
             self.__mainloop_time = time.time() - starttime_mainloop
             print(
-                f"Elapsed time for computing forecast: {self.__mainloop_time / 60.0} min"
-            )
-
-    def __no_rain_case(self):
-
-        if self.__config.measure_time:
-            starttime_mainloop = time.time()
-
-        is_correction_timestep = False
-        # Set t_corr to 0 to compute the precip mask with the first NWP fields
-        # Afterwards, the NWP fields closest in the future are used
-        t_corr = 0
-
-        for t, _ in enumerate(self.__forecast_leadtimes):
-
-            if self.__config.measure_time:
-                starttime = time.time()
-
-            if is_correction_timestep:
-                t_corr = np.where(
-                    self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
-                )[0][0]
-
-            for i, FC_Model in enumerate(self.FC_Models.values()):
-                # Set NWP data into ForecastModel instances
-                FC_Model.nwc_prediction = self.__nwp_precip[i, t_corr]
-                # Apply back transformation
-                FC_Model.backtransform()
-
-            if self.__config.measure_time:
-                _ = self.__measure_time("timestep", starttime)
-            else:
-                print("...done.")
-
-            if (
-                self.__config.callback is not None
-                and ForecastModel.nwc_prediction_btf.shape[1] > 0
-            ):
-                self.__config.callback(ForecastModel.nwc_prediction_btf)
-
-            if self.__config.return_output:
-
-                ForecastModel.final_combined_forecast.append(
-                    ForecastModel.nwc_prediction_btf.copy()
-                )
-
-        if self.__config.measure_time:
-            self.__mainloop_time = time.time() - starttime_mainloop
-            print(
-                f"Elapsed time for computing forecast: {self.__mainloop_time / 60.0} min"
+                f"Elapsed time for computing forecast: {(self.__mainloop_time / 60.0):.4} min"
             )
 
         return
