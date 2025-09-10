@@ -2608,6 +2608,9 @@ class StepsBlendingNowcaster:
         # Create weights_with_noise to ensure there is always a 3D weights field, even
         # if self.__config.nowcasting_method is "external_nowcast" and n_ens_members is 1.
         worker_state.weights_with_noise = worker_state.weights.copy()
+        worker_state.weights_model_only_with_noise = (
+            worker_state.weights_model_only.copy()
+        )
         if (
             self.__config.nowcasting_method == "external_nowcast"
             and self.__config.n_ens_members == 1
@@ -2616,11 +2619,21 @@ class StepsBlendingNowcaster:
             worker_state.weights = worker_state.weights[:-1, :] / np.sum(
                 worker_state.weights[:-1, :], axis=0
             )
+            worker_state.weights_model_only = worker_state.weights_model_only[
+                :-1, :
+            ] / np.sum(worker_state.weights_model_only[:-1, :], axis=0)
             # Blend the extrapolation, (NWP) model(s) and noise cascades
             worker_state.final_blended_forecast_cascades = (
                 blending.utils.blend_cascades(
                     cascades_norm=cascade_stack_all_components,
                     weights=worker_state.weights,
+                )
+            )
+            # Also blend the cascade without the extrapolation component
+            worker_state.final_blended_forecast_cascades_mod_only = (
+                blending.utils.blend_cascades(
+                    cascades_norm=cascade_stack_all_components[1:, :],
+                    weights=worker_state.weights_model_only,
                 )
             )
         else:
@@ -2631,14 +2644,13 @@ class StepsBlendingNowcaster:
                     weights=worker_state.weights_with_noise,
                 )
             )
-
-        # Also blend the cascade without the extrapolation component
-        worker_state.final_blended_forecast_cascades_mod_only = (
-            blending.utils.blend_cascades(
-                cascades_norm=cascade_stack_all_components[1:, :],
-                weights=worker_state.weights_model_only[1:],
+            # Also blend the cascade without the extrapolation component
+            worker_state.final_blended_forecast_cascades_mod_only = (
+                blending.utils.blend_cascades(
+                    cascades_norm=cascade_stack_all_components[1:, :],
+                    weights=worker_state.weights_model_only,
+                )
             )
-        )
 
         # Blend the means and standard deviations
         # Input is array of shape [number_components, scale_level, ...]
@@ -2657,7 +2669,7 @@ class StepsBlendingNowcaster:
         ) = blend_means_sigmas(
             means=means_stacked[1:, :],
             sigmas=sigmas_stacked[1:, :],
-            weights=worker_state.weights_model_only,
+            weights=worker_state.weights_model_only_with_noise,
         )
 
     def __recompose_cascade_to_rainfall_field(self, j, worker_state):
