@@ -78,11 +78,14 @@ plt.show()
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
 # set the fill value to -15 dBR
-precip_dataset = transformation.dB_transform(precip_dataset, threshold=0.1, zerovalue=-15.0)
+precip_dataset = transformation.dB_transform(
+    precip_dataset, threshold=0.1, zerovalue=-15.0
+)
 
 # Set missing values with the fill value
 precip_dataset[precip_var] = precip_dataset[precip_var].where(
-    xr.ufuncs.isfinite(precip_dataset[precip_var]), -15.0)
+    xr.ufuncs.isfinite(precip_dataset[precip_var]), -15.0
+)
 
 ###############################################################################
 # Deterministic nowcast with S-PROG
@@ -110,14 +113,16 @@ precip_forecast = nowcast_method(
 
 # XR:
 # QUESTION: precip_forecast also contains velocity.
-# What about the call to transformation.dB_transform ? 
+# What about the call to transformation.dB_transform ?
 # Does it act only on precip?
 # -> Yes: Will apply reverse transfomation if scale of transformation is dB
 # Should make this clear in example
 # Current IDEA: db_transform should take a dataArray instead of the whole dataset.
 
 # Back-transform to rain rate
-precip_forecast = transformation.dB_transform(precip_forecast, threshold=-10.0, inverse=True)
+precip_forecast = transformation.dB_transform(
+    precip_forecast, threshold=-10.0, inverse=True
+)
 
 # XR: change plot_precip_fields to take in an xarray
 # Plot the S-PROG forecast
@@ -162,7 +167,9 @@ ensemble_precip_forecast = nowcast_method(
 )
 
 # Back-transform to rain rates
-ensemble_precip_forecast  = transformation.dB_transform(ensemble_precip_forecast , threshold=-10.0, inverse=True)
+ensemble_precip_forecast = transformation.dB_transform(
+    ensemble_precip_forecast, threshold=-10.0, inverse=True
+)
 
 # Plot the ensemble mean
 precip_forecast_mean = ensemble_precip_forecast[precip_var].mean(dim="ens_number")
@@ -184,7 +191,10 @@ fig = plt.figure()
 for i in range(4):
     ax = fig.add_subplot(221 + i)
     ax = plot_precip_field(
-        ensemble_precip_forecast[precip_var][i][-1], geodata=geodata, colorbar=False, axis="off"
+        ensemble_precip_forecast[precip_var][i][-1],
+        geodata=geodata,
+        colorbar=False,
+        axis="off",
     )
     ax.set_title("Member %02d" % i)
 plt.tight_layout()
