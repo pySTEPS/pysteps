@@ -55,8 +55,10 @@ precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 # Convert to rain rate
 precip_dataset = conversion.to_rainrate(precip_dataset)
 
+# Extract precipitation variable. In this case it is equal to "precip_intensity"
+precip_var = precip_dataset.attrs["precip_var"]
+
 # Upscale data to 2 km to limit memory usage
-precip_dataset = dimension.aggregate_fields_space(precip_dataset, 2000)
 
 # XR: change plot_precip_fields to take in an xarray and remove
 # geodata, derive geodata from xarray?
@@ -70,7 +72,7 @@ geodata = {
 }
 
 # Plot the rainfall field
-plot_precip_field(precip_dataset["precip_intensity"][-1], geodata=geodata)
+plot_precip_field(precip_dataset[precip_var][-1], geodata=geodata)
 plt.show()
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
@@ -78,8 +80,8 @@ plt.show()
 precip_dataset = transformation.dB_transform(precip_dataset, threshold=0.1, zerovalue=-15.0)
 
 # Set missing values with the fill value
-precip_dataset["precip_intensity"] = precip_dataset["precip_intensity"].where(
-    xr.ufuncs.isfinite(precip_dataset["precip_intensity"]), -15.0)
+precip_dataset[precip_var] = precip_dataset[precip_var].where(
+    xr.ufuncs.isfinite(precip_dataset[precip_var]), -15.0)
 
 ###############################################################################
 # Deterministic nowcast with S-PROG
@@ -108,8 +110,8 @@ precip_forecast = nowcast_method(
 # XR:
 # QUESTION: precip_forecast also contains velocity.
 # What about the call to transformation.dB_transform ? 
-# does it act only on precip? -> Yes 
-# Will apply reverse transfomation if scale of transformation is dB
+# Does it act only on precip?
+# -> Yes: Will apply reverse transfomation if scale of transformation is dB
 # Should make this clear in example
 # Current IDEA: db_transform should take a dataArray instead of the whole dataset.
 
@@ -119,7 +121,7 @@ precip_forecast = transformation.dB_transform(precip_forecast, threshold=-10.0, 
 # XR: change plot_precip_fields to take in an xarray
 # Plot the S-PROG forecast
 plot_precip_field(
-    precip_forecast['precip_intensity'][-1],
+    precip_forecast[precip_var][-1],
     geodata=geodata,
     title="S-PROG (+ %i min)" % (n_leadtimes * timestep),
 )
@@ -162,7 +164,7 @@ ensemble_precip_forecast = nowcast_method(
 ensemble_precip_forecast  = transformation.dB_transform(ensemble_precip_forecast , threshold=-10.0, inverse=True)
 
 # Plot the ensemble mean
-precip_forecast_mean = ensemble_precip_forecast["precip_intensity"].mean(dim="ens_number")
+precip_forecast_mean = ensemble_precip_forecast[precip_var].mean(dim="ens_number")
 plot_precip_field(
     precip_forecast_mean[-1],
     geodata=geodata,
@@ -181,7 +183,7 @@ fig = plt.figure()
 for i in range(4):
     ax = fig.add_subplot(221 + i)
     ax = plot_precip_field(
-        ensemble_precip_forecast["precip_intensity"][i][-1], geodata=geodata, colorbar=False, axis="off"
+        ensemble_precip_forecast[precip_var][i][-1], geodata=geodata, colorbar=False, axis="off"
     )
     ax.set_title("Member %02d" % i)
 plt.tight_layout()
@@ -197,7 +199,7 @@ plt.show()
 # Finally, it is possible to derive probabilities from our ensemble forecast.
 
 # Compute exceedence probabilities for a 0.5 mm/h threshold
-P = excprob(ensemble_precip_forecast["precip_intensity"][:, -1], 0.5)
+P = excprob(ensemble_precip_forecast[precip_var][:, -1], 0.5)
 
 # Plot the field of probabilities
 plot_precip_field(
