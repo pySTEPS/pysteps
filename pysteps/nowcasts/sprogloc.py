@@ -1,8 +1,9 @@
 """
-pysteps.nowcasts.sprog
-======================
+pysteps.nowcasts.sprogloc
+=========================
 
-Implementation of the S-PROG method described in :cite:`Seed2003`
+Implementation of the S-PROG Localized method described in :cite:`RRR2022`,
+based in S-PROG method described in :cite:`Seed2003`
 
 .. autosummary::
     :toctree: ../generated/
@@ -39,7 +40,11 @@ def forecast(
     extrap_method="semilagrangian",
     decomp_method="fft",
     bandpass_filter_method="gaussian",
+    gamma_filter_method="uniform",
     ar_order=2,
+    d_order=0,
+    ar_window_radius=None,
+    gamma_factor=1.0,
     conditional=False,
     probmatching_method="cdf",
     num_workers=1,
@@ -50,12 +55,12 @@ def forecast(
     measure_time=False,
 ):
     """
-    Generate a nowcast by using the Spectral Prognosis (S-PROG) method.
+    Generate a nowcast by using the Spectral Prognosis Localized (S-PROG-LOC) method.
 
     Parameters
     ----------
     precip: array-like
-        Array of shape (ar_order+1,m,n) containing the input precipitation fields
+        Array of shape (ar_order+d_order+1,m,n) containing the input precipitation fields
         ordered by timestamp from oldest to newest. The time steps between
         the inputs are assumed to be regular.
     velocity: array-like
@@ -87,7 +92,13 @@ def forecast(
         Name of the bandpass filter method to use with the cascade decomposition.
         See the documentation of pysteps.cascade.interface.
     ar_order: int, optional
-        The order of the autoregressive model to use. Must be >= 1.
+        The order of the autoregressive integrated model to use. Must be >= 1.
+    d_order: int, optional
+        The differencing order of the autoregressive integrated model to use.
+        Must be >= 0. If d == 0, then ARI(p,0) == AR(p), as used in S-PROG model.
+    ar_window_radius: int or list, optional
+        The radius of the window to use for determining the parameters of the
+        autoregressive integrated model. Set to None to disable localization.
     conditional: bool, optional
         If set to True, compute the statistics of the precipitation field
         conditionally by excluding pixels where the values are
@@ -110,7 +121,7 @@ def forecast(
         the recommended method is 'pyfftw'.
     domain: {"spatial", "spectral"}
         If "spatial", all computations are done in the spatial domain (the
-        classical S-PROG model). If "spectral", the AR(2) models are applied
+        classical S-PROG model). If "spectral", the ARI(p,d) models are applied
         directly in the spectral domain to reduce memory footprint and improve
         performance :cite:`PCH2019a`.
     extrap_kwargs: dict, optional
@@ -138,10 +149,10 @@ def forecast(
 
     References
     ----------
-    :cite:`Seed2003`, :cite:`PCH2019a`
+    :cite:`Seed2003`, :cite:`PCH2019a`, :cite:`RRR2022`
     """
 
-    _check_inputs(precip, velocity, timesteps, ar_order)
+    _check_inputs(precip, velocity, timesteps, ar_order, d_order, ar_window_radius)
 
     if extrap_kwargs is None:
         extrap_kwargs = dict()
@@ -155,7 +166,16 @@ def forecast(
     if precip_thr is None:
         raise ValueError("precip_thr required but not specified")
 
-    print("Computing S-PROG nowcast")
+    # Fix length of ar_windows_radius for localization
+    if ar_window_radius is None:
+        ar_window_radius = np.full(n_cascade_levels, np.inf)
+    elif isinstance(ar_window_radius, int):
+        ar_window_radius = np.full(n_cascade_levels, ar_window_radius)
+    elif isinstance(ar_window_radius, list):
+        # Use user-defined window sizes
+        ar_window_radius = np.array(ar_window_radius)
+
+    print("Computing S-PROG-LOC nowcast")
     print("------------------------")
     print("")
 
@@ -183,7 +203,9 @@ def forecast(
         print(f"time steps:               {timesteps}")
     print(f"parallel threads:         {num_workers}")
     print(f"number of cascade levels: {n_cascade_levels}")
-    print(f"order of the AR(p) model: {ar_order}")
+    print(f"order of the ARI(p,d) model: {ar_order}")
+    print(f"differencing order of the ARI(p,d) model: {d_order}")
+    print(f"ARI(p,d) window radius:      {ar_window_radius}")
     print(f"precip. intensity threshold: {precip_thr}")
 
     if measure_time:
@@ -203,7 +225,7 @@ def forecast(
 
     extrapolator_method = extrapolation.get_method(extrap_method)
 
-    precip = precip[-(ar_order + 1) :, :, :].copy()
+    precip = precip[-(ar_order + d_order + 1) :, :, :].copy()
     precip_min = np.nanmin(precip)
 
     # determine the domain mask from non-finite values
@@ -243,10 +265,10 @@ def forecast(
 
     def f(precip, i):
         return extrapolator_method(
-            precip[i, :], velocity, ar_order - i, "min", **extrap_kwargs
+            precip[i, :], velocity, ar_order + d_order - i, "min", **extrap_kwargs
         )[-1]
 
-    for i in range(ar_order):
+    for i in range(ar_order + d_order):
         if not DASK_IMPORTED:
             precip[i, :, :] = f(precip, i)
         else:
@@ -265,7 +287,7 @@ def forecast(
 
     # compute the cascade decompositions of the input precipitation fields
     precip_decomp = []
-    for i in range(ar_order + 1):
+    for i in range(ar_order + d_order + 1):
         precip_ = decomp_method(
             precip[i, :, :],
             bp_filter,
@@ -279,22 +301,44 @@ def forecast(
         precip_decomp.append(precip_)
 
     # rearrange the cascade levels into a four-dimensional array of shape
-    # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
+    # (n_cascade_levels,ar_order+d_order+1,m,n) for the autoregressive integrated model
     precip_cascades = nowcast_utils.stack_cascades(
         precip_decomp, n_cascade_levels, convert_to_full_arrays=True
     )
 
-    # compute lag-l temporal autocorrelation coefficients for each cascade level
-    gamma = np.empty((n_cascade_levels, ar_order))
+    # compute localized lag-l temporal autocorrelation coefficients for each cascade level
+    gamma = np.empty((n_cascade_levels, ar_order, m, n))
     for i in range(n_cascade_levels):
-        if domain == "spatial":
-            gamma[i, :] = correlation.temporal_autocorrelation(
-                precip_cascades[i], mask=mask_thr
+        gamma_ = np.array(
+            correlation.temporal_autocorrelation(
+                precip_cascades[i],
+                d=d_order,
+                domain=domain,
+                x_shape=(m, n),
+                mask=mask_thr,
+                window=gamma_filter_method,
+                window_radius=ar_window_radius[i],
             )
-        else:
-            gamma[i, :] = correlation.temporal_autocorrelation(
-                precip_cascades[i], domain="spectral", x_shape=precip.shape[1:]
-            )
+        )
+        # Adjust shape if no localization
+        if gamma_.ndim == 1:
+            for j in range(len(gamma_)):
+                gamma[i, j] = np.full((m, n), gamma_[j])
+        # Assign values if localization
+        elif gamma_.ndim == 3:
+            gamma[i, :] = gamma_
+
+    # Adjust autocorrelation coefficients by the coefficient factor
+    gamma *= gamma_factor
+    gamma[gamma >= 1] = 0.999999
+
+    if ar_order == 2:
+        # adjust the lag-2 correlation coefficient to ensure that the ARI(p,d)
+        # process is stationary
+        for i in range(n_cascade_levels):
+            gamma[i, 1] = autoregression.adjust_lag2_corrcoef2(gamma[i, 0], gamma[i, 1])
+
+    nowcast_utils.print_corrcoefs(np.nanmean(gamma, axis=(-2, -1)))
 
     precip_cascades = nowcast_utils.stack_cascades(
         precip_decomp, n_cascade_levels, convert_to_full_arrays=False
@@ -302,25 +346,26 @@ def forecast(
 
     precip_decomp = precip_decomp[-1]
 
-    nowcast_utils.print_corrcoefs(gamma)
-
-    if ar_order == 2:
-        # adjust the lag-2 correlation coefficient to ensure that the AR(p)
-        # process is stationary
-        for i in range(n_cascade_levels):
-            gamma[i, 1] = autoregression.adjust_lag2_corrcoef2(gamma[i, 0], gamma[i, 1])
-
-    # estimate the parameters of the AR(p) model from the autocorrelation
+    # estimate the parameters of the ARI(p,d) model from the autocorrelation
     # coefficients
-    phi = np.empty((n_cascade_levels, ar_order + 1))
+    phi = np.empty((n_cascade_levels, ar_order + d_order + 1, m, n))
     for i in range(n_cascade_levels):
-        phi[i, :] = autoregression.estimate_ar_params_yw(gamma[i, :])
+        if ar_order > 2 or d_order > 1:
+            phi[i, :] = autoregression.estimate_ar_params_yw_localized(
+                gamma[i], d=d_order
+            )
+        elif ar_order == 2:
+            phi[i, :] = autoregression.estimate_ar2_params_yw_localized(gamma[i], d=d_order)
+        elif ar_order == 1:
+            phi[i, :] = autoregression.estimate_ar1_params_yw_localized(gamma[i], d=d_order)
 
-    nowcast_utils.print_ar_params(phi)
+    nowcast_utils.print_ar_params(np.nanmean(np.array(phi), axis=(-2, -1)))
 
-    # discard all except the p-1 last cascades because they are not needed for
-    # the AR(p) model
-    precip_cascades = [precip_cascades[i][-ar_order:] for i in range(n_cascade_levels)]
+    # discard all except the p+d-1 last cascades because they are not needed for
+    # the ARI(p,d) model
+    precip_cascades = [
+        precip_cascades[i][-(ar_order + d_order) :] for i in range(n_cascade_levels)
+    ]
 
     if probmatching_method == "mean":
         mu_0 = np.mean(precip[-1, :, :][precip[-1, :, :] >= precip_thr])
@@ -377,11 +422,11 @@ def forecast(
         return precip_forecast
 
 
-def _check_inputs(precip, velocity, timesteps, ar_order):
+def _check_inputs(precip, velocity, timesteps, ar_order, d_order, ar_window_radius):
     if precip.ndim != 3:
         raise ValueError("precip must be a three-dimensional array")
-    if precip.shape[0] < ar_order + 1:
-        raise ValueError("precip.shape[0] < ar_order+1")
+    if precip.shape[0] < ar_order + d_order + 1:
+        raise ValueError("precip.shape[0] < ar_order+d_order+1")
     if velocity.ndim != 3:
         raise ValueError("velocity must be a three-dimensional array")
     if precip.shape[1:3] != velocity.shape[1:3]:
@@ -391,6 +436,9 @@ def _check_inputs(precip, velocity, timesteps, ar_order):
         )
     if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
         raise ValueError("timesteps is not in ascending order")
+    if ar_window_radius is not None:
+        if not isinstance(ar_window_radius, (int, list)):
+            raise ValueError("ar_window_radius type must be None, int or list")
 
 
 def _update(state, params):
