@@ -352,6 +352,7 @@ class StepsBlendingParams:
 class StepsBlendingState:
     # Radar and noise states
     precip_cascades: np.ndarray | None = None
+    precip_nowcast_cascades: np.ndarray | None = None
     precip_noise_input: np.ndarray | None = None
     precip_noise_cascades: np.ndarray | None = None
     precip_mean_noise: np.ndarray | None = None
@@ -2102,7 +2103,7 @@ class StepsBlendingNowcaster:
 
             worker_state.precip_extrapolated_probability_matching = np.stack(
                 worker_state.precip_extrapolated_probability_matching
-            )[None, :]
+            )  # [None, :]
 
         else:
             # Extrapolate per sub time step
