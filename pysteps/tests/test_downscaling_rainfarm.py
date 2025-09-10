@@ -8,13 +8,12 @@ from pysteps.utils import aggregate_fields_space, square_domain, aggregate_field
 
 
 @pytest.fixture(scope="module")
-def data():
-    precip, metadata = get_precipitation_fields(
+def dataset():
+    precip_dataset = get_precipitation_fields(
         num_prev_files=0, num_next_files=0, return_raw=False, metadata=True
     )
-    precip = precip.filled()
-    precip, metadata = square_domain(precip, metadata, "crop")
-    return precip, metadata
+    precip_dataset = square_domain(precip_dataset, "crop")
+    return precip_dataset
 
 
 rainfarm_arg_names = (
@@ -35,7 +34,7 @@ rainfarm_arg_values = [
 
 @pytest.mark.parametrize(rainfarm_arg_names, rainfarm_arg_values)
 def test_rainfarm_shape(
-    data,
+    dataset,
     alpha,
     ds_factor,
     threshold,
@@ -44,13 +43,13 @@ def test_rainfarm_shape(
     kernel_type,
 ):
     """Test that the output of rainfarm is consistent with the downscaling factor."""
-    precip, metadata = data
-    window = metadata["xpixelsize"] * ds_factor
-    precip_lr, __ = aggregate_fields_space(precip, metadata, window)
+    precip_var = dataset.attrs["precip_var"]
+    window = dataset.x.attrs["stepsize"] * ds_factor
+    precip_lr_dataset = aggregate_fields_space(dataset, window)
 
     rainfarm = downscaling.get_method("rainfarm")
-    precip_hr = rainfarm(
-        precip_lr,
+    precip_hr_dataset = rainfarm(
+        precip_lr_dataset,
         alpha=alpha,
         ds_factor=ds_factor,
         threshold=threshold,
@@ -59,9 +58,15 @@ def test_rainfarm_shape(
         kernel_type=kernel_type,
     )
 
-    assert precip_hr.ndim == precip.ndim
-    assert precip_hr.shape[0] == precip.shape[0]
-    assert precip_hr.shape[1] == precip.shape[1]
+    assert precip_hr_dataset[precip_var].values.ndim == dataset[precip_var].values.ndim
+    assert (
+        precip_hr_dataset[precip_var].values.shape[0]
+        == dataset[precip_var].values.shape[0]
+    )
+    assert (
+        precip_hr_dataset[precip_var].values.shape[1]
+        == dataset[precip_var].values.shape[1]
+    )
 
 
 rainfarm_arg_values = [
@@ -74,7 +79,7 @@ rainfarm_arg_values = [
 
 @pytest.mark.parametrize(rainfarm_arg_names, rainfarm_arg_values)
 def test_rainfarm_aggregate(
-    data,
+    dataset,
     alpha,
     ds_factor,
     threshold,
@@ -83,13 +88,13 @@ def test_rainfarm_aggregate(
     kernel_type,
 ):
     """Test that the output of rainfarm is equal to original when aggregated."""
-    precip, metadata = data
-    window = metadata["xpixelsize"] * ds_factor
-    precip_lr, __ = aggregate_fields_space(precip, metadata, window)
+    precip_var = dataset.attrs["precip_var"]
+    window = dataset.x.attrs["stepsize"] * ds_factor
+    precip_lr_dataset = aggregate_fields_space(dataset, window)
 
     rainfarm = downscaling.get_method("rainfarm")
-    precip_hr = rainfarm(
-        precip_lr,
+    precip_hr_dataset = rainfarm(
+        precip_lr_dataset,
         alpha=alpha,
         ds_factor=ds_factor,
         threshold=threshold,
@@ -97,8 +102,10 @@ def test_rainfarm_aggregate(
         spectral_fusion=spectral_fusion,
         kernel_type=kernel_type,
     )
-    precip_low = aggregate_fields(precip_hr, ds_factor, axis=(0, 1))
+    precip_low_dataset = aggregate_fields(precip_hr_dataset, ds_factor, dim=("y", "x"))
+    precip_lr = precip_lr_dataset[precip_var].values
     precip_lr[precip_lr < threshold] = 0.0
+    precip_low = precip_low_dataset[precip_var].values
 
     np.testing.assert_array_almost_equal(precip_lr, precip_low)
 
@@ -108,7 +115,7 @@ rainfarm_arg_values = [(1.0, 2, 0, True, False, None), (None, 2, 0, True, True, 
 
 @pytest.mark.parametrize(rainfarm_arg_names, rainfarm_arg_values)
 def test_rainfarm_alpha(
-    data,
+    dataset,
     alpha,
     ds_factor,
     threshold,
@@ -117,13 +124,12 @@ def test_rainfarm_alpha(
     kernel_type,
 ):
     """Test that rainfarm computes and returns alpha."""
-    precip, metadata = data
-    window = metadata["xpixelsize"] * ds_factor
-    precip_lr, __ = aggregate_fields_space(precip, metadata, window)
+    window = dataset.x.attrs["stepsize"] * ds_factor
+    precip_lr_dataset = aggregate_fields_space(dataset, window)
 
     rainfarm = downscaling.get_method("rainfarm")
-    precip_hr = rainfarm(
-        precip_lr,
+    precip_hr_dataset = rainfarm(
+        precip_lr_dataset,
         alpha=alpha,
         ds_factor=ds_factor,
         threshold=threshold,
@@ -132,8 +138,8 @@ def test_rainfarm_alpha(
         kernel_type=kernel_type,
     )
 
-    assert len(precip_hr) == 2
+    assert len(precip_hr_dataset) == 2
     if alpha is None:
-        assert not precip_hr[1] == alpha
+        assert not precip_hr_dataset[1] == alpha
     else:
-        assert precip_hr[1] == alpha
+        assert precip_hr_dataset[1] == alpha
