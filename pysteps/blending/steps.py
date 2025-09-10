@@ -2025,17 +2025,11 @@ class StepsBlendingNowcaster:
                     epsilon_decomposed is not None
                     or self.__config.velocity_perturbation_method is not None
                 ):
-                    print("input shape")
-
-                    print(worker_state.precip_cascades.shape)
-                    print(worker_state.precip_cascades.min())
                     worker_state.precip_cascades[j][i] = (
                         autoregression.iterate_ar_model(
                             worker_state.precip_cascades[j][i], self.__params.PHI[i, :]
                         )
                     )
-                    print("output shape")
-                    print(worker_state.precip_cascades.shape)
                     # Renormalize the cascade
                     worker_state.precip_cascades[j][i][1] /= np.std(
                         worker_state.precip_cascades[j][i][1]
