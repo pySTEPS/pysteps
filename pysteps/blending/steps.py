@@ -1081,6 +1081,13 @@ class StepsBlendingNowcaster:
             self.__precip[i, ~np.isfinite(self.__precip[i, :])] = np.nanmin(
                 self.__precip[i, :]
             )
+        if self.__precip_nowcast is not None:
+            self.__precip_nowcast = self.__precip_nowcast.copy()
+            # TODO: check this function for ensemble nowcasts
+            for i in range(self.__precip_nowcast.shape[0]):
+                self.__precip_nowcast[i, ~np.isfinite(self.__precip_nowcast[i, :])] = (
+                    np.nanmin(self.__precip_nowcast[i, :])
+                )
 
         # Perform the cascade decomposition for the input precip fields and,
         # if necessary, for the (NWP) model fields
