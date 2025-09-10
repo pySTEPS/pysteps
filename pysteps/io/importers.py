@@ -65,13 +65,13 @@ The metadata dictionary contains the following recommended key-value pairs:
 |   zr_b           | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
+# XR: Move this to appropriate place
 The data and metadata is then postprocessed into an xarray dataset. This dataset will
 always contain an x and y dimension, but can be extended with a time dimension and/or
 an ensemble member dimension over the course of the process.
 
 The dataset can contain the following coordinate variables:
 
-# XR: Move this to appropriate place
 .. tabularcolumns:: |p{2cm}|L|
 
 +--------------------+-------------------------------------------------------------------------------------------+
@@ -144,20 +144,38 @@ The following data is stored as attributes of the precipitation variable:
 +==================+==========================================================+
 |   units          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
 +------------------+----------------------------------------------------------+
-|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
-|                  | others                                                   |
-+------------------+----------------------------------------------------------+
-|   accutime       | the accumulation time in minutes of the data, float      |
-+------------------+----------------------------------------------------------+
 |   threshold      | the rain/no rain threshold with the same unit,           |
 |                  | transformation and accutime of the data.                 |
 +------------------+----------------------------------------------------------+
 |   zerovalue      | the value assigned to the no rain pixels with the same   |
 |                  | unit, transformation and accutime of the data.           |
 +------------------+----------------------------------------------------------+
+|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|   (optional)     | others                                                   |
++------------------+----------------------------------------------------------+
+|   accutime       | the accumulation time in minutes of the data, float      |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
 |   zr_a           | the Z-R constant a in Z = a*R**b                         |
+|   (optional)     |                                                          |
 +------------------+----------------------------------------------------------+
 |   zr_b           | the Z-R exponent b in Z = a*R**b                         |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
+
+The following data is stored as attributes of the coordinate variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   units          | the unit  e.g. 'm' or 'km' for the cartesian coordinates |
++------------------+----------------------------------------------------------+
+|   stepsize       | the stepsize of the data (in minutes in case of the time |
+|                  | coordinate), this stepsize should be exactly the         |
+|                  | difference between every value of this coordinate and    |
+|                  | the next                                                 |
 +------------------+----------------------------------------------------------+
 
 Furthermore the dataset can contain some additional metadata to make the dataset
