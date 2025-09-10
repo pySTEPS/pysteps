@@ -91,6 +91,8 @@ def forecast(
     bandpass_filter_method: {'gaussian', 'uniform'}, optional
         Name of the bandpass filter method to use with the cascade decomposition.
         See the documentation of pysteps.cascade.interface.
+    gamma_filter_method: {'gaussian', 'uniform'}, optional
+        Name of the filter method for localized gamma values.
     ar_order: int, optional
         The order of the autoregressive integrated model to use. Must be >= 1.
     d_order: int, optional
@@ -99,6 +101,8 @@ def forecast(
     ar_window_radius: int or list, optional
         The radius of the window to use for determining the parameters of the
         autoregressive integrated model. Set to None to disable localization.
+    gamma_factor: float, optional
+        Gamma correction factor to adjust 'manually' lozalized gamma values.
     conditional: bool, optional
         If set to True, compute the statistics of the precipitation field
         conditionally by excluding pixels where the values are
