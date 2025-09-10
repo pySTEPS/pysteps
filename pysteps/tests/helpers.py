@@ -26,6 +26,7 @@ _reference_dates["dwd"] = datetime(2025, 6, 4, 17, 0)
 _reference_dates["opera"] = datetime(2018, 8, 24, 18, 0)
 _reference_dates["saf"] = datetime(2018, 6, 1, 7, 0)
 _reference_dates["mrms"] = datetime(2019, 6, 10, 0, 0)
+_reference_dates["rmi"] = datetime(2021, 7, 4, 18, 5)
 
 
 def assert_dataset_equivalent(dataset1: xr.Dataset, dataset2: xr.Dataset) -> None:
@@ -66,9 +67,12 @@ def get_precipitation_fields(
     Get a precipitation field from the archive to be used as reference.
 
     Source: bom
-    Reference time: 2018/06/16 10000 UTC
+    Reference time: 2018/06/16 1000 UTC
 
     Source: fmi
+    Reference time: 2016/09/28 1600 UTC
+
+    Source: fmi_geotiff
     Reference time: 2016/09/28 1600 UTC
 
     Source: knmi
@@ -88,6 +92,9 @@ def get_precipitation_fields(
 
     Source: mrms
     Reference time: 2019/06/10 0000 UTC
+
+    Source: rmi
+    Reference time: 2021/07/04 1805 UTC
 
     Parameters
     ----------
@@ -111,7 +118,7 @@ def get_precipitation_fields(
         If it is a float, represents the length of the space window that is
         used to upscale the fields.
 
-    source: {"bom", "fmi" , "knmi", "mch", "opera", "saf", "mrms"}, optional
+    source: {"bom", "fmi" , "fmi_geotiff", "knmi", "mch", "dwd", "opera", "saf", "mrms", "rmi"}, optional
         Name of the data source to be used.
 
     log_transform: bool
@@ -160,6 +167,10 @@ def get_precipitation_fields(
 
     if source == "mrms":
         pytest.importorskip("pygrib")
+
+    if source == "rmi":
+        pytest.importorskip("rasterio")
+        pytest.importorskip("pyproj")
 
     try:
         date = _reference_dates[source]

@@ -4,8 +4,6 @@ import pytest
 
 from pysteps.tests.helpers import smart_assert, get_precipitation_fields
 
-pytest.importorskip("PIL")
-
 precip_dataset = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,

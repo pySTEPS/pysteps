@@ -4,10 +4,7 @@ import pytest
 
 from pysteps.tests.helpers import smart_assert, get_precipitation_fields
 
-pytest.importorskip("h5py")
-
 # Test for RADOLAN RY product
-
 precip_dataset = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
@@ -44,8 +41,8 @@ test_ry_attrs = [
     (float(precip_dataset.lon.isel(x=-1, y=-1).values), 18.72270377, 1e-8),
     (float(precip_dataset.lat.isel(x=-1, y=-1).values), 55.84175857, 1e-8),
     (precip_dataset.x.isel(x=0).values, 0.0, 1e-3),
-    (precip_dataset.y.isel(y=0).values, -1199000.0, 1e-3),
-    (precip_dataset.x.isel(x=-1).values, 1100000.0, 1e-3),
+    (precip_dataset.y.isel(y=0).values, -1199000.0, 1e-6),
+    (precip_dataset.x.isel(x=-1).values, 1099000.0, 1e-6),
     (precip_dataset.y.isel(y=-1).values, 0.0, 1e-3),
     (precip_dataset.x.attrs["stepsize"], 1000.0, 1e-10),
     (precip_dataset.y.attrs["stepsize"], 1000.0, 1e-10),

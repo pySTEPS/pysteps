@@ -1,8 +1,7 @@
-import os
+# -*- coding: utf-8 -*-
 
 import pytest
 
-import pysteps
 from pysteps.tests.helpers import smart_assert, get_precipitation_fields
 
 precip_dataset = get_precipitation_fields(
@@ -29,19 +28,20 @@ expected_proj = (
 
 # test_geodata: list of (variable,expected,tolerance) tuples
 test_geodata = [
-    ("projection", expected_proj, None),
-    ("x1", -196593.0043142295908183, 1e-10),
-    ("x2", 1044176.9413554778, 1e-10),
-    ("y1", 6255329.6988206729292870, 1e-10),
-    ("y2", 8084432.005259146, 1e-10),
-    ("xpixelsize", 250.0040188736061566, 1e-6),
-    ("ypixelsize", 250.0139839309011904, 1e-6),
-    ("cartesian_unit", "m", None),
-    ("yorigin", "upper", None),
+    (precip_dataset.attrs["projection"], expected_proj, None),
+    (precip_dataset.attrs["institution"], "Finnish Meteorological Institute", None),
+    (precip_dataset.x.isel(x=0).values, -196468.00230479, 1e-10),
+    (precip_dataset.y.isel(y=0).values, 6255454.70581264, 1e-10),
+    (precip_dataset.x.isel(x=-1).values, 1044051.93934604, 1e-10),
+    (precip_dataset.y.isel(y=-1).values, 8084306.99826718, 1e-10),
+    (precip_dataset.x.attrs["stepsize"], 250.0040188736061566, 1e-10),
+    (precip_dataset.y.attrs["stepsize"], 250.0139839309011904, 1e-10),
+    (precip_dataset.x.attrs["units"], "m", None),
+    (precip_dataset.y.attrs["units"], "m", None),
 ]
 
 
 @pytest.mark.parametrize("variable, expected, tolerance", test_geodata)
 def test_io_import_fmi_pgm_geodata(variable, expected, tolerance):
     """Test the GeoTIFF and metadata reading."""
-    smart_assert(metadata[variable], expected, tolerance)
+    smart_assert(variable, expected, tolerance)
