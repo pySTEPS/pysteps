@@ -11,7 +11,7 @@ pytest.importorskip("PIL")
 
 root_path = pysteps.rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20170131", "AQC170310945F_00005.801.gif")
-dataset = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
+precip, _, metadata = pysteps.io.import_mch_gif(filename, "AQC", "mm", 5.0)
 
 
 def test_io_import_mch_gif_shape():
