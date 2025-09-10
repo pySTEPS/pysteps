@@ -1082,8 +1082,27 @@ class StepsBlendingNowcaster:
             )
             precip_forecast_decomp.append(precip_forecast)
         
-        
+        #Decompose precomputed nowcasts and rearange them again into the required components
+        if self.__precip_nowcast is not None:
+            precip_nowcast_decomp = []
+            for i in range(self.__precip_nowcast.shape[0]):
+                cascades = self.__params.decomposition_method(
+                    self.__precip_nowcast[i],
+                    self.__params.bandpass_filter, 
+                    n_levels=self.__config.n_cascade_levels,
+                    mask=self.__params.mask_threshold, 
+                    method="fft",
+                    fft_method=self.__params.fft,    
+                    output_domain=self.__config.domain,
+                    compute_stats=True,
+                    normalize=True,
+                    compact_output=True)
 
+                precip_nowcast_decomp.append(cascades)
+            
+            self.__state.precip_nowcast_cascades = nowcast_utils.stack_cascades(
+                    precip_nowcast_decomp, self.__config.n_cascade_levels
+                )
 
         # Rearrange the cascaded into a four-dimensional array of shape
         # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
@@ -1094,29 +1113,6 @@ class StepsBlendingNowcaster:
         precip_forecast_decomp = precip_forecast_decomp[-1]
         self.__state.mean_extrapolation = np.array(precip_forecast_decomp["means"])
         self.__state.std_extrapolation = np.array(precip_forecast_decomp["stds"])
-
-        # #NEW
-        # #Decompose precomputed nowcasts and rearange them again into the required components
-        # if self.__precip_nowcast != None:
-        #     precip_nowcast_decomp = []
-        #     for i in range(len(self.__precip_nowcast[0])):
-        #         precip_nowcast = self.__params.decomposition_method(
-        #             self.__precip_nowcast[i, :, :],
-        #             self.__params.bandpass_filter,
-        #             mask=self.__params.mask_threshold,
-        #             fft_method=self.__params.fft,
-        #             output_domain=self.__config.domain,
-        #             normalize=True,
-        #             compute_stats=True,
-        #             compact_output=True,
-        #         )
-        #         precip_nowcast_decomp.append(precip_nowcast)
-
-        # Rearrange the cascaded into a four-dimensional array of shape
-        # (n_cascade_levels,ar_order+1,m,n) for the autoregressive model
-        # self.__state.precip_nowcast_cascades = nowcast_utils.stack_cascades(
-        #     precip_nowcast_decomp, self.__config.n_cascade_levels
-        # )
 
         # If necessary, recompose (NWP) model forecasts
         self.__state.precip_models_cascades = None
@@ -1993,21 +1989,19 @@ class StepsBlendingNowcaster:
 
         #If nowcast method seleced is External nowcasting, n_ens members has to be 1
         if self.__config.nowcasting_method == 'External nowcasting':
-            print('Using nowcasting method1:', self.__config.nowcasting_method)
+            print('Using nowcasting method:', self.__config.nowcasting_method)
             if self.__config.n_ens_members != 1:
                 raise ValueError(
                     "number of ensemble members must be one when using deterministic External nowcasting as the nowcast!"
                 )
             for i in range(self.__config.n_cascade_levels):
-                # apply AR(p) process to extrapolation cascade level
-                # use the deterministic DGMR model computed externally if
-                # perturbations are disabled
+                # Use a deterministic Externally computed nowcasting model
                 worker_state.precip_cascades[j][i] = (
-                    self.__precip_nowcast[i][t:t+1]
+                    self.__state.precip_nowcast_cascades[i][t]
                 )
                 
         elif self.__config.nowcasting_method == 'STEPS':
-            print('Using nowcasting method2:', self.__config.nowcasting_method)
+            print('Using nowcasting method:', self.__config.nowcasting_method)
             for i in range(self.__config.n_cascade_levels):
                 # apply AR(p) process to extrapolation cascade level
                 if (
@@ -2076,11 +2070,6 @@ class StepsBlendingNowcaster:
             for i in range(self.__config.n_cascade_levels):
                 precip_extrapolated_decomp = worker_state.precip_cascades[j][i][-1, :]
                 noise_extrapolated_decomp = worker_state.precip_noise_cascades[j][i][-1, :]
-                print('type nowcast:', type(worker_state.precip_extrapolated_decomp))
-                print('before appending:', precip_extrapolated_decomp.shape)
-                # print('Shape inserted nowcast:', worker_state.precip_extrapolated_decomp.shape)
-                # worker_state.noise_extrapolated_decomp = None
-                # worker_state.precip_extrapolated_probability_matching = None
                 worker_state.time_prev_timestep[j] = t + 1
                 
                 worker_state.precip_extrapolated_decomp.append(
@@ -2104,10 +2093,12 @@ class StepsBlendingNowcaster:
             # worker_state.precip_extrapolated_probability_matching = np.stack(
             #     worker_state.precip_extrapolated_probability_matching
             # )[None,:]
+
+            # Placeholder so the preparation for probability matching does not fail
             worker_state.precip_extrapolated_probability_matching = np.zeros_like(
             worker_state.precip_extrapolated_decomp[0]
             )
-            # print(worker_state.noise_extrapolated_decomp)
+
         else:
             # Extrapolate per sub time step
             for t_sub in worker_state.subtimesteps:
@@ -2458,7 +2449,6 @@ class StepsBlendingNowcaster:
             np.array(worker_state.subtimesteps) == t_sub
         )[0][0]
 
-        print('subtimestep_index:', worker_state.subtimestep_index)
         # First concatenate the cascades and the means and sigmas
         # precip_models = [n_models,timesteps,n_cascade_levels,m,n]
 
@@ -2522,12 +2512,6 @@ class StepsBlendingNowcaster:
                 axis=0,
             )
         elif self.__config.nowcasting_method == 'External nowcasting':
-            print('shape nowcast:',np.shape(worker_state.precip_extrapolated_decomp[
-                        None, worker_state.subtimestep_index
-                    ]))
-            print('shape nwp:',np.shape(worker_state.precip_extrapolated_decomp[
-                        None, worker_state.subtimestep_index
-                    ]))
             cascade_stack_all_components = np.concatenate(
                 (
                     worker_state.precip_extrapolated_decomp[
@@ -2560,8 +2544,6 @@ class StepsBlendingNowcaster:
                 axis=0,
             )
         else:
-            print('Shape nowcast in blending:', type(worker_state.precip_extrapolated_decomp))
-            print('Shape nwp in blending 2nd:', type(worker_state.precip_models_cascades_timestep))
             cascade_stack_all_components = np.concatenate(
                 
                 (
@@ -2630,10 +2612,17 @@ class StepsBlendingNowcaster:
 
         print('weights all levels:',worker_state.weights[:,:])
         
-        # Blend the extrapolation, (NWP) model(s) and noise cascades
-        worker_state.final_blended_forecast_cascades = blending.utils.blend_cascades(
-            cascades_norm=cascade_stack_all_components, weights=worker_state.weights
-        )
+
+        if self.__config.nowcasting_method == 'External nowcasting':
+            # Blend the extrapolation, (NWP) model(s) and noise cascades
+            worker_state.final_blended_forecast_cascades = blending.utils.blend_cascades(
+                cascades_norm=cascade_stack_all_components, weights=worker_state.weights
+            )
+        else:
+            # Blend the extrapolation, (NWP) model(s) and noise cascades
+            worker_state.final_blended_forecast_cascades = blending.utils.blend_cascades(
+                cascades_norm=cascade_stack_all_components, weights=worker_state.weights_with_noise
+            )
 
         # Also blend the cascade without the extrapolation component
         worker_state.final_blended_forecast_cascades_mod_only = (
