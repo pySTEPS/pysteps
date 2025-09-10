@@ -890,9 +890,10 @@ class StepsBlendingNowcaster:
         print(
             f"input dimensions:            {self.__precip.shape[1]}x{self.__precip.shape[2]}"
         )
-        print(
-            f"input dimensions pre-computed nowcast:            {self.__precip_nowcast.shape[1]}x{self.__precip_nowcast.shape[2]}"
-        )
+        if self.__precip_nowcast is not None:
+            print(
+                f"input dimensions pre-computed nowcast:            {self.__precip_nowcast.shape[1]}x{self.__precip_nowcast.shape[2]}"
+            )
         if self.__config.kmperpixel is not None:
             print(f"km/pixel:                    {self.__config.kmperpixel}")
         if self.__config.timestep is not None:
