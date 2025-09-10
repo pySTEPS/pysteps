@@ -6,10 +6,32 @@ from numpy.testing import assert_array_almost_equal
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.verification import spatialscores
 
-R = get_precipitation_fields(num_prev_files=1, return_raw=True)
+precip_dataset = get_precipitation_fields(num_prev_files=1, return_raw=True)
+
+precip_var = precip_dataset.attrs["precip_var"]
+precip_dataarray = precip_dataset[precip_var]
+
+# XR: the scorring code has not been made xarray compatible, so we need to convert to numpy arrays. Once changed we can properly test these scores with xarray DataArrays
+# BUG: the tests for BMSE below reverse the arrays with [::-1], this should be fixed in the scoring code
 test_data = [
-    (R[0], R[1], "FSS", [1], [10], None, 0.85161531),
-    (R[0], R[1], "BMSE", [1], None, "Haar", 0.99989651),
+    (
+        precip_dataarray.isel(time=0).values,
+        precip_dataarray.isel(time=1).values,
+        "FSS",
+        [1],
+        [10],
+        None,
+        0.85161531,
+    ),
+    (
+        precip_dataarray.isel(time=0).values[::-1],
+        precip_dataarray.isel(time=1).values[::-1],
+        "BMSE",
+        [1],
+        None,
+        "Haar",
+        0.99989651,
+    ),
 ]
 
 
@@ -25,10 +47,36 @@ def test_intensity_scale(X_f, X_o, name, thrs, scales, wavelet, expected):
     )
 
 
-R = get_precipitation_fields(num_prev_files=3, return_raw=True)
+precip_dataset = get_precipitation_fields(num_next_files=3, return_raw=True)
+
+precip_var = precip_dataset.attrs["precip_var"]
+precip_dataarray = precip_dataset[precip_var]
+
 test_data = [
-    (R[:2], R[2:], "FSS", [1], [10], None),
-    (R[:2], R[2:], "BMSE", [1], None, "Haar"),
+    (
+        precip_dataarray.isel(time=slice(0, 2)).values,
+        precip_dataarray.isel(
+            time=slice(
+                2,
+            )
+        ).values,
+        "FSS",
+        [1],
+        [10],
+        None,
+    ),
+    (
+        precip_dataarray.isel(time=slice(0, 2)).values,
+        precip_dataarray.isel(
+            time=slice(
+                2,
+            )
+        ).values,
+        "BMSE",
+        [1],
+        None,
+        "Haar",
+    ),
 ]
 
 

@@ -434,10 +434,8 @@ def load_dataset(case="fmi", frames=14):
 
     Returns
     -------
-    rainrate: array-like
-        Precipitation data in mm/h. Dimensions: [time, lat, lon]
-    metadata: dict
-        The metadata observations attributes.
+    rainrate: Dataset
+        A dataset containing the precipitation data in mm/h and quality rasters and associated metadata. Dimensions: [time, lat, lon]
     timestep: number
         Time interval between composites in minutes.
     """
@@ -476,11 +474,11 @@ def load_dataset(case="fmi", frames=14):
     # Read the radar composites
     importer = io.get_method(data_source["importer"], "importer")
     importer_kwargs = data_source["importer_kwargs"]
-    reflectivity, _, metadata = io.read_timeseries(
-        file_names, importer, **importer_kwargs
+    reflectivity = io.read_timeseries(
+        file_names, importer, timestep=data_source["timestep"], **importer_kwargs
     )
 
     # Convert to rain rate
-    precip, metadata = conversion.to_rainrate(reflectivity, metadata)
+    precip = conversion.to_rainrate(reflectivity)
 
-    return precip, metadata, data_source["timestep"]
+    return precip, data_source["timestep"]
