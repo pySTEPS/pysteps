@@ -59,6 +59,7 @@ precip_dataset = conversion.to_rainrate(precip_dataset)
 precip_var = precip_dataset.attrs["precip_var"]
 
 # Upscale data to 2 km to limit memory usage
+precip_dataset = dimension.aggregate_fields_space(precip_dataset, 2000)
 
 # XR: change plot_precip_fields to take in an xarray and remove
 # geodata, derive geodata from xarray?
