@@ -215,6 +215,7 @@ from matplotlib.pyplot import imread
 from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 try:
     from osgeo import gdal, gdalconst, osr
@@ -550,7 +551,7 @@ def _import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         cartesian_unit="degrees",
     )
 
-    return precip, None, metadata
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 @postprocess_import()

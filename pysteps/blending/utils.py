@@ -47,46 +47,6 @@ except ImportError:
     CV2_IMPORTED = False
 
 
-def stack_cascades(R_d, donorm=True):
-    """Stack the given cascades into a larger array.
-
-    Parameters
-    ----------
-    R_d : dict
-      Dictionary containing a list of cascades obtained by calling a method
-      implemented in pysteps.cascade.decomposition.
-    donorm : bool
-      If True, normalize the cascade levels before stacking.
-
-    Returns
-    -------
-    out : tuple
-      A three-element tuple containing a four-dimensional array of stacked
-      cascade levels and arrays of mean values and standard deviations for each
-      cascade level.
-    """
-    R_c = []
-    mu_c = []
-    sigma_c = []
-
-    for cascade in R_d:
-        R_ = []
-        R_i = cascade["cascade_levels"]
-        n_levels = R_i.shape[0]
-        mu_ = np.asarray(cascade["means"])
-        sigma_ = np.asarray(cascade["stds"])
-        if donorm:
-            for j in range(n_levels):
-                R__ = (R_i[j, :, :] - mu_[j]) / sigma_[j]
-                R_.append(R__)
-        else:
-            R_ = R_i
-        R_c.append(np.stack(R_))
-        mu_c.append(mu_)
-        sigma_c.append(sigma_)
-    return np.stack(R_c), np.stack(mu_c), np.stack(sigma_c)
-
-
 def blend_cascades(cascades_norm, weights):
     """Calculate blended normalized cascades using STEPS weights following eq.
     10 in :cite:`BPS2006`.

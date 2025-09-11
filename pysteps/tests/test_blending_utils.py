@@ -13,10 +13,7 @@ from pysteps.blending.utils import (
     blend_optical_flows,
     compute_smooth_dilated_mask,
     preprocess_and_store_nwp_data,
-    decompose_NWP,
-    load_NWP,
     recompose_cascade,
-    stack_cascades,
 )
 from pysteps.utils.check_norain import check_norain
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
@@ -100,27 +97,11 @@ weights = np.full((2, 8), fill_value=0.5)
 
 # Set the testing arguments
 # Test function arguments
-utils_arg_names = (
-    "precip_nwp_dataset",
-    "nwp_model",
-    "issue_times",
-    "timestep",
-    "n_timesteps",
-    "shape",
-    "weights",
-)
+utils_arg_names = ("precip_nwp_dataset", "nwp_model", "issue_times", "weights")
 
 # Test function values
 utils_arg_values = [
-    (
-        precip_nwp_dataset,
-        "test",
-        [issue_time_first, issue_time_second],
-        5.0,
-        3,
-        precip_nwp_dataset[nwp_precip_var].values.shape[1:],
-        weights,
-    )
+    (precip_nwp_dataset, "test", [issue_time_first, issue_time_second], weights)
 ]
 
 smoothing_arg_names = (
@@ -145,15 +126,7 @@ smoothing_arg_values = [
 ###
 @pytest.mark.parametrize(utils_arg_names, utils_arg_values)
 # The test function to be used
-def test_blending_utils(
-    precip_nwp_dataset,
-    nwp_model,
-    issue_times,
-    timestep,
-    n_timesteps,
-    shape,
-    weights,
-):
+def test_blending_utils(precip_nwp_dataset, nwp_model, issue_times, weights):
     """Tests if all blending utils functions behave correctly."""
 
     # First, make the output path if it does not exist yet
@@ -204,87 +177,110 @@ def test_blending_utils(
     ###
     # Now check if files load correctly for two different issue times
     ###
-    with xr.open_dataset(preprocessed_file) as nwp_file:
-        precip_decomposed_nwp_first, v_nwp_first = load_NWP(
-            input_nc_path_decomp=os.path.join(decomp_file),
-            input_path_velocities=os.path.join(preprocessed_file),
-            start_time=issue_times[0],
-            n_timesteps=n_timesteps,
-        )
-
-        precip_decomposed_nwp_second, v_nwp_second = load_NWP(
-            input_nc_path_decomp=os.path.join(decomp_file),
-            input_path_velocities=os.path.join(preprocessed_file),
-            start_time=issue_times[1],
-            n_timesteps=n_timesteps,
-        )
+    with xr.open_dataset(preprocessed_file) as nwp_file_dataset:
+        nwp_file_dataset_first = nwp_file_dataset.sel(time=issue_times[0])
+        nwp_file_dataset_second = nwp_file_dataset.sel(time=issue_times[1])
+        precip_var = nwp_file_dataset.attrs["precip_var"]
 
         # Check, for a sample, if the stored motion fields are as expected
         assert_array_almost_equal(
-            v_nwp_first[1],
-            oflow_method(precip_nwp_dataset[0:2, :, :]),
+            nwp_file_dataset_first.velocity_x.values,
+            oflow_method(precip_nwp_dataset.isel(time=slice(0, 2))).velocity_x.values,
             decimal=3,
             err_msg="Stored motion field of first forecast not equal to expected motion field",
         )
         assert_array_almost_equal(
-            v_nwp_second[1],
-            oflow_method(precip_nwp_dataset[3:5, :, :]),
+            nwp_file_dataset_first.velocity_y.values,
+            oflow_method(precip_nwp_dataset.isel(time=slice(0, 2))).velocity_y.values,
+            decimal=3,
+            err_msg="Stored motion field of first forecast not equal to expected motion field",
+        )
+        assert_array_almost_equal(
+            nwp_file_dataset_second.velocity_x.values,
+            oflow_method(precip_nwp_dataset.isel(time=slice(3, 5))).velocity_x.values,
             decimal=3,
             err_msg="Stored motion field of second forecast not equal to expected motion field",
         )
-
-        ###
-        # Stack the cascades
-        ###
-        precip_decomposed_first_stack, mu_first_stack, sigma_first_stack = (
-            stack_cascades(R_d=precip_decomposed_nwp_first, donorm=False)
+        assert_array_almost_equal(
+            nwp_file_dataset_second.velocity_y.values,
+            oflow_method(precip_nwp_dataset.isel(time=slice(3, 5))).velocity_y.values,
+            decimal=3,
+            err_msg="Stored motion field of second forecast not equal to expected motion field",
         )
-
-        print(precip_decomposed_nwp_first)
-        print(precip_decomposed_first_stack)
-        print(mu_first_stack)
-
-        (
-            precip_decomposed_second_stack,
-            mu_second_stack,
-            sigma_second_stack,
-        ) = stack_cascades(R_d=precip_decomposed_nwp_second, donorm=False)
-
-        # Check if the array shapes are still correct
-        assert precip_decomposed_first_stack.shape == (
-            n_timesteps + 1,
-            8,
-            shape[0],
-            shape[1],
-        )
-        assert mu_first_stack.shape == (n_timesteps + 1, 8)
-        assert sigma_first_stack.shape == (n_timesteps + 1, 8)
 
         ###
         # Blend the cascades
         ###
         precip_decomposed_blended = blend_cascades(
             cascades_norm=np.stack(
-                (precip_decomposed_first_stack[0], precip_decomposed_second_stack[0])
+                (
+                    nwp_file_dataset_first[precip_var].values,
+                    nwp_file_dataset_second[precip_var].values,
+                )
             ),
             weights=weights,
         )
 
-        assert precip_decomposed_blended.shape == precip_decomposed_first_stack[0].shape
+        assert (
+            precip_decomposed_blended.shape
+            == nwp_file_dataset_first[precip_var].values.shape
+        )
 
         ###
         # Blend the optical flow fields
         ###
         v_nwp_blended = blend_optical_flows(
-            flows=np.stack((v_nwp_first[1], v_nwp_second[1])), weights=weights[:, 1]
+            flows=np.stack(
+                (
+                    np.array(
+                        [
+                            nwp_file_dataset_first.velocity_x.values,
+                            nwp_file_dataset_first.velocity_y.values,
+                        ]
+                    ),
+                    np.array(
+                        [
+                            nwp_file_dataset_second.velocity_x.values,
+                            nwp_file_dataset_second.velocity_y.values,
+                        ]
+                    ),
+                )
+            ),
+            weights=weights[:, 1],
         )
 
-        assert v_nwp_blended.shape == v_nwp_first[1].shape
+        assert (
+            v_nwp_blended.shape
+            == np.array(
+                [
+                    nwp_file_dataset_first.velocity_x.values,
+                    nwp_file_dataset_first.velocity_y.values,
+                ]
+            ).shape
+        )
         assert_array_almost_equal(
-            v_nwp_blended,
+            v_nwp_blended[0],
             (
-                oflow_method(precip_nwp_dataset[0:2, :, :])
-                + oflow_method(precip_nwp_dataset[3:5, :, :])
+                oflow_method(
+                    precip_nwp_dataset.isel(time=slice(0, 2))
+                ).velocity_x.values
+                + oflow_method(
+                    precip_nwp_dataset.isel(time=slice(3, 5))
+                ).velocity_x.values
+            )
+            / 2,
+            decimal=3,
+            err_msg="Blended motion field does not equal average of the two motion fields",
+        )
+        assert_array_almost_equal(
+            v_nwp_blended[1],
+            (
+                oflow_method(
+                    precip_nwp_dataset.isel(time=slice(0, 2))
+                ).velocity_y.values
+                + oflow_method(
+                    precip_nwp_dataset.isel(time=slice(3, 5))
+                ).velocity_y.values
             )
             / 2,
             decimal=3,
@@ -295,30 +291,30 @@ def test_blending_utils(
         # Recompose the fields (the non-blended fields are used for this here)
         ###
         precip_recomposed_first = recompose_cascade(
-            combined_cascade=precip_decomposed_first_stack[0],
-            combined_mean=mu_first_stack[0],
-            combined_sigma=sigma_first_stack[0],
+            combined_cascade=nwp_file_dataset_first[precip_var].values,
+            combined_mean=nwp_file_dataset_first["means"].values,
+            combined_sigma=nwp_file_dataset_first["stds"].values,
         )
         precip_recomposed_second = recompose_cascade(
-            combined_cascade=precip_decomposed_second_stack[0],
-            combined_mean=mu_second_stack[0],
-            combined_sigma=sigma_second_stack[0],
+            combined_cascade=nwp_file_dataset_second[precip_var].values,
+            combined_mean=nwp_file_dataset_second["means"].values,
+            combined_sigma=nwp_file_dataset_second["stds"].values,
         )
 
         assert_array_almost_equal(
             precip_recomposed_first,
-            precip_nwp_dataset[0, :, :],
+            precip_nwp_dataset.isel(time=0)[nwp_precip_var].values,
             decimal=3,
             err_msg="Recomposed field of first forecast does not equal original field",
         )
         assert_array_almost_equal(
             precip_recomposed_second,
-            precip_nwp_dataset[3, :, :],
+            precip_nwp_dataset.isel(time=3)[nwp_precip_var].values,
             decimal=3,
             err_msg="Recomposed field of second forecast does not equal original field",
         )
 
-        precip_arr = precip_nwp_dataset
+        precip_arr = precip_nwp_dataset[nwp_precip_var].values
         # rainy fraction is 0.005847
         assert not check_norain(precip_arr, win_fun=None)
         assert not check_norain(
@@ -364,8 +360,9 @@ def test_blending_smoothing_utils(
     non_linear_growth_kernel_sizes,
 ):
     # First add some nans to indicate a mask
-    precip_nwp_dataset[:, 0:100, 0:100] = np.nan
-    nan_indices = np.isnan(precip_nwp_dataset[0])
+    nwp_precip_var = precip_nwp_dataset.attrs["precip_var"]
+    precip_nwp_dataset[nwp_precip_var].data[:, 0:100, 0:100] = np.nan
+    nan_indices = np.isnan(precip_nwp_dataset[nwp_precip_var].values[0])
     new_mask = compute_smooth_dilated_mask(
         nan_indices,
         max_padding_size_in_px=max_padding_size_in_px,
