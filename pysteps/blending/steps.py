@@ -2747,7 +2747,7 @@ class StepsBlendingNowcaster:
         The final processed forecast is stored in `final_blended_forecast_single_member`.
         """
 
-        weights_probability_matching = worker_state.weights[
+        weights_probability_matching = worker_state.weights_with_noise[
             :-1, 1
         ]  # Weights without noise, level 2
         weights_probability_matching_normalized = weights_probability_matching / np.sum(
@@ -2755,9 +2755,9 @@ class StepsBlendingNowcaster:
         )
 
         # And the weights for outside the radar domain
-        weights_probability_matching_mod_only = worker_state.weights_model_only[
-            :-1, 1
-        ]  # Weights without noise, level 2
+        weights_probability_matching_mod_only = (
+            worker_state.weights_model_only_with_noise[:-1, 1]
+        )  # Weights without noise, level 2
         weights_probability_matching_normalized_mod_only = (
             weights_probability_matching_mod_only
             / np.sum(weights_probability_matching_mod_only)

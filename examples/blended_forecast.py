@@ -216,6 +216,26 @@ for n, leadtime in enumerate(leadtimes_min):
         colorbar=False,
     )
 
+plt.tight_layout()
+plt.show()
+
+
+###############################################################################
+# It is also possible to blend a deterministic external nowcast (e.g. a pre-
+# made nowcast or a deterministic AI-based nowcast) with NWP using the STEPS
+# algorithm. In that case, we add a `precip_nowcast` to `blending.steps.forecast`.
+# By providing an external nowcast, the STEPS blending method will omit the
+# autoregression and advection step for the extrapolation cascade and use the
+# existing external nowcast instead (which will thus be decomposed into
+# multiplicative cascades!). The weights determination and possible post-
+# processings steps will remain the same.
+#
+# Start with creating an external nowcast
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# We go for a simple advection-only nowcast for the example, but this setup can
+# be replaced with any external deterministic nowcast.
+
 
 ################################################################################
 # References
@@ -233,3 +253,9 @@ for n, leadtime in enumerate(leadtimes_min):
 # Seed, A. W., and C. E. Pierce, and K. Norman. 2013. "Formulation and evaluation
 # of a scale decomposition-based stochastic precipitation nowcast scheme." Water
 # Resources Research 49(10): 6624-664. https://doi.org/10.1002/wrcr.20536
+#
+# Imhoff, R.O., L. De Cruz, W. Dewettinck, C.C. Brauer, R. Uijlenhoet, K-J. van
+# Heeringen, C. Velasco-Forero, D. Nerini, M. Van Ginderachter, and A.H. Weerts.
+# 2023. "Scale-dependent blending of ensemble rainfall nowcasts and NWP in the
+# open-source pysteps library". Quarterly Journal of the Royal Meteorological
+# Society 149(753): 1-30. https://doi.org/10.1002/qj.4461
